@@ -1,0 +1,42 @@
+# Grafluent: generic, high-performance graph abstractions for Swift.
+
+load("@rules_xcodeproj//xcodeproj:defs.bzl", "xcodeproj", "xcschemes")
+
+# Test bundles are derived from the directory layout rather than listed: a directory under
+# `Tests/` with a BUILD.bazel holding a swift_test is a test bundle. Listing them by hand means a
+# new suite is invisible in Xcode until somebody remembers to come back here.
+#
+# GrafluentTestSupport lives under Tests/ too, but it is a library, so it is excluded by name.
+TEST_PACKAGES = sorted([
+    package
+    for package in subpackages(include = ["Tests/*"])
+    if package != "Tests/GrafluentTestSupport"
+])
+
+TEST_TARGETS = ["//" + package for package in TEST_PACKAGES]
+
+# A library-only package has nothing to launch, so the project's top-level targets are its test
+# bundles. Every library reaches the project as a dependency of one of them.
+xcodeproj(
+    name = "xcodeproj",
+    project_name = "Grafluent",
+    scheme_autogeneration_mode = "none",
+    top_level_targets = TEST_TARGETS,
+    xcschemes = [
+        xcschemes.scheme(
+            name = "All tests",
+            test = xcschemes.test(
+                test_targets = [xcschemes.test_target(target) for target in TEST_TARGETS],
+            ),
+        ),
+    ] + [
+        # One scheme per test bundle, since a suite is usually worked on alone.
+        xcschemes.scheme(
+            name = package.removeprefix("Tests/"),
+            test = xcschemes.test(
+                test_targets = [xcschemes.test_target("//" + package)],
+            ),
+        )
+        for package in TEST_PACKAGES
+    ],
+)

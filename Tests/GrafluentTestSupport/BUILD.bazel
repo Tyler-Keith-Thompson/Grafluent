@@ -1,0 +1,12 @@
+load("//tools:swift_rules.bzl", "swift_library")
+
+# Shared fixtures, conformance checkers and instrumentation for every test target.
+# Depends only on GraphProtocols, whose Arc and DirectedGraphBuilder the fixtures are written with.
+swift_library(
+    name = "GrafluentTestSupport",
+    testonly = True,
+    srcs = glob(["**/*.swift"]),
+    module_name = "GrafluentTestSupport",
+    deps = ["//Sources/GraphProtocols"],
+    visibility = ["//visibility:public"],
+)

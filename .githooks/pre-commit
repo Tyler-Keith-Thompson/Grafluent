@@ -1,0 +1,16 @@
+#!/bin/sh
+# Pre-commit hook: format staged Swift files.
+# git-format-staged formats only the staged content, leaving unstaged changes untouched.
+#
+# Setup: just setup-hooks
+
+set -e
+
+if ! command -v git-format-staged >/dev/null 2>&1; then
+    echo "pre-commit: git-format-staged not found; skipping formatting (npm install -g git-format-staged)" >&2
+    exit 0
+fi
+
+if git diff --cached --name-only | grep -q '\.swift$'; then
+    git-format-staged --formatter 'swiftformat --quiet stdin' '*.swift'
+fi

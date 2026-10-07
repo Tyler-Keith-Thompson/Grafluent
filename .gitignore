@@ -1,0 +1,19 @@
+# Agent worktrees are checkouts of this same repo.
+.claude/worktrees/
+
+# Bazel
+/bazel-*
+/user.bazelrc
+.cache/
+
+# SwiftPM
+.build/
+.swiftpm/
+Package.resolved
+
+# Xcode (generated from the Bazel graph by `just generate`)
+/Grafluent.xcodeproj/
+xcuserdata/
+
+# macOS
+.DS_Store

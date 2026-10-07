@@ -1,0 +1,42 @@
+# Deployment targets. These match `platforms:` in Package.swift; keep the two in step.
+build --macos_minimum_os=15.0
+build --host_macos_minimum_os=15.0
+
+# Debug is the default, so a bare `bazel build` and `just build` resolve to the same
+# configuration. Keeping them in step matters because of the analysis-cache guardrail below:
+# two different defaults would discard the analysis cache every time you switched between them.
+build --compilation_mode=dbg
+
+# Optimized builds, for benchmarks and for checking that tests pass under -O, where
+# copy-on-write and inlining bugs tend to show up.
+build:release --compilation_mode=opt
+
+# Local disk cache for incremental builds.
+build --disk_cache=~/.cache/bazel-grafluent
+
+# Fail, rather than warn, when build flags would discard the analysis cache.
+# A guardrail against flag thrash silently costing a full re-analysis.
+build --noallow_analysis_cache_discard
+
+# ── Swift warnings policy ────────────────────────────────────────────
+# Suppress Swift warnings globally (rules_swift feature → swiftc `-suppress-warnings`), so any
+# future dependency builds quietly. First-party targets load from //tools:swift_rules.bzl, which
+# disables that feature and turns warnings into errors for our own modules only.
+build --features=swift.suppress_warnings
+
+# Show what actually failed rather than just the target.
+test --test_output=errors
+
+# rules_xcodeproj uses a separate output base, across which clonefile fails, so tree artifact
+# outputs have to be off for the generation build only.
+common:rules_xcodeproj --define=apple.experimental.tree_artifact_outputs=0
+
+# Xcode drives Bazel with its own flags, so these builds *will* discard the analysis cache. The
+# guardrail above exists to stop that happening by accident; here it is expected, and refusing
+# the build would leave Xcode unable to build or index at all.
+common:rules_xcodeproj --allow_analysis_cache_discard
+common:rules_xcodeproj_generator --allow_analysis_cache_discard
+common:rules_xcodeproj_indexbuild --allow_analysis_cache_discard
+
+# Per-developer overrides (a remote cache key, local tweaks). Gitignored; a missing file is fine.
+try-import %workspace%/user.bazelrc
