@@ -14,9 +14,13 @@
 /// (Boost's `adjacency_list`, LEMON, igraph). `degree(of:)` is the length of either, so a
 /// self-loop counts 2 and the degrees sum to `2 * edgeCount`.
 ///
-/// **Vertex indices.** As for `DirectedGraph`: with `vertexIndexBound`, `vertexIndex(of:)` maps
-/// the vertices one-to-one onto `0..<vertexIndexBound`, and `neighborIndices(ofIndex:)` gives
-/// adjacency in index space.
+/// **Vertex and edge indices.** As for `DirectedGraph`: with `vertexIndexBound`,
+/// `vertexIndex(of:)` maps the vertices one-to-one onto `0..<vertexIndexBound`, and
+/// `neighborIndices(ofIndex:)` gives adjacency in index space. A representation with dense edge
+/// indices also reports `edgeIndexBound`, and then `edgeIndex(of:)` maps edge positions
+/// one-to-one onto `0..<edgeIndexBound` (Boost's `edge_index`, petgraph's `EdgeIndexable`), so
+/// algorithms that mark edges (bridges, cut vertices, Euler tours) keep that state in arrays too.
+/// `incidentEdgeIndices(ofIndex:)` lists them parallel to `neighborIndices(ofIndex:)`.
 ///
 /// **Laws.** Every conformer satisfies:
 /// - `vertexCount == vertices.count`, the vertices are distinct, and every edge's endpoints are
@@ -33,6 +37,10 @@
 /// - With vertex indices, `vertices` is in index order: `vertex(atIndex: i)` is the `i`th vertex.
 /// - With vertex indices, `neighborIndices(ofIndex: vertexIndex(of: v))` is `neighbors(of: v)`
 ///   mapped through `vertexIndex(of:)`, in the same order.
+/// - With edge indices, `edgeIndexBound == edgeCount`, `edgeIndex(of:)` is one-to-one onto
+///   `0..<edgeIndexBound`, and, with vertex indices too,
+///   `incidentEdgeIndices(ofIndex: vertexIndex(of: v))` is `incidentEdges(of: v)` mapped through
+///   `edgeIndex(of:)`, in the same order.
 ///
 /// **Defaults.** As for `DirectedGraph`, members with default implementations are requirements,
 /// so a representation's faster version is the one generic code calls, and a wrapper must forward
@@ -47,6 +55,7 @@ public protocol Graph<Vertex> {
     associatedtype Neighbors: Sequence<Vertex>
     associatedtype IncidentEdges: Sequence<Edges.Index>
     associatedtype NeighborIndices: Sequence<Int> = LazyMapSequence<Neighbors, Int>
+    associatedtype IncidentEdgeIndices: Sequence<Int> = LazyMapSequence<IncidentEdges, Int>
 
     /// Every vertex once, in an order the representation documents.
     var vertices: Vertices { get }
@@ -112,6 +121,23 @@ public protocol Graph<Vertex> {
     ///
     /// - Precondition: `vertexIndexBound` is not `nil`, and `index` is in `0..<vertexIndexBound`.
     func neighborIndices(ofIndex index: Int) -> NeighborIndices
+
+    /// The number of dense edge indices, `edgeCount`, or `nil` when the representation has none.
+    /// Default: `nil`.
+    var edgeIndexBound: Int? { get }
+
+    /// The index of the edge at `position`, in `0..<edgeIndexBound`.
+    ///
+    /// - Precondition: `edgeIndexBound` is not `nil`, and `position` is a position in `edges`.
+    func edgeIndex(of position: Edges.Index) -> Int
+
+    /// The edge indices of `incidentEdges(of: vertex(atIndex: index))`, in the same order, so
+    /// parallel to `neighborIndices(ofIndex:)`. Default: `incidentEdges` mapped through
+    /// `edgeIndex(of:)`.
+    ///
+    /// - Precondition: `vertexIndexBound` and `edgeIndexBound` are not `nil`, and `index` is in
+    ///   `0..<vertexIndexBound`.
+    func incidentEdgeIndices(ofIndex index: Int) -> IncidentEdgeIndices
 }
 
 extension Graph {
@@ -155,6 +181,21 @@ extension Graph {
     @inlinable
     public func vertex(atIndex index: Int) -> Vertex {
         preconditionFailure("\(Self.self) has no vertex indices; check vertexIndexBound first")
+    }
+
+    @inlinable
+    public var edgeIndexBound: Int? { nil }
+
+    @inlinable
+    public func edgeIndex(of position: Edges.Index) -> Int {
+        preconditionFailure("\(Self.self) has no edge indices; check edgeIndexBound first")
+    }
+}
+
+extension Graph where IncidentEdgeIndices == LazyMapSequence<IncidentEdges, Int> {
+    @inlinable
+    public func incidentEdgeIndices(ofIndex index: Int) -> LazyMapSequence<IncidentEdges, Int> {
+        incidentEdges(of: vertex(atIndex: index)).lazy.map { edgeIndex(of: $0) }
     }
 }
 

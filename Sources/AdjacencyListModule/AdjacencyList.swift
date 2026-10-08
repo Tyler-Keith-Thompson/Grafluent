@@ -394,7 +394,8 @@ extension AdjacencyList {
         @inlinable public subscript(position: Int) -> Vertex { base[position] }
     }
 
-    /// An out- or in-neighborhood. A value: unaffected by later changes to the graph.
+    /// A neighborhood: out- or in-neighbors here, an undirected graph's neighbors in
+    /// `UndirectedAdjacencyList`. A value: unaffected by later changes to the graph.
     @frozen
     public struct Neighbors: RandomAccessCollection {
         @usableFromInline let vertices: ContiguousArray<Vertex>

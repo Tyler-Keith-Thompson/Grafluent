@@ -2,7 +2,7 @@
 
 load("//tools:swift_rules.bzl", "swift_library")
 
-# IndexedPriorityQueue: a d-ary heap with decrease-key.
+# IndexedPriorityQueue: an indexed 4-ary min-heap over 0..<indexBound with decrease-key.
 swift_library(
     name = "PriorityQueueModule",
     srcs = glob(["**/*.swift"]),

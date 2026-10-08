@@ -66,7 +66,7 @@ struct UndirectedAdjacencyList<Vertex: Hashable>
 | `oppositeVertex(to:acrossEdgeAt:)` off the edge | Traps | A programming error | — |
 | `==` | Equal vertex sets and equal edge sets, as unordered pairs; independent of insertion order and orientation | Value semantics | — |
 | `description` | `[0, 1, 2]; [0–1, 1–2]`, the form every representation shares, with `–` | Equal graphs print alike | — |
-| Encoded form (`Codable`) | Unspecified; only round trips are tested | | |
+| Encoded form (`Codable`) | Unspecified, except that decoding keeps each edge's position and orientation and rejects a repeated edge | | |
 
 ## Files
 
@@ -84,6 +84,7 @@ fixtures (`UndirectedFixtures.swift`), the pseudograph test conformer and `Minim
 | `UndirectedAdjacencyListDescriptionTests.swift` | `description` |
 | `UndirectedAdjacencyListCodableTests.swift` | JSON and property list round trips |
 | `UndirectedAdjacencyListConstructionTests.swift` | Dictionary literals, adjacency mappings, initializers, order independence, conversion from any `Graph` |
+| `UndirectedAdjacencyListReviewTests.swift` | Added after the critical review, for bugs that survived the first suite: `removeAllEdges` forgets edges (UG-R21); edgeless graphs compare vertices and hashes see both sets (UG-R16); `memberAfterInsert` returns stored instances and orientation (UG-R10); decoding keeps orientation and rejects repeated edges (UG-R19); edge indices (UG-R22); seeded random mutations against a set model, every law after every step (UG-P02) |
 
 The `Graph` laws on this type (with Int and String vertices), its associated types, the builder,
 the `directed` view and conversions are tested in `Tests/GraphProtocolsTests`, beside the other

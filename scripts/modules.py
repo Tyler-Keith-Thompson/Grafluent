@@ -22,7 +22,7 @@ MODULES = [
     ("Semirings", "Vocabulary", "The Semiring protocol and the tropical, bottleneck, Boolean and counting semirings, for algebraic path problems.", []),
 
     # Data structures used by graph algorithms
-    ("PriorityQueueModule", "Data structures", "IndexedPriorityQueue: a d-ary heap with decrease-key.", []),
+    ("PriorityQueueModule", "Data structures", "IndexedPriorityQueue: an indexed 4-ary min-heap over 0..<indexBound with decrease-key.", []),
     ("DisjointSetModule", "Data structures", "DisjointSet: union–find over 0..<count, with union by size and path halving.", []),
 
     # Representations
@@ -86,6 +86,7 @@ TEST_TARGETS = [
     ("AdjacencyMatrixTests", ["GraphProtocols", "AdjacencyMatrixModule", "AdjacencyListModule", "GrafluentTestSupport", "swift-collections/BitCollections"]),
     ("EdgeListTests", ["GraphProtocols", "EdgeListModule", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport"]),
     ("TraversalTests", ["GraphProtocols", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport"]),
+    ("PriorityQueueTests", ["PriorityQueueModule", "GrafluentTestSupport"]),
     ("DisjointSetTests", ["DisjointSetModule", "GrafluentTestSupport"]),
     ("ConnectivityTests", ["GraphProtocols", "Connectivity", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport"]),
     ("GraphProtocolsTests", ["GraphProtocols", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "EdgeListModule", "GrafluentTestSupport", "swift-collections/BitCollections"]),

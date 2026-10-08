@@ -8,7 +8,7 @@ import GraphProtocols
 /// Vertices in the order given (endpoints added in order of first appearance), edges as given,
 /// repeats and self-loops included, and a list of incident edge positions per vertex: each edge's
 /// position at its `u` end and then at its `v` end, so a self-loop's position is listed twice.
-/// Dense vertex indices are the vertices' positions.
+/// Dense vertex indices are the vertices' positions, and dense edge indices the edges'.
 public struct ReferencePseudograph<Vertex: Hashable>: Graph {
     public let vertices: [Vertex]
     public let edges: [UndirectedEdge<Vertex>]
@@ -47,6 +47,9 @@ public struct ReferencePseudograph<Vertex: Hashable>: Graph {
     public var vertexIndexBound: Int? { vertices.count }
     public func vertexIndex(of vertex: Vertex) -> Int { index[vertex]! }
     public func vertex(atIndex i: Int) -> Vertex { vertices[i] }
+    // Dense edge indices are the positions; `incidentEdgeIndices` is the protocol's default.
+    public var edgeIndexBound: Int? { edges.count }
+    public func edgeIndex(of position: Int) -> Int { position }
 }
 
 extension ReferencePseudograph: Sendable where Vertex: Sendable {}

@@ -14,10 +14,11 @@ extension Graph {
 }
 
 extension BidirectionalDirectedGraph {
-    /// The graph as an undirected graph with each arc as an edge, at the arc's own position
-    /// (NetworkX's undirected view, JGraphT's `AsUndirectedGraph`). Two opposite arcs become two
-    /// parallel edges, and a self-loop a loop of degree 2. O(1); a value holding a copy of the
-    /// graph.
+    /// The graph as an undirected graph with each arc as an edge, at the arc's own position, as
+    /// JGraphT's `AsUndirectedGraph` reads a digraph. Two opposite arcs become two parallel edges
+    /// (NetworkX's `to_undirected` would merge them into one, as converting to
+    /// `UndirectedAdjacencyList` does), and a self-loop is a loop of degree 2. O(1); a value
+    /// holding a copy of the graph.
     @inlinable
     public var undirected: UndirectedView<Self> { UndirectedView(base: self) }
 }
@@ -119,8 +120,9 @@ public struct DirectedView<Base: Graph>: BidirectionalDirectedGraph {
             @usableFromInline let vertex: Vertex
             @usableFromInline var positions: Base.IncidentEdges.Iterator
             @usableFromInline let leaving: Bool
-            /// The self-loops whose first end has been met.
-            @usableFromInline var loopsMet: Set<Base.Edges.Index> = []
+            /// The self-loops whose first end has been met: a vertex has few, so a scan beats
+            /// hashing.
+            @usableFromInline var loopsMet: [Base.Edges.Index] = []
 
             @inlinable
             init(edges: Base.Edges, vertex: Vertex, positions: Base.IncidentEdges.Iterator, leaving: Bool) {
@@ -135,7 +137,12 @@ public struct DirectedView<Base: Graph>: BidirectionalDirectedGraph {
                 guard let position = positions.next() else { return nil }
                 let edge = edges[position]
                 if edge.isSelfLoop {
-                    return Edges.Index(position: position, reversed: !loopsMet.insert(position).inserted)
+                    if let k = loopsMet.firstIndex(of: position) {
+                        loopsMet.remove(at: k)
+                        return Edges.Index(position: position, reversed: true)
+                    }
+                    loopsMet.append(position)
+                    return Edges.Index(position: position, reversed: false)
                 }
                 // Forward runs u→v: it leaves `vertex` when `vertex` is u.
                 return Edges.Index(position: position, reversed: (edge.u == vertex) != leaving)
@@ -215,6 +222,8 @@ public struct DirectedView<Base: Graph>: BidirectionalDirectedGraph {
 extension DirectedView: Sendable where Base: Sendable {}
 extension DirectedView.Edges: Sendable where Base.Edges: Sendable {}
 extension DirectedView.Edges.Index: Sendable where Base.Edges.Index: Sendable {}
+extension DirectedView.Arcs: Sendable where Base.Edges: Sendable, Base.IncidentEdges: Sendable, Base.Vertex: Sendable {}
+extension DirectedView.Arcs.Iterator: Sendable where Base.Edges: Sendable, Base.IncidentEdges.Iterator: Sendable, Base.Vertex: Sendable, Base.Edges.Index: Sendable {}
 
 // MARK: - UndirectedView
 
@@ -351,3 +360,4 @@ public struct UndirectedView<Base: BidirectionalDirectedGraph>: Graph {
 extension UndirectedView: Sendable where Base: Sendable {}
 extension UndirectedView.Edges: Sendable where Base.Edges: Sendable {}
 extension UndirectedView.Chain: Sendable where First: Sendable, Second: Sendable {}
+extension UndirectedView.Chain.Iterator: Sendable where First.Iterator: Sendable, Second.Iterator: Sendable {}

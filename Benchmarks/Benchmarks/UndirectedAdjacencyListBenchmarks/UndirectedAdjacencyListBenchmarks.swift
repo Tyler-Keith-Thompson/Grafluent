@@ -59,6 +59,45 @@ let benchmarks: @Sendable () -> Void = {
             blackHole(sum)
         }
     }
+    // Edge identity: walking incident edges, their far ends, and the arcs of the directed view.
+    let named = UndirectedAdjacencyList(edges: edges.map { UndirectedEdge("v\($0.u)", "v\($0.v)") })
+    Benchmark("UndirectedAdjacencyList: oppositeVertex across every incident edge") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var sum = 0
+            for v in graph.vertices {
+                for e in graph.incidentEdges(of: v) { sum &+= graph.oppositeVertex(to: v, acrossEdgeAt: e) }
+            }
+            blackHole(sum)
+        }
+    }
+    Benchmark("UndirectedAdjacencyList<String>: oppositeVertex across every incident edge") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var sum = 0
+            for v in named.vertices {
+                for e in named.incidentEdges(of: v) { sum &+= named.oppositeVertex(to: v, acrossEdgeAt: e).utf8.count }
+            }
+            blackHole(sum)
+        }
+    }
+    Benchmark("UndirectedAdjacencyList: incidentEdgeIndices of every vertex, in index space") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var sum = 0
+            for i in 0 ..< n {
+                for e in graph.incidentEdgeIndices(ofIndex: i) { sum &+= e }
+            }
+            blackHole(sum)
+        }
+    }
+    Benchmark("UndirectedAdjacencyList: outEdges of every vertex through directed") { benchmark in
+        let view = graph.directed
+        for _ in benchmark.scaledIterations {
+            var sum = 0
+            for v in view.vertices {
+                for arc in view.outEdges(of: v) { sum &+= view.target(ofEdgeAt: arc) }
+            }
+            blackHole(sum)
+        }
+    }
     // UG-B02: O(1) degree and contains(edge:) through generic code at a 20k hub.
     Benchmark("UndirectedAdjacencyList: degree and 20k contains(edge:) at a hub, generic") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(degreeAndContains(star, 0, probes)) }

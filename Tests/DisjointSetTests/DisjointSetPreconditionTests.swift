@@ -48,15 +48,15 @@ struct DisjointSetPreconditionTests {
     @Test("DS-37 inSameSet and setSize(of:) with an element out of range trap")
     func queries() async {
         await #expect(processExitsWith: .failure) {
-            var d = DisjointSet(count: 8)
+            let d = DisjointSet(count: 8)
             _ = d.inSameSet(0, 8)
         }
         await #expect(processExitsWith: .failure) {
-            var d = DisjointSet(count: 8)
+            let d = DisjointSet(count: 8)
             _ = d.inSameSet(-1, 0)
         }
         await #expect(processExitsWith: .failure) {
-            var d = DisjointSet(count: 8)
+            let d = DisjointSet(count: 8)
             _ = d.setSize(of: 8)
         }
     }

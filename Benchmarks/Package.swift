@@ -64,6 +64,19 @@ let package = Package(
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
         ),
         .executableTarget(
+            name: "PriorityQueueBenchmarks",
+            dependencies: [
+                "BenchmarkSupport",
+                .product(name: "Benchmark", package: "benchmark"),
+                .product(name: "GraphProtocols", package: "Grafluent"),
+                .product(name: "PriorityQueueModule", package: "Grafluent"),
+                .product(name: "CompressedSparseRowModule", package: "Grafluent"),
+                .product(name: "HeapModule", package: "swift-collections"),
+            ],
+            path: "Benchmarks/PriorityQueueBenchmarks",
+            plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
+        ),
+        .executableTarget(
             name: "DirectedGraphBenchmarks",
             dependencies: [
                 "BenchmarkSupport",

@@ -205,12 +205,13 @@ extension UndirectedAdjacencyList {
     /// - Precondition: `vertex` is an endpoint of the edge at `position`.
     @inlinable
     public func oppositeVertex(to vertex: Vertex, acrossEdgeAt position: Int) -> Vertex {
-        precondition(position >= 0 && position < _records.count, "Edge position \(position) out of range")
+        precondition(UInt(bitPattern: position) < UInt(bitPattern: _records.count), "Edge position out of range")
         let record = _records[position]
-        let slot = _slot(of: vertex)
-        if slot == record.u { return _vertices[record.v] }
-        precondition(slot == record.v, "\(vertex) is not an endpoint of the edge at \(position)")
-        return _vertices[record.u]
+        // Compared by value, which is cheaper than hashing `vertex` to its slot.
+        let u = _vertices[record.u], v = _vertices[record.v]
+        if vertex == u { return v }
+        precondition(vertex == v, "The vertex is not an endpoint of the edge")
+        return u
     }
 
     /// The number of edge ends at `vertex`: a self-loop counts 2. O(1).
@@ -621,4 +622,17 @@ extension UndirectedAdjacencyList: Graph {
     /// The slots of the neighbors of the vertex in slot `index`: the stored row. O(1).
     @inlinable
     public func neighborIndices(ofIndex index: Int) -> ArraySlice<Int> { _neighbors[row: index] }
+
+    /// Edge positions are dense: `0..<edgeCount`, valid until the next removal.
+    @inlinable
+    public var edgeIndexBound: Int? { _records.count }
+
+    /// The position itself. O(1).
+    @inlinable
+    public func edgeIndex(of position: Int) -> Int { position }
+
+    /// The positions of the edges at the vertex in slot `index`: the stored row, parallel to
+    /// `neighborIndices(ofIndex:)`. O(1).
+    @inlinable
+    public func incidentEdgeIndices(ofIndex index: Int) -> ArraySlice<Int> { _incident[row: index] }
 }

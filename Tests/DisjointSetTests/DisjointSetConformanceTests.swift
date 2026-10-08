@@ -134,7 +134,7 @@ struct DisjointSetValueSemanticsTests {
 
         var c = DisjointSet(count: 4)
         c.union(0, 1)
-        var e = c
+        let e = c
         c.union(2, 3)
         #expect(e.setCount == 3)
         #expect(e.inSameSet(2, 3) == false)
