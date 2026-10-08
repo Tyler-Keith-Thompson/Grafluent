@@ -1,5 +1,5 @@
 // Weak components: ordered by their first vertex in `vertices` order, members in `vertices` order,
-// with edge directions ignored. Exact on the matrix and CSR (ascending) and the Multigraph
+// with edge directions ignored. Exact on the matrix and CSR (ascending) and the ReferenceDirectedMultigraph
 // (written order). Expected values come from the catalog's reference, which matches NetworkX's
 // order of first vertices. Case IDs (CN-nn) refer to the catalog; see README.md.
 
@@ -41,7 +41,7 @@ struct WeakComponentTests {
         }
     }
 
-    @Test("CN-52 the same in written vertex order on the Multigraph", .tags(.fixture))
+    @Test("CN-52 the same in written vertex order on the ReferenceDirectedMultigraph", .tags(.fixture))
     func written() {
         let cases: [(DirectedFixture<Int>, [[Int]])] = [
             (.networkXFunctionGraph, [[4], [0, 1, 2, 3]]),
@@ -50,11 +50,11 @@ struct WeakComponentTests {
             (.petgraphBellmanFord, [[0, 1, 2, 3], [4, 5, 7, 6, 8]]),
         ]
         for (fixture, expected) in cases {
-            let graph = Multigraph(vertices: fixture.vertices, edges: fixture.edges)
+            let graph = ReferenceDirectedMultigraph(vertices: fixture.vertices, edges: fixture.edges)
             #expect(graph.weaklyConnectedComponents().map(Array.init) == expected, "\(fixture.name)")
         }
         let abcd = DirectedFixture<String>.networkXABCD
-        #expect(Multigraph(vertices: abcd.vertices, edges: abcd.edges).weaklyConnectedComponents().map(Array.init) == [["G"], ["J"], ["K"], ["A", "B", "C", "D"]])
+        #expect(ReferenceDirectedMultigraph(vertices: abcd.vertices, edges: abcd.edges).weaklyConnectedComponents().map(Array.init) == [["G"], ["J"], ["K"], ["A", "B", "C", "D"]])
     }
 
     @Test("CN-53 direction is ignored")
@@ -83,15 +83,15 @@ struct WeakComponentTests {
 
     @Test("CN-55 weak components from other suites")
     func otherSuites() {
-        let one = Multigraph(vertices: 1 ... 4, edges: [(1, 2), (2, 1), (3, 4)].map { DirectedEdge(from: $0.0, to: $0.1) })
+        let one = ReferenceDirectedMultigraph(vertices: 1 ... 4, edges: [(1, 2), (2, 1), (3, 4)].map { DirectedEdge(from: $0.0, to: $0.1) })
         #expect(one.weaklyConnectedComponents().map(Array.init) == [[1, 2], [3, 4]])
         let eightPairs = [(1, 2), (1, 4), (2, 3), (2, 5), (3, 1), (3, 7), (4, 3), (5, 6), (5, 7), (6, 7), (6, 8), (6, 9), (6, 10), (7, 5), (8, 10), (9, 10), (10, 9)]
-        let eight = Multigraph(vertices: 1 ... 11, edges: eightPairs.map { DirectedEdge(from: $0.0, to: $0.1) })
+        let eight = ReferenceDirectedMultigraph(vertices: 1 ... 11, edges: eightPairs.map { DirectedEdge(from: $0.0, to: $0.1) })
         #expect(eight.weaklyConnectedComponents().map(Array.init) == [Array(1 ... 10), [11]])
         let rustworkx = [(0, 1), (1, 2), (2, 0), (3, 4)].map { DirectedEdge(from: $0.0, to: $0.1) }
         #expect(AdjacencyMatrix(vertexCount: 5, edges: rustworkx).weaklyConnectedComponents().map(Array.init) == [[0, 1, 2], [3, 4]])
         #expect(CompressedSparseRow(vertexCount: 5, edges: rustworkx).weaklyConnectedComponents().map(Array.init) == [[0, 1, 2], [3, 4]])
-        let lemon = Multigraph(vertices: 1 ... 6, edges: [(1, 3), (3, 2), (2, 1), (4, 2), (4, 3), (5, 6), (6, 5)].map { DirectedEdge(from: $0.0, to: $0.1) })
+        let lemon = ReferenceDirectedMultigraph(vertices: 1 ... 6, edges: [(1, 3), (3, 2), (2, 1), (4, 2), (4, 3), (5, 6), (6, 5)].map { DirectedEdge(from: $0.0, to: $0.1) })
         #expect(lemon.weaklyConnectedComponents().map(Array.init) == [[1, 2, 3, 4], [5, 6]])
         // NetworkX test_weakly_connected uses test_strongly_connected's five graphs: each is weakly connected.
         let networkX: [([(Int, Int)], ClosedRange<Int>)] = [
@@ -102,7 +102,7 @@ struct WeakComponentTests {
             ([(0, 1), (1, 2), (1, 3), (1, 4), (2, 0), (2, 3), (3, 4), (4, 3)], 0 ... 4),
         ]
         for (pairs, vertices) in networkX {
-            let graph = Multigraph(vertices: vertices, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
+            let graph = ReferenceDirectedMultigraph(vertices: vertices, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
             #expect(graph.isWeaklyConnected)
             #expect(graph.weaklyConnectedComponents().map(Array.init) == [Array(vertices)])
         }
@@ -128,7 +128,7 @@ struct WeakComponentTests {
             for edge in fixture.edges { #expect(weak.component(of: edge.source) == weak.component(of: edge.target)) }
         }
         check(AdjacencyList(vertices: fixture.vertices, edges: fixture.edges))
-        check(Multigraph(vertices: fixture.vertices, edges: fixture.edges))
+        check(ReferenceDirectedMultigraph(vertices: fixture.vertices, edges: fixture.edges))
         if fixture.vertexSet == Set(0 ..< fixture.vertexCount) {
             check(AdjacencyMatrix(vertexCount: fixture.vertexCount, edges: fixture.edges))
             check(CompressedSparseRow(vertexCount: fixture.vertexCount, edges: fixture.edges))

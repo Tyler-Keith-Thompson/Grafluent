@@ -7,17 +7,17 @@ import GraphProtocols
 /// Two ways to consume it. `for event in search` pulls events one at a time, lazily, so stopping
 /// the loop stops the search; to skip a vertex's out-edges, iterate by hand and call `prune()`
 /// right after its `discover` event. `search.forEach { … }` pushes every event to a closure in a
-/// single loop, about twice as fast as pulling, for when every event is wanted.
+/// single loop, faster than pulling, for when every event is wanted.
 @frozen
-public struct BreadthFirstSearch<Graph: DirectedGraph>: Sequence {
-    public typealias Element = BreadthFirstSearchEvent<Graph.Vertex>
+public struct BreadthFirstSearch<G: DirectedGraph>: Sequence {
+    public typealias Element = BreadthFirstSearchEvent<G.Vertex>
 
-    @usableFromInline let graph: Graph
-    @usableFromInline let sources: [Graph.Vertex]
+    @usableFromInline let graph: G
+    @usableFromInline let sources: [G.Vertex]
     @usableFromInline let depthLimit: Int?
 
     @inlinable
-    init(graph: Graph, sources: [Graph.Vertex], depthLimit: Int?) {
+    init(graph: G, sources: [G.Vertex], depthLimit: Int?) {
         precondition(depthLimit.map { $0 >= 0 } ?? true, "A depth limit cannot be negative")
         for source in sources {
             precondition(graph.contains(source), "The source \(source) is not a vertex of the graph")
@@ -34,13 +34,13 @@ public struct BreadthFirstSearch<Graph: DirectedGraph>: Sequence {
 
     /// Calls `body` with every event, in order, in one loop.
     @inlinable
-    public func forEach<Failure: Error>(_ body: (BreadthFirstSearchEvent<Graph.Vertex>) throws(Failure) -> Void) throws(Failure) {
+    public func forEach<Failure: Error>(_ body: (BreadthFirstSearchEvent<G.Vertex>) throws(Failure) -> Void) throws(Failure) {
         var search = IndexSpaceSearch(graph)
         var sourceIDs: [Int] = []
         for source in sources { sourceIDs.append(search.ids.identifier(of: source)) }
         var failure: Failure?
         search.breadthFirst(from: sourceIDs, depthLimit: depthLimit) { step, ids in
-            let event: BreadthFirstSearchEvent<Graph.Vertex> = switch step {
+            let event: BreadthFirstSearchEvent<G.Vertex> = switch step {
             case .discover(let v): .discover(ids.vertex(v))
             case .treeEdge(let u, let w): .treeEdge(DirectedEdge(from: ids.vertex(u), to: ids.vertex(w)))
             case .nonTreeEdge(let u, let w): .nonTreeEdge(DirectedEdge(from: ids.vertex(u), to: ids.vertex(w)))
@@ -58,8 +58,8 @@ public struct BreadthFirstSearch<Graph: DirectedGraph>: Sequence {
     }
 
     public struct Iterator: IteratorProtocol {
-        @usableFromInline var ids: _VertexIdentifiers<Graph>
-        @usableFromInline let sources: [Graph.Vertex]
+        @usableFromInline var ids: _VertexIdentifiers<G>
+        @usableFromInline let sources: [G.Vertex]
         @usableFromInline var nextSource = 0
         @usableFromInline let depthLimit: Int?
         /// The depth of each discovered vertex; -1 for undiscovered.
@@ -69,16 +69,16 @@ public struct BreadthFirstSearch<Graph: DirectedGraph>: Sequence {
         @usableFromInline var head = 0
         /// The vertex whose out-edges are being reported, and the rest of them.
         @usableFromInline var current: Int?
-        @usableFromInline var currentVertex: Graph.Vertex?
-        @usableFromInline var indexedNeighbors: Graph.SuccessorIndices.Iterator?
-        @usableFromInline var unindexedNeighbors: Graph.Successors.Iterator?
+        @usableFromInline var currentVertex: G.Vertex?
+        @usableFromInline var indexedNeighbors: G.SuccessorIndices.Iterator?
+        @usableFromInline var unindexedNeighbors: G.Successors.Iterator?
         /// A vertex reached by the tree edge just reported, to be discovered next.
         @usableFromInline var pendingDiscovery: Int?
         /// The vertex of the last event, when that event was its discovery: the one `prune()` acts on.
         @usableFromInline var justDiscovered: Int?
 
         @inlinable
-        init(graph: Graph, sources: [Graph.Vertex], depthLimit: Int?) {
+        init(graph: G, sources: [G.Vertex], depthLimit: Int?) {
             self.ids = _VertexIdentifiers(graph)
             self.sources = sources
             self.depthLimit = depthLimit
@@ -105,7 +105,7 @@ public struct BreadthFirstSearch<Graph: DirectedGraph>: Sequence {
 
         @inlinable
         @inline(__always)
-        public mutating func next() -> BreadthFirstSearchEvent<Graph.Vertex>? {
+        public mutating func next() -> BreadthFirstSearchEvent<G.Vertex>? {
             justDiscovered = nil
             if let id = pendingDiscovery {
                 pendingDiscovery = nil
@@ -167,8 +167,8 @@ public struct BreadthFirstSearch<Graph: DirectedGraph>: Sequence {
     }
 }
 
-extension BreadthFirstSearch: Sendable where Graph: Sendable, Graph.Vertex: Sendable {}
-extension BreadthFirstSearch.Iterator: Sendable where Graph: Sendable, Graph.Vertex: Sendable, Graph.SuccessorIndices.Iterator: Sendable, Graph.Successors.Iterator: Sendable {}
+extension BreadthFirstSearch: Sendable where G: Sendable, G.Vertex: Sendable {}
+extension BreadthFirstSearch.Iterator: Sendable where G: Sendable, G.Vertex: Sendable, G.SuccessorIndices.Iterator: Sendable, G.Successors.Iterator: Sendable {}
 
 extension DirectedGraph {
     /// A breadth-first search from `source`.

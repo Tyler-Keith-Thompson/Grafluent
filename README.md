@@ -95,7 +95,7 @@ A graph is a pair (V, E). We don't think a graph should itself be a `Sequence`: 
 | Protocol | Requirements (sketch) | Notes |
 |---|---|---|
 | `DirectedGraph` | `associatedtype Vertex`, `vertices`, `edges`, `successors(of:)`, `outEdges(of:)`; with defaults `source(ofEdgeAt:)`, `target(ofEdgeAt:)`, `vertexCount`, `edgeCount`, `contains(_:)`, `contains(edge:)`, `outDegree(of:)`, and dense vertex indices (`vertexIndexBound`, `vertexIndex(of:)`, `vertex(atIndex:)`), which number `vertices` in order (**implemented**) | The base protocol. Members with defaults are requirements, so a representation's faster version is what generic code calls. Parallel edges are allowed: neighborhoods list a vertex once per edge and counts include repeats. See `Tests/GraphProtocolsTests/README.md`. Traversal, shortest paths, and most of the library need only this. `contains(edge:)` (the adjacency test) defaults to a scan of N⁺(u); matrices answer in O(1) and sorted compressed sparse row in O(log d). |
-| `Graph` | `neighbors(of:)`, `edges` | An undirected graph. **Decided:** `Graph` and `DirectedGraph` are separate protocols; an undirected graph is not modeled as a symmetric directed graph. |
+| `Graph` | `associatedtype Vertex`, `vertices`, `edges`, `neighbors(of:)`, `incidentEdges(of:)`; with defaults `oppositeVertex(to:acrossEdgeAt:)`, `vertexCount`, `edgeCount`, `contains(_:)`, `contains(edge:)`, `degree(of:)`, and dense vertex indices with `neighborIndices(ofIndex:)` (**implemented**) | An undirected graph. **Decided:** `Graph` and `DirectedGraph` are separate protocols; an undirected graph is not modeled as a symmetric directed graph, and no type conforms to both. Each edge is listed once in `edges`, and its position is its identity from both ends. A self-loop is listed twice in `neighbors(of:)` and `incidentEdges(of:)` and counts 2 in `degree(of:)` (Boost's `adjacency_list`, LEMON, igraph), so degree is always the neighborhood's length and degrees sum to twice `edgeCount`. `graph.directed` reads it as a `BidirectionalDirectedGraph` (each edge two arcs), and `digraph.undirected` reads a bidirectional directed graph as undirected (each arc an edge), so Traversal runs on undirected graphs. `UndirectedAdjacencyList` conforms. See `Tests/GraphProtocolsTests/README.md`. |
 | `BidirectionalDirectedGraph` | `predecessors(of:)`, `inEdges(of:)`; with defaults `inDegree(of:)`, `degree(of:)` (**implemented**) | Needed for reversed traversal, dominators, and Kosaraju. The name is Boost's `BidirectionalGraph` concept, with "Directed" since `Graph` here means undirected. Adjacency list and matrix conform; compressed sparse row does not, and `EdgeList` is not a `DirectedGraph` at all (its adjacency queries scan every edge). |
 | `DirectedMultigraph` / `Multigraph` | Edges carry identity, `edges(from:to:)` | Parallel edges are allowed. |
 | `Hypergraph` | `hyperedges`, `incidentHyperedges(of:)` | Separate from `DirectedGraph`, because a hyperedge is not an edge. |
@@ -117,7 +117,7 @@ The neighbor requirement is only `Sequence` so that implicit graphs, whose neigh
 | Type | What it is | Swift conformances |
 |---|---|---|
 | `DirectedEdge<Vertex>` | Ordered pair (source, target) | `Hashable`, `Sendable`, `Codable` when `Vertex` is; `BitwiseCopyable` when `Vertex` is; `CustomStringConvertible` as `u → v` |
-| `UndirectedEdge<Vertex>` | Unordered pair {u, v} | Same as `DirectedEdge`, but `==` and `hash(into:)` are symmetric, so {u, v} = {v, u}. Hashing must not depend on order (needs `Comparable` endpoints, or a commutative hash combination). |
+| `UndirectedEdge<Vertex>` | Unordered pair {u, v} (**implemented**) | Same as `DirectedEdge`, but `==` and `hash(into:)` are symmetric, so {u, v} = {v, u}: the hash combines the smaller endpoint hash, then the larger, so no `Comparable` is needed. `Comparable` when `Vertex` is, by (min, max). The stored order of `u` and `v` is not part of the value; `oppositeVertex(to:)` gives the far end. `CustomStringConvertible` as `u–v` |
 | `Hyperedge<Vertex>` | A nonempty set of vertices | `Hashable`, `Sendable`, `Codable`; possibly `SetAlgebra`, since it really is a set |
 
 ### Walks (`Walks`)
@@ -291,7 +291,7 @@ These are public, because they're useful on their own.
 | Type | What it is | Conformances |
 |---|---|---|
 | `IndexedPriorityQueue` | A d-ary heap with a position array, giving O(log n) decrease-key | **Not** a `Sequence`; it exposes an `unordered` view instead, as swift-collections' `Heap` does. `Sendable`. |
-| `DisjointSet` | Union–find with path compression and union by rank | Not a `Sequence`. `Sendable`, `Equatable` (same partition). |
+| `DisjointSet` | Union–find over `0..<count` with union by size and path halving | Not a `Sequence`. `Sendable`, `Hashable` (same partition, whatever the representatives). `find` and `union` are `mutating`; the other queries work on a `let`. |
 | Bit sets | swift-collections' `BitSet` (`BitCollections`) | `AdjacencyMatrix` rows and columns, and visited sets in algorithms |
 
 ## Performance notes
@@ -313,4 +313,4 @@ These are public, because they're useful on their own.
 5. Should construction include edge operators such as `-->`?
 6. Should the deployment floor be macOS 26 / iOS 26, which `Array.span` requires, or should we support older operating systems with `Span` back-deployment only?
 7. ~~Is `BidirectionalDirectedGraph` an established name?~~ **Decided: yes.** It is Boost's `BidirectionalGraph` concept, defined for exactly this property. `predecessors(of:)` stays off the base protocol, so compressed sparse row does not hide an O(|A|) cost behind an O(1)-looking call.
-8. **The undirected `Graph` protocol and `DirectedGraph` share member names** (`edges`, `degree(of:)`), with different element types and meanings, so no type can conform to both. That is intended (an undirected graph is not a symmetric directed graph), but views that present one as the other (`asDirected`, `asUndirected`) are how algorithms will cross over. Decide their names with the `Graph` protocol.
+8. ~~Names of the views between `Graph` and `DirectedGraph`?~~ **Decided:** `graph.directed` (`DirectedView`) and `digraph.undirected` (`UndirectedView`), after NetworkX's directed and undirected views. No type conforms to both protocols, since they share member names (`edges`, `degree(of:)`) with different meanings.

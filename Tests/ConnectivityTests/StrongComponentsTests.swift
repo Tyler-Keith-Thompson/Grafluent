@@ -1,5 +1,5 @@
 // Strong components: exact orders on the fixtures (ascending on the matrix and CSR, written order
-// on the Multigraph), partitions on adjacency lists, graphs ported from other libraries' suites,
+// on the ReferenceDirectedMultigraph), partitions on adjacency lists, graphs ported from other libraries' suites,
 // the documented order guarantees, and the strong and weak connectivity tests. Expected values
 // come from the catalog's independent reference (checked against NetworkX). Case IDs (CN-nn)
 // refer to the catalog; see README.md.
@@ -32,7 +32,7 @@ struct StrongComponentFixtureTests {
         #expect(sparse.stronglyConnectedComponents().isEmpty)
         #expect(sparse.stronglyConnectedComponents().count == 0)
         #expect(AdjacencyList<Int>().stronglyConnectedComponents().isEmpty)
-        #expect(Multigraph<Int>(edges: []).stronglyConnectedComponents().isEmpty)
+        #expect(ReferenceDirectedMultigraph<Int>(edges: []).stronglyConnectedComponents().isEmpty)
     }
 
     @Test("CN-02 one vertex, with and without a self-loop, is one component")
@@ -242,7 +242,7 @@ struct StrongComponentWrittenOrderTests {
     @Test("CN-17 written order changes the order, not the partition")
     func scc9() {
         let fixture = DirectedFixture<Int>.scc9
-        let graph = Multigraph(vertices: fixture.vertices, edges: fixture.edges)
+        let graph = ReferenceDirectedMultigraph(vertices: fixture.vertices, edges: fixture.edges)
         #expect(graph.vertices == [6, 0, 3, 8, 2, 5, 7, 1, 4])
         let scc = graph.stronglyConnectedComponents()
         #expect(scc.map(Array.init) == [[6, 0, 3], [8, 2, 5], [7, 1, 4]])
@@ -252,15 +252,15 @@ struct StrongComponentWrittenOrderTests {
     @Test("CN-18 listed vertices come first")
     func listedFirst() {
         let function = DirectedFixture<Int>.networkXFunctionGraph
-        let functionGraph = Multigraph(vertices: function.vertices, edges: function.edges)
+        let functionGraph = ReferenceDirectedMultigraph(vertices: function.vertices, edges: function.edges)
         #expect(functionGraph.vertices == [4, 0, 1, 2, 3])
         #expect(functionGraph.stronglyConnectedComponents().map(Array.init) == [[4], [2], [3], [0, 1]])
         let from = DirectedFixture<Int>.petgraphCsrFrom
-        let fromGraph = Multigraph(vertices: from.vertices, edges: from.edges)
+        let fromGraph = ReferenceDirectedMultigraph(vertices: from.vertices, edges: from.edges)
         #expect(fromGraph.vertices == [3, 0, 1, 2, 4])
         #expect(fromGraph.stronglyConnectedComponents().map(Array.init) == [[3], [4], [2], [0, 1]])
         let scipy = DirectedFixture<Int>.scipyConstructor2
-        let scipyGraph = Multigraph(vertices: scipy.vertices, edges: scipy.edges)
+        let scipyGraph = ReferenceDirectedMultigraph(vertices: scipy.vertices, edges: scipy.edges)
         #expect(scipyGraph.vertices == [0, 1, 2, 5, 3, 4])
         #expect(scipyGraph.stronglyConnectedComponents().map(Array.init) == [[0], [1], [2], [5], [4], [3]])
     }
@@ -268,15 +268,15 @@ struct StrongComponentWrittenOrderTests {
     @Test("CN-19 written order of successors moves components")
     func successorOrder() {
         let house = DirectedFixture<Int>.house
-        let houseGraph = Multigraph(vertices: house.vertices, edges: house.edges)
+        let houseGraph = ReferenceDirectedMultigraph(vertices: house.vertices, edges: house.edges)
         #expect(houseGraph.vertices == [5, 3, 4, 2, 0, 1])
         #expect(houseGraph.stronglyConnectedComponents().map(Array.init) == [[0], [1], [4], [2], [3], [5]])
         let directed = DirectedFixture<Int>.petgraphEdgesDirected
-        let directedGraph = Multigraph(vertices: directed.vertices, edges: directed.edges)
+        let directedGraph = ReferenceDirectedMultigraph(vertices: directed.vertices, edges: directed.edges)
         #expect(directedGraph.vertices == [0, 5, 2, 3, 1, 4, 6])
         #expect(directedGraph.stronglyConnectedComponents().map(Array.init) == [[5], [3], [1], [0, 2, 4], [6]])
         let unsorted = DirectedFixture<Int>.boostCsrUnsorted
-        let unsortedGraph = Multigraph(vertices: unsorted.vertices, edges: unsorted.edges)
+        let unsortedGraph = ReferenceDirectedMultigraph(vertices: unsorted.vertices, edges: unsorted.edges)
         #expect(unsortedGraph.vertices == [5, 0, 3, 2, 4, 1])
         #expect(unsortedGraph.stronglyConnectedComponents().map(Array.init) == [[2], [0], [5], [3], [1], [4]])
     }
@@ -284,11 +284,11 @@ struct StrongComponentWrittenOrderTests {
     @Test("CN-20 String vertices")
     func strings() {
         let abcd = DirectedFixture<String>.networkXABCD
-        let abcdGraph = Multigraph(vertices: abcd.vertices, edges: abcd.edges)
+        let abcdGraph = ReferenceDirectedMultigraph(vertices: abcd.vertices, edges: abcd.edges)
         #expect(abcdGraph.vertices == ["G", "J", "K", "A", "B", "C", "D"])
         #expect(abcdGraph.stronglyConnectedComponents().map(Array.init) == [["G"], ["J"], ["K"], ["D"], ["C"], ["B"], ["A"]])
         let dag = DirectedFixture<String>.petgraphDAG
-        let dagGraph = Multigraph(vertices: dag.vertices, edges: dag.edges)
+        let dagGraph = ReferenceDirectedMultigraph(vertices: dag.vertices, edges: dag.edges)
         #expect(dagGraph.vertices == ["a", "b", "d", "c", "e", "f", "g"])
         #expect(dagGraph.stronglyConnectedComponents().map(Array.init) == [["g"], ["e"], ["c"], ["b"], ["f"], ["d"], ["a"]])
     }
@@ -296,17 +296,17 @@ struct StrongComponentWrittenOrderTests {
     @Test("CN-21 fixtures whose vertices are not 0..<n")
     func notZeroBased() {
         let loops = DirectedFixture<Int>.selfLoopsAndDuplicates
-        #expect(Multigraph(vertices: loops.vertices, edges: loops.edges).stronglyConnectedComponents().map(Array.init) == [[3], [4], [2], [1], [5]])
+        #expect(ReferenceDirectedMultigraph(vertices: loops.vertices, edges: loops.edges).stronglyConnectedComponents().map(Array.init) == [[3], [4], [2], [1], [5]])
         let cycle = DirectedFixture<Int>.directedCycle4
-        #expect(Multigraph(vertices: cycle.vertices, edges: cycle.edges).stronglyConnectedComponents().map(Array.init) == [[1, 2, 3, 4]])
+        #expect(ReferenceDirectedMultigraph(vertices: cycle.vertices, edges: cycle.edges).stronglyConnectedComponents().map(Array.init) == [[1, 2, 3, 4]])
         let triangle = DirectedFixture<Int>.triangleWithReciprocalEdge
-        #expect(Multigraph(vertices: triangle.vertices, edges: triangle.edges).stronglyConnectedComponents().map(Array.init) == [[1, 2, 3]])
+        #expect(ReferenceDirectedMultigraph(vertices: triangle.vertices, edges: triangle.edges).stronglyConnectedComponents().map(Array.init) == [[1, 2, 3]])
     }
 
-    @Test("CN-22 adjacency lists: the same partition as the Multigraph, and the reverse topological law", .tags(.fixture), arguments: DirectedFixture<Int>.all)
+    @Test("CN-22 adjacency lists: the same partition as the ReferenceDirectedMultigraph, and the reverse topological law", .tags(.fixture), arguments: DirectedFixture<Int>.all)
     func adjacencyList(_ fixture: DirectedFixture<Int>) {
         let list = AdjacencyList(vertices: fixture.vertices, edges: fixture.edges)
-        let multigraph = Multigraph(vertices: fixture.vertices, edges: fixture.edges)
+        let multigraph = ReferenceDirectedMultigraph(vertices: fixture.vertices, edges: fixture.edges)
         let scc = list.stronglyConnectedComponents()
         #expect(Set(scc.map(Set.init)) == Set(multigraph.stronglyConnectedComponents().map(Set.init)))
         for edge in fixture.edges {
@@ -318,7 +318,7 @@ struct StrongComponentWrittenOrderTests {
     func adjacencyListStrings() {
         for fixture in DirectedFixture<String>.all {
             let list = AdjacencyList(vertices: fixture.vertices, edges: fixture.edges)
-            let multigraph = Multigraph(vertices: fixture.vertices, edges: fixture.edges)
+            let multigraph = ReferenceDirectedMultigraph(vertices: fixture.vertices, edges: fixture.edges)
             let scc = list.stronglyConnectedComponents()
             #expect(Set(scc.map(Set.init)) == Set(multigraph.stronglyConnectedComponents().map(Set.init)), "\(fixture.name)")
             for edge in fixture.edges {
@@ -333,16 +333,16 @@ struct StrongComponentPortedTests {
     @Test("CN-23 NetworkX gc[0]")
     func networkXGC0() {
         let pairs = [(1, 2), (2, 3), (2, 8), (3, 4), (3, 7), (4, 5), (5, 3), (5, 6), (7, 4), (7, 6), (8, 1), (8, 7)]
-        let graph = Multigraph(vertices: 1 ... 8, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }.sorted())
+        let graph = ReferenceDirectedMultigraph(vertices: 1 ... 8, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }.sorted())
         #expect(graph.stronglyConnectedComponents().map(Array.init) == [[6], [3, 4, 5, 7], [1, 2, 8]])
     }
 
     @Test("CN-24 NetworkX gc[1] and gc[2]")
     func networkXGC1() {
         let first = [(1, 2), (1, 3), (1, 4), (4, 2), (3, 4), (2, 3)].map { DirectedEdge(from: $0.0, to: $0.1) }
-        #expect(Multigraph(vertices: 1 ... 4, edges: first.sorted()).stronglyConnectedComponents().map(Array.init) == [[2, 3, 4], [1]])
+        #expect(ReferenceDirectedMultigraph(vertices: 1 ... 4, edges: first.sorted()).stronglyConnectedComponents().map(Array.init) == [[2, 3, 4], [1]])
         let second = [(1, 2), (2, 3), (3, 2), (2, 1)].map { DirectedEdge(from: $0.0, to: $0.1) }
-        #expect(Multigraph(vertices: 1 ... 3, edges: second.sorted()).stronglyConnectedComponents().map(Array.init) == [[1, 2, 3]])
+        #expect(ReferenceDirectedMultigraph(vertices: 1 ... 3, edges: second.sorted()).stronglyConnectedComponents().map(Array.init) == [[1, 2, 3]])
     }
 
     @Test("CN-25 Eppstein's tests")
@@ -377,7 +377,7 @@ struct StrongComponentPortedTests {
         #expect(CompressedSparseRow(vertexCount: 5, edges: broken).stronglyConnectedComponents().map(Array.init) == [[2, 4], [1], [0], [3]])
         #expect(AdjacencyMatrix(vertexCount: 5, edges: broken).stronglyConnectedComponents().map(Array.init) == [[2, 4], [1], [0], [3]])
         let twoCycles = [(0, 1), (1, 2), (2, 3), (3, 0), (10, 11), (11, 12), (12, 10)].map { DirectedEdge(from: $0.0, to: $0.1) }
-        let twoCycleGraph = Multigraph(vertices: [0, 1, 2, 3, 10, 11, 12], edges: twoCycles.sorted())
+        let twoCycleGraph = ReferenceDirectedMultigraph(vertices: [0, 1, 2, 3, 10, 11, 12], edges: twoCycles.sorted())
         #expect(twoCycleGraph.stronglyConnectedComponents().map(Array.init) == [[0, 1, 2, 3], [10, 11, 12]])
     }
 
@@ -423,12 +423,12 @@ struct StrongComponentPortedTests {
     @Test("CN-33 LEMON's test digraph; a self-loop and a repeated edge change nothing")
     func lemon() {
         let edges = [(1, 3), (3, 2), (2, 1), (4, 2), (4, 3), (5, 6), (6, 5)].map { DirectedEdge(from: $0.0, to: $0.1) }.sorted()
-        let graph = Multigraph(vertices: 1 ... 6, edges: edges)
+        let graph = ReferenceDirectedMultigraph(vertices: 1 ... 6, edges: edges)
         let scc = graph.stronglyConnectedComponents()
         #expect(scc.map(Array.init) == [[1, 2, 3], [4], [5, 6]])
         #expect(scc.count == 3)
         #expect(!graph.isStronglyConnected)
-        let extra = Multigraph(vertices: 1 ... 6, edges: edges + [DirectedEdge(from: 3, to: 3), DirectedEdge(from: 3, to: 2)])
+        let extra = ReferenceDirectedMultigraph(vertices: 1 ... 6, edges: edges + [DirectedEdge(from: 3, to: 3), DirectedEdge(from: 3, to: 2)])
         #expect(extra.stronglyConnectedComponents().map(Array.init) == [[1, 2, 3], [4], [5, 6]])
     }
 
@@ -444,8 +444,8 @@ struct StrongComponentPortedTests {
 
     @Test("CN-35 JGraphT tests 1–4 and 7")
     func jgraphtSmall() {
-        func graph(_ pairs: [(Int, Int)], _ vertices: ClosedRange<Int>) -> Multigraph<Int> {
-            Multigraph(vertices: vertices, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }.sorted())
+        func graph(_ pairs: [(Int, Int)], _ vertices: ClosedRange<Int>) -> ReferenceDirectedMultigraph<Int> {
+            ReferenceDirectedMultigraph(vertices: vertices, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }.sorted())
         }
         #expect(graph([(1, 2), (2, 1), (3, 4)], 1 ... 4).stronglyConnectedComponents().map(Array.init) == [[1, 2], [4], [3]])
         #expect(graph([(1, 2), (2, 1), (4, 3), (3, 2)], 1 ... 4).stronglyConnectedComponents().map(Array.init) == [[1, 2], [3], [4]])
@@ -458,8 +458,8 @@ struct StrongComponentPortedTests {
 
     @Test("CN-36 Gabow's example, the Wikipedia graph and JGraphT's test 8")
     func jgraphtLarger() {
-        func graph(_ pairs: [(Int, Int)], _ vertices: ClosedRange<Int>) -> Multigraph<Int> {
-            Multigraph(vertices: vertices, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }.sorted())
+        func graph(_ pairs: [(Int, Int)], _ vertices: ClosedRange<Int>) -> ReferenceDirectedMultigraph<Int> {
+            ReferenceDirectedMultigraph(vertices: vertices, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }.sorted())
         }
         let gabow = graph([(1, 2), (1, 3), (2, 3), (2, 4), (4, 3), (4, 5), (5, 2), (5, 6), (6, 3), (6, 4)], 1 ... 6)
         #expect(gabow.stronglyConnectedComponents().map(Array.init) == [[3], [2, 4, 5, 6], [1]])
@@ -502,7 +502,7 @@ struct StrongComponentOrderTests {
             }
         }
         check(AdjacencyList(vertices: fixture.vertices, edges: fixture.edges))
-        check(Multigraph(vertices: fixture.vertices, edges: fixture.edges))
+        check(ReferenceDirectedMultigraph(vertices: fixture.vertices, edges: fixture.edges))
         if fixture.vertexSet == Set(0 ..< fixture.vertexCount) {
             check(AdjacencyMatrix(vertexCount: fixture.vertexCount, edges: fixture.edges))
             check(CompressedSparseRow(vertexCount: fixture.vertexCount, edges: fixture.edges))
@@ -518,7 +518,7 @@ struct StrongComponentOrderTests {
             }
         }
         check(AdjacencyList(vertices: fixture.vertices, edges: fixture.edges))
-        check(Multigraph(vertices: fixture.vertices, edges: fixture.edges))
+        check(ReferenceDirectedMultigraph(vertices: fixture.vertices, edges: fixture.edges))
         if fixture.vertexSet == Set(0 ..< fixture.vertexCount) {
             check(AdjacencyMatrix(vertexCount: fixture.vertexCount, edges: fixture.edges))
             check(CompressedSparseRow(vertexCount: fixture.vertexCount, edges: fixture.edges))
@@ -529,7 +529,7 @@ struct StrongComponentOrderTests {
     func reverseTopologicalStrings() {
         for fixture in DirectedFixture<String>.all {
             let list = AdjacencyList(vertices: fixture.vertices, edges: fixture.edges).stronglyConnectedComponents()
-            let multigraph = Multigraph(vertices: fixture.vertices, edges: fixture.edges).stronglyConnectedComponents()
+            let multigraph = ReferenceDirectedMultigraph(vertices: fixture.vertices, edges: fixture.edges).stronglyConnectedComponents()
             for edge in fixture.edges {
                 #expect(list.component(of: edge.source) >= list.component(of: edge.target), "\(edge)")
                 #expect(multigraph.component(of: edge.source) >= multigraph.component(of: edge.target), "\(edge)")
@@ -558,7 +558,7 @@ struct StrongComponentOrderTests {
     @Test("CN-43 spread-out Int vertices")
     func spreadOut() {
         let edges = [(30, 10), (10, 20), (20, 10), (20, 40)].map { DirectedEdge(from: $0.0, to: $0.1) }
-        let graph = Multigraph(vertices: [30, 10, 20, 40], edges: edges)
+        let graph = ReferenceDirectedMultigraph(vertices: [30, 10, 20, 40], edges: edges)
         let scc = graph.stronglyConnectedComponents()
         #expect(scc.map(Array.init) == [[40], [10, 20], [30]])
         #expect(graph.vertices.map { scc.component(of: $0) } == [2, 1, 1, 0])
@@ -594,7 +594,7 @@ struct StrongComponentOrderTests {
         for k in 0 ..< 8 {
             let rotate = { (v: Int) in ((v - 1 + k) % 8) + 1 }
             let edges = wikipedia.map { DirectedEdge(from: rotate($0.0), to: rotate($0.1)) }.sorted()
-            let scc = Multigraph(vertices: 1 ... 8, edges: edges).stronglyConnectedComponents()
+            let scc = ReferenceDirectedMultigraph(vertices: 1 ... 8, edges: edges).stronglyConnectedComponents()
             #expect(Set(scc.map(Set.init)) == Set(unrotated.map { Set($0.map(rotate)) }), "k = \(k)")
             #expect(scc.map(Array.init) == exact[k], "k = \(k)")
         }
@@ -612,7 +612,7 @@ struct ConnectivityTestTests {
         ]
         let expected = strong.contains(fixture.name)
         #expect(AdjacencyList(vertices: fixture.vertices, edges: fixture.edges).isStronglyConnected == expected)
-        #expect(Multigraph(vertices: fixture.vertices, edges: fixture.edges).isStronglyConnected == expected)
+        #expect(ReferenceDirectedMultigraph(vertices: fixture.vertices, edges: fixture.edges).isStronglyConnected == expected)
         if fixture.vertexSet == Set(0 ..< fixture.vertexCount) {
             #expect(AdjacencyMatrix(vertexCount: fixture.vertexCount, edges: fixture.edges).isStronglyConnected == expected)
             #expect(CompressedSparseRow(vertexCount: fixture.vertexCount, edges: fixture.edges).isStronglyConnected == expected)
@@ -623,7 +623,7 @@ struct ConnectivityTestTests {
     func pathIsNotStronglyConnected() {
         #expect(!CompressedSparseRow(vertexCount: 3, edges: DirectedFixture<Int>.directedPath3.edges).isStronglyConnected)
         for fixture in DirectedFixture<String>.all {
-            #expect(!Multigraph(vertices: fixture.vertices, edges: fixture.edges).isStronglyConnected)
+            #expect(!ReferenceDirectedMultigraph(vertices: fixture.vertices, edges: fixture.edges).isStronglyConnected)
         }
     }
 
@@ -649,7 +649,7 @@ struct ConnectivityTestTests {
             #expect(g.isWeaklyConnected == (g.weaklyConnectedComponents().count == 1))
         }
         check(AdjacencyList(vertices: fixture.vertices, edges: fixture.edges))
-        check(Multigraph(vertices: fixture.vertices, edges: fixture.edges))
+        check(ReferenceDirectedMultigraph(vertices: fixture.vertices, edges: fixture.edges))
         if fixture.vertexSet == Set(0 ..< fixture.vertexCount) {
             check(AdjacencyMatrix(vertexCount: fixture.vertexCount, edges: fixture.edges))
             check(CompressedSparseRow(vertexCount: fixture.vertexCount, edges: fixture.edges))
@@ -665,7 +665,7 @@ struct ConnectivityTestTests {
         ]
         let expected = !notWeak.contains(fixture.name)
         #expect(AdjacencyList(vertices: fixture.vertices, edges: fixture.edges).isWeaklyConnected == expected)
-        #expect(Multigraph(vertices: fixture.vertices, edges: fixture.edges).isWeaklyConnected == expected)
+        #expect(ReferenceDirectedMultigraph(vertices: fixture.vertices, edges: fixture.edges).isWeaklyConnected == expected)
         if fixture.vertexSet == Set(0 ..< fixture.vertexCount) {
             #expect(AdjacencyMatrix(vertexCount: fixture.vertexCount, edges: fixture.edges).isWeaklyConnected == expected)
             #expect(CompressedSparseRow(vertexCount: fixture.vertexCount, edges: fixture.edges).isWeaklyConnected == expected)
@@ -676,9 +676,9 @@ struct ConnectivityTestTests {
     func weaklyConnectedStrings() {
         let abcd = DirectedFixture<String>.networkXABCD
         let dag = DirectedFixture<String>.petgraphDAG
-        #expect(!Multigraph(vertices: abcd.vertices, edges: abcd.edges).isWeaklyConnected)
+        #expect(!ReferenceDirectedMultigraph(vertices: abcd.vertices, edges: abcd.edges).isWeaklyConnected)
         #expect(!AdjacencyList(vertices: abcd.vertices, edges: abcd.edges).isWeaklyConnected)
-        #expect(Multigraph(vertices: dag.vertices, edges: dag.edges).isWeaklyConnected)
+        #expect(ReferenceDirectedMultigraph(vertices: dag.vertices, edges: dag.edges).isWeaklyConnected)
         #expect(AdjacencyList(vertices: dag.vertices, edges: dag.edges).isWeaklyConnected)
     }
 
@@ -686,11 +686,11 @@ struct ConnectivityTestTests {
     func counts() {
         let docstring = [(0, 1), (1, 2), (2, 0), (2, 3), (4, 5), (3, 4), (5, 6), (6, 3), (6, 7)].map { DirectedEdge(from: $0.0, to: $0.1) }
         #expect(CompressedSparseRow(vertexCount: 8, edges: docstring).stronglyConnectedComponents().count == 3)
-        let lemon = Multigraph(vertices: 1 ... 6, edges: [(1, 3), (3, 2), (2, 1), (4, 2), (4, 3), (5, 6), (6, 5)].map { DirectedEdge(from: $0.0, to: $0.1) })
+        let lemon = ReferenceDirectedMultigraph(vertices: 1 ... 6, edges: [(1, 3), (3, 2), (2, 1), (4, 2), (4, 3), (5, 6), (6, 5)].map { DirectedEdge(from: $0.0, to: $0.1) })
         #expect(lemon.stronglyConnectedComponents().count == 3)
         #expect(lemon.weaklyConnectedComponents().count == 2)
         let eightPairs = [(1, 2), (1, 4), (2, 3), (2, 5), (3, 1), (3, 7), (4, 3), (5, 6), (5, 7), (6, 7), (6, 8), (6, 9), (6, 10), (7, 5), (8, 10), (9, 10), (10, 9)]
-        let eight = Multigraph(vertices: 1 ... 11, edges: eightPairs.map { DirectedEdge(from: $0.0, to: $0.1) })
+        let eight = ReferenceDirectedMultigraph(vertices: 1 ... 11, edges: eightPairs.map { DirectedEdge(from: $0.0, to: $0.1) })
         #expect(eight.stronglyConnectedComponents().count == 5)
         #expect(eight.weaklyConnectedComponents().count == 2)
         let cases: [(DirectedFixture<Int>, Int, Int)] = [(.gap4, 14, 2), (.graph500Scale8, 256, 16), (.ligraRMat, 4, 4)]

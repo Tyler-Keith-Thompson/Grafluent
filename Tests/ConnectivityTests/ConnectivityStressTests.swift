@@ -36,7 +36,7 @@ struct ConnectivityDeepGraphTests {
             }
             check(CompressedSparseRow(vertexCount: n, edges: edges))
             check(AdjacencyList(vertices: 0 ..< n, edges: edges))
-            check(Multigraph(vertices: 0 ..< n, edges: edges))
+            check(ReferenceDirectedMultigraph(vertices: 0 ..< n, edges: edges))
         }.value
     }
 

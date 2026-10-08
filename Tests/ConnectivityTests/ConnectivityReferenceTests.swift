@@ -41,7 +41,7 @@ struct ConnectivityReferenceTests {
         // The same graph, written in the adjacency list's own vertex and successor order.
         let order = Array(list.vertices)
         let written = order.flatMap { u in list.successors(of: u).map { DirectedEdge(from: u, to: $0) } }
-        let multigraph = Multigraph(vertices: order, edges: written)
+        let multigraph = ReferenceDirectedMultigraph(vertices: order, edges: written)
         #expect(list.stronglyConnectedComponents().map(Array.init) == multigraph.stronglyConnectedComponents().map(Array.init))
         #expect(list.weaklyConnectedComponents().map(Array.init) == multigraph.weaklyConnectedComponents().map(Array.init))
         #expect(list.condensation().graph == multigraph.condensation().graph)

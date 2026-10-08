@@ -2,7 +2,7 @@
 
 load("//tools:swift_rules.bzl", "swift_library")
 
-# DisjointSet: union–find with path compression and union by rank.
+# DisjointSet: union–find over 0..<count, with union by size and path halving.
 swift_library(
     name = "DisjointSetModule",
     srcs = glob(["**/*.swift"]),

@@ -197,9 +197,9 @@ extension DirectedGraph {
 
 /// A graph's strongly connected components and the acyclic graph between them.
 @frozen
-public struct Condensation<Graph: DirectedGraph> {
+public struct Condensation<G: DirectedGraph> {
     /// The strongly connected components, in the order of `stronglyConnectedComponents()`.
-    public let components: Components<Graph>
+    public let components: Components<G>
 
     /// The graph on `0..<components.count` in which vertex `i` stands for `components[i]`, with
     /// an edge `i → j` when some edge of the original graph goes from `components[i]` to
@@ -208,10 +208,10 @@ public struct Condensation<Graph: DirectedGraph> {
     public let graph: CompressedSparseRow
 
     @inlinable
-    init(components: Components<Graph>, graph: CompressedSparseRow) {
+    init(components: Components<G>, graph: CompressedSparseRow) {
         self.components = components
         self.graph = graph
     }
 }
 
-extension Condensation: Sendable where Graph: Sendable, Graph.Vertex: Sendable {}
+extension Condensation: Sendable where G: Sendable, G.Vertex: Sendable {}

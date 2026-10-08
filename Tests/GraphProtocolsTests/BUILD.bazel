@@ -14,6 +14,7 @@ swift_library(
     module_name = "GraphProtocolsTests",
     deps = [
         "//Sources/GraphProtocols",
+        "//Sources/Traversal",
         "//Sources/AdjacencyListModule",
         "//Sources/AdjacencyMatrixModule",
         "//Sources/CompressedSparseRowModule",

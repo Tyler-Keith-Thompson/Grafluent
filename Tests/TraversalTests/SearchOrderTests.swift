@@ -177,7 +177,7 @@ struct DepthFirstOrderTests {
         #expect(treeEdges(ascending.depthFirstSearch(from: 0)) == [
             DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 4), DirectedEdge(from: 1, to: 3),
         ])
-        let descending = Multigraph(edges: g.sorted { ($0.source, $1.target) < ($1.source, $0.target) })
+        let descending = ReferenceDirectedMultigraph(edges: g.sorted { ($0.source, $1.target) < ($1.source, $0.target) })
         #expect(treeEdges(descending.depthFirstSearch(from: 0)) == [
             DirectedEdge(from: 0, to: 4), DirectedEdge(from: 4, to: 2), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 1, to: 3),
         ])
@@ -190,18 +190,18 @@ struct DepthFirstOrderTests {
     @Test("TR-60 JGraphT's iterator graph, successors ascending")
     func jgraphtIterator() {
         let pairs = [("1", "2"), ("1", "3"), ("2", "4"), ("3", "5"), ("3", "6"), ("5", "6"), ("5", "7"), ("6", "1"), ("7", "8"), ("7", "9"), ("8", "2"), ("9", "4")]
-        let graph = Multigraph(vertices: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "orphan"], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
+        let graph = ReferenceDirectedMultigraph(vertices: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "orphan"], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
         #expect(Array(graph.depthFirstSearch().preorder) == ["1", "2", "4", "3", "5", "6", "7", "8", "9", "orphan"])
         #expect(Array(graph.depthFirstSearch().postorder) == ["4", "2", "6", "8", "9", "7", "5", "3", "1", "orphan"])
         // JGraphT visits successors in reverse insertion order: written that way, its preorder appears.
-        let reversed = Multigraph(vertices: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "orphan"], edges: pairs.reversed().map { DirectedEdge(from: $0.0, to: $0.1) })
+        let reversed = ReferenceDirectedMultigraph(vertices: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "orphan"], edges: pairs.reversed().map { DirectedEdge(from: $0.0, to: $0.1) })
         #expect(Array(reversed.depthFirstSearch().preorder) == ["1", "3", "6", "5", "7", "9", "4", "8", "2", "orphan"])
     }
 
     @Test("TR-61 JGraphT's bug 1169182 graph")
     func jgraphtBug() {
         let pairs = [("A", "B"), ("B", "C"), ("C", "D"), ("C", "E"), ("C", "F"), ("C", "G"), ("C", "J"), ("D", "H"), ("E", "H"), ("F", "I"), ("G", "I"), ("H", "J"), ("I", "C"), ("J", "K"), ("K", "L")]
-        let graph = Multigraph(edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
+        let graph = ReferenceDirectedMultigraph(edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
         let search = graph.depthFirstSearch(from: "A")
         #expect(search.preorder.joined() == "ABCDHJKLEFIG")
         #expect(search.postorder.joined() == "LKJHDEIFGCBA")

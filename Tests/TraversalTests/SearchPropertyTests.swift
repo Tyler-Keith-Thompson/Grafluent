@@ -56,7 +56,7 @@ struct SearchPropertyTests {
             check(AdjacencyList(vertices: 0 ..< n, edges: edges))
             check(AdjacencyMatrix(vertexCount: n, edges: edges))
             check(CompressedSparseRow(vertexCount: n, edges: edges))
-            check(Multigraph(vertices: 0 ..< n, edges: edges + edges.prefix(3)))
+            check(ReferenceDirectedMultigraph(vertices: 0 ..< n, edges: edges + edges.prefix(3)))
         }
     }
 
@@ -137,7 +137,7 @@ struct SearchPropertyTests {
             let doubled = edges + edges.filter { $0.source % 2 == 0 }
             var copies: [DirectedEdge<Int>: Int] = [:]
             for e in doubled { copies[e, default: 0] += 1 }
-            _ = check(Multigraph(vertices: 0 ..< n, edges: doubled), multiplicity: copies)
+            _ = check(ReferenceDirectedMultigraph(vertices: 0 ..< n, edges: doubled), multiplicity: copies)
         }
     }
 
@@ -393,7 +393,7 @@ struct SearchDispatchTests {
             }
         }
         check(AdjacencyList(vertices: fixture.vertices, edges: fixture.edges))
-        check(Multigraph(vertices: fixture.vertices, edges: fixture.edges))
+        check(ReferenceDirectedMultigraph(vertices: fixture.vertices, edges: fixture.edges))
         if fixture.vertexSet == Set(0 ..< fixture.vertexCount) {
             check(AdjacencyMatrix(vertexCount: fixture.vertexCount, edges: fixture.edges))
             let sparse = CompressedSparseRow(vertexCount: fixture.vertexCount, edges: fixture.edges)
@@ -420,7 +420,7 @@ struct SearchDispatchTests {
         let graphs: [any DirectedGraph<Int>] = [
             AdjacencyMatrix(vertexCount: 6, edges: house.edges),
             CompressedSparseRow(vertexCount: 6, edges: house.edges),
-            Multigraph(edges: house.edges.sorted()),
+            ReferenceDirectedMultigraph(edges: house.edges.sorted()),
         ]
         for g in graphs {
             #expect(preorder(g) == [5, 3, 2, 1, 0, 4])

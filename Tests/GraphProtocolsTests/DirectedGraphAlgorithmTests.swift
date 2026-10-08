@@ -39,7 +39,7 @@ struct DirectedGraphAlgorithmTests {
             #expect(distances(AdjacencyList(vertices: fixture.vertices, edges: fixture.edges), from: source) == expected, "\(fixture.name)")
             #expect(distances(AdjacencyMatrix(vertexCount: fixture.vertexCount, edges: fixture.edges), from: source) == expected, "\(fixture.name)")
             #expect(distances(CompressedSparseRow(vertexCount: fixture.vertexCount, edges: fixture.edges), from: source) == expected, "\(fixture.name)")
-            #expect(distances(Multigraph(vertices: fixture.vertices, edges: fixture.edges), from: source) == expected, "\(fixture.name)")
+            #expect(distances(ReferenceDirectedMultigraph(vertices: fixture.vertices, edges: fixture.edges), from: source) == expected, "\(fixture.name)")
         }
     }
 
@@ -63,7 +63,7 @@ struct DirectedGraphAlgorithmTests {
             order(AdjacencyList(vertices: fixture.vertices, edges: fixture.edges), from: 0),
             order(AdjacencyMatrix(vertexCount: fixture.vertexCount, edges: fixture.edges), from: 0),
             order(CompressedSparseRow(vertexCount: fixture.vertexCount, edges: fixture.edges), from: 0),
-            order(Multigraph(vertices: fixture.vertices, edges: fixture.edges), from: 0),
+            order(ReferenceDirectedMultigraph(vertices: fixture.vertices, edges: fixture.edges), from: 0),
         ]
         for result in graphs { #expect(result == [0, 1, 2, 3, 5, 4]) }
         #expect(order(AdjacencyMatrix(vertexCount: fixture.vertexCount, edges: fixture.edges), from: 6) == [6])
@@ -89,11 +89,11 @@ struct DirectedGraphAlgorithmTests {
             #expect(preorder(AdjacencyList(vertices: fixture.vertices, edges: fixture.edges), from: 0) == expected)
             #expect(preorder(AdjacencyMatrix(vertexCount: fixture.vertexCount, edges: fixture.edges), from: 0) == expected)
             #expect(preorder(CompressedSparseRow(vertexCount: fixture.vertexCount, edges: fixture.edges), from: 0) == expected)
-            #expect(preorder(Multigraph(vertices: fixture.vertices, edges: fixture.edges), from: 0) == expected)
+            #expect(preorder(ReferenceDirectedMultigraph(vertices: fixture.vertices, edges: fixture.edges), from: 0) == expected)
         }
         let dag = DirectedFixture<String>.petgraphDAG
         #expect(preorder(AdjacencyList(vertices: dag.vertices, edges: dag.edges), from: "a") == ["a", "b", "c", "e", "g", "d", "f"])
-        #expect(preorder(Multigraph(vertices: dag.vertices, edges: dag.edges), from: "a") == ["a", "b", "c", "e", "g", "d", "f"])
+        #expect(preorder(ReferenceDirectedMultigraph(vertices: dag.vertices, edges: dag.edges), from: "a") == ["a", "b", "c", "e", "g", "d", "f"])
     }
 
     @Test("DG-A06 / DG-A08 topological generations by Kahn's algorithm, and cycles")
@@ -132,18 +132,18 @@ struct DirectedGraphAlgorithmTests {
             #expect(generations(CompressedSparseRow(vertexCount: fixture.vertexCount, edges: fixture.edges)) == expected, "\(fixture.name)")
         }
         for (fixture, expected) in cases {
-            #expect(generations(Multigraph(vertices: fixture.vertices, edges: fixture.edges)) == expected, "\(fixture.name)")
+            #expect(generations(ReferenceDirectedMultigraph(vertices: fixture.vertices, edges: fixture.edges)) == expected, "\(fixture.name)")
         }
         // Without the listed vertices, only the endpoints remain.
-        #expect(generations(Multigraph(edges: DirectedFixture<Int>.scipyConstructor2.edges)) == [[3], [4]])
+        #expect(generations(ReferenceDirectedMultigraph(edges: DirectedFixture<Int>.scipyConstructor2.edges)) == [[3], [4]])
         let dag = DirectedFixture<String>.petgraphDAG
         #expect(generations(AdjacencyList(vertices: dag.vertices, edges: dag.edges)) == [["a"], ["d"], ["b", "f"], ["c"], ["e"], ["g"]])
         let abcd = DirectedFixture<String>.networkXABCD
         #expect(generations(AdjacencyList(vertices: abcd.vertices, edges: abcd.edges)) == [["A", "G", "J", "K"], ["B"], ["C"], ["D"]])
-        #expect(generations(Multigraph(edges: abcd.edges)) == [["A"], ["B"], ["C"], ["D"]])
+        #expect(generations(ReferenceDirectedMultigraph(edges: abcd.edges)) == [["A"], ["B"], ["C"], ["D"]])
         for fixture in [DirectedFixture<Int>.scc9, .directedCycle4, .boost24] {
             #expect(generations(AdjacencyList(vertices: fixture.vertices, edges: fixture.edges)) == nil, "\(fixture.name)")
-            #expect(generations(Multigraph(vertices: fixture.vertices, edges: fixture.edges)) == nil, "\(fixture.name)")
+            #expect(generations(ReferenceDirectedMultigraph(vertices: fixture.vertices, edges: fixture.edges)) == nil, "\(fixture.name)")
         }
         for fixture in [DirectedFixture<Int>.scc9, .boost24] {
             #expect(generations(AdjacencyMatrix(vertexCount: fixture.vertexCount, edges: fixture.edges)) == nil, "\(fixture.name)")
@@ -170,7 +170,7 @@ struct DirectedGraphAlgorithmTests {
             return result
         }
         let chord = DirectedFixture<Int>.pathWithChord
-        #expect(order(Multigraph(edges: chord.edges)) == [0, 1, 2, 3, 4, 5])
+        #expect(order(ReferenceDirectedMultigraph(edges: chord.edges)) == [0, 1, 2, 3, 4, 5])
         #expect(order(AdjacencyList(vertices: chord.vertices, edges: chord.edges)) == [0, 1, 2, 3, 4, 5])
     }
 
@@ -223,7 +223,7 @@ struct DirectedGraphAlgorithmTests {
             #expect(components(AdjacencyList(vertices: fixture.vertices, edges: fixture.edges)) == expected, "\(fixture.name)")
             #expect(components(AdjacencyMatrix(vertexCount: fixture.vertexCount, edges: fixture.edges)) == expected, "\(fixture.name)")
             #expect(components(CompressedSparseRow(vertexCount: fixture.vertexCount, edges: fixture.edges)) == expected, "\(fixture.name)")
-            #expect(components(Multigraph(vertices: fixture.vertices, edges: fixture.edges)) == expected, "\(fixture.name)")
+            #expect(components(ReferenceDirectedMultigraph(vertices: fixture.vertices, edges: fixture.edges)) == expected, "\(fixture.name)")
         }
     }
 
@@ -264,7 +264,7 @@ struct DirectedGraphAlgorithmTests {
         for (fixture, expected) in cases {
             #expect(components(AdjacencyList(vertices: fixture.vertices, edges: fixture.edges)) == expected, "\(fixture.name)")
             #expect(components(AdjacencyMatrix(vertexCount: fixture.vertexCount, edges: fixture.edges)) == expected, "\(fixture.name)")
-            #expect(components(Multigraph(vertices: fixture.vertices, edges: fixture.edges)) == expected, "\(fixture.name)")
+            #expect(components(ReferenceDirectedMultigraph(vertices: fixture.vertices, edges: fixture.edges)) == expected, "\(fixture.name)")
         }
     }
 
@@ -287,7 +287,7 @@ struct DirectedGraphAlgorithmTests {
         for (fixture, target, expected) in cases {
             #expect(ancestors(AdjacencyList(vertices: fixture.vertices, edges: fixture.edges), of: target) == expected, "\(fixture.name)")
             #expect(ancestors(AdjacencyMatrix(vertexCount: fixture.vertexCount, edges: fixture.edges), of: target) == expected, "\(fixture.name)")
-            #expect(ancestors(Multigraph(vertices: fixture.vertices, edges: fixture.edges), of: target) == expected, "\(fixture.name)")
+            #expect(ancestors(ReferenceDirectedMultigraph(vertices: fixture.vertices, edges: fixture.edges), of: target) == expected, "\(fixture.name)")
         }
     }
 
@@ -306,7 +306,7 @@ struct DirectedGraphAlgorithmTests {
             AdjacencyList(vertices: house.vertices, edges: house.edges),
             AdjacencyMatrix(vertexCount: 6, edges: house.edges),
             CompressedSparseRow(vertexCount: 6, edges: house.edges),
-            Multigraph(edges: house.edges),
+            ReferenceDirectedMultigraph(edges: house.edges),
         ]
         for g in graphs {
             #expect(reachable(g, from: 5) == [0, 1, 2, 3, 4, 5])

@@ -5,25 +5,25 @@ weak components, strong and weak connectivity tests, condensation, attracting co
 dominator trees (Lengauer–Tarjan), dominance frontiers and post-dominator trees. Everything is
 written once against `DirectedGraph` (post-dominators against `BidirectionalDirectedGraph`). The
 suite uses only the public API and is self-contained per test; shared material is the fixtures,
-the `Multigraph` test conformer and the seeded generator in `GrafluentTestSupport`.
+the `ReferenceDirectedMultigraph` test conformer and the seeded generator in `GrafluentTestSupport`.
 
 ## API under test
 
 ```swift
-struct Components<Graph: DirectedGraph>: RandomAccessCollection, Equatable   // Element == ArraySlice<Vertex>
+struct Components<G: DirectedGraph>: RandomAccessCollection, Equatable   // Element == ArraySlice<Vertex>
     func component(of: Vertex) -> Int                 // position in the collection, O(1)
     func component(ofIndex: Int) -> Int               // the same in index space
-struct Condensation<Graph: DirectedGraph>
-    let components: Components<Graph>
+struct Condensation<G: DirectedGraph>
+    let components: Components<G>
     let graph: CompressedSparseRow                    // vertex i is components[i]
-struct DominatorTree<Graph: DirectedGraph>
+struct DominatorTree<G: DirectedGraph>
     var root: Vertex
     func immediateDominator(of:) -> Vertex?           // nil for the root and unreachable vertices
     func dominators(of:) -> [Vertex]?                 // [v, idom(v), …, root]; nil if unreachable
     func strictDominators(of:) -> [Vertex]?
     func children(of:) -> ArraySlice<Vertex>          // in vertices order
     func dominates(_:_:) -> Bool                      // false when the second is unreachable
-struct DominanceFrontiers<Graph: DirectedGraph>
+struct DominanceFrontiers<G: DirectedGraph>
     subscript(Vertex) -> ArraySlice<Vertex>?          // vertices order; nil if unreachable
 
 extension DirectedGraph
@@ -62,9 +62,9 @@ extension BidirectionalDirectedGraph
 | Representation | What is exact |
 |---|---|
 | `AdjacencyMatrix`, `CompressedSparseRow` | Everything: component order, members, labels, condensation rows, attracting and weak components, `children(of:)`, frontiers (vertices and successors ascending, repeats collapsed) |
-| `Multigraph` | Everything, in written order: listed vertices first, then endpoints by first appearance; successors in written order with repeats. The only exact host for `String` fixtures and vertices that are not `0..<n`. Ported 1-based graphs are written with vertices listed ascending and edges sorted |
-| Conformer without indices (`DictionaryGraph`, private per file) | The same as a Multigraph with the same `vertices` and edge order |
-| `AdjacencyList` | Partitions as sets, the reverse topological law, laws, and immediate dominators (unique, so exact everywhere); `children(of:)` and frontiers as sets. CN-144 pins everything exactly by comparing with a `Multigraph` written in the adjacency list's own `vertices` and `successors(of:)` order |
+| `ReferenceDirectedMultigraph` | Everything, in written order: listed vertices first, then endpoints by first appearance; successors in written order with repeats. The only exact host for `String` fixtures and vertices that are not `0..<n`. Ported 1-based graphs are written with vertices listed ascending and edges sorted |
+| Conformer without indices (`DictionaryGraph`, private per file) | The same as a ReferenceDirectedMultigraph with the same `vertices` and edge order |
+| `AdjacencyList` | Partitions as sets, the reverse topological law, laws, and immediate dominators (unique, so exact everywhere); `children(of:)` and frontiers as sets. CN-144 pins everything exactly by comparing with a `ReferenceDirectedMultigraph` written in the adjacency list's own `vertices` and `successors(of:)` order |
 
 Expected values come from the catalog's independent reference (an iterative Tarjan,
 Kosaraju–Sharir, union–find, brute-force, Cooper–Harvey–Kennedy and Lengauer–Tarjan dominators,
@@ -79,7 +79,7 @@ inside the test.
 | `StrongComponentsTests.swift` | §A – §E: strong components of every fixture (exact), in written order and on adjacency lists, graphs ported from NetworkX, petgraph, Boost, LEMON, gonum, JGraphT and rustworkx, the order guarantees, and the strong and weak connectivity tests and counts |
 | `WeakComponentsTests.swift` | §F: weak components, their order, direction ignored, CSR without predecessors, strong refines weak |
 | `CondensationTests.swift` | §G – §H: condensation rows and laws, attracting components and their law |
-| `SelfLoopAndParallelEdgeTests.swift` | §I: parallel edges and self-loops on the Multigraph |
+| `SelfLoopAndParallelEdgeTests.swift` | §I: parallel edges and self-loops on the ReferenceDirectedMultigraph |
 | `DominatorTests.swift` | §J – §M: immediate dominators (Boost's seven test sets, NetworkX, petgraph, fixtures), tree queries, dominance frontiers, post-dominators |
 | `ConnectivityPropertyTests.swift` | §N: seeded random graphs through every representation against oracles written in each test |
 | `ConnectivityStressTests.swift` | §O: 100 000-vertex paths, cycles, a lasso and CHK's quadratic family inside a `Task`; wide graphs; the real-world fixtures |

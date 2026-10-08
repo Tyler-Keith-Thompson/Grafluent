@@ -5,15 +5,15 @@ import GraphProtocols
 /// first seen.
 @frozen
 @usableFromInline
-package struct _VertexIdentifiers<Graph: DirectedGraph> {
-    @usableFromInline let graph: Graph
+package struct _VertexIdentifiers<G: DirectedGraph> {
+    @usableFromInline let graph: G
     /// Whether identifiers are the graph's vertex indices.
     @usableFromInline let isIndexed: Bool
-    @usableFromInline var identifiers: [Graph.Vertex: Int]
-    @usableFromInline var vertices: [Graph.Vertex]
+    @usableFromInline var identifiers: [G.Vertex: Int]
+    @usableFromInline var vertices: [G.Vertex]
 
     @inlinable
-    package init(_ graph: Graph) {
+    package init(_ graph: G) {
         self.graph = graph
         self.isIndexed = graph.vertexIndexBound != nil
         self.identifiers = [:]
@@ -26,7 +26,7 @@ package struct _VertexIdentifiers<Graph: DirectedGraph> {
 
     /// The identifier of `vertex`, handing out a new one if it has not been seen.
     @inlinable
-    package mutating func identifier(of vertex: Graph.Vertex) -> Int {
+    package mutating func identifier(of vertex: G.Vertex) -> Int {
         if isIndexed { return graph.vertexIndex(of: vertex) }
         if let id = identifiers[vertex] { return id }
         let id = vertices.count
@@ -36,7 +36,7 @@ package struct _VertexIdentifiers<Graph: DirectedGraph> {
     }
 
     @inlinable
-    package func vertex(_ id: Int) -> Graph.Vertex {
+    package func vertex(_ id: Int) -> G.Vertex {
         isIndexed ? graph.vertex(atIndex: id) : vertices[id]
     }
 
@@ -51,9 +51,9 @@ package struct _VertexIdentifiers<Graph: DirectedGraph> {
     }
 }
 
-extension _VertexIdentifiers: Sendable where Graph: Sendable, Graph.Vertex: Sendable {}
+extension _VertexIdentifiers: Sendable where G: Sendable, G.Vertex: Sendable {}
 
-extension _VertexIdentifiers where Graph: BidirectionalDirectedGraph {
+extension _VertexIdentifiers where G: BidirectionalDirectedGraph {
     /// Calls `body` with the identifier of each predecessor of `id`, in predecessor order.
     @inlinable
     package mutating func forEachPredecessor(of id: Int, _ body: (Int) -> Void) {

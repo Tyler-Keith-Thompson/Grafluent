@@ -23,7 +23,7 @@ MODULES = [
 
     # Data structures used by graph algorithms
     ("PriorityQueueModule", "Data structures", "IndexedPriorityQueue: a d-ary heap with decrease-key.", []),
-    ("DisjointSetModule", "Data structures", "DisjointSet: union–find with path compression and union by rank.", []),
+    ("DisjointSetModule", "Data structures", "DisjointSet: union–find over 0..<count, with union by size and path halving.", []),
 
     # Representations
     ("AdjacencyListModule", "Representations", "AdjacencyList: a directed graph stored as out- and in-adjacency per vertex.", ["GraphProtocols"]),
@@ -81,12 +81,14 @@ MODULES = [
 TEST_TARGETS = [
     ("GrafluentTestSupportTests", ["GraphProtocols", "GrafluentTestSupport"]),
     ("AdjacencyListTests", ["GraphProtocols", "AdjacencyListModule", "GrafluentTestSupport"]),
+    ("UndirectedAdjacencyListTests", ["GraphProtocols", "AdjacencyListModule", "GrafluentTestSupport"]),
     ("CompressedSparseRowTests", ["GraphProtocols", "CompressedSparseRowModule", "AdjacencyListModule", "AdjacencyMatrixModule", "GrafluentTestSupport"]),
     ("AdjacencyMatrixTests", ["GraphProtocols", "AdjacencyMatrixModule", "AdjacencyListModule", "GrafluentTestSupport", "swift-collections/BitCollections"]),
     ("EdgeListTests", ["GraphProtocols", "EdgeListModule", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport"]),
     ("TraversalTests", ["GraphProtocols", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport"]),
+    ("DisjointSetTests", ["DisjointSetModule", "GrafluentTestSupport"]),
     ("ConnectivityTests", ["GraphProtocols", "Connectivity", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport"]),
-    ("GraphProtocolsTests", ["GraphProtocols", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "EdgeListModule", "GrafluentTestSupport", "swift-collections/BitCollections"]),
+    ("GraphProtocolsTests", ["GraphProtocols", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "EdgeListModule", "GrafluentTestSupport", "swift-collections/BitCollections"]),
 ]
 
 PLATFORMS = '[.macOS(.v15), .iOS(.v18), .tvOS(.v18), .watchOS(.v11), .visionOS(.v2)]'

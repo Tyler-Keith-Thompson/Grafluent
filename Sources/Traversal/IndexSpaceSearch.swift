@@ -10,7 +10,7 @@ import GraphProtocols
 /// depths.
 @frozen
 @usableFromInline
-package struct IndexSpaceSearch<Graph: DirectedGraph> {
+package struct IndexSpaceSearch<G: DirectedGraph> {
     /// What a visitor tells the search after each step.
     @frozen
     @usableFromInline
@@ -46,7 +46,7 @@ package struct IndexSpaceSearch<Graph: DirectedGraph> {
     }
 
     @usableFromInline
-    package var ids: _VertexIdentifiers<Graph>
+    package var ids: _VertexIdentifiers<G>
     /// The order in which each vertex was discovered, or -1.
     @usableFromInline
     package var discovery: [Int]
@@ -60,7 +60,7 @@ package struct IndexSpaceSearch<Graph: DirectedGraph> {
     @usableFromInline var discoveries = 0
 
     @inlinable
-    package init(_ graph: Graph) {
+    package init(_ graph: G) {
         ids = _VertexIdentifiers(graph)
         let n = ids.isIndexed ? ids.count : 0
         discovery = [Int](repeating: -1, count: n)
@@ -99,7 +99,28 @@ package struct IndexSpaceSearch<Graph: DirectedGraph> {
     @inlinable
     @inline(__always)
     @discardableResult
-    package mutating func breadthFirst(from sources: some Sequence<Int>, depthLimit: Int? = nil, _ visit: (BreadthFirstStep, borrowing _VertexIdentifiers<Graph>) -> Control) -> Bool {
+    package mutating func breadthFirst(from sources: some Sequence<Int>, depthLimit: Int? = nil, _ visit: (BreadthFirstStep, borrowing _VertexIdentifiers<G>) -> Control) -> Bool {
+        if ids.isIndexed {
+            // Rows the graph lends out, read directly.
+            let graph = ids.graph
+            if let completed = graph._withSuccessorIndexRows({ offsets, targets in
+                _breadthFirst(sources, depthLimit, visit, offsets, targets)
+            }) {
+                return completed
+            }
+        }
+        return _breadthFirst(sources, depthLimit, visit, nil, nil)
+    }
+
+    @inlinable
+    @inline(__always)
+    mutating func _breadthFirst(
+        _ sources: some Sequence<Int>,
+        _ depthLimit: Int?,
+        _ visit: (BreadthFirstStep, borrowing _VertexIdentifiers<G>) -> Control,
+        _ offsets: UnsafeBufferPointer<Int>?,
+        _ targets: UnsafeBufferPointer<Int>?
+    ) -> Bool {
         var queue: [Int] = []
         var pruned: Set<Int> = []
         for s in sources where !isDiscovered(s) {
@@ -116,7 +137,11 @@ package struct IndexSpaceSearch<Graph: DirectedGraph> {
             let u = queue[head]
             head += 1
             if pruned.isEmpty || !pruned.contains(u), depthLimit.map({ depth[u] < $0 }) ?? true {
-                if ids.isIndexed {
+                if let offsets, let targets {
+                    for k in offsets[u] ..< offsets[u + 1] {
+                        guard _breadthFirstEdge(u, targets[k], &queue, &pruned, visit) else { return false }
+                    }
+                } else if ids.isIndexed {
                     for w in ids.graph.successorIndices(ofIndex: u) {
                         guard _breadthFirstEdge(u, w, &queue, &pruned, visit) else { return false }
                     }
@@ -135,7 +160,7 @@ package struct IndexSpaceSearch<Graph: DirectedGraph> {
 
     @inlinable
     @inline(__always)
-    mutating func _breadthFirstEdge(_ u: Int, _ w: Int, _ queue: inout [Int], _ pruned: inout Set<Int>, _ visit: (BreadthFirstStep, borrowing _VertexIdentifiers<Graph>) -> Control) -> Bool {
+    mutating func _breadthFirstEdge(_ u: Int, _ w: Int, _ queue: inout [Int], _ pruned: inout Set<Int>, _ visit: (BreadthFirstStep, borrowing _VertexIdentifiers<G>) -> Control) -> Bool {
         if isDiscovered(w) {
             if case .stop = visit(.nonTreeEdge(source: u, target: w), ids) { return false }
             return true
@@ -156,8 +181,15 @@ package struct IndexSpaceSearch<Graph: DirectedGraph> {
     @inlinable
     @inline(__always)
     @discardableResult
-    package mutating func depthFirst(from roots: [Int]?, depthLimit: Int? = nil, _ visit: (DepthFirstStep, borrowing _VertexIdentifiers<Graph>) -> Control) -> Bool {
+    package mutating func depthFirst(from roots: [Int]?, depthLimit: Int? = nil, _ visit: (DepthFirstStep, borrowing _VertexIdentifiers<G>) -> Control) -> Bool {
         if ids.isIndexed {
+            // Rows the graph lends out: cursors over them hold no reference to retain per vertex.
+            let graph = ids.graph
+            if let completed = graph._withSuccessorIndexRows({ offsets, targets in
+                _depthFirst(roots, depthLimit, visit, { _RowCursor(row: $1, offsets: offsets, targets: targets) }, { _, w in w })
+            }) {
+                return completed
+            }
             return _depthFirst(roots, depthLimit, visit, { $0.graph.successorIndices(ofIndex: $1).makeIterator() }, { _, w in w })
         }
         return _depthFirst(roots, depthLimit, visit, { $0.graph.successors(of: $0.vertices[$1]).makeIterator() }, { $0.identifier(of: $1) })
@@ -168,9 +200,9 @@ package struct IndexSpaceSearch<Graph: DirectedGraph> {
     mutating func _depthFirst<Neighbors: IteratorProtocol>(
         _ roots: [Int]?,
         _ depthLimit: Int?,
-        _ visit: (DepthFirstStep, borrowing _VertexIdentifiers<Graph>) -> Control,
-        _ neighbors: (borrowing _VertexIdentifiers<Graph>, Int) -> Neighbors,
-        _ identify: (inout _VertexIdentifiers<Graph>, Neighbors.Element) -> Int
+        _ visit: (DepthFirstStep, borrowing _VertexIdentifiers<G>) -> Control,
+        _ neighbors: (borrowing _VertexIdentifiers<G>, Int) -> Neighbors,
+        _ identify: (inout _VertexIdentifiers<G>, Neighbors.Element) -> Int
     ) -> Bool {
         var stack: [Int] = []
         var iterators: [Neighbors?] = []
@@ -227,13 +259,13 @@ package struct IndexSpaceSearch<Graph: DirectedGraph> {
 
 extension IndexSpaceSearch.Control: Equatable {}
 
-extension IndexSpaceSearch where Graph: BidirectionalDirectedGraph {
+extension IndexSpaceSearch where G: BidirectionalDirectedGraph {
     /// A breadth-first search backward along in-edges from `sources`: `visit` sees each vertex
     /// discovered, with its parent being the vertex it leads to. Returns false if stopped.
     @inlinable
     @inline(__always)
     @discardableResult
-    package mutating func breadthFirstBackward(from sources: some Sequence<Int>, _ visit: (Int, borrowing _VertexIdentifiers<Graph>) -> Control) -> Bool {
+    package mutating func breadthFirstBackward(from sources: some Sequence<Int>, _ visit: (Int, borrowing _VertexIdentifiers<G>) -> Control) -> Bool {
         var queue: [Int] = []
         for s in sources where !isDiscovered(s) {
             _discover(s, parent: -1, depth: 0)

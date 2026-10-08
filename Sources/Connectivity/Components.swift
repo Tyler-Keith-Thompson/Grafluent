@@ -16,21 +16,21 @@ import GraphProtocols
 /// Because its type names the graph's type, a result cannot be returned through an existential
 /// `any DirectedGraph`: call it from a generic function (`some DirectedGraph`) instead.
 @frozen
-public struct Components<Graph: DirectedGraph>: RandomAccessCollection {
+public struct Components<G: DirectedGraph>: RandomAccessCollection {
     public typealias Index = Int
-    public typealias Element = ArraySlice<Graph.Vertex>
+    public typealias Element = ArraySlice<G.Vertex>
     public typealias Indices = Range<Int>
 
-    @usableFromInline let _vertices: _DenseVertices<Graph>
+    @usableFromInline let _vertices: _DenseVertices<G>
     /// The component of each vertex, by vertex number.
     @usableFromInline let _labels: [Int]
     /// Every vertex, component by component; component `c` is `_members[_offsets[c] ..< _offsets[c + 1]]`.
-    @usableFromInline let _members: [Graph.Vertex]
+    @usableFromInline let _members: [G.Vertex]
     @usableFromInline let _offsets: [Int]
 
     /// Components from a label per vertex number, labels in `0..<count`.
     @inlinable
-    init(vertices: _DenseVertices<Graph>, labels: [Int], count: Int) {
+    init(vertices: _DenseVertices<G>, labels: [Int], count: Int) {
         // Group by label, each group in increasing vertex number, which is `vertices` order:
         // count each group into the slot of the group after it, sum to get each group's start,
         // place the vertices advancing the starts to the ends, and shift the ends up a slot.
@@ -39,7 +39,7 @@ public struct Components<Graph: DirectedGraph>: RandomAccessCollection {
             labels.withUnsafeBufferPointer { labels in
                 for label in labels { offsets[label + 1] += 1 }
                 for c in 0 ..< count { offsets[c + 1] += offsets[c] }
-                let members = [Graph.Vertex](unsafeUninitializedCapacity: labels.count) { buffer, initialized in
+                let members = [G.Vertex](unsafeUninitializedCapacity: labels.count) { buffer, initialized in
                     for v in 0 ..< labels.count {
                         let label = labels[v]
                         (buffer.baseAddress! + offsets[label]).initialize(to: vertices.vertex(v))
@@ -63,7 +63,7 @@ public struct Components<Graph: DirectedGraph>: RandomAccessCollection {
 
     /// Components already grouped by `_groups(labels:count:)`.
     @inlinable
-    init(vertices: _DenseVertices<Graph>, labels: [Int], offsets: [Int], order: [Int]) {
+    init(vertices: _DenseVertices<G>, labels: [Int], offsets: [Int], order: [Int]) {
         _vertices = vertices
         _labels = labels
         _members = order.map { vertices.vertex($0) }
@@ -75,7 +75,7 @@ public struct Components<Graph: DirectedGraph>: RandomAccessCollection {
 
     /// The vertices of the component at `position`, in `vertices` order.
     @inlinable
-    public subscript(position: Int) -> ArraySlice<Graph.Vertex> {
+    public subscript(position: Int) -> ArraySlice<G.Vertex> {
         precondition(position >= 0 && position < endIndex, "Component position out of range")
         return _members[_offsets[position] ..< _offsets[position + 1]]
     }
@@ -86,7 +86,7 @@ public struct Components<Graph: DirectedGraph>: RandomAccessCollection {
     ///
     /// - Precondition: `vertex` is a vertex of the graph these components were computed from.
     @inlinable
-    public func component(of vertex: Graph.Vertex) -> Int {
+    public func component(of vertex: G.Vertex) -> Int {
         let number = _vertices.number(of: vertex)
         precondition(number >= 0 && number < _labels.count, "\(vertex) is not a vertex of the graph")
         return _labels[number]
@@ -98,7 +98,7 @@ public struct Components<Graph: DirectedGraph>: RandomAccessCollection {
     /// - Precondition: the graph has vertex indices, and `index` is in `0..<vertexIndexBound`.
     @inlinable
     public func component(ofIndex index: Int) -> Int {
-        precondition(_vertices.isIndexed, "\(Graph.self) has no vertex indices")
+        precondition(_vertices.isIndexed, "\(G.self) has no vertex indices")
         precondition(index >= 0 && index < _labels.count, "Vertex index \(index) out of range")
         return _labels[index]
     }
@@ -113,7 +113,7 @@ extension Components: Equatable {
     }
 }
 
-extension Components: Sendable where Graph: Sendable, Graph.Vertex: Sendable {}
+extension Components: Sendable where G: Sendable, G.Vertex: Sendable {}
 
 extension Components: CustomStringConvertible {
     public var description: String {

@@ -1,6 +1,6 @@
 // Dominator trees, their queries, dominance frontiers and post-dominator trees. Immediate
 // dominators are unique, so they are exact on every representation; `children(of:)` and
-// frontiers are in `vertices` order, so they are exact on the matrix, CSR and the Multigraph and
+// frontiers are in `vertices` order, so they are exact on the matrix, CSR and the ReferenceDirectedMultigraph and
 // compared as sets on adjacency lists. Expected values come from the catalog's reference, where
 // brute force, Cooper–Harvey–Kennedy and Lengauer–Tarjan agree with NetworkX, and Boost's own
 // `correctIdoms`. Case IDs (CN-nn) refer to the catalog; see README.md.
@@ -19,7 +19,7 @@ struct ImmediateDominatorTests {
     func networkXDocstring() {
         let edges = [(1, 2), (1, 3), (2, 5), (3, 4), (4, 5)].map { DirectedEdge(from: $0.0, to: $0.1) }
         let expected = [2: 1, 3: 1, 4: 3, 5: 1]
-        let tree = Multigraph(vertices: 1 ... 5, edges: edges).dominatorTree(root: 1)
+        let tree = ReferenceDirectedMultigraph(vertices: 1 ... 5, edges: edges).dominatorTree(root: 1)
         #expect(tree.root == 1)
         for v in 1 ... 5 { #expect(tree.immediateDominator(of: v) == expected[v], "\(v)") }
         let list = AdjacencyList(vertices: 1 ... 5, edges: edges).dominatorTree(root: 1)
@@ -30,13 +30,13 @@ struct ImmediateDominatorTests {
     func irreducible() {
         let figure2 = [(1, 2), (2, 1), (3, 2), (4, 1), (5, 3), (5, 4)].map { DirectedEdge(from: $0.0, to: $0.1) }
         let figure4 = [(1, 2), (2, 1), (2, 3), (3, 2), (4, 2), (4, 3), (5, 1), (6, 4), (6, 5)].map { DirectedEdge(from: $0.0, to: $0.1) }
-        let two = Multigraph(vertices: 1 ... 5, edges: figure2).dominatorTree(root: 5)
+        let two = ReferenceDirectedMultigraph(vertices: 1 ... 5, edges: figure2).dominatorTree(root: 5)
         let twoList = AdjacencyList(vertices: 1 ... 5, edges: figure2).dominatorTree(root: 5)
         for v in 1 ... 4 {
             #expect(two.immediateDominator(of: v) == 5, "\(v)")
             #expect(twoList.immediateDominator(of: v) == 5, "\(v)")
         }
-        let four = Multigraph(vertices: 1 ... 6, edges: figure4).dominatorTree(root: 6)
+        let four = ReferenceDirectedMultigraph(vertices: 1 ... 6, edges: figure4).dominatorTree(root: 6)
         let fourList = AdjacencyList(vertices: 1 ... 6, edges: figure4).dominatorTree(root: 6)
         for v in 1 ... 5 {
             #expect(four.immediateDominator(of: v) == 6, "\(v)")
@@ -48,7 +48,7 @@ struct ImmediateDominatorTests {
     func domrel() {
         let edges = [(1, 2), (2, 3), (2, 4), (2, 6), (3, 5), (4, 5), (5, 2)].map { DirectedEdge(from: $0.0, to: $0.1) }
         let expected = [2: 1, 3: 2, 4: 2, 5: 2, 6: 2]
-        let multigraph = Multigraph(vertices: 1 ... 6, edges: edges).dominatorTree(root: 1)
+        let multigraph = ReferenceDirectedMultigraph(vertices: 1 ... 6, edges: edges).dominatorTree(root: 1)
         let list = AdjacencyList(vertices: 1 ... 6, edges: edges).dominatorTree(root: 1)
         for v in 1 ... 6 {
             #expect(multigraph.immediateDominator(of: v) == expected[v], "\(v)")
@@ -169,7 +169,7 @@ struct ImmediateDominatorTests {
         expected["g"] = "c"
         expected["j"] = "g"
         expected["l"] = "d"
-        let multigraph = Multigraph(vertices: names + ["z"], edges: edges).dominatorTree(root: "r")
+        let multigraph = ReferenceDirectedMultigraph(vertices: names + ["z"], edges: edges).dominatorTree(root: "r")
         let list = AdjacencyList(vertices: names + ["z"], edges: edges).dominatorTree(root: "r")
         for v in names + ["z"] {
             #expect(multigraph.immediateDominator(of: v) == expected[v], "\(v)")
@@ -217,20 +217,20 @@ struct ImmediateDominatorTests {
     func networkXStrings() {
         let discard = [("b0", "b1"), ("b1", "b2"), ("b2", "b3"), ("b3", "b1"), ("b1", "b5"), ("b5", "b6"), ("b5", "b8"), ("b6", "b7"), ("b8", "b7"), ("b7", "b3"), ("b3", "b4")].map { DirectedEdge(from: $0.0, to: $0.1) }
         let discardExpected = ["b1": "b0", "b2": "b1", "b3": "b1", "b4": "b3", "b5": "b1", "b6": "b5", "b7": "b5", "b8": "b5"]
-        let discardTree = Multigraph(edges: discard).dominatorTree(root: "b0")
-        for v in Multigraph(edges: discard).vertices { #expect(discardTree.immediateDominator(of: v) == discardExpected[v], "\(v)") }
+        let discardTree = ReferenceDirectedMultigraph(edges: discard).dominatorTree(root: "b0")
+        for v in ReferenceDirectedMultigraph(edges: discard).vertices { #expect(discardTree.immediateDominator(of: v) == discardExpected[v], "\(v)") }
         let loop = [("a", "b"), ("b", "c"), ("b", "a")].map { DirectedEdge(from: $0.0, to: $0.1) }
-        let loopTree = Multigraph(edges: loop).dominatorTree(root: "a")
+        let loopTree = ReferenceDirectedMultigraph(edges: loop).dominatorTree(root: "a")
         #expect(loopTree.immediateDominator(of: "a") == nil)
         #expect(loopTree.immediateDominator(of: "b") == "a")
         #expect(loopTree.immediateDominator(of: "c") == "b")
         let missing = [("entry_1", "b1"), ("b1", "b2"), ("b2", "b3"), ("b3", "exit"), ("entry_2", "b3")].map { DirectedEdge(from: $0.0, to: $0.1) }
         let missingExpected = ["b1": "entry_1", "b2": "b1", "b3": "b2", "exit": "b3"]
-        let missingTree = Multigraph(edges: missing).dominatorTree(root: "entry_1")
-        for v in Multigraph(edges: missing).vertices { #expect(missingTree.immediateDominator(of: v) == missingExpected[v], "\(v)") }
+        let missingTree = ReferenceDirectedMultigraph(edges: missing).dominatorTree(root: "entry_1")
+        for v in ReferenceDirectedMultigraph(edges: missing).vertices { #expect(missingTree.immediateDominator(of: v) == missingExpected[v], "\(v)") }
         #expect(missingTree.dominators(of: "entry_2") == nil)
         let listTree = AdjacencyList(edges: missing).dominatorTree(root: "entry_1")
-        for v in Multigraph(edges: missing).vertices { #expect(listTree.immediateDominator(of: v) == missingExpected[v], "\(v)") }
+        for v in ReferenceDirectedMultigraph(edges: missing).vertices { #expect(listTree.immediateDominator(of: v) == missingExpected[v], "\(v)") }
     }
 
     @Test("CN-91 immediate dominators of the fixtures", .tags(.fixture))
@@ -273,22 +273,22 @@ struct ImmediateDominatorTests {
         check(AdjacencyMatrix(vertexCount: 24, edges: fixture.edges))
         check(CompressedSparseRow(vertexCount: 24, edges: fixture.edges))
         check(AdjacencyList(vertices: fixture.vertices, edges: fixture.edges))
-        check(Multigraph(vertices: fixture.vertices, edges: fixture.edges))
+        check(ReferenceDirectedMultigraph(vertices: fixture.vertices, edges: fixture.edges))
     }
 
-    @Test("CN-93 immediate dominators of the Multigraph fixtures", .tags(.fixture))
+    @Test("CN-93 immediate dominators of the ReferenceDirectedMultigraph fixtures", .tags(.fixture))
     func multigraphFixtures() {
         let dag = DirectedFixture<String>.petgraphDAG
-        let dagTree = Multigraph(vertices: dag.vertices, edges: dag.edges).dominatorTree(root: "a")
+        let dagTree = ReferenceDirectedMultigraph(vertices: dag.vertices, edges: dag.edges).dominatorTree(root: "a")
         let dagExpected = ["b": "a", "d": "a", "c": "b", "e": "a", "f": "d", "g": "a"]
         for v in ["a", "b", "c", "d", "e", "f", "g"] { #expect(dagTree.immediateDominator(of: v) == dagExpected[v], "\(v)") }
         let abcd = DirectedFixture<String>.networkXABCD
-        let abcdTree = Multigraph(vertices: abcd.vertices, edges: abcd.edges).dominatorTree(root: "A")
+        let abcdTree = ReferenceDirectedMultigraph(vertices: abcd.vertices, edges: abcd.edges).dominatorTree(root: "A")
         let abcdExpected = ["B": "A", "C": "A", "D": "A"]
         for v in ["A", "B", "C", "D", "G", "J", "K"] { #expect(abcdTree.immediateDominator(of: v) == abcdExpected[v], "\(v)") }
         for v in ["G", "J", "K"] { #expect(abcdTree.dominators(of: v) == nil, "\(v)") }
         let loops = DirectedFixture<Int>.selfLoopsAndDuplicates
-        let graph = Multigraph(vertices: loops.vertices, edges: loops.edges)
+        let graph = ReferenceDirectedMultigraph(vertices: loops.vertices, edges: loops.edges)
         let fromOne = graph.dominatorTree(root: 1)
         let fromOneExpected = [2: 1, 3: 2, 4: 2]
         for v in 1 ... 5 { #expect(fromOne.immediateDominator(of: v) == fromOneExpected[v], "\(v)") }
@@ -345,7 +345,7 @@ struct DominatorTreeQueryTests {
         #expect(tree.children(of: 12).isEmpty)
         let names = ["r", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"]
         let pairs = [("r", "a"), ("r", "b"), ("r", "c"), ("a", "d"), ("b", "a"), ("b", "d"), ("b", "e"), ("c", "f"), ("c", "g"), ("d", "l"), ("e", "h"), ("f", "i"), ("g", "i"), ("g", "j"), ("h", "e"), ("h", "k"), ("i", "k"), ("j", "i"), ("k", "r"), ("k", "i"), ("l", "h")]
-        let figure1 = Multigraph(vertices: names + ["z"], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).dominatorTree(root: "r")
+        let figure1 = ReferenceDirectedMultigraph(vertices: names + ["z"], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).dominatorTree(root: "r")
         #expect(Array(figure1.children(of: "r")) == ["a", "b", "c", "d", "e", "h", "i", "k"])
         #expect(Array(figure1.children(of: "c")) == ["f", "g"])
         #expect(Array(figure1.children(of: "z")) == [])
@@ -390,7 +390,7 @@ struct DominatorTreeQueryTests {
     @Test("CN-98 dominates agrees with dominators(of:) on String fixtures")
     func dominatesAgreesStrings() {
         for fixture in DirectedFixture<String>.all {
-            let graph = Multigraph(vertices: fixture.vertices, edges: fixture.edges)
+            let graph = ReferenceDirectedMultigraph(vertices: fixture.vertices, edges: fixture.edges)
             for root in graph.vertices {
                 let tree = graph.dominatorTree(root: root)
                 for b in graph.vertices {
@@ -410,7 +410,7 @@ struct DominanceFrontierTests {
     func networkXDocstring() {
         let edges = [(1, 2), (1, 3), (2, 5), (3, 4), (4, 5)].map { DirectedEdge(from: $0.0, to: $0.1) }
         let expected = [1: [], 2: [5], 3: [5], 4: [5], 5: [Int]()]
-        let frontiers = Multigraph(vertices: 1 ... 5, edges: edges).dominanceFrontiers(root: 1)
+        let frontiers = ReferenceDirectedMultigraph(vertices: 1 ... 5, edges: edges).dominanceFrontiers(root: 1)
         for v in 1 ... 5 { #expect(frontiers[v].map { Array($0) } == expected[v], "\(v)") }
         let list = AdjacencyList(vertices: 1 ... 5, edges: edges).dominanceFrontiers(root: 1)
         for v in 1 ... 5 { #expect(list[v].map { Set($0) } == expected[v].map { Set($0) }, "\(v)") }
@@ -447,11 +447,11 @@ struct DominanceFrontierTests {
     @Test("CN-102 Cooper et al.'s irreducible graphs")
     func irreducible() {
         let figure2 = [(1, 2), (2, 1), (3, 2), (4, 1), (5, 3), (5, 4)].map { DirectedEdge(from: $0.0, to: $0.1) }
-        let two = Multigraph(vertices: 1 ... 5, edges: figure2.sorted()).dominanceFrontiers(root: 5)
+        let two = ReferenceDirectedMultigraph(vertices: 1 ... 5, edges: figure2.sorted()).dominanceFrontiers(root: 5)
         let twoExpected = [1: [2], 2: [1], 3: [2], 4: [1], 5: []]
         for v in 1 ... 5 { #expect(two[v].map { Array($0) } == twoExpected[v], "\(v)") }
         let figure4 = [(1, 2), (2, 1), (2, 3), (3, 2), (4, 2), (4, 3), (5, 1), (6, 4), (6, 5)].map { DirectedEdge(from: $0.0, to: $0.1) }
-        let four = Multigraph(vertices: 1 ... 6, edges: figure4.sorted()).dominanceFrontiers(root: 6)
+        let four = ReferenceDirectedMultigraph(vertices: 1 ... 6, edges: figure4.sorted()).dominanceFrontiers(root: 6)
         let fourExpected = [1: [2], 2: [1, 3], 3: [2], 4: [2, 3], 5: [1], 6: []]
         for v in 1 ... 6 { #expect(four[v].map { Array($0) } == fourExpected[v], "\(v)") }
         let fourList = AdjacencyList(vertices: 1 ... 6, edges: figure4).dominanceFrontiers(root: 6)
@@ -461,7 +461,7 @@ struct DominanceFrontierTests {
     @Test("CN-103 Domrel and Boost's figure 1")
     func domrelAndBoost() {
         let domrel = [(1, 2), (2, 3), (2, 4), (2, 6), (3, 5), (4, 5), (5, 2)].map { DirectedEdge(from: $0.0, to: $0.1) }
-        let domrelFrontiers = Multigraph(vertices: 1 ... 6, edges: domrel).dominanceFrontiers(root: 1)
+        let domrelFrontiers = ReferenceDirectedMultigraph(vertices: 1 ... 6, edges: domrel).dominanceFrontiers(root: 1)
         let domrelExpected = [1: [], 2: [2], 3: [5], 4: [5], 5: [2], 6: []]
         for v in 1 ... 6 { #expect(domrelFrontiers[v].map { Array($0) } == domrelExpected[v], "\(v)") }
         let boost = [(0, 1), (1, 2), (1, 3), (2, 7), (3, 4), (4, 5), (4, 6), (5, 7), (6, 4)].map { DirectedEdge(from: $0.0, to: $0.1) }
@@ -478,16 +478,16 @@ struct DominanceFrontierTests {
     func networkXStrings() {
         let discard = [("b0", "b1"), ("b1", "b2"), ("b2", "b3"), ("b3", "b1"), ("b1", "b5"), ("b5", "b6"), ("b5", "b8"), ("b6", "b7"), ("b8", "b7"), ("b7", "b3"), ("b3", "b4")].map { DirectedEdge(from: $0.0, to: $0.1) }
         let discardExpected = ["b0": [], "b1": ["b1"], "b2": ["b3"], "b3": ["b1"], "b4": [], "b5": ["b3"], "b6": ["b7"], "b7": ["b3"], "b8": ["b7"]]
-        let discardFrontiers = Multigraph(edges: discard).dominanceFrontiers(root: "b0")
+        let discardFrontiers = ReferenceDirectedMultigraph(edges: discard).dominanceFrontiers(root: "b0")
         for (v, frontier) in discardExpected { #expect(discardFrontiers[v].map { Array($0) } == frontier, "\(v)") }
         let loop = [("a", "b"), ("b", "c"), ("b", "a")].map { DirectedEdge(from: $0.0, to: $0.1) }
-        let loopFrontiers = Multigraph(edges: loop).dominanceFrontiers(root: "a")
+        let loopFrontiers = ReferenceDirectedMultigraph(edges: loop).dominanceFrontiers(root: "a")
         #expect(loopFrontiers["a"].map { Array($0) } == ["a"])
         #expect(loopFrontiers["b"].map { Array($0) } == ["a"])
         #expect(loopFrontiers["c"].map { Array($0) } == [])
         // Written order: entry, exit, 1…6.
         let larger = [("entry", "exit"), ("entry", "1"), ("1", "2"), ("2", "3"), ("3", "4"), ("4", "5"), ("5", "6"), ("6", "exit"), ("6", "2"), ("5", "3"), ("4", "4")].map { DirectedEdge(from: $0.0, to: $0.1) }
-        let largerGraph = Multigraph(edges: larger)
+        let largerGraph = ReferenceDirectedMultigraph(edges: larger)
         #expect(largerGraph.vertices == ["entry", "exit", "1", "2", "3", "4", "5", "6"])
         let largerExpected = ["entry": [], "exit": [], "1": ["exit"], "2": ["exit", "2"], "3": ["exit", "2", "3"], "4": ["exit", "2", "3", "4"], "5": ["exit", "2", "3"], "6": ["exit", "2"]]
         let largerFrontiers = largerGraph.dominanceFrontiers(root: "entry")
@@ -541,7 +541,7 @@ struct DominanceFrontierTests {
     @Test("CN-107 a self-loop on a join point puts it in its own frontier", .tags(.selfLoops))
     func selfLoopJoinPoint() {
         let loops = DirectedFixture<Int>.selfLoopsAndDuplicates
-        let loopFrontiers = Multigraph(vertices: loops.vertices, edges: loops.edges).dominanceFrontiers(root: 1)
+        let loopFrontiers = ReferenceDirectedMultigraph(vertices: loops.vertices, edges: loops.edges).dominanceFrontiers(root: 1)
         let loopExpected = [1: [], 2: [], 3: [], 4: [4]]
         for v in 1 ... 5 { #expect(loopFrontiers[v].map { Array($0) } == loopExpected[v], "\(v)") }
         let function = DirectedFixture<Int>.networkXFunctionGraph
@@ -566,7 +566,7 @@ struct DominanceFrontierTests {
     func parallelEdges() {
         // 1→3 is written twice.
         let fixture = DirectedFixture<Int>.pathWithChord
-        let frontiers = Multigraph(vertices: fixture.vertices, edges: fixture.edges).dominanceFrontiers(root: 0)
+        let frontiers = ReferenceDirectedMultigraph(vertices: fixture.vertices, edges: fixture.edges).dominanceFrontiers(root: 0)
         for v in 0 ..< 6 { #expect(frontiers[v].map { Array($0) } == (v == 2 ? [3] : []), "\(v)") }
     }
 }
@@ -577,7 +577,7 @@ struct PostDominatorTests {
     func networkX() {
         let first = [(1, 2), (2, 3), (2, 4), (3, 5), (4, 5), (5, 6)].map { DirectedEdge(from: $0.0, to: $0.1) }
         let firstExpected = [5: 6, 4: 5, 3: 5, 2: 5, 1: 2]
-        let firstMultigraph = Multigraph(vertices: 1 ... 6, edges: first).postDominatorTree(exit: 6)
+        let firstMultigraph = ReferenceDirectedMultigraph(vertices: 1 ... 6, edges: first).postDominatorTree(exit: 6)
         let firstList = AdjacencyList(vertices: 1 ... 6, edges: first).postDominatorTree(exit: 6)
         #expect(firstMultigraph.root == 6)
         for v in 1 ... 6 {
@@ -586,7 +586,7 @@ struct PostDominatorTests {
         }
         let domrel = [(1, 2), (2, 3), (2, 4), (2, 6), (3, 5), (4, 5), (5, 2)].map { DirectedEdge(from: $0.0, to: $0.1) }
         let domrelExpected = [1: 2, 2: 6, 3: 5, 4: 5, 5: 2]
-        let domrelMultigraph = Multigraph(vertices: 1 ... 6, edges: domrel).postDominatorTree(exit: 6)
+        let domrelMultigraph = ReferenceDirectedMultigraph(vertices: 1 ... 6, edges: domrel).postDominatorTree(exit: 6)
         let domrelList = AdjacencyList(vertices: 1 ... 6, edges: domrel).postDominatorTree(exit: 6)
         for v in 1 ... 6 {
             #expect(domrelMultigraph.immediateDominator(of: v) == domrelExpected[v], "\(v)")
@@ -602,7 +602,7 @@ struct PostDominatorTests {
         }
     }
 
-    @Test("CN-110 post-dominators of the fixtures (adjacency list, matrix, Multigraph)", .tags(.fixture))
+    @Test("CN-110 post-dominators of the fixtures (adjacency list, matrix, ReferenceDirectedMultigraph)", .tags(.fixture))
     func fixtures() {
         let house = DirectedFixture<Int>.house
         let houseExpected = [1: 0, 2: 1, 3: 0, 4: 0, 5: 3]
@@ -613,7 +613,7 @@ struct PostDominatorTests {
         }
         checkHouse(AdjacencyList(vertices: house.vertices, edges: house.edges))
         checkHouse(AdjacencyMatrix(vertexCount: 6, edges: house.edges))
-        checkHouse(Multigraph(vertices: house.vertices, edges: house.edges))
+        checkHouse(ReferenceDirectedMultigraph(vertices: house.vertices, edges: house.edges))
         let directed = DirectedFixture<Int>.petgraphEdgesDirected
         let directedExpected = [0: 3, 1: 3, 2: 3, 4: 0]
         func checkDirected<G: BidirectionalDirectedGraph<Int>>(_ g: G) {
@@ -625,14 +625,14 @@ struct PostDominatorTests {
         }
         checkDirected(AdjacencyList(vertices: directed.vertices, edges: directed.edges))
         checkDirected(AdjacencyMatrix(vertexCount: 7, edges: directed.edges))
-        checkDirected(Multigraph(vertices: directed.vertices, edges: directed.edges))
+        checkDirected(ReferenceDirectedMultigraph(vertices: directed.vertices, edges: directed.edges))
     }
 
     @Test("CN-111 the post-dominator tree is the dominator tree of the reversed graph", .tags(.fixture), arguments: DirectedFixture<Int>.all)
     func reversedGraph(_ fixture: DirectedFixture<Int>) {
         func check<G: BidirectionalDirectedGraph<Int>>(_ g: G) {
-            // The reversed Multigraph lists g's vertices first, so `vertices` order is the same.
-            let reversed = Multigraph(vertices: Array(g.vertices), edges: fixture.edges.map { DirectedEdge(from: $0.target, to: $0.source) })
+            // The reversed ReferenceDirectedMultigraph lists g's vertices first, so `vertices` order is the same.
+            let reversed = ReferenceDirectedMultigraph(vertices: Array(g.vertices), edges: fixture.edges.map { DirectedEdge(from: $0.target, to: $0.source) })
             for exit in g.vertices {
                 let post = g.postDominatorTree(exit: exit)
                 let tree = reversed.dominatorTree(root: exit)
@@ -647,7 +647,7 @@ struct PostDominatorTests {
             }
         }
         check(AdjacencyList(vertices: fixture.vertices, edges: fixture.edges))
-        check(Multigraph(vertices: fixture.vertices, edges: fixture.edges))
+        check(ReferenceDirectedMultigraph(vertices: fixture.vertices, edges: fixture.edges))
         if fixture.vertexSet == Set(0 ..< fixture.vertexCount) {
             check(AdjacencyMatrix(vertexCount: fixture.vertexCount, edges: fixture.edges))
         }

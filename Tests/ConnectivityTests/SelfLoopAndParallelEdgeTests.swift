@@ -1,4 +1,4 @@
-// Parallel edges and self-loops, on the Multigraph test conformer (written order, repeats kept):
+// Parallel edges and self-loops, on the ReferenceDirectedMultigraph test conformer (written order, repeats kept):
 // they never change a partition, never become condensation edges, never stop a component being
 // attracting, and are harmless repeated predecessors for dominators. Case IDs (CN-nn) refer to
 // the catalog; see README.md.
@@ -14,7 +14,7 @@ import Traversal
 struct SelfLoopAndParallelEdgeTests {
     @Test("CN-73 parallel edges plus a 2-cycle and a self-loop")
     func parallelTwoCycleAndLoop() {
-        let graph = Multigraph(edges: [(0, 1), (0, 1), (1, 0), (1, 1)].map { DirectedEdge(from: $0.0, to: $0.1) })
+        let graph = ReferenceDirectedMultigraph(edges: [(0, 1), (0, 1), (1, 0), (1, 1)].map { DirectedEdge(from: $0.0, to: $0.1) })
         #expect(graph.stronglyConnectedComponents().map(Array.init) == [[0, 1]])
         let condensation = graph.condensation()
         #expect(condensation.graph.vertexCount == 1)
@@ -30,7 +30,7 @@ struct SelfLoopAndParallelEdgeTests {
 
     @Test("CN-74 parallel edges only")
     func parallelOnly() {
-        let graph = Multigraph(edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 1)])
+        let graph = ReferenceDirectedMultigraph(edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 1)])
         #expect(graph.stronglyConnectedComponents().map(Array.init) == [[1], [0]])
         #expect(Array(graph.condensation().graph.edges) == [DirectedEdge(from: 1, to: 0)])
         #expect(graph.weaklyConnectedComponents().map(Array.init) == [[0, 1]])
@@ -43,7 +43,7 @@ struct SelfLoopAndParallelEdgeTests {
 
     @Test("CN-75 repeated self-loops")
     func repeatedSelfLoops() {
-        let graph = Multigraph(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 0), DirectedEdge(from: 0, to: 0)])
+        let graph = ReferenceDirectedMultigraph(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 0), DirectedEdge(from: 0, to: 0)])
         #expect(graph.stronglyConnectedComponents().map(Array.init) == [[0], [1]])
         #expect(graph.weaklyConnectedComponents().map(Array.init) == [[0], [1]])
         #expect(graph.attractingComponents() == [[0], [1]])
@@ -55,9 +55,9 @@ struct SelfLoopAndParallelEdgeTests {
     @Test("CN-76 removing self-loops never changes the partition", .tags(.fixture), arguments: DirectedFixture<Int>.all)
     func withoutSelfLoops(_ fixture: DirectedFixture<Int>) {
         let loopless = fixture.edges.filter { !$0.isSelfLoop }
-        let with = Multigraph(vertices: fixture.vertices, edges: fixture.edges)
+        let with = ReferenceDirectedMultigraph(vertices: fixture.vertices, edges: fixture.edges)
         // Listing every vertex keeps the ones that only had self-loops, in the same order.
-        let without = Multigraph(vertices: with.vertices, edges: loopless)
+        let without = ReferenceDirectedMultigraph(vertices: with.vertices, edges: loopless)
         #expect(without.vertices == with.vertices)
         #expect(with.stronglyConnectedComponents().map(Array.init) == without.stronglyConnectedComponents().map(Array.init))
         #expect(with.weaklyConnectedComponents().map(Array.init) == without.weaklyConnectedComponents().map(Array.init))

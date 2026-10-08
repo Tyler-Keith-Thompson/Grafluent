@@ -157,8 +157,8 @@ package func _lengauerTarjan<Neighbors: IteratorProtocol<Int>>(
 /// indices, with the same cost: while it is alive, the next mutation of the original copies the
 /// graph. Every query traps when its vertex is not a vertex of that graph.
 @frozen
-public struct DominatorTree<Graph: DirectedGraph> {
-    @usableFromInline let _vertices: _DenseVertices<Graph>
+public struct DominatorTree<G: DirectedGraph> {
+    @usableFromInline let _vertices: _DenseVertices<G>
     @usableFromInline let _root: Int
     /// The immediate dominator of each vertex number; -1 for the root and unreachable vertices.
     @usableFromInline let _idom: [Int]
@@ -168,10 +168,10 @@ public struct DominatorTree<Graph: DirectedGraph> {
     @usableFromInline let _exit: [Int]
     /// The children of each vertex number, in `vertices` order.
     @usableFromInline let _childOffsets: [Int]
-    @usableFromInline let _children: [Graph.Vertex]
+    @usableFromInline let _children: [G.Vertex]
 
     @inlinable
-    init(vertices: _DenseVertices<Graph>, root: Int, _ result: _Dominators) {
+    init(vertices: _DenseVertices<G>, root: Int, _ result: _Dominators) {
         let n = vertices.count
         var idom = [Int](repeating: -1, count: n)
         var offsets = [Int](repeating: 0, count: n + 1)
@@ -247,7 +247,7 @@ public struct DominatorTree<Graph: DirectedGraph> {
     }
 
     @inlinable
-    func _number(_ vertex: Graph.Vertex) -> Int {
+    func _number(_ vertex: G.Vertex) -> Int {
         let v = _vertices.number(of: vertex)
         precondition(v >= 0 && v < _idom.count, "\(vertex) is not a vertex of the graph")
         return v
@@ -255,12 +255,12 @@ public struct DominatorTree<Graph: DirectedGraph> {
 
     /// The root the tree was computed from.
     @inlinable
-    public var root: Graph.Vertex { _vertices.vertex(_root) }
+    public var root: G.Vertex { _vertices.vertex(_root) }
 
     /// The closest strict dominator of `vertex`: its parent in the tree. `nil` for the root and
     /// for vertices the root does not reach.
     @inlinable
-    public func immediateDominator(of vertex: Graph.Vertex) -> Graph.Vertex? {
+    public func immediateDominator(of vertex: G.Vertex) -> G.Vertex? {
         let d = _idom[_number(vertex)]
         return d < 0 ? nil : _vertices.vertex(d)
     }
@@ -268,10 +268,10 @@ public struct DominatorTree<Graph: DirectedGraph> {
     /// The dominators of `vertex`: `vertex` itself, its immediate dominator, and so on up to the
     /// root. `nil` when the root does not reach `vertex`.
     @inlinable
-    public func dominators(of vertex: Graph.Vertex) -> [Graph.Vertex]? {
+    public func dominators(of vertex: G.Vertex) -> [G.Vertex]? {
         var v = _number(vertex)
         guard _enter[v] >= 0 else { return nil }
-        var result: [Graph.Vertex] = [vertex]
+        var result: [G.Vertex] = [vertex]
         while _idom[v] >= 0 {
             v = _idom[v]
             result.append(_vertices.vertex(v))
@@ -281,7 +281,7 @@ public struct DominatorTree<Graph: DirectedGraph> {
 
     /// `dominators(of:)` without `vertex` itself. `nil` when the root does not reach `vertex`.
     @inlinable
-    public func strictDominators(of vertex: Graph.Vertex) -> [Graph.Vertex]? {
+    public func strictDominators(of vertex: G.Vertex) -> [G.Vertex]? {
         dominators(of: vertex).map { Array($0.dropFirst()) }
     }
 
@@ -289,7 +289,7 @@ public struct DominatorTree<Graph: DirectedGraph> {
     /// and for a vertex the root does not reach. The slice keeps the indices of the flat storage
     /// it is cut from, as a `Components` element does.
     @inlinable
-    public func children(of vertex: Graph.Vertex) -> ArraySlice<Graph.Vertex> {
+    public func children(of vertex: G.Vertex) -> ArraySlice<G.Vertex> {
         let v = _number(vertex)
         return _children[_childOffsets[v] ..< _childOffsets[v + 1]]
     }
@@ -300,7 +300,7 @@ public struct DominatorTree<Graph: DirectedGraph> {
     /// does not reach the exit), where LLVM's `DominatorTree::dominates`, whose name this is,
     /// answers true. O(1).
     @inlinable
-    public func dominates(_ a: Graph.Vertex, _ b: Graph.Vertex) -> Bool {
+    public func dominates(_ a: G.Vertex, _ b: G.Vertex) -> Bool {
         let u = _number(a)
         let v = _number(b)
         guard _enter[u] >= 0, _enter[v] >= 0 else { return false }
@@ -308,23 +308,23 @@ public struct DominatorTree<Graph: DirectedGraph> {
     }
 }
 
-extension DominatorTree: Sendable where Graph: Sendable, Graph.Vertex: Sendable {}
+extension DominatorTree: Sendable where G: Sendable, G.Vertex: Sendable {}
 
 /// The dominance frontier of each vertex reachable from a root: the vertices `y` such that the
 /// vertex dominates a predecessor of `y` but does not strictly dominate `y` (Cytron et al.), where
 /// SSA construction places φ-functions.
 @frozen
-public struct DominanceFrontiers<Graph: DirectedGraph> {
-    @usableFromInline let _vertices: _DenseVertices<Graph>
+public struct DominanceFrontiers<G: DirectedGraph> {
+    @usableFromInline let _vertices: _DenseVertices<G>
     @usableFromInline let _reachable: [Bool]
     @usableFromInline let _offsets: [Int]
-    @usableFromInline let _members: [Graph.Vertex]
+    @usableFromInline let _members: [G.Vertex]
 
     /// Cooper, Harvey and Kennedy's runner: for every reachable `y` and every predecessor `p`,
     /// walk from `p` up the dominator tree to `idom(y)`, adding `y` to each frontier on the way.
     /// For the root, whose idom is none, the walk includes the root.
     @inlinable
-    init(vertices: _DenseVertices<Graph>, _ result: _Dominators) {
+    init(vertices: _DenseVertices<G>, _ result: _Dominators) {
         let n = vertices.count
         var runners: [Int] = []
         var members: [Int] = []
@@ -364,7 +364,7 @@ public struct DominanceFrontiers<Graph: DirectedGraph> {
     ///
     /// - Precondition: `vertex` is a vertex of the graph.
     @inlinable
-    public subscript(vertex: Graph.Vertex) -> ArraySlice<Graph.Vertex>? {
+    public subscript(vertex: G.Vertex) -> ArraySlice<G.Vertex>? {
         let v = _vertices.number(of: vertex)
         precondition(v >= 0 && v < _reachable.count, "\(vertex) is not a vertex of the graph")
         guard _reachable[v] else { return nil }
@@ -372,7 +372,7 @@ public struct DominanceFrontiers<Graph: DirectedGraph> {
     }
 }
 
-extension DominanceFrontiers: Sendable where Graph: Sendable, Graph.Vertex: Sendable {}
+extension DominanceFrontiers: Sendable where G: Sendable, G.Vertex: Sendable {}
 
 extension DirectedGraph {
     @inlinable

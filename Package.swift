@@ -125,11 +125,13 @@ let package = Package(
 
         .testTarget(name: "GrafluentTestSupportTests", dependencies: ["GraphProtocols", "GrafluentTestSupport"], exclude: bazelFiles),
         .testTarget(name: "AdjacencyListTests", dependencies: ["GraphProtocols", "AdjacencyListModule", "GrafluentTestSupport"], exclude: ["BUILD.bazel", "README.md"]),
+        .testTarget(name: "UndirectedAdjacencyListTests", dependencies: ["GraphProtocols", "AdjacencyListModule", "GrafluentTestSupport"], exclude: ["BUILD.bazel", "README.md"]),
         .testTarget(name: "CompressedSparseRowTests", dependencies: ["GraphProtocols", "CompressedSparseRowModule", "AdjacencyListModule", "AdjacencyMatrixModule", "GrafluentTestSupport"], exclude: ["BUILD.bazel", "README.md"]),
         .testTarget(name: "AdjacencyMatrixTests", dependencies: ["GraphProtocols", "AdjacencyMatrixModule", "AdjacencyListModule", "GrafluentTestSupport", .product(name: "BitCollections", package: "swift-collections")], exclude: ["BUILD.bazel", "README.md"]),
         .testTarget(name: "EdgeListTests", dependencies: ["GraphProtocols", "EdgeListModule", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport"], exclude: ["BUILD.bazel", "README.md"]),
         .testTarget(name: "TraversalTests", dependencies: ["GraphProtocols", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport"], exclude: ["BUILD.bazel", "README.md"]),
+        .testTarget(name: "DisjointSetTests", dependencies: ["DisjointSetModule", "GrafluentTestSupport"], exclude: ["BUILD.bazel", "README.md"]),
         .testTarget(name: "ConnectivityTests", dependencies: ["GraphProtocols", "Connectivity", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport"], exclude: ["BUILD.bazel", "README.md"]),
-        .testTarget(name: "GraphProtocolsTests", dependencies: ["GraphProtocols", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "EdgeListModule", "GrafluentTestSupport", .product(name: "BitCollections", package: "swift-collections")], exclude: ["BUILD.bazel", "README.md"]),
+        .testTarget(name: "GraphProtocolsTests", dependencies: ["GraphProtocols", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "EdgeListModule", "GrafluentTestSupport", .product(name: "BitCollections", package: "swift-collections")], exclude: ["BUILD.bazel", "README.md"]),
     ]
 )

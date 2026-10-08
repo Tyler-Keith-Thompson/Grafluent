@@ -1,7 +1,8 @@
 # GraphProtocols test suite
 
 `DirectedGraph` and `BidirectionalDirectedGraph` are the protocols every directed representation
-conforms to, and that algorithms are written against. These tests check the protocols themselves:
+conforms to, and `Graph` the one every undirected representation conforms to; algorithms are
+written against them. These tests check the protocols themselves:
 the default implementations, dispatch to a representation's own members, which types conform,
 generic algorithms that must give the same answers on every representation, and conversions
 between representations. The laws each representation must satisfy live in that representation's
@@ -47,7 +48,37 @@ protocol BidirectionalDirectedGraph<Vertex>: DirectedGraph
     func degree(of:) -> Int                     // outDegree + inDegree
 ```
 
-The laws are written in the protocols' documentation and tested in each representation's suite.
+```swift
+struct UndirectedEdge<Vertex: Hashable>: Hashable  // Comparable, Sendable, BitwiseCopyable, Codable when Vertex is
+    init(_ u: Vertex, _ v: Vertex)
+    var u: Vertex, v: Vertex, isSelfLoop: Bool  // u, v keep the order given; == and hash ignore it
+    func oppositeVertex(to: Vertex) -> Vertex   // the vertex itself across a self-loop; traps off the edge
+    // description "u–v"
+
+protocol Graph<Vertex>
+    associatedtype Vertex: Hashable
+    associatedtype Vertices: Collection<Vertex>
+    associatedtype Edges: Collection<UndirectedEdge<Vertex>> where Edges.Index: Hashable
+    associatedtype Neighbors: Sequence<Vertex>
+    associatedtype IncidentEdges: Sequence<Edges.Index>
+    var vertices: Vertices
+    var edges: Edges                            // every edge once, each copy once, a self-loop once
+    func neighbors(of:) -> Neighbors            // the far end of every edge end: a self-loop's vertex twice
+    func incidentEdges(of:) -> IncidentEdges    // positions in edges, once per end: a self-loop twice
+    // Requirements with defaults:
+    func oppositeVertex(to:acrossEdgeAt:)       // edges[position].oppositeVertex(to:)
+    var vertexCount: Int, edgeCount: Int
+    func contains(_:) / contains(edge:)         // never trap; contains(edge:) in either orientation
+    func degree(of:) -> Int                     // the length of neighbors: a self-loop counts 2
+    var vertexIndexBound: Int?; func vertexIndex(of:), vertex(atIndex:), neighborIndices(ofIndex:)
+
+extension Graph { var directed: DirectedView<Self> }                         // each edge as two arcs
+extension BidirectionalDirectedGraph { var undirected: UndirectedView<Self> } // each arc as an edge
+```
+
+The laws are written in the protocols' documentation. The directed laws are tested in each
+representation's suite; the undirected laws are tested here, in `GraphLawTests.swift`, on every
+conformer.
 
 | Type | `DirectedGraph` | Bidirectional | Edge positions | Vertex indices | From any graph |
 |---|---|---|---|---|---|
@@ -55,6 +86,13 @@ The laws are written in the protocols' documentation and tested in each represen
 | `AdjacencyMatrix` | yes | yes | the cell | the vertices themselves | `AdjacencyMatrix(_:)`: the vertices must be exactly `0..<vertexCount` |
 | `CompressedSparseRow` | yes | no: no in-adjacency | the edge index `0..<m` | the vertices themselves | `CompressedSparseRow(_:)`: as for the matrix |
 | `EdgeList` | **no** | — | — | — | `EdgeList(_:)` lists any graph's edges; a list becomes a graph through `AdjacencyList(edges:)` or `CompressedSparseRow(vertexCount:edges:)` |
+
+| Type | `Graph` | Edge positions | Vertex indices | From any graph |
+|---|---|---|---|---|
+| `UndirectedAdjacencyList` | yes | `0..<edgeCount`; valid until mutated | the slots | `UndirectedAdjacencyList(_:)`: keeps isolated vertices, collapses parallel edges, keeps self-loops |
+| `DirectedView` (`graph.directed`) | no: a `BidirectionalDirectedGraph` | (base position, reversed) | the base's | `AdjacencyList(g.directed)` collapses a loop's two arcs into one |
+| `UndirectedView` (`digraph.undirected`) | yes | the base's own | the base's | reciprocal arcs stay two parallel edges; `UndirectedAdjacencyList(_:)` collapses them |
+| `ReferencePseudograph` (test support) | yes | `0..<edgeCount`, written order | written order | — |
 
 ## Conventions
 
@@ -72,16 +110,28 @@ The laws are written in the protocols' documentation and tested in each represen
 | `Sendable` | Not refined by the protocols | Representations are conditionally `Sendable`; algorithms ask for `DirectedGraph & Sendable` | — |
 | Successors type | `Sequence` | Implicit graphs compute neighbors; `Span` is not a `Sequence` | — |
 | Integer graphs that are not `0..<n` | Converting to a matrix or CSR traps | Inferring `max + 1` or renumbering would change what the vertices mean | petgraph and GAP infer `max + 1` |
+| Self-loops in undirected neighborhoods | Once per end: `v` twice in `neighbors(of: v)`, the position twice in `incidentEdges(of: v)`, 2 to `degree` | `degree == neighbors.count` everywhere and the degrees sum to `2 · edgeCount`; it is what the undirected view of a directed loop gives | Boost `adjacency_list`, LEMON and igraph agree; NetworkX, JGraphT and petgraph list the loop once while counting it 2 in the degree |
+| Undirected edge identity | One position in `edges`, reached from both ends | A weight keyed by position is the same in both directions | Boost and petgraph orient each incidence instead |
+| Undirected and directed | Separate protocols; no type is both | `edges` cannot have both element types; the views cross over | LEMON's undirected graphs are also digraphs |
+| Traversal on undirected graphs | Through `directed`, the existing directed search | Breadth-first search is identical; edge-classifying searches (bridges, undirected DFS) need edge identity and are written over `incidentEdges` | Boost has a separate `undirected_dfs` |
 
 ## Files
 
 | File | Covers |
 |---|---|
-| `Multigraph.swift` | A test conformer: a multigraph with indexed adjacency, for the parallel-edge rules |
+| `ReferenceDirectedMultigraph.swift` | A test conformer: a multigraph with indexed adjacency, for the parallel-edge rules |
 | `DirectedGraphDefaultTests.swift` | The defaults through minimal test conformers (single-pass and collection neighborhoods), and that generic code, a second generic layer and existentials call a conformer's own members |
 | `DirectedGraphLawTests.swift` | The laws on the multigraph, seeded random graphs observed identically through every representation, and Tarjan's components in reverse topological order |
 | `DirectedGraphConformanceTests.swift` | Associated types read through generic code, which types conform, `some` and `any` use, `Sendable`, parallel edges told apart by position, Dijkstra on edge positions, vertex indices through generic layers, conversions and round trips |
 | `DirectedGraphAlgorithmTests.swift` | Breadth-first distances and order, depth-first preorder, Kahn's topological generations (including on a multigraph), Tarjan's and Kosaraju's strongly connected components, reverse reachability, and the same through existentials, on every representation |
+| `ReferencePseudograph.swift` | A test conformer (in `GrafluentTestSupport`): an undirected pseudograph, loops and parallel edges kept in written order, with indexed adjacency |
+| `UndirectedFixtures.swift` | The named undirected fixtures (in `GrafluentTestSupport`), each with simple and pseudograph expected values |
+| `UndirectedEdgeTests.swift` | `UndirectedEdge`: symmetric equality and hashing, distinct self-loops, `oppositeVertex`, `Comparable`, kept orientation, description, `Codable`, conditional conformances |
+| `GraphLawTests.swift` | The `Graph` laws on `UndirectedAdjacencyList` (Int and String vertices) and on the pseudograph, generic against concrete and against the fixtures, and seeded random graphs observed identically through both |
+| `GraphDefaultTests.swift` | The `Graph` defaults through minimal conformers (single-pass and collection neighborhoods), and that generic code, a second generic layer and existentials call a conformer's own members |
+| `GraphConformanceTests.swift` | Associated types, `some` and `any Graph`, `Sendable`, that no type is both a `Graph` and a `DirectedGraph`, the `GraphBuilder`, conditional `Comparable`, parallel edges told apart by position, vertex indices through generic layers |
+| `GraphAlgorithmTests.swift` | Breadth-first distances and layers, depth-first preorder, connected components, undirected edge classification, bridges, the Euler circuit condition and two-coloring, on both conformers and through existentials |
+| `GraphViewTests.swift` | The `directed` and `undirected` views: the directed laws on the two-arc view, its exact arcs, Kosaraju and Traversal's search through it, reciprocal arcs and loops in the undirected view, positions, round trips and conversions |
 
 Case IDs (DG-L01, DG-A09, …) refer to the protocol design catalog, which drew on Boost's graph
 concepts, petgraph's `visit` traits, JGraphT's `Graph`, LEMON's concepts and NetworkX.
@@ -94,3 +144,27 @@ Deferred: index-based adjacency (`successors` as vertex indices), so an algorith
 `AdjacencyList` need not hash each neighbor to find its index; it lands with `Traversal`, which is
 its first user. A `DirectedMultigraph` refinement (`edges(from:to:)`, multiplicity) waits for an
 algorithm that needs it.
+
+## Undirected catalog (UG)
+
+The undirected cases are numbered as in the `Graph` protocol design catalog, which drew on Boost's
+`undirectedS` adjacency list and `undirected_dfs`, LEMON's `Graph` concept, igraph's loop
+conventions, petgraph, JGraphT and NetworkX. Expected values for the algorithms and views were
+computed with NetworkX 3.7 (`Graph`, `MultiGraph`, `to_directed`, `to_undirected`). NetworkX lists a
+self-loop's vertex once among its neighbors; those lists are adjusted by one more copy per loop.
+
+| IDs | Covers | Where |
+|---|---|---|
+| UG-L01 – L23 | The laws: counts, membership, neighbors as the far ends of edge ends, degree, handshake, symmetry, loops twice, incident positions each listed twice, `oppositeVertex` across and back, vertex indices, stability | `GraphLawTests.swift`; L16, L17 again after mutations in `UndirectedAdjacencyListMutationTests.swift`; L17, L19, L21 also in `GraphConformanceTests.swift` |
+| UG-P01 | Seeded random graphs, loops and repeats included, observed identically through the adjacency list and the pseudograph | `GraphLawTests.swift` |
+| UG-E01 – E11 | `UndirectedEdge` | `UndirectedEdgeTests.swift` |
+| UG-R01 – R20 | `UndirectedAdjacencyList` on the fixtures, mutation, preconditions, equality, value semantics, description, `Codable`, literals | `Tests/UndirectedAdjacencyListTests` |
+| UG-T01 – T05, T08, T09 | Associated types, `some` and `any`, `Sendable`, no dual conformance, the builder, conditional `Comparable` | `GraphConformanceTests.swift` |
+| UG-T06, T07 | Defaults through minimal conformers; dispatch to a conformer's own members | `GraphDefaultTests.swift` |
+| UG-A01 – A09 | Generic algorithms | `GraphAlgorithmTests.swift` |
+| UG-C01 – C11 | Views and conversions | `GraphViewTests.swift` |
+
+Not tested, because a test cannot observe them: that a type conforming to both `Graph` and
+`DirectedGraph` fails to compile (UG-T05's last clause; verified when the protocol was designed), and the benchmarks
+UG-B01 – B04 (costs of the directed view, O(1) `degree` and `contains(edge:)`, vertex removal,
+copying), which belong in the benchmarks.

@@ -49,7 +49,7 @@ struct DirectedGraphConformanceTests {
         #expect(edgeCount(AdjacencyList(edges: house.edges)) == 7)
         #expect(edgeCount(AdjacencyMatrix(vertexCount: 6, edges: house.edges)) == 7)
         #expect(edgeCount(CompressedSparseRow(vertexCount: 6, edges: house.edges)) == 7)
-        #expect(edgeCount(Multigraph(edges: house.edges)) == 7)
+        #expect(edgeCount(ReferenceDirectedMultigraph(edges: house.edges)) == 7)
     }
 
     @Test("DG-T03 some BidirectionalDirectedGraph<String> accepts an adjacency list")
@@ -57,7 +57,7 @@ struct DirectedGraphConformanceTests {
         func degree(_ g: some BidirectionalDirectedGraph<String>, of v: String) -> Int { g.degree(of: v) }
         let dag = DirectedFixture<String>.petgraphDAG
         #expect(degree(AdjacencyList(vertices: dag.vertices, edges: dag.edges), of: "b") == 4)
-        #expect(degree(Multigraph(vertices: dag.vertices, edges: dag.edges), of: "b") == 4)
+        #expect(degree(ReferenceDirectedMultigraph(vertices: dag.vertices, edges: dag.edges), of: "b") == 4)
     }
 
     @Test("DG-T04 existentials hold every representation")
@@ -103,7 +103,7 @@ struct DirectedGraphIdentityTests {
             }
             return best
         }
-        let graph = Multigraph(edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2)])
+        let graph = ReferenceDirectedMultigraph(edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2)])
         let weights = [5.0, 1.0, 2.0]
         #expect(cheapest(graph, from: 0) { weights[$0] } == [1: 1, 2: 2])
     }
@@ -131,7 +131,7 @@ struct DirectedGraphIdentityTests {
         let list = AdjacencyList(vertices: fixture.vertices, edges: fixture.edges)
         let matrix = AdjacencyMatrix(vertexCount: 9, edges: fixture.edges)
         let sparse = CompressedSparseRow(vertexCount: 9, edges: fixture.edges)
-        let multigraph = Multigraph(vertices: fixture.vertices, edges: fixture.edges)
+        let multigraph = ReferenceDirectedMultigraph(vertices: fixture.vertices, edges: fixture.edges)
         let expected = distances(multigraph, from: 0) { $0 + 1 }
         // 0→1 (1), 0→2 (2), then 3 by 1→3 (1 + 6) rather than 2→3 (2 + 7); 4…8 are unreachable.
         #expect(expected == [0: 0, 1: 1, 2: 2, 3: 7])
@@ -196,7 +196,7 @@ struct DirectedGraphConversionTests {
     @Test("DG-C01 an adjacency list from a multigraph collapses repeated edges")
     func fromMultigraphCollapses() {
         let chord = DirectedFixture<Int>.pathWithChord
-        let graph = AdjacencyList(Multigraph(edges: chord.edges))
+        let graph = AdjacencyList(ReferenceDirectedMultigraph(edges: chord.edges))
         #expect(graph.vertexCount == 6)
         #expect(graph.edgeCount == 6)
         #expect(graph == AdjacencyList(vertices: chord.vertices, edges: chord.edges))
@@ -226,7 +226,7 @@ struct DirectedGraphConversionTests {
             DirectedEdge(from: 1, to: 2), DirectedEdge(from: 1, to: 5), DirectedEdge(from: 2, to: 0), DirectedEdge(from: 2, to: 2),
             DirectedEdge(from: 3, to: 4), DirectedEdge(from: 4, to: 3), DirectedEdge(from: 5, to: 0),
         ])
-        let chord = Multigraph(edges: DirectedFixture<Int>.pathWithChord.edges)
+        let chord = ReferenceDirectedMultigraph(edges: DirectedFixture<Int>.pathWithChord.edges)
         #expect(Array(EdgeList(chord)) == DirectedFixture<Int>.pathWithChord.edges)
         let list = AdjacencyList(edges: house.edges)
         #expect(Array(EdgeList(list)) == Array(list.edges))
@@ -244,29 +244,29 @@ struct DirectedGraphConversionTests {
         #expect(CompressedSparseRow(matrix) == sparse)
         #expect(AdjacencyList(sparse) == list)
         #expect(AdjacencyList(matrix) == list)
-        #expect(CompressedSparseRow(Multigraph(vertices: 0 ..< fixture.vertexCount, edges: fixture.edges)) == sparse)
+        #expect(CompressedSparseRow(ReferenceDirectedMultigraph(vertices: 0 ..< fixture.vertexCount, edges: fixture.edges)) == sparse)
     }
 
     @Test("DG-C14 converting keeps a test conformer's vertex order")
     func keepsVertexOrder() {
-        let graph = Multigraph(vertices: ["c", "a", "b"], edges: [DirectedEdge(from: "b", to: "a")])
+        let graph = ReferenceDirectedMultigraph(vertices: ["c", "a", "b"], edges: [DirectedEdge(from: "b", to: "a")])
         #expect(Array(AdjacencyList(graph).vertices) == ["c", "a", "b"])
     }
 
     @Test("DG-C10 a graph whose vertices are not 0..<n cannot become a matrix or compressed sparse row graph", .tags(.precondition))
     func outOfRange() async {
         await #expect(processExitsWith: .failure) {
-            _ = CompressedSparseRow(Multigraph(edges: [DirectedEdge(from: 0, to: 2)]))
+            _ = CompressedSparseRow(ReferenceDirectedMultigraph(edges: [DirectedEdge(from: 0, to: 2)]))
         }
         await #expect(processExitsWith: .failure) {
-            _ = AdjacencyMatrix(Multigraph(edges: [DirectedEdge(from: 0, to: 2)]))
+            _ = AdjacencyMatrix(ReferenceDirectedMultigraph(edges: [DirectedEdge(from: 0, to: 2)]))
         }
     }
 
     @Test("DG-C11 a multigraph whose vertices are exactly 0..<n converts, collapsing repeats")
     func zeroBasedMultigraph() {
         let neo4j = DirectedFixture<Int>.neo4jDirected
-        let doubled = Multigraph(edges: neo4j.edges + neo4j.edges)
+        let doubled = ReferenceDirectedMultigraph(edges: neo4j.edges + neo4j.edges)
         #expect(CompressedSparseRow(doubled) == CompressedSparseRow(vertexCount: 5, edges: neo4j.edges))
         #expect(AdjacencyMatrix(doubled) == AdjacencyMatrix(vertexCount: 5, edges: neo4j.edges))
     }
@@ -274,7 +274,7 @@ struct DirectedGraphConversionTests {
     @Test("DG-C12 String vertices: isolated vertices survive only where they were stored")
     func strings() {
         let abcd = DirectedFixture<String>.networkXABCD
-        #expect(AdjacencyList(Multigraph(edges: abcd.edges)).vertexCount == 4)
+        #expect(AdjacencyList(ReferenceDirectedMultigraph(edges: abcd.edges)).vertexCount == 4)
         #expect(AdjacencyList(AdjacencyList(vertices: abcd.vertices, edges: abcd.edges)).vertexCount == 7)
     }
 

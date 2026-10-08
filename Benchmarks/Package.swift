@@ -39,6 +39,31 @@ let package = Package(
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
         ),
         .executableTarget(
+            name: "DisjointSetBenchmarks",
+            dependencies: [
+                "BenchmarkSupport",
+                .product(name: "Benchmark", package: "benchmark"),
+                .product(name: "GraphProtocols", package: "Grafluent"),
+                .product(name: "DisjointSetModule", package: "Grafluent"),
+                .product(name: "Connectivity", package: "Grafluent"),
+                .product(name: "CompressedSparseRowModule", package: "Grafluent"),
+            ],
+            path: "Benchmarks/DisjointSetBenchmarks",
+            plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
+        ),
+        .executableTarget(
+            name: "UndirectedAdjacencyListBenchmarks",
+            dependencies: [
+                "BenchmarkSupport",
+                .product(name: "Benchmark", package: "benchmark"),
+                .product(name: "GraphProtocols", package: "Grafluent"),
+                .product(name: "AdjacencyListModule", package: "Grafluent"),
+                .product(name: "Traversal", package: "Grafluent"),
+            ],
+            path: "Benchmarks/UndirectedAdjacencyListBenchmarks",
+            plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
+        ),
+        .executableTarget(
             name: "DirectedGraphBenchmarks",
             dependencies: [
                 "BenchmarkSupport",

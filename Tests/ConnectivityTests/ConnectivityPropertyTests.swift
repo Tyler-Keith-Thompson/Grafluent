@@ -1,6 +1,6 @@
 // Properties on seeded random graphs: n ∈ {0, 1, 2, 5, 10, 40}, p ∈ {0.05, 0.2, 0.5}, self-loops
 // allowed, five graphs per cell per seed (fifty per cell over the ten seeds), each built as an
-// adjacency list, a matrix, CSR, a Multigraph with random repeated edges, and a conformer without
+// adjacency list, a matrix, CSR, a ReferenceDirectedMultigraph with random repeated edges, and a conformer without
 // vertex indices. Every oracle (reachability, Kosaraju, union–find, brute-force dominators,
 // Cooper–Harvey–Kennedy, Cytron's frontier definition) is written inside its test. Case IDs
 // (CN-nn) refer to the catalog; see README.md.
@@ -104,10 +104,10 @@ struct ConnectivityPropertyTests {
                     check(AdjacencyList(vertices: 0 ..< n, edges: edges))
                     check(AdjacencyMatrix(vertexCount: n, edges: edges))
                     check(CompressedSparseRow(vertexCount: n, edges: edges))
-                    check(Multigraph(vertices: 0 ..< n, edges: (edges + repeats).sorted()))
+                    check(ReferenceDirectedMultigraph(vertices: 0 ..< n, edges: (edges + repeats).sorted()))
                     check(DictionaryGraph(vertices: Array(0 ..< n), edges: edges))
                     // CN-117: the reversed graph has the same partition.
-                    let reversed = Multigraph(vertices: 0 ..< n, edges: edges.map { DirectedEdge(from: $0.target, to: $0.source) })
+                    let reversed = ReferenceDirectedMultigraph(vertices: 0 ..< n, edges: edges.map { DirectedEdge(from: $0.target, to: $0.source) })
                     #expect(Set(reversed.stronglyConnectedComponents().map(Set.init)) == kosaraju)
                 }
             }
@@ -183,7 +183,7 @@ struct ConnectivityPropertyTests {
                     check(AdjacencyList(vertices: 0 ..< n, edges: edges), exact: false)
                     check(AdjacencyMatrix(vertexCount: n, edges: edges), exact: true)
                     check(CompressedSparseRow(vertexCount: n, edges: edges), exact: true)
-                    check(Multigraph(vertices: 0 ..< n, edges: edges + repeats), exact: true)
+                    check(ReferenceDirectedMultigraph(vertices: 0 ..< n, edges: edges + repeats), exact: true)
                     check(DictionaryGraph(vertices: Array(0 ..< n), edges: edges), exact: true)
                 }
             }
@@ -225,7 +225,7 @@ struct ConnectivityPropertyTests {
                     check(AdjacencyList(vertices: 0 ..< n, edges: edges))
                     check(AdjacencyMatrix(vertexCount: n, edges: edges))
                     check(CompressedSparseRow(vertexCount: n, edges: edges))
-                    check(Multigraph(vertices: 0 ..< n, edges: edges + repeats))
+                    check(ReferenceDirectedMultigraph(vertices: 0 ..< n, edges: edges + repeats))
                     check(DictionaryGraph(vertices: Array(0 ..< n), edges: edges))
                 }
             }
@@ -262,7 +262,7 @@ struct ConnectivityPropertyTests {
                     let list = AdjacencyList(vertices: 0 ..< n, edges: edges)
                     let matrix = AdjacencyMatrix(vertexCount: n, edges: edges)
                     let sparse = CompressedSparseRow(vertexCount: n, edges: edges)
-                    let multigraph = Multigraph(vertices: 0 ..< n, edges: (edges + repeats).sorted())
+                    let multigraph = ReferenceDirectedMultigraph(vertices: 0 ..< n, edges: (edges + repeats).sorted())
                     for root in roots {
                         // Oracle: u dominates v iff removing u cuts v off from the root.
                         let reachable = reach(from: root, without: nil)
@@ -376,7 +376,7 @@ struct ConnectivityPropertyTests {
                     let original = CompressedSparseRow(vertexCount: n, edges: edges)
                     let relabeledEdges = edges.map { DirectedEdge(from: relabel($0.source), to: relabel($0.target)) }
                     let relabeled = AdjacencyList(vertices: (0 ..< n).map(relabel).shuffled(using: &generator), edges: relabeledEdges.shuffled(using: &generator))
-                    let relabeledMultigraph = Multigraph(vertices: (0 ..< n).map(relabel), edges: relabeledEdges)
+                    let relabeledMultigraph = ReferenceDirectedMultigraph(vertices: (0 ..< n).map(relabel), edges: relabeledEdges)
                     let expected = Set(original.stronglyConnectedComponents().map { Set($0.map(relabel)) })
                     #expect(Set(relabeled.stronglyConnectedComponents().map(Set.init)) == expected)
                     #expect(Set(relabeledMultigraph.stronglyConnectedComponents().map(Set.init)) == expected)
@@ -392,7 +392,7 @@ struct ConnectivityPropertyTests {
         }
     }
 
-    @Test("CN-125 representations agree: matrix and CSR exactly, the Multigraph and the unindexed conformer in the same order, adjacency lists as partitions", arguments: 1 ... 10)
+    @Test("CN-125 representations agree: matrix and CSR exactly, the ReferenceDirectedMultigraph and the unindexed conformer in the same order, adjacency lists as partitions", arguments: 1 ... 10)
     func representationsAgree(_ seed: Int) {
         var generator = SeededRandomNumberGenerator(seed: UInt(seed) &+ 600)
         for n in [0, 1, 2, 5, 10, 40] {
@@ -406,7 +406,7 @@ struct ConnectivityPropertyTests {
                     let matrix = AdjacencyMatrix(vertexCount: n, edges: edges)
                     let sparse = CompressedSparseRow(vertexCount: n, edges: edges)
                     // Edges written ascending, so successors come in the same order as the matrix's.
-                    let multigraph = Multigraph(vertices: 0 ..< n, edges: (edges + repeats).sorted())
+                    let multigraph = ReferenceDirectedMultigraph(vertices: 0 ..< n, edges: (edges + repeats).sorted())
                     let unindexed = DictionaryGraph(vertices: Array(0 ..< n), edges: edges)
                     let list = AdjacencyList(vertices: 0 ..< n, edges: edges.shuffled(using: &generator))
                     let strong = matrix.stronglyConnectedComponents().map(Array.init)

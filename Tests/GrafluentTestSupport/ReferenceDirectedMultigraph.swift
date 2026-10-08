@@ -7,7 +7,7 @@ import GraphProtocols
 /// Vertices in the order given (endpoints added in order of first appearance), edges as given,
 /// repeats included, and out- and in-lists of edge positions per vertex. Dense vertex indices
 /// are the vertices' positions.
-public struct Multigraph<Vertex: Hashable>: BidirectionalDirectedGraph {
+public struct ReferenceDirectedMultigraph<Vertex: Hashable>: BidirectionalDirectedGraph {
     public let vertices: [Vertex]
     public let edges: [DirectedEdge<Vertex>]
     private let index: [Vertex: Int]

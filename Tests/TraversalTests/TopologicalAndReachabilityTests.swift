@@ -54,7 +54,7 @@ struct TopologicalSortTests {
         let list = AdjacencyList(vertices: dag.vertices, edges: dag.edges)
         #expect(list.lexicographicalTopologicalSort() == ["a", "d", "b", "c", "f", "e", "g"])
         #expect(list.topologicalGenerations()?.map(Set.init) == [["a"], ["d"], ["b", "f"], ["c"], ["e"], ["g"]])
-        #expect(Multigraph(vertices: dag.vertices, edges: dag.edges).topologicalSort() == ["a", "d", "f", "b", "c", "e", "g"])
+        #expect(ReferenceDirectedMultigraph(vertices: dag.vertices, edges: dag.edges).topologicalSort() == ["a", "d", "f", "b", "c", "e", "g"])
         let extended = AdjacencyList(vertices: dag.vertices, edges: dag.edges + [
             DirectedEdge(from: "h", to: "i"), DirectedEdge(from: "h", to: "j"), DirectedEdge(from: "i", to: "j"),
         ])
@@ -64,7 +64,7 @@ struct TopologicalSortTests {
         let abcdList = AdjacencyList(vertices: abcd.vertices, edges: abcd.edges)
         #expect(abcdList.lexicographicalTopologicalSort() == ["A", "B", "C", "D", "G", "J", "K"])
         #expect(abcdList.topologicalGenerations()?.map(Set.init) == [["A", "G", "J", "K"], ["B"], ["C"], ["D"]])
-        #expect(Multigraph(vertices: abcd.vertices, edges: abcd.edges).topologicalSort() == ["A", "B", "C", "D", "K", "J", "G"])
+        #expect(ReferenceDirectedMultigraph(vertices: abcd.vertices, edges: abcd.edges).topologicalSort() == ["A", "B", "C", "D", "K", "J", "G"])
     }
 
     @Test("TR-95 NetworkX's test_topological_sort1: adding and removing a back edge")
@@ -103,7 +103,7 @@ struct TopologicalSortTests {
         #expect(graph.lexicographicalTopologicalSort(by: >) == [1, 5, 4, 2, 6, 3])
         // Equal keys: the order must not need to compare the vertices themselves, and ties go in the
         // order they became ready, which gives NetworkX's [0, 1, 2, 3].
-        let ties = Multigraph(edges: [(0, 1), (0, 2), (0, 3), (2, 3)].map { DirectedEdge(from: $0.0, to: $0.1) })
+        let ties = ReferenceDirectedMultigraph(edges: [(0, 1), (0, 2), (0, 3), (2, 3)].map { DirectedEdge(from: $0.0, to: $0.1) })
         let order = ties.lexicographicalTopologicalSort { _, _ in false }
         #expect(order == [0, 1, 2, 3])
         #expect(order?.count == 4)
@@ -119,7 +119,7 @@ struct TopologicalSortTests {
         let forward: [(Int, Int)] = [(1, 2), (1, 3), (2, 4), (2, 5), (3, 7), (5, 6), (5, 7)]
         let reversed = AdjacencyList(edges: forward.map { DirectedEdge(from: $0.1, to: $0.0) })
         #expect(reversed.topologicalGenerations()?.map(Set.init) == [[4, 6, 7], [3, 5], [2], [1]])
-        let multi = Multigraph(edges: forward.map { DirectedEdge(from: $0.1, to: $0.0) } + [DirectedEdge(from: 2, to: 1)])
+        let multi = ReferenceDirectedMultigraph(edges: forward.map { DirectedEdge(from: $0.1, to: $0.0) } + [DirectedEdge(from: 2, to: 1)])
         #expect(multi.topologicalGenerations()?.map(Set.init) == [[4, 6, 7], [3, 5], [2], [1]])
         let diamond = AdjacencyMatrix(vertexCount: 4, edges: [(0, 1), (0, 2), (1, 3), (2, 3)].map { DirectedEdge(from: $0.0, to: $0.1) })
         #expect(diamond.topologicalGenerations() == [[0], [1, 2], [3]])
@@ -145,7 +145,7 @@ struct TopologicalSortTests {
         let graph = AdjacencyList(edges: edges)
         #expect(graph.lexicographicalTopologicalSort() == ["v0", "v1", "v3", "v2", "v4", "v5"])
         #expect(graph.topologicalGenerations()?.map(Set.init) == [["v0", "v3"], ["v1", "v2"], ["v4"], ["v5"]])
-        #expect(Multigraph(vertices: ["v0", "v1", "v2", "v3", "v4", "v5"], edges: edges).topologicalSort() == ["v3", "v0", "v2", "v1", "v4", "v5"])
+        #expect(ReferenceDirectedMultigraph(vertices: ["v0", "v1", "v2", "v3", "v4", "v5"], edges: edges).topologicalSort() == ["v3", "v0", "v2", "v1", "v4", "v5"])
     }
 
     @Test("TR-105 parallel edges count in the in-degrees, and every order stays valid")
@@ -153,7 +153,7 @@ struct TopologicalSortTests {
         // NetworkX: 9 vertices, edge i→i+1 written i times.
         var edges: [DirectedEdge<Int>] = []
         for i in 1 ..< 9 { edges += Array(repeating: DirectedEdge(from: i, to: i + 1), count: i) }
-        let graph = Multigraph(edges: edges)
+        let graph = ReferenceDirectedMultigraph(edges: edges)
         #expect(graph.topologicalSort() == Array(1 ... 9))
         #expect(graph.lexicographicalTopologicalSort() == Array(1 ... 9))
         #expect(graph.topologicalGenerations() == (1 ... 9).map { [$0] })
@@ -209,7 +209,7 @@ struct ReachabilityTests {
         for (v, expected) in [(6, [1, 2, 4, 5]), (3, [1, 4]), (1, [])] as [(Int, Set<Int>)] {
             #expect(list.ancestors(of: v) == expected)
             #expect(matrix.ancestors(of: v) == expected)
-            #expect(Multigraph(edges: edges).ancestors(of: v) == expected)
+            #expect(ReferenceDirectedMultigraph(edges: edges).ancestors(of: v) == expected)
         }
     }
 

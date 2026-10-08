@@ -52,7 +52,7 @@ struct CondensationTests {
     @Test("CN-61 NetworkX test_contract_scc1")
     func contractSCC1() {
         let pairs = [(1, 2), (2, 3), (2, 11), (2, 12), (3, 4), (4, 3), (4, 5), (5, 6), (6, 5), (6, 7), (7, 8), (7, 9), (7, 10), (8, 9), (9, 7), (10, 6), (11, 2), (11, 4), (11, 6), (12, 6), (12, 11)]
-        let graph = Multigraph(vertices: 1 ... 12, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }.sorted())
+        let graph = ReferenceDirectedMultigraph(vertices: 1 ... 12, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }.sorted())
         let condensation = graph.condensation()
         #expect(condensation.components.map(Array.init) == [[5, 6, 7, 8, 9, 10], [3, 4], [2, 11, 12], [1]])
         #expect((0 ..< 4).map { Array(condensation.graph.successors(of: $0)) } == [[], [0], [0, 1], [2]])
@@ -67,22 +67,22 @@ struct CondensationTests {
 
     @Test("CN-62 NetworkX's isolate and edge cases")
     func networkXSmall() {
-        let isolate = Multigraph(vertices: 1 ... 2, edges: [DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 1)]).condensation()
+        let isolate = ReferenceDirectedMultigraph(vertices: 1 ... 2, edges: [DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 1)]).condensation()
         #expect(isolate.graph.vertexCount == 1)
         #expect(isolate.graph.edgeCount == 0)
         let pairs = [(1, 2), (2, 1), (2, 3), (3, 4), (4, 3)]
-        let edge = Multigraph(vertices: 1 ... 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).condensation()
+        let edge = ReferenceDirectedMultigraph(vertices: 1 ... 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).condensation()
         #expect(edge.components.map(Array.init) == [[3, 4], [1, 2]])
         #expect(Array(edge.graph.edges) == [DirectedEdge(from: 1, to: 0)])
     }
 
     @Test("CN-63 JGraphT's condensations")
     func jgrapht() {
-        let first = Multigraph(vertices: 1 ... 5, edges: [(1, 2), (2, 1), (3, 4), (5, 4)].map { DirectedEdge(from: $0.0, to: $0.1) }).condensation()
+        let first = ReferenceDirectedMultigraph(vertices: 1 ... 5, edges: [(1, 2), (2, 1), (3, 4), (5, 4)].map { DirectedEdge(from: $0.0, to: $0.1) }).condensation()
         #expect(first.components.map(Array.init) == [[1, 2], [4], [3], [5]])
         #expect((0 ..< 4).map { Array(first.graph.successors(of: $0)) } == [[], [], [1], [1]])
         // 1→3 and 2→4 collapse into one edge.
-        let second = Multigraph(vertices: 1 ... 4, edges: [(1, 2), (2, 1), (3, 4), (4, 3), (1, 3), (2, 4)].map { DirectedEdge(from: $0.0, to: $0.1) }.sorted()).condensation()
+        let second = ReferenceDirectedMultigraph(vertices: 1 ... 4, edges: [(1, 2), (2, 1), (3, 4), (4, 3), (1, 3), (2, 4)].map { DirectedEdge(from: $0.0, to: $0.1) }.sorted()).condensation()
         #expect(second.components.map(Array.init) == [[3, 4], [1, 2]])
         #expect(Array(second.graph.edges) == [DirectedEdge(from: 1, to: 0)])
     }
@@ -104,7 +104,7 @@ struct CondensationTests {
         #expect(completeCondensation.graph.edgeCount == 0)
         // 2→4 is written three times (13 edges); without deduplication there would be 10.
         let sparseFixture = DirectedFixture<Int>.jgraphtSparseDirected
-        let multigraph = Multigraph(vertices: sparseFixture.vertices, edges: sparseFixture.edges).condensation()
+        let multigraph = ReferenceDirectedMultigraph(vertices: sparseFixture.vertices, edges: sparseFixture.edges).condensation()
         #expect((0 ..< 7).map { Array(multigraph.graph.successors(of: $0)) } == [[], [0], [1], [0, 1, 2], [2], [2], [0]])
         #expect(multigraph.graph.edgeCount == 8)
         let csr1 = DirectedFixture<Int>.petgraphCsr1
@@ -147,7 +147,7 @@ struct CondensationTests {
             #expect(graph.stronglyConnectedComponents().allSatisfy { $0.count == 1 })
         }
         check(AdjacencyList(vertices: fixture.vertices, edges: fixture.edges))
-        check(Multigraph(vertices: fixture.vertices, edges: fixture.edges))
+        check(ReferenceDirectedMultigraph(vertices: fixture.vertices, edges: fixture.edges))
         if fixture.vertexSet == Set(0 ..< fixture.vertexCount) {
             check(AdjacencyMatrix(vertexCount: fixture.vertexCount, edges: fixture.edges))
             check(CompressedSparseRow(vertexCount: fixture.vertexCount, edges: fixture.edges))
@@ -160,7 +160,7 @@ struct AttractingComponentTests {
     @Test("CN-68 NetworkX G1")
     func networkXG1() {
         let pairs = [(5, 11), (11, 2), (11, 9), (11, 10), (7, 11), (7, 8), (8, 9), (3, 8), (3, 10)]
-        let graph = Multigraph(vertices: [2, 3, 5, 7, 8, 9, 10, 11], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }.sorted())
+        let graph = ReferenceDirectedMultigraph(vertices: [2, 3, 5, 7, 8, 9, 10, 11], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }.sorted())
         #expect(graph.attractingComponents() == [[2], [9], [10]])
         #expect(graph.attractingComponents().count == 3)
     }
@@ -213,9 +213,9 @@ struct AttractingComponentTests {
             #expect(CompressedSparseRow(vertexCount: fixture.vertexCount, edges: fixture.edges).attractingComponents().map(Array.init) == expected, "\(fixture.name)")
         }
         let cycle = DirectedFixture<Int>.directedCycle4
-        #expect(Multigraph(vertices: cycle.vertices, edges: cycle.edges).attractingComponents() == [[1, 2, 3, 4]])
+        #expect(ReferenceDirectedMultigraph(vertices: cycle.vertices, edges: cycle.edges).attractingComponents() == [[1, 2, 3, 4]])
         let triangle = DirectedFixture<Int>.triangleWithReciprocalEdge
-        #expect(Multigraph(vertices: triangle.vertices, edges: triangle.edges).attractingComponents() == [[1, 2, 3]])
+        #expect(ReferenceDirectedMultigraph(vertices: triangle.vertices, edges: triangle.edges).attractingComponents() == [[1, 2, 3]])
     }
 
     @Test("CN-72 attracting components are the components whose condensation row is empty, in that order", .tags(.fixture), arguments: DirectedFixture<Int>.all)
@@ -226,7 +226,7 @@ struct AttractingComponentTests {
             #expect(g.attractingComponents().map(Array.init) == expected)
         }
         check(AdjacencyList(vertices: fixture.vertices, edges: fixture.edges))
-        check(Multigraph(vertices: fixture.vertices, edges: fixture.edges))
+        check(ReferenceDirectedMultigraph(vertices: fixture.vertices, edges: fixture.edges))
         if fixture.vertexSet == Set(0 ..< fixture.vertexCount) {
             check(AdjacencyMatrix(vertexCount: fixture.vertexCount, edges: fixture.edges))
             check(CompressedSparseRow(vertexCount: fixture.vertexCount, edges: fixture.edges))

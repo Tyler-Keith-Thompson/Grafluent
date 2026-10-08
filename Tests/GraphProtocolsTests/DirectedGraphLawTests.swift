@@ -1,4 +1,4 @@
-// The protocol's laws on a multigraph (the test conformer in Multigraph.swift), where parallel
+// The protocol's laws on a multigraph (the test conformer in ReferenceDirectedMultigraph.swift), where parallel
 // edges must count once per copy, and on seeded random graphs through every representation.
 // Case IDs (DG-Lnn, DG-Rnn, DG-Pnn) refer to the catalog in README.md.
 
@@ -48,7 +48,7 @@ struct DirectedGraphLawTests {
                 #expect(g.vertices.map { g.vertexIndex(of: $0) } == Array(0 ..< n))
             }
         }
-        check(Multigraph(vertices: fixture.vertices, edges: fixture.edges))
+        check(ReferenceDirectedMultigraph(vertices: fixture.vertices, edges: fixture.edges))
     }
 
     @Test("DG-R10 / DG-R11 repeated edges through the protocol")
@@ -58,10 +58,10 @@ struct DirectedGraphLawTests {
             for (v, predecessors) in into { #expect(Array(g.predecessors(of: v)) == predecessors, "predecessors(of: \(v))") }
             for (v, d) in degree { #expect(g.degree(of: v) == d, "degree(of: \(v))") }
         }
-        let chord = Multigraph(edges: DirectedFixture<Int>.pathWithChord.edges)
+        let chord = ReferenceDirectedMultigraph(edges: DirectedFixture<Int>.pathWithChord.edges)
         #expect(chord.edgeCount == 7)
         check(chord, out: [1: [2, 3, 3]], in: [3: [2, 1, 1]], degree: [1: 4])
-        let sparse = Multigraph(edges: DirectedFixture<Int>.jgraphtSparseDirected.edges)
+        let sparse = ReferenceDirectedMultigraph(edges: DirectedFixture<Int>.jgraphtSparseDirected.edges)
         #expect(sparse.edgeCount == 13)
         check(sparse, out: [2: [4, 4, 4]], in: [4: [1, 2, 2, 2, 3]], degree: [7: 3])
         // The three copies of 2→4 are three positions.
@@ -88,7 +88,7 @@ struct DirectedGraphLawTests {
         }
         let distinct = Array(Set(edges))
         let list = AdjacencyList(vertices: 0 ..< n, edges: edges)
-        let expected = observe(Multigraph(vertices: 0 ..< n, edges: distinct))
+        let expected = observe(ReferenceDirectedMultigraph(vertices: 0 ..< n, edges: distinct))
         #expect(observe(list) == expected)
         #expect(observe(AdjacencyMatrix(vertexCount: n, edges: edges)) == expected)
         #expect(observe(CompressedSparseRow(vertexCount: n, edges: edges)) == expected)

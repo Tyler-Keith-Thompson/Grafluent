@@ -20,10 +20,21 @@ package enum GraphDescription {
         String(reflecting: edge.source) + "→" + String(reflecting: edge.target)
     }
 
+    package static func edge<Vertex>(_ edge: UndirectedEdge<Vertex>) -> String {
+        String(reflecting: edge.u) + "–" + String(reflecting: edge.v)
+    }
+
     /// `[vertices]; [edges]`.
     package static func graph<Vertices: Sequence, Edges: Sequence, Vertex>(
         vertices: Vertices, vertexCount: Int, edges: Edges, edgeCount: Int
     ) -> String where Vertices.Element == Vertex, Edges.Element == DirectedEdge<Vertex> {
+        list(vertices, count: vertexCount) { String(reflecting: $0) } + "; " + list(edges, count: edgeCount) { GraphDescription.edge($0) }
+    }
+
+    /// `[vertices]; [edges]` for an undirected graph.
+    package static func graph<Vertices: Sequence, Edges: Sequence, Vertex>(
+        vertices: Vertices, vertexCount: Int, edges: Edges, edgeCount: Int
+    ) -> String where Vertices.Element == Vertex, Edges.Element == UndirectedEdge<Vertex> {
         list(vertices, count: vertexCount) { String(reflecting: $0) } + "; " + list(edges, count: edgeCount) { GraphDescription.edge($0) }
     }
 }

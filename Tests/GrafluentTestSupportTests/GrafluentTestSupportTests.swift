@@ -41,6 +41,44 @@ struct DirectedFixtureConsistencyTests {
     }
 }
 
+@Suite("Undirected fixtures are internally consistent", .tags(.fixture))
+struct UndirectedFixtureConsistencyTests {
+    @Test(arguments: UndirectedFixture<Int>.all)
+    func intFixture(_ fixture: UndirectedFixture<Int>) {
+        let vertices = Set(fixture.vertices).union(fixture.edges.flatMap { [$0.u, $0.v] })
+        let edges = Set(fixture.edges)
+        #expect(fixture.vertexSet == vertices)
+        #expect(fixture.edgeSet == edges)
+        #expect(vertices.count == fixture.vertexCount, "vertexCount")
+        #expect(edges.count == fixture.edgeCount, "edgeCount")
+        #expect(fixture.edges.count == fixture.pseudographEdgeCount, "pseudographEdgeCount")
+        #expect(Set(fixture.degree.keys) == vertices, "degree covers every vertex")
+        #expect(Set(fixture.pseudographDegree.keys) == vertices, "pseudographDegree covers every vertex")
+        for v in vertices {
+            // Edge ends at v: a self-loop has both.
+            #expect(edges.map { ($0.u == v ? 1 : 0) + ($0.v == v ? 1 : 0) }.reduce(0, +) == fixture.degree[v], "degree(of: \(v))")
+            #expect(fixture.edges.map { ($0.u == v ? 1 : 0) + ($0.v == v ? 1 : 0) }.reduce(0, +) == fixture.pseudographDegree[v], "pseudographDegree(of: \(v))")
+        }
+        // Σ degree = 2 · edgeCount, both ways of counting.
+        #expect(fixture.degree.values.reduce(0, +) == 2 * fixture.edgeCount, "Σ degree")
+        #expect(fixture.pseudographDegree.values.reduce(0, +) == 2 * fixture.pseudographEdgeCount, "Σ pseudographDegree")
+    }
+
+    @Test(arguments: UndirectedFixture<String>.all)
+    func stringFixture(_ fixture: UndirectedFixture<String>) {
+        let vertices = Set(fixture.vertices).union(fixture.edges.flatMap { [$0.u, $0.v] })
+        let edges = Set(fixture.edges)
+        #expect(vertices.count == fixture.vertexCount, "vertexCount")
+        #expect(edges.count == fixture.edgeCount, "edgeCount")
+        #expect(fixture.edges.count == fixture.pseudographEdgeCount, "pseudographEdgeCount")
+        #expect(Set(fixture.degree.keys) == vertices, "degree covers every vertex")
+        for v in vertices {
+            #expect(edges.map { ($0.u == v ? 1 : 0) + ($0.v == v ? 1 : 0) }.reduce(0, +) == fixture.degree[v], "degree(of: \(v))")
+            #expect(fixture.edges.map { ($0.u == v ? 1 : 0) + ($0.v == v ? 1 : 0) }.reduce(0, +) == fixture.pseudographDegree[v], "pseudographDegree(of: \(v))")
+        }
+    }
+}
+
 @Suite("Test vertex types and instrumentation")
 struct InstrumentationTests {
     @Test func colliderEqualityIgnoresTheChosenHash() {

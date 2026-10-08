@@ -65,11 +65,11 @@ struct ConnectivityConformanceTests {
         #expect(tree.immediateDominator(of: HashCountingVertex(value: 2, counter: counter)) == HashCountingVertex(value: 1, counter: counter))
     }
 
-    @Test("CN-137 a conformer without vertex indices works on dictionaries and matches the Multigraph")
+    @Test("CN-137 a conformer without vertex indices works on dictionaries and matches the ReferenceDirectedMultigraph")
     func withoutIndices() {
         let house = DirectedFixture<Int>.house
-        let multigraph = Multigraph(vertices: house.vertices, edges: house.edges)
-        // The same vertices order as the Multigraph's, [5, 3, 4, 2, 0, 1], and edges in written order.
+        let multigraph = ReferenceDirectedMultigraph(vertices: house.vertices, edges: house.edges)
+        // The same vertices order as the ReferenceDirectedMultigraph's, [5, 3, 4, 2, 0, 1], and edges in written order.
         let unindexed = DictionaryGraph(vertices: multigraph.vertices, edges: house.edges)
         #expect(unindexed.vertexIndexBound == nil)
         #expect(unindexed.stronglyConnectedComponents().map(Array.init) == [[0], [1], [4], [2], [3], [5]])
@@ -124,7 +124,7 @@ struct ConnectivityConformanceTests {
         let graphs: [(any DirectedGraph<Int>, [[Int]])] = [
             (AdjacencyMatrix(vertexCount: 9, edges: scc9.edges), [[0, 3, 6], [2, 5, 8], [1, 4, 7]]),
             (CompressedSparseRow(vertexCount: 9, edges: scc9.edges), [[0, 3, 6], [2, 5, 8], [1, 4, 7]]),
-            (Multigraph(vertices: scc9.vertices, edges: scc9.edges), [[6, 0, 3], [8, 2, 5], [7, 1, 4]]),
+            (ReferenceDirectedMultigraph(vertices: scc9.vertices, edges: scc9.edges), [[6, 0, 3], [8, 2, 5], [7, 1, 4]]),
         ]
         for (g, expected) in graphs { #expect(partition(g) == expected) }
         let list: any DirectedGraph<Int> = AdjacencyList(vertices: scc9.vertices, edges: scc9.edges)

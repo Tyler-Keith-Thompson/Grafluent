@@ -4,7 +4,7 @@
 sequences, reachability, shortest paths by edge count, topological sorting and cycle finding,
 written once against `DirectedGraph` and searches over successor closures for state spaces that
 are not finite graphs. The suite uses only the public API and is self-contained per test; shared
-material is the fixtures and the `Multigraph` test conformer in `GrafluentTestSupport`.
+material is the fixtures and the `ReferenceDirectedMultigraph` test conformer in `GrafluentTestSupport`.
 
 ## API under test
 
@@ -58,7 +58,7 @@ readable afterwards. It is what `Connectivity`, `Flows` and `ShortestPaths` will
 | Per-vertex state | Arrays indexed in index space (`successorIndices`) when the graph has vertex indices; dictionaries otherwise | An adjacency list searched by hashing each neighbor is 3.5× slower | — |
 | Cycles | Topological sorts return `nil`; `findCycle()` returns the witness | A thrown error must be `Sendable`, which would rule out non-`Sendable` vertices | petgraph returns `Err(Cycle(node))`, NetworkX raises |
 | Paths | `[Vertex]` | `Walks.Path` does not exist yet | — |
-| Order in tests | Exact transcripts on the matrix and CSR (ascending successors) and the `Multigraph` (written order); order-independent assertions on `AdjacencyList` | The protocol fixes successor order per representation only | — |
+| Order in tests | Exact transcripts on the matrix and CSR (ascending successors) and the `ReferenceDirectedMultigraph` (written order); order-independent assertions on `AdjacencyList` | The protocol fixes successor order per representation only | — |
 | Lexicographic BFS | Deferred | It is an undirected algorithm (chordality); it lands with `Graph` | JGraphT refuses directed input |
 
 ## Files

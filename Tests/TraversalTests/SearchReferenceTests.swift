@@ -113,7 +113,7 @@ struct SearchReferenceTests {
             let limit: Int? = Bool.random(using: &generator) ? nil : Int.random(in: 0 ... 3, using: &generator)
             let edges = pairs.map { DirectedEdge(from: $0.0, to: $0.1) }
             check(CompressedSparseRow(vertexCount: n, edges: edges), "CSR", roots: roots, limit: limit)
-            check(Multigraph(vertices: 0 ..< n, edges: edges), "multigraph", roots: roots, limit: limit)
+            check(ReferenceDirectedMultigraph(vertices: 0 ..< n, edges: edges), "multigraph", roots: roots, limit: limit)
             check(DictionaryGraph(vertices: Array(0 ..< n), edges: edges), "no indices", roots: roots, limit: limit)
             // Int vertices that are not 0..<n, and String vertices.
             let spread = pairs.map { DirectedEdge(from: $0.0 * 7 - 30, to: $0.1 * 7 - 30) }

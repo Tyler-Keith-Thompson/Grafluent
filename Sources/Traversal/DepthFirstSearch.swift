@@ -7,21 +7,21 @@ import GraphProtocols
 /// Two ways to consume it. `for event in search` pulls events one at a time, lazily, so stopping
 /// the loop stops the search; to skip a vertex's out-edges, iterate by hand and call `prune()`
 /// right after its `discover` event. `search.forEach { … }` pushes every event to a closure in a
-/// single loop, about twice as fast as pulling, for when every event is wanted.
+/// single loop, faster than pulling, for when every event is wanted.
 ///
 /// With a depth limit, a vertex first reached by a path longer than the limit is not explored from
 /// a later, shorter path either: the search goes depth-first, not by distance (as in NetworkX).
 @frozen
-public struct DepthFirstSearch<Graph: DirectedGraph>: Sequence {
-    public typealias Element = DepthFirstSearchEvent<Graph.Vertex>
+public struct DepthFirstSearch<G: DirectedGraph>: Sequence {
+    public typealias Element = DepthFirstSearchEvent<G.Vertex>
 
-    @usableFromInline let graph: Graph
+    @usableFromInline let graph: G
     /// The roots in order, or `nil` for every vertex in `vertices` order.
-    @usableFromInline let roots: [Graph.Vertex]?
+    @usableFromInline let roots: [G.Vertex]?
     @usableFromInline let depthLimit: Int?
 
     @inlinable
-    init(graph: Graph, roots: [Graph.Vertex]?, depthLimit: Int?) {
+    init(graph: G, roots: [G.Vertex]?, depthLimit: Int?) {
         precondition(depthLimit.map { $0 >= 0 } ?? true, "A depth limit cannot be negative")
         for root in roots ?? [] {
             precondition(graph.contains(root), "The source \(root) is not a vertex of the graph")
@@ -38,7 +38,7 @@ public struct DepthFirstSearch<Graph: DirectedGraph>: Sequence {
 
     /// Calls `body` with every event, in order, in one loop.
     @inlinable
-    public func forEach<Failure: Error>(_ body: (DepthFirstSearchEvent<Graph.Vertex>) throws(Failure) -> Void) throws(Failure) {
+    public func forEach<Failure: Error>(_ body: (DepthFirstSearchEvent<G.Vertex>) throws(Failure) -> Void) throws(Failure) {
         var search = IndexSpaceSearch(graph)
         var rootIDs: [Int]?
         if let roots {
@@ -48,7 +48,7 @@ public struct DepthFirstSearch<Graph: DirectedGraph>: Sequence {
         }
         var failure: Failure?
         search.depthFirst(from: rootIDs, depthLimit: depthLimit) { step, ids in
-            let event: DepthFirstSearchEvent<Graph.Vertex> = switch step {
+            let event: DepthFirstSearchEvent<G.Vertex> = switch step {
             case .discover(let v): .discover(ids.vertex(v))
             case .treeEdge(let u, let w): .treeEdge(DirectedEdge(from: ids.vertex(u), to: ids.vertex(w)))
             case .backEdge(let u, let w): .backEdge(DirectedEdge(from: ids.vertex(u), to: ids.vertex(w)))
@@ -69,22 +69,22 @@ public struct DepthFirstSearch<Graph: DirectedGraph>: Sequence {
 
     /// The vertices in the order discovered (NetworkX's `dfs_preorder_nodes`).
     @inlinable
-    public var preorder: some Sequence<Graph.Vertex> {
+    public var preorder: some Sequence<G.Vertex> {
         lazy.compactMap { if case .discover(let v) = $0 { v } else { nil } }
     }
 
     /// The vertices in the order finished (NetworkX's `dfs_postorder_nodes`). With a depth limit,
     /// the vertices at the limit are finished too.
     @inlinable
-    public var postorder: some Sequence<Graph.Vertex> {
+    public var postorder: some Sequence<G.Vertex> {
         lazy.compactMap { if case .finish(let v) = $0 { v } else { nil } }
     }
 
     public struct Iterator: IteratorProtocol {
-        @usableFromInline var ids: _VertexIdentifiers<Graph>
-        @usableFromInline let roots: [Graph.Vertex]?
+        @usableFromInline var ids: _VertexIdentifiers<G>
+        @usableFromInline let roots: [G.Vertex]?
         @usableFromInline var nextRoot = 0
-        @usableFromInline var vertexIterator: Graph.Vertices.Iterator
+        @usableFromInline var vertexIterator: G.Vertices.Iterator
         @usableFromInline let depthLimit: Int?
         /// The order in which each vertex was discovered; -1 for undiscovered.
         @usableFromInline var discovered: [Int] = []
@@ -94,14 +94,14 @@ public struct DepthFirstSearch<Graph: DirectedGraph>: Sequence {
         /// The path from the current root: each vertex, and the rest of its out-edges (`nil` when
         /// they are not to be explored).
         @usableFromInline var stack: [Int] = []
-        @usableFromInline var indexedNeighbors: [Graph.SuccessorIndices.Iterator?] = []
-        @usableFromInline var unindexedNeighbors: [Graph.Successors.Iterator?] = []
+        @usableFromInline var indexedNeighbors: [G.SuccessorIndices.Iterator?] = []
+        @usableFromInline var unindexedNeighbors: [G.Successors.Iterator?] = []
         @usableFromInline var pendingDiscovery: Int?
         /// The vertex of the last event, when that event was its discovery: the one `prune()` acts on.
         @usableFromInline var justDiscovered: Int?
 
         @inlinable
-        init(graph: Graph, roots: [Graph.Vertex]?, depthLimit: Int?) {
+        init(graph: G, roots: [G.Vertex]?, depthLimit: Int?) {
             self.ids = _VertexIdentifiers(graph)
             self.roots = roots
             self.vertexIterator = graph.vertices.makeIterator()
@@ -156,7 +156,7 @@ public struct DepthFirstSearch<Graph: DirectedGraph>: Sequence {
 
         @inlinable
         @inline(__always)
-        public mutating func next() -> DepthFirstSearchEvent<Graph.Vertex>? {
+        public mutating func next() -> DepthFirstSearchEvent<G.Vertex>? {
             justDiscovered = nil
             if let id = pendingDiscovery {
                 pendingDiscovery = nil
@@ -207,12 +207,12 @@ public struct DepthFirstSearch<Graph: DirectedGraph>: Sequence {
 
         /// The vertices on the search path, from the root to the vertex being explored.
         @inlinable
-        var _path: [Graph.Vertex] { stack.map { ids.vertex($0) } }
+        var _path: [G.Vertex] { stack.map { ids.vertex($0) } }
     }
 }
 
-extension DepthFirstSearch: Sendable where Graph: Sendable, Graph.Vertex: Sendable {}
-extension DepthFirstSearch.Iterator: Sendable where Graph: Sendable, Graph.Vertex: Sendable, Graph.Vertices.Iterator: Sendable, Graph.SuccessorIndices.Iterator: Sendable, Graph.Successors.Iterator: Sendable {}
+extension DepthFirstSearch: Sendable where G: Sendable, G.Vertex: Sendable {}
+extension DepthFirstSearch.Iterator: Sendable where G: Sendable, G.Vertex: Sendable, G.Vertices.Iterator: Sendable, G.SuccessorIndices.Iterator: Sendable, G.Successors.Iterator: Sendable {}
 
 extension DirectedGraph {
     /// A depth-first search from `source`.

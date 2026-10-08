@@ -5,15 +5,15 @@ import GraphProtocols
 /// numbers assigned by one pass over `vertices`. Results keep it to answer per-vertex queries.
 @frozen
 @usableFromInline
-package struct _DenseVertices<Graph: DirectedGraph> {
-    @usableFromInline let graph: Graph
+package struct _DenseVertices<G: DirectedGraph> {
+    @usableFromInline let graph: G
     @usableFromInline let isIndexed: Bool
     /// Without indices: each vertex's number, and the vertices by number.
-    @usableFromInline let numbers: [Graph.Vertex: Int]
-    @usableFromInline let vertices: [Graph.Vertex]
+    @usableFromInline let numbers: [G.Vertex: Int]
+    @usableFromInline let vertices: [G.Vertex]
 
     @inlinable
-    package init(_ graph: Graph) {
+    package init(_ graph: G) {
         self.graph = graph
         if graph.vertexIndexBound != nil {
             isIndexed = true
@@ -22,7 +22,7 @@ package struct _DenseVertices<Graph: DirectedGraph> {
         } else {
             isIndexed = false
             let vertices = Array(graph.vertices)
-            var numbers: [Graph.Vertex: Int] = [:]
+            var numbers: [G.Vertex: Int] = [:]
             numbers.reserveCapacity(vertices.count)
             for (i, v) in vertices.enumerated() { numbers[v] = i }
             self.numbers = numbers
@@ -35,19 +35,19 @@ package struct _DenseVertices<Graph: DirectedGraph> {
 
     /// The number of `vertex`. - Precondition: `vertex` is a vertex of the graph.
     @inlinable
-    package func number(of vertex: Graph.Vertex) -> Int {
+    package func number(of vertex: G.Vertex) -> Int {
         if isIndexed { return graph.vertexIndex(of: vertex) }
         guard let number = numbers[vertex] else { preconditionFailure("\(vertex) is not a vertex of the graph") }
         return number
     }
 
     @inlinable
-    package func vertex(_ number: Int) -> Graph.Vertex {
+    package func vertex(_ number: Int) -> G.Vertex {
         isIndexed ? graph.vertex(atIndex: number) : vertices[number]
     }
 }
 
-extension _DenseVertices: Sendable where Graph: Sendable, Graph.Vertex: Sendable {}
+extension _DenseVertices: Sendable where G: Sendable, G.Vertex: Sendable {}
 
 /// Groups the numbers `0..<labels.count` by label, each group in increasing number, which is
 /// `vertices` order: `order[offsets[c] ..< offsets[c + 1]]` are the members of group `c`. A
