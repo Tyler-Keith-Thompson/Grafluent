@@ -33,6 +33,10 @@ filter pattern:
 test-release:
     {{BAZEL_RELEASE}} test --config=release //...
 
+[doc('Re-resolve SwiftPM dependencies for Bazel after editing the package table')]
+resolve:
+    cd {{PROJECT_ROOT}}/swift && {{SWIFT}} package resolve
+
 [doc('Build via SwiftPM too, to verify the published package')]
 spm:
     {{SWIFT}} build

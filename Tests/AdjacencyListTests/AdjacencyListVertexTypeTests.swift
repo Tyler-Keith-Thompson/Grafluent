@@ -79,18 +79,18 @@ struct AdjacencyListVertexTypeTests {
         let graph = AdjacencyList(edges: [DirectedEdge(from: Key.number(1), to: .name("1")), DirectedEdge(from: .name("1"), to: .number(1))])
         #expect(graph.vertexCount == 2)
         #expect(graph.edgeCount == 2)
-        #expect(!graph.contains(DirectedEdge(from: .number(1), to: .number(1))))
+        #expect(!graph.contains(edge: DirectedEdge(from: .number(1), to: .number(1))))
     }
 
     @Test("X-07 a vertex type with exactly one value")
     func singletonType() {
         struct Unit: Hashable, Sendable {}
         var graph = AdjacencyList<Unit>()
-        graph.insert(DirectedEdge(from: Unit(), to: Unit()))
+        graph.insert(edge: DirectedEdge(from: Unit(), to: Unit()))
         #expect(graph.vertexCount == 1)
         #expect(graph.edgeCount == 1)
         #expect(Array(graph.successors(of: Unit())) == [Unit()])
-        graph.remove(DirectedEdge(from: Unit(), to: Unit()))
+        graph.remove(edge: DirectedEdge(from: Unit(), to: Unit()))
         #expect(graph.edgeCount == 0)
         #expect(graph.vertexCount == 1)
     }
@@ -99,7 +99,7 @@ struct AdjacencyListVertexTypeTests {
     func referenceVertices() {
         let graph = AdjacencyList(edges: [DirectedEdge(from: HashableBox(1), to: HashableBox(2))])
         #expect(graph.contains(HashableBox(1)))
-        #expect(graph.contains(DirectedEdge(from: HashableBox(1), to: HashableBox(2))))
+        #expect(graph.contains(edge: DirectedEdge(from: HashableBox(1), to: HashableBox(2))))
         #expect(graph.outDegree(of: HashableBox(1)) == 1)
     }
 }

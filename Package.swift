@@ -21,7 +21,6 @@ let package = Package(
         .library(name: "Semirings", targets: ["Semirings"]),
         .library(name: "PriorityQueueModule", targets: ["PriorityQueueModule"]),
         .library(name: "DisjointSetModule", targets: ["DisjointSetModule"]),
-        .library(name: "BitMatrixModule", targets: ["BitMatrixModule"]),
         .library(name: "AdjacencyListModule", targets: ["AdjacencyListModule"]),
         .library(name: "AdjacencyMatrixModule", targets: ["AdjacencyMatrixModule"]),
         .library(name: "IncidenceMatrixModule", targets: ["IncidenceMatrixModule"]),
@@ -61,6 +60,9 @@ let package = Package(
         .library(name: "GraphDrawing", targets: ["GraphDrawing"]),
         .library(name: "GraphFormats", targets: ["GraphFormats"]),
     ],
+    dependencies: [
+        .package(url: "https://github.com/apple/swift-collections", from: "1.3.0"),
+    ],
     targets: [
         // Vocabulary
         .target(name: "GraphProtocols", exclude: bazelFiles),
@@ -69,10 +71,9 @@ let package = Package(
         // Data structures
         .target(name: "PriorityQueueModule", exclude: bazelFiles),
         .target(name: "DisjointSetModule", exclude: bazelFiles),
-        .target(name: "BitMatrixModule", exclude: bazelFiles),
         // Representations
         .target(name: "AdjacencyListModule", dependencies: ["GraphProtocols"], exclude: bazelFiles),
-        .target(name: "AdjacencyMatrixModule", dependencies: ["GraphProtocols", "BitMatrixModule"], exclude: bazelFiles),
+        .target(name: "AdjacencyMatrixModule", dependencies: ["GraphProtocols", .product(name: "BitCollections", package: "swift-collections")], exclude: bazelFiles),
         .target(name: "IncidenceMatrixModule", dependencies: ["GraphProtocols"], exclude: bazelFiles),
         .target(name: "CompressedSparseRowModule", dependencies: ["GraphProtocols"], exclude: bazelFiles),
         .target(name: "EdgeListModule", dependencies: ["GraphProtocols"], exclude: bazelFiles),
@@ -117,12 +118,13 @@ let package = Package(
         .target(name: "GraphFormats", dependencies: ["GraphProtocols"], exclude: bazelFiles),
 
         // Umbrella: `import Grafluent` imports every module.
-        .target(name: "Grafluent", dependencies: ["GraphProtocols", "Walks", "Semirings", "PriorityQueueModule", "DisjointSetModule", "BitMatrixModule", "AdjacencyListModule", "AdjacencyMatrixModule", "IncidenceMatrixModule", "CompressedSparseRowModule", "EdgeListModule", "ImplicitGraphs", "LabeledGraphs", "DirectedAcyclicGraphModule", "Trees", "BipartiteGraphs", "Multigraphs", "Hypergraphs", "FlowNetworks", "FunctionalGraphs", "GraphOperations", "GraphProducts", "Traversal", "ShortestPaths", "SpanningTrees", "Connectivity", "Cycles", "Tours", "Flows", "MatchingModule", "ColoringModule", "Cliques", "Covering", "Centrality", "CommunityDetection", "IsomorphismModule", "Planarity", "TreeAlgorithms", "Distances", "SpectralGraphTheory", "NamedGraphs", "RandomGraphs", "GraphDrawing", "GraphFormats"], exclude: bazelFiles),
+        .target(name: "Grafluent", dependencies: ["GraphProtocols", "Walks", "Semirings", "PriorityQueueModule", "DisjointSetModule", "AdjacencyListModule", "AdjacencyMatrixModule", "IncidenceMatrixModule", "CompressedSparseRowModule", "EdgeListModule", "ImplicitGraphs", "LabeledGraphs", "DirectedAcyclicGraphModule", "Trees", "BipartiteGraphs", "Multigraphs", "Hypergraphs", "FlowNetworks", "FunctionalGraphs", "GraphOperations", "GraphProducts", "Traversal", "ShortestPaths", "SpanningTrees", "Connectivity", "Cycles", "Tours", "Flows", "MatchingModule", "ColoringModule", "Cliques", "Covering", "Centrality", "CommunityDetection", "IsomorphismModule", "Planarity", "TreeAlgorithms", "Distances", "SpectralGraphTheory", "NamedGraphs", "RandomGraphs", "GraphDrawing", "GraphFormats"], exclude: bazelFiles),
 
         // Shared fixtures, conformance checkers and instrumentation for every test target.
         .target(name: "GrafluentTestSupport", dependencies: ["GraphProtocols"], path: "Tests/GrafluentTestSupport", exclude: bazelFiles),
 
         .testTarget(name: "GrafluentTestSupportTests", dependencies: ["GraphProtocols", "GrafluentTestSupport"], exclude: bazelFiles),
         .testTarget(name: "AdjacencyListTests", dependencies: ["GraphProtocols", "AdjacencyListModule", "GrafluentTestSupport"], exclude: ["BUILD.bazel", "README.md"]),
+        .testTarget(name: "AdjacencyMatrixTests", dependencies: ["GraphProtocols", "AdjacencyMatrixModule", "AdjacencyListModule", "GrafluentTestSupport", .product(name: "BitCollections", package: "swift-collections")], exclude: ["BUILD.bazel", "README.md"]),
     ]
 )

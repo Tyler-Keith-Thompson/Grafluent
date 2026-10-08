@@ -31,7 +31,7 @@ struct AdjacencyList<Vertex: Hashable>
     var vertices: some Collection<Vertex>
     var edges: some Collection<DirectedEdge<Vertex>>
     func contains(_: Vertex) -> Bool
-    func contains(_: DirectedEdge<Vertex>) -> Bool
+    func contains(edge: DirectedEdge<Vertex>) -> Bool
     func successors(of: Vertex) -> some Collection<Vertex>     // vertices one edge out
     func predecessors(of: Vertex) -> some Collection<Vertex>   // vertices one edge in
     func outDegree(of: Vertex) -> Int
@@ -39,13 +39,16 @@ struct AdjacencyList<Vertex: Hashable>
     func degree(of: Vertex) -> Int                // outDegree + inDegree
 
     mutating func insert(_: Vertex) -> (inserted: Bool, memberAfterInsert: Vertex)
-    mutating func insert(_: DirectedEdge<Vertex>) -> (inserted: Bool, memberAfterInsert: DirectedEdge<Vertex>)
+    mutating func insert(edge: DirectedEdge<Vertex>) -> (inserted: Bool, memberAfterInsert: DirectedEdge<Vertex>)
     mutating func remove(_: Vertex) -> Vertex?
-    mutating func remove(_: DirectedEdge<Vertex>) -> DirectedEdge<Vertex>?
+    mutating func remove(edge: DirectedEdge<Vertex>) -> DirectedEdge<Vertex>?
     mutating func removeAll(keepingCapacity: Bool = false)
     mutating func removeAllEdges(keepingCapacity: Bool = false)
     mutating func reserveCapacity(vertexCount: Int, edgeCount: Int)
 ```
+
+Edge operations take an `edge:` label so they can never be confused with vertex operations, even
+when the vertex type could hold an edge (`AnyHashable`, or a graph whose vertices are edges).
 
 The views (`vertices`, `edges`, `successors`, `predecessors`) are values that obey the Collection
 laws and are `Sendable` when `Vertex` is. Their concrete types are up to the implementation.
@@ -93,6 +96,7 @@ named fixtures and the vertex types used to stress `Hashable` (`Collider`, `Hash
 | `AdjacencyListPreconditionTests.swift` | Exit tests for every trapping precondition |
 | `AdjacencyListVertexTypeTests.swift` | String, colliding-hash, extreme Int, optional, enum, unit and reference-type vertices |
 | `AdjacencyListCodableTests.swift` | JSON and property list round trips |
+| `AdjacencyListOverloadTests.swift` | Vertex and edge operations stay distinct when the vertex type could hold an edge |
 
 Case IDs in test names (C-04, V-06, Q-14, ...) refer to the catalog of cases harvested from
 NetworkX, petgraph, Boost.Graph and JGraphT; fixtures cite their sources in

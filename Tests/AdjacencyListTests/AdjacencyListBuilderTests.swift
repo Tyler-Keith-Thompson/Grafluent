@@ -29,7 +29,7 @@ struct AdjacencyListBuilderTests {
         #expect(graph.edgeCount == 6)
         #expect(graph.contains(4))
         #expect(graph.degree(of: 4) == 0)
-        #expect(graph.contains(DirectedEdge(from: 1, to: 1)))
+        #expect(graph.contains(edge: DirectedEdge(from: 1, to: 1)))
         #expect(graph == AdjacencyList(adjacency: [0: [1, 2, 3], 1: [1, 2, 0], 4: []]))
     }
 

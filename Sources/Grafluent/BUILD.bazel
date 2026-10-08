@@ -13,7 +13,6 @@ swift_library(
         "//Sources/Semirings",
         "//Sources/PriorityQueueModule",
         "//Sources/DisjointSetModule",
-        "//Sources/BitMatrixModule",
         "//Sources/AdjacencyListModule",
         "//Sources/AdjacencyMatrixModule",
         "//Sources/IncidenceMatrixModule",

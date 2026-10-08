@@ -35,13 +35,13 @@ struct AdjacencyListCodableTests {
     func roundTripAfterMutation() throws {
         var graph = AdjacencyList(edges: DirectedFixture<Int>.petersen.edges)
         graph.remove(0)
-        graph.remove(DirectedEdge(from: 1, to: 2))
+        graph.remove(edge: DirectedEdge(from: 1, to: 2))
         graph.insert(42)
-        graph.insert(DirectedEdge(from: 7, to: 7))
+        graph.insert(edge: DirectedEdge(from: 7, to: 7))
         let decoded = try JSONDecoder().decode(AdjacencyList<Int>.self, from: JSONEncoder().encode(graph))
         #expect(decoded == graph)
         #expect(decoded.degree(of: 42) == 0)
-        #expect(decoded.contains(DirectedEdge(from: 7, to: 7)))
+        #expect(decoded.contains(edge: DirectedEdge(from: 7, to: 7)))
         #expect(!decoded.contains(0))
     }
 

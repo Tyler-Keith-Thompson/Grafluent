@@ -42,8 +42,8 @@ struct AdjacencyListValueSemanticsTests {
         let v = fixture.vertexSet.min()!
         var graph = AdjacencyList(vertices: fixture.vertices, edges: fixture.edges)
         let copy = graph
-        graph.insert(DirectedEdge(from: v, to: 1_000))
-        graph.insert(DirectedEdge(from: 1_000, to: 1_000))
+        graph.insert(edge: DirectedEdge(from: v, to: 1_000))
+        graph.insert(edge: DirectedEdge(from: 1_000, to: 1_000))
         #expect(Set(copy.vertices) == fixture.vertexSet)
         #expect(Set(copy.edges) == fixture.edgeSet)
         #expect(Set(copy.successors(of: v)) == Set(fixture.edgeSet.filter { $0.source == v }.map(\.target)))
@@ -55,12 +55,12 @@ struct AdjacencyListValueSemanticsTests {
         let edge = fixture.edgeSet.min { ($0.source, $0.target) < ($1.source, $1.target) }!
         var graph = AdjacencyList(vertices: fixture.vertices, edges: fixture.edges)
         let copy = graph
-        graph.remove(edge)
+        graph.remove(edge: edge)
         #expect(Set(copy.edges) == fixture.edgeSet)
-        #expect(copy.contains(edge))
+        #expect(copy.contains(edge: edge))
         #expect(copy.successors(of: edge.source).contains(edge.target))
         #expect(copy.predecessors(of: edge.target).contains(edge.source))
-        #expect(!graph.contains(edge))
+        #expect(!graph.contains(edge: edge))
     }
 
     @Test("K-08 removeAllEdges leaves a copy unchanged", arguments: DirectedFixture<Int>.nonempty, [false, true])
@@ -101,7 +101,7 @@ struct AdjacencyListValueSemanticsTests {
     func mutatingCopyLeavesOriginal(_ fixture: DirectedFixture<Int>) {
         let original = AdjacencyList(vertices: fixture.vertices, edges: fixture.edges)
         var copy = original
-        copy.insert(DirectedEdge(from: 1_000, to: 1_001))
+        copy.insert(edge: DirectedEdge(from: 1_000, to: 1_001))
         copy.remove(fixture.vertexSet.min()!)
         copy.removeAllEdges()
         #expect(Set(original.vertices) == fixture.vertexSet)
@@ -121,9 +121,9 @@ struct AdjacencyListValueSemanticsTests {
         #expect(Set(b.edges) == DirectedFixture<Int>.petersen.edgeSet)
     }
 
-    @Test("S-01 a long random sequence of mutations, each made while a copy may exist", .tags(.randomized), arguments: 0 ..< 25 as Range<UInt64>)
-    func randomMutationsWithCopies(seed: UInt64) {
-        var rng = SplitMix64(seed: seed)
+    @Test("S-01 a long random sequence of mutations, each made while a copy may exist", .tags(.randomized), arguments: 0 ..< 25 as Range<UInt>)
+    func randomMutationsWithCopies(seed: UInt) {
+        var rng = SeededRandomNumberGenerator(seed: seed)
         var graph = AdjacencyList<Int>()
         for step in 0 ..< 200 {
             let u = Int.random(in: 0 ..< 10, using: &rng)
@@ -135,8 +135,8 @@ struct AdjacencyListValueSemanticsTests {
             switch Int.random(in: 0 ..< 6, using: &rng) {
             case 0: graph.insert(u)
             case 1: graph.remove(u)
-            case 2, 3: graph.insert(DirectedEdge(from: u, to: v))
-            case 4: graph.remove(DirectedEdge(from: u, to: v))
+            case 2, 3: graph.insert(edge: DirectedEdge(from: u, to: v))
+            case 4: graph.remove(edge: DirectedEdge(from: u, to: v))
             default: graph.removeAllEdges(keepingCapacity: Bool.random(using: &rng))
             }
 

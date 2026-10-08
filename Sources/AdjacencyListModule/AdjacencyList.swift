@@ -71,7 +71,7 @@ extension AdjacencyList {
     @inlinable
     public init(edges: some Sequence<DirectedEdge<Vertex>>) {
         self.init()
-        for edge in edges { insert(edge) }
+        for edge in edges { insert(edge: edge) }
     }
 
     /// A graph with the given vertices and edges. Endpoints missing from `vertices` are inserted.
@@ -79,7 +79,7 @@ extension AdjacencyList {
     public init(vertices: some Sequence<Vertex>, edges: some Sequence<DirectedEdge<Vertex>>) {
         self.init()
         for v in vertices { insert(v) }
-        for edge in edges { insert(edge) }
+        for edge in edges { insert(edge: edge) }
     }
 
     /// A graph from an adjacency mapping: each key is a vertex, and its value lists the vertex's
@@ -90,7 +90,7 @@ extension AdjacencyList {
         reserveCapacity(vertexCount: adjacency.count, edgeCount: 0)
         for (source, targets) in adjacency {
             insert(source)
-            for target in targets { insert(DirectedEdge(from: source, to: target)) }
+            for target in targets { insert(edge: DirectedEdge(from: source, to: target)) }
         }
     }
 
@@ -112,7 +112,7 @@ extension AdjacencyList: ExpressibleByDictionaryLiteral {
         for (source, targets) in elements {
             precondition(keys.insert(source).inserted, "Dictionary literal of AdjacencyList contains duplicate key \(source)")
             insert(source)
-            for target in targets { insert(DirectedEdge(from: source, to: target)) }
+            for target in targets { insert(edge: DirectedEdge(from: source, to: target)) }
         }
     }
 }
@@ -136,7 +136,7 @@ extension AdjacencyList {
 
     /// Whether `edge` is an edge of the graph. False when either endpoint is not a vertex.
     @inlinable
-    public func contains(_ edge: DirectedEdge<Vertex>) -> Bool {
+    public func contains(edge: DirectedEdge<Vertex>) -> Bool {
         guard let source = _slots[edge.source], let target = _slots[edge.target] else { return false }
         return _edges.contains(_SlotPair(source, target))
     }
@@ -215,7 +215,7 @@ extension AdjacencyList {
     ///   the graph's own vertex instances.
     @inlinable
     @discardableResult
-    public mutating func insert(_ edge: DirectedEdge<Vertex>) -> (inserted: Bool, memberAfterInsert: DirectedEdge<Vertex>) {
+    public mutating func insert(edge: DirectedEdge<Vertex>) -> (inserted: Bool, memberAfterInsert: DirectedEdge<Vertex>) {
         let source = _slots[edge.source] ?? _appendSlot(for: edge.source)
         let target = _slots[edge.target] ?? _appendSlot(for: edge.target)
         let member = DirectedEdge(from: _vertices[source], to: _vertices[target])
@@ -285,7 +285,7 @@ extension AdjacencyList {
     ///   if `edge` was not an edge.
     @inlinable
     @discardableResult
-    public mutating func remove(_ edge: DirectedEdge<Vertex>) -> DirectedEdge<Vertex>? {
+    public mutating func remove(edge: DirectedEdge<Vertex>) -> DirectedEdge<Vertex>? {
         guard let source = _slots[edge.source], let target = _slots[edge.target] else { return nil }
         let pair = _SlotPair(source, target)
         // Checked before removing, so removing an absent edge never copies shared storage.
@@ -531,7 +531,7 @@ extension AdjacencyList: Decodable where Vertex: Decodable {
         let vertices = try container.decode([Vertex].self, forKey: .vertices)
         let edges = try container.decode([Int].self, forKey: .edges)
         guard edges.count.isMultiple(of: 2) else {
-            throw DecodingError.dataCorruptedError(forKey: .edges, in: container, debugDescription: "DirectedEdge list has odd length")
+            throw DecodingError.dataCorruptedError(forKey: .edges, in: container, debugDescription: "Edge list has odd length")
         }
         self.init()
         reserveCapacity(vertexCount: vertices.count, edgeCount: edges.count / 2)
@@ -542,9 +542,9 @@ extension AdjacencyList: Decodable where Vertex: Decodable {
         }
         for i in stride(from: 0, to: edges.count, by: 2) {
             guard vertices.indices.contains(edges[i]), vertices.indices.contains(edges[i + 1]) else {
-                throw DecodingError.dataCorruptedError(forKey: .edges, in: container, debugDescription: "DirectedEdge endpoint out of range")
+                throw DecodingError.dataCorruptedError(forKey: .edges, in: container, debugDescription: "Edge endpoint out of range")
             }
-            guard insert(DirectedEdge(from: vertices[edges[i]], to: vertices[edges[i + 1]])).inserted else {
+            guard insert(edge: DirectedEdge(from: vertices[edges[i]], to: vertices[edges[i + 1]])).inserted else {
                 throw DecodingError.dataCorruptedError(forKey: .edges, in: container, debugDescription: "Repeated edge")
             }
         }

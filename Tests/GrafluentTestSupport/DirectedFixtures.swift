@@ -76,6 +76,11 @@ private func every<V: Hashable>(_ vertices: some Sequence<V>, _ degree: Int) -> 
     Dictionary(uniqueKeysWithValues: vertices.map { ($0, degree) })
 }
 
+/// Degrees listed by vertex, for fixtures whose vertices are 0..<n.
+private func byVertex(_ degrees: [Int]) -> [Int: Int] {
+    Dictionary(uniqueKeysWithValues: degrees.enumerated().map { ($0.offset, $0.element) })
+}
+
 extension DirectedFixture where Vertex == Int {
     public static let empty = DirectedFixture<Int>(
         "empty graph", source: "definition",
@@ -288,16 +293,141 @@ extension DirectedFixture where Vertex == Int {
         for v in 0 ..< 10 { DirectedEdge(from: v, to: (v + 1) % 10) }
     }
 
+    /// Vertices A…F as 0…5: B→C, B→F, C→A, C→C, D→E, E→D, F→A.
+    public static let boostExample = DirectedFixture<Int>(
+        "Boost.Graph adjacency_matrix example", source: "Boost.Graph example/adjacency_matrix.cpp",
+        vertexCount: 6, edgeCount: 7,
+        outDegree: byVertex([0, 2, 2, 1, 1, 1]),
+        inDegree: byVertex([2, 0, 2, 1, 1, 1])
+    ) {
+        0
+        DirectedEdge(from: 1, to: 2)
+        DirectedEdge(from: 1, to: 5)
+        DirectedEdge(from: 2, to: 0)
+        DirectedEdge(from: 2, to: 2)
+        DirectedEdge(from: 3, to: 4)
+        DirectedEdge(from: 4, to: 3)
+        DirectedEdge(from: 5, to: 0)
+    }
+
+    /// The 24-vertex, 43-edge digraph Boost.Graph uses to check adjacency_matrix against
+    /// adjacency_list. Vertex 7 has no predecessors and vertex 0 no successors.
+    public static let boost24 = DirectedFixture<Int>(
+        "Boost.Graph 24-vertex test digraph", source: "Boost.Graph test/adjacency_matrix_test.cpp",
+        vertexCount: 24, edgeCount: 43,
+        outDegree: byVertex([0, 1, 2, 2, 2, 1, 1, 2, 2, 2, 3, 3, 3, 3, 2, 2, 2, 1, 1, 2, 2, 2, 1, 1]),
+        inDegree: byVertex([2, 2, 1, 1, 3, 2, 2, 0, 3, 1, 2, 2, 2, 2, 1, 3, 1, 2, 2, 3, 1, 1, 2, 2])
+    ) {
+        DirectedEdge(from: 1, to: 2)
+        DirectedEdge(from: 2, to: 10)
+        DirectedEdge(from: 2, to: 5)
+        DirectedEdge(from: 3, to: 10)
+        DirectedEdge(from: 3, to: 0)
+        DirectedEdge(from: 4, to: 5)
+        DirectedEdge(from: 4, to: 0)
+        DirectedEdge(from: 5, to: 14)
+        DirectedEdge(from: 6, to: 3)
+        DirectedEdge(from: 7, to: 17)
+        DirectedEdge(from: 7, to: 11)
+        DirectedEdge(from: 8, to: 17)
+        DirectedEdge(from: 8, to: 1)
+        DirectedEdge(from: 9, to: 11)
+        DirectedEdge(from: 9, to: 1)
+        DirectedEdge(from: 10, to: 19)
+        DirectedEdge(from: 10, to: 15)
+        DirectedEdge(from: 10, to: 8)
+        DirectedEdge(from: 11, to: 19)
+        DirectedEdge(from: 11, to: 15)
+        DirectedEdge(from: 11, to: 4)
+        DirectedEdge(from: 12, to: 19)
+        DirectedEdge(from: 12, to: 8)
+        DirectedEdge(from: 12, to: 4)
+        DirectedEdge(from: 13, to: 15)
+        DirectedEdge(from: 13, to: 8)
+        DirectedEdge(from: 13, to: 4)
+        DirectedEdge(from: 14, to: 22)
+        DirectedEdge(from: 14, to: 12)
+        DirectedEdge(from: 15, to: 22)
+        DirectedEdge(from: 15, to: 6)
+        DirectedEdge(from: 16, to: 12)
+        DirectedEdge(from: 16, to: 6)
+        DirectedEdge(from: 17, to: 20)
+        DirectedEdge(from: 18, to: 9)
+        DirectedEdge(from: 19, to: 23)
+        DirectedEdge(from: 19, to: 18)
+        DirectedEdge(from: 20, to: 23)
+        DirectedEdge(from: 20, to: 13)
+        DirectedEdge(from: 21, to: 18)
+        DirectedEdge(from: 21, to: 13)
+        DirectedEdge(from: 22, to: 21)
+        DirectedEdge(from: 23, to: 16)
+    }
+
+    /// Vertex 6 has only a self-loop; vertices 3 and 5 have no successors.
+    public static let petgraphEdgesDirected = DirectedFixture<Int>(
+        "petgraph test_edges_directed graph", source: "petgraph src/matrix_graph.rs (test_edges_directed)",
+        vertexCount: 7, edgeCount: 9,
+        outDegree: byVertex([4, 1, 2, 0, 1, 0, 1]),
+        inDegree: byVertex([1, 1, 1, 3, 1, 1, 1])
+    ) {
+        DirectedEdge(from: 0, to: 5)
+        DirectedEdge(from: 0, to: 2)
+        DirectedEdge(from: 0, to: 3)
+        DirectedEdge(from: 0, to: 1)
+        DirectedEdge(from: 1, to: 3)
+        DirectedEdge(from: 2, to: 3)
+        DirectedEdge(from: 2, to: 4)
+        DirectedEdge(from: 4, to: 0)
+        DirectedEdge(from: 6, to: 6)
+    }
+
+    public static let igraphReverseEdges = DirectedFixture<Int>(
+        "igraph reverse_edges graph", source: "igraph tests/unit/igraph_reverse_edges.c (behaviour reference only; GPL)",
+        vertexCount: 5, edgeCount: 5,
+        outDegree: byVertex([1, 2, 1, 1, 0]),
+        inDegree: byVertex([0, 2, 1, 1, 1])
+    ) {
+        DirectedEdge(from: 0, to: 1)
+        DirectedEdge(from: 1, to: 2)
+        DirectedEdge(from: 2, to: 3)
+        DirectedEdge(from: 3, to: 1)
+        DirectedEdge(from: 1, to: 4)
+    }
+
+    /// JGraphT's CSV matrix fixture, renumbered from 1…5 to 0…4. Vertex 4 points at every vertex,
+    /// itself included.
+    public static let jgraphtMatrixCSV = DirectedFixture<Int>(
+        "JGraphT CSV matrix graph", source: "JGraphT CSVExporterTest / CSVImporterTest, re-derived and renumbered from 0",
+        vertexCount: 5, edgeCount: 10,
+        outDegree: byVertex([2, 0, 2, 1, 5]),
+        inDegree: byVertex([2, 2, 2, 2, 2])
+    ) {
+        DirectedEdge(from: 0, to: 1)
+        DirectedEdge(from: 0, to: 2)
+        DirectedEdge(from: 2, to: 0)
+        DirectedEdge(from: 2, to: 3)
+        DirectedEdge(from: 3, to: 4)
+        DirectedEdge(from: 4, to: 0)
+        DirectedEdge(from: 4, to: 1)
+        DirectedEdge(from: 4, to: 2)
+        DirectedEdge(from: 4, to: 3)
+        DirectedEdge(from: 4, to: 4)
+    }
+
     /// Every fixture with `Int` vertices.
     public static let all: [DirectedFixture<Int>] = [
         .empty, .trivial, .singleSelfLoop, .isolatedVertices, .directedPath3, .completeDirected3,
         .completeDirected10, .networkXFunctionGraph, .house, .scc9, .selfLoopsAndDuplicates,
         .directedCycle4, .triangleWithReciprocalEdge, .pathWithChord, .petersen, .cube,
-        .directedPath10, .directedCycle10,
+        .directedPath10, .directedCycle10, .boostExample, .boost24, .petgraphEdgesDirected,
+        .igraphReverseEdges, .jgraphtMatrixCSV,
     ]
 
     /// Fixtures with at least one edge.
     public static let nonempty: [DirectedFixture<Int>] = all.filter { !$0.edges.isEmpty }
+
+    /// Fixtures whose vertices are exactly 0..<vertexCount, as index-based representations need.
+    public static let zeroBased: [DirectedFixture<Int>] = all.filter { $0.vertexSet == Set(0 ..< $0.vertexCount) }
 }
 
 extension DirectedFixture where Vertex == String {

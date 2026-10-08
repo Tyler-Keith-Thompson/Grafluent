@@ -28,7 +28,10 @@ public enum DirectedGraphBuilder<Vertex: Hashable> {
         Content(edges: [edge])
     }
 
+    /// Disfavored so that a `DirectedEdge` expression is read as an edge, never as a vertex whose
+    /// type happens to be `DirectedEdge`.
     @inlinable
+    @_disfavoredOverload
     public static func buildExpression(_ vertex: Vertex) -> Content {
         Content(vertices: [vertex])
     }

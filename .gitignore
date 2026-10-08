@@ -9,7 +9,9 @@
 # SwiftPM
 .build/
 .swiftpm/
-Package.resolved
+# The root package is a library, so its resolution is not committed; swift/Package.resolved
+# pins Bazel's dependencies and is.
+/Package.resolved
 
 # Xcode (generated from the Bazel graph by `just generate`)
 /Grafluent.xcodeproj/

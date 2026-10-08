@@ -22,6 +22,8 @@ public struct DirectedEdge<Vertex: Hashable>: Hashable {
 
 extension DirectedEdge: Sendable where Vertex: Sendable {}
 
+extension DirectedEdge: BitwiseCopyable where Vertex: BitwiseCopyable {}
+
 extension DirectedEdge: Encodable where Vertex: Encodable {}
 
 extension DirectedEdge: Decodable where Vertex: Decodable {}

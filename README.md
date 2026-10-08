@@ -2,7 +2,7 @@
 
 A generic, high-performance graph library for Swift.
 
-This document is the design scaffold. It names every type the library intends to provide, says what each one is, and says which Swift protocols it should (and should not) conform to. `AdjacencyList` is implemented; everything else is planned.
+This document is the design scaffold. It names every type the library intends to provide, says what each one is, and says which Swift protocols it should (and should not) conform to. `AdjacencyList` and `AdjacencyMatrix` are implemented; everything else is planned.
 
 ## Principles
 
@@ -25,7 +25,7 @@ The module graph is written once, in `scripts/modules.py`. `Package.swift` and e
 | Group | Modules |
 |---|---|
 | Vocabulary | `GraphProtocols` (protocols, `DirectedEdge`, `UndirectedEdge`, builders), `Walks`, `Semirings` |
-| Data structures | `PriorityQueueModule`, `DisjointSetModule`, `BitMatrixModule` |
+| Data structures | `PriorityQueueModule`, `DisjointSetModule` (bit sets come from swift-collections' `BitCollections`) |
 | Representations | `AdjacencyListModule`, `AdjacencyMatrixModule`, `IncidenceMatrixModule`, `CompressedSparseRowModule`, `EdgeListModule`, `ImplicitGraphs`, `LabeledGraphs` |
 | Structures | `DirectedAcyclicGraphModule`, `Trees`, `BipartiteGraphs`, `Multigraphs`, `Hypergraphs`, `FlowNetworks`, `FunctionalGraphs` |
 | Operations | `GraphOperations`, `GraphProducts` |
@@ -39,7 +39,6 @@ Tests/GrafluentTestSupport/  Shared test data: fixtures, stress vertex types, li
 Tests/<Module>Tests/         One test target per module, added when its first suite is written
 scripts/modules.py           The module graph
 tools/swift_rules.bzl        First-party rule wrappers: warnings as errors, Swift 6 mode
-THIRD_PARTY_NOTICES.md       Projects whose test fixtures the suite draws on
 ```
 
 ## Building
@@ -95,7 +94,7 @@ A graph is a pair (V, E). We don't think a graph should itself be a `Sequence`: 
 
 | Protocol | Requirements (sketch) | Notes |
 |---|---|---|
-| `DirectedGraph` | `associatedtype Vertex`, `vertices`, `edges`, `successors(of:)`, `contains(_:)` | The base protocol. Traversal, shortest paths, and most of the library need only this. `contains(_:)` for an edge (the adjacency test) defaults to a scan of N⁺(u); matrices answer in O(1) and sorted compressed sparse row in O(log d). |
+| `DirectedGraph` | `associatedtype Vertex`, `vertices`, `edges`, `successors(of:)`, `contains(edge:)` | The base protocol. Traversal, shortest paths, and most of the library need only this. `contains(edge:)` (the adjacency test) defaults to a scan of N⁺(u); matrices answer in O(1) and sorted compressed sparse row in O(log d). |
 | `Graph` | `neighbors(of:)`, `edges` | An undirected graph. **Decided:** `Graph` and `DirectedGraph` are separate protocols; an undirected graph is not modeled as a symmetric directed graph. |
 | `BidirectionalDirectedGraph` | `predecessors(of:)` | Needed for reversed traversal, dominators, and Kosaraju. The name is borrowed from Swift's `BidirectionalCollection`, not from graph theory; see open question 7. |
 | `DirectedMultigraph` / `Multigraph` | Edges carry identity, `edges(from:to:)` | Parallel edges are allowed. |
@@ -155,7 +154,7 @@ Dijkstra itself only needs `Comparable & AdditiveArithmetic` weights that are ne
 | Sequence initializers | `init(edges:)`, `init(vertices:edges:)`, `init(adjacency:)` |
 | Bulk initializers | `init(vertexCount:edgeCount:initializingWith:)`, modeled on `Array(unsafeUninitializedCapacity:initializingWith:)`, so compressed sparse row can be built with no intermediate allocation |
 | Conversion | `AdjacencyMatrix(g)` and `CompressedSparseRow(g)`, the same way `Array(seq)` converts |
-| Incremental | `mutating insert(_:)`, `remove(_:)`, `reserveCapacity(_:)` on representations that support mutation |
+| Incremental | `insert(_:)` / `remove(_:)` for vertices and `insert(edge:)` / `remove(edge:)` for edges, plus `reserveCapacity`, on representations that support mutation. Edge operations are labeled so they can never be confused with vertex operations. |
 
 **Open question:** whether to add edge operators such as `"a" --> "b"`. They read well, but they cost compile time and make type inference harder.
 
@@ -168,8 +167,7 @@ Every representation is a copy-on-write value type built on one `ManagedBuffer` 
 | Type | What it is | Mutation | Notes and conformances |
 |---|---|---|---|
 | `AdjacencyList<Vertex>` | Each vertex maps to its out-neighbors | Yes | Stored as one flat edge pool with a range per vertex, not `[[Vertex]]`, which would need one uniqueness check per row. `ExpressibleByDictionaryLiteral`. |
-| `AdjacencyMatrix` | \|V\|×\|V\| matrix; vertices are `0..<n` | Yes (edges); adding a vertex is O(n²) | `ExpressibleByArrayLiteral` (rows). `subscript(u, v) -> Bool`. Weighted variant `AdjacencyMatrix<Weight>`. |
-| `AdjacencyMatrix<Bool>` | The unweighted adjacency matrix, specialized to one bit per entry using `BitMatrix` storage | Yes | Neighbors are iterated with the lowest-set-bit trick, and neighborhood intersection works a word at a time. |
+| `AdjacencyMatrix` | A directed graph on vertices `0..<n` as an n×n bit matrix (**implemented**) | Edges, rows and columns; vertices by `appendVertex()`, never removed | `successors(of:)` / `predecessors(of:)` are swift-collections `BitSet`s; O(1) degrees; transpose, union, intersection, subtraction, complement; row-major `edges` whose positions are cells. See `Tests/AdjacencyMatrixTests/README.md`. Weights stay external: for a matrix, as a closure `(source, target) -> W` or an n×n side matrix, never an edge-indexed array (cell positions span n², not the edge count). |
 | `IncidenceMatrix` | \|V\|×\|E\| matrix | Yes | Mostly for hypergraphs and spectral methods |
 | `CompressedSparseRow` | Offsets array (n+1) plus targets array (m) | **No**, initializers only | The main performance target. Neighbors come back as `Span<Int>`, sorted. |
 | `CompressedSparseColumn` | The transpose layout, giving in-neighbors as spans | No | Combined with compressed sparse row, it conforms to `BidirectionalDirectedGraph`. |
@@ -294,7 +292,7 @@ These are public, because they're useful on their own.
 |---|---|---|
 | `IndexedPriorityQueue` | A d-ary heap with a position array, giving O(log n) decrease-key | **Not** a `Sequence`; it exposes an `unordered` view instead, as swift-collections' `Heap` does. `Sendable`. |
 | `DisjointSet` | Union–find with path compression and union by rank | Not a `Sequence`. `Sendable`, `Equatable` (same partition). |
-| `BitMatrix` | A word-aligned bit matrix | `Equatable`, `Hashable`, `Sendable`; rows as set-bit `Collection`s |
+| Bit sets | swift-collections' `BitSet` (`BitCollections`) | `AdjacencyMatrix` rows and columns, and visited sets in algorithms |
 
 ## Performance notes
 
@@ -311,7 +309,7 @@ These are public, because they're useful on their own.
 1. ~~Should `Graph` refine `DirectedGraph`?~~ **Decided: no**, they are separate protocols.
 2. ~~Dense `Int` vertices or generic `Vertex: Hashable`?~~ **Decided: generic `Vertex: Hashable`** for representations that can support it (adjacency list, edge list). Matrix and compressed sparse row layouts are inherently index-based; `LabeledGraph` remains the bridge for those.
 3. Should weights be stored in representations or always passed in as weight functions?
-4. Should we depend on swift-collections (`OrderedSet`, `BitSet`, `Heap`) or keep zero dependencies?
+4. ~~Depend on swift-collections?~~ **Decided: yes**, where its types serve as backing storage (`BitSet` for matrix rows today).
 5. Should construction include edge operators such as `-->`?
 6. Should the deployment floor be macOS 26 / iOS 26, which `Array.span` requires, or should we support older operating systems with `Span` back-deployment only?
 7. `BidirectionalDirectedGraph` is the only name in this document that isn't an established term. Neither graph theory nor the common libraries have a name for "a directed graph that can answer `predecessors(of:)` efficiently," because that's a property of a representation, not of a graph. We could keep the Swift-flavored name, or require `predecessors(of:)` on every `DirectedGraph` and let representations without in-adjacency pay an O(|A|) cost.

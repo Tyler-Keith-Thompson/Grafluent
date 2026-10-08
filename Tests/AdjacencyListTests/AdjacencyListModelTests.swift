@@ -13,9 +13,9 @@ import Testing
 
 @Suite("AdjacencyList against a reference model", .tags(.randomized))
 struct AdjacencyListModelTests {
-    @Test("P-01 / P-03 / P-06 random operations on Int vertices", .timeLimit(.minutes(1)), arguments: 0 ..< 100 as Range<UInt64>)
-    func intVertices(seed: UInt64) {
-        var rng = SplitMix64(seed: seed)
+    @Test("P-01 / P-03 / P-06 random operations on Int vertices", .timeLimit(.minutes(1)), arguments: 0 ..< 100 as Range<UInt>)
+    func intVertices(seed: UInt) {
+        var rng = SeededRandomNumberGenerator(seed: seed)
         var graph = AdjacencyList<Int>()
         var model: [Int: Set<Int>] = [:]
 
@@ -40,13 +40,13 @@ struct AdjacencyListModelTests {
                     for w in model.keys { model[w]!.remove(u) }
                 }
             case 20 ..< 65:
-                let result = graph.insert(DirectedEdge(from: u, to: v))
+                let result = graph.insert(edge: DirectedEdge(from: u, to: v))
                 #expect(result.inserted == !(model[u]?.contains(v) ?? false), "step \(step): insert(\(u)→\(v))")
                 if model[u] == nil { model[u] = [] }
                 if model[v] == nil { model[v] = [] }
                 model[u]!.insert(v)
             case 65 ..< 95:
-                let removed = graph.remove(DirectedEdge(from: u, to: v))
+                let removed = graph.remove(edge: DirectedEdge(from: u, to: v))
                 #expect((removed != nil) == (model[u]?.contains(v) ?? false), "step \(step): remove(\(u)→\(v))")
                 model[u]?.remove(v)
             case 95 ..< 98:
@@ -79,9 +79,9 @@ struct AdjacencyListModelTests {
         }
     }
 
-    @Test("random operations with every vertex in one hash bucket", .timeLimit(.minutes(1)), arguments: 0 ..< 25 as Range<UInt64>)
-    func collidingVertices(seed: UInt64) {
-        var rng = SplitMix64(seed: seed)
+    @Test("random operations with every vertex in one hash bucket", .timeLimit(.minutes(1)), arguments: 0 ..< 25 as Range<UInt>)
+    func collidingVertices(seed: UInt) {
+        var rng = SeededRandomNumberGenerator(seed: seed)
         var graph = AdjacencyList<Collider>()
         var model: [Collider: Set<Collider>] = [:]
 
@@ -99,12 +99,12 @@ struct AdjacencyListModelTests {
                     for w in model.keys { model[w]!.remove(u) }
                 }
             case 20 ..< 65:
-                #expect(graph.insert(DirectedEdge(from: u, to: v)).inserted == !(model[u]?.contains(v) ?? false), "step \(step)")
+                #expect(graph.insert(edge: DirectedEdge(from: u, to: v)).inserted == !(model[u]?.contains(v) ?? false), "step \(step)")
                 if model[u] == nil { model[u] = [] }
                 if model[v] == nil { model[v] = [] }
                 model[u]!.insert(v)
             case 65 ..< 95:
-                #expect((graph.remove(DirectedEdge(from: u, to: v)) != nil) == (model[u]?.contains(v) ?? false), "step \(step)")
+                #expect((graph.remove(edge: DirectedEdge(from: u, to: v)) != nil) == (model[u]?.contains(v) ?? false), "step \(step)")
                 model[u]?.remove(v)
             case 95 ..< 98:
                 graph.removeAllEdges()
@@ -126,9 +126,9 @@ struct AdjacencyListModelTests {
         }
     }
 
-    @Test("random operations on String vertices", .timeLimit(.minutes(1)), arguments: 0 ..< 25 as Range<UInt64>)
-    func stringVertices(seed: UInt64) {
-        var rng = SplitMix64(seed: seed)
+    @Test("random operations on String vertices", .timeLimit(.minutes(1)), arguments: 0 ..< 25 as Range<UInt>)
+    func stringVertices(seed: UInt) {
+        var rng = SeededRandomNumberGenerator(seed: seed)
         var graph = AdjacencyList<String>()
         var model: [String: Set<String>] = [:]
 
@@ -146,12 +146,12 @@ struct AdjacencyListModelTests {
                     for w in model.keys { model[w]!.remove(u) }
                 }
             case 20 ..< 65:
-                #expect(graph.insert(DirectedEdge(from: u, to: v)).inserted == !(model[u]?.contains(v) ?? false), "step \(step)")
+                #expect(graph.insert(edge: DirectedEdge(from: u, to: v)).inserted == !(model[u]?.contains(v) ?? false), "step \(step)")
                 if model[u] == nil { model[u] = [] }
                 if model[v] == nil { model[v] = [] }
                 model[u]!.insert(v)
             case 65 ..< 95:
-                #expect((graph.remove(DirectedEdge(from: u, to: v)) != nil) == (model[u]?.contains(v) ?? false), "step \(step)")
+                #expect((graph.remove(edge: DirectedEdge(from: u, to: v)) != nil) == (model[u]?.contains(v) ?? false), "step \(step)")
                 model[u]?.remove(v)
             case 95 ..< 98:
                 graph.removeAllEdges()
@@ -172,9 +172,9 @@ struct AdjacencyListModelTests {
         }
     }
 
-    @Test("growth past many reallocations", .timeLimit(.minutes(1)), arguments: 0 ..< 5 as Range<UInt64>)
-    func largeUniverse(seed: UInt64) {
-        var rng = SplitMix64(seed: seed)
+    @Test("growth past many reallocations", .timeLimit(.minutes(1)), arguments: 0 ..< 5 as Range<UInt>)
+    func largeUniverse(seed: UInt) {
+        var rng = SeededRandomNumberGenerator(seed: seed)
         var graph = AdjacencyList<Int>()
         var model: [Int: Set<Int>] = [:]
 
@@ -188,10 +188,10 @@ struct AdjacencyListModelTests {
                     for w in model.keys { model[w]!.remove(u) }
                 }
             case 1, 2:
-                #expect((graph.remove(DirectedEdge(from: u, to: v)) != nil) == (model[u]?.contains(v) ?? false), "step \(step)")
+                #expect((graph.remove(edge: DirectedEdge(from: u, to: v)) != nil) == (model[u]?.contains(v) ?? false), "step \(step)")
                 model[u]?.remove(v)
             default:
-                #expect(graph.insert(DirectedEdge(from: u, to: v)).inserted == !(model[u]?.contains(v) ?? false), "step \(step)")
+                #expect(graph.insert(edge: DirectedEdge(from: u, to: v)).inserted == !(model[u]?.contains(v) ?? false), "step \(step)")
                 if model[u] == nil { model[u] = [] }
                 if model[v] == nil { model[v] = [] }
                 model[u]!.insert(v)

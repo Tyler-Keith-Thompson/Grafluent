@@ -18,6 +18,23 @@ bazel_dep(name = "rules_apple", version = "4.5.1")
 bazel_dep(name = "rules_xcodeproj", version = "4.0.0")
 
 # ── Swift Package Manager dependencies ───────────────────────────────
-# None yet. If Grafluent takes a dependency (see README open question 4, swift-collections),
-# follow the laminar pattern: add rules_swift_package_manager, declare the dependency in a
-# Bazel-only //swift:Package.swift, and keep it in step with the root Package.swift.
+# Declared in //swift:Package.swift, a manifest that exists only to feed Bazel. The root
+# Package.swift stays the published package definition; scripts/modules.py writes both from one
+# table, so they name the same packages. Run `just resolve` after changing them.
+bazel_dep(name = "rules_swift_package_manager", version = "1.13.0")
+
+swift_deps = use_extension(
+    "@rules_swift_package_manager//:extensions.bzl",
+    "swift_deps",
+)
+swift_deps.from_package(
+    declare_swift_deps_info = True,
+    resolved = "//swift:Package.resolved",
+    swift = "//swift:Package.swift",
+)
+use_repo(
+    swift_deps,
+    "swift_deps_info",
+    "swift_package",
+    "swiftpkg_swift_collections",
+)

@@ -4,6 +4,8 @@
 # SwiftPM build directories can contain BUILD files, which Bazel would otherwise try to load.
 .build
 .swiftpm
+swift/.build
+swift/.swiftpm
 
 # Convenience symlinks.
 bazel-Grafluent

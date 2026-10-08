@@ -79,9 +79,9 @@ struct AdjacencyListPreconditionTests {
     func nonTrappingCounterparts() {
         var graph = AdjacencyList(edges: [DirectedEdge(from: 0, to: 1)])
         #expect(!graph.contains(2))
-        #expect(!graph.contains(DirectedEdge(from: 2, to: 3)))
+        #expect(!graph.contains(edge: DirectedEdge(from: 2, to: 3)))
         #expect(graph.remove(2) == nil)
-        #expect(graph.remove(DirectedEdge(from: 2, to: 3)) == nil)
+        #expect(graph.remove(edge: DirectedEdge(from: 2, to: 3)) == nil)
         graph.reserveCapacity(vertexCount: 0, edgeCount: 0)
         #expect(graph.vertexCount == 2)
     }

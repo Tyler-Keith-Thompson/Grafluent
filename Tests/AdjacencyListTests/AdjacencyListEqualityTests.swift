@@ -16,25 +16,25 @@ struct AdjacencyListEqualityTests {
         let edges = [DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 2, to: 3), DirectedEdge(from: 3, to: 1)]
 
         var addedThenRemovedEdge = AdjacencyList(edges: edges)
-        addedThenRemovedEdge.insert(DirectedEdge(from: 3, to: 2))
-        addedThenRemovedEdge.remove(DirectedEdge(from: 3, to: 2))
+        addedThenRemovedEdge.insert(edge: DirectedEdge(from: 3, to: 2))
+        addedThenRemovedEdge.remove(edge: DirectedEdge(from: 3, to: 2))
 
         var addedThenRemovedVertex = AdjacencyList(edges: edges)
-        addedThenRemovedVertex.insert(DirectedEdge(from: 1, to: 9))
+        addedThenRemovedVertex.insert(edge: DirectedEdge(from: 1, to: 9))
         addedThenRemovedVertex.remove(9)
 
         var clearedAndRebuilt = AdjacencyList(edges: (0 ..< 10).map { DirectedEdge(from: $0, to: ($0 + 1) % 10) })
         clearedAndRebuilt.removeAll()
-        for edge in edges.reversed() { clearedAndRebuilt.insert(edge) }
+        for edge in edges.reversed() { clearedAndRebuilt.insert(edge: edge) }
 
         var withIsolatedVertex = AdjacencyList(edges: edges)
         withIsolatedVertex.insert(4)
 
         var withSelfLoop = AdjacencyList(edges: edges)
-        withSelfLoop.insert(DirectedEdge(from: 2, to: 2))
+        withSelfLoop.insert(edge: DirectedEdge(from: 2, to: 2))
 
         var missingEdge = AdjacencyList(edges: edges)
-        missingEdge.remove(DirectedEdge(from: 2, to: 3))
+        missingEdge.remove(edge: DirectedEdge(from: 2, to: 3))
 
         var emptiedByRemoval = AdjacencyList(edges: edges)
         for v in [1, 2, 3] { emptiedByRemoval.remove(v) }
@@ -161,7 +161,7 @@ struct AdjacencyListEqualityTests {
         let a = AdjacencyList(edges: petersen.edges.map { DirectedEdge(from: Collider($0.source), to: Collider($0.target)) })
         let b = AdjacencyList(edges: petersen.edges.reversed().map { DirectedEdge(from: Collider($0.source), to: Collider($0.target)) })
         var c = a
-        c.remove(DirectedEdge(from: Collider(0), to: Collider(1)))
+        c.remove(edge: DirectedEdge(from: Collider(0), to: Collider(1)))
         #expect(a == b)
         #expect(a.hashValue == b.hashValue)
         #expect(a != c)

@@ -2,14 +2,14 @@
 
 load("//tools:swift_rules.bzl", "swift_library")
 
-# AdjacencyMatrix, including the one-bit-per-entry AdjacencyMatrix<Bool>.
+# AdjacencyMatrix: a directed graph on vertices 0..<n stored as an n×n bit matrix.
 swift_library(
     name = "AdjacencyMatrixModule",
     srcs = glob(["**/*.swift"]),
     module_name = "AdjacencyMatrixModule",
     deps = [
         "//Sources/GraphProtocols",
-        "//Sources/BitMatrixModule",
+        "@swiftpkg_swift_collections//:BitCollections",
     ],
     visibility = ["//visibility:public"],
 )

@@ -21,20 +21,20 @@ struct AdjacencyListEdgeMutationTests {
         ])
         let copy: AdjacencyList<Int>? = isShared ? graph : nil
 
-        let result = graph.insert(DirectedEdge(from: 0, to: 5))
+        let result = graph.insert(edge: DirectedEdge(from: 0, to: 5))
 
         #expect(result.inserted)
         #expect(result.memberAfterInsert == DirectedEdge(from: 0, to: 5))
         #expect(graph.edgeCount == 8)
         #expect(graph.vertexCount == 6)
-        #expect(graph.contains(DirectedEdge(from: 0, to: 5)))
+        #expect(graph.contains(edge: DirectedEdge(from: 0, to: 5)))
         #expect(Array(graph.successors(of: 0)) == [5])
         #expect(Set(graph.predecessors(of: 5)) == [0])
         #expect(graph.outDegree(of: 0) == 1)
         #expect(graph.inDegree(of: 5) == 1)
         if let copy {
             #expect(copy.edgeCount == 7)
-            #expect(!copy.contains(DirectedEdge(from: 0, to: 5)))
+            #expect(!copy.contains(edge: DirectedEdge(from: 0, to: 5)))
             #expect(copy.successors(of: 0).isEmpty)
         }
     }
@@ -46,7 +46,7 @@ struct AdjacencyListEdgeMutationTests {
             var graph = original
             let copy: AdjacencyList<Int>? = isShared ? graph : nil
 
-            let result = graph.insert(edge)
+            let result = graph.insert(edge: edge)
 
             #expect(!result.inserted, "\(edge)")
             #expect(result.memberAfterInsert == edge)
@@ -65,10 +65,10 @@ struct AdjacencyListEdgeMutationTests {
             for target in 0 ..< 4 {
                 var graph = AdjacencyList(vertices: fixture.vertices, edges: fixture.edges)
                 let edge = DirectedEdge(from: source, to: target)
-                let wasPresent = graph.contains(edge)
+                let wasPresent = graph.contains(edge: edge)
                 #expect(wasPresent == fixture.edgeSet.contains(edge))
-                #expect(graph.insert(edge).inserted == !wasPresent, "\(edge)")
-                #expect(graph.contains(edge))
+                #expect(graph.insert(edge: edge).inserted == !wasPresent, "\(edge)")
+                #expect(graph.contains(edge: edge))
                 #expect(graph.edgeCount == fixture.edgeCount + (wasPresent ? 0 : 1))
             }
         }
@@ -77,7 +77,7 @@ struct AdjacencyListEdgeMutationTests {
     @Test("E-03 the antiparallel edge is a different edge")
     func insertAntiparallel() {
         var graph = AdjacencyList(edges: [DirectedEdge(from: "d", to: "e")])
-        #expect(graph.insert(DirectedEdge(from: "e", to: "d")).inserted)
+        #expect(graph.insert(edge: DirectedEdge(from: "e", to: "d")).inserted)
         #expect(graph.edgeCount == 2)
         #expect(graph.degree(of: "d") == 2)
         #expect(graph.degree(of: "e") == 2)
@@ -90,16 +90,16 @@ struct AdjacencyListEdgeMutationTests {
         let selfLoop = DirectedEdge(from: "a", to: "a")
         #expect(selfLoop.isSelfLoop)
 
-        graph.insert(selfLoop)
-        #expect(graph.contains(selfLoop))
+        graph.insert(edge: selfLoop)
+        #expect(graph.contains(edge: selfLoop))
         #expect(graph.edgeCount == 1)
         #expect(Array(graph.successors(of: "a")) == ["a"])
         #expect(Array(graph.predecessors(of: "a")) == ["a"])
-        #expect(!graph.insert(selfLoop).inserted)
+        #expect(!graph.insert(edge: selfLoop).inserted)
         #expect(graph.edgeCount == 1)
 
-        #expect(graph.remove(selfLoop) == selfLoop)
-        #expect(!graph.contains(selfLoop))
+        #expect(graph.remove(edge: selfLoop) == selfLoop)
+        #expect(!graph.contains(edge: selfLoop))
         #expect(graph.edgeCount == 0)
         #expect(graph.vertexCount == 1)
         #expect(graph.successors(of: "a").isEmpty)
@@ -112,11 +112,11 @@ struct AdjacencyListEdgeMutationTests {
     @Test("E-09 inserting an edge inserts any missing endpoint")
     func insertInsertsEndpoints() {
         var graph = AdjacencyList(vertices: [1])
-        graph.insert(DirectedEdge(from: 1, to: 2))
+        graph.insert(edge: DirectedEdge(from: 1, to: 2))
         #expect(Set(graph.vertices) == [1, 2])
-        graph.insert(DirectedEdge(from: 3, to: 4))
+        graph.insert(edge: DirectedEdge(from: 3, to: 4))
         #expect(Set(graph.vertices) == [1, 2, 3, 4])
-        graph.insert(DirectedEdge(from: 5, to: 5))
+        graph.insert(edge: DirectedEdge(from: 5, to: 5))
         #expect(Set(graph.vertices) == [1, 2, 3, 4, 5])
         #expect(graph.edgeCount == 3)
         #expect(graph.inDegree(of: 4) == 1)
@@ -127,7 +127,7 @@ struct AdjacencyListEdgeMutationTests {
     func insertedEdgeUsesStoredVertices() {
         let stored = HashableBox(1, label: "stored")
         var graph = AdjacencyList(vertices: [stored])
-        let result = graph.insert(DirectedEdge(from: HashableBox(1, label: "probe"), to: HashableBox(2)))
+        let result = graph.insert(edge: DirectedEdge(from: HashableBox(1, label: "probe"), to: HashableBox(2)))
         #expect(result.inserted)
         #expect(result.memberAfterInsert.source === stored)
         #expect(graph.edges.first?.source === stored)
@@ -145,18 +145,18 @@ struct AdjacencyListEdgeMutationTests {
         ])
         let copy: AdjacencyList<Int>? = isShared ? graph : nil
 
-        #expect(graph.remove(DirectedEdge(from: 0, to: 1)) == DirectedEdge(from: 0, to: 1))
+        #expect(graph.remove(edge: DirectedEdge(from: 0, to: 1)) == DirectedEdge(from: 0, to: 1))
 
         #expect(Set(graph.successors(of: 0)) == [2])
         #expect(Set(graph.predecessors(of: 1)) == [2])
         #expect(Set(graph.successors(of: 1)) == [0, 2])
         #expect(Set(graph.predecessors(of: 0)) == [1, 2])
-        #expect(graph.contains(DirectedEdge(from: 1, to: 0)))
-        #expect(!graph.contains(DirectedEdge(from: 0, to: 1)))
+        #expect(graph.contains(edge: DirectedEdge(from: 1, to: 0)))
+        #expect(!graph.contains(edge: DirectedEdge(from: 0, to: 1)))
         #expect(graph.edgeCount == 5)
         if let copy {
             #expect(copy.edgeCount == 6)
-            #expect(copy.contains(DirectedEdge(from: 0, to: 1)))
+            #expect(copy.contains(edge: DirectedEdge(from: 0, to: 1)))
             #expect(Set(copy.successors(of: 0)) == [1, 2])
         }
     }
@@ -174,7 +174,7 @@ struct AdjacencyListEdgeMutationTests {
             var graph = original
             let copy: AdjacencyList<Int>? = isShared ? graph : nil
 
-            #expect(graph.remove(edge) == nil, "\(edge)")
+            #expect(graph.remove(edge: edge) == nil, "\(edge)")
 
             #expect(graph == original, "removing \(edge) changed the graph")
             #expect(graph.vertexCount == fixture.vertexCount)
@@ -187,8 +187,8 @@ struct AdjacencyListEdgeMutationTests {
     @Test("E-12 removing an edge never inserts its endpoints")
     func removeDoesNotInsert() {
         var graph = AdjacencyList(vertices: [1])
-        #expect(graph.remove(DirectedEdge(from: 1, to: 2)) == nil)
-        #expect(graph.remove(DirectedEdge(from: 3, to: 4)) == nil)
+        #expect(graph.remove(edge: DirectedEdge(from: 1, to: 2)) == nil)
+        #expect(graph.remove(edge: DirectedEdge(from: 3, to: 4)) == nil)
         #expect(Array(graph.vertices) == [1])
     }
 
@@ -196,9 +196,9 @@ struct AdjacencyListEdgeMutationTests {
     func removeSucceedsOnce(_ fixture: DirectedFixture<Int>) {
         var graph = AdjacencyList(vertices: fixture.vertices, edges: fixture.edges)
         for edge in fixture.edgeSet {
-            #expect(graph.remove(edge) == edge)
-            #expect(graph.remove(edge) == nil)
-            #expect(!graph.contains(edge))
+            #expect(graph.remove(edge: edge) == edge)
+            #expect(graph.remove(edge: edge) == nil)
+            #expect(!graph.contains(edge: edge))
         }
         #expect(graph.edgeCount == 0)
     }
@@ -207,7 +207,7 @@ struct AdjacencyListEdgeMutationTests {
     func removingEdgesKeepsVertices(_ fixture: DirectedFixture<Int>) {
         var graph = AdjacencyList(vertices: fixture.vertices, edges: fixture.edges)
         for (i, edge) in fixture.edgeSet.enumerated() {
-            graph.remove(edge)
+            graph.remove(edge: edge)
             #expect(graph.edgeCount == fixture.edgeCount - i - 1)
             #expect(graph.vertexCount == fixture.vertexCount)
             #expect(!graph.successors(of: edge.source).contains(edge.target))
@@ -223,15 +223,15 @@ struct AdjacencyListEdgeMutationTests {
             DirectedEdge(from: 5, to: 3), DirectedEdge(from: 3, to: 4), DirectedEdge(from: 3, to: 2), DirectedEdge(from: 4, to: 0),
             DirectedEdge(from: 4, to: 1), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 1, to: 0),
         ])
-        graph.remove(DirectedEdge(from: 5, to: 3))
+        graph.remove(edge: DirectedEdge(from: 5, to: 3))
         #expect(graph.edgeCount == 6)
-        graph.remove(DirectedEdge(from: 3, to: 2))
+        graph.remove(edge: DirectedEdge(from: 3, to: 2))
         #expect(graph.edgeCount == 5)
         // Boost's clear_vertex(0): remove the edges incident to 0 but keep the vertex.
-        for u in Array(graph.predecessors(of: 0)) { graph.remove(DirectedEdge(from: u, to: 0)) }
-        for w in Array(graph.successors(of: 0)) { graph.remove(DirectedEdge(from: 0, to: w)) }
+        for u in Array(graph.predecessors(of: 0)) { graph.remove(edge: DirectedEdge(from: u, to: 0)) }
+        for w in Array(graph.successors(of: 0)) { graph.remove(edge: DirectedEdge(from: 0, to: w)) }
         #expect(graph.edgeCount == 3)
-        #expect(graph.remove(DirectedEdge(from: 5, to: 0)) == nil)
+        #expect(graph.remove(edge: DirectedEdge(from: 5, to: 0)) == nil)
         #expect(graph.edgeCount == 3)
         #expect(graph.vertexCount == 6)
         #expect(Set(graph.edges) == [DirectedEdge(from: 3, to: 4), DirectedEdge(from: 4, to: 1), DirectedEdge(from: 2, to: 1)])
@@ -242,7 +242,7 @@ struct AdjacencyListEdgeMutationTests {
         let a = HashableBox(1, label: "stored")
         let b = HashableBox(2, label: "stored")
         var graph = AdjacencyList(edges: [DirectedEdge(from: a, to: b)])
-        let removed = graph.remove(DirectedEdge(from: HashableBox(1), to: HashableBox(2)))
+        let removed = graph.remove(edge: DirectedEdge(from: HashableBox(1), to: HashableBox(2)))
         #expect(removed?.source === a)
         #expect(removed?.target === b)
     }
@@ -253,7 +253,7 @@ struct AdjacencyListEdgeMutationTests {
     func removeSelfLoopsWhileIterating(_ fixture: DirectedFixture<Int>) {
         var graph = AdjacencyList(vertices: fixture.vertices, edges: fixture.edges)
         for edge in graph.edges where edge.isSelfLoop {
-            graph.remove(edge)
+            graph.remove(edge: edge)
         }
         #expect(Set(graph.edges) == fixture.edgeSet.filter { !$0.isSelfLoop })
         #expect(graph.vertexCount == fixture.vertexCount)
@@ -265,7 +265,7 @@ struct AdjacencyListEdgeMutationTests {
         var visited: [DirectedEdge<Int>] = []
         for edge in graph.edges {
             visited.append(edge)
-            #expect(graph.remove(edge) != nil)
+            #expect(graph.remove(edge: edge) != nil)
         }
         #expect(visited.count == fixture.edgeCount)
         #expect(Set(visited) == fixture.edgeSet)

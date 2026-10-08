@@ -162,7 +162,7 @@ struct AdjacencyListVertexMutationTests {
         #expect(graph.outDegree(of: 1) == 0)
         #expect(graph.edges.isEmpty)
         #expect(graph.edgeCount == 0)
-        #expect(!graph.contains(DirectedEdge(from: 1, to: 2)))
+        #expect(!graph.contains(edge: DirectedEdge(from: 1, to: 2)))
     }
 
     @Test("V-09 removing an absent vertex returns nil and changes nothing", arguments: [false, true])
@@ -209,15 +209,15 @@ struct AdjacencyListVertexMutationTests {
         #expect(graph.vertexCount == 3)
         #expect(graph.edgeCount == 2)
         #expect(graph.degree(of: 0) == 0)
-        #expect(!graph.contains(DirectedEdge(from: 0, to: 1)))
-        #expect(!graph.contains(DirectedEdge(from: 1, to: 0)))
+        #expect(!graph.contains(edge: DirectedEdge(from: 0, to: 1)))
+        #expect(!graph.contains(edge: DirectedEdge(from: 1, to: 0)))
         #expect(!graph.predecessors(of: 1).contains(0))
         #expect(!graph.successors(of: 2).contains(0))
     }
 
-    @Test("V-14 removing every vertex, in a random order, empties the graph", .tags(.randomized), arguments: 0 ..< 10 as Range<UInt64>)
-    func removeAllVerticesOneByOne(seed: UInt64) {
-        var rng = SplitMix64(seed: seed)
+    @Test("V-14 removing every vertex, in a random order, empties the graph", .tags(.randomized), arguments: 0 ..< 10 as Range<UInt>)
+    func removeAllVerticesOneByOne(seed: UInt) {
+        var rng = SeededRandomNumberGenerator(seed: seed)
         for fixture in DirectedFixture<Int>.all {
             var graph = AdjacencyList(vertices: fixture.vertices, edges: fixture.edges)
             var remaining = fixture.edgeSet
@@ -265,7 +265,7 @@ struct AdjacencyListVertexMutationTests {
         #expect(graph.edgeCount == 0)
         #expect(graph.vertices.isEmpty)
         #expect(graph.edges.isEmpty)
-        graph.insert(DirectedEdge(from: 1, to: 2))
+        graph.insert(edge: DirectedEdge(from: 1, to: 2))
         #expect(graph.edgeCount == 1)
         #expect(graph.vertexCount == 2)
     }

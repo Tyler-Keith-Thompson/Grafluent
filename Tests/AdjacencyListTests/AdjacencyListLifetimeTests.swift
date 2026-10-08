@@ -34,7 +34,7 @@ struct AdjacencyListLifetimeTests {
                 graph.insert(objects[v]!)
             }
             for edge in fixture.edges {
-                graph.insert(DirectedEdge(from: objects[edge.source]!, to: objects[edge.target]!))
+                graph.insert(edge: DirectedEdge(from: objects[edge.source]!, to: objects[edge.target]!))
             }
         }
         #expect(LifetimeTracker.current!.instances == fixture.vertexCount)
@@ -52,10 +52,10 @@ struct AdjacencyListLifetimeTests {
         var graph = AdjacencyList<LifetimeTracked<Int>>()
         do {
             let v0 = LifetimeTracked(0), v1 = LifetimeTracked(1), v2 = LifetimeTracked(2)
-            graph.insert(DirectedEdge(from: v1, to: v1))
-            graph.insert(DirectedEdge(from: v1, to: v0))
-            graph.insert(DirectedEdge(from: v0, to: v1))
-            graph.insert(DirectedEdge(from: v1, to: v2))
+            graph.insert(edge: DirectedEdge(from: v1, to: v1))
+            graph.insert(edge: DirectedEdge(from: v1, to: v0))
+            graph.insert(edge: DirectedEdge(from: v0, to: v1))
+            graph.insert(edge: DirectedEdge(from: v1, to: v2))
         }
         #expect(LifetimeTracker.current!.instances == 3)
         graph.remove(LifetimeTracked(1))
@@ -72,11 +72,11 @@ struct AdjacencyListLifetimeTests {
             let objects = (0 ..< 10).map { LifetimeTracked($0) }
             for u in objects {
                 for v in objects where v != u {
-                    graph.insert(DirectedEdge(from: u, to: v))
+                    graph.insert(edge: DirectedEdge(from: u, to: v))
                 }
             }
         }
-        for edge in graph.edges { graph.remove(edge) }
+        for edge in graph.edges { graph.remove(edge: edge) }
         #expect(LifetimeTracker.current!.instances == 10)
         #expect(graph.edgeCount == 0)
         #expect(graph.vertexCount == 10)
@@ -93,7 +93,7 @@ struct AdjacencyListLifetimeTests {
             #expect(result.memberAfterInsert === first)
         }
         #expect(LifetimeTracker.current!.instances == 1)
-        graph.insert(DirectedEdge(from: LifetimeTracked(1), to: LifetimeTracked(1)))
+        graph.insert(edge: DirectedEdge(from: LifetimeTracked(1), to: LifetimeTracked(1)))
         #expect(LifetimeTracker.current!.instances == 1, "edge endpoints equal to stored vertices must not be retained")
         #expect(graph.edgeCount == 1)
     }
@@ -104,7 +104,7 @@ struct AdjacencyListLifetimeTests {
         do {
             let objects = (0 ..< 10).map { LifetimeTracked($0) }
             for i in 0 ..< 10 {
-                graph.insert(DirectedEdge(from: objects[i], to: objects[(i + 1) % 10]))
+                graph.insert(edge: DirectedEdge(from: objects[i], to: objects[(i + 1) % 10]))
             }
         }
         graph.removeAllEdges(keepingCapacity: keepingCapacity)
@@ -119,12 +119,12 @@ struct AdjacencyListLifetimeTests {
         do {
             let objects = (0 ..< 6).map { LifetimeTracked($0) }
             for i in 0 ..< 5 {
-                graph.insert(DirectedEdge(from: objects[i + 1], to: objects[i]))
+                graph.insert(edge: DirectedEdge(from: objects[i + 1], to: objects[i]))
             }
         }
         let created = LifetimeTracker.current!.created
         var copy = graph
-        copy.insert(DirectedEdge(from: copy.vertices.first!, to: copy.vertices.first!))
+        copy.insert(edge: DirectedEdge(from: copy.vertices.first!, to: copy.vertices.first!))
         #expect(LifetimeTracker.current!.created == created)
         graph.removeAll()
         #expect(LifetimeTracker.current!.instances == 6, "the copy still holds every vertex")
@@ -132,9 +132,9 @@ struct AdjacencyListLifetimeTests {
         #expect(LifetimeTracker.current!.instances == 0)
     }
 
-    @Test("random mutations never leak", .tags(.randomized), arguments: 0 ..< 20 as Range<UInt64>)
-    func randomMutations(seed: UInt64) {
-        var rng = SplitMix64(seed: seed)
+    @Test("random mutations never leak", .tags(.randomized), arguments: 0 ..< 20 as Range<UInt>)
+    func randomMutations(seed: UInt) {
+        var rng = SeededRandomNumberGenerator(seed: seed)
         var graph = AdjacencyList<LifetimeTracked<Int>>()
         for step in 0 ..< 200 {
             let u = Int.random(in: 0 ..< 8, using: &rng)
@@ -142,8 +142,8 @@ struct AdjacencyListLifetimeTests {
             switch Int.random(in: 0 ..< 5, using: &rng) {
             case 0: graph.insert(LifetimeTracked(u))
             case 1: graph.remove(LifetimeTracked(u))
-            case 2, 3: graph.insert(DirectedEdge(from: LifetimeTracked(u), to: LifetimeTracked(v)))
-            default: graph.remove(DirectedEdge(from: LifetimeTracked(u), to: LifetimeTracked(v)))
+            case 2, 3: graph.insert(edge: DirectedEdge(from: LifetimeTracked(u), to: LifetimeTracked(v)))
+            default: graph.remove(edge: DirectedEdge(from: LifetimeTracked(u), to: LifetimeTracked(v)))
             }
             #expect(LifetimeTracker.current!.instances == graph.vertexCount, "step \(step)")
         }

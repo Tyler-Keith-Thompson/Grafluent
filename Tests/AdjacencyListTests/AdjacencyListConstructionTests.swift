@@ -20,7 +20,7 @@ struct AdjacencyListConstructionTests {
         #expect(graph.edges.isEmpty)
         #expect(graph.edges.count == 0)
         #expect(!graph.contains(0))
-        #expect(!graph.contains(DirectedEdge(from: 0, to: 0)))
+        #expect(!graph.contains(edge: DirectedEdge(from: 0, to: 0)))
     }
 
     @Test("C-03 isolated vertices only")
@@ -69,7 +69,7 @@ struct AdjacencyListConstructionTests {
             #expect(graph.inDegree(of: v) == fixture.inDegree[v], "inDegree(of: \(v))")
         }
         for edge in fixture.edgeSet {
-            #expect(graph.contains(edge))
+            #expect(graph.contains(edge: edge))
         }
     }
 
@@ -97,8 +97,8 @@ struct AdjacencyListConstructionTests {
     func antiparallelEdgesAreDistinct() {
         let graph = AdjacencyList(edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 0)])
         #expect(graph.edgeCount == 2)
-        #expect(graph.contains(DirectedEdge(from: 0, to: 1)))
-        #expect(graph.contains(DirectedEdge(from: 1, to: 0)))
+        #expect(graph.contains(edge: DirectedEdge(from: 0, to: 1)))
+        #expect(graph.contains(edge: DirectedEdge(from: 1, to: 0)))
     }
 
     @Test("C-12 a vertex given explicitly and as an endpoint is one vertex")
@@ -157,7 +157,7 @@ struct AdjacencyListConstructionTests {
         #expect(graph.vertexCount == 5)
         #expect(graph.edgeCount == 6)
         #expect(graph == AdjacencyList(adjacency: [0: [1, 2, 3], 1: [1, 2, 0], 4: []]))
-        #expect(graph.contains(DirectedEdge(from: 1, to: 1)))
+        #expect(graph.contains(edge: DirectedEdge(from: 1, to: 1)))
         #expect(graph.degree(of: 4) == 0)
 
         let empty: AdjacencyList<Int> = [:]
@@ -202,9 +202,9 @@ struct AdjacencyListConstructionTests {
         #expect(seen == 720)
     }
 
-    @Test("C-15 shuffled input gives an equal graph", .tags(.randomized, .fixture), arguments: 0 ..< 20 as Range<UInt64>)
-    func shuffledInput(seed: UInt64) {
-        var rng = SplitMix64(seed: seed)
+    @Test("C-15 shuffled input gives an equal graph", .tags(.randomized, .fixture), arguments: 0 ..< 20 as Range<UInt>)
+    func shuffledInput(seed: UInt) {
+        var rng = SeededRandomNumberGenerator(seed: seed)
         for fixture in DirectedFixture<Int>.all {
             let reference = AdjacencyList(vertices: fixture.vertices, edges: fixture.edges)
             let shuffled = AdjacencyList(vertices: fixture.vertices.shuffled(using: &rng), edges: fixture.edges.shuffled(using: &rng))
@@ -217,7 +217,7 @@ struct AdjacencyListConstructionTests {
     func constructionMatchesInsertion(_ fixture: DirectedFixture<Int>) {
         var incremental = AdjacencyList<Int>()
         for v in fixture.vertices { incremental.insert(v) }
-        for edge in fixture.edges { incremental.insert(edge) }
+        for edge in fixture.edges { incremental.insert(edge: edge) }
         #expect(incremental == AdjacencyList(vertices: fixture.vertices, edges: fixture.edges))
         #expect(incremental.vertexCount == fixture.vertexCount)
         #expect(incremental.edgeCount == fixture.edgeCount)

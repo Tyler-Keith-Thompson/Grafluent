@@ -20,20 +20,20 @@ struct AdjacencyListQueryTests {
     func containsEdgeIsDirectional() {
         // JGraphT SimpleDirectedGraphTest g4.
         let graph = AdjacencyList(edges: [DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 3), DirectedEdge(from: 3, to: 4), DirectedEdge(from: 4, to: 1)])
-        #expect(graph.contains(DirectedEdge(from: 1, to: 2)))
-        #expect(!graph.contains(DirectedEdge(from: 2, to: 1)))
-        #expect(!graph.contains(DirectedEdge(from: 1, to: 4)))
-        #expect(graph.contains(DirectedEdge(from: 4, to: 1)))
-        #expect(!graph.contains(DirectedEdge(from: 1, to: 1)))
+        #expect(graph.contains(edge: DirectedEdge(from: 1, to: 2)))
+        #expect(!graph.contains(edge: DirectedEdge(from: 2, to: 1)))
+        #expect(!graph.contains(edge: DirectedEdge(from: 1, to: 4)))
+        #expect(graph.contains(edge: DirectedEdge(from: 4, to: 1)))
+        #expect(!graph.contains(edge: DirectedEdge(from: 1, to: 1)))
     }
 
     @Test("Q-03 contains(edge) with an absent endpoint is false")
     func containsEdgeWithAbsentEndpoint() {
         let graph = AdjacencyList(edges: [DirectedEdge(from: 5, to: 3), DirectedEdge(from: 1, to: 0)])
-        #expect(!graph.contains(DirectedEdge(from: 0, to: -1)))
-        #expect(!graph.contains(DirectedEdge(from: -1, to: 0)))
-        #expect(!graph.contains(DirectedEdge(from: -1, to: -1)))
-        #expect(!AdjacencyList<Int>().contains(DirectedEdge(from: 0, to: 0)))
+        #expect(!graph.contains(edge: DirectedEdge(from: 0, to: -1)))
+        #expect(!graph.contains(edge: DirectedEdge(from: -1, to: 0)))
+        #expect(!graph.contains(edge: DirectedEdge(from: -1, to: -1)))
+        #expect(!AdjacencyList<Int>().contains(edge: DirectedEdge(from: 0, to: 0)))
     }
 
     @Test("Q-05 / Q-07 / Q-10 neighborhoods and degrees of every fixture", .tags(.fixture), arguments: DirectedFixture<Int>.all)
@@ -132,7 +132,7 @@ struct AdjacencyListQueryTests {
         #expect(fromOut == Set(graph.edges))
         #expect(fromIn == Set(graph.edges))
         for edge in graph.edges {
-            #expect(graph.contains(edge))
+            #expect(graph.contains(edge: edge))
             #expect(graph.contains(edge.source))
             #expect(graph.contains(edge.target))
             #expect(graph.successors(of: edge.source).contains(edge.target))
@@ -185,7 +185,7 @@ struct AdjacencyListQueryTests {
         let graph = AdjacencyList(edges: (0 ..< 1000).map { DirectedEdge(from: $0 / 2, to: $0) })
         #expect(graph.vertexCount == 1000)
         #expect(graph.edgeCount == 1000)
-        #expect(graph.contains(DirectedEdge(from: 0, to: 0)))
+        #expect(graph.contains(edge: DirectedEdge(from: 0, to: 0)))
         #expect(graph.outDegree(of: 0) == 2)
         #expect(graph.inDegree(of: 0) == 1)
         #expect(graph.outDegree(of: 499) == 2)
