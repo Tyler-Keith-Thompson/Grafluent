@@ -414,13 +414,151 @@ extension DirectedFixture where Vertex == Int {
         DirectedEdge(from: 4, to: 4)
     }
 
+    /// Written out of order; rows come out sorted.
+    public static let boostCsrUnsorted = DirectedFixture<Int>(
+        "Boost.Graph unsorted CSR input", source: "Boost.Graph test/csr_graph_test.cpp (unsorted constructor)",
+        vertexCount: 6, edgeCount: 6,
+        outDegree: byVertex([1, 0, 0, 1, 2, 2]),
+        inDegree: byVertex([2, 1, 3, 0, 0, 0])
+    ) {
+        DirectedEdge(from: 5, to: 0)
+        DirectedEdge(from: 3, to: 2)
+        DirectedEdge(from: 4, to: 1)
+        DirectedEdge(from: 4, to: 0)
+        DirectedEdge(from: 0, to: 2)
+        DirectedEdge(from: 5, to: 2)
+    }
+
+    /// Already sorted by source, then target.
+    public static let boostWebGraph = DirectedFixture<Int>(
+        "Boost.Graph CSR web graph", source: "Boost.Graph example/csr-example.cpp",
+        vertexCount: 6, edgeCount: 13,
+        outDegree: byVertex([3, 3, 2, 2, 1, 2]),
+        inDegree: byVertex([3, 3, 2, 2, 1, 2])
+    ) {
+        DirectedEdge(from: 0, to: 1)
+        DirectedEdge(from: 0, to: 2)
+        DirectedEdge(from: 0, to: 3)
+        DirectedEdge(from: 1, to: 0)
+        DirectedEdge(from: 1, to: 3)
+        DirectedEdge(from: 1, to: 5)
+        DirectedEdge(from: 2, to: 0)
+        DirectedEdge(from: 2, to: 5)
+        DirectedEdge(from: 3, to: 1)
+        DirectedEdge(from: 3, to: 4)
+        DirectedEdge(from: 4, to: 1)
+        DirectedEdge(from: 5, to: 0)
+        DirectedEdge(from: 5, to: 2)
+    }
+
+    /// Self-loops in every row.
+    public static let petgraphCsr1 = DirectedFixture<Int>(
+        "petgraph csr1", source: "petgraph src/csr.rs (csr1 test)",
+        vertexCount: 3, edgeCount: 6,
+        outDegree: byVertex([2, 3, 1]),
+        inDegree: byVertex([2, 1, 3])
+    ) {
+        DirectedEdge(from: 0, to: 0)
+        DirectedEdge(from: 1, to: 2)
+        DirectedEdge(from: 2, to: 2)
+        DirectedEdge(from: 0, to: 2)
+        DirectedEdge(from: 1, to: 0)
+        DirectedEdge(from: 1, to: 1)
+    }
+
+    /// Vertex 3 is isolated.
+    public static let petgraphCsrFrom = DirectedFixture<Int>(
+        "petgraph csr_from", source: "petgraph src/csr.rs (csr_from test)",
+        vertexCount: 5, edgeCount: 6,
+        outDegree: byVertex([2, 2, 2, 0, 0]),
+        inDegree: byVertex([1, 2, 2, 0, 1])
+    ) {
+        3
+        DirectedEdge(from: 0, to: 1)
+        DirectedEdge(from: 0, to: 2)
+        DirectedEdge(from: 1, to: 0)
+        DirectedEdge(from: 1, to: 1)
+        DirectedEdge(from: 2, to: 2)
+        DirectedEdge(from: 2, to: 4)
+    }
+
+    public static let petgraphBellmanFord = DirectedFixture<Int>(
+        "petgraph Bellman–Ford graph", source: "petgraph src/csr.rs (Bellman–Ford test; weights omitted)",
+        vertexCount: 9, edgeCount: 11,
+        outDegree: byVertex([2, 4, 1, 0, 1, 1, 1, 1, 0]),
+        inDegree: byVertex([1, 2, 2, 2, 0, 1, 0, 2, 1])
+    ) {
+        DirectedEdge(from: 0, to: 1)
+        DirectedEdge(from: 0, to: 2)
+        DirectedEdge(from: 1, to: 0)
+        DirectedEdge(from: 1, to: 1)
+        DirectedEdge(from: 1, to: 2)
+        DirectedEdge(from: 1, to: 3)
+        DirectedEdge(from: 2, to: 3)
+        DirectedEdge(from: 4, to: 5)
+        DirectedEdge(from: 5, to: 7)
+        DirectedEdge(from: 6, to: 7)
+        DirectedEdge(from: 7, to: 8)
+    }
+
+    public static let neo4jDirected = DirectedFixture<Int>(
+        "neo4j graph builder directed graph", source: "neo4j-labs graph tests/builder.rs",
+        vertexCount: 5, edgeCount: 6,
+        outDegree: byVertex([2, 2, 1, 1, 0]),
+        inDegree: byVertex([0, 1, 2, 1, 2])
+    ) {
+        DirectedEdge(from: 0, to: 1)
+        DirectedEdge(from: 0, to: 2)
+        DirectedEdge(from: 1, to: 2)
+        DirectedEdge(from: 1, to: 3)
+        DirectedEdge(from: 2, to: 4)
+        DirectedEdge(from: 3, to: 4)
+    }
+
+    /// 2→4 is written three times and collapses.
+    public static let jgraphtSparseDirected = DirectedFixture<Int>(
+        "JGraphT sparse directed graph", source: "JGraphT SparseIntGraphTest, re-derived without parallel edges",
+        vertexCount: 8, edgeCount: 11,
+        outDegree: byVertex([1, 4, 1, 1, 1, 1, 0, 2]),
+        inDegree: byVertex([1, 1, 0, 0, 3, 2, 3, 1])
+    ) {
+        DirectedEdge(from: 0, to: 1)
+        DirectedEdge(from: 1, to: 0)
+        DirectedEdge(from: 1, to: 4)
+        DirectedEdge(from: 1, to: 5)
+        DirectedEdge(from: 1, to: 6)
+        DirectedEdge(from: 2, to: 4)
+        DirectedEdge(from: 2, to: 4)
+        DirectedEdge(from: 2, to: 4)
+        DirectedEdge(from: 3, to: 4)
+        DirectedEdge(from: 4, to: 5)
+        DirectedEdge(from: 5, to: 6)
+        DirectedEdge(from: 7, to: 6)
+        DirectedEdge(from: 7, to: 7)
+    }
+
+    /// Rows 0–2 and 4–5 are empty.
+    public static let scipyConstructor2 = DirectedFixture<Int>(
+        "scipy one-edge CSR", source: "scipy sparse/tests/test_base.py (constructor2)",
+        vertexCount: 6, edgeCount: 1,
+        outDegree: byVertex([0, 0, 0, 1, 0, 0]),
+        inDegree: byVertex([0, 0, 0, 0, 1, 0])
+    ) {
+        0
+        1
+        2
+        5
+        DirectedEdge(from: 3, to: 4)
+    }
+
     /// Every fixture with `Int` vertices.
     public static let all: [DirectedFixture<Int>] = [
         .empty, .trivial, .singleSelfLoop, .isolatedVertices, .directedPath3, .completeDirected3,
         .completeDirected10, .networkXFunctionGraph, .house, .scc9, .selfLoopsAndDuplicates,
         .directedCycle4, .triangleWithReciprocalEdge, .pathWithChord, .petersen, .cube,
         .directedPath10, .directedCycle10, .boostExample, .boost24, .petgraphEdgesDirected,
-        .igraphReverseEdges, .jgraphtMatrixCSV,
+        .igraphReverseEdges, .jgraphtMatrixCSV, .boostCsrUnsorted, .boostWebGraph, .petgraphCsr1,
+        .petgraphCsrFrom, .petgraphBellmanFord, .neo4jDirected, .jgraphtSparseDirected, .scipyConstructor2,
     ]
 
     /// Fixtures with at least one edge.

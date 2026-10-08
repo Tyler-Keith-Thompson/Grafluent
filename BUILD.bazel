@@ -13,7 +13,9 @@ TEST_PACKAGES = sorted([
     if package != "Tests/GrafluentTestSupport"
 ])
 
-TEST_TARGETS = ["//" + package for package in TEST_PACKAGES]
+# Xcode runs each package's .xctest bundle target; `bazel test` runs its swift_test (see
+# scripts/modules.py).
+TEST_TARGETS = ["//" + package + ":" + package.removeprefix("Tests/") + "Bundle" for package in TEST_PACKAGES]
 
 # A library-only package has nothing to launch, so the project's top-level targets are its test
 # bundles. Every library reaches the project as a dependency of one of them.
@@ -34,7 +36,7 @@ xcodeproj(
         xcschemes.scheme(
             name = package.removeprefix("Tests/"),
             test = xcschemes.test(
-                test_targets = [xcschemes.test_target("//" + package)],
+                test_targets = [xcschemes.test_target("//" + package + ":" + package.removeprefix("Tests/") + "Bundle")],
             ),
         )
         for package in TEST_PACKAGES

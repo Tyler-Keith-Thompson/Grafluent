@@ -5,10 +5,14 @@ import GraphProtocols
 /// The vertex set is any set of `Hashable` values. The edge set is a set of ordered pairs of
 /// vertices: self-loops are allowed, parallel edges are not.
 ///
-/// Vertices are kept in dense slots, with a dictionary from vertex to slot. Each slot has the
-/// slots of its out-neighbors and its in-neighbors, and a set of slot pairs answers `contains(_:)`
-/// for an edge in O(1). Removing a vertex moves the last slot into its place, so iteration order is
-/// unspecified and may change after a removal.
+/// Vertices are kept in dense slots, with a dictionary from vertex to slot. Each slot has a row of
+/// the slots of its out-neighbors and a row of its in-neighbors; the rows of each direction share
+/// one array, so the graph makes a constant number of allocations however many vertices it has
+/// (amortized, like `Array`), and copying it copies a constant number of buffers. A dictionary from
+/// slot pair to the edge's position in both rows answers `contains(edge:)` in O(1) and lets an
+/// edge be removed in O(1) by moving the last entry of each row into its place. Removing a vertex
+/// costs O(degree) and moves the last slot into its place, so iteration order is unspecified and
+/// may change after a removal.
 @frozen
 public struct AdjacencyList<Vertex: Hashable> {
     /// The vertex in each slot.
@@ -19,26 +23,41 @@ public struct AdjacencyList<Vertex: Hashable> {
     @usableFromInline
     internal var _slots: [Vertex: Int]
 
-    /// For each slot, the slots of its out-neighbors.
+    /// For each slot, a row of the slots of its out-neighbors.
     @usableFromInline
-    internal var _out: ContiguousArray<ContiguousArray<Int>>
+    internal var _out: _RowPool
 
-    /// For each slot, the slots of its in-neighbors.
+    /// For each slot, a row of the slots of its in-neighbors.
     @usableFromInline
-    internal var _in: ContiguousArray<ContiguousArray<Int>>
+    internal var _in: _RowPool
 
-    /// Every edge, as a pair of slots.
+    /// Every edge, as a pair of slots, with its position in its source's out-list and its
+    /// target's in-list.
     @usableFromInline
-    internal var _edges: Set<_SlotPair>
+    internal var _edges: [_SlotPair: _ListPositions]
 
     /// The empty graph.
     @inlinable
     public init() {
         _vertices = []
         _slots = [:]
-        _out = []
-        _in = []
-        _edges = []
+        _out = _RowPool()
+        _in = _RowPool()
+        _edges = [:]
+    }
+}
+
+/// Where an edge is in its source's out-row and its target's in-row, as offsets into each.
+@frozen
+@usableFromInline
+internal struct _ListPositions {
+    @usableFromInline var out: Int
+    @usableFromInline var `in`: Int
+
+    @inlinable
+    init(out: Int, in: Int) {
+        self.out = out
+        self.in = `in`
     }
 }
 
@@ -83,7 +102,8 @@ extension AdjacencyList {
     }
 
     /// A graph from an adjacency mapping: each key is a vertex, and its value lists the vertex's
-    /// out-neighbors. Neighbors that are not keys become vertices.
+    /// out-neighbors. Neighbors that are not keys become vertices. The vertices' order follows the
+    /// dictionary's, which differs between processes; equality does not depend on it.
     @inlinable
     public init<Neighbors: Sequence<Vertex>>(adjacency: [Vertex: Neighbors]) {
         self.init()
@@ -138,7 +158,7 @@ extension AdjacencyList {
     @inlinable
     public func contains(edge: DirectedEdge<Vertex>) -> Bool {
         guard let source = _slots[edge.source], let target = _slots[edge.target] else { return false }
-        return _edges.contains(_SlotPair(source, target))
+        return _edges[_SlotPair(source, target)] != nil
     }
 
     /// The vertices that `vertex` has an edge to. A self-loop puts `vertex` in its own
@@ -147,7 +167,7 @@ extension AdjacencyList {
     /// - Precondition: `vertex` is a vertex of the graph.
     @inlinable
     public func successors(of vertex: Vertex) -> Neighbors {
-        Neighbors(vertices: _vertices, slots: _out[_slot(of: vertex)])
+        Neighbors(vertices: _vertices, slots: _out[row: _slot(of: vertex)])
     }
 
     /// The vertices that have an edge to `vertex`. A self-loop puts `vertex` in its own
@@ -156,7 +176,7 @@ extension AdjacencyList {
     /// - Precondition: `vertex` is a vertex of the graph.
     @inlinable
     public func predecessors(of vertex: Vertex) -> Neighbors {
-        Neighbors(vertices: _vertices, slots: _in[_slot(of: vertex)])
+        Neighbors(vertices: _vertices, slots: _in[row: _slot(of: vertex)])
     }
 
     /// The number of edges leaving `vertex`.
@@ -164,7 +184,7 @@ extension AdjacencyList {
     /// - Precondition: `vertex` is a vertex of the graph.
     @inlinable
     public func outDegree(of vertex: Vertex) -> Int {
-        _out[_slot(of: vertex)].count
+        _out.count(ofRow: _slot(of: vertex))
     }
 
     /// The number of edges entering `vertex`.
@@ -172,7 +192,7 @@ extension AdjacencyList {
     /// - Precondition: `vertex` is a vertex of the graph.
     @inlinable
     public func inDegree(of vertex: Vertex) -> Int {
-        _in[_slot(of: vertex)].count
+        _in.count(ofRow: _slot(of: vertex))
     }
 
     /// `outDegree(of:) + inDegree(of:)`. A self-loop counts twice: once leaving and once entering.
@@ -181,7 +201,7 @@ extension AdjacencyList {
     @inlinable
     public func degree(of vertex: Vertex) -> Int {
         let slot = _slot(of: vertex)
-        return _out[slot].count + _in[slot].count
+        return _out.count(ofRow: slot) + _in.count(ofRow: slot)
     }
 
     @inlinable
@@ -221,14 +241,13 @@ extension AdjacencyList {
         let member = DirectedEdge(from: _vertices[source], to: _vertices[target])
         let pair = _SlotPair(source, target)
         // Checked before inserting, so inserting an existing edge never copies shared storage.
-        if _edges.contains(pair) { return (false, member) }
-        _edges.insert(pair)
-        _out[source].append(target)
-        _in[target].append(source)
+        if _edges[pair] != nil { return (false, member) }
+        _edges[pair] = _ListPositions(out: _out.append(target, toRow: source), in: _in.append(source, toRow: target))
         return (true, member)
     }
 
-    /// Removes `vertex` and every edge incident to it.
+    /// Removes `vertex` and every edge incident to it. O(degree), plus the degree of the vertex
+    /// that moves into its slot.
     ///
     /// - Returns: The removed vertex instance, or `nil` if `vertex` was not a vertex.
     @inlinable
@@ -237,49 +256,46 @@ extension AdjacencyList {
         guard let slot = _slots[vertex] else { return nil }
         let removed = _vertices[slot]
 
-        // Detach every edge incident to the vertex. A self-loop appears in both of its own lists and
-        // is removed with the slot itself.
-        for target in _out[slot] where target != slot {
-            Self._remove(slot, from: &_in[target])
-            _edges.remove(_SlotPair(slot, target))
+        // Detach every edge incident to the vertex, last entry first, so nothing moves in its own
+        // rows. A self-loop leaves both rows with the first loop.
+        while let target = _out.last(ofRow: slot) {
+            _detach(_SlotPair(slot, target))
         }
-        for source in _in[slot] where source != slot {
-            Self._remove(slot, from: &_out[source])
-            _edges.remove(_SlotPair(source, slot))
+        while let source = _in.last(ofRow: slot) {
+            _detach(_SlotPair(source, slot))
         }
-        _edges.remove(_SlotPair(slot, slot))
 
-        // Move the last slot into the hole, renaming it everywhere it appears.
+        // Move the last slot into the hole, renaming it in its edges' keys and neighbors' rows.
         let last = _vertices.count - 1
         if slot != last {
             let moved = _vertices[last]
-            var movedOut = _out[last]
-            var movedIn = _in[last]
-            for target in movedOut {
-                _edges.remove(_SlotPair(last, target))
-                _edges.insert(_SlotPair(slot, target == last ? slot : target))
-                if target != last { Self._replace(last, with: slot, in: &_in[target]) }
+            // In-edges first: the out-edges' pass renames the self-loop's in-entry.
+            for source in _in[row: last] where source != last {
+                let positions = _edges.removeValue(forKey: _SlotPair(source, last))!
+                _edges[_SlotPair(source, slot)] = positions
+                _out[row: source, positions.out] = slot
             }
-            for source in movedIn where source != last {
-                _edges.remove(_SlotPair(source, last))
-                _edges.insert(_SlotPair(source, slot))
-                Self._replace(last, with: slot, in: &_out[source])
+            for target in _out[row: last] {
+                let positions = _edges.removeValue(forKey: _SlotPair(last, target))!
+                let renamed = target == last ? slot : target
+                _edges[_SlotPair(slot, renamed)] = positions
+                _in[row: target, positions.in] = slot
             }
-            if let i = movedOut.firstIndex(of: last) { movedOut[i] = slot }
-            if let i = movedIn.firstIndex(of: last) { movedIn[i] = slot }
-            _vertices[slot] = moved
-            _out[slot] = movedOut
-            _in[slot] = movedIn
+            // A self-loop's out-entry names the slot too.
+            if let positions = _edges[_SlotPair(slot, slot)] {
+                _out[row: last, positions.out] = slot
+            }
+            _vertices.swapAt(slot, last)
             _slots[moved] = slot
         }
         _vertices.removeLast()
-        _out.removeLast()
-        _in.removeLast()
+        _out.swapRemoveRow(slot)
+        _in.swapRemoveRow(slot)
         _slots.removeValue(forKey: removed)
         return removed
     }
 
-    /// Removes `edge`. Never inserts or removes a vertex.
+    /// Removes `edge`. Never inserts or removes a vertex. O(1).
     ///
     /// - Returns: The removed edge, whose endpoints are the graph's own vertex instances, or `nil`
     ///   if `edge` was not an edge.
@@ -289,11 +305,22 @@ extension AdjacencyList {
         guard let source = _slots[edge.source], let target = _slots[edge.target] else { return nil }
         let pair = _SlotPair(source, target)
         // Checked before removing, so removing an absent edge never copies shared storage.
-        guard _edges.contains(pair) else { return nil }
-        _edges.remove(pair)
-        Self._remove(target, from: &_out[source])
-        Self._remove(source, from: &_in[target])
+        guard _edges[pair] != nil else { return nil }
+        _detach(pair)
         return DirectedEdge(from: _vertices[source], to: _vertices[target])
+    }
+
+    /// Removes an edge from the map and from both rows, moving each row's last entry into the
+    /// hole and recording where it went.
+    @inlinable
+    internal mutating func _detach(_ pair: _SlotPair) {
+        let positions = _edges.removeValue(forKey: pair)!
+        if let movedTarget = _out.swapRemove(at: positions.out, fromRow: pair.source) {
+            _edges[_SlotPair(pair.source, movedTarget)]!.out = positions.out
+        }
+        if let movedSource = _in.swapRemove(at: positions.in, fromRow: pair.target) {
+            _edges[_SlotPair(movedSource, pair.target)]!.in = positions.in
+        }
     }
 
     /// Removes every vertex and edge.
@@ -310,10 +337,8 @@ extension AdjacencyList {
     @inlinable
     public mutating func removeAllEdges(keepingCapacity: Bool = false) {
         guard !_edges.isEmpty else { return }
-        for slot in _out.indices {
-            _out[slot].removeAll(keepingCapacity: keepingCapacity)
-            _in[slot].removeAll(keepingCapacity: keepingCapacity)
-        }
+        _out.removeAllEntries(keepingCapacity: keepingCapacity)
+        _in.removeAllEntries(keepingCapacity: keepingCapacity)
         _edges.removeAll(keepingCapacity: keepingCapacity)
     }
 
@@ -324,8 +349,8 @@ extension AdjacencyList {
         precondition(edgeCount >= 0, "Negative edge count")
         _vertices.reserveCapacity(vertexCount)
         _slots.reserveCapacity(vertexCount)
-        _out.reserveCapacity(vertexCount)
-        _in.reserveCapacity(vertexCount)
+        _out.reserveCapacity(rows: vertexCount, entries: edgeCount)
+        _in.reserveCapacity(rows: vertexCount, entries: edgeCount)
         _edges.reserveCapacity(edgeCount)
     }
 
@@ -335,24 +360,11 @@ extension AdjacencyList {
         let slot = _vertices.count
         _vertices.append(vertex)
         _slots[vertex] = slot
-        _out.append([])
-        _in.append([])
+        _out.appendRow()
+        _in.appendRow()
         return slot
     }
 
-    /// Removes the one occurrence of `slot` from `list`, moving the last element into its place.
-    @inlinable
-    internal static func _remove(_ slot: Int, from list: inout ContiguousArray<Int>) {
-        let i = list.firstIndex(of: slot)!
-        list.swapAt(i, list.endIndex - 1)
-        list.removeLast()
-    }
-
-    /// Replaces the one occurrence of `old` in `list` with `new`.
-    @inlinable
-    internal static func _replace(_ old: Int, with new: Int, in list: inout ContiguousArray<Int>) {
-        list[list.firstIndex(of: old)!] = new
-    }
 }
 
 // MARK: - Views
@@ -365,6 +377,9 @@ extension AdjacencyList {
     /// The edges, in unspecified order.
     @inlinable
     public var edges: Edges { Edges(vertices: _vertices, out: _out, count: _edges.count) }
+
+    // A view holds the storage it reads, so mutating the graph while a view is alive copies that
+    // storage once; `Array(view)` first avoids it.
 
     /// The vertices of a graph. A value: unaffected by later changes to the graph.
     @frozen
@@ -383,36 +398,41 @@ extension AdjacencyList {
     @frozen
     public struct Neighbors: RandomAccessCollection {
         @usableFromInline let vertices: ContiguousArray<Vertex>
-        @usableFromInline let slots: ContiguousArray<Int>
+        @usableFromInline let slots: ArraySlice<Int>
 
         @inlinable
-        init(vertices: ContiguousArray<Vertex>, slots: ContiguousArray<Int>) {
+        init(vertices: ContiguousArray<Vertex>, slots: ArraySlice<Int>) {
             self.vertices = vertices
             self.slots = slots
         }
 
         @inlinable public var startIndex: Int { 0 }
         @inlinable public var endIndex: Int { slots.count }
-        @inlinable public subscript(position: Int) -> Vertex { vertices[slots[position]] }
+
+        @inlinable
+        public subscript(position: Int) -> Vertex {
+            precondition(position >= 0 && position < slots.count, "Index out of range")
+            return vertices[slots[slots.startIndex &+ position]]
+        }
     }
 
     /// The edges of a graph. A value: unaffected by later changes to the graph.
     @frozen
     public struct Edges: Collection {
         @usableFromInline let vertices: ContiguousArray<Vertex>
-        @usableFromInline let out: ContiguousArray<ContiguousArray<Int>>
+        @usableFromInline let out: _RowPool
         @usableFromInline let _count: Int
 
         @inlinable
-        init(vertices: ContiguousArray<Vertex>, out: ContiguousArray<ContiguousArray<Int>>, count: Int) {
+        init(vertices: ContiguousArray<Vertex>, out: _RowPool, count: Int) {
             self.vertices = vertices
             self.out = out
             self._count = count
         }
 
-        /// A position: the source's slot, and the offset into its out-neighbors.
+        /// A position: the source's slot, and the offset into its out-row.
         @frozen
-        public struct Index: Comparable {
+        public struct Index: Comparable, Hashable {
             @usableFromInline let source: Int
             @usableFromInline let offset: Int
 
@@ -432,25 +452,26 @@ extension AdjacencyList {
         @inlinable
         func _firstIndex(atOrAfter source: Int) -> Index {
             var source = source
-            while source < out.count, out[source].isEmpty { source += 1 }
+            while source < out.rowCount, out.count(ofRow: source) == 0 { source += 1 }
             return Index(source: source, offset: 0)
         }
 
         @inlinable public var startIndex: Index { _firstIndex(atOrAfter: 0) }
-        @inlinable public var endIndex: Index { Index(source: out.count, offset: 0) }
+        @inlinable public var endIndex: Index { Index(source: out.rowCount, offset: 0) }
         @inlinable public var count: Int { _count }
         @inlinable public var isEmpty: Bool { _count == 0 }
 
         @inlinable
         public func index(after i: Index) -> Index {
-            i.offset + 1 < out[i.source].count
+            i.offset + 1 < out.count(ofRow: i.source)
                 ? Index(source: i.source, offset: i.offset + 1)
                 : _firstIndex(atOrAfter: i.source + 1)
         }
 
         @inlinable
         public subscript(position: Index) -> DirectedEdge<Vertex> {
-            DirectedEdge(from: vertices[position.source], to: vertices[out[position.source][position.offset]])
+            precondition(position.source < out.rowCount && position.offset < out.count(ofRow: position.source), "Index out of range")
+            return DirectedEdge(from: vertices[position.source], to: vertices[out[row: position.source, position.offset]])
         }
     }
 }
@@ -463,11 +484,16 @@ extension AdjacencyList: Equatable {
     @inlinable
     public static func == (lhs: AdjacencyList, rhs: AdjacencyList) -> Bool {
         guard lhs.vertexCount == rhs.vertexCount, lhs.edgeCount == rhs.edgeCount else { return false }
+        // Same slots (a copy, or the same insertions): compare slot pairs without hashing vertices.
+        if lhs._vertices == rhs._vertices {
+            for pair in lhs._edges.keys where rhs._edges[pair] == nil { return false }
+            return true
+        }
         for v in lhs._vertices where rhs._slots[v] == nil { return false }
-        for pair in lhs._edges {
+        for pair in lhs._edges.keys {
             guard let source = rhs._slots[lhs._vertices[pair.source]],
                   let target = rhs._slots[lhs._vertices[pair.target]],
-                  rhs._edges.contains(_SlotPair(source, target))
+                  rhs._edges[_SlotPair(source, target)] != nil
             else { return false }
         }
         return true
@@ -487,7 +513,7 @@ extension AdjacencyList: Hashable {
             vertexHashes &+= h.finalize()
         }
         var edgeHashes = 0
-        for pair in _edges {
+        for pair in _edges.keys {
             var h = Hasher()
             h.combine(_vertices[pair.source])
             h.combine(_vertices[pair.target])
@@ -511,15 +537,18 @@ extension AdjacencyList.Edges.Index: Sendable {}
 // MARK: - Codable
 
 extension AdjacencyList: Encodable where Vertex: Encodable {
-    /// Encodes the vertices, and the edges as pairs of positions in that vertex list.
+    /// Encodes the vertices, and the edges as pairs of positions in that vertex list. The same
+    /// graph built the same way encodes to the same bytes in every process.
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: _CodingKeys.self)
         try container.encode(Array(_vertices), forKey: .vertices)
         var edges: [Int] = []
         edges.reserveCapacity(2 * _edges.count)
-        for pair in _edges {
-            edges.append(pair.source)
-            edges.append(pair.target)
+        for source in 0 ..< _out.rowCount {
+            for target in _out[row: source] {
+                edges.append(source)
+                edges.append(target)
+            }
         }
         try container.encode(edges, forKey: .edges)
     }
@@ -561,12 +590,88 @@ extension AdjacencyList {
 
 // MARK: - Descriptions
 
-extension AdjacencyList: CustomStringConvertible, CustomDebugStringConvertible {
+extension AdjacencyList: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable {
+    /// The vertices and the edges, at most 16 of each: `[0, 1, 2]; [0→1, 1→2]`. The same form as
+    /// every other representation, so equal graphs print alike.
     public var description: String {
-        "AdjacencyList(vertices: \(Array(_vertices)), edges: \(Array(edges)))"
+        GraphDescription.graph(vertices: _vertices, vertexCount: vertexCount, edges: edges, edgeCount: edgeCount)
     }
 
+    /// The type, the counts, and at most 16 vertices and edges.
     public var debugDescription: String {
-        "AdjacencyList<\(Vertex.self)>(vertexCount: \(vertexCount), edgeCount: \(edgeCount), vertices: \(Array(_vertices)), edges: \(Array(edges)))"
+        "AdjacencyList<\(Vertex.self)>(vertexCount: \(vertexCount), edgeCount: \(edgeCount), vertices: "
+            + GraphDescription.list(_vertices, count: vertexCount) { String(reflecting: $0) }
+            + ", edges: "
+            + GraphDescription.list(edges, count: edgeCount) { GraphDescription.edge($0) }
+            + ")"
+    }
+
+    /// Shows `vertices` and `edges` as children, so a debugger can browse them.
+    public var customMirror: Mirror {
+        Mirror(self, children: ["vertices": Array(_vertices), "edges": Array(edges)], displayStyle: .struct)
+    }
+}
+
+// MARK: - DirectedGraph
+
+extension AdjacencyList: BidirectionalDirectedGraph {
+    /// The positions in `edges` of the edges leaving `vertex`, in the order of
+    /// `successors(of:)`. O(1) to create.
+    ///
+    /// - Precondition: `vertex` is a vertex of the graph.
+    @inlinable
+    public func outEdges(of vertex: Vertex) -> LazyMapCollection<Range<Int>, Edges.Index> {
+        let slot = _slot(of: vertex)
+        return (0 ..< _out.count(ofRow: slot)).lazy.map { Edges.Index(source: slot, offset: $0) }
+    }
+
+    /// The positions in `edges` of the edges entering `vertex`, in the order of
+    /// `predecessors(of:)`. O(in-degree).
+    ///
+    /// - Precondition: `vertex` is a vertex of the graph.
+    @inlinable
+    public func inEdges(of vertex: Vertex) -> [Edges.Index] {
+        let slot = _slot(of: vertex)
+        return _in[row: slot].map { source in
+            Edges.Index(source: source, offset: _edges[_SlotPair(source, slot)]!.out)
+        }
+    }
+
+    /// The vertices' slots: dense indices `0..<vertexCount`, valid until the next vertex removal.
+    @inlinable
+    public var vertexIndexBound: Int? { _vertices.count }
+
+    /// The slot of `vertex`. O(1).
+    ///
+    /// - Precondition: `vertex` is a vertex of the graph.
+    @inlinable
+    public func vertexIndex(of vertex: Vertex) -> Int { _slot(of: vertex) }
+
+    /// The vertex in slot `index`. O(1).
+    @inlinable
+    public func vertex(atIndex index: Int) -> Vertex { _vertices[index] }
+
+    /// The slots of the successors of the vertex in slot `index`: the stored row. O(1).
+    @inlinable
+    public func successorIndices(ofIndex index: Int) -> ArraySlice<Int> { _out[row: index] }
+
+    /// The slots of the predecessors of the vertex in slot `index`: the stored row. O(1).
+    @inlinable
+    public func predecessorIndices(ofIndex index: Int) -> ArraySlice<Int> { _in[row: index] }
+}
+
+extension AdjacencyList {
+    /// A copy of any directed graph: its vertices, including isolated ones, and its edges, with
+    /// parallel edges collapsed. Converting an `AdjacencyList` returns it unchanged.
+    @inlinable
+    public init(_ graph: some DirectedGraph<Vertex>) {
+        if let same = graph as? AdjacencyList {
+            self = same
+            return
+        }
+        self.init()
+        reserveCapacity(vertexCount: graph.vertexCount, edgeCount: graph.edgeCount)
+        for v in graph.vertices { insert(v) }
+        for edge in graph.edges { insert(edge: edge) }
     }
 }

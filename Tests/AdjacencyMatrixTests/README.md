@@ -11,7 +11,7 @@ types in `GrafluentTestSupport`.
 
 ```swift
 struct AdjacencyMatrix: Hashable, Sendable, Codable, ExpressibleByArrayLiteral,
-                        CustomStringConvertible, CustomDebugStringConvertible
+                        CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable
 
     init()
     init(vertexCount: Int)
@@ -21,6 +21,7 @@ struct AdjacencyMatrix: Hashable, Sendable, Codable, ExpressibleByArrayLiteral,
 
     var vertexCount: Int
     var edgeCount: Int
+    var rowsDescription: String                       // the n×n grid of 0s and 1s
     var vertices: Range<Int>                          // 0..<vertexCount
     var edges: Edges                                  // BidirectionalCollection, row-major;
                                                       // a position is a cell (source, target)
@@ -72,7 +73,7 @@ Where the reference libraries disagree, these are the choices and the reasons.
 | Order of successors, predecessors, edges | Ascending; edges row-major | Free with a matrix, and makes output deterministic | — |
 | Literal entries | Square, each 0 or 1, else trap | Anything else is ambiguous | NetworkX reads entries as weights |
 | `==` | Equal vertex count and equal cells; capacity ignored | swift-algorithm-club's `BitSet` compares words only, so differently sized empty sets compare equal | — |
-| `description` | Up to 64 vertices: rows of `0`/`1`, column 0 leftmost, `\n` between rows, no trailing newline. Larger: `AdjacencyMatrix(vertexCount:edgeCount:)` | Reads like the matrix; a failed test on large matrices stays readable | Bitset libraries disagree on bit order |
+| `description` | `[0, 1, 2]; [0→1, 1→2]`, at most 16 vertices and 16 edges, then `…`; the grid is `rowsDescription` | One textual form for every representation, so equal graphs print alike and large graphs print small | Bitset libraries disagree on bit order |
 | Encoded form | `{"vertexCount": n, "edges": [s₀, t₀, s₁, t₁, …]}`, row-major; malformed input throws | Specified, so corrupt payloads can be tested | — |
 | Decoding limit | At most 16,384 vertices (32 MiB of cells) unless the decoder's `userInfo[maximumDecodedVertexCountKey]` says otherwise | A 36-byte payload can name a matrix of gigabytes | — |
 | Rows and columns | `BitSet` values, not views into the matrix | O(1) membership, word-at-a-time iteration and set algebra, and mutating the matrix while holding one costs nothing | — |

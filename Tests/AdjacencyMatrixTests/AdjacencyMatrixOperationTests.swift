@@ -380,12 +380,13 @@ struct AdjacencyMatrixLimitTests {
         #expect(atLimit.vertexCount == 16_384)
     }
 
-    @Test("matrices over 64 vertices are summarized, not printed cell by cell")
+    @Test("a large matrix prints in a few lines, not n² characters")
     func largeDescription() {
-        var matrix = AdjacencyMatrix(vertexCount: 65)
-        matrix[64, 0] = true
-        #expect(matrix.description == "AdjacencyMatrix(vertexCount: 65, edgeCount: 1)")
-        #expect(AdjacencyMatrix(vertexCount: 64).description.split(separator: "\n").count == 64)
+        var matrix = AdjacencyMatrix(vertexCount: 4096)
+        matrix[4095, 0] = true
+        #expect(matrix.description.hasSuffix("…]; [4095→0]"))
+        #expect(matrix.description.count < 100)
+        #expect(matrix.debugDescription == "AdjacencyMatrix(vertexCount: 4096, edgeCount: 1, edges: [4095→0])")
     }
 
     @Test("debugDescription shows the counts and the first 16 edges")

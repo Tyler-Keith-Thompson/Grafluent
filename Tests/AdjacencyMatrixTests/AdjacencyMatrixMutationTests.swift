@@ -287,7 +287,7 @@ struct AdjacencyMatrixGrowthTests {
         #expect(matrix.appendVertex() == 0)
         matrix[0, 0] = true
         #expect(matrix.edgeCount == 1)
-        #expect(matrix.description == "1")
+        #expect(matrix.rowsDescription == "1")
     }
 
     @Test("AM-W07 a diagonal pattern survives growth from 0 to 129, one vertex at a time", .tags(.selfLoops))

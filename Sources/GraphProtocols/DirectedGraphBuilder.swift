@@ -1,6 +1,6 @@
 /// Builds the vertices and edges of a directed graph from a list of statements.
 ///
-/// Each statement is an `DirectedEdge` or a bare vertex (which adds the vertex without any edges), and
+/// Each statement is a `DirectedEdge` or a bare vertex (which adds the vertex without any edges), and
 /// `if`, `switch` and `for` work as usual:
 ///
 /// ```swift

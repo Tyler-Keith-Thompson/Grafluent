@@ -71,6 +71,7 @@ why.
 | Equal-but-distinct vertex instances | The first stored instance is kept and returned, including as edge endpoints | Matches `Set.insert`'s `memberAfterInsert` | |
 | Dictionary literal with a repeated key | Traps | Matches `Dictionary` | |
 | `==` | Equal vertex sets and equal edge sets; independent of insertion order; not isomorphism | Value semantics | NetworkX and petgraph have no structural `==` |
+| `description` | `[0, 1, 2]; [0→1, 1→2]`, elements written as `Array` writes them, at most 16 vertices and 16 edges, then `…`; `debugDescription` adds the type and counts; the mirror shows `vertices` and `edges` | One textual form for every representation | — |
 | Iteration order | Unspecified | Leaves the implementation free to optimize; every test is order-insensitive | JGraphT documents insertion order |
 | Encoded form (`Codable`) | Unspecified; only round trips are tested | | |
 
@@ -96,6 +97,7 @@ named fixtures and the vertex types used to stress `Hashable` (`Collider`, `Hash
 | `AdjacencyListPreconditionTests.swift` | Exit tests for every trapping precondition |
 | `AdjacencyListVertexTypeTests.swift` | String, colliding-hash, extreme Int, optional, enum, unit and reference-type vertices |
 | `AdjacencyListCodableTests.swift` | JSON and property list round trips |
+| `AdjacencyListDescriptionTests.swift` | `description`, `debugDescription` and the mirror |
 | `AdjacencyListOverloadTests.swift` | Vertex and edge operations stay distinct when the vertex type could hold an edge |
 
 Case IDs in test names (C-04, V-06, Q-14, ...) refer to the catalog of cases harvested from

@@ -57,6 +57,22 @@ struct AdjacencyListCodableTests {
         #expect(decoded == document)
     }
 
+    @Test("graphs built the same way encode to the same bytes", .tags(.fixture), arguments: DirectedFixture<Int>.all)
+    func deterministicEncoding(_ fixture: DirectedFixture<Int>) throws {
+        // Separately built hash tables iterate in different orders; the encoding must not follow them.
+        var first = AdjacencyList(vertices: fixture.vertices, edges: fixture.edges)
+        var second = AdjacencyList(vertices: fixture.vertices, edges: fixture.edges)
+        let encoder = JSONEncoder()
+        // Without sorted keys, JSONEncoder's own key order varies.
+        encoder.outputFormatting = .sortedKeys
+        #expect(try encoder.encode(first) == encoder.encode(second))
+        if let vertex = fixture.edges.first?.source {
+            first.remove(vertex)
+            second.remove(vertex)
+            #expect(try encoder.encode(first) == encoder.encode(second))
+        }
+    }
+
     @Test("decoding input of the wrong shape throws instead of trapping")
     func malformedInput() {
         // Only inputs no encoding of a graph could produce; the exact format is unspecified.

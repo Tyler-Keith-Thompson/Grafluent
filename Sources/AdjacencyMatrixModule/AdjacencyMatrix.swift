@@ -898,16 +898,23 @@ extension AdjacencyMatrix: Codable {
 
 // MARK: - Descriptions
 
-extension AdjacencyMatrix: CustomStringConvertible, CustomDebugStringConvertible {
-    /// The largest matrix whose `description` is the full grid of cells.
-    public static let maximumDescribedVertexCount = 64
-
-    /// For up to 64 vertices, the rows of the matrix as 0s and 1s, column 0 leftmost, one row per
-    /// line. Larger matrices are summarized, so printing one (as a failed test does) stays small.
+extension AdjacencyMatrix: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable {
+    /// The vertices and the edges, at most 16 of each: `[0, 1, 2]; [0→1, 1→2]`. The same form as
+    /// every other representation, so equal graphs print alike.
     public var description: String {
-        guard _vertexCount <= Self.maximumDescribedVertexCount else {
-            return "AdjacencyMatrix(vertexCount: \(_vertexCount), edgeCount: \(_edgeCount))"
-        }
+        GraphDescription.graph(vertices: vertices, vertexCount: _vertexCount, edges: edges, edgeCount: _edgeCount)
+    }
+
+    /// The type, the counts, and at most 16 edges.
+    public var debugDescription: String {
+        "AdjacencyMatrix(vertexCount: \(_vertexCount), edgeCount: \(_edgeCount), edges: "
+            + GraphDescription.list(edges, count: _edgeCount) { GraphDescription.edge($0) }
+            + ")"
+    }
+
+    /// The whole matrix as rows of 0s and 1s, column 0 leftmost, one row per line, no trailing
+    /// newline. It has n² characters, so it is meant for small matrices.
+    public var rowsDescription: String {
         var result = ""
         result.reserveCapacity(_vertexCount * (_vertexCount + 1))
         for row in 0 ..< _vertexCount {
@@ -919,10 +926,86 @@ extension AdjacencyMatrix: CustomStringConvertible, CustomDebugStringConvertible
         return result
     }
 
-    /// The counts and the first 16 edges.
-    public var debugDescription: String {
-        let shown = edges.prefix(16).map { "\($0)" }.joined(separator: ", ")
-        let more = _edgeCount > 16 ? ", …" : ""
-        return "AdjacencyMatrix(vertexCount: \(_vertexCount), edgeCount: \(_edgeCount), edges: [\(shown)\(more)])"
+    /// Shows `vertexCount` and `edges` as children, so a debugger can browse them.
+    public var customMirror: Mirror {
+        Mirror(self, children: ["vertexCount": _vertexCount, "edges": Array(edges)], displayStyle: .struct)
+    }
+}
+
+// MARK: - DirectedGraph
+
+extension AdjacencyMatrix: BidirectionalDirectedGraph {
+    /// The positions (cells) in `edges` of the edges leaving `vertex`, ascending by target.
+    ///
+    /// - Precondition: `vertex` is in `0..<vertexCount`.
+    @inlinable
+    public func outEdges(of vertex: Int) -> LazyMapSequence<BitSet, Edges.Index> {
+        successors(of: vertex).lazy.map { Edges.Index(source: vertex, target: $0) }
+    }
+
+    /// The positions (cells) in `edges` of the edges entering `vertex`, ascending by source.
+    ///
+    /// - Precondition: `vertex` is in `0..<vertexCount`.
+    @inlinable
+    public func inEdges(of vertex: Int) -> LazyMapSequence<BitSet, Edges.Index> {
+        predecessors(of: vertex).lazy.map { Edges.Index(source: $0, target: vertex) }
+    }
+
+    /// The source of the edge in a cell: its row. O(1).
+    @inlinable
+    public func source(ofEdgeAt position: Edges.Index) -> Int { position.source }
+
+    /// The target of the edge in a cell: its column. O(1).
+    @inlinable
+    public func target(ofEdgeAt position: Edges.Index) -> Int { position.target }
+
+    /// The vertices are their own indices.
+    @inlinable
+    public var vertexIndexBound: Int? { _vertexCount }
+
+    /// `vertex` itself.
+    ///
+    /// - Precondition: `vertex` is in `0..<vertexCount`.
+    @inlinable
+    public func vertexIndex(of vertex: Int) -> Int {
+        _checkVertex(vertex)
+        return vertex
+    }
+
+    /// `index` itself.
+    ///
+    /// - Precondition: `index` is in `0..<vertexCount`.
+    @inlinable
+    public func vertex(atIndex index: Int) -> Int {
+        _checkVertex(index)
+        return index
+    }
+
+    /// The successors themselves, since vertices are their own indices.
+    @inlinable
+    public func successorIndices(ofIndex index: Int) -> BitSet { successors(of: index) }
+
+    /// The predecessors themselves, since vertices are their own indices.
+    @inlinable
+    public func predecessorIndices(ofIndex index: Int) -> BitSet { predecessors(of: index) }
+}
+
+extension AdjacencyMatrix {
+    /// The matrix of any directed graph on the vertices `0..<graph.vertexCount`, with parallel
+    /// edges collapsed.
+    ///
+    /// - Precondition: the vertices are exactly `0..<graph.vertexCount`. Other numberings are not
+    ///   inferred or renumbered; use `init(vertexCount:edges:)`.
+    @inlinable
+    public init(_ graph: some DirectedGraph<Int>) {
+        if let same = graph as? AdjacencyMatrix {
+            self = same
+            return
+        }
+        let n = graph.vertexCount
+        for v in graph.vertices {
+            precondition(v >= 0 && v < n, "Vertex \(v) is not in 0..<\(n); the vertices must be exactly 0..<vertexCount")
+        }
+        self.init(vertexCount: n, edges: graph.edges)
     }
 }

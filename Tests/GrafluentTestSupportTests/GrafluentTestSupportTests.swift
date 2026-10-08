@@ -7,7 +7,7 @@ import Testing
 
 @Suite("Directed fixtures are internally consistent", .tags(.fixture))
 struct DirectedFixtureConsistencyTests {
-    @Test(arguments: DirectedFixture<Int>.all)
+    @Test(arguments: DirectedFixture<Int>.all + DirectedFixture<Int>.realWorld)
     func intFixture(_ fixture: DirectedFixture<Int>) {
         let vertices = Set(fixture.vertices).union(fixture.edges.flatMap { [$0.source, $0.target] })
         let edges = Set(fixture.edges)

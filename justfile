@@ -52,6 +52,18 @@ verify: test spm-test
 modules:
     python3 scripts/modules.py
 
+[doc('Run the benchmarks, e.g. just bench, or just bench --target CompressedSparseRowBenchmarks')]
+bench *args="":
+    cd {{PROJECT_ROOT}}/Benchmarks && {{SWIFT}} package --allow-writing-to-package-directory benchmark {{args}}
+
+[doc('Record the current results as the baseline named main')]
+bench-baseline:
+    cd {{PROJECT_ROOT}}/Benchmarks && {{SWIFT}} package --allow-writing-to-package-directory benchmark baseline update main
+
+[doc('Compare the current results against the saved baseline')]
+bench-compare:
+    cd {{PROJECT_ROOT}}/Benchmarks && {{SWIFT}} package --allow-writing-to-package-directory benchmark baseline compare main
+
 [doc('Generate an Xcode project from the Bazel graph and open it')]
 generate *args="":
     @bash scripts/generate-xcodeproj.sh {{args}}
@@ -73,17 +85,3 @@ deps target="//Sources/Grafluent":
 [doc('List every buildable target')]
 targets:
     {{BAZEL}} query '//...' --output=label_kind
-
-[doc('Format Swift sources')]
-fix:
-    swiftformat --quiet Sources Tests Package.swift
-
-[doc('Check formatting and lint Swift sources')]
-lint:
-    swiftformat --lint --quiet Sources Tests Package.swift
-    swiftlint lint --quiet Sources Tests
-
-[doc('Use the repository git hooks')]
-setup-hooks:
-    @git config core.hooksPath .githooks
-    @echo "Git hooks configured (.githooks/)"

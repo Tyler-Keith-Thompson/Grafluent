@@ -22,12 +22,26 @@ public struct DirectedEdge<Vertex: Hashable>: Hashable {
 
 extension DirectedEdge: Sendable where Vertex: Sendable {}
 
+extension DirectedEdge: Comparable where Vertex: Comparable {
+    /// Lexicographic: by source, then by target. This is row-major order, the order compressed
+    /// sparse row storage and an adjacency matrix iterate in.
+    @inlinable
+    public static func < (lhs: DirectedEdge, rhs: DirectedEdge) -> Bool {
+        lhs.source < rhs.source || (lhs.source == rhs.source && lhs.target < rhs.target)
+    }
+}
+
 extension DirectedEdge: BitwiseCopyable where Vertex: BitwiseCopyable {}
 
 extension DirectedEdge: Encodable where Vertex: Encodable {}
 
 extension DirectedEdge: Decodable where Vertex: Decodable {}
 
-extension DirectedEdge: CustomStringConvertible {
+extension DirectedEdge: CustomStringConvertible, CustomDebugStringConvertible {
+    /// `source→target`.
     public var description: String { "\(source)→\(target)" }
+
+    /// `source→target` with each endpoint written as `Array` writes its elements, so `String`
+    /// endpoints are quoted: `"a"→"b"`.
+    public var debugDescription: String { GraphDescription.edge(self) }
 }

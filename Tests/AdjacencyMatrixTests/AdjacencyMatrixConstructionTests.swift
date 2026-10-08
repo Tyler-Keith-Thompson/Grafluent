@@ -17,7 +17,8 @@ struct AdjacencyMatrixConstructionTests {
             #expect(matrix.edges.isEmpty)
             #expect(!matrix.contains(0))
             #expect(!matrix.contains(edge: DirectedEdge(from: 0, to: 0)))
-            #expect(matrix.description == "")
+            #expect(matrix.description == "[]; []")
+            #expect(matrix.rowsDescription == "")
         }
     }
 

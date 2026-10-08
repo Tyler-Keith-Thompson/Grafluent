@@ -104,23 +104,56 @@ struct AdjacencyMatrixEqualityTests {
     }
 }
 
-@Suite("AdjacencyMatrix description", .tags(.conformance))
+@Suite("AdjacencyMatrix descriptions", .tags(.conformance))
 struct AdjacencyMatrixDescriptionTests {
-    @Test("AM-Q05 rows of 0 and 1, row-major with column 0 leftmost, no trailing newline")
-    func rows() {
-        let matrix = AdjacencyMatrix(vertexCount: 6, edges: DirectedFixture<Int>.boostExample.edges)
-        #expect(matrix.description == "000000\n001001\n101000\n000010\n000100\n100000")
+    @Test("description lists the vertices and the edges, like every representation")
+    func description() {
+        let matrix = AdjacencyMatrix(vertexCount: 3, edges: [DirectedEdge(from: 1, to: 2), DirectedEdge(from: 0, to: 1), DirectedEdge(from: 2, to: 2)])
+        #expect(matrix.description == "[0, 1, 2]; [0→1, 1→2, 2→2]")
         #expect("\(matrix)" == matrix.description)
+        #expect(AdjacencyMatrix().description == "[]; []")
+        #expect(AdjacencyMatrix(vertexCount: 2).description == "[0, 1]; []")
     }
 
-    @Test("the description of small matrices")
-    func small() {
-        #expect(AdjacencyMatrix().description == "")
-        #expect(AdjacencyMatrix(vertexCount: 1).description == "0")
+    @Test("description stops after 16 vertices and 16 edges")
+    func truncated() {
+        let matrix = AdjacencyMatrix(vertexCount: 20, repeating: true)
+        let vertices = (0 ..< 16).map(String.init).joined(separator: ", ")
+        let edges = (0 ..< 16).map { "0→\($0)" }.joined(separator: ", ")
+        #expect(matrix.description == "[\(vertices), …]; [\(edges), …]")
+        let exactlySixteen = AdjacencyMatrix(vertexCount: 16)
+        #expect(exactlySixteen.description == "[\((0 ..< 16).map(String.init).joined(separator: ", "))]; []")
+    }
+
+    @Test("description agrees with AdjacencyList's for the same graph")
+    func sameAsAdjacencyList() {
+        // Both use the shared form; only vertex and edge order could differ, and a single edge
+        // between the only two vertices pins both.
+        let matrix = AdjacencyMatrix(vertexCount: 1, edges: [DirectedEdge(from: 0, to: 0)])
+        #expect(matrix.description == "[0]; [0→0]")
+    }
+
+    @Test("AM-Q05 rowsDescription draws the rows, column 0 leftmost, no trailing newline")
+    func rows() {
+        let matrix = AdjacencyMatrix(vertexCount: 6, edges: DirectedFixture<Int>.boostExample.edges)
+        #expect(matrix.rowsDescription == "000000\n001001\n101000\n000010\n000100\n100000")
+        #expect(AdjacencyMatrix().rowsDescription == "")
+        #expect(AdjacencyMatrix(vertexCount: 1).rowsDescription == "0")
         let selfLoop: AdjacencyMatrix = [[1]]
-        #expect(selfLoop.description == "1")
+        #expect(selfLoop.rowsDescription == "1")
         let path: AdjacencyMatrix = [[0, 1], [0, 0]]
-        #expect(path.description == "01\n00")
+        #expect(path.rowsDescription == "01\n00")
+        #expect(AdjacencyMatrix(vertexCount: 65).rowsDescription.split(separator: "\n").count == 65)
+    }
+
+    @Test("the mirror shows the vertex count and the edges")
+    func mirror() {
+        let matrix = AdjacencyMatrix(vertexCount: 3, edges: [DirectedEdge(from: 0, to: 1)])
+        let mirror = Mirror(reflecting: matrix)
+        #expect(mirror.displayStyle == .struct)
+        #expect(mirror.children.map(\.label) == ["vertexCount", "edges"])
+        #expect(mirror.descendant("vertexCount") as? Int == 3)
+        #expect(mirror.descendant("edges") as? [DirectedEdge<Int>] == [DirectedEdge(from: 0, to: 1)])
     }
 }
 

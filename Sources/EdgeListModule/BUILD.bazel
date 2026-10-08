@@ -2,7 +2,7 @@
 
 load("//tools:swift_rules.bzl", "swift_library")
 
-# EdgeList.
+# EdgeList: a directed multigraph as an ordered, mutable list of edges.
 swift_library(
     name = "EdgeListModule",
     srcs = glob(["**/*.swift"]),
