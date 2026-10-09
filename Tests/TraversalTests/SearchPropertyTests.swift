@@ -249,7 +249,7 @@ struct SearchStressTests {
         let sparse = CompressedSparseRow(vertexCount: n, edges: (0 ..< n).map { DirectedEdge(from: $0, to: ($0 + 1) % n) })
         let backEdges = sparse.depthFirstSearch().filter { if case .backEdge = $0 { true } else { false } }
         #expect(backEdges == [.backEdge(DirectedEdge(from: n - 1, to: 0))])
-        #expect(sparse.findCycle() == Array(0 ..< n))
+        #expect(sparse.findCycle()?.vertices == Array(0 ..< n))
         #expect(sparse.topologicalSort() == nil)
     }
 
@@ -292,11 +292,11 @@ struct SearchStressTests {
         let gap = CompressedSparseRow(vertexCount: 14, edges: DirectedFixture<Int>.gap4.edges)
         #expect(gap.breadthFirstLayers(from: 0).map(\.count) == [1, 12])
         #expect(counts(gap.depthFirstSearch(from: 0)) == [12, 5, 9, 32])
-        #expect(gap.findCycle() == [0])
+        #expect(gap.findCycle()?.vertices == [0])
         let ligra = CompressedSparseRow(vertexCount: 128, edges: DirectedFixture<Int>.ligraRMat.edges)
         #expect(ligra.breadthFirstLayers(from: 0).map(\.count) == [1, 8, 20, 50, 41, 5])
         #expect(counts(ligra.depthFirstSearch(from: 0)) == [124, 354, 230, 0])
-        #expect(ligra.findCycle() == [0, 22])
+        #expect(ligra.findCycle()?.vertices == [0, 22])
     }
 
     @Test("TR-160 / TR-161 a complete digraph, and the real-world fixtures agree across representations")

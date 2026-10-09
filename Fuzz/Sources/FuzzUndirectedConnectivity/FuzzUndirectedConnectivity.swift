@@ -26,6 +26,17 @@ struct PlainGraph: Graph {
     func contains(_ vertex: Int) -> Bool { vertices.contains(vertex) }
 }
 
+/// The same multigraph with edge indices but no vertex indices.
+struct EdgeIndexedGraph: Graph {
+    let vertices: [Int]
+    let edges: [UndirectedEdge<Int>]
+    func incidentEdges(of vertex: Int) -> [Int] { PlainGraph(vertices: vertices, edges: edges).incidentEdges(of: vertex) }
+    func neighbors(of vertex: Int) -> [Int] { incidentEdges(of: vertex).map { edges[$0].oppositeVertex(to: vertex) } }
+    func contains(_ vertex: Int) -> Bool { vertices.contains(vertex) }
+    var edgeIndexBound: Int? { edges.count }
+    func edgeIndex(of position: Int) -> Int { position }
+}
+
 @main
 enum FuzzUndirectedConnectivity {
     static func main() { runFuzzer(fuzz) }
@@ -52,6 +63,23 @@ enum FuzzUndirectedConnectivity {
     }
 
     static func count(_ labels: [Int]) -> Int { Set(labels.filter { $0 >= 0 }).count }
+
+    /// The mutated list against brute force on its own edges, vertices renumbered in its order.
+    static func n2Check(_ list: UndirectedAdjacencyList<Int>, _ order: [Int], _ number: [Int: Int]) {
+        let n = order.count
+        let edges = list.edges.map { (number[$0.u]!, number[$0.v]!) }
+        let base = components(n, edges)
+        let componentCount = count(base)
+        let bridges = edges.indices.filter { k in edges[k].0 != edges[k].1 && count(components(n, edges, skipEdge: k)) > componentCount }
+        check(list.bridges() == bridges, "after removals: bridges \(list.bridges()), brute force \(bridges)")
+        let points = (0 ..< n).filter { v in count(components(n, edges, removed: v)) > componentCount - (edges.contains { $0.0 == v || $0.1 == v } ? 0 : 1) }
+        check(list.articulationPoints().map { number[$0]! } == points, "after removals: articulationPoints")
+        let blocks = list.biconnectedComponents()
+        check(blocks.reduce(0) { $0 + $1.count } == edges.filter { $0.0 != $0.1 }.count, "after removals: the blocks do not partition the non-loop edges")
+        for b in blocks.indices {
+            check(blocks[b].allSatisfy { blocks.component(ofEdgeAt: $0) == b }, "after removals: component(ofEdgeAt:)")
+        }
+    }
 
     static func fuzz(_ input: inout FuzzInput) {
         let n = input.int(in: 1 ... 8)
@@ -147,5 +175,17 @@ enum FuzzUndirectedConnectivity {
         checkAll(view, viewEdges, { viewRanks[$0]! }, "AdjacencyList.undirected")
 
         checkAll(PlainGraph(vertices: Array(0 ..< n), edges: raw.map { UndirectedEdge($0.0, $0.1) }), raw, { $0 }, "PlainGraph")
+        checkAll(EdgeIndexedGraph(vertices: Array(0 ..< n), edges: raw.map { UndirectedEdge($0.0, $0.1) }), raw, { $0 }, "EdgeIndexedGraph")
+
+        // The simple graph again after removals, which move slots and edges and repack rows. The
+        // vertices left are renumbered 0..<count in the list's order for the brute force.
+        var list = UndirectedAdjacencyList(vertices: 0 ..< n, edges: simple.map { UndirectedEdge($0.0, $0.1) })
+        for (k, edge) in simple.enumerated() where k % 3 == 1 { list.remove(edge: UndirectedEdge(edge.0, edge.1)) }
+        if n > 2 { list.remove(n / 2) }
+        let order = Array(list.vertices)
+        let number = Dictionary(uniqueKeysWithValues: order.enumerated().map { ($1, $0) })
+        let renamed = UndirectedAdjacencyList(vertices: order.map { number[$0]! }, edges: list.edges.map { UndirectedEdge(number[$0.u]!, number[$0.v]!) })
+        check(renamed.bridges() == list.bridges() && renamed.articulationPoints().map { order[$0] } == list.articulationPoints(), "after removals: renaming changed the answers")
+        n2Check(list, order, number)
     }
 }

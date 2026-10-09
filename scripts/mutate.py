@@ -24,6 +24,7 @@ incremental. The real sources are never written.
 """
 
 import argparse
+import atexit
 import dataclasses
 import os
 import re
@@ -133,6 +134,25 @@ def test_command(bundle):
 FAILURE = re.compile(r"✘ Test (.*?) (?:recorded an issue|failed)")
 
 
+def reap(mutant=None):
+    """Kills test processes left over from the mutation workspace: those of one mutant (by the
+    GRAFLUENT_MUTANT they inherited), or all of them. Exit tests run in child processes outside
+    the runner's process group, and a mutant that removes a precondition can leave one running
+    forever; killing the group alone left a hundred of them behind."""
+    listing = subprocess.run(["ps", "-A", "-E", "-ww", "-o", "pid=,command="], capture_output=True, text=True).stdout
+    marker = f"GRAFLUENT_MUTANT={mutant} " if mutant is not None else None
+    for line in listing.splitlines():
+        if WORK not in line or (marker and marker not in line + " "):
+            continue
+        pid = int(line.split(None, 1)[0])
+        if pid == os.getpid():
+            continue
+        try:
+            os.kill(pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+
+
 def run_bundle(command, env, mutant, limit):
     """Returns (outcome, detail): outcome is "passed", "failed", "crashed" or "timed out"."""
     env = dict(env, GRAFLUENT_MUTANT=str(mutant))
@@ -154,6 +174,7 @@ def run_bundle(command, env, mutant, limit):
     finally:
         timed_out = not timer.is_alive() and failure is None and process.returncode == -signal.SIGKILL
         timer.cancel()
+        reap(mutant)
     if failure:
         return "failed", failure
     if timed_out:
@@ -178,6 +199,7 @@ def main():
     if unknown:
         sys.exit(f"No such mutants: {', '.join(sorted(unknown))}")
 
+    atexit.register(reap)
     sync_workspace()
     apply_schemata(args.module, mutants)
     print(f"Built {len(mutants)} mutants into one build in {build():.0f} s", flush=True)

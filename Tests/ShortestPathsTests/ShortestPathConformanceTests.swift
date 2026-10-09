@@ -151,11 +151,11 @@ struct ShortestPathConformanceTests {
         #expect(graph.insert(edge: DirectedEdge(from: "s", to: "v")).inserted)
         weights.append(1)
         #expect(tree.distance(to: "v") == 9)
-        #expect(tree.path(to: "v") == ["s", "x", "u", "v"])
+        #expect(tree.path(to: "v")?.vertices == ["s", "x", "u", "v"])
         #expect(unweighted.distance(to: "v") == 2)
         let after = graph.dijkstraShortestPaths(from: "s") { weights[$0] }
         #expect(after.distance(to: "v") == 1)
-        #expect(after.path(to: "v") == ["s", "v"])
+        #expect(after.path(to: "v")?.vertices == ["s", "v"])
         #expect(graph.shortestPaths(from: "s").distance(to: "v") == 1)
     }
 
@@ -167,7 +167,7 @@ struct ShortestPathConformanceTests {
         #expect(distance == 6)
         let undirected = UndirectedAdjacencyList(edges: [UndirectedEdge("a", "b")]).dijkstraShortestPaths(from: "a") { _ in 1.5 }
         let fromTask = await Task { undirected.path(to: "b") }.value
-        #expect(fromTask == ["a", "b"])
+        #expect(fromTask?.vertices == ["a", "b"])
     }
 
     @Test("SP-128 existentials work through a some wrapper")

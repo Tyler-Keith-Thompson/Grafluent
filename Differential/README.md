@@ -29,6 +29,10 @@ between them is reported on its own: it means a convention differs, not that the
 | `bellmanFordShortestPaths(from:weight:)` | `single_source_bellman_ford_path_length` from a super-source with zero edges to the sources; `NetworkXUnbounded` is `nil` | — |
 | `findNegativeCycle(from:weight:)`, `findNegativeCycle(weight:)` | unbounded above; `negative_edge_cycle` | — |
 | `shortestPaths(from:)` | `single_source_shortest_path_length`, nearest source | — |
+| `simpleCycles()`, `simpleCycles(maxLength: 3)` (both kinds) | `simple_cycles`, `simple_cycles(length_bound=3)`, as vertex cycles up to rotation (and reversal, undirected), when there are at most 3 000; also canonical form, order by least vertex, and the bounded sequence equal to the unbounded one filtered | — |
+| `girth()` (both kinds) | `girth`; directed, a breadth-first search back to each vertex | — |
+| `isAcyclic`, `findCycle()` | `is_forest`; the cycle must exist exactly when the graph is not a forest, valid and canonical | — |
+| `cycleBasis()` | m − n + c cycles (`number_connected_components`), independent over GF(2), each valid and canonical (NetworkX's Paton basis differs and is not compared) | — |
 
 Cases: simple graphs on 0..<n (n ≤ 30, every tenth ≤ 300), directed or undirected, self-loops
 allowed, sparse, dense, chains and grids, weights from {0…1, 0…3, 0…10, 0…1000} and in 30 % of

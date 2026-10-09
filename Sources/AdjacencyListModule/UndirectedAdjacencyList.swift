@@ -639,4 +639,18 @@ extension UndirectedAdjacencyList: Graph {
     /// `neighborIndices(ofIndex:)`. O(1).
     @inlinable
     public func incidentEdgeIndices(ofIndex index: Int) -> ArraySlice<Int> { _incident[row: index] }
+
+    /// The stored rows: `_neighbors` and `_incident`, whose entries are slots and edge positions,
+    /// which are the vertex and edge indices.
+    @inlinable
+    public func _withIncidentIndexRows<Result>(
+        _ body: (
+            _ neighbors: UnsafeBufferPointer<Int>, _ neighborRows: UnsafeBufferPointer<Int>,
+            _ edges: UnsafeBufferPointer<Int>, _ edgeRows: UnsafeBufferPointer<Int>
+        ) -> Result
+    ) -> Result? {
+        _neighbors.withUnsafeRows { neighbors, neighborRows in
+            _incident.withUnsafeRows { edges, edgeRows in body(neighbors, neighborRows, edges, edgeRows) }
+        }
+    }
 }

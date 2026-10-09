@@ -161,7 +161,7 @@ struct ShortestPathPropertyTests {
                             walk.append(parent)
                         }
                         #expect(walk.count <= n && Set(walk).count == walk.count && sources.contains(walk.last!), "\(name): \(walk)")
-                        #expect(tree.path(to: v) == walk.reversed(), "\(name): \(v)")
+                        #expect(tree.path(to: v)?.vertices == walk.reversed(), "\(name): \(v)")
                         #expect(total == distance, "\(name): \(v)")
                     }
                 }
@@ -288,6 +288,7 @@ struct ShortestPathPropertyTests {
                         total += copies.min() ?? 0
                     }
                     #expect(total == result?.distance, "\(name): \(path)")
+                    #expect(path.weight { raw[$0].2 } == result?.distance, "\(name): \(path)")
                 }
             }
         }
@@ -321,6 +322,7 @@ struct ShortestPathPropertyTests {
                         total += copies.min() ?? 0
                     }
                     #expect(total == result?.distance, "\(path)")
+                    #expect(path.weight { raw[$0].2 } == result?.distance, "\(path)")
                 }
             }
         }
@@ -425,8 +427,9 @@ struct ShortestPathPropertyTests {
                 #expect((0 ..< n).map { relabeledBellmanFord?.distance(to: label[$0]) } == (0 ..< n).map { bellmanFord?.distance(to: $0) })
                 let witness = graph.findNegativeCycle(from: source) { raw[$0].2 }
                 let relabeledWitness = relabeled.findNegativeCycle(from: label[source]) { raw[$0].2 }
-                #expect(relabeledWitness == witness?.map { label[$0] }, "\(raw)")
-                #expect(relabeled.findNegativeCycle { raw[$0].2 } == graph.findNegativeCycle { raw[$0].2 }?.map { label[$0] }, "\(raw)")
+                #expect(relabeledWitness?.vertices == witness?.map { label[$0] }, "\(raw)")
+                #expect(relabeledWitness?.edges == witness?.edges, "\(raw)")
+                #expect(relabeled.findNegativeCycle { raw[$0].2 }?.vertices == graph.findNegativeCycle { raw[$0].2 }?.map { label[$0] }, "\(raw)")
             }
         }
     }

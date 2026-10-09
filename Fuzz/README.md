@@ -10,6 +10,10 @@ component, in their own package so the library never links the fuzzer runtime.
 | `FuzzAdjacencyList` | Sets of vertices and pairs: neighborhoods, degrees, dense vertex and edge indices, edge positions, equality and hashing, snapshots |
 | `FuzzUndirectedAdjacencyList` | The same for unordered pairs, with self-loops listed twice and each position at both ends |
 | `FuzzShortestPaths` | Floyd–Warshall: Dijkstra on two representations, single target, A*, unweighted, Bellman–Ford, the negative-cycle witness, undirected Dijkstra |
+| `FuzzSpanningTrees` | Brute-force minimum and maximum spanning forests: Kruskal, Prim, Borůvka and the default agree on weight, every result is a spanning forest |
+| `FuzzUndirectedConnectivity` | Brute force by deleting each edge or vertex: components, bridges, articulation points, blocks, bi-edge-connected components, on three conformers and after mutations |
+| `FuzzWalks` | The definitions: every walk, trail, path, circuit and cycle constructor, conversions, equality and hashing up to rotation |
+| `FuzzCycles` | Brute-force enumeration by edge identity on multigraphs with loops: `simpleCycles` (set, canonical form, documented order), the bounded filter, `girth`, `isAcyclic`, `findCycle`, a cycle basis of m − n + c independent cycles; on `UndirectedAdjacencyList` after removals, a conformer without indices, `AdjacencyList` and the directed view |
 
 Each target reads its input as a sequence of small choices (`FuzzInput`): an operation and its
 arguments, or a graph's size, edges and weights. Every byte string decodes, and a mutation of one

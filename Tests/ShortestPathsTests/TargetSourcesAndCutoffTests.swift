@@ -22,7 +22,7 @@ struct TargetSourcesAndCutoffTests {
         func check<G: DirectedGraph<String>>(_ g: G) where G.Edges.Index == Int {
             // v is first reached through x at 10; it settles at 9 through u.
             let result = g.dijkstraShortestPath(from: "s", to: "v") { weights[$0] }
-            #expect(result?.path == ["s", "x", "u", "v"])
+            #expect(result?.path.vertices == ["s", "x", "u", "v"])
             #expect(result?.distance == 9)
         }
         check(ReferenceDirectedMultigraph(edges: edges))
@@ -39,16 +39,16 @@ struct TargetSourcesAndCutoffTests {
         let weights = xg.map(\.2)
         #expect(graph.dijkstraShortestPath(from: "s", to: "moon") { weights[$0] } == nil)
         let same = graph.dijkstraShortestPath(from: "s", to: "s") { weights[$0] }
-        #expect(same?.path == ["s"])
+        #expect(same?.path.vertices == ["s"])
         #expect(same?.distance == 0)
 
         // NetworkX's cycle_graph(7), from 0 to 0.
         let cycle = UndirectedAdjacencyList(edges: (0 ..< 7).map { UndirectedEdge($0, ($0 + 1) % 7) })
         let zero = cycle.dijkstraShortestPath(from: 0, to: 0) { _ in 1 }
-        #expect(zero?.path == [0])
+        #expect(zero?.path.vertices == [0])
         #expect(zero?.distance == 0)
         let three = cycle.dijkstraShortestPath(from: 0, to: 3) { _ in 1 }
-        #expect(three?.path == [0, 1, 2, 3])
+        #expect(three?.path.vertices == [0, 1, 2, 3])
         #expect(three?.distance == 3)
     }
 
@@ -59,10 +59,10 @@ struct TargetSourcesAndCutoffTests {
         let weights = path.map(\.2)
         let tree = graph.directed.dijkstraShortestPaths(from: [0, 4]) { weights[$0.position] }
         #expect((0 ..< 5).map { tree.distance(to: $0) } == [0, 1, 2, 1, 0])
-        #expect(tree.path(to: 1) == [0, 1])
-        #expect(tree.path(to: 2) == [0, 1, 2])
-        #expect(tree.path(to: 3) == [4, 3])
-        #expect(tree.path(to: 4) == [4])
+        #expect(tree.path(to: 1)?.vertices == [0, 1])
+        #expect(tree.path(to: 2)?.vertices == [0, 1, 2])
+        #expect(tree.path(to: 3)?.vertices == [4, 3])
+        #expect(tree.path(to: 4)?.vertices == [4])
         #expect(tree.parent(of: 0) == nil)
         #expect(tree.parent(of: 4) == nil)
         #expect(tree.sources == [0, 4])
@@ -79,7 +79,7 @@ struct TargetSourcesAndCutoffTests {
             #expect(tree.parent(of: 1) == nil)
             #expect(tree.parentEdge(of: 1) == nil)
             #expect(tree.distance(to: 1) == 0)
-            #expect(tree.path(to: 1) == [1])
+            #expect(tree.path(to: 1)?.vertices == [1])
         }
         let edge = [DirectedEdge(from: 0, to: 1)]
         check(ReferenceDirectedMultigraph(edges: edge))

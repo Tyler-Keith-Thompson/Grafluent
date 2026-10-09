@@ -24,6 +24,10 @@ let package = Package(
         target("FuzzUndirectedAdjacencyList", ["GraphProtocols", "AdjacencyListModule"]),
         target("FuzzSpanningTrees", ["GraphProtocols", "AdjacencyListModule", "SpanningTrees"]),
         target("FuzzUndirectedConnectivity", ["GraphProtocols", "AdjacencyListModule", "Connectivity"]),
-        target("FuzzShortestPaths", ["GraphProtocols", "AdjacencyListModule", "CompressedSparseRowModule", "ShortestPaths"]),
+        target("FuzzWalks", ["GraphProtocols", "Walks"]),
+        target("FuzzTreeAlgorithms", ["GraphProtocols", "Trees", "TreeAlgorithms", "Walks"]),
+        target("FuzzTrees", ["GraphProtocols", "AdjacencyListModule", "Trees", "Walks"]),
+        target("FuzzCycles", ["GraphProtocols", "AdjacencyListModule", "Cycles", "Walks"]),
+        target("FuzzShortestPaths", ["GraphProtocols", "AdjacencyListModule", "CompressedSparseRowModule", "ShortestPaths", "Walks"]),
     ]
 )

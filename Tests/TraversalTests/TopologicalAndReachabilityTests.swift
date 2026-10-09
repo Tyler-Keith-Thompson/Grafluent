@@ -79,7 +79,7 @@ struct TopologicalSortTests {
         #expect(cyclic.topologicalSort() == nil)
         #expect(cyclic.lexicographicalTopologicalSort() == nil)
         #expect(cyclic.topologicalGenerations() == nil)
-        #expect(Set(cyclic.findCycle() ?? []) == [2, 3])
+        #expect(Set(cyclic.findCycle()?.vertices ?? []) == [2, 3])
         #expect(!cyclic.isAcyclic)
         cyclic.remove(edge: DirectedEdge(from: 2, to: 3))
         #expect(cyclic.topologicalSort() == [1, 3, 2])
@@ -136,7 +136,7 @@ struct TopologicalSortTests {
         #expect(graph.topologicalSort() == [2, 1, 0, 4, 3, 7, 6, 5])
         let cyclic = CompressedSparseRow(vertexCount: 8, edges: edges + [DirectedEdge(from: 5, to: 0)])
         #expect(cyclic.topologicalSort() == nil)
-        #expect(cyclic.findCycle() == [0, 3, 5])
+        #expect(cyclic.findCycle()?.vertices == [0, 3, 5])
     }
 
     @Test("TR-104 JGraphT's topological iterator graph")
@@ -169,14 +169,14 @@ struct TopologicalSortTests {
         for (fixture, cycle) in cases {
             let matrix = AdjacencyMatrix(vertexCount: fixture.vertexCount, edges: fixture.edges)
             let sparse = CompressedSparseRow(vertexCount: fixture.vertexCount, edges: fixture.edges)
-            #expect(matrix.findCycle() == cycle, "\(fixture.name)")
-            #expect(sparse.findCycle() == cycle, "\(fixture.name)")
+            #expect(matrix.findCycle()?.vertices == cycle, "\(fixture.name)")
+            #expect(sparse.findCycle()?.vertices == cycle, "\(fixture.name)")
             #expect(sparse.topologicalSort() == nil, "\(fixture.name)")
             #expect(!sparse.isAcyclic, "\(fixture.name)")
         }
         // NetworkX test_topological_sort2 and 3.
         let two = AdjacencyMatrix(vertexCount: 16, edges: [(1, 2), (2, 3), (3, 4), (4, 5), (5, 1), (11, 12), (12, 13), (13, 14), (14, 15)].map { DirectedEdge(from: $0.0, to: $0.1) })
-        #expect(two.findCycle() == [1, 2, 3, 4, 5])
+        #expect(two.findCycle()?.vertices == [1, 2, 3, 4, 5])
     }
 
     @Test("TR-106 any cycle found is a cycle of the graph", .tags(.fixture), arguments: DirectedFixture<Int>.all)
@@ -251,11 +251,11 @@ struct ShortestSearchTests {
         var symmetric: [DirectedEdge<Int>] = []
         for i in 0 ..< 7 { symmetric += [DirectedEdge(from: i, to: (i + 1) % 7), DirectedEdge(from: (i + 1) % 7, to: i)] }
         let undirected = AdjacencyMatrix(vertexCount: 7, edges: symmetric)
-        #expect(undirected.bidirectionalShortestPath(from: 0, to: 3) == [0, 1, 2, 3])
-        #expect(undirected.bidirectionalShortestPath(from: 0, to: 4) == [0, 6, 5, 4])
-        #expect(undirected.bidirectionalShortestPath(from: 3, to: 3) == [3])
+        #expect(undirected.bidirectionalShortestPath(from: 0, to: 3)?.vertices == [0, 1, 2, 3])
+        #expect(undirected.bidirectionalShortestPath(from: 0, to: 4)?.vertices == [0, 6, 5, 4])
+        #expect(undirected.bidirectionalShortestPath(from: 3, to: 3)?.vertices == [3])
         let directed = AdjacencyMatrix(vertexCount: 7, edges: (0 ..< 7).map { DirectedEdge(from: $0, to: ($0 + 1) % 7) })
-        #expect(directed.bidirectionalShortestPath(from: 0, to: 3) == [0, 1, 2, 3])
+        #expect(directed.bidirectionalShortestPath(from: 0, to: 3)?.vertices == [0, 1, 2, 3])
     }
 
     @Test("TR-116 / TR-121 the fixtures: bidirectional search and iterative deepening find the same paths")
@@ -270,7 +270,7 @@ struct ShortestSearchTests {
         ]
         for (fixture, source, target, expected) in cases {
             let matrix = AdjacencyMatrix(vertexCount: fixture.vertexCount, edges: fixture.edges)
-            #expect(matrix.bidirectionalShortestPath(from: source, to: target) == expected, "\(fixture.name) \(source)→\(target)")
+            #expect(matrix.bidirectionalShortestPath(from: source, to: target)?.vertices == expected, "\(fixture.name) \(source)→\(target)")
             #expect(iterativeDeepeningDepthFirstSearch(from: source, successors: { matrix.successors(of: $0) }, until: { $0 == target }) == expected, "\(fixture.name) \(source)→\(target)")
             let list = AdjacencyList(vertices: fixture.vertices, edges: fixture.edges)
             #expect(list.bidirectionalShortestPath(from: source, to: target)?.count == expected?.count, "\(fixture.name)")
@@ -287,7 +287,7 @@ struct ShortestSearchTests {
             }
             for target in graph.vertices {
                 let deepening = iterativeDeepeningDepthFirstSearch(from: source, successors: { graph.successors(of: $0) }, until: { $0 == target })
-                for path in [graph.bidirectionalShortestPath(from: source, to: target), deepening] {
+                for path in [graph.bidirectionalShortestPath(from: source, to: target)?.vertices, deepening] {
                     guard let path else {
                         #expect(distance[target] == nil)
                         continue
@@ -306,7 +306,7 @@ struct ShortestSearchTests {
         // Two shortest paths, 0-1-5-6 and 0-2-4-6. After one forward level the frontier is
         // [1, 2, 3] against [6]; the backward levels reach 2 first, as NetworkX does.
         let edges = [(0, 1), (0, 2), (0, 3), (1, 5), (2, 4), (4, 6), (5, 6)].map { DirectedEdge(from: $0.0, to: $0.1) }
-        #expect(AdjacencyMatrix(vertexCount: 7, edges: edges).bidirectionalShortestPath(from: 0, to: 6) == [0, 2, 4, 6])
+        #expect(AdjacencyMatrix(vertexCount: 7, edges: edges).bidirectionalShortestPath(from: 0, to: 6)?.vertices == [0, 2, 4, 6])
     }
 
     @Test("TR-118 a 4×4 grid")
@@ -318,7 +318,7 @@ struct ShortestSearchTests {
         }
         let path = AdjacencyMatrix(vertexCount: 17, edges: edges).bidirectionalShortestPath(from: 1, to: 12)
         #expect(path?.count == 6)
-        #expect(path == [1, 2, 3, 4, 8, 12])
+        #expect(path?.vertices == [1, 2, 3, 4, 8, 12])
     }
 
     @Test("TR-120 a source or target that is not a vertex traps", .tags(.precondition))

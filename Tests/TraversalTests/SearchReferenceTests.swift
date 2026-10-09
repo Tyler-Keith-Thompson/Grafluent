@@ -203,8 +203,8 @@ struct SearchReferenceTests {
         // 0→1, and a cycle 2→3→2 that 0 cannot reach.
         let graph = CompressedSparseRow(vertexCount: 4, edges: [(0, 1), (2, 3), (3, 2)].map { DirectedEdge(from: $0.0, to: $0.1) })
         #expect(graph.findCycle(from: [0]) == nil)
-        #expect(graph.findCycle(from: [3]) == [3, 2])
-        #expect(graph.findCycle(from: [0, 2]) == [2, 3])
-        #expect(graph.findCycle() == [2, 3])
+        #expect(graph.findCycle(from: [3])?.vertices == [3, 2])
+        #expect(graph.findCycle(from: [0, 2])?.vertices == [2, 3])
+        #expect(graph.findCycle()?.vertices == [2, 3])
     }
 }

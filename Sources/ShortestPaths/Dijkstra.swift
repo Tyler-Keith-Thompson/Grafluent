@@ -1,4 +1,5 @@
 import GraphProtocols
+import Walks
 import PriorityQueueModule
 
 /// Dijkstra's algorithm in index space, and A* when `heuristic` is given (priority g + h, with
@@ -145,16 +146,16 @@ extension DirectedGraph {
         return ShortestPathTree(ids: ids, distance: result.distance, parent: result.parent, parentEdge: result.parentEdge, sources: listed)
     }
 
-    /// A shortest path from `source` to `target`, its edges (which tell parallel edges apart), and
-    /// its length, or `nil` when `target` is not reachable (NetworkX's `dijkstra_path`). Stops as
-    /// soon as `target` is settled.
+    /// A shortest path from `source` to `target`, with the edges it takes (which tell parallel
+    /// edges apart), and its length, or `nil` when `target` is not reachable (NetworkX's
+    /// `dijkstra_path`). Stops as soon as `target` is settled.
     ///
     /// - Precondition: `source` and `target` are vertices; weights as for
     ///   `dijkstraShortestPaths(from:cutoff:weight:)`.
     @inlinable
     public func dijkstraShortestPath<W: Comparable & AdditiveArithmetic>(
         from source: Vertex, to target: Vertex, weight: (Edges.Index) -> W
-    ) -> (path: [Vertex], edges: [Edges.Index], distance: W)? {
+    ) -> (path: Path<Vertex, Edges.Index>, distance: W)? {
         _bestFirstPath(from: source, to: target, weight: weight, heuristic: nil)
     }
 
@@ -173,7 +174,7 @@ extension DirectedGraph {
     @inlinable
     public func aStarShortestPath<W: Comparable & AdditiveArithmetic>(
         from source: Vertex, to target: Vertex, weight: (Edges.Index) -> W, heuristic: (Vertex) -> W
-    ) -> (path: [Vertex], edges: [Edges.Index], distance: W)? {
+    ) -> (path: Path<Vertex, Edges.Index>, distance: W)? {
         withoutActuallyEscaping(heuristic) { heuristic in
             _bestFirstPath(from: source, to: target, weight: weight, heuristic: heuristic)
         }
@@ -182,7 +183,7 @@ extension DirectedGraph {
     @inlinable
     func _bestFirstPath<W: Comparable & AdditiveArithmetic>(
         from source: Vertex, to target: Vertex, weight: (Edges.Index) -> W, heuristic: ((Vertex) -> W)?
-    ) -> (path: [Vertex], edges: [Edges.Index], distance: W)? {
+    ) -> (path: Path<Vertex, Edges.Index>, distance: W)? {
         let ids = _numberedVertices()
         let s = _index(of: source, ids)
         let t = _index(of: target, ids)
@@ -199,6 +200,6 @@ extension DirectedGraph {
         }
         path.reverse()
         pathEdges.reverse()
-        return (path, pathEdges, result.distance[t])
+        return (Path(_uncheckedVertices: path, edges: pathEdges), result.distance[t])
     }
 }

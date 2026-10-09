@@ -9,6 +9,7 @@ swift_library(
     module_name = "Trees",
     deps = [
         "//Sources/GraphProtocols",
+        "//Sources/Walks",
     ],
     visibility = ["//visibility:public"],
 )

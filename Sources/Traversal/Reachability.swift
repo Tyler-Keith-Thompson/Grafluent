@@ -1,4 +1,5 @@
 import GraphProtocols
+import Walks
 
 extension DirectedGraph {
     /// Every vertex reachable from `vertex` by at least one edge, `vertex` itself excluded even on a
@@ -78,14 +79,16 @@ extension BidirectionalDirectedGraph {
 
     /// A shortest path from `source` to `target` by edge count, searching forward from the source
     /// and backward from the target at once, one whole level at a time from whichever frontier is
-    /// smaller (NetworkX's `bidirectional_shortest_path`). `nil` when there is none.
+    /// smaller (NetworkX's `bidirectional_shortest_path`). `nil` when there is none. Its edges are
+    /// the ones the searches crossed: an out-edge for each step found forward, an in-edge for each
+    /// step found backward.
     ///
     /// - Precondition: both are vertices.
     @inlinable
-    public func bidirectionalShortestPath(from source: Vertex, to target: Vertex) -> [Vertex]? {
+    public func bidirectionalShortestPath(from source: Vertex, to target: Vertex) -> Path<Vertex, Edges.Index>? {
         precondition(contains(source), "The source \(source) is not a vertex of the graph")
         precondition(contains(target), "The target \(target) is not a vertex of the graph")
-        if source == target { return [source] }
+        if source == target { return Path(vertex: source) }
         var ids = _VertexIdentifiers(self)
         let start = ids.identifier(of: source)
         let goal = ids.identifier(of: target)
@@ -93,14 +96,19 @@ extension BidirectionalDirectedGraph {
         let unseen = -2
         var forwardParent = [Int](repeating: unseen, count: ids.count)
         var backwardParent = [Int](repeating: unseen, count: ids.count)
+        // The edge each parent pointer crossed: from the parent forward, into it backward.
+        var forwardEdge = [Edges.Index?](repeating: nil, count: ids.count)
+        var backwardEdge = [Edges.Index?](repeating: nil, count: ids.count)
         func reached(_ parents: [Int], _ id: Int) -> Bool { id < parents.count && parents[id] != unseen }
         _grow(&forwardParent, to: max(start, goal) + 1, with: unseen)
         _grow(&backwardParent, to: max(start, goal) + 1, with: unseen)
+        _grow(&forwardEdge, to: max(start, goal) + 1, with: nil)
+        _grow(&backwardEdge, to: max(start, goal) + 1, with: nil)
         forwardParent[start] = -1
         backwardParent[goal] = -1
         var forwardFringe = [start]
         var backwardFringe = [goal]
-        var neighbors: [Int] = []
+        var neighbors: [(Int, Edges.Index)] = []
         var meeting: Int?
         search: while !forwardFringe.isEmpty, !backwardFringe.isEmpty {
             let forward = forwardFringe.count <= backwardFringe.count
@@ -108,17 +116,26 @@ extension BidirectionalDirectedGraph {
             var next: [Int] = []
             for v in level {
                 neighbors.removeAll(keepingCapacity: true)
-                if forward {
-                    ids.forEachSuccessor(of: v) { neighbors.append($0) }
+                if ids.isIndexed {
+                    if forward {
+                        for (w, e) in zip(successorIndices(ofIndex: v), outEdges(ofIndex: v)) { neighbors.append((w, e)) }
+                    } else {
+                        for (w, e) in zip(predecessorIndices(ofIndex: v), inEdges(ofIndex: v)) { neighbors.append((w, e)) }
+                    }
+                } else if forward {
+                    for e in outEdges(of: ids.vertex(v)) { neighbors.append((ids.identifier(of: self.target(ofEdgeAt: e)), e)) }
                 } else {
-                    ids.forEachPredecessor(of: v) { neighbors.append($0) }
+                    for e in inEdges(of: ids.vertex(v)) { neighbors.append((ids.identifier(of: self.source(ofEdgeAt: e)), e)) }
                 }
-                for w in neighbors {
+                for (w, e) in neighbors {
                     _grow(&forwardParent, to: w + 1, with: unseen)
                     _grow(&backwardParent, to: w + 1, with: unseen)
+                    _grow(&forwardEdge, to: w + 1, with: nil)
+                    _grow(&backwardEdge, to: w + 1, with: nil)
                     if forward {
                         if !reached(forwardParent, w) {
                             forwardParent[w] = v
+                            forwardEdge[w] = e
                             next.append(w)
                         }
                         if reached(backwardParent, w) {
@@ -128,6 +145,7 @@ extension BidirectionalDirectedGraph {
                     } else {
                         if !reached(backwardParent, w) {
                             backwardParent[w] = v
+                            backwardEdge[w] = e
                             next.append(w)
                         }
                         if reached(forwardParent, w) {
@@ -140,18 +158,25 @@ extension BidirectionalDirectedGraph {
             if forward { forwardFringe = next } else { backwardFringe = next }
         }
         guard let meeting else { return nil }
-        var path: [Vertex] = []
+        // Back from the meeting vertex to the source along forward parents, then on to the target
+        // along backward ones; each pointer's edge is the step between its two vertices.
+        var path: [Int] = []
+        var edges: [Edges.Index] = []
         var v = meeting
         while v != -1 {
-            path.append(ids.vertex(v))
+            path.append(v)
+            if let e = forwardEdge[v] { edges.append(e) }
             v = forwardParent[v]
         }
         path.reverse()
-        v = backwardParent[meeting]
-        while v != -1 {
-            path.append(ids.vertex(v))
+        edges.reverse()
+        v = meeting
+        while backwardParent[v] != -1 {
+            edges.append(backwardEdge[v]!)
             v = backwardParent[v]
+            path.append(v)
         }
-        return path
+        // A shortest path repeats no vertex, and each step is an edge of the graph.
+        return Path(_uncheckedVertices: path.map { ids.vertex($0) }, edges: edges)
     }
 }

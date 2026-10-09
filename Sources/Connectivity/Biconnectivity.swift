@@ -13,8 +13,10 @@ struct _BiconnectivityOptions: OptionSet {
     @usableFromInline static var biEdgeComponents: Self { Self(rawValue: 2) }
     /// Stop at the first bridge.
     @usableFromInline static var stopAtBridge: Self { Self(rawValue: 4) }
-    /// Stop at the first articulation point, and after the first search tree.
+    /// Stop at the first articulation point.
     @usableFromInline static var stopAtArticulationPoint: Self { Self(rawValue: 8) }
+    /// Search from the first vertex only: enough to tell whether the graph is connected.
+    @usableFromInline static var firstTreeOnly: Self { Self(rawValue: 16) }
 }
 
 /// The result of a search: per vertex, whether it is an articulation point and its 2-edge-
@@ -28,6 +30,10 @@ struct _Biconnectivity {
     @usableFromInline var isBridge: [Bool]
     @usableFromInline var blockLabel: [Int]
     @usableFromInline var blockCount = 0
+    /// With blocks: each (block, vertex) membership, once, as the search pops each block (its
+    /// parent vertex and the child of each tree edge in it): n − c + blocks pairs in all.
+    @usableFromInline var memberBlock: [Int] = []
+    @usableFromInline var memberVertex: [Int] = []
     @usableFromInline var biEdgeLabel: [Int]
     @usableFromInline var biEdgeCount = 0
     @usableFromInline var firstTreeSize = 0
@@ -59,11 +65,12 @@ struct _BiconnectivitySearch: _UndirectedRowsAlgorithm {
     init(_ options: _BiconnectivityOptions) { self.options = options }
 
     @inlinable
-    func run<Arcs: IteratorProtocol>(count n: Int, edgeCount m: Int, _ arcs: (Int) -> Arcs) -> _Biconnectivity where Arcs.Element == (Int, Int) {
+    func run<Rows: _IncidenceRowSource>(count n: Int, edgeCount m: Int, _ rows: inout Rows) -> _Biconnectivity {
         let wantBlocks = options.contains(.blocks)
         let wantBiEdge = options.contains(.biEdgeComponents)
         let stopAtBridge = options.contains(.stopAtBridge)
         let stopAtPoint = options.contains(.stopAtArticulationPoint)
+        let firstTreeOnly = options.contains(.firstTreeOnly)
         var result = _Biconnectivity(
             isArticulationPoint: [Bool](repeating: false, count: n),
             isBridge: [Bool](repeating: false, count: m),
@@ -73,23 +80,31 @@ struct _BiconnectivitySearch: _UndirectedRowsAlgorithm {
         var disc = [Int](repeating: unvisited, count: n)
         var low = [Int](repeating: 0, count: n)
         var parentEdge = [Int](repeating: -1, count: n)
-        var frames: [(v: Int, arcs: Arcs)] = []
+        // Each frame: the vertex and the offset in its row of the next edge end to scan.
+        var frames: [(v: Int, next: Int)] = []
         var edgeStack: [Int] = []
+        // Beside each stacked edge: the child it leads to for a tree edge, −1 for a back edge.
+        var childStack: [Int] = []
         var vertexStack: [Int] = []
         var time = 0
 
         search: for root in 0 ..< n where disc[root] == unvisited {
-            if stopAtPoint && root > 0 { break }
+            if firstTreeOnly && root > 0 { break }
             disc[root] = time
             low[root] = time
             time += 1
             var rootChildren = 0
             var treeSize = 1
             if wantBiEdge { vertexStack.append(root) }
-            frames.append((root, arcs(root)))
-            while !frames.isEmpty {
-                let v = frames[frames.count - 1].v
-                if let (w, e) = frames[frames.count - 1].arcs.next() {
+            frames.append((root, 0))
+            while let (v, k) = frames.last {
+                if k < rows.count(v) {
+                    frames[frames.count - 1].next = k + 1
+                    let w = rows.neighbor(v, k)
+                    let e = rows.edge(v, k)
+                    // The rows are unchecked buffers: a conformer breaking the index laws traps
+                    // here instead of corrupting memory.
+                    precondition(UInt(bitPattern: w) < UInt(bitPattern: n) && UInt(bitPattern: e) < UInt(bitPattern: m), "A neighbor or edge index is out of range")
                     if w == v || e == parentEdge[v] { continue }
                     if disc[w] == unvisited {
                         parentEdge[w] = e
@@ -97,12 +112,18 @@ struct _BiconnectivitySearch: _UndirectedRowsAlgorithm {
                         low[w] = time
                         time += 1
                         treeSize += 1
-                        if wantBlocks { edgeStack.append(e) }
+                        if wantBlocks {
+                            edgeStack.append(e)
+                            childStack.append(w)
+                        }
                         if wantBiEdge { vertexStack.append(w) }
                         if v == root { rootChildren += 1 }
-                        frames.append((w, arcs(w)))
+                        frames.append((w, 0))
                     } else if disc[w] < disc[v] {
-                        if wantBlocks { edgeStack.append(e) }
+                        if wantBlocks {
+                            edgeStack.append(e)
+                            childStack.append(-1)
+                        }
                         if disc[w] < low[v] { low[v] = disc[w] }
                     }
                     continue
@@ -137,9 +158,16 @@ struct _BiconnectivitySearch: _UndirectedRowsAlgorithm {
                     if wantBlocks {
                         let label = result.blockCount
                         result.blockCount += 1
+                        result.memberBlock.append(label)
+                        result.memberVertex.append(p)
                         while true {
                             let e = edgeStack.removeLast()
+                            let child = childStack.removeLast()
                             result.blockLabel[e] = label
+                            if child >= 0 {
+                                result.memberBlock.append(label)
+                                result.memberVertex.append(child)
+                            }
                             if e == parentEdge[v] { break }
                         }
                     }
@@ -165,9 +193,10 @@ struct _BiconnectivitySearch: _UndirectedRowsAlgorithm {
 }
 
 /// Relabels `labels` (values in `0..<count`, −1 for none) so that labels are numbered in order of
-/// first appearance, scanning the indices in order.
+/// first appearance, scanning the indices in order. Returns the map from old labels to new.
 @inlinable
-func _relabelByFirstAppearance(_ labels: inout [Int], count: Int) {
+@discardableResult
+func _relabelByFirstAppearance(_ labels: inout [Int], count: Int) -> [Int] {
     var map = [Int](repeating: -1, count: count)
     var next = 0
     for i in labels.indices where labels[i] >= 0 {
@@ -177,4 +206,31 @@ func _relabelByFirstAppearance(_ labels: inout [Int], count: Int) {
         }
         labels[i] = map[labels[i]]
     }
+    return map
+}
+
+/// A stable counting sort of `items` by `key`, keys in `0..<keyCount`: the items in key order
+/// (input order within a key), and the offsets where each key's items start (`keyCount + 1`).
+@inlinable
+func _countingSort(_ items: [Int], by key: [Int], keyCount: Int) -> (items: [Int], offsets: [Int]) {
+    var offsets = [Int](repeating: 0, count: keyCount + 1)
+    var sorted = [Int](repeating: 0, count: items.count)
+    offsets.withUnsafeMutableBufferPointer { offsets in
+        key.withUnsafeBufferPointer { key in
+            items.withUnsafeBufferPointer { items in
+                sorted.withUnsafeMutableBufferPointer { sorted in
+                    for i in items { offsets[key[i] + 1] += 1 }
+                    for c in 0 ..< keyCount { offsets[c + 1] += offsets[c] }
+                    var next = Array(offsets)
+                    next.withUnsafeMutableBufferPointer { next in
+                        for i in items {
+                            sorted[next[key[i]]] = i
+                            next[key[i]] += 1
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return (sorted, offsets)
 }

@@ -78,10 +78,10 @@ MUTANTS = [
            "if w < .zero { return (e, u) }",
            "if w < .zero && false { return (e, u) }", mode="stmt"),
     Mutant("negorder", "Undirected.swift",
-           "return first ? [u, v] : [v, u]",
-           "return [u, v]", mode="stmt"),
+           "first ? (u, v) : (v, u)",
+           "(u, v)"),
     Mutant("negselfloop", "Undirected.swift",
-           "        if u == v { return [u] }",
+           "        if u == v { return Cycle(_uncheckedVertices: [u], edges: [DirectedView<Self>.Edges.Index(position: edge, reversed: false)]) }",
            "", mode="stmt"),
     Mutant("wholegraph", "Undirected.swift",
            "for e in incidentEdges(of: u) where weight(e) < .zero { return (e, u) }",
@@ -89,6 +89,17 @@ MUTANTS = [
     Mutant("nancutoffundirected", "Undirected.swift",
            "cutoff.map { $0 == $0 } ?? true",
            "true"),
+
+    # Walks: the edges of witnesses and paths
+    Mutant("witnessedges", "BellmanFord.swift",
+           "result.parentEdge[cycle[($0 + 1) % n]]",
+           "result.parentEdge[cycle[$0]]"),
+    Mutant("witnessarc", "Undirected.swift",
+           "self.edges[edge].u != x",
+           "self.edges[edge].u == x"),
+    Mutant("pathedgeorder", "ShortestPathTree.swift",
+           "        edges.reverse()",
+           "", mode="stmt", nth=0),
 
     # The tree
     Mutant("dedup", "ShortestPathTree.swift",
@@ -105,8 +116,5 @@ MUTANTS = [
            "            return ([0], [only.first!])", mode="stmt"),
     Mutant("treepath", "ShortestPathTree.swift",
            "        guard _parent[i] != Self._unreached else { return nil }",
-           "", mode="stmt", nth=0),
-    Mutant("treepathedgesguard", "ShortestPathTree.swift",
-           "        guard _parent[i] != Self._unreached else { return nil }",
-           "", mode="stmt", nth=1),
+           "", mode="stmt"),
 ]

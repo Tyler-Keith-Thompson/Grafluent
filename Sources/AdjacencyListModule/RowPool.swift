@@ -42,6 +42,22 @@ internal struct _RowPool {
     @inlinable
     var rowCount: Int { rows.count }
 
+    /// Calls `body` with the storage and the row table (three `Int`s per row: start, count,
+    /// capacity), valid only during the call.
+    @inlinable
+    func withUnsafeRows<Result>(_ body: (_ storage: UnsafeBufferPointer<Int>, _ rows: UnsafeBufferPointer<Int>) -> Result) -> Result {
+        storage.withUnsafeBufferPointer { storage in
+            rows.withUnsafeBufferPointer { rows in
+                // `_Row` is three stored `Int`s, so its array is laid out as `Int`s.
+                precondition(MemoryLayout<_Row>.stride == 3 * MemoryLayout<Int>.stride
+                    && MemoryLayout<_Row>.offset(of: \_Row.start) == 0
+                    && MemoryLayout<_Row>.offset(of: \_Row.count) == MemoryLayout<Int>.stride)
+                let raw = UnsafeRawBufferPointer(rows)
+                return raw.withMemoryRebound(to: Int.self) { table in body(storage, table) }
+            }
+        }
+    }
+
     @inlinable
     func count(ofRow row: Int) -> Int { rows[row].count }
 

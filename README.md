@@ -80,9 +80,18 @@ libraries share, and notes the mathematical term for readers coming from the lit
 | Every edge reversed | `reversed` | NetworkX, Boost, JGraphT | converse |
 | Every edge reversed, materialized (index-based representations) | `transposed()` | scipy, Boost (`transpose_graph`), matrix algebra | transpose |
 | Edge directions dropped | `undirected` | NetworkX, JGraphT | underlying graph |
-| Rooted-tree relations | `parent(of:)`, `children(of:)`, `root` | all | same |
+| Rooted-tree relations | `parent(of:)`, `children(of:)`, `root`, `depth(of:)` (edges to the root), `height` (the greatest depth) | all; CLRS and Knuth for depth and height (Swing has them the other way round) | same |
+| Tree with every edge directed away from the root | `Arborescence` | NetworkX, LEMON, Edmonds (igraph: out-tree) | out-tree, directed rooted tree |
 | Reachability | `descendants(of:)`, `ancestors(of:)` | NetworkX | same |
 | Edge values | weight function | all | w : E → S |
+| Edge whose removal adds a component | bridge, `bridges()` | NetworkX, JGraphT, igraph, petgraph | cut edge, isthmus |
+| Vertex whose removal adds a component | articulation point, `articulationPoints()` | NetworkX, Boost, igraph, petgraph | cut vertex |
+| Maximal biconnected subgraph | biconnected component, `biconnectedComponents()` | NetworkX, Boost, igraph | block |
+| Maximal set joined by two edge-disjoint paths | bi-edge-connected component, `biEdgeConnectedComponents()` | LEMON (NetworkX: bridge component) | 2-edge-connected component |
+| Closed walk with no repeated vertex | simple cycle, `simpleCycles()` | NetworkX, igraph, JGraphT, rustworkx | cycle; elementary circuit (Johnson, Boost) |
+| Length of a shortest cycle | `girth()` | NetworkX, igraph, JGraphT, Boost | girth |
+| Graph with no cycle | `isAcyclic` | igraph, LEMON (NetworkX, JGraphT: `is_forest`) | forest (undirected), DAG (directed) |
+| Cycles that generate every cycle (mod 2) | cycle basis, `cycleBasis()` | NetworkX, JGraphT, rustworkx (igraph: fundamental cycles) | basis of the cycle space |
 
 `size` is avoided because programmers read it as memory size. `successors` and `predecessors`
 always mean vertices one edge away; in order theory they can mean any reachable vertex, but no
@@ -124,11 +133,11 @@ The neighbor requirement is only `Sequence` so that implicit graphs, whose neigh
 
 | Type | What it is | Swift conformances |
 |---|---|---|
-| `Walk<Vertex>` | A sequence of vertices with an edge between each consecutive pair; repeats allowed | `RandomAccessCollection` of vertices, `Hashable`, `Codable`, `Sendable`. Exposes `edges` as a lazy `adjacentPairs` view. |
-| `Trail<Vertex>` | A walk with no repeated edges | Same as `Walk` |
-| `Path<Vertex>` | A walk with no repeated vertices | Same as `Walk` |
-| `Circuit<Vertex>` | A closed trail | `RandomAccessCollection`. `==` holds up to rotation, which `hash(into:)` must respect (hash a canonical rotation). |
-| `Cycle<Vertex>` | A closed path | Same as `Circuit`. Returned as the *witness* whenever cycle detection succeeds. |
+| `Walk<Vertex, Edge>` | A sequence of vertices with the edge positions between them, each edge joining a vertex to the next; repeats allowed (**implemented**) | `RandomAccessCollection` of vertices, with `edges` (positions), `length`, `source`, `target`; `Hashable`, `Codable` (decoding re-checks the rules), `Sendable`. `Edge` is the graph's `Edges.Index`: positions tell parallel edges apart, which vertices alone cannot (JGraphT's `GraphPath<V, E>`). Over an undirected graph the vertex order orients each edge |
+| `Trail<Vertex, Edge>` | A walk with no repeated edge | Same as `Walk` |
+| `Path<Vertex, Edge>` | A walk with no repeated vertex (and so no repeated edge) | Same as `Walk`. Returned by `ShortestPathTree.path(to:)`, the single-target searches and `bidirectionalShortestPath`. In a file that also imports SwiftUI, write `Walks.Path` or `SwiftUI.Path` |
+| `Circuit<Vertex, Edge>` | A closed trail, at least one edge, listed without repeating its start | `RandomAccessCollection`. `==` holds up to rotation (not reversal), and `hash(into:)` is rotation-invariant: a wrapping sum of per-step hashes, so no `Comparable` is needed |
+| `Cycle<Vertex, Edge>` | A closed path (a self-loop, or two parallel edges, count) | Same as `Circuit`. Returned as the *witness* whenever cycle detection succeeds: `findCycle()`, `findNegativeCycle` |
 
 These are the one place where `Collection` conformance is clearly right: a walk *is* a sequence.
 
@@ -182,10 +191,10 @@ These are graph classes whose defining property is an invariant enforced by the 
 | Type | Invariant | Cycle handling | Notes and conformances |
 |---|---|---|---|
 | `DirectedAcyclicGraph<Base>` | No directed cycle | **Inserting an edge that would close a cycle fails and reports the cycle** (as `Traversal`'s `findCycle()` does: a returned witness, not a thrown error, since a Swift 6 error must be `Sendable` and vertices need not be). Uses incremental cycle detection (an online topological ordering such as Pearce–Kelly). | Keeps a topological ordering, exposed as a `RandomAccessCollection`. No separate `isAcyclic` method, because acyclicity is guaranteed. |
-| `Tree<Vertex>` | Connected and acyclic, undirected | Invariant, so no detection | `Graph` |
-| `RootedTree<Vertex>` | A tree with a distinguished root | Invariant | `parent(of:) -> Vertex?`, `children(of:)`, `root`, `depth(of:)` |
-| `Forest<Vertex>` | Acyclic, undirected | Invariant | The components are a `Collection` of `Tree` |
-| `Arborescence<Vertex>` | A directed rooted tree, with every edge pointing away from the root | Invariant | `parent`, `children`, `root`. The result type of shortest-path trees and DFS/BFS trees. |
+| `Tree<Vertex>` | Connected and acyclic, undirected, at least one vertex (**implemented**) | Invariant: every initializer from unchecked input is failable (`Tree(graph)`, `Tree(vertices:edges:)`); the witnesses are `findCycle()` and `connectedComponents()`. `isTree` on any `Graph` | `Graph`, immutable, copy-on-write; vertices and edge positions as given; `path(from:to:) -> Path`; `pruferSequence` and `Tree(pruferSequence:)` |
+| `RootedTree<Vertex>` | A tree with a distinguished root (**implemented**) | Invariant | `Graph`; `root`, `parent(of:)`, `parentEdge(of:)`, `children(of:)` (child edges in position order), `depth(of:)`, `height`, `preorder` (the storage layout), `postorder`, `descendants(of:)` (an O(1) slice of `preorder`), `ancestors(of:)`, `isAncestor(_:of:)` (strict, O(1)), `path(from:to:)`; built from a tree and a root, a graph, or a parent function (`init?(vertices:parent:)`, `init?(parents:)`) |
+| `Forest<Vertex>` | Acyclic, undirected, possibly empty (**implemented**) | Invariant (`Forest(g) != nil` is Cycles' `isAcyclic`) | `Graph`; `trees`, a `RandomAccessCollection` of `Tree` by least vertex, each built when read; `component(of:)`; `path(from:to:) -> Path?` |
+| `Arborescence<Vertex>` | A directed rooted tree, with every edge pointing away from the root (**implemented**) | Invariant. `isArborescence` on any `DirectedGraph` | `BidirectionalDirectedGraph`: successors are the children, predecessors the parent; the rooted queries of `RootedTree`, converting to and from one in O(1); `path(from:to:)` is nil unless it goes down. Shortest-path, dominator and search trees convert through the parent-function initializer |
 | `BipartiteGraph<Base>` | V = L ⊔ R, and every edge crosses between L and R | n/a | Exposes `left` and `right` as collections. Constructing one from a general graph is a 2-coloring that throws with an odd cycle as the witness. |
 | `Multigraph<Base>` / `DirectedMultigraph<Base>` | Parallel edges allowed | n/a | Edges have identity (an index), so a `DirectedEdge` value alone isn't enough to name one |
 | `Pseudograph<Base>` | Parallel edges and self-loops allowed | n/a | |
@@ -225,8 +234,8 @@ Every algorithm is a generic function, or an extension constrained to the narrow
 | `Traversal` | BFS, DFS, layers, descendants and ancestors, bidirectional BFS, iterative-deepening DFS, topological sorting (DFS, Kahn generations, lexicographical), cycle finding, and searches over successor closures (**implemented**). Lexicographic BFS waits for the undirected `Graph` | `BreadthFirstSearch`, `DepthFirstSearch` (both `Sequence`) |
 | `ShortestPaths` | Dijkstra, Bellman–Ford, A* and unweighted shortest paths (**implemented**, phase 1); later bidirectional Dijkstra, DAG shortest and longest paths, Floyd–Warshall, Johnson, Yen's k-shortest paths, Δ-stepping, contraction hierarchies | `ShortestPathTree` (an `Arborescence` plus distances, with `path(to:) -> Path?`), `DistanceMatrix` |
 | `SpanningTrees` | Minimum and maximum spanning forests of undirected graphs by Kruskal, Prim and Borůvka, with a canonical tie rule (weight, then position) (**implemented**, phase 1); later Chu–Liu/Edmonds (minimum arborescence), Steiner tree approximation | `SpanningForest` (edge positions and the total weight) |
-| `Connectivity` | **Implemented:** Tarjan strong components (Pearce's layout; reverse topological order), `isStronglyConnected`, weak components (union–find), `isWeaklyConnected`, condensation (a `CompressedSparseRow`), attracting components, Lengauer–Tarjan dominator trees, dominance frontiers, post-dominator trees. All on `DirectedGraph` except post-dominators (`BidirectionalDirectedGraph`; for a `CompressedSparseRow`, use `transposed()`). Kosaraju is a test oracle only: it gives a second, different component order. **Waiting for the undirected `Graph`:** connected components, blocks (biconnected components), cut vertices, bridges, vertex and edge connectivity | `Components`, `Condensation`, `DominatorTree` (a `RootedTree` once `Trees` exists), `DominanceFrontiers` |
-| `Cycles` | See [Cycle handling](#cycle-handling) | `Cycle`, `CycleBasis` |
+| `Connectivity` | **Implemented:** Tarjan strong components (Pearce's layout; reverse topological order), `isStronglyConnected`, weak components (union–find), `isWeaklyConnected`, condensation (a `CompressedSparseRow`), attracting components, Lengauer–Tarjan dominator trees, dominance frontiers, post-dominator trees. All on `DirectedGraph` except post-dominators (`BidirectionalDirectedGraph`; for a `CompressedSparseRow`, use `transposed()`). Kosaraju is a test oracle only: it gives a second, different component order. **Implemented, undirected:** connected components, bridges, articulation points, biconnected components (blocks, as edge sets), bi-edge-connected components and the block–cut tree, by one iterative Hopcroft–Tarjan that skips the parent edge (so parallel edges are never bridges), with canonical orders. Vertex and edge connectivity belong to `Flows` | `Components`, `Condensation`, `DominatorTree` (a `RootedTree` once `Trees` exists), `DominanceFrontiers`, `BiconnectedComponents`, `BlockCutTree` |
+| `Cycles` | `isAcyclic`, `findCycle()` and `findCycle(from:)` on `Graph`; `cycleBasis()` (fundamental cycles of the breadth-first forest); `simpleCycles(maxLength:)` on both kinds (Johnson, and Gupta–Suzumura with a bound; also called elementary circuits), lazy; `girth()` on both kinds. Self-loops and parallel edges count as cycles, each copy of an edge apart (**implemented**). Minimum cycle bases and chordless cycles later. See [Cycle handling](#cycle-handling) | `Cycle`, `DirectedSimpleCycles`, `UndirectedSimpleCycles` |
 | `Tours` | Hierholzer (Eulerian trail and circuit), backtracking Hamiltonian path and cycle, Christofides, 2-opt | `Trail`, `Circuit`, `Path`, `Cycle` |
 | `Flows` | Edmonds–Karp, Dinic, push–relabel, minimum-cost flow, Stoer–Wagner minimum cut, Karger, Gomory–Hu | `Flow` (a function A → capacity, plus its value), `Cut` (two vertex sets plus the crossing edges), `GomoryHuTree` |
 | `MatchingModule` | Hopcroft–Karp, Hungarian, Edmonds' blossom, Gale–Shapley | `Matching` (a set of edges, with `mate(of:)`) |
@@ -237,7 +246,7 @@ Every algorithm is a generic function, or an extension constrained to the narrow
 | `CommunityDetection` | Louvain, Leiden, label propagation, Girvan–Newman, modularity | `Partition` |
 | `IsomorphismModule` | VF2 and VF2++ (graph and subgraph isomorphism), Weisfeiler–Leman, canonical labeling | `Isomorphism` (a bijection V(G) → V(H)) |
 | `Planarity` | Boyer–Myrvold planarity test and embedding | `PlanarEmbedding`, or a Kuratowski subgraph as the witness that the graph is not planar |
-| `TreeAlgorithms` | Lowest common ancestor, Euler tour, heavy–light decomposition, centroid, diameter | |
+| `TreeAlgorithms` | Lowest common ancestors (one query by climbing, or `LowestCommonAncestors`: O(n) build, O(1) queries by a range minimum over preorder), `eulerTour`, `HeavyLightDecomposition` (heavy paths and subtrees as position intervals, a path as at most 2⌊log₂ n⌋ + 1 segments), and on `Tree`: `center`, `centroid`, `centroidDecomposition`, `diameter` and `diameterPath`, unweighted and weighted, with canonical tie rules in `vertices` order (**implemented**) | `LowestCommonAncestors`, `HeavyLightDecomposition`, `Walk`, `Path`, `RootedTree` |
 | `Distances` | Eccentricity, diameter, radius, center, periphery, density, degree sequence | |
 | `SpectralGraphTheory` | Adjacency, Laplacian, and normalized Laplacian matrices; Fiedler vector; spectral clustering (Accelerate where it's available) | |
 
@@ -248,12 +257,12 @@ Cycle detection is offered only on structures that can contain a cycle. Each one
 | Structure | Cycle API |
 |---|---|
 | `DirectedAcyclicGraph`, `Tree`, `Forest`, `Arborescence` | **None.** Acyclicity is an invariant, and the DAG enforces it when an edge is inserted. |
-| `DirectedGraph` | Johnson's elementary circuits; girth; cycle bases. (Finding one cycle, `isAcyclic` and topological sorting are in `Traversal`: `findCycle()`, `isAcyclic`, `topologicalSort()` returning `nil` on a cycle.) |
-| `Graph` | `cycle() -> Cycle?` using DFS or a disjoint-set; cycle basis; girth |
+| `DirectedGraph` | `simpleCycles(maxLength:)` (Johnson's elementary circuits; Gupta–Suzumura with a bound) and `girth()` in `Cycles`. Finding one cycle, `isAcyclic` and topological sorting are in `Traversal`: `findCycle()`, `isAcyclic`, `topologicalSort()` returning `nil` on a cycle. A cycle basis of a digraph is the undirected one: `digraph.undirected.cycleBasis()` |
+| `Graph` | `isAcyclic` (a disjoint-set over the rows), `findCycle() -> Cycle?` (depth-first, never back along the edge it arrived by, so a parallel pair is found), `cycleBasis()`, `simpleCycles(maxLength:)` and `girth()` in `Cycles`. Every undirected cycle returned starts at its least vertex and leaves it through the lesser of its two edges, so equal cycles have equal arrays |
 | Weighted `DirectedGraph` | Negative-cycle detection (Bellman–Ford): `bellmanFordShortestPaths` returns `nil` when a negative cycle is reachable, and `findNegativeCycle` returns one as the witness, as `topologicalSort()` and `findCycle()` do |
 | `FunctionalGraph` | Floyd's and Brent's algorithms |
 
-Failures that are part of the mathematics, such as "has a cycle," "not bipartite," or "negative cycle," **return the witness** (`findCycle() -> [Vertex]?`, an optional result next to it), rather than throwing: a thrown error must be `Sendable` in Swift 6, which would exclude vertex types that are not.
+Failures that are part of the mathematics, such as "has a cycle," "not bipartite," or "negative cycle," **return the witness** (`findCycle() -> Cycle<Vertex, Edges.Index>?`, an optional result next to it), rather than throwing: a thrown error must be `Sendable` in Swift 6, which would exclude vertex types that are not.
 
 ## Generators (`NamedGraphs`, `RandomGraphs`)
 
@@ -314,3 +323,7 @@ These are public, because they're useful on their own.
 6. Should the deployment floor be macOS 26 / iOS 26, which `Array.span` requires, or should we support older operating systems with `Span` back-deployment only?
 7. ~~Is `BidirectionalDirectedGraph` an established name?~~ **Decided: yes.** It is Boost's `BidirectionalGraph` concept, defined for exactly this property. `predecessors(of:)` stays off the base protocol, so compressed sparse row does not hide an O(|A|) cost behind an O(1)-looking call.
 8. ~~Names of the views between `Graph` and `DirectedGraph`?~~ **Decided:** `graph.directed` (`DirectedView`) and `digraph.undirected` (`UndirectedView`), after NetworkX's directed view and JGraphT's `AsUndirectedGraph` (which, unlike NetworkX's undirected view, keeps opposite arcs as parallel edges). No type conforms to both protocols, since they share member names (`edges`, `degree(of:)`) with different meanings.
+
+## License
+
+MIT. See [LICENSE](LICENSE).

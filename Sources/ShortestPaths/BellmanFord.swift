@@ -1,4 +1,5 @@
 import GraphProtocols
+import Walks
 
 /// Bellman–Ford in LEMON's weak rounds: the first round scans the sources' out-edges, each later
 /// round the out-edges of the vertices improved in the round before (in the order they were first
@@ -127,15 +128,15 @@ extension DirectedGraph {
 
     /// A negative cycle reachable from `source` (NetworkX's and petgraph's `find_negative_cycle`),
     /// or `nil` when there is none. The cycle is listed along its edges, starting at its first
-    /// vertex in `vertices` order and not repeated at the end; which one is found, when several
-    /// are reachable, is unspecified. Between parallel edges the cycle does not say which was
-    /// taken; the lightest of them is the one that closes it.
+    /// vertex in `vertices` order (petgraph's convention; NetworkX repeats the start); which one is found, when several
+    /// are reachable, is unspecified. Its edges are the ones Bellman–Ford relaxed through, so
+    /// between parallel edges it names the one that makes the cycle negative.
     ///
     /// - Precondition: as for `bellmanFordShortestPaths(from:weight:)`.
     @inlinable
     public func findNegativeCycle<W: Comparable & AdditiveArithmetic>(
         from source: Vertex, weight: (Edges.Index) -> W
-    ) -> [Vertex]? {
+    ) -> Cycle<Vertex, Edges.Index>? {
         findNegativeCycle(from: CollectionOfOne(source), weight: weight)
     }
 
@@ -143,7 +144,7 @@ extension DirectedGraph {
     @inlinable
     public func findNegativeCycle<W: Comparable & AdditiveArithmetic>(
         from sources: some Sequence<Vertex>, weight: (Edges.Index) -> W
-    ) -> [Vertex]? {
+    ) -> Cycle<Vertex, Edges.Index>? {
         let ids = _numberedVertices()
         let (indices, _) = _sourceIndices(sources, ids)
         return _findNegativeCycle(indices, ids, weight)
@@ -151,15 +152,19 @@ extension DirectedGraph {
 
     /// A negative cycle anywhere in the graph (every vertex a source), or `nil` when there is none.
     @inlinable
-    public func findNegativeCycle<W: Comparable & AdditiveArithmetic>(weight: (Edges.Index) -> W) -> [Vertex]? {
+    public func findNegativeCycle<W: Comparable & AdditiveArithmetic>(weight: (Edges.Index) -> W) -> Cycle<Vertex, Edges.Index>? {
         let ids = _numberedVertices()
         guard ids.count > 0 else { return nil }
         return _findNegativeCycle(Array(0 ..< ids.count), ids, weight)
     }
 
     @inlinable
-    func _findNegativeCycle<W: Comparable & AdditiveArithmetic>(_ sources: [Int], _ ids: _VertexIdentifiers<Self>, _ weight: (Edges.Index) -> W) -> [Vertex]? {
+    func _findNegativeCycle<W: Comparable & AdditiveArithmetic>(_ sources: [Int], _ ids: _VertexIdentifiers<Self>, _ weight: (Edges.Index) -> W) -> Cycle<Vertex, Edges.Index>? {
         let result = _runInIndexSpace(_BellmanFord<Self, W>(sources: sources, placeholder: edges.endIndex), ids, weight: weight)
-        return _negativeCycle(parent: result.parent, active: result.active).map { $0.map { ids.vertex($0) } }
+        guard let cycle = _negativeCycle(parent: result.parent, active: result.active) else { return nil }
+        // Listed along its edges: the edge from each vertex to the next is the next one's parent
+        // edge, the one Bellman–Ford relaxed it through.
+        let n = cycle.count
+        return Cycle(_uncheckedVertices: cycle.map { ids.vertex($0) }, edges: (0 ..< n).map { result.parentEdge[cycle[($0 + 1) % n]] })
     }
 }

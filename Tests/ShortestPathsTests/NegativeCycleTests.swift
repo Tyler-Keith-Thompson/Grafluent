@@ -20,8 +20,8 @@ struct NegativeCycleTests {
         let weights = cycle.map(\.2)
         func check<G: DirectedGraph<Int>>(_ g: G, weight: (G.Edges.Index) -> Int) {
             #expect(g.bellmanFordShortestPaths(from: source, weight: weight) == nil)
-            #expect(g.findNegativeCycle(from: source, weight: weight) == [0, 1, 2, 3, 4])
-            #expect(g.findNegativeCycle(weight: weight) == [0, 1, 2, 3, 4])
+            #expect(g.findNegativeCycle(from: source, weight: weight)?.vertices == [0, 1, 2, 3, 4])
+            #expect(g.findNegativeCycle(weight: weight)?.vertices == [0, 1, 2, 3, 4])
         }
         check(ReferenceDirectedMultigraph(edges: edges)) { weights[$0] }
         check(AdjacencyList(edges: edges)) { weights[$0] }
@@ -34,53 +34,53 @@ struct NegativeCycleTests {
         let cycle = UndirectedAdjacencyList(edges: (0 ..< 5).map { UndirectedEdge($0, ($0 + 1) % 5) })
         let weights = [1, -3, 1, 1, 1]
         #expect(cycle.bellmanFordShortestPaths(from: source) { weights[$0] } == nil)
-        #expect(cycle.findNegativeCycle(from: source) { weights[$0] } == [1, 2])
-        #expect(cycle.directed.findNegativeCycle(from: source) { weights[$0.position] } == [1, 2])
-        #expect(cycle.findNegativeCycle { weights[$0] } == [1, 2])
+        #expect(cycle.findNegativeCycle(from: source) { weights[$0] }?.vertices == [1, 2])
+        #expect(cycle.directed.findNegativeCycle(from: source) { weights[$0.position] }?.vertices == [1, 2])
+        #expect(cycle.findNegativeCycle { weights[$0] }?.vertices == [1, 2])
     }
 
     @Test("SP-63 NetworkX's single negative edge and petgraph's undirected doc graph")
     func undirectedDocExamples() {
         let single = UndirectedAdjacencyList(edges: [UndirectedEdge(0, 1)])
-        #expect(single.findNegativeCycle(from: 1) { _ in -1 } == [0, 1])
+        #expect(single.findNegativeCycle(from: 1) { _ in -1 }?.vertices == [0, 1])
         #expect(single.bellmanFordShortestPaths(from: 1) { _ in -1 } == nil)
 
         let petgraph: [(Int, Int, Double)] = [(0, 1, -2), (0, 3, -4), (1, 2, -1), (1, 5, -25), (2, 4, -5), (4, 5, -25), (3, 4, -1)]
         let graph = UndirectedAdjacencyList(vertices: 0 ..< 6, edges: petgraph.map { UndirectedEdge($0.0, $0.1) })
         let weights = petgraph.map(\.2)
-        #expect(graph.findNegativeCycle(from: 0) { weights[$0] } == [0, 1])
+        #expect(graph.findNegativeCycle(from: 0) { weights[$0] }?.vertices == [0, 1])
         #expect(graph.bellmanFordShortestPaths(from: 0) { weights[$0] } == nil)
     }
 
     @Test("SP-64 a negative self-loop is a one-vertex cycle", .tags(.selfLoops))
     func negativeSelfLoop() {
         let loop = ReferenceDirectedMultigraph(vertices: [1], edges: [DirectedEdge(from: 1, to: 1)])
-        #expect(loop.findNegativeCycle(from: 1) { _ in -1 } == [1])
+        #expect(loop.findNegativeCycle(from: 1) { _ in -1 }?.vertices == [1])
         #expect(loop.bellmanFordShortestPaths(from: 1) { _ in -1 } == nil)
-        #expect(AdjacencyList(edges: [DirectedEdge(from: 1, to: 1)]).findNegativeCycle(from: 1) { _ in -1 } == [1])
+        #expect(AdjacencyList(edges: [DirectedEdge(from: 1, to: 1)]).findNegativeCycle(from: 1) { _ in -1 }?.vertices == [1])
 
         // petgraph's find_neg_cycle1, on CSR (ascending, so edge indices are written positions).
         let petgraph: [(Int, Int, Double)] = [(0, 1, 0.5), (0, 2, 2), (1, 0, 1), (1, 1, -1), (1, 2, 1), (1, 3, 1), (2, 3, 3)]
         let sparse = CompressedSparseRow(vertexCount: 4, edges: petgraph.map { DirectedEdge(from: $0.0, to: $0.1) })
         let weights = petgraph.map(\.2)
-        #expect(sparse.findNegativeCycle(from: 0) { weights[$0] } == [1])
+        #expect(sparse.findNegativeCycle(from: 0) { weights[$0] }?.vertices == [1])
         #expect(sparse.bellmanFordShortestPaths(from: 0) { weights[$0] } == nil)
 
         // The loop written twice is still one vertex once.
         let twice = ReferenceDirectedMultigraph(edges: [DirectedEdge(from: 1, to: 1), DirectedEdge(from: 1, to: 1)])
-        #expect(twice.findNegativeCycle(from: 1) { _ in -1 } == [1])
+        #expect(twice.findNegativeCycle(from: 1) { _ in -1 }?.vertices == [1])
     }
 
     @Test("SP-65 barely negative cycles")
     func barelyNegative() {
         let cycle: [(Int, Int, Double)] = [(0, 1, 1), (1, 2, 1), (2, 3, -4.0001), (3, 4, 1), (4, 0, 1)]
         let cycleGraph = ReferenceDirectedMultigraph(edges: cycle.map { DirectedEdge(from: $0.0, to: $0.1) })
-        #expect(cycleGraph.findNegativeCycle(from: 1) { cycle[$0].2 } == [0, 1, 2, 3, 4])
+        #expect(cycleGraph.findNegativeCycle(from: 1) { cycle[$0].2 }?.vertices == [0, 1, 2, 3, 4])
         #expect(cycleGraph.bellmanFordShortestPaths(from: 1) { cycle[$0].2 } == nil)
 
         let heuristic: [(Int, Int, Double)] = [(0, 1, -1), (1, 2, -1), (2, 3, -1), (3, 0, 3), (2, 0, 1.999)]
         let heuristicGraph = ReferenceDirectedMultigraph(edges: heuristic.map { DirectedEdge(from: $0.0, to: $0.1) })
-        #expect(heuristicGraph.findNegativeCycle(from: 0) { heuristic[$0].2 } == [0, 1, 2])
+        #expect(heuristicGraph.findNegativeCycle(from: 0) { heuristic[$0].2 }?.vertices == [0, 1, 2])
         #expect(heuristicGraph.bellmanFordShortestPaths(from: 0) { heuristic[$0].2 } == nil)
     }
 
@@ -93,8 +93,8 @@ struct NegativeCycleTests {
         let edges = longer.map { DirectedEdge(from: $0.0, to: $0.1) }
         let weights = longer.map(\.2)
         func check<G: DirectedGraph<Int>>(_ g: G) where G.Edges.Index == Int {
-            #expect(g.findNegativeCycle(from: 1) { weights[$0] } == [0, 1, 2, 3, 4])
-            #expect(g.findNegativeCycle(from: 7) { weights[$0] } == [0, 1, 2, 3, 4])
+            #expect(g.findNegativeCycle(from: 1) { weights[$0] }?.vertices == [0, 1, 2, 3, 4])
+            #expect(g.findNegativeCycle(from: 7) { weights[$0] }?.vertices == [0, 1, 2, 3, 4])
             #expect(g.bellmanFordShortestPaths(from: 7) { weights[$0] } == nil)
         }
         check(ReferenceDirectedMultigraph(vertices: 0 ..< 10, edges: edges))
@@ -105,14 +105,14 @@ struct NegativeCycleTests {
     func docExamples() {
         let networkX: [(Int, Int, Int)] = [(0, 1, 2), (1, 2, 2), (2, 0, 1), (1, 4, 2), (4, 0, -5)]
         let networkXGraph = ReferenceDirectedMultigraph(edges: networkX.map { DirectedEdge(from: $0.0, to: $0.1) })
-        #expect(networkXGraph.findNegativeCycle(from: 0) { networkX[$0].2 } == [0, 1, 4])
+        #expect(networkXGraph.findNegativeCycle(from: 0) { networkX[$0].2 }?.vertices == [0, 1, 4])
 
         let petgraph: [(Int, Int, Double)] = [(0, 1, 1), (0, 2, 1), (0, 3, 1), (1, 3, 1), (2, 1, 1), (3, 2, -3)]
         let edges = petgraph.map { DirectedEdge(from: $0.0, to: $0.1) }
         let sparse = CompressedSparseRow(vertexCount: 4, edges: edges)
-        #expect(sparse.findNegativeCycle(from: 0) { petgraph[$0].2 } == [1, 3, 2])
+        #expect(sparse.findNegativeCycle(from: 0) { petgraph[$0].2 }?.vertices == [1, 3, 2])
         let matrix = AdjacencyMatrix(vertexCount: 4, edges: edges)
-        #expect(matrix.findNegativeCycle(from: 0) { $0.source == 3 ? -3.0 : 1.0 } == [1, 3, 2])
+        #expect(matrix.findNegativeCycle(from: 0) { $0.source == 3 ? -3.0 : 1.0 }?.vertices == [1, 3, 2])
     }
 
     @Test("SP-68 JGraphT's negative cycles")
@@ -122,21 +122,23 @@ struct NegativeCycleTests {
             ("z", "y", -3), ("s", "w", 0), ("s", "y", 0), ("s", "x", 0), ("s", "z", 0),
         ]
         let wikiGraph = ReferenceDirectedMultigraph(vertices: ["w", "y", "x", "z", "s"], edges: wiki.map { DirectedEdge(from: $0.0, to: $0.1) })
-        #expect(wikiGraph.findNegativeCycle(from: "s") { wiki[$0].2 } == ["y", "z", "x"])
+        #expect(wikiGraph.findNegativeCycle(from: "s") { wiki[$0].2 }?.vertices == ["y", "z", "x"])
         #expect(wikiGraph.bellmanFordShortestPaths(from: "s") { wiki[$0].2 } == nil)
 
         // Undirected with parallel y–x edges of weight 1 and −1.
         let parallel = ReferencePseudograph(vertices: ["w", "y", "x"], edges: [UndirectedEdge("w", "y"), UndirectedEdge("y", "x"), UndirectedEdge("y", "x")])
         let parallelWeights = [1, 1, -1]
-        #expect(parallel.findNegativeCycle(from: "w") { parallelWeights[$0] } == ["y", "x"])
+        #expect(parallel.findNegativeCycle(from: "w") { parallelWeights[$0] }?.vertices == ["y", "x"])
+        // Only the −1 copy, at position 2, closes it.
+        #expect(parallel.findNegativeCycle(from: "w") { parallelWeights[$0] }?.edges == [.init(position: 2, reversed: false), .init(position: 2, reversed: true)])
 
         let chain: [(String, String, Int)] = (1 ..< 9).map { (String($0), String($0 + 1), 1) } + [("7", "x", -3), ("x", "4", -3)]
         let chainGraph = ReferenceDirectedMultigraph(vertices: (1 ... 9).map(String.init) + ["x"], edges: chain.map { DirectedEdge(from: $0.0, to: $0.1) })
-        #expect(chainGraph.findNegativeCycle(from: "1") { chain[$0].2 } == ["4", "5", "6", "7", "x"])
+        #expect(chainGraph.findNegativeCycle(from: "1") { chain[$0].2 }?.vertices == ["4", "5", "6", "7", "x"])
 
         let square: [(String, String, Int)] = [("1", "2", 1), ("2", "3", 1), ("3", "4", 1), ("4", "1", -5)]
         let squareGraph = ReferenceDirectedMultigraph(edges: square.map { DirectedEdge(from: $0.0, to: $0.1) })
-        #expect(squareGraph.findNegativeCycle(from: "1") { square[$0].2 } == ["1", "2", "3", "4"])
+        #expect(squareGraph.findNegativeCycle(from: "1") { square[$0].2 }?.vertices == ["1", "2", "3", "4"])
     }
 
     @Test("SP-69 the whole-graph search finds a cycle no single source reaches")
@@ -145,9 +147,9 @@ struct NegativeCycleTests {
         let edges = graphEdges.map { DirectedEdge(from: $0.0, to: $0.1) }
         let weights = graphEdges.map(\.2)
         func check<G: DirectedGraph<Int>>(_ g: G) where G.Edges.Index == Int {
-            #expect(g.findNegativeCycle { weights[$0] } == [8, 9])
+            #expect(g.findNegativeCycle { weights[$0] }?.vertices == [8, 9])
             #expect(g.findNegativeCycle(from: 0) { weights[$0] } == nil)
-            #expect(g.findNegativeCycle(from: [0, 9]) { weights[$0] } == [8, 9])
+            #expect(g.findNegativeCycle(from: [0, 9]) { weights[$0] }?.vertices == [8, 9])
             #expect(g.bellmanFordShortestPaths(from: 0) { weights[$0] } != nil)
         }
         check(ReferenceDirectedMultigraph(vertices: [0, 1, 2, 3, 4, 8, 9], edges: edges))
@@ -186,6 +188,12 @@ struct NegativeCycleTests {
                 total += copies.min() ?? 0
             }
             #expect(total < 0, "\(cycle)")
+            // The edges are the ones the search took: each joins its two vertices, and they weigh less than zero.
+            #expect(cycle.edges.count == cycle.count)
+            for (k, e) in cycle.edges.enumerated() {
+                #expect(graph.source(ofEdgeAt: e) == cycle[k] && graph.target(ofEdgeAt: e) == cycle[(k + 1) % cycle.count], "\(cycle)")
+            }
+            #expect(cycle.weight { weights[$0] } < 0, "\(cycle)")
             #expect(graph.shortestPaths(from: source).hasPath(to: cycle[0]))
         }
     }

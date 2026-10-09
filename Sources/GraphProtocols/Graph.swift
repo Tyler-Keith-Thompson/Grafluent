@@ -136,7 +136,7 @@ public protocol Graph<Vertex> {
     func edgeIndex(of position: Edges.Index) -> Int
 
     /// The edge indices of `incidentEdges(of: vertex(atIndex: index))`, in the same order, so
-    /// parallel to `neighborIndices(ofIndex:)`. Default: `incidentEdges` mapped through
+    /// parallel to `neighborIndices(ofIndex:)`. Default: `incidentEdges(ofIndex:)` mapped through
     /// `edgeIndex(of:)`.
     ///
     /// - Precondition: `vertexIndexBound` and `edgeIndexBound` are not `nil`, and `index` is in
@@ -148,6 +148,26 @@ public protocol Graph<Vertex> {
     ///
     /// - Precondition: `vertexIndexBound` is not `nil`, and `index` is in `0..<vertexIndexBound`.
     func incidentEdges(ofIndex index: Int) -> IncidentEdges
+
+    /// For representations that store incidence as rows in index space, with vertex and edge
+    /// indices (`UndirectedAdjacencyList`): calls `body` with the neighbor storage and its row
+    /// table, and the edge-index storage and its row table, and returns its result. A row table
+    /// holds three entries per vertex index `v`: the row's start in the storage, its length, and
+    /// one more the algorithm ignores; so `neighborIndices(ofIndex: v)` is
+    /// `neighbors[rows[3v] ..< rows[3v] + rows[3v + 1]]`, and likewise for
+    /// `incidentEdgeIndices(ofIndex:)`. The buffers are valid only during the call. Default:
+    /// `nil`, without calling `body`.
+    ///
+    /// Not for use outside the library: algorithms walk these rows with integer cursors, which
+    /// avoids retaining the row storage once per visited vertex. Algorithms check the tables'
+    /// bounds once before reading them. A view that changes incidence (a subgraph, a filter) must
+    /// not forward it.
+    func _withIncidentIndexRows<Result>(
+        _ body: (
+            _ neighbors: UnsafeBufferPointer<Int>, _ neighborRows: UnsafeBufferPointer<Int>,
+            _ edges: UnsafeBufferPointer<Int>, _ edgeRows: UnsafeBufferPointer<Int>
+        ) -> Result
+    ) -> Result?
 }
 
 extension Graph {
@@ -207,10 +227,22 @@ extension Graph {
     }
 }
 
+extension Graph {
+    @inlinable
+    public func _withIncidentIndexRows<Result>(
+        _ body: (
+            _ neighbors: UnsafeBufferPointer<Int>, _ neighborRows: UnsafeBufferPointer<Int>,
+            _ edges: UnsafeBufferPointer<Int>, _ edgeRows: UnsafeBufferPointer<Int>
+        ) -> Result
+    ) -> Result? {
+        nil
+    }
+}
+
 extension Graph where IncidentEdgeIndices == LazyMapSequence<IncidentEdges, Int> {
     @inlinable
     public func incidentEdgeIndices(ofIndex index: Int) -> LazyMapSequence<IncidentEdges, Int> {
-        incidentEdges(of: vertex(atIndex: index)).lazy.map { edgeIndex(of: $0) }
+        incidentEdges(ofIndex: index).lazy.map { edgeIndex(of: $0) }
     }
 }
 

@@ -22,7 +22,7 @@ struct UnweightedShortestPathTests {
             #expect(["s", "u", "x", "v", "y"].map { tree.distance(to: $0) } == [0, 1, 1, 2, 2])
             #expect(["s", "u", "x", "v", "y"].map { tree.parent(of: $0) } == [nil, "s", "s", "u", "x"])
             #expect(["s", "u", "x", "v", "y"].map { tree.parentEdge(of: $0) } == [nil, 0, 1, 2, 7])
-            #expect(tree.path(to: "v") == ["s", "u", "v"])
+            #expect(tree.path(to: "v")?.vertices == ["s", "u", "v"])
             #expect(tree.sources == ["s"])
         }
         check(ReferenceDirectedMultigraph(edges: edges))

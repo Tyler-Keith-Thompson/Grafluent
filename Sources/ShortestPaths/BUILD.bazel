@@ -9,6 +9,7 @@ swift_library(
     module_name = "ShortestPaths",
     deps = [
         "//Sources/GraphProtocols",
+        "//Sources/Walks",
         "//Sources/PriorityQueueModule",
     ],
     visibility = ["//visibility:public"],

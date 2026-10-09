@@ -21,25 +21,25 @@ struct AStarTests {
         ]
         let xgGraph = ReferenceDirectedMultigraph(edges: xg.map { DirectedEdge(from: $0.0, to: $0.1) })
         let fromXG = xgGraph.aStarShortestPath(from: "s", to: "v", weight: { xg[$0].2 }, heuristic: { _ in 0 })
-        #expect(fromXG?.path == ["s", "x", "u", "v"])
+        #expect(fromXG?.path.vertices == ["s", "x", "u", "v"])
         #expect(fromXG?.distance == 9)
 
         let xg2: [(Int, Int, Int)] = [(1, 4, 1), (4, 5, 1), (5, 6, 1), (6, 3, 1), (1, 3, 50), (1, 2, 100), (2, 3, 100)]
         let xg2Graph = AdjacencyList(edges: xg2.map { DirectedEdge(from: $0.0, to: $0.1) })
         let fromXG2 = xg2Graph.aStarShortestPath(from: 1, to: 3, weight: { xg2[$0].2 }, heuristic: { _ in 0 })
-        #expect(fromXG2?.path == [1, 4, 5, 6, 3])
+        #expect(fromXG2?.path.vertices == [1, 4, 5, 6, 3])
         #expect(fromXG2?.distance == 4)
 
         let xg3: [(Int, Int, Int)] = [(0, 1, 2), (1, 2, 12), (2, 3, 1), (3, 4, 5), (4, 5, 1), (5, 0, 10)]
         let xg3Graph = UndirectedAdjacencyList(edges: xg3.map { UndirectedEdge($0.0, $0.1) })
         let fromXG3 = xg3Graph.aStarShortestPath(from: 0, to: 3, weight: { xg3[$0].2 }, heuristic: { _ in 0 })
-        #expect(fromXG3?.path == [0, 1, 2, 3])
+        #expect(fromXG3?.path.vertices == [0, 1, 2, 3])
         #expect(fromXG3?.distance == 15)
 
         let xg4: [(Int, Int, Int)] = [(0, 1, 2), (1, 2, 2), (2, 3, 1), (3, 4, 1), (4, 5, 1), (5, 6, 1), (6, 7, 1), (7, 0, 1)]
         let xg4Graph = UndirectedAdjacencyList(edges: xg4.map { UndirectedEdge($0.0, $0.1) })
         let fromXG4 = xg4Graph.directed.aStarShortestPath(from: 0, to: 2, weight: { xg4[$0.position].2 }, heuristic: { _ in 0 })
-        #expect(fromXG4?.path == [0, 1, 2])
+        #expect(fromXG4?.path.vertices == [0, 1, 2])
         #expect(fromXG4?.distance == 4)
     }
 
@@ -51,7 +51,7 @@ struct AStarTests {
         let estimate = ["n5": 36, "n2": 4, "n1": 0, "n0": 0]
         func check<G: DirectedGraph<String>>(_ g: G) where G.Edges.Index == Int {
             let result = g.aStarShortestPath(from: "n5", to: "n0", weight: { edges[$0].2 }, heuristic: { estimate[$0]! })
-            #expect(result?.path == ["n5", "n2", "n1", "n0"])
+            #expect(result?.path.vertices == ["n5", "n2", "n1", "n0"])
             #expect(result?.distance == 42)
         }
         check(ReferenceDirectedMultigraph(edges: edges.map { DirectedEdge(from: $0.0, to: $0.1) }))
@@ -63,7 +63,7 @@ struct AStarTests {
         let edges: [(String, String, Int)] = [("a", "b", 1), ("a", "c", 1), ("b", "d", 2), ("c", "d", 1), ("d", "e", 1)]
         let graph = ReferenceDirectedMultigraph(edges: edges.map { DirectedEdge(from: $0.0, to: $0.1) })
         let result = graph.aStarShortestPath(from: "a", to: "e", weight: { edges[$0].2 }, heuristic: { _ in 0 })
-        #expect(result?.path == ["a", "c", "d", "e"])
+        #expect(result?.path.vertices == ["a", "c", "d", "e"])
         #expect(result?.distance == 3)
     }
 
@@ -72,7 +72,7 @@ struct AStarTests {
         let pairs = [("s", "u"), ("s", "x"), ("u", "v"), ("u", "x"), ("v", "y"), ("x", "u"), ("x", "w"), ("w", "v"), ("x", "y"), ("y", "s"), ("y", "v")]
         let graph = ReferenceDirectedMultigraph(edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
         let result = graph.aStarShortestPath(from: "s", to: "v", weight: { _ in 1 }, heuristic: { _ in 0 })
-        #expect(result?.path == ["s", "u", "v"])
+        #expect(result?.path.vertices == ["s", "u", "v"])
         #expect(result?.distance == 2)
     }
 
@@ -91,10 +91,10 @@ struct AStarTests {
     func cycleGraph() {
         let cycle = UndirectedAdjacencyList(edges: (0 ..< 7).map { UndirectedEdge($0, ($0 + 1) % 7) })
         let toThree = cycle.aStarShortestPath(from: 0, to: 3, weight: { _ in 1 }, heuristic: { _ in 0 })
-        #expect(toThree?.path == [0, 1, 2, 3])
+        #expect(toThree?.path.vertices == [0, 1, 2, 3])
         #expect(toThree?.distance == 3)
         let toFour = cycle.aStarShortestPath(from: 0, to: 4, weight: { _ in 1 }, heuristic: { _ in 0 })
-        #expect(toFour?.path == [0, 6, 5, 4])
+        #expect(toFour?.path.vertices == [0, 6, 5, 4])
         #expect(toFour?.distance == 3)
     }
 
@@ -108,7 +108,7 @@ struct AStarTests {
         let estimate = ["s": 36, "y": 4, "x": 0, "u": 0, "v": 0]
         let result = graph.aStarShortestPath(from: "s", to: "v", weight: { xg[$0].2 }, heuristic: { estimate[$0]! })
         #expect(result?.distance == 9)
-        #expect(result?.path == ["s", "x", "u", "v"])
+        #expect(result?.path.vertices == ["s", "x", "u", "v"])
     }
 
     @Test("SP-77 a 4 × 4 unit grid with the Manhattan heuristic: a monotone staircase of length 6")
@@ -124,7 +124,7 @@ struct AStarTests {
         let grid = UndirectedAdjacencyList(vertices: 0 ..< 16, edges: edges)
         let result = grid.aStarShortestPath(from: 0, to: 15, weight: { _ in 1 }, heuristic: { (3 - $0 / 4) + (3 - $0 % 4) })
         #expect(result?.distance == 6)
-        let path = result?.path ?? []
+        let path = result?.path.vertices ?? []
         #expect(path.count == 7)
         #expect(path.first == 0)
         #expect(path.last == 15)
@@ -146,10 +146,10 @@ struct AStarTests {
         let weights = grid.map(\.2)
         let result = graph.aStarShortestPath(from: 0, to: 35, weight: { weights[$0] }, heuristic: { (5 - $0 / 6) + (5 - $0 % 6) })
         #expect(result?.distance == 25)
-        #expect(result?.path == [0, 1, 7, 13, 14, 15, 16, 17, 23, 29, 35])
+        #expect(result?.path.vertices == [0, 1, 7, 13, 14, 15, 16, 17, 23, 29, 35])
         let dijkstra = graph.dijkstraShortestPath(from: 0, to: 35) { weights[$0] }
         #expect(dijkstra?.distance == 25)
-        #expect(dijkstra?.path == result?.path)
+        #expect(dijkstra?.path.vertices == result?.path.vertices)
     }
 
     @Test("SP-79 several optimal paths and a slightly inadmissible heuristic")
@@ -159,7 +159,7 @@ struct AStarTests {
         let estimate = ["a": 1.35, "b": 1.18, "c": 0.67, "d": 0]
         let result = graph.aStarShortestPath(from: "a", to: "d", weight: { edges[$0].2 }, heuristic: { estimate[$0]! })
         #expect(result?.distance == 1.35)
-        #expect(result?.path == ["a", "c", "d"] || result?.path == ["a", "b", "c", "d"])
+        #expect(result?.path.vertices == ["a", "c", "d"] || result?.path.vertices == ["a", "b", "c", "d"])
     }
 
     @Test("SP-80 an inadmissible heuristic gives a path, not necessarily the shortest")
@@ -171,10 +171,10 @@ struct AStarTests {
         let graph = ReferenceDirectedMultigraph(edges: xg.map { DirectedEdge(from: $0.0, to: $0.1) })
         let estimate = ["s": 36, "y": 14, "x": 10, "u": 10, "v": 0]
         let result = graph.aStarShortestPath(from: "s", to: "v", weight: { xg[$0].2 }, heuristic: { estimate[$0]! })
-        #expect(result?.path == ["s", "x", "v"])
+        #expect(result?.path.vertices == ["s", "x", "v"])
         #expect(result?.distance == 10)
         // The law: a real path, whose weight is the reported distance, never below the shortest.
-        let path = result?.path ?? []
+        let path = result?.path.vertices ?? []
         var total = 0
         for (u, v) in zip(path, path.dropFirst()) {
             let copies = graph.outEdges(of: u).filter { graph.target(ofEdgeAt: $0) == v }.map { xg[$0].2 }
@@ -197,7 +197,7 @@ struct AStarTests {
             estimated.append(vertex)
             return 0
         })
-        #expect(result?.path == ["s"])
+        #expect(result?.path.vertices == ["s"])
         #expect(result?.distance == 0)
         #expect(estimated.allSatisfy { $0 == "s" })
     }

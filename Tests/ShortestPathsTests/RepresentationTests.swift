@@ -38,7 +38,7 @@ struct RepresentationTests {
         for v in ["s", "u", "x", "v", "y"] {
             #expect(fromList.distance(to: v) == fromMultigraph.distance(to: v))
             #expect(fromList.parent(of: v) == fromMultigraph.parent(of: v))
-            #expect(fromList.path(to: v) == fromMultigraph.path(to: v))
+            #expect(fromList.path(to: v)?.vertices == fromMultigraph.path(to: v)?.vertices)
             #expect(fromList.parentEdge(of: v).map { list.edges[$0] } == fromMultigraph.parentEdge(of: v).map { multigraph.edges[$0] })
         }
         #expect(fromList.distance(to: "v") == 9)
@@ -100,10 +100,10 @@ struct RepresentationTests {
         var negative = weights
         negative[8] = -9
         cells[4 * 5 + 0] = -9
-        #expect(ReferenceDirectedMultigraph(vertices: 0 ..< 5, edges: edges).findNegativeCycle(from: 4) { negative[$0] } == [0, 3, 4])
-        #expect(AdjacencyList(vertices: 0 ..< 5, edges: edges).findNegativeCycle(from: 4) { negative[$0] } == [0, 3, 4])
-        #expect(CompressedSparseRow(vertexCount: 5, edges: edges).findNegativeCycle(from: 4) { negative[$0] } == [0, 3, 4])
-        #expect(AdjacencyMatrix(vertexCount: 5, edges: edges).findNegativeCycle(from: 4) { cells[$0.source * 5 + $0.target] } == [0, 3, 4])
+        #expect(ReferenceDirectedMultigraph(vertices: 0 ..< 5, edges: edges).findNegativeCycle(from: 4) { negative[$0] }?.vertices == [0, 3, 4])
+        #expect(AdjacencyList(vertices: 0 ..< 5, edges: edges).findNegativeCycle(from: 4) { negative[$0] }?.vertices == [0, 3, 4])
+        #expect(CompressedSparseRow(vertexCount: 5, edges: edges).findNegativeCycle(from: 4) { negative[$0] }?.vertices == [0, 3, 4])
+        #expect(AdjacencyMatrix(vertexCount: 5, edges: edges).findNegativeCycle(from: 4) { cells[$0.source * 5 + $0.target] }?.vertices == [0, 3, 4])
         #expect(CompressedSparseRow(vertexCount: 5, edges: edges).bellmanFordShortestPaths(from: 4) { negative[$0] } == nil)
     }
 
@@ -195,16 +195,16 @@ struct RepresentationTests {
         #expect(["s", "u", "x", "v", "y"].map { tree.distance(to: $0) } == [0, 8, 5, 9, 7])
         #expect(["s", "u", "x", "v", "y"].map { tree.parent(of: $0) } == [nil, "x", "s", "u", "x"])
         #expect(["s", "u", "x", "v", "y"].map { tree.parentEdge(of: $0) } == [nil, 5, 1, 2, 7])
-        #expect(tree.path(to: "v") == ["s", "x", "u", "v"])
+        #expect(tree.path(to: "v")?.vertices == ["s", "x", "u", "v"])
         #expect(graph.dijkstraShortestPath(from: "s", to: "v") { xg[$0].2 }?.distance == 9)
-        #expect(graph.aStarShortestPath(from: "s", to: "v", weight: { xg[$0].2 }, heuristic: { _ in 0 })?.path == ["s", "x", "u", "v"])
+        #expect(graph.aStarShortestPath(from: "s", to: "v", weight: { xg[$0].2 }, heuristic: { _ in 0 })?.path.vertices == ["s", "x", "u", "v"])
         #expect(["s", "u", "x", "v", "y"].map { graph.bellmanFordShortestPaths(from: "s") { xg[$0].2 }?.distance(to: $0) } == [0, 8, 5, 9, 7])
         #expect(["s", "u", "x", "v", "y"].map { graph.shortestPaths(from: "s").distance(to: $0) } == [0, 1, 1, 2, 2])
 
         let cycle = DictionaryGraph(vertices: [0, 1, 2, 3, 4], edges: (0 ..< 5).map { DirectedEdge(from: $0, to: ($0 + 1) % 5) })
         let cycleWeights = [1, -7, 1, 1, 1]
-        #expect(cycle.findNegativeCycle(from: 3) { cycleWeights[$0] } == [0, 1, 2, 3, 4])
-        #expect(cycle.findNegativeCycle { cycleWeights[$0] } == [0, 1, 2, 3, 4])
+        #expect(cycle.findNegativeCycle(from: 3) { cycleWeights[$0] }?.vertices == [0, 1, 2, 3, 4])
+        #expect(cycle.findNegativeCycle { cycleWeights[$0] }?.vertices == [0, 1, 2, 3, 4])
     }
 
     @Test("SP-95 edge positions survive the CSR initializer: weights follow edgeIndices", .tags(.randomized), arguments: 0 ..< 5)

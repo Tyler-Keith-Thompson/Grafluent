@@ -21,7 +21,7 @@ struct DijkstraBasicsTests {
             #expect(tree.distance(to: 0) == 0)
             #expect(tree.parent(of: 0) == nil)
             #expect(tree.parentEdge(of: 0) == nil)
-            #expect(tree.path(to: 0) == [0])
+            #expect(tree.path(to: 0)?.vertices == [0])
             #expect(tree.hasPath(to: 0))
             #expect(tree.sources == [0])
         }
@@ -55,8 +55,8 @@ struct DijkstraBasicsTests {
             let tree = g.dijkstraShortestPaths(from: 0) { _ in 1 }
             #expect((0 ..< 4).map { tree.distance(to: $0) } == [0, 1, 2, 3])
             #expect((0 ..< 4).map { tree.parent(of: $0) } == [nil, 0, 1, 2])
-            #expect(tree.path(to: 3) == [0, 1, 2, 3])
-            #expect(tree.path(to: 1) == [0, 1])
+            #expect(tree.path(to: 3)?.vertices == [0, 1, 2, 3])
+            #expect(tree.path(to: 1)?.vertices == [0, 1])
         }
         check(AdjacencyMatrix(vertexCount: 4, edges: edges))
         check(CompressedSparseRow(vertexCount: 4, edges: edges))
@@ -78,8 +78,8 @@ struct DijkstraBasicsTests {
             #expect(["s", "u", "x", "v", "y"].map { tree.distance(to: $0) } == [0, 8, 5, 9, 7])
             #expect(["s", "u", "x", "v", "y"].map { tree.parent(of: $0) } == [nil, "x", "s", "u", "x"])
             #expect(["s", "u", "x", "v", "y"].map { tree.parentEdge(of: $0) } == [nil, 5, 1, 2, 7])
-            #expect(tree.path(to: "v") == ["s", "x", "u", "v"])
-            #expect(tree.path(to: "y") == ["s", "x", "y"])
+            #expect(tree.path(to: "v")?.vertices == ["s", "x", "u", "v"])
+            #expect(tree.path(to: "y")?.vertices == ["s", "x", "y"])
             #expect(tree.sources == ["s"])
         }
         check(ReferenceDirectedMultigraph(edges: edges))
@@ -128,7 +128,7 @@ struct DijkstraBasicsTests {
             #expect((0 ..< 5).map { tree.distance(to: $0) } == [0, 6, 1, 4, 5])
             #expect((0 ..< 5).map { tree.parent(of: $0) } == [nil, 4, 0, 2, 3])
             #expect((0 ..< 5).map { tree.parentEdge(of: $0) } == [nil, 8, 0, 5, 6])
-            #expect(tree.path(to: 1) == [0, 2, 3, 4, 1])
+            #expect(tree.path(to: 1)?.vertices == [0, 2, 3, 4, 1])
         }
         check(ReferenceDirectedMultigraph(vertices: 0 ..< 5, edges: edges))
         check(CompressedSparseRow(vertexCount: 5, edges: edges))
@@ -154,7 +154,7 @@ struct DijkstraBasicsTests {
             #expect((1 ... 5).map { tree.distance(to: $0) } == [0, 2, 1, 3, nil])
             #expect((1 ... 5).map { tree.parent(of: $0) } == [nil, 3, 1, 2, nil])
             #expect((1 ... 5).map { tree.parentEdge(of: $0) } == [nil, 3, 2, 1, nil])
-            #expect(tree.path(to: 4) == [1, 3, 2, 4])
+            #expect(tree.path(to: 4)?.vertices == [1, 3, 2, 4])
             #expect(tree.path(to: 5) == nil)
         }
         check(ReferenceDirectedMultigraph(vertices: 1 ... 5, edges: edges))
@@ -219,7 +219,7 @@ struct DijkstraBasicsTests {
         func check<G: DirectedGraph<Int>>(_ g: G) where G.Edges.Index == Int {
             let tree = g.dijkstraShortestPaths(from: 1) { weights[$0] }
             #expect(tree.distance(to: 3) == 4)
-            #expect(tree.path(to: 3) == [1, 4, 5, 6, 3])
+            #expect(tree.path(to: 3)?.vertices == [1, 4, 5, 6, 3])
             #expect(tree.distance(to: 2) == 100)
             #expect(tree.parentEdge(of: 3) == 3)
         }
@@ -234,7 +234,7 @@ struct DijkstraBasicsTests {
         let weights = xg3.map(\.2)
         let tree = graph.directed.dijkstraShortestPaths(from: 0) { weights[$0.position] }
         #expect((0 ..< 6).map { tree.distance(to: $0) } == [0, 2, 14, 15, 11, 10])
-        #expect(tree.path(to: 3) == [0, 1, 2, 3])
+        #expect(tree.path(to: 3)?.vertices == [0, 1, 2, 3])
         #expect(tree.parent(of: 4) == 5)
         #expect(tree.parentEdge(of: 4) == .init(position: 4, reversed: true))
         #expect(tree.parent(of: 5) == 0)

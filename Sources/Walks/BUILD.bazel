@@ -2,7 +2,7 @@
 
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Walk, Trail, Path, Circuit and Cycle.
+# Walk, Trail, Path, Circuit and Cycle: vertex sequences with the edge positions between them, their invariants enforced by construction.
 swift_library(
     name = "Walks",
     srcs = glob(["**/*.swift"]),

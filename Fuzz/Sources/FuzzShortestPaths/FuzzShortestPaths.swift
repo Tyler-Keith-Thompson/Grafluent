@@ -15,6 +15,7 @@ import CompressedSparseRowModule
 import FuzzSupport
 import GraphProtocols
 import ShortestPaths
+import Walks
 
 @main
 enum FuzzShortestPaths {
@@ -73,8 +74,9 @@ enum FuzzShortestPaths {
                 check(graph.source(ofEdgeAt: edge) == parent && graph.target(ofEdgeAt: edge) == v, "\(name): parent edge of \(v)")
                 check(tree.distance(to: parent)! + weight(edge) == expected[v], "\(name): parent of \(v) is not on a shortest path")
                 let path = tree.path(to: v)!
-                let edges = tree.pathEdges(to: v)!
-                check(sources.contains(path.first!) && path.last == v && edges.count == path.count - 1, "\(name): path to \(v)")
+                let edges = path.edges
+                check(sources.contains(path.source) && path.target == v && edges.count == path.count - 1, "\(name): path to \(v)")
+                check(Path(vertices: path.vertices, edges: edges, in: graph) != nil, "\(name): path to \(v) is not a path of the graph")
                 check(edges.map(weight).reduce(0, +) == expected[v], "\(name): path edges to \(v)")
             }
         }
@@ -103,8 +105,9 @@ enum FuzzShortestPaths {
                 check(result?.distance == truth, "\(name) \(source)→\(target): \(String(describing: result?.distance)), expected \(String(describing: truth))")
                 if let result {
                     check(result.path.first == source && result.path.last == target, "\(name) path ends")
-                    check(zip(result.path, result.path.dropFirst()).map { weight[DirectedEdge(from: $0, to: $1)]! } == result.edges.map(w), "\(name) edges follow the path")
-                    check(result.edges.map(w).reduce(0, +) == truth, "\(name) path length")
+                    check(zip(result.path, result.path.dropFirst()).map { weight[DirectedEdge(from: $0, to: $1)]! } == result.path.edges.map(w), "\(name) edges follow the path")
+                    check(result.path.weight(w) == truth, "\(name) path length")
+                    check(Path(vertices: result.path.vertices, edges: result.path.edges, in: list) != nil, "\(name) is not a path of the graph")
                 }
             }
 
@@ -136,7 +139,10 @@ enum FuzzShortestPaths {
             check((cycle != nil) == negativeReachable, "undirected findNegativeCycle \(String(describing: cycle))")
             if let cycle {
                 let closing = cycle.count == 1 ? UndirectedEdge(cycle[0], cycle[0]) : UndirectedEdge(cycle[0], cycle[1])
-                check(cycle.count <= 2 && cycle == cycle.sorted() && (undirected[closing] ?? 0) < 0, "undirected witness \(cycle)")
+                check(cycle.count <= 2 && cycle.vertices == cycle.vertices.sorted() && (undirected[closing] ?? 0) < 0, "undirected witness \(cycle)")
+                // A cycle of the directed view: its arcs, over one undirected edge.
+                check(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph.directed) != nil, "undirected witness \(cycle) is not a cycle of the directed view")
+                check(Set(cycle.edges.map(\.position)).count == 1, "undirected witness \(cycle) uses more than one edge")
             }
             check((graph.findNegativeCycle(weight: uw) != nil) == undirected.values.contains { $0 < 0 }, "undirected whole-graph witness")
         }
@@ -157,12 +163,13 @@ enum FuzzShortestPaths {
         check((bellmanFord == nil) == cycleReachable, "Bellman–Ford returned \(bellmanFord == nil ? "nil" : "a tree"), a negative cycle is \(cycleReachable ? "" : "not ")reachable")
         if let bellmanFord { checkTree(bellmanFord, list, w, expected, "Bellman–Ford") }
 
-        func checkWitness(_ cycle: [Int]?, _ exists: Bool, _ name: String) {
+        func checkWitness(_ cycle: Cycle<Int, Int>?, _ exists: Bool, _ name: String) {
             check((cycle != nil) == exists, "\(name) found \(String(describing: cycle))")
             guard let cycle else { return }
-            check(!cycle.isEmpty && Set(cycle).count == cycle.count && cycle.first == cycle.min(), "\(name): \(cycle) is not a rotated simple cycle")
-            let length = cycle.indices.map { weight[DirectedEdge(from: cycle[$0], to: cycle[($0 + 1) % cycle.count])] }
-            check(length.allSatisfy { $0 != nil } && length.map { $0! }.reduce(0, +) < 0, "\(name): \(cycle) is not a negative cycle")
+            check(cycle.first == cycle.min(), "\(name): \(cycle) is not rotated to its first vertex")
+            // Its own edges: a cycle of the graph, negative by the weights of the edges it names.
+            check(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: list) != nil, "\(name): \(cycle) is not a cycle of the graph")
+            check(cycle.weight(w) < 0, "\(name): \(cycle) is not a negative cycle")
         }
         checkWitness(list.findNegativeCycle(from: sources, weight: w), cycleReachable, "findNegativeCycle(from:)")
         checkWitness(list.findNegativeCycle(weight: w), cycleAnywhere, "findNegativeCycle()")

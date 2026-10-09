@@ -43,8 +43,8 @@ struct ShortestPathReviewTests {
 
         let directed = ReferenceDirectedMultigraph(edges: edges.map { DirectedEdge(from: $0.0, to: $0.1) })
         let result = directed.aStarShortestPath(from: "s", to: "t", weight: { edges[$0].2 }, heuristic: { estimate[$0]! })
-        #expect(result?.path == ["s", "a", "t"])
-        #expect(result?.edges == [1, 2])
+        #expect(result?.path.vertices == ["s", "a", "t"])
+        #expect(result?.path.edges == [1, 2])
         #expect(result?.distance == 2)
 
         let plain = PlainDigraph(vertices: ["s", "a", "t"], edges: edges.map { DirectedEdge(from: $0.0, to: $0.1) })
@@ -53,11 +53,11 @@ struct ShortestPathReviewTests {
         // Undirected, through the native index path and through the directed view.
         let indexed = ReferencePseudograph(edges: edges.map { UndirectedEdge($0.0, $0.1) })
         let viaIndices = indexed.aStarShortestPath(from: "s", to: "t", weight: { edges[$0].2 }, heuristic: { estimate[$0]! })
-        #expect(viaIndices?.path == ["s", "a", "t"])
+        #expect(viaIndices?.path.vertices == ["s", "a", "t"])
         #expect(viaIndices?.distance == 2)
-        #expect(viaIndices?.edges.map(\.position) == [1, 2])
+        #expect(viaIndices?.path.edges.map(\.position) == [1, 2])
         let unindexed = PlainGraph(vertices: ["s", "a", "t"], edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        #expect(unindexed.aStarShortestPath(from: "s", to: "t", weight: { edges[$0].2 }, heuristic: { estimate[$0]! })?.path == ["s", "a", "t"])
+        #expect(unindexed.aStarShortestPath(from: "s", to: "t", weight: { edges[$0].2 }, heuristic: { estimate[$0]! })?.path.vertices == ["s", "a", "t"])
 
         // The heuristic is not asked about the target, and a source that is the target is done.
         var asked: [String] = []
@@ -78,9 +78,9 @@ struct ShortestPathReviewTests {
         #expect((0 ..< 4).map { tree?.distance(to: $0) } == [0, -5, -4, nil])
         #expect(tree?.parent(of: 0) == nil)
         #expect(tree?.parent(of: 1) == 0)
-        #expect(tree?.path(to: 1) == [0, 1])
-        #expect(tree?.path(to: 2) == [0, 1, 2])
-        #expect(tree?.pathEdges(to: 2) == [0, 1])
+        #expect(tree?.path(to: 1)?.vertices == [0, 1])
+        #expect(tree?.path(to: 2)?.vertices == [0, 1, 2])
+        #expect(tree?.path(to: 2)?.edges == [0, 1])
 
         // Listed the other way round, the same.
         let reversed = graph.bellmanFordShortestPaths(from: [1, 0]) { edges[$0].2 }
@@ -100,20 +100,21 @@ struct ShortestPathReviewTests {
         let edges: [(String, String, Int)] = [("a", "b", 5), ("a", "b", 2), ("b", "c", 1), ("a", "c", 9)]
         let graph = ReferenceDirectedMultigraph(edges: edges.map { DirectedEdge(from: $0.0, to: $0.1) })
         let tree = graph.dijkstraShortestPaths(from: "a") { edges[$0].2 }
-        #expect(tree.pathEdges(to: "c") == [1, 2])
-        #expect(tree.pathEdges(to: "a") == [])
-        #expect(graph.dijkstraShortestPath(from: "a", to: "c") { edges[$0].2 }?.edges == [1, 2])
-        #expect(graph.aStarShortestPath(from: "a", to: "c", weight: { edges[$0].2 }, heuristic: { _ in 0 })?.edges == [1, 2])
-        #expect(graph.bellmanFordShortestPaths(from: "a") { edges[$0].2 }?.pathEdges(to: "c") == [1, 2])
-        #expect(graph.shortestPaths(from: "a").pathEdges(to: "c") == [3])
+        #expect(tree.path(to: "c")?.edges == [1, 2])
+        #expect(tree.path(to: "a")?.edges == [])
+        #expect(graph.dijkstraShortestPath(from: "a", to: "c") { edges[$0].2 }?.path.edges == [1, 2])
+        #expect(graph.aStarShortestPath(from: "a", to: "c", weight: { edges[$0].2 }, heuristic: { _ in 0 })?.path.edges == [1, 2])
+        #expect(graph.bellmanFordShortestPaths(from: "a") { edges[$0].2 }?.path(to: "c")?.edges == [1, 2])
+        #expect(graph.shortestPaths(from: "a").path(to: "c")?.edges == [3])
 
         let isolated = ReferenceDirectedMultigraph(vertices: ["a", "z"], edges: edges.map { DirectedEdge(from: $0.0, to: $0.1) })
-        #expect(isolated.dijkstraShortestPaths(from: "a") { edges[$0].2 }.pathEdges(to: "z") == nil)
+        #expect(isolated.dijkstraShortestPaths(from: "a") { edges[$0].2 }.path(to: "z")?.edges == nil)
 
         // Only the -10 copy makes a→b→a negative.
         let cycleEdges: [(String, String, Int)] = [("a", "b", 5), ("a", "b", -10), ("b", "a", 1)]
         let cyclic = ReferenceDirectedMultigraph(edges: cycleEdges.map { DirectedEdge(from: $0.0, to: $0.1) })
-        #expect(cyclic.findNegativeCycle(from: "a") { cycleEdges[$0].2 } == ["a", "b"])
+        #expect(cyclic.findNegativeCycle(from: "a") { cycleEdges[$0].2 }?.vertices == ["a", "b"])
+        #expect(cyclic.findNegativeCycle(from: "a") { cycleEdges[$0].2 }?.edges == [1, 2])
         #expect(cyclic.bellmanFordShortestPaths(from: "a") { cycleEdges[$0].2 } == nil)
         // Without the -10 copy the cycle weighs 6.
         #expect(cyclic.findNegativeCycle(from: "a") { [5, 10, 1][$0] } == nil)
@@ -122,14 +123,15 @@ struct ShortestPathReviewTests {
     @Test("SP-135 undirected negative self-loops and parallel edges, with and without vertex indices")
     func undirectedNegativeEdges() {
         func check<G: Graph<String>>(_ g: G, _ weights: [Int], _ label: String) where G.Edges.Index == Int {
-            #expect(g.findNegativeCycle(from: "a") { weights[$0] } == ["c"], "\(label)")
+            #expect(g.findNegativeCycle(from: "a") { weights[$0] }?.vertices == ["c"], "\(label)")
+            #expect(g.findNegativeCycle(from: "a") { weights[$0] }?.edges == [.init(position: 2, reversed: false)], "\(label)")
             #expect(g.bellmanFordShortestPaths(from: "a") { weights[$0] } == nil, "\(label)")
             // From the isolated vertex nothing negative is reachable.
             #expect(g.findNegativeCycle(from: "d") { weights[$0] } == nil, "\(label)")
             #expect(g.bellmanFordShortestPaths(from: "d") { weights[$0] }?.distance(to: "d") == 0, "\(label)")
             #expect(g.bellmanFordShortestPaths(from: "d") { weights[$0] }?.hasPath(to: "a") == false, "\(label)")
             // The whole-graph search does not need a source.
-            #expect(g.findNegativeCycle { weights[$0] } == ["c"], "\(label)")
+            #expect(g.findNegativeCycle { weights[$0] }?.vertices == ["c"], "\(label)")
         }
         // a–b, b–c, and a negative self-loop at c; d is isolated.
         let loopEdges = [UndirectedEdge("a", "b"), UndirectedEdge("b", "c"), UndirectedEdge("c", "c")]
@@ -139,15 +141,22 @@ struct ShortestPathReviewTests {
         // A negative edge stored as y–x: the cycle starts at x, first in vertices order.
         let parallel = [UndirectedEdge("x", "y"), UndirectedEdge("y", "x")]
         for weights in [[3, -1], [-1, 3]] {
-            #expect(ReferencePseudograph(vertices: ["x", "y"], edges: parallel).findNegativeCycle(from: "y") { weights[$0] } == ["x", "y"])
-            #expect(PlainGraph(vertices: ["x", "y"], edges: parallel).findNegativeCycle(from: "y") { weights[$0] } == ["x", "y"])
-            #expect(ReferencePseudograph(vertices: ["y", "x"], edges: parallel).findNegativeCycle(from: "x") { weights[$0] } == ["y", "x"])
+            #expect(ReferencePseudograph(vertices: ["x", "y"], edges: parallel).findNegativeCycle(from: "y") { weights[$0] }?.vertices == ["x", "y"])
+            // The witness names the negative copy, traversed both ways.
+            let negative = weights.firstIndex(of: -1)!
+            let xToY = DirectedView<ReferencePseudograph<String>>.Edges.Index(position: negative, reversed: negative == 1)
+            let yToX = DirectedView<ReferencePseudograph<String>>.Edges.Index(position: negative, reversed: negative == 0)
+            #expect(ReferencePseudograph(vertices: ["x", "y"], edges: parallel).findNegativeCycle(from: "y") { weights[$0] }?.edges == [xToY, yToX])
+            #expect(ReferencePseudograph(vertices: ["y", "x"], edges: parallel).findNegativeCycle(from: "x") { weights[$0] }?.edges == [yToX, xToY])
+            #expect(PlainGraph(vertices: ["x", "y"], edges: parallel).findNegativeCycle(from: "y") { weights[$0] }?.vertices == ["x", "y"])
+            #expect(ReferencePseudograph(vertices: ["y", "x"], edges: parallel).findNegativeCycle(from: "x") { weights[$0] }?.vertices == ["y", "x"])
             #expect(PlainGraph(vertices: ["x", "y"], edges: parallel).bellmanFordShortestPaths(from: "x") { weights[$0] } == nil)
         }
         // A negative edge reached only at the end of a long path.
         let chain = (0 ..< 20).map { UndirectedEdge($0, $0 + 1) }
         let chainWeights = (0 ..< 20).map { $0 == 19 ? -1 : 1 }
-        #expect(ReferencePseudograph(edges: chain).findNegativeCycle(from: 0) { chainWeights[$0] } == [19, 20])
+        #expect(ReferencePseudograph(edges: chain).findNegativeCycle(from: 0) { chainWeights[$0] }?.vertices == [19, 20])
+        #expect(ReferencePseudograph(edges: chain).findNegativeCycle(from: 0) { chainWeights[$0] }?.edges == [.init(position: 19, reversed: false), .init(position: 19, reversed: true)])
         #expect(ReferencePseudograph(edges: chain).bellmanFordShortestPaths(from: 0) { chainWeights[$0] } == nil)
         #expect(ReferencePseudograph(edges: chain).bellmanFordShortestPaths(from: 0) { _ in 1 }?.distance(to: 20) == 20)
     }
@@ -163,11 +172,11 @@ struct ShortestPathReviewTests {
         #expect(unindexed.vertexIndexBound == nil)
         func check<G: Graph<String>>(_ graph: G, _ label: String) where G.Edges.Index == Int {
             let star = graph.aStarShortestPath(from: "n5", to: "n0", weight: { edges[$0].2 }, heuristic: { estimate[$0]! })
-            #expect(star?.path == ["n5", "n2", "n1", "n0"], "\(label)")
+            #expect(star?.path.vertices == ["n5", "n2", "n1", "n0"], "\(label)")
             #expect(star?.distance == 42, "\(label)")
             #expect(graph.aStarShortestPath(from: "n5", to: "z", weight: { edges[$0].2 }, heuristic: { estimate[$0]! }) == nil, "\(label)")
             #expect(graph.dijkstraShortestPath(from: "n5", to: "z") { edges[$0].2 } == nil, "\(label)")
-            #expect(graph.dijkstraShortestPath(from: "n0", to: "n5") { edges[$0].2 }?.path == ["n0", "n1", "n2", "n5"], "\(label)")
+            #expect(graph.dijkstraShortestPath(from: "n0", to: "n5") { edges[$0].2 }?.path.vertices == ["n0", "n1", "n2", "n5"], "\(label)")
             // Several sources and an inclusive cutoff.
             let order = ["n5", "n2", "n1", "n0", "z"]
             let both = graph.dijkstraShortestPaths(from: ["n0", "n5"], cutoff: 10) { edges[$0].2 }
@@ -187,8 +196,8 @@ struct ShortestPathReviewTests {
         #expect(tree.parentEdge(of: "n5") == .init(position: 1, reversed: true))
         let forward = indexed.dijkstraShortestPaths(from: "n5") { edges[$0].2 }
         #expect(forward.parentEdge(of: "n2") == .init(position: 1, reversed: false))
-        #expect(forward.pathEdges(to: "n0") == [.init(position: 1, reversed: false), .init(position: 2, reversed: false), .init(position: 3, reversed: false)])
-        #expect(indexed.dijkstraShortestPath(from: "n0", to: "n5") { edges[$0].2 }?.edges == [.init(position: 3, reversed: true), .init(position: 2, reversed: true), .init(position: 1, reversed: true)])
+        #expect(forward.path(to: "n0")?.edges == [.init(position: 1, reversed: false), .init(position: 2, reversed: false), .init(position: 3, reversed: false)])
+        #expect(indexed.dijkstraShortestPath(from: "n0", to: "n5") { edges[$0].2 }?.path.edges == [.init(position: 3, reversed: true), .init(position: 2, reversed: true), .init(position: 1, reversed: true)])
     }
 
     @Test("SP-137 a NaN cutoff traps")

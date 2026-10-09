@@ -79,7 +79,7 @@ struct TiesAndMultigraphTests {
         let tree = graph.dijkstraShortestPaths(from: "s") { weights[$0] }
         #expect(["s", "u", "x", "v", "y"].map { tree.distance(to: $0) } == [0, 8, 5, 9, 7])
         #expect(tree.parentEdge(of: "u") == 5)
-        #expect(tree.path(to: "v") == ["s", "x", "u", "v"])
+        #expect(tree.path(to: "v")?.vertices == ["s", "x", "u", "v"])
 
         // Undirected, both copies as edges of a pseudograph read through directed.
         let pseudograph = ReferencePseudograph(edges: [UndirectedEdge("a", "b"), UndirectedEdge("a", "b")])
@@ -141,7 +141,7 @@ struct TiesAndMultigraphTests {
             // The rule allows 0 or 2 for vertex 1, but 2's parent is 1, so a parent 2 would
             // close a cycle of parents: it must be 0.
             #expect(tree.parent(of: 1) == 0)
-            #expect(tree.path(to: 3) == [0, 1, 2, 3])
+            #expect(tree.path(to: 3)?.vertices == [0, 1, 2, 3])
         }
         check(ReferenceDirectedMultigraph(edges: edges))
         check(CompressedSparseRow(vertexCount: 4, edges: edges))

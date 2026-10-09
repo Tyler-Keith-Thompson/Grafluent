@@ -106,7 +106,7 @@ struct WeightEdgeCaseTests {
         #expect(tree.parent(of: "a") == "b")
         #expect(tree.distance(to: "c") == .infinity)
         #expect(tree.hasPath(to: "c"))
-        #expect(tree.path(to: "c") == ["s", "c"])
+        #expect(tree.path(to: "c")?.vertices == ["s", "c"])
         let bellmanFord = graph.bellmanFordShortestPaths(from: "s") { weights[$0] }
         #expect(bellmanFord?.distance(to: "a") == 3.0)
         #expect(bellmanFord?.distance(to: "c") == .infinity)
@@ -171,7 +171,7 @@ struct WeightEdgeCaseTests {
         let costs = ints.map { Cost(cents: $0) }
         let costTree = graph.dijkstraShortestPaths(from: "s") { costs[$0] }
         #expect(order.map { costTree.distance(to: $0)?.cents } == [0, 8, 5, 9, 7])
-        #expect(costTree.path(to: "v") == ["s", "x", "u", "v"])
+        #expect(costTree.path(to: "v")?.vertices == ["s", "x", "u", "v"])
         #expect(graph.bellmanFordShortestPaths(from: "s") { costs[$0] }?.distance(to: "v") == Cost(cents: 9))
         #expect(graph.aStarShortestPath(from: "s", to: "v", weight: { costs[$0] }, heuristic: { _ in .zero })?.distance == Cost(cents: 9))
     }

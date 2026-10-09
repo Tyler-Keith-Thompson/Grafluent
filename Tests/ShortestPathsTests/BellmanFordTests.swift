@@ -27,7 +27,7 @@ struct BellmanFordTests {
             #expect(["u", "v", "x", "y", "z"].map { tree?.distance(to: $0) } == [2, 4, 7, -2, 0])
             #expect(["u", "v", "x", "y", "z"].map { tree?.parent(of: $0) } == ["v", "x", "z", "u", nil])
             #expect(["u", "v", "x", "y", "z"].map { tree?.parentEdge(of: $0) } == [3, 5, 9, 0, nil])
-            #expect(tree?.path(to: "y") == ["z", "x", "v", "u", "y"])
+            #expect(tree?.path(to: "y")?.vertices == ["z", "x", "v", "u", "y"])
             #expect(g.findNegativeCycle(from: "z") { weights[$0] } == nil)
         }
         check(ReferenceDirectedMultigraph(vertices: ["u", "v", "x", "y", "z"], edges: edges))
@@ -43,7 +43,7 @@ struct BellmanFordTests {
             let tree = g.bellmanFordShortestPaths(from: 0, weight: weight)
             #expect((0 ..< 5).map { tree?.distance(to: $0) } == [0, 1, -2, -1, 0])
             #expect((0 ..< 5).map { tree?.parent(of: $0) } == [nil, 0, 1, 2, 3])
-            #expect((0 ..< 5).map { tree?.path(to: $0) } == [[0], [0, 1], [0, 1, 2], [0, 1, 2, 3], [0, 1, 2, 3, 4]])
+            #expect((0 ..< 5).map { tree?.path(to: $0)?.vertices } == [[0], [0, 1], [0, 1, 2], [0, 1, 2, 3], [0, 1, 2, 3, 4]])
         }
         check(ReferenceDirectedMultigraph(edges: edges)) { weights[$0] }
         check(AdjacencyList(edges: edges)) { weights[$0] }
@@ -80,8 +80,8 @@ struct BellmanFordTests {
         func check<G: DirectedGraph<String>>(_ g: G) where G.Edges.Index == Int {
             let tree = g.bellmanFordShortestPaths(from: "V1") { weights[$0] }
             #expect(["V1", "V2", "V3", "V4", "V5"].map { tree?.distance(to: $0) } == [0, -2, -3, -23, -100])
-            #expect(tree?.path(to: "V4") == ["V1", "V3", "V4"])
-            #expect(tree?.path(to: "V5") == ["V1", "V5"])
+            #expect(tree?.path(to: "V4")?.vertices == ["V1", "V3", "V4"])
+            #expect(tree?.path(to: "V5")?.vertices == ["V1", "V5"])
         }
         check(ReferenceDirectedMultigraph(edges: edges))
         check(AdjacencyList(edges: edges))
@@ -98,7 +98,7 @@ struct BellmanFordTests {
         let overloadTree = graph.bellmanFordShortestPaths(from: "V3") { weights[$0] }
         for tree in [viewTree, overloadTree] {
             #expect(["V1", "V2", "V3", "V4", "V5"].map { tree?.distance(to: $0) } == [3, 5, 0, 10, 15])
-            #expect(tree?.path(to: "V5") == ["V3", "V1", "V2", "V4", "V5"])
+            #expect(tree?.path(to: "V5")?.vertices == ["V3", "V1", "V2", "V4", "V5"])
             #expect(tree?.parentEdge(of: "V1") == .init(position: 1, reversed: true))
             #expect(tree?.parentEdge(of: "V2") == .init(position: 0, reversed: false))
             #expect(tree?.parentEdge(of: "V4") == .init(position: 2, reversed: false))
@@ -164,7 +164,7 @@ struct BellmanFordTests {
             let tree = g.bellmanFordShortestPaths(from: "1") { weights[$0] }
             #expect(order.map { tree?.distance(to: $0) } == [0, 1, 2, 3, nil, nil, nil])
             #expect(g.findNegativeCycle(from: "1") { weights[$0] } == nil)
-            #expect(g.findNegativeCycle { weights[$0] } == ["5", "6", "7"])
+            #expect(g.findNegativeCycle { weights[$0] }?.vertices == ["5", "6", "7"])
             #expect(g.bellmanFordShortestPaths(from: "5") { weights[$0] } == nil)
         }
         check(ReferenceDirectedMultigraph(vertices: order, edges: edges))

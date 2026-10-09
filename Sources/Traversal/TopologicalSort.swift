@@ -1,4 +1,5 @@
 import GraphProtocols
+import Walks
 
 extension DirectedGraph {
     /// The vertices in an order in which every edge goes from an earlier vertex to a later one:
@@ -120,11 +121,12 @@ extension DirectedGraph {
         return order.count == all.count ? order : nil
     }
 
-    /// A cycle, as its vertices in order (each has an edge to the next, and the last to the first),
-    /// or `nil` when the graph is acyclic. It is the cycle closed by the first back edge of a
-    /// depth-first search of the whole graph; a self-loop gives a one-vertex cycle.
+    /// A cycle, its vertices in order from the target of the back edge that closes it, with the
+    /// edges the search took, or `nil` when the graph is acyclic. It is the cycle closed by the
+    /// first back edge of a depth-first search of the whole graph; a self-loop gives a cycle of one
+    /// vertex and one edge.
     @inlinable
-    public func findCycle() -> [Vertex]? {
+    public func findCycle() -> Cycle<Vertex, Edges.Index>? {
         _findCycle(from: nil)
     }
 
@@ -133,7 +135,7 @@ extension DirectedGraph {
     ///
     /// - Precondition: every root is a vertex.
     @inlinable
-    public func findCycle(from roots: some Sequence<Vertex>) -> [Vertex]? {
+    public func findCycle(from roots: some Sequence<Vertex>) -> Cycle<Vertex, Edges.Index>? {
         var all: [Vertex] = []
         for root in roots {
             precondition(contains(root), "The source \(root) is not a vertex of the graph")
@@ -143,7 +145,7 @@ extension DirectedGraph {
     }
 
     @inlinable
-    func _findCycle(from roots: [Vertex]?) -> [Vertex]? {
+    func _findCycle(from roots: [Vertex]?) -> Cycle<Vertex, Edges.Index>? {
         var search = IndexSpaceSearch(self)
         let rootIDs = roots.map { $0.map { search.ids.identifier(of: $0) } }
         var closing: (source: Int, target: Int)?
@@ -158,7 +160,10 @@ extension DirectedGraph {
         // The tree path from w down to u, which the back edge u→w closes.
         var cycle: [Int] = [u]
         while cycle[cycle.count - 1] != w { cycle.append(search.parent[cycle[cycle.count - 1]]) }
-        return cycle.reversed().map { search.ids.vertex($0) }
+        // The search took, from each vertex, the first out-edge to the next (an earlier one would
+        // have reached it first), so picking the first edge of each step gives its edges.
+        let ordered = Array(cycle.reversed())
+        return Cycle(_uncheckedVertices: ordered.map { search.ids.vertex($0) }, edges: _stepEdges(ordered + [ordered[0]], search.ids))
     }
 
     /// Whether the graph has no cycle (a self-loop is a cycle). O(n + m).

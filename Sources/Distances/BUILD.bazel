@@ -2,14 +2,15 @@
 
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Eccentricity, diameter, radius, center, periphery, density.
+# Eccentricity, radius, diameter, center, periphery, centroid, Wiener index, average shortest path length, density.
 swift_library(
     name = "Distances",
     srcs = glob(["**/*.swift"]),
     module_name = "Distances",
     deps = [
         "//Sources/GraphProtocols",
-        "//Sources/ShortestPaths",
+        "//Sources/Walks",
+        "//Sources/PriorityQueueModule",
     ],
     visibility = ["//visibility:public"],
 )

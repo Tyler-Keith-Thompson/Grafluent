@@ -1,4 +1,5 @@
 import GraphProtocols
+import Walks
 
 // Undirected graphs through `directed`: each edge is two arcs sharing its position, so both
 // directions weigh the same, and `weight` is called per examined arc (up to twice per edge). A
@@ -62,16 +63,21 @@ extension Graph {
         return nil
     }
 
-    /// The negative cycle a negative edge makes: a self-loop alone, or there and back, starting at
-    /// the endpoint first in `vertices` order.
+    /// The negative cycle a negative edge makes, as a cycle of `directed`: a self-loop alone (its
+    /// forward arc), or there and back over the edge's two arcs, starting at the endpoint first in
+    /// `vertices` order. Over the undirected graph itself it would repeat the edge, so it would be
+    /// a closed walk, not a cycle.
     @inlinable
-    func _negativeEdgeCycle(_ edge: Edges.Index, from u: Vertex) -> [Vertex] {
+    func _negativeEdgeCycle(_ edge: Edges.Index, from u: Vertex) -> Cycle<Vertex, DirectedView<Self>.Edges.Index> {
         let v = oppositeVertex(to: u, acrossEdgeAt: edge)
-        if u == v { return [u] }
+        // The arc leaving `x` over the edge: forward when `x` is its stored `u`.
+        let arc = { (x: Vertex) in DirectedView<Self>.Edges.Index(position: edge, reversed: self.edges[edge].u != x) }
+        if u == v { return Cycle(_uncheckedVertices: [u], edges: [DirectedView<Self>.Edges.Index(position: edge, reversed: false)]) }
         let first = vertexIndexBound != nil
             ? vertexIndex(of: u) < vertexIndex(of: v)
             : vertices.firstIndex(of: u)! < vertices.firstIndex(of: v)!
-        return first ? [u, v] : [v, u]
+        let (a, b) = first ? (u, v) : (v, u)
+        return Cycle(_uncheckedVertices: [a, b], edges: [arc(a), arc(b)])
     }
 
     @inlinable
@@ -118,9 +124,9 @@ extension Graph {
     @inlinable
     public func dijkstraShortestPath<W: Comparable & AdditiveArithmetic>(
         from source: Vertex, to target: Vertex, weight: (Edges.Index) -> W
-    ) -> (path: [Vertex], edges: [DirectedView<Self>.Edges.Index], distance: W)? {
+    ) -> (path: Path<Vertex, DirectedView<Self>.Edges.Index>, distance: W)? {
         if let tree = _undirectedDijkstra(sources: CollectionOfOne(source), target: target, cutoff: nil, weight: weight, heuristic: nil) {
-            return tree.path(to: target).map { ($0, tree.pathEdges(to: target)!, tree.distance(to: target)!) }
+            return tree.path(to: target).map { ($0, tree.distance(to: target)!) }
         }
         return directed.dijkstraShortestPath(from: source, to: target) { weight($0.position) }
     }
@@ -129,12 +135,12 @@ extension Graph {
     @inlinable
     public func aStarShortestPath<W: Comparable & AdditiveArithmetic>(
         from source: Vertex, to target: Vertex, weight: (Edges.Index) -> W, heuristic: (Vertex) -> W
-    ) -> (path: [Vertex], edges: [DirectedView<Self>.Edges.Index], distance: W)? {
+    ) -> (path: Path<Vertex, DirectedView<Self>.Edges.Index>, distance: W)? {
         let native = withoutActuallyEscaping(heuristic) { heuristic in
             _undirectedDijkstra(sources: CollectionOfOne(source), target: target, cutoff: nil, weight: weight, heuristic: heuristic)
         }
         if let tree = native {
-            return tree.path(to: target).map { ($0, tree.pathEdges(to: target)!, tree.distance(to: target)!) }
+            return tree.path(to: target).map { ($0, tree.distance(to: target)!) }
         }
         return directed.aStarShortestPath(from: source, to: target, weight: { weight($0.position) }, heuristic: heuristic)
     }
@@ -162,7 +168,7 @@ extension Graph {
     @inlinable
     public func findNegativeCycle<W: Comparable & AdditiveArithmetic>(
         from source: Vertex, weight: (Edges.Index) -> W
-    ) -> [Vertex]? {
+    ) -> Cycle<Vertex, DirectedView<Self>.Edges.Index>? {
         findNegativeCycle(from: CollectionOfOne(source), weight: weight)
     }
 
@@ -172,13 +178,13 @@ extension Graph {
     @inlinable
     public func findNegativeCycle<W: Comparable & AdditiveArithmetic>(
         from sources: some Sequence<Vertex>, weight: (Edges.Index) -> W
-    ) -> [Vertex]? {
+    ) -> Cycle<Vertex, DirectedView<Self>.Edges.Index>? {
         _reachableNegativeEdge(from: Array(sources), weight: weight).map { _negativeEdgeCycle($0.edge, from: $0.from) }
     }
 
     /// `directed.findNegativeCycle(weight:)`: a negative edge anywhere, in one pass over the edges.
     @inlinable
-    public func findNegativeCycle<W: Comparable & AdditiveArithmetic>(weight: (Edges.Index) -> W) -> [Vertex]? {
+    public func findNegativeCycle<W: Comparable & AdditiveArithmetic>(weight: (Edges.Index) -> W) -> Cycle<Vertex, DirectedView<Self>.Edges.Index>? {
         _reachableNegativeEdge(from: nil, weight: weight).map { _negativeEdgeCycle($0.edge, from: $0.from) }
     }
 

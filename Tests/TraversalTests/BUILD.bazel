@@ -19,6 +19,7 @@ swift_library(
         "//Sources/AdjacencyMatrixModule",
         "//Sources/CompressedSparseRowModule",
         "//Tests/GrafluentTestSupport",
+        "//Sources/Walks",
     ],
 )
 

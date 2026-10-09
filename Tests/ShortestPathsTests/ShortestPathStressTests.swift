@@ -75,7 +75,7 @@ struct ShortestPathStressTests {
             let graph = CompressedSparseRow(vertexCount: n, edges: edges)
             // Every edge 1 except the last, n − 1 → 0, at −n: total −1.
             let weight: (Int) -> Int = { $0 == n - 1 ? -n : 1 }
-            #expect(graph.findNegativeCycle(from: 0, weight: weight) == Array(0 ..< n))
+            #expect(graph.findNegativeCycle(from: 0, weight: weight)?.vertices == Array(0 ..< n))
             #expect(graph.bellmanFordShortestPaths(from: 0, weight: weight) == nil)
         }.value
     }
@@ -87,8 +87,8 @@ struct ShortestPathStressTests {
             let edges = (0 ..< n - 1).map { DirectedEdge(from: $0, to: $0 + 1) } + [DirectedEdge(from: n - 1, to: n / 2)]
             let graph = CompressedSparseRow(vertexCount: n, edges: edges)
             let weight: (Int) -> Int = { $0 == n - 1 ? -n : 1 }
-            #expect(graph.findNegativeCycle(from: 0, weight: weight) == Array(n / 2 ..< n))
-            #expect(graph.findNegativeCycle(weight: weight) == Array(n / 2 ..< n))
+            #expect(graph.findNegativeCycle(from: 0, weight: weight)?.vertices == Array(n / 2 ..< n))
+            #expect(graph.findNegativeCycle(weight: weight)?.vertices == Array(n / 2 ..< n))
         }.value
     }
 

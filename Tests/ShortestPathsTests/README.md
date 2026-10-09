@@ -19,8 +19,7 @@ struct ShortestPathTree<G: DirectedGraph, Distance: Comparable & AdditiveArithme
     func hasPath(to:) -> Bool
     func parent(of:) -> G.Vertex?                      // nil for a source and for an unreached vertex
     func parentEdge(of:) -> G.Edges.Index?             // the edge from parent(of:); tells parallel edges apart
-    func path(to:) -> [G.Vertex]?                      // from a source, both ends included; [s] for a source
-    func pathEdges(to:) -> [G.Edges.Index]?            // the edges of path(to:); [] for a source
+    func path(to:) -> Path<G.Vertex, G.Edges.Index>?   // from a source; Path(vertex: s) for a source
     func distance(toIndex:) -> Distance?
     func parent(ofIndex:) -> Int?
 
@@ -28,13 +27,14 @@ extension DirectedGraph
     func shortestPaths(from: Vertex | some Sequence<Vertex>) -> ShortestPathTree<Self, Int>
     func dijkstraShortestPaths(from: Vertex | some Sequence<Vertex>, cutoff: W? = nil,
                                weight: (Edges.Index) -> W) -> ShortestPathTree<Self, W>
-    func dijkstraShortestPath(from:to:weight:) -> (path: [Vertex], edges: [Edges.Index], distance: W)?
-    func aStarShortestPath(from:to:weight:heuristic: (Vertex) -> W) -> (path: [Vertex], edges: [Edges.Index], distance: W)?
+    func dijkstraShortestPath(from:to:weight:) -> (path: Path<Vertex, Edges.Index>, distance: W)?
+    func aStarShortestPath(from:to:weight:heuristic: (Vertex) -> W) -> (path: Path<Vertex, Edges.Index>, distance: W)?
     func bellmanFordShortestPaths(from: Vertex | some Sequence<Vertex>, weight:) -> ShortestPathTree<Self, W>?
-    func findNegativeCycle(from: Vertex | some Sequence<Vertex>, weight:) -> [Vertex]?
-    func findNegativeCycle(weight:) -> [Vertex]?       // every vertex a source
+    func findNegativeCycle(from: Vertex | some Sequence<Vertex>, weight:) -> Cycle<Vertex, Edges.Index>?
+    func findNegativeCycle(weight:) -> Cycle<Vertex, Edges.Index>?   // every vertex a source
 extension Graph                                        // weight over the base's positions
-    // the same methods, returning ShortestPathTree<DirectedView<Self>, W>
+    // the same methods, returning ShortestPathTree<DirectedView<Self>, W>, and paths and
+    // cycles over DirectedView<Self>.Edges.Index (an arc: a position and its direction)
 ```
 
 `W` is `Comparable & AdditiveArithmetic` throughout.
@@ -52,15 +52,15 @@ extension Graph                                        // weight over the base's
 | Several sources | Dijkstra and unweighted: each at distance 0 with no parent, even when reached from another (SP-24). Bellman–Ford: one super-source, so a source that another reaches by a negative path gets that distance and a parent (SP-133). A repeated source counts once | NetworkX's `multi_source_dijkstra` and `_bellman_ford` |
 | Single target | Stops when the target is settled, not when first reached (SP-21) | NetworkX, LEMON |
 | Negative cycles | `bellmanFordShortestPaths` returns `nil` exactly when one is reachable from a source; `findNegativeCycle` returns the witness | Traversal's `topologicalSort` / `findCycle` |
-| Witness | Distinct vertices, each with an edge to the next and the last to the first, the first not repeated, rotated to start at its first vertex in `vertices` order; a negative self-loop is `[v]`, an undirected negative edge `[u, v]` (SP-63, SP-64, SP-69a) | Traversal's `findCycle()` |
+| Witness | A `Cycle` (Walks): distinct vertices, the first not repeated, rotated to start at its first vertex in `vertices` order, with Bellman–Ford's parent edges between them, so it is a cycle of the graph that weighs less than zero (SP-69a, WK-1212). A negative self-loop is `[v]` over that loop; an undirected negative edge `[u, v]` over its two arcs, `(p, r)` and `(p, !r)` (SP-63, SP-64, WK-1201) | Traversal's `findCycle()` |
 | Zero-weight cycles | Not negative (SP-60) | Strict `<` |
-| A* | Reopens a vertex whose distance improves, so an admissible heuristic gives a shortest path even when inconsistent (SP-71); an inadmissible one gives some path (SP-80); source == target returns `([s], [], 0)` (SP-81); the target's own estimate is taken as zero, so a negative one (still admissible) cannot end the search early (SP-132) | Boost, NetworkX, JGraphT |
+| A* | Reopens a vertex whose distance improves, so an admissible heuristic gives a shortest path even when inconsistent (SP-71); an inadmissible one gives some path (SP-80); source == target returns `(Path(vertex: s), 0)` (SP-81); the target's own estimate is taken as zero, so a negative one (still admissible) cannot end the search early (SP-132) | Boost, NetworkX, JGraphT |
 | Unweighted | Breadth-first, fully determined: first discovery in out-edge order (SP-86) | — |
 | Undirected graphs | Through `directed`, each edge two arcs sharing its position; the `Graph` overloads take weights by the base position and return the view's tree, whose parent edges are `(position, reversed)` arcs (SP-92) | Traversal's precedent |
 | Results | Values holding a copy of the graph: mutating the original afterwards changes nothing (SP-126) | Connectivity's `Components` |
 | Index space | On an indexed adjacency list the algorithms hash only the source (and the target), not one vertex per step (SP-129) | Connectivity CN-136 |
 | Preconditions | A source, target or query vertex that is not a vertex, an empty source sequence, and `distance(toIndex:)` / `parent(ofIndex:)` outside `0..<vertexIndexBound` trap; tested with exit tests | — |
-| Paths and cycles | Paths are `[Vertex]` with their edges beside them (`pathEdges(to:)`, the `edges` of a single-target result), which tell parallel edges apart (SP-134). Witnesses are `[Vertex]`; between parallel edges the lightest closes the cycle | `Walks` does not exist yet; its `Cycle` will carry the edges |
+| Paths and cycles | Paths are `Path` and witnesses `Cycle`, from `Walks`; both carry their edges, which tell parallel edges apart (SP-134, WK-1209, WK-1211). Tests compare `?.vertices` with an array literal where the old API returned `[Vertex]`, and `?.edges` where the edge taken is the point. The path to a source is `Path(vertex: s)` (WK-1207); a path weighs its distance (WK-1210) | Walks' `Path` and `Cycle`; `Cycle` equality is up to rotation |
 | Undirected negative edges | Bellman–Ford and the negative-cycle search find a reachable negative edge in one O(V + E) pass and return `nil` or that edge as the witness, before any O(VE) search (SP-135) | Any reachable negative edge is a 2-cycle |
 
 ## How tests pin values
@@ -98,12 +98,14 @@ breadth-first search, Johnson's reweighting).
 | `ShortestPathStressTests.swift` | §K: a 10⁶-vertex path, a 1000 × 1000 grid, long negative cycles, a lasso, a negative path, wide graphs, the real-world fixtures, inside a `Task` |
 | `ShortestPathConformanceTests.swift` | §L: preconditions, index-space queries, value semantics, `Sendable`, existentials, index-space dispatch, lazy weight reads |
 | `ShortestPathReviewTests.swift` | §M: the critical review's cases, with conformers without vertex indices (`PlainDigraph`, `PlainGraph`, private to the file) |
+| `ShortestPathWalkReviewTests.swift` | Walks migration, after the review (WK-1220 – WK-1222) |
+| `ShortestPathWalkTests.swift` | Walks migration: paths and witnesses as `Path` and `Cycle`, their edges between parallel copies and over undirected arcs, the trivial path, and the path and witness laws on random graphs |
 
 ## Case IDs
 
 Case IDs (SP-01 … SP-137) refer to the catalog of cases harvested from Boost, NetworkX,
 petgraph, JGraphT, LEMON, igraph (behaviour only), gonum, rustworkx and scipy. Each test's name
-starts with its ID.
+starts with its ID. WK-12nn cases are the Walks catalog's migration section (`Tests/WalksTests/README.md`); WK-1202 – WK-1205 and WK-1213 – WK-1215 are in Traversal's suite.
 
 | Cases | Section | File |
 |---|---|---|
@@ -121,6 +123,8 @@ starts with its ID.
 | SP-125 – SP-130 | L. Preconditions, value semantics, dispatch | `ShortestPathConformanceTests.swift` |
 | SP-131 | J. Properties with shrinking (PropertyBased) | `ShortestPathPropertyTests.swift` |
 | SP-132 – SP-137 | M. Review cases: A*'s target estimate, Bellman–Ford's super-source, parallel edges in paths and witnesses, undirected negative edges with and without indices, the native undirected path, the NaN cutoff | `ShortestPathReviewTests.swift` |
+| WK-1201, WK-1206 – WK-1212 | Walks catalog §12, migration: witnesses and paths as walks | `ShortestPathWalkTests.swift` |
+| WK-1220 – WK-1222 | Walks migration, after the review: a source improved by another, undirected paths as arcs of the directed view, an undirected negative self-loop | `ShortestPathWalkReviewTests.swift` |
 | SP-B01 – SP-B08 | Benchmarks | not tests; SP-115 and SP-116 assert only answers (and SP-115 that Bellman–Ford reads each weight about once on a path) |
 
 Not tested here: the successor-closure entry points (`dijkstraShortestPath(from:successors:success:)`

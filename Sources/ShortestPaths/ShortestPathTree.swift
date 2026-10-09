@@ -1,4 +1,5 @@
 import GraphProtocols
+import Walks
 
 /// Shortest paths from one or more sources: for each reached vertex, its distance, its parent and
 /// the edge from the parent (a forest when there are several sources, LEMON's "shortest path tree
@@ -89,38 +90,26 @@ public struct ShortestPathTree<G: DirectedGraph, Distance: Comparable & Additive
         return _parent[i] >= 0 ? _parentEdge[i] : nil
     }
 
-    /// A shortest path from a source to `vertex`, both included: `[vertex]` for a source, `nil`
-    /// when `vertex` is not reached. O(length).
+    /// A shortest path from a source to `vertex`, both included, with the edges it takes (which
+    /// tell parallel edges apart): the trivial path `[vertex]` for a source, `nil` when `vertex` is
+    /// not reached. O(length).
     ///
     /// - Precondition: `vertex` is a vertex of the graph.
     @inlinable
-    public func path(to vertex: G.Vertex) -> [G.Vertex]? {
+    public func path(to vertex: G.Vertex) -> Path<G.Vertex, G.Edges.Index>? {
         var i = _index(of: vertex)
         guard _parent[i] != Self._unreached else { return nil }
-        var path = [_ids.vertex(i)]
-        while _parent[i] >= 0 {
-            i = _parent[i]
-            path.append(_ids.vertex(i))
-        }
-        path.reverse()
-        return path
-    }
-
-    /// The edges of `path(to: vertex)`, in order, which tell parallel edges apart: empty for a
-    /// source, `nil` when `vertex` is not reached. O(length).
-    ///
-    /// - Precondition: `vertex` is a vertex of the graph.
-    @inlinable
-    public func pathEdges(to vertex: G.Vertex) -> [G.Edges.Index]? {
-        var i = _index(of: vertex)
-        guard _parent[i] != Self._unreached else { return nil }
+        var vertices = [_ids.vertex(i)]
         var edges: [G.Edges.Index] = []
         while _parent[i] >= 0 {
             edges.append(_parentEdge[i])
             i = _parent[i]
+            vertices.append(_ids.vertex(i))
         }
+        vertices.reverse()
         edges.reverse()
-        return edges
+        // Parent pointers form a forest, so a tree path never repeats a vertex.
+        return Path(_uncheckedVertices: vertices, edges: edges)
     }
 
     /// The distance to the vertex with index `index`, as `distance(to:)`. With vertex indices

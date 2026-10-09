@@ -2,7 +2,7 @@
 
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Lowest common ancestor, Euler tour, heavy–light decomposition, centroid, diameter.
+# Lowest common ancestor, Euler tour, heavy–light decomposition, center, centroid, diameter.
 swift_library(
     name = "TreeAlgorithms",
     srcs = glob(["**/*.swift"]),
@@ -10,6 +10,7 @@ swift_library(
     deps = [
         "//Sources/GraphProtocols",
         "//Sources/Trees",
+        "//Sources/Walks",
     ],
     visibility = ["//visibility:public"],
 )

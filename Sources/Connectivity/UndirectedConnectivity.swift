@@ -12,12 +12,13 @@ extension Graph {
     }
 
     /// Whether the graph has exactly one connected component; false for the empty graph, as
-    /// `isWeaklyConnected` (igraph, JGraphT; NetworkX raises). Stops once n − 1 joins succeed.
+    /// `isWeaklyConnected` (igraph, JGraphT; NetworkX raises). Stops as soon as n − 1 joins have
+    /// succeeded.
     @inlinable
     public var isConnected: Bool {
         let n = vertexCount
         guard n > 0 else { return false }
-        return _runOnUndirectedRows(_UndirectedComponents(limit: n - 1)).joins == n - 1
+        return _runOnUndirectedRows(_UndirectedComponents(limit: n - 1, labelled: false)).joins == n - 1
     }
 
     /// The bridges: the edges whose removal adds a connected component (NetworkX's, JGraphT's,
@@ -26,8 +27,16 @@ extension Graph {
     @inlinable
     public func bridges() -> [Edges.Index] {
         let search = _runOnUndirectedRows(_BiconnectivitySearch([]))
-        let positions = Array(edges.indices)
-        return search.isBridge.indices.filter { search.isBridge[$0] }.map { positions[$0] }
+        // Edge numbers are offsets in `edges`; walk it once rather than copying every position.
+        var bridges: [Edges.Index] = []
+        var number = 0
+        var position = edges.startIndex
+        for k in search.isBridge.indices where search.isBridge[k] {
+            position = edges.index(position, offsetBy: k - number)
+            number = k
+            bridges.append(position)
+        }
+        return bridges
     }
 
     /// Whether the graph has a bridge (NetworkX's `has_bridges`). Stops at the first one found.
@@ -53,7 +62,7 @@ extension Graph {
     public var isBiconnected: Bool {
         let n = vertexCount
         guard n >= 2 else { return false }
-        let search = _runOnUndirectedRows(_BiconnectivitySearch(.stopAtArticulationPoint))
+        let search = _runOnUndirectedRows(_BiconnectivitySearch([.stopAtArticulationPoint, .firstTreeOnly]))
         return !search.stoppedEarly && search.firstTreeSize == n
     }
 
@@ -74,7 +83,7 @@ extension Graph {
     public var isBiEdgeConnected: Bool {
         let n = vertexCount
         guard n >= 2 else { return false }
-        let search = _runOnUndirectedRows(_BiconnectivitySearch(.stopAtBridge))
+        let search = _runOnUndirectedRows(_BiconnectivitySearch([.stopAtBridge, .firstTreeOnly]))
         return !search.stoppedEarly && search.firstTreeSize == n
     }
 
@@ -97,36 +106,43 @@ extension Graph {
     }
 }
 
-/// Labels per edge and the blocks of each vertex, from one search and one more pass over the rows.
+/// The blocks from one search, in index space: each edge's block (−1 for a self-loop) numbered by
+/// smallest edge; the edges grouped by block, ascending; each block's vertices, ascending; each
+/// vertex's blocks, ascending; and the articulation points. The groupings are three stable
+/// counting sorts of the (block, vertex) memberships the search emits: no second pass over the
+/// rows, and no comparison sort.
 @frozen
 @usableFromInline
 struct _Blocks: _UndirectedRowsAlgorithm {
     @inlinable init() {}
 
+    @usableFromInline
+    typealias Output = (
+        edgeLabel: [Int], blockCount: Int, edgeOrder: [Int], edgeOffsets: [Int],
+        members: [Int], memberOffsets: [Int], vertexBlocks: [Int], vertexBlockOffsets: [Int],
+        isArticulationPoint: [Bool]
+    )
+
     @inlinable
-    func run<Arcs: IteratorProtocol>(count n: Int, edgeCount m: Int, _ arcs: (Int) -> Arcs) -> (edgeLabel: [Int], blockCount: Int, vertexBlockOffsets: [Int], vertexBlocks: [Int], isArticulationPoint: [Bool]) where Arcs.Element == (Int, Int) {
-        var search = _BiconnectivitySearch(.blocks).run(count: n, edgeCount: m, arcs)
-        // Number blocks by their smallest edge.
-        _relabelByFirstAppearance(&search.blockLabel, count: search.blockCount)
-        var offsets = [0]
-        offsets.reserveCapacity(n + 1)
-        var blocks: [Int] = []
-        var lastSeen = [Int](repeating: -1, count: search.blockCount)
-        for v in 0 ..< n {
-            let start = blocks.count
-            var out = arcs(v)
-            while let (w, e) = out.next() {
-                guard w != v else { continue }
-                let b = search.blockLabel[e]
-                if lastSeen[b] != v {
-                    lastSeen[b] = v
-                    blocks.append(b)
-                }
-            }
-            blocks[start...].sort()
-            offsets.append(blocks.count)
-        }
-        return (search.blockLabel, search.blockCount, offsets, blocks, search.isArticulationPoint)
+    func run<Rows: _IncidenceRowSource>(count n: Int, edgeCount m: Int, _ rows: inout Rows) -> Output {
+        var search = _BiconnectivitySearch(.blocks).run(count: n, edgeCount: m, &rows)
+        let count = search.blockCount
+        // Number blocks by their smallest edge, and carry the new numbers into the memberships.
+        let map = _relabelByFirstAppearance(&search.blockLabel, count: count)
+        var memberBlock = search.memberBlock
+        for i in memberBlock.indices { memberBlock[i] = map[memberBlock[i]] }
+        let memberVertex = search.memberVertex
+        // Edges by block, ascending: sort the non-loop edge numbers (ascending) by block.
+        let edgeNumbers = (0 ..< m).filter { search.blockLabel[$0] >= 0 }
+        let (edgeOrder, edgeOffsets) = _countingSort(edgeNumbers, by: search.blockLabel, keyCount: count)
+        // Memberships by vertex, blocks ascending within each: by block, then stably by vertex.
+        let byBlock = _countingSort(Array(memberBlock.indices), by: memberBlock, keyCount: count).items
+        let (byVertex, vertexBlockOffsets) = _countingSort(byBlock, by: memberVertex, keyCount: n)
+        let vertexBlocks = byVertex.map { memberBlock[$0] }
+        // Members by block, vertices ascending within each: stably by block over the vertex order.
+        let (byBlockThenVertex, memberOffsets) = _countingSort(byVertex, by: memberBlock, keyCount: count)
+        let members = byBlockThenVertex.map { memberVertex[$0] }
+        return (search.blockLabel, count, edgeOrder, edgeOffsets, members, memberOffsets, vertexBlocks, vertexBlockOffsets, search.isArticulationPoint)
     }
 }
 
@@ -152,6 +168,8 @@ public struct BiconnectedComponents<G: Graph>: RandomAccessCollection {
     @usableFromInline let _edges: [G.Edges.Index]
     @usableFromInline let _edgeOffsets: [Int]
     @usableFromInline let _members: [G.Vertex]
+    /// The vertex numbers of `_members`.
+    @usableFromInline let _memberNumbers: [Int]
     @usableFromInline let _memberOffsets: [Int]
     /// Each vertex's blocks, ascending, by vertex number.
     @usableFromInline let _vertexBlocks: [Int]
@@ -160,43 +178,19 @@ public struct BiconnectedComponents<G: Graph>: RandomAccessCollection {
 
     @inlinable
     init(_ graph: G) {
-        let found = graph._runOnUndirectedRows(_Blocks())
+        let edgeNumbers = graph.edgeIndexBound != nil ? [:] : graph._edgeNumbers()
+        let found = graph._runOnUndirectedRows(_Blocks(), edgeNumbers: edgeNumbers)
         let vertices = _DenseVertices(graph.directed)
         let positions = Array(graph.edges.indices)
-        let count = found.blockCount
-        // Edges grouped by block, ascending: a counting sort over edge numbers.
-        var edgeOffsets = [Int](repeating: 0, count: count + 1)
-        for label in found.edgeLabel where label >= 0 { edgeOffsets[label + 1] += 1 }
-        for b in 0 ..< count { edgeOffsets[b + 1] += edgeOffsets[b] }
-        var next = edgeOffsets
-        var grouped = [G.Edges.Index](repeating: positions.first ?? graph.edges.startIndex, count: edgeOffsets[count])
-        for (k, label) in found.edgeLabel.enumerated() where label >= 0 {
-            grouped[next[label]] = positions[k]
-            next[label] += 1
-        }
-        // Each block's vertices in vertex order: invert the per-vertex block lists.
-        var memberOffsets = [Int](repeating: 0, count: count + 1)
-        for b in found.vertexBlocks { memberOffsets[b + 1] += 1 }
-        for b in 0 ..< count { memberOffsets[b + 1] += memberOffsets[b] }
-        var place = memberOffsets
-        // A block has vertices only when the graph does, so vertex 0 exists to fill with.
-        var members = memberOffsets[count] == 0 ? [] : [G.Vertex](repeating: vertices.vertex(0), count: memberOffsets[count])
-        if count > 0 {
-            for v in 0 ..< vertices.count {
-                for b in found.vertexBlocks[found.vertexBlockOffsets[v] ..< found.vertexBlockOffsets[v + 1]] {
-                    members[place[b]] = vertices.vertex(v)
-                    place[b] += 1
-                }
-            }
-        }
         _graph = graph
         _vertices = vertices
-        _edgeNumbers = graph.edgeIndexBound != nil ? [:] : graph._edgeNumbers()
+        _edgeNumbers = edgeNumbers
         _edgeLabel = found.edgeLabel
-        _edges = grouped
-        _edgeOffsets = edgeOffsets
-        _members = members
-        _memberOffsets = memberOffsets
+        _edges = found.edgeOrder.map { positions[$0] }
+        _edgeOffsets = found.edgeOffsets
+        _members = found.members.map { vertices.vertex($0) }
+        _memberNumbers = found.members
+        _memberOffsets = found.memberOffsets
         _vertexBlocks = found.vertexBlocks
         _vertexBlockOffsets = found.vertexBlockOffsets
         _isArticulationPoint = found.isArticulationPoint
@@ -248,6 +242,16 @@ public struct BiconnectedComponents<G: Graph>: RandomAccessCollection {
         precondition(v >= 0 && v + 1 < _vertexBlockOffsets.count, "\(vertex) is not a vertex of the graph")
         return _vertexBlocks[_vertexBlockOffsets[v] ..< _vertexBlockOffsets[v + 1]]
     }
+
+    /// `components(containing:)` for the vertex at `index`, for algorithms working in index space.
+    ///
+    /// - Precondition: the graph has vertex indices, and `index` is in `0..<vertexIndexBound`.
+    @inlinable
+    public func components(containingIndex index: Int) -> ArraySlice<Int> {
+        precondition(_vertices.isIndexed, "\(G.self) has no vertex indices")
+        precondition(index >= 0 && index + 1 < _vertexBlockOffsets.count, "Vertex index \(index) out of range")
+        return _vertexBlocks[_vertexBlockOffsets[index] ..< _vertexBlockOffsets[index + 1]]
+    }
 }
 
 extension BiconnectedComponents: Equatable {
@@ -288,6 +292,8 @@ public struct BlockCutTree<G: Graph> {
     public let articulationPoints: [G.Vertex]
     /// Each vertex's place in `articulationPoints`, or −1, by vertex number.
     @usableFromInline let _pointNumber: [Int]
+    /// Each articulation point's vertex number.
+    @usableFromInline let _pointVertex: [Int]
     @usableFromInline let _blockPoints: [Int]
     @usableFromInline let _blockPointOffsets: [Int]
 
@@ -296,17 +302,19 @@ public struct BlockCutTree<G: Graph> {
         let n = blocks._vertices.count
         var pointNumber = [Int](repeating: -1, count: n)
         var points: [G.Vertex] = []
+        var pointVertex: [Int] = []
         for v in 0 ..< n where blocks._isArticulationPoint[v] {
             pointNumber[v] = points.count
             points.append(blocks._vertices.vertex(v))
+            pointVertex.append(v)
         }
         // Each block's articulation points, ascending: its vertices are in vertex order.
         var offsets = [0]
         offsets.reserveCapacity(blocks.count + 1)
         var blockPoints: [Int] = []
         for b in blocks.indices {
-            for vertex in blocks.vertices(ofComponentAt: b) {
-                let p = pointNumber[blocks._vertices.number(of: vertex)]
+            for v in blocks._memberNumbers[blocks._memberOffsets[b] ..< blocks._memberOffsets[b + 1]] {
+                let p = pointNumber[v]
                 if p >= 0 { blockPoints.append(p) }
             }
             offsets.append(blockPoints.count)
@@ -314,6 +322,7 @@ public struct BlockCutTree<G: Graph> {
         self.blocks = blocks
         articulationPoints = points
         _pointNumber = pointNumber
+        _pointVertex = pointVertex
         _blockPoints = blockPoints
         _blockPointOffsets = offsets
     }
@@ -329,11 +338,14 @@ public struct BlockCutTree<G: Graph> {
     @inlinable
     public func blocks(ofArticulationPoint point: Int) -> ArraySlice<Int> {
         precondition(point >= 0 && point < articulationPoints.count, "Articulation point position out of range")
-        return blocks.components(containing: articulationPoints[point])
+        let v = _pointVertex[point]
+        return blocks._vertexBlocks[blocks._vertexBlockOffsets[v] ..< blocks._vertexBlockOffsets[v + 1]]
     }
 
     /// The node standing for `vertex` (JGraphT's `getBlock`): its own node for an articulation
-    /// point, its block for a vertex in exactly one, `nil` for a vertex in none.
+    /// point, its block for a vertex in exactly one, `nil` for a vertex in none (an isolated
+    /// vertex, or one with only self-loops; JGraphT instead gives such a vertex a block of its
+    /// own).
     ///
     /// - Precondition: `vertex` is a vertex of the graph.
     @inlinable

@@ -21,7 +21,7 @@ PACKAGES = [
 MODULES = [
     # Vocabulary
     ("GraphProtocols", "Vocabulary", "DirectedGraph, Graph and their refinements; Arc and Edge; the result builders that construct graphs.", ["swift-algorithms/Algorithms"]),
-    ("Walks", "Vocabulary", "Walk, Trail, Path, Circuit and Cycle.", ["GraphProtocols"]),
+    ("Walks", "Vocabulary", "Walk, Trail, Path, Circuit and Cycle: vertex sequences with the edge positions between them, their invariants enforced by construction.", ["GraphProtocols"]),
     ("Semirings", "Vocabulary", "The Semiring protocol and the tropical, bottleneck, Boolean and counting semirings, for algebraic path problems.", []),
 
     # Data structures used by graph algorithms
@@ -39,7 +39,7 @@ MODULES = [
 
     # Graph classes with invariants
     ("DirectedAcyclicGraphModule", "Structures", "DirectedAcyclicGraph: acyclicity enforced on insertion by incremental cycle detection.", ["GraphProtocols", "Walks"]),
-    ("Trees", "Structures", "Tree, RootedTree, Forest and Arborescence.", ["GraphProtocols"]),
+    ("Trees", "Structures", "Tree, RootedTree, Forest and Arborescence.", ["GraphProtocols", "Walks"]),
     ("BipartiteGraphs", "Structures", "BipartiteGraph.", ["GraphProtocols", "Walks"]),
     ("Multigraphs", "Structures", "Multigraph, DirectedMultigraph and Pseudograph.", ["GraphProtocols"]),
     ("Hypergraphs", "Structures", "Hypergraph and Hyperedge.", []),
@@ -51,11 +51,11 @@ MODULES = [
     ("GraphProducts", "Operations", "Cartesian, tensor, strong and lexicographic products.", ["GraphProtocols"]),
 
     # Algorithms
-    ("Traversal", "Algorithms", "Breadth-first and depth-first search as event sequences, reachability, topological ordering, cycle finding.", ["GraphProtocols"]),
-    ("ShortestPaths", "Algorithms", "Dijkstra, Bellman–Ford, A* and unweighted shortest paths; later Floyd–Warshall, Johnson, Yen, Δ-stepping, contraction hierarchies.", ["GraphProtocols", "PriorityQueueModule"]),
+    ("Traversal", "Algorithms", "Breadth-first and depth-first search as event sequences, reachability, topological ordering, cycle finding.", ["GraphProtocols", "Walks"]),
+    ("ShortestPaths", "Algorithms", "Dijkstra, Bellman–Ford, A* and unweighted shortest paths; later Floyd–Warshall, Johnson, Yen, Δ-stepping, contraction hierarchies.", ["GraphProtocols", "Walks", "PriorityQueueModule"]),
     ("SpanningTrees", "Algorithms", "Minimum and maximum spanning forests by Kruskal, Prim and Borůvka; later Chu–Liu/Edmonds and Steiner tree approximation.", ["GraphProtocols", "DisjointSetModule", "PriorityQueueModule"]),
     ("Connectivity", "Algorithms", "Strong and weak components, condensation, attracting components, dominators; connected components, bridges, articulation points, biconnected and bi-edge-connected components and the block–cut tree of undirected graphs.", ["GraphProtocols", "CompressedSparseRowModule"]),
-    ("Cycles", "Algorithms", "Cycle detection, cycle bases, elementary circuits, girth.", ["GraphProtocols", "Walks", "Traversal", "DisjointSetModule"]),
+    ("Cycles", "Algorithms", "Cycle detection, cycle bases, elementary circuits, girth.", ["GraphProtocols", "Walks", "DisjointSetModule"]),
     ("Tours", "Algorithms", "Eulerian trails and circuits, Hamiltonian paths and cycles, travelling salesman heuristics.", ["GraphProtocols", "Walks", "SpanningTrees", "MatchingModule"]),
     ("Flows", "Algorithms", "Maximum flow, minimum-cost flow, minimum cut, Gomory–Hu trees.", ["GraphProtocols", "FlowNetworks", "Trees", "Traversal"]),
     ("MatchingModule", "Algorithms", "Matching: Hopcroft–Karp, Hungarian, Edmonds' blossom, Gale–Shapley.", ["GraphProtocols", "BipartiteGraphs"]),
@@ -66,8 +66,8 @@ MODULES = [
     ("CommunityDetection", "Algorithms", "Louvain, Leiden, label propagation, Girvan–Newman, modularity.", ["GraphProtocols", "Centrality"]),
     ("IsomorphismModule", "Algorithms", "Isomorphism: VF2, VF2++, Weisfeiler–Leman, canonical labeling.", ["GraphProtocols"]),
     ("Planarity", "Algorithms", "Boyer–Myrvold planarity testing and planar embeddings.", ["GraphProtocols", "Traversal"]),
-    ("TreeAlgorithms", "Algorithms", "Lowest common ancestor, Euler tour, heavy–light decomposition, centroid, diameter.", ["GraphProtocols", "Trees"]),
-    ("Distances", "Algorithms", "Eccentricity, diameter, radius, center, periphery, density.", ["GraphProtocols", "ShortestPaths"]),
+    ("TreeAlgorithms", "Algorithms", "Lowest common ancestor, Euler tour, heavy–light decomposition, center, centroid, diameter.", ["GraphProtocols", "Trees", "Walks"]),
+    ("Distances", "Algorithms", "Eccentricity, radius, diameter, center, periphery, centroid, Wiener index, average shortest path length, density.", ["GraphProtocols", "Walks", "PriorityQueueModule"]),
     ("SpectralGraphTheory", "Algorithms", "Adjacency and Laplacian matrices, Fiedler vector, spectral clustering.", ["GraphProtocols"]),
 
     # Generators
@@ -88,11 +88,16 @@ TEST_TARGETS = [
     ("CompressedSparseRowTests", ["GraphProtocols", "CompressedSparseRowModule", "AdjacencyListModule", "AdjacencyMatrixModule", "GrafluentTestSupport"]),
     ("AdjacencyMatrixTests", ["GraphProtocols", "AdjacencyMatrixModule", "AdjacencyListModule", "GrafluentTestSupport", "swift-collections/BitCollections"]),
     ("EdgeListTests", ["GraphProtocols", "EdgeListModule", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport"]),
-    ("TraversalTests", ["GraphProtocols", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport"]),
+    ("TraversalTests", ["GraphProtocols", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", "Walks"]),
     ("PriorityQueueTests", ["PriorityQueueModule", "GrafluentTestSupport"]),
     ("DisjointSetTests", ["DisjointSetModule", "GrafluentTestSupport"]),
-    ("ShortestPathsTests", ["GraphProtocols", "ShortestPaths", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
+    ("ShortestPathsTests", ["GraphProtocols", "ShortestPaths", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", "swift-property-based/PropertyBased", "Walks"]),
     ("SpanningTreesTests", ["GraphProtocols", "SpanningTrees", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
+    ("WalksTests", ["GraphProtocols", "Walks", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
+    ("CyclesTests", ["GraphProtocols", "Cycles", "Walks", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
+    ("TreesTests", ["GraphProtocols", "Trees", "Walks", "Cycles", "AdjacencyListModule", "CompressedSparseRowModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
+    ("TreeAlgorithmsTests", ["GraphProtocols", "Trees", "TreeAlgorithms", "Walks", "AdjacencyListModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
+    ("DistancesTests", ["GraphProtocols", "Distances", "Walks", "Trees", "TreeAlgorithms", "AdjacencyListModule", "CompressedSparseRowModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("ConnectivityTests", ["GraphProtocols", "Connectivity", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("GraphProtocolsTests", ["GraphProtocols", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "EdgeListModule", "GrafluentTestSupport", "swift-collections/BitCollections"]),
 ]
