@@ -26,30 +26,40 @@ func _bounding(_ rows: _DistanceRows, _ goal: _ExtremaGoal) -> (lower: [Int], up
         high.toggle()
         let (e, reachedAll, _) = searches.search(from: current)
         guard reachedAll else { return nil }
-        for i in candidates {
-            let d = searches.distance[i]
-            let low = max(lower[i], max(d, e - d)), up = min(upper[i], e + d - 1)
-            lower[i] = low
-            upper[i] = up
-            minLower = min(minLower, low)
-            maxLower = max(maxLower, low)
-            minUpper = min(minUpper, up)
-            maxUpper = max(maxUpper, up)
-        }
         var kept = 0
-        for i in candidates {
-            let low = lower[i], up = upper[i]
-            var out = low == up
-            switch goal {
-            case .eccentricities: break
-            case .diameter: out = out || (up <= maxLower && 2 * low >= maxUpper)
-            case .radius: out = out || (low >= minUpper && up + 1 <= 2 * minLower)
-            case .periphery: out = out || (up < maxLower && (maxLower == maxUpper || low > maxUpper))
-            case .center: out = out || (low > minUpper && (minLower == minUpper || up + 1 < 2 * minLower))
-            }
-            if !out {
-                candidates[kept] = i
-                kept += 1
+        searches.distance.withUnsafeBufferPointer { distance in
+            lower.withUnsafeMutableBufferPointer { lower in
+                upper.withUnsafeMutableBufferPointer { upper in
+                    candidates.withUnsafeMutableBufferPointer { candidates in
+                        for k in 0 ..< candidates.count {
+                            let i = candidates[k]
+                            let d = distance[i]
+                            let low = max(lower[i], max(d, e - d)), up = min(upper[i], e + d)
+                            lower[i] = low
+                            upper[i] = up
+                            minLower = min(minLower, low)
+                            maxLower = max(maxLower, low)
+                            minUpper = min(minUpper, up)
+                            maxUpper = max(maxUpper, up)
+                        }
+                        for k in 0 ..< candidates.count {
+                            let i = candidates[k]
+                            let low = lower[i], up = upper[i]
+                            var out = low == up
+                            switch goal {
+                            case .eccentricities: break
+                            case .diameter: out = out || (up <= maxLower && 2 * low >= maxUpper)
+                            case .radius: out = out || (low >= minUpper && up + 1 <= 2 * minLower)
+                            case .periphery: out = out || (up < maxLower && (maxLower == maxUpper || low > maxUpper))
+                            case .center: out = out || (low > minUpper && (minLower == minUpper || up + 1 < 2 * minLower))
+                            }
+                            if !out {
+                                candidates[kept] = i
+                                kept += 1
+                            }
+                        }
+                    }
+                }
             }
         }
         candidates.removeLast(candidates.count - kept)
@@ -82,7 +92,7 @@ func _allEccentricities(_ rows: _DistanceRows, stopAtMiss: Bool = false) -> [Int
             continue
         }
         if rows.undirected || stopAtMiss { return [Int?](repeating: nil, count: n) }
-        for v in searches.queue { known[v] = true }
+        for v in searches.reachedVertices { known[v] = true }
     }
     return result
 }
@@ -146,7 +156,7 @@ func _totals(_ rows: _DistanceRows) -> [Int?] {
             continue
         }
         if rows.undirected { return [Int?](repeating: nil, count: n) }
-        for v in searches.queue { known[v] = true }
+        for v in searches.reachedVertices { known[v] = true }
     }
     return result
 }

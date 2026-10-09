@@ -46,7 +46,8 @@ FAILURES = os.path.join(PACKAGE, "Failures")
 CYCLE_LIMIT = 3000
 # Seconds for one batch of cases, and for one case when a batch fails.
 BATCH_TIMEOUT = 120
-CASE_TIMEOUT = 10
+CASE_TIMEOUT = 5
+MAX_ISOLATED = 5
 SWIFT = ["env", "-u", "TOOLCHAINS", "xcrun", "--toolchain", "default", "swift"]
 
 
@@ -625,16 +626,22 @@ def main():
         except subprocess.TimeoutExpired:
             crashed = True
         if crashed:
-            # A trap or a hang: find the case by running them one at a time.
+            # A trap or a hang: find the cases by running them one at a time, stopping after a few
+            # (enough to report; a bug that hangs every case must not cost minutes per case).
+            found = 0
             for case in cases:
+                if found >= MAX_ISOLATED:
+                    break
                 try:
                     one = subprocess.run([binary], input=json.dumps([case]), capture_output=True, text=True, timeout=CASE_TIMEOUT)
                 except subprocess.TimeoutExpired:
                     failures += 1
+                    found += 1
                     record(case, [f"the library did not finish within {CASE_TIMEOUT} s"], seed)
                     continue
                 if one.returncode != 0:
                     failures += 1
+                    found += 1
                     record(case, [f"the library crashed: {one.stderr.strip()[-500:]}"], seed)
             continue
         for case, mine in zip(cases, json.loads(run.stdout)):

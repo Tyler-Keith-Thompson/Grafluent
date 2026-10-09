@@ -148,12 +148,13 @@ struct _BreadthFirstSearches {
     /// The slot each vertex was first reached through, when parents are recorded.
     @usableFromInline var parentSlot: [Int]
 
+    @usableFromInline var reachedCount = 0
+
     @inlinable
     init(_ rows: _DistanceRows) {
         self.rows = rows
         distance = [Int](repeating: -1, count: rows.count)
-        queue = []
-        queue.reserveCapacity(rows.count)
+        queue = [Int](repeating: 0, count: rows.count)
         parentSlot = []
     }
 
@@ -161,28 +162,54 @@ struct _BreadthFirstSearches {
     /// reached, and the total distance. `distance` holds the depths until the next search.
     @inlinable
     mutating func search(from s: Int, parents: Bool = false) -> (eccentricity: Int, reachedAll: Bool, total: Int) {
-        for v in queue { distance[v] = -1 }
-        queue.removeAll(keepingCapacity: true)
-        if parents, parentSlot.isEmpty { parentSlot = [Int](repeating: -1, count: rows.count) }
-        distance[s] = 0
-        queue.append(s)
-        var head = 0, total = 0
-        while head < queue.count {
-            let v = queue[head]
-            head += 1
-            let next = distance[v] + 1
-            for slot in rows.offsets[v] ..< rows.offsets[v + 1] {
-                let w = rows.targets[slot]
-                if distance[w] < 0 {
-                    distance[w] = next
-                    total += next
-                    if parents { parentSlot[w] = slot }
-                    queue.append(w)
+        let n = rows.count
+        if parents, parentSlot.isEmpty { parentSlot = [Int](repeating: -1, count: n) }
+        // Flat buffers: the loop runs n times per bounding pass, so even a debug build must not
+        // pay array checks on every edge.
+        var reached = reachedCount
+        var total = 0
+        queue.withUnsafeMutableBufferPointer { queueBuffer in
+            distance.withUnsafeMutableBufferPointer { distanceBuffer in
+                parentSlot.withUnsafeMutableBufferPointer { parentBuffer in
+                    rows.offsets.withUnsafeBufferPointer { offsets in
+                        rows.targets.withUnsafeBufferPointer { targets in
+                            // Reset what the last search reached.
+                            for k in 0 ..< reached { distanceBuffer[queueBuffer[k]] = -1 }
+                            distanceBuffer[s] = 0
+                            queueBuffer[0] = s
+                            var head = 0, tail = 1
+                            while head < tail {
+                                let v = queueBuffer[head]
+                                head += 1
+                                let next = distanceBuffer[v] + 1
+                                var slot = offsets[v]
+                                let end = offsets[v + 1]
+                                while slot < end {
+                                    let w = targets[slot]
+                                    if distanceBuffer[w] < 0 {
+                                        distanceBuffer[w] = next
+                                        total += next
+                                        if parents { parentBuffer[w] = slot }
+                                        queueBuffer[tail] = w
+                                        tail += 1
+                                    }
+                                    slot += 1
+                                }
+                            }
+                            reached = tail
+                        }
+                    }
                 }
             }
         }
-        return (distance[queue[queue.count - 1]], queue.count == rows.count, total)
+        // `queue` keeps n slots; the first `reachedCount` are this search's vertices.
+        reachedCount = reached
+        return (distance[queue[reached - 1]], reached == n, total)
     }
+
+    /// The vertices the last search reached, in order.
+    @inlinable
+    var reachedVertices: ArraySlice<Int> { queue[..<reachedCount] }
 }
 
 /// Dijkstra's searches over `_DistanceRows` with weights by edge number, reusing one heap.
