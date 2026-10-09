@@ -3,6 +3,12 @@
 # Known equivalent mutants:
 #   directedstop  without the early stop, pruning still settles a graph that is not strongly
 #                 connected in a few searches (every vertex a missing search reached is skipped).
+#   selfloop      a self-loop is on no shortest path, so dropping the skip changes nothing.
+#   diameterrule, radiusrule, undirectedmiss, pruning
+#                 each removes a shortcut (a goal's rule-out, the stop at the first miss, the
+#                 skip of vertices a missing search reached): the answers are the same, only the
+#                 number of searches grows. Before the bounding loops were tightened, the 10⁴-cycle
+#                 stress tests caught them by timing out; the benchmarks are where they show.
 
 TESTS = ["DistancesTests"]
 
@@ -23,7 +29,9 @@ MUTANTS = [
     Mutant("dijkstrareached", "DistanceRows.swift", "settled == rows.count", "settled >= rows.count - 1"),
 
     # Bounding
-    Mutant("lowerbound", "Extrema.swift", "max(lower[i], max(d, e - d))", "max(lower[i], d)"),
+    Mutant("lowerbound", "Extrema.swift", "                                if e - d > low { low = e - d }", "", mode="stmt"),
+    Mutant("upperbound", "Extrema.swift", "                                if e + d < up { up = e + d }", "", mode="stmt"),
+    Mutant("selection", "Extrema.swift", "low < lm || (low == lm && degree[i] > degree[minLowerVertex])", "false"),
     Mutant("diameterrule", "Extrema.swift", "up <= maxLower && 2 * low >= maxUpper", "up <= maxLower"),
     Mutant("radiusrule", "Extrema.swift", "low >= minUpper && up + 1 <= 2 * minLower", "low >= minUpper"),
     Mutant("peripheryrule", "Extrema.swift", "up < maxLower && (maxLower == maxUpper || low > maxUpper)", "up <= maxLower"),
@@ -35,7 +43,8 @@ MUTANTS = [
     Mutant("pruning", "Extrema.swift", "        for v in searches.reachedVertices { known[v] = true }", "        for v in searches.reachedVertices.prefix(2) { known[v] = true }", mode="stmt", nth=0),
     Mutant("radiusinfinite", "Extrema.swift", "infinite ? nil : diameter", "diameter"),
     Mutant("leasttotal", "Extrema.swift", "if least.map({ t < $0 }) ?? true { least = t }", "if least.map({ t > $0 }) ?? true { least = t }", mode="stmt"),
-    Mutant("wienerhalf", "Extrema.swift", "rows.undirected ? s + 1 : 0", "0", nth=0),
+    Mutant("wienerhalf", "Extrema.swift", "rows.undirected ? total / 2 : total", "total"),
+    Mutant("wienerweightedhalf", "Extrema.swift", "rows.undirected ? s + 1 : 0", "0", nth=0),
     Mutant("pairs", "Extrema.swift", "undirected ? n * (n - 1) / 2 : n * (n - 1)", "n * (n - 1)"),
 
     # Measures

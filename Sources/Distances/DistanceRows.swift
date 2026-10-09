@@ -92,7 +92,7 @@ extension DirectedGraph {
             numbers.reserveCapacity(edgeCount)
             for (k, position) in self.edges.indices.enumerated() { numbers[position] = k }
         }
-        func number(_ position: Edges.Index) -> Int { edgeIndexBound != nil ? edgeIndex(of: position) : numbers[position]! }
+        let indexed = edgeIndexBound != nil
         if let n = vertexIndexBound {
             offsets.reserveCapacity(n + 1)
             for v in 0 ..< n {
@@ -102,7 +102,7 @@ extension DirectedGraph {
                     precondition(UInt(bitPattern: w) < UInt(bitPattern: n), "A successor index is out of range")
                     if w == v { continue }
                     targets.append(w)
-                    edges.append(number(position))
+                    edges.append(indexed ? edgeIndex(of: position) : numbers[position]!)
                 }
                 precondition(successors.next() == nil, "successorIndices and outEdges differ in length")
                 offsets.append(targets.count)
@@ -118,7 +118,7 @@ extension DirectedGraph {
                 let w = vertexNumbers[target(ofEdgeAt: position)]!
                 if w == i { continue }
                 targets.append(w)
-                edges.append(number(position))
+                edges.append(indexed ? edgeIndex(of: position) : numbers[position]!)
             }
             offsets.append(targets.count)
         }

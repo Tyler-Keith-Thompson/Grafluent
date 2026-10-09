@@ -106,7 +106,7 @@ extension Graph {
     public func periphery<W: Comparable & AdditiveArithmetic>(weight: (Edges.Index) -> W) -> [Vertex] { eccentricities(weight: weight).periphery }
 
     /// The path, with its edges, between the lexicographically least pair of vertices (by vertex
-    /// index) at distance `diameter()`: from the first vertex of greatest eccentricity to the first
+    /// index, or position in `vertices` without indices) at distance `diameter()`: from the first vertex of greatest eccentricity to the first
     /// vertex farthest from it, as breadth-first search finds it (each vertex reached first through
     /// its first edge in row order). Nil when the graph is not connected or empty.
     @inlinable
@@ -120,8 +120,8 @@ extension Graph {
         return _path(u, v, searches.parentSlot, rows)
     }
 
-    /// The same by weighted distance, and its length summed along the path (with floating point
-    /// it can differ from `diameter(weight:)` in the last digit). Nil when not connected or empty.
+    /// The same by weighted distance, and its length: `diameter(weight:)`, the label of the same
+    /// search. Nil when not connected or empty.
     ///
     /// - Precondition: Every weight is at least `.zero` and not NaN; the sums fit in `W`.
     @inlinable

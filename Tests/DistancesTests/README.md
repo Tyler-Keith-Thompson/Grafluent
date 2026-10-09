@@ -87,7 +87,9 @@ property tests write their oracles inside each test.
 | `DistancePropertyTests.swift` | 7 | PropertyBased, shrinking: unweighted undirected and directed against BFS from every vertex (exact paths), `Int` weights against Floyd–Warshall (path validity, closure order), `Double` quarters (average included), the bounding shapes on `UndirectedAdjacencyList`, random trees against TreeAlgorithms, the views |
 | `DistancePreconditionTests.swift` | 10 | Exit tests: non-vertices on the graph and the value, both kinds, weighted too (DI-042); `eccentricity(ofIndex:)` out of range; negative and NaN weights on every weighted entry point (DI-240, DI-630 – DI-633), `Int` and `Double`, out of reach, on a loop, single-source, `-infinity`, `Int.min`, the least negative `Double`, through `graph.directed` |
 
-403 tests in all.
+| `DistanceReviewTests.swift` | 2 | Added after the review (DI-1001, DI-1002): `AdjacencyMatrix` (vertex indices, positions that are not `Int`s) against `AdjacencyList` on every measure, with its diameter paths checked as paths of the matrix; a NaN weight on a directed edge no search reaches |
+
+405 tests in all.
 
 ## Case IDs
 

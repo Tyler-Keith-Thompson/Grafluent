@@ -17,8 +17,9 @@ func _bounding(_ rows: _DistanceRows, _ goal: _ExtremaGoal) -> (lower: [Int], up
     var lower = [Int](repeating: 0, count: n), upper = [Int](repeating: n, count: n)
     var candidates = Array(0 ..< n)
     var minLower = n, maxLower = 0, minUpper = n, maxUpper = 0
+    let degrees = (0 ..< n).map { rows.degree($0) }
     var start = 0
-    for v in 1 ..< max(n, 1) where rows.degree(v) > rows.degree(start) { start = v }
+    for v in 1 ..< max(n, 1) where degrees[v] > degrees[start] { start = v }
     var minLowerVertex = start, maxUpperVertex = start
     var high = false
     while !candidates.isEmpty {
@@ -26,36 +27,63 @@ func _bounding(_ rows: _DistanceRows, _ goal: _ExtremaGoal) -> (lower: [Int], up
         high.toggle()
         let (e, reachedAll, _) = searches.search(from: current)
         guard reachedAll else { return nil }
+        // One pass over flat buffers with plain loops and comparisons: this runs once per
+        // search over every candidate, n² steps on a cycle, so even a debug build must keep it
+        // free of generic iteration and checked subscripts.
         var kept = 0
         searches.distance.withUnsafeBufferPointer { distance in
             lower.withUnsafeMutableBufferPointer { lower in
                 upper.withUnsafeMutableBufferPointer { upper in
                     candidates.withUnsafeMutableBufferPointer { candidates in
-                        for k in 0 ..< candidates.count {
-                            let i = candidates[k]
-                            let d = distance[i]
-                            let low = max(lower[i], max(d, e - d)), up = min(upper[i], e + d)
-                            lower[i] = low
-                            upper[i] = up
-                            minLower = min(minLower, low)
-                            maxLower = max(maxLower, low)
-                            minUpper = min(minUpper, up)
-                            maxUpper = max(maxUpper, up)
-                        }
-                        for k in 0 ..< candidates.count {
-                            let i = candidates[k]
-                            let low = lower[i], up = upper[i]
-                            var out = low == up
-                            switch goal {
-                            case .eccentricities: break
-                            case .diameter: out = out || (up <= maxLower && 2 * low >= maxUpper)
-                            case .radius: out = out || (low >= minUpper && up + 1 <= 2 * minLower)
-                            case .periphery: out = out || (up < maxLower && (maxLower == maxUpper || low > maxUpper))
-                            case .center: out = out || (low > minUpper && (minLower == minUpper || up + 1 < 2 * minLower))
+                        degrees.withUnsafeBufferPointer { degree in
+                            let count = candidates.count
+                            var k = 0
+                            while k < count {
+                                let i = candidates[k]
+                                let d = distance[i]
+                                var low = lower[i]
+                                if d > low { low = d }
+                                if e - d > low { low = e - d }
+                                var up = upper[i]
+                                if e + d < up { up = e + d }
+                                lower[i] = low
+                                upper[i] = up
+                                if low < minLower { minLower = low }
+                                if low > maxLower { maxLower = low }
+                                if up < minUpper { minUpper = up }
+                                if up > maxUpper { maxUpper = up }
+                                k += 1
                             }
-                            if !out {
-                                candidates[kept] = i
-                                kept += 1
+                            k = 0
+                            while k < count {
+                                let i = candidates[k]
+                                let low = lower[i], up = upper[i]
+                                var out = low == up
+                                if !out {
+                                    switch goal {
+                                    case .eccentricities: break
+                                    case .diameter: out = up <= maxLower && 2 * low >= maxUpper
+                                    case .radius: out = low >= minUpper && up + 1 <= 2 * minLower
+                                    case .periphery: out = up < maxLower && (maxLower == maxUpper || low > maxUpper)
+                                    case .center: out = low > minUpper && (minLower == minUpper || up + 1 < 2 * minLower)
+                                    }
+                                }
+                                if !out {
+                                    // The next sources: least lower bound and greatest upper bound,
+                                    // ties to greater degree, then lower index (first kept).
+                                    if kept == 0 {
+                                        minLowerVertex = i
+                                        maxUpperVertex = i
+                                    } else {
+                                        let lm = lower[minLowerVertex]
+                                        if low < lm || (low == lm && degree[i] > degree[minLowerVertex]) { minLowerVertex = i }
+                                        let um = upper[maxUpperVertex]
+                                        if up > um || (up == um && degree[i] > degree[maxUpperVertex]) { maxUpperVertex = i }
+                                    }
+                                    candidates[kept] = i
+                                    kept += 1
+                                }
+                                k += 1
                             }
                         }
                     }
@@ -63,13 +91,6 @@ func _bounding(_ rows: _DistanceRows, _ goal: _ExtremaGoal) -> (lower: [Int], up
             }
         }
         candidates.removeLast(candidates.count - kept)
-        guard let first = candidates.first else { break }
-        minLowerVertex = first
-        maxUpperVertex = first
-        for i in candidates.dropFirst() {
-            if lower[i] < lower[minLowerVertex] || (lower[i] == lower[minLowerVertex] && rows.degree(i) > rows.degree(minLowerVertex)) { minLowerVertex = i }
-            if upper[i] > upper[maxUpperVertex] || (upper[i] == upper[maxUpperVertex] && rows.degree(i) > rows.degree(maxUpperVertex)) { maxUpperVertex = i }
-        }
     }
     return (lower, upper, minUpper, maxLower)
 }
@@ -195,15 +216,17 @@ func _leastTotals<W: Comparable>(_ totals: [W?]) -> [Int] {
 /// ones when undirected), one running total; nil when some pair is not connected.
 @inlinable
 func _wienerIndex(_ rows: _DistanceRows) -> Int? {
+    // Integer sums are exact in any order: each search's own total, halved when every pair is
+    // counted from both ends.
     let n = rows.count
     var searches = _BreadthFirstSearches(rows)
     var total = 0
     for s in 0 ..< n {
-        let (_, reachedAll, _) = searches.search(from: s)
+        let (_, reachedAll, sum) = searches.search(from: s)
         guard reachedAll else { return nil }
-        for t in (rows.undirected ? s + 1 : 0) ..< n { total += searches.distance[t] }
+        total += sum
     }
-    return total
+    return rows.undirected ? total / 2 : total
 }
 
 @inlinable

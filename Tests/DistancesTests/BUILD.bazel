@@ -19,6 +19,7 @@ swift_library(
         "//Sources/Trees",
         "//Sources/TreeAlgorithms",
         "//Sources/AdjacencyListModule",
+        "//Sources/AdjacencyMatrixModule",
         "//Sources/CompressedSparseRowModule",
         "//Tests/GrafluentTestSupport",
         "@swiftpkg_swift_property_based//:PropertyBased",

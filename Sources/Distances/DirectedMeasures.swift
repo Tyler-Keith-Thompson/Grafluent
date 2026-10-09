@@ -132,7 +132,7 @@ extension DirectedGraph {
         return _path(_pathNumbers(u, v, searches.parentSlot, rows), listed)
     }
 
-    /// The same by weighted distance, and its length summed along the path.
+    /// The same by weighted distance, and its length: `diameter(weight:)`.
     ///
     /// - Precondition: Every weight is at least `.zero` and not NaN; the sums fit in `W`.
     @inlinable
@@ -150,7 +150,9 @@ extension DirectedGraph {
     }
 
     /// The vertices of least total out-distance to all others (NetworkX 3.7 `centroid`), in
-    /// `vertices` order; every vertex when none reaches all others.
+    /// `vertices` order. A vertex that does not reach every vertex has an infinite total, so when
+    /// some do, the least among those that reach all is returned (where NetworkX raises), and when
+    /// none does, every vertex.
     @inlinable
     public func centroid() -> [Vertex] {
         let (rows, listed) = _distanceRows()
