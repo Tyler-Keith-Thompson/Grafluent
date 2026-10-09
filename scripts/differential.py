@@ -222,6 +222,8 @@ def compare(case, mine, ref):
     problems += compare_trees(case, mine["trees"], ref["graph"])
     problems += compare_distances(case, mine["distances"], ref["graph"])
     if not case["directed"]:
+        problems += compare_cliques(case, mine["cliques"], ref["graph"])
+    if not case["directed"]:
         problems += compare_spanning(case, mine["spanning"], ref["graph"])
         problems += compare_connectivity(case, mine["connectivity"], ref["graph"])
     if mine.get("unweighted") != ref["unweighted"]:
@@ -594,6 +596,50 @@ def compare_distances(case, mine, G):
             path, distance = mine.get("weightedPath"), mine.get("weightedPathDistance")
             if path is None or distance != d or path[0] != wecc.index(d):
                 problems.append(f"weighted diameterPath {path} / {distance}, expected from {wecc.index(d)} of length {d}")
+    return problems
+
+
+def compare_cliques(case, mine, G):
+    """Cliques against NetworkX on the simple graph (self-loops removed): maximal cliques as a
+    set of sorted lists, the clique number, the lexicographically least maximum clique (by
+    brute force over the maximal cliques), core numbers, triangles, local clustering,
+    transitivity and the average."""
+    problems = []
+    n = case["n"]
+    S = nx.Graph(G)
+    S.remove_edges_from(list(nx.selfloop_edges(S)))
+    theirs = sorted(sorted(c) for c in nx.find_cliques(S)) if n > 0 else []
+    ours = sorted(mine.get("maximal", []))
+    if any(c != sorted(c) for c in mine.get("maximal", [])):
+        problems.append("a maximal clique is not in vertex order")
+    if ours != theirs:
+        problems.append(f"maximalCliques {len(ours)}, NetworkX {len(theirs)}; only ours {[c for c in ours if c not in theirs][:3]}, only theirs {[c for c in theirs if c not in ours][:3]}")
+    omega = max((len(c) for c in theirs), default=0)
+    if mine.get("cliqueNumber") != omega:
+        problems.append(f"cliqueNumber {mine.get('cliqueNumber')}, expected {omega}")
+    # The lexicographically least clique of size ω: subsets of maximal cliques of size ω are themselves maximum.
+    from itertools import combinations
+    candidates = sorted(sorted(sub) for c in theirs if len(c) >= omega for sub in combinations(c, omega)) if omega else []
+    expected = candidates[0] if candidates else []
+    if mine.get("maximum") != expected:
+        problems.append(f"maximumClique {mine.get('maximum')}, expected {expected}")
+    cores = nx.core_number(S) if n > 0 else {}
+    if mine.get("cores") != [cores[v] for v in range(n)]:
+        problems.append(f"core numbers {mine.get('cores')}, NetworkX {[cores[v] for v in range(n)]}")
+    if not mine.get("degeneracyOrderValid", False):
+        problems.append("degeneracyOrdering: a vertex has more later neighbors than its core number")
+    triangles = nx.triangles(S) if n > 0 else {}
+    if mine.get("triangles") != [triangles[v] for v in range(n)]:
+        problems.append(f"triangles {mine.get('triangles')}, NetworkX {[triangles[v] for v in range(n)]}")
+    clustering = nx.clustering(S) if n > 0 else {}
+    if mine.get("clustering") != [clustering[v] for v in range(n)]:
+        problems.append(f"clustering {mine.get('clustering')}, NetworkX {[clustering[v] for v in range(n)]}")
+    if n > 0 and mine.get("transitivity") != nx.transitivity(S):
+        problems.append(f"transitivity {mine.get('transitivity')}, NetworkX {nx.transitivity(S)}")
+    if n > 0 and abs(mine.get("average", -1) - nx.average_clustering(S)) > 1e-12:
+        problems.append(f"averageClustering {mine.get('average')}, NetworkX {nx.average_clustering(S)}")
+    if not mine.get("oneShotsAgree", False):
+        problems.append("triangleCount / transitivity / per-vertex one-shots disagree with clusteringCoefficients()")
     return problems
 
 

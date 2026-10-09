@@ -90,6 +90,18 @@ let package = Package(
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
         ),
         .executableTarget(
+            name: "CliquesBenchmarks",
+            dependencies: [
+                "BenchmarkSupport",
+                .product(name: "Benchmark", package: "benchmark"),
+                .product(name: "GraphProtocols", package: "Grafluent"),
+                .product(name: "Cliques", package: "Grafluent"),
+                .product(name: "AdjacencyListModule", package: "Grafluent"),
+            ],
+            path: "Benchmarks/CliquesBenchmarks",
+            plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
+        ),
+        .executableTarget(
             name: "DistancesBenchmarks",
             dependencies: [
                 "BenchmarkSupport",

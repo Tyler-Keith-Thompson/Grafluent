@@ -85,17 +85,6 @@ extension Graph {
         (_runOnUndirectedRows(_CopyIncidenceRows()), Array(edges.indices))
     }
 
-    @inlinable
-    func _vertex(number v: Int, _ listed: [Vertex]?) -> Vertex {
-        listed?[v] ?? vertex(atIndex: v)
-    }
-
-    /// The vertices by number, when the graph has no vertex indices.
-    @inlinable
-    func _listedVertices() -> [Vertex]? {
-        vertexIndexBound == nil ? Array(vertices) : nil
-    }
-
     /// The positions of these edge numbers (offsets in `edges`), in the same order: one walk of
     /// `edges.indices` up to the largest, so a collection without random access costs O(m), not
     /// O(m) per edge.
@@ -167,10 +156,6 @@ extension DirectedGraph {
         return (_CycleRows(offsets: offsets, targets: targets, edges: Array(0 ..< targets.count), undirected: false), positions, listed)
     }
 
-    @inlinable
-    func _vertex(number v: Int, _ listed: [Vertex]?) -> Vertex {
-        listed?[v] ?? vertex(atIndex: v)
-    }
 }
 
 /// Rotates a closed sequence of vertex numbers (edge `i` joining vertex `i` and vertex `i + 1`) to

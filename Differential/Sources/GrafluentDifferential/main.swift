@@ -3,6 +3,7 @@
 // integer weights, sources, an optional cutoff and a target.
 
 import AdjacencyListModule
+import Cliques
 import Connectivity
 import Cycles
 import Distances
@@ -39,6 +40,22 @@ struct Result: Encodable {
     var cycles: Cycles?
     var trees = TreeAnswers()
     var distances: DistanceAnswers?
+    var cliques: CliqueAnswers?
+}
+
+/// Cliques on the simple graph: maximal cliques (each sorted), the clique number and the
+/// lexicographically least maximum clique, core numbers, triangles, clustering and averages.
+struct CliqueAnswers: Encodable {
+    var maximal: [[Int]] = []
+    var cliqueNumber = 0
+    var maximum: [Int] = []
+    var cores: [Int] = []
+    var degeneracyOrderValid = true
+    var triangles: [Int] = []
+    var clustering: [Double] = []
+    var transitivity = 0.0
+    var average = 0.0
+    var oneShotsAgree = true
 }
 
 /// Distances, unweighted and (with nonnegative weights) weighted, by eccentricities() and by
@@ -365,6 +382,28 @@ for c in cases {
         let viaView = view.eccentricities()
         if (0 ..< c.n).contains(where: { viaView.eccentricity(of: $0) != undirectedEccentricities.eccentricity(of: $0) }) { answers.consistent = false }
         result.distances = answers
+        var cliques = CliqueAnswers()
+        cliques.maximal = Array(graph.maximalCliques())
+        cliques.cliqueNumber = graph.cliqueNumber()
+        cliques.maximum = graph.maximumClique()
+        let cores = graph.coreNumbers()
+        cliques.cores = (0 ..< c.n).map { cores.coreNumber(of: $0) }
+        // Each vertex has at most its core number of distinct neighbors after it in the ordering.
+        let ordering = cores.degeneracyOrdering
+        var position = [Int](repeating: 0, count: c.n)
+        for (i, v) in ordering.enumerated() { position[v] = i }
+        for v in 0 ..< c.n {
+            let later = Set(graph.neighbors(of: v).filter { $0 != v && position[$0] > position[v] })
+            if later.count > cores.coreNumber(of: v) { cliques.degeneracyOrderValid = false }
+        }
+        let clustering = graph.clusteringCoefficients()
+        cliques.triangles = (0 ..< c.n).map { clustering.triangleCount(of: $0) }
+        cliques.clustering = (0 ..< c.n).map { clustering.clusteringCoefficient(of: $0) }
+        cliques.transitivity = clustering.transitivity
+        cliques.average = clustering.averageClustering
+        cliques.oneShotsAgree = graph.triangleCount() == clustering.triangleCount && graph.transitivity() == clustering.transitivity
+            && (0 ..< c.n).allSatisfy { graph.triangleCount(of: $0) == clustering.triangleCount(of: $0) && graph.clusteringCoefficient(of: $0) == clustering.clusteringCoefficient(of: $0) }
+        result.cliques = cliques
         results.append(result)
     }
 }

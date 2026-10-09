@@ -72,9 +72,6 @@ extension Graph {
         return weights
     }
 
-    /// The vertices by number when the graph has no vertex indices.
-    @inlinable
-    func _listedVertices() -> [Vertex]? { vertexIndexBound == nil ? Array(vertices) : nil }
 }
 
 extension DirectedGraph {
