@@ -132,7 +132,8 @@ conformer.
 | `GraphConformanceTests.swift` | Associated types, `some` and `any Graph`, `Sendable`, that no type is both a `Graph` and a `DirectedGraph`, the `GraphBuilder`, conditional `Comparable`, parallel edges told apart by position, vertex indices through generic layers |
 | `GraphAlgorithmTests.swift` | Breadth-first distances and layers, depth-first preorder, connected components, undirected edge classification, bridges, the Euler circuit condition and two-coloring, on both conformers and through existentials |
 | `GraphViewTests.swift` | The `directed` and `undirected` views: the directed laws on the two-arc view, its exact arcs, Kosaraju and Traversal's search through it, reciprocal arcs and loops in the undirected view, positions, round trips and conversions |
-| `GraphReviewTests.swift` | Added after the critical review: the edge-index laws (UG-L24) on the adjacency list and the pseudograph, and their absence on the undirected view; the directed view's predecessor indices and emptiness; the builder's `if` without `else` |
+| `GraphReviewTests.swift` | Added after the critical review: the edge-index laws (UG-L24) on the adjacency list and the pseudograph, and their absence on the undirected view; with edge indices, `edges` in index order (UG-L25); the directed view's predecessor indices and emptiness; the builder's `if` without `else` |
+| `DirectedEdgeIndexTests.swift` | Dense edge indices on `DirectedGraph`: one-to-one onto `0..<edgeCount` (DG-L29), out-edges by index (DG-L30), and `edges` in index order (DG-L31, so `undirected` keeps UG-L25), on the adjacency list and compressed sparse row; in-edges by index (DG-L32) on every bidirectional representation and the directed view, through removals |
 
 Case IDs (DG-L01, DG-A09, …) refer to the protocol design catalog, which drew on Boost's graph
 concepts, petgraph's `visit` traits, JGraphT's `Graph`, LEMON's concepts and NetworkX.
@@ -165,6 +166,7 @@ self-loop's vertex once among its neighbors; those lists are adjusted by one mor
 | UG-A01 – A09 | Generic algorithms | `GraphAlgorithmTests.swift` |
 | UG-C01 – C11 | Views and conversions | `GraphViewTests.swift` |
 | UG-L24 | Dense edge indices: `edgeIndexBound == edgeCount`, `edgeIndex(of:)` one-to-one, `incidentEdgeIndices` is `incidentEdges` mapped (added after the review: bridges and Euler tours need edge state in arrays) | `GraphReviewTests.swift` |
+| UG-L25 | With edge indices, `edges` is in index order (added for SpanningTrees: edges gathered from the index-space rows can follow the position tie rule) | `GraphReviewTests.swift` |
 
 Not tested, because a test cannot observe them: that a type conforming to both `Graph` and
 `DirectedGraph` fails to compile (UG-T05's last clause; verified when the protocol was designed), and the benchmarks

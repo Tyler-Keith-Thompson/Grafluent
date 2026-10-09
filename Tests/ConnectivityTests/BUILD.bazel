@@ -20,6 +20,7 @@ swift_library(
         "//Sources/AdjacencyMatrixModule",
         "//Sources/CompressedSparseRowModule",
         "//Tests/GrafluentTestSupport",
+        "@swiftpkg_swift_property_based//:PropertyBased",
     ],
 )
 

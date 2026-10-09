@@ -166,4 +166,6 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("Connectivity: isStronglyConnected on a 10⁶ path (first component is one vertex)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(path.isStronglyConnected) }
     }
+
+    undirectedConnectivityBenchmarks()
 }

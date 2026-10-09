@@ -2,16 +2,13 @@
 
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Dijkstra, Bellman–Ford, A*, Floyd–Warshall, Johnson, Yen, Δ-stepping, contraction hierarchies.
+# Dijkstra, Bellman–Ford, A* and unweighted shortest paths; later Floyd–Warshall, Johnson, Yen, Δ-stepping, contraction hierarchies.
 swift_library(
     name = "ShortestPaths",
     srcs = glob(["**/*.swift"]),
     module_name = "ShortestPaths",
     deps = [
         "//Sources/GraphProtocols",
-        "//Sources/Walks",
-        "//Sources/Semirings",
-        "//Sources/Trees",
         "//Sources/PriorityQueueModule",
     ],
     visibility = ["//visibility:public"],

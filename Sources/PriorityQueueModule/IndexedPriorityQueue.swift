@@ -13,9 +13,13 @@
 ///
 /// Use it when items are dense indices whose priorities must be lowered in place (Dijkstra, Prim,
 /// A*). `Heap` has no way to find or change a queued element, so it can only stand in by pushing
-/// duplicates and skipping stale ones, which costs 1.6× in Dijkstra and 2.9× when every item is
-/// decreased once. For pushes and pops alone, `Heap` is the better structure: it stores bare
-/// elements, and sorts 10⁶ `Int`s in about 0.6× the time.
+/// duplicates and skipping stale ones: in Dijkstra that costs 1.1–1.4× (the gap narrows as graphs
+/// grow, and with few distinct weights), and about 2.6× when every item is decreased once. For pushes and pops alone, `Heap` is the
+/// better structure: it stores bare elements, and sorts 10⁶ `Int`s in about 0.7× the time.
+///
+/// An index that has left the queue is indistinguishable from one never queued. Dijkstra needs
+/// nothing more, since a settled vertex is never relaxed again; Prim must keep its own set of tree
+/// vertices, or `insertOrDecreasePriority(of:to:)` would queue them again.
 @frozen
 public struct IndexedPriorityQueue<Priority: Comparable> {
     public typealias Element = (index: Int, priority: Priority)
@@ -71,7 +75,8 @@ public struct IndexedPriorityQueue<Priority: Comparable> {
     @inlinable
     @inline(__always)
     func _checkPriority(_ priority: Priority) {
-        // Only NaN is unequal to itself.
+        // Only NaN is unequal to itself, among the standard library's types; a `Priority` whose
+        // `==` is not reflexive traps here too.
         precondition(priority == priority, "A priority cannot be NaN")
     }
 
@@ -153,7 +158,32 @@ public struct IndexedPriorityQueue<Priority: Comparable> {
         }
     }
 
+    /// Queues `index` with `priority`, or lowers its priority to `priority` if it is queued with
+    /// a larger one; otherwise changes nothing. Returns whether the queue changed. O(log count).
+    /// One call for a relaxation step (Boost's `push_or_update`, LEMON's `set` restricted to
+    /// decreases).
+    ///
+    /// - Precondition: `index` is in `0..<indexBound`; `priority` is not NaN.
+    @inlinable
+    @discardableResult
+    public mutating func insertOrDecreasePriority(of index: Int, to priority: Priority) -> Bool {
+        _check(index)
+        _checkPriority(priority)
+        if _slots[index] < 0 {
+            _heap.append((index, priority))
+            _withBuffers { heap, slots in Self._siftUp(heap, slots, heap.count &- 1, (index, priority)) }
+            return true
+        }
+        return _withBuffers { heap, slots in
+            let slot = slots[index]
+            guard priority < heap[slot].priority else { return false }
+            Self._siftUp(heap, slots, slot, (index, priority))
+            return true
+        }
+    }
+
     /// Sets the priority of a queued index, up or down, and returns the old one. O(log count).
+    /// (Unlike Boost's `update`, which only decreases.)
     ///
     /// - Precondition: `index` is queued; `priority` is not NaN.
     @inlinable
@@ -198,7 +228,8 @@ public struct IndexedPriorityQueue<Priority: Comparable> {
         }
     }
 
-    /// Dequeues every index, O(count). The result is the same as a fresh queue.
+    /// Dequeues every index, O(count). The result behaves as a fresh queue with the same bound;
+    /// only the reserved capacity may differ.
     @inlinable
     public mutating func removeAll(keepingCapacity: Bool = false) {
         for entry in _heap { _slots[entry.index] = -1 }
@@ -267,7 +298,7 @@ extension IndexedPriorityQueue: Sendable where Priority: Sendable {}
 
 extension IndexedPriorityQueue: CustomStringConvertible, CustomDebugStringConvertible {
     /// The queued pairs by priority, then index, at most 16: `[4: 0.5, 1: 2.0, 7: 2.0]`. Equal
-    /// contents print alike, however they were reached.
+    /// contents print alike, however they were reached. O(count log count), since it sorts.
     public var description: String {
         let sorted = _heap.sorted { $0.priority < $1.priority || (!($1.priority < $0.priority) && $0.index < $1.index) }
         var parts = sorted.prefix(16).map { "\($0.index): \($0.priority)" }

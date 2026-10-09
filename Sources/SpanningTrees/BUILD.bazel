@@ -2,14 +2,13 @@
 
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Kruskal, Prim, Borůvka, Chu–Liu/Edmonds, Steiner tree approximation.
+# Minimum and maximum spanning forests by Kruskal, Prim and Borůvka; later Chu–Liu/Edmonds and Steiner tree approximation.
 swift_library(
     name = "SpanningTrees",
     srcs = glob(["**/*.swift"]),
     module_name = "SpanningTrees",
     deps = [
         "//Sources/GraphProtocols",
-        "//Sources/Trees",
         "//Sources/DisjointSetModule",
         "//Sources/PriorityQueueModule",
     ],

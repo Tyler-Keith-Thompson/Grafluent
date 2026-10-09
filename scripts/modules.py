@@ -12,12 +12,15 @@ only where the module would otherwise share a name with its main type (as DequeM
 # in the table below refers to a product of one of these.
 PACKAGES = [
     ("swift-collections", "https://github.com/apple/swift-collections", "1.3.0"),
+    ("swift-algorithms", "https://github.com/apple/swift-algorithms", "1.2.0"),
+    # Tests only: property checks with shrinking, for Swift Testing.
+    ("swift-property-based", "https://github.com/x-sheep/swift-property-based", "2.0.1"),
 ]
 
 # (name, group, description, dependencies)
 MODULES = [
     # Vocabulary
-    ("GraphProtocols", "Vocabulary", "DirectedGraph, Graph and their refinements; Arc and Edge; the result builders that construct graphs.", []),
+    ("GraphProtocols", "Vocabulary", "DirectedGraph, Graph and their refinements; Arc and Edge; the result builders that construct graphs.", ["swift-algorithms/Algorithms"]),
     ("Walks", "Vocabulary", "Walk, Trail, Path, Circuit and Cycle.", ["GraphProtocols"]),
     ("Semirings", "Vocabulary", "The Semiring protocol and the tropical, bottleneck, Boolean and counting semirings, for algebraic path problems.", []),
 
@@ -49,9 +52,9 @@ MODULES = [
 
     # Algorithms
     ("Traversal", "Algorithms", "Breadth-first and depth-first search as event sequences, reachability, topological ordering, cycle finding.", ["GraphProtocols"]),
-    ("ShortestPaths", "Algorithms", "Dijkstra, Bellman–Ford, A*, Floyd–Warshall, Johnson, Yen, Δ-stepping, contraction hierarchies.", ["GraphProtocols", "Walks", "Semirings", "Trees", "PriorityQueueModule"]),
-    ("SpanningTrees", "Algorithms", "Kruskal, Prim, Borůvka, Chu–Liu/Edmonds, Steiner tree approximation.", ["GraphProtocols", "Trees", "DisjointSetModule", "PriorityQueueModule"]),
-    ("Connectivity", "Algorithms", "Strong and weak components, condensation, attracting components, dominators; blocks, cut vertices and bridges once the undirected Graph exists.", ["GraphProtocols", "CompressedSparseRowModule"]),
+    ("ShortestPaths", "Algorithms", "Dijkstra, Bellman–Ford, A* and unweighted shortest paths; later Floyd–Warshall, Johnson, Yen, Δ-stepping, contraction hierarchies.", ["GraphProtocols", "PriorityQueueModule"]),
+    ("SpanningTrees", "Algorithms", "Minimum and maximum spanning forests by Kruskal, Prim and Borůvka; later Chu–Liu/Edmonds and Steiner tree approximation.", ["GraphProtocols", "DisjointSetModule", "PriorityQueueModule"]),
+    ("Connectivity", "Algorithms", "Strong and weak components, condensation, attracting components, dominators; connected components, bridges, articulation points, biconnected and bi-edge-connected components and the block–cut tree of undirected graphs.", ["GraphProtocols", "CompressedSparseRowModule"]),
     ("Cycles", "Algorithms", "Cycle detection, cycle bases, elementary circuits, girth.", ["GraphProtocols", "Walks", "Traversal", "DisjointSetModule"]),
     ("Tours", "Algorithms", "Eulerian trails and circuits, Hamiltonian paths and cycles, travelling salesman heuristics.", ["GraphProtocols", "Walks", "SpanningTrees", "MatchingModule"]),
     ("Flows", "Algorithms", "Maximum flow, minimum-cost flow, minimum cut, Gomory–Hu trees.", ["GraphProtocols", "FlowNetworks", "Trees", "Traversal"]),
@@ -88,7 +91,9 @@ TEST_TARGETS = [
     ("TraversalTests", ["GraphProtocols", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport"]),
     ("PriorityQueueTests", ["PriorityQueueModule", "GrafluentTestSupport"]),
     ("DisjointSetTests", ["DisjointSetModule", "GrafluentTestSupport"]),
-    ("ConnectivityTests", ["GraphProtocols", "Connectivity", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport"]),
+    ("ShortestPathsTests", ["GraphProtocols", "ShortestPaths", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
+    ("SpanningTreesTests", ["GraphProtocols", "SpanningTrees", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
+    ("ConnectivityTests", ["GraphProtocols", "Connectivity", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("GraphProtocolsTests", ["GraphProtocols", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "EdgeListModule", "GrafluentTestSupport", "swift-collections/BitCollections"]),
 ]
 

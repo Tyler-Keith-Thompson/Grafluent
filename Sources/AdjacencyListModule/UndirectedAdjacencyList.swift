@@ -631,6 +631,10 @@ extension UndirectedAdjacencyList: Graph {
     @inlinable
     public func edgeIndex(of position: Int) -> Int { position }
 
+    /// The positions of the edges at the vertex in slot `index`: the stored row. O(1).
+    @inlinable
+    public func incidentEdges(ofIndex index: Int) -> ArraySlice<Int> { _incident[row: index] }
+
     /// The positions of the edges at the vertex in slot `index`: the stored row, parallel to
     /// `neighborIndices(ofIndex:)`. O(1).
     @inlinable

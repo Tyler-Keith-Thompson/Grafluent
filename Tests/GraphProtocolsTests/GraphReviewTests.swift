@@ -2,6 +2,7 @@
 // survived the first suite. Case IDs continue the catalog; see README.md.
 
 import AdjacencyListModule
+import AdjacencyMatrixModule
 import GraphProtocols
 import GrafluentTestSupport
 import Testing
@@ -27,14 +28,38 @@ struct GraphReviewTests {
         laws(ReferencePseudograph(vertices: fixture.vertices, edges: fixture.edges))
     }
 
-    @Test("UG-L24 without edge indices the bound is nil, and edgeIndex(of:) traps", .tags(.precondition))
-    func noEdgeIndices() async {
-        let view = AdjacencyList(edges: [DirectedEdge(from: 0, to: 1)]).undirected
-        #expect(view.edgeIndexBound == nil)
+    @Test("UG-L24 the undirected view forwards its base's edge indices, or their absence", .tags(.precondition))
+    func viewEdgeIndices() async {
+        let list = AdjacencyList(edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 0), DirectedEdge(from: 1, to: 1)])
+        let view = list.undirected
+        #expect(view.edgeIndexBound == 3)
+        #expect(view.edges.indices.map { view.edgeIndex(of: $0) } == list.edges.indices.map { list.edgeIndex(of: $0) })
+        for v in view.vertices {
+            let i = view.vertexIndex(of: v)
+            #expect(Array(view.incidentEdges(ofIndex: i)) == Array(view.incidentEdges(of: v)))
+            #expect(Array(view.incidentEdgeIndices(ofIndex: i)) == view.incidentEdges(of: v).map { view.edgeIndex(of: $0) })
+        }
+        let matrixView = AdjacencyMatrix(vertexCount: 2, edges: [DirectedEdge(from: 0, to: 1)]).undirected
+        #expect(matrixView.edgeIndexBound == nil)
         await #expect(processExitsWith: .failure) {
-            let view = AdjacencyList(edges: [DirectedEdge(from: 0, to: 1)]).undirected
+            let view = AdjacencyMatrix(vertexCount: 2, edges: [DirectedEdge(from: 0, to: 1)]).undirected
             _ = view.edgeIndex(of: view.edges.startIndex)
         }
+    }
+
+    @Test("UG-L25 with edge indices, edges is in index order", .tags(.fixture), arguments: UndirectedFixture<Int>.all)
+    func edgesInIndexOrder(_ fixture: UndirectedFixture<Int>) {
+        func law<G: Graph>(_ graph: G) {
+            guard let bound = graph.edgeIndexBound else {
+                Issue.record("\(G.self) should have edge indices")
+                return
+            }
+            #expect(graph.edges.indices.map { graph.edgeIndex(of: $0) } == Array(0 ..< bound))
+        }
+        law(UndirectedAdjacencyList(vertices: fixture.vertices, edges: fixture.edges))
+        law(ReferencePseudograph(vertices: fixture.vertices, edges: fixture.edges))
+        let list = AdjacencyList(vertices: fixture.vertices, edges: fixture.edges.map { DirectedEdge(from: $0.u, to: $0.v) })
+        law(list.undirected)
     }
 
     @Test("UG-C03 the directed view's predecessor indices are its predecessors mapped", .tags(.fixture), arguments: UndirectedFixture<Int>.all)

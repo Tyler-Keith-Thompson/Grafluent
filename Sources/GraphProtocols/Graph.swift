@@ -37,10 +37,14 @@
 /// - With vertex indices, `vertices` is in index order: `vertex(atIndex: i)` is the `i`th vertex.
 /// - With vertex indices, `neighborIndices(ofIndex: vertexIndex(of: v))` is `neighbors(of: v)`
 ///   mapped through `vertexIndex(of:)`, in the same order.
+/// - With vertex indices, `incidentEdges(ofIndex: vertexIndex(of: v))` is `incidentEdges(of: v)`.
 /// - With edge indices, `edgeIndexBound == edgeCount`, `edgeIndex(of:)` is one-to-one onto
 ///   `0..<edgeIndexBound`, and, with vertex indices too,
 ///   `incidentEdgeIndices(ofIndex: vertexIndex(of: v))` is `incidentEdges(of: v)` mapped through
 ///   `edgeIndex(of:)`, in the same order.
+/// - With edge indices, `edges` is in index order: the `k`th position of `edges` has `edgeIndex`
+///   `k`. So an algorithm that gathers edges from the index-space rows can order them by position
+///   (a tie rule) without walking `edges`.
 ///
 /// **Defaults.** As for `DirectedGraph`, members with default implementations are requirements,
 /// so a representation's faster version is the one generic code calls, and a wrapper must forward
@@ -138,6 +142,12 @@ public protocol Graph<Vertex> {
     /// - Precondition: `vertexIndexBound` and `edgeIndexBound` are not `nil`, and `index` is in
     ///   `0..<vertexIndexBound`.
     func incidentEdgeIndices(ofIndex index: Int) -> IncidentEdgeIndices
+
+    /// `incidentEdges(of: vertex(atIndex: index))`, without the lookup a representation may need
+    /// to find the vertex. Default: exactly that.
+    ///
+    /// - Precondition: `vertexIndexBound` is not `nil`, and `index` is in `0..<vertexIndexBound`.
+    func incidentEdges(ofIndex index: Int) -> IncidentEdges
 }
 
 extension Graph {
@@ -185,6 +195,11 @@ extension Graph {
 
     @inlinable
     public var edgeIndexBound: Int? { nil }
+
+    @inlinable
+    public func incidentEdges(ofIndex index: Int) -> IncidentEdges {
+        incidentEdges(of: vertex(atIndex: index))
+    }
 
     @inlinable
     public func edgeIndex(of position: Edges.Index) -> Int {

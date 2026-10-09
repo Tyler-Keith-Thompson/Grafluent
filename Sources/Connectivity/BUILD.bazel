@@ -2,7 +2,7 @@
 
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Strong and weak components, condensation, attracting components, dominators; blocks, cut vertices and bridges once the undirected Graph exists.
+# Strong and weak components, condensation, attracting components, dominators; connected components, bridges, articulation points, biconnected and bi-edge-connected components and the block–cut tree of undirected graphs.
 swift_library(
     name = "Connectivity",
     srcs = glob(["**/*.swift"]),

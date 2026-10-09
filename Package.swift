@@ -62,10 +62,12 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-collections", from: "1.3.0"),
+        .package(url: "https://github.com/apple/swift-algorithms", from: "1.2.0"),
+        .package(url: "https://github.com/x-sheep/swift-property-based", from: "2.0.1"),
     ],
     targets: [
         // Vocabulary
-        .target(name: "GraphProtocols", exclude: bazelFiles),
+        .target(name: "GraphProtocols", dependencies: [.product(name: "Algorithms", package: "swift-algorithms")], exclude: bazelFiles),
         .target(name: "Walks", dependencies: ["GraphProtocols"], exclude: bazelFiles),
         .target(name: "Semirings", exclude: bazelFiles),
         // Data structures
@@ -92,8 +94,8 @@ let package = Package(
         .target(name: "GraphProducts", dependencies: ["GraphProtocols"], exclude: bazelFiles),
         // Algorithms
         .target(name: "Traversal", dependencies: ["GraphProtocols"], exclude: bazelFiles),
-        .target(name: "ShortestPaths", dependencies: ["GraphProtocols", "Walks", "Semirings", "Trees", "PriorityQueueModule"], exclude: bazelFiles),
-        .target(name: "SpanningTrees", dependencies: ["GraphProtocols", "Trees", "DisjointSetModule", "PriorityQueueModule"], exclude: bazelFiles),
+        .target(name: "ShortestPaths", dependencies: ["GraphProtocols", "PriorityQueueModule"], exclude: bazelFiles),
+        .target(name: "SpanningTrees", dependencies: ["GraphProtocols", "DisjointSetModule", "PriorityQueueModule"], exclude: bazelFiles),
         .target(name: "Connectivity", dependencies: ["GraphProtocols", "CompressedSparseRowModule"], exclude: bazelFiles),
         .target(name: "Cycles", dependencies: ["GraphProtocols", "Walks", "Traversal", "DisjointSetModule"], exclude: bazelFiles),
         .target(name: "Tours", dependencies: ["GraphProtocols", "Walks", "SpanningTrees", "MatchingModule"], exclude: bazelFiles),
@@ -132,7 +134,9 @@ let package = Package(
         .testTarget(name: "TraversalTests", dependencies: ["GraphProtocols", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport"], exclude: ["BUILD.bazel", "README.md"]),
         .testTarget(name: "PriorityQueueTests", dependencies: ["PriorityQueueModule", "GrafluentTestSupport"], exclude: ["BUILD.bazel", "README.md"]),
         .testTarget(name: "DisjointSetTests", dependencies: ["DisjointSetModule", "GrafluentTestSupport"], exclude: ["BUILD.bazel", "README.md"]),
-        .testTarget(name: "ConnectivityTests", dependencies: ["GraphProtocols", "Connectivity", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport"], exclude: ["BUILD.bazel", "README.md"]),
+        .testTarget(name: "ShortestPathsTests", dependencies: ["GraphProtocols", "ShortestPaths", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", .product(name: "PropertyBased", package: "swift-property-based")], exclude: ["BUILD.bazel", "README.md"]),
+        .testTarget(name: "SpanningTreesTests", dependencies: ["GraphProtocols", "SpanningTrees", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", .product(name: "PropertyBased", package: "swift-property-based")], exclude: ["BUILD.bazel", "README.md"]),
+        .testTarget(name: "ConnectivityTests", dependencies: ["GraphProtocols", "Connectivity", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", .product(name: "PropertyBased", package: "swift-property-based")], exclude: ["BUILD.bazel", "README.md"]),
         .testTarget(name: "GraphProtocolsTests", dependencies: ["GraphProtocols", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "EdgeListModule", "GrafluentTestSupport", .product(name: "BitCollections", package: "swift-collections")], exclude: ["BUILD.bazel", "README.md"]),
     ]
 )

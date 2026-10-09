@@ -12,7 +12,7 @@ struct WithoutSuccessorIndices: DirectedGraph {
     var vertices: AdjacencyList<Int>.Vertices { base.vertices }
     var edges: AdjacencyList<Int>.Edges { base.edges }
     func successors(of vertex: Int) -> AdjacencyList<Int>.Neighbors { base.successors(of: vertex) }
-    func outEdges(of vertex: Int) -> LazyMapCollection<Range<Int>, AdjacencyList<Int>.Edges.Index> { base.outEdges(of: vertex) }
+    func outEdges(of vertex: Int) -> ArraySlice<Int> { base.outEdges(of: vertex) }
     var vertexCount: Int { base.vertexCount }
     var edgeCount: Int { base.edgeCount }
     func contains(_ vertex: Int) -> Bool { base.contains(vertex) }

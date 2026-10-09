@@ -36,5 +36,7 @@ use_repo(
     swift_deps,
     "swift_deps_info",
     "swift_package",
+    "swiftpkg_swift_algorithms",
     "swiftpkg_swift_collections",
+    "swiftpkg_swift_property_based",
 )

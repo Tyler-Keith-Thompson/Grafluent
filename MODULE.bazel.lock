@@ -668,14 +668,16 @@
           "REPO_MAPPING:rules_swift_package_manager+,bazel_skylib bazel_skylib+",
           "REPO_MAPPING:rules_swift_package_manager+,bazel_tools bazel_tools",
           "REPO_MAPPING:rules_swift_package_manager+,cgrindel_bazel_starlib cgrindel_bazel_starlib+",
-          "FILE:@@//swift/Package.resolved 08c2b24872af983ca5bcfa7cf72e3a49e6bc92aaf512c3953a224d811ecdfc26"
+          "FILE:@@//swift/Package.resolved d7d1af15a31018c9373095ce81cac3ea1a7a09bc289648b90265a69b4395a698"
         ],
         "generatedRepoSpecs": {
           "swift_deps_info": {
             "repoRuleId": "@@rules_swift_package_manager+//swiftpkg/internal:swift_deps_info.bzl%swift_deps_info",
             "attributes": {
               "direct_dep_pkg_infos": {
-                "@swiftpkg_swift_collections//:pkg_info.json": "swift-collections"
+                "@swiftpkg_swift_collections//:pkg_info.json": "swift-collections",
+                "@swiftpkg_swift_algorithms//:pkg_info.json": "swift-algorithms",
+                "@swiftpkg_swift_property_based//:pkg_info.json": "swift-property-based"
               }
             }
           },
@@ -698,11 +700,52 @@
               "cached_json_directory": "",
               "replace_scm_with_registry": false
             }
+          },
+          "swiftpkg_swift_algorithms": {
+            "repoRuleId": "@@rules_swift_package_manager+//swiftpkg/internal:swift_package.bzl%swift_package",
+            "attributes": {
+              "bazel_package_name": "swiftpkg_swift_algorithms",
+              "commit": "87e50f483c54e6efd60e885f7f5aa946cee68023",
+              "remote": "https://github.com/apple/swift-algorithms",
+              "version": "1.2.1",
+              "env": {},
+              "env_inherit": [],
+              "cached_json_directory": "",
+              "replace_scm_with_registry": false
+            }
+          },
+          "swiftpkg_swift_property_based": {
+            "repoRuleId": "@@rules_swift_package_manager+//swiftpkg/internal:swift_package.bzl%swift_package",
+            "attributes": {
+              "bazel_package_name": "swiftpkg_swift_property_based",
+              "commit": "7d405e77a7b729390ed1d9a66e1f80a707fd03c4",
+              "remote": "https://github.com/x-sheep/swift-property-based",
+              "version": "2.0.1",
+              "env": {},
+              "env_inherit": [],
+              "cached_json_directory": "",
+              "replace_scm_with_registry": false
+            }
+          },
+          "swiftpkg_swift_numerics": {
+            "repoRuleId": "@@rules_swift_package_manager+//swiftpkg/internal:swift_package.bzl%swift_package",
+            "attributes": {
+              "bazel_package_name": "swiftpkg_swift_numerics",
+              "commit": "0c0290ff6b24942dadb83a929ffaaa1481df04a2",
+              "remote": "https://github.com/apple/swift-numerics.git",
+              "version": "1.1.1",
+              "env": {},
+              "env_inherit": [],
+              "cached_json_directory": "",
+              "replace_scm_with_registry": false
+            }
           }
         },
         "moduleExtensionMetadata": {
           "explicitRootModuleDirectDeps": [
             "swiftpkg_swift_collections",
+            "swiftpkg_swift_algorithms",
+            "swiftpkg_swift_property_based",
             "swift_deps_info",
             "swift_package"
           ],

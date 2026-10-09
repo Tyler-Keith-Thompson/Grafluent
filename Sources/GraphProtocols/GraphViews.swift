@@ -2,6 +2,8 @@
 // two opposite arcs) and a bidirectional directed graph read as undirected (each arc as an edge).
 // Both forward every requirement, so the base's own fast members are the ones called.
 
+import Algorithms
+
 extension Graph {
     /// The graph as a directed graph with each edge as two opposite arcs, a self-loop included
     /// (NetworkX's directed view, LEMON's reading of a graph as a digraph). O(1); a value holding
@@ -164,6 +166,12 @@ public struct DirectedView<Base: Graph>: BidirectionalDirectedGraph {
         Arcs(base: base, vertex: vertex, positions: base.incidentEdges(of: vertex), leaving: true)
     }
 
+    /// `outEdges(of: vertex(atIndex: index))`, from the base's incident row without a lookup.
+    @inlinable
+    public func outEdges(ofIndex index: Int) -> Arcs {
+        Arcs(base: base, vertex: base.vertex(atIndex: index), positions: base.incidentEdges(ofIndex: index), leaving: true)
+    }
+
     /// The base's `neighbors(of:)`.
     ///
     /// - Precondition: `vertex` is a vertex of the base.
@@ -176,6 +184,12 @@ public struct DirectedView<Base: Graph>: BidirectionalDirectedGraph {
     @inlinable
     public func inEdges(of vertex: Vertex) -> Arcs {
         Arcs(base: base, vertex: vertex, positions: base.incidentEdges(of: vertex), leaving: false)
+    }
+
+    /// `inEdges(of:)` from the base's index-space row.
+    @inlinable
+    public func inEdges(ofIndex index: Int) -> Arcs {
+        Arcs(base: base, vertex: base.vertex(atIndex: index), positions: base.incidentEdges(ofIndex: index), leaving: false)
     }
 
     @inlinable
@@ -268,60 +282,20 @@ public struct UndirectedView<Base: BidirectionalDirectedGraph>: Graph {
         }
     }
 
-    /// One sequence, then another (swift-algorithms' `chain`).
-    @frozen
-    public struct Chain<First: Sequence, Second: Sequence>: Sequence where First.Element == Second.Element {
-        @usableFromInline let first: First
-        @usableFromInline let second: Second
-
-        @inlinable
-        init(_ first: First, _ second: Second) {
-            self.first = first
-            self.second = second
-        }
-
-        @inlinable
-        public func makeIterator() -> Iterator {
-            Iterator(first: first.makeIterator(), second: second.makeIterator())
-        }
-
-        @frozen
-        public struct Iterator: IteratorProtocol {
-            @usableFromInline var first: First.Iterator
-            @usableFromInline var second: Second.Iterator
-            @usableFromInline var firstDone = false
-
-            @inlinable
-            init(first: First.Iterator, second: Second.Iterator) {
-                self.first = first
-                self.second = second
-            }
-
-            @inlinable
-            public mutating func next() -> First.Element? {
-                if !firstDone {
-                    if let element = first.next() { return element }
-                    firstDone = true
-                }
-                return second.next()
-            }
-        }
-    }
-
     /// The base's successors, then its predecessors: a directed self-loop's vertex twice.
     ///
     /// - Precondition: `vertex` is a vertex of the base.
     @inlinable
-    public func neighbors(of vertex: Vertex) -> Chain<Base.Successors, Base.Predecessors> {
-        Chain(base.successors(of: vertex), base.predecessors(of: vertex))
+    public func neighbors(of vertex: Vertex) -> Chain2Sequence<Base.Successors, Base.Predecessors> {
+        chain(base.successors(of: vertex), base.predecessors(of: vertex))
     }
 
     /// The base's out-edges, then its in-edges, in the order of `neighbors(of:)`.
     ///
     /// - Precondition: `vertex` is a vertex of the base.
     @inlinable
-    public func incidentEdges(of vertex: Vertex) -> Chain<Base.OutEdges, Base.InEdges> {
-        Chain(base.outEdges(of: vertex), base.inEdges(of: vertex))
+    public func incidentEdges(of vertex: Vertex) -> Chain2Sequence<Base.OutEdges, Base.InEdges> {
+        chain(base.outEdges(of: vertex), base.inEdges(of: vertex))
     }
 
     @inlinable
@@ -350,14 +324,22 @@ public struct UndirectedView<Base: BidirectionalDirectedGraph>: Graph {
     @inlinable public func vertexIndex(of vertex: Vertex) -> Int { base.vertexIndex(of: vertex) }
     @inlinable public func vertex(atIndex index: Int) -> Vertex { base.vertex(atIndex: index) }
 
+    /// The base's edge indices: the view keeps the base's positions.
+    @inlinable public var edgeIndexBound: Int? { base.edgeIndexBound }
+    @inlinable public func edgeIndex(of position: Base.Edges.Index) -> Int { base.edgeIndex(of: position) }
+
+    /// The base's out-edges, then its in-edges, without looking the vertex up for the first.
+    @inlinable
+    public func incidentEdges(ofIndex index: Int) -> Chain2Sequence<Base.OutEdges, Base.InEdges> {
+        chain(base.outEdges(ofIndex: index), base.inEdges(ofIndex: index))
+    }
+
     /// The base's successor indices, then its predecessor indices.
     @inlinable
-    public func neighborIndices(ofIndex index: Int) -> Chain<Base.SuccessorIndices, Base.PredecessorIndices> {
-        Chain(base.successorIndices(ofIndex: index), base.predecessorIndices(ofIndex: index))
+    public func neighborIndices(ofIndex index: Int) -> Chain2Sequence<Base.SuccessorIndices, Base.PredecessorIndices> {
+        chain(base.successorIndices(ofIndex: index), base.predecessorIndices(ofIndex: index))
     }
 }
 
 extension UndirectedView: Sendable where Base: Sendable {}
 extension UndirectedView.Edges: Sendable where Base.Edges: Sendable {}
-extension UndirectedView.Chain: Sendable where First: Sendable, Second: Sendable {}
-extension UndirectedView.Chain.Iterator: Sendable where First.Iterator: Sendable, Second.Iterator: Sendable {}

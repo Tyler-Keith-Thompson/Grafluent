@@ -17,7 +17,11 @@
 /// then `vertexIndex(of:)` maps its vertices one-to-one onto `0..<vertexIndexBound`, so
 /// algorithms can keep per-vertex state in arrays instead of dictionaries (Boost's `vertex_index`,
 /// petgraph's `NodeCompactIndexable`). Indices are valid until the graph is mutated.
-/// `successorIndices(ofIndex:)` gives adjacency directly in index space.
+/// `successorIndices(ofIndex:)` gives adjacency directly in index space, and `outEdges(ofIndex:)`
+/// the out-edges without looking the vertex up. A representation with dense edge indices also
+/// reports `edgeIndexBound`, and then `edgeIndex(of:)` maps edge positions one-to-one onto
+/// `0..<edgeIndexBound` (Boost's `edge_index`, petgraph's `EdgeIndexable`), so per-edge values
+/// (weights, flow) can live in arrays.
 ///
 /// **Laws.** Every conformer satisfies:
 /// - `vertexCount == vertices.count`, the vertices are distinct, and every edge's endpoints are
@@ -31,7 +35,11 @@
 /// - With vertex indices, `vertices` is in index order: `vertex(atIndex: i)` is the `i`th vertex,
 ///   so an algorithm that visits vertices in `vertices` order can walk `0..<vertexIndexBound`.
 /// - With vertex indices, `successorIndices(ofIndex: vertexIndex(of: v))` is
-///   `successors(of: v)` mapped through `vertexIndex(of:)`, in the same order.
+///   `successors(of: v)` mapped through `vertexIndex(of:)`, in the same order, and
+///   `outEdges(ofIndex: vertexIndex(of: v))` is `outEdges(of: v)`.
+/// - With edge indices, `edgeIndexBound == edgeCount` and `edgeIndex(of:)` is one-to-one onto
+///   `0..<edgeIndexBound`, and `edges` is in index order: the `k`th position of `edges` has
+///   `edgeIndex` `k` (so `undirected`, which forwards both, keeps `Graph`'s law of the same name).
 ///
 /// **Defaults.** Members with default implementations are requirements, not extension methods, so
 /// a representation's faster version is the one generic code calls. A type that wraps another
@@ -113,11 +121,28 @@ public protocol DirectedGraph<Vertex> {
     /// - Precondition: `vertexIndexBound` is not `nil`, and `index` is in `0..<vertexIndexBound`.
     func successorIndices(ofIndex index: Int) -> SuccessorIndices
 
+    /// `outEdges(of: vertex(atIndex: index))`, without the lookup a representation may need to
+    /// find the vertex. Default: exactly that.
+    ///
+    /// - Precondition: `vertexIndexBound` is not `nil`, and `index` is in `0..<vertexIndexBound`.
+    func outEdges(ofIndex index: Int) -> OutEdges
+
+    /// The number of dense edge indices, `edgeCount`, or `nil` when the representation has none.
+    /// Default: `nil`.
+    var edgeIndexBound: Int? { get }
+
+    /// The index of the edge at `position`, in `0..<edgeIndexBound`.
+    ///
+    /// - Precondition: `edgeIndexBound` is not `nil`, and `position` is a position in `edges`.
+    func edgeIndex(of position: Edges.Index) -> Int
+
     /// For representations that store adjacency as flat rows in index space (compressed sparse
     /// row): calls `body` with the row offsets (`vertexIndexBound + 1` of them) and the targets,
     /// so that `successorIndices(ofIndex: v)` is `targets[offsets[v] ..< offsets[v + 1]]`, and
-    /// returns its result. The buffers are valid only during the call. Default: `nil`, without
-    /// calling `body`.
+    /// returns its result. Only for a graph whose `Edges.Index` is `Int` and whose edge positions
+    /// are `0 ..< edgeCount` in row order: slot `k` of `targets` is the edge at position `k` (and
+    /// so with `edgeIndex` `k`), and algorithms hand slot `k` to a weight closure as position `k`.
+    /// The buffers are valid only during the call. Default: `nil`, without calling `body`.
     ///
     /// Not for use outside the library: algorithms walk these rows with integer cursors, which
     /// avoids retaining the row storage once per visited vertex.
@@ -133,7 +158,8 @@ public protocol DirectedGraph<Vertex> {
 /// **Laws**, in addition to `DirectedGraph`'s: for every vertex `v`, `inEdges(of: v)` lists each
 /// position of an edge entering `v` exactly once; `predecessors(of: v)` is their sources in the
 /// same order; `inDegree(of: v)` is their count; `degree(of: v)` is `outDegree + inDegree`. With
-/// vertex indices, `predecessorIndices` is `predecessors` mapped through `vertexIndex(of:)`.
+/// vertex indices, `predecessorIndices` is `predecessors` mapped through `vertexIndex(of:)`, and
+/// `inEdges(ofIndex: vertexIndex(of: v))` is `inEdges(of: v)`.
 public protocol BidirectionalDirectedGraph<Vertex>: DirectedGraph {
     associatedtype Predecessors: Sequence<Vertex>
     associatedtype InEdges: Sequence<Edges.Index>
@@ -162,6 +188,12 @@ public protocol BidirectionalDirectedGraph<Vertex>: DirectedGraph {
     ///
     /// - Precondition: `vertexIndexBound` is not `nil`, and `index` is in `0..<vertexIndexBound`.
     func predecessorIndices(ofIndex index: Int) -> PredecessorIndices
+
+    /// `inEdges(of: vertex(atIndex: index))`, without the lookup a representation may need to find
+    /// the vertex. Default: exactly that.
+    ///
+    /// - Precondition: `vertexIndexBound` is not `nil`, and `index` is in `0..<vertexIndexBound`.
+    func inEdges(ofIndex index: Int) -> InEdges
 }
 
 extension DirectedGraph {
@@ -205,6 +237,19 @@ extension DirectedGraph {
     public var vertexIndexBound: Int? { nil }
 
     @inlinable
+    public func outEdges(ofIndex index: Int) -> OutEdges {
+        outEdges(of: vertex(atIndex: index))
+    }
+
+    @inlinable
+    public var edgeIndexBound: Int? { nil }
+
+    @inlinable
+    public func edgeIndex(of position: Edges.Index) -> Int {
+        preconditionFailure("\(Self.self) has no edge indices; check edgeIndexBound first")
+    }
+
+    @inlinable
     public func _withSuccessorIndexRows<Result>(
         _ body: (_ offsets: UnsafeBufferPointer<Int>, _ targets: UnsafeBufferPointer<Int>) -> Result
     ) -> Result? {
@@ -244,6 +289,11 @@ extension DirectedGraph where Successors: Collection {
 }
 
 extension BidirectionalDirectedGraph {
+    @inlinable
+    public func inEdges(ofIndex index: Int) -> InEdges {
+        inEdges(of: vertex(atIndex: index))
+    }
+
     @inlinable
     public func inDegree(of vertex: Vertex) -> Int {
         var count = 0

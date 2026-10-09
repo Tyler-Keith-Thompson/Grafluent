@@ -1,16 +1,14 @@
-import GraphProtocols
-
 /// Dense identifiers for the vertices a search meets, so its state lives in arrays: the graph's
 /// own vertex indices when it has them, otherwise numbers handed out in the order vertices are
 /// first seen.
 @frozen
 @usableFromInline
 package struct _VertexIdentifiers<G: DirectedGraph> {
-    @usableFromInline let graph: G
+    @usableFromInline package let graph: G
     /// Whether identifiers are the graph's vertex indices.
-    @usableFromInline let isIndexed: Bool
-    @usableFromInline var identifiers: [G.Vertex: Int]
-    @usableFromInline var vertices: [G.Vertex]
+    @usableFromInline package let isIndexed: Bool
+    @usableFromInline package var identifiers: [G.Vertex: Int]
+    @usableFromInline package var vertices: [G.Vertex]
 
     @inlinable
     package init(_ graph: G) {

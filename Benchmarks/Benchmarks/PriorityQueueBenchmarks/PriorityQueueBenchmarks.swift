@@ -5,137 +5,219 @@ import GraphProtocols
 import HeapModule
 import PriorityQueueModule
 
-/// A hand-written indexed 4-ary heap of (priority, index) pairs with a position array, all in raw
-/// buffers: the floor for PQ-B01 – B03 (the research prototype's `IndexedHeap<_, Int, 4, 0>`).
-struct HandWrittenIndexedHeap {
-    var heap: [(priority: Int, index: Int)] = []
+/// A hand-written indexed 4-ary heap of (priority, index) pairs with a position array, every step
+/// in raw buffers and no checks: the floor for PQ-B01 – B03 (the research prototype's
+/// `IndexedHeap<_, Int, 4, 0>`, tightened after review).
+struct HandWrittenIndexedHeap<P: Comparable> {
+    var heap: [(priority: P, index: Int)] = []
     var slots: [Int]
 
     init(indexBound: Int) { slots = [Int](repeating: -1, count: indexBound) }
 
-    mutating func insert(_ index: Int, _ priority: Int) {
+    @inline(__always)
+    mutating func insert(_ index: Int, _ priority: P) {
         heap.append((priority, index))
-        siftUp(heap.count - 1, (priority, index))
+        heap.withUnsafeMutableBufferPointer { h in
+            slots.withUnsafeMutableBufferPointer { q in Self.siftUp(h, q, h.count - 1, (priority, index)) }
+        }
     }
 
-    mutating func decrease(_ index: Int, _ priority: Int) { siftUp(slots[index], (priority, index)) }
+    @inline(__always)
+    mutating func decrease(_ index: Int, _ priority: P) {
+        heap.withUnsafeMutableBufferPointer { h in
+            slots.withUnsafeMutableBufferPointer { q in Self.siftUp(h, q, q[index], (priority, index)) }
+        }
+    }
 
-    mutating func popMin() -> (priority: Int, index: Int)? {
+    @inline(__always)
+    mutating func popMin() -> (priority: P, index: Int)? {
         guard let last = heap.popLast() else { return nil }
-        if heap.isEmpty {
-            slots[last.index] = -1
-            return last
-        }
-        let top = heap[0]
-        slots[top.index] = -1
-        siftDown(0, last)
-        return top
-    }
-
-    mutating func siftUp(_ hole: Int, _ e: (priority: Int, index: Int)) {
-        heap.withUnsafeMutableBufferPointer { h in
+        return heap.withUnsafeMutableBufferPointer { h in
             slots.withUnsafeMutableBufferPointer { q in
-                var i = hole
-                while i > 0 {
-                    let p = (i - 1) >> 2
-                    if !(e.priority < h[p].priority) { break }
-                    h[i] = h[p]
-                    q[h[i].index] = i
-                    i = p
-                }
-                h[i] = e
-                q[e.index] = i
+                q[last.index] = -1
+                guard h.count > 0 else { return last }
+                let top = h[0]
+                q[top.index] = -1
+                Self.siftDown(h, q, 0, last)
+                return top
             }
         }
     }
 
-    mutating func siftDown(_ hole: Int, _ e: (priority: Int, index: Int)) {
-        heap.withUnsafeMutableBufferPointer { h in
-            slots.withUnsafeMutableBufferPointer { q in
-                let n = h.count
-                var i = hole
-                while true {
-                    let first = i &* 4 &+ 1
-                    if first >= n { break }
-                    var best = first
-                    var c = first &+ 1
-                    let end = min(first &+ 4, n)
-                    while c < end {
-                        if h[c].priority < h[best].priority { best = c }
-                        c &+= 1
-                    }
-                    if !(h[best].priority < e.priority) { break }
-                    h[i] = h[best]
-                    q[h[i].index] = i
-                    i = best
+    @inline(__always)
+    static func siftUp(_ h: UnsafeMutableBufferPointer<(priority: P, index: Int)>, _ q: UnsafeMutableBufferPointer<Int>, _ hole: Int, _ e: (priority: P, index: Int)) {
+        var i = hole
+        while i > 0 {
+            let p = (i &- 1) >> 2
+            let above = h[p]
+            if !(e.priority < above.priority) { break }
+            h[i] = above
+            q[above.index] = i
+            i = p
+        }
+        h[i] = e
+        q[e.index] = i
+    }
+
+    @inline(__always)
+    static func siftDown(_ h: UnsafeMutableBufferPointer<(priority: P, index: Int)>, _ q: UnsafeMutableBufferPointer<Int>, _ hole: Int, _ e: (priority: P, index: Int)) {
+        let n = h.count
+        var i = hole
+        while true {
+            let first = i &* 4 &+ 1
+            if first >= n { break }
+            var best = first
+            var smallest = h[first]
+            var c = first &+ 1
+            let end = min(first &+ 4, n)
+            while c < end {
+                let child = h[c]
+                if child.priority < smallest.priority {
+                    best = c
+                    smallest = child
                 }
-                h[i] = e
-                q[e.index] = i
+                c &+= 1
             }
+            if !(smallest.priority < e.priority) { break }
+            h[i] = smallest
+            q[smallest.index] = i
+            i = best
+        }
+        h[i] = e
+        q[e.index] = i
+    }
+}
+
+/// A hand-written lazy 4-ary heap of (priority, index) pairs with no positions: push duplicates,
+/// skip stale pops (petgraph, NetworkX, scipy), in raw buffers.
+struct HandWrittenLazyHeap<P: Comparable> {
+    var heap: [(priority: P, index: Int)] = []
+
+    @inline(__always)
+    mutating func push(_ index: Int, _ priority: P) {
+        heap.append((priority, index))
+        heap.withUnsafeMutableBufferPointer { h in
+            var i = h.count - 1
+            let e = (priority: priority, index: index)
+            while i > 0 {
+                let p = (i &- 1) >> 2
+                if !(e.priority < h[p].priority) { break }
+                h[i] = h[p]
+                i = p
+            }
+            h[i] = e
+        }
+    }
+
+    @inline(__always)
+    mutating func popMin() -> (priority: P, index: Int)? {
+        guard let last = heap.popLast() else { return nil }
+        return heap.withUnsafeMutableBufferPointer { h in
+            guard h.count > 0 else { return last }
+            let top = h[0]
+            let n = h.count
+            var i = 0
+            while true {
+                let first = i &* 4 &+ 1
+                if first >= n { break }
+                var best = first
+                var c = first &+ 1
+                let end = min(first &+ 4, n)
+                while c < end {
+                    if h[c].priority < h[best].priority { best = c }
+                    c &+= 1
+                }
+                if !(h[best].priority < last.priority) { break }
+                h[i] = h[best]
+                i = best
+            }
+            h[i] = last
+            return top
         }
     }
 }
 
-/// Dijkstra from 0 over CSR rows with `weights[k]` for the k-th stored edge; returns the sum of
-/// finite distances, so every variant can be checked against the others.
+/// Dijkstra from 0 over CSR rows with `weights[k]` for the k-th stored edge; returns the
+/// distances, so every variant can be checked against the others.
 @inline(never)
-func dijkstraLibrary(_ graph: CompressedSparseRow, _ weights: [Int]) -> Int {
+func dijkstraLibrary<W: Comparable & AdditiveArithmetic>(_ graph: CompressedSparseRow, _ weights: [W], _ infinity: W) -> [W] {
     let n = graph.vertexCount
-    var dist = [Int](repeating: .max, count: n)
-    var queue = IndexedPriorityQueue<Int>(indexBound: n)
-    dist[0] = 0
-    queue.insert(0, priority: 0)
+    var dist = [W](repeating: infinity, count: n)
+    var queue = IndexedPriorityQueue<W>(indexBound: n)
+    dist[0] = .zero
+    queue.insert(0, priority: .zero)
     graph.withUnsafeBufferPointers { offsets, targets in
         while let (u, du) = queue.popMin() {
             for k in offsets[u] ..< offsets[u + 1] {
                 let v = targets[k], nd = du + weights[k]
                 guard nd < dist[v] else { continue }
-                if dist[v] == .max { queue.insert(v, priority: nd) } else { queue.decreasePriority(of: v, to: nd) }
                 dist[v] = nd
+                queue.insertOrDecreasePriority(of: v, to: nd)
             }
         }
     }
-    return dist.reduce(0) { $1 == .max ? $0 : $0 &+ $1 }
+    return dist
 }
 
 @inline(never)
-func dijkstraHandWritten(_ graph: CompressedSparseRow, _ weights: [Int]) -> Int {
+func dijkstraHandWritten<W: Comparable & AdditiveArithmetic>(_ graph: CompressedSparseRow, _ weights: [W], _ infinity: W) -> [W] {
     let n = graph.vertexCount
-    var dist = [Int](repeating: .max, count: n)
-    var queue = HandWrittenIndexedHeap(indexBound: n)
-    dist[0] = 0
-    queue.insert(0, 0)
+    var dist = [W](repeating: infinity, count: n)
+    var queue = HandWrittenIndexedHeap<W>(indexBound: n)
+    dist[0] = .zero
+    queue.insert(0, .zero)
     graph.withUnsafeBufferPointers { offsets, targets in
         while let (du, u) = queue.popMin() {
             for k in offsets[u] ..< offsets[u + 1] {
                 let v = targets[k], nd = du + weights[k]
                 guard nd < dist[v] else { continue }
-                if dist[v] == .max { queue.insert(v, nd) } else { queue.decrease(v, nd) }
+                if dist[v] == infinity { queue.insert(v, nd) } else { queue.decrease(v, nd) }
                 dist[v] = nd
             }
         }
     }
-    return dist.reduce(0) { $1 == .max ? $0 : $0 &+ $1 }
+    return dist
+}
+
+@inline(never)
+func dijkstraLazy<W: Comparable & AdditiveArithmetic>(_ graph: CompressedSparseRow, _ weights: [W], _ infinity: W) -> [W] {
+    let n = graph.vertexCount
+    var dist = [W](repeating: infinity, count: n)
+    var heap = HandWrittenLazyHeap<W>()
+    dist[0] = .zero
+    heap.push(0, .zero)
+    graph.withUnsafeBufferPointers { offsets, targets in
+        while let (du, u) = heap.popMin() {
+            if dist[u] < du { continue }
+            for k in offsets[u] ..< offsets[u + 1] {
+                let v = targets[k], nd = du + weights[k]
+                guard nd < dist[v] else { continue }
+                dist[v] = nd
+                heap.push(v, nd)
+            }
+        }
+    }
+    return dist
 }
 
 /// Lazy deletion with swift-collections' `Heap`: push duplicates, skip stale pops.
-struct Pair: Comparable {
-    var priority: Int
+struct Pair<W: Comparable>: Comparable {
+    var priority: W
     var index: Int
     static func < (a: Pair, b: Pair) -> Bool { a.priority < b.priority }
 }
 
 @inline(never)
-func dijkstraHeap(_ graph: CompressedSparseRow, _ weights: [Int]) -> Int {
+func dijkstraHeap<W: Comparable & AdditiveArithmetic>(_ graph: CompressedSparseRow, _ weights: [W], _ infinity: W) -> [W] {
     let n = graph.vertexCount
-    var dist = [Int](repeating: .max, count: n)
-    var heap = Heap<Pair>()
-    dist[0] = 0
-    heap.insert(Pair(priority: 0, index: 0))
+    var dist = [W](repeating: infinity, count: n)
+    var heap = Heap<Pair<W>>()
+    dist[0] = .zero
+    heap.insert(Pair(priority: .zero, index: 0))
     graph.withUnsafeBufferPointers { offsets, targets in
         while let top = heap.popMin() {
             let u = top.index, du = top.priority
-            if du > dist[u] { continue }
+            if dist[u] < du { continue }
             for k in offsets[u] ..< offsets[u + 1] {
                 let v = targets[k], nd = du + weights[k]
                 guard nd < dist[v] else { continue }
@@ -144,7 +226,7 @@ func dijkstraHeap(_ graph: CompressedSparseRow, _ weights: [Int]) -> Int {
             }
         }
     }
-    return dist.reduce(0) { $1 == .max ? $0 : $0 &+ $1 }
+    return dist
 }
 
 let benchmarks: @Sendable () -> Void = {
@@ -153,27 +235,39 @@ let benchmarks: @Sendable () -> Void = {
 
     let n = 100_000
     let graph = CompressedSparseRow(vertexCount: n, edges: Inputs.randomEdges(vertexCount: n, edgeCount: 1_000_000))
+    let big = CompressedSparseRow(vertexCount: 1_000_000, edges: Inputs.randomEdges(vertexCount: 1_000_000, edgeCount: 4_000_000, seed: 5))
     var generator = SeededRandomNumberGenerator(seed: 11)
     let weights = (0 ..< graph.edgeCount).map { _ in Int.random(in: 1 ... 1000, using: &generator) }
     let ties = (0 ..< graph.edgeCount).map { _ in Int.random(in: 1 ... 4, using: &generator) }
-    precondition(dijkstraLibrary(graph, weights) == dijkstraHandWritten(graph, weights))
-    precondition(dijkstraLibrary(graph, weights) == dijkstraHeap(graph, weights))
+    let real = (0 ..< graph.edgeCount).map { _ in Double.random(in: 0 ..< 1, using: &generator) }
+    let bigWeights = (0 ..< big.edgeCount).map { _ in Int.random(in: 1 ... 1000, using: &generator) }
+    let inputs: [(String, CompressedSparseRow, [Int])] = [("G(10⁵, 10⁶), weights 1…1000", graph, weights), ("G(10⁵, 10⁶), weights 1…4", graph, ties), ("G(10⁶, 4·10⁶), weights 1…1000", big, bigWeights)]
+    for (_, g, w) in inputs {
+        let expected = dijkstraHandWritten(g, w, .max)
+        precondition(dijkstraLibrary(g, w, .max) == expected && dijkstraLazy(g, w, .max) == expected && dijkstraHeap(g, w, .max) == expected)
+    }
+    precondition(dijkstraLibrary(graph, real, .infinity) == dijkstraHandWritten(graph, real, .infinity))
 
-    // PQ-B01: Dijkstra on G(10⁵, 10⁶).
-    Benchmark("PriorityQueue: BASELINE hand-written indexed 4-ary Dijkstra, weights 1…1000") { benchmark in
-        for _ in benchmark.scaledIterations { blackHole(dijkstraHandWritten(graph, weights)) }
+    // PQ-B01: Dijkstra, four ways, on each input.
+    for (name, g, w) in inputs {
+        Benchmark("PriorityQueue: BASELINE hand-written indexed 4-ary Dijkstra, \(name)") { benchmark in
+            for _ in benchmark.scaledIterations { blackHole(dijkstraHandWritten(g, w, .max)) }
+        }
+        Benchmark("PriorityQueue: Dijkstra with IndexedPriorityQueue, \(name)") { benchmark in
+            for _ in benchmark.scaledIterations { blackHole(dijkstraLibrary(g, w, .max)) }
+        }
+        Benchmark("PriorityQueue: Dijkstra with a hand-written lazy 4-ary heap, \(name)") { benchmark in
+            for _ in benchmark.scaledIterations { blackHole(dijkstraLazy(g, w, .max)) }
+        }
+        Benchmark("PriorityQueue: Dijkstra with swift-collections Heap and lazy deletion, \(name)") { benchmark in
+            for _ in benchmark.scaledIterations { blackHole(dijkstraHeap(g, w, .max)) }
+        }
     }
-    Benchmark("PriorityQueue: Dijkstra with IndexedPriorityQueue, weights 1…1000") { benchmark in
-        for _ in benchmark.scaledIterations { blackHole(dijkstraLibrary(graph, weights)) }
+    Benchmark("PriorityQueue: BASELINE hand-written indexed 4-ary Dijkstra, G(10⁵, 10⁶), Double weights") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(dijkstraHandWritten(graph, real, .infinity)) }
     }
-    Benchmark("PriorityQueue: Dijkstra with swift-collections Heap and lazy deletion, weights 1…1000") { benchmark in
-        for _ in benchmark.scaledIterations { blackHole(dijkstraHeap(graph, weights)) }
-    }
-    Benchmark("PriorityQueue: BASELINE hand-written indexed 4-ary Dijkstra, weights 1…4") { benchmark in
-        for _ in benchmark.scaledIterations { blackHole(dijkstraHandWritten(graph, ties)) }
-    }
-    Benchmark("PriorityQueue: Dijkstra with IndexedPriorityQueue, weights 1…4") { benchmark in
-        for _ in benchmark.scaledIterations { blackHole(dijkstraLibrary(graph, ties)) }
+    Benchmark("PriorityQueue: Dijkstra with IndexedPriorityQueue, G(10⁵, 10⁶), Double weights") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(dijkstraLibrary(graph, real, .infinity)) }
     }
     // PQ-B02: heap sort of 10⁶ random Ints.
     let m = 1_000_000
@@ -209,15 +303,15 @@ let benchmarks: @Sendable () -> Void = {
     }
     Benchmark("PriorityQueue: 1M inserts, 1M lazy re-pushes, pop all with Heap") { benchmark in
         for _ in benchmark.scaledIterations {
-            var heap = Heap<Pair>()
+            var heap = Heap<Pair<Int>>()
             var current = [Int](repeating: 0, count: m)
             for (i, key) in keys.enumerated() {
                 current[i] = key + m
-                heap.insert(Pair(priority: key + m, index: i))
+                heap.insert(Pair<Int>(priority: key + m, index: i))
             }
             for (i, key) in keys.enumerated() {
                 current[i] = key
-                heap.insert(Pair(priority: key, index: i))
+                heap.insert(Pair<Int>(priority: key, index: i))
             }
             var popped = 0
             while let top = heap.popMin() {

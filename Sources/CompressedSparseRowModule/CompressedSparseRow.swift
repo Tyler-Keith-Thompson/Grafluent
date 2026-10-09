@@ -729,6 +729,14 @@ extension CompressedSparseRow: DirectedGraph {
         return _offsets[vertex] ..< _offsets[vertex + 1]
     }
 
+    /// The edges' positions are their own indices: slot `k` of `targets`.
+    @inlinable
+    public var edgeIndexBound: Int? { edgeCount }
+
+    /// The position itself. O(1).
+    @inlinable
+    public func edgeIndex(of position: Int) -> Int { position }
+
     /// The vertices are their own indices.
     @inlinable
     public var vertexIndexBound: Int? { vertexCount }

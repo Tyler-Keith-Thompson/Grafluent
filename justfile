@@ -52,6 +52,26 @@ verify: test spm-test
 modules:
     python3 scripts/modules.py
 
+[doc('Plant the bugs in scripts/mutants/<module>.py and report survivors, e.g. just mutate ShortestPaths')]
+mutate module *args="":
+    python3 {{PROJECT_ROOT}}/scripts/mutate.py {{module}} {{args}}
+
+[doc('Fuzz with libFuzzer, time-boxed, e.g. just fuzz, or just fuzz FuzzShortestPaths -t 600')]
+fuzz *args="":
+    python3 {{PROJECT_ROOT}}/scripts/fuzz.py run {{args}}
+
+[doc('Replay every fuzz corpus once, after a change')]
+fuzz-regress *args="":
+    python3 {{PROJECT_ROOT}}/scripts/fuzz.py regress {{args}}
+
+[doc('Replay and minimize one crash, e.g. just fuzz-repro FuzzShortestPaths Fuzz/Crashes/FuzzShortestPaths/crash-…')]
+fuzz-repro target input:
+    python3 {{PROJECT_ROOT}}/scripts/fuzz.py repro {{target}} {{input}}
+
+[doc('Differential testing against NetworkX and scipy, e.g. just diff, or just diff --cases 20000 --seed 7')]
+diff *args="":
+    python3 {{PROJECT_ROOT}}/scripts/differential.py {{args}}
+
 [doc('Run the benchmarks, e.g. just bench, or just bench --target CompressedSparseRowBenchmarks')]
 bench *args="":
     cd {{PROJECT_ROOT}}/Benchmarks && {{SWIFT}} package --allow-writing-to-package-directory benchmark {{args}}

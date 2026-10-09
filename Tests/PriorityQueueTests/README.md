@@ -23,6 +23,7 @@ struct IndexedPriorityQueue<Priority: Comparable>: CustomStringConvertible, Cust
     mutating func popMin() -> (index: Int, priority: Priority)?
     mutating func removeMin() -> (index: Int, priority: Priority)   // @discardableResult; traps if empty
     mutating func decreasePriority(of: Int, to: Priority)      // equal is a no-op; greater traps
+    mutating func insertOrDecreasePriority(of: Int, to: Priority) -> Bool  // inserts, lowers, or nothing; whether it changed
     mutating func updatePriority(of: Int, to: Priority) -> Priority // @discardableResult; the old one
     mutating func remove(_ index: Int) -> Priority?            // @discardableResult; nil if absent
     mutating func removeAll(keepingCapacity: Bool = false)
@@ -54,6 +55,7 @@ Bellman–Ford, Kruskal, Dial's buckets).
 | `PriorityQueueStressTests.swift` | §C: the differential test against a naive scan; heap sort; Dijkstra against Bellman–Ford; Prim against Kruskal; 10⁶-scale permutation, worst-case sifts, grid Dijkstra against Dial's algorithm and heap sort with ties, inside a `Task` |
 | `PriorityQueueConformanceTests.swift` | §D: value semantics, a copy taken mid-drain, `Sendable`, descriptions |
 | `PriorityQueuePreconditionTests.swift` | §E: exit tests |
+| `PriorityQueueReviewTests.swift` | Added after the critical review: copy-on-write when a copy's first mutation reorders in place or clears (PQ-44); `insertOrDecreasePriority` (PQ-45, and in a Dijkstra checked against Bellman–Ford, PQ-46); a composite tie-breaking priority (PQ-47); out-of-range indices as far as `Int.min` and `Int.max`, expecting the queue's own `SIGTRAP` rather than any crash, since a weakened check would read past the slot array (PQ-53) |
 
 ## Case IDs
 
