@@ -20,18 +20,18 @@ public enum BipartiteSide: Hashable, Sendable, CaseIterable, Codable, CustomStri
 /// returns the odd cycle it closes, in Cycles' canonical form (vertex and edge numbers).
 @frozen
 @usableFromInline
-struct _TwoColoring: _UndirectedRowsAlgorithm {
+package struct _TwoColoring: _UndirectedRowsAlgorithm {
     @usableFromInline let witness: Bool
 
     @inlinable
-    init(witness: Bool) { self.witness = witness }
+    package init(witness: Bool) { self.witness = witness }
 
     @inlinable
-    var readsEdges: Bool { witness }
+    package var readsEdges: Bool { witness }
 
     /// The side per vertex number (0 left, 1 right), or the odd cycle.
     @inlinable
-    func run<Rows: _IncidenceRowSource>(count n: Int, edgeCount: Int, _ rows: inout Rows) -> (sides: [Int8]?, cycle: (vertices: [Int], edges: [Int])?) {
+    package func run<Rows: _IncidenceRowSource>(count n: Int, edgeCount: Int, _ rows: inout Rows) -> (sides: [Int8]?, cycle: (vertices: [Int], edges: [Int])?) {
         var side = [Int8](repeating: -1, count: n)
         var parent = witness ? [Int](repeating: -1, count: n) : []
         var parentEdge = witness ? [Int](repeating: -1, count: n) : []

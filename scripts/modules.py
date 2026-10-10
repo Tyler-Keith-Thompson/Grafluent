@@ -206,7 +206,17 @@ def package_swift():
     for name, deps in TEST_TARGETS:
         dl = ", ".join(spm_dep(d) for d in deps)
         lines.append(f'        .testTarget(name: "{name}", dependencies: [{dl}]{exclude_arg(f"Tests/{name}")}),')
-    lines += ["    ]", ")", ""]
+    lines += [
+        "    ]",
+        ")",
+        "",
+        "// The DocC plugin, only when building documentation (`GRAFLUENT_DOCC=1`, as `just docs` and the",
+        "// DocC workflow set it), so ordinary builds never fetch it and Bazel's resolution never sees it.",
+        'if Context.environment["GRAFLUENT_DOCC"] != nil {',
+        '    package.dependencies.append(.package(url: "https://github.com/swiftlang/swift-docc-plugin", from: "1.4.0"))',
+        "}",
+        "",
+    ]
     return "\n".join(lines)
 
 

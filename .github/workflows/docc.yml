@@ -1,0 +1,48 @@
+name: DocC
+
+# Builds one combined DocC site for every library module and publishes it to GitHub Pages
+# (the gh-pages branch) at https://tyler-keith-thompson.github.io/Grafluent/documentation/.
+# Linux, not macOS: the library imports no Foundation or Darwin, and Linux minutes cost a tenth.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# A newer push supersedes a build still running, so minutes are not spent on stale docs.
+concurrency:
+  group: docc
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    container: swift:6.2
+    env:
+      # Package.swift adds the DocC plugin only when this is set (see scripts/modules.py).
+      GRAFLUENT_DOCC: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate the combined documentation
+        run: |
+          # Every library product but the umbrella, whose `@_exported` imports DocC does not follow.
+          targets=$(grep -o '\.library(name: "[A-Za-z]*"' Package.swift | sed 's/.*"\(.*\)"/\1/' | grep -vx Grafluent)
+          args=""
+          for t in $targets; do args="$args --target $t"; done
+          swift package --allow-writing-to-directory ./docs \
+            generate-documentation $args \
+            --enable-experimental-combined-documentation \
+            --disable-indexing \
+            --transform-for-static-hosting \
+            --hosting-base-path Grafluent \
+            --source-service github \
+            --source-service-base-url https://github.com/Tyler-Keith-Thompson/Grafluent/blob/main \
+            --checkout-path "$(pwd)" \
+            --output-path ./docs
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
