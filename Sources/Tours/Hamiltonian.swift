@@ -354,7 +354,9 @@ struct _HamiltonianSearch {
         return others
     }
 
-    /// Whether every unvisited vertex is reachable from `x` through unvisited vertices.
+    /// Whether every unvisited vertex is reachable from `x` through unvisited vertices. The search
+    /// asks only while some vertex is unvisited (the skip rule covers the last step), but the
+    /// answer for none is kept right rather than left to the caller.
     @inlinable
     mutating func reachesAll(from x: Int) -> Bool {
         guard unvisited > 0 else { return true }

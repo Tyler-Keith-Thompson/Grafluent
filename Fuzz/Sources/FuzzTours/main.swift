@@ -18,7 +18,8 @@
 // equal to brute force with its lexicographically least optimal tour (n ≤ 8) and no heavier than
 // any heuristic, Christofides within 3/2 of Held–Karp on Manhattan points, `Double` quarters
 // giving the `Int` optima scaled; Held–Karp on graphs that need not be complete nil exactly when
-// there is no Hamiltonian cycle. Representations agree on existence, and the tours, which read only
+// there is no Hamiltonian cycle, and on directed multigraphs (each ordered pair's lightest arc)
+// equal to brute force with its lexicographically least optimum. Representations agree on existence, and the tours, which read only
 // the simple graph, are the same on a conformer without indices.
 
 import CompressedSparseRowModule
@@ -490,13 +491,14 @@ enum FuzzTours {
     static func main() { runFuzzer(fuzz) }
 
     static func fuzz(_ input: inout FuzzInput) {
-        switch input.int(below: 8) {
+        switch input.int(below: 9) {
         case 0, 1: undirectedEulerian(&input)
         case 2, 3: directedEulerian(&input)
         case 4: undirectedHamiltonian(&input)
         case 5: directedHamiltonian(&input)
         case 6: tours(&input)
-        default: partialHeldKarp(&input)
+        case 7: partialHeldKarp(&input)
+        default: directedHeldKarp(&input)
         }
     }
 
@@ -683,5 +685,58 @@ enum FuzzTours {
         check(hk.weight == brute.weight && hk.order == brute.order, "partial shortestTour \(hk.order) weighs \(hk.weight), brute force \(brute.order) \(brute.weight): \(context)")
         let plain = instance.plain().shortestTour(weight: weight)
         check(plain?.vertices == tour?.vertices && plain?.edges == tour?.edges, "partial shortestTour differs without indices: \(context)")
+    }
+
+    // MARK: Held–Karp on directed graphs
+
+    static func directedHeldKarp(_ input: inout FuzzInput) {
+        // Arcs by index with parallel copies and loops, each ordered pair present or not.
+        let n = input.int(in: 3 ... 8)
+        var labels = Array(0 ..< n)
+        for i in stride(from: n - 1, to: 0, by: -1) { labels.swapAt(i, input.int(below: i + 1)) }
+        let palette = [[0, 1], [1, 2, 3], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [1, 10, 100, 1000]][input.int(below: 4)]
+        let density = input.int(below: 4)
+        var ends: [(Int, Int)] = [], weights: [Int] = []
+        for u in 0 ..< n {
+            for v in 0 ..< n where u != v && input.int(below: 4) >= density {
+                ends.append((u, v))
+                weights.append(palette[input.int(below: palette.count)])
+            }
+        }
+        for _ in 0 ..< input.int(below: 5) {
+            ends.append((input.int(below: n), input.int(below: n)))
+            weights.append(palette[input.int(below: palette.count)])
+        }
+        for i in stride(from: ends.count - 1, to: 0, by: -1) {
+            let j = input.int(below: i + 1)
+            ends.swapAt(i, j)
+            weights.swapAt(i, j)
+        }
+        let context = "directed \(n) vertices \(labels), arcs \(ends), weights \(weights)"
+        // Each ordered pair's lightest arc, the earliest on ties.
+        var light = [[Int]](repeating: [Int](repeating: -1, count: n), count: n)
+        for (k, (u, v)) in ends.enumerated() where u != v {
+            if light[u][v] < 0 || weights[k] < weights[light[u][v]] { light[u][v] = k }
+        }
+        let brute = bruteForceTour(n) { a, b in light[a][b] < 0 ? nil : weights[light[a][b]] }
+        let graph = DirectedPseudograph(vertices: labels, edges: ends.map { DirectedEdge(from: labels[$0.0], to: labels[$0.1]) })
+        let weight: (Int) -> Int = { weights[$0] }
+        let tour = graph.shortestTour(weight: weight)
+        check((tour != nil) == (brute != nil), "directed shortestTour \(String(describing: tour)), brute force \(String(describing: brute)): \(context)")
+        check((graph.hamiltonianCycle() != nil) == (brute != nil), "directed hamiltonianCycle and the brute force disagree: \(context)")
+        let plain = PlainDigraph(vertices: labels, edges: ends.map { DirectedEdge(from: labels[$0.0], to: labels[$0.1]) }).shortestTour(weight: weight)
+        check(plain?.vertices == tour?.vertices && plain?.edges == tour?.edges, "directed shortestTour differs without indices: \(context)")
+        guard let tour, let brute else { return }
+        var index: [Int: Int] = [:]
+        for (i, v) in labels.enumerated() { index[v] = i }
+        let order = tour.vertices.map { index[$0]! }
+        check(order == brute.order, "directed shortestTour \(order), brute force \(brute.order): \(context)")
+        var total = 0
+        for i in 0 ..< n {
+            let a = order[i], b = order[(i + 1) % n]
+            check(tour.edges[i] == light[a][b], "directed shortestTour arc \(i) is \(tour.edges[i]), the lightest \(a) → \(b) is \(light[a][b]): \(context)")
+            total += weights[light[a][b]]
+        }
+        check(total == brute.weight, "directed shortestTour weighs \(total), brute force \(brute.weight): \(context)")
     }
 }

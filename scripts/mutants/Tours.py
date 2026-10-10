@@ -6,17 +6,66 @@
 #   tn_contains_u, tn_contains_d
 #                        without the contains check, vertexIndex(of:) traps on a non-vertex itself
 #                        in every representation (a worse message, the same trap).
+#   hr_parallel, hr_loops, hs_init_out, hp_dsoft, hs_init_count, hp_back_count
+#                        the Hamiltonian pruning only cuts subtrees without a solution, so a weaker
+#                        prune finds the same first solution. Parallel copies or self-loops in the
+#                        distinct rows only overcount f (and `others`, so the skip rule skips less);
+#                        not subtracting the start from a path's successor counts, or never
+#                        counting directed soft vertices, overcounts too. Without the initial
+#                        counts, only vertices that are dead at the root go uncounted, and a dead
+#                        vertex at the root means no solution at all (cycles: f < 2; paths: a
+#                        non-end with f < 2, or an isolated vertex); entering one later still makes
+#                        the count negative and the state non-viable. Without re-adding y on the
+#                        way back, only a soft y is lost (y cannot be dead: the search stands on
+#                        viable states, dead == 0), so soft drifts down: a weaker prune.
+#   hr_reach_none        the search never asks for reachability with every vertex visited: the skip
+#                        rule covers the last step (the old end then has no other unvisited
+#                        neighbour), and an undirected cycle leaves its start with n − 2 ≥ 1 left.
+#                        Kept so the helper answers right on its own.
+#   hr_skip_never, hr_skip_one
+#                        the skip rule: never skipping only searches more; skipping also when the
+#                        old end has one other unvisited neighbour only delays the cut, since the
+#                        next step that leaves a branch runs the search and finds the stranded part
+#                        (the degree rules catch a stranded single vertex or pair at once). Slower
+#                        or the same; the same first solution.
+#   sb_get_check, sb_set_check
+#                        _SearchBuffer's bounds checks: every index the search uses is in range.
+#   hs_target_early      entering the target before the last step: the degree rule already cuts it,
+#                        since a path's last vertex other than the target then has f = 1 < 2.
+#   hs_parallel_retry    retrying a parallel copy from the same frame explores the same failed
+#                        subtree again: slower, the same result.
+#   tm_ends_last         _EdgeEnds keeping the last end met rather than the first: the undirected
+#                        matrix is filled symmetrically, so the cells are the same.
+#   to_row_nonpositive   a move of gain zero is never better than the best so far (at least zero).
+#   to_rows_all          rescanning the rows after q too: their columns are all past q, unchanged,
+#                        so the full rescan finds the same best move.
+#   to_count             a tour of fewer vertices than the graph also traps without the count check,
+#                        on the tour buffer's checked subscript in a debug build; in an optimized
+#                        build that subscript is unchecked, and this precondition is the only trap.
+#   hk_complete_path_off the validity path on a complete graph: every flag is true, the same table.
+#   hk_undirected_transposed
+#                        the transpose of a symmetric matrix is the matrix.
+#   hk_lost              the reconstruction always finds its next vertex: each step recomputes the
+#                        sum the table formed from the same two operands (addition is commutative,
+#                        also in floating point), so the equality holds exactly. Kept as a guard.
+#   hk_size_strict       a stricter memory bound (4 bytes per entry more): the first size it would
+#                        newly refuse is 25 vertices with 8-byte weights, whose table is 3.6 GB; no
+#                        test can run that, and the looser mutants are not planted, since a 26-vertex
+#                        test would then allocate 7 GB.
+#   ch_check             Christofides' own finite-weight check before its bound: a NaN or infinite
+#                        weight fails the bound (NaN compares false, ∞ is past it) and traps there,
+#                        and the matrix checks again; the first check gives the clearer message.
 #
 # Dead code the survivors showed, removed: the Eulerian start's "has edges" test (both
-# representations, the directed one scanning every target for an in-edge). Hierholzer from a
-# vertex without edges uses none, so with edges present its walk is nil anyway.
+# representations, the directed one scanning every target for an in-edge; Hierholzer from a vertex
+# without edges uses none, so with edges present its walk is nil anyway); the Hamiltonian search's
+# end test `target < 0 || v == target` (the target is entered only as the last vertex); 2-opt's
+# `guard column >= 0` after a row's partial scan (column −1 comes with gain zero, which never
+# replaces anything). The review's fixes had already removed 2-opt's `guard first <= q` and
+# `old < 0`, and the `improving:` repeat check (a Cycle repeats no vertex).
 #
 # The fuzzer (FuzzTours) found Hierholzer reading the edge below the bottom of its stack on the
 # last pop when the walk missed edges (out still positive there); the splice now tests the stack.
-#
-# Held for the review's fixes: the mutants on Hamiltonian.swift, NearestNeighbor.swift,
-# TwoOpt.swift, HeldKarp.swift and Christofides.swift (and TourMatrix.swift) are listed but their
-# survivors are not yet triaged.
 
 TESTS = ["ToursTests"]
 
@@ -90,9 +139,9 @@ MUTANTS = [
     Mutant("hp_back_count", "Hamiltonian.swift", "            count(y, 1)", "", mode="stmt"),
     # Pruning: reachability
     Mutant("hr_reach_found", "Hamiltonian.swift", "                if reached == unvisited { return true }", "", mode="stmt"),
-    Mutant("hr_reach_none", "Hamiltonian.swift", "        guard unvisited > 0 else { return true }", "", mode="stmt"),
     Mutant("sb_get_check", "Hamiltonian.swift", "            precondition(UInt(bitPattern: i) < UInt(bitPattern: count), \"Index out of range\")", "", mode="stmt", nth=0),
     Mutant("sb_set_check", "Hamiltonian.swift", "            precondition(UInt(bitPattern: i) < UInt(bitPattern: count), \"Index out of range\")", "", mode="stmt", nth=1),
+    Mutant("hr_reach_none", "Hamiltonian.swift", "        guard unvisited > 0 else { return true }", "", mode="stmt"),
     Mutant("hr_reach_off", "Hamiltonian.swift", "isViable && (others == 0 || reachesAll(from: x))", "isViable"),
     Mutant("hr_skip_never", "Hamiltonian.swift", "others == 0 || reachesAll(from: x)", "reachesAll(from: x)"),
     Mutant("hr_skip_one", "Hamiltonian.swift", "others == 0 || reachesAll(from: x)", "others <= 1 || reachesAll(from: x)", nth=0),

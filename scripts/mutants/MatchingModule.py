@@ -19,20 +19,12 @@
 #                           with maximumCardinality, where every candidate has the same number of
 #                           edges, so a constant added to every weight moves no optimum (the
 #                           weights stay non-negative, and the search never needs them positive).
-#   wchosenslack            the cached slack of a new blossom's least-slack arc left unset: until
-#                           the next dual update refreshes it, it is read only while scanning the
-#                           blossom's former T vertices, whose arcs addBlossom has just considered
-#                           (each at least the chosen slack). A stale value misleads only when the
-#                           blossom's slot was used before and its old cached slack exceeds one of
-#                           those arcs; the stale value is 0 on a slot's first use. Not reached by
-#                           5,000 random graphs of 8 to 16 vertices with non-dyadic weights against
-#                           the subset program (MatchingStressTests); not proven unreachable.
 #
-# The cached slacks (bestSlack): wrefresh and wrefreshvertices, the refresh after a dual update
-# dropped or limited to vertices, are caught only by non-dyadic Double weights on enough random
-# graphs (MatchingStressTests' subset program; the brute-force property test sometimes): with
-# small integers the stale slack rarely reorders two candidates. A vertex's own S-blossom entry is
-# read after an update when the tail of the δ edge is queued again.
+# The cached slacks (bestSlack), which δ₂ and δ₃ now read too: wrefresh and wrefreshvertices,
+# the refresh after a dual update dropped or limited to vertices, are caught only by non-dyadic
+# Double weights on enough random graphs (MatchingStressTests' subset program): with small
+# integers the stale slack rarely reorders two candidates. wchosenslack, a new blossom's slack
+# left unset, is caught by the catalog since δ₃ reads it.
 #
 # Order matters where patterns overlap: wdelta2 wraps the first `bestSlack[v]` (δ₂'s), and its
 # replacement then holds a `half(bestSlack[v])` ahead of δ₃'s, so wdelta3 takes nth=1.
