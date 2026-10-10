@@ -13,10 +13,13 @@ package protocol _IncidenceRowSource {
 @frozen
 @usableFromInline
 package struct _IncidenceRows: _IncidenceRowSource {
-    @usableFromInline let neighbors: UnsafeBufferPointer<Int>
-    @usableFromInline let neighborRows: UnsafeBufferPointer<Int>
-    @usableFromInline let edges: UnsafeBufferPointer<Int>
-    @usableFromInline let edgeRows: UnsafeBufferPointer<Int>
+    // Package-visible so an algorithm that knows it has these rows can walk a row with one cursor:
+    // through the protocol each read reloads the row's start, which writes through unsafe
+    // pointers keep the compiler from hoisting.
+    @usableFromInline package let neighbors: UnsafeBufferPointer<Int>
+    @usableFromInline package let neighborRows: UnsafeBufferPointer<Int>
+    @usableFromInline package let edges: UnsafeBufferPointer<Int>
+    @usableFromInline package let edgeRows: UnsafeBufferPointer<Int>
 
     @inlinable
     package init(neighbors: UnsafeBufferPointer<Int>, neighborRows: UnsafeBufferPointer<Int>, edges: UnsafeBufferPointer<Int>, edgeRows: UnsafeBufferPointer<Int>) {

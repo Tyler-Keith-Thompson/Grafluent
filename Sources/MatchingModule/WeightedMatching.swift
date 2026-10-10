@@ -22,6 +22,45 @@ struct _AugmentFrame {
     }
 }
 
+/// A fixed-size buffer the search owns and frees (`deallocate()`, once, when it is done): per-vertex
+/// and per-edge state read and written in the inner loops. Unlike an array held in the search's
+/// struct, a write needs no uniqueness check and the base address never changes, so it stays in a
+/// register across the loop.
+@frozen
+@usableFromInline
+struct _BlossomBuffer<Element> {
+    @usableFromInline let base: UnsafeMutablePointer<Element>
+    @usableFromInline let count: Int
+
+    @inlinable
+    init(_ elements: [Element]) {
+        count = elements.count
+        base = UnsafeMutablePointer<Element>.allocate(capacity: Swift.max(count, 1))
+        elements.withUnsafeBufferPointer { if let source = $0.baseAddress { base.initialize(from: source, count: count) } }
+    }
+
+    @inlinable
+    subscript(i: Int) -> Element {
+        @inline(__always) get {
+            precondition(UInt(bitPattern: i) < UInt(bitPattern: count), "Index out of range")
+            return base[i]
+        }
+        @inline(__always) nonmutating set {
+            precondition(UInt(bitPattern: i) < UInt(bitPattern: count), "Index out of range")
+            base[i] = newValue
+        }
+    }
+
+    @inlinable
+    var array: [Element] { Array(UnsafeBufferPointer(start: base, count: count)) }
+
+    @inlinable
+    func deallocate() {
+        base.deinitialize(count: count)
+        base.deallocate()
+    }
+}
+
 /// Galil's O(n³) maximum-weight matching as NetworkX 3.7's `max_weight_matching` (Van Rantwijk's
 /// implementation) in index space, operation for operation: vertices 0..<n, blossoms n..<2n from a
 /// free list but iterated in creation order (NetworkX's dict order) through an intrusive list,
@@ -34,29 +73,37 @@ struct _AugmentFrame {
 struct _WeightedBlossom<W: SignedNumeric & Comparable> {
     @usableFromInline let n: Int
     @usableFromInline let maximumCardinality: Bool
-    @usableFromInline let rowStart: [Int]
-    @usableFromInline let arcs: [Int]
-    @usableFromInline let from: [Int]
-    @usableFromInline let to: [Int]
-    @usableFromInline let weight: [W]
+    @usableFromInline let rowStart: _BlossomBuffer<Int>
+    @usableFromInline let arcs: _BlossomBuffer<Int>
+    /// Each arc's head and its edge's weight, in row order beside `arcs`, so the scan of a row
+    /// reads them in sequence instead of by edge number.
+    @usableFromInline let arcHeads: _BlossomBuffer<Int>
+    @usableFromInline let arcWeights: _BlossomBuffer<W>
+    @usableFromInline let from: _BlossomBuffer<Int>
+    @usableFromInline let to: _BlossomBuffer<Int>
+    @usableFromInline let weight: _BlossomBuffer<W>
 
     /// By vertex: the mate (−1 when single) and the matched edge.
-    @usableFromInline var mate: [Int]
-    @usableFromInline var mateEdge: [Int]
+    @usableFromInline let mate: _BlossomBuffer<Int>
+    @usableFromInline let mateEdge: _BlossomBuffer<Int>
     /// By vertex or blossom (0..<2n): label 0 (none), 1 (S), 2 (T), with 4 as scanBlossom's
     /// breadcrumb; the arc it was labelled through (−1 for none); the parent blossom (−1 at top
     /// level); the base vertex (−1 for a free blossom slot); the least-slack arc (−1 for none);
     /// the dual (doubled for vertices).
-    @usableFromInline var label: [Int8]
-    @usableFromInline var labelEdge: [Int]
-    @usableFromInline var parent: [Int]
-    @usableFromInline var base: [Int]
-    @usableFromInline var bestEdge: [Int]
-    @usableFromInline var dual: [W]
+    @usableFromInline let label: _BlossomBuffer<Int8>
+    @usableFromInline let labelEdge: _BlossomBuffer<Int>
+    @usableFromInline let parent: _BlossomBuffer<Int>
+    @usableFromInline let base: _BlossomBuffer<Int>
+    @usableFromInline let bestEdge: _BlossomBuffer<Int>
+    /// `slack(bestEdge[x])` wherever `bestEdge[x]` is an arc: set with it, and refreshed after
+    /// each dual update (the only change to vertex duals), so the scan compares against it
+    /// without recomputing the slack each time.
+    @usableFromInline let bestSlack: _BlossomBuffer<W>
+    @usableFromInline let dual: _BlossomBuffer<W>
     /// By vertex: the top-level blossom containing it.
-    @usableFromInline var inBlossom: [Int]
+    @usableFromInline let inBlossom: _BlossomBuffer<Int>
     /// By edge: the stage in which it was found allowable.
-    @usableFromInline var allowed: [Int]
+    @usableFromInline let allowed: _BlossomBuffer<Int32>
     @usableFromInline var stage = 0
     @usableFromInline var queue: [Int] = []
 
@@ -89,14 +136,16 @@ struct _WeightedBlossom<W: SignedNumeric & Comparable> {
         let n = graph.count
         self.n = n
         self.maximumCardinality = maximumCardinality
-        from = graph.from
-        to = graph.to
-        weight = weights
+        from = _BlossomBuffer(graph.from)
+        to = _BlossomBuffer(graph.to)
+        weight = _BlossomBuffer(weights)
         // Rows without self-loops, each neighbour once at its first appearance, carrying the
         // heaviest copy (the lowest edge number on ties).
         var rowStart = [Int](repeating: 0, count: n + 1)
-        var arcs: [Int] = []
+        var arcs: [Int] = [], arcHeads: [Int] = [], arcWeights: [W] = []
         arcs.reserveCapacity(graph.targets.count)
+        arcHeads.reserveCapacity(graph.targets.count)
+        arcWeights.reserveCapacity(graph.targets.count)
         var stamp = [Int](repeating: -1, count: n)
         var best = [Int](repeating: 0, count: n)
         var greatest = W.zero
@@ -116,25 +165,28 @@ struct _WeightedBlossom<W: SignedNumeric & Comparable> {
                 }
             }
             for k in start ..< arcs.count {
-                let e = best[arcs[k]]
+                let w = arcs[k], e = best[w]
                 arcs[k] = 2 * e + (graph.from[e] == v ? 0 : 1)
+                arcHeads.append(w)
+                arcWeights.append(weights[e])
             }
             rowStart[v + 1] = arcs.count
         }
-        self.rowStart = rowStart
-        self.arcs = arcs
-        mate = [Int](repeating: -1, count: n)
-        mateEdge = [Int](repeating: -1, count: n)
-        label = [Int8](repeating: 0, count: 2 * n)
-        labelEdge = [Int](repeating: -1, count: 2 * n)
-        parent = [Int](repeating: -1, count: 2 * n)
-        base = [Int](repeating: -1, count: 2 * n)
-        for v in 0 ..< n { base[v] = v }
-        bestEdge = [Int](repeating: -1, count: 2 * n)
-        dual = [W](repeating: .zero, count: 2 * n)
-        for v in 0 ..< n { dual[v] = greatest }
-        inBlossom = Array(0 ..< n)
-        allowed = [Int](repeating: 0, count: graph.edgeCount)
+        self.rowStart = _BlossomBuffer(rowStart)
+        self.arcs = _BlossomBuffer(arcs)
+        self.arcHeads = _BlossomBuffer(arcHeads)
+        self.arcWeights = _BlossomBuffer(arcWeights)
+        mate = _BlossomBuffer([Int](repeating: -1, count: n))
+        mateEdge = _BlossomBuffer([Int](repeating: -1, count: n))
+        label = _BlossomBuffer([Int8](repeating: 0, count: 2 * n))
+        labelEdge = _BlossomBuffer([Int](repeating: -1, count: 2 * n))
+        parent = _BlossomBuffer([Int](repeating: -1, count: 2 * n))
+        base = _BlossomBuffer(Array(0 ..< n) + [Int](repeating: -1, count: n))
+        bestEdge = _BlossomBuffer([Int](repeating: -1, count: 2 * n))
+        bestSlack = _BlossomBuffer([W](repeating: .zero, count: 2 * n))
+        dual = _BlossomBuffer([W](repeating: greatest, count: n) + [W](repeating: .zero, count: n))
+        inBlossom = _BlossomBuffer(Array(0 ..< n))
+        allowed = _BlossomBuffer([Int32](repeating: 0, count: graph.edgeCount))
         children = [[Int]](repeating: [], count: n)
         childArcs = [[Int]](repeating: [], count: n)
         myBest = [[Int]](repeating: [], count: n)
@@ -145,21 +197,46 @@ struct _WeightedBlossom<W: SignedNumeric & Comparable> {
         bestTo = [Int](repeating: -1, count: 2 * n)
     }
 
+    /// Frees the buffers; the search is unusable afterwards.
     @inlinable
+    func deallocate() {
+        rowStart.deallocate()
+        arcs.deallocate()
+        arcHeads.deallocate()
+        arcWeights.deallocate()
+        from.deallocate()
+        to.deallocate()
+        weight.deallocate()
+        mate.deallocate()
+        mateEdge.deallocate()
+        label.deallocate()
+        labelEdge.deallocate()
+        parent.deallocate()
+        base.deallocate()
+        bestEdge.deallocate()
+        bestSlack.deallocate()
+        dual.deallocate()
+        inBlossom.deallocate()
+        allowed.deallocate()
+    }
+
+    @inlinable @inline(__always)
     func tail(_ a: Int) -> Int { a & 1 == 0 ? from[a >> 1] : to[a >> 1] }
 
-    @inlinable
+    @inlinable @inline(__always)
     func head(_ a: Int) -> Int { a & 1 == 0 ? to[a >> 1] : from[a >> 1] }
 
-    /// Twice the slack of arc `a` (not valid inside blossoms).
-    @inlinable
+    /// Twice the slack of arc `a` (not valid inside blossoms). Always inlined, as are `tail`,
+    /// `head` and `mateArc`: called out of line from a mutating method, each call copied the
+    /// whole struct (37 words) to pass `self`, which was a quarter of Christofides' time.
+    @inlinable @inline(__always)
     func slack(_ a: Int) -> W {
         let w = weight[a >> 1]
         return dual[tail(a)] + dual[head(a)] - (w + w)
     }
 
     /// The arc from `v` along its matched edge.
-    @inlinable
+    @inlinable @inline(__always)
     func mateArc(_ v: Int) -> Int {
         let e = mateEdge[v]
         return 2 * e + (from[e] == v ? 0 : 1)
@@ -328,6 +405,7 @@ struct _WeightedBlossom<W: SignedNumeric & Comparable> {
             }
         }
         bestEdge[b] = chosen
+        if chosen >= 0 { bestSlack[b] = chosenSlack }
     }
 
     /// Removes the expanded blossom `b` from the bookkeeping and frees its slot.
@@ -366,10 +444,10 @@ struct _WeightedBlossom<W: SignedNumeric & Comparable> {
             label[head(arc)] = 0
             label[head(pq)] = 0
             assignLabel(head(arc), 2, arc)
-            allowed[pq >> 1] = stage
+            allowed[pq >> 1] = Int32(truncatingIfNeeded: stage)
             j += step
             arc = step == 1 ? childArcs[slot][j < 0 ? j + count : j] : childArcs[slot][j - 1 < 0 ? j - 1 + count : j - 1] ^ 1
-            allowed[arc >> 1] = stage
+            allowed[arc >> 1] = Int32(truncatingIfNeeded: stage)
             j += step
         }
         let bw = children[slot][j < 0 ? j + count : j], w = head(arc)
@@ -551,17 +629,21 @@ struct _WeightedBlossom<W: SignedNumeric & Comparable> {
             for v in 0 ..< n where mate[v] < 0 && label[inBlossom[v]] == 0 { assignLabel(v, 1, -1) }
             var augmented = false
             while true {
+                // The stage as `allowed` stores it (stages never exceed n + 1).
+                let current = Int32(truncatingIfNeeded: stage)
                 while !augmented, let v = queue.popLast() {
                     for k in rowStart[v] ..< rowStart[v + 1] {
-                        let a = arcs[k], e = a >> 1, w = head(a)
+                        let a = arcs[k], e = a >> 1, w = arcHeads[k]
                         let bv = inBlossom[v], bw = inBlossom[w]
                         if bv == bw { continue }
                         var kslack = W.zero
-                        if allowed[e] != stage {
-                            kslack = slack(a)
-                            if kslack <= .zero { allowed[e] = stage }
+                        if allowed[e] != current {
+                            // slack(a), from the row-order copies: v is the arc's tail.
+                            let weight = arcWeights[k]
+                            kslack = dual[v] + dual[w] - (weight + weight)
+                            if kslack <= .zero { allowed[e] = current }
                         }
-                        if allowed[e] == stage {
+                        if allowed[e] == current {
                             if label[bw] == 0 {
                                 assignLabel(w, 2, a)
                             } else if label[bw] == 1 {
@@ -578,9 +660,15 @@ struct _WeightedBlossom<W: SignedNumeric & Comparable> {
                                 labelEdge[w] = a
                             }
                         } else if label[bw] == 1 {
-                            if bestEdge[bv] < 0 || kslack < slack(bestEdge[bv]) { bestEdge[bv] = a }
+                            if bestEdge[bv] < 0 || kslack < bestSlack[bv] {
+                                bestEdge[bv] = a
+                                bestSlack[bv] = kslack
+                            }
                         } else if label[w] == 0 {
-                            if bestEdge[w] < 0 || kslack < slack(bestEdge[w]) { bestEdge[w] = a }
+                            if bestEdge[w] < 0 || kslack < bestSlack[w] {
+                                bestEdge[w] = a
+                                bestSlack[w] = kslack
+                            }
                         }
                     }
                 }
@@ -648,6 +736,7 @@ struct _WeightedBlossom<W: SignedNumeric & Comparable> {
                         dual[v] += delta
                     }
                 }
+                for x in 0 ..< 2 * n where bestEdge[x] >= 0 { bestSlack[x] = slack(bestEdge[x]) }
                 s = first
                 while s >= 0 {
                     let b = n + s
@@ -665,7 +754,7 @@ struct _WeightedBlossom<W: SignedNumeric & Comparable> {
                 if deltaType == 4 {
                     expandBlossom(deltaBlossom, endStage: false)
                 } else {
-                    allowed[deltaEdge >> 1] = stage
+                    allowed[deltaEdge >> 1] = Int32(truncatingIfNeeded: stage)
                     queue.append(tail(deltaEdge))
                 }
             }
@@ -686,28 +775,48 @@ struct _WeightedBlossom<W: SignedNumeric & Comparable> {
     }
 }
 
+/// Galil's maximum-weight matching in index space: each vertex's matched edge number, −1 when
+/// single. For callers inside the package that hold a `_MatchingGraph` and no graph value (Tours'
+/// Christofides).
+@inlinable
+package func _maximumWeightMatchingEdges<W: SignedNumeric & Comparable>(_ structure: _MatchingGraph, _ weights: [W], maximumCardinality: Bool, half: (W) -> W) -> [Int] {
+    var search = _WeightedBlossom(structure, weights: weights, maximumCardinality: maximumCardinality)
+    search.run(half)
+    let mateEdge = search.mateEdge.array
+    search.deallocate()
+    return mateEdge
+}
+
+/// NetworkX's `min_weight_matching` in index space: `_maximumWeightMatchingEdges` with
+/// `maximumCardinality` on (1 + the greatest non-loop weight) − w, loops left at zero (never
+/// weighed). Each vertex's matched edge number, −1 when single.
+@inlinable
+package func _minimumWeightMatchingEdges<W: SignedNumeric & Comparable>(_ structure: _MatchingGraph, _ weights: [W], half: (W) -> W) -> [Int] {
+    var greatest: W?
+    for e in 0 ..< structure.edgeCount where structure.from[e] != structure.to[e] {
+        if greatest == nil || weights[e] > greatest! { greatest = weights[e] }
+    }
+    var inverted = weights
+    if let greatest {
+        let c = 1 + greatest
+        for e in 0 ..< structure.edgeCount where structure.from[e] != structure.to[e] { inverted[e] = c - weights[e] }
+    }
+    return _maximumWeightMatchingEdges(structure, inverted, maximumCardinality: true, half: half)
+}
+
 extension Graph {
     @inlinable
     func _maximumWeightMatching<W: SignedNumeric & Comparable>(_ structure: _MatchingGraph, searched: [W], reported: [W], maximumCardinality: Bool, half: (W) -> W) -> Matching<Self, W> {
-        var search = _WeightedBlossom(structure, weights: searched, maximumCardinality: maximumCardinality)
-        search.run(half)
-        return Matching(self, listed: _listedVertices(), structure: structure, mateEdge: search.mateEdge, weights: reported)
+        let mateEdge = _maximumWeightMatchingEdges(structure, searched, maximumCardinality: maximumCardinality, half: half)
+        return Matching(self, listed: _listedVertices(), structure: structure, mateEdge: mateEdge, weights: reported)
     }
 
-    /// NetworkX's `min_weight_matching` transform: (1 + the greatest non-loop weight) − w, loops
-    /// left at zero (never weighed).
+    /// NetworkX's `min_weight_matching` (`_minimumWeightMatchingEdges`), as a `Matching` reporting
+    /// the original weights.
     @inlinable
     func _minimumWeightMatching<W: SignedNumeric & Comparable>(_ structure: _MatchingGraph, _ weights: [W], half: (W) -> W) -> Matching<Self, W> {
-        var greatest: W?
-        for e in 0 ..< structure.edgeCount where structure.from[e] != structure.to[e] {
-            if greatest == nil || weights[e] > greatest! { greatest = weights[e] }
-        }
-        var inverted = weights
-        if let greatest {
-            let c = 1 + greatest
-            for e in 0 ..< structure.edgeCount where structure.from[e] != structure.to[e] { inverted[e] = c - weights[e] }
-        }
-        return _maximumWeightMatching(structure, searched: inverted, reported: weights, maximumCardinality: true, half: half)
+        let mateEdge = _minimumWeightMatchingEdges(structure, weights, half: half)
+        return Matching(self, listed: _listedVertices(), structure: structure, mateEdge: mateEdge, weights: weights)
     }
 
     /// A maximum-weight matching (NetworkX `max_weight_matching`, the same matching): Galil's

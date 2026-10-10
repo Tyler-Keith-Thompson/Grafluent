@@ -23,6 +23,35 @@ package struct _MatchingGraph: Sendable {
         self.to = to
     }
 
+    /// The graph on `0..<count` with edge `e` joining `from[e]` and `to[e]`, its rows in edge
+    /// order (each edge appended to `from[e]`'s row, then to `to[e]`'s; a self-loop twice to one
+    /// row): the rows of an adjacency list built by inserting the edges in that order. O(n + m).
+    ///
+    /// - Precondition: `from` and `to` are equally long, with every end in `0..<count`.
+    @inlinable
+    package init(count: Int, from: [Int], to: [Int]) {
+        precondition(from.count == to.count, "from and to differ in length")
+        var offsets = [Int](repeating: 0, count: count + 1)
+        for e in 0 ..< from.count {
+            precondition(UInt(bitPattern: from[e]) < UInt(bitPattern: count) && UInt(bitPattern: to[e]) < UInt(bitPattern: count), "An edge end is out of range")
+            offsets[from[e] + 1] += 1
+            offsets[to[e] + 1] += 1
+        }
+        for v in 0 ..< count { offsets[v + 1] += offsets[v] }
+        var next = offsets
+        var targets = [Int](repeating: 0, count: 2 * from.count), edges = [Int](repeating: 0, count: 2 * from.count)
+        for e in 0 ..< from.count {
+            let u = from[e], v = to[e]
+            targets[next[u]] = v
+            edges[next[u]] = e
+            next[u] += 1
+            targets[next[v]] = u
+            edges[next[v]] = e
+            next[v] += 1
+        }
+        self.init(count: count, offsets: offsets, targets: targets, edges: edges, from: from, to: to)
+    }
+
     @inlinable
     package var edgeCount: Int { from.count }
 

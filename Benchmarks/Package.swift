@@ -286,6 +286,20 @@ let package = Package(
             path: "Benchmarks/FlowsBenchmarks",
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
         ),
+        .executableTarget(
+            name: "ToursBenchmarks",
+            dependencies: [
+                "BenchmarkSupport",
+                .product(name: "Benchmark", package: "benchmark"),
+                .product(name: "GraphProtocols", package: "Grafluent"),
+                .product(name: "Tours", package: "Grafluent"),
+                .product(name: "AdjacencyListModule", package: "Grafluent"),
+                .product(name: "Multigraphs", package: "Grafluent"),
+                .product(name: "CompressedSparseRowModule", package: "Grafluent"),
+            ],
+            path: "Benchmarks/ToursBenchmarks",
+            plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
+        ),
     ] + representation.map { name in
         .executableTarget(
             name: "\(name)Benchmarks",

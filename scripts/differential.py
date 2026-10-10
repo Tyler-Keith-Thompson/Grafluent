@@ -55,6 +55,7 @@ except ImportError:
     os.execvp("uv", ["uv", "run", "--quiet", "--no-project", "--with", NETWORKX, "--with", SCIPY, "--with", RUSTWORKX, "--with", IGRAPH, "python3", *sys.argv])
 
 import differential_flows  # noqa: E402  (after the uv re-exec: it imports NetworkX and igraph)
+import differential_tours  # noqa: E402  (likewise: it imports NetworkX)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PACKAGE = os.path.join(ROOT, "Differential")
@@ -77,7 +78,7 @@ SECTIONS = {
     "Cycles": "cycles", "Trees": "trees", "TreeAlgorithms": "trees", "Distances": "distances",
     "Cliques": "cliques", "Centrality": "centrality", "CommunityDetection": "communities",
     "BipartiteGraphs": "bipartite", "MatchingModule": "matching", "Covering": "covering",
-    "ColoringModule": "coloring", "Flows": "flows",
+    "ColoringModule": "coloring", "Flows": "flows", "Tours": "tours",
 }
 ALL_SECTIONS = sorted(set(SECTIONS.values()))
 
@@ -256,6 +257,8 @@ def compare(case, mine, ref, sections):
         problems += compare_connectivity(case, mine["connectivity"], G)
     if "flows" in sections:
         problems += differential_flows.compare_flows(case, mine["flows"])
+    if "tours" in sections:
+        problems += differential_tours.compare_tours(case, mine["tours"])
     return problems
 
 
@@ -1744,6 +1747,12 @@ def main():
         for problem in catalog[:20]:
             print(problem)
         failures += len(catalog)
+    if "tours" in sections:
+        # Likewise every row of Tests/Catalogs/Tours/cases.md.
+        catalog = differential_tours.replay_catalog(command[0])
+        for problem in catalog[:20]:
+            print(problem)
+        failures += len(catalog)
     covered = dict.fromkeys(["directed", "undirected", "negative weights"], 0)
     for section, counters in [
             ("shortestpaths", ["negative cycle reachable", "negative cycle elsewhere only", "cutoff", "scipy compared", "target unreachable"]),
@@ -1758,6 +1767,9 @@ def main():
         if "flows" in sections:
             for case in cases:
                 case["flow"] = differential_flows.flow_case(case)
+        if "tours" in sections:
+            for case in cases:
+                case["tours"] = differential_tours.tours_case(case)
         # Every run is bounded: a library bug that never terminates must fail the run, not hang
         # it. A batch normally takes seconds.
         try:
@@ -1818,9 +1830,16 @@ def main():
             if problems:
                 failures += 1
                 record(case, problems, seed)
+    if "tours" in sections:
+        native = differential_tours.finish()
+        for problem in native[:20]:
+            print(problem)
+        failures += len(native)
     print("covered: " + ", ".join(f"{k} {v}" for k, v in covered.items()))
     if "flows" in sections:
         print("flows: " + ", ".join(f"{k} {v}" for k, v in sorted(differential_flows.COVERED.items())))
+    if "tours" in sections:
+        print("tours: " + ", ".join(f"{k} {v}" for k, v in sorted(differential_tours.COVERED.items())))
     if "coloring" in sections:
         print("coloring: " + ", ".join(f"{k} {v}" for k, v in sorted(COLORING_COVERED.items()))
               + "; NetworkX's own strategy equal: " + ", ".join(f"{k} {v}" for k, v in NX_NATIVE_AGREE.items()))

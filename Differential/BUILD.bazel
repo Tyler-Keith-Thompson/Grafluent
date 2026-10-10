@@ -29,6 +29,8 @@ swift_binary(
         "//Sources/ColoringModule",
         "//Sources/Multigraphs",
         "//Sources/Flows",
+        "//Sources/Tours",
+        "//Sources/CompressedSparseRowModule",
     ],
     tags = ["manual"],
 )
