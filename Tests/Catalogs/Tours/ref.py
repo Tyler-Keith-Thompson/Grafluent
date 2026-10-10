@@ -59,6 +59,7 @@ What decides Expected, per entry point (api.md, Determinism):
 * shortestTour   Held-Karp: the least weight Hamiltonian cycle of the simple graph, the
       lexicographically least by vertex index among the optimal ones when listed from the first
       vertex (JGraphT HeldKarpTSP's reconstruction). Checked by brute force over permutations.
+      On a digraph the same, each step along the lightest arc of its ordered pair.
 * every tour: nil below three vertices; a Cycle of the graph through the lightest copies.
 """
 import ctypes
@@ -297,6 +298,16 @@ def lcgK(n, seed, wmax, wtype="Int"):
     if wtype == "Double":
         W = [x / 4 for x in W]
     return G(range(n), E, w=W, token=f"lcgK({n},{seed},{wmax}{'' if wtype == 'Int' else ',/4'})", wtype=wtype)
+
+
+def lcgKd(n, seed, wmax, wtype="Int"):
+    """Kd(n) with weight 1 + d % wmax per arc in edge order: asymmetric, not metric in general."""
+    g = LCG(seed)
+    E = [(i, j) for i in range(n) for j in range(n) if i != j]
+    W = [1 + g.next() % wmax for _ in E]
+    if wtype == "Double":
+        W = [x / 4 for x in W]
+    return G(range(n), E, True, w=W, token=f"lcgKd({n},{seed},{wmax}{'' if wtype == 'Int' else ',/4'})", wtype=wtype)
 
 
 # ---------------------------------------------------------------------------------------------
@@ -898,13 +909,14 @@ def ham_dp_exists(g, cycle=False, start=None, target=None):
 
 
 def simple_weights(g):
-    """W[u][v] = (weight, position) of the lightest copy (the earliest on ties), None if absent."""
+    """W[u][v] = (weight, position) of the lightest copy (the earliest on ties), None if absent;
+    directed, the lightest arc u -> v."""
     W = [[None] * g.n for _ in range(g.n)]
     for e, (u, v) in enumerate(g.E):
         if u == v:
             continue
         c = (g.w[e], e)
-        for a, b in ((u, v), (v, u)):
+        for a, b in ((u, v),) if g.directed else ((u, v), (v, u)):
             if W[a][b] is None or c < W[a][b]:
                 W[a][b] = c
     return W
@@ -1090,7 +1102,8 @@ def christofides(g):
 
 def held_karp(g):
     """The least-weight tour, lexicographically least from vertex 0 among the optimal ones, as
-    JGraphT HeldKarpTSP reconstructs it; None when there is none (or n < 3)."""
+    JGraphT HeldKarpTSP reconstructs it; None when there is none (or n < 3). Directed, each step
+    along an arc (W is then the lightest arc of each ordered pair)."""
     n = g.n
     if n < 3:
         return None
@@ -1528,11 +1541,13 @@ def shortest_rows(name, g):
             fail(f"{name}: held-karp {order} vs brute {b}")
         checks.append("= brute force (optimum, then lexicographically least)")
     if g.n >= 3:
-        jg_claim("HK 0 " + jg_edges(g, False), "null" if order is None else " ".join(str(x) for x in order + [0]), "HeldKarpTSP")
+        jg_claim(f"HK {1 if g.directed else 0} " + jg_edges(g, False), "null" if order is None else " ".join(str(x) for x in order + [0]), "HeldKarpTSP")
         checks.append("= JGraphT HeldKarpTSP")
+        if g.directed and g.n <= 16 and (order is None) != (not ham_dp_exists(g, cycle=True)):
+            fail(f"{name}: directed held-karp existence vs bitmask DP")
     elif g.n >= 1:
         checks.append("JGraphT HeldKarpTSP: a closed walk (singleton or a,b,a)")
-    add("ShortestTour", name, g.text(), "shortestTour(weight:)", tour_text(g, order), checks)
+    add("ShortestTourDirected" if g.directed else "ShortestTour", name, g.text(), "shortestTour(weight:)", tour_text(g, order), checks)
 
 
 def weighted(g, W, wtype="Int", token=None):
@@ -1790,7 +1805,44 @@ def build():
     trap("NearestNeighborTour", "NaN weight", "Double K(3) weights 1.0, nan, 2.0", "nearestNeighborTour(weight:)", "a weight is NaN")
     trap("ChristofidesTour", "NaN weight", "Double K(3) weights 1.0, nan, 2.0", "christofidesTour(weight:)", "a weight is NaN")
     trap("ShortestTour", "NaN weight", "Double K(3) weights 1.0, nan, 2.0", "shortestTour(weight:)", "a weight is NaN")
-    trap("ShortestTour", "too many vertices", "K(32) weight 1", "shortestTour(weight:)", "more than 31 vertices (JGraphT HeldKarpTSP's limit)")
+    trap("ShortestTour", "too many vertices", "K(32) weight 1", "shortestTour(weight:)", "the table needs more than 4 GiB (at most 25 vertices with 8-byte weights)")
+
+    # ----- After the critical review: infinite weights, the table's size, directed Held–Karp
+    trap("ShortestTour", "26 vertices: 2²⁵ · 25 entries of 9 bytes, past 4 GiB", "K(26) weight 1", "shortestTour(weight:)", "the table needs more than 4 GiB (at most 25 vertices with 8-byte weights)")
+    trap("NearestNeighborTour", "infinite weight", "Double K(3) weights 1.0, inf, 2.0", "nearestNeighborTour(weight:)", "a weight is infinite")
+    trap("TwoOptTour", "negative infinite weight", "Double K(3) weights 1.0, -inf, 2.0", "twoOptTour(weight:)", "a weight is infinite")
+    trap("ChristofidesTour", "infinite weight off the odd pairs (the tree 0-1-2-3, the matching 0-3)",
+         "Double V [0, 1, 2, 3]; E [0-1 1.0, 1-2 1.0, 2-3 1.0, 0-2 5.0, 0-3 5.0, 1-3 inf]", "christofidesTour(weight:)", "a weight is infinite")
+    trap("ShortestTour", "+∞ and −∞ weights (their sum is NaN)", "Double K(4) weights 1.0, 1.0, 1.0, inf, 1.0, -inf", "shortestTour(weight:)", "a weight is infinite")
+    TD = [
+        ("asymmetric triangle: the lighter direction", G(range(3), [(0, 1), (1, 2), (2, 0), (0, 2), (2, 1), (1, 0)], True, w=[1, 1, 1, 2, 2, 2])),
+        ("asymmetric triangle, the other way", G(range(3), [(0, 1), (1, 2), (2, 0), (0, 2), (2, 1), (1, 0)], True, w=[3, 3, 3, 1, 2, 1])),
+        ("Kd(4) with weights 1..12", weighted(K(4, True), list(range(1, 13)), token="Kd(4) weights 1, 2, …, 12 in edge order")),
+        ("all weights equal: Kd(4) weight 1", weighted(K(4, True), [1] * 12, token="Kd(4) weight 1")),
+        ("lcgKd(5,1,9)", lcgKd(5, 1, 9)),
+        ("lcgKd(6,2,20)", lcgKd(6, 2, 20)),
+        ("lcgKd(7,3,9)", lcgKd(7, 3, 9)),
+        ("lcgKd(8,4,30)", lcgKd(8, 4, 30)),
+        ("lcgKd(9,5,50)", lcgKd(9, 5, 50)),
+        ("lcgKd(6,6,9,/4): Double weights", lcgKd(6, 6, 9, "Double")),
+        ("negative weights", weighted(K(3, True), [-1, 2, 3, -4, 5, 0], token="Kd(3) weights -1, 2, 3, -4, 5, 0")),
+        ("parallel arcs: the lightest", G(range(3), [(0, 1), (0, 1), (1, 2), (2, 0), (2, 0)], True, w=[5, 2, 1, 3, 3])),
+        ("self-loops ignored", G(range(3), [(0, 0), (0, 1), (1, 2), (1, 1), (2, 0)], True, w=[-9, 1, 2, -9, 3])),
+        ("vertex order, not label order", G(["d", "a", "c"], [("d", "a"), ("a", "c"), ("c", "d"), ("d", "c"), ("c", "a"), ("a", "d")], True, w=[4, 4, 4, 1, 1, 1])),
+        ("not complete: Cd(5) is its only tour", weighted(C(5, True), [1, 2, 3, 4, 5], token="Cd(5) weights 1, 2, 3, 4, 5")),
+        ("not complete, one way only: Pd(4) has no tour", weighted(P(4, True), [1, 1, 1], token="Pd(4) weight 1")),
+        ("tournament(6,1) weight 1", weighted(tournament(6, 1), [1] * 15, token="tournament(6,1) weight 1")),
+        ("transitive tournament: nil", weighted(G(range(4), [(i, j) for i in range(4) for j in range(i + 1, 4)], True), [1] * 6)),
+        ("one vertex: nil", G([0], [], True, w=[])),
+        ("antiparallel pair: nil (tours need three vertices)", G([0, 1], [(0, 1), (1, 0)], True, w=[1, 2])),
+        ("empty digraph: nil", G([], [], True, w=[])),
+        ("lcgKd(12,7,100)", lcgKd(12, 7, 100)),
+    ]
+    for name, g in TD:
+        shortest_rows(name, g)
+    trap("ShortestTourDirected", "NaN weight", "Double Kd(3) weights 1.0, 2.0, nan, 1.0, 2.0, 1.0", "shortestTour(weight:)", "a weight is NaN")
+    trap("ShortestTourDirected", "infinite weight on a parallel arc", "Double multigraph V [0, 1, 2]; E [0→1 1.0, 0→1 inf, 1→2 1.0, 2→0 1.0]", "shortestTour(weight:)", "a weight is infinite")
+    trap("ShortestTourDirected", "too many vertices", "Kd(26) weight 1", "shortestTour(weight:)", "the table needs more than 4 GiB (at most 25 vertices with 8-byte weights)")
 
 
 # ---------------------------------------------------------------------------------------------
@@ -1911,6 +1963,24 @@ def stress():
         if brute_matching_weight(W, r[2]) != sum(W[x][y][0] for x, y in r[3]):
             fail(f"stress matching {trial}")
         counts["tsp"] += 1
+    counts["directed tsp"] = 0
+    for trial in range(200):
+        # Asymmetric weights on Kd(n) with some arcs dropped and some doubled: Held-Karp against brute
+        # force and JGraphT HeldKarpTSP on the directed pseudograph.
+        n = rng.randint(3, 7)
+        E = [(i, j) for i in range(n) for j in range(n) if i != j and rng.random() < 0.8]
+        E += [rng.choice(E) for _ in range(rng.randint(0, 3))] if E else []
+        E += [(v, v) for v in range(n) if rng.random() < 0.2]
+        rng.shuffle(E)
+        g = G(range(n), E, True, w=[rng.randint(-5, 20) for _ in E])
+        b = brute_tsp(g)
+        hk = held_karp(g)
+        if (b is None) != (hk is None) or (b is not None and hk != b[1]):
+            fail(f"stress directed held-karp {trial}: {hk} vs {b} on {E}")
+        if (hk is not None) != ham_dp_exists(g, cycle=True):
+            fail(f"stress directed held-karp existence {trial}")
+        jg_claim("HK 1 " + jg_edges(g, False), "null" if hk is None else " ".join(str(x) for x in hk + [0]), "stress directed HeldKarpTSP")
+        counts["directed tsp"] += 1
     print("stress: " + ", ".join(f"{k} {v}" for k, v in counts.items()) + " random cases pass")
 
 
@@ -1952,7 +2022,7 @@ HEADER = """# Tours: case catalog (TO-001 – TO-{last}, {count} cases)
 Generated and checked by `ref.py` (`uv run --quiet --no-project --with networkx==3.7 --with
 igraph==1.0.0 --with rustworkx==0.18.1 python3 Tests/Catalogs/Tours/ref.py`; without `--write` it
 renders the catalog and compares it with this file byte for byte; `--write` regenerates it and
-needs `IGRAPH_C_LIB` and `JGRAPHT_CLASSPATH`; `--stress` adds about 2,200 random graphs). Expected
+needs `IGRAPH_C_LIB` and `JGRAPHT_CLASSPATH`; `--stress` adds about 2,400 random graphs). Expected
 is the API's documented output (api.md, Determinism); the last column says what each row was
 checked against.
 
@@ -1977,7 +2047,7 @@ checked against.
   `tournament(n,seed)` for each i < j, i→j when d is even, else j→i. `pts[(x,y), …]` the complete
   graph on the points (pairs i < j lexicographic) weighted by Manhattan distance, a metric;
   `lcgpts(n,seed,s)` n points (d % s, d % s); `lcgK(n,seed,w)` K(n) with weight 1 + d % w per edge
-  in edge order (`,/4`: that over 4, `Double`).
+  in edge order (`,/4`: that over 4, `Double`); `lcgKd(n,seed,w)` the same on Kd(n), per arc.
 * **Results.** `circuit [..]; edges [..]` a `Circuit` (its vertices, the start not repeated, and
   edge positions, edge i from vertex i to vertex i + 1 mod count); `trail`, `path` the same for a
   `Trail` / `Path` (one more vertex than edges); `cycle [..]; edges [..]; weight w` a `Cycle`,

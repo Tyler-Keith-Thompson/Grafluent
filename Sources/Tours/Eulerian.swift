@@ -44,7 +44,9 @@ func _undirectedHierholzer<Rows: _IncidenceRowSource>(_ rows: inout Rows, count 
         } else {
             cursor[v] = k
             vertices[out] = v
-            if out > 0 { edges[out &- 1] = edges[top &- 1] }
+            // The edge that reached v moves to the output; the start has none (and, when the walk
+            // missed an edge, out is still positive there).
+            if top > 0 { edges[out &- 1] = edges[top &- 1] }
             out &-= 1
             top &-= 1
         }
@@ -71,7 +73,7 @@ func _directedHierholzer(_ offsets: UnsafeBufferPointer<Int>, _ targets: UnsafeB
             edges[top &- 1] = k
         } else {
             vertices[out] = v
-            if out > 0 { edges[out &- 1] = edges[top &- 1] }
+            if top > 0 { edges[out &- 1] = edges[top &- 1] }
             out &-= 1
             top &-= 1
         }
@@ -126,13 +128,14 @@ struct _EulerianDegrees: Sendable {
     @inlinable
     init() {}
 
-    /// The start for the request (−1 for none), given `start` (−1 for the default) and the degree
-    /// of the vertex asked for.
+    /// The start for the request (−1 for none), given `start` (−1 for the default) and whether it
+    /// is the vertex a trail must start at. A balanced graph's walk may start anywhere: from a
+    /// vertex without edges it uses none, and with edges present the walk is then nil.
     @inlinable
-    func start(_ request: _EulerianRequest, _ start: Int, hasEdges: Bool, isTrailStart: Bool) -> Int {
+    func start(_ request: _EulerianRequest, _ start: Int, isTrailStart: Bool) -> Int {
         switch (request, shape) {
         case (_, -1), (.circuit, 1): return -1
-        case (_, 0): return start < 0 ? first : (hasEdges ? start : -1)
+        case (_, 0): return start < 0 ? first : start
         default: return start < 0 ? trailStart : (isTrailStart ? start : -1)
         }
     }
@@ -184,8 +187,7 @@ struct _UndirectedEulerian: _UndirectedRowsAlgorithm {
             answer.hasTrail = connected
             return answer
         }
-        let hasEdges = start >= 0 && rows.count(start) > 0
-        let s = degrees.start(request, start, hasEdges: hasEdges, isTrailStart: start >= 0 && rows.count(start) & 1 != 0)
+        let s = degrees.start(request, start, isTrailStart: start >= 0 && rows.count(start) & 1 != 0)
         guard s >= 0 else { return answer }
         answer.walk = _collectHierholzer(edgeCount: m, closed: request == .circuit) { vertices, edges in
             _undirectedHierholzer(&rows, count: n, edgeCount: m, start: s, vertices: vertices, edges: edges)
@@ -344,12 +346,7 @@ func _directedEulerian(_ offsets: UnsafeBufferPointer<Int>, _ targets: UnsafeBuf
         answer.hasTrail = connected
         return answer
     }
-    var hasEdges = false
-    if start >= 0 {
-        hasEdges = offsets[start &+ 1] > offsets[start]
-        if !hasEdges { for w in targets where w == start { hasEdges = true; break } }
-    }
-    let s = degrees.start(request, start, hasEdges: hasEdges, isTrailStart: start >= 0 && start == degrees.trailStart)
+    let s = degrees.start(request, start, isTrailStart: start >= 0 && start == degrees.trailStart)
     guard s >= 0 else { return answer }
     answer.walk = _collectHierholzer(edgeCount: m, closed: request == .circuit) { vertices, edges in
         _directedHierholzer(offsets, targets, start: s, vertices: vertices, edges: edges)

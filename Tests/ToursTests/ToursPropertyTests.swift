@@ -7,7 +7,11 @@
 // (Hierholzer's walk with its start rules, nearest neighbour, JGraphT's 2-opt); brute force over
 // every ordering of the vertices (the first Hamiltonian path or cycle in search order, as the least
 // key of start and row indices; the shortest tour and the lexicographically least among the
-// optimal ones). Every oracle is polynomial or bounded by 8! orderings. See README.md.
+// optimal ones). Every oracle is polynomial or bounded by 8! orderings. Then three larger ones:
+// 2-opt on complete graphs of 15 … 40 vertices against JGraphT's loop written out; Christofides
+// against its pinned composition written out (Prim, the odd vertices, every minimum perfect matching
+// by enumeration, Hierholzer, the first visits); Held–Karp on up to 10 vertices, directed too,
+// against JGraphT's memoized recursion written out. See README.md.
 // Conditions with a closure are computed into a constant before `#expect`: inside these closures a
 // closure in an `#expect` expansion failed SIL verification with this toolchain (README.md).
 
@@ -501,6 +505,209 @@ struct ToursPropertyTests {
             #expect(tourWeight == optimum, "\(context)")
             let hamiltonian = graph.hamiltonianCycle() != nil
             #expect(hamiltonian == (optimum != nil), "\(context)")
+        }
+    }
+
+    @Test("2-opt on 15 … 40 vertices, from a scrambled tour, Int or Double-quarter weights with many ties: JGraphT's best-improvement loop written out, move for move (the incremental row cache must find the same moves)")
+    func twoOptLarge() async {
+        await propertyCheck(count: 60, input: Gen.int(in: 15 ... 40), Gen.int(in: 2 ... 1000), Gen.bool, Gen.int(in: 0 ... 1_000_000)) { n, span, quarters, seed in
+            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            let pairs = (0 ..< n).flatMap { i in (i + 1 ..< n).map { (i, $0) } }
+            let graph = UndirectedAdjacencyList(vertices: 0 ..< n, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            let raw = pairs.map { _ in Int.random(in: 1 ... span, using: &rng) }
+            var position = [[Int]](repeating: [Int](repeating: 0, count: n), count: n)
+            for (k, (a, b)) in pairs.enumerated() {
+                position[a][b] = k
+                position[b][a] = k
+            }
+            var scrambled = Array(0 ..< n)
+            scrambled.shuffle(using: &rng)
+            let start = Cycle(vertices: scrambled, edges: (0 ..< n).map { position[scrambled[$0]][scrambled[($0 + 1) % n]] })!
+            // JGraphT's TwoOptHeuristicTSP.improve written out: t[0 … n] with t[n] = t[0]; each round the move
+            // (i, j), 0 ≤ i < n − 2, i + 2 ≤ j < n, with the least change d(tᵢ, tⱼ) + d(tᵢ₊₁, tⱼ₊₁) − d(tᵢ, tᵢ₊₁) −
+            // d(tⱼ, tⱼ₊₁) below zero, the first in row-major order on ties, reversing t[i + 1 … j]. The weights
+            // are integers here (quarters scaled by 4), so the sums are exact either way.
+            func d(_ a: Int, _ b: Int) -> Int { raw[position[a][b]] }
+            var t = scrambled + [scrambled[0]]
+            var moves = 0
+            while true {
+                var best = 0, bi = -1, bj = -1
+                for i in 0 ..< n - 2 {
+                    for j in i + 2 ..< n {
+                        let change = d(t[i], t[j]) + d(t[i + 1], t[j + 1]) - d(t[i], t[i + 1]) - d(t[j], t[j + 1])
+                        if change < best {
+                            best = change
+                            bi = i
+                            bj = j
+                        }
+                    }
+                }
+                if bi < 0 { break }
+                t[(bi + 1) ... bj].reverse()
+                moves += 1
+            }
+            let expected = Array(t.dropLast())
+            let context = "n \(n) span \(span) quarters \(quarters) seed \(seed), \(moves) moves"
+            if quarters {
+                let weights = raw.map { Double($0) / 4 }
+                let tour = graph.twoOptTour(improving: start, weight: { weights[$0] })
+                #expect(tour?.vertices == expected, "\(context)")
+            } else {
+                let tour = graph.twoOptTour(improving: start, weight: { raw[$0] })
+                #expect(tour?.vertices == expected, "\(context)")
+                let lightest = tour.map { $0.edges == (0 ..< n).map { position[expected[$0]][expected[($0 + 1) % n]] } }
+                #expect(lightest == true, "\(context)")
+            }
+        }
+    }
+
+    @Test("Christofides is the pinned composition written out: dense Prim under (weight, edge number), the odd vertices in order, a minimum-weight perfect matching on them, Hierholzer from vertex 0 on the tree edges by number then the matched pairs, the first visits; the tour is that of one minimum matching (the only one when it is unique)")
+    func christofidesComposition() async {
+        await propertyCheck(count: 300, input: Gen.int(in: 3 ... 9), Gen.int(in: 1 ... 40), Gen.int(in: 0 ... 1_000_000)) { n, span, seed in
+            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            let pairs = (0 ..< n).flatMap { i in (i + 1 ..< n).map { (i, $0) } }
+            let graph = UndirectedAdjacencyList(vertices: 0 ..< n, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            let weights = pairs.map { _ in Int.random(in: 1 ... span, using: &rng) }
+            var number = [[Int]](repeating: [Int](repeating: 0, count: n), count: n)
+            for (k, (a, b)) in pairs.enumerated() {
+                number[a][b] = k
+                number[b][a] = k
+            }
+            func w(_ a: Int, _ b: Int) -> Int { weights[number[a][b]] }
+            // Dense Prim from vertex 0, each outside vertex keyed by its lightest edge to the tree under the strict
+            // order (weight, edge number); the next vertex the least key.
+            var inTree = [true] + [Bool](repeating: false, count: n - 1)
+            var key = (0 ..< n).map { (w(0, $0), number[0][$0]) }, parent = [Int](repeating: 0, count: n)
+            var tree: [(edge: Int, a: Int, b: Int)] = []
+            var degree = [Int](repeating: 0, count: n)
+            for _ in 1 ..< n {
+                let next = (1 ..< n).filter { !inTree[$0] }.min { key[$0] < key[$1] }!
+                inTree[next] = true
+                tree.append((key[next].1, parent[next], next))
+                degree[next] += 1
+                degree[parent[next]] += 1
+                for v in 1 ..< n where !inTree[v] && (w(next, v), number[next][v]) < key[v] {
+                    key[v] = (w(next, v), number[next][v])
+                    parent[v] = next
+                }
+            }
+            tree.sort { $0.edge < $1.edge }
+            let odd = (0 ..< n).filter { degree[$0] % 2 == 1 }
+            // Every perfect matching on the odd vertices, as pairs (a < b) in lexicographic order; the lightest.
+            func matchings(_ rest: [Int]) -> [[(Int, Int)]] {
+                guard let a = rest.first else { return [[]] }
+                return rest.dropFirst().flatMap { b in matchings(rest.filter { $0 != a && $0 != b }).map { [(a, b)] + $0 } }
+            }
+            let all = matchings(odd)
+            let least = all.map { $0.reduce(0) { $0 + w($1.0, $1.1) } }.min()!
+            let minimum = all.filter { $0.reduce(0) { $0 + w($1.0, $1.1) } == least }
+            // The composition for one matching: the multigraph's rows (each edge appended to both ends' rows in
+            // order: tree edges, then matched pairs), Hierholzer's stack from vertex 0 (the first unused edge, or pop
+            // onto the output), the output reversed, each vertex kept at its first visit.
+            func composition(_ matched: [(Int, Int)]) -> [Int] {
+                let ends = tree.map { ($0.a, $0.b) } + matched
+                var rows = [[(edge: Int, to: Int)]](repeating: [], count: n)
+                for (h, (a, b)) in ends.enumerated() {
+                    rows[a].append((h, b))
+                    rows[b].append((h, a))
+                }
+                var used = [Bool](repeating: false, count: ends.count), cursor = [Int](repeating: 0, count: n)
+                var stack = [0], out: [Int] = []
+                while let v = stack.last {
+                    while cursor[v] < rows[v].count && used[rows[v][cursor[v]].edge] { cursor[v] += 1 }
+                    if cursor[v] < rows[v].count {
+                        used[rows[v][cursor[v]].edge] = true
+                        stack.append(rows[v][cursor[v]].to)
+                    } else {
+                        out.append(stack.removeLast())
+                    }
+                }
+                var seen = Set<Int>(), order: [Int] = []
+                for v in out.reversed() where seen.insert(v).inserted { order.append(v) }
+                return order
+            }
+            let candidates = minimum.map(composition)
+            let tour = graph.christofidesTour(weight: { weights[$0] })
+            let context = "n \(n) weights \(weights): \(minimum.count) minimum matchings"
+            let isOne = tour.map { candidates.contains($0.vertices) } ?? false
+            #expect(isOne, "\(String(describing: tour?.vertices)) not in \(candidates) \(context)")
+            if minimum.count == 1 { #expect(tour?.vertices == candidates[0], "\(context)") }
+            let lightest = tour.map { t in t.edges == (0 ..< n).map { number[t.vertices[$0]][t.vertices[($0 + 1) % n]] } }
+            #expect(lightest == true, "\(context)")
+        }
+    }
+
+    @Test("Held–Karp on up to 10 vertices, undirected and directed, complete or not, with parallel copies, loops and ties: JGraphT's memoized recursion and reconstruction written out")
+    func heldKarpWrittenOut() async {
+        await propertyCheck(count: 150, input: Gen.int(in: 3 ... 10), Gen.int(in: 1 ... 12), Gen.bool, Gen.int(in: 0 ... 1_000_000)) { n, span, directed, seed in
+            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            // Each pair (ordered pair, directed) present with probability 3/4 or 1 (every fourth seed complete),
+            // some doubled, a few loops, shuffled into position order.
+            var ends: [(Int, Int)] = []
+            for i in 0 ..< n {
+                for j in 0 ..< n where (directed ? i != j : i < j) && (seed % 4 == 0 || Int.random(in: 0 ..< 4, using: &rng) > 0) {
+                    ends.append((i, j))
+                    if Int.random(in: 0 ..< 8, using: &rng) == 0 { ends.append((i, j)) }
+                }
+                if Int.random(in: 0 ..< 6, using: &rng) == 0 { ends.append((i, i)) }
+            }
+            ends.shuffle(using: &rng)
+            let weight = ends.map { _ in Int.random(in: -2 ... span, using: &rng) }
+            // The lightest copy of each pair (ordered pair), the earliest on ties; loops ignored.
+            var lightest = [[Int]](repeating: [Int](repeating: -1, count: n), count: n)
+            for k in ends.indices where ends[k].0 != ends[k].1 {
+                let (a, b) = ends[k]
+                if lightest[a][b] < 0 || weight[k] < weight[lightest[a][b]] {
+                    lightest[a][b] = k
+                    if !directed { lightest[b][a] = k }
+                }
+            }
+            // JGraphT HeldKarpTSP: memo(prev, state) the least weight from prev through the vertices outside state
+            // back to 0, by recursion; then from 0 the lowest next vertex whose cost matches exactly.
+            var memo = [Int??](repeating: nil, count: n << n)
+            func cost(_ prev: Int, _ state: Int) -> Int? {
+                if let known = memo[prev << n | state] { return known }
+                var best: Int? = nil
+                if state == (1 << n) - 1 {
+                    best = lightest[prev][0] >= 0 ? weight[lightest[prev][0]] : nil
+                } else {
+                    for i in 0 ..< n where state >> i & 1 == 0 && lightest[prev][i] >= 0 {
+                        if let rest = cost(i, state | 1 << i), best == nil || weight[lightest[prev][i]] + rest < best! {
+                            best = weight[lightest[prev][i]] + rest
+                        }
+                    }
+                }
+                memo[prev << n | state] = .some(best)
+                return best
+            }
+            var expected: [Int]? = nil
+            if let total = cost(0, 1) {
+                var order = [0], state = 1, last = 0, remaining = total
+                for _ in 1 ..< n {
+                    let next = (1 ..< n).first { i in
+                        state >> i & 1 == 0 && lightest[last][i] >= 0 && cost(i, state | 1 << i).map { $0 + weight[lightest[last][i]] == remaining } == true
+                    }!
+                    remaining = cost(next, state | 1 << next)!
+                    order.append(next)
+                    state |= 1 << next
+                    last = next
+                }
+                expected = order
+            }
+            let context = "\(ends) weights \(weight) directed \(directed)"
+            let tour: Cycle<Int, Int>?
+            if directed {
+                tour = DirectedPseudograph(vertices: 0 ..< n, edges: ends.map { DirectedEdge(from: $0.0, to: $0.1) }).shortestTour(weight: { weight[$0] })
+            } else {
+                tour = Pseudograph(vertices: 0 ..< n, edges: ends.map { UndirectedEdge($0.0, $0.1) }).shortestTour(weight: { weight[$0] })
+            }
+            #expect(tour?.vertices == expected, "\(context)")
+            if let tour, let expected {
+                let lightestSteps = tour.edges == (0 ..< n).map { lightest[expected[$0]][expected[($0 + 1) % n]] }
+                #expect(lightestSteps, "\(context)")
+                let total = tour.weight({ weight[$0] })
+                #expect(total == cost(0, 1), "\(context)")
+            }
         }
     }
 }

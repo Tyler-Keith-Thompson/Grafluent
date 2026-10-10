@@ -79,12 +79,13 @@ func _twoOpt<W: Comparable & AdditiveArithmetic>(_ matrix: _TourMatrix<W>, _ ord
                         (rowGain[i], rowColumn[i]) = _twoOptRow(d, tp, along, n: n, row: i, from: i + 2, to: n)
                         continue
                     }
+                    // i < p and q ≥ p + 2, so first ≤ p + 1 < q: the range is never empty.
                     let first = Swift.max(p, i + 2)
-                    guard first <= q else { continue }
                     let (gain, column) = _twoOptRow(d, tp, along, n: n, row: i, from: first, to: q + 1)
-                    guard column >= 0 else { continue }
+                    // A row without a move keeps gain zero, which any found move's positive gain
+                    // beats; finding none (column −1, gain zero) changes nothing.
                     let old = rowColumn[i]
-                    if old < 0 || gain > rowGain[i] || (gain == rowGain[i] && column < old) {
+                    if gain > rowGain[i] || (gain == rowGain[i] && column < old) {
                         rowGain[i] = gain
                         rowColumn[i] = column
                     }
@@ -102,8 +103,8 @@ extension Graph {
     /// the tour starts at the first vertex. Tours read the simple graph, as
     /// `nearestNeighborTour(weight:)` documents; nil below three vertices.
     ///
-    /// - Precondition: the graph is complete; no weight is NaN; the sum of any two weights fits in
-    ///   `W`.
+    /// - Precondition: the graph is complete; no weight is NaN or infinite; the sum of any two
+    ///   weights fits in `W`.
     /// - Complexity: O(n²) per improving move. The number of moves can be exponential in the worst
     ///   case (Englert, Röglin and Vöcking, "Worst case and probabilistic analysis of the 2-Opt
     ///   algorithm for the TSP", Algorithmica 68, 2014); far fewer are made in practice.
@@ -117,28 +118,32 @@ extension Graph {
     }
 
     /// `tour` improved by 2-opt to a 2-optimal tour, by JGraphT
-    /// `TwoOptHeuristicTSP.improveTour`'s procedure (the same tour; LEMON `Opt2Tsp::run(tour)`):
-    /// best improvement, the first move (i, j) in row-major order on ties, until no exchange of two
-    /// tour edges for two lighter ones remains. JGraphT stops when no move gains more than 1e-8;
-    /// this stops when none gains anything, the same on integers. The first vertex of `tour` stays
-    /// first. Only `tour.vertices` is read: the result uses the lightest edge of each pair, as
-    /// every tour does. nil below three vertices.
+    /// `TwoOptHeuristicTSP.improveTour`'s procedure: best improvement, the first move (i, j) in
+    /// row-major order on ties, until no exchange of two tour edges for two lighter ones remains.
+    /// LEMON's `Opt2Tsp` shares the name only: it takes the first improving move and restarts the
+    /// scan, which ends at a different tour. The first vertex of `tour` stays first. Only
+    /// `tour.vertices` is read: the result uses the lightest edge of each pair, as every tour
+    /// does. nil below three vertices.
+    ///
+    /// A move's gain is formed as (d(a, b) + d(c, e)) − (d(a, c) + d(b, e)), and the scan stops
+    /// when no move gains anything; JGraphT forms d(a, c) + d(b, e) − d(a, b) − d(c, e) and stops
+    /// when no change is below −1e-8. The tour is JGraphT's exactly on integers, and on floating
+    /// weights whose sums are exactly representable (dyadic values of moderate size); otherwise
+    /// rounding and the threshold can pick other moves, so the tours may differ.
     ///
     /// - Precondition: the graph is complete; `tour.vertices` lists every vertex of the graph
-    ///   exactly once; no weight is NaN; the sum of any two weights fits in `W`.
+    ///   exactly once; no weight is NaN or infinite; the sum of any two weights fits in `W`.
     /// - Complexity: O(n²) per improving move.
     @inlinable
     public func twoOptTour<W: Comparable & AdditiveArithmetic>(improving tour: Cycle<Vertex, Edges.Index>, weight: (Edges.Index) -> W) -> Cycle<Vertex, Edges.Index>? {
         let numbering = _tourNumbering()
         let n = numbering.isIndexed ? vertexIndexBound! : numbering.listed.count
         guard n >= 3 else { return nil }
+        // A `Cycle` repeats no vertex, so n of the graph's vertices are every vertex once. (A shorter
+        // tour would also trap, on an index past its end; this says why.)
         precondition(tour.vertices.count == n, "The tour does not list every vertex once")
-        var seen = [Bool](repeating: false, count: n)
         let order = tour.vertices.map { v in
-            let k = _tourNumber(of: v, numbering, "The tour does not list every vertex once (\(v) is not a vertex of the graph)")
-            precondition(!seen[k], "The tour does not list every vertex once")
-            seen[k] = true
-            return k
+            _tourNumber(of: v, numbering, "The tour does not list every vertex once (\(v) is not a vertex of the graph)")
         }
         let matrix = _completeTourMatrix(weight, numbering)
         return _tourCycle(_twoOpt(matrix, order), matrix, numbering)

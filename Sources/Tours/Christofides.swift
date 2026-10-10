@@ -35,7 +35,7 @@ struct _FlatIncidenceRows: _IncidenceRowSource {
 /// `min_weight_matching`; the multigraph of the tree edges in edge order, then the matched pairs
 /// in pair order; Hierholzer from vertex 0; the first visit of each vertex kept.
 @inlinable
-func _christofidesOrder<W: SignedNumeric & Comparable>(_ matrix: _TourMatrix<W>, half: (W) -> W, valid: (W) -> Bool) -> [Int] {
+func _christofidesOrder<W: SignedNumeric & Comparable>(_ matrix: _TourMatrix<W>, half: (W) -> W) -> [Int] {
     let n = matrix.n
     let d = matrix.weights, numbers = matrix.edges
     // Dense Prim from vertex 0: each outside vertex's lightest edge to the tree.
@@ -81,9 +81,7 @@ func _christofidesOrder<W: SignedNumeric & Comparable>(_ matrix: _TourMatrix<W>,
         for b in a + 1 ..< k {
             from.append(a)
             to.append(b)
-            let w = d[odd[a] * n + odd[b]]
-            precondition(valid(w), "A weight is infinite or larger in magnitude than greatestFiniteMagnitude / 8")
-            pairWeights.append(w)
+            pairWeights.append(d[odd[a] * n + odd[b]])
         }
     }
     let mates = _minimumWeightMatchingEdges(_MatchingGraph(count: k, from: from, to: to), pairWeights, half: half)
@@ -122,13 +120,20 @@ func _christofidesOrder<W: SignedNumeric & Comparable>(_ matrix: _TourMatrix<W>,
 }
 
 extension Graph {
+    /// Christofides' tour with every weight checked against the matching's bound as it is read:
+    /// `bound(w)` is false for a weight past it.
     @inlinable
-    func _christofidesTour<W: SignedNumeric & Comparable>(_ weight: (Edges.Index) -> W, half: (W) -> W, valid: (W) -> Bool) -> Cycle<Vertex, Edges.Index>? {
+    func _christofidesTour<W: SignedNumeric & Comparable>(_ weight: (Edges.Index) -> W, half: (W) -> W, bound: (W) -> Bool, _ message: String) -> Cycle<Vertex, Edges.Index>? {
         let numbering = _tourNumbering()
         let n = numbering.isIndexed ? vertexIndexBound! : numbering.listed.count
         guard n >= 3 else { return nil }
-        let matrix = _completeTourMatrix(weight, numbering)
-        return _tourCycle(_christofidesOrder(matrix, half: half, valid: valid), matrix, numbering)
+        let matrix = _completeTourMatrix({ (position: Edges.Index) -> W in
+            let w = weight(position)
+            _checkTourWeight(w)
+            precondition(bound(w), message)
+            return w
+        }, numbering)
+        return _tourCycle(_christofidesOrder(matrix, half: half), matrix, numbering)
     }
 
     /// Christofides' tour (Christofides, "Worst-case analysis of a new heuristic for the
@@ -150,32 +155,37 @@ extension Graph {
     /// - Precondition: the graph is complete; the sum along a tour fits in `W`. When `W` is a
     ///   `FixedWidthInteger`, every non-loop edge's weight satisfies n · (2 · |weight| + 1) ≤
     ///   `W.max / 8` (the matching's bound), checked as each weight is read, so a weight beyond it
-    ///   traps even on an edge the matching never sees; an arbitrary-precision integer has no bound.
+    ///   traps even on an edge the matching never sees; so n ≤ `W.max / 8` (15 vertices for
+    ///   `Int8`), whatever the weights. An arbitrary-precision integer has no bound.
     /// - Complexity: O(n³): the matching on up to n vertices; the tree O(n²).
     @inlinable
     public func christofidesTour<W: SignedInteger>(weight: (Edges.Index) -> W) -> Cycle<Vertex, Edges.Index>? {
         // The matching's bound, n · (2 · |w| + 1) ≤ W.max / 8, checked on every weight read when W
-        // has a maximum: |w| ≤ (⌊(W.max / 8) / n⌋ − 1) / 2, formed without overflow.
+        // has a maximum: |w| ≤ (⌊(W.max / 8) / n⌋ − 1) / 2, formed without overflow, and without
+        // converting n to W when n is past W.max (then ⌊(W.max / 8) / n⌋ is 0).
         var limit: W?
+        let n = Swift.max(vertexCount, 1)
         if let fixed = W.self as? any FixedWidthInteger.Type, let maximum = W(exactly: fixed.max) {
-            let n = W(Swift.max(vertexCount, 1))
-            limit = (maximum / 8 / n - 1) / 2
+            let quotient = W(exactly: n).map { maximum / 8 / $0 } ?? 0
+            precondition(vertexCount < 3 || quotient > 0, "christofidesTour with \(W.self) weights supports at most \(maximum / 8) vertices: the matching needs n · (2 · |weight| + 1) ≤ \(W.self).max / 8")
+            limit = (quotient - 1) / 2
         }
-        return _christofidesTour({ (position: Edges.Index) -> W in
-            let w = weight(position)
-            if let limit { precondition(w <= limit && w >= -limit, "A weight is too large for the matching: n · (2 · |weight| + 1) must be at most W.max / 8") }
-            return w
-        }, half: { $0 / 2 }, valid: { _ in true })
+        return _christofidesTour(weight, half: { $0 / 2 }, bound: { w in limit.map { w <= $0 && w >= -$0 } ?? true },
+                                 "A weight is too large for the matching: n · (2 · |weight| + 1) must be at most W.max / 8")
     }
 
     /// Christofides' tour with floating-point weights, as the integer overload, on the matching's
     /// floating-point path.
     ///
-    /// - Precondition: the graph is complete; no weight is NaN or infinite; n · (2 · |weight| + 1)
-    ///   ≤ `greatestFiniteMagnitude / 8`.
+    /// - Precondition: the graph is complete; no weight is NaN or infinite; every non-loop edge's
+    ///   weight satisfies n · (2 · |weight| + 1) ≤ `greatestFiniteMagnitude / 8`, checked as each
+    ///   weight is read, as for integers.
     /// - Complexity: O(n³).
     @inlinable
     public func christofidesTour<W: FloatingPoint>(weight: (Edges.Index) -> W) -> Cycle<Vertex, Edges.Index>? {
-        _christofidesTour(weight, half: { $0 / 2 }, valid: { $0.isFinite && $0.magnitude <= .greatestFiniteMagnitude / 8 })
+        // |w| ≤ (greatestFiniteMagnitude / 8 / n − 1) / 2, rounded as computed.
+        let limit = (W.greatestFiniteMagnitude / 8 / W(Swift.max(vertexCount, 1)) - 1) / 2
+        return _christofidesTour(weight, half: { $0 / 2 }, bound: { $0.magnitude <= limit },
+                                 "A weight is too large for the matching: n · (2 · |weight| + 1) must be at most greatestFiniteMagnitude / 8")
     }
 }

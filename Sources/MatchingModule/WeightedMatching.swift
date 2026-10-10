@@ -681,8 +681,9 @@ struct _WeightedBlossom<W: SignedNumeric & Comparable> {
                     delta = dual[0]
                     for v in 1 ..< n where dual[v] < delta { delta = dual[v] }
                 }
+                // bestSlack[x] is slack(bestEdge[x]): set with it, and refreshed after each dual update.
                 for v in 0 ..< n where label[inBlossom[v]] == 0 && bestEdge[v] >= 0 {
-                    let d = slack(bestEdge[v])
+                    let d = bestSlack[v]
                     if deltaType == -1 || d < delta {
                         delta = d
                         deltaType = 2
@@ -690,7 +691,7 @@ struct _WeightedBlossom<W: SignedNumeric & Comparable> {
                     }
                 }
                 for v in 0 ..< n where parent[v] < 0 && label[v] == 1 && bestEdge[v] >= 0 {
-                    let d = half(slack(bestEdge[v]))
+                    let d = half(bestSlack[v])
                     if deltaType == -1 || d < delta {
                         delta = d
                         deltaType = 3
@@ -701,7 +702,7 @@ struct _WeightedBlossom<W: SignedNumeric & Comparable> {
                 while s >= 0 {
                     let b = n + s
                     if parent[b] < 0, label[b] == 1, bestEdge[b] >= 0 {
-                        let d = half(slack(bestEdge[b]))
+                        let d = half(bestSlack[b])
                         if deltaType == -1 || d < delta {
                             delta = d
                             deltaType = 3

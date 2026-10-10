@@ -33,6 +33,9 @@ extension Graph {
     func twoOptTour<W>(weight:);  func twoOptTour<W>(improving: Cycle<…>, weight:)
     func shortestTour<W>(weight:)
 }
+extension DirectedGraph {
+    func shortestTour<W>(weight:)   // the asymmetric problem, by the same Held–Karp program
+}
 ```
 
 ## Conventions
@@ -48,7 +51,8 @@ extension Graph {
 | `weight` | Called once per non-loop edge, in position order, by every tour (also `twoOptTour(weight:)` and `christofidesTour`, which run two procedures) | every tour row with three or more vertices, `weightAskedOnce` |
 | Tour starts | Nearest neighbour from the first vertex or the given one; 2-opt keeps its start tour's first vertex; Christofides and Held–Karp from the first vertex | TO-419 – TO-421, TO-466 |
 | Tours below three vertices | nil, before any other check (no completeness, NaN or start check) | TO-415 – TO-418 and the like, `smallTours` |
-| Preconditions | A start or end not a vertex; a heuristic on a missing pair; a tour to improve that does not list every vertex once; a NaN weight (any tour, any copy); Christofides' infinite weight and matching bound; more than 31 vertices for Held–Karp | `ToursPreconditionTests.swift` |
+| Directed tours | `shortestTour` on a digraph: each ordered pair's lightest arc, every step along an arc, the lexicographically least optimal tour from the first vertex; nil below three vertices | TO-507 – TO-531, `heldKarpWrittenOut` |
+| Preconditions | A start or end not a vertex; a heuristic on a missing pair; a tour to improve that does not list every vertex once; a NaN or infinite weight (any tour, either sign, any copy, directed too); Christofides' matching bound on every weight as it is read (Double, Float, a large negative integer, Int8 past 15 vertices or past `Int8.max`); a Held–Karp table past 4 GiB (26 vertices with 8-byte weights, 27 with `Float`) | `ToursPreconditionTests.swift` |
 
 ## How values are pinned
 
@@ -83,7 +87,7 @@ the lexicographically least optimal tour, the heuristics are no lighter, and Chr
 2-opt rows check that no exchange improves the tour (an O(n²) loop) and that it is no heavier than
 its start tour. Held–Karp's nil rows check `hamiltonianCycle()` is nil too.
 
-The representation files (one per catalog section) run every non-trap row (483) again: directed rows
+The representation files (one per catalog section) run every non-trap row (505) again: directed rows
 on `DirectedPseudograph` (or `ReferenceDirectedMultigraph` for rows already on it), on a conformer with
 no vertex or edge indices, and, when no edge repeats, on `CompressedSparseRow` and `AdjacencyMatrix`
 over the vertex indices; undirected rows on `Pseudograph` (or `ReferencePseudograph`), the conformer,
@@ -92,7 +96,7 @@ and, when no arc repeats, `AdjacencyList.undirected` (each edge an arc as writte
 (`AdjacencyList.undirected`: out-edges, then in-edges; the matrix and CSR: by neighbour), and the
 matrix and CSR number edges by row-major cell (each catalog edge's position is looked up there).
 `swiftgen.py` runs `ref.py`'s models on each representation's rows and positions: where they give the
-catalog's result (1,736 of 1,782 blocks), the test pins it exactly; otherwise (46 blocks in 27 rows:
+catalog's result (1,822 of 1,868 blocks), the test pins it exactly; otherwise (46 blocks in 27 rows:
 TO-075, TO-076, TO-095, TO-096, TO-108, TO-116, TO-127, TO-128, TO-143, TO-144, TO-262 – TO-264,
 TO-275, TO-328, TO-329, TO-332, TO-333, TO-336, TO-338, TO-344, TO-350, TO-351, TO-380, TO-381,
 TO-385, TO-386, a comment marks each) the walk is checked as genuine, with the documented start, and
@@ -106,13 +110,21 @@ from every start; the first Hamiltonian path (from every start, and to a target)
 force over every ordering (at most 6! orderings), undirected and directed; tours on complete
 multigraphs with extra copies and loops against nearest neighbour and JGraphT's 2-opt written out
 (also from a scrambled tour) and the brute-force optimum; Christofides within 3/2 on Manhattan points
-in Int and in Double quarters; Held–Karp on graphs that need not be complete. Stress values are known
+in Int and in Double quarters; Held–Karp on graphs that need not be complete. Three larger ones
+written after the critical review: 2-opt on complete graphs of 15 … 40 vertices with many ties, from
+a scrambled tour, against JGraphT's loop written out (so the incremental row cache must find the
+same moves); Christofides against its pinned composition written out (dense Prim under (weight,
+edge number), the odd vertices, every minimum perfect matching by enumeration, Hierholzer from vertex
+0, the first visits: the tour must be the composition of one minimum matching, and of the only one
+when it is unique); Held–Karp on up to 10 vertices, undirected and directed, complete or not, against
+JGraphT's memoized recursion and reconstruction written out. Stress values are known
 by construction: a 200 × 200 torus and a seeded directed closed walk of 200,000 arcs (their walks
 checked edge by edge; the open walk's trail from its start to its end), C(10⁵), Cd(10⁵) and P(10⁵)
 (their walks are themselves, and from the middle backwards), C(3,000), P(3,000) and K(60) as their own
 first Hamiltonian cycle and path, two disjoint K(12) and a transitive tournament on 40 vertices with
 none, nearest neighbour along 400 collinear points, points on a circle (Christofides and 2-opt give
-the hull order, Held–Karp the hull order in its least direction), and C(16) with one tour. Each runs in
+the hull order, Held–Karp the hull order in its least direction), C(16) with one tour, and two K(14) at a cut vertex (no cycle and no path from it; only the
+reachability test fails the search early, without it the search tries 13! orderings). Each runs in
 a `Task` with a one-minute limit.
 
 In the property and stress files, conditions that contain a closure are computed into a named
@@ -152,15 +164,16 @@ tree's ties to the later position (13), Hierholzer on Christofides' multigraph f
 | `EulerianCircuitTests.swift` | 76 | §EulerianCircuit, …Directed, …From, …FromDirected |
 | `EulerianTrailTests.swift` | 78 | §EulerianTrail, …Directed, …From, …FromDirected |
 | `HamiltonianPathTests.swift`, `HamiltonianCycleTests.swift` | 61, 46 | §HamiltonianPath, …Directed, …From, …FromDirected; §HamiltonianCycle, …Directed |
-| `NearestNeighborTourTests.swift`, `ChristofidesTourTests.swift`, `TwoOptTourTests.swift`, `ShortestTourTests.swift` | 22, 21, 26, 23 | §NearestNeighborTour, §ChristofidesTour, §TwoOptTour and §TwoOptTourImproving, §ShortestTour |
-| `ToursPreconditionTests.swift` | 25 | Exit tests: the 18 trap rows (TO-285 – TO-289, TO-397 – TO-399, TO-492 – TO-501), then 7 written by hand: a vertex not in the graph in every entry point that takes one, also without indices; missing pairs beside parallel edges and loops; NaN in every tour; Christofides' infinity and matching bound; tours to improve with a wrong vertex count or a foreign vertex; Held–Karp's limit on a cycle |
-| the ten `…RepresentationTests.swift` files | 65, 65, 76, 78, 61, 46, 22, 21, 26, 23 | Every non-trap row again on the other representations |
+| `NearestNeighborTourTests.swift`, `ChristofidesTourTests.swift`, `TwoOptTourTests.swift`, `ShortestTourTests.swift` | 22, 21, 26, 45 | §NearestNeighborTour, §ChristofidesTour, §TwoOptTour and §TwoOptTourImproving, §ShortestTour and §ShortestTourDirected |
+| `ToursPreconditionTests.swift` | 34 | Exit tests: the 26 trap rows (TO-285 – TO-289, TO-397 – TO-399, TO-492 – TO-506, TO-529 – TO-531), then 8 written by hand: a vertex not in the graph in every entry point that takes one, also without indices; missing pairs beside parallel edges and loops; NaN in every tour; ±∞ in every tour and entry point; Christofides' infinity and matching bound; tours to improve with a wrong vertex count or a foreign vertex; Held–Karp's table limit on cycles, undirected and directed |
+| the ten `…RepresentationTests.swift` files | 65, 65, 76, 78, 61, 46, 22, 21, 26, 45 | Every non-trap row again on the other representations |
 | `ToursConformanceTests.swift` | 9 | Generic code, `String` and `Collider` vertices, Int8 / UInt8 / UInt / Int32 / Float weights, results as `Walks` values (and `Sendable`), the `directed` view, every edgeless graph, `improving:` reading only vertices, tours below three vertices, `weight` asked once |
-| `ToursPropertyTests.swift` | 6 | See above |
-| `ToursStressTests.swift` | 7 | See above |
+| `ToursPropertyTests.swift` | 9 | See above |
+| `ToursStressTests.swift` | 8 | See above |
+| `ToursRegressionTests.swift` | 3 | Inputs from planted-bug testing (`scripts/mutants/Tours.py`) and fuzzing (`FuzzTours`): a directed graph with ±1 vertices and ±2 vertices (no trail), a directed trail whose first vertex with an edge reaches nothing, Hierholzer on edges in two components (self-loops at two vertices) |
 
-483 value rows and 18 trap rows, the 483 representation tests, and 29 more tests (7 precondition, 9
-conformance, 6 property, 7 stress): 1,013 tests in all.
+505 value rows and 26 trap rows, the 505 representation tests, and 37 more tests (8 precondition, 9
+conformance, 9 property, 8 stress, 3 regression): 1,073 tests in all.
 
 ## Case IDs
 
@@ -189,4 +202,4 @@ properties or scale that the catalog does not list.
 | JGraphT's −1e-8 stop threshold | api.md stops at 0; the same on integers and dyadic rows |
 | Complexity bounds and the performance targets | Benchmarks |
 | NetworkX's, igraph's and JGraphT's outputs on random graphs | Not Swift tests; `ref.py` checks every catalog row and its `--stress` graphs against them |
-| Directed tours, eulerize, the Chinese postman, tours on distance closures | Phase 2 (api.md, open questions 3 – 5) |
+| Directed heuristics (nearest neighbour on a digraph), eulerize, the Chinese postman, tours on distance closures | Phase 2 (api.md, open questions 3 – 5) |

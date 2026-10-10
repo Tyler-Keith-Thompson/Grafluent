@@ -127,6 +127,82 @@ struct MatchingStressTests {
         }.value
     }
 
+    @Test("maximumWeightMatching and minimumWeightMatching on K₆₀,₆₀ (as a general graph) with seeded non-dyadic Double weights: the weight of linearSumAssignment on the same matrix", .timeLimit(.minutes(1)))
+    func weightedAgainstAssignment() async throws {
+        try await Task {
+            // Weights k / 7 + 0.1 for seeded k in 0 ..< 1000: no two sums of slacks cancel exactly,
+            // and many dual updates per stage leave each least-slack edge's slack moving, so a
+            // cached slack not refreshed after an update picks the wrong edge. The Hungarian
+            // assignment is an independent optimum to compare with (within rounding).
+            let n = 60
+            var rng = SeededRandomNumberGenerator(seed: 23)
+            var cost = [[Double]](repeating: [Double](repeating: 0, count: n), count: n)
+            for i in 0 ..< n { for j in 0 ..< n { cost[i][j] = Double(rng.next() % 1000) / 7 + 0.1 } }
+            var edges: [UndirectedEdge<Int>] = []
+            for i in 0 ..< n { for j in 0 ..< n { edges.append(UndirectedEdge(i, n + j)) } }
+            let graph = UndirectedAdjacencyList(vertices: 0 ..< 2 * n, edges: edges)
+            let weight: (Int) -> Double = { cost[$0 / n][$0 % n] }
+            let least = try #require(linearSumAssignment(rowCount: n, columnCount: n, cost: { cost[$0][$1] }))
+            let most = try #require(linearSumAssignment(rowCount: n, columnCount: n, maximize: true, cost: { cost[$0][$1] }))
+            let lightest = graph.minimumWeightMatching(weight: weight)
+            #expect(lightest.isPerfect)
+            #expect(abs(lightest.weight - least.cost) <= 1e-9 * least.cost, "\(lightest.weight) against \(least.cost)")
+            let heaviest = graph.maximumWeightMatching(weight: weight)
+            #expect(heaviest.isPerfect)
+            #expect(abs(heaviest.weight - most.cost) <= 1e-9 * most.cost, "\(heaviest.weight) against \(most.cost)")
+        }.value
+    }
+
+    @Test("maximumWeightMatching and minimumWeightMatching on 300 seeded random graphs of 8 to 16 vertices with non-dyadic Double weights: the optima of a dynamic program over vertex subsets", .timeLimit(.minutes(1)))
+    func weightedAgainstSubsets() async {
+        await Task {
+            // Weights k / 7 + 0.1 (k seeded in 0 ..< 1000) on G(n, p): odd cycles make blossoms,
+            // and between dual updates the least-slack edges' slacks move. The program: f(S), for S
+            // the vertices still free to match, leaves S's lowest vertex single or matches it to a
+            // neighbour in S; the minimum form ranks (more edges, then less weight).
+            var rng = SeededRandomNumberGenerator(seed: 31)
+            for round in 0 ..< 300 {
+                let n = 8 + Int(rng.next() % 9), density = 2 + rng.next() % 4
+                var edges: [UndirectedEdge<Int>] = [], weights: [Double] = []
+                var w = [[Double?]](repeating: [Double?](repeating: nil, count: n), count: n)
+                for i in 0 ..< n {
+                    for j in i + 1 ..< n where rng.next() % density != 0 {
+                        let x = Double(rng.next() % 1000) / 7 + 0.1
+                        edges.append(UndirectedEdge(i, j))
+                        weights.append(x)
+                        w[i][j] = x
+                        w[j][i] = x
+                    }
+                }
+                let graph = UndirectedAdjacencyList(vertices: 0 ..< n, edges: edges)
+                let full = (1 << n) - 1
+                var most = [Double](repeating: 0, count: full + 1)
+                var fewest = [(count: Int, weight: Double)](repeating: (0, 0), count: full + 1)
+                for set in 1 ... full {
+                    let i = set.trailingZeroBitCount, rest = set & ~(1 << i)
+                    var best = most[rest], least = fewest[rest]
+                    var others = rest
+                    while others != 0 {
+                        let j = others.trailingZeroBitCount
+                        others &= others - 1
+                        guard let x = w[i][j] else { continue }
+                        let without = rest & ~(1 << j)
+                        best = max(best, x + most[without])
+                        let candidate = (count: fewest[without].count + 1, weight: fewest[without].weight + x)
+                        if candidate.count > least.count || (candidate.count == least.count && candidate.weight < least.weight) { least = candidate }
+                    }
+                    most[set] = best
+                    fewest[set] = least
+                }
+                let heaviest = graph.maximumWeightMatching(weight: { weights[$0] })
+                #expect(abs(heaviest.weight - most[full]) <= 1e-9 * max(1, most[full]), "round \(round): \(heaviest.weight) against \(most[full])")
+                let lightest = graph.minimumWeightMatching(weight: { weights[$0] })
+                #expect(lightest.edges.count == fewest[full].count, "round \(round): \(lightest.edges.count) edges against \(fewest[full].count)")
+                #expect(abs(lightest.weight - fewest[full].weight) <= 1e-9 * max(1, fewest[full].weight), "round \(round): \(lightest.weight) against \(fewest[full].weight)")
+            }
+        }.value
+    }
+
     @Test("linearSumAssignment at 200 × 200: one zero per row at a seeded permutation, and the constant matrix (the identity, as MA-196)", .timeLimit(.minutes(1)))
     func assignmentSquare() async throws {
         try await Task {

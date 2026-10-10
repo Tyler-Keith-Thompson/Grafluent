@@ -15,9 +15,27 @@
 #   wclamp                  the final δ₁ ends the search at once (deltaType 1 breaks out), so the
 #                           duals it sets are never read again; NetworkX notices only through its
 #                           optimality self-check (MA-1002 is the input where that check fails).
+#   wmincost                `c = greatest` instead of NetworkX's 1 + greatest: the transform runs
+#                           with maximumCardinality, where every candidate has the same number of
+#                           edges, so a constant added to every weight moves no optimum (the
+#                           weights stay non-negative, and the search never needs them positive).
+#   wchosenslack            the cached slack of a new blossom's least-slack arc left unset: until
+#                           the next dual update refreshes it, it is read only while scanning the
+#                           blossom's former T vertices, whose arcs addBlossom has just considered
+#                           (each at least the chosen slack). A stale value misleads only when the
+#                           blossom's slot was used before and its old cached slack exceeds one of
+#                           those arcs; the stale value is 0 on a slot's first use. Not reached by
+#                           5,000 random graphs of 8 to 16 vertices with non-dyadic weights against
+#                           the subset program (MatchingStressTests); not proven unreachable.
 #
-# Order matters where patterns overlap: wdelta2 wraps the first `slack(bestEdge[v])` (δ₂'s), and
-# its replacement then holds a `half(slack(bestEdge[v]))` ahead of δ₃'s, so wdelta3 takes nth=1.
+# The cached slacks (bestSlack): wrefresh and wrefreshvertices, the refresh after a dual update
+# dropped or limited to vertices, are caught only by non-dyadic Double weights on enough random
+# graphs (MatchingStressTests' subset program; the brute-force property test sometimes): with
+# small integers the stale slack rarely reorders two candidates. A vertex's own S-blossom entry is
+# read after an update when the tail of the δ edge is queued again.
+#
+# Order matters where patterns overlap: wdelta2 wraps the first `bestSlack[v]` (δ₂'s), and its
+# replacement then holds a `half(bestSlack[v])` ahead of δ₃'s, so wdelta3 takes nth=1.
 
 TESTS = ["MatchingModuleTests"]
 
@@ -64,14 +82,26 @@ MUTANTS = [
 
     # Weighted blossom (NetworkX's max_weight_matching)
     Mutant("wdeltatype1", "WeightedMatching.swift", "for v in 1 ..< n where dual[v] < delta { delta = dual[v] }", "", mode="stmt"),
-    Mutant("wdelta2", "WeightedMatching.swift", "slack(bestEdge[v])", "half(slack(bestEdge[v]))", nth=0),
-    Mutant("wdelta3", "WeightedMatching.swift", "half(slack(bestEdge[v]))", "slack(bestEdge[v])", nth=1),
+    Mutant("wdelta2", "WeightedMatching.swift", "bestSlack[v]", "half(bestSlack[v])", nth=0),
+    Mutant("wdelta3", "WeightedMatching.swift", "half(bestSlack[v])", "bestSlack[v]", nth=1),
+    Mutant("wdelta3blossom", "WeightedMatching.swift", "half(bestSlack[b])", "bestSlack[b]"),
     Mutant("wdelta4", "WeightedMatching.swift", "deltaType == -1 || dual[b] < delta", "deltaType == -1"),
     Mutant("wdualS", "WeightedMatching.swift", "                        dual[v] -= delta", "", mode="stmt"),
     Mutant("wdualT", "WeightedMatching.swift", "                        dual[v] += delta", "", mode="stmt"),
     Mutant("wblossomdual", "WeightedMatching.swift", "                            dual[b] += delta", "", mode="stmt"),
-    Mutant("wallow", "WeightedMatching.swift", "if kslack <= .zero { allowed[e] = stage }", "if kslack < .zero { allowed[e] = stage }", mode="stmt"),
-    Mutant("wbestedge", "WeightedMatching.swift", "if bestEdge[w] < 0 || kslack < slack(bestEdge[w]) { bestEdge[w] = a }", "if bestEdge[w] < 0 { bestEdge[w] = a }", mode="stmt"),
+    Mutant("wallow", "WeightedMatching.swift", "if kslack <= .zero { allowed[e] = current }", "if kslack < .zero { allowed[e] = current }", mode="stmt"),
+    Mutant("wbestedge", "WeightedMatching.swift", "bestEdge[w] < 0 || kslack < bestSlack[w]", "bestEdge[w] < 0"),
+    Mutant("wbestedgeS", "WeightedMatching.swift", "bestEdge[bv] < 0 || kslack < bestSlack[bv]", "bestEdge[bv] < 0"),
+    Mutant("wbestslack", "WeightedMatching.swift", "                                bestSlack[w] = kslack", "", mode="stmt"),
+    Mutant("wbestslackS", "WeightedMatching.swift", "                                bestSlack[bv] = kslack", "", mode="stmt"),
+    Mutant("wrefresh", "WeightedMatching.swift", "                for x in 0 ..< 2 * n where bestEdge[x] >= 0 { bestSlack[x] = slack(bestEdge[x]) }", "", mode="stmt"),
+    Mutant("wrefreshvertices", "WeightedMatching.swift", "                for x in 0 ..< 2 * n where bestEdge[x] >= 0 { bestSlack[x] = slack(bestEdge[x]) }", "                for x in 0 ..< n where bestEdge[x] >= 0 { bestSlack[x] = slack(bestEdge[x]) }", mode="stmt", nth=0),
+    Mutant("wchosen", "WeightedMatching.swift", "chosen < 0 || s < chosenSlack", "chosen < 0"),
+    Mutant("wchosenslack", "WeightedMatching.swift", "        if chosen >= 0 { bestSlack[b] = chosenSlack }", "", mode="stmt"),
+    Mutant("warcslack", "WeightedMatching.swift", "dual[v] + dual[w] - (weight + weight)", "dual[v] + dual[w] - weight"),
+    Mutant("wheaviestcopy", "WeightedMatching.swift", "weights[e] > weights[b] || (weights[e] == weights[b] && e < b)", "weights[e] < weights[b]"),
+    Mutant("wmincost", "WeightedMatching.swift", "1 + greatest", "greatest"),
+    Mutant("wmininvert", "WeightedMatching.swift", "        for e in 0 ..< structure.edgeCount where structure.from[e] != structure.to[e] { inverted[e] = c - weights[e] }", "", mode="stmt"),
     Mutant("wclamp", "WeightedMatching.swift", "delta = least > .zero ? least : .zero", "delta = least", mode="stmt"),
     Mutant("wexpandzero", "WeightedMatching.swift", "dual[b] == .zero", "false"),
 

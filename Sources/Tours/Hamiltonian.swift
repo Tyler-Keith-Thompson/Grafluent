@@ -93,6 +93,87 @@ struct _CopyHamiltonianRows: _UndirectedRowsAlgorithm {
     }
 }
 
+/// A fixed-size buffer of trivial values (vertex numbers, counts, flags) with checked indexing and
+/// no copy-on-write: a write is a store through `nonmutating set`, with no uniqueness check and no
+/// retain or release of an array's storage, which the search's mutating methods paid on every
+/// access (as MatchingModule's `_BlossomBuffer`). Freed by `deallocate()`.
+@frozen
+@usableFromInline
+struct _SearchBuffer<Element> {
+    @usableFromInline let base: UnsafeMutablePointer<Element>
+    @usableFromInline let count: Int
+
+    @inlinable
+    init(repeating value: Element, count: Int) {
+        self.count = count
+        base = UnsafeMutablePointer<Element>.allocate(capacity: Swift.max(count, 1))
+        base.initialize(repeating: value, count: count)
+    }
+
+    @inlinable
+    init(_ elements: [Element]) {
+        count = elements.count
+        base = UnsafeMutablePointer<Element>.allocate(capacity: Swift.max(count, 1))
+        elements.withUnsafeBufferPointer { if let source = $0.baseAddress { base.initialize(from: source, count: count) } }
+    }
+
+    @inlinable
+    subscript(i: Int) -> Element {
+        @inline(__always) get {
+            precondition(UInt(bitPattern: i) < UInt(bitPattern: count), "Index out of range")
+            return base[i]
+        }
+        @inline(__always) nonmutating set {
+            precondition(UInt(bitPattern: i) < UInt(bitPattern: count), "Index out of range")
+            base[i] = newValue
+        }
+    }
+
+    @inlinable
+    func deallocate() {
+        base.deinitialize(count: count)
+        base.deallocate()
+    }
+}
+
+/// `_HamiltonianRows` copied into buffers once, shared by the searches from every start.
+/// Undirected, `previous` is `next` (the same buffers, freed once).
+@frozen
+@usableFromInline
+struct _HamiltonianRowBuffers {
+    @usableFromInline let rowOffsets: _SearchBuffer<Int>
+    @usableFromInline let rowTargets: _SearchBuffer<Int>
+    @usableFromInline let rowEdges: _SearchBuffer<Int>
+    @usableFromInline let nextOffsets: _SearchBuffer<Int>
+    @usableFromInline let next: _SearchBuffer<Int>
+    @usableFromInline let previousOffsets: _SearchBuffer<Int>
+    @usableFromInline let previous: _SearchBuffer<Int>
+    @usableFromInline let directed: Bool
+    @usableFromInline let count: Int
+
+    @inlinable
+    init(_ rows: _HamiltonianRows) {
+        rowOffsets = _SearchBuffer(rows.rowOffsets)
+        rowTargets = _SearchBuffer(rows.rowTargets)
+        rowEdges = _SearchBuffer(rows.rowEdges)
+        nextOffsets = _SearchBuffer(rows.nextOffsets)
+        next = _SearchBuffer(rows.next)
+        directed = rows.directed
+        previousOffsets = rows.directed ? _SearchBuffer(rows.previousOffsets) : nextOffsets
+        previous = rows.directed ? _SearchBuffer(rows.previous) : next
+        count = rows.count
+    }
+
+    @inlinable
+    func deallocate() {
+        for buffer in [rowOffsets, rowTargets, rowEdges, nextOffsets, next] { buffer.deallocate() }
+        if directed {
+            previousOffsets.deallocate()
+            previous.deallocate()
+        }
+    }
+}
+
 /// The depth-first backtracking search for the first Hamiltonian path (or cycle) in row order:
 /// from `start`, extend through each row in order to an unvisited vertex; a cycle closes through
 /// the first edge of the last vertex's row back to the start that the path has not used.
@@ -105,12 +186,19 @@ struct _CopyHamiltonianRows: _UndirectedRowsAlgorithm {
 /// one, at most one such vertex). Directed, u needs a predecessor in U ∪ {x}, and a successor in
 /// U (∪ {start}, for a cycle) unless it is the path's last vertex. A cycle's start also needs a
 /// predecessor in U while U is not empty. The degree counts are kept incrementally, O(degree) per
-/// step; the reachability is a search, O(n + m) per step. Neither runs below three vertices,
-/// where parallel edges and self-loops decide.
+/// step. The reachability is a search, O(n + m), run only when it can fail: every state the search
+/// stands on passed it, so before a step from p to x every vertex of U ∪ {x} was reachable from p
+/// through U ∪ {x}; when x is p's only neighbour (successor) in U ∪ {x}, each of those paths
+/// leaves p through x and, made simple, stays in U after it, so every vertex of U is reachable
+/// from x through U and the search is skipped. On a cycle or a path graph that leaves one search
+/// at the first step, so the whole search is linear. Neither runs below three vertices, where
+/// parallel edges and self-loops decide.
+///
+/// State lives in `_SearchBuffer`s, freed by `deallocate()`.
 @frozen
 @usableFromInline
 struct _HamiltonianSearch {
-    @usableFromInline let rows: _HamiltonianRows
+    @usableFromInline let rows: _HamiltonianRowBuffers
     @usableFromInline let n: Int
     @usableFromInline let cycle: Bool
     @usableFromInline let start: Int
@@ -118,23 +206,23 @@ struct _HamiltonianSearch {
     @usableFromInline let target: Int
     @usableFromInline let pruned: Bool
 
-    @usableFromInline var visited: [Bool]
+    @usableFromInline let visited: _SearchBuffer<Bool>
     /// Undirected: f. Directed: the predecessors in U ∪ {x}, and the successors in U (∪ {start}).
-    @usableFromInline var free: [Int]
-    @usableFromInline var freeOut: [Int]
+    @usableFromInline let free: _SearchBuffer<Int>
+    @usableFromInline let freeOut: _SearchBuffer<Int>
     @usableFromInline var dead = 0
     @usableFromInline var soft = 0
     @usableFromInline var startPredecessors = 0
-    @usableFromInline var isStartPredecessor: [Bool]
+    @usableFromInline let isStartPredecessor: _SearchBuffer<Bool>
     @usableFromInline var unvisited: Int
 
     // Scratch for the reachability search.
-    @usableFromInline var seen: [Int]
+    @usableFromInline let seen: _SearchBuffer<Int>
     @usableFromInline var stamp = 0
-    @usableFromInline var stack: [Int]
+    @usableFromInline let stack: _SearchBuffer<Int>
 
     @inlinable
-    init(_ rows: _HamiltonianRows, start: Int, target: Int, cycle: Bool) {
+    init(_ rows: _HamiltonianRowBuffers, start: Int, target: Int, cycle: Bool) {
         self.rows = rows
         let n = rows.count
         self.n = n
@@ -142,13 +230,13 @@ struct _HamiltonianSearch {
         self.target = target
         self.cycle = cycle
         pruned = n >= 3
-        visited = [Bool](repeating: false, count: n)
-        free = [Int](repeating: 0, count: n)
-        freeOut = [Int](repeating: 0, count: rows.directed ? n : 0)
-        isStartPredecessor = [Bool](repeating: false, count: n)
+        visited = _SearchBuffer(repeating: false, count: n)
+        free = _SearchBuffer(repeating: 0, count: n)
+        freeOut = _SearchBuffer(repeating: 0, count: rows.directed ? n : 0)
+        isStartPredecessor = _SearchBuffer(repeating: false, count: n)
         unvisited = n - 1
-        seen = [Int](repeating: 0, count: n)
-        stack = [Int](repeating: 0, count: n)
+        seen = _SearchBuffer(repeating: 0, count: n)
+        stack = _SearchBuffer(repeating: 0, count: n)
         visited[start] = true
         guard pruned else { return }
         // x = start: undirected f(u) is every distinct neighbour; directed, every predecessor,
@@ -172,6 +260,13 @@ struct _HamiltonianSearch {
                 startPredecessors += 1
             }
         }
+    }
+
+    @inlinable
+    func deallocate() {
+        for buffer in [free, freeOut, seen, stack] { buffer.deallocate() }
+        visited.deallocate()
+        isStartPredecessor.deallocate()
     }
 
     /// Adds (`sign` 1) or removes (−1) u's contribution to the dead and soft counts.
@@ -202,9 +297,10 @@ struct _HamiltonianSearch {
     }
 
     /// The path's end moves from `p` to the unvisited `y` (`sign` 1), or back (−1, the exact
-    /// reverse).
-    @inlinable
-    mutating func move(from p: Int, to y: Int, _ sign: Int) {
+    /// reverse). Moving forward, returns how many neighbours (successors) of `p` are still
+    /// unvisited, or −1 when not counted (no pruning, or a cycle leaving its undirected start).
+    @inlinable @discardableResult
+    mutating func move(from p: Int, to y: Int, _ sign: Int) -> Int {
         if sign > 0 {
             visited[y] = true
             unvisited -= 1
@@ -215,15 +311,18 @@ struct _HamiltonianSearch {
                 visited[y] = false
                 unvisited += 1
             }
-            return
+            return -1
         }
         if sign > 0 { count(y, -1) }
+        var others = -1
         if rows.directed {
             // p is no longer the end, so no longer a predecessor in U ∪ {x}; y left U, so it is
             // no longer a successor in U.
+            others = 0
             for k in rows.nextOffsets[p] ..< rows.nextOffsets[p + 1] {
                 let u = rows.next[k]
                 if visited[u] { continue }
+                others += 1
                 count(u, -1)
                 free[u] -= sign
                 count(u, 1)
@@ -236,9 +335,11 @@ struct _HamiltonianSearch {
                 count(u, 1)
             }
         } else if !(cycle && p == start) {
+            others = 0
             for k in rows.nextOffsets[p] ..< rows.nextOffsets[p + 1] {
                 let u = rows.next[k]
                 if visited[u] { continue }
+                others += 1
                 count(u, -1)
                 free[u] -= sign
                 count(u, 1)
@@ -250,6 +351,7 @@ struct _HamiltonianSearch {
             unvisited += 1
             if cycle && isStartPredecessor[y] { startPredecessors += 1 }
         }
+        return others
     }
 
     /// Whether every unvisited vertex is reachable from `x` through unvisited vertices.
@@ -288,13 +390,16 @@ struct _HamiltonianSearch {
         }
         if target == s { return nil }
         if pruned && (!isViable || !reachesAll(from: s)) { return nil }
-        var path = [Int](repeating: 0, count: n)
-        var pathEdges = [Int](repeating: 0, count: n)
-        var cursor = [Int](repeating: 0, count: n)
+        let path = _SearchBuffer(repeating: 0, count: n)
+        let pathEdges = _SearchBuffer(repeating: 0, count: n)
+        let cursor = _SearchBuffer(repeating: 0, count: n)
         // Each depth's frame number, so a parallel copy of an edge already tried from the same
         // frame is skipped: its subtree is the same.
-        var frame = [Int](repeating: 0, count: n)
-        var tried = [Int](repeating: -1, count: n)
+        let frame = _SearchBuffer(repeating: 0, count: n)
+        let tried = _SearchBuffer(repeating: -1, count: n)
+        defer {
+            for buffer in [path, pathEdges, cursor, frame, tried] { buffer.deallocate() }
+        }
         var frames = 0
         path[0] = s
         cursor[0] = rows.rowOffsets[s]
@@ -307,10 +412,11 @@ struct _HamiltonianSearch {
                         let e = rows.rowEdges[k]
                         if depth == 1 && e == pathEdges[0] { continue }
                         pathEdges[depth] = e
-                        return (path, pathEdges)
+                        return ((0 ..< n).map { path[$0] }, (0 ..< n).map { pathEdges[$0] })
                     }
-                } else if target < 0 || v == target {
-                    return (path, Array(pathEdges[0 ..< n - 1]))
+                } else {
+                    // The target is entered only as the last vertex, so a full path ends there.
+                    return ((0 ..< n).map { path[$0] }, (0 ..< n - 1).map { pathEdges[$0] })
                 }
             } else {
                 var k = cursor[depth]
@@ -321,8 +427,8 @@ struct _HamiltonianSearch {
                     k += 1
                     if visited[x] || (x == target && depth + 1 != n - 1) || tried[x] == frame[depth] { continue }
                     tried[x] = frame[depth]
-                    move(from: v, to: x, 1)
-                    if !pruned || (isViable && reachesAll(from: x)) {
+                    let others = move(from: v, to: x, 1)
+                    if !pruned || (isViable && (others == 0 || reachesAll(from: x))) {
                         cursor[depth] = k
                         depth += 1
                         path[depth] = x
@@ -346,13 +452,17 @@ struct _HamiltonianSearch {
 }
 
 extension _HamiltonianRows {
-    /// The first Hamiltonian path from each start in turn (all vertices when `start` is −1).
+    /// The first Hamiltonian path from each start in turn (all vertices when `start` is −1): one
+    /// search per start until one succeeds, so a graph with no path costs n searches.
     @inlinable
     func path(from start: Int, to target: Int) -> (vertices: [Int], edges: [Int])? {
         let n = count
         guard n > 0 else { return nil }
+        let buffers = _HamiltonianRowBuffers(self)
+        defer { buffers.deallocate() }
         for s in start < 0 ? 0 ..< n : start ..< start + 1 {
-            var search = _HamiltonianSearch(self, start: s, target: target, cycle: false)
+            var search = _HamiltonianSearch(buffers, start: s, target: target, cycle: false)
+            defer { search.deallocate() }
             if let found = search.run() { return found }
         }
         return nil
@@ -361,7 +471,10 @@ extension _HamiltonianRows {
     @inlinable
     func cycle() -> (vertices: [Int], edges: [Int])? {
         guard count > 0 else { return nil }
-        var search = _HamiltonianSearch(self, start: 0, target: -1, cycle: true)
+        let buffers = _HamiltonianRowBuffers(self)
+        defer { buffers.deallocate() }
+        var search = _HamiltonianSearch(buffers, start: 0, target: -1, cycle: true)
+        defer { search.deallocate() }
         return search.run()
     }
 }
@@ -392,9 +505,12 @@ extension DirectedGraph {
     /// vertex's `outEdges` in order to an unvisited vertex (Mathematica `FindHamiltonianPath`).
     /// Self-loops never help; one vertex is the trivial path. Pruning cuts only subtrees with no
     /// solution (an unvisited vertex unreachable, or left without a usable predecessor or
-    /// successor), so it keeps the order.
+    /// successor), so it keeps the order. Without a start the search is run again from each
+    /// vertex in turn until one succeeds, so a graph with no Hamiltonian path costs n searches.
     ///
-    /// - Complexity: exponential in the worst case (n! paths); O(n + m) per step of the search.
+    /// - Complexity: exponential in the worst case (n! paths); O(degree) per step of the search,
+    ///   plus O(n + m) for the reachability test where it can fail (not after a step from a
+    ///   vertex with no other unvisited successor, so a path or cycle graph takes O(n + m)).
     @inlinable
     public func hamiltonianPath() -> Path<Vertex, Edges.Index>? { _hamiltonianPath(from: nil, to: nil) }
 
@@ -451,9 +567,13 @@ extension Graph {
     /// vertex's `incidentEdges` in order to an unvisited vertex (Mathematica
     /// `FindHamiltonianPath`). Self-loops never help; one vertex is the trivial path. Pruning cuts
     /// only subtrees with no solution (an unvisited vertex unreachable, or left with too few
-    /// usable neighbours), so it keeps the order.
+    /// usable neighbours), so it keeps the order. Without a start the search is run again from
+    /// each vertex in turn until one succeeds, so a graph with no Hamiltonian path costs n
+    /// searches.
     ///
-    /// - Complexity: exponential in the worst case (n! paths); O(n + m) per step of the search.
+    /// - Complexity: exponential in the worst case (n! paths); O(degree) per step of the search,
+    ///   plus O(n + m) for the reachability test where it can fail (not after a step from a
+    ///   vertex with no other unvisited neighbour, so a path or cycle graph takes O(n + m)).
     @inlinable
     public func hamiltonianPath() -> Path<Vertex, Edges.Index>? { _hamiltonianPath(from: nil, to: nil) }
 

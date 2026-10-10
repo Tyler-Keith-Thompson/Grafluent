@@ -49,8 +49,10 @@ extension Graph {
     }
 
     /// The nearest-neighbour tour from the first vertex (NetworkX `greedy_tsp`, JGraphT
-    /// `NearestNeighborHeuristicTSP`, LEMON `NearestNeighborTsp`): repeatedly the nearest
-    /// unvisited vertex, the first in `vertices` order on ties, then back to the start.
+    /// `NearestNeighborHeuristicTSP(first)`, whose default starts at a random vertex): repeatedly
+    /// the nearest unvisited vertex, the first in `vertices` order on ties, then back to the
+    /// start. LEMON's `NearestNeighborTsp` shares the name only: it starts from the lightest edge
+    /// and grows the path at both ends, a different procedure and tour.
     ///
     /// Tours read the simple graph: self-loops are ignored, and each pair of vertices is joined by
     /// its lightest edge (the earliest position on ties), which is the edge the returned `Cycle`
@@ -62,7 +64,7 @@ extension Graph {
     /// 1977).
     ///
     /// - Precondition: the graph is complete (every pair of distinct vertices joined); no weight
-    ///   is NaN.
+    ///   is NaN or infinite.
     /// - Complexity: O(n²) after O(n + m) to read the edges and weights.
     @inlinable
     public func nearestNeighborTour<W: Comparable & AdditiveArithmetic>(weight: (Edges.Index) -> W) -> Cycle<Vertex, Edges.Index>? {
@@ -72,7 +74,8 @@ extension Graph {
     /// The nearest-neighbour tour from `start` (NetworkX `greedy_tsp(G, source=)`, JGraphT
     /// `NearestNeighborHeuristicTSP(first)`), listed from `start`; as `nearestNeighborTour(weight:)`.
     ///
-    /// - Precondition: the graph is complete; `start` is a vertex of the graph; no weight is NaN.
+    /// - Precondition: the graph is complete; `start` is a vertex of the graph; no weight is NaN
+    ///   or infinite.
     /// - Complexity: O(n²) after O(n + m).
     @inlinable
     public func nearestNeighborTour<W: Comparable & AdditiveArithmetic>(from start: Vertex, weight: (Edges.Index) -> W) -> Cycle<Vertex, Edges.Index>? {

@@ -14,9 +14,11 @@ Christofides, 2-opt; results `Trail`, `Circuit`, `Path`, `Cycle`. Every result i
 * **Tours** (on `Graph`, weights by edge position). `nearestNeighborTour(weight:)` and
   `(from:weight:)`, `christofidesTour(weight:)`, `twoOptTour(weight:)` and
   `twoOptTour(improving:weight:)` (JGraphT `TwoOptHeuristicTSP`'s procedure, the same tour), and
-  `shortestTour(weight:)` (Held–Karp, the same tour as JGraphT `HeldKarpTSP`; open question 2).
+  `shortestTour(weight:)` (Held–Karp, the same tour as JGraphT `HeldKarpTSP`; open question 2), on
+  `DirectedGraph` too (the asymmetric problem; added after the critical review, open question 3).
+  Every tour requires finite weights: NaN and ±∞ trap.
 
-`cases.md` (TO-001 – TO-501, 501 cases) pins the values; `ref.py` recomputes every row from small
+`cases.md` (TO-001 – TO-531, 531 cases) pins the values; `ref.py` recomputes every row from small
 models of this API, checks each against brute force and the reference libraries, renders the
 catalog, and compares it with `cases.md` byte for byte. Eulerian rows: the definitions; a brute
 search over edge sequences (stress); NetworkX 3.7 `is_eulerian`, `has_eulerian_path`,
@@ -47,10 +49,10 @@ Tests/Catalogs/Tours/ref.py [--stress] [--write]` (about a second; `IGRAPH_C_LIB
 | `eulerianTrail()`, `eulerianTrail(from:)` | both | NetworkX `eulerian_path(G, source=)`, igraph `igraph_eulerian_path`, R igraph `eulerian_path` |
 | `hamiltonianPath()`, `(from:)`, `(from:to:)` | both | Mathematica `FindHamiltonianPath[g]`, `[g, s, t]`; NetworkX `tournament.hamiltonian_path` (tournaments only) |
 | `hamiltonianCycle()` | both | Mathematica `FindHamiltonianCycle`; JGraphT `HamiltonianCycleAlgorithm.getTour` (the interface) |
-| `nearestNeighborTour(weight:)`, `(from:weight:)` | `Graph` | JGraphT `NearestNeighborHeuristicTSP(first)`, LEMON `NearestNeighborTsp`, NetworkX `greedy_tsp(G, source=)` (which is nearest neighbour, despite the name) |
+| `nearestNeighborTour(weight:)`, `(from:weight:)` | `Graph` | JGraphT `NearestNeighborHeuristicTSP(first)` (its default constructor starts at a random vertex), NetworkX `greedy_tsp(G, source=)` (which is nearest neighbour, despite the name); LEMON `NearestNeighborTsp` is a name trace only: it starts from the lightest edge and grows a deque at both ends, a different procedure and tour |
 | `christofidesTour(weight:)` | `Graph` | NetworkX `christofides`, JGraphT `ChristofidesThreeHalvesApproxMetricTSP`, LEMON `ChristofidesTsp` |
-| `twoOptTour(weight:)`, `twoOptTour(improving:weight:)` | `Graph` | JGraphT `TwoOptHeuristicTSP.getTour` / `improveTour`, LEMON `Opt2Tsp::run()` / `run(tour)` |
-| `shortestTour(weight:)` | `Graph` | JGraphT `HeldKarpTSP`, Mathematica `FindShortestTour` (the name; it is a heuristic there for large inputs) |
+| `twoOptTour(weight:)`, `twoOptTour(improving:weight:)` | `Graph` | JGraphT `TwoOptHeuristicTSP.getTour` / `improveTour`; LEMON `Opt2Tsp::run()` / `run(tour)` is a name trace only: first improvement with a restart of the scan after each move, which ends at a different 2-optimal tour |
+| `shortestTour(weight:)` | both | JGraphT `HeldKarpTSP` (undirected and directed graphs), Mathematica `FindShortestTour` (the name; it is a heuristic there for large inputs) |
 
 **NetworkX functions, and where each goes**
 
@@ -87,7 +89,7 @@ Tests/Catalogs/Tours/ref.py [--stress] [--write]` (about a second; `IGRAPH_C_LIB
 | Fleury's algorithm | O(m²) (a bridge test per step); Hierholzer is O(n + m) and what every library ships |
 | `isHamiltonian` | As expensive as `hamiltonianCycle()`, which answers it (`!= nil`); open question 6 |
 | Exact Hamiltonicity by DP (Bellman–Held–Karp on reachability) | The pinned result is the first in search order; any algorithm that returns it is allowed, so DP can become the implementation for n ≤ 20 or so if benchmarks favour it (Implementation notes) |
-| Directed (asymmetric) tours | Phase 2 (open question 3). `shortestTour` on `DirectedGraph` is a few lines and JGraphT's `HeldKarpTSP` takes digraphs; 2-opt and Christofides are symmetric algorithms |
+| Directed (asymmetric) heuristics | Phase 2 (open question 3): nearest neighbour on a digraph, then NetworkX's `asadpour_atsp`; 2-opt and Christofides are symmetric algorithms. `shortestTour` on `DirectedGraph` is in (JGraphT's `HeldKarpTSP` takes digraphs; TO-507 – TO-531) |
 | Tours over a distance closure `(Vertex, Vertex) -> W` or points | Phase 2 (open question 5): README open question 3 decided weights are closures over edge positions; a complete graph of n² edges is the input here |
 | Or-opt, 3-opt, Lin–Kernighan, neighbour lists, don't-look bits | Phase 2, as separately named functions: they change which tour comes out, and `twoOptTour` is pinned to JGraphT's procedure |
 | Eulerize, Chinese postman | Phase 2 (open question 4) |
@@ -135,7 +137,8 @@ extension DirectedGraph {
     /// A Hamiltonian path, or nil when there is none (or no vertex): the first one a
     /// depth-first backtracking search finds, from each vertex in `vertices` order, extending by
     /// `outEdges` order. Self-loops never help; one vertex is the trivial path. Exponential in the
-    /// worst case (O(n!) paths); sound pruning keeps the order.
+    /// worst case (O(n!) paths); sound pruning keeps the order. The search is rerun from each
+    /// start in turn, so a graph with no Hamiltonian path costs n searches.
     public func hamiltonianPath() -> Path<Vertex, Edges.Index>?
     /// The first from `start`.
     /// - Precondition: `start` is a vertex of the graph.
@@ -172,25 +175,28 @@ extension Graph {
     // Tours. A tour is a Hamiltonian cycle of the simple graph: self-loops are ignored and each
     // pair of vertices is joined by its lightest edge (the earliest position on ties), which is
     // the edge the returned `Cycle` uses. nil below three vertices, before any other check.
-    // `weight` is called once per non-loop edge, in position order, before any work. A NaN
-    // weight traps; sums along a tour must fit in W.
+    // `weight` is called once per non-loop edge, in position order, before any work. A NaN or
+    // infinite weight traps (with +∞ and −∞ both present a sum is NaN, which broke Held–Karp's
+    // reconstruction: TO-506); sums along a tour must fit in W.
 
     /// The nearest-neighbour tour from the first vertex: repeatedly the nearest unvisited
     /// vertex, the first in `vertices` order on ties (NetworkX `greedy_tsp`, JGraphT
-    /// `NearestNeighborHeuristicTSP`). No approximation guarantee. O(n²).
+    /// `NearestNeighborHeuristicTSP(first)`). No approximation guarantee. O(n²).
     /// - Precondition: the graph is complete (every pair of distinct vertices joined).
     public func nearestNeighborTour<W: Comparable & AdditiveArithmetic>(weight: (Edges.Index) -> W) -> Cycle<Vertex, Edges.Index>?
     /// The same from `start`. - Precondition: also, `start` is a vertex of the graph.
     public func nearestNeighborTour<W: Comparable & AdditiveArithmetic>(from start: Vertex, weight: (Edges.Index) -> W) -> Cycle<Vertex, Edges.Index>?
 
     /// Christofides' tour (Christofides–Serdyukov, 1976): the canonical minimum spanning tree
-    /// (SpanningTrees), a minimum-weight perfect matching on its odd-degree vertices
-    /// (MatchingModule, Galil's blossom), an Eulerian circuit of the union by Hierholzer from the
-    /// first vertex, shortcut to the first visit of each vertex. At most 3/2 × the shortest tour
-    /// when the weights satisfy the triangle inequality (not checked). O(n³) (the matching).
+    /// (SpanningTrees' tree, by a dense Prim of its own), a minimum-weight perfect matching on
+    /// its odd-degree vertices (MatchingModule, Galil's blossom), an Eulerian circuit of the
+    /// union by Hierholzer from the first vertex, shortcut to the first visit of each vertex. At
+    /// most 3/2 × the shortest tour when the weights satisfy the triangle inequality (not
+    /// checked). O(n³) (the matching).
     /// Two overloads because `minimumWeightMatching` has two (integer and floating weights).
     /// - Precondition: complete; the matching's bound, n · (2 · |weight| + 1) ≤ `W.max / 8`
-    ///   (`greatestFiniteMagnitude / 8`); no infinite weight.
+    ///   (`greatestFiniteMagnitude / 8`), checked on every weight as it is read, whether or not
+    ///   the matching sees it (TO-505); for a fixed-width integer, so n ≤ `W.max / 8`.
     public func christofidesTour<W: SignedInteger>(weight: (Edges.Index) -> W) -> Cycle<Vertex, Edges.Index>?
     public func christofidesTour<W: FloatingPoint>(weight: (Edges.Index) -> W) -> Cycle<Vertex, Edges.Index>?
 
@@ -200,10 +206,10 @@ extension Graph {
     public func twoOptTour<W: Comparable & AdditiveArithmetic>(weight: (Edges.Index) -> W) -> Cycle<Vertex, Edges.Index>?
 
     /// `tour` improved by 2-opt to a 2-optimal tour, JGraphT `TwoOptHeuristicTSP.improveTour`'s
-    /// procedure (the same tour): best improvement, the first move (i, j) in row-major order on
-    /// ties, until no exchange of two edges for two lighter ones remains. The first vertex of
-    /// `tour` stays first. Only `tour.vertices` is read. O(n²) per move; no polynomial bound on the
-    /// number of moves is known in general.
+    /// procedure (the same tour on integers and exactly representable sums): best improvement,
+    /// the first move (i, j) in row-major order on ties, until no exchange of two edges for two
+    /// lighter ones remains. The first vertex of `tour` stays first. Only `tour.vertices` is read.
+    /// O(n²) per move; no polynomial bound on the number of moves is known in general.
     /// - Precondition: complete; `tour.vertices` lists every vertex of the graph exactly once.
     public func twoOptTour<W: Comparable & AdditiveArithmetic>(improving tour: Cycle<Vertex, Edges.Index>, weight: (Edges.Index) -> W) -> Cycle<Vertex, Edges.Index>?
 
@@ -211,8 +217,22 @@ extension Graph {
     /// least-weight Hamiltonian cycle of the simple graph, or nil when there is none; among the
     /// optimal ones, the lexicographically least by vertex index listed from the first vertex
     /// (JGraphT `HeldKarpTSP`'s tour). The graph need not be complete. Θ(2ⁿ n²) time, Θ(2ⁿ n)
-    /// memory: about n = 20 is practical (about 160 MB of table).
-    /// - Precondition: at most 31 vertices (JGraphT's limit; the table would not fit anyway).
+    /// memory: n = 20 is practical (2¹⁹ · 19 entries: 80 MB of table for 8-byte weights on a
+    /// complete graph, 90 MB on another, with a validity byte per entry).
+    /// - Precondition: the table, 2ⁿ⁻¹ · (n − 1) weights and as many validity bytes, fits in
+    ///   4 GiB: n ≤ 25 for 8-byte weights, 26 for 4-byte ones (TO-501, TO-502). JGraphT's limit
+    ///   of 31 is the width of its `int` bitmask, not a memory bound (its table at 31 vertices
+    ///   would be 2³¹ · 31 doubles, about 530 GB).
+    public func shortestTour<W: Comparable & AdditiveArithmetic>(weight: (Edges.Index) -> W) -> Cycle<Vertex, Edges.Index>?
+}
+
+extension DirectedGraph {
+    /// The shortest directed tour (the asymmetric problem), by the same Held–Karp program: the
+    /// least-weight Hamiltonian cycle of the simple digraph (each ordered pair's lightest arc,
+    /// self-loops ignored), each step along an arc; the lexicographically least optimal one
+    /// from the first vertex (JGraphT `HeldKarpTSP` on a directed graph). nil below three
+    /// vertices, as on `Graph` (an antiparallel pair is a `Cycle`, but not a tour here).
+    /// - Precondition: as on `Graph`.
     public func shortestTour<W: Comparable & AdditiveArithmetic>(weight: (Edges.Index) -> W) -> Cycle<Vertex, Edges.Index>?
 }
 ```
@@ -333,7 +353,11 @@ implementation anyway (Implementation notes).
   `shortestTour` needs no completeness: a missing pair is an absent edge, and nil means no
   Hamiltonian cycle (TO-488 – TO-490; JGraphT `HeldKarpTSP` returns null the same way).
 * **Weights.** `Comparable & AdditiveArithmetic`, as Dijkstra and the spanning trees; negative and
-  zero weights are ordinary (TO-411, TO-454). NaN traps (TO-498 – TO-500). Integers are exact.
+  zero weights are ordinary (TO-411, TO-454). Weights must be finite: NaN (TO-498 – TO-500,
+  TO-529) and ±∞ (TO-503 – TO-506, TO-530) trap in every tour, on every non-loop copy, tested as
+  w − w ≠ 0 (zero for every finite value and every integer, NaN for NaN and ±∞). With +∞ and −∞
+  both present a sum is NaN, which every comparison rejects: Held–Karp then returned a one-vertex
+  `Cycle` (TO-506, found by the critical review), and 2-opt's gains would be NaN. Integers are exact.
   Floating sums are formed in a fixed order, so the results are deterministic; catalog rows use
   dyadic values. `christofidesTour` takes `SignedInteger` or `FloatingPoint`, because
   `minimumWeightMatching` does. 2-opt compares d(a,c) + d(b,e) < d(a,b) + d(c,e) instead of
@@ -342,7 +366,8 @@ implementation anyway (Implementation notes).
   to NetworkX `greedy_tsp` on every row (its `min` over a set of small integers runs in index
   order), and to JGraphT where its swap array does not reorder ties (rows say which).
 * **Christofides**, pinned piece by piece, each piece already pinned upstream: the canonical
-  minimum spanning tree (SpanningTrees' `minimumSpanningTree(weight:)`: weight, then position); the
+  minimum spanning tree (SpanningTrees' `minimumSpanningTree(weight:)`: weight, then position,
+  computed here by a dense Prim of Tours' own, which gives the same unique tree); the
   odd-degree tree vertices in `vertices` order; `minimumWeightMatching` on their complete graph
   (pairs i < j lexicographic), which is NetworkX's `min_weight_matching` procedure; the multigraph
   of the tree edges in position order, then the matched pairs; Hierholzer from the first vertex as
@@ -353,14 +378,21 @@ implementation anyway (Implementation notes).
 * **2-opt** is JGraphT's `improve` exactly: t[0..n] with t[n] = t[0]; repeat: for i in 0 ..< n − 2,
   for j in i + 2 ..< n, change = d(tᵢ, tⱼ) + d(tᵢ₊₁, tⱼ₊₁) − d(tᵢ, tᵢ₊₁) − d(tⱼ, tⱼ₊₁); take the
   least change, the first on ties, when it is below zero, and reverse t[i+1 … j]; stop when none
-  is. JGraphT stops below −1e-8 (`minCostImprovement`); we stop at 0, the same on integers and on
-  the catalog's dyadic rows. t[0] never moves, so the result starts where `tour` does (TO-466).
+  is. JGraphT stops below −1e-8 (`minCostImprovement`); we stop at 0. We also form the gain as
+  (d(tᵢ, tᵢ₊₁) + d(tⱼ, tⱼ₊₁)) − (d(tᵢ, tⱼ) + d(tᵢ₊₁, tⱼ₊₁)), two sums then one difference, where
+  JGraphT forms d1 + d2 − d3 − d4 left to right. The tour is JGraphT's exactly on integers and on
+  weights whose sums are exactly representable (the catalog's dyadic rows); on other floating
+  weights rounding and the threshold can pick different moves, so the tours may differ. t[0] never
+  moves, so the result starts where `tour` does (TO-466).
   `twoOptTour(weight:)` starts from `nearestNeighborTour` from the first vertex; JGraphT's default
   starts from a random tour, NetworkX's annealing from `greedy_tsp`, which is the same tour.
 * **Held–Karp**: c(v, S) = the least weight of a path from v through the vertices not in S back to
   the first vertex; the tour reconstructed from the first vertex, each step the lowest-index next
   vertex whose cost matches exactly (JGraphT's `reconstructTour`). Floating ties are compared as
-  computed, in the same order JGraphT computes them.
+  computed, in the same order JGraphT computes them. On a `DirectedGraph` the same program reads
+  d(v, u) as the lightest arc v → u (JGraphT's `computeMinimumWeights` on a directed graph), so the
+  tour is the lexicographically least optimal one with every step along an arc; the catalog checks
+  it against brute force and JGraphT (TO-507 – TO-528, and 200 `--stress` digraphs).
 
 ## Determinism (decision)
 
@@ -372,7 +404,7 @@ implementation anyway (Implementation notes).
 | `nearestNeighborTour` | Nearest, first in vertex order on ties | Exact |
 | `christofidesTour` | The pinned composition | Exact |
 | `twoOptTour` (both forms) | JGraphT's best-improvement procedure | Exact |
-| `shortestTour` | Optimal, lexicographically least from the first vertex | Exact |
+| `shortestTour` (both) | Optimal, lexicographically least from the first vertex | Exact |
 
 Everything is pinned, at no cost to speed: each pin is what the fast implementation does anyway
 (Hierholzer's cursor, backtracking's natural order, Held–Karp's reconstruction), or the procedure
@@ -385,18 +417,20 @@ n vertices, m edges.
 
 | Entry point | Time | Extra memory |
 |---|---|---|
-| `isEulerian`, `hasEulerianTrail` | O(n + m) (degrees, then a union–find over the edges, or `_runOnUndirectedRows`) | O(n) |
+| `isEulerian`, `hasEulerianTrail` | O(n + m) (degrees from the rows, then a depth-first reach from the first vertex with an edge over the same rows, `_runOnUndirectedRows` or the out-rows) | O(n) |
 | `eulerianCircuit`, `eulerianTrail` | O(n + m) | rows in index space (O(n + m)), a used bit per edge, a cursor per vertex, the stack |
-| `hamiltonianPath`, `hamiltonianCycle` | exponential, O(n!) paths in the worst case; O(n + m) per pruning test | O(n + m) |
+| `hamiltonianPath`, `hamiltonianCycle` | exponential, O(n!) paths in the worst case; O(degree) per step plus O(n + m) per reachability test, skipped when it cannot fail (the end it left had no other unvisited neighbour), so a path or cycle graph is O(n + m); `hamiltonianPath()` repeats the search per start, n searches when there is none | O(n + m) |
 | `nearestNeighborTour` | O(n²) after O(m) to read the weights | n × n weights, or rows read in place |
 | `christofidesTour` | O(n³): MST O(n²) (Prim, dense), matching O(k³) on k ≤ n odd vertices, Hierholzer O(n) | O(n²) |
 | `twoOptTour` | O(n²) per move | n × n weights |
-| `shortestTour` | Θ(2ⁿ n²) | Θ(2ⁿ n) |
+| `shortestTour` | Θ(2ⁿ n²) | Θ(2ⁿ n): 2ⁿ⁻¹ (n − 1) weights, plus as many validity bytes on a graph that is not complete; 80 MB / 90 MB at n = 20 with 8-byte weights, at most 4 GiB |
 
 ## Dependencies, and what upstream has
 
-* **SpanningTrees**: `minimumSpanningTree(weight:)` gives the canonical tree (weight, then
-  position) and picks Prim on dense graphs; a complete graph is the dense case. Nothing missing.
+* **SpanningTrees: not a dependency.** Christofides needs the canonical tree (weight, then
+  position), which is unique under that strict order, so its own dense Prim on the matrix
+  (O(n²), no graph value to build) gives SpanningTrees' `minimumSpanningTree(weight:)` tree
+  exactly. The reuse pass may move that Prim into SpanningTrees as a `package` entry point.
 * **MatchingModule: weighted general matching exists.** `minimumWeightMatching(weight:)` (Galil's
   O(n³) primal–dual blossom, NetworkX's `min_weight_matching` operation for operation, integer and
   floating overloads) is the minimum-weight perfect matching Christofides needs on a complete graph
@@ -415,8 +449,8 @@ n vertices, m edges.
 * **Walks**: `Trail`, `Circuit`, `Path`, `Cycle` and their `package init(_uncheckedVertices:edges:)`
   are all Tours needs.
 * **GraphProtocols**: `_runOnUndirectedRows` and `_withSuccessorIndexRows` give the rows in index
-  space; `_vertexNumbering` for graphs without vertex indices. `scripts/modules.py` already lists
-  Tours' dependencies as GraphProtocols, Walks, SpanningTrees and MatchingModule: unchanged.
+  space; `_vertexNumbering` for graphs without vertex indices. `scripts/modules.py` lists Tours'
+  dependencies as GraphProtocols, Walks and MatchingModule.
 
 ## Implementation notes and performance plan
 
@@ -436,8 +470,10 @@ n vertices, m edges.
   filled from the edges in one pass (lightest copy, earliest on ties); every heuristic reads it.
   2-opt keeps the tour in an array and reverses segments in place; the inner loop is two nested
   integer loops over the matrix, as JGraphT's. Held–Karp: a `[W?]`-free layout, a parallel
-  validity bit set, the table indexed (mask >> 1) × n + v, iterated by increasing mask (no
-  recursion; JGraphT's recursive memo needs `-Xss` at large n).
+  validity byte per entry on a graph that is not complete, the table indexed S · (n − 1) + (v − 1)
+  for S a set of vertices other than the first, filled by decreasing S (no recursion; JGraphT's
+  recursive memo needs `-Xss` at large n). Directed, d(v, u) is read from a transposed copy of
+  the matrix so the inner loop stays contiguous.
 * **Baselines, measured here** (Apple silicon; NetworkX 3.7 and igraph 1.0 C in release; JGraphT
   1.5.2 on OpenJDK 25, best of 3 after warm-up):
 
@@ -494,7 +530,9 @@ tie rule of nearest neighbour (TO-403), 2-opt's first-on-ties (TO-464). `just fu
 | Tours of one or two vertices | NetworkX `[0, 0]` / `[a, b, a]` or raises; JGraphT a singleton walk / `[a, b, a]`; ours nil | TO-415 – TO-418 |
 | JGraphT nearest neighbour ties | Its swap array reorders the candidates, so ties can go to a later vertex | rows marked "its swap-array tie order" |
 | NetworkX Christofides | The same tree weight and matching weight, a different Hierholzer walk on some rows | TO-430 |
-| JGraphT `TwoOptHeuristicTSP` | Default start is a random tour; stop threshold −1e-8 | TwoOpt rows |
+| JGraphT `TwoOptHeuristicTSP` | Default start is a random tour; stop threshold −1e-8; gains formed d1 + d2 − d3 − d4 | TwoOpt rows |
+| JGraphT `HeldKarpTSP` limit | 31 vertices (the `int` bitmask), where the table would be about 530 GB; ours stops at a 4 GiB table (25 vertices with 8-byte weights) | TO-501, TO-502 |
+| LEMON `NearestNeighborTsp`, `Opt2Tsp` | The names only: nearest neighbour from the lightest edge grown at both ends; 2-opt by first improvement with restart | — |
 
 ## README edits proposed
 
@@ -502,8 +540,8 @@ tie rule of nearest neighbour (TO-403), 2-opt's first-on-ties (TO-464). `just fu
   `hasEulerianTrail`, `eulerianCircuit()`, `eulerianTrail()` (Hierholzer, a documented edge order;
   igraph's procedure), `hamiltonianPath()`, `hamiltonianCycle()` (backtracking, the first in
   search order); on `Graph`, tours of the simple graph: `nearestNeighborTour`, `christofidesTour`,
-  `twoOptTour` (JGraphT's procedure), `shortestTour` (Held–Karp) (**planned**, phase 1). Later:
-  Chinese postman, asymmetric tours, Or-opt and Lin–Kernighan" | results "`Circuit`, `Trail`,
+  `twoOptTour` (JGraphT's procedure), `shortestTour` (Held–Karp, also on `DirectedGraph`)
+  (**planned**, phase 1). Later: Chinese postman, asymmetric heuristics, Or-opt and Lin–Kernighan" | results "`Circuit`, `Trail`,
   `Path`, `Cycle`".
 * **Terminology**: the four rows under Names.
 
@@ -520,9 +558,9 @@ tie rule of nearest neighbour (TO-403), 2-opt's first-on-ties (TO-464). `just fu
    tour exactly. Name alternative `heldKarpTour`, if a second exact method (branch and bound,
    Concorde-style) is ever planned. If deferred, the ShortestTour group (TO-469 – TO-491, TO-500,
    TO-501) moves to phase 2.
-3. **Asymmetric (directed) tours.** Recommended: phase 2: `shortestTour` on `DirectedGraph` first
-   (trivial), then nearest neighbour; Christofides and 2-opt do not apply; NetworkX's
-   `asadpour_atsp` needs an LP.
+3. **Asymmetric (directed) tours.** Decided after the critical review: `shortestTour` on
+   `DirectedGraph` is in (TO-507 – TO-531). Phase 2: nearest neighbour on a digraph; Christofides
+   and 2-opt do not apply; NetworkX's `asadpour_atsp` needs an LP.
 4. **Eulerize and the Chinese postman problem.** Recommended: phase 2, as one entry point on
    `Graph`, `chinesePostmanTour(weight:) -> Walk?` (JGraphT `ChinesePostman.getCPPSolution`,
    Mathematica `FindPostmanTour`): Dijkstra between odd vertices (ShortestPaths, a new

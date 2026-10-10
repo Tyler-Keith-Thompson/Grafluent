@@ -49,7 +49,7 @@ for kind, name in [("euler", "euler_rows"), ("cfrom", "circuit_from_rows"), ("tf
 ref.build()
 assert not ref.FAILS, ref.FAILS
 TOTAL = len(ref.CASES)
-assert TOTAL == 501
+assert TOTAL == 531
 
 text = ref.render()
 with open(os.path.join(HERE, "cases.md")) as f:
@@ -571,6 +571,16 @@ def ham_genuine(row, var, closed, rep):
 
 
 def lightest_lines(g):
+    if g.directed:
+        return ["// The simple digraph, built here: each ordered pair's lightest arc (the earliest position on ties);",
+                "// self-loops ignored. `d` is its weight.",
+                "var lightest = [[Int?]](repeating: [Int?](repeating: nil, count: n), count: n)",
+                "for k in pairs.indices where ends[k].0 != ends[k].1 {",
+                "    let (a, b) = ends[k]",
+                "    if let e = lightest[a][b], weights[e] <= weights[k] { continue }",
+                "    lightest[a][b] = k",
+                "}",
+                f"let d: (Int, Int) -> {wtype(g)} = {{ weights[lightest[$0][$1]!] }}"]
     return ["// The simple graph, built here: each pair's lightest edge (the earliest position on ties); self-loops",
             "// ignored. `d` is its weight.",
             "var lightest = [[Int?]](repeating: [Int?](repeating: nil, count: n), count: n)",
@@ -951,6 +961,28 @@ TRAPS = {
     "TO-500": (K3, f"{K3W}\n_ = graph.shortestTour(weight: {{ weights[$0] }})"),
     "TO-501": ("UndirectedAdjacencyList<Int>(vertices: 0 ..< 32, edges: (0 ..< 32).flatMap { i in (i + 1 ..< 32).map { UndirectedEdge(i, $0) } })",
                "_ = graph.shortestTour(weight: { _ in 1 })"),
+    "TO-502": ("UndirectedAdjacencyList<Int>(vertices: 0 ..< 26, edges: (0 ..< 26).flatMap { i in (i + 1 ..< 26).map { UndirectedEdge(i, $0) } })",
+               "_ = graph.shortestTour(weight: { _ in 1 })"),
+    "TO-503": (K3, "let weights: [Double] = [1.0, .infinity, 2.0]\n_ = graph.nearestNeighborTour(weight: { weights[$0] })"),
+    "TO-504": (K3, "let weights: [Double] = [1.0, -.infinity, 2.0]\n_ = graph.twoOptTour(weight: { weights[$0] })"),
+    "TO-505": ("UndirectedAdjacencyList<Int>(vertices: 0 ..< 4, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2), UndirectedEdge(2, 3), "
+               "UndirectedEdge(0, 2), UndirectedEdge(0, 3), UndirectedEdge(1, 3)])",
+               "// The tree is the path 0-1-2-3, its odd vertices 0 and 3, so the matching reads only 0-3; 1-3 is\n"
+               "// never part of the tree, the matching or the tour.\n"
+               "let weights: [Double] = [1.0, 1.0, 1.0, 5.0, 5.0, .infinity]\n_ = graph.christofidesTour(weight: { weights[$0] })"),
+    "TO-506": ("UndirectedAdjacencyList<Int>(vertices: 0 ..< 4, edges: [UndirectedEdge(0, 1), UndirectedEdge(0, 2), UndirectedEdge(0, 3), "
+               "UndirectedEdge(1, 2), UndirectedEdge(1, 3), UndirectedEdge(2, 3)])",
+               "// Without the check, ∞ + (−∞) = NaN in the table and the reconstruction found no vertex after the first.\n"
+               "let weights: [Double] = [1.0, 1.0, 1.0, .infinity, 1.0, -.infinity]\n_ = graph.shortestTour(weight: { weights[$0] })"),
+    "TO-529": ("AdjacencyList<Int>(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 1, to: 0), "
+               "DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 0), DirectedEdge(from: 2, to: 1)])",
+               "let weights: [Double] = [1.0, 2.0, .nan, 1.0, 2.0, 1.0]\n_ = graph.shortestTour(weight: { weights[$0] })"),
+    "TO-530": ("DirectedPseudograph<Int>(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 1), "
+               "DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 0)])",
+               "// The second copy of 0→1 is heavier and never used, and its weight still traps.\n"
+               "let weights: [Double] = [1.0, .infinity, 1.0, 1.0]\n_ = graph.shortestTour(weight: { weights[$0] })"),
+    "TO-531": ("AdjacencyList<Int>(vertices: 0 ..< 26, edges: (0 ..< 26).flatMap { i in (0 ..< 26).filter { $0 != i }.map { DirectedEdge(from: i, to: $0) } })",
+               "_ = graph.shortestTour(weight: { _ in 1 })"),
 }
 
 
@@ -1119,11 +1151,12 @@ FILES = [
      "JGraphT's best-improvement procedure's tour exactly; checked here as 2-optimal (no improving exchange, "
      "by an O(n²) loop), no heavier than its start tour, starting where that tour does, a Hamiltonian cycle "
      "through the lightest copies; on up to 9 vertices against the brute-force optimum."),
-    ("ShortestTourTests.swift", ("ShortestTour",), "shortestTour", "ShortestTourTests",
-     "`shortestTour(weight:)` (catalog §ShortestTour): Held–Karp's tour exactly; on up to 9 vertices the "
-     "brute-force optimum and the lexicographically least optimal tour from the first vertex, checked in the "
-     "test; graphs need not be complete (nil exactly when there is no Hamiltonian cycle, also checked with "
-     "`hamiltonianCycle()`); nil below three vertices."),
+    ("ShortestTourTests.swift", ("ShortestTour", "ShortestTourDirected"), "shortestTour", "ShortestTourTests",
+     "`shortestTour(weight:)` on `Graph` and `DirectedGraph` (catalog §ShortestTour, §ShortestTourDirected): "
+     "Held–Karp's tour exactly; on up to 9 vertices the brute-force optimum and the lexicographically least "
+     "optimal tour from the first vertex, checked in the test; graphs need not be complete (nil exactly when "
+     "there is no Hamiltonian cycle, also checked with `hamiltonianCycle()`); directed tours step along arcs "
+     "and read each ordered pair's lightest arc; nil below three vertices."),
 ]
 
 
@@ -1150,7 +1183,7 @@ EXTRA = open(os.path.join(HERE, "extra_traps.swift")).read().rstrip("\n").split(
 body += EXTRA
 intro = ("Preconditions, as exit tests (catalog trap rows): a start or end that is not a vertex of the graph, "
          "the empty graph included; a tour heuristic on a graph that is not complete; a tour to improve that "
-         "does not list every vertex once; a NaN weight; more than 31 vertices for Held–Karp. Then the "
+         "does not list every vertex once; a NaN or infinite weight; a Held–Karp table past 4 GiB. Then the "
          "preconditions the catalog does not list (extra_traps.swift): each on the other entry points and kinds "
          "of graph, a vertex not in a graph without indices, a NaN weight in every tour, an infinite weight and "
          "the matching's bound in Christofides, a missing pair beside parallel edges and self-loops. Each exit "

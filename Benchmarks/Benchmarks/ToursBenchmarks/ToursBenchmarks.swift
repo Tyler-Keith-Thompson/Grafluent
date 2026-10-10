@@ -258,4 +258,25 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("Tours: BASELINE bitmask DP, Hamiltonian path of knight 4 × 4 (none)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(dpHasHamiltonianPath(knight4)) }
     }
+
+    // Long thin inputs, where the search never backtracks and the pruning tests are the whole cost.
+    let longCycle = UndirectedAdjacencyList(vertices: 0 ..< 10_000, edges: (0 ..< 10_000).map { UndirectedEdge($0, ($0 + 1) % 10_000) })
+    let longPath = UndirectedAdjacencyList(vertices: 0 ..< 10_000, edges: (0 ..< 9_999).map { UndirectedEdge($0, $0 + 1) })
+    let longDirectedCycle = AdjacencyList(vertices: 0 ..< 10_000, edges: (0 ..< 10_000).map { DirectedEdge(from: $0, to: ($0 + 1) % 10_000) })
+    let longDirectedPath = AdjacencyList(vertices: 0 ..< 10_000, edges: (0 ..< 9_999).map { DirectedEdge(from: $0, to: $0 + 1) })
+    Benchmark("Tours: hamiltonianCycle(), C(10⁴)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(longCycle.hamiltonianCycle()) }
+    }
+    Benchmark("Tours: hamiltonianPath(), C(10⁴)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(longCycle.hamiltonianPath()) }
+    }
+    Benchmark("Tours: hamiltonianPath(), P(10⁴)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(longPath.hamiltonianPath()) }
+    }
+    Benchmark("Tours: hamiltonianCycle(), Cd(10⁴)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(longDirectedCycle.hamiltonianCycle()) }
+    }
+    Benchmark("Tours: hamiltonianPath(), Pd(10⁴)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(longDirectedPath.hamiltonianPath()) }
+    }
 }

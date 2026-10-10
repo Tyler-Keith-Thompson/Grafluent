@@ -1,7 +1,7 @@
 // Preconditions, as exit tests (catalog trap rows): a start or end that is not a vertex of the
 // graph, the empty graph included; a tour heuristic on a graph that is not complete; a tour to
-// improve that does not list every vertex once; a NaN weight; more than 31 vertices for Held–Karp.
-// Then the preconditions the catalog does not list (extra_traps.swift): each on the other entry
+// improve that does not list every vertex once; a NaN or infinite weight; a Held–Karp table past 4
+// GiB. Then the preconditions the catalog does not list (extra_traps.swift): each on the other entry
 // points and kinds of graph, a vertex not in a graph without indices, a NaN weight in every tour, an
 // infinite weight and the matching's bound in Christofides, a missing pair beside parallel edges and
 // self-loops. Each exit test builds its inputs inside the closure. Generated from cases.md by
@@ -204,11 +204,93 @@ struct ToursPreconditionTests {
         }
     }
 
-    @Test("TO-501 too many vertices traps (more than 31 vertices (JGraphT HeldKarpTSP's limit))")
+    @Test("TO-501 too many vertices traps (the table needs more than 4 GiB (at most 25 vertices with 8-byte weights))")
     func to501() async {
         // K(32) weight 1; shortestTour(weight:)
         await #expect(processExitsWith: .failure) {
             let graph = UndirectedAdjacencyList<Int>(vertices: 0 ..< 32, edges: (0 ..< 32).flatMap { i in (i + 1 ..< 32).map { UndirectedEdge(i, $0) } })
+            _ = graph.shortestTour(weight: { _ in 1 })
+        }
+    }
+
+    @Test("TO-502 26 vertices: 2²⁵ · 25 entries of 9 bytes, past 4 GiB traps (the table needs more than 4 GiB (at most 25 vertices with 8-byte weights))")
+    func to502() async {
+        // K(26) weight 1; shortestTour(weight:)
+        await #expect(processExitsWith: .failure) {
+            let graph = UndirectedAdjacencyList<Int>(vertices: 0 ..< 26, edges: (0 ..< 26).flatMap { i in (i + 1 ..< 26).map { UndirectedEdge(i, $0) } })
+            _ = graph.shortestTour(weight: { _ in 1 })
+        }
+    }
+
+    @Test("TO-503 infinite weight traps (a weight is infinite)")
+    func to503() async {
+        // Double K(3) weights 1.0, inf, 2.0; nearestNeighborTour(weight:)
+        await #expect(processExitsWith: .failure) {
+            let graph = UndirectedAdjacencyList<Int>(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(0, 2), UndirectedEdge(1, 2)])
+            let weights: [Double] = [1.0, .infinity, 2.0]
+            _ = graph.nearestNeighborTour(weight: { weights[$0] })
+        }
+    }
+
+    @Test("TO-504 negative infinite weight traps (a weight is infinite)")
+    func to504() async {
+        // Double K(3) weights 1.0, -inf, 2.0; twoOptTour(weight:)
+        await #expect(processExitsWith: .failure) {
+            let graph = UndirectedAdjacencyList<Int>(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(0, 2), UndirectedEdge(1, 2)])
+            let weights: [Double] = [1.0, -.infinity, 2.0]
+            _ = graph.twoOptTour(weight: { weights[$0] })
+        }
+    }
+
+    @Test("TO-505 infinite weight off the odd pairs (the tree 0-1-2-3, the matching 0-3) traps (a weight is infinite)")
+    func to505() async {
+        // Double V [0, 1, 2, 3]; E [0-1 1.0, 1-2 1.0, 2-3 1.0, 0-2 5.0, 0-3 5.0, 1-3 inf]; christofidesTour(weight:)
+        await #expect(processExitsWith: .failure) {
+            let graph = UndirectedAdjacencyList<Int>(vertices: 0 ..< 4, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2), UndirectedEdge(2, 3), UndirectedEdge(0, 2), UndirectedEdge(0, 3), UndirectedEdge(1, 3)])
+            // The tree is the path 0-1-2-3, its odd vertices 0 and 3, so the matching reads only 0-3; 1-3 is
+            // never part of the tree, the matching or the tour.
+            let weights: [Double] = [1.0, 1.0, 1.0, 5.0, 5.0, .infinity]
+            _ = graph.christofidesTour(weight: { weights[$0] })
+        }
+    }
+
+    @Test("TO-506 +∞ and −∞ weights (their sum is NaN) traps (a weight is infinite)")
+    func to506() async {
+        // Double K(4) weights 1.0, 1.0, 1.0, inf, 1.0, -inf; shortestTour(weight:)
+        await #expect(processExitsWith: .failure) {
+            let graph = UndirectedAdjacencyList<Int>(vertices: 0 ..< 4, edges: [UndirectedEdge(0, 1), UndirectedEdge(0, 2), UndirectedEdge(0, 3), UndirectedEdge(1, 2), UndirectedEdge(1, 3), UndirectedEdge(2, 3)])
+            // Without the check, ∞ + (−∞) = NaN in the table and the reconstruction found no vertex after the first.
+            let weights: [Double] = [1.0, 1.0, 1.0, .infinity, 1.0, -.infinity]
+            _ = graph.shortestTour(weight: { weights[$0] })
+        }
+    }
+
+    @Test("TO-529 NaN weight traps (a weight is NaN)")
+    func to529() async {
+        // Double Kd(3) weights 1.0, 2.0, nan, 1.0, 2.0, 1.0; shortestTour(weight:)
+        await #expect(processExitsWith: .failure) {
+            let graph = AdjacencyList<Int>(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 1, to: 0), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 0), DirectedEdge(from: 2, to: 1)])
+            let weights: [Double] = [1.0, 2.0, .nan, 1.0, 2.0, 1.0]
+            _ = graph.shortestTour(weight: { weights[$0] })
+        }
+    }
+
+    @Test("TO-530 infinite weight on a parallel arc traps (a weight is infinite)")
+    func to530() async {
+        // Double multigraph V [0, 1, 2]; E [0→1 1.0, 0→1 inf, 1→2 1.0, 2→0 1.0]; shortestTour(weight:)
+        await #expect(processExitsWith: .failure) {
+            let graph = DirectedPseudograph<Int>(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 0)])
+            // The second copy of 0→1 is heavier and never used, and its weight still traps.
+            let weights: [Double] = [1.0, .infinity, 1.0, 1.0]
+            _ = graph.shortestTour(weight: { weights[$0] })
+        }
+    }
+
+    @Test("TO-531 too many vertices traps (the table needs more than 4 GiB (at most 25 vertices with 8-byte weights))")
+    func to531() async {
+        // Kd(26) weight 1; shortestTour(weight:)
+        await #expect(processExitsWith: .failure) {
+            let graph = AdjacencyList<Int>(vertices: 0 ..< 26, edges: (0 ..< 26).flatMap { i in (0 ..< 26).filter { $0 != i }.map { DirectedEdge(from: i, to: $0) } })
             _ = graph.shortestTour(weight: { _ in 1 })
         }
     }
@@ -344,6 +426,67 @@ struct ToursPreconditionTests {
             let weights: [Double] = [1e308, 1.0, 1.0]
             _ = graph.christofidesTour(weight: { weights[$0] })
         }
+        await #expect(processExitsWith: .failure) {
+            // A large negative weight: Int8, 3 · (2 · |−10| + 1) = 63 > 127 / 8.
+            let graph = UndirectedAdjacencyList<Int>(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(0, 2), UndirectedEdge(1, 2)])
+            let weights: [Int8] = [1, -10, 1]
+            _ = graph.christofidesTour(weight: { weights[$0] })
+        }
+        await #expect(processExitsWith: .failure) {
+            // Below greatestFiniteMagnitude / 8 (about 2.2e307), but 3 · (2 · 1e307 + 1) is past it; 0-1
+            // joins the two odd vertices of the tree {0-2, 1-2}.
+            let graph = UndirectedAdjacencyList<Int>(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(0, 2), UndirectedEdge(1, 2)])
+            let weights: [Double] = [1e307, 1.0, 1.0]
+            _ = graph.christofidesTour(weight: { weights[$0] })
+        }
+        await #expect(processExitsWith: .failure) {
+            // Float's own bound: greatestFiniteMagnitude / 8 is about 4.3e37, and 3 · (2 · 1e37 + 1) is past it.
+            let graph = UndirectedAdjacencyList<Int>(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(0, 2), UndirectedEdge(1, 2)])
+            let weights: [Float] = [1.0, 1e37, 1.0]
+            _ = graph.christofidesTour(weight: { weights[$0] })
+        }
+        await #expect(processExitsWith: .failure) {
+            // Int8: 16 · (2 · 0 + 1) > 127 / 8 = 15, so no weight at all satisfies the bound on 16 vertices.
+            let graph = UndirectedAdjacencyList<Int>(vertices: 0 ..< 16, edges: (0 ..< 16).flatMap { i in (i + 1 ..< 16).map { UndirectedEdge(i, $0) } })
+            _ = graph.christofidesTour(weight: { _ in Int8(0) })
+        }
+        await #expect(processExitsWith: .failure) {
+            // Int8 with more vertices than Int8.max: n is never converted to Int8.
+            let graph = UndirectedAdjacencyList<Int>(vertices: 0 ..< 130, edges: (0 ..< 130).flatMap { i in (i + 1 ..< 130).map { UndirectedEdge(i, $0) } })
+            _ = graph.christofidesTour(weight: { _ in Int8(0) })
+        }
+    }
+
+    @Test("Every tour traps on an infinite weight, either sign, on any copy, from every entry point")
+    func infinityEverywhere() async {
+        await #expect(processExitsWith: .failure) {
+            let graph = UndirectedAdjacencyList<Int>(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(0, 2), UndirectedEdge(1, 2)])
+            let weights: [Double] = [1.0, -.infinity, 2.0]
+            _ = graph.nearestNeighborTour(from: 1, weight: { weights[$0] })
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = UndirectedAdjacencyList<Int>(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(0, 2), UndirectedEdge(1, 2)])
+            let weights: [Double] = [1.0, .infinity, 2.0]
+            let tour = Cycle([0, 1, 2], in: graph)!
+            _ = graph.twoOptTour(improving: tour, weight: { weights[$0] })
+        }
+        await #expect(processExitsWith: .failure) {
+            // On the heavier copy of {0, 1}, which the lightest-copy rule never uses.
+            let graph = Pseudograph<Int>(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(0, 1), UndirectedEdge(0, 2), UndirectedEdge(1, 2)])
+            let weights: [Float] = [1, .infinity, 1, 1]
+            _ = graph.christofidesTour(weight: { weights[$0] })
+        }
+        await #expect(processExitsWith: .failure) {
+            // Held–Karp needs no completeness, and −∞ alone traps too.
+            let graph = UndirectedAdjacencyList<Int>(vertices: 0 ..< 4, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2), UndirectedEdge(2, 3), UndirectedEdge(3, 0)])
+            let weights: [Double] = [1, 1, -.infinity, 1]
+            _ = graph.shortestTour(weight: { weights[$0] })
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = AdjacencyList<Int>(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 0)])
+            let weights: [Double] = [1, -.infinity, .infinity]
+            _ = graph.shortestTour(weight: { weights[$0] })
+        }
     }
 
     @Test("A tour to improve traps unless it lists every vertex of the graph exactly once: too long, or with a vertex of another graph")
@@ -360,11 +503,25 @@ struct ToursPreconditionTests {
         }
     }
 
-    @Test("Held–Karp traps above 31 vertices whatever the edges, a cycle of 32 vertices and Double weights")
+    @Test("Held–Karp traps when its table would pass 4 GiB whatever the edges: a cycle of 26 vertices with Double weights, 27 with Float, 32 directed")
     func heldKarpLimit() async {
         await #expect(processExitsWith: .failure) {
             let graph = UndirectedAdjacencyList<Int>(vertices: 0 ..< 32, edges: (0 ..< 32).map { UndirectedEdge($0, ($0 + 1) % 32) })
             _ = graph.shortestTour(weight: { _ in 1.5 })
+        }
+        await #expect(processExitsWith: .failure) {
+            // 2²⁵ · 25 entries of 8 + 1 bytes.
+            let graph = UndirectedAdjacencyList<Int>(vertices: 0 ..< 26, edges: (0 ..< 26).map { UndirectedEdge($0, ($0 + 1) % 26) })
+            _ = graph.shortestTour(weight: { _ in 1.5 })
+        }
+        await #expect(processExitsWith: .failure) {
+            // 2²⁶ · 26 entries of 4 + 1 bytes (26 vertices would fit: 4.19e9 bytes).
+            let graph = UndirectedAdjacencyList<Int>(vertices: 0 ..< 27, edges: (0 ..< 27).map { UndirectedEdge($0, ($0 + 1) % 27) })
+            _ = graph.shortestTour(weight: { _ in Float(1.5) })
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = AdjacencyList<Int>(vertices: 0 ..< 32, edges: (0 ..< 32).map { DirectedEdge(from: $0, to: ($0 + 1) % 32) })
+            _ = graph.shortestTour(weight: { _ in 1 })
         }
     }
 }

@@ -18,7 +18,8 @@ Two parts:
   (Hierholzer under our row order, on the compressed sparse row's sorted rows too; the first
   Hamiltonian path or cycle in search order, its existence against a bitmask DP; nearest
   neighbour, JGraphT's 2-opt, the pinned Christofides, Held–Karp's lexicographically least
-  optimum). Every returned walk is validated on its own: the right edges, each once, joining the
+  optimum, on the case's own graph and, directed, on a complete digraph less some arcs with
+  asymmetric weights, against brute force and a bitmask DP for existence). Every returned walk is validated on its own: the right edges, each once, joining the
   right vertices; a tour's edges are the lightest copies. With IGRAPH_C_LIB set, igraph's C
   `igraph_is_eulerian` is asked too, through ref.py's worker process.
 """
@@ -107,13 +108,23 @@ def catalog_rows():
         REF.build()
     finally:
         REF.G.text = original
-    nan = float("nan")
+    nan, inf = float("nan"), float("inf")
     k3 = REF.K(3)
     literal = {
         "C(3)": REF.C(3), "P(3)": REF.P(3), "Cd(3)": REF.C(3, True), "Pd(3)": REF.P(3, True), "V []; E []": REF.G([], []),
         "C(4) weight 1": REF.weighted(REF.C(4), [1] * 4),
         "Double K(3) weights 1.0, nan, 2.0": REF.weighted(k3, [1.0, nan, 2.0], wtype="Double"),
         "K(32) weight 1": REF.weighted(REF.K(32), [1] * (32 * 31 // 2)),
+        "K(26) weight 1": REF.weighted(REF.K(26), [1] * (26 * 25 // 2)),
+        "Kd(26) weight 1": REF.weighted(REF.K(26, True), [1] * (26 * 25)),
+        "Double K(3) weights 1.0, inf, 2.0": REF.weighted(k3, [1.0, inf, 2.0], wtype="Double"),
+        "Double K(3) weights 1.0, -inf, 2.0": REF.weighted(k3, [1.0, -inf, 2.0], wtype="Double"),
+        "Double V [0, 1, 2, 3]; E [0-1 1.0, 1-2 1.0, 2-3 1.0, 0-2 5.0, 0-3 5.0, 1-3 inf]":
+            REF.G(range(4), [(0, 1), (1, 2), (2, 3), (0, 2), (0, 3), (1, 3)], w=[1.0, 1.0, 1.0, 5.0, 5.0, inf], wtype="Double"),
+        "Double K(4) weights 1.0, 1.0, 1.0, inf, 1.0, -inf": REF.weighted(REF.K(4), [1.0, 1.0, 1.0, inf, 1.0, -inf], wtype="Double"),
+        "Double Kd(3) weights 1.0, 2.0, nan, 1.0, 2.0, 1.0": REF.weighted(REF.K(3, True), [1.0, 2.0, nan, 1.0, 2.0, 1.0], wtype="Double"),
+        "Double multigraph V [0, 1, 2]; E [0→1 1.0, 0→1 inf, 1→2 1.0, 2→0 1.0]":
+            REF.G(range(3), [(0, 1), (0, 1), (1, 2), (2, 0)], True, w=[1.0, inf, 1.0, 1.0], wtype="Double"),
     }
     rows = []
     for i, (group, name, inp, call, expected, _) in enumerate(REF.CASES):
@@ -274,11 +285,18 @@ def tours_case(case):
     for x in range(k - 1, 0, -1):
         y = g.next() % (x + 1)
         improving[x], improving[y] = improving[y], improving[x]
+    start = g.next() % k
+    # Drawn after every earlier input, so those stay as they were: the complete digraph on k vertices,
+    # each arc kept with probability 7/8 (every other case all of them), asymmetric weights -5 … 20.
+    keep_all = g.next() % 2 == 0
+    arcs = [[a, b] for a in range(k) for b in range(k) if a != b and (g.next() % 8 != 0 or keep_all)]
+    arc_weights = [g.next() % 26 - 5 for _ in arcs]
     return {
         "walk": walk_edges, "complete": pairs, "completeN": k,
         "weights": [repr(w) if isinstance(w, float) else str(w) for w in weights], "wtype": "Double" if mode == 2 else "Int",
-        "start": g.next() % k, "improving": improving, "hamiltonian": n <= 9,
-        "shortestOnCase": not case["directed"] and 3 <= n <= 11, "caseWeights": [str(w) for _, _, w in edges],
+        "start": start, "improving": improving, "hamiltonian": n <= 9,
+        "directedComplete": arcs, "directedWeights": [str(w) for w in arc_weights],
+        "shortestOnCase": 3 <= n <= 11, "caseWeights": [str(w) for _, _, w in edges],
         "largeN": large_n, "large": large_pairs, "largeWeights": [str(w) for w in large_weights],
     }
 
@@ -416,8 +434,24 @@ def compare_tours(case, t):
             elif mine is not None:
                 problems += tour_problems(key, gl, mine)
             covered(f"{key} tours")
+    gd = REF.G(range(k), [tuple(e) for e in tc["directedComplete"]], True, w=[int(w) for w in tc["directedWeights"]])
+    order = REF.held_karp(gd)
+    mine = t.get("shortestDirected")
+    got = None if mine is None else [int(x) for x in mine["vertices"]]
+    if got != order:
+        problems.append(f"directed shortestTour: library {got}, Held–Karp {order}")
+    if mine is not None:
+        problems += tour_problems("directed shortestTour", gd, mine)
+    if (order is not None) != REF.ham_dp_exists(gd, cycle=True):
+        problems.append("directed shortestTour: existence differs from the bitmask DP")
+    if k <= 8:
+        b = REF.brute_tsp(gd)
+        if (b is None) != (order is None) or (b is not None and b[1] != order):
+            problems.append(f"directed shortestTour: brute force {b}, Held–Karp {order}")
+        covered("directed Held–Karp against brute force")
+    covered("directed Held–Karp, found" if mine is not None else "directed Held–Karp, none")
     if tc["shortestOnCase"]:
-        gs = REF.G(range(n), [(u, v) for u, v, _ in case["edges"]], False, w=[w for _, _, w in case["edges"]])
+        gs = REF.G(range(n), [(u, v) for u, v, _ in case["edges"]], directed, w=[w for _, _, w in case["edges"]])
         order = REF.held_karp(gs)
         mine = t.get("shortestOnCase")
         got = None if mine is None else [int(x) for x in mine["vertices"]]
@@ -425,9 +459,9 @@ def compare_tours(case, t):
             problems.append(f"shortestTour on the case: library {got}, Held–Karp {order}")
         if mine is not None:
             problems += tour_problems("shortestTour on the case", gs, mine)
-            covered("Held–Karp on sparse graphs, found")
+            covered(f"Held–Karp on sparse {'digraphs' if directed else 'graphs'}, found")
         else:
-            covered("Held–Karp on sparse graphs, none")
+            covered(f"Held–Karp on sparse {'digraphs' if directed else 'graphs'}, none")
         if n <= 9:
             b = REF.brute_tsp(gs)
             if (b is None) != (order is None) or (b is not None and b[1] != order):

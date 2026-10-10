@@ -1,9 +1,9 @@
-# Tours: case catalog (TO-001 – TO-501, 501 cases)
+# Tours: case catalog (TO-001 – TO-531, 531 cases)
 
 Generated and checked by `ref.py` (`uv run --quiet --no-project --with networkx==3.7 --with
 igraph==1.0.0 --with rustworkx==0.18.1 python3 Tests/Catalogs/Tours/ref.py`; without `--write` it
 renders the catalog and compares it with this file byte for byte; `--write` regenerates it and
-needs `IGRAPH_C_LIB` and `JGRAPHT_CLASSPATH`; `--stress` adds about 2,200 random graphs). Expected
+needs `IGRAPH_C_LIB` and `JGRAPHT_CLASSPATH`; `--stress` adds about 2,400 random graphs). Expected
 is the API's documented output (api.md, Determinism); the last column says what each row was
 checked against.
 
@@ -28,7 +28,7 @@ checked against.
   `tournament(n,seed)` for each i < j, i→j when d is even, else j→i. `pts[(x,y), …]` the complete
   graph on the points (pairs i < j lexicographic) weighted by Manhattan distance, a metric;
   `lcgpts(n,seed,s)` n points (d % s, d % s); `lcgK(n,seed,w)` K(n) with weight 1 + d % w per edge
-  in edge order (`,/4`: that over 4, `Double`).
+  in edge order (`,/4`: that over 4, `Double`); `lcgKd(n,seed,w)` the same on Kd(n), per arc.
 * **Results.** `circuit [..]; edges [..]` a `Circuit` (its vertices, the start not repeated, and
   edge positions, edge i from vertex i to vertex i + 1 mod count); `trail`, `path` the same for a
   `Trail` / `Path` (one more vertex than edges); `cycle [..]; edges [..]; weight w` a `Cycle`,
@@ -542,4 +542,34 @@ checked against.
 | TO-498 | NearestNeighborTour | NaN weight | Double K(3) weights 1.0, nan, 2.0 | `nearestNeighborTour(weight:)` | trap: a weight is NaN |  |
 | TO-499 | ChristofidesTour | NaN weight | Double K(3) weights 1.0, nan, 2.0 | `christofidesTour(weight:)` | trap: a weight is NaN |  |
 | TO-500 | ShortestTour | NaN weight | Double K(3) weights 1.0, nan, 2.0 | `shortestTour(weight:)` | trap: a weight is NaN |  |
-| TO-501 | ShortestTour | too many vertices | K(32) weight 1 | `shortestTour(weight:)` | trap: more than 31 vertices (JGraphT HeldKarpTSP's limit) |  |
+| TO-501 | ShortestTour | too many vertices | K(32) weight 1 | `shortestTour(weight:)` | trap: the table needs more than 4 GiB (at most 25 vertices with 8-byte weights) |  |
+| TO-502 | ShortestTour | 26 vertices: 2²⁵ · 25 entries of 9 bytes, past 4 GiB | K(26) weight 1 | `shortestTour(weight:)` | trap: the table needs more than 4 GiB (at most 25 vertices with 8-byte weights) |  |
+| TO-503 | NearestNeighborTour | infinite weight | Double K(3) weights 1.0, inf, 2.0 | `nearestNeighborTour(weight:)` | trap: a weight is infinite |  |
+| TO-504 | TwoOptTour | negative infinite weight | Double K(3) weights 1.0, -inf, 2.0 | `twoOptTour(weight:)` | trap: a weight is infinite |  |
+| TO-505 | ChristofidesTour | infinite weight off the odd pairs (the tree 0-1-2-3, the matching 0-3) | Double V [0, 1, 2, 3]; E [0-1 1.0, 1-2 1.0, 2-3 1.0, 0-2 5.0, 0-3 5.0, 1-3 inf] | `christofidesTour(weight:)` | trap: a weight is infinite |  |
+| TO-506 | ShortestTour | +∞ and −∞ weights (their sum is NaN) | Double K(4) weights 1.0, 1.0, 1.0, inf, 1.0, -inf | `shortestTour(weight:)` | trap: a weight is infinite |  |
+| TO-507 | ShortestTourDirected | asymmetric triangle: the lighter direction | V [0, 1, 2]; E [0→1 1, 1→2 1, 2→0 1, 0→2 2, 2→1 2, 1→0 2] | `shortestTour(weight:)` | cycle [0, 1, 2]; edges [0, 1, 2]; weight 3 | = brute force (optimum, then lexicographically least); = JGraphT HeldKarpTSP |
+| TO-508 | ShortestTourDirected | asymmetric triangle, the other way | V [0, 1, 2]; E [0→1 3, 1→2 3, 2→0 3, 0→2 1, 2→1 2, 1→0 1] | `shortestTour(weight:)` | cycle [0, 2, 1]; edges [3, 4, 5]; weight 4 | = brute force (optimum, then lexicographically least); = JGraphT HeldKarpTSP |
+| TO-509 | ShortestTourDirected | Kd(4) with weights 1..12 | Kd(4) weights 1, 2, …, 12 in edge order | `shortestTour(weight:)` | cycle [0, 1, 2, 3]; edges [0, 4, 8, 9]; weight 25 | = brute force (optimum, then lexicographically least); = JGraphT HeldKarpTSP |
+| TO-510 | ShortestTourDirected | all weights equal: Kd(4) weight 1 | Kd(4) weight 1 | `shortestTour(weight:)` | cycle [0, 1, 2, 3]; edges [0, 4, 8, 9]; weight 4 | = brute force (optimum, then lexicographically least); = JGraphT HeldKarpTSP |
+| TO-511 | ShortestTourDirected | lcgKd(5,1,9) | lcgKd(5,1,9) | `shortestTour(weight:)` | cycle [0, 4, 2, 3, 1]; edges [3, 18, 10, 13, 4]; weight 21 | = brute force (optimum, then lexicographically least); = JGraphT HeldKarpTSP |
+| TO-512 | ShortestTourDirected | lcgKd(6,2,20) | lcgKd(6,2,20) | `shortestTour(weight:)` | cycle [0, 1, 5, 3, 4, 2]; edges [0, 9, 28, 18, 22, 10]; weight 24 | = brute force (optimum, then lexicographically least); = JGraphT HeldKarpTSP |
+| TO-513 | ShortestTourDirected | lcgKd(7,3,9) | lcgKd(7,3,9) | `shortestTour(weight:)` | cycle [0, 2, 1, 6, 4, 3, 5]; edges [1, 13, 11, 40, 27, 22, 30]; weight 22 | = brute force (optimum, then lexicographically least); = JGraphT HeldKarpTSP |
+| TO-514 | ShortestTourDirected | lcgKd(8,4,30) | lcgKd(8,4,30) | `shortestTour(weight:)` | cycle [0, 7, 3, 1, 5, 2, 4, 6]; edges [6, 52, 22, 11, 37, 17, 33, 42]; weight 43 | = brute force (optimum, then lexicographically least); = JGraphT HeldKarpTSP |
+| TO-515 | ShortestTourDirected | lcgKd(9,5,50) | lcgKd(9,5,50) | `shortestTour(weight:)` | cycle [0, 6, 8, 1, 3, 4, 2, 5, 7]; edges [5, 55, 65, 10, 27, 34, 20, 46, 56]; weight 67 | = brute force (optimum, then lexicographically least); = JGraphT HeldKarpTSP |
+| TO-516 | ShortestTourDirected | lcgKd(6,6,9,/4): Double weights | lcgKd(6,6,9,/4) | `shortestTour(weight:)` | cycle [0, 1, 2, 5, 3, 4]; edges [0, 6, 14, 28, 18, 20]; weight 4.25 | = brute force (optimum, then lexicographically least); = JGraphT HeldKarpTSP |
+| TO-517 | ShortestTourDirected | negative weights | Kd(3) weights -1, 2, 3, -4, 5, 0 | `shortestTour(weight:)` | cycle [0, 1, 2]; edges [0, 3, 4]; weight 0 | = brute force (optimum, then lexicographically least); = JGraphT HeldKarpTSP |
+| TO-518 | ShortestTourDirected | parallel arcs: the lightest | multigraph V [0, 1, 2]; E [0→1 5, 0→1 2, 1→2 1, 2→0 3, 2→0 3] | `shortestTour(weight:)` | cycle [0, 1, 2]; edges [1, 2, 3]; weight 6 | = brute force (optimum, then lexicographically least); = JGraphT HeldKarpTSP |
+| TO-519 | ShortestTourDirected | self-loops ignored | multigraph V [0, 1, 2]; E [0→0 -9, 0→1 1, 1→2 2, 1→1 -9, 2→0 3] | `shortestTour(weight:)` | cycle [0, 1, 2]; edges [1, 2, 4]; weight 6 | = brute force (optimum, then lexicographically least); = JGraphT HeldKarpTSP |
+| TO-520 | ShortestTourDirected | vertex order, not label order | V [d, a, c]; E [d→a 4, a→c 4, c→d 4, d→c 1, c→a 1, a→d 1] | `shortestTour(weight:)` | cycle [d, c, a]; edges [3, 4, 5]; weight 3 | = brute force (optimum, then lexicographically least); = JGraphT HeldKarpTSP |
+| TO-521 | ShortestTourDirected | not complete: Cd(5) is its only tour | Cd(5) weights 1, 2, 3, 4, 5 | `shortestTour(weight:)` | cycle [0, 1, 2, 3, 4]; edges [0, 1, 2, 3, 4]; weight 15 | = brute force (optimum, then lexicographically least); = JGraphT HeldKarpTSP |
+| TO-522 | ShortestTourDirected | not complete, one way only: Pd(4) has no tour | Pd(4) weight 1 | `shortestTour(weight:)` | nil | = brute force (optimum, then lexicographically least); = JGraphT HeldKarpTSP |
+| TO-523 | ShortestTourDirected | tournament(6,1) weight 1 | tournament(6,1) weight 1 | `shortestTour(weight:)` | cycle [0, 3, 5, 1, 4, 2]; edges [2, 13, 8, 7, 10, 1]; weight 6 | = brute force (optimum, then lexicographically least); = JGraphT HeldKarpTSP |
+| TO-524 | ShortestTourDirected | transitive tournament: nil | V [0, 1, 2, 3]; E [0→1 1, 0→2 1, 0→3 1, 1→2 1, 1→3 1, 2→3 1] | `shortestTour(weight:)` | nil | = brute force (optimum, then lexicographically least); = JGraphT HeldKarpTSP |
+| TO-525 | ShortestTourDirected | one vertex: nil | V [0]; E [] | `shortestTour(weight:)` | nil | JGraphT HeldKarpTSP: a closed walk (singleton or a,b,a) |
+| TO-526 | ShortestTourDirected | antiparallel pair: nil (tours need three vertices) | V [0, 1]; E [0→1 1, 1→0 2] | `shortestTour(weight:)` | nil | JGraphT HeldKarpTSP: a closed walk (singleton or a,b,a) |
+| TO-527 | ShortestTourDirected | empty digraph: nil | V []; E [] | `shortestTour(weight:)` | nil |  |
+| TO-528 | ShortestTourDirected | lcgKd(12,7,100) | lcgKd(12,7,100) | `shortestTour(weight:)` | cycle [0, 9, 8, 11, 10, 7, 2, 4, 3, 5, 1, 6]; edges [8, 107, 98, 131, 117, 79, 25, 47, 37, 56, 16, 66]; weight 172 | = JGraphT HeldKarpTSP |
+| TO-529 | ShortestTourDirected | NaN weight | Double Kd(3) weights 1.0, 2.0, nan, 1.0, 2.0, 1.0 | `shortestTour(weight:)` | trap: a weight is NaN |  |
+| TO-530 | ShortestTourDirected | infinite weight on a parallel arc | Double multigraph V [0, 1, 2]; E [0→1 1.0, 0→1 inf, 1→2 1.0, 2→0 1.0] | `shortestTour(weight:)` | trap: a weight is infinite |  |
+| TO-531 | ShortestTourDirected | too many vertices | Kd(26) weight 1 | `shortestTour(weight:)` | trap: the table needs more than 4 GiB (at most 25 vertices with 8-byte weights) |  |

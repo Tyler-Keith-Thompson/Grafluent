@@ -44,6 +44,9 @@ struct ToursCase: Decodable {
     let largeN: Int
     let large: [[Int]]
     let largeWeights: [String]
+    /// A complete digraph on `completeN` vertices less some arcs, asymmetric integer weights.
+    let directedComplete: [[Int]]
+    let directedWeights: [String]
 }
 
 struct ToursAnswers: Encodable {
@@ -66,6 +69,7 @@ struct ToursAnswers: Encodable {
     var christofides: WalkAnswer?
     var shortest: WalkAnswer?
     var shortestOnCase: WalkAnswer?
+    var shortestDirected: WalkAnswer?
     var largeNearestNeighbor: WalkAnswer?
     var largeTwoOpt: WalkAnswer?
     var largeChristofides: WalkAnswer?
@@ -156,6 +160,10 @@ func toursAnswers(directed: Bool, n: Int, edges: [[Int]], sources: [Int], target
                 a.hamiltonianPathFromTo = g.hamiltonianPath(from: start, to: target).map { walkAnswer($0.vertices, $0.edges, id) }
             }
         }
+        if t.shortestOnCase {
+            let w = t.caseWeights.map { Int($0)! }
+            a.shortestOnCase = g.shortestTour(weight: { w[$0] }).map { walkAnswer($0.vertices, $0.edges, id) }
+        }
     } else {
         let g = UndirectedAdjacencyList(vertices: 0 ..< n, edges: edges.map { UndirectedEdge($0[0], $0[1]) })
         if Array(g.edges) != edges.map({ UndirectedEdge($0[0], $0[1]) }) { a.positionsInOrder = false }
@@ -177,6 +185,11 @@ func toursAnswers(directed: Bool, n: Int, edges: [[Int]], sources: [Int], target
         }
     }
     if t.wtype == "Double" { tourAnswers(t, Double.self, &a) } else { tourAnswers(t, Int.self, &a) }
+    let arcs = t.directedComplete.map { DirectedEdge(from: $0[0], to: $0[1]) }
+    let digraph = AdjacencyList(vertices: 0 ..< t.completeN, edges: arcs)
+    if Array(digraph.edges) != arcs { a.positionsInOrder = false }
+    let dw = t.directedWeights.map { Int($0)! }
+    a.shortestDirected = digraph.shortestTour(weight: { dw[$0] }).map { walkAnswer($0.vertices, $0.edges, id) }
     if t.largeN > 0 {
         let g = UndirectedAdjacencyList(vertices: 0 ..< t.largeN, edges: t.large.map { UndirectedEdge($0[0], $0[1]) })
         let w = t.largeWeights.map { Int($0)! }
@@ -224,6 +237,14 @@ func answerTours<G: DirectedGraph<String>>(_ g: G, _ r: ToursRequest, _ position
         let p = from.map { s in to.map { g.hamiltonianPath(from: s, to: $0) } ?? g.hamiltonianPath(from: s) } ?? g.hamiltonianPath()
         a.walk = p.map { walk($0.vertices, $0.edges) }
     case "hamiltonianCycle": a.walk = g.hamiltonianCycle().map { walk($0.vertices, $0.edges) }
+    case "shortestTour":
+        if r.wtype == "Double" {
+            let weights = (r.weights ?? []).map { Double($0)! }
+            a.walk = g.shortestTour(weight: { weights[position($0)] }).map { walk($0.vertices, $0.edges) }
+        } else {
+            let weights = (r.weights ?? []).map { Int($0)! }
+            a.walk = g.shortestTour(weight: { weights[position($0)] }).map { walk($0.vertices, $0.edges) }
+        }
     default: fatalError("unknown call \(r.call)")
     }
     return a

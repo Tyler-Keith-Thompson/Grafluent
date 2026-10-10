@@ -27,6 +27,14 @@ struct _EdgeEnds: _UndirectedRowsAlgorithm {
     }
 }
 
+/// Traps on a NaN or infinite weight. w − w is zero for every finite value of a floating-point
+/// type (and for every integer), and NaN for NaN and ±∞, so one subtraction tests both without
+/// knowing the type: ±∞ would turn sums into ∞ − ∞ = NaN (Held–Karp's table, 2-opt's gains).
+@inlinable @inline(__always)
+func _checkTourWeight<W: Comparable & AdditiveArithmetic>(_ w: W) {
+    if !(w - w == .zero) { preconditionFailure(w == w ? "A weight is infinite" : "A weight is NaN") }
+}
+
 /// The simple graph a tour reads, as an n × n matrix: for each pair of distinct vertices the
 /// lightest edge joining them (the earliest position on ties), its weight and its edge number
 /// (−1 when no edge joins them). Self-loops are ignored.
@@ -55,7 +63,8 @@ struct _TourMatrix<W: Comparable & AdditiveArithmetic> {
 }
 
 extension Graph {
-    /// The matrix, reading `weight` once per non-loop edge in position order. A NaN weight traps.
+    /// The matrix, reading `weight` once per non-loop edge in position order. A NaN or infinite
+    /// weight traps (`_checkTourWeight`).
     @inlinable
     func _tourMatrix<W: Comparable & AdditiveArithmetic>(_ weight: (Edges.Index) -> W, _ numbering: _TourNumbering<Vertex>) -> _TourMatrix<W> {
         let n = numbering.isIndexed ? vertexIndexBound! : numbering.listed.count
@@ -67,7 +76,7 @@ extension Graph {
             let u = from[e], v = to[e]
             if u != v {
                 let w = weight(position)
-                precondition(w == w, "A weight is NaN")
+                _checkTourWeight(w)
                 let cell = u * n + v
                 if edges[cell] < 0 || w < weights[cell] {
                     weights[cell] = w
@@ -100,4 +109,70 @@ extension Graph {
         for i in 0 ..< n { numbers[i] = matrix.edges[order[i] * matrix.n + order[i + 1 == n ? 0 : i + 1]] }
         return Cycle(_uncheckedVertices: _tourVertices(order, numbering), edges: _tourPositions(numbers))
     }
+}
+
+extension DirectedGraph {
+    /// The vertices by number and each one's number, for a graph without vertex indices; empty
+    /// for one with them (as `Graph._tourNumbering()`).
+    @inlinable
+    func _directedTourNumbering() -> _TourNumbering<Vertex> {
+        guard vertexIndexBound == nil else { return _TourNumbering(listed: [], numbers: [:], isIndexed: true) }
+        let listed = Array(vertices)
+        var numbers: [Vertex: Int] = [:]
+        numbers.reserveCapacity(listed.count)
+        for (i, v) in listed.enumerated() { numbers[v] = i }
+        return _TourNumbering(listed: listed, numbers: numbers, isIndexed: false)
+    }
+
+    @inlinable
+    func _tourVertices(_ numbers: some Sequence<Int>, _ numbering: _TourNumbering<Vertex>) -> [Vertex] {
+        numbering.isIndexed ? numbers.map { vertex(atIndex: $0) } : numbers.map { numbering.listed[$0] }
+    }
+
+    /// The directed matrix: for each ordered pair (u, v) of distinct vertices the lightest arc
+    /// u → v (the earliest position on ties), its weight and its edge number, the offset of its
+    /// position in `edges` (−1 when there is none). `weight` is read once per non-loop edge in
+    /// position order; a NaN or infinite weight traps.
+    @inlinable
+    func _directedTourMatrix<W: Comparable & AdditiveArithmetic>(_ weight: (Edges.Index) -> W, _ numbering: _TourNumbering<Vertex>) -> _TourMatrix<W> {
+        let n = numbering.isIndexed ? vertexIndexBound! : numbering.listed.count
+        var weights = [W](repeating: .zero, count: n * n)
+        var edges = [Int](repeating: -1, count: n * n)
+        var e = 0
+        for position in self.edges.indices {
+            let s = source(ofEdgeAt: position), t = target(ofEdgeAt: position)
+            let u = numbering.isIndexed ? vertexIndex(of: s) : numbering.numbers[s]!
+            let v = numbering.isIndexed ? vertexIndex(of: t) : numbering.numbers[t]!
+            precondition(UInt(bitPattern: u) < UInt(bitPattern: n) && UInt(bitPattern: v) < UInt(bitPattern: n), "A vertex index is out of range")
+            if u != v {
+                let w = weight(position)
+                _checkTourWeight(w)
+                let cell = u * n + v
+                if edges[cell] < 0 || w < weights[cell] {
+                    weights[cell] = w
+                    edges[cell] = e
+                }
+            }
+            e += 1
+        }
+        return _TourMatrix(n: n, weights: weights, edges: edges)
+    }
+
+    /// The positions of edges given by their offsets in `edges` (as `Graph._tourPositions`).
+    @inlinable
+    func _tourEdgePositions(_ numbers: [Int]) -> [Edges.Index] {
+        if Edges.Index.self == Int.self, let range = edges.indices as? Range<Int> {
+            let base = range.lowerBound
+            return numbers.map { unsafeBitCast(base &+ $0, to: Edges.Index.self) }
+        }
+        let all = Array(edges.indices)
+        return numbers.map { all[$0] }
+    }
+}
+
+/// The edge numbers of the closed tour through `order`, each from a vertex to the next.
+@inlinable
+func _tourArcNumbers<W>(_ order: [Int], _ matrix: _TourMatrix<W>) -> [Int] {
+    let n = order.count
+    return (0 ..< n).map { matrix.edges[order[$0] * matrix.n + order[$0 + 1 == n ? 0 : $0 + 1]] }
 }

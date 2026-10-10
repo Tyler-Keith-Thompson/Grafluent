@@ -4,7 +4,7 @@
 // edge by edge; a long cycle's and path's walks are themselves, exactly (each vertex's first unused
 // edge leads on); a long cycle, path and complete graph are their own first Hamiltonian cycle and
 // path, two disjoint cliques and a transitive tournament have no cycle (the documented pruning makes
-// the search fail fast); nearest neighbour on collinear points walks the line; on points of a circle
+// the search fail fast), nor two cliques at a cut vertex (the reachability test alone does); nearest neighbour on collinear points walks the line; on points of a circle
 // (Euclidean) Christofides' tree is the hull less one edge, so its tour is the hull order, 2-opt
 // removes every crossing, which leaves the hull order, and Held–Karp's optimum is the hull order in
 // its lexicographically least direction; a cycle with weights has one tour. See README.md.
@@ -152,6 +152,28 @@ struct ToursStressTests {
             let only = transitive.hamiltonianPath()
             #expect(only?.vertices == Array(0 ..< t))
             #expect(transitive.hamiltonianCycle() == nil)
+        }.value
+    }
+
+    @Test("Two K(14) joined at a cut vertex 0: no Hamiltonian cycle and no path from 0, found at the first step by the reachability test (without it the search would try 13! orderings of the first clique); from 1 the path through the first clique, 0, then the second", .timeLimit(.minutes(1)))
+    func reachabilityAtACutVertex() async {
+        await Task {
+            // Edges 0–i first, so each clique vertex's row starts at 0; then each clique's pairs. The degree
+            // counts never fire here (every vertex keeps many free neighbours): only reachability does.
+            let m = 14, n = 2 * m + 1
+            var ends = (1 ..< n).map { (0, $0) }
+            for base in [1, m + 1] {
+                for i in base ..< base + m {
+                    for j in i + 1 ..< base + m { ends.append((i, j)) }
+                }
+            }
+            let graph = UndirectedAdjacencyList(vertices: 0 ..< n, edges: ends.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.hamiltonianCycle() == nil)
+            #expect(graph.hamiltonianPath(from: 0) == nil)
+            let path = graph.hamiltonianPath()
+            #expect(path?.vertices == Array(1 ... m) + [0] + Array(m + 1 ..< n))
+            let genuine = path.map { Path(vertices: $0.vertices, edges: $0.edges, in: graph) != nil } ?? false
+            #expect(genuine)
         }.value
     }
 
