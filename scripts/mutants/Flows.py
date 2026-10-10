@@ -1,53 +1,71 @@
 # Planted bugs for Flows; run with `just mutate Flows`. See scripts/mutate.py.
 #
 # Known equivalent mutants:
-#   ni_parallel_q, ni_buckets_off, ho_first_least
-#                       a merged parallel edge forgetting its greater q only contracts less; the heap
-#                       instead of the bucket queue is another maximum adjacency order; another
-#                       minimum cut on ties is still one (api.md does not pin which).
-#   ho_saturate_target  the reverse arcs of a new source-set vertex's saturated arcs point into the
-#                       source set, whose bucket is dormant, so no push ever reads them.
-#   gh_split            on the widened capacities (Int with twice the total fitting, or Int128) twice a
-#                       capacity never overflows, so the split network is never needed there; only a
-#                       type run as it is (Double near its maximum) could need it.
-#   wd_float            Float sums in Float differ from Double only past 2²⁴ per sum.
-#   ns_artificial_blocks
-#                       an artificial arc on the second side could only block when its flow is within
-#                       the entering arc's capacity of Int.max; not reached in 12,000 random problems
-#                       with Int.max capacities, half of them with supplies above Int.max / 2.
 #   di_room             the clamp to the cutoff: connectivity only compares the value with the best
 #                       so far, and any value at or past the cutoff loses that comparison.
 #   di_level_stop, di_back_last, di_kill, di_current, di_resume
 #                       Dinic's pruning: levels past the sink's lead only to dead ends, resuming from
 #                       a later saturated arc costs one zero augmentation, a dead vertex's current arc
 #                       is already at its row's end, rescanning from the row start or from the source
-#                       finds the same admissible arcs. Slower, same flows' values and cuts.
-#   eku_along, eku_against
-#                       `|| against[p] > 0`: at most one of along and against is nonzero, so against
-#                       > 0 means along = 0 < c already (to be simplified away in the source).
+#                       finds the same admissible arcs. Slower; the same value and canonical cut.
 #   pr_push_lower       valid labels give label[w] ≥ label[v] − 1 on every residual arc v → w, so
 #                       label[w] < dv is label[w] == dv − 1.
-#   pr_gap_off, pr_gap_above, pr_global_off, pr_out, pr_relabel_current
-#                       heuristics: without the gap, or leaving the vertices above it at their
-#                       (still valid, lower) labels, without periodic global relabelling, allowing
-#                       label n, or rescanning the row from its start, push–relabel still ends at a
-#                       maximum preflow with the same canonical cut.
+#   pr_gap_off, pr_global_off, pr_out, pr_relabel_current
+#                       heuristics: without the gap or periodic global relabelling, allowing label n,
+#                       or rescanning the row from its start, push–relabel still ends at a maximum
+#                       preflow with the same canonical cut.
 #   pr_global_source, p2_source
 #                       phase 1 never pushes into the source (its label is n and no label passes n),
 #                       so every arc out of the source keeps zero residual: neither reverse search
 #                       can reach the source to label it.
 #   mf_split_always     carrying every undirected network split (and Edmonds–Karp as its flow both
 #                       ways) gives the same value, cut and pinned flow, as documented.
-#   mf_rowsum_eku       (pending a test: Double 1e308 + 1e308 at the source of an undirected
-#                       Edmonds–Karp run, where the bound would become infinite.)
+#   mf_split_net, gh_split
+#                       _flowNetwork's only caller is Gomory–Hu, on the widened capacities: fixed-width
+#                       types run in Int (twice the total fits) or Int128 and never overflow 2c; Float
+#                       runs in Double. Only Double itself can pass its range, when c > max / 2, and
+#                       then the single pair's reverse residual becomes +∞ instead of c + f: every
+#                       comparison with it is the same (an excess is finite, so min(r, excess) is the
+#                       excess either way), so the flows' values and cuts are too.
+#   ni_parallel_q       a merged parallel edge forgetting its greater scanned connection only
+#                       contracts less: the pass has already contracted the edge that caused the merge,
+#                       so every phase still contracts something.
+#   ni_buckets_off, ho_first_least
+#                       the heap instead of the bucket queue is another maximum adjacency order, and
+#                       `<=` keeps the last least cut instead of the first: either way a minimum cut,
+#                       and which one is documented as unspecified (only that equal inputs agree).
+#   ns_mixing_off, ns_initial, ns_initial_capacity
+#                       pivot heuristics (arc mixing, LEMON's initial pivots): another pivot order
+#                       reaches an optimum too, and which optimum is documented as unspecified.
+#   ns_artificial_up    a supply node's artificial arc at cost M rather than 0: tree arcs' costs are
+#                       never read (only the entering arc's, in updatePotential), so the run is the
+#                       same while the arc is in the tree; it leaves with no flow, and pricing it at
+#                       M only makes it less attractive to re-enter, which an optimum with every
+#                       artificial arc empty never needs.
+#   ns_artificial_blocks
+#                       an artificial arc on the second side only blocks when the two artificial arcs
+#                       on the cycle carry Int.max between them (the total supply exactly Int.max,
+#                       split over two supply subtrees) and a pivot joins those subtrees before any
+#                       flow reaches a demand; LEMON's initial pivots enter an arc into each demand
+#                       first. Not reached by the suite's Int.max networks (FlowsStressTests) nor by
+#                       the fix's 12,000 random problems; not proven unreachable.
+#   ut_thread_simple    when thread[vIn] is already uOut the rethreading writes back the same links.
+#   mcf_balance         unbalanced supplies leave the root unbalanced, so some artificial arc keeps
+#                       flow and the solver returns nil anyway.
+#   ev_bound            the first vertex outside a minimum vertex cut X has index at most |X|; once
+#                       best = |X|, the indices below it have been tried.
+#   ev_successor, ev_undirected, ev_cutoff
+#                       a pair joined by an edge, run anyway, has its direct arc of capacity n, so the
+#                       flow reaches the cutoff and never beats the best; without the cutoff a pair's
+#                       value is its true flow, compared the same way.
 #   fe_nan              a NaN capacity fails `c >= 0` next, the same trap with another message.
 #   fe_contains_directed, fe_contains_undirected
 #                       with vertex indices, vertexIndex(of:) traps on a non-vertex itself.
 #
-# Survivors still needing tests: eku_own, eku_other, eku_cancel_along, eku_cancel_against (Int8 and
-# UInt8 networks where the split Edmonds–Karp cancels flow and min(own + other, limit) matters),
-# fl_found (a DirectedView position −1), fl_equal, gh_position, fe_infinite (an infinite capacity
-# away from the source).
+# Dead code the survivors showed, removed: the undirected Edmonds–Karp's `|| against > 0` (at most one
+# of the two flows is nonzero), checkRowSums' every-row form and `extra` (no caller), Hao–Orlin's
+# reverse arcs into the source set (dormant, never read), and the self-loop zeroing before the
+# maximum flows of minimumCostMaximumFlow and directed λ (loops get no residual arcs).
 
 TESTS = ["FlowsTests"]
 
@@ -58,8 +76,6 @@ MUTANTS = [
     Mutant("rn_directed", "ResidualNetwork.swift", "symmetric ? c : .zero", ".zero"),
     Mutant("rn_undirected", "ResidualNetwork.swift", "symmetric ? c : .zero", "c", nth=0),
     Mutant("rn_rowsum", "ResidualNetwork.swift", "precondition(!overflow, \"The capacities at a vertex sum past the capacity type's range\")", "", mode="stmt"),
-    Mutant("rn_rowsum_rows", "ResidualNetwork.swift", "for v in rows { check(v) }", "", mode="stmt"),
-    Mutant("rn_rowsum_all", "ResidualNetwork.swift", "for v in 0 ..< count { check(v) }", "", mode="stmt"),
     Mutant("rn_mark_reverse", "ResidualNetwork.swift", "!marks[w] && residual[Int(mate[a])] > .zero", "!marks[w] && residual[a] > .zero"),
     Mutant("rn_mark_seed", "ResidualNetwork.swift", "marks[sink] = true", "", mode="stmt"),
     Mutant("rn_directed_flow", "ResidualNetwork.swift", "a < 0 ? .zero : residual[Int(mate[a])]", "a < 0 ? .zero : residual[a]"),
@@ -88,8 +104,8 @@ MUTANTS = [
     Mutant("di_resume", "AugmentingPaths.swift", "v = depth == 0 ? source : Int(head[path[depth &- 1]])", "depth = 0\n                v = source", mode="stmt"),
 
     # Edmonds–Karp on undirected networks near the type's maximum
-    Mutant("eku_along", "AugmentingPaths.swift", "along[p] < c || against[p] > .zero", "along[p] < c"),
-    Mutant("eku_against", "AugmentingPaths.swift", "against[p] < c || along[p] > .zero", "against[p] < c"),
+    Mutant("eku_positive_swap", "AugmentingPaths.swift", "alongArc[x] ? along[p] < c : against[p] < c", "alongArc[x] ? against[p] < c : along[p] < c"),
+    Mutant("eku_positive_full", "AugmentingPaths.swift", "alongArc[x] ? along[p] < c : against[p] < c", "alongArc[x] ? along[p] <= c : against[p] <= c", nth=0),
     Mutant("eku_own", "AugmentingPaths.swift", "if own >= limit { return limit }", "", mode="stmt"),
     Mutant("eku_other", "AugmentingPaths.swift", "if other >= limit - own { return limit }", "", mode="stmt"),
     Mutant("eku_cancel_along", "AugmentingPaths.swift", "against[p] < delta ? against[p] : delta", ".zero"),
@@ -131,8 +147,8 @@ MUTANTS = [
     Mutant("mf_split_always", "MaximumFlow.swift", "_residualsMayOverflow(edges, capacities)", "!edges.directed", nth=1),
     Mutant("mf_split_net", "MaximumFlow.swift", "_residualsMayOverflow(edges, capacities) ? _splitUndirectedNetwork(edges, capacities, reusable: reusable) : _residualNetwork(edges, capacities, reusable: reusable)", "_residualNetwork(edges, capacities, reusable: reusable)"),
     Mutant("mf_ek_bound", "MaximumFlow.swift", "for a in network.first[s] ..< network.first[s + 1] { bound += network.residual[a] }", "", mode="stmt"),
-    Mutant("mf_rowsum_eku", "MaximumFlow.swift", "network.checkRowSums([s], extra: .zero)", "", mode="stmt", nth=0),
-    Mutant("mf_rowsum", "MaximumFlow.swift", "network.checkRowSums([s], extra: .zero)", "", mode="stmt", nth=1),
+    Mutant("mf_rowsum_eku", "MaximumFlow.swift", "network.checkRowSums([s])", "", mode="stmt", nth=0),
+    Mutant("mf_rowsum", "MaximumFlow.swift", "network.checkRowSums([s])", "", mode="stmt", nth=1),
     Mutant("mf_backward", "MaximumFlow.swift", "network.directedFlow(2 * e + 1)", ".zero"),
     Mutant("mf_wantscut", "MaximumFlow.swift", "wantsCut || algorithm == .pushRelabel", "algorithm == .pushRelabel"),
     Mutant("mf_marksink", "MaximumFlow.swift", "_ = inSink.withUnsafeMutableBufferPointer { network.markSinkSide(t, $0.baseAddress!, queue) }", "", mode="stmt"),
@@ -176,7 +192,6 @@ MUTANTS = [
     Mutant("ho_side", "HaoOrlin.swift", "inSink[v] = sinkIsAwake", "inSink[v] = !sinkIsAwake", mode="stmt"),
     Mutant("ho_gap", "HaoOrlin.swift", "next[x] < 0", "false"),
     Mutant("ho_sleep_alone", "HaoOrlin.swift", "nextBucket == Int.max", "false"),
-    Mutant("ho_saturate_target", "HaoOrlin.swift", "residual[Int(mate[t])] += r", "", mode="stmt"),
     Mutant("ho_wake", "HaoOrlin.swift", "buckets.dormant[c] = false", "", mode="stmt"),
     Mutant("ho_first_least", "HaoOrlin.swift", "excess[target] < best!", "excess[target] <= best!"),
     Mutant("ho_dormant_skip", "HaoOrlin.swift", "buckets.dormant[bv]", "false"),
@@ -256,7 +271,6 @@ MUTANTS = [
     Mutant("mcf_cost_bound", "MinimumCostFlow.swift", "!o1 && !o2 && W(exactly: sum) != nil", "!o1 && !o2"),
     Mutant("mcf_map", "MinimumCostFlow.swift", "FlowMap(graph: _graph, positions: _positions, flows: _flows)", "FlowMap(graph: _graph, positions: _positions, flows: _flows.reversed())"),
     Mutant("mcf_equal", "MinimumCostFlow.swift", "lhs._flows == rhs._flows && lhs._potentials == rhs._potentials", "lhs._flows == rhs._flows"),
-    Mutant("mcmf_loops", "MinimumCostFlow.swift", "for e in 0 ..< edges.edgeCount where edges.isLoop(e) { flowCapacities[e] = 0 }", "", mode="stmt"),
     Mutant("mcmf_demand", "MinimumCostFlow.swift", "supplies[t] = -value", "", mode="stmt"),
 
     # Connectivity

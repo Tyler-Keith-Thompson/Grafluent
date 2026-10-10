@@ -110,8 +110,9 @@ func _minimumCostFlow(_ edges: _FlowEdges, capacity: [Int], cost: [Int], supply:
     }
     // Big M, with room for the potentials and reduced costs built from it.
     let (bigM, overflowM) = (greatest &+ 1).multipliedReportingOverflow(by: n &+ 1)
-    let (_, overflowRoom) = bigM.multipliedReportingOverflow(by: 4)
-    precondition(!overflowM && !overflowRoom, "The costs are too large for the network simplex's artificial arcs")
+    // A comparison, not `bigM.multipliedReportingOverflow(by: 4)` with its product discarded:
+    // Swift 6.4's optimizer drops that overflow flag here under -O.
+    precondition(!overflowM && bigM <= Int.max / 4, "The costs are too large for the network simplex's artificial arcs")
     var potentials = [Int](repeating: 0, count: n)
     if n > 0 {
         let simplex = _NetworkSimplex(nodes: n, source: arcSource, target: arcTarget, capacity: arcCapacity, cost: arcCost, supply: supply, artificialCost: bigM)
@@ -190,9 +191,8 @@ extension DirectedGraph {
         let s = _flowNumber(of: source, vertices), t = _flowNumber(of: sink, vertices)
         precondition(s != t, "The source is the sink")
         let (capacities, costs) = _readCostedCapacities(edges, capacity, cost)
-        var flowCapacities = capacities
-        for e in 0 ..< edges.edgeCount where edges.isLoop(e) { flowCapacities[e] = 0 }
-        let value = _runMaximumFlow(edges, flowCapacities, from: s, to: t, .preflow, wantsCut: false).value
+        // Self-loops get no arcs in the residual network, so their capacities never count.
+        let value = _runMaximumFlow(edges, capacities, from: s, to: t, .preflow, wantsCut: false).value
         var supplies = [Int](repeating: 0, count: edges.vertexCount)
         supplies[s] = value
         supplies[t] = -value

@@ -168,23 +168,17 @@ final class _ResidualNetwork<C: Comparable & AdditiveArithmetic> {
         arcs.update(from: initial!, count: arcCount)
     }
 
-    /// Before any flow: the sum of the residuals of each row, trapping when one overflows (with
-    /// `extra` added: the greatest capacity, for undirected networks, whose reverse residual can
-    /// reach it plus the flow). `rows` nil checks every row.
+    /// Before any flow: the sum of the residuals of each row in `rows`, trapping when one
+    /// overflows.
     @inlinable
-    func checkRowSums(_ rows: [Int]?, extra: C) {
-        func check(_ v: Int) {
-            var total = extra
+    func checkRowSums(_ rows: [Int]) {
+        for v in rows {
+            var total = C.zero
             for a in first[v] ..< first[v + 1] {
                 let (sum, overflow) = _addingReportingOverflow(total, residual[a])
                 precondition(!overflow, "The capacities at a vertex sum past the capacity type's range")
                 total = sum
             }
-        }
-        if let rows {
-            for v in rows { check(v) }
-        } else {
-            for v in 0 ..< count { check(v) }
         }
     }
 

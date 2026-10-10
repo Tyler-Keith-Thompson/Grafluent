@@ -123,14 +123,14 @@ func _haoOrlinPass<K: Comparable & AdditiveArithmetic>(_ network: _ResidualNetwo
 
     var awake = setHead.count - 1
     var target = buckets.last[setTail[awake]]
-    // Saturate the arcs out of the source.
+    // Saturate the arcs out of the source. Their reverse arcs are left alone: they point into the
+    // source set, whose bucket is dormant, so no push reads them (nor any saturation's below).
     var a = first[source]
     while a < first[source + 1] {
         let r = residual[a]
         if r > .zero {
             let u = Int(head[a])
             residual[a] = .zero
-            residual[Int(mate[a])] += r
             excess[u] += r
             if !active[u] && u != source { buckets.activate(u) }
         }
@@ -307,7 +307,6 @@ func _haoOrlinPass<K: Comparable & AdditiveArithmetic>(_ network: _ResidualNetwo
                 if !active[v] && !inSource[v] { buckets.activate(v) }
                 excess[v] += r
                 residual[t] = .zero
-                residual[Int(mate[t])] += r
             }
             t += 1
         }

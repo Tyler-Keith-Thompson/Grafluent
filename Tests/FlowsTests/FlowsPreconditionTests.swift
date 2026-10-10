@@ -469,4 +469,39 @@ struct FlowsPreconditionTests {
             _ = graph.minimumCostFlow(supply: { _ in 0 }, capacity: { _ in 1 }, cost: { _ in 1 })!.potential(of: 9)
         }
     }
+
+    @Test("A position the graph does not have traps on a flow over a graph without edge indices, even one before every position (the arc −1 of an undirected graph's view)")
+    func positionBeforeEveryEdge() async {
+        await #expect(processExitsWith: .failure) {
+            let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1], edges: [UndirectedEdge(0, 1)])
+            _ = graph.maximumFlow(from: 0, to: 1, capacity: { _ in 5 }).flow(ofEdgeAt: .init(position: -1, reversed: false))
+        }
+    }
+
+    @Test("GomoryHuTree.capacity(ofEdgeAt:) traps on a negative position")
+    func gomoryHuNegativePosition() async {
+        await #expect(processExitsWith: .failure) {
+            let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1, 2], edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
+            _ = graph.gomoryHuTree(capacity: { _ in 1 })!.capacity(ofEdgeAt: -1)
+        }
+    }
+
+    @Test("Undirected Edmonds–Karp on Double capacities where twice one overflows: 1e308 + 1e308 at the source traps")
+    func undirectedEdmondsKarpSourceSumInfinite() async {
+        await #expect(processExitsWith: .failure) {
+            let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1, 2], edges: [UndirectedEdge(0, 1), UndirectedEdge(0, 2), UndirectedEdge(1, 2)])
+            let capacities: [Double] = [1e308, 1e308, 1]
+            _ = graph.edmondsKarpMaximumFlow(from: 0, to: 2, capacity: { capacities[$0] })
+        }
+    }
+
+    @Test("minimumCostFlow traps when 4(n + 1)(the greatest |cost| + 1) passes Int, though (n + 1) × the greatest |cost| fits the cost type Int")
+    func minimumCostArtificialRoom() async {
+        // Two vertices and a cost of Int.max / 6: 3 × (cost + 1) fits Int, 12 × (cost + 1) does not.
+        await #expect(processExitsWith: .failure) {
+            let graph = AdjacencyList<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])
+            let supplies = [1, -1]
+            _ = graph.minimumCostFlow(supply: { supplies[$0] }, capacity: { _ in 1 }, cost: { _ in Int.max / 6 })
+        }
+    }
 }

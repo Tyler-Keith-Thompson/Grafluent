@@ -191,10 +191,11 @@ func _edmondsKarpUndirected<C: Comparable & AdditiveArithmetic>(
         alongArc[a] = true
     }
     var along = [C](repeating: .zero, count: pairs), against = [C](repeating: .zero, count: pairs)
-    // Whether arc x has residual: c − f > 0 in its direction.
+    // Whether arc x has residual c − f + f′ > 0 in its direction: at most one of the two flows is
+    // nonzero, so a flow the other way leaves its own flow at zero, below c.
     func positive(_ x: Int, _ along: [C], _ against: [C]) -> Bool {
         let p = edgeOfArc[x], c = capacities[p]
-        return alongArc[x] ? (along[p] < c || against[p] > .zero) : (against[p] < c || along[p] > .zero)
+        return alongArc[x] ? along[p] < c : against[p] < c
     }
     // min(residual of x, limit), without forming a residual above c when it is not needed.
     func capped(_ x: Int, _ limit: C, _ along: [C], _ against: [C]) -> C {

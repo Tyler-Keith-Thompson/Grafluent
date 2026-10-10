@@ -319,4 +319,49 @@ struct FlowsConformanceTests {
         let maximum = edge.minimumCostMaximumFlow(from: 0, to: 1, capacity: { _ in UInt(3) }, cost: { _ in 2 })
         #expect(maximum.value == 3 && maximum.cost == 6 && maximum.flow(ofEdgeAt: 0) == 3)
     }
+
+    @Test("Flow equality compares the per-edge flows: two diamonds with the same value 1 and the same cut but the flow on different routes differ")
+    func flowEqualityReadsFlows() {
+        // 0→1, 0→2, 1→3, 2→3; the unit route through 1 or through 2, the other closed (capacity 0).
+        let graph = AdjacencyList<Int>(vertices: 0 ..< 4, edges: [(0, 1), (0, 2), (1, 3), (2, 3)].map { DirectedEdge(from: $0.0, to: $0.1) })
+        let throughOne = [1, 1, 1, 0], throughTwo = [1, 1, 0, 1]
+        let first = graph.edmondsKarpMaximumFlow(from: 0, to: 3, capacity: { throughOne[$0] })
+        let second = graph.edmondsKarpMaximumFlow(from: 0, to: 3, capacity: { throughTwo[$0] })
+        #expect(first.value == 1 && second.value == 1)
+        #expect(first.minimumCut == second.minimumCut)
+        #expect(Array(first.flowMap) == [1, 0, 1, 0] && Array(second.flowMap) == [0, 1, 0, 1])
+        #expect(first != second)
+    }
+
+    @Test("MinimumCostFlow equality compares the potentials: the path 0→1→2 at costs 1, 2 and at 2, 1 ships the same flow at the same cost 3, with other potentials")
+    func minimumCostEqualityReadsPotentials() {
+        let graph = AdjacencyList<Int>(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+        let supplies = [1, 0, -1]
+        let oneTwo = [1, 2], twoOne = [2, 1]
+        let first = graph.minimumCostFlow(supply: { supplies[$0] }, capacity: { _ in 1 }, cost: { oneTwo[$0] })!
+        let second = graph.minimumCostFlow(supply: { supplies[$0] }, capacity: { _ in 1 }, cost: { twoOne[$0] })!
+        #expect(first.cost == 3 && second.cost == 3 && first.value == second.value)
+        #expect(Array(first.flowMap) == [1, 1] && Array(second.flowMap) == [1, 1])
+        // Equal flow, cost and value: only the potentials can tell them apart. Each solve leaves
+        // both edges in its spanning tree at reduced cost zero, so potential(1) − potential(0) is
+        // the first edge's cost, 1 against 2.
+        let firstGap = first.potential(of: 0) - first.potential(of: 1)
+        let secondGap = second.potential(of: 0) - second.potential(of: 1)
+        #expect(firstGap != secondGap)
+        #expect(first != second)
+    }
+
+    @Test("Float global minimum cut sums in Double: vertex 1's capacities 2²⁴ + 1 + 1 + 1 would round to 2²⁴ in Float and beat vertex 2's 2²⁴ + 2, the true minimum")
+    func floatGlobalCutSumsExactly() {
+        // 0 is a hub; 1 joins it by 2²⁴ and has three unit edges to 3, 4, 5, which join the hub by
+        // 2²⁵ each; 2 joins the hub by 2²⁴ + 2. The least cut is 2 alone, 16777218, against 1 alone,
+        // 16777219. In Float, 2²⁴ + 1 is 2²⁴ (ties to even), so summing there would pick 1.
+        let pairs: [(Int, Int)] = [(0, 1), (1, 3), (1, 4), (1, 5), (0, 2), (0, 3), (0, 4), (0, 5)]
+        let capacities: [Float] = [16_777_216, 1, 1, 1, 16_777_218, 33_554_432, 33_554_432, 33_554_432]
+        let graph = UndirectedAdjacencyList<Int>(vertices: 0 ..< 6, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+        let cut = graph.minimumCut(capacity: { capacities[$0] })
+        #expect(cut?.value == 16_777_218)
+        #expect(cut?.sinkSide == [2])
+    }
 }
+

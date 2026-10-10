@@ -6,7 +6,9 @@
 // the global cut (a directed cycle's 1 and a one-way bridge's 0); a path and a cycle for
 // Gomory–Hu; hypercubes, cycles and complete graphs for κ and λ;
 // an assignment whose only optimum is the identity, parallel routes taken cheapest first, disjoint
-// negative cycles; and on seeded random networks the definitions checked in the test. See README.md.
+// negative cycles; and on seeded random networks the definitions checked in the test (for minimum-cost
+// flows: feasibility against a super-source maximum flow and the potentials' optimality certificate,
+// some capacities Int.max). See README.md.
 // Conditions with a closure are computed into a constant before `#expect`: inside these closures a
 // closure in an `#expect` expansion failed SIL verification with this toolchain (README.md).
 
@@ -14,6 +16,7 @@ import AdjacencyListModule
 import Flows
 import GrafluentTestSupport
 import GraphProtocols
+import Multigraphs
 import Testing
 
 @Suite("Flows on large inputs")
@@ -330,6 +333,134 @@ struct FlowsStressTests {
             #expect(chainCost)
             let chainFlow = sent.map { flow in (0 ..< n - 1).allSatisfy { flow.flow(ofEdgeAt: $0) == 5 } } == true
             #expect(chainFlow)
+        }.value
+    }
+
+    @Test("Minimum-cost flow on 60 seeded random networks of 20 – 60 vertices, some capacities Int.max: nil exactly when a super-source maximum flow falls short of the supplies; otherwise within capacity, every supply met, the cost Σ flow × cost, and the potentials certify optimality", .timeLimit(.minutes(1)))
+    func randomMinimumCost() async {
+        await Task {
+            for seed in 1 ... 60 {
+                var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+                let n = Int.random(in: 20 ... 60, using: &rng)
+                let m = 4 * n
+                var ends: [(Int, Int)] = [], capacities: [Int] = [], costs: [Int] = []
+                for _ in 0 ..< m {
+                    ends.append((Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng)))
+                    // One edge in ten unbounded (Int.max) at cost zero, so Σ capacity × |cost| fits.
+                    if Int.random(in: 0 ..< 10, using: &rng) == 0 {
+                        capacities.append(Int.max)
+                        costs.append(0)
+                    } else {
+                        capacities.append(Int.random(in: 0 ... 9, using: &rng))
+                        costs.append(Int.random(in: -5 ... 10, using: &rng))
+                    }
+                }
+                var supply = [Int](repeating: 0, count: n)
+                for _ in 0 ..< n / 2 {
+                    let u = Int.random(in: 0 ..< n, using: &rng), v = Int.random(in: 0 ..< n, using: &rng), amount = Int.random(in: 0 ... 9, using: &rng)
+                    supply[u] += amount
+                    supply[v] -= amount
+                }
+                let graph = DirectedPseudograph(vertices: 0 ..< n, edges: ends.map { DirectedEdge(from: $0.0, to: $0.1) })
+                let result = graph.minimumCostFlow(supply: { supply[$0] }, capacity: { capacities[$0] }, cost: { costs[$0] })
+
+                // Feasible exactly when a maximum flow from a super source n (an edge of capacity b
+                // to each supply b > 0) to a super sink n + 1 (from each demand) carries every supply.
+                var superEnds = ends, superCapacities = capacities
+                for v in 0 ..< n where supply[v] != 0 {
+                    superEnds.append(supply[v] > 0 ? (n, v) : (v, n + 1))
+                    superCapacities.append(abs(supply[v]))
+                }
+                let network = DirectedPseudograph(vertices: 0 ..< n + 2, edges: superEnds.map { DirectedEdge(from: $0.0, to: $0.1) })
+                let total = supply.filter { $0 > 0 }.reduce(0, +)
+                let feasible = network.maximumFlowValue(from: n, to: n + 1, capacity: { superCapacities[$0] }) == total
+                #expect((result != nil) == feasible, "seed \(seed)")
+                guard let result else { continue }
+
+                var balance = [Int](repeating: 0, count: n)
+                var cost = 0
+                var withinCapacity = true, certified = true
+                for k in 0 ..< m {
+                    let f = result.flow(ofEdgeAt: k), (u, v) = ends[k]
+                    withinCapacity = withinCapacity && f >= 0 && f <= capacities[k]
+                    cost &+= f &* costs[k]
+                    if u == v {
+                        certified = certified && f == (costs[k] < 0 ? capacities[k] : 0)
+                        continue
+                    }
+                    balance[u] &+= f
+                    balance[v] &-= f
+                    let reduced = costs[k] + result.potential(of: u) - result.potential(of: v)
+                    certified = certified && (f == capacities[k] || reduced >= 0) && (f == 0 || reduced <= 0)
+                }
+                #expect(withinCapacity, "seed \(seed)")
+                #expect(balance == supply, "seed \(seed)")
+                #expect(result.cost == cost && result.value == total, "seed \(seed)")
+                #expect(certified, "seed \(seed)")
+            }
+
+            // Two supplies summing to Int.max, both shipped through the cheaper route: 0 sends
+            // Int.max − 5 to 1 at cost −1, and 1 passes everything on to the demand at 2.
+            let triangle = AdjacencyList<Int>(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 0, to: 2)])
+            let supplies = [Int.max - 5, 5, -Int.max], costs = [-1, 0, 0]
+            let shipped = triangle.minimumCostFlow(supply: { supplies[$0] }, capacity: { _ in Int.max }, cost: { costs[$0] })
+            #expect(shipped?.cost == -(Int.max - 5))
+            #expect(shipped.map { Array($0.flowMap) } == [Int.max - 5, Int.max, 0])
+        }.value
+    }
+
+    @Test("Global minimum cut on 1,500 seeded dense graphs of 5 – 12 vertices with Double capacities 1 … 20 (so the heap orders every phase, five or more groups in it): the value is the least maximum flow from the first vertex, and the cut's edges carry it", .timeLimit(.minutes(1)))
+    func denseDoubleGlobalCuts() async {
+        await Task {
+            for seed in 1 ... 1_500 {
+                var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+                let n = Int.random(in: 5 ... 12, using: &rng)
+                var pairs: [(Int, Int)] = []
+                for u in 0 ..< n { for v in (u + 1) ..< n where Int.random(in: 0 ..< 10, using: &rng) < 7 { pairs.append((u, v)) } }
+                let capacities = pairs.map { _ in Double(Int.random(in: 1 ... 20, using: &rng)) }
+                let graph = UndirectedAdjacencyList<Int>(vertices: 0 ..< n, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+                guard let cut = graph.minimumCut(capacity: { capacities[$0] }) else { continue }
+                let least = (1 ..< n).map { graph.maximumFlowValue(from: 0, to: $0, capacity: { capacities[$0] }) }.min()!
+                #expect(cut.value == least, "seed \(seed)")
+                var crossing = 0.0
+                let sink = Set(cut.sinkSide)
+                for (k, (u, v)) in pairs.enumerated() where sink.contains(u) != sink.contains(v) { crossing += capacities[k] }
+                #expect(crossing == cut.value && !sink.contains(0), "seed \(seed)")
+            }
+        }.value
+    }
+
+    @Test("Global minimum cut on clustered graphs whose capacities up to 10⁶ need the heap, six fixed (n, degree, seed) inputs: the value is the least maximum flow from the first vertex, in Int and in Double quarters", .timeLimit(.minutes(1)))
+    func clusteredHeapGlobalCuts() async {
+        await Task {
+            // Inputs where a maximum adjacency order that loses track of a heap entry contracts an
+            // edge across the minimum cut.
+            for (n, degree, seed) in [(27, 3, 93_401), (20, 5, 383_889), (20, 4, 417_141), (20, 5, 93_757), (24, 4, 351_297), (27, 4, 355_005)] {
+                var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+                // Clusters (seed mod 4 of them, 1 meaning none): edges inside a cluster heavy, edges
+                // between light, so the minimum cut is usually a whole cluster.
+                let clusters = 1 + seed % 4
+                var ends: [(Int, Int)] = [], heavy: [Bool] = []
+                for _ in 0 ..< n * degree {
+                    let u = Int.random(in: 0 ..< n, using: &rng)
+                    let between = Int.random(in: 0 ..< 10, using: &rng) == 0
+                    var v = Int.random(in: 0 ..< n, using: &rng)
+                    if !between { v = (v / clusters) * clusters + u % clusters }
+                    if u != v && v < n {
+                        ends.append((u, v))
+                        heavy.append(u % clusters == v % clusters)
+                    }
+                }
+                _ = heavy.map { _ in Int.random(in: 1 ... 9, using: &rng) }  // the property test's small capacities, drawn first
+                let capacities = heavy.map { Int.random(in: 1 ... 100_000, using: &rng) * ($0 ? 10 : 1) }
+                // Pseudograph: a pair drawn twice is two edges, as the capacities count them.
+                let graph = Pseudograph(vertices: 0 ..< n, edges: ends.map { UndirectedEdge($0.0, $0.1) })
+                let fromFirst = (1 ..< n).map { graph.maximumFlowValue(from: 0, to: $0, capacity: { capacities[$0] }) }.min()!
+                let cut = graph.minimumCut(capacity: { capacities[$0] })
+                #expect(cut?.value == fromFirst, "n \(n) degree \(degree) seed \(seed)")
+                let quarters = graph.minimumCut(capacity: { Double(capacities[$0]) / 4 })
+                #expect(quarters?.value == Double(fromFirst) / 4, "n \(n) degree \(degree) seed \(seed)")
+            }
         }.value
     }
 }

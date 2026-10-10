@@ -84,14 +84,14 @@ func _runMaximumFlow<C: Comparable & AdditiveArithmetic>(_ edges: _FlowEdges, _ 
     let split = _residualsMayOverflow(edges, capacities)
     if split && algorithm == .edmondsKarp {
         let network = _residualNetwork(edges, capacities)
-        network.checkRowSums([s], extra: .zero)
+        network.checkRowSums([s])
         var bound = C.zero
         for a in network.first[s] ..< network.first[s + 1] { bound += network.residual[a] }
         let run = _edmondsKarpUndirected(network, capacities, from: s, to: t, bound: bound)
         return _MaximumFlowRun(value: run.value, inSink: run.inSink, along: run.along, against: run.against)
     }
     let network = split ? _splitUndirectedNetwork(edges, capacities) : _residualNetwork(edges, capacities)
-    network.checkRowSums([s], extra: .zero)
+    network.checkRowSums([s])
     let value: C
     var inSink: [Bool] = []
     switch algorithm {

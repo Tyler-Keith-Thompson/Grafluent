@@ -135,9 +135,8 @@ func _globalVertexConnectivity(_ edges: _FlowEdges) -> (value: Int, cut: [Int]) 
 @inlinable
 func _directedEdgeConnectivity(_ edges: _FlowEdges) -> Int {
     guard edges.vertexCount > 1 else { return 0 }
-    var ones = [Int](repeating: 1, count: edges.edgeCount)
-    for e in 0 ..< edges.edgeCount where edges.isLoop(e) { ones[e] = 0 }
-    return _haoOrlin(edges, ones).value
+    // Self-loops get no arcs in the residual network, so their ones never count.
+    return _haoOrlin(edges, [Int](repeating: 1, count: edges.edgeCount)).value
 }
 
 extension DirectedGraph {

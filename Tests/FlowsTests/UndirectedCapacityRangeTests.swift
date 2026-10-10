@@ -85,4 +85,41 @@ struct UndirectedCapacityRangeTests {
         #expect(cut.value == 200)
         #expect(Array(cut.sinkSide) == [2])
     }
+
+    @Test("UInt8 Edmonds–Karp where a later arc's capacity passes the bottleneck so far: 0–1 100, 1–2 200 carries 100 without forming 100 − 200")
+    func uint8LaterArcWider() {
+        // 2 × 200 overflows UInt8, so each edge keeps its flow both ways. Searching back from the
+        // sink, the arc 1 → 2 has room 200 against a limit of 100 (the capacities at the source).
+        let capacities: [UInt8] = [100, 200]
+        let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1, 2], edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
+        let flow = graph.edmondsKarpMaximumFlow(from: 0, to: 2) { capacities[$0] }
+        #expect(flow.value == 100)
+        #expect(graph.edges.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: false)) } == [100, 100])
+        #expect(graph.edges.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: true)) } == [0, 0])
+        #expect(Array(flow.minimumCut.sinkSide) == [1, 2])
+    }
+
+    @Test("Int8 Edmonds–Karp that cancels flow on an edge whose residual c + f passes Int8.max, the edge stored either way: value 127, the edge left with 7 along the second path")
+    func int8Cancellation() {
+        // s = 0, y = 1, x = 2, p = 3, q = 4, t = 5. Breadth-first search finds s–y–x–t first (60,
+        // using the edge x–y from y to x), then s–p–x–y–q–t, which sends 67 from x to y: the residual
+        // there is 70 + 60 = 130, past Int8.max, but the bottleneck is the limit 100 reached from
+        // the sink, so the flow on x–y becomes 7 from x to y.
+        for xFirst in [true, false] {
+            let pairs: [(Int, Int)] = [(0, 1), (0, 3), xFirst ? (2, 1) : (1, 2), (2, 5), (3, 2), (1, 4), (4, 5)]
+            let capacities: [Int8] = [60, 67, 70, 60, 100, 100, 100]
+            let graph = UndirectedAdjacencyList<Int>(vertices: 0 ..< 6, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
+            let flow = graph.edmondsKarpMaximumFlow(from: 0, to: 5) { capacities[$0] }
+            #expect(flow.value == 127)
+            let signed = graph.edges.indices.map { flow.flow(ofEdgeAt: $0) }
+            #expect(signed == [60, 67, xFirst ? 7 : -7, 60, 67, 67, 67])
+            let along = graph.edges.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: false)) }
+            let against = graph.edges.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: true)) }
+            #expect(along == [60, 67, xFirst ? 7 : 0, 60, 67, 67, 67])
+            #expect(against == [0, 0, xFirst ? 0 : 7, 0, 0, 0, 0])
+            #expect(Array(flow.minimumCut.sourceSide) == [0])
+            #expect(flow.minimumCut.edges == [.init(position: 0, reversed: false), .init(position: 1, reversed: false)])
+        }
+    }
 }

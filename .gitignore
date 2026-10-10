@@ -30,3 +30,6 @@ xcuserdata/
 /Fuzz/Corpus/
 /Fuzz/Crashes/
 /Differential/Failures/
+
+# Python
+__pycache__/
