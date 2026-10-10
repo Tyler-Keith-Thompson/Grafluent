@@ -24,6 +24,11 @@ build --noallow_analysis_cache_discard
 # disables that feature and turns warnings into errors for our own modules only.
 build --features=swift.suppress_warnings
 
+# Symbol graph extraction (for //:docs and for test discovery on Linux) builds the SDK's modules
+# into a module cache under bazel-out. A sandbox starts each action with an empty one, which costs
+# far more than the extraction itself; outside it, the cache persists between actions.
+build --strategy=SwiftSymbolGraphExtract=local
+
 # Show what actually failed rather than just the target.
 test --test_output=errors
 

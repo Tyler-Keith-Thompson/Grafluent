@@ -230,6 +230,7 @@ def compare(case, mine, ref):
     problems += compare_bipartite(case, mine["bipartite"], ref["graph"])
     problems += compare_matching(case, mine["matching"], ref["graph"])
     problems += compare_covering(case, mine["covering"], ref["graph"])
+    problems += compare_coloring(case, mine["coloring"])
     if not case["directed"]:
         problems += compare_spanning(case, mine["spanning"], ref["graph"])
         problems += compare_connectivity(case, mine["connectivity"], ref["graph"])
@@ -1398,6 +1399,229 @@ def compare_covering(case, mine, G):
     return problems
 
 
+def coloring_orders(S, rows_known):
+    """Callable NetworkX strategies with the library's tie rules (least vertex on every tie), for
+    the strategies whose NetworkX ties follow set order: smallest last, independent set, and
+    connected sequential from each component's least vertex. The connected-sequential orders
+    follow S's adjacency order, which is the library's row order only when rows_known."""
+    def smallest_last(G, colors):
+        degree = {v: len(G[v]) for v in G}
+        left, removal = set(G), []
+        while left:
+            v = min(left, key=lambda x: (degree[x], x))
+            removal.append(v)
+            left.discard(v)
+            for w in G[v]:
+                if w in left:
+                    degree[w] -= 1
+        return reversed(removal)
+
+    def independent_set(G, colors):
+        remaining = set(G)
+        while remaining:
+            available = set(remaining)
+            inside = {x: sum(1 for w in G[x] if w in available) for x in available}
+            while available:
+                v = min(available, key=lambda x: (inside[x], x))
+                yield v
+                remaining.discard(v)
+                gone = (set(G[v]) | {v}) & available
+                available -= gone
+                for x in gone:
+                    for w in G[x]:
+                        if w in available:
+                            inside[w] -= 1
+
+    def connected(search):
+        def order(G, colors):
+            seen = set()
+            for root in sorted(G):
+                if root not in seen:
+                    for v in search(G, root):
+                        seen.add(v)
+                        yield v
+        return order
+
+    def bfs(G, root):
+        yield root
+        for _, v in nx.bfs_edges(G, root):
+            yield v
+
+    orders = {"smallestLast": smallest_last, "independentSet": independent_set}
+    if rows_known:
+        orders["connectedSequentialBreadthFirst"] = connected(bfs)
+        orders["connectedSequentialDepthFirst"] = connected(nx.dfs_preorder_nodes)
+    return orders
+
+
+NX_STRATEGIES = {"largestFirst": "largest_first", "smallestLast": "smallest_last",
+                 "saturationLargestFirst": "saturation_largest_first", "independentSet": "independent_set",
+                 "connectedSequentialBreadthFirst": "connected_sequential_bfs",
+                 "connectedSequentialDepthFirst": "connected_sequential_dfs"}
+# Cases where NetworkX's own strategy, set-order ties and all, gave the library's colours, and
+# how often each colouring comparison ran.
+NX_NATIVE_AGREE = defaultdict(int)
+COLORING_COVERED = defaultdict(int)
+
+
+def least_coloring(adj, vertices):
+    """The chromatic number of the component `vertices` and its lexicographically least colouring
+    with that many colours, by restricted-growth backtracking in index order (no bounds)."""
+    vs = sorted(vertices)
+    col = {}
+
+    def search(i, k, high):
+        if i == len(vs):
+            return True
+        v = vs[i]
+        taken = {col[w] for w in adj[v] if w in col}
+        for c in range(min(k, high + 2)):
+            if c not in taken:
+                col[v] = c
+                if search(i + 1, k, max(high, c)):
+                    return True
+                del col[v]
+        return False
+
+    k = 1
+    while not search(0, k, -1):
+        k += 1
+    return k, dict(col)
+
+
+def compare_coloring(case, mine):
+    """Colourings of the simple undirected graph (self-loops dropped, a directed case's two arcs
+    once) against NetworkX greedy_color: largest first and DSatur with NetworkX's own strategies
+    (their ties are degree then node order, the library's rule); the other four through callable
+    strategies with the library's least-vertex ties (NetworkX's native ones follow set order, and
+    agreement with them is only counted). The chromatic number and least optimal colouring per
+    component by plain backtracking on small components, bounds otherwise; Misra–Gries proper
+    with Δ or Δ + 1 colours; König exactly Δ (parallel edges counted) and nil exactly when
+    NetworkX says the multigraph is not bipartite; isColoring and isEdgeColoring against direct
+    checks."""
+    problems = []
+    n = case["n"]
+    ends = [(u, v) for u, v, _ in case["edges"]]
+    S = nx.Graph()
+    S.add_nodes_from(range(n))
+    S.add_edges_from((u, v) for u, v in ends if u != v)
+    adj = {v: set(S[v]) for v in range(n)}
+    delta = max((d for _, d in S.degree()), default=0)
+    if not mine["consistent"]:
+        problems.append("coloring: a result fails isColoring / isEdgeColoring or its classes disagree")
+
+    def proper(colors):
+        return len(colors) == n and all(colors[u] != colors[v] for u, v in S.edges())
+
+    def count(colors):
+        return max(colors) + 1 if colors else 0
+
+    def nx_colors(strategy):
+        colors = nx.greedy_color(S, strategy)
+        return [colors[v] for v in range(n)]
+
+    greedy = mine["greedy"]
+    for name, colors in greedy.items():
+        if not proper(colors):
+            problems.append(f"{name} colouring {colors[:12]} is not proper")
+        elif count(colors) > delta + 1:
+            problems.append(f"{name} uses {count(colors)} colours, Δ + 1 = {delta + 1}")
+        if set(colors) != set(range(count(colors))):
+            problems.append(f"{name} colours {sorted(set(colors))[:12]} are not 0..<k")
+        if n and nx_colors(NX_STRATEGIES[name]) == colors:
+            NX_NATIVE_AGREE[name] += 1
+    for name in ("largestFirst", "saturationLargestFirst"):
+        theirs = nx_colors(NX_STRATEGIES[name])
+        if greedy[name] != theirs:
+            problems.append(f"{name}: library {greedy[name][:12]}, NetworkX {theirs[:12]}")
+    for name, strategy in coloring_orders(S, not case["directed"]).items():
+        theirs = nx_colors(strategy)
+        if greedy[name] != theirs:
+            problems.append(f"{name}: library {greedy[name][:12]}, NetworkX with least-vertex ties {theirs[:12]}")
+    degeneracy = max(nx.core_number(S).values(), default=0)
+    if count(greedy["smallestLast"]) > degeneracy + 1:
+        problems.append(f"smallestLast uses {count(greedy['smallestLast'])} colours, degeneracy + 1 = {degeneracy + 1}")
+    theirs = nx_colors(lambda G, colors: reversed(range(n)))
+    if mine["reversedOrder"] != theirs:
+        problems.append(f"greedyColoring(order: reversed): library {mine['reversedOrder'][:12]}, NetworkX {theirs[:12]}")
+
+    chi, minimum = mine.get("chromaticNumber"), mine.get("minimum")
+    if minimum is not None:
+        if not proper(minimum) or count(minimum) != chi:
+            problems.append(f"minimumColoring {minimum[:12]} is not proper with χ = {chi} colours")
+        omega = max((len(c) for c in nx.find_cliques(S)), default=0)
+        best_greedy = min((count(c) for c in [*greedy.values(), mine["reversedOrder"]]), default=0)
+        if not omega <= chi <= best_greedy:
+            problems.append(f"chromaticNumber {chi} outside [ω = {omega}, best greedy]")
+        if n and (chi <= 2) != nx.is_bipartite(S):
+            problems.append(f"chromaticNumber {chi}, NetworkX is_bipartite {nx.is_bipartite(S)}")
+        components = list(nx.connected_components(S))
+        if all(len(c) <= 12 for c in components):
+            expected, best = [0] * n, 0
+            for comp in components:
+                k, col = least_coloring(adj, comp)
+                best = max(best, k)
+                for v, c in col.items():
+                    expected[v] = c
+            COLORING_COVERED["χ by backtracking"] += 1
+            COLORING_COVERED[f"χ = {best}"] += 1
+            if chi != best:
+                problems.append(f"chromaticNumber {chi}, backtracking {best}")
+            elif minimum != expected:
+                problems.append(f"minimumColoring {minimum[:12]}, least per component {expected[:12]}")
+
+    # Misra–Gries on the simple graph the library built.
+    simple, colors = [tuple(e) for e in mine["simpleEdges"]], mine["edgeColors"]
+    if sorted(tuple(sorted(e)) for e in simple) != sorted(tuple(sorted(e)) for e in S.edges()):
+        problems.append("edgeColoring: the simple graph's edges differ from NetworkX's")
+    k = mine["edgeColorCount"]
+
+    def proper_edges(pairs, colors):
+        at = defaultdict(list)
+        for e, (u, v) in enumerate(pairs):
+            for x in {u, v}:
+                at[x].append(colors[e])
+        return all(len(cs) == len(set(cs)) for cs in at.values())
+
+    if not proper_edges(simple, colors) or set(colors) != set(range(k)):
+        problems.append(f"edgeColoring {colors[:12]} is not a proper colouring by 0..<{k}")
+    elif simple and not delta <= k <= delta + 1:
+        problems.append(f"edgeColoring uses {k} colours, Δ = {delta}")
+    COLORING_COVERED["Misra–Gries Δ + 1"] += bool(simple) and k == delta + 1
+    # The graph's own edges in position order (a directed case's arcs, through the undirected
+    # view, in the adjacency list's order), the same multiset as the case's.
+    ends = [tuple(e) for e in mine["edges"]]
+    if sorted(tuple(sorted(e)) for e in ends) != sorted(tuple(sorted(e[:2])) for e in case["edges"]):
+        problems.append("coloring: the graph's edges differ from the case's")
+    M = nx.MultiGraph()
+    M.add_nodes_from(range(n))
+    M.add_edges_from(ends)
+    bipartite = nx.is_bipartite(M)
+    konig = mine.get("bipartiteEdgeColors")
+    if (konig is not None) != bipartite:
+        problems.append(f"bipartiteEdgeColoring: library {'nil' if konig is None else 'a colouring'}, NetworkX is_bipartite {bipartite}")
+    elif konig is not None:
+        multi = max((d for _, d in M.degree()), default=0)
+        COLORING_COVERED["König compared"] += 1
+        COLORING_COVERED["König with parallel edges"] += len(set(tuple(sorted(e)) for e in ends)) < len(ends)
+        k = mine["bipartiteEdgeColorCount"]
+        if not proper_edges(ends, konig) or set(konig) != set(range(k)) or k != multi:
+            problems.append(f"bipartiteEdgeColoring {konig[:12]} ({k} colours) is not a proper Δ = {multi} colouring")
+
+    # The checks, against colourings judged here (self-loops ignored by isColoring; a loop and
+    # another edge at its vertex conflict for isEdgeColoring).
+    for key, mod in (("isColoringMod2", 2), ("isColoringMod3", 3)):
+        expected = all(u % mod != v % mod for u, v in ends if u != v)
+        if mine[key] != expected:
+            problems.append(f"{key}: library {mine[key]}, expected {expected}")
+    for key, colors in (("isEdgeColoringMod3", [i % 3 for i in range(len(ends))]),
+                        ("isEdgeColoringDistinct", list(range(len(ends))))):
+        expected = proper_edges(ends, colors)
+        if mine[key] != expected:
+            problems.append(f"{key}: library {mine[key]}, expected {expected}")
+    return problems
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--cases", type=int, default=2000)
@@ -1477,6 +1701,8 @@ def main():
                 failures += 1
                 record(case, problems, seed)
     print("covered: " + ", ".join(f"{k} {v}" for k, v in covered.items()))
+    print("coloring: " + ", ".join(f"{k} {v}" for k, v in sorted(COLORING_COVERED.items()))
+          + "; NetworkX's own strategy equal: " + ", ".join(f"{k} {v}" for k, v in NX_NATIVE_AGREE.items()))
     print(f"{args.cases} cases (seed {seed}): " + (f"{failures} disagreement(s) in {os.path.relpath(FAILURES, ROOT)}/" if failures else "all agree"))
     sys.exit(1 if failures else 0)
 

@@ -61,7 +61,8 @@ func _restrictGrowth(_ colors: inout [Int], from: Int, high: Int, scratch: inout
 /// `extend(_:colors:)` is DSatur branch and bound as a decision procedure (Brélaz 1979; San
 /// Segundo 2012): is there a proper colouring with colours `0..<k` agreeing with the given
 /// vertices? It branches on the uncoloured vertex with the fewest colours left (the most distinct
-/// neighbour colours, then the most uncoloured neighbours, then the least number), tries its
+/// neighbour colours, kept in linked lists by saturation, then the most uncoloured neighbours, then
+/// the least number), tries its
 /// allowed colours ascending, and of the colours above every one in use only the first, as they
 /// are interchangeable. Neighbour colours are counted per (vertex, colour) and mirrored in a bitset
 /// per vertex; the search is a flat stack of (vertex, colour tried, greatest colour before), with
@@ -77,6 +78,10 @@ struct _ColoringSearch {
     @usableFromInline var masks: [UInt64] = []
     @usableFromInline var saturation: [Int] = []
     @usableFromInline var open: [Int] = []
+    /// The uncoloured vertices in doubly linked lists by saturation (`0...k`).
+    @usableFromInline var bucketHead: [Int] = []
+    @usableFromInline var bucketNext: [Int] = []
+    @usableFromInline var bucketPrevious: [Int] = []
     @usableFromInline var uncolored = 0
     @usableFromInline var frameVertex: [Int] = []
     @usableFromInline var frameColor: [Int] = []
@@ -92,7 +97,7 @@ struct _ColoringSearch {
     @inlinable
     var count: Int { rows.count }
 
-    /// Sets up the component `members` (ascending global numbers) of `global`.
+    /// Sets up the subgraph that `members` (ascending numbers in `global`) induce.
     @inlinable
     mutating func load(_ members: ArraySlice<Int>, of global: _ColoringRows) {
         for (i, u) in members.enumerated() { local[u] = i }
@@ -100,7 +105,9 @@ struct _ColoringSearch {
         offsets.reserveCapacity(members.count + 1)
         var neighbors: [Int] = []
         for u in members {
-            for k in global.offsets[u] ..< global.offsets[u + 1] { neighbors.append(local[global.neighbors[k]]) }
+            for k in global.offsets[u] ..< global.offsets[u + 1] where local[global.neighbors[k]] >= 0 {
+                neighbors.append(local[global.neighbors[k]])
+            }
             offsets.append(neighbors.count)
         }
         for u in members { local[u] = -1 }
@@ -142,8 +149,26 @@ struct _ColoringSearch {
         return best.sorted()
     }
 
+    /// Puts the uncoloured `v` at the head of its saturation's list.
+    @inlinable @inline(__always)
+    mutating func link(_ v: Int) {
+        let s = saturation[v], head = bucketHead[s]
+        bucketNext[v] = head
+        bucketPrevious[v] = -1
+        if head >= 0 { bucketPrevious[head] = v }
+        bucketHead[s] = v
+    }
+
+    @inlinable @inline(__always)
+    mutating func unlink(_ v: Int) {
+        let before = bucketPrevious[v], after = bucketNext[v]
+        if before >= 0 { bucketNext[before] = after } else { bucketHead[saturation[v]] = after }
+        if after >= 0 { bucketPrevious[after] = before }
+    }
+
     @inlinable @inline(__always)
     mutating func assign(_ v: Int, _ c: Int) {
+        unlink(v)
         color[v] = c
         uncolored -= 1
         let word = c >> 6, bit = UInt64(1) << UInt64(c & 63)
@@ -152,7 +177,13 @@ struct _ColoringSearch {
             let slot = w &* k &+ c
             if counts[slot] == 0 {
                 masks[w &* words &+ word] |= bit
-                saturation[w] += 1
+                if color[w] < 0 {
+                    unlink(w)
+                    saturation[w] += 1
+                    link(w)
+                } else {
+                    saturation[w] += 1
+                }
             }
             counts[slot] += 1
             open[w] -= 1
@@ -161,8 +192,6 @@ struct _ColoringSearch {
 
     @inlinable @inline(__always)
     mutating func unassign(_ v: Int, _ c: Int) {
-        color[v] = -1
-        uncolored += 1
         let word = c >> 6, bit = UInt64(1) << UInt64(c & 63)
         for i in rows.offsets[v] ..< rows.offsets[v + 1] {
             let w = rows.neighbors[i]
@@ -170,10 +199,19 @@ struct _ColoringSearch {
             counts[slot] -= 1
             if counts[slot] == 0 {
                 masks[w &* words &+ word] &= ~bit
-                saturation[w] -= 1
+                if color[w] < 0 {
+                    unlink(w)
+                    saturation[w] -= 1
+                    link(w)
+                } else {
+                    saturation[w] -= 1
+                }
             }
             open[w] += 1
         }
+        color[v] = -1
+        uncolored += 1
+        link(v)
     }
 
     @inlinable @inline(__always)
@@ -181,25 +219,31 @@ struct _ColoringSearch {
         masks[v &* words &+ c >> 6] & (UInt64(1) << UInt64(c & 63)) == 0
     }
 
-    /// The next colour for `v` after `after`, at most `limit`, that no neighbour holds; −1 if none.
+    /// The next colour for `v` after `after` (−1 before the first), at most `limit`, that no
+    /// neighbour holds; −1 if none. `prefer[v]`, when given, comes first, then the rest ascending.
     @inlinable
-    func nextColor(_ v: Int, after: Int, limit: Int) -> Int {
-        var c = after + 1
+    func nextColor(_ v: Int, after: Int, limit: Int, prefer: [Int]) -> Int {
+        let first = prefer.isEmpty ? -1 : prefer[v]
+        if after < 0, first >= 0, first <= limit, allows(v, first) { return first }
+        var c = after == first ? 0 : after + 1
         while c <= limit {
-            if allows(v, c) { return c }
+            if c != first && allows(v, c) { return c }
             c += 1
         }
         return -1
     }
 
     /// Whether a proper colouring with colours `0..<colors` agrees with `preset` (a colour per
-    /// local vertex, −1 for free ones); when it does, `color` holds one.
+    /// local vertex, −1 for free ones, the preset ones in `0..<colors` and proper among
+    /// themselves); when it does, `color` holds one. Each vertex tries `prefer`'s colour first
+    /// when given (a colouring to stay close to), then the others ascending.
     @inlinable
-    mutating func extend(_ preset: [Int], colors: Int) -> Bool {
+    mutating func extend(_ preset: [Int], colors: Int, prefer: [Int] = []) -> Bool {
         let p = count
         k = colors
         words = (colors + 63) >> 6
-        color = [Int](repeating: -1, count: p)
+        color.removeAll(keepingCapacity: true)
+        color.append(contentsOf: repeatElement(-1, count: p))
         counts.removeAll(keepingCapacity: true)
         counts.append(contentsOf: repeatElement(0, count: p * colors))
         masks.removeAll(keepingCapacity: true)
@@ -209,10 +253,16 @@ struct _ColoringSearch {
         open.removeAll(keepingCapacity: true)
         for v in 0 ..< p { open.append(rows.degree(v)) }
         uncolored = p
+        bucketHead.removeAll(keepingCapacity: true)
+        bucketHead.append(contentsOf: repeatElement(-1, count: colors + 1))
+        bucketNext.removeAll(keepingCapacity: true)
+        bucketNext.append(contentsOf: repeatElement(-1, count: p))
+        bucketPrevious.removeAll(keepingCapacity: true)
+        bucketPrevious.append(contentsOf: repeatElement(-1, count: p))
+        for v in stride(from: p - 1, through: 0, by: -1) { link(v) }
         var high = -1
         for v in 0 ..< p where preset[v] >= 0 {
             let c = preset[v]
-            guard c < colors, allows(v, c) else { return false }
             assign(v, c)
             high = max(high, c)
         }
@@ -224,14 +274,17 @@ struct _ColoringSearch {
         while true {
             if descend {
                 if uncolored == 0 { return true }
-                var best = -1, bestSaturation = -1, bestOpen = -1
-                for v in 0 ..< p where color[v] < 0 {
-                    let s = saturation[v]
-                    if s > bestSaturation || (s == bestSaturation && open[v] > bestOpen) {
+                // The highest non-empty saturation list, then the most uncoloured neighbours there.
+                var bestSaturation = colors
+                while bucketHead[bestSaturation] < 0 { bestSaturation -= 1 }
+                var best = -1, bestOpen = -1
+                var v = bucketHead[bestSaturation]
+                while v >= 0 {
+                    if open[v] > bestOpen || (open[v] == bestOpen && v < best) {
                         best = v
-                        bestSaturation = s
                         bestOpen = open[v]
                     }
+                    v = bucketNext[v]
                 }
                 if bestSaturation < colors {
                     frameVertex.append(best)
@@ -250,7 +303,7 @@ struct _ColoringSearch {
             guard let v = frameVertex.last else { return false }
             let t = frameVertex.count - 1
             let base = frameHigh[t]
-            let c = nextColor(v, after: frameColor[t], limit: min(colors - 1, base + 1))
+            let c = nextColor(v, after: frameColor[t], limit: min(colors - 1, base + 1), prefer: prefer)
             if c >= 0 {
                 frameColor[t] = c
                 assign(v, c)
@@ -268,38 +321,48 @@ struct _ColoringSearch {
     }
 
     /// The chromatic number of the loaded component, known not bipartite (so at least 3), with a
-    /// colouring that uses that many colours. DSatur gives the upper bound, a greedy clique the
-    /// lower one; each k between is decided with the clique fixed to colours `0..<q`, ascending.
+    /// colouring that uses that many colours; nil when greedy DSatur already uses no more than
+    /// `floor` (χ alone needs no better). DSatur gives the upper bound, a greedy clique the lower
+    /// one; each k between is decided with the clique fixed to colours `0..<q`, ascending.
     @inlinable
-    mutating func chromaticNumber() -> (chi: Int, witness: [Int]) {
+    mutating func chromaticNumber(above floor: Int) -> (chi: Int, witness: [Int])? {
         let greedy = _saturationColoring(rows)
         var upper = 0
         for c in greedy where c >= upper { upper = c + 1 }
+        guard upper > floor else { return nil }
         let clique = greedyClique()
         let lower = max(3, clique.count)
         guard lower < upper else { return (upper, greedy) }
         var preset = [Int](repeating: -1, count: count)
         for (i, v) in clique.enumerated() { preset[v] = i }
-        for colors in lower ..< upper where extend(preset, colors: colors) { return (colors, color) }
+        for colors in lower ..< upper {
+            if extend(preset, colors: colors) { return (colors, color) }
+        }
         return (upper, greedy)
     }
 
     /// The lexicographically least colouring of the loaded component with colours `0..<chi`,
     /// given a colouring `witness` with that many. First fit in index order is the least proper
-    /// colouring of all, so it is the answer when it fits. Otherwise each vertex in index order
-    /// takes the least colour whose prefix still extends: the witness, renumbered to agree with
+    /// colouring of all, so it is the answer when it fits. Otherwise each vertex v in index order
+    /// takes the least colour whose prefix still extends. The witness, renumbered to agree with
     /// the prefix and grow by one colour at a time, shows that its own colour does, so only lesser
-    /// colours are decided, and each success becomes the next witness.
+    /// colours c are decided, each in two steps. First a Kempe swap: when the chain of v in the
+    /// colours c and witness[v] has no vertex before v, swapping it is a new witness. Otherwise a
+    /// search, but only in the regions of the vertices after v that v touches (the components
+    /// they induce): the prefix separates the regions, so the others keep the witness's colours.
     @inlinable
     mutating func leastColoring(chi: Int, witness: [Int]) -> [Int] {
         let p = count
-        let order = Array(0 ..< p)
-        let fit = _firstFit(rows, order: order)
+        let fit = _firstFit(rows, order: Array(0 ..< p))
         if !fit.contains(where: { $0 >= chi }) { return fit }
         var witness = witness
         var scratch = [Int](repeating: -1, count: chi)
         _restrictGrowth(&witness, from: 0, high: -1, scratch: &scratch)
         var preset = [Int](repeating: -1, count: p)
+        var mark = [Int](repeating: -1, count: p)
+        var stamp = 0
+        var queue: [Int] = [], members: [Int] = [], found: [Int] = [], part: [Int] = [], hint: [Int] = []
+        var region = _ColoringSearch(count: p)
         var high = -1
         for v in 0 ..< p {
             var chosen = witness[v]
@@ -310,12 +373,80 @@ struct _ColoringSearch {
                     break
                 }
                 if clash { continue }
-                preset[v] = c
-                if extend(preset, colors: chi) {
-                    witness = color
+                // The Kempe chain of v in colours c and d.
+                let d = witness[v]
+                stamp += 1
+                queue.removeAll(keepingCapacity: true)
+                queue.append(v)
+                mark[v] = stamp
+                var head = 0, fixed = false
+                while head < queue.count {
+                    let x = queue[head]
+                    head += 1
+                    for i in rows.offsets[x] ..< rows.offsets[x + 1] {
+                        let y = rows.neighbors[i]
+                        if mark[y] == stamp || (witness[y] != c && witness[y] != d) { continue }
+                        mark[y] = stamp
+                        queue.append(y)
+                    }
+                    if x < v { fixed = true }
+                }
+                if !fixed {
+                    for x in queue { witness[x] = witness[x] == c ? d : c }
                     chosen = c
                     break
                 }
+                // Each region v touches, with its neighbours before v and v itself fixed.
+                preset[v] = c
+                stamp += 1
+                found.removeAll(keepingCapacity: true)
+                var extends = true
+                for i in rows.offsets[v] ..< rows.offsets[v + 1] {
+                    let s = rows.neighbors[i]
+                    if s < v || mark[s] == stamp { continue }
+                    queue.removeAll(keepingCapacity: true)
+                    members.removeAll(keepingCapacity: true)
+                    queue.append(s)
+                    mark[s] = stamp
+                    head = 0
+                    while head < queue.count {
+                        let x = queue[head]
+                        head += 1
+                        for j in rows.offsets[x] ..< rows.offsets[x + 1] {
+                            let y = rows.neighbors[j]
+                            if mark[y] == stamp { continue }
+                            mark[y] = stamp
+                            if y > v { queue.append(y) } else { members.append(y) }
+                        }
+                    }
+                    // The fixed vertices met are marked too: unmark them for the next region.
+                    for y in members { mark[y] = -1 }
+                    members.append(contentsOf: queue)
+                    members.sort()
+                    region.load(members[...], of: rows)
+                    part.removeAll(keepingCapacity: true)
+                    hint.removeAll(keepingCapacity: true)
+                    for y in members {
+                        part.append(preset[y])
+                        hint.append(witness[y])
+                    }
+                    let t0 = ContinuousClock.now
+                    let ok = region.extend(part, colors: chi, prefer: hint)
+                    let dt = ContinuousClock.now - t0
+                    if dt > .milliseconds(5) { print("v", v, "c", c, "size", members.count, "fixed", members.count - queue.count, "ok", ok, dt) }
+                    if !ok {
+                        extends = false
+                        break
+                    }
+                    for (j, y) in members.enumerated() where y > v { found.append(y); found.append(region.color[j]) }
+                }
+                if extends {
+                    for j in stride(from: 0, to: found.count, by: 2) { witness[found[j]] = found[j + 1] }
+                    witness[v] = c
+                    chosen = c
+                    break
+                }
+                preset[v] = -1
             }
             preset[v] = chosen
             high = max(high, chosen)
@@ -352,14 +483,9 @@ func _exactColoring(_ rows: _ColoringRows, lexicographic: Bool) -> (chi: Int, co
         var source = _ColoringRowSource(search.rows)
         if let sides = _TwoColoring(witness: false).run(count: part.count, edgeCount: search.rows.neighbors.count / 2, &source).sides {
             for (i, v) in part.enumerated() { colors[v] = Int(sides[i]) }
-            chi = max(chi, 2)
             continue
         }
-        if !lexicographic {
-            let greedy = _saturationColoring(search.rows)
-            if greedy.max()! + 1 <= chi { continue }
-        }
-        let (k, witness) = search.chromaticNumber()
+        guard let (k, witness) = search.chromaticNumber(above: lexicographic ? 0 : chi) else { continue }
         chi = max(chi, k)
         guard lexicographic else { continue }
         let least = search.leastColoring(chi: k, witness: witness)

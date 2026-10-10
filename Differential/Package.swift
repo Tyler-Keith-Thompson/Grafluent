@@ -13,7 +13,7 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "GrafluentDifferential",
-            dependencies: ["GraphProtocols", "AdjacencyListModule", "ShortestPaths", "SpanningTrees", "Connectivity", "Walks", "Cycles", "Trees", "TreeAlgorithms", "Distances", "Cliques", "Centrality", "CommunityDetection", "BipartiteGraphs", "MatchingModule", "Covering"].map { .product(name: $0, package: "Grafluent") }
+            dependencies: ["GraphProtocols", "AdjacencyListModule", "ShortestPaths", "SpanningTrees", "Connectivity", "Walks", "Cycles", "Trees", "TreeAlgorithms", "Distances", "Cliques", "Centrality", "CommunityDetection", "BipartiteGraphs", "MatchingModule", "Covering", "ColoringModule"].map { .product(name: $0, package: "Grafluent") }
         ),
     ]
 )

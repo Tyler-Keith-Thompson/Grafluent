@@ -1,13 +1,14 @@
 // `chromaticNumber()` (catalog §ChromaticNumber): χ of the simple graph, exact; `minimumColoring()`
-// a proper colouring with χ colours (checked here) and no greedy strategy below it; on rows of at
-// most 20 vertices the least k with a proper k-colouring by exhaustive search; χ ≥ ω, the clique
-// number by brute force on rows of at most 16 vertices and a clique checked here otherwise;
-// bipartite exactly when χ ≤ 2. Graphs are `UndirectedAdjacencyList` built by inserting the row's
-// vertices, then its edges in order, so rows are in position order (a self-loop twice); `multigraph`
-// rows are `ReferencePseudograph`, whose rows are in position order too; `L …; R …` and the `Kb`,
-// `crown` and `lcgb` rows are `BipartiteGraph(left:right:edges:)`. In-test oracles number vertices
-// by their index in `vertices`. Generated from cases.md by swiftgen.py, which re-evaluates each row
-// with ref.py's model; see README.md.
+// a proper colouring with χ colours (checked here) and no greedy strategy below it; the least k with
+// a proper k-colouring by exhaustive search (vertices by degree, colours at most one above those
+// used); χ ≥ ω, the clique number by brute force on rows of at most 16 vertices and a clique checked
+// here otherwise; bipartite exactly when χ ≤ 2 on loop-free rows. Graphs are
+// `UndirectedAdjacencyList` built by inserting the row's vertices, then its edges in order, so rows
+// are in position order (a self-loop twice); `multigraph` rows are `ReferencePseudograph`, whose
+// rows are in position order too; `L …; R …` and the `Kb`, `crown` and `lcgb` rows are
+// `BipartiteGraph(left:right:edges:)`. In-test oracles number vertices by their index in `vertices`.
+// Generated from cases.md by swiftgen.py, which re-evaluates each row with ref.py's model; see
+// README.md.
 
 import AdjacencyListModule
 import BipartiteGraphs
@@ -1107,7 +1108,24 @@ struct ChromaticNumberTests {
             if !adjacent[a].contains(b) { adjacent[a].append(b) }
             if !adjacent[b].contains(a) { adjacent[b].append(a) }
         }
-        // 23 vertices, too many for the search here: χ = 5 is the literature value (ref.py).
+        // Brute force: the least k for which an exhaustive search finds a proper colouring with k colours
+        // (vertices in order of degree, descending; each takes a colour at most one above those used).
+        let byDegree = (0 ..< n).sorted { (adjacent[$0].count, $1) > (adjacent[$1].count, $0) }
+        func colorable(_ k: Int) -> Bool {
+            var colour = [Int](repeating: -1, count: n)
+            func place(_ i: Int, _ used: Int) -> Bool {
+                if i == n { return true }
+                let v = byDegree[i]
+                for c in 0 ..< min(k, used + 1) where !adjacent[v].contains(where: { colour[$0] == c }) {
+                    colour[v] = c
+                    if place(i + 1, max(used, c + 1)) { return true }
+                }
+                colour[v] = -1
+                return false
+            }
+            return place(0, 0)
+        }
+        #expect(chi == (0 ... n).first(where: colorable))
         // χ ≥ ω: a clique of 2 (found by swiftgen.py with NetworkX's find_cliques), checked here.
         let clique = [21, 22]
         for a in clique { for b in clique where a < b { #expect(adjacent[a].contains(b)) } }
@@ -1367,7 +1385,24 @@ struct ChromaticNumberTests {
             if !adjacent[a].contains(b) { adjacent[a].append(b) }
             if !adjacent[b].contains(a) { adjacent[b].append(a) }
         }
-        // 25 vertices, too many for the search here: χ = 5 is the literature value (ref.py).
+        // Brute force: the least k for which an exhaustive search finds a proper colouring with k colours
+        // (vertices in order of degree, descending; each takes a colour at most one above those used).
+        let byDegree = (0 ..< n).sorted { (adjacent[$0].count, $1) > (adjacent[$1].count, $0) }
+        func colorable(_ k: Int) -> Bool {
+            var colour = [Int](repeating: -1, count: n)
+            func place(_ i: Int, _ used: Int) -> Bool {
+                if i == n { return true }
+                let v = byDegree[i]
+                for c in 0 ..< min(k, used + 1) where !adjacent[v].contains(where: { colour[$0] == c }) {
+                    colour[v] = c
+                    if place(i + 1, max(used, c + 1)) { return true }
+                }
+                colour[v] = -1
+                return false
+            }
+            return place(0, 0)
+        }
+        #expect(chi == (0 ... n).first(where: colorable))
         // χ ≥ ω: a clique of 5 (found by swiftgen.py with NetworkX's find_cliques), checked here.
         let clique = [20, 21, 22, 23, 24]
         for a in clique { for b in clique where a < b { #expect(adjacent[a].contains(b)) } }
@@ -1403,7 +1438,24 @@ struct ChromaticNumberTests {
             if !adjacent[a].contains(b) { adjacent[a].append(b) }
             if !adjacent[b].contains(a) { adjacent[b].append(a) }
         }
-        // 36 vertices, too many for the search here: χ = 7 is the literature value (ref.py).
+        // Brute force: the least k for which an exhaustive search finds a proper colouring with k colours
+        // (vertices in order of degree, descending; each takes a colour at most one above those used).
+        let byDegree = (0 ..< n).sorted { (adjacent[$0].count, $1) > (adjacent[$1].count, $0) }
+        func colorable(_ k: Int) -> Bool {
+            var colour = [Int](repeating: -1, count: n)
+            func place(_ i: Int, _ used: Int) -> Bool {
+                if i == n { return true }
+                let v = byDegree[i]
+                for c in 0 ..< min(k, used + 1) where !adjacent[v].contains(where: { colour[$0] == c }) {
+                    colour[v] = c
+                    if place(i + 1, max(used, c + 1)) { return true }
+                }
+                colour[v] = -1
+                return false
+            }
+            return place(0, 0)
+        }
+        #expect(chi == (0 ... n).first(where: colorable))
         // χ ≥ ω: a clique of 6 (found by swiftgen.py with NetworkX's find_cliques), checked here.
         let clique = [30, 31, 32, 33, 34, 35]
         for a in clique { for b in clique where a < b { #expect(adjacent[a].contains(b)) } }
@@ -1772,6 +1824,24 @@ struct ChromaticNumberTests {
             if !adjacent[a].contains(b) { adjacent[a].append(b) }
             if !adjacent[b].contains(a) { adjacent[b].append(a) }
         }
+        // Brute force: the least k for which an exhaustive search finds a proper colouring with k colours
+        // (vertices in order of degree, descending; each takes a colour at most one above those used).
+        let byDegree = (0 ..< n).sorted { (adjacent[$0].count, $1) > (adjacent[$1].count, $0) }
+        func colorable(_ k: Int) -> Bool {
+            var colour = [Int](repeating: -1, count: n)
+            func place(_ i: Int, _ used: Int) -> Bool {
+                if i == n { return true }
+                let v = byDegree[i]
+                for c in 0 ..< min(k, used + 1) where !adjacent[v].contains(where: { colour[$0] == c }) {
+                    colour[v] = c
+                    if place(i + 1, max(used, c + 1)) { return true }
+                }
+                colour[v] = -1
+                return false
+            }
+            return place(0, 0)
+        }
+        #expect(chi == (0 ... n).first(where: colorable))
         // χ ≥ ω: a clique of 5 (found by swiftgen.py with NetworkX's find_cliques), checked here.
         let clique = [0, 1, 2, 3, 13]
         for a in clique { for b in clique where a < b { #expect(adjacent[a].contains(b)) } }

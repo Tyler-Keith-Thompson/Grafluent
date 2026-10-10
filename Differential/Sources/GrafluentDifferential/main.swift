@@ -6,6 +6,7 @@ import AdjacencyListModule
 import BipartiteGraphs
 import Centrality
 import Cliques
+import ColoringModule
 import CommunityDetection
 import Connectivity
 import Covering
@@ -51,6 +52,7 @@ struct Result: Encodable {
     var bipartite = BipartiteAnswers()
     var matching = MatchingAnswers()
     var covering = CoveringAnswers()
+    var coloring = ColoringAnswers()
 }
 
 /// Cliques on the simple graph: maximal cliques (each sorted), the clique number and the
@@ -468,6 +470,95 @@ func coveringAnswers<G: Graph<Int>>(_ graph: G) -> CoveringAnswers {
     return a
 }
 
+/// Colouring on the undirected graph (a directed case through `.undirected`): every greedy
+/// strategy's colours, first fit in reverse vertex order, the exact colouring on small graphs,
+/// Misra–Gries on the simple graph (self-loops dropped, parallel copies once, first appearance
+/// order), König on the graph itself (parallel copies kept), and the checks against fixed
+/// colourings the script judges on its own.
+struct ColoringAnswers: Encodable {
+    var greedy: [String: [Int]] = [:]
+    var reversedOrder: [Int] = []
+    var chromaticNumber: Int?
+    var minimum: [Int]?
+    /// The simple graph's edges, in its position order, and Misra–Gries's colour for each.
+    var simpleEdges: [[Int]] = []
+    var edgeColors: [Int] = []
+    var edgeColorCount = 0
+    /// The graph's edges in position order.
+    var edges: [[Int]] = []
+    /// König's colour per edge of the graph, in position order; nil when it is not bipartite.
+    var bipartiteEdgeColors: [Int]?
+    var bipartiteEdgeColorCount: Int?
+    /// isColoring of v mod 2 and v mod 3, isEdgeColoring of position mod 3 and of the position.
+    var isColoringMod2 = false
+    var isColoringMod3 = false
+    var isEdgeColoringMod3 = false
+    var isEdgeColoringDistinct = false
+    var consistent = true
+}
+
+func coloringAnswers<G: Graph<Int>>(_ graph: G) -> ColoringAnswers {
+    var a = ColoringAnswers()
+    let n = graph.vertexCount
+    // Every result is proper by isColoring, and its colour classes, colour(of:) and colorCount agree.
+    func check(_ coloring: Coloring<G>) -> [Int] {
+        let colors = graph.vertices.map { coloring.color(of: $0) }
+        let classes = coloring.colorClasses
+        a.consistent = a.consistent && graph.isColoring { coloring.color(of: $0) }
+            && classes.count == coloring.colorCount && classes.allSatisfy { !$0.isEmpty }
+            && classes.enumerated().allSatisfy { c, members in members.allSatisfy { colors[$0] == c } }
+            && classes.reduce(0) { $0 + $1.count } == n
+            && (0 ..< n).allSatisfy { coloring.color(ofIndex: $0) == colors[$0] }
+        return colors
+    }
+    let names: [(ColoringStrategy, String)] = [
+        (.largestFirst, "largestFirst"), (.smallestLast, "smallestLast"),
+        (.saturationLargestFirst, "saturationLargestFirst"), (.independentSet, "independentSet"),
+        (.connectedSequentialBreadthFirst, "connectedSequentialBreadthFirst"),
+        (.connectedSequentialDepthFirst, "connectedSequentialDepthFirst"),
+    ]
+    for (strategy, name) in names { a.greedy[name] = check(graph.greedyColoring(strategy: strategy)) }
+    a.consistent = a.consistent && graph.greedyColoring() == graph.greedyColoring(strategy: .largestFirst)
+    a.reversedOrder = check(graph.greedyColoring(order: graph.vertices.reversed()))
+    if n <= 40 {
+        let minimum = graph.minimumColoring()
+        a.minimum = check(minimum)
+        a.chromaticNumber = graph.chromaticNumber()
+        a.consistent = a.consistent && minimum.colorCount == a.chromaticNumber
+    }
+    var seen = Set<UndirectedEdge<Int>>()
+    var simple: [UndirectedEdge<Int>] = []
+    for e in graph.edges where e.u != e.v && seen.insert(UndirectedEdge(e.u, e.v)).inserted { simple.append(UndirectedEdge(e.u, e.v)) }
+    let s = UndirectedAdjacencyList(vertices: 0 ..< n, edges: simple)
+    let edgeColoring = s.edgeColoring()
+    a.simpleEdges = s.edges.map { [$0.u, $0.v] }
+    a.edgeColors = s.edges.indices.map { edgeColoring.color(ofEdgeAt: $0) }
+    a.edgeColorCount = edgeColoring.colorCount
+    func consistent<H: Graph>(_ h: H, _ c: EdgeColoring<H>) -> Bool {
+        let classes = c.colorClasses
+        return h.isEdgeColoring { c.color(ofEdgeAt: $0) } && classes.count == c.colorCount && classes.allSatisfy { !$0.isEmpty }
+            && classes.enumerated().allSatisfy { k, members in members.allSatisfy { c.color(ofEdgeAt: $0) == k } }
+            && classes.reduce(0) { $0 + $1.count } == h.edgeCount
+    }
+    a.consistent = a.consistent && consistent(s, edgeColoring)
+    let konig = graph.bipartiteEdgeColoring()
+    a.consistent = a.consistent && (konig != nil) == graph.isBipartite
+    if let konig {
+        a.bipartiteEdgeColors = graph.edges.indices.map { konig.color(ofEdgeAt: $0) }
+        a.bipartiteEdgeColorCount = konig.colorCount
+        a.consistent = a.consistent && consistent(graph, konig)
+    }
+    a.edges = graph.edges.map { [$0.u, $0.v] }
+    let positions = Array(graph.edges.indices)
+    var rank: [G.Edges.Index: Int] = [:]
+    for (i, p) in positions.enumerated() { rank[p] = i }
+    a.isColoringMod2 = graph.isColoring { $0 % 2 }
+    a.isColoringMod3 = graph.isColoring { $0 % 3 }
+    a.isEdgeColoringMod3 = graph.isEdgeColoring { rank[$0]! % 3 }
+    a.isEdgeColoringDistinct = graph.isEdgeColoring { rank[$0]! * 1000 - 7 }
+    return a
+}
+
 func answer<G: DirectedGraph<Int>>(_ graph: G, _ c: Case, _ weight: (G.Edges.Index) -> Int,
                                    _ dijkstraTree: () -> ShortestPathTree<G, Int>,
                                    _ single: () -> (path: Path<Int, G.Edges.Index>, distance: Int)?,
@@ -547,6 +638,7 @@ for c in cases {
         results[results.count - 1].bipartite = bipartiteAnswers(graph.undirected, c.n)
         results[results.count - 1].matching = matchingAnswers(graph.undirected, { weights[$0] })
         results[results.count - 1].covering = coveringAnswers(graph.undirected)
+        results[results.count - 1].coloring = coloringAnswers(graph.undirected)
     } else {
         let graph = UndirectedAdjacencyList(vertices: 0 ..< c.n, edges: c.edges.map { UndirectedEdge($0[0], $0[1]) })
         var byEdge: [UndirectedEdge<Int>: Int] = [:]
@@ -701,6 +793,7 @@ for c in cases {
         result.bipartite = bipartiteAnswers(graph, c.n)
         result.matching = matchingAnswers(graph, w)
         result.covering = coveringAnswers(graph)
+        result.coloring = coloringAnswers(graph)
         results.append(result)
     }
 }

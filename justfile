@@ -58,11 +58,9 @@ mutate module *args="":
 
 [doc('Build the combined DocC site for every library module into .build/docs (what the DocC workflow publishes)')]
 docs:
-    cd {{PROJECT_ROOT}} && GRAFLUENT_DOCC=1 {{SWIFT}} package --allow-writing-to-directory .build/docs \
-        generate-documentation $(grep -o '\.library(name: "[A-Za-z]*"' Package.swift | sed 's/.*"\(.*\)"/--target \1/' | grep -vx -- '--target Grafluent') \
-        --enable-experimental-combined-documentation --disable-indexing \
-        --transform-for-static-hosting --hosting-base-path Grafluent \
-        --output-path .build/docs
+    {{BAZEL}} build //:docs
+    rm -rf {{PROJECT_ROOT}}/.build/docs && mkdir -p {{PROJECT_ROOT}}/.build
+    cp -RL {{PROJECT_ROOT}}/bazel-bin/docs {{PROJECT_ROOT}}/.build/docs && chmod -R u+w {{PROJECT_ROOT}}/.build/docs
 
 [doc('Fuzz with libFuzzer, time-boxed, e.g. just fuzz, or just fuzz FuzzShortestPaths -t 600')]
 fuzz *args="":

@@ -4,6 +4,9 @@
 # Bazel
 /bazel-*
 /user.bazelrc
+# Remote cache diagnostics (user.bazelrc writes them).
+/bazel-remote-grpc.log
+/execution_log.binpb.zst
 .cache/
 
 # SwiftPM
@@ -12,6 +15,9 @@
 # The root package is a library, so its resolution is not committed; swift/Package.resolved
 # pins Bazel's dependencies and is.
 /Package.resolved
+
+# DocC: the umbrella's extension index, written by scripts/extensions.py at doc-build time.
+/Sources/Grafluent/Grafluent.docc/Extensions/
 
 # Xcode (generated from the Bazel graph by `just generate`)
 /Grafluent.xcodeproj/

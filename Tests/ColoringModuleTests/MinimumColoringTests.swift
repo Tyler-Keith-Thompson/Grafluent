@@ -1,14 +1,14 @@
 // `minimumColoring()` (catalog §MinimumColoring): on each component the lexicographically least
 // colour vector with that component's χ colours; exact; proper, with every colour used and the
 // classes in `vertices` order (checked here); `chromaticNumber()` colours; classes numbered by least
-// vertex; by exhaustive search per component the least k and the lexicographically least k-colouring
-// (on larger components the latter for the catalog's χ); on bipartite rows the `bipartition()`
-// sides. Graphs are `UndirectedAdjacencyList` built by inserting the row's vertices, then its edges
-// in order, so rows are in position order (a self-loop twice); `multigraph` rows are
-// `ReferencePseudograph`, whose rows are in position order too; `L …; R …` and the `Kb`, `crown` and
-// `lcgb` rows are `BipartiteGraph(left:right:edges:)`. In-test oracles number vertices by their
-// index in `vertices`. Generated from cases.md by swiftgen.py, which re-evaluates each row with
-// ref.py's model; see README.md.
+// vertex; by exhaustive search per component in index order the least k and the lexicographically
+// least k-colouring; on bipartite rows the `bipartition()` sides. Graphs are
+// `UndirectedAdjacencyList` built by inserting the row's vertices, then its edges in order, so rows
+// are in position order (a self-loop twice); `multigraph` rows are `ReferencePseudograph`, whose
+// rows are in position order too; `L …; R …` and the `Kb`, `crown` and `lcgb` rows are
+// `BipartiteGraph(left:right:edges:)`. In-test oracles number vertices by their index in `vertices`.
+// Generated from cases.md by swiftgen.py, which re-evaluates each row with ref.py's model; see
+// README.md.
 
 import AdjacencyListModule
 import BipartiteGraphs
@@ -43,7 +43,7 @@ struct MinimumColoringTests {
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
         #expect(coloring.colorCount == graph.chromaticNumber())
         // Classes numbered by least vertex: each class's first vertex comes before the next class's.
-        let firsts = coloring.colorClasses.map { vertexList.firstIndex(of: $0.first!)! }
+        let firsts = coloring.colorClasses.map { $0.first.flatMap { vertexList.firstIndex(of: $0) } ?? -1 }
         #expect(firsts == firsts.sorted())
         // The simple graph, written out: each vertex's distinct other neighbours, in the order their first
         // edges come in its row (positions ascending); self-loops dropped, parallel edges once.
@@ -119,7 +119,7 @@ struct MinimumColoringTests {
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
         #expect(coloring.colorCount == graph.chromaticNumber())
         // Classes numbered by least vertex: each class's first vertex comes before the next class's.
-        let firsts = coloring.colorClasses.map { vertexList.firstIndex(of: $0.first!)! }
+        let firsts = coloring.colorClasses.map { $0.first.flatMap { vertexList.firstIndex(of: $0) } ?? -1 }
         #expect(firsts == firsts.sorted())
         // The simple graph, written out: each vertex's distinct other neighbours, in the order their first
         // edges come in its row (positions ascending); self-loops dropped, parallel edges once.
@@ -195,7 +195,7 @@ struct MinimumColoringTests {
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
         #expect(coloring.colorCount == graph.chromaticNumber())
         // Classes numbered by least vertex: each class's first vertex comes before the next class's.
-        let firsts = coloring.colorClasses.map { vertexList.firstIndex(of: $0.first!)! }
+        let firsts = coloring.colorClasses.map { $0.first.flatMap { vertexList.firstIndex(of: $0) } ?? -1 }
         #expect(firsts == firsts.sorted())
         // The simple graph, written out: each vertex's distinct other neighbours, in the order their first
         // edges come in its row (positions ascending); self-loops dropped, parallel edges once.
@@ -267,7 +267,7 @@ struct MinimumColoringTests {
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
         #expect(coloring.colorCount == graph.chromaticNumber())
         // Classes numbered by least vertex: each class's first vertex comes before the next class's.
-        let firsts = coloring.colorClasses.map { vertexList.firstIndex(of: $0.first!)! }
+        let firsts = coloring.colorClasses.map { $0.first.flatMap { vertexList.firstIndex(of: $0) } ?? -1 }
         #expect(firsts == firsts.sorted())
         // The simple graph, written out: each vertex's distinct other neighbours, in the order their first
         // edges come in its row (positions ascending); self-loops dropped, parallel edges once.
@@ -343,7 +343,7 @@ struct MinimumColoringTests {
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
         #expect(coloring.colorCount == graph.chromaticNumber())
         // Classes numbered by least vertex: each class's first vertex comes before the next class's.
-        let firsts = coloring.colorClasses.map { vertexList.firstIndex(of: $0.first!)! }
+        let firsts = coloring.colorClasses.map { $0.first.flatMap { vertexList.firstIndex(of: $0) } ?? -1 }
         #expect(firsts == firsts.sorted())
         // The simple graph, written out: each vertex's distinct other neighbours, in the order their first
         // edges come in its row (positions ascending); self-loops dropped, parallel edges once.
@@ -419,7 +419,7 @@ struct MinimumColoringTests {
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
         #expect(coloring.colorCount == graph.chromaticNumber())
         // Classes numbered by least vertex: each class's first vertex comes before the next class's.
-        let firsts = coloring.colorClasses.map { vertexList.firstIndex(of: $0.first!)! }
+        let firsts = coloring.colorClasses.map { $0.first.flatMap { vertexList.firstIndex(of: $0) } ?? -1 }
         #expect(firsts == firsts.sorted())
         // The simple graph, written out: each vertex's distinct other neighbours, in the order their first
         // edges come in its row (positions ascending); self-loops dropped, parallel edges once.
@@ -495,7 +495,7 @@ struct MinimumColoringTests {
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
         #expect(coloring.colorCount == graph.chromaticNumber())
         // Classes numbered by least vertex: each class's first vertex comes before the next class's.
-        let firsts = coloring.colorClasses.map { vertexList.firstIndex(of: $0.first!)! }
+        let firsts = coloring.colorClasses.map { $0.first.flatMap { vertexList.firstIndex(of: $0) } ?? -1 }
         #expect(firsts == firsts.sorted())
         // The simple graph, written out: each vertex's distinct other neighbours, in the order their first
         // edges come in its row (positions ascending); self-loops dropped, parallel edges once.
@@ -567,7 +567,7 @@ struct MinimumColoringTests {
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
         #expect(coloring.colorCount == graph.chromaticNumber())
         // Classes numbered by least vertex: each class's first vertex comes before the next class's.
-        let firsts = coloring.colorClasses.map { vertexList.firstIndex(of: $0.first!)! }
+        let firsts = coloring.colorClasses.map { $0.first.flatMap { vertexList.firstIndex(of: $0) } ?? -1 }
         #expect(firsts == firsts.sorted())
         // The simple graph, written out: each vertex's distinct other neighbours, in the order their first
         // edges come in its row (positions ascending); self-loops dropped, parallel edges once.
@@ -639,7 +639,7 @@ struct MinimumColoringTests {
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
         #expect(coloring.colorCount == graph.chromaticNumber())
         // Classes numbered by least vertex: each class's first vertex comes before the next class's.
-        let firsts = coloring.colorClasses.map { vertexList.firstIndex(of: $0.first!)! }
+        let firsts = coloring.colorClasses.map { $0.first.flatMap { vertexList.firstIndex(of: $0) } ?? -1 }
         #expect(firsts == firsts.sorted())
         // The simple graph, written out: each vertex's distinct other neighbours, in the order their first
         // edges come in its row (positions ascending); self-loops dropped, parallel edges once.
@@ -715,7 +715,7 @@ struct MinimumColoringTests {
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
         #expect(coloring.colorCount == graph.chromaticNumber())
         // Classes numbered by least vertex: each class's first vertex comes before the next class's.
-        let firsts = coloring.colorClasses.map { vertexList.firstIndex(of: $0.first!)! }
+        let firsts = coloring.colorClasses.map { $0.first.flatMap { vertexList.firstIndex(of: $0) } ?? -1 }
         #expect(firsts == firsts.sorted())
         // The simple graph, written out: each vertex's distinct other neighbours, in the order their first
         // edges come in its row (positions ascending); self-loops dropped, parallel edges once.
@@ -787,7 +787,7 @@ struct MinimumColoringTests {
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
         #expect(coloring.colorCount == graph.chromaticNumber())
         // Classes numbered by least vertex: each class's first vertex comes before the next class's.
-        let firsts = coloring.colorClasses.map { vertexList.firstIndex(of: $0.first!)! }
+        let firsts = coloring.colorClasses.map { $0.first.flatMap { vertexList.firstIndex(of: $0) } ?? -1 }
         #expect(firsts == firsts.sorted())
         // The simple graph, written out: each vertex's distinct other neighbours, in the order their first
         // edges come in its row (positions ascending); self-loops dropped, parallel edges once.
@@ -859,7 +859,7 @@ struct MinimumColoringTests {
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
         #expect(coloring.colorCount == graph.chromaticNumber())
         // Classes numbered by least vertex: each class's first vertex comes before the next class's.
-        let firsts = coloring.colorClasses.map { vertexList.firstIndex(of: $0.first!)! }
+        let firsts = coloring.colorClasses.map { $0.first.flatMap { vertexList.firstIndex(of: $0) } ?? -1 }
         #expect(firsts == firsts.sorted())
         // The simple graph, written out: each vertex's distinct other neighbours, in the order their first
         // edges come in its row (positions ascending); self-loops dropped, parallel edges once.
@@ -931,7 +931,7 @@ struct MinimumColoringTests {
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
         #expect(coloring.colorCount == graph.chromaticNumber())
         // Classes numbered by least vertex: each class's first vertex comes before the next class's.
-        let firsts = coloring.colorClasses.map { vertexList.firstIndex(of: $0.first!)! }
+        let firsts = coloring.colorClasses.map { $0.first.flatMap { vertexList.firstIndex(of: $0) } ?? -1 }
         #expect(firsts == firsts.sorted())
         // The simple graph, written out: each vertex's distinct other neighbours, in the order their first
         // edges come in its row (positions ascending); self-loops dropped, parallel edges once.
@@ -1003,7 +1003,7 @@ struct MinimumColoringTests {
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
         #expect(coloring.colorCount == graph.chromaticNumber())
         // Classes numbered by least vertex: each class's first vertex comes before the next class's.
-        let firsts = coloring.colorClasses.map { vertexList.firstIndex(of: $0.first!)! }
+        let firsts = coloring.colorClasses.map { $0.first.flatMap { vertexList.firstIndex(of: $0) } ?? -1 }
         #expect(firsts == firsts.sorted())
         // The simple graph, written out: each vertex's distinct other neighbours, in the order their first
         // edges come in its row (positions ascending); self-loops dropped, parallel edges once.
@@ -1075,7 +1075,7 @@ struct MinimumColoringTests {
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
         #expect(coloring.colorCount == graph.chromaticNumber())
         // Classes numbered by least vertex: each class's first vertex comes before the next class's.
-        let firsts = coloring.colorClasses.map { vertexList.firstIndex(of: $0.first!)! }
+        let firsts = coloring.colorClasses.map { $0.first.flatMap { vertexList.firstIndex(of: $0) } ?? -1 }
         #expect(firsts == firsts.sorted())
         // The simple graph, written out: each vertex's distinct other neighbours, in the order their first
         // edges come in its row (positions ascending); self-loops dropped, parallel edges once.
@@ -1151,7 +1151,7 @@ struct MinimumColoringTests {
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
         #expect(coloring.colorCount == graph.chromaticNumber())
         // Classes numbered by least vertex: each class's first vertex comes before the next class's.
-        let firsts = coloring.colorClasses.map { vertexList.firstIndex(of: $0.first!)! }
+        let firsts = coloring.colorClasses.map { $0.first.flatMap { vertexList.firstIndex(of: $0) } ?? -1 }
         #expect(firsts == firsts.sorted())
         // The simple graph, written out: each vertex's distinct other neighbours, in the order their first
         // edges come in its row (positions ascending); self-loops dropped, parallel edges once.
@@ -1223,7 +1223,7 @@ struct MinimumColoringTests {
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
         #expect(coloring.colorCount == graph.chromaticNumber())
         // Classes numbered by least vertex: each class's first vertex comes before the next class's.
-        let firsts = coloring.colorClasses.map { vertexList.firstIndex(of: $0.first!)! }
+        let firsts = coloring.colorClasses.map { $0.first.flatMap { vertexList.firstIndex(of: $0) } ?? -1 }
         #expect(firsts == firsts.sorted())
         // The simple graph, written out: each vertex's distinct other neighbours, in the order their first
         // edges come in its row (positions ascending); self-loops dropped, parallel edges once.
@@ -1295,7 +1295,7 @@ struct MinimumColoringTests {
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
         #expect(coloring.colorCount == graph.chromaticNumber())
         // Classes numbered by least vertex: each class's first vertex comes before the next class's.
-        let firsts = coloring.colorClasses.map { vertexList.firstIndex(of: $0.first!)! }
+        let firsts = coloring.colorClasses.map { $0.first.flatMap { vertexList.firstIndex(of: $0) } ?? -1 }
         #expect(firsts == firsts.sorted())
         // The simple graph, written out: each vertex's distinct other neighbours, in the order their first
         // edges come in its row (positions ascending); self-loops dropped, parallel edges once.
@@ -1367,7 +1367,7 @@ struct MinimumColoringTests {
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
         #expect(coloring.colorCount == graph.chromaticNumber())
         // Classes numbered by least vertex: each class's first vertex comes before the next class's.
-        let firsts = coloring.colorClasses.map { vertexList.firstIndex(of: $0.first!)! }
+        let firsts = coloring.colorClasses.map { $0.first.flatMap { vertexList.firstIndex(of: $0) } ?? -1 }
         #expect(firsts == firsts.sorted())
         // The simple graph, written out: each vertex's distinct other neighbours, in the order their first
         // edges come in its row (positions ascending); self-loops dropped, parallel edges once.
@@ -1439,7 +1439,7 @@ struct MinimumColoringTests {
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
         #expect(coloring.colorCount == graph.chromaticNumber())
         // Classes numbered by least vertex: each class's first vertex comes before the next class's.
-        let firsts = coloring.colorClasses.map { vertexList.firstIndex(of: $0.first!)! }
+        let firsts = coloring.colorClasses.map { $0.first.flatMap { vertexList.firstIndex(of: $0) } ?? -1 }
         #expect(firsts == firsts.sorted())
         // The simple graph, written out: each vertex's distinct other neighbours, in the order their first
         // edges come in its row (positions ascending); self-loops dropped, parallel edges once.
@@ -1511,7 +1511,7 @@ struct MinimumColoringTests {
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
         #expect(coloring.colorCount == graph.chromaticNumber())
         // Classes numbered by least vertex: each class's first vertex comes before the next class's.
-        let firsts = coloring.colorClasses.map { vertexList.firstIndex(of: $0.first!)! }
+        let firsts = coloring.colorClasses.map { $0.first.flatMap { vertexList.firstIndex(of: $0) } ?? -1 }
         #expect(firsts == firsts.sorted())
         // The simple graph, written out: each vertex's distinct other neighbours, in the order their first
         // edges come in its row (positions ascending); self-loops dropped, parallel edges once.
@@ -1537,25 +1537,26 @@ struct MinimumColoringTests {
             }
             components.append(members.sorted())
         }
-        // One component of 25 vertices, too many to search every k here: with k = χ = 5
-        // (chromaticNumber(), and ref.py), an exhaustive search in index order for the first proper colour
-        // vector with at most k colours (each vertex a colour at most one above those used, tried
-        // ascending) finds the lexicographically least χ-colouring.
-        let k = 5
-        #expect(graph.chromaticNumber() == k)
-        var colour = [Int](repeating: -1, count: n)
-        func place(_ v: Int, _ used: Int) -> Bool {
-            if v == n { return true }
-            for c in 0 ..< min(k, used + 1) where !adjacent[v].contains(where: { colour[$0] == c }) {
-                colour[v] = c
-                if place(v + 1, max(used, c + 1)) { return true }
+        // Brute force per component: for k = 1, 2, …, an exhaustive search in index order for the first
+        // proper colour vector with at most k colours (each vertex a colour at most one above those used,
+        // tried ascending). The first k with one is the component's χ, and that vector is its
+        // lexicographically least χ-colouring, which minimumColoring() gives it.
+        for members in components {
+            var colour = [Int](repeating: -1, count: n)
+            func place(_ i: Int, _ used: Int, _ k: Int) -> Bool {
+                if i == members.count { return true }
+                let v = members[i]
+                for c in 0 ..< min(k, used + 1) where !adjacent[v].contains(where: { colour[$0] == c }) {
+                    colour[v] = c
+                    if place(i + 1, max(used, c + 1), k) { return true }
+                }
+                colour[v] = -1
+                return false
             }
-            colour[v] = -1
-            return false
+            let k = (1 ... members.count).first { place(0, 0, $0) }!
+            #expect(members.map { colors[$0] } == members.map { colour[$0] }, "\(members)")
+            #expect(Set(members.map { colors[$0] }).count == k)
         }
-        #expect(place(0, 0))
-        #expect(colors == colour)
-        #expect(components.count == 1)
     }
 
     @Test("CO-188 nx(dodecahedral_graph): colors [0, 1, 0, 1, 0, 1, 2, 0, 2, 0, 1, 0, 1, 2, 1, 2, 0, 2, 1, 2]; 3 colors")
@@ -1582,7 +1583,7 @@ struct MinimumColoringTests {
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
         #expect(coloring.colorCount == graph.chromaticNumber())
         // Classes numbered by least vertex: each class's first vertex comes before the next class's.
-        let firsts = coloring.colorClasses.map { vertexList.firstIndex(of: $0.first!)! }
+        let firsts = coloring.colorClasses.map { $0.first.flatMap { vertexList.firstIndex(of: $0) } ?? -1 }
         #expect(firsts == firsts.sorted())
         // The simple graph, written out: each vertex's distinct other neighbours, in the order their first
         // edges come in its row (positions ascending); self-loops dropped, parallel edges once.
@@ -1608,25 +1609,26 @@ struct MinimumColoringTests {
             }
             components.append(members.sorted())
         }
-        // One component of 20 vertices, too many to search every k here: with k = χ = 3
-        // (chromaticNumber(), and ref.py), an exhaustive search in index order for the first proper colour
-        // vector with at most k colours (each vertex a colour at most one above those used, tried
-        // ascending) finds the lexicographically least χ-colouring.
-        let k = 3
-        #expect(graph.chromaticNumber() == k)
-        var colour = [Int](repeating: -1, count: n)
-        func place(_ v: Int, _ used: Int) -> Bool {
-            if v == n { return true }
-            for c in 0 ..< min(k, used + 1) where !adjacent[v].contains(where: { colour[$0] == c }) {
-                colour[v] = c
-                if place(v + 1, max(used, c + 1)) { return true }
+        // Brute force per component: for k = 1, 2, …, an exhaustive search in index order for the first
+        // proper colour vector with at most k colours (each vertex a colour at most one above those used,
+        // tried ascending). The first k with one is the component's χ, and that vector is its
+        // lexicographically least χ-colouring, which minimumColoring() gives it.
+        for members in components {
+            var colour = [Int](repeating: -1, count: n)
+            func place(_ i: Int, _ used: Int, _ k: Int) -> Bool {
+                if i == members.count { return true }
+                let v = members[i]
+                for c in 0 ..< min(k, used + 1) where !adjacent[v].contains(where: { colour[$0] == c }) {
+                    colour[v] = c
+                    if place(i + 1, max(used, c + 1), k) { return true }
+                }
+                colour[v] = -1
+                return false
             }
-            colour[v] = -1
-            return false
+            let k = (1 ... members.count).first { place(0, 0, $0) }!
+            #expect(members.map { colors[$0] } == members.map { colour[$0] }, "\(members)")
+            #expect(Set(members.map { colors[$0] }).count == k)
         }
-        #expect(place(0, 0))
-        #expect(colors == colour)
-        #expect(components.count == 1)
     }
 
     @Test("CO-189 nx(bull_graph): colors [0, 1, 2, 0, 0]; 3 colors")
@@ -1653,7 +1655,7 @@ struct MinimumColoringTests {
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
         #expect(coloring.colorCount == graph.chromaticNumber())
         // Classes numbered by least vertex: each class's first vertex comes before the next class's.
-        let firsts = coloring.colorClasses.map { vertexList.firstIndex(of: $0.first!)! }
+        let firsts = coloring.colorClasses.map { $0.first.flatMap { vertexList.firstIndex(of: $0) } ?? -1 }
         #expect(firsts == firsts.sorted())
         // The simple graph, written out: each vertex's distinct other neighbours, in the order their first
         // edges come in its row (positions ascending); self-loops dropped, parallel edges once.
@@ -1725,7 +1727,7 @@ struct MinimumColoringTests {
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
         #expect(coloring.colorCount == graph.chromaticNumber())
         // Classes numbered by least vertex: each class's first vertex comes before the next class's.
-        let firsts = coloring.colorClasses.map { vertexList.firstIndex(of: $0.first!)! }
+        let firsts = coloring.colorClasses.map { $0.first.flatMap { vertexList.firstIndex(of: $0) } ?? -1 }
         #expect(firsts == firsts.sorted())
         // The simple graph, written out: each vertex's distinct other neighbours, in the order their first
         // edges come in its row (positions ascending); self-loops dropped, parallel edges once.
@@ -1797,7 +1799,7 @@ struct MinimumColoringTests {
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
         #expect(coloring.colorCount == graph.chromaticNumber())
         // Classes numbered by least vertex: each class's first vertex comes before the next class's.
-        let firsts = coloring.colorClasses.map { vertexList.firstIndex(of: $0.first!)! }
+        let firsts = coloring.colorClasses.map { $0.first.flatMap { vertexList.firstIndex(of: $0) } ?? -1 }
         #expect(firsts == firsts.sorted())
         // The simple graph, written out: each vertex's distinct other neighbours, in the order their first
         // edges come in its row (positions ascending); self-loops dropped, parallel edges once.
@@ -1869,7 +1871,7 @@ struct MinimumColoringTests {
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
         #expect(coloring.colorCount == graph.chromaticNumber())
         // Classes numbered by least vertex: each class's first vertex comes before the next class's.
-        let firsts = coloring.colorClasses.map { vertexList.firstIndex(of: $0.first!)! }
+        let firsts = coloring.colorClasses.map { $0.first.flatMap { vertexList.firstIndex(of: $0) } ?? -1 }
         #expect(firsts == firsts.sorted())
         // The simple graph, written out: each vertex's distinct other neighbours, in the order their first
         // edges come in its row (positions ascending); self-loops dropped, parallel edges once.
@@ -1941,7 +1943,7 @@ struct MinimumColoringTests {
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
         #expect(coloring.colorCount == graph.chromaticNumber())
         // Classes numbered by least vertex: each class's first vertex comes before the next class's.
-        let firsts = coloring.colorClasses.map { vertexList.firstIndex(of: $0.first!)! }
+        let firsts = coloring.colorClasses.map { $0.first.flatMap { vertexList.firstIndex(of: $0) } ?? -1 }
         #expect(firsts == firsts.sorted())
         // The simple graph, written out: each vertex's distinct other neighbours, in the order their first
         // edges come in its row (positions ascending); self-loops dropped, parallel edges once.
@@ -2013,7 +2015,7 @@ struct MinimumColoringTests {
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
         #expect(coloring.colorCount == graph.chromaticNumber())
         // Classes numbered by least vertex: each class's first vertex comes before the next class's.
-        let firsts = coloring.colorClasses.map { vertexList.firstIndex(of: $0.first!)! }
+        let firsts = coloring.colorClasses.map { $0.first.flatMap { vertexList.firstIndex(of: $0) } ?? -1 }
         #expect(firsts == firsts.sorted())
         // The simple graph, written out: each vertex's distinct other neighbours, in the order their first
         // edges come in its row (positions ascending); self-loops dropped, parallel edges once.

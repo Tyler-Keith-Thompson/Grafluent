@@ -1,6 +1,7 @@
 # Grafluent: generic, high-performance graph abstractions for Swift.
 
 load("@rules_xcodeproj//xcodeproj:defs.bzl", "xcodeproj", "xcschemes")
+load("//tools:docc.bzl", "docc_site")
 
 # Test bundles are derived from the directory layout rather than listed: a directory under
 # `Tests/` with a BUILD.bazel holding a swift_test is a test bundle. Listing them by hand means a
@@ -41,4 +42,17 @@ xcodeproj(
         )
         for package in TEST_PACKAGES
     ],
+)
+
+# The combined DocC site the DocC workflow publishes (`just docs`): every module's archive
+# (see scripts/modules.py) merged under one landing page. Derived from the directory layout, like
+# the test bundles above.
+docc_site(
+    name = "docs",
+    archives = [
+        "//" + package + ":" + package.removeprefix("Sources/") + "Documentation"
+        for package in sorted(subpackages(include = ["Sources/*"]))
+    ],
+    landing_page_name = "Grafluent",
+    tags = ["manual"],
 )

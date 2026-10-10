@@ -27,6 +27,9 @@ _FIRST_PARTY_FEATURES = [
     # something it never declared a dependency on, and SwiftPM (which is strict about this)
     # would then fail where Bazel passed.
     "swift.use_explicit_swift_module_map",
+    # Tracks each module's .swiftsourceinfo as an output, so //:docs can read source locations
+    # from it (see docc.bzl). The file holds absolute paths; nothing but the docs reads it.
+    "swift.emit_swiftsourceinfo",
 ]
 
 # Package.swift uses tools version 6.2, so SwiftPM compiles in the Swift 6 language mode.

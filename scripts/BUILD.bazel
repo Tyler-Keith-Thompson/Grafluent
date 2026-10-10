@@ -1,0 +1,5 @@
+# Scripts that Bazel actions run: the umbrella's DocC catalog generator (see tools/docc.bzl).
+exports_files([
+    "extensions.py",
+    "modules.py",
+])
