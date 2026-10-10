@@ -68,14 +68,14 @@ public struct AdjacencyList<Vertex: Hashable> {
 /// A directed edge: its slots, and its offsets in its source's out-row and its target's in-row.
 @frozen
 @usableFromInline
-internal struct _ArcRecord {
-    @usableFromInline var source: Int
-    @usableFromInline var target: Int
-    @usableFromInline var out: Int
-    @usableFromInline var `in`: Int
+package struct _ArcRecord {
+    @usableFromInline package var source: Int
+    @usableFromInline package var target: Int
+    @usableFromInline package var out: Int
+    @usableFromInline package var `in`: Int
 
     @inlinable
-    init(source: Int, target: Int, out: Int, in: Int) {
+    package init(source: Int, target: Int, out: Int, in: Int) {
         self.source = source
         self.target = target
         self.out = out
@@ -83,18 +83,18 @@ internal struct _ArcRecord {
     }
 
     @inlinable
-    var pair: _SlotPair { _SlotPair(source, target) }
+    package var pair: _SlotPair { _SlotPair(source, target) }
 }
 
 /// An edge as a pair of slots.
 @frozen
 @usableFromInline
-internal struct _SlotPair: Hashable {
-    @usableFromInline var source: Int
-    @usableFromInline var target: Int
+package struct _SlotPair: Hashable {
+    @usableFromInline package var source: Int
+    @usableFromInline package var target: Int
 
     @inlinable
-    init(_ source: Int, _ target: Int) {
+    package init(_ source: Int, _ target: Int) {
         self.source = source
         self.target = target
     }
@@ -445,7 +445,7 @@ extension AdjacencyList {
         @usableFromInline let base: ContiguousArray<Vertex>
 
         @inlinable
-        init(base: ContiguousArray<Vertex>) { self.base = base }
+        package init(base: ContiguousArray<Vertex>) { self.base = base }
 
         @inlinable public var startIndex: Int { 0 }
         @inlinable public var endIndex: Int { base.count }
@@ -460,7 +460,7 @@ extension AdjacencyList {
         @usableFromInline let slots: ArraySlice<Int>
 
         @inlinable
-        init(vertices: ContiguousArray<Vertex>, slots: ArraySlice<Int>) {
+        package init(vertices: ContiguousArray<Vertex>, slots: ArraySlice<Int>) {
             self.vertices = vertices
             self.slots = slots
         }
@@ -483,7 +483,7 @@ extension AdjacencyList {
         @usableFromInline let records: ContiguousArray<_ArcRecord>
 
         @inlinable
-        init(vertices: ContiguousArray<Vertex>, records: ContiguousArray<_ArcRecord>) {
+        package init(vertices: ContiguousArray<Vertex>, records: ContiguousArray<_ArcRecord>) {
             self.vertices = vertices
             self.records = records
         }

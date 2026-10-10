@@ -56,13 +56,6 @@ extension Graph {
     @inlinable
     func _simpleRows() -> _SimpleRows { _runOnUndirectedRows(_CopySimpleRows()) }
 
-    /// The number of `vertex`, without vertex indices by its position in `listed`.
-    @inlinable
-    func _cliqueNumber(of vertex: Vertex, _ listed: [Vertex]?) -> Int {
-        precondition(contains(vertex), "The vertex is not in the graph")
-        if let listed { return listed.firstIndex(of: vertex)! }
-        return vertexIndex(of: vertex)
-    }
 }
 
 /// Batagelj–Zaversnik's core decomposition, O(n + m): the core numbers and the removal order

@@ -33,6 +33,10 @@ between them is reported on its own: it means a convention differs, not that the
 | `girth()` (both kinds) | `girth`; directed, a breadth-first search back to each vertex | — |
 | `isAcyclic`, `findCycle()` | `is_forest`; the cycle must exist exactly when the graph is not a forest, valid and canonical | — |
 | `cycleBasis()` | m − n + c cycles (`number_connected_components`), independent over GF(2), each valid and canonical (NetworkX's Paton basis differs and is not compared) | — |
+| `isTree`, `Tree(g)`, `Forest(g)`, `isArborescence` | `is_tree`, `is_forest`, `is_arborescence`; for trees, `pruferSequence`, `preorder` / `postorder` / depths / `height` / `path(from:to:)` rooted at the first source against `dfs_preorder_nodes`, `dfs_postorder_nodes`, `shortest_path`; a forest's `trees` against `connected_components` | — |
+| TreeAlgorithms on trees | `tree_all_pairs_lowest_common_ancestor` for every pair; `center`, `diameter` (unweighted and weighted), `tree.centroid`; heavy–light segments expanded against the path; centroid decomposition height ≤ ⌊log₂ n⌋ | — |
+| Distances (both kinds, unweighted and weighted) | eccentricities by searches from every vertex (nil where one misses), radius, diameter, center, periphery, the least-total centroid; `wiener_index`, `average_shortest_path_length`, `density`, `diameter`, `radius` where connected; the diameter path's endpoints and length | — |
+| Cliques (undirected) | `find_cliques` as a set, and the exact documented order against a port of the order's model; the clique number and the lexicographically least maximum clique; `core_number`, `triangles`, `clustering`, `transitivity`, `average_clustering` on the graph without loops | — |
 
 Cases: simple graphs on 0..<n (n ≤ 30, every tenth ≤ 300), directed or undirected, self-loops
 allowed, sparse, dense, chains and grids, weights from {0…1, 0…3, 0…10, 0…1000} and in 30 % of

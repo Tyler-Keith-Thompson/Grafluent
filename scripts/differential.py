@@ -18,6 +18,8 @@ A failing case is written to Differential/Failures/ as JSON for a regression tes
 """
 
 import argparse
+from collections import defaultdict
+import math
 import itertools
 import json
 import os
@@ -223,6 +225,11 @@ def compare(case, mine, ref):
     problems += compare_distances(case, mine["distances"], ref["graph"])
     if not case["directed"]:
         problems += compare_cliques(case, mine["cliques"], ref["graph"])
+    problems += compare_centrality(case, mine["centrality"], ref["graph"])
+    problems += compare_communities(case, mine["communities"], ref["graph"])
+    problems += compare_bipartite(case, mine["bipartite"], ref["graph"])
+    problems += compare_matching(case, mine["matching"], ref["graph"])
+    problems += compare_covering(case, mine["covering"], ref["graph"])
     if not case["directed"]:
         problems += compare_spanning(case, mine["spanning"], ref["graph"])
         problems += compare_connectivity(case, mine["connectivity"], ref["graph"])
@@ -599,6 +606,70 @@ def compare_distances(case, mine, G):
     return problems
 
 
+def batagelj_zaversnik(adj):
+    """Core numbers and removal order, as Cliques documents: a stable counting sort by degree in
+    index order, then each vertex's neighbours in row order with a greater current degree swap to
+    the front of their bin and drop one degree."""
+    n = len(adj)
+    deg = [len(r) for r in adj]
+    md = max(deg, default=0)
+    bins = [0] * (md + 1)
+    for d in deg:
+        bins[d] += 1
+    start = 0
+    for d in range(md + 1):
+        bins[d], start = start, start + bins[d]
+    pos, vert, fill = [0] * n, [0] * n, list(bins)
+    for v in range(n):
+        pos[v] = fill[deg[v]]
+        vert[pos[v]] = v
+        fill[deg[v]] += 1
+    for i in range(n):
+        v = vert[i]
+        for u in adj[v]:
+            if deg[u] > deg[v]:
+                du, pu = deg[u], pos[u]
+                pw = bins[du]
+                w = vert[pw]
+                if u != w:
+                    pos[u], pos[w] = pw, pu
+                    vert[pu], vert[pw] = w, u
+                bins[du] += 1
+                deg[u] -= 1
+    return deg, vert
+
+
+def maximal_cliques_in_order(adj):
+    """Eppstein–Löffler–Strash in degeneracy order, Tomita's pivot with ties to the least index,
+    branches ascending: the order Cliques documents (iteratively, to stay off Python's stack)."""
+    _, order = batagelj_zaversnik(adj)
+    rank = {v: i for i, v in enumerate(order)}
+    sets = [set(r) for r in adj]
+    out = []
+    for v in order:
+        P = {w for w in sets[v] if rank[w] > rank[v]}
+        X = {w for w in sets[v] if rank[w] < rank[v]}
+        stack = [([v], P, X, None)]
+        while stack:
+            R, P, X, branches = stack.pop()
+            if branches is None:
+                if not P and not X:
+                    out.append(sorted(R))
+                    continue
+                best, pivot = -1, None
+                for u in sorted(P | X):
+                    c = len(P & sets[u])
+                    if c > best:
+                        best, pivot = c, u
+                branches = sorted(P - sets[pivot])
+            if not branches:
+                continue
+            w, rest = branches[0], branches[1:]
+            stack.append((R, P - {w}, X | {w}, rest))
+            stack.append((R + [w], P & sets[w], X & sets[w], None))
+    return out
+
+
 def compare_cliques(case, mine, G):
     """Cliques against NetworkX on the simple graph (self-loops removed): maximal cliques as a
     set of sorted lists, the clique number, the lexicographically least maximum clique (by
@@ -614,6 +685,10 @@ def compare_cliques(case, mine, G):
         problems.append("a maximal clique is not in vertex order")
     if ours != theirs:
         problems.append(f"maximalCliques {len(ours)}, NetworkX {len(theirs)}; only ours {[c for c in ours if c not in theirs][:3]}, only theirs {[c for c in theirs if c not in ours][:3]}")
+    # The exact order, from the simple rows in insertion order (the library's row order).
+    adj = [[w for w in G.adj[v] if w != v] for v in range(n)]
+    if mine.get("maximal", []) != maximal_cliques_in_order(adj):
+        problems.append("maximalCliques is not in the documented order")
     omega = max((len(c) for c in theirs), default=0)
     if mine.get("cliqueNumber") != omega:
         problems.append(f"cliqueNumber {mine.get('cliqueNumber')}, expected {omega}")
@@ -643,6 +718,686 @@ def compare_cliques(case, mine, G):
     return problems
 
 
+def close(a, b, tol):
+    return a is not None and b is not None and len(a) == len(b) and all(abs(x - y) <= tol * max(1.0, abs(y)) for x, y in zip(a, b))
+
+
+def compare_centrality(case, mine, G):
+    """Centrality against NetworkX: exact measures to 1e-9 (relative), iterations to 1e-4. Weighted
+    measures use |w|, betweenness |w| + 1. An undirected self-loop is two loop arcs in the
+    library's adjacency matrix and one in NetworkX's, so the matrix references weigh it twice."""
+    problems = []
+    n, directed = case["n"], case["directed"]
+    nodes = range(n)
+    H = nx.DiGraph() if directed else nx.Graph()
+    H.add_nodes_from(nodes)
+    for u, v, w in case["edges"]:
+        loop = 2 if u == v and not directed else 1
+        H.add_edge(u, v, a=abs(w), b=abs(w) + 1, one=loop, aw=loop * abs(w))
+
+    def check(name, ours, theirs, tol=1e-9):
+        theirs = None if theirs is None else [theirs[v] for v in nodes]
+        if ours is None and theirs is None:
+            return
+        if ours is None or theirs is None or not close(ours, theirs, tol):
+            problems.append(f"{name}: library {ours if ours is None else [round(x, 6) for x in ours][:8]}, NetworkX {theirs if theirs is None else [round(x, 6) for x in theirs][:8]}")
+
+    def converged(f):
+        try:
+            return f()
+        except (nx.PowerIterationFailedConvergence, ZeroDivisionError):
+            return None
+
+    check("degreeCentrality", mine["degree"], nx.degree_centrality(H) if n > 1 else {v: 1.0 for v in nodes})
+    if directed:
+        check("inDegreeCentrality", mine["inDegree"], nx.in_degree_centrality(H) if n > 1 else {v: 1.0 for v in nodes})
+        check("outDegreeCentrality", mine["outDegree"], nx.out_degree_centrality(H) if n > 1 else {v: 1.0 for v in nodes})
+    check("closenessCentrality", mine["closeness"], nx.closeness_centrality(H))
+    check("closenessCentrality(wfImproved: false)", mine["closenessPlain"], nx.closeness_centrality(H, wf_improved=False))
+    check("harmonicCentrality", mine["harmonic"], nx.harmonic_centrality(H))
+    check("weighted closenessCentrality", mine["weightedCloseness"], nx.closeness_centrality(H, distance="a"))
+    check("weighted harmonicCentrality", mine["weightedHarmonic"], nx.harmonic_centrality(H, distance="a"))
+    check("betweennessCentrality", mine["betweenness"], nx.betweenness_centrality(H))
+    check("betweennessCentrality(normalized: false)", mine["betweennessRaw"], nx.betweenness_centrality(H, normalized=False))
+    check("betweennessCentrality(endpoints: true)", mine["betweennessEndpoints"], nx.betweenness_centrality(H, endpoints=True))
+    check("weighted betweennessCentrality", mine["weightedBetweenness"], nx.betweenness_centrality(H, weight="b"))
+    # Iterations: compared when both converge; a nil on one side only is reported, since both run
+    # the same iteration and stop rule.
+    if n > 0:
+        check("eigenvectorCentrality", mine.get("eigenvector"), converged(lambda: nx.eigenvector_centrality(H, weight="one")), 1e-4)
+        check("katzCentrality", mine.get("katz"), converged(lambda: nx.katz_centrality(H, weight="one")), 1e-4)
+        check("pageRank", mine.get("pageRank"), converged(lambda: nx.pagerank(H, weight="one")), 1e-4)
+        check("weighted pageRank", mine.get("weightedPageRank"), converged(lambda: nx.pagerank(H, weight="aw")), 1e-4)
+        if directed and H.number_of_edges() > 0:
+            from networkx.algorithms.link_analysis.hits_alg import _hits_python
+            theirs = converged(lambda: _hits_python(H, max_iter=100, tol=1e-8))
+            # NetworkX's stop rule is n times stricter, so it may still be iterating.
+            if theirs is not None or mine.get("hubs") is None:
+                check("hits hubs", mine.get("hubs"), theirs and theirs[0], 1e-4)
+                check("hits authorities", mine.get("authorities"), theirs and theirs[1], 1e-4)
+    if not mine["consistent"]:
+        problems.append("centrality: one-vertex forms, floating weights or the directed view disagree")
+    return problems
+
+
+# ---- Community detection: the library's documented deterministic rules (NetworkX's arithmetic,
+# vertices in index order, ties kept, else to the greatest label), as checked against NetworkX's
+# own code with a fixed order in the design's reference model.
+
+
+class CG:
+    """A graph as the community algorithms see it: edge ends by position, rows in edge order."""
+
+    def __init__(self, directed, n, ends):
+        self.directed, self.n, self.ends, self.m = directed, n, ends, len(ends)
+        self.rows = [[] for _ in range(n)]
+        for e, (a, b) in enumerate(ends):
+            self.rows[a].append((b, e))
+            if not directed:
+                self.rows[b].append((a, e))
+
+
+def modularity_model(g, w, labels, gamma):
+    """NetworkX's arithmetic: sum over communities of L_c/m - gamma * out_c * in_c * norm."""
+    m = sum(w)
+    if m == 0:
+        return 0.0
+    k = max(labels) + 1 if labels else 0
+    L, dout, din = [0.0] * k, [0.0] * k, [0.0] * k
+    for e, (a, b) in enumerate(g.ends):
+        if labels[a] == labels[b]:
+            L[labels[a]] += w[e]
+        dout[labels[a]] += w[e]
+        din[labels[b]] += w[e]
+        if not g.directed:
+            dout[labels[b]] += w[e]
+            din[labels[a]] += w[e]
+    norm = 1 / m**2 if g.directed else 1 / (2 * m) ** 2
+    return sum(L[c] / m - gamma * dout[c] * din[c] * norm for c in range(k))
+
+
+def quality_model(g, labels):
+    """(coverage, performance); NaN where the ratio is 0/0 (api.md)."""
+    intra = sum(1 for a, b in g.ends if labels[a] == labels[b])
+    coverage = intra / g.m if g.m else math.nan
+    adj = set()
+    for a, b in g.ends:
+        if a != b:
+            adj.add((a, b) if g.directed else (min(a, b), max(a, b)))
+    good, pairs = 0, 0
+    for a in range(g.n):
+        for b in range(g.n):
+            if a == b or (not g.directed and b < a):
+                continue
+            pairs += 1
+            same = labels[a] == labels[b]
+            good += (same and (a, b) in adj) or (not same and (a, b) not in adj)
+    performance = good / pairs if pairs else math.nan
+    return coverage, performance
+
+
+class Level:
+    """A level graph: k vertices, pair weights (undirected keys (a <= b)), loops on the diagonal."""
+
+    def __init__(self, k, directed):
+        self.k, self.directed, self.w = k, directed, {}
+
+    def add(self, a, b, x):
+        key = (a, b) if self.directed else (min(a, b), max(a, b))
+        self.w[key] = self.w.get(key, 0.0) + x
+
+    def prepare(self):
+        k = self.k
+        self.nbrs = [dict() for _ in range(k)]
+        self.out, self.inn = [0.0] * k, [0.0] * k
+        for (a, b), x in self.w.items():
+            self.out[a] += x
+            self.inn[b] += x
+            if not self.directed:
+                self.out[b] += x
+                self.inn[a] += x
+            if a != b:
+                self.nbrs[a][b] = self.nbrs[a].get(b, 0.0) + x
+                self.nbrs[b][a] = self.nbrs[b].get(a, 0.0) + x
+
+
+def one_level(lv, m, resolution, order):
+    lv.prepare()
+    k, directed = lv.k, lv.directed
+    com = list(range(k))
+    if directed:
+        gamma, Sin, Sout = resolution, lv.inn[:], lv.out[:]
+    else:
+        gamma, S = resolution / 2, lv.out[:]
+    improvement, moves = False, 1
+    while moves > 0:
+        moves = 0
+        for u in order:
+            uc = com[u]
+            kin = {}
+            for v, x in lv.nbrs[u].items():
+                kin[com[v]] = kin.get(com[v], 0.0) + x
+            if directed:
+                ind, outd = lv.inn[u], lv.out[u]
+                Sin[uc] -= ind
+                Sout[uc] -= outd
+                t = outd * Sin[uc] + ind * Sout[uc]
+            else:
+                deg = lv.out[u]
+                S[uc] -= deg
+                t = S[uc] * deg
+            best, bc = kin.get(uc, 0.0) * m - gamma * t, uc
+            for c, x in kin.items():
+                t = outd * Sin[c] + ind * Sout[c] if directed else S[c] * deg
+                gain = x * m - gamma * t
+                # The greatest gain; on a tie stay, else the greatest community label.
+                if gain > best or (gain == best and bc != uc and c > bc):
+                    best, bc = gain, c
+            if directed:
+                Sin[bc] += ind
+                Sout[bc] += outd
+            else:
+                S[bc] += deg
+            if bc != uc:
+                com[u] = bc
+                moves += 1
+                improvement = True
+    return com, improvement
+
+
+def louvain_model(g, w, resolution=1.0, threshold=1e-7, rng=None):
+    if g.m == 0:
+        return list(range(g.n))
+    m = sum(w)
+    lv = Level(g.n, g.directed)
+    for e, (a, b) in enumerate(g.ends):
+        lv.add(a, b, w[e])
+    node = list(range(g.n))  # vertex -> level vertex
+    mod = modularity_model(g, w, list(range(g.n)), resolution)
+
+    def order(k):
+        o = list(range(k))
+        if rng is not None:
+            rng.shuffle(o)
+        return o
+
+    com, improvement = one_level(lv, m, resolution, order(lv.k))
+    final, first = None, True
+    while first or improvement:
+        first = False
+        rank = {c: i for i, c in enumerate(sorted(set(com)))}  # nonempty communities, label order
+        labels = [rank[com[node[v]]] for v in range(g.n)]
+        final = labels
+        new = modularity_model(g, w, labels, resolution)
+        if new - mod <= threshold:
+            break
+        mod = new
+        nxt = Level(len(rank), g.directed)
+        for (a, b), x in lv.w.items():
+            nxt.add(rank[com[a]], rank[com[b]], x)
+        node = labels
+        lv = nxt
+        com, improvement = one_level(lv, m, resolution, order(lv.k))
+    return final
+
+
+# ---- Greedy modularity (Clauset-Newman-Moore) ------------------------------------------------
+
+
+def greedy_model(g, w, resolution=1.0):
+    n = g.n
+    m = sum(w)
+    if g.m == 0 or m == 0:
+        return list(range(n))
+    q0 = 1 / m
+    out, inn = [0.0] * n, [0.0] * n
+    for e, (a, b) in enumerate(g.ends):
+        out[a] += w[e]
+        inn[b] += w[e]
+        if not g.directed:
+            out[b] += w[e]
+            inn[a] += w[e]
+    if g.directed:
+        A = [x * q0 for x in out]
+        B = [x * q0 for x in inn]
+    else:
+        A = [x * q0 * 0.5 for x in out]
+        B = A  # one array, as NetworkX's `a = b = …`
+    dq = defaultdict(dict)
+    for e, (a, b) in enumerate(g.ends):
+        if a == b:
+            continue
+        dq[a][b] = dq[a].get(b, 0.0) + w[e]
+        dq[b][a] = dq[b].get(a, 0.0) + w[e]
+    for u in dq:
+        for v in dq[u]:
+            dq[u][v] = q0 * dq[u][v] - resolution * (A[u] * B[v] + B[u] * A[v])
+    label = list(range(n))  # community id = surviving vertex number
+    while True:
+        best = None
+        for u in dq:
+            for v, x in dq[u].items():
+                if best is None or x > best[0] or (x == best[0] and (u, v) < (best[1], best[2])):
+                    best = (x, u, v)
+        if best is None or best[0] < 0:
+            break
+        _, u, v = best
+        un, vn = set(dq[u]), set(dq[v])
+        for x in (un | vn) - {u, v}:
+            if x in un and x in vn:
+                d = dq[v][x] + dq[u][x]
+            elif x in vn:
+                d = dq[v][x] - resolution * (A[u] * B[x] + A[x] * B[u])
+            else:
+                d = dq[u][x] - resolution * (A[v] * B[x] + A[x] * B[v])
+            dq[v][x] = d
+            dq[x][v] = d
+        for x in list(dq[u]):
+            del dq[x][u]
+        del dq[u]
+        for y in range(n):
+            if label[y] == u:
+                label[y] = v
+        A[v] += A[u]
+        A[u] = 0
+        if g.directed:
+            B[v] += B[u]
+            B[u] = 0
+        dq = defaultdict(dict, {k: d for k, d in dq.items() if d})
+    return label
+
+
+# ---- Label propagation -------------------------------------------------------------------------
+
+
+def votes(g, w, labels, u):
+    """Label -> total weight of u's edges to it; self-loops vote for nothing (api.md)."""
+    out = {}
+    for (t, e) in g.rows[u]:
+        if t != u and w[e] != 0:  # a zero-weight edge casts no vote (the library's rule)
+            out[labels[t]] = out.get(labels[t], 0.0) + w[e]
+    return out
+
+
+def best_labels(vt):
+    mx = max(vt.values())
+    return [l for l, f in vt.items() if f == mx]
+
+
+def semisync_model(g, w):
+    assert not g.directed
+    n = g.n
+    # Greedy coloring, largest degree first (ties by vertex number), loops ignored.
+    order = sorted(range(n), key=lambda v: -len(g.rows[v]))
+    color = [-1] * n
+    for v in order:
+        used = {color[t] for (t, _) in g.rows[v] if t != v and color[t] >= 0}
+        c = 0
+        while c in used:
+            c += 1
+        color[v] = c
+    classes = [[v for v in range(n) if color[v] == c] for c in range(max(color, default=-1) + 1)]
+    labels = list(range(n))
+
+    def complete():
+        for v in range(n):
+            vt = votes(g, w, labels, v)
+            if vt and labels[v] not in best_labels(vt):
+                return False
+        return True
+
+    rounds = 0
+    while not complete():
+        rounds += 1
+        assert rounds < 10000
+        for cls in classes:
+            for u in cls:
+                vt = votes(g, w, labels, u)
+                if not vt:
+                    continue
+                hb = best_labels(vt)
+                if len(hb) == 1:
+                    labels[u] = hb[0]
+                elif labels[u] not in hb:
+                    labels[u] = max(hb)
+    return labels
+
+
+def async_model(g, w, rng=None):
+    assert not g.directed
+    labels = list(range(g.n))
+    cont, sweeps = True, 0
+    while cont:
+        cont = False
+        sweeps += 1
+        assert sweeps < 10000
+        order = list(range(g.n))
+        if rng is not None:
+            rng.shuffle(order)
+        for u in order:
+            vt = votes(g, w, labels, u)
+            if not vt:
+                continue
+            hb = best_labels(vt)
+            if labels[u] not in hb:
+                labels[u] = rng.choice(hb) if rng is not None else max(hb)
+                cont = True
+    return labels
+
+def canonical_labels(labels):
+    seen, out = {}, []
+    for l in labels:
+        if l not in seen:
+            seen[l] = len(seen)
+        out.append(seen[l])
+    return out
+
+
+def compare_communities(case, mine, G):
+    """Community detection against the documented rules (ported models) and NetworkX: modularity
+    and quality of the partition v mod 3, Louvain, greedy modularity (also NetworkX's own), label
+    propagation (semi-synchronous also NetworkX's own on loop-free graphs)."""
+    from collections import defaultdict  # noqa: F401  (used by greedy_model)
+    problems = []
+    n, directed = case["n"], case["directed"]
+    ends = [(u, v) for u, v, _ in case["edges"]]
+    g = CG(directed, n, ends)
+    unit = [1.0] * len(ends)
+    absw = [float(abs(w)) for _, _, w in case["edges"]]
+    fixed = [v % 3 for v in range(n)]
+    close = lambda a, b: abs(a - b) <= 1e-12 * max(1.0, abs(b))
+    for key, w, gamma in [("modularity", unit, 1.0), ("weightedModularity", absw, 1.0), ("resolutionModularity", unit, 0.5)]:
+        expected = modularity_model(g, w, fixed, gamma)
+        if not close(mine[key], expected):
+            problems.append(f"{key}: library {mine[key]}, model {expected}")
+    if n > 0 and len(ends) > 0:
+        H = nx.MultiDiGraph() if directed else nx.MultiGraph()
+        H.add_nodes_from(range(n))
+        for (u, v), x in zip(ends, absw):
+            H.add_edge(u, v, weight=x)
+        comms = [set(v for v in range(n) if v % 3 == r) for r in range(3)]
+        comms = [c for c in comms if c]
+        theirs = nx.community.modularity(H, comms, weight=None)
+        if not close(mine["modularity"], theirs):
+            problems.append(f"modularity: library {mine['modularity']}, NetworkX {theirs}")
+    coverage, performance = quality_model(g, fixed)
+    for key, expected in [("coverage", coverage), ("performance", performance)]:
+        got = mine.get(key)
+        if (got is None) != (expected != expected) or (got is not None and not close(got, expected)):
+            problems.append(f"{key}: library {got}, model {expected}")
+    for key, w in [("louvain", unit), ("weightedLouvain", absw)]:
+        expected = canonical_labels(louvain_model(g, w))
+        if mine[key] != expected:
+            problems.append(f"{key}: library {mine[key]}, model {expected}")
+    for key, w in [("greedy", unit), ("weightedGreedy", absw)]:
+        expected = canonical_labels(greedy_model(g, w))
+        if mine[key] != expected:
+            problems.append(f"{key}: library {mine[key]}, model {expected}")
+    if len(ends) > 0 and sum(unit) > 0:
+        H = nx.DiGraph() if directed else nx.Graph()
+        H.add_nodes_from(range(n))
+        H.add_edges_from(ends)
+        theirs = nx.community.greedy_modularity_communities(H)
+        lab = [0] * n
+        for i, c in enumerate(theirs):
+            for v in c:
+                lab[v] = i
+        if mine["greedy"] != canonical_labels(lab):
+            problems.append(f"greedy: library {mine['greedy']}, NetworkX {canonical_labels(lab)}")
+    if mine["louvainModularity"] < mine["singletonModularity"] - 1e-12:
+        problems.append(f"Louvain's modularity {mine['louvainModularity']} is below the singletons' {mine['singletonModularity']}")
+    if not directed:
+        for key, f, w in [("labelPropagation", semisync_model, unit), ("asynchronous", async_model, unit), ("weightedAsynchronous", async_model, absw)]:
+            expected = canonical_labels(f(g, w))
+            if mine.get(key) != expected:
+                problems.append(f"{key}: library {mine.get(key)}, model {expected}")
+        if all(u != v for u, v in ends):
+            H = nx.Graph()
+            H.add_nodes_from(range(n))
+            H.add_edges_from(ends)
+            lab = [0] * n
+            for i, c in enumerate(nx.community.label_propagation_communities(H)):
+                for v in c:
+                    lab[v] = i
+            if mine.get("labelPropagation") != canonical_labels(lab):
+                problems.append(f"labelPropagation: library {mine.get('labelPropagation')}, NetworkX {canonical_labels(lab)}")
+    return problems
+
+
+def compare_bipartite(case, mine, G):
+    """Bipartiteness against NetworkX on the undirected graph (a directed case's arcs as edges):
+    is_bipartite; the canonical sides (each component's least vertex left, the rest by distance
+    parity); the odd cycle's validity (odd, simple, consecutive vertices joined by its edges); and
+    the projection onto the left side against projected_graph."""
+    problems = []
+    n = case["n"]
+    U = nx.MultiGraph()
+    U.add_nodes_from(range(n))
+    for u, v, _ in case["edges"]:
+        U.add_edge(u, v)
+    theirs = nx.is_bipartite(U) if n > 0 else True
+    if mine["isBipartite"] != theirs:
+        problems.append(f"isBipartite: library {mine['isBipartite']}, NetworkX {theirs}")
+    if not mine["consistent"]:
+        problems.append("isBipartite, bipartition(), findOddCycle() and BipartiteGraph(graph) disagree")
+    if theirs:
+        side = [None] * n
+        for root in range(n):
+            if side[root] is not None:
+                continue
+            for v, d in nx.single_source_shortest_path_length(U, root).items():
+                side[v] = d % 2
+        if mine.get("sides") != side:
+            problems.append(f"sides: library {mine.get('sides')}, expected {side}")
+        left = [v for v in range(n) if side[v] == 0]
+        P = nx.bipartite.projected_graph(nx.Graph(U), left)
+        ours = sorted(tuple(sorted(e)) for e in mine.get("projectionEdges") or [])
+        expected = sorted(tuple(sorted(e)) for e in P.edges())
+        if ours != expected:
+            problems.append(f"projection: library {ours[:8]}, NetworkX {expected[:8]}")
+    else:
+        cycle, cedges = mine.get("oddCycle"), mine.get("oddCycleEdges")
+        ok = cycle is not None and len(cycle) % 2 == 1 and len(set(cycle)) == len(cycle) and len(cedges) == len(cycle)
+        if ok:
+            for i, (a, b) in enumerate(cedges):
+                x, y = cycle[i], cycle[(i + 1) % len(cycle)]
+                if {a, b} != {x, y}:
+                    ok = False
+            ok = ok and cycle[0] == min(cycle)
+        if not ok:
+            problems.append(f"odd cycle {cycle} over {cedges} is not a valid canonical odd cycle")
+    return problems
+
+
+def compare_matching(case, mine, G):
+    """Matchings on the undirected graph against NetworkX: maximal (valid and maximal), maximum
+    (size against max_weight_matching with maxcardinality on unit weights), Hopcroft–Karp (size;
+    exact pairs when NetworkX's left order is ascending, which it is for integer labels), and the
+    minimum-weight full matching with |w| (existence and weight)."""
+    problems = []
+    n = case["n"]
+    U = nx.Graph()
+    U.add_nodes_from(range(n))
+    for u, v, _ in case["edges"]:
+        if u != v:
+            U.add_edge(u, v)
+    def valid(pairs):
+        seen = set()
+        for u, v in pairs:
+            if u == v or u in seen or v in seen or not U.has_edge(u, v):
+                return False
+            seen.update((u, v))
+        return True
+    if not mine["consistent"]:
+        problems.append("matching: results disagree with isMatching / isMaximalMatching / mate(of:)")
+    for key in ("maximal", "maximum"):
+        if not valid(mine[key]):
+            problems.append(f"{key} matching {mine[key][:6]} is not a matching")
+    covered = {x for p in mine["maximal"] for x in p}
+    if any(u not in covered and v not in covered for u, v in U.edges()):
+        problems.append("maximalMatching is not maximal")
+    size = len(nx.max_weight_matching(U, maxcardinality=True))
+    if len(mine["maximum"]) != size:
+        problems.append(f"maximumMatching size {len(mine['maximum'])}, NetworkX {size}")
+    # Weighted (the case's weights, negative ones included), exact against NetworkX on undirected
+    # cases, whose rows NetworkX's adjacency reproduces; weight and cardinality otherwise.
+    # Parallel copies (a directed case's two arcs) collapse to the heaviest copy, as the library's
+    # maximum-weight entry points do, or to the lightest for the minimum.
+    def collapsed(pick):
+        H = nx.Graph()
+        H.add_nodes_from(range(n))
+        for u, v, w in case["edges"]:
+            if u == v:
+                continue
+            if H.has_edge(u, v):
+                H[u][v]["weight"] = pick(H[u][v]["weight"], w)
+            else:
+                H.add_edge(u, v, weight=w)
+        return H
+    Wd, Wmin = collapsed(max), collapsed(min)
+    def weight_of(pairs, H=None):
+        H = Wd if H is None else H
+        return sum(H[u][v]["weight"] for u, v in pairs)
+    for key, maxcard in (("maximumWeight", False), ("maximumWeightCardinality", True)):
+        ours = mine[key]
+        if not valid(ours):
+            problems.append(f"{key} {ours[:6]} is not a matching")
+            continue
+        theirs = nx.max_weight_matching(Wd, maxcardinality=maxcard)
+        if weight_of(ours) != weight_of(theirs) or (maxcard and len(ours) != len(theirs)):
+            problems.append(f"{key}: weight {weight_of(ours)} ({len(ours)} edges), NetworkX {weight_of(theirs)} ({len(theirs)})")
+        elif not case["directed"] and sorted(sorted(p) for p in ours) != sorted(sorted(p) for p in theirs):
+            problems.append(f"{key}: {sorted(sorted(p) for p in ours)[:6]}, NetworkX {sorted(sorted(p) for p in theirs)[:6]}")
+    ours = mine["minimumWeight"]
+    full = nx.max_weight_matching(Wd, maxcardinality=True)
+    if not valid(ours) or len(ours) != len(full):
+        problems.append(f"minimumWeight {ours[:6]} is not a maximum-cardinality matching")
+    elif Wmin.number_of_edges():
+        theirs = nx.min_weight_matching(Wmin)
+        if weight_of(ours, Wmin) != weight_of(theirs, Wmin):
+            problems.append(f"minimumWeight: weight {weight_of(ours, Wmin)}, NetworkX {weight_of(theirs, Wmin)}")
+    if mine.get("hopcroftKarp") is not None:
+        side = {}
+        for root in range(n):
+            if root in side:
+                continue
+            for v, d in nx.single_source_shortest_path_length(U, root).items():
+                side[v] = d % 2
+        left = [v for v in range(n) if side[v] == 0]
+        theirs = nx.bipartite.hopcroft_karp_matching(U, top_nodes=left)
+        expected = sorted(sorted((v, theirs[v])) for v in left if v in theirs)
+        ours = sorted(sorted(p) for p in mine["hopcroftKarp"])
+        if len(ours) != size:
+            problems.append(f"Hopcroft–Karp size {len(ours)}, expected {size}")
+        # Exact only when the rows agree: a directed case's undirected view lists successors
+        # before predecessors, an order NetworkX's adjacency cannot reproduce.
+        # and NetworkX walks its left side as a Python set, so its order must be ours ({0, 3, 7, 9}
+        # iterates 0, 9, 3, 7).
+        if ours != expected and not case["directed"] and list(set(left)) == left:
+            problems.append(f"Hopcroft–Karp {ours[:6]}, NetworkX {expected[:6]}")
+        W = nx.Graph()
+        W.add_nodes_from(range(n))
+        best = {}
+        for u, v, w in case["edges"]:
+            if u != v:
+                k = (min(u, v), max(u, v))
+                best[k] = min(best.get(k, abs(w)), abs(w))
+        for (u, v), w in best.items():
+            W.add_edge(u, v, weight=w)
+        try:
+            full = nx.bipartite.minimum_weight_full_matching(W, top_nodes=left) if left and len(left) < n else {}
+            fw = sum(W[u][full[u]]["weight"] for u in full if u in set(left))
+            exists = True
+        except ValueError:
+            exists = False
+        if exists != mine["hasFullMatching"]:
+            problems.append(f"full matching exists: library {mine['hasFullMatching']}, NetworkX {exists}")
+        elif exists and mine.get("fullWeight") != fw:
+            problems.append(f"full matching weight {mine.get('fullWeight')}, NetworkX {fw}")
+    return problems
+
+
+def compare_covering(case, mine, G):
+    """Covering against NetworkX: Bar-Yehuda–Even in position order (a port: NetworkX scans
+    G.edges() order), the greedy dominating set (NetworkX's min_weighted_dominating_set, equal on
+    node-ordered graphs), König's cover (size = maximum matching, a valid cover; NetworkX's exactly
+    when its left set iterates in our order), the edge cover (size n − ν, valid), and validity of
+    the maximal independent set."""
+    problems = []
+    n = case["n"]
+    ends = [(u, v) for u, v, _ in case["edges"]]
+    if not mine["consistent"]:
+        problems.append("covering: a result fails its own check")
+    for key, wt in (("vertexCover", lambda v: 1), ("weightedVertexCover", lambda v: v % 5)):
+        cost = [wt(v) for v in range(n)]
+        cover = [False] * n
+        for u, v in ends:
+            a, b = min(u, v), max(u, v)
+            if cover[a] or cover[b]:
+                continue
+            if cost[a] <= cost[b]:
+                cover[a] = True
+                cost[b] -= cost[a]
+            else:
+                cover[b] = True
+                cost[a] -= cost[b]
+        expected = [v for v in range(n) if cover[v]]
+        if mine[key] != expected:
+            problems.append(f"{key}: library {mine[key][:10]}, Bar-Yehuda–Even {expected[:10]}")
+    S = nx.Graph()
+    S.add_nodes_from(range(n))
+    S.add_edges_from((u, v) for u, v in ends if u != v)
+    for key, attr in (("dominatingSet", None), ("weightedDominatingSet", "w")):
+        nx.set_node_attributes(S, {v: v % 5 for v in range(n)}, "w")
+        theirs = sorted(nx.algorithms.approximation.min_weighted_dominating_set(S, weight=attr)) if n else []
+        if mine[key] != theirs:
+            problems.append(f"{key}: library {mine[key][:10]}, NetworkX {theirs[:10]}")
+    if mine.get("maximumIndependentSet") is not None:
+        loops = {u for u, v in ends if u == v}
+        C = nx.complement(S.subgraph([v for v in range(n) if v not in loops]))
+        alpha = nx.max_weight_clique(C, weight=None)[1] if C.number_of_nodes() else 0
+        if len(mine["maximumIndependentSet"]) != alpha:
+            problems.append(f"maximumIndependentSet size {len(mine['maximumIndependentSet'])}, NetworkX α {alpha}")
+        # Lexicographically least: no vertex outside, before the set's first difference, can be
+        # swapped in. Checked by brute force on small graphs.
+        if n <= 14:
+            from itertools import combinations
+            best = None
+            for combo in combinations([v for v in range(n) if v not in loops], alpha):
+                cs = set(combo)
+                if all(not (u in cs and v in cs) for u, v in ends):
+                    best = list(combo)
+                    break
+            if best is not None and mine["maximumIndependentSet"] != best:
+                problems.append(f"maximumIndependentSet {mine['maximumIndependentSet']}, least {best}")
+    if mine.get("minimumDominatingSet") is not None:
+        from itertools import combinations
+        closed = [{v} | set(S[v]) for v in range(n)]
+        found = None
+        for k in range(n + 1):
+            for combo in combinations(range(n), k):
+                cover = set()
+                for v in combo:
+                    cover |= closed[v]
+                if len(cover) == n:
+                    found = list(combo)
+                    break
+            if found is not None:
+                break
+        if mine["minimumDominatingSet"] != (found or []):
+            problems.append(f"minimumDominatingSet {mine['minimumDominatingSet']}, least {found}")
+    size = len(nx.max_weight_matching(S, maxcardinality=True))
+    if mine.get("konig") is not None and len(mine["konig"]) != size:
+        problems.append(f"König cover size {len(mine['konig'])}, maximum matching {size}")
+    isolated = any(S.degree(v) == 0 and not any(u == v == x for x in [v] for u, w in ends if u == w == v) for v in range(n))
+    has_cover = all(any(v in e for e in ends) for v in range(n))
+    if (mine.get("edgeCover") is not None) != has_cover:
+        problems.append(f"edge cover exists: library {mine.get('edgeCover') is not None}, expected {has_cover}")
+    elif has_cover and len(mine["edgeCover"]) != n - size:
+        problems.append(f"edge cover size {len(mine['edgeCover'])}, expected {n - size}")
+    return problems
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--cases", type=int, default=2000)
@@ -661,7 +1416,9 @@ def main():
     covered = {"directed": 0, "undirected": 0, "negative weights": 0, "negative cycle reachable": 0,
                 "negative cycle elsewhere only": 0, "cutoff": 0, "scipy compared": 0, "target unreachable": 0,
                 "all cycles listed": 0, "cycles compared": 0, "with a cycle basis": 0, "girth ≤ 2": 0,
-                "trees": 0, "forests of 2+ trees": 0, "arborescences": 0}
+                "trees": 0, "forests of 2+ trees": 0, "arborescences": 0,
+                "eigenvector converged": 0, "eigenvector nil": 0, "katz nil": 0, "hits compared": 0,
+                "bipartite": 0, "odd cycles checked": 0}
     for start in range(0, args.cases, args.batch):
         cases = [generate(rng, i) for i in range(start, min(args.cases, start + args.batch))]
         # Every run is bounded: a library bug that never terminates must fail the run, not hang
@@ -708,6 +1465,13 @@ def main():
             covered["trees"] += trees["tree"]
             covered["forests of 2+ trees"] += len(trees.get("forestTrees") or []) >= 2
             covered["arborescences"] += trees["arborescence"]
+            centrality = mine["centrality"]
+            covered["eigenvector converged"] += centrality.get("eigenvector") is not None
+            covered["eigenvector nil"] += centrality.get("eigenvector") is None
+            covered["katz nil"] += centrality.get("katz") is None
+            covered["hits compared"] += centrality.get("hubs") is not None
+            covered["bipartite"] += mine["bipartite"]["isBipartite"]
+            covered["odd cycles checked"] += mine["bipartite"].get("oddCycle") is not None
             problems = compare(case, mine, ref)
             if problems:
                 failures += 1

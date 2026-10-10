@@ -90,6 +90,79 @@ let package = Package(
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
         ),
         .executableTarget(
+            name: "CentralityBenchmarks",
+            dependencies: [
+                "BenchmarkSupport",
+                .product(name: "Benchmark", package: "benchmark"),
+                .product(name: "GraphProtocols", package: "Grafluent"),
+                .product(name: "Centrality", package: "Grafluent"),
+                .product(name: "AdjacencyListModule", package: "Grafluent"),
+            ],
+            path: "Benchmarks/CentralityBenchmarks",
+            plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
+        ),
+        .executableTarget(
+            name: "CommunityDetectionBenchmarks",
+            dependencies: [
+                "BenchmarkSupport",
+                .product(name: "Benchmark", package: "benchmark"),
+                .product(name: "GraphProtocols", package: "Grafluent"),
+                .product(name: "CommunityDetection", package: "Grafluent"),
+                .product(name: "AdjacencyListModule", package: "Grafluent"),
+            ],
+            path: "Benchmarks/CommunityDetectionBenchmarks",
+            plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
+        ),
+        .executableTarget(
+            name: "BipartiteGraphsBenchmarks",
+            dependencies: [
+                "BenchmarkSupport",
+                .product(name: "Benchmark", package: "benchmark"),
+                .product(name: "GraphProtocols", package: "Grafluent"),
+                .product(name: "BipartiteGraphs", package: "Grafluent"),
+                .product(name: "AdjacencyListModule", package: "Grafluent"),
+            ],
+            path: "Benchmarks/BipartiteGraphsBenchmarks",
+            plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
+        ),
+        .executableTarget(
+            name: "MatchingBenchmarks",
+            dependencies: [
+                "BenchmarkSupport",
+                .product(name: "Benchmark", package: "benchmark"),
+                .product(name: "GraphProtocols", package: "Grafluent"),
+                .product(name: "MatchingModule", package: "Grafluent"),
+                .product(name: "BipartiteGraphs", package: "Grafluent"),
+                .product(name: "AdjacencyListModule", package: "Grafluent"),
+            ],
+            path: "Benchmarks/MatchingBenchmarks",
+            plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
+        ),
+        .executableTarget(
+            name: "CoveringBenchmarks",
+            dependencies: [
+                "BenchmarkSupport",
+                .product(name: "Benchmark", package: "benchmark"),
+                .product(name: "GraphProtocols", package: "Grafluent"),
+                .product(name: "Covering", package: "Grafluent"),
+                .product(name: "AdjacencyListModule", package: "Grafluent"),
+            ],
+            path: "Benchmarks/CoveringBenchmarks",
+            plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
+        ),
+        .executableTarget(
+            name: "MultigraphsBenchmarks",
+            dependencies: [
+                "BenchmarkSupport",
+                .product(name: "Benchmark", package: "benchmark"),
+                .product(name: "GraphProtocols", package: "Grafluent"),
+                .product(name: "Multigraphs", package: "Grafluent"),
+                .product(name: "AdjacencyListModule", package: "Grafluent"),
+            ],
+            path: "Benchmarks/MultigraphsBenchmarks",
+            plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
+        ),
+        .executableTarget(
             name: "CliquesBenchmarks",
             dependencies: [
                 "BenchmarkSupport",

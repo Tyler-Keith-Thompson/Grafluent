@@ -61,14 +61,14 @@ public struct UndirectedAdjacencyList<Vertex: Hashable> {
 /// rows. A self-loop has both ends in one row, at different offsets.
 @frozen
 @usableFromInline
-internal struct _EdgeRecord {
-    @usableFromInline var u: Int
-    @usableFromInline var v: Int
-    @usableFromInline var uOffset: Int
-    @usableFromInline var vOffset: Int
+package struct _EdgeRecord {
+    @usableFromInline package var u: Int
+    @usableFromInline package var v: Int
+    @usableFromInline package var uOffset: Int
+    @usableFromInline package var vOffset: Int
 
     @inlinable
-    init(u: Int, v: Int, uOffset: Int, vOffset: Int) {
+    package init(u: Int, v: Int, uOffset: Int, vOffset: Int) {
         self.u = u
         self.v = v
         self.uOffset = uOffset
@@ -77,7 +77,7 @@ internal struct _EdgeRecord {
 
     /// The map key: the slots in ascending order.
     @inlinable
-    var key: _SlotPair { u <= v ? _SlotPair(u, v) : _SlotPair(v, u) }
+    package var key: _SlotPair { u <= v ? _SlotPair(u, v) : _SlotPair(v, u) }
 }
 
 // MARK: - Construction
@@ -449,7 +449,7 @@ extension UndirectedAdjacencyList {
         @usableFromInline let records: ContiguousArray<_EdgeRecord>
 
         @inlinable
-        init(vertices: ContiguousArray<Vertex>, records: ContiguousArray<_EdgeRecord>) {
+        package init(vertices: ContiguousArray<Vertex>, records: ContiguousArray<_EdgeRecord>) {
             self.vertices = vertices
             self.records = records
         }
@@ -652,5 +652,49 @@ extension UndirectedAdjacencyList: Graph {
         _neighbors.withUnsafeRows { neighbors, neighborRows in
             _incident.withUnsafeRows { edges, edgeRows in body(neighbors, neighborRows, edges, edgeRows) }
         }
+    }
+}
+
+// MARK: - Slot-level access for wrapping types
+
+extension UndirectedAdjacencyList {
+    /// The slot of `vertex`, or nil when it is not a vertex: one hash, where `contains` then
+    /// `vertexIndex(of:)` cost two.
+    @inlinable
+    package func _slotIfPresent(of vertex: Vertex) -> Int? { _slots[vertex] }
+
+    /// The slots of the edge at `position`, in its stored orientation.
+    @inlinable
+    package func _edgeSlots(at position: Int) -> (u: Int, v: Int) {
+        let record = _records[position]
+        return (record.u, record.v)
+    }
+
+    /// Inserts the edge between the vertices in slots `u` and `v`, stored `u` first, without
+    /// hashing either vertex; `(false, existing)` when it is already an edge.
+    @inlinable
+    @discardableResult
+    package mutating func _insertEdge(slots u: Int, _ v: Int) -> (inserted: Bool, memberAfterInsert: UndirectedEdge<Vertex>) {
+        let key = u <= v ? _SlotPair(u, v) : _SlotPair(v, u)
+        if let position = _positions[key] {
+            let record = _records[position]
+            return (false, UndirectedEdge(_vertices[record.u], _vertices[record.v]))
+        }
+        let position = _records.count
+        let uOffset = _neighbors.append(v, toRow: u)
+        _incident.append(position, toRow: u)
+        let vOffset = _neighbors.append(u, toRow: v)
+        _incident.append(position, toRow: v)
+        _records.append(_EdgeRecord(u: u, v: v, uOffset: uOffset, vOffset: vOffset))
+        _positions[key] = position
+        return (true, UndirectedEdge(_vertices[u], _vertices[v]))
+    }
+
+    /// Reverses the stored orientation of the edge at `position`: the same edge, its position and
+    /// the rows unchanged. O(1).
+    @inlinable
+    package mutating func _reverseEdge(at position: Int) {
+        let record = _records[position]
+        _records[position] = _EdgeRecord(u: record.v, v: record.u, uOffset: record.vOffset, vOffset: record.uOffset)
     }
 }

@@ -3,11 +3,16 @@
 // integer weights, sources, an optional cutoff and a target.
 
 import AdjacencyListModule
+import BipartiteGraphs
+import Centrality
 import Cliques
+import CommunityDetection
 import Connectivity
+import Covering
 import Cycles
 import Distances
 import Foundation
+import MatchingModule
 import GraphProtocols
 import ShortestPaths
 import Walks
@@ -41,6 +46,11 @@ struct Result: Encodable {
     var trees = TreeAnswers()
     var distances: DistanceAnswers?
     var cliques: CliqueAnswers?
+    var centrality = CentralityAnswers()
+    var communities = CommunityAnswers()
+    var bipartite = BipartiteAnswers()
+    var matching = MatchingAnswers()
+    var covering = CoveringAnswers()
 }
 
 /// Cliques on the simple graph: maximal cliques (each sorted), the clique number and the
@@ -181,6 +191,283 @@ struct Single: Encodable {
     let path: [Int]?
 }
 
+/// Centrality scores. Weighted measures use |w| (betweenness |w| + 1, which must be positive).
+struct CentralityAnswers: Encodable {
+    var degree: [Double] = []
+    var inDegree: [Double]?
+    var outDegree: [Double]?
+    var closeness: [Double] = []
+    var closenessPlain: [Double] = []
+    var harmonic: [Double] = []
+    var weightedCloseness: [Double] = []
+    var weightedHarmonic: [Double] = []
+    var betweenness: [Double] = []
+    var betweennessRaw: [Double] = []
+    var betweennessEndpoints: [Double] = []
+    var weightedBetweenness: [Double] = []
+    var eigenvector: [Double]?
+    var katz: [Double]?
+    var pageRank: [Double]?
+    var weightedPageRank: [Double]?
+    var hubs: [Double]?
+    var authorities: [Double]?
+    /// One-vertex forms, floating-point weights and the directed view agree with the rest.
+    var consistent = true
+}
+
+func directedCentrality<G: DirectedGraph<Int>>(_ graph: G, _ n: Int, _ w: (G.Edges.Index) -> Int) -> CentralityAnswers {
+    var a = CentralityAnswers()
+    a.degree = graph.degreeCentrality().scores
+    a.inDegree = graph.inDegreeCentrality().scores
+    a.outDegree = graph.outDegreeCentrality().scores
+    a.closeness = graph.closenessCentrality().scores
+    a.closenessPlain = graph.closenessCentrality(wfImproved: false).scores
+    a.harmonic = graph.harmonicCentrality().scores
+    a.weightedCloseness = graph.closenessCentrality(weight: { abs(w($0)) }).scores
+    a.weightedHarmonic = graph.harmonicCentrality(weight: { abs(w($0)) }).scores
+    a.betweenness = graph.betweennessCentrality().scores
+    a.betweennessRaw = graph.betweennessCentrality(normalized: false).scores
+    a.betweennessEndpoints = graph.betweennessCentrality(endpoints: true).scores
+    a.weightedBetweenness = graph.betweennessCentrality(weight: { abs(w($0)) + 1 }).scores
+    a.eigenvector = graph.eigenvectorCentrality()?.scores
+    a.katz = graph.katzCentrality()?.scores
+    a.pageRank = graph.pageRank()?.scores
+    a.weightedPageRank = graph.pageRank(weight: { Double(abs(w($0))) })?.scores
+    let hits = graph.hits()
+    a.hubs = hits?.hubs.scores
+    a.authorities = hits?.authorities.scores
+    a.consistent = (0 ..< n).allSatisfy { v in
+        graph.closenessCentrality(of: v) == a.closeness[v] && graph.harmonicCentrality(of: v) == a.harmonic[v]
+            && graph.closenessCentrality(of: v, weight: { Double(abs(w($0))) }) == a.weightedCloseness[v]
+            && graph.harmonicCentrality(of: v, weight: { abs(w($0)) }) == a.weightedHarmonic[v]
+    }
+    return a
+}
+
+func undirectedCentrality<G: Graph<Int>>(_ graph: G, _ n: Int, _ w: (G.Edges.Index) -> Int) -> CentralityAnswers {
+    var a = CentralityAnswers()
+    a.degree = graph.degreeCentrality().scores
+    a.closeness = graph.closenessCentrality().scores
+    a.closenessPlain = graph.closenessCentrality(wfImproved: false).scores
+    a.harmonic = graph.harmonicCentrality().scores
+    a.weightedCloseness = graph.closenessCentrality(weight: { abs(w($0)) }).scores
+    a.weightedHarmonic = graph.harmonicCentrality(weight: { abs(w($0)) }).scores
+    a.betweenness = graph.betweennessCentrality().scores
+    a.betweennessRaw = graph.betweennessCentrality(normalized: false).scores
+    a.betweennessEndpoints = graph.betweennessCentrality(endpoints: true).scores
+    a.weightedBetweenness = graph.betweennessCentrality(weight: { abs(w($0)) + 1 }).scores
+    a.eigenvector = graph.eigenvectorCentrality()?.scores
+    a.katz = graph.katzCentrality()?.scores
+    a.pageRank = graph.pageRank()?.scores
+    a.weightedPageRank = graph.pageRank(weight: { Double(abs(w($0))) })?.scores
+    let view = graph.directed
+    a.consistent = (0 ..< n).allSatisfy { v in
+        graph.closenessCentrality(of: v) == a.closeness[v] && graph.harmonicCentrality(of: v) == a.harmonic[v]
+            && graph.closenessCentrality(of: v, weight: { Double(abs(w($0))) }) == a.weightedCloseness[v]
+            && graph.harmonicCentrality(of: v, weight: { abs(w($0)) }) == a.weightedHarmonic[v]
+    }
+    // The directed view: equal closeness and normalized betweenness, twice the degree.
+    let viewBetweenness = view.betweennessCentrality().scores
+    let viewDegree = view.degreeCentrality().scores
+    if view.closenessCentrality().scores != a.closeness
+        || (0 ..< n).contains(where: { abs(viewBetweenness[$0] - a.betweenness[$0]) > 1e-9 || abs(viewDegree[$0] - (n == 1 ? 1 : 2 * a.degree[$0])) > 1e-12 }) {
+        a.consistent = false
+    }
+    return a
+}
+
+/// Community detection, partitions as a canonical label per vertex. Weighted forms use |w|; the
+/// fixed partition for modularity and quality is v mod 3.
+struct CommunityAnswers: Encodable {
+    var modularity = 0.0
+    var weightedModularity = 0.0
+    var resolutionModularity = 0.0
+    var coverage: Double?
+    var performance: Double?
+    var louvain: [Int] = []
+    var weightedLouvain: [Int] = []
+    var greedy: [Int] = []
+    var weightedGreedy: [Int] = []
+    var labelPropagation: [Int]?
+    var asynchronous: [Int]?
+    var weightedAsynchronous: [Int]?
+    var louvainModularity = 0.0
+    var singletonModularity = 0.0
+}
+
+func labels<G: DirectedGraph<Int>>(_ p: Partition<G>, _ n: Int) -> [Int] { (0 ..< n).map { p.community(of: $0) } }
+
+func directedCommunities<G: DirectedGraph<Int>>(_ graph: G, _ n: Int, _ w: @escaping (G.Edges.Index) -> Int) -> CommunityAnswers {
+    var a = CommunityAnswers()
+    let fixed = (0 ..< 3).map { r in (0 ..< n).filter { $0 % 3 == r } }
+    let dw = { (e: G.Edges.Index) in Double(abs(w(e))) }
+    a.modularity = graph.modularity(of: fixed)
+    a.weightedModularity = graph.modularity(of: fixed, weight: dw)
+    a.resolutionModularity = graph.modularity(of: fixed, resolution: 0.5)
+    let quality = graph.partitionQuality(of: fixed)
+    a.coverage = quality.coverage.isNaN ? nil : quality.coverage
+    a.performance = quality.performance.isNaN ? nil : quality.performance
+    let louvain = graph.louvainCommunities()
+    a.louvain = labels(louvain, n)
+    a.weightedLouvain = labels(graph.louvainCommunities(weight: dw), n)
+    a.greedy = labels(graph.greedyModularityCommunities(), n)
+    a.weightedGreedy = labels(graph.greedyModularityCommunities(weight: dw), n)
+    a.louvainModularity = graph.modularity(of: louvain)
+    a.singletonModularity = graph.modularity(of: (0 ..< n).map { [$0] })
+    return a
+}
+
+func undirectedCommunities<G: Graph<Int>>(_ graph: G, _ n: Int, _ w: @escaping (G.Edges.Index) -> Int) -> CommunityAnswers {
+    var a = CommunityAnswers()
+    let fixed = (0 ..< 3).map { r in (0 ..< n).filter { $0 % 3 == r } }
+    let dw = { (e: G.Edges.Index) in Double(abs(w(e))) }
+    a.modularity = graph.modularity(of: fixed)
+    a.weightedModularity = graph.modularity(of: fixed, weight: dw)
+    a.resolutionModularity = graph.modularity(of: fixed, resolution: 0.5)
+    let quality = graph.partitionQuality(of: fixed)
+    a.coverage = quality.coverage.isNaN ? nil : quality.coverage
+    a.performance = quality.performance.isNaN ? nil : quality.performance
+    let louvain = graph.louvainCommunities()
+    a.louvain = labels(louvain, n)
+    a.weightedLouvain = labels(graph.louvainCommunities(weight: dw), n)
+    a.greedy = labels(graph.greedyModularityCommunities(), n)
+    a.weightedGreedy = labels(graph.greedyModularityCommunities(weight: dw), n)
+    a.labelPropagation = labels(graph.labelPropagationCommunities(), n)
+    a.asynchronous = labels(graph.asynchronousLabelPropagationCommunities(), n)
+    a.weightedAsynchronous = labels(graph.asynchronousLabelPropagationCommunities(weight: dw), n)
+    a.louvainModularity = graph.modularity(of: louvain)
+    a.singletonModularity = graph.modularity(of: (0 ..< n).map { [$0] })
+    return a
+}
+
+/// Bipartiteness on the undirected graph (a directed case through `.undirected`): the canonical
+/// side per vertex (0 left), the odd cycle (checked for validity by the script), and for bipartite
+/// graphs the projection onto the left side and the round trip through `BipartiteGraph`.
+struct BipartiteAnswers: Encodable {
+    var isBipartite = false
+    var sides: [Int]?
+    var oddCycle: [Int]?
+    var oddCycleEdges: [[Int]]?
+    var projectionEdges: [[Int]]?
+    var consistent = true
+}
+
+func bipartiteAnswers<G: Graph<Int>>(_ graph: G, _ n: Int) -> BipartiteAnswers {
+    var a = BipartiteAnswers()
+    a.isBipartite = graph.isBipartite
+    let partition = graph.bipartition()
+    let cycle = graph.findOddCycle()
+    a.sides = partition.map { p in (0 ..< n).map { p.side(of: $0) == .left ? 0 : 1 } }
+    a.oddCycle = cycle?.vertices
+    a.oddCycleEdges = cycle.map { c in c.edges.map { [graph.edges[$0].u, graph.edges[$0].v] } }
+    let built = BipartiteGraph(graph)
+    a.consistent = (partition != nil) == a.isBipartite && (cycle == nil) == a.isBipartite && (built != nil) == a.isBipartite
+    if let built, let partition {
+        a.consistent = a.consistent && Array(built.left) == Array(partition.left) && Array(built.right) == Array(partition.right)
+            && BipartiteGraph(graph, left: partition.left) == built && built.edgeCount == Set(graph.edges).count
+        a.projectionEdges = built.projectedGraph(onto: .left).edges.map { [$0.u, $0.v] }
+    }
+    return a
+}
+
+/// Matchings on the undirected graph (a directed case through `.undirected`), as endpoint pairs:
+/// maximal, maximum (Edmonds), and on bipartite graphs Hopcroft–Karp and the minimum-weight full
+/// matching with |w| (nil when none); every result checked with `isMatching` and friends.
+struct MatchingAnswers: Encodable {
+    var maximal: [[Int]] = []
+    var maximum: [[Int]] = []
+    var hopcroftKarp: [[Int]]?
+    var fullMatching: [[Int]]?
+    var fullWeight: Int?
+    var hasFullMatching = false
+    var maximumWeight: [[Int]] = []
+    var maximumWeightCardinality: [[Int]] = []
+    var minimumWeight: [[Int]] = []
+    var consistent = true
+}
+
+func matchingAnswers<G: Graph<Int>>(_ graph: G, _ w: (G.Edges.Index) -> Int) -> MatchingAnswers {
+    var a = MatchingAnswers()
+    func pairs(_ edges: [G.Edges.Index]) -> [[Int]] { edges.map { [graph.edges[$0].u, graph.edges[$0].v] } }
+    let maximal = graph.maximalMatching(), maximum = graph.maximumMatching()
+    a.maximal = pairs(maximal.edges)
+    a.maximum = pairs(maximum.edges)
+    a.consistent = graph.isMaximalMatching(maximal.edges) && graph.isMatching(maximum.edges) && graph.isMaximalMatching(maximum.edges)
+        && maximum.isPerfect == graph.isPerfectMatching(maximum.edges)
+        && graph.vertices.allSatisfy { v in maximum.mate(of: v).map { maximum.mate(of: $0) == v } ?? true }
+    a.maximumWeight = pairs(graph.maximumWeightMatching(weight: w).edges)
+    a.maximumWeightCardinality = pairs(graph.maximumWeightMatching(weight: w, maximumCardinality: true).edges)
+    a.minimumWeight = pairs(graph.minimumWeightMatching(weight: w).edges)
+    if let partition = graph.bipartition() {
+        let hk = graph.maximumBipartiteMatching(bipartition: partition)
+        a.hopcroftKarp = pairs(hk.edges)
+        a.consistent = a.consistent && graph.isMatching(hk.edges) && hk.edges.count == maximum.edges.count
+        if let full = graph.minimumWeightFullMatching(bipartition: partition, weight: { abs(w($0)) }) {
+            a.hasFullMatching = true
+            a.fullMatching = pairs(full.edges)
+            a.fullWeight = full.weight
+        }
+    }
+    return a
+}
+
+/// Covering on the undirected graph (vertex weights v mod 5): Bar-Yehuda–Even covers, the greedy
+/// dominating sets, maximal independent sets, König's cover on bipartite graphs, edge covers, and
+/// the checks on every result.
+struct CoveringAnswers: Encodable {
+    var vertexCover: [Int] = []
+    var weightedVertexCover: [Int] = []
+    var dominatingSet: [Int] = []
+    var weightedDominatingSet: [Int] = []
+    var maximalIndependentSet: [Int] = []
+    var konig: [Int]?
+    var edgeCover: [[Int]]?
+    var maximumIndependentSet: [Int]?
+    var independenceNumber: Int?
+    var minimumVertexCover: [Int]?
+    var minimumDominatingSet: [Int]?
+    var consistent = true
+}
+
+func coveringAnswers<G: Graph<Int>>(_ graph: G) -> CoveringAnswers {
+    var a = CoveringAnswers()
+    a.vertexCover = graph.approximateMinimumVertexCover()
+    a.weightedVertexCover = graph.approximateMinimumVertexCover { $0 % 5 }
+    a.dominatingSet = graph.approximateMinimumDominatingSet()
+    a.weightedDominatingSet = graph.approximateMinimumDominatingSet { $0 % 5 }
+    a.maximalIndependentSet = graph.maximalIndependentSet()
+    a.consistent = graph.isVertexCover(a.vertexCover) && graph.isVertexCover(a.weightedVertexCover)
+        && graph.isDominatingSet(a.dominatingSet) && graph.isDominatingSet(a.weightedDominatingSet)
+        && graph.isIndependentSet(a.maximalIndependentSet)
+        // Maximal, hence dominating, on graphs without self-loops.
+        && (graph.edges.contains { $0.u == $0.v } || graph.isDominatingSet(a.maximalIndependentSet))
+    if let partition = graph.bipartition() {
+        let cover = graph.minimumVertexCover(bipartition: partition)
+        a.konig = cover
+        a.consistent = a.consistent && graph.isVertexCover(cover) && cover.count == graph.maximumBipartiteMatching(bipartition: partition).edges.count
+    }
+    // The exact searches, on graphs small enough for the script's brute force or NetworkX's
+    // max_weight_clique on the complement.
+    if graph.vertexCount <= 40 {
+        let mis = graph.maximumIndependentSet(), cover = graph.minimumVertexCover()
+        a.maximumIndependentSet = mis
+        a.independenceNumber = graph.independenceNumber()
+        a.minimumVertexCover = cover
+        a.consistent = a.consistent && graph.isIndependentSet(mis) && graph.isVertexCover(cover) && mis.count + cover.count == graph.vertexCount
+            && a.independenceNumber == mis.count
+    }
+    if graph.vertexCount <= 16 {
+        let dominating = graph.minimumDominatingSet()
+        a.minimumDominatingSet = dominating
+        a.consistent = a.consistent && graph.isDominatingSet(dominating)
+    }
+    if let cover = graph.minimumEdgeCover() {
+        a.edgeCover = cover.map { [graph.edges[$0].u, graph.edges[$0].v] }
+        a.consistent = a.consistent && graph.isEdgeCover(cover)
+    }
+    return a
+}
+
 func answer<G: DirectedGraph<Int>>(_ graph: G, _ c: Case, _ weight: (G.Edges.Index) -> Int,
                                    _ dijkstraTree: () -> ShortestPathTree<G, Int>,
                                    _ single: () -> (path: Path<Int, G.Edges.Index>, distance: Int)?,
@@ -255,6 +542,11 @@ for c in cases {
             answers.weightedPathDistance = path?.distance
         }
         results[results.count - 1].distances = answers
+        results[results.count - 1].centrality = directedCentrality(graph, c.n, w)
+        results[results.count - 1].communities = directedCommunities(graph, c.n, w)
+        results[results.count - 1].bipartite = bipartiteAnswers(graph.undirected, c.n)
+        results[results.count - 1].matching = matchingAnswers(graph.undirected, { weights[$0] })
+        results[results.count - 1].covering = coveringAnswers(graph.undirected)
     } else {
         let graph = UndirectedAdjacencyList(vertices: 0 ..< c.n, edges: c.edges.map { UndirectedEdge($0[0], $0[1]) })
         var byEdge: [UndirectedEdge<Int>: Int] = [:]
@@ -404,6 +696,11 @@ for c in cases {
         cliques.oneShotsAgree = graph.triangleCount() == clustering.triangleCount && graph.transitivity() == clustering.transitivity
             && (0 ..< c.n).allSatisfy { graph.triangleCount(of: $0) == clustering.triangleCount(of: $0) && graph.clusteringCoefficient(of: $0) == clustering.clusteringCoefficient(of: $0) }
         result.cliques = cliques
+        result.centrality = undirectedCentrality(graph, c.n, w)
+        result.communities = undirectedCommunities(graph, c.n, w)
+        result.bipartite = bipartiteAnswers(graph, c.n)
+        result.matching = matchingAnswers(graph, w)
+        result.covering = coveringAnswers(graph)
         results.append(result)
     }
 }

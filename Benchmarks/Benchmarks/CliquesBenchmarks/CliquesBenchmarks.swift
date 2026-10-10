@@ -70,7 +70,8 @@ let benchmarks: @Sendable () -> Void = {
     }
     let (so, st) = rows(sparse)
     precondition(handWrittenTriangles(so, st) == sparse.triangleCount())
-    precondition(handWrittenCores(so, st) == (0 ..< sparse.vertexCount).map { sparse.coreNumbers().coreNumber(ofIndex: $0) })
+    let sparseCores = sparse.coreNumbers()
+    precondition(handWrittenCores(so, st) == (0 ..< sparse.vertexCount).map { sparseCores.coreNumber(ofIndex: $0) })
 
     // CQ-B01: cores.
     Benchmark("Cliques: BASELINE hand-written Batagelj–Zaversnik, G(10⁵, 5·10⁵)") { benchmark in

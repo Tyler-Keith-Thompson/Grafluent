@@ -158,7 +158,14 @@ def run_bundle(command, env, mutant, limit):
     env = dict(env, GRAFLUENT_MUTANT=str(mutant))
     process = subprocess.Popen(command, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                text=True, errors="replace", start_new_session=True)
-    timer = threading.Timer(limit, lambda: os.killpg(process.pid, signal.SIGKILL))
+    def kill():
+        # The group may already be gone, or be exiting (macOS then answers EPERM).
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except (ProcessLookupError, PermissionError):
+            pass
+
+    timer = threading.Timer(limit, kill)
     timer.start()
     failure = None
     tail = []
@@ -168,7 +175,7 @@ def run_bundle(command, env, mutant, limit):
             match = FAILURE.search(line)
             if match:
                 failure = match.group(1)
-                os.killpg(process.pid, signal.SIGKILL)
+                kill()
                 break
         process.wait()
     finally:

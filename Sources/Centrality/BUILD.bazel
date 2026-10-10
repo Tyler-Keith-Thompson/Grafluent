@@ -9,8 +9,7 @@ swift_library(
     module_name = "Centrality",
     deps = [
         "//Sources/GraphProtocols",
-        "//Sources/ShortestPaths",
-        "//Sources/Traversal",
+        "//Sources/PriorityQueueModule",
     ],
     visibility = ["//visibility:public"],
 )

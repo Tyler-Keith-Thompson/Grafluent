@@ -2,7 +2,7 @@
 
 load("//tools:swift_rules.bzl", "swift_library")
 
-# BipartiteGraph.
+# BipartiteGraph, bipartiteness, bipartitions and odd-cycle witnesses.
 swift_library(
     name = "BipartiteGraphs",
     srcs = glob(["**/*.swift"]),
@@ -10,6 +10,7 @@ swift_library(
     deps = [
         "//Sources/GraphProtocols",
         "//Sources/Walks",
+        "//Sources/AdjacencyListModule",
     ],
     visibility = ["//visibility:public"],
 )

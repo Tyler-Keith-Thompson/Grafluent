@@ -9,7 +9,7 @@ swift_library(
     module_name = "CommunityDetection",
     deps = [
         "//Sources/GraphProtocols",
-        "//Sources/Centrality",
+        "//Sources/PriorityQueueModule",
     ],
     visibility = ["//visibility:public"],
 )

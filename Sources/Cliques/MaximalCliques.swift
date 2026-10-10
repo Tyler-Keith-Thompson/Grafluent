@@ -8,13 +8,17 @@ import GraphProtocols
 ///
 /// Each subproblem works on bitsets over P (ascending index, so bit order is index order) and over
 /// X, kept apart: rows over P for every vertex of P ∪ X, rows over X only for P's vertices. So a
-/// hub with a huge X but few later neighbors costs |P ∪ X|·|P| bits, not |P ∪ X|².
+/// hub with a huge X but few later neighbors costs |P ∪ X|·|P| bits, not |P ∪ X|². The rows are
+/// filled from later-neighbor rows only, at most `degeneracy` entries per member.
 @frozen
 @usableFromInline
 struct _MaximalCliqueSearch: Sendable {
     @usableFromInline let rows: _SimpleRows
     @usableFromInline let order: [Int]
     @usableFromInline var rank: [Int]
+    /// Each vertex's later neighbors in the degeneracy order: at most `degeneracy` each.
+    @usableFromInline let laterOffsets: [Int]
+    @usableFromInline let later: [Int]
     @usableFromInline var outer = 0
 
     // The current subproblem.
@@ -34,14 +38,26 @@ struct _MaximalCliqueSearch: Sendable {
     @usableFromInline var current: [Int] = []
     /// The clique being grown: the outer vertex, then local P members.
     @usableFromInline var clique: [Int] = []
+    /// The last clique found, as vertex numbers in ascending order.
+    @usableFromInline var found: [Int] = []
 
     @inlinable
     init(_ rows: _SimpleRows) {
         self.rows = rows
         let n = rows.count
         order = _cores(rows).order
-        rank = [Int](repeating: 0, count: n)
+        var rank = [Int](repeating: 0, count: n)
         for (i, v) in order.enumerated() { rank[v] = i }
+        self.rank = rank
+        var offsets = [Int](repeating: 0, count: n + 1)
+        var later: [Int] = []
+        later.reserveCapacity(rows.neighbors.count / 2)
+        for v in 0 ..< n {
+            for k in rows.offsets[v] ..< rows.offsets[v + 1] where rank[rows.neighbors[k]] > rank[v] { later.append(rows.neighbors[k]) }
+            offsets[v + 1] = later.count
+        }
+        laterOffsets = offsets
+        self.later = later
         localP = [Int](repeating: -1, count: n)
         localX = [Int](repeating: -1, count: n)
     }
@@ -49,35 +65,45 @@ struct _MaximalCliqueSearch: Sendable {
     @inlinable
     var frameSize: Int { 3 * pWords + xWords }
 
-    @inlinable @inline(__always)
-    static func test(_ words: [UInt64], _ base: Int, _ bit: Int) -> Bool {
-        words[base + bit >> 6] & (1 << UInt64(bit & 63)) != 0
-    }
-
-    /// The next maximal clique, as vertex numbers in ascending order; nil when done.
+    /// Advances to the next maximal clique, left in `found`; false when done.
     @inlinable
-    mutating func next() -> [Int]? {
+    mutating func next() -> Bool {
         while true {
-            if !current.isEmpty, let clique = step() { return clique }
-            guard outer < order.count else { return nil }
+            if !current.isEmpty, step() { return true }
+            guard outer < order.count else { return false }
             let v = order[outer]
             outer += 1
-            if let clique = start(v) { return clique }
+            if start(v) { return true }
         }
     }
 
-    /// Sets up the subproblem of `v`, returning `[v]` when it is a maximal clique on its own.
+    /// Records an edge between two members of P ∪ X in the bitset rows.
+    @inlinable @inline(__always)
+    mutating func link(_ a: Int, _ b: Int) {
+        let p = pVertices.count
+        let pa = localP[a], pb = localP[b]
+        let rowA = pa >= 0 ? pa : p + localX[a]
+        if pb >= 0 { rowsP[rowA * pWords + pb >> 6] |= 1 << UInt64(pb & 63) }
+        if pa >= 0, pb < 0 {
+            let xb = localX[b]
+            rowsX[pa * xWords + xb >> 6] |= 1 << UInt64(xb & 63)
+        }
+    }
+
+    /// Sets up the subproblem of `v`; true when `[v]` alone is a maximal clique (left in `found`).
     @inlinable
-    mutating func start(_ v: Int) -> [Int]? {
+    mutating func start(_ v: Int) -> Bool {
         for u in pVertices { localP[u] = -1 }
         for u in xVertices { localX[u] = -1 }
         pVertices.removeAll(keepingCapacity: true)
         xVertices.removeAll(keepingCapacity: true)
-        for k in rows.offsets[v] ..< rows.offsets[v + 1] {
-            let u = rows.neighbors[k]
-            if rank[u] > rank[v] { pVertices.append(u) } else { xVertices.append(u) }
+        for k in laterOffsets[v] ..< laterOffsets[v + 1] { pVertices.append(later[k]) }
+        for k in rows.offsets[v] ..< rows.offsets[v + 1] where rank[rows.neighbors[k]] < rank[v] { xVertices.append(rows.neighbors[k]) }
+        if pVertices.isEmpty {
+            guard xVertices.isEmpty else { return false }
+            found = [v]
+            return true
         }
-        if pVertices.isEmpty { return xVertices.isEmpty ? [v] : nil }
         pVertices.sort()
         xVertices.sort()
         for (i, u) in pVertices.enumerated() { localP[u] = i }
@@ -85,58 +111,83 @@ struct _MaximalCliqueSearch: Sendable {
         let p = pVertices.count, x = xVertices.count
         pWords = (p + 63) >> 6
         xWords = (x + 63) >> 6
-        rowsP = [UInt64](repeating: 0, count: (p + x) * pWords)
-        rowsX = [UInt64](repeating: 0, count: p * xWords)
-        for (i, u) in (pVertices + xVertices).enumerated() {
-            for k in rows.offsets[u] ..< rows.offsets[u + 1] {
-                let w = rows.neighbors[k]
-                let lp = localP[w]
-                if lp >= 0 { rowsP[i * pWords + lp >> 6] |= 1 << UInt64(lp & 63) }
-                if i < p {
-                    let lx = localX[w]
-                    if lx >= 0 { rowsX[i * xWords + lx >> 6] |= 1 << UInt64(lx & 63) }
-                }
+        rowsP.removeAll(keepingCapacity: true)
+        rowsP.append(contentsOf: repeatElement(0, count: (p + x) * pWords))
+        rowsX.removeAll(keepingCapacity: true)
+        rowsX.append(contentsOf: repeatElement(0, count: p * xWords))
+        // Each edge among the members has an earlier end, whose later row holds it: so only later
+        // rows are read, at most `degeneracy` per member, not the members' whole rows.
+        for i in 0 ..< p + x {
+            let u = i < p ? pVertices[i] : xVertices[i - p]
+            for k in laterOffsets[u] ..< laterOffsets[u + 1] {
+                let w = later[k]
+                guard localP[w] >= 0 || localX[w] >= 0 else { continue }
+                link(u, w)
+                link(w, u)
             }
         }
         frames.removeAll(keepingCapacity: true)
         current.removeAll(keepingCapacity: true)
-        clique = [v]
+        clique.removeAll(keepingCapacity: true)
+        clique.append(v)
         // The root frame: P all set, X ∩ P empty, X ∩ X₀ all set.
-        var root = [UInt64](repeating: 0, count: frameSize)
-        for i in 0 ..< p { root[i >> 6] |= 1 << UInt64(i & 63) }
-        for i in 0 ..< x { root[2 * pWords + i >> 6] |= 1 << UInt64(i & 63) }
-        push(root)
-        return nil
+        frames.append(contentsOf: repeatElement(0, count: frameSize))
+        for i in 0 ..< p { frames[i >> 6] |= 1 << UInt64(i & 63) }
+        for i in 0 ..< x { frames[2 * pWords + i >> 6] |= 1 << UInt64(i & 63) }
+        choosePivot(at: 0)
+        current.append(-1)
+        return false
     }
 
-    /// Pushes a frame with P, X ∩ P and X ∩ X₀ set, choosing its pivot and so its branches.
+    /// Fills the branch set of the frame at `base`: P minus the neighbors of the pivot, the member
+    /// of P ∪ X with most neighbors in P, ties to the least vertex index.
     @inlinable
-    mutating func push(_ frame: [UInt64]) {
-        var frame = frame
-        // Pivot: the member of P ∪ X with most neighbors in P; ties to the least vertex index.
+    mutating func choosePivot(at base: Int) {
+        let p = pVertices.count
         var best = -1, bestScore = -1, bestVertex = Int.max
-        func consider(_ member: Int, _ vertex: Int) {
-            var score = 0
-            for k in 0 ..< pWords { score += (frame[k] & rowsP[member * pWords + k]).nonzeroBitCount }
-            if score > bestScore || (score == bestScore && vertex < bestVertex) {
-                best = member
-                bestScore = score
-                bestVertex = vertex
+        // Members of P and of X ∩ P (both over P's bits), then of X ∩ X₀.
+        for half in 0 ..< 2 {
+            for k in 0 ..< pWords {
+                var word = frames[base + half * pWords + k]
+                while word != 0 {
+                    let i = k * 64 + word.trailingZeroBitCount
+                    word &= word - 1
+                    var score = 0
+                    for j in 0 ..< pWords { score += (frames[base + j] & rowsP[i * pWords + j]).nonzeroBitCount }
+                    let vertex = pVertices[i]
+                    if score > bestScore || (score == bestScore && vertex < bestVertex) {
+                        best = i
+                        bestScore = score
+                        bestVertex = vertex
+                    }
+                }
             }
         }
-        for i in 0 ..< pVertices.count where Self.test(frame, 0, i) || Self.test(frame, pWords, i) { consider(i, pVertices[i]) }
-        for i in 0 ..< xVertices.count where Self.test(frame, 2 * pWords, i) { consider(pVertices.count + i, xVertices[i]) }
-        // Branches: P minus the pivot's neighbors.
-        for k in 0 ..< pWords { frame[2 * pWords + xWords + k] = frame[k] & ~rowsP[best * pWords + k] }
-        frames.append(contentsOf: frame)
-        current.append(-1)
+        for k in 0 ..< xWords {
+            var word = frames[base + 2 * pWords + k]
+            while word != 0 {
+                let i = k * 64 + word.trailingZeroBitCount
+                word &= word - 1
+                var score = 0
+                for j in 0 ..< pWords { score += (frames[base + j] & rowsP[(p + i) * pWords + j]).nonzeroBitCount }
+                let vertex = xVertices[i]
+                if score > bestScore || (score == bestScore && vertex < bestVertex) {
+                    best = p + i
+                    bestScore = score
+                    bestVertex = vertex
+                }
+            }
+        }
+        for k in 0 ..< pWords { frames[base + 2 * pWords + xWords + k] = frames[base + k] & ~rowsP[best * pWords + k] }
     }
 
-    /// Runs the search until it reports a clique; nil when this subproblem is done.
+    /// Runs the search until it reports a clique (left in `found`); false when this subproblem is
+    /// done.
     @inlinable
-    mutating func step() -> [Int]? {
+    mutating func step() -> Bool {
+        let size = frameSize
         while let top = current.last {
-            let base = frames.count - frameSize
+            let base = frames.count - size
             if top >= 0 {
                 // Back from branching on `top`: move it from P to X.
                 frames[base + top >> 6] &= ~(1 << UInt64(top & 63))
@@ -155,39 +206,45 @@ struct _MaximalCliqueSearch: Sendable {
                 }
             }
             guard w >= 0 else {
-                frames.removeLast(frameSize)
+                frames.removeLast(size)
                 current.removeLast()
                 continue
             }
             current[current.count - 1] = w
             clique.append(w)
-            // The child: P ∩ N(w), X ∩ N(w) on both halves.
-            var child = [UInt64](repeating: 0, count: frameSize)
+            // The child, written straight after the parent: P ∩ N(w), X ∩ N(w) on both halves.
+            frames.append(contentsOf: repeatElement(0, count: size))
+            let child = base + size
             var pEmpty = true, xEmpty = true
             for k in 0 ..< pWords {
                 let row = rowsP[w * pWords + k]
-                child[k] = frames[base + k] & row
-                child[pWords + k] = frames[base + pWords + k] & row
-                if child[k] != 0 { pEmpty = false }
-                if child[pWords + k] != 0 { xEmpty = false }
+                let pk = frames[base + k] & row, xk = frames[base + pWords + k] & row
+                frames[child + k] = pk
+                frames[child + pWords + k] = xk
+                if pk != 0 { pEmpty = false }
+                if xk != 0 { xEmpty = false }
             }
             for k in 0 ..< xWords {
-                child[2 * pWords + k] = frames[base + 2 * pWords + k] & rowsX[w * xWords + k]
-                if child[2 * pWords + k] != 0 { xEmpty = false }
+                let xk = frames[base + 2 * pWords + k] & rowsX[w * xWords + k]
+                frames[child + 2 * pWords + k] = xk
+                if xk != 0 { xEmpty = false }
             }
             if pEmpty {
+                frames.removeLast(size)
                 // A leaf: maximal exactly when nothing excluded extends it.
                 if xEmpty {
-                    var result = [clique[0]]
-                    for local in clique.dropFirst() { result.append(pVertices[local]) }
-                    result.sort()
-                    return result
+                    found.removeAll(keepingCapacity: true)
+                    found.append(clique[0])
+                    for local in clique.dropFirst() { found.append(pVertices[local]) }
+                    found.sort()
+                    return true
                 }
                 continue
             }
-            push(child)
+            choosePivot(at: child)
+            current.append(-1)
         }
-        return nil
+        return false
     }
 }
 
@@ -229,8 +286,8 @@ public struct MaximalCliques<G: Graph>: Sequence {
                 search = _MaximalCliqueSearch(graph._simpleRows())
                 listed = graph._listedVertices()
             }
-            guard let numbers = search!.next() else { return nil }
-            return numbers.map { graph._vertex(number: $0, listed) }
+            guard search!.next() else { return nil }
+            return search!.found.map { graph._vertex(number: $0, listed) }
         }
     }
 }

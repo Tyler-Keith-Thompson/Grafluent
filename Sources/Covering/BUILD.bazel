@@ -2,7 +2,7 @@
 
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Vertex cover, independent set, dominating set.
+# Vertex cover, independent set, dominating set, edge cover.
 swift_library(
     name = "Covering",
     srcs = glob(["**/*.swift"]),
@@ -10,6 +10,7 @@ swift_library(
     deps = [
         "//Sources/GraphProtocols",
         "//Sources/MatchingModule",
+        "//Sources/BipartiteGraphs",
     ],
     visibility = ["//visibility:public"],
 )

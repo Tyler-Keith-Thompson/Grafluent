@@ -2,13 +2,14 @@
 
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Multigraph, DirectedMultigraph and Pseudograph.
+# Pseudograph, Multigraph, DirectedPseudograph and DirectedMultigraph: parallel edges, with and without self-loops.
 swift_library(
     name = "Multigraphs",
     srcs = glob(["**/*.swift"]),
     module_name = "Multigraphs",
     deps = [
         "//Sources/GraphProtocols",
+        "//Sources/AdjacencyListModule",
     ],
     visibility = ["//visibility:public"],
 )

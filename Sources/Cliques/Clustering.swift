@@ -158,15 +158,33 @@ extension Graph {
 
     /// The number of triangles in the simple graph. O(m^(3/2)).
     @inlinable
-    public func triangleCount() -> Int { _triangles(_simpleRows()).reduce(0, +) / 3 }
+    public func triangleCount() -> Int { Cliques._triangles(_simpleRows()).reduce(0, +) / 3 }
 
     /// Three times the triangles over the connected triples; 0 when there are no triangles.
     @inlinable
-    public func transitivity() -> Double { clusteringCoefficients().transitivity }
+    public func transitivity() -> Double {
+        let rows = _simpleRows()
+        let triangles = Cliques._triangles(rows)
+        var corners = 0, triples = 0
+        for v in triangles.indices {
+            corners += triangles[v]
+            let d = rows.degree(v)
+            triples += d * (d - 1) / 2
+        }
+        return corners == 0 ? 0 : Double(corners) / Double(triples)
+    }
 
-    /// The mean local clustering coefficient over every vertex, zeros included; 0 when empty.
+    /// The mean local clustering coefficient over every vertex, zeros included, summed in
+    /// `vertices` order; 0 when empty.
     @inlinable
-    public func averageClustering() -> Double { clusteringCoefficients().averageClustering }
+    public func averageClustering() -> Double {
+        let rows = _simpleRows()
+        let triangles = Cliques._triangles(rows)
+        guard !triangles.isEmpty else { return 0 }
+        var sum = 0.0
+        for v in triangles.indices { sum += _clustering(triangles[v], rows.degree(v)) }
+        return sum / Double(triangles.count)
+    }
 
     /// The distinct neighbors of `vertex` other than itself, as vertex numbers or vertices.
     @inlinable
@@ -177,8 +195,9 @@ extension Graph {
             var around = Set<Int>()
             for w in neighborIndices(ofIndex: v) where w != v { around.insert(w) }
             var corners = 0
+            var seen = Set<Int>()
             for w in around {
-                var seen = Set<Int>()
+                seen.removeAll(keepingCapacity: true)
                 for x in neighborIndices(ofIndex: w) where x != w && x != v && around.contains(x) && seen.insert(x).inserted { corners += 1 }
             }
             return (corners / 2, around.count)
@@ -186,8 +205,9 @@ extension Graph {
         var around = Set<Vertex>()
         for w in neighbors(of: vertex) where w != vertex { around.insert(w) }
         var corners = 0
+        var seen = Set<Vertex>()
         for w in around {
-            var seen = Set<Vertex>()
+            seen.removeAll(keepingCapacity: true)
             for x in neighbors(of: w) where x != w && x != vertex && around.contains(x) && seen.insert(x).inserted { corners += 1 }
         }
         return (corners / 2, around.count)
