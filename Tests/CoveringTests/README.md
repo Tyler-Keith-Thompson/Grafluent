@@ -5,7 +5,7 @@ graph: the exact maximum independent set (lexicographically least by vertex inde
 `independenceNumber()` and its complement `minimumVertexCover()`; König's cover from a maximum
 matching; the greedy maximal independent set; the exact minimum dominating set; the Bar-Yehuda–Even
 and greedy set-cover approximations; the minimum edge cover from a matching; and four checks. The
-tests were written before the implementation, from the proposed API (`api.md`, phase 1, with the
+tests were written before the implementation, from the proposed API (`api.md` in [`Tests/Catalogs/Covering/`](../Catalogs/Covering/), phase 1, with the
 open questions decided: the approximations are named `approximate…`; `BipartiteGraph` gets no
 `bipartition` property, so callers pass `bipartition()`; only reductions that keep the lexicographic
 rule; no extra heuristics, no `using:` overloads, no certificates, no Flows dependency; weights are
@@ -55,11 +55,13 @@ Every catalog row is written as the catalog writes it: graph rows on `Undirected
 by inserting the listed vertices and then the edges in written order (rows in position order, a
 self-loop twice), `multigraph` rows on `ReferencePseudograph`, `L …; R …` rows on
 `BipartiteGraph(left:right:edges:)`; so every vertex number and edge position is the catalog's.
-The catalog-row files were generated from `cases.md` by a script (`swiftgen.py`, next to `ref.py`).
+The catalog-row files were generated from `cases.md` by a script (`swiftgen.py`, next to `ref.py` and `cases.md` in [`Tests/Catalogs/Covering/`](../Catalogs/Covering/), which says how to
+run it).
 It runs `ref.py`'s catalog with every case builder instrumented, so the inputs are kept as
 structured values, and checks that the rendered catalog equals `cases.md` (byte for byte, except
 the Checked cells that need igraph and the "= NetworkX dominating_set" notes of the string-vertex
-rows, which follow Python's string hash seed). It then re-evaluates each row with `ref.py`'s model
+rows, which follow Python's string hash seed; `PYTHONHASHSEED=0 ref.py --write` reproduces
+`cases.md` exactly). It then re-evaluates each row with `ref.py`'s model
 functions, asserts that each value matches its catalog cell, and writes one test per row.
 
 Each row asserts the exact result, the vertex list and the edge count, and then, computed inside

@@ -96,7 +96,7 @@ oracles inside each test.
 
 ## Case IDs
 
-Case IDs (TA-001 … TA-918) refer to the catalog (`cases.md`), harvested from NetworkX
+Case IDs (TA-001 … TA-918) refer to the catalog (`cases.md`, with `ref.py` and `api.md` in `Tests/Catalogs/TreeAlgorithms/`), harvested from NetworkX
 (`algorithms/tests/test_lowest_common_ancestors.py` `TestTreeLCA`,
 `tree/tests/test_distance_measures.py`, the `tree.center` / `tree.centroid` docstrings), JGraphT's
 LCA finders' shapes, cp-algorithms (HLD, Euler tour) and the edge cases the design calls out.

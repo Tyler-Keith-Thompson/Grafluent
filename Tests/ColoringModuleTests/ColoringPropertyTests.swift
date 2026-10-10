@@ -6,7 +6,8 @@
 // with their sides interleaved in the vertex order, and `BipartiteGraph`s. The oracles: the
 // definitions of a colouring and an edge colouring; api.md's procedures written out (first fit, the
 // six strategies' orders, Welsh–Powell's class-by-class form, Misra–Gries, König's path flips);
-// exhaustive searches for χ, for ω and for each component's lexicographically least χ-colouring;
+// exhaustive searches for χ, for ω and for each component's lexicographically least χ-colouring
+// (on the sparse graphs of 30 – 70 vertices a search capped in steps, so no input runs long);
 // and `bipartition()`. See README.md.
 
 import AdjacencyListModule
@@ -47,7 +48,7 @@ struct ColoringPropertyTests {
                 let byIndex = (0 ..< n).map { coloring.color(ofIndex: $0) }
                 #expect(byIndex == colors, "\(strategy) \(context)")
                 for (a, b) in ends where a != b { #expect(colors[a] != colors[b], "\(strategy) \(context)") }
-                let checked = graph.isColoring { coloring.color(of: $0) }
+                let checked = graph.isVertexColoring { coloring.color(of: $0) }
                 #expect(checked, "\(strategy) \(context)")
                 #expect(Set(colors) == Set(0 ..< coloring.colorCount), "\(strategy) \(context)")
                 let classes = coloring.colorClasses.map { Array($0) }
@@ -71,6 +72,12 @@ struct ColoringPropertyTests {
             let collapsedMinimumColors = listed.map { collapsedMinimum.color(of: $0) }, looplessMinimumColors = listed.map { looplessMinimum.color(of: $0) }
             #expect(collapsedMinimumColors == minimumColors, "\(context)")
             #expect(looplessMinimumColors == minimumColors, "\(context)")
+            let first = graph.lexicographicallyFirstMinimumColoring()
+            let collapsedFirst = collapsed.lexicographicallyFirstMinimumColoring(), looplessFirst = loopless.lexicographicallyFirstMinimumColoring()
+            let firstColors = listed.map { first.color(of: $0) }
+            let collapsedFirstColors = listed.map { collapsedFirst.color(of: $0) }, looplessFirstColors = listed.map { looplessFirst.color(of: $0) }
+            #expect(collapsedFirstColors == firstColors, "\(context)")
+            #expect(looplessFirstColors == firstColors, "\(context)")
             // bipartiteEdgeColoring() is nil exactly when there is an odd cycle (a self-loop is one).
             #expect((graph.bipartiteEdgeColoring() == nil) == (graph.bipartition() == nil), "\(context)")
         }
@@ -232,7 +239,7 @@ struct ColoringPropertyTests {
         }
     }
 
-    @Test("chromaticNumber() is the least k with a proper k-colouring (exhaustive search); ω ≤ χ ≤ every greedy count; minimumColoring() has χ colours")
+    @Test("chromaticNumber() is the least k with a proper k-colouring (exhaustive search); ω ≤ χ ≤ every greedy count; minimumColoring() has χ colours, numbered by first appearance")
     func chromaticNumber() async {
         let edges = zip(Gen.int(in: 0 ... 9), Gen.int(in: 0 ... 9)).array(of: 0 ... 30)
         await propertyCheck(count: 300, input: edges, Gen.int(in: 1 ... 10), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
@@ -273,8 +280,14 @@ struct ColoringPropertyTests {
             for strategy in ColoringStrategy.allCases { #expect(graph.greedyColoring(strategy: strategy).colorCount >= chi, "\(strategy) \(context)") }
             let minimum = graph.minimumColoring()
             #expect(minimum.colorCount == chi, "\(context)")
-            let checked = graph.isColoring { minimum.color(of: $0) }
+            let checked = graph.isVertexColoring { minimum.color(of: $0) }
             #expect(checked, "\(context)")
+            // Numbered by first appearance in `vertices` order.
+            var high = -1
+            for c in listed.map({ minimum.color(of: $0) }) {
+                #expect(c <= high + 1, "\(context)")
+                high = max(high, c)
+            }
             // 0 only for the empty graph, 1 without edges between distinct vertices, 2 when bipartite with one.
             let hasEdge = adjacent.contains { !$0.isEmpty }
             let looped = pairs.contains { $0.0 == $0.1 }
@@ -283,8 +296,8 @@ struct ColoringPropertyTests {
         }
     }
 
-    @Test("minimumColoring(): per component the lexicographically least χ-colouring (exhaustive search), the component's own minimumColoring(), classes numbered by least vertex")
-    func minimumColoringRule() async {
+    @Test("lexicographicallyFirstMinimumColoring(): per component the lexicographically least χ-colouring (exhaustive search), the component's own lexicographicallyFirstMinimumColoring(), classes numbered by least vertex")
+    func lexicographicallyFirstRule() async {
         let edges = zip(Gen.int(in: 0 ... 9), Gen.int(in: 0 ... 9)).array(of: 0 ... 22)
         await propertyCheck(count: 300, input: edges, Gen.int(in: 1 ... 10), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
             var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
@@ -299,7 +312,7 @@ struct ColoringPropertyTests {
                 if !adjacent[a].contains(b) { adjacent[a].append(b) }
                 if !adjacent[b].contains(a) { adjacent[b].append(a) }
             }
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             let colors = listed.map { coloring.color(of: $0) }
             // Components as vertex indices ascending.
             var componentOf = [Int](repeating: -1, count: n)
@@ -339,7 +352,7 @@ struct ColoringPropertyTests {
                 // The component as a graph of its own, vertices in the same relative order.
                 let inside = Set(members.map { listed[$0] })
                 let component = UndirectedAdjacencyList(vertices: members.map { listed[$0] }, edges: pairs.filter { inside.contains($0.0) }.map { UndirectedEdge($0.0, $0.1) })
-                let own = component.minimumColoring()
+                let own = component.lexicographicallyFirstMinimumColoring()
                 let ownColors = members.map { own.color(of: listed[$0]) }
                 #expect(ownColors == given, "\(members) \(context)")
                 #expect(own.colorCount == k && component.chromaticNumber() == k, "\(members) \(context)")
@@ -351,7 +364,7 @@ struct ColoringPropertyTests {
         }
     }
 
-    @Test("Bipartite multigraphs, sides interleaved in the vertex order: minimumColoring() is bipartition()'s sides, DSatur is exact, König uses exactly Δ and is api.md's procedure written out")
+    @Test("Bipartite multigraphs, sides interleaved in the vertex order: both minimum colourings are bipartition()'s sides, DSatur is exact, König uses exactly Δ and is api.md's procedure written out")
     func bipartiteGraphs() async throws {
         let edges = zip(Gen.int(in: 0 ... 5), Gen.int(in: 0 ... 5)).array(of: 0 ... 18)
         await propertyCheck(count: 300, input: edges, Gen.int(in: 1 ... 6), Gen.int(in: 1 ... 6), Gen.int(in: 0 ... 1_000_000)) { raw, l, r, seed in
@@ -371,6 +384,7 @@ struct ColoringPropertyTests {
             let minimum = graph.minimumColoring()
             let bySides = sides.left.allSatisfy { minimum.color(of: $0) == 0 } && sides.right.allSatisfy { minimum.color(of: $0) == 1 }
             #expect(bySides, "\(context)")
+            #expect(graph.lexicographicallyFirstMinimumColoring() == minimum, "\(context)")
             let chi = pairs.isEmpty ? 1 : 2
             #expect(graph.chromaticNumber() == chi, "\(context)")
             #expect(graph.greedyColoring(strategy: .saturationLargestFirst).colorCount == chi, "\(context)")
@@ -547,7 +561,245 @@ struct ColoringPropertyTests {
         }
     }
 
-    @Test("isColoring and isEdgeColoring agree with their definitions on random colours, the closure called once per vertex or edge")
+    @Test("A hub beside sparse random edges (20 – 200 vertices, so most vertices have a few edges and Δ is large): Misra–Gries and König as api.md writes them, proper, within their bounds")
+    func edgeColoringWithHub() async {
+        let edges = zip(Gen.int(in: 0 ... 199), Gen.int(in: 0 ... 199)).array(of: 0 ... 150)
+        await propertyCheck(count: 100, input: edges, Gen.int(in: 20 ... 200), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
+            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            let hub = seed % n
+            // Misra–Gries: the hub joined to every vertex, then the random pairs, simple, as written.
+            var kept = Set<[Int]>()
+            var pairs: [(Int, Int)] = []
+            for (a, b) in (0 ..< n).filter({ $0 != hub }).map({ (hub, $0) }) + raw.map({ ($0.0 % n, $0.1 % n) }) where a != b && kept.insert([min(a, b), max(a, b)]).inserted {
+                pairs.append(seed % 3 == 0 ? (b, a) : (a, b))
+            }
+            pairs.shuffle(using: &rng)
+            let listed = Array(0 ..< n).shuffled(using: &rng)
+            let graph = UndirectedAdjacencyList(vertices: listed, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            let index = Dictionary(uniqueKeysWithValues: listed.enumerated().map { ($1, $0) })
+            let ends = pairs.map { (index[$0.0]!, index[$0.1]!) }
+            let context = "\(pairs) on \(listed)"
+            let m = ends.count
+            let coloring = graph.edgeColoring()
+            let colors = (0 ..< m).map { coloring.color(ofEdgeAt: $0) }
+            let maxDegree = (0 ..< n).map { v in ends.filter { $0.0 == v || $0.1 == v }.count }.max() ?? 0
+            for v in 0 ..< n {
+                let at = ends.indices.filter { ends[$0].0 == v || ends[$0].1 == v }.map { colors[$0] }
+                #expect(Set(at).count == at.count, "\(context)")
+            }
+            #expect(coloring.colorCount >= maxDegree && coloring.colorCount <= maxDegree + 1, "\(context)")
+            // Misra–Gries written out, as in misraGries().
+            var colour = [Int](repeating: -1, count: m)
+            var at = [[Int]](repeating: [Int](repeating: -1, count: maxDegree + 2), count: n)
+            func other(_ e: Int, _ x: Int) -> Int { ends[e].0 == x ? ends[e].1 : ends[e].0 }
+            func isFree(_ x: Int, _ c: Int) -> Bool { c < 0 || at[x][c] < 0 }
+            func leastFree(_ x: Int) -> Int {
+                var c = 0
+                while at[x][c] >= 0 { c += 1 }
+                return c
+            }
+            func paint(_ e: Int, _ c: Int) {
+                colour[e] = c
+                at[ends[e].0][c] = e
+                at[ends[e].1][c] = e
+            }
+            func clear(_ e: Int) {
+                at[ends[e].0][colour[e]] = -1
+                at[ends[e].1][colour[e]] = -1
+                colour[e] = -1
+            }
+            for e in 0 ..< m {
+                let (u, v) = ends[e].0 < ends[e].1 ? ends[e] : (ends[e].1, ends[e].0)
+                let c = leastFree(u)
+                var fan = [v], fanEdges = [e]
+                while !isFree(fan.last!, c) {
+                    let last = fan.last!
+                    var next: (Int, Int)?
+                    for k in 0 ... maxDegree where at[u][k] >= 0 && isFree(last, k) && !fan.contains(other(at[u][k], u)) {
+                        next = (other(at[u][k], u), at[u][k])
+                        break
+                    }
+                    guard let (x, edge) = next else { break }
+                    fan.append(x)
+                    fanEdges.append(edge)
+                }
+                var d = c
+                if !isFree(fan.last!, c) {
+                    d = leastFree(fan.last!)
+                    var path: [Int] = []
+                    var x = u, current = d
+                    while at[x][current] >= 0 {
+                        let f = at[x][current]
+                        path.append(f)
+                        x = other(f, x)
+                        current = current == d ? c : d
+                    }
+                    let old = path.map { colour[$0] }
+                    for f in path { clear(f) }
+                    for (f, o) in zip(path, old) { paint(f, o == d ? c : d) }
+                }
+                let w = fan.indices.first { isFree(fan[$0], d) }!
+                let shifted = (0 ..< w).map { colour[fanEdges[$0 + 1]] }
+                for j in stride(from: 1, through: w, by: 1) { clear(fanEdges[j]) }
+                for j in 0 ..< w { paint(fanEdges[j], shifted[j]) }
+                paint(fanEdges[w], d)
+            }
+            #expect(colors == colour, "\(context)")
+
+            // König: the hub on the left joined to every right vertex, the random pairs between the
+            // sides (left the vertices below n / 2 and the hub, right the rest), parallel copies kept.
+            let left = Set((0 ..< n / 2).filter { $0 != hub } + [hub])
+            var sidePairs = (0 ..< n).filter { !left.contains($0) }.map { (hub, $0) }
+            for (a, b) in raw.map({ ($0.0 % n, $0.1 % n) }) where left.contains(a) != left.contains(b) { sidePairs.append((a, b)) }
+            sidePairs.shuffle(using: &rng)
+            let bipartite = ReferencePseudograph(vertices: listed, edges: sidePairs.map { UndirectedEdge($0.0, $0.1) })
+            let sideEnds = sidePairs.map { (index[$0.0]!, index[$0.1]!) }
+            guard let koenig = bipartite.bipartiteEdgeColoring() else {
+                Issue.record("nil on a bipartite graph: \(sidePairs)")
+                return
+            }
+            let sideM = sideEnds.count
+            let koenigColors = (0 ..< sideM).map { koenig.color(ofEdgeAt: $0) }
+            let sideDegree = (0 ..< n).map { v in sideEnds.filter { $0.0 == v || $0.1 == v }.count }.max() ?? 0
+            #expect(koenig.colorCount == sideDegree, "\(sidePairs)")
+            var paintColour = [Int](repeating: -1, count: sideM)
+            var holds = [[Int]](repeating: [Int](repeating: -1, count: sideDegree + 2), count: n)
+            func across(_ e: Int, _ x: Int) -> Int { sideEnds[e].0 == x ? sideEnds[e].1 : sideEnds[e].0 }
+            func lowest(_ x: Int) -> Int {
+                var c = 0
+                while holds[x][c] >= 0 { c += 1 }
+                return c
+            }
+            func give(_ e: Int, _ c: Int) {
+                paintColour[e] = c
+                holds[sideEnds[e].0][c] = e
+                holds[sideEnds[e].1][c] = e
+            }
+            for e in 0 ..< sideM {
+                let (u, v) = sideEnds[e].0 < sideEnds[e].1 ? sideEnds[e] : (sideEnds[e].1, sideEnds[e].0)
+                let a = lowest(u), b = lowest(v)
+                if holds[v][a] >= 0 {
+                    var path: [Int] = []
+                    var x = v, c = a
+                    while holds[x][c] >= 0 {
+                        let f = holds[x][c]
+                        path.append(f)
+                        x = across(f, x)
+                        c = c == a ? b : a
+                    }
+                    let old = path.map { paintColour[$0] }
+                    for f in path {
+                        holds[sideEnds[f].0][paintColour[f]] = -1
+                        holds[sideEnds[f].1][paintColour[f]] = -1
+                    }
+                    for (f, o) in zip(path, old) { give(f, o == a ? b : a) }
+                }
+                give(e, a)
+            }
+            #expect(koenigColors == paintColour, "\(sidePairs)")
+        }
+    }
+
+    @Test("lexicographicallyFirstMinimumColoring() on sparse graphs of 30 – 70 vertices: per component each vertex's colour the least whose prefix a search still extends; minimumColoring() proper with χ colours by first appearance")
+    func lexicographicallyFirstSparse() async {
+        let edges = zip(Gen.int(in: 0 ... 69), Gen.int(in: 0 ... 69)).array(of: 40 ... 140)
+        var skipped = 0
+        await propertyCheck(count: 150, input: edges, Gen.int(in: 30 ... 70)) { raw, n in
+            let pairs = raw.map { ($0.0 % n, $0.1 % n) }
+            let graph = UndirectedAdjacencyList<Int>(vertices: 0 ..< n, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            var adjacent = [[Int]](repeating: [], count: n)
+            for (a, b) in pairs where a != b {
+                if !adjacent[a].contains(b) { adjacent[a].append(b) }
+                if !adjacent[b].contains(a) { adjacent[b].append(a) }
+            }
+            var componentOf = [Int](repeating: -1, count: n)
+            var components: [[Int]] = []
+            for root in 0 ..< n where componentOf[root] < 0 {
+                componentOf[root] = components.count
+                var members = [root], head = 0
+                while head < members.count {
+                    let v = members[head]
+                    head += 1
+                    for w in adjacent[v] where componentOf[w] < 0 {
+                        componentOf[w] = components.count
+                        members.append(w)
+                    }
+                }
+                components.append(members.sorted())
+            }
+            let colors = graph.lexicographicallyFirstMinimumColoring().colors
+            // Whether the colours in `colour` extend to all of `members` with colours 0..<k: backtracking
+            // on the uncoloured vertex with the most distinct neighbour colours (the least index on
+            // ties), colours ascending, and of the colours no vertex has yet only the least (they are
+            // interchangeable). At most 20,000 steps per graph: past that `exhausted` is set and the
+            // graph is skipped, so no input runs long.
+            var colour = [Int](repeating: -1, count: n)
+            var steps = 0, exhausted = false
+            func extends(_ members: [Int], _ k: Int) -> Bool {
+                steps += 1
+                if steps > 20_000 { exhausted = true }
+                if exhausted { return false }
+                var best = -1, bestSeen = -1, high = -1
+                for v in members {
+                    if colour[v] >= 0 {
+                        high = max(high, colour[v])
+                        continue
+                    }
+                    var seen: UInt64 = 0
+                    for w in adjacent[v] where colour[w] >= 0 { seen |= 1 << UInt64(colour[w]) }
+                    if seen.nonzeroBitCount > bestSeen {
+                        best = v
+                        bestSeen = seen.nonzeroBitCount
+                    }
+                }
+                if best < 0 { return true }
+                for c in 0 ..< min(k, high + 2) where !adjacent[best].contains(where: { colour[$0] == c }) {
+                    colour[best] = c
+                    if extends(members, k) { return true }
+                }
+                colour[best] = -1
+                return false
+            }
+            var chi = 1
+            var least = [Int](repeating: -1, count: n)
+            for members in components {
+                for v in members { colour[v] = -1 }
+                guard let k = (1 ... members.count).first(where: { extends(members, $0) }), !exhausted else { break }
+                chi = max(chi, k)
+                // Each vertex in index order takes the least colour its prefix still extends with.
+                for v in members {
+                    for c in 0 ..< k where !adjacent[v].contains(where: { least[$0] == c }) {
+                        for w in members { colour[w] = least[w] }
+                        colour[v] = c
+                        if extends(members, k) {
+                            least[v] = c
+                            break
+                        }
+                    }
+                }
+                if exhausted { break }
+                #expect(members.map { colors[$0] } == members.map { least[$0] }, "\(members) in \(pairs)")
+            }
+            if exhausted {
+                skipped += 1
+                return
+            }
+            #expect(graph.chromaticNumber() == chi, "\(pairs)")
+            let minimum = graph.minimumColoring()
+            #expect(minimum.colorCount == chi, "\(pairs)")
+            let proper = graph.isVertexColoring { minimum.color(of: $0) }
+            #expect(proper, "\(pairs)")
+            var high = -1
+            for c in minimum.colors {
+                #expect(c <= high + 1, "\(minimum.colors) in \(pairs)")
+                high = max(high, c)
+            }
+        }
+        // The step cap leaves out only a few graphs.
+        #expect(skipped <= 15, "\(skipped) of 150 graphs skipped")
+    }
+
+    @Test("isVertexColoring and isEdgeColoring agree with their definitions on random colours, the closure called once per vertex or edge")
     func checksAgainstDefinitions() async {
         let edges = zip(Gen.int(in: 0 ... 7), Gen.int(in: 0 ... 7)).array(of: 0 ... 14)
         await propertyCheck(count: 400, input: edges, Gen.int(in: 1 ... 8), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
@@ -561,8 +813,8 @@ struct ColoringPropertyTests {
             let edgeColour = pairs.indices.map { _ in Int.random(in: -1 ... 2, using: &rng) }
             let proper = pairs.allSatisfy { $0.0 == $0.1 || vertexColour[$0.0]! != vertexColour[$0.1]! }
             var vertexCalls = 0
-            let isColoring = graph.isColoring { vertexCalls += 1; return vertexColour[$0]! }
-            #expect(isColoring == proper && vertexCalls == n, "\(context) \(vertexColour)")
+            let isVertexColoring = graph.isVertexColoring { vertexCalls += 1; return vertexColour[$0]! }
+            #expect(isVertexColoring == proper && vertexCalls == n, "\(context) \(vertexColour)")
             // Each vertex's edges (a self-loop once) have distinct colours.
             let properEdges = listed.allSatisfy { x in
                 let at = pairs.indices.filter { pairs[$0].0 == x || pairs[$0].1 == x }.map { edgeColour[$0] }

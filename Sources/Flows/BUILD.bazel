@@ -3,16 +3,15 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Maximum flow, minimum-cost flow, minimum cut, Gomory–Hu trees.
+# Maximum flow (push–relabel, Dinic, Edmonds–Karp), minimum cuts (s–t, Nagamochi–Ibaraki, Hao–Orlin), Gomory–Hu trees, minimum-cost flow (network simplex), edge and vertex connectivity, disjoint paths.
 swift_library(
     name = "Flows",
     srcs = glob(["**/*.swift"]),
     module_name = "Flows",
     deps = [
         "//Sources/GraphProtocols",
-        "//Sources/FlowNetworks",
         "//Sources/Trees",
-        "//Sources/Traversal",
+        "//Sources/Walks",
     ],
     visibility = ["//visibility:public"],
 )
@@ -24,9 +23,8 @@ docc_archive(
     catalog = glob(["*.docc/**"], allow_empty = True),
     deps = [
         "//Sources/GraphProtocols:GraphProtocolsDocumentation",
-        "//Sources/FlowNetworks:FlowNetworksDocumentation",
         "//Sources/Trees:TreesDocumentation",
-        "//Sources/Traversal:TraversalDocumentation",
+        "//Sources/Walks:WalksDocumentation",
     ],
     tags = ["manual"],
     visibility = ["//visibility:public"],

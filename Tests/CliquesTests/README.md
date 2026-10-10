@@ -6,8 +6,9 @@ decomposition (core numbers, degeneracy, degeneracy ordering, k-cores and k-shel
 and counts triangles with the clustering coefficients built on them (local, transitivity, average).
 Everything is on `Graph` and reads the simple graph underneath it. Directed graphs reach it through
 `digraph.undirected`. The tests were written before the implementation, from the proposed API
-(`api.md`, phase 1). The suite uses only the public API, and each test is self-contained. The shared
-material is the `ReferencePseudograph` and `ReferenceDirectedMultigraph` test conformers, `Collider`,
+(`api.md`, phase 1; it, the catalog and its generator are in `Tests/Catalogs/Cliques/`). The suite
+uses only the public API, and each test is self-contained. The shared material is the
+`ReferencePseudograph` and `ReferenceDirectedMultigraph` test conformers, `Collider`,
 the seeded generator and the tags in `GrafluentTestSupport`. Conformers private to a file model
 representations the package does not have: rows reversed or shuffled, no indices, a symmetric
 `CompressedSparseRow` read as a graph, rows that count reads, vertices that count hashes.
@@ -55,7 +56,7 @@ Every catalog row of §A – §F is written as the catalog writes it (listed ver
 endpoints by first appearance; edges in written order, repeats and loops kept) on the
 `ReferencePseudograph` or `ReferenceDirectedMultigraph`, whose rows are in position order. `~rev`
 rows use a file-private conformer whose rows are reversed. The catalog-row files were generated
-from `cases.md` by a script that re-evaluates each row with `ref.py` and requires the result to
+from `cases.md` by a script (`gen.py`) that re-evaluates each row with `ref.py` and requires the result to
 equal the cell. `ref.py` holds api.md's model in index space, checked against brute force over vertex
 subsets, peeling, Latapy's compact-forward count and NetworkX 3.7. Each catalog test also checks
 the one-shot calls against the members of the returned value, and the same op on

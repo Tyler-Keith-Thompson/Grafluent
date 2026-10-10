@@ -91,7 +91,7 @@ oracles inside the test.
 
 ## Case IDs
 
-Case IDs (WK-101 … WK-1306) refer to the catalog (`cases.md`), harvested from JGraphT
+Case IDs (WK-101 … WK-1306) refer to the catalog (`cases.md`, with `ref.py` and `api.md` in `Tests/Catalogs/Walks/`), harvested from JGraphT
 (`GraphWalkTest`), LEMON (`path_test`), NetworkX (`test_ispath`, `test_pathweight`,
 `simple_cycles`, `find_cycle`) and the graph-theory texts. Each test's name starts with its IDs.
 

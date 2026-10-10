@@ -5,7 +5,7 @@
 vertex inserted on a side and kept there, every edge across, stored left endpoint first), built on
 `UndirectedAdjacencyList` and mutable like it; `isBipartite`, `bipartition()` and `findOddCycle()`
 on any `Graph`; and `projectedGraph(onto:)`. The tests were written before the implementation, from
-the proposed API (`api.md`, phase 1, with the open questions decided: `BipartiteGraph` is simple,
+the proposed API (`api.md` in [`Tests/Catalogs/BipartiteGraphs/`](../Catalogs/BipartiteGraphs/), phase 1, with the open questions decided: `BipartiteGraph` is simple,
 `insert(edge:)` traps on a same-side edge with no non-trapping variant, no `density`, no
 `isBipartition(left:)`, recognition on `Graph` only, no side-local indices, no moving a vertex
 between sides). The suite uses only the public API, and each test is self-contained. The shared
@@ -62,8 +62,8 @@ initializers named in the row. The catalog-row files (`RecognitionTests.swift`,
 `RecognitionRepresentationTests.swift`, `BipartiteGraphFromGraphTests.swift`,
 `BipartiteGraphSideInitializerTests.swift`, `BipartiteGraphMutationTests.swift`,
 `BipartiteGraphPreconditionTests.swift` except its last two tests, `ProjectionTests.swift`,
-`BipartiteGraphEqualityTests.swift`) were generated from `cases.md` by a script (`swiftgen.py`, next
-to `ref.py`). It first checks that `ref.py` reproduces `cases.md` exactly, then re-evaluates each row
+`BipartiteGraphEqualityTests.swift`) were generated from `cases.md` by a script (`swiftgen.py`, next to `ref.py` and `cases.md` in [`Tests/Catalogs/BipartiteGraphs/`](../Catalogs/BipartiteGraphs/), which says how to
+run it). It first checks that `ref.py` reproduces `cases.md` exactly, then re-evaluates each row
 with `ref.py`'s model functions, asserts the value matches the catalog cell, and writes it out.
 Odd-cycle rows assert the exact cycle (vertices and edge positions) and its validity: odd length,
 no repeated vertex or edge, each edge joining consecutive vertices, and

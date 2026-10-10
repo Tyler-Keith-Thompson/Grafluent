@@ -1,0 +1,22 @@
+    // MARK: - Merges with ΔQ = 0 continue (api.md; not a catalog row)
+
+    @Test("D(0>1).greedyModularityCommunities() is [[0, 1]]: ΔQ = 1/m − (a₀b₁ + b₀a₁) = 0, and a merge with ΔQ = 0 continues (NetworkX agrees)")
+    func greedyZeroGainArc() {
+        // D: 0>1
+        let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 2, edges: [DirectedEdge(from: 0, to: 1)])
+        let result = graph.greedyModularityCommunities()
+        #expect(result.map { Array($0) } == [[0, 1]])
+        #expect(abs(graph.modularity(of: result)) <= 1e-12)
+    }
+
+    @Test("U(K(0..2), K(3..5), 2-3).greedyModularityCommunities(weight: [1, 1, 1, 1, 1, 1, 0], resolution: 0) is one community: the zero-weight bridge has ΔQ = 0 at γ = 0, and the merge continues")
+    func greedyZeroGainBridge() {
+        // U: K(0..2), K(3..5), 2-3
+        let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (3, 4), (3, 5), (4, 5), (2, 3)]
+        let graph = ReferencePseudograph(vertices: 0 ..< 6, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+        let w: [Double] = [1, 1, 1, 1, 1, 1, 0]
+        let result = graph.greedyModularityCommunities(weight: { w[$0] }, resolution: 0)
+        #expect(result.map { Array($0) } == [[0, 1, 2, 3, 4, 5]])
+        let arcs = graph.directed.greedyModularityCommunities(weight: { w[$0.position] }, resolution: 0)
+        #expect(arcs == result, "graph.directed")
+    }

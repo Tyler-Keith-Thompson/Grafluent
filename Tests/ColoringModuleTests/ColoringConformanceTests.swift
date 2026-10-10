@@ -30,11 +30,11 @@ struct ColoringConformanceTests {
         #expect(byDefault != path.greedyColoring(strategy: .smallestLast))
     }
 
-    @Test("ColoringStrategy has NetworkX's six strategies, in that order, distinct and hashable")
+    @Test("ColoringStrategy has NetworkX's six strategies, in that order, then igraph's colored neighbours, distinct and hashable")
     func strategyCases() {
         let all = ColoringStrategy.allCases
-        #expect(Array(all) == [.largestFirst, .smallestLast, .saturationLargestFirst, .independentSet, .connectedSequentialBreadthFirst, .connectedSequentialDepthFirst])
-        #expect(Set(all).count == 6)
+        #expect(Array(all) == [.largestFirst, .smallestLast, .saturationLargestFirst, .independentSet, .connectedSequentialBreadthFirst, .connectedSequentialDepthFirst, .coloredNeighbors])
+        #expect(Set(all).count == 7)
     }
 
     @Test("== compares colour vectors: the same classes under other numbers differ; the graphs are not compared")
@@ -60,22 +60,26 @@ struct ColoringConformanceTests {
     func genericCode() {
         func everything(_ graph: some Graph<Int>) -> [[Int]] {
             let greedy = ColoringStrategy.allCases.map { graph.greedyColoring(strategy: $0) }.map { coloring in (0 ..< graph.vertexCount).map { coloring.color(ofIndex: $0) } }
+            let first = graph.lexicographicallyFirstMinimumColoring()
             let minimum = graph.minimumColoring()
             let edges = graph.edgeColoring()
-            return greedy + [(0 ..< graph.vertexCount).map { minimum.color(ofIndex: $0) }, [graph.chromaticNumber()], graph.edges.indices.map { edges.color(ofEdgeAt: $0) }]
+            return greedy + [(0 ..< graph.vertexCount).map { first.color(ofIndex: $0) }, (0 ..< graph.vertexCount).map { minimum.color(ofIndex: $0) }, [graph.chromaticNumber()], graph.edges.indices.map { edges.color(ofEdgeAt: $0) }]
         }
-        // Petersen (NetworkX's numbering): largest first and minimum [0, 1, 0, 1, 2, 1, 0, 2, 2, 1] (CO-034,
-        // CO-180), χ = 3 (CO-145), Misra–Gries CO-206.
+        // Petersen (NetworkX's numbering): largest first and the lexicographically first minimum
+        // colouring [0, 1, 0, 1, 2, 1, 0, 2, 2, 1] (CO-034, CO-180), colored neighbours python-igraph
+        // 1.0's [0, 2, 0, 2, 1, 1, 1, 2, 0, 0], χ = 3 (CO-145), Misra–Gries CO-206.
         let pairs = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
         let petersen = UndirectedAdjacencyList(vertices: 0 ..< 10, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let colorings = ColoringStrategy.allCases.map { petersen.greedyColoring(strategy: $0) } + [petersen.minimumColoring()]
+        let colorings = ColoringStrategy.allCases.map { petersen.greedyColoring(strategy: $0) } + [petersen.lexicographicallyFirstMinimumColoring(), petersen.minimumColoring()]
         let edgeColoring = petersen.edgeColoring()
         let concrete = colorings.map { coloring in (0 ..< 10).map { coloring.color(of: $0) } } + [[petersen.chromaticNumber()], petersen.edges.indices.map { edgeColoring.color(ofEdgeAt: $0) }]
         #expect(everything(petersen) == concrete)
         #expect(concrete[0] == [0, 1, 0, 1, 2, 1, 0, 2, 2, 1])
-        #expect(concrete[6] == [0, 1, 0, 1, 2, 1, 0, 2, 2, 1])
-        #expect(concrete[7] == [3])
-        #expect(concrete[8] == [2, 1, 0, 1, 0, 0, 2, 3, 1, 0, 1, 2, 3, 2, 3])
+        #expect(concrete[6] == [0, 2, 0, 2, 1, 1, 1, 2, 0, 0])
+        #expect(concrete[7] == [0, 1, 0, 1, 2, 1, 0, 2, 2, 1])
+        #expect(Set(concrete[8]) == [0, 1, 2])
+        #expect(concrete[9] == [3])
+        #expect(concrete[10] == [2, 1, 0, 1, 0, 0, 2, 3, 1, 0, 1, 2, 3, 2, 3])
     }
 
     @Test("CompressedSparseRow through AdjacencyList(csr).undirected: K3,3 with its arcs row-major")
@@ -125,30 +129,35 @@ struct ColoringConformanceTests {
         let coloring = graph.greedyColoring()
         #expect(coloring.color(of: "d") == 0 && coloring.color(of: "a") == 2 && coloring.color(of: "c") == 1 && coloring.color(of: "b") == 2)
         #expect(coloring.colorClasses.map { Array($0) } == [["d"], ["c"], ["a", "b"]])
-        // minimumColoring() is lexicographic by index, not by label: [0, 1, 2, 1] (CO-184).
-        let minimum = graph.minimumColoring()
-        #expect(["d", "a", "c", "b"].map { minimum.color(of: $0) } == [0, 1, 2, 1])
-        #expect(minimum.colorClasses.map { Array($0) } == [["d"], ["a", "b"], ["c"]])
+        // Both minimum colourings go by index, not by label: [0, 1, 2, 1] (CO-184, and CO-271: d and c
+        // are adjacent to every other vertex, so a and b share the third colour in every 3-colouring).
+        for minimum in [graph.minimumColoring(), graph.lexicographicallyFirstMinimumColoring()] {
+            #expect(["d", "a", "c", "b"].map { minimum.color(of: $0) } == [0, 1, 2, 1])
+            #expect(minimum.colorClasses.map { Array($0) } == [["d"], ["a", "b"], ["c"]])
+        }
     }
 
     @Test("Vertices whose hashes all collide (Collider): C5 coloured as on Int vertices")
     func collidingHashes() {
         let vertices = (0 ..< 5).map { Collider($0) }
         let graph = UndirectedAdjacencyList(vertices: vertices, edges: (0 ..< 5).map { UndirectedEdge(vertices[$0], vertices[($0 + 1) % 5]) })
-        // C5: largest first [0, 1, 0, 1, 2] (CO-029), minimum the same (CO-176), χ = 3.
-        let greedy = graph.greedyColoring(), minimum = graph.minimumColoring()
+        // C5: largest first [0, 1, 0, 1, 2] (CO-029), the lexicographically first minimum colouring the
+        // same (CO-176), χ = 3.
+        let greedy = graph.greedyColoring(), first = graph.lexicographicallyFirstMinimumColoring()
         #expect(vertices.map { greedy.color(of: $0) } == [0, 1, 0, 1, 2])
-        #expect(vertices.map { minimum.color(of: $0) } == [0, 1, 0, 1, 2])
+        #expect(vertices.map { first.color(of: $0) } == [0, 1, 0, 1, 2])
+        let minimum = graph.minimumColoring()
+        #expect(minimum.colorCount == 3 && graph.isVertexColoring { minimum.color(of: $0) })
         #expect(graph.chromaticNumber() == 3)
         let smallestLast = graph.greedyColoring(strategy: .smallestLast)
-        #expect(graph.isColoring { smallestLast.color(of: $0) })
+        #expect(graph.isVertexColoring { smallestLast.color(of: $0) })
     }
 
-    @Test("isColoring and isEdgeColoring call the closure once per vertex or edge, also when the answer is false")
+    @Test("isVertexColoring and isEdgeColoring call the closure once per vertex or edge, also when the answer is false")
     func closureCalls() {
         let triangle = UndirectedAdjacencyList(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2), UndirectedEdge(0, 2)])
         var vertexCalls: [Int] = []
-        let proper = triangle.isColoring { vertexCalls.append($0); return 0 }
+        let proper = triangle.isVertexColoring { vertexCalls.append($0); return 0 }
         #expect(!proper)
         #expect(vertexCalls.sorted() == [0, 1, 2])
         var edgeCalls: [Int] = []
@@ -191,7 +200,7 @@ struct ColoringConformanceTests {
                 expected[v] = c
             }
             #expect((0 ..< n).map { coloring.color(of: $0) } == expected)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
             #expect(coloring.colorCount <= adjacent.map(\.count).max()! + 1)
         }
     }
@@ -218,7 +227,7 @@ struct ColoringConformanceTests {
         #expect(coloring.colorCount == 2)
         #expect(coloring.colorClasses.map { Array($0) } == [[0, 2], [1, 3]])
         // The new edge joins two vertices of colour 0.
-        #expect(!graph.isColoring { $0 < 4 ? coloring.color(of: $0) : 0 })
+        #expect(!graph.isVertexColoring { $0 < 4 ? coloring.color(of: $0) : 0 })
     }
 
     @Test("descriptions are not empty")
@@ -252,7 +261,7 @@ struct ColoringConformanceTests {
         }
         #expect(graph.chromaticNumber() == 1)
         #expect(graph.minimumColoring().colorCount == 1)
-        #expect(graph.isColoring { _ in 0 })
+        #expect(graph.isVertexColoring { _ in 0 })
         #expect(graph.bipartiteEdgeColoring() == nil)
         // A self-loop alone at its vertex: one colour each is an edge colouring.
         #expect(graph.isEdgeColoring { _ in 0 })
@@ -263,9 +272,12 @@ struct ColoringConformanceTests {
         let dag = AdjacencyList(vertices: 0 ..< 4, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 3)])
         let graph = dag.undirected
         #expect(graph.chromaticNumber() == 3)
-        // Lexicographically least: 0 → 0, 1 → 1, 2 → 2, 3 (adjacent only to 2) → 0.
+        // Lexicographically first: 0 → 0, 1 → 1, 2 → 2, 3 (adjacent only to 2) → 0.
+        let first = graph.lexicographicallyFirstMinimumColoring()
+        #expect((0 ..< 4).map { first.color(of: $0) } == [0, 1, 2, 0])
+        // minimumColoring(): the triangle 0, 1, 2 takes 0, 1, 2 by first appearance; 3 is 0 or 1.
         let minimum = graph.minimumColoring()
-        #expect((0 ..< 4).map { minimum.color(of: $0) } == [0, 1, 2, 0])
+        #expect((0 ..< 3).map { minimum.color(of: $0) } == [0, 1, 2] && [0, 1].contains(minimum.color(of: 3)))
         // Misra–Gries within Δ + 1 = 4.
         let edges = graph.edgeColoring()
         #expect(edges.colorCount <= 4 && graph.isEdgeColoring { edges.color(ofEdgeAt: $0) })
@@ -310,7 +322,7 @@ struct ColoringConformanceTests {
         let coloring = complete.greedyColoring(strategy: .saturationLargestFirst)
         #expect((0 ..< n).map { coloring.color(of: $0) } == Array(0 ..< n))
         #expect(coloring.colorCount == n)
-        #expect(complete.isColoring { coloring.color(of: $0) })
+        #expect(complete.isVertexColoring { coloring.color(of: $0) })
     }
 
     @Test("DSatur counts a neighbour colour above a vertex's degree once: vertex 13 (degree 4) meets colour 5 twice")
@@ -339,7 +351,7 @@ struct ColoringConformanceTests {
             expected[v] = c
         }
         #expect(colors == expected)
-        #expect(graph.isColoring { coloring.color(of: $0) })
+        #expect(graph.isVertexColoring { coloring.color(of: $0) })
     }
 
     @Test("χ = 3 where DSatur needs 4 and the greedy clique is the triangle 0–4–9")
@@ -375,5 +387,18 @@ struct ColoringConformanceTests {
         let minimum = graph.minimumColoring()
         #expect(minimum.colorCount == 3)
         for (a, b) in pairs { #expect(minimum.color(of: a) != minimum.color(of: b)) }
+    }
+
+    @Test("A triangle, then a component with χ = 3 where DSatur needs 4: χ = 3, and both minimum colourings use 3 (added for a planted bug)")
+    func componentOneAboveTheBestSoFar() {
+        // The component of chromaticNumberAboveGreedyCliqueSeeds, shifted by 3 behind the triangle
+        // 0–1–2: its DSatur count, 4, is one above the triangle's 3, so its own χ must be decided.
+        let pairs = [(0, 4), (0, 7), (0, 9), (1, 4), (2, 5), (2, 6), (2, 8), (3, 9), (4, 5), (4, 9), (5, 6), (6, 7), (6, 8), (7, 8), (9, 10)]
+        let graph = UndirectedAdjacencyList(vertices: 0 ..< 14, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2), UndirectedEdge(0, 2)] + pairs.map { UndirectedEdge($0.0 + 3, $0.1 + 3) })
+        #expect(graph.chromaticNumber() == 3)
+        for coloring in [graph.minimumColoring(), graph.lexicographicallyFirstMinimumColoring()] {
+            #expect(coloring.colorCount == 3)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+        }
     }
 }

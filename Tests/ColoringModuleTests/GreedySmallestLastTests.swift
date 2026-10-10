@@ -35,7 +35,7 @@ struct GreedySmallestLastTests {
         #expect(coloring.colorCount == 0)
         // Proper, checked here: the ends of every edge but a self-loop have different colours.
         for (a, b) in ends where a != b { #expect(colors[a] != colors[b], "\(vertexList[a])–\(vertexList[b]) both \(colors[a])") }
-        #expect(graph.isColoring { coloring.color(of: $0) })
+        #expect(graph.isVertexColoring { coloring.color(of: $0) })
         // Colours 0..<colorCount, each used; class c is the vertices of colour c in `vertices` order.
         #expect(Set(colors) == Set(0 ..< coloring.colorCount))
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
@@ -94,7 +94,7 @@ struct GreedySmallestLastTests {
         #expect(coloring.colorCount == 1)
         // Proper, checked here: the ends of every edge but a self-loop have different colours.
         for (a, b) in ends where a != b { #expect(colors[a] != colors[b], "\(vertexList[a])–\(vertexList[b]) both \(colors[a])") }
-        #expect(graph.isColoring { coloring.color(of: $0) })
+        #expect(graph.isVertexColoring { coloring.color(of: $0) })
         // Colours 0..<colorCount, each used; class c is the vertices of colour c in `vertices` order.
         #expect(Set(colors) == Set(0 ..< coloring.colorCount))
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
@@ -153,7 +153,7 @@ struct GreedySmallestLastTests {
         #expect(coloring.colorCount == 1)
         // Proper, checked here: the ends of every edge but a self-loop have different colours.
         for (a, b) in ends where a != b { #expect(colors[a] != colors[b], "\(vertexList[a])–\(vertexList[b]) both \(colors[a])") }
-        #expect(graph.isColoring { coloring.color(of: $0) })
+        #expect(graph.isVertexColoring { coloring.color(of: $0) })
         // Colours 0..<colorCount, each used; class c is the vertices of colour c in `vertices` order.
         #expect(Set(colors) == Set(0 ..< coloring.colorCount))
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
@@ -212,7 +212,7 @@ struct GreedySmallestLastTests {
         #expect(coloring.colorCount == 3)
         // Proper, checked here: the ends of every edge but a self-loop have different colours.
         for (a, b) in ends where a != b { #expect(colors[a] != colors[b], "\(vertexList[a])–\(vertexList[b]) both \(colors[a])") }
-        #expect(graph.isColoring { coloring.color(of: $0) })
+        #expect(graph.isVertexColoring { coloring.color(of: $0) })
         // Colours 0..<colorCount, each used; class c is the vertices of colour c in `vertices` order.
         #expect(Set(colors) == Set(0 ..< coloring.colorCount))
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
@@ -271,7 +271,7 @@ struct GreedySmallestLastTests {
         #expect(coloring.colorCount == 2)
         // Proper, checked here: the ends of every edge but a self-loop have different colours.
         for (a, b) in ends where a != b { #expect(colors[a] != colors[b], "\(vertexList[a])–\(vertexList[b]) both \(colors[a])") }
-        #expect(graph.isColoring { coloring.color(of: $0) })
+        #expect(graph.isVertexColoring { coloring.color(of: $0) })
         // Colours 0..<colorCount, each used; class c is the vertices of colour c in `vertices` order.
         #expect(Set(colors) == Set(0 ..< coloring.colorCount))
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
@@ -330,7 +330,7 @@ struct GreedySmallestLastTests {
         #expect(coloring.colorCount == 2)
         // Proper, checked here: the ends of every edge but a self-loop have different colours.
         for (a, b) in ends where a != b { #expect(colors[a] != colors[b], "\(vertexList[a])–\(vertexList[b]) both \(colors[a])") }
-        #expect(graph.isColoring { coloring.color(of: $0) })
+        #expect(graph.isVertexColoring { coloring.color(of: $0) })
         // Colours 0..<colorCount, each used; class c is the vertices of colour c in `vertices` order.
         #expect(Set(colors) == Set(0 ..< coloring.colorCount))
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
@@ -389,7 +389,7 @@ struct GreedySmallestLastTests {
         #expect(coloring.colorCount == 2)
         // Proper, checked here: the ends of every edge but a self-loop have different colours.
         for (a, b) in ends where a != b { #expect(colors[a] != colors[b], "\(vertexList[a])–\(vertexList[b]) both \(colors[a])") }
-        #expect(graph.isColoring { coloring.color(of: $0) })
+        #expect(graph.isVertexColoring { coloring.color(of: $0) })
         // Colours 0..<colorCount, each used; class c is the vertices of colour c in `vertices` order.
         #expect(Set(colors) == Set(0 ..< coloring.colorCount))
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
@@ -448,7 +448,7 @@ struct GreedySmallestLastTests {
         #expect(coloring.colorCount == 4)
         // Proper, checked here: the ends of every edge but a self-loop have different colours.
         for (a, b) in ends where a != b { #expect(colors[a] != colors[b], "\(vertexList[a])–\(vertexList[b]) both \(colors[a])") }
-        #expect(graph.isColoring { coloring.color(of: $0) })
+        #expect(graph.isVertexColoring { coloring.color(of: $0) })
         // Colours 0..<colorCount, each used; class c is the vertices of colour c in `vertices` order.
         #expect(Set(colors) == Set(0 ..< coloring.colorCount))
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
@@ -507,7 +507,7 @@ struct GreedySmallestLastTests {
         #expect(coloring.colorCount == 3)
         // Proper, checked here: the ends of every edge but a self-loop have different colours.
         for (a, b) in ends where a != b { #expect(colors[a] != colors[b], "\(vertexList[a])–\(vertexList[b]) both \(colors[a])") }
-        #expect(graph.isColoring { coloring.color(of: $0) })
+        #expect(graph.isVertexColoring { coloring.color(of: $0) })
         // Colours 0..<colorCount, each used; class c is the vertices of colour c in `vertices` order.
         #expect(Set(colors) == Set(0 ..< coloring.colorCount))
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
@@ -566,7 +566,7 @@ struct GreedySmallestLastTests {
         #expect(coloring.colorCount == 2)
         // Proper, checked here: the ends of every edge but a self-loop have different colours.
         for (a, b) in ends where a != b { #expect(colors[a] != colors[b], "\(vertexList[a])–\(vertexList[b]) both \(colors[a])") }
-        #expect(graph.isColoring { coloring.color(of: $0) })
+        #expect(graph.isVertexColoring { coloring.color(of: $0) })
         // Colours 0..<colorCount, each used; class c is the vertices of colour c in `vertices` order.
         #expect(Set(colors) == Set(0 ..< coloring.colorCount))
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
@@ -625,7 +625,7 @@ struct GreedySmallestLastTests {
         #expect(coloring.colorCount == 2)
         // Proper, checked here: the ends of every edge but a self-loop have different colours.
         for (a, b) in ends where a != b { #expect(colors[a] != colors[b], "\(vertexList[a])–\(vertexList[b]) both \(colors[a])") }
-        #expect(graph.isColoring { coloring.color(of: $0) })
+        #expect(graph.isVertexColoring { coloring.color(of: $0) })
         // Colours 0..<colorCount, each used; class c is the vertices of colour c in `vertices` order.
         #expect(Set(colors) == Set(0 ..< coloring.colorCount))
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
@@ -684,7 +684,7 @@ struct GreedySmallestLastTests {
         #expect(coloring.colorCount == 2)
         // Proper, checked here: the ends of every edge but a self-loop have different colours.
         for (a, b) in ends where a != b { #expect(colors[a] != colors[b], "\(vertexList[a])–\(vertexList[b]) both \(colors[a])") }
-        #expect(graph.isColoring { coloring.color(of: $0) })
+        #expect(graph.isVertexColoring { coloring.color(of: $0) })
         // Colours 0..<colorCount, each used; class c is the vertices of colour c in `vertices` order.
         #expect(Set(colors) == Set(0 ..< coloring.colorCount))
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
@@ -743,7 +743,7 @@ struct GreedySmallestLastTests {
         #expect(coloring.colorCount == 3)
         // Proper, checked here: the ends of every edge but a self-loop have different colours.
         for (a, b) in ends where a != b { #expect(colors[a] != colors[b], "\(vertexList[a])–\(vertexList[b]) both \(colors[a])") }
-        #expect(graph.isColoring { coloring.color(of: $0) })
+        #expect(graph.isVertexColoring { coloring.color(of: $0) })
         // Colours 0..<colorCount, each used; class c is the vertices of colour c in `vertices` order.
         #expect(Set(colors) == Set(0 ..< coloring.colorCount))
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
@@ -802,7 +802,7 @@ struct GreedySmallestLastTests {
         #expect(coloring.colorCount == 4)
         // Proper, checked here: the ends of every edge but a self-loop have different colours.
         for (a, b) in ends where a != b { #expect(colors[a] != colors[b], "\(vertexList[a])–\(vertexList[b]) both \(colors[a])") }
-        #expect(graph.isColoring { coloring.color(of: $0) })
+        #expect(graph.isVertexColoring { coloring.color(of: $0) })
         // Colours 0..<colorCount, each used; class c is the vertices of colour c in `vertices` order.
         #expect(Set(colors) == Set(0 ..< coloring.colorCount))
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
@@ -861,7 +861,7 @@ struct GreedySmallestLastTests {
         #expect(coloring.colorCount == 5)
         // Proper, checked here: the ends of every edge but a self-loop have different colours.
         for (a, b) in ends where a != b { #expect(colors[a] != colors[b], "\(vertexList[a])–\(vertexList[b]) both \(colors[a])") }
-        #expect(graph.isColoring { coloring.color(of: $0) })
+        #expect(graph.isVertexColoring { coloring.color(of: $0) })
         // Colours 0..<colorCount, each used; class c is the vertices of colour c in `vertices` order.
         #expect(Set(colors) == Set(0 ..< coloring.colorCount))
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
@@ -920,7 +920,7 @@ struct GreedySmallestLastTests {
         #expect(coloring.colorCount == 4)
         // Proper, checked here: the ends of every edge but a self-loop have different colours.
         for (a, b) in ends where a != b { #expect(colors[a] != colors[b], "\(vertexList[a])–\(vertexList[b]) both \(colors[a])") }
-        #expect(graph.isColoring { coloring.color(of: $0) })
+        #expect(graph.isVertexColoring { coloring.color(of: $0) })
         // Colours 0..<colorCount, each used; class c is the vertices of colour c in `vertices` order.
         #expect(Set(colors) == Set(0 ..< coloring.colorCount))
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
@@ -979,7 +979,7 @@ struct GreedySmallestLastTests {
         #expect(coloring.colorCount == 5)
         // Proper, checked here: the ends of every edge but a self-loop have different colours.
         for (a, b) in ends where a != b { #expect(colors[a] != colors[b], "\(vertexList[a])–\(vertexList[b]) both \(colors[a])") }
-        #expect(graph.isColoring { coloring.color(of: $0) })
+        #expect(graph.isVertexColoring { coloring.color(of: $0) })
         // Colours 0..<colorCount, each used; class c is the vertices of colour c in `vertices` order.
         #expect(Set(colors) == Set(0 ..< coloring.colorCount))
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
@@ -1038,7 +1038,7 @@ struct GreedySmallestLastTests {
         #expect(coloring.colorCount == 5)
         // Proper, checked here: the ends of every edge but a self-loop have different colours.
         for (a, b) in ends where a != b { #expect(colors[a] != colors[b], "\(vertexList[a])–\(vertexList[b]) both \(colors[a])") }
-        #expect(graph.isColoring { coloring.color(of: $0) })
+        #expect(graph.isVertexColoring { coloring.color(of: $0) })
         // Colours 0..<colorCount, each used; class c is the vertices of colour c in `vertices` order.
         #expect(Set(colors) == Set(0 ..< coloring.colorCount))
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })
@@ -1097,7 +1097,7 @@ struct GreedySmallestLastTests {
         #expect(coloring.colorCount == 5)
         // Proper, checked here: the ends of every edge but a self-loop have different colours.
         for (a, b) in ends where a != b { #expect(colors[a] != colors[b], "\(vertexList[a])–\(vertexList[b]) both \(colors[a])") }
-        #expect(graph.isColoring { coloring.color(of: $0) })
+        #expect(graph.isVertexColoring { coloring.color(of: $0) })
         // Colours 0..<colorCount, each used; class c is the vertices of colour c in `vertices` order.
         #expect(Set(colors) == Set(0 ..< coloring.colorCount))
         #expect(coloring.colorClasses.map { Array($0) } == (0 ..< coloring.colorCount).map { c in vertexList.indices.filter { colors[$0] == c }.map { vertexList[$0] } })

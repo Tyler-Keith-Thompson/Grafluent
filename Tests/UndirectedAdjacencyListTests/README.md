@@ -90,7 +90,7 @@ The `Graph` laws on this type (with Int and String vertices), its associated typ
 the `directed` view and conversions are tested in `Tests/GraphProtocolsTests`, beside the other
 conformers.
 
-Case IDs in test names (UG-R01, UG-L16, ...) refer to the undirected protocol catalog; see
+Case IDs in test names (UG-R01, UG-L16, ...) refer to the undirected protocol catalog (`Tests/Catalogs/GraphProtocols/graph.md`); see
 `Tests/GraphProtocolsTests/README.md`. Fixtures cite their sources in
 `Tests/GrafluentTestSupport/UndirectedFixtures.swift`.
 

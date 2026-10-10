@@ -5,7 +5,7 @@ modularity (Newman–Girvan with a resolution γ; Leicht–Newman on directed gr
 performance, Louvain, greedy modularity (Clauset–Newman–Moore), and label propagation,
 semi-synchronous and asynchronous, on `Graph` and (modularity, quality, Louvain, greedy)
 `DirectedGraph`, unweighted and weighted. The tests were written before the implementation, from
-the proposed API (`api.md`, phase 1). The suite uses only the public API, and each test is
+the proposed API (`api.md` in [`Tests/Catalogs/CommunityDetection/`](../Catalogs/CommunityDetection/), phase 1). The suite uses only the public API, and each test is
 self-contained. The shared material is the `ReferencePseudograph` and
 `ReferenceDirectedMultigraph` test conformers, `Collider`, the seeded generator and the tags in
 `GrafluentTestSupport`. Conformers private to a file model representations the package does not
@@ -53,7 +53,8 @@ first appearance, `nx(…)` graphs with NetworkX's node list and edge order, `lc
 first-appearance vertex order; edges in written order, repeats and loops kept) on the
 `ReferencePseudograph` or `ReferenceDirectedMultigraph`, whose rows are in position order, so every
 vertex number and edge position is exact. The catalog-row files and the representation file were
-generated from `cases.md` by a script (`swiftgen.py`, next to `ref.py`) that re-evaluates each row
+generated from `cases.md` by a script (`swiftgen.py`, next to `ref.py` and `cases.md` in [`Tests/Catalogs/CommunityDetection/`](../Catalogs/CommunityDetection/), which says how to
+run it) that re-evaluates each row
 with `ref.py`'s model, asserts that it matches the catalog cell, and writes the model's value at full
 precision; the catalog cells are the same values rounded to 12 digits. Scalars compare within 1e-12
 relative to max(1, |value|), partitions exactly in canonical order. Each partition row also checks
@@ -64,7 +65,7 @@ undirected row of modularity, partition quality, Louvain and greedy modularity r
 `using:` row runs twice with the same seed. The `CompressedSparseRow` and `AdjacencyMatrix` rows
 rewrite the arcs in row-major order (undirected graphs without loops as symmetric digraphs) and were
 computed by `ref.py` on the rewritten graph. The stress literals were computed with `ref.py`'s model
-functions at their sizes and are written as the closed forms the output follows (or derived in
+functions at their sizes (`stress_vals.py`, `stress3.py` and `stress4.py`, next to it) and are written as the closed forms the output follows (or derived in
 closed form, for the modularity and quality of a ring of cliques).
 
 The whole suite was run against an independent brute-force Swift model of the API (index space,

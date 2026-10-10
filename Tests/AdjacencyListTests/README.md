@@ -100,7 +100,7 @@ named fixtures and the vertex types used to stress `Hashable` (`Collider`, `Hash
 | `AdjacencyListDescriptionTests.swift` | `description`, `debugDescription` and the mirror |
 | `AdjacencyListOverloadTests.swift` | Vertex and edge operations stay distinct when the vertex type could hold an edge |
 
-Case IDs in test names (C-04, V-06, Q-14, ...) refer to the catalog of cases harvested from
+Case IDs in test names (C-04, V-06, Q-14, ...) refer to the catalog of cases (`Tests/Catalogs/AdjacencyList/cases.md`) harvested from
 NetworkX, petgraph, Boost.Graph and JGraphT; fixtures cite their sources in
 `Tests/GrafluentTestSupport/DirectedFixtures.swift`.
 

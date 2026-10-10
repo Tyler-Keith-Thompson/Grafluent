@@ -1,6 +1,6 @@
 """First-party Swift rule wrappers.
 
-Every first-party `swift_library` / `swift_test` loads from here instead of
+Every first-party `swift_library` / `swift_test` / `swift_binary` loads from here instead of
 `@rules_swift//swift:swift.bzl`. The wrappers flip rules_swift features so our
 own code is held to a stricter warnings policy than third-party code:
 
@@ -15,6 +15,7 @@ Net effect: dependencies build quietly, our own warnings fail the build.
 
 load(
     "@rules_swift//swift:swift.bzl",
+    _swift_binary = "swift_binary",
     _swift_library = "swift_library",
     _swift_test = "swift_test",
 )
@@ -53,6 +54,15 @@ def swift_library(name, features = [], copts = [], **kwargs):
 
 def swift_test(name, features = [], copts = [], **kwargs):
     _swift_test(
+        name = name,
+        features = features + _FIRST_PARTY_FEATURES,
+        copts = copts + _FIRST_PARTY_COPTS,
+        package_name = _PACKAGE_NAME,
+        **kwargs
+    )
+
+def swift_binary(name, features = [], copts = [], **kwargs):
+    _swift_binary(
         name = name,
         features = features + _FIRST_PARTY_FEATURES,
         copts = copts + _FIRST_PARTY_COPTS,

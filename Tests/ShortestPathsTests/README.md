@@ -103,7 +103,7 @@ breadth-first search, Johnson's reweighting).
 
 ## Case IDs
 
-Case IDs (SP-01 … SP-137) refer to the catalog of cases harvested from Boost, NetworkX,
+Case IDs (SP-01 … SP-137) refer to the catalog of cases (`Tests/Catalogs/ShortestPaths/cases.md`, with `ref.py` and the scripts that print each `.out`) harvested from Boost, NetworkX,
 petgraph, JGraphT, LEMON, igraph (behaviour only), gonum, rustworkx and scipy. Each test's name
 starts with its ID. WK-12nn cases are the Walks catalog's migration section (`Tests/WalksTests/README.md`); WK-1202 – WK-1205 and WK-1213 – WK-1215 are in Traversal's suite.
 

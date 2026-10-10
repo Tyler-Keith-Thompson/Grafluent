@@ -1,0 +1,17 @@
+// Preconditions, as exit tests. The catalog's trap rows (CE-063, CE-064, CE-080, CE-115 – CE-117,
+// CE-149, CE-187, CE-188, CE-191), then api.md's other preconditions: a vertex argument that is not
+// a vertex (`score(of:)`, the one-vertex closeness and harmonic forms), an index out of range
+// (`score(ofIndex:)`), closeness and harmonic weights below zero or NaN (checked as they are read,
+// before any search, so an edge out of reach traps too), betweenness weights that are not > 0
+// (zero, -0.0, negative, NaN), iterative weights that are not finite and ≥ 0, `tolerance` not
+// positive and finite, `maxIterations` < 1, Katz's α and β not finite, a damping factor outside
+// [0, 1], and personalization values that are not finite. Each exit test builds its inputs inside
+// the closure. Case IDs (CE-nnn) refer to the catalog; see README.md.
+
+import Centrality
+import GrafluentTestSupport
+import GraphProtocols
+import Testing
+
+@Suite("Centrality preconditions", .tags(.precondition))
+struct CentralityPreconditionTests {

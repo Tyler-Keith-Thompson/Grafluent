@@ -78,6 +78,6 @@ struct CompressedSparseRow: Hashable, Sendable, Codable,
 | `CompressedSparseRowConformanceTests.swift` | Equality and hashing laws, every 3-vertex graph, descriptions, exact and corrupt encodings with the coding path and `ValidationError` of each, exit tests for every precondition |
 | `CompressedSparseRowModelTests.swift` | Random edge lists against a model at 0 to 200 vertices, Erdős–Rényi graphs, a complete digraph, a hub of out-degree 10,000, value semantics, `Sendable` |
 
-Case IDs (CSR-C06, CSR-E05, …) refer to the catalog of cases harvested from petgraph, Boost.Graph,
+Case IDs (CSR-C06, CSR-E05, …) refer to the catalog of cases (`Tests/Catalogs/CompressedSparseRow/cases.md`) harvested from petgraph, Boost.Graph,
 scipy, neo4j's graph crate, GAP, NetworkX, JGraphT, GraphBLAS, Ligra and igraph (behavior reference
 only; GPL).

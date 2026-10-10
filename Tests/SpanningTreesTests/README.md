@@ -78,7 +78,7 @@ optimality.
 
 ## Case IDs
 
-Case IDs (ST-01 … ST-134) refer to the catalog of cases harvested from NetworkX, Boost, petgraph,
+Case IDs (ST-01 … ST-134) refer to the catalog of cases (`Tests/Catalogs/SpanningTrees/cases.md`, with `ref.py` and `api.md`) harvested from NetworkX, Boost, petgraph,
 JGraphT, LEMON, igraph and scipy. Each test's name starts with its ID; ST-56 and ST-58 each have a
 trapping test and a filtered one.
 

@@ -1,6 +1,12 @@
 // Reads a JSON array of cases on standard input and writes a JSON array of results, one per case,
 // in order. Each case is a simple graph on 0..<n (self-loops allowed, no repeated pair) with
 // integer weights, sources, an optional cutoff and a target.
+//
+// The arguments, if any, name the sections to answer (scripts/differential.py's --module):
+// shortestpaths, spanningtrees, connectivity, cycles, trees, distances, cliques, centrality,
+// communities, bipartite, matching, covering, coloring, flows. With none, every section is answered.
+// A section not asked for is left at its default and not computed. `flows-catalog` as the only
+// argument answers catalog requests instead (Flows.swift).
 
 import AdjacencyListModule
 import BipartiteGraphs
@@ -28,6 +34,8 @@ struct Case: Decodable {
     let sources: [Int]
     let cutoff: Int?
     let target: Int
+    /// The flow network, when the flows section is asked for.
+    let flow: FlowCase?
 }
 
 struct Result: Encodable {
@@ -39,7 +47,7 @@ struct Result: Encodable {
     var bellmanFord: [Int?]?
     var witness: [Int]?
     var wholeGraphWitness: [Int]?
-    var unweighted: [Int?]
+    var unweighted: [Int?]?
     /// Undirected only: spanning forests as offsets in the case's edge list, and their weights.
     var spanning: Spanning?
     var connectivity: UndirectedConnectivity?
@@ -53,6 +61,7 @@ struct Result: Encodable {
     var matching = MatchingAnswers()
     var covering = CoveringAnswers()
     var coloring = ColoringAnswers()
+    var flows: FlowAnswers?
 }
 
 /// Cliques on the simple graph: maximal cliques (each sorted), the clique number and the
@@ -473,13 +482,21 @@ func coveringAnswers<G: Graph<Int>>(_ graph: G) -> CoveringAnswers {
 /// Colouring on the undirected graph (a directed case through `.undirected`): every greedy
 /// strategy's colours, first fit in reverse vertex order, the exact colouring on small graphs,
 /// Misra–Gries on the simple graph (self-loops dropped, parallel copies once, first appearance
-/// order), König on the graph itself (parallel copies kept), and the checks against fixed
+/// order), König and the greedy edge colouring on the graph itself (parallel copies kept), igraph's
+/// colored neighbours, every strategy with fixed preset colours, and the checks against fixed
 /// colourings the script judges on its own.
 struct ColoringAnswers: Encodable {
     var greedy: [String: [Int]] = [:]
+    var coloredNeighbors: [Int] = []
+    /// The preset colour of each vertex (−1 for none), and every strategy's colours from them.
+    var preset: [Int] = []
+    var presetGreedy: [String: [Int]] = [:]
+    /// The greedy edge colouring's colour per edge of the graph, in position order.
+    var greedyEdgeColors: [Int] = []
     var reversedOrder: [Int] = []
     var chromaticNumber: Int?
     var minimum: [Int]?
+    var lexicographicallyFirstMinimum: [Int]?
     /// The simple graph's edges, in its position order, and Misra–Gries's colour for each.
     var simpleEdges: [[Int]] = []
     var edgeColors: [Int] = []
@@ -489,9 +506,9 @@ struct ColoringAnswers: Encodable {
     /// König's colour per edge of the graph, in position order; nil when it is not bipartite.
     var bipartiteEdgeColors: [Int]?
     var bipartiteEdgeColorCount: Int?
-    /// isColoring of v mod 2 and v mod 3, isEdgeColoring of position mod 3 and of the position.
-    var isColoringMod2 = false
-    var isColoringMod3 = false
+    /// isVertexColoring of v mod 2 and v mod 3, isEdgeColoring of position mod 3 and of the position.
+    var isVertexColoringMod2 = false
+    var isVertexColoringMod3 = false
     var isEdgeColoringMod3 = false
     var isEdgeColoringDistinct = false
     var consistent = true
@@ -500,11 +517,11 @@ struct ColoringAnswers: Encodable {
 func coloringAnswers<G: Graph<Int>>(_ graph: G) -> ColoringAnswers {
     var a = ColoringAnswers()
     let n = graph.vertexCount
-    // Every result is proper by isColoring, and its colour classes, colour(of:) and colorCount agree.
+    // Every result is proper by isVertexColoring, and its colour classes, colour(of:) and colorCount agree.
     func check(_ coloring: Coloring<G>) -> [Int] {
         let colors = graph.vertices.map { coloring.color(of: $0) }
         let classes = coloring.colorClasses
-        a.consistent = a.consistent && graph.isColoring { coloring.color(of: $0) }
+        a.consistent = a.consistent && graph.isVertexColoring { coloring.color(of: $0) }
             && classes.count == coloring.colorCount && classes.allSatisfy { !$0.isEmpty }
             && classes.enumerated().allSatisfy { c, members in members.allSatisfy { colors[$0] == c } }
             && classes.reduce(0) { $0 + $1.count } == n
@@ -518,13 +535,32 @@ func coloringAnswers<G: Graph<Int>>(_ graph: G) -> ColoringAnswers {
         (.connectedSequentialDepthFirst, "connectedSequentialDepthFirst"),
     ]
     for (strategy, name) in names { a.greedy[name] = check(graph.greedyColoring(strategy: strategy)) }
+    a.coloredNeighbors = check(graph.greedyColoring(strategy: .coloredNeighbors))
+    // Presets: every third vertex v takes (v / 3) mod 4 unless a neighbour preset before it has it.
+    var preset = [Int?](repeating: nil, count: n)
+    for v in stride(from: 0, to: n, by: 3) {
+        let c = (v / 3) % 4
+        if !graph.neighbors(of: v).contains(where: { $0 != v && preset[$0] == c }) { preset[v] = c }
+    }
+    a.preset = preset.map { $0 ?? -1 }
+    for (strategy, name) in names + [(.coloredNeighbors, "coloredNeighbors")] {
+        let coloring = graph.greedyColoring(strategy: strategy) { preset[$0] }
+        let colors = graph.vertices.map { coloring.color(of: $0) }
+        let classes = coloring.colorClasses
+        a.consistent = a.consistent && graph.isVertexColoring { coloring.color(of: $0) } && coloring.colors == colors
+            && classes.count == coloring.colorCount && classes.reduce(0) { $0 + $1.count } == n
+            && classes.enumerated().allSatisfy { c, members in members.allSatisfy { colors[$0] == c } }
+        a.presetGreedy[name] = colors
+    }
     a.consistent = a.consistent && graph.greedyColoring() == graph.greedyColoring(strategy: .largestFirst)
     a.reversedOrder = check(graph.greedyColoring(order: graph.vertices.reversed()))
     if n <= 40 {
         let minimum = graph.minimumColoring()
         a.minimum = check(minimum)
+        let first = graph.lexicographicallyFirstMinimumColoring()
+        a.lexicographicallyFirstMinimum = check(first)
         a.chromaticNumber = graph.chromaticNumber()
-        a.consistent = a.consistent && minimum.colorCount == a.chromaticNumber
+        a.consistent = a.consistent && minimum.colorCount == a.chromaticNumber && first.colorCount == a.chromaticNumber
     }
     var seen = Set<UndirectedEdge<Int>>()
     var simple: [UndirectedEdge<Int>] = []
@@ -548,12 +584,15 @@ func coloringAnswers<G: Graph<Int>>(_ graph: G) -> ColoringAnswers {
         a.bipartiteEdgeColorCount = konig.colorCount
         a.consistent = a.consistent && consistent(graph, konig)
     }
+    let greedyEdges = graph.greedyEdgeColoring()
+    a.greedyEdgeColors = graph.edges.indices.map { greedyEdges.color(ofEdgeAt: $0) }
+    a.consistent = a.consistent && consistent(graph, greedyEdges)
     a.edges = graph.edges.map { [$0.u, $0.v] }
     let positions = Array(graph.edges.indices)
     var rank: [G.Edges.Index: Int] = [:]
     for (i, p) in positions.enumerated() { rank[p] = i }
-    a.isColoringMod2 = graph.isColoring { $0 % 2 }
-    a.isColoringMod3 = graph.isColoring { $0 % 3 }
+    a.isVertexColoringMod2 = graph.isVertexColoring { $0 % 2 }
+    a.isVertexColoringMod3 = graph.isVertexColoring { $0 % 3 }
     a.isEdgeColoringMod3 = graph.isEdgeColoring { rank[$0]! % 3 }
     a.isEdgeColoringDistinct = graph.isEdgeColoring { rank[$0]! * 1000 - 7 }
     return a
@@ -564,6 +603,7 @@ func answer<G: DirectedGraph<Int>>(_ graph: G, _ c: Case, _ weight: (G.Edges.Ind
                                    _ single: () -> (path: Path<Int, G.Edges.Index>, distance: Int)?,
                                    _ bellmanFord: () -> ShortestPathTree<G, Int>?,
                                    _ witness: () -> [Int]?, _ wholeGraph: () -> [Int]?, _ unweighted: () -> ShortestPathTree<G, Int>) -> Result {
+    guard wants("shortestpaths") else { return Result() }
     let nonnegative = c.edges.allSatisfy { $0[2] >= 0 }
     var result = Result(unweighted: (0 ..< c.n).map { unweighted().distance(to: $0) })
     if nonnegative {
@@ -576,6 +616,15 @@ func answer<G: DirectedGraph<Int>>(_ graph: G, _ c: Case, _ weight: (G.Edges.Ind
     result.witness = witness()
     result.wholeGraphWitness = wholeGraph()
     return result
+}
+
+let sections = Set(CommandLine.arguments.dropFirst())
+func wants(_ section: String) -> Bool { sections.isEmpty || sections.contains(section) }
+
+if CommandLine.arguments.dropFirst().first == "flows-catalog" {
+    let requests = try JSONDecoder().decode([CatalogRequest].self, from: FileHandle.standardInput.readDataToEndOfFile())
+    FileHandle.standardOutput.write(try JSONEncoder().encode(requests.map(answerCatalog)))
+    exit(0)
 }
 
 let cases = try JSONDecoder().decode([Case].self, from: FileHandle.standardInput.readDataToEndOfFile())
@@ -595,50 +644,57 @@ for c in cases {
             { graph.findNegativeCycle(from: c.sources, weight: w)?.vertices },
             { graph.findNegativeCycle(weight: w)?.vertices },
             { graph.shortestPaths(from: c.sources) }))
-        var cycles = Cycles()
-        let isValid = { (cycle: Cycle<Int, Int>) in Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil }
-        let all = listed(graph.simpleCycles(), isValid, &cycles.valid)
-        cycles.simple = all?.vertices
-        cycles.simpleEdges = all?.edges
-        cycles.bounded = listed(graph.simpleCycles(maxLength: 3), isValid, &cycles.valid)?.vertices
-        cycles.girth = graph.girth()
-        results[results.count - 1].cycles = cycles
-        var trees = TreeAnswers()
-        trees.isArborescence = graph.isArborescence
-        if let arborescence = Arborescence(graph) {
-            trees.arborescence = true
-            trees.root = arborescence.root
-            trees.preorder = Array(arborescence.preorder)
+        if wants("cycles") {
+            var cycles = Cycles()
+            let isValid = { (cycle: Cycle<Int, Int>) in Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil }
+            let all = listed(graph.simpleCycles(), isValid, &cycles.valid)
+            cycles.simple = all?.vertices
+            cycles.simpleEdges = all?.edges
+            cycles.bounded = listed(graph.simpleCycles(maxLength: 3), isValid, &cycles.valid)?.vertices
+            cycles.girth = graph.girth()
+            results[results.count - 1].cycles = cycles
         }
-        results[results.count - 1].trees = trees
-        let nonnegative = weights.allSatisfy { $0 >= 0 }
-        let directedEccentricities = graph.eccentricities()
-        var answers = basics(directedEccentricities, c.n)
-        answers.centroid = graph.centroid()
-        answers.wiener = graph.wienerIndex()
-        answers.average = graph.averageShortestPathLength()
-        answers.density = graph.density
-        answers.diameterPath = graph.diameterPath()?.vertices
-        let first: Int? = c.n > 0 ? graph.eccentricity(of: 0) : nil
-        let firstAgrees = c.n == 0 || first == directedEccentricities.eccentricity(of: 0)
-        answers.consistent = graph.radius() == answers.radius && graph.diameter() == answers.diameter
-            && graph.center() == answers.center && graph.periphery() == answers.periphery && firstAgrees
-        if nonnegative {
-            let weighted = graph.eccentricities(weight: w)
-            answers.weightedEccentricities = (0 ..< c.n).map { weighted.eccentricity(of: $0) }
-            answers.weightedCentroid = graph.centroid(weight: w)
-            answers.weightedWiener = graph.wienerIndex(weight: w)
-            let path = graph.diameterPath(weight: w)
-            answers.weightedPath = path?.path.vertices
-            answers.weightedPathDistance = path?.distance
+        if wants("trees") {
+            var trees = TreeAnswers()
+            trees.isArborescence = graph.isArborescence
+            if let arborescence = Arborescence(graph) {
+                trees.arborescence = true
+                trees.root = arborescence.root
+                trees.preorder = Array(arborescence.preorder)
+            }
+            results[results.count - 1].trees = trees
         }
-        results[results.count - 1].distances = answers
-        results[results.count - 1].centrality = directedCentrality(graph, c.n, w)
-        results[results.count - 1].communities = directedCommunities(graph, c.n, w)
-        results[results.count - 1].bipartite = bipartiteAnswers(graph.undirected, c.n)
-        results[results.count - 1].matching = matchingAnswers(graph.undirected, { weights[$0] })
-        results[results.count - 1].covering = coveringAnswers(graph.undirected)
-        results[results.count - 1].coloring = coloringAnswers(graph.undirected)
+        if wants("distances") {
+            let nonnegative = weights.allSatisfy { $0 >= 0 }
+            let directedEccentricities = graph.eccentricities()
+            var answers = basics(directedEccentricities, c.n)
+            answers.centroid = graph.centroid()
+            answers.wiener = graph.wienerIndex()
+            answers.average = graph.averageShortestPathLength()
+            answers.density = graph.density
+            answers.diameterPath = graph.diameterPath()?.vertices
+            let first: Int? = c.n > 0 ? graph.eccentricity(of: 0) : nil
+            let firstAgrees = c.n == 0 || first == directedEccentricities.eccentricity(of: 0)
+            answers.consistent = graph.radius() == answers.radius && graph.diameter() == answers.diameter
+                && graph.center() == answers.center && graph.periphery() == answers.periphery && firstAgrees
+            if nonnegative {
+                let weighted = graph.eccentricities(weight: w)
+                answers.weightedEccentricities = (0 ..< c.n).map { weighted.eccentricity(of: $0) }
+                answers.weightedCentroid = graph.centroid(weight: w)
+                answers.weightedWiener = graph.wienerIndex(weight: w)
+                let path = graph.diameterPath(weight: w)
+                answers.weightedPath = path?.path.vertices
+                answers.weightedPathDistance = path?.distance
+            }
+            results[results.count - 1].distances = answers
+        }
+        if wants("centrality") { results[results.count - 1].centrality = directedCentrality(graph, c.n, w) }
+        if wants("communities") { results[results.count - 1].communities = directedCommunities(graph, c.n, w) }
+        if wants("bipartite") { results[results.count - 1].bipartite = bipartiteAnswers(graph.undirected, c.n) }
+        if wants("matching") { results[results.count - 1].matching = matchingAnswers(graph.undirected, { weights[$0] }) }
+        if wants("covering") { results[results.count - 1].covering = coveringAnswers(graph.undirected) }
+        if wants("coloring") { results[results.count - 1].coloring = coloringAnswers(graph.undirected) }
+        if wants("flows"), let f = c.flow { results[results.count - 1].flows = flowAnswers(directed: true, n: c.n, f) }
     } else {
         let graph = UndirectedAdjacencyList(vertices: 0 ..< c.n, edges: c.edges.map { UndirectedEdge($0[0], $0[1]) })
         var byEdge: [UndirectedEdge<Int>: Int] = [:]
@@ -646,18 +702,6 @@ for c in cases {
         let weights = graph.edges.map { byEdge[$0]! }
         let w: (Int) -> Int = { weights[$0] }
         let view = graph.directed
-        // Positions are insertion order, which is the case's edge order.
-        let minimum = graph.minimumSpanningTree(weight: w)
-        let prim = graph.primMinimumSpanningTree(weight: w)
-        let maximum = graph.maximumSpanningTree(weight: w)
-        let spanning = Spanning(
-            minimum: minimum.edges, minimumWeight: minimum.weight,
-            kruskal: graph.kruskalMinimumSpanningTree(weight: w).edges,
-            boruvka: graph.boruvkaMinimumSpanningTree(weight: w).edges,
-            prim: prim.edges, primWeight: prim.weight,
-            primFromFirstSource: graph.primMinimumSpanningTree(from: c.sources[0], weight: w).edges,
-            maximum: maximum.edges, maximumWeight: maximum.weight,
-            unweighted: graph.minimumSpanningTree().edges)
         var result = answer(view, c, { weights[$0.position] },
             { graph.dijkstraShortestPaths(from: c.sources, cutoff: c.cutoff, weight: w) },
             { graph.dijkstraShortestPath(from: c.sources[0], to: c.target, weight: w) },
@@ -665,135 +709,160 @@ for c in cases {
             { graph.findNegativeCycle(from: c.sources, weight: w)?.vertices },
             { graph.findNegativeCycle(weight: w)?.vertices },
             { graph.shortestPaths(from: c.sources) })
-        result.spanning = spanning
-        let blocks = graph.biconnectedComponents()
-        result.connectivity = UndirectedConnectivity(
-            components: graph.connectedComponents().map(Array.init),
-            isConnected: graph.isConnected,
-            bridges: graph.bridges(),
-            hasBridges: graph.hasBridges,
-            articulationPoints: graph.articulationPoints(),
-            blocks: blocks.map(Array.init),
-            blockVertices: blocks.indices.map { Array(blocks.vertices(ofComponentAt: $0)) },
-            isBiconnected: graph.isBiconnected,
-            biEdgeComponents: graph.biEdgeConnectedComponents().map(Array.init),
-            isBiEdgeConnected: graph.isBiEdgeConnected,
-            blockCutTreeEdges: graph.blockCutTree().edgeCount)
-        var cycles = Cycles()
-        let isValid = { (cycle: Cycle<Int, Int>) in Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil }
-        let all = listed(graph.simpleCycles(), isValid, &cycles.valid)
-        cycles.simple = all?.vertices
-        cycles.simpleEdges = all?.edges
-        cycles.bounded = listed(graph.simpleCycles(maxLength: 3), isValid, &cycles.valid)?.vertices
-        cycles.girth = graph.girth()
-        cycles.isAcyclic = graph.isAcyclic
-        if let found = graph.findCycle() {
-            if !isValid(found) { cycles.valid = false }
-            cycles.findCycle = found.vertices
-            cycles.findCycleEdges = found.edges
+        if wants("spanningtrees") {
+            // Positions are insertion order, which is the case's edge order.
+            let minimum = graph.minimumSpanningTree(weight: w)
+            let prim = graph.primMinimumSpanningTree(weight: w)
+            let maximum = graph.maximumSpanningTree(weight: w)
+            let spanning = Spanning(
+                minimum: minimum.edges, minimumWeight: minimum.weight,
+                kruskal: graph.kruskalMinimumSpanningTree(weight: w).edges,
+                boruvka: graph.boruvkaMinimumSpanningTree(weight: w).edges,
+                prim: prim.edges, primWeight: prim.weight,
+                primFromFirstSource: graph.primMinimumSpanningTree(from: c.sources[0], weight: w).edges,
+                maximum: maximum.edges, maximumWeight: maximum.weight,
+                unweighted: graph.minimumSpanningTree().edges)
+            result.spanning = spanning
         }
-        let basis = graph.cycleBasis()
-        if !basis.allSatisfy(isValid) { cycles.valid = false }
-        cycles.basis = basis.map(\.vertices)
-        cycles.basisEdges = basis.map(\.edges)
-        result.cycles = cycles
-        var trees = TreeAnswers()
-        trees.isTree = graph.isTree
-        if let forest = Forest(graph) {
-            trees.forest = true
-            trees.forestTrees = forest.trees.map { $0.vertices.sorted() }
+        if wants("connectivity") {
+            let blocks = graph.biconnectedComponents()
+            result.connectivity = UndirectedConnectivity(
+                components: graph.connectedComponents().map(Array.init),
+                isConnected: graph.isConnected,
+                bridges: graph.bridges(),
+                hasBridges: graph.hasBridges,
+                articulationPoints: graph.articulationPoints(),
+                blocks: blocks.map(Array.init),
+                blockVertices: blocks.indices.map { Array(blocks.vertices(ofComponentAt: $0)) },
+                isBiconnected: graph.isBiconnected,
+                biEdgeComponents: graph.biEdgeConnectedComponents().map(Array.init),
+                isBiEdgeConnected: graph.isBiEdgeConnected,
+                blockCutTreeEdges: graph.blockCutTree().edgeCount)
         }
-        if let tree = Tree(graph) {
-            trees.tree = true
-            trees.prufer = tree.pruferSequence
-            let rooted = RootedTree(tree, root: c.sources[0])
-            trees.preorder = Array(rooted.preorder)
-            trees.postorder = rooted.postorder
-            trees.depths = (0 ..< c.n).map { rooted.depth(of: $0) }
-            trees.height = rooted.height
-            trees.path = rooted.path(from: c.sources[0], to: c.target).vertices
-            let w: (Int) -> Int = { weights[$0] }
-            trees.center = tree.center()
-            let nonnegative = weights.allSatisfy { $0 >= 0 }
-            if nonnegative { trees.weightedCenter = tree.center(weight: w) }
-            trees.centroid = tree.centroid()
-            trees.diameter = tree.diameter()
-            if nonnegative { trees.weightedDiameter = tree.diameter(weight: w) }
-            trees.diameterPath = tree.diameterPath().vertices
-            let lca = LowestCommonAncestors(rooted)
-            let hld = HeavyLightDecomposition(rooted)
-            var agree = true
-            trees.lowestCommonAncestors = (0 ..< c.n).map { u in
-                (0 ..< c.n).map { v in
-                    let a = lca.lowestCommonAncestor(of: u, v)
-                    if a != rooted.lowestCommonAncestor(of: u, v) || a != hld.lowestCommonAncestor(of: u, v) { agree = false }
-                    if lca.distance(from: u, to: v) != rooted.path(from: u, to: v).length { agree = false }
-                    var expanded: [Int] = []
-                    for segment in hld.segments(from: u, to: v) {
-                        let range = Array(segment.positions)
-                        expanded += segment.isReversed ? range.reversed() : range
-                    }
-                    if expanded.map({ hld.preorder[$0] }) != rooted.path(from: u, to: v).vertices { agree = false }
-                    return a
-                }
+        if wants("cycles") {
+            var cycles = Cycles()
+            let isValid = { (cycle: Cycle<Int, Int>) in Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil }
+            let all = listed(graph.simpleCycles(), isValid, &cycles.valid)
+            cycles.simple = all?.vertices
+            cycles.simpleEdges = all?.edges
+            cycles.bounded = listed(graph.simpleCycles(maxLength: 3), isValid, &cycles.valid)?.vertices
+            cycles.girth = graph.girth()
+            cycles.isAcyclic = graph.isAcyclic
+            if let found = graph.findCycle() {
+                if !isValid(found) { cycles.valid = false }
+                cycles.findCycle = found.vertices
+                cycles.findCycleEdges = found.edges
             }
-            trees.lcaAgree = agree
-            trees.centroidHeight = tree.centroidDecomposition().height
+            let basis = graph.cycleBasis()
+            if !basis.allSatisfy(isValid) { cycles.valid = false }
+            cycles.basis = basis.map(\.vertices)
+            cycles.basisEdges = basis.map(\.edges)
+            result.cycles = cycles
         }
-        result.trees = trees
-        let nonnegativeWeights = weights.allSatisfy { $0 >= 0 }
-        let undirectedEccentricities = graph.eccentricities()
-        var answers = basics(undirectedEccentricities, c.n)
-        answers.centroid = graph.centroid()
-        answers.wiener = graph.wienerIndex()
-        answers.average = graph.averageShortestPathLength()
-        answers.density = graph.density
-        answers.diameterPath = graph.diameterPath()?.vertices
-        let first: Int? = c.n > 0 ? graph.eccentricity(of: 0) : nil
-        let firstAgrees = c.n == 0 || first == undirectedEccentricities.eccentricity(of: 0)
-        answers.consistent = graph.radius() == answers.radius && graph.diameter() == answers.diameter
-            && graph.center() == answers.center && graph.periphery() == answers.periphery && firstAgrees
-        if nonnegativeWeights {
-            let weighted = graph.eccentricities(weight: w)
-            answers.weightedEccentricities = (0 ..< c.n).map { weighted.eccentricity(of: $0) }
-            answers.weightedCentroid = graph.centroid(weight: w)
-            answers.weightedWiener = graph.wienerIndex(weight: w)
-            let path = graph.diameterPath(weight: w)
-            answers.weightedPath = path?.path.vertices
-            answers.weightedPathDistance = path?.distance
+        if wants("trees") {
+            var trees = TreeAnswers()
+            trees.isTree = graph.isTree
+            if let forest = Forest(graph) {
+                trees.forest = true
+                trees.forestTrees = forest.trees.map { $0.vertices.sorted() }
+            }
+            if let tree = Tree(graph) {
+                trees.tree = true
+                trees.prufer = tree.pruferSequence
+                let rooted = RootedTree(tree, root: c.sources[0])
+                trees.preorder = Array(rooted.preorder)
+                trees.postorder = rooted.postorder
+                trees.depths = (0 ..< c.n).map { rooted.depth(of: $0) }
+                trees.height = rooted.height
+                trees.path = rooted.path(from: c.sources[0], to: c.target).vertices
+                let w: (Int) -> Int = { weights[$0] }
+                trees.center = tree.center()
+                let nonnegative = weights.allSatisfy { $0 >= 0 }
+                if nonnegative { trees.weightedCenter = tree.center(weight: w) }
+                trees.centroid = tree.centroid()
+                trees.diameter = tree.diameter()
+                if nonnegative { trees.weightedDiameter = tree.diameter(weight: w) }
+                trees.diameterPath = tree.diameterPath().vertices
+                let lca = LowestCommonAncestors(rooted)
+                let hld = HeavyLightDecomposition(rooted)
+                var agree = true
+                trees.lowestCommonAncestors = (0 ..< c.n).map { u in
+                    (0 ..< c.n).map { v in
+                        let a = lca.lowestCommonAncestor(of: u, v)
+                        if a != rooted.lowestCommonAncestor(of: u, v) || a != hld.lowestCommonAncestor(of: u, v) { agree = false }
+                        if lca.distance(from: u, to: v) != rooted.path(from: u, to: v).length { agree = false }
+                        var expanded: [Int] = []
+                        for segment in hld.segments(from: u, to: v) {
+                            let range = Array(segment.positions)
+                            expanded += segment.isReversed ? range.reversed() : range
+                        }
+                        if expanded.map({ hld.preorder[$0] }) != rooted.path(from: u, to: v).vertices { agree = false }
+                        return a
+                    }
+                }
+                trees.lcaAgree = agree
+                trees.centroidHeight = tree.centroidDecomposition().height
+            }
+            result.trees = trees
         }
-        // The directed view gives the same eccentricities.
-        let viaView = view.eccentricities()
-        if (0 ..< c.n).contains(where: { viaView.eccentricity(of: $0) != undirectedEccentricities.eccentricity(of: $0) }) { answers.consistent = false }
-        result.distances = answers
-        var cliques = CliqueAnswers()
-        cliques.maximal = Array(graph.maximalCliques())
-        cliques.cliqueNumber = graph.cliqueNumber()
-        cliques.maximum = graph.maximumClique()
-        let cores = graph.coreNumbers()
-        cliques.cores = (0 ..< c.n).map { cores.coreNumber(of: $0) }
-        // Each vertex has at most its core number of distinct neighbors after it in the ordering.
-        let ordering = cores.degeneracyOrdering
-        var position = [Int](repeating: 0, count: c.n)
-        for (i, v) in ordering.enumerated() { position[v] = i }
-        for v in 0 ..< c.n {
-            let later = Set(graph.neighbors(of: v).filter { $0 != v && position[$0] > position[v] })
-            if later.count > cores.coreNumber(of: v) { cliques.degeneracyOrderValid = false }
+        if wants("distances") {
+            let nonnegativeWeights = weights.allSatisfy { $0 >= 0 }
+            let undirectedEccentricities = graph.eccentricities()
+            var answers = basics(undirectedEccentricities, c.n)
+            answers.centroid = graph.centroid()
+            answers.wiener = graph.wienerIndex()
+            answers.average = graph.averageShortestPathLength()
+            answers.density = graph.density
+            answers.diameterPath = graph.diameterPath()?.vertices
+            let first: Int? = c.n > 0 ? graph.eccentricity(of: 0) : nil
+            let firstAgrees = c.n == 0 || first == undirectedEccentricities.eccentricity(of: 0)
+            answers.consistent = graph.radius() == answers.radius && graph.diameter() == answers.diameter
+                && graph.center() == answers.center && graph.periphery() == answers.periphery && firstAgrees
+            if nonnegativeWeights {
+                let weighted = graph.eccentricities(weight: w)
+                answers.weightedEccentricities = (0 ..< c.n).map { weighted.eccentricity(of: $0) }
+                answers.weightedCentroid = graph.centroid(weight: w)
+                answers.weightedWiener = graph.wienerIndex(weight: w)
+                let path = graph.diameterPath(weight: w)
+                answers.weightedPath = path?.path.vertices
+                answers.weightedPathDistance = path?.distance
+            }
+            // The directed view gives the same eccentricities.
+            let viaView = view.eccentricities()
+            if (0 ..< c.n).contains(where: { viaView.eccentricity(of: $0) != undirectedEccentricities.eccentricity(of: $0) }) { answers.consistent = false }
+            result.distances = answers
         }
-        let clustering = graph.clusteringCoefficients()
-        cliques.triangles = (0 ..< c.n).map { clustering.triangleCount(of: $0) }
-        cliques.clustering = (0 ..< c.n).map { clustering.clusteringCoefficient(of: $0) }
-        cliques.transitivity = clustering.transitivity
-        cliques.average = clustering.averageClustering
-        cliques.oneShotsAgree = graph.triangleCount() == clustering.triangleCount && graph.transitivity() == clustering.transitivity
-            && (0 ..< c.n).allSatisfy { graph.triangleCount(of: $0) == clustering.triangleCount(of: $0) && graph.clusteringCoefficient(of: $0) == clustering.clusteringCoefficient(of: $0) }
-        result.cliques = cliques
-        result.centrality = undirectedCentrality(graph, c.n, w)
-        result.communities = undirectedCommunities(graph, c.n, w)
-        result.bipartite = bipartiteAnswers(graph, c.n)
-        result.matching = matchingAnswers(graph, w)
-        result.covering = coveringAnswers(graph)
-        result.coloring = coloringAnswers(graph)
+        if wants("cliques") {
+            var cliques = CliqueAnswers()
+            cliques.maximal = Array(graph.maximalCliques())
+            cliques.cliqueNumber = graph.cliqueNumber()
+            cliques.maximum = graph.maximumClique()
+            let cores = graph.coreNumbers()
+            cliques.cores = (0 ..< c.n).map { cores.coreNumber(of: $0) }
+            // Each vertex has at most its core number of distinct neighbors after it in the ordering.
+            let ordering = cores.degeneracyOrdering
+            var position = [Int](repeating: 0, count: c.n)
+            for (i, v) in ordering.enumerated() { position[v] = i }
+            for v in 0 ..< c.n {
+                let later = Set(graph.neighbors(of: v).filter { $0 != v && position[$0] > position[v] })
+                if later.count > cores.coreNumber(of: v) { cliques.degeneracyOrderValid = false }
+            }
+            let clustering = graph.clusteringCoefficients()
+            cliques.triangles = (0 ..< c.n).map { clustering.triangleCount(of: $0) }
+            cliques.clustering = (0 ..< c.n).map { clustering.clusteringCoefficient(of: $0) }
+            cliques.transitivity = clustering.transitivity
+            cliques.average = clustering.averageClustering
+            cliques.oneShotsAgree = graph.triangleCount() == clustering.triangleCount && graph.transitivity() == clustering.transitivity
+                && (0 ..< c.n).allSatisfy { graph.triangleCount(of: $0) == clustering.triangleCount(of: $0) && graph.clusteringCoefficient(of: $0) == clustering.clusteringCoefficient(of: $0) }
+            result.cliques = cliques
+        }
+        if wants("centrality") { result.centrality = undirectedCentrality(graph, c.n, w) }
+        if wants("communities") { result.communities = undirectedCommunities(graph, c.n, w) }
+        if wants("bipartite") { result.bipartite = bipartiteAnswers(graph, c.n) }
+        if wants("matching") { result.matching = matchingAnswers(graph, w) }
+        if wants("covering") { result.covering = coveringAnswers(graph) }
+        if wants("coloring") { result.coloring = coloringAnswers(graph) }
+        if wants("flows"), let f = c.flow { result.flows = flowAnswers(directed: false, n: c.n, f) }
         results.append(result)
     }
 }

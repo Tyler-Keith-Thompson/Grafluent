@@ -80,7 +80,7 @@ Not ported from the catalog: the text-format cases (EL-T01–T17) belong to the 
 protocol. EL-X11 is `CompressedSparseRow`'s own precondition, tested there. EL-O07 (positions are
 identities) is what EL-K01–K04 exercise.
 
-Case IDs (EL-C05, EL-R10, …) refer to the catalog of cases harvested from Boost.Graph, petgraph,
+Case IDs (EL-C05, EL-R10, …) refer to the catalog of cases (`Tests/Catalogs/EdgeList/cases.md`) harvested from Boost.Graph, petgraph,
 NetworkX, igraph, JGraphT, rustworkx, scipy, GAP, neo4j's graph crate, LEMON, gonum and the Swift
 Algorithm Club. Spanning-tree cases from that catalog (Kruskal totals from LEMON, petgraph, gonum,
 JGraphT and GAP's `4.wel`) belong to the future `SpanningTrees` module.

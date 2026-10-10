@@ -6,7 +6,7 @@ no self-loop), `DirectedPseudograph<Vertex>` and `DirectedMultigraph<Vertex>` (t
 The pseudographs are the storage: `UndirectedAdjacencyList`'s and `AdjacencyList`'s layout (dense
 slots, rows, swap-remove) with a parallel class per vertex pair, the copies kept in insertion order.
 The multigraphs wrap a pseudograph and add the no-loop invariant. The tests were written before the
-implementation, from the proposed API (`api.md`, phase 1), with its open questions decided: the
+implementation, from the proposed API (`api.md` in [`Tests/Catalogs/Multigraphs/`](../Catalogs/Multigraphs/), phase 1), with its open questions decided: the
 four types; `remove(edge:)` removes the newest copy and returns the removed edge; `remove(edgeAt:)`
 removes one copy; the view is `EdgesConnecting`; no dictionary literals or `init(adjacency:)`; no
 row-preserving conversion fast path; `selfLoopCount`, `hasParallelEdges` and `isSimple` are
@@ -64,8 +64,8 @@ the catalog cell, each final state also checks `edges(between:and:)` / `edges(fr
 `edgeCount` for every pair that has an edge, with ref.py's model's class order (which ref.py checks
 against the key order of NetworkX 3.7's `G[u][v]`). The catalog-row files (every file but
 `MultigraphLawTests.swift`, `MultigraphConformanceTests.swift`, `MultigraphPropertyTests.swift`
-and `MultigraphStressTests.swift`) were generated from `cases.md` by a script (`swiftgen.py`, next
-to `ref.py`). It first checks that `ref.py` reproduces `cases.md` exactly, then re-evaluates each row
+and `MultigraphStressTests.swift`) were generated from `cases.md` by a script (`swiftgen.py`, next to `ref.py` and `cases.md` in [`Tests/Catalogs/Multigraphs/`](../Catalogs/Multigraphs/), which says how to
+run it). It first checks that `ref.py` reproduces `cases.md` exactly, then re-evaluates each row
 with `ref.py`'s model (structured values, not the printed cells), asserts that every value matches
 the catalog cell, and writes it out.
 

@@ -43,7 +43,6 @@ MODULES = [
     ("BipartiteGraphs", "Structures", "BipartiteGraph, bipartiteness, bipartitions and odd-cycle witnesses.", ["GraphProtocols", "Walks", "AdjacencyListModule"]),
     ("Multigraphs", "Structures", "Pseudograph, Multigraph, DirectedPseudograph and DirectedMultigraph: parallel edges, with and without self-loops.", ["GraphProtocols", "AdjacencyListModule"]),
     ("Hypergraphs", "Structures", "Hypergraph and Hyperedge.", []),
-    ("FlowNetworks", "Structures", "FlowNetwork: a directed graph with capacities, a source and a sink.", ["GraphProtocols"]),
     ("FunctionalGraphs", "Structures", "FunctionalGraph: every vertex has outdegree 1; Floyd's and Brent's cycle detection.", ["GraphProtocols", "Walks"]),
 
     # Operations
@@ -57,9 +56,9 @@ MODULES = [
     ("Connectivity", "Algorithms", "Strong and weak components, condensation, attracting components, dominators; connected components, bridges, articulation points, biconnected and bi-edge-connected components and the block–cut tree of undirected graphs.", ["GraphProtocols", "CompressedSparseRowModule"]),
     ("Cycles", "Algorithms", "Cycle detection, cycle bases, elementary circuits, girth.", ["GraphProtocols", "Walks", "DisjointSetModule"]),
     ("Tours", "Algorithms", "Eulerian trails and circuits, Hamiltonian paths and cycles, travelling salesman heuristics.", ["GraphProtocols", "Walks", "SpanningTrees", "MatchingModule"]),
-    ("Flows", "Algorithms", "Maximum flow, minimum-cost flow, minimum cut, Gomory–Hu trees.", ["GraphProtocols", "FlowNetworks", "Trees", "Traversal"]),
+    ("Flows", "Algorithms", "Maximum flow (push–relabel, Dinic, Edmonds–Karp), minimum cuts (s–t, Nagamochi–Ibaraki, Hao–Orlin), Gomory–Hu trees, minimum-cost flow (network simplex), edge and vertex connectivity, disjoint paths.", ["GraphProtocols", "Trees", "Walks"]),
     ("MatchingModule", "Algorithms", "Matching: Hopcroft–Karp, Hungarian, Edmonds' blossom, Gale–Shapley.", ["GraphProtocols", "BipartiteGraphs"]),
-    ("ColoringModule", "Algorithms", "Coloring: greedy, DSatur, Welsh–Powell, exact chromatic number, edge coloring.", ["GraphProtocols", "BipartiteGraphs"]),
+    ("ColoringModule", "Algorithms", "Vertex coloring (greedy strategies, exact chromatic number), edge coloring (Misra–Gries, König, greedy).", ["GraphProtocols", "BipartiteGraphs"]),
     ("Cliques", "Algorithms", "Bron–Kerbosch, k-cores, triangle counting, clustering coefficient.", ["GraphProtocols"]),
     ("Covering", "Algorithms", "Vertex cover, independent set, dominating set, edge cover.", ["GraphProtocols", "MatchingModule", "BipartiteGraphs"]),
     ("Centrality", "Algorithms", "Degree, closeness, harmonic, betweenness, eigenvector, Katz, PageRank, HITS.", ["GraphProtocols", "PriorityQueueModule"]),
@@ -105,10 +104,21 @@ TEST_TARGETS = [
     ("CoveringTests", ["GraphProtocols", "Covering", "MatchingModule", "BipartiteGraphs", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("MultigraphsTests", ["GraphProtocols", "Multigraphs", "AdjacencyListModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("ColoringModuleTests", ["GraphProtocols", "ColoringModule", "BipartiteGraphs", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
+    ("FlowsTests", ["GraphProtocols", "Flows", "Trees", "Walks", "Multigraphs", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("CentralityTests", ["GraphProtocols", "Centrality", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("ConnectivityTests", ["GraphProtocols", "Connectivity", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("GraphProtocolsTests", ["GraphProtocols", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "EdgeListModule", "GrafluentTestSupport", "swift-collections/BitCollections"]),
 ]
+
+# Bazel test sizes above the default "small" (60 s timeout), for suites whose solo run takes more
+# than about 15 s and so can pass 60 s when other builds load the machine. "medium" is 300 s.
+# Solo debug runs, measured 2026-10-10: Coloring 16 s, Distances 19 s, ShortestPaths, Trees and
+# TreeAlgorithms 16 s, PriorityQueue 14 s; the rest at most 13 s.
+TEST_SIZES = {name: "medium" for name in ["ColoringModuleTests", "DistancesTests", "ShortestPathsTests", "TreesTests", "TreeAlgorithmsTests", "PriorityQueueTests"]}
+
+# The library modules the differential harness (Differential/, scripts/differential.py) links.
+# Both its Package.swift and its BUILD.bazel are written from this list.
+DIFFERENTIAL_DEPENDENCIES = ["GraphProtocols", "AdjacencyListModule", "ShortestPaths", "SpanningTrees", "Connectivity", "Walks", "Cycles", "Trees", "TreeAlgorithms", "Distances", "Cliques", "Centrality", "CommunityDetection", "BipartiteGraphs", "MatchingModule", "Covering", "ColoringModule", "Multigraphs", "Flows"]
 
 PLATFORMS = '[.macOS(.v15), .iOS(.v18), .tvOS(.v18), .watchOS(.v11), .visionOS(.v2)]'
 
@@ -170,44 +180,50 @@ def package_swift():
         "// Every target directory holds a BUILD.bazel, which SwiftPM must be told to ignore.",
         'let bazelFiles = ["BUILD.bazel"]',
         "",
+        "// Typed arrays of their own: as one `Package(...)` expression, the manifest is too big for the",
+        "// type checker.",
+        "let products: [Product] = [",
+        '    .library(name: "Grafluent", targets: ["Grafluent"]),',
+    ]
+    lines += [f'    .library(name: "{m[0]}", targets: ["{m[0]}"]),' for m in MODULES]
+    lines += ["]", "", "let dependencies: [Package.Dependency] = ["]
+    lines += [f'    .package(url: "{url}", from: "{version}"),' for _, url, version in PACKAGES]
+    lines += ["]", "", "let targets: [Target] = ["]
+    group = None
+    for name, g, _, deps in MODULES:
+        if g != group:
+            lines.append(f"    // {g}")
+            group = g
+        ex = exclude_arg(f"Sources/{name}")
+        if deps:
+            dl = ", ".join(spm_dep(d) for d in deps)
+            lines.append(f'    .target(name: "{name}", dependencies: [{dl}]{ex}),')
+        else:
+            lines.append(f'    .target(name: "{name}"{ex}),')
+    all_deps = ", ".join(f'"{m[0]}"' for m in MODULES)
+    lines += [
+        "",
+        "    // Umbrella: `import Grafluent` imports every module.",
+        f'    .target(name: "Grafluent", dependencies: [{all_deps}], exclude: bazelFiles),',
+        "",
+        "    // Shared fixtures, conformance checkers and instrumentation for every test target.",
+        '    .target(name: "GrafluentTestSupport", dependencies: ["GraphProtocols"], path: "Tests/GrafluentTestSupport", exclude: bazelFiles),',
+        "",
+    ]
+    for name, deps in TEST_TARGETS:
+        dl = ", ".join(spm_dep(d) for d in deps)
+        lines.append(f'    .testTarget(name: "{name}", dependencies: [{dl}]{exclude_arg(f"Tests/{name}")}),')
+    lines += [
+        "]",
+        "",
         "let package = Package(",
         '    name: "Grafluent",',
         "    // macOS 15 / iOS 18 is the floor for `Synchronization.Mutex`, used by the test support target.",
         "    // Revisit with open question 6 in README.md. Keep in step with .bazelrc.",
         f"    platforms: {PLATFORMS},",
-        "    products: [",
-        '        .library(name: "Grafluent", targets: ["Grafluent"]),',
-    ]
-    lines += [f'        .library(name: "{m[0]}", targets: ["{m[0]}"]),' for m in MODULES]
-    lines += ["    ],", "    dependencies: ["]
-    lines += [f'        .package(url: "{url}", from: "{version}"),' for _, url, version in PACKAGES]
-    lines += ["    ],", "    targets: ["]
-    group = None
-    for name, g, _, deps in MODULES:
-        if g != group:
-            lines.append(f"        // {g}")
-            group = g
-        ex = exclude_arg(f"Sources/{name}")
-        if deps:
-            dl = ", ".join(spm_dep(d) for d in deps)
-            lines.append(f'        .target(name: "{name}", dependencies: [{dl}]{ex}),')
-        else:
-            lines.append(f'        .target(name: "{name}"{ex}),')
-    all_deps = ", ".join(f'"{m[0]}"' for m in MODULES)
-    lines += [
-        "",
-        "        // Umbrella: `import Grafluent` imports every module.",
-        f'        .target(name: "Grafluent", dependencies: [{all_deps}], exclude: bazelFiles),',
-        "",
-        "        // Shared fixtures, conformance checkers and instrumentation for every test target.",
-        '        .target(name: "GrafluentTestSupport", dependencies: ["GraphProtocols"], path: "Tests/GrafluentTestSupport", exclude: bazelFiles),',
-        "",
-    ]
-    for name, deps in TEST_TARGETS:
-        dl = ", ".join(spm_dep(d) for d in deps)
-        lines.append(f'        .testTarget(name: "{name}", dependencies: [{dl}]{exclude_arg(f"Tests/{name}")}),')
-    lines += [
-        "    ]",
+        "    products: products,",
+        "    dependencies: dependencies,",
+        "    targets: targets",
         ")",
         "",
     ]
@@ -268,6 +284,7 @@ def build_bazel(name, description, deps, umbrella=False):
 
 
 def test_build_bazel(name, deps):
+    size = TEST_SIZES.get(name, "small")
     dl = "".join(f'        "{bazel_label(d)}",\n' for d in deps)
     return (
         "# GENERATED by scripts/modules.py — edit the table there, then run `just modules`.\n\n"
@@ -287,7 +304,7 @@ def test_build_bazel(name, deps):
         "# `bazel test` / `just test`: a standalone executable, fast to start and run in Bazel's sandbox.\n"
         "swift_test(\n"
         f'    name = "{name}",\n'
-        '    size = "small",\n'
+        f'    size = "{size}",\n'
         f'    deps = [":{name}Library"],\n'
         ")\n\n"
         "# The generated Xcode project: a real .xctest bundle (an MH_BUNDLE), which is what Xcode's test\n"
@@ -296,12 +313,52 @@ def test_build_bazel(name, deps):
         "macos_unit_test(\n"
         f'    name = "{name}Bundle",\n'
         f'    bundle_name = "{name}",\n'
-        '    size = "small",\n'
+        f'    size = "{size}",\n'
         '    minimum_os_version = "15.0",\n'
         '    tags = ["manual", "no-sandbox"],\n'
         "    # Visible so `//:xcodeproj` can name it as a top-level target.\n"
         '    visibility = ["//visibility:public"],\n'
         f'    deps = [":{name}Library"],\n'
+        ")\n"
+    )
+
+
+def differential_package_swift():
+    deps = ", ".join(f'"{d}"' for d in DIFFERENTIAL_DEPENDENCIES)
+    return (
+        "// swift-tools-version: 6.2\n"
+        "import PackageDescription\n\n"
+        "// GENERATED by scripts/modules.py (DIFFERENTIAL_DEPENDENCIES): edit the list there, then run `just modules`.\n"
+        "//\n"
+        "// Differential testing against NetworkX and scipy: this executable answers a batch of queries\n"
+        "// with the library, and scripts/differential.py asks the reference libraries the same questions\n"
+        "// and compares. In its own package so the library never depends on Foundation's JSON coding.\n"
+        "// `just diff` builds it through Bazel (Differential/BUILD.bazel); this package is the\n"
+        "// `--swiftpm` fallback. See Differential/README.md.\n\n"
+        f"let products: [Target.Dependency] = [{deps}].map {{ .product(name: $0, package: \"Grafluent\") }}\n\n"
+        "let package = Package(\n"
+        '    name: "GrafluentDifferential",\n'
+        "    platforms: [.macOS(.v15)],\n"
+        '    dependencies: [.package(path: "..")],\n'
+        '    targets: [.executableTarget(name: "GrafluentDifferential", dependencies: products)]\n'
+        ")\n"
+    )
+
+
+def differential_build_bazel():
+    dl = "".join(f'        "{bazel_label(d)}",\n' for d in DIFFERENTIAL_DEPENDENCIES)
+    return (
+        "# GENERATED by scripts/modules.py (DIFFERENTIAL_DEPENDENCIES) — edit the list there, then run\n"
+        "# `just modules`.\n\n"
+        'load("//tools:swift_rules.bzl", "swift_binary")\n\n'
+        "# The library side of `just diff` (scripts/differential.py builds it with --config=release).\n"
+        "# `manual` keeps it out of `bazel build //...`.\n"
+        "swift_binary(\n"
+        '    name = "GrafluentDifferential",\n'
+        '    srcs = glob(["Sources/GrafluentDifferential/**/*.swift"]),\n'
+        '    module_name = "GrafluentDifferential",\n'
+        f"    deps = [\n{dl}    ],\n"
+        '    tags = ["manual"],\n'
         ")\n"
     )
 
@@ -335,6 +392,10 @@ def main():
         f.write("".join(f"@_exported import {n}\n" for n in names))
     with open(os.path.join(root, "swift", "Package.swift"), "w") as f:
         f.write(dependency_manifest())
+    with open(os.path.join(root, "Differential", "BUILD.bazel"), "w") as f:
+        f.write(differential_build_bazel())
+    with open(os.path.join(root, "Differential", "Package.swift"), "w") as f:
+        f.write(differential_package_swift())
     # Written last: which files each target must exclude depends on the BUILD files above.
     with open(os.path.join(root, "Package.swift"), "w") as f:
         f.write(package_swift())

@@ -59,7 +59,7 @@ Bellman–Ford, Kruskal, Dial's buckets).
 
 ## Case IDs
 
-Case IDs (PQ-01 … PQ-52) refer to the catalog of cases harvested from Boost, LEMON, igraph,
+Case IDs (PQ-01 … PQ-52) refer to the catalog of cases (`Tests/Catalogs/PriorityQueue/cases.md`, with `ref.py` and `cases.out`) harvested from Boost, LEMON, igraph,
 NetworkX and swift-collections. Each test's name starts with its ID.
 
 | Cases | Section | File |

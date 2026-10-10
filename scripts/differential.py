@@ -1,12 +1,21 @@
 #!/usr/bin/env python3
 """Differential testing: the library against NetworkX and scipy on the same random graphs.
 
-    python3 scripts/differential.py                  # 2,000 cases
+    python3 scripts/differential.py                  # 2,000 cases, every module
     python3 scripts/differential.py --cases 20000 --seed 7
+    python3 scripts/differential.py --module Coloring --module Matching   # only those comparisons
+
+`--module` (repeatable) names a library module (ColoringModule or Coloring, case ignored; Trees
+and TreeAlgorithms share one section). The cases are generated the same way whatever is chosen,
+so a seed reproduces the same graphs; only the library calls and comparisons of other modules
+are skipped. Without it, everything runs.
+
+The library side is built through Bazel (//Differential:GrafluentDifferential, optimized, in the
+output base `just test-release` uses), or through SwiftPM with `--swiftpm`.
 
 Runs under `uv` with pinned reference versions (the script re-executes itself through
 `uv run` when they are not importable), so nothing is installed globally. The library side is
-Differential/ (an executable that answers a batch of JSON cases). Each case is a simple graph on
+Differential/ (an executable that answers a batch of JSON cases, the chosen sections only). Each case is a simple graph on
 0..<n, directed or undirected, self-loops allowed, with integer weights (some zero, some
 negative), one to three sources, an optional cutoff and a target.
 
@@ -29,17 +38,23 @@ import sys
 
 NETWORKX = "networkx==3.7"
 SCIPY = "scipy==1.18.1"
+RUSTWORKX = "rustworkx==0.18.1"
+IGRAPH = "igraph==1.0.0"
 
 try:
     import networkx as nx
     import numpy as np
     from scipy.sparse import csr_array
     from scipy.sparse.csgraph import dijkstra as scipy_dijkstra
+    import igraph
+    import rustworkx as rx
 except ImportError:
     if os.environ.get("GRAFLUENT_DIFFERENTIAL_UV"):
         raise
     os.environ["GRAFLUENT_DIFFERENTIAL_UV"] = "1"
-    os.execvp("uv", ["uv", "run", "--quiet", "--no-project", "--with", NETWORKX, "--with", SCIPY, "python3", *sys.argv])
+    os.execvp("uv", ["uv", "run", "--quiet", "--no-project", "--with", NETWORKX, "--with", SCIPY, "--with", RUSTWORKX, "--with", IGRAPH, "python3", *sys.argv])
+
+import differential_flows  # noqa: E402  (after the uv re-exec: it imports NetworkX and igraph)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PACKAGE = os.path.join(ROOT, "Differential")
@@ -51,6 +66,30 @@ BATCH_TIMEOUT = 120
 CASE_TIMEOUT = 5
 MAX_ISOLATED = 5
 SWIFT = ["env", "-u", "TOOLCHAINS", "xcrun", "--toolchain", "default", "swift"]
+# The justfile's BAZEL_RELEASE: optimized builds keep their own output base, so switching to
+# --config=release does not discard the debug analysis cache.
+BAZEL_RELEASE = ["bazel", f"--output_base={os.path.expanduser('~')}/Library/Caches/bazel-grafluent-release"]
+BAZEL_TARGET = "//Differential:GrafluentDifferential"
+
+# Library module -> the section of Differential/main.swift that answers for it.
+SECTIONS = {
+    "ShortestPaths": "shortestpaths", "SpanningTrees": "spanningtrees", "Connectivity": "connectivity",
+    "Cycles": "cycles", "Trees": "trees", "TreeAlgorithms": "trees", "Distances": "distances",
+    "Cliques": "cliques", "Centrality": "centrality", "CommunityDetection": "communities",
+    "BipartiteGraphs": "bipartite", "MatchingModule": "matching", "Covering": "covering",
+    "ColoringModule": "coloring", "Flows": "flows",
+}
+ALL_SECTIONS = sorted(set(SECTIONS.values()))
+
+
+def section_of(name):
+    """The section for a --module argument: a module name, with or without its Module suffix, or
+    a section name, ignoring case."""
+    key = name.lower().removesuffix("module")
+    for module, section in SECTIONS.items():
+        if key in (module.lower(), module.lower().removesuffix("module"), section):
+            return section
+    sys.exit(f"--module {name}: no such module; one of {', '.join(SECTIONS)}")
 
 
 def generate(rng, index):
@@ -120,7 +159,7 @@ def generate(rng, index):
             "target": rng.randrange(n)}
 
 
-def reference(case):
+def reference(case, sections):
     n, sources = case["n"], case["sources"]
     G = nx.DiGraph() if case["directed"] else nx.Graph()
     G.add_nodes_from(range(n))
@@ -128,6 +167,8 @@ def reference(case):
         G.add_edge(u, v, weight=w)
     nonnegative = all(w >= 0 for _, _, w in case["edges"])
     out = {"graph": G}
+    if "shortestpaths" not in sections:
+        return out
     if nonnegative:
         lengths = nx.multi_source_dijkstra_path_length(G, sources, cutoff=case["cutoff"])
         out["dijkstra"] = [lengths.get(v) for v in range(n)]
@@ -183,8 +224,42 @@ def weight_of(case):
     return table
 
 
-def compare(case, mine, ref):
-    """The list of disagreements, each a short string."""
+def compare(case, mine, ref, sections):
+    """The list of disagreements, each a short string, from the chosen sections."""
+    problems = []
+    G = ref["graph"]
+    if "shortestpaths" in sections:
+        problems += compare_shortest_paths(case, mine, ref)
+    if "cycles" in sections:
+        problems += compare_cycles(case, mine["cycles"], G)
+    if "trees" in sections:
+        problems += compare_trees(case, mine["trees"], G)
+    if "distances" in sections:
+        problems += compare_distances(case, mine["distances"], G)
+    if "cliques" in sections and not case["directed"]:
+        problems += compare_cliques(case, mine["cliques"], G)
+    if "centrality" in sections:
+        problems += compare_centrality(case, mine["centrality"], G)
+    if "communities" in sections:
+        problems += compare_communities(case, mine["communities"], G)
+    if "bipartite" in sections:
+        problems += compare_bipartite(case, mine["bipartite"], G)
+    if "matching" in sections:
+        problems += compare_matching(case, mine["matching"], G)
+    if "covering" in sections:
+        problems += compare_covering(case, mine["covering"], G)
+    if "coloring" in sections:
+        problems += compare_coloring(case, mine["coloring"])
+    if "spanningtrees" in sections and not case["directed"]:
+        problems += compare_spanning(case, mine["spanning"], G)
+    if "connectivity" in sections and not case["directed"]:
+        problems += compare_connectivity(case, mine["connectivity"], G)
+    if "flows" in sections:
+        problems += differential_flows.compare_flows(case, mine["flows"])
+    return problems
+
+
+def compare_shortest_paths(case, mine, ref):
     problems = []
     n, sources = case["n"], case["sources"]
     w = weight_of(case)
@@ -220,20 +295,6 @@ def compare(case, mine, ref):
                 problems.append(f"{key} {cycle} is not a negative simple cycle")
             if key == "witness" and not any(nx.has_path(G, s, cycle[0]) for s in sources):
                 problems.append(f"witness {cycle} is not reachable from {sources}")
-    problems += compare_cycles(case, mine["cycles"], ref["graph"])
-    problems += compare_trees(case, mine["trees"], ref["graph"])
-    problems += compare_distances(case, mine["distances"], ref["graph"])
-    if not case["directed"]:
-        problems += compare_cliques(case, mine["cliques"], ref["graph"])
-    problems += compare_centrality(case, mine["centrality"], ref["graph"])
-    problems += compare_communities(case, mine["communities"], ref["graph"])
-    problems += compare_bipartite(case, mine["bipartite"], ref["graph"])
-    problems += compare_matching(case, mine["matching"], ref["graph"])
-    problems += compare_covering(case, mine["covering"], ref["graph"])
-    problems += compare_coloring(case, mine["coloring"])
-    if not case["directed"]:
-        problems += compare_spanning(case, mine["spanning"], ref["graph"])
-        problems += compare_connectivity(case, mine["connectivity"], ref["graph"])
     if mine.get("unweighted") != ref["unweighted"]:
         problems.append(f"unweighted: library {mine.get('unweighted')}, NetworkX {ref['unweighted']}")
     return problems
@@ -1497,8 +1558,11 @@ def compare_coloring(case, mine):
     agreement with them is only counted). The chromatic number and least optimal colouring per
     component by plain backtracking on small components, bounds otherwise; Misra–Gries proper
     with Δ or Δ + 1 colours; König exactly Δ (parallel edges counted) and nil exactly when
-    NetworkX says the multigraph is not bipartite; isColoring and isEdgeColoring against direct
-    checks."""
+    NetworkX says the multigraph is not bipartite; isVertexColoring and isEdgeColoring against direct
+    checks. Colored neighbours against python-igraph on the simple graph; every strategy with
+    presets kept, proper and first fit elsewhere, largest first with presets against rustworkx's
+    graph_greedy_color(preset_color_fn=, strategy=Degree); the greedy edge colouring of the graph
+    itself (parallel edges and self-loops kept) against rustworkx's graph_greedy_edge_color."""
     problems = []
     n = case["n"]
     ends = [(u, v) for u, v, _ in case["edges"]]
@@ -1508,7 +1572,7 @@ def compare_coloring(case, mine):
     adj = {v: set(S[v]) for v in range(n)}
     delta = max((d for _, d in S.degree()), default=0)
     if not mine["consistent"]:
-        problems.append("coloring: a result fails isColoring / isEdgeColoring or its classes disagree")
+        problems.append("coloring: a result fails isVertexColoring / isEdgeColoring or its classes disagree")
 
     def proper(colors):
         return len(colors) == n and all(colors[u] != colors[v] for u, v in S.edges())
@@ -1545,10 +1609,14 @@ def compare_coloring(case, mine):
     if mine["reversedOrder"] != theirs:
         problems.append(f"greedyColoring(order: reversed): library {mine['reversedOrder'][:12]}, NetworkX {theirs[:12]}")
 
-    chi, minimum = mine.get("chromaticNumber"), mine.get("minimum")
+    chi, minimum, first = mine.get("chromaticNumber"), mine.get("minimum"), mine.get("lexicographicallyFirstMinimum")
     if minimum is not None:
         if not proper(minimum) or count(minimum) != chi:
             problems.append(f"minimumColoring {minimum[:12]} is not proper with χ = {chi} colours")
+        if any(c > max(minimum[:v], default=-1) + 1 for v, c in enumerate(minimum)):
+            problems.append(f"minimumColoring {minimum[:12]} is not numbered by first appearance")
+        if not proper(first) or count(first) != chi:
+            problems.append(f"lexicographicallyFirstMinimumColoring {first[:12]} is not proper with χ = {chi} colours")
         omega = max((len(c) for c in nx.find_cliques(S)), default=0)
         best_greedy = min((count(c) for c in [*greedy.values(), mine["reversedOrder"]]), default=0)
         if not omega <= chi <= best_greedy:
@@ -1567,8 +1635,28 @@ def compare_coloring(case, mine):
             COLORING_COVERED[f"χ = {best}"] += 1
             if chi != best:
                 problems.append(f"chromaticNumber {chi}, backtracking {best}")
-            elif minimum != expected:
-                problems.append(f"minimumColoring {minimum[:12]}, least per component {expected[:12]}")
+            elif first != expected:
+                problems.append(f"lexicographicallyFirstMinimumColoring {first[:12]}, least per component {expected[:12]}")
+
+    # igraph's colored neighbours on the simple graph.
+    theirs = igraph.Graph(n=n, edges=list(S.edges())).vertex_coloring_greedy(method="colored_neighbors") if n else []
+    if mine["coloredNeighbors"] != theirs:
+        problems.append(f"coloredNeighbors: library {mine['coloredNeighbors'][:12]}, igraph {theirs[:12]}")
+    # Presets: kept, proper, first fit for the others; largest first against rustworkx.
+    preset = mine["preset"]
+    for name, colors in mine["presetGreedy"].items():
+        if any(p >= 0 and colors[v] != p for v, p in enumerate(preset)) or not proper(colors):
+            problems.append(f"{name} with presets {colors[:12]} drops a preset or is not proper")
+        elif any(preset[v] < 0 and not set(range(colors[v])) <= {colors[w] for w in adj[v]} for v in range(n)):
+            problems.append(f"{name} with presets {colors[:12]} is not first fit")
+    R = rx.PyGraph()
+    R.add_nodes_from(range(n))
+    R.add_edges_from_no_data(list(S.edges()))
+    theirs = rx.graph_greedy_color(R, preset_color_fn=lambda v: preset[v] if preset[v] >= 0 else None, strategy=rx.ColoringStrategy.Degree)
+    theirs = [theirs[v] for v in range(n)]
+    COLORING_COVERED["presets"] += any(p >= 0 for p in preset)
+    if mine["presetGreedy"]["largestFirst"] != theirs:
+        problems.append(f"largestFirst with presets: library {mine['presetGreedy']['largestFirst'][:12]}, rustworkx {theirs[:12]}")
 
     # Misra–Gries on the simple graph the library built.
     simple, colors = [tuple(e) for e in mine["simpleEdges"]], mine["edgeColors"]
@@ -1607,10 +1695,22 @@ def compare_coloring(case, mine):
         k = mine["bipartiteEdgeColorCount"]
         if not proper_edges(ends, konig) or set(konig) != set(range(k)) or k != multi:
             problems.append(f"bipartiteEdgeColoring {konig[:12]} ({k} colours) is not a proper Δ = {multi} colouring")
+    # The greedy edge colouring of the graph itself against rustworkx.
+    P = rx.PyGraph(multigraph=True)
+    P.add_nodes_from(range(n))
+    P.add_edges_from_no_data(ends)
+    theirs = rx.graph_greedy_edge_color(P)
+    theirs = [theirs[e] for e in range(len(ends))]
+    greedy_edges = mine["greedyEdgeColors"]
+    COLORING_COVERED["greedy edge colouring with loops or parallel edges"] += len(set(tuple(sorted(e)) for e in ends)) < len(ends) or any(u == v for u, v in ends)
+    if greedy_edges != theirs:
+        problems.append(f"greedyEdgeColoring: library {greedy_edges[:12]}, rustworkx {theirs[:12]}")
+    elif not proper_edges(ends, greedy_edges):
+        problems.append(f"greedyEdgeColoring {greedy_edges[:12]} is not proper")
 
-    # The checks, against colourings judged here (self-loops ignored by isColoring; a loop and
+    # The checks, against colourings judged here (self-loops ignored by isVertexColoring; a loop and
     # another edge at its vertex conflict for isEdgeColoring).
-    for key, mod in (("isColoringMod2", 2), ("isColoringMod3", 3)):
+    for key, mod in (("isVertexColoringMod2", 2), ("isVertexColoringMod3", 3)):
         expected = all(u % mod != v % mod for u, v in ends if u != v)
         if mine[key] != expected:
             problems.append(f"{key}: library {mine[key]}, expected {expected}")
@@ -1627,28 +1727,41 @@ def main():
     parser.add_argument("--cases", type=int, default=2000)
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--batch", type=int, default=500)
+    parser.add_argument("--module", action="append", default=[], metavar="NAME",
+                        help="compare only this module (repeatable; default every module): " + ", ".join(SECTIONS))
+    parser.add_argument("--swiftpm", action="store_true", help="build the library side with SwiftPM instead of Bazel")
     args = parser.parse_args()
     seed = args.seed if args.seed is not None else random.randrange(1 << 30)
     rng = random.Random(seed)
-
-    build = subprocess.run(SWIFT + ["build", "-c", "release"], cwd=PACKAGE, capture_output=True, text=True, timeout=1800)
-    if build.returncode != 0:
-        sys.exit("The differential build failed:\n" + build.stdout[-3000:] + build.stderr[-3000:])
-    binary = os.path.join(PACKAGE, ".build", "release", "GrafluentDifferential")
+    sections = {section_of(m) for m in args.module} or set(ALL_SECTIONS)
+    # The executable answers every section when given none.
+    command = [build_library(args.swiftpm)] + ([] if sections == set(ALL_SECTIONS) else sorted(sections))
 
     failures = 0
-    covered = {"directed": 0, "undirected": 0, "negative weights": 0, "negative cycle reachable": 0,
-                "negative cycle elsewhere only": 0, "cutoff": 0, "scipy compared": 0, "target unreachable": 0,
-                "all cycles listed": 0, "cycles compared": 0, "with a cycle basis": 0, "girth ≤ 2": 0,
-                "trees": 0, "forests of 2+ trees": 0, "arborescences": 0,
-                "eigenvector converged": 0, "eigenvector nil": 0, "katz nil": 0, "hits compared": 0,
-                "bipartite": 0, "odd cycles checked": 0}
+    if "flows" in sections:
+        # The catalog first: every row of Tests/Catalogs/Flows/cases.md, replayed.
+        catalog = differential_flows.replay_catalog(command[0])
+        for problem in catalog[:20]:
+            print(problem)
+        failures += len(catalog)
+    covered = dict.fromkeys(["directed", "undirected", "negative weights"], 0)
+    for section, counters in [
+            ("shortestpaths", ["negative cycle reachable", "negative cycle elsewhere only", "cutoff", "scipy compared", "target unreachable"]),
+            ("cycles", ["all cycles listed", "cycles compared", "with a cycle basis", "girth ≤ 2"]),
+            ("trees", ["trees", "forests of 2+ trees", "arborescences"]),
+            ("centrality", ["eigenvector converged", "eigenvector nil", "katz nil", "hits compared"]),
+            ("bipartite", ["bipartite", "odd cycles checked"])]:
+        if section in sections:
+            covered.update(dict.fromkeys(counters, 0))
     for start in range(0, args.cases, args.batch):
         cases = [generate(rng, i) for i in range(start, min(args.cases, start + args.batch))]
+        if "flows" in sections:
+            for case in cases:
+                case["flow"] = differential_flows.flow_case(case)
         # Every run is bounded: a library bug that never terminates must fail the run, not hang
         # it. A batch normally takes seconds.
         try:
-            run = subprocess.run([binary], input=json.dumps(cases), capture_output=True, text=True, timeout=BATCH_TIMEOUT)
+            run = subprocess.run(command, input=json.dumps(cases), capture_output=True, text=True, timeout=BATCH_TIMEOUT)
             crashed = run.returncode != 0
         except subprocess.TimeoutExpired:
             crashed = True
@@ -1660,7 +1773,7 @@ def main():
                 if found >= MAX_ISOLATED:
                     break
                 try:
-                    one = subprocess.run([binary], input=json.dumps([case]), capture_output=True, text=True, timeout=CASE_TIMEOUT)
+                    one = subprocess.run(command, input=json.dumps([case]), capture_output=True, text=True, timeout=CASE_TIMEOUT)
                 except subprocess.TimeoutExpired:
                     failures += 1
                     found += 1
@@ -1672,39 +1785,70 @@ def main():
                     record(case, [f"the library crashed: {one.stderr.strip()[-500:]}"], seed)
             continue
         for case, mine in zip(cases, json.loads(run.stdout)):
-            ref = reference(case)
+            ref = reference(case, sections)
             covered["directed" if case["directed"] else "undirected"] += 1
             covered["negative weights"] += any(w < 0 for _, _, w in case["edges"])
-            covered["negative cycle reachable"] += ref["bellmanFord"] == "unbounded"
-            covered["negative cycle elsewhere only"] += ref["bellmanFord"] != "unbounded" and ref["cycleAnywhere"]
-            covered["cutoff"] += case["cutoff"] is not None and "dijkstra" in ref
-            covered["scipy compared"] += "scipy" in ref
-            covered["target unreachable"] += "single" in ref and ref["single"] is None
-            cycles = mine["cycles"]
-            covered["all cycles listed"] += cycles.get("simple") is not None
-            covered["cycles compared"] += len(cycles.get("simple") or [])
-            covered["with a cycle basis"] += bool(cycles.get("basis"))
-            covered["girth ≤ 2"] += (cycles.get("girth") or 3) <= 2
-            trees = mine["trees"]
-            covered["trees"] += trees["tree"]
-            covered["forests of 2+ trees"] += len(trees.get("forestTrees") or []) >= 2
-            covered["arborescences"] += trees["arborescence"]
-            centrality = mine["centrality"]
-            covered["eigenvector converged"] += centrality.get("eigenvector") is not None
-            covered["eigenvector nil"] += centrality.get("eigenvector") is None
-            covered["katz nil"] += centrality.get("katz") is None
-            covered["hits compared"] += centrality.get("hubs") is not None
-            covered["bipartite"] += mine["bipartite"]["isBipartite"]
-            covered["odd cycles checked"] += mine["bipartite"].get("oddCycle") is not None
-            problems = compare(case, mine, ref)
+            if "shortestpaths" in sections:
+                covered["negative cycle reachable"] += ref["bellmanFord"] == "unbounded"
+                covered["negative cycle elsewhere only"] += ref["bellmanFord"] != "unbounded" and ref["cycleAnywhere"]
+                covered["cutoff"] += case["cutoff"] is not None and "dijkstra" in ref
+                covered["scipy compared"] += "scipy" in ref
+                covered["target unreachable"] += "single" in ref and ref["single"] is None
+            if "cycles" in sections:
+                cycles = mine["cycles"]
+                covered["all cycles listed"] += cycles.get("simple") is not None
+                covered["cycles compared"] += len(cycles.get("simple") or [])
+                covered["with a cycle basis"] += bool(cycles.get("basis"))
+                covered["girth ≤ 2"] += (cycles.get("girth") or 3) <= 2
+            if "trees" in sections:
+                trees = mine["trees"]
+                covered["trees"] += trees["tree"]
+                covered["forests of 2+ trees"] += len(trees.get("forestTrees") or []) >= 2
+                covered["arborescences"] += trees["arborescence"]
+            if "centrality" in sections:
+                centrality = mine["centrality"]
+                covered["eigenvector converged"] += centrality.get("eigenvector") is not None
+                covered["eigenvector nil"] += centrality.get("eigenvector") is None
+                covered["katz nil"] += centrality.get("katz") is None
+                covered["hits compared"] += centrality.get("hubs") is not None
+            if "bipartite" in sections:
+                covered["bipartite"] += mine["bipartite"]["isBipartite"]
+                covered["odd cycles checked"] += mine["bipartite"].get("oddCycle") is not None
+            problems = compare(case, mine, ref, sections)
             if problems:
                 failures += 1
                 record(case, problems, seed)
     print("covered: " + ", ".join(f"{k} {v}" for k, v in covered.items()))
-    print("coloring: " + ", ".join(f"{k} {v}" for k, v in sorted(COLORING_COVERED.items()))
-          + "; NetworkX's own strategy equal: " + ", ".join(f"{k} {v}" for k, v in NX_NATIVE_AGREE.items()))
-    print(f"{args.cases} cases (seed {seed}): " + (f"{failures} disagreement(s) in {os.path.relpath(FAILURES, ROOT)}/" if failures else "all agree"))
+    if "flows" in sections:
+        print("flows: " + ", ".join(f"{k} {v}" for k, v in sorted(differential_flows.COVERED.items())))
+    if "coloring" in sections:
+        print("coloring: " + ", ".join(f"{k} {v}" for k, v in sorted(COLORING_COVERED.items()))
+              + "; NetworkX's own strategy equal: " + ", ".join(f"{k} {v}" for k, v in NX_NATIVE_AGREE.items()))
+    chosen = "" if sections == set(ALL_SECTIONS) else f", {', '.join(sorted(sections))} only"
+    print(f"{args.cases} cases (seed {seed}{chosen}): " + (f"{failures} disagreement(s) in {os.path.relpath(FAILURES, ROOT)}/" if failures else "all agree"))
     sys.exit(1 if failures else 0)
+
+
+def build_library(swiftpm):
+    """Builds the library side optimized and returns the executable's path."""
+    if swiftpm:
+        build = subprocess.run(SWIFT + ["build", "-c", "release"], cwd=PACKAGE, capture_output=True, text=True, timeout=1800)
+        if build.returncode != 0:
+            sys.exit("The differential build failed:\n" + build.stdout[-3000:] + build.stderr[-3000:])
+        return os.path.join(PACKAGE, ".build", "release", "GrafluentDifferential")
+    # The workspace's bazel-bin and bazel-out links stay on the debug output base.
+    flags = ["--config=release", "--experimental_convenience_symlinks=ignore"]
+    build = subprocess.run(BAZEL_RELEASE + ["build", *flags, BAZEL_TARGET], cwd=ROOT,
+                           capture_output=True, text=True, timeout=1800)
+    if build.returncode != 0:
+        sys.exit("The differential build failed:\n" + build.stderr[-6000:])
+    where = subprocess.run(BAZEL_RELEASE + ["cquery", *flags, "--output=files", BAZEL_TARGET], cwd=ROOT,
+                           capture_output=True, text=True, timeout=600)
+    root = subprocess.run(BAZEL_RELEASE + ["info", *flags, "execution_root"], cwd=ROOT,
+                          capture_output=True, text=True, timeout=600)
+    if where.returncode != 0 or root.returncode != 0 or not where.stdout.strip():
+        sys.exit("Could not find the differential executable:\n" + where.stderr[-3000:] + root.stderr[-3000:])
+    return os.path.join(root.stdout.strip(), where.stdout.split()[0])
 
 
 def record(case, problems, seed):

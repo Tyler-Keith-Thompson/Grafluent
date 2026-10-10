@@ -5,7 +5,8 @@
 forest, `simpleCycles(maxLength:)` and `girth()`. On `DirectedGraph`: `simpleCycles(maxLength:)`
 and `girth()` (`findCycle`, `isAcyclic` and `topologicalSort` stay in Traversal). Every cycle is a
 Walks `Cycle<Vertex, Edges.Index>`, so parallel edges are told apart by position. The tests were
-written before the implementation, from the proposed API (`api.md`, phase 1). The suite uses only
+written before the implementation, from the proposed API (`api.md`, phase 1; it, the catalog and its generator are in
+`Tests/Catalogs/Cycles/`). The suite uses only
 the public API and is self-contained per test; shared material is the `ReferencePseudograph` and
 `ReferenceDirectedMultigraph` test conformers, `Collider`, the seeded generator and the tags in
 `GrafluentTestSupport`. Conformers private to a file model representations the package does not
@@ -57,7 +58,8 @@ rows are reversed or rotated. `CycleRepresentationTests.swift` repeats rows exac
 collapses), on `CompressedSparseRow` and `AdjacencyMatrix` (arcs rewritten row-major on vertices
 `0..<n`, cells as positions), and through the views, with rows modelled as each representation
 stores them. Adjacency lists after removals are checked against a brute force over their own rows
-written inside the test. The literals were generated from the catalog with the reference
+written inside the test. The literals were generated from the catalog (`gen.py`, which also assembles
+`CycleRepresentationTests.swift` from `rep_head.swift`, `gen_rep.py`'s rows and `rep_tail.swift`) with the reference
 (`ref.py`: two brute-force enumerations with the order key computed per cycle, api.md's
 algorithms in Python, NetworkX 3.7 and python-igraph cross-checks); each was required to equal the
 catalog cell, and the whole suite was also run against an independent brute-force Swift model of

@@ -91,7 +91,8 @@ extension Graph
 | Results | Values holding a copy of the graph; `Sendable` when the graph and vertex are; `Components ==` compares members and offsets, not the graph | — |
 | Preconditions | A root, exit or query vertex that is not a vertex traps, as does `component(ofIndex:)` outside `0..<vertexIndexBound` or on a graph without indices; tested with exit tests | — |
 
-The undirected half's conventions (api.md, "Conventions" and "Orders"):
+The undirected half's conventions (`api.md`, "Conventions" and "Orders"; the catalogs, references and
+generator are in `Tests/Catalogs/Connectivity/`, `directed/` and `undirected/`):
 
 | Question | Choice | Why |
 |---|---|---|
@@ -127,15 +128,17 @@ predicates. Rows with repeats collapse on the adjacency list and are pinned ther
 no edge indices) and two conformers private to `UndirectedRepresentationTests.swift` (`PlainGraph`
 without indices, `VertexIndexedGraph` with vertex indices only) are exact too (§H).
 
-Expected values come from the catalog's independent reference (an iterative Tarjan,
-Kosaraju–Sharir, union–find, brute-force, Cooper–Harvey–Kennedy and Lengauer–Tarjan dominators,
-and Cytron's frontier definition), checked against NetworkX on every fixture in both orders and on
-900 random graphs, and against Boost's own `correctIdoms`. The undirected half's reference
-(`ref.py`) is brute force from the definitions (vertex and edge removal, far-end connectivity in
+Expected values come from the catalog's independent reference (`directed/ref.py`: an iterative
+Tarjan, Kosaraju–Sharir, union–find, brute-force, Cooper–Harvey–Kennedy and Lengauer–Tarjan
+dominators, and Cytron's frontier definition), printed by the scripts beside it and checked by
+`check.py` against NetworkX on every fixture in both orders and on 900 random graphs, and by
+`doms.py` against Boost's own `correctIdoms`. The undirected half's reference
+(`undirected/ref.py`) is brute force from the definitions (vertex and edge removal, far-end connectivity in
 G − w for blocks, every single-edge removal for 2-edge-connected components) and an iterative
 Hopcroft–Tarjan that skips the parent edge, which agree on every row and on 1900 random
 multigraphs, cross-checked against NetworkX 3.7. The test files for §A – §G were generated from
-the catalog with those values and hold them as plain literals.
+the catalog with those values (`undirected/gen_tests.py`; CN-341's collapsed rows by
+`gen_collapsed.py`) and hold them as plain literals.
 Randomized tests write their oracles inside the test.
 
 ## Files

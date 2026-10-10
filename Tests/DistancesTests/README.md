@@ -5,7 +5,8 @@
 periphery, a diametral path, the centroid (median: least total distance), the Wiener index and the
 average shortest-path length, and the density, on `Graph` and `DirectedGraph` (out-distances),
 unweighted and weighted. The tests were written before the implementation, from the proposed API
-(`api.md`, phase 1). The suite uses only the public API and is self-contained per test; shared
+(`api.md`, phase 1; it, the catalog and its generator are in `Tests/Catalogs/Distances/`). The suite
+uses only the public API and is self-contained per test; shared
 material is the `ReferencePseudograph` and `ReferenceDirectedMultigraph` test conformers,
 `Collider`, the seeded generator and the tags in `GrafluentTestSupport`. Conformers private to a
 file model representations the package does not have (rows reversed or shuffled, no indices).
@@ -56,10 +57,10 @@ first appearance; edges in written order, repeats and loops kept) on the `Refere
 is exact; `~rev` rows use a file-private conformer whose rows are reversed. Each Expected literal is
 the catalog cell, computed by `ref.py` (api.md's model in index space, checked against
 Floyd–Warshall, the lexicographically least diametral pair, NetworkX 3.7, scipy 1.18.1 and the
-TreeAlgorithms catalog). The catalog-row files were generated from `cases.md` with a script that
+TreeAlgorithms catalog). The catalog-row files were generated from `cases.md` with a script (`gen.py`) that
 re-evaluates each row with `ref.py` and requires it to equal the cell. Literals that are not catalog
 cells (the `Double` and `-0.0` repeats, the `CompressedSparseRow` rows on row-major positions, the
-reduced-size stress rows, the 300 × 300 grid, K₄₀₀, the 10⁵ directed and weighted paths) were
+reduced-size stress rows (`stress_values.py`), the 300 × 300 grid, K₄₀₀, the 10⁵ directed and weighted paths) were
 computed with the same reference. The whole suite was run against an independent brute-force Swift
 model of the API (a search from every vertex, plus ref.py's bounding model so the stress shapes
 finish) before the implementation existed, and against planted bugs in that model (center in value

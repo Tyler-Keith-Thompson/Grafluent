@@ -52,7 +52,7 @@ verify: test spm-test
 modules:
     python3 scripts/modules.py
 
-[doc('Plant the bugs in scripts/mutants/<module>.py and report survivors, e.g. just mutate ShortestPaths')]
+[doc('Plant the bugs in scripts/mutants/<module>.py and report survivors; only mutants whose code or tests changed run (--all: every one; --full-suite: no coverage-based test selection), e.g. just mutate ShortestPaths')]
 mutate module *args="":
     python3 {{PROJECT_ROOT}}/scripts/mutate.py {{module}} {{args}}
 
@@ -74,7 +74,7 @@ fuzz-regress *args="":
 fuzz-repro target input:
     python3 {{PROJECT_ROOT}}/scripts/fuzz.py repro {{target}} {{input}}
 
-[doc('Differential testing against NetworkX and scipy, e.g. just diff, or just diff --cases 20000 --seed 7')]
+[doc('Differential testing against NetworkX, scipy, rustworkx and igraph, built through Bazel (-O); --module X (repeatable) compares one module only, e.g. just diff, just diff --module Coloring, or just diff --cases 20000 --seed 7')]
 diff *args="":
     python3 {{PROJECT_ROOT}}/scripts/differential.py {{args}}
 

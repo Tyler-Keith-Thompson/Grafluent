@@ -5,12 +5,26 @@ scipy 1.18.1, pinned, run through `uv` so nothing is installed globally.
 
 | Command | Does |
 |---|---|
-| `just diff` | 2,000 random cases with a random seed (about 20 s) |
+| `just diff` | 2,000 random cases with a random seed, every module (about 2 min) |
 | `just diff --cases 20000 --seed 7` | More cases, reproducibly |
+| `just diff --module Coloring` | Only one module's queries and comparisons (about 20 s for Coloring); repeat the flag for several |
+| `just diff --swiftpm` | Build the library side with SwiftPM instead of Bazel |
 
 `GrafluentDifferential` (this package) reads a batch of cases as JSON and answers them with the
-library; `scripts/differential.py` generates the cases, asks NetworkX (and scipy's `csgraph`
-where it applies) the same questions, and compares.
+library; `scripts/differential.py` generates the cases, asks NetworkX (and scipy's `csgraph`,
+rustworkx and python-igraph where they apply) the same questions, and compares.
+
+The executable is built through Bazel, `//Differential:GrafluentDifferential` (a `manual`
+`swift_binary`), with `--config=release` in the output base `just test-release` uses, so the
+remote cache serves the library and a run only compiles what changed. `scripts/modules.py`
+writes its BUILD.bazel and Package.swift from one dependency list; this package remains for
+`--swiftpm`.
+
+`--module` takes a library module's name, with or without its `Module` suffix and ignoring case
+(Trees and TreeAlgorithms are one section; `just diff --help` lists them). The cases are generated
+the same way whatever is chosen, so a seed gives the same graphs in a one-module run as in a full
+one; the executable skips the other modules' calls, and the script skips their references and
+comparisons. Iterate on a module with `--module`, and run everything before it ships.
 
 ## What is compared
 
@@ -37,7 +51,8 @@ between them is reported on its own: it means a convention differs, not that the
 | TreeAlgorithms on trees | `tree_all_pairs_lowest_common_ancestor` for every pair; `center`, `diameter` (unweighted and weighted), `tree.centroid`; heavy–light segments expanded against the path; centroid decomposition height ≤ ⌊log₂ n⌋ | — |
 | Distances (both kinds, unweighted and weighted) | eccentricities by searches from every vertex (nil where one misses), radius, diameter, center, periphery, the least-total centroid; `wiener_index`, `average_shortest_path_length`, `density`, `diameter`, `radius` where connected; the diameter path's endpoints and length | — |
 | Cliques (undirected) | `find_cliques` as a set, and the exact documented order against a port of the order's model; the clique number and the lexicographically least maximum clique; `core_number`, `triangles`, `clustering`, `transitivity`, `average_clustering` on the graph without loops | — |
-| Coloring (the simple undirected graph: loops dropped, a directed case's two arcs once) | `greedy_color` with `largest_first` and `saturation_largest_first`, exactly; smallest last, independent set and connected sequential (undirected cases) exactly through callable strategies with least-vertex ties (NetworkX's own break ties in set order); `greedyColoring(order:)`; every result proper within Δ + 1, smallest last within degeneracy + 1 (`core_number`); `chromaticNumber()` between ω and every greedy count, ≤ 2 exactly when `is_bipartite`, and with `minimumColoring()` against plain backtracking per component of ≤ 12 vertices; Misra–Gries proper with Δ or Δ + 1 colours; König nil exactly when the multigraph is not bipartite, else proper with exactly Δ counting parallel edges; `isColoring`, `isEdgeColoring` on fixed colourings | — |
+| Coloring (the simple undirected graph: loops dropped, a directed case's two arcs once) | `greedy_color` with `largest_first` and `saturation_largest_first`, exactly; smallest last, independent set and connected sequential (undirected cases) exactly through callable strategies with least-vertex ties (NetworkX's own break ties in set order); `greedyColoring(order:)`; every result proper within Δ + 1, smallest last within degeneracy + 1 (`core_number`); `chromaticNumber()` between ω and every greedy count, ≤ 2 exactly when `is_bipartite`, with `minimumColoring()` proper, χ colours, numbered by first appearance, and `lexicographicallyFirstMinimumColoring()` against plain backtracking per component of ≤ 12 vertices; Misra–Gries proper with Δ or Δ + 1 colours; König nil exactly when the multigraph is not bipartite, else proper with exactly Δ counting parallel edges; `isColoring`, `isEdgeColoring` on fixed colourings | — |
+| Flows (scripts/differential_flows.py), on a multigraph per case: the case's edges with capacity \|w\| and cost w, then a parallel copy of every fourth (reversed when undirected) | maximum-flow values against `maximum_flow_value` and igraph `maxflow`; every cut's sink side against `minimum_cut`'s partition, its edges and value against its sides; every flow's capacity and conservation; Edmonds–Karp's flow against ref.py's model of the procedure; the global cut's value against igraph maxflow values (min over vertex 0 and each other vertex), its sides against ref.py's Stoer–Wagner and cyclic-pair models; Gomory–Hu trees against `gomory_hu_tree` (n ≤ 50) and every queried pair against igraph `maxflow`; minimum-cost and min-cost max flows against `network_simplex` (feasibility and cost), each flow checked and its potentials' certificate; λ against igraph `edge_connectivity` (parallel edges counted), κ against igraph `vertex_connectivity` and `node_connectivity(s, t)`, vertex cuts against ref.py's models. Before the random cases, every row of Tests/Catalogs/Flows/cases.md is replayed (`GrafluentDifferential flows-catalog`), traps one per process | — |
 
 Cases: simple graphs on 0..<n (n ≤ 30, every tenth ≤ 300), directed or undirected, self-loops
 allowed, sparse, dense, chains and grids, weights from {0…1, 0…3, 0…10, 0…1000} and in 30 % of

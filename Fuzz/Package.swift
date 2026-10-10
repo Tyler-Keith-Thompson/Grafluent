@@ -33,6 +33,7 @@ let package = Package(
         target("FuzzColoring", ["GraphProtocols", "AdjacencyListModule", "ColoringModule"]),
         target("FuzzMultigraphs", ["GraphProtocols", "Multigraphs"]),
         target("FuzzCliques", ["GraphProtocols", "AdjacencyListModule", "Cliques"]),
+        target("FuzzFlows", ["GraphProtocols", "Multigraphs", "Flows"]),
         target("FuzzDistances", ["GraphProtocols", "AdjacencyListModule", "Distances", "Walks"]),
         target("FuzzTreeAlgorithms", ["GraphProtocols", "Trees", "TreeAlgorithms", "Walks"]),
         target("FuzzTrees", ["GraphProtocols", "AdjacencyListModule", "Trees", "Walks"]),

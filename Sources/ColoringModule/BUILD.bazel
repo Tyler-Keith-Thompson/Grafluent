@@ -3,7 +3,7 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Coloring: greedy, DSatur, Welsh–Powell, exact chromatic number, edge coloring.
+# Vertex coloring (greedy strategies, exact chromatic number), edge coloring (Misra–Gries, König, greedy).
 swift_library(
     name = "ColoringModule",
     srcs = glob(["**/*.swift"]),

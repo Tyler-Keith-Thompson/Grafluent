@@ -6,7 +6,7 @@ maximal matching, Edmonds' blossom algorithm and Hopcroft–Karp; the maximum-we
 NetworkX's output) and the minimum-weight maximum-cardinality matching; the minimum-weight full
 bipartite matching and `linearSumAssignment` (scipy's shortest augmenting path); `stableMatching`
 (Gale–Shapley); and the checks `isMatching`, `isMaximalMatching`, `isPerfectMatching`. The tests
-were written before the implementation, from the proposed API (`api.md`, phase 1, with the open
+were written before the implementation, from the proposed API (`api.md` in [`Tests/Catalogs/MatchingModule/`](../Catalogs/MatchingModule/), phase 1, with the open
 questions decided: the weighted blossom follows NetworkX 3.7's iteration orders exactly; the
 `SignedInteger` / `FloatingPoint` and `SignedNumeric & Comparable` weight constraints;
 `linearSumAssignment` marks forbidden pairs only by nil; `Matching` keeps its `Weight` parameter;
@@ -65,7 +65,8 @@ Every catalog row is written as the catalog writes it: graph rows on `Undirected
 by inserting the listed vertices and then the edges in written order (rows in position order, a
 self-loop twice), `multigraph` rows on `ReferencePseudograph`, `L …; R …` rows on
 `BipartiteGraph(left:right:edges:)`; so every vertex number and edge position is the catalog's.
-The catalog-row files were generated from `cases.md` by a script (`swiftgen.py`, next to `ref.py`).
+The catalog-row files were generated from `cases.md` by a script (`swiftgen.py`, next to `ref.py` and `cases.md` in [`Tests/Catalogs/MatchingModule/`](../Catalogs/MatchingModule/), which says how to
+run it).
 It first runs `ref.py`'s catalog with every case builder instrumented, so the inputs are kept as
 structured values, and checks that the rendered catalog equals `cases.md` (byte for byte, except
 the Checked cell of the Hopcroft–Karp rows with string vertices, which depends on Python's string

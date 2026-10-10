@@ -4,9 +4,12 @@
 // the colours of every strategy on a long path; the crown graph's n/2-colour order; disjoint copies
 // of catalog rows (each component's colouring is the catalog's, since every entry point works
 // component by component); a grid's checkerboard; a d-regular bipartite graph's d colours (König),
-// doubled with parallel edges; the Mycielski graph M₆, χ = 6 by Mycielski's theorem; and, on
-// random graphs from the package's seeded generator, the definitions and bounds checked in the
-// test. See README.md.
+// doubled with parallel edges; the Mycielski graph M₆, χ = 6 by Mycielski's theorem; a star's
+// edges, coloured by position; and, on random graphs from the package's seeded generator, the
+// definitions and bounds checked in the test (on sparse graphs, for `minimumColoring()`: properness,
+// χ colours and colours in order of first use; for `lexicographicallyFirstMinimumColoring()`: the
+// same per component, and at most every known χ-colouring, renumbered, in the lexicographic order).
+// See README.md.
 
 import AdjacencyListModule
 import BipartiteGraphs
@@ -54,26 +57,27 @@ struct ColoringStressTests {
             // A random order, given as one.
             let order = Array(0 ..< n).shuffled(using: &rng)
             let random = graph.greedyColoring(order: order)
-            let randomIsProper = graph.isColoring { random.color(of: $0) }
+            let randomIsProper = graph.isVertexColoring { random.color(of: $0) }
             #expect(randomIsProper)
             #expect(random.colorCount <= maxDegree + 1)
         }.value
     }
 
-    @Test("The path P₁₀₀₀₀₁: largest first and DSatur colour vertex i with (i + 1) mod 2, the other strategies with i mod 2; χ = 2", .timeLimit(.minutes(1)))
+    @Test("The path P₁₀₀₀₀₁: largest first, DSatur and colored neighbours colour vertex i with (i + 1) mod 2, the other strategies with i mod 2; χ = 2", .timeLimit(.minutes(1)))
     func longPath() async {
         await Task {
-            // Largest first and DSatur start at vertex 1 (degree 2, the least index), then go along the
-            // path, and the end 0 last. Smallest last removes 0, 1, 2, … (each the least-index vertex of
-            // degree ≤ 1) and colours from the far end, n even; the searches go from 0; the independent
-            // set takes 0, 2, 4, … as class 0.
+            // Largest first, DSatur and colored neighbours start at vertex 1 (degree 2, the least index),
+            // then each vertex coloured has a coloured neighbour, so the colours alternate from vertex 1.
+            // Smallest last removes 0, 1, 2, … (each the least-index vertex of degree ≤ 1) and colours
+            // from the far end, n even; the searches go from 0; the independent set takes 0, 2, 4, … as
+            // class 0.
             let n = 100_000
             let path = UndirectedAdjacencyList(vertices: 0 ... n, edges: (0 ..< n).map { UndirectedEdge($0, $0 + 1) })
             let odd = (0 ... n).map { ($0 + 1) % 2 }
             let even = (0 ... n).map { $0 % 2 }
             for strategy in ColoringStrategy.allCases {
                 let coloring = path.greedyColoring(strategy: strategy)
-                let expected = strategy == .largestFirst || strategy == .saturationLargestFirst ? odd : even
+                let expected = strategy == .largestFirst || strategy == .saturationLargestFirst || strategy == .coloredNeighbors ? odd : even
                 let colors = (0 ... n).map { coloring.color(ofIndex: $0) }
                 #expect(colors == expected, "\(strategy)")
             }
@@ -115,7 +119,7 @@ struct ColoringStressTests {
         }.value
     }
 
-    @Test("1,000 disjoint Grötzsch graphs (11,000 vertices): χ = 4; minimumColoring() and DSatur give each copy CO-185's and CO-082's colours", .timeLimit(.minutes(1)))
+    @Test("1,000 disjoint Grötzsch graphs (11,000 vertices): χ = 4; lexicographicallyFirstMinimumColoring() and DSatur give each copy CO-185's and CO-082's colours; minimumColoring() proper with 4", .timeLimit(.minutes(1)))
     func grotzschCopies() async {
         await Task {
             // NetworkX's mycielski_graph(4), copy c shifted by 11c.
@@ -123,10 +127,14 @@ struct ColoringStressTests {
             let copies = 1_000
             let graph = UndirectedAdjacencyList(vertices: 0 ..< 11 * copies, edges: (0 ..< copies).flatMap { c in grotzsch.map { UndirectedEdge(11 * c + $0.0, 11 * c + $0.1) } })
             #expect(graph.chromaticNumber() == 4)
-            let minimum = graph.minimumColoring()
+            let first = graph.lexicographicallyFirstMinimumColoring()
             let lexicographic = [0, 1, 0, 1, 2, 0, 1, 0, 1, 2, 3]
-            let minimumColors = (0 ..< 11 * copies).map { minimum.color(ofIndex: $0) }
-            #expect(minimumColors == Array(repeatElement(lexicographic, count: copies).joined()))
+            let firstColors = (0 ..< 11 * copies).map { first.color(ofIndex: $0) }
+            #expect(firstColors == Array(repeatElement(lexicographic, count: copies).joined()))
+            let minimum = graph.minimumColoring()
+            #expect(minimum.colorCount == 4)
+            let proper = graph.isVertexColoring { minimum.color(of: $0) }
+            #expect(proper)
             // DSatur finishes a copy before the next: every other vertex then has saturation 0, and the
             // next copy's greatest-degree vertex with the least index starts it.
             let dsatur = graph.greedyColoring(strategy: .saturationLargestFirst)
@@ -136,7 +144,7 @@ struct ColoringStressTests {
         }.value
     }
 
-    @Test("The Mycielski graph M₆ (47 vertices, triangle-free): χ = 6; minimumColoring() a proper 6-colouring", .timeLimit(.minutes(1)))
+    @Test("The Mycielski graph M₆ (47 vertices, triangle-free): χ = 6; both minimum colourings proper 6-colourings", .timeLimit(.minutes(1)))
     func mycielskiSix() async {
         await Task {
             // Mycielski's construction from K2: vertices v, then u (a copy of each), then w; edges of the
@@ -158,6 +166,10 @@ struct ColoringStressTests {
             #expect(minimum.colorCount == 6)
             let proper = pairs.allSatisfy { minimum.color(of: $0.0) != minimum.color(of: $0.1) }
             #expect(proper)
+            let first = graph.lexicographicallyFirstMinimumColoring()
+            #expect(first.colorCount == 6)
+            let firstProper = pairs.allSatisfy { first.color(of: $0.0) != first.color(of: $0.1) }
+            #expect(firstProper)
             #expect(graph.greedyColoring(strategy: .saturationLargestFirst).colorCount >= 6)
         }.value
     }
@@ -251,6 +263,135 @@ struct ColoringStressTests {
             #expect(graph.chromaticNumber() == 1)
             #expect(graph.minimumColoring().colorCount == 1)
             #expect(graph.bipartiteEdgeColoring() == nil)
+        }.value
+    }
+
+    @Test("Both minimum colourings on sparse random graphs G(n, 2n), n = 300 … 1000, planted 3-colourable and not: proper, χ colours, colours in order of first use; the lexicographically first at most each known χ-colouring renumbered", .timeLimit(.minutes(1)))
+    func sparseMinimumColoring() async {
+        await Task {
+            for (n, planted, seed) in [(300, false, 1), (500, false, 2), (700, false, 3), (1000, false, 4), (300, true, 5), (500, true, 6), (1000, true, 7)] as [(Int, Bool, UInt)] {
+                var rng = SeededRandomNumberGenerator(seed: seed)
+                var pairs = Set<[Int]>()
+                while pairs.count < 2 * n {
+                    let u = Int.random(in: 0 ..< n, using: &rng), v = Int.random(in: 0 ..< n, using: &rng)
+                    // Planted: only edges between the classes i mod 3, so i mod 3 is a 3-colouring.
+                    if u == v || (planted && u % 3 == v % 3) { continue }
+                    pairs.insert([min(u, v), max(u, v)])
+                }
+                let graph = UndirectedAdjacencyList(vertices: 0 ..< n, edges: pairs.map { UndirectedEdge($0[0], $0[1]) })
+                let context = "n \(n), planted \(planted), seed \(seed)"
+                var adjacent = [[Int]](repeating: [], count: n)
+                for edge in graph.edges {
+                    adjacent[edge.u].append(edge.v)
+                    adjacent[edge.v].append(edge.u)
+                }
+                let chi = graph.chromaticNumber()
+                let minimum = graph.minimumColoring()
+                #expect(minimum.colorCount == chi, "\(context)")
+                if planted { #expect(chi <= 3, "\(context)") }
+                let minimumProper = graph.edges.allSatisfy { minimum.colors[$0.u] != minimum.colors[$0.v] }
+                #expect(minimumProper, "\(context)")
+                var high = -1
+                for c in minimum.colors {
+                    #expect(c <= high + 1, "\(context)")
+                    high = max(high, c)
+                }
+                let first = graph.lexicographicallyFirstMinimumColoring()
+                let colors = first.colors
+                #expect(first.colorCount == chi, "\(context)")
+                let proper = graph.edges.allSatisfy { colors[$0.u] != colors[$0.v] }
+                #expect(proper, "\(context)")
+                // Components by search from each least vertex, members ascending.
+                var component = [Int](repeating: -1, count: n)
+                var members: [[Int]] = []
+                for root in 0 ..< n where component[root] < 0 {
+                    component[root] = members.count
+                    var queue = [root], head = 0
+                    while head < queue.count {
+                        let v = queue[head]
+                        head += 1
+                        for w in adjacent[v] where component[w] < 0 {
+                            component[w] = members.count
+                            queue.append(w)
+                        }
+                    }
+                    members.append(queue.sorted())
+                }
+                // Each component's colours, renumbered by first use; the result is already so numbered.
+                func renumbered(_ colouring: [Int], _ part: [Int]) -> [Int] {
+                    var map: [Int: Int] = [:]
+                    return part.map { v in
+                        if let c = map[colouring[v]] { return c }
+                        map[colouring[v]] = map.count
+                        return map.count - 1
+                    }
+                }
+                // Known colourings with χ colours per component: the planted one, DSatur's, and largest
+                // first's, when they have that many in the component.
+                var known: [[Int]] = []
+                if planted { known.append((0 ..< n).map { $0 % 3 }) }
+                known.append(graph.greedyColoring(strategy: .saturationLargestFirst).colors)
+                known.append(graph.greedyColoring(strategy: .largestFirst).colors)
+                for part in members {
+                    let mine = part.map { colors[$0] }
+                    #expect(renumbered(colors, part) == mine, "\(context)")
+                    let partChi = Set(mine).count
+                    for other in known where Set(part.map { other[$0] }).count == partChi {
+                        #expect(mine.lexicographicallyPrecedes(renumbered(other, part)) || mine == renumbered(other, part), "\(context)")
+                    }
+                }
+            }
+        }.value
+    }
+
+    @Test("The star K1,100000: Misra–Gries, König and the greedy edge colouring give edge i colour i (a colour table per vertex of size Δ + 1 would need 10¹⁰ entries)", .timeLimit(.minutes(1)))
+    func edgeColoringStar() async throws {
+        try await Task {
+            let leaves = 100_000
+            let star = UndirectedAdjacencyList(vertices: 0 ... leaves, edges: (1 ... leaves).map { UndirectedEdge(0, $0) })
+            let byPosition = Array(0 ..< leaves)
+            let misraGries = star.edgeColoring()
+            let misraGriesColors = star.edges.indices.map { misraGries.color(ofEdgeAt: $0) }
+            #expect(misraGriesColors == byPosition)
+            let koenig = try #require(star.bipartiteEdgeColoring())
+            let koenigColors = star.edges.indices.map { koenig.color(ofEdgeAt: $0) }
+            #expect(koenigColors == byPosition)
+            let greedy = star.greedyEdgeColoring()
+            let greedyColors = star.edges.indices.map { greedy.color(ofEdgeAt: $0) }
+            #expect(greedyColors == byPosition)
+        }.value
+    }
+
+    @Test("A hub joined to 50,000 vertices, 40 of which also form K40 (for König, 20 of which also form K20,20 with 20 more vertices): proper, Δ to Δ + 1 colours (exactly Δ for König, at most 2Δ − 1 greedy)", .timeLimit(.minutes(1)))
+    func edgeColoringHub() async throws {
+        try await Task {
+            let spokes = 50_000
+            var pairs = (1 ... spokes).map { (0, $0) }
+            for a in 1 ... 40 { for b in a + 1 ..< 41 { pairs.append((a, b)) } }
+            let graph = UndirectedAdjacencyList(vertices: 0 ... spokes, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            let maxDegree = spokes
+            for coloring in [graph.edgeColoring(), graph.greedyEdgeColoring()] {
+                let colors = graph.edges.indices.map { coloring.color(ofEdgeAt: $0) }
+                // Proper by the definition: a stamp per colour at each vertex.
+                var seen = [Int: Set<Int>]()
+                var proper = true
+                for (k, edge) in graph.edges.enumerated() {
+                    for end in [edge.u, edge.v] where !seen[end, default: []].insert(colors[k]).inserted { proper = false }
+                }
+                #expect(proper)
+                #expect(coloring.colorCount >= maxDegree)
+            }
+            #expect(graph.edgeColoring().colorCount <= maxDegree + 1)
+            #expect(graph.greedyEdgeColoring().colorCount <= 2 * maxDegree - 1)
+            // König: K20,20 between spokes 1 … 20 and 20 new vertices instead of K40, so the graph is
+            // bipartite (left: the hub and the new vertices).
+            var bipartitePairs = (1 ... spokes).map { (0, $0) }
+            for a in 1 ... 20 { for b in spokes + 1 ... spokes + 20 { bipartitePairs.append((a, b)) } }
+            let bipartite = UndirectedAdjacencyList(vertices: 0 ... spokes + 20, edges: bipartitePairs.map { UndirectedEdge($0.0, $0.1) })
+            let koenig = try #require(bipartite.bipartiteEdgeColoring())
+            #expect(koenig.colorCount == spokes)
+            let koenigProper = bipartite.isEdgeColoring { koenig.color(ofEdgeAt: $0) }
+            #expect(koenigProper)
         }.value
     }
 }

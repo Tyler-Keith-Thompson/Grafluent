@@ -1,0 +1,63 @@
+--- petgraph uf_test: union results [True, True, True, True, True]
+--- petgraph uf_test
+  find  : [0, 0, 2, 0, 0, 5, 5, 0]
+  sets  : [[0, 1, 3, 4, 7], [2], [5, 6]]  setCount 3  count 8
+  labels: [0, 0, 1, 0, 0, 2, 2, 0]
+  sizes : [5, 5, 1, 5, 5, 2, 2, 5]
+--- petgraph labeling: before joining, sets 2 reps [0, 25]
+    after: setCount 1 reps [0] labels all 0: True
+--- boost test: a 0 b 2 find(3) 2 union(a,b) True setCount 1 reps [0, 0, 0, 0]
+--- boost example: union results [True, True, True]
+--- boost example
+  find  : [0, 0, 0, 3, 3, 5]
+  sets  : [[0, 1, 2], [3, 4], [5]]  setCount 3  count 6
+  labels: [0, 0, 0, 1, 1, 2]
+  sizes : [3, 3, 3, 2, 2, 1]
+--- nx subtree union: union results [True, True, True, True]
+--- nx subtree union
+  find  : [0, 3, 3, 3, 3, 3]
+  sets  : [[0], [1, 2, 3, 4, 5]]  setCount 2  count 6
+  labels: [0, 1, 1, 1, 1, 1]
+  sizes : [1, 5, 5, 5, 5, 5]
+--- nx weights: union results [True, True, True, True, True, True, True, True, False, False, False, False, False, False]
+--- nx weights
+  find  : [0, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+  sets  : [[0], [1, 2, 3, 4, 5, 6, 7, 8, 9]]  setCount 2  count 10
+  labels: [0, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+  sizes : [1, 9, 9, 9, 9, 9, 9, 9, 9, 9]
+--- nx unbalanced: size(1) 3 size(4) 6 find(4) before 4 find(1) before 1
+    after union(1,4): find(1) 4 size 9 reps [0, 4, 4, 4, 4, 4, 4, 4, 4, 4]
+--- jgrapht: [((0, 1), True, 4), ((2, 3), True, 3), ((2, 4), True, 2), ((2, 4), False, 2), ((0, 4), True, 1)] reps [2, 2, 2, 2, 2]
+    makeSet -> 5 setCount 2 count 6
+--- lemon: joins [True, True, False, True, True] sizes(4,5,6,2) [3, 3, 1, 3] sizes(4,9,8) [3, 5, 5] sets [[0], [1, 2, 4], [3, 5, 8, 9, 10], [6], [7]] reps [0, 1, 1, 3, 1, 3, 6, 7, 3, 3, 3] setCount 5
+--- tie: union(3,1) on 4 -> (True, [0, 1, 2, 1])
+--- tie: union(1,3) on 4 -> (True, [0, 1, 2, 1])
+--- larger wins: {5,6,7} + {0} -> reps [5, 1, 2, 3, 4, 5, 5, 5]
+--- equal size 2+2 union(3,1) -> reps [0, 0, 0, 0]
+--- same partition, different reps: A [1, 1, 1] [0, 0, 0]  B [0, 0, 0] [0, 0, 0]
+--- labeling example: [0, 1, 2, 0, 1] [[0, 3], [1, 4], [2]] [0, 1, 2, 0, 1]
+--- scipy linear n=10 forwards: reps set [0], counts [9, 8, 7]..1, union(0,n-1) False
+--- scipy linear n=10 backwards: reps set [8], counts [9, 8, 7]..1, union(0,n-1) False
+--- scipy linear n=100 forwards: reps set [0], counts [99, 98, 97]..1, union(0,n-1) False
+--- scipy linear n=100 backwards: reps set [98], counts [99, 98, 97]..1, union(0,n-1) False
+--- scipy equal size n=10 order ab: pairs [(2, 8), (4, 9), (1, 6), (7, 3), (0, 5)] reps [0, 1, 2, 3, 4, 0, 1, 3, 2, 4]
+--- scipy equal size n=10 order ba: pairs [(2, 8), (4, 9), (1, 6), (7, 3), (0, 5)] reps [0, 1, 2, 3, 4, 0, 1, 3, 2, 4]
+--- scipy binary tree kmax=5: reps law ok True; first-round picks [(0, 1), (2, 3), (4, 5), (6, 7)]
+--- scipy binary tree kmax=10: reps law ok True; first-round picks []
+--- scipy subsets n=10 pairs [(5, 0), (3, 3), (7, 9), (3, 5), (2, 4), (7, 6), (8, 8), (1, 6), (7, 7), (8, 1)]
+     (5, 0, True, [[0, 5], [1], [2], [3], [4], [6], [7], [8], [9]])
+     (3, 3, False, [[0, 5], [1], [2], [3], [4], [6], [7], [8], [9]])
+     (7, 9, True, [[0, 5], [1], [2], [3], [4], [6], [7, 9], [8]])
+     (3, 5, True, [[0, 3, 5], [1], [2], [4], [6], [7, 9], [8]])
+     (2, 4, True, [[0, 3, 5], [1], [2, 4], [6], [7, 9], [8]])
+     (7, 6, True, [[0, 3, 5], [1], [2, 4], [6, 7, 9], [8]])
+     (8, 8, False, [[0, 3, 5], [1], [2, 4], [6, 7, 9], [8]])
+     (1, 6, True, [[0, 3, 5], [1, 6, 7, 9], [2, 4], [8]])
+     (7, 7, False, [[0, 3, 5], [1, 6, 7, 9], [2, 4], [8]])
+     (8, 1, True, [[0, 3, 5], [1, 6, 7, 8, 9], [2, 4]])
+    final reps [0, 7, 2, 0, 2, 0, 7, 7, 7, 7] labels [0, 1, 2, 0, 2, 0, 1, 1, 1, 1] sizes [3, 5, 2, 3, 2, 3, 5, 5, 5, 5]
+--- binomial 2^20: depth of n-1 before any find 20 setCount 1 find(n-1) 0
+--- chain fwd 1e6: setCount 1 reps {0} size 1000000
+--- chain bwd 1e6: setCount 1 reps {999998}
+--- chain fwd reversed args 1e6: reps {0}
+--- star 1e6: reps {0}

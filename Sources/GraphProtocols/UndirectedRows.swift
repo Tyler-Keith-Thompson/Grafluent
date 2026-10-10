@@ -60,10 +60,14 @@ package struct _LazyIncidenceRows<G: Graph>: _IncidenceRowSource {
     @usableFromInline var starts: [Int]
     @usableFromInline var lengths: [Int]
 
+    /// `vertexNumbering`, when given, is the vertices listed and numbered already by the caller.
     @inlinable
-    package init(_ graph: G, count n: Int, readsEdges: Bool, edgeNumbers: [G.Edges.Index: Int]?) {
+    package init(_ graph: G, count n: Int, readsEdges: Bool, edgeNumbers: [G.Edges.Index: Int]?, vertexNumbering: (listed: [G.Vertex], numbers: [G.Vertex: Int])? = nil) {
         self.graph = graph
-        if graph.vertexIndexBound == nil {
+        if graph.vertexIndexBound == nil, let vertexNumbering {
+            listed = vertexNumbering.listed
+            vertexNumbers = vertexNumbering.numbers
+        } else if graph.vertexIndexBound == nil {
             listed = Array(graph.vertices)
             var numbers: [G.Vertex: Int] = [:]
             numbers.reserveCapacity(listed.count)
@@ -153,9 +157,10 @@ extension Graph {
     /// and edge indices, with one dictionary lookup per edge end for the edge numbers with vertex
     /// indices only, and one more for the neighbors without vertex indices.
     ///
-    /// `edgeNumbers`, when given, is `_edgeNumbers()` already computed by the caller.
+    /// `edgeNumbers`, when given, is `_edgeNumbers()` already computed by the caller, and
+    /// `vertexNumbering` the vertices listed and numbered (for a graph without vertex indices).
     @inlinable
-    package func _runOnUndirectedRows<A: _UndirectedRowsAlgorithm>(_ algorithm: A, edgeNumbers: [Edges.Index: Int]? = nil) -> A.Output {
+    package func _runOnUndirectedRows<A: _UndirectedRowsAlgorithm>(_ algorithm: A, edgeNumbers: [Edges.Index: Int]? = nil, vertexNumbering: (listed: [Vertex], numbers: [Vertex: Int])? = nil) -> A.Output {
         let m = edgeCount
         if let n = vertexIndexBound, edgeIndexBound != nil, let output = _withIncidentIndexRows({ neighbors, neighborRows, edges, edgeRows in
             // The buffers are unchecked from here on, so check every row once: in bounds in both
@@ -171,7 +176,7 @@ extension Graph {
             return output
         }
         let n = vertexIndexBound ?? vertexCount
-        var rows = _LazyIncidenceRows(self, count: n, readsEdges: algorithm.readsEdges, edgeNumbers: edgeNumbers)
+        var rows = _LazyIncidenceRows(self, count: n, readsEdges: algorithm.readsEdges, edgeNumbers: edgeNumbers, vertexNumbering: vertexNumbering)
         return algorithm.run(count: n, edgeCount: m, &rows)
     }
 

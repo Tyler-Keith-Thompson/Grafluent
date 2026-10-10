@@ -54,7 +54,7 @@ tests write their oracles inside the test.
 
 ## Case IDs
 
-Case IDs (DS-01 … DS-46) refer to the catalog of cases harvested from petgraph, Boost, NetworkX,
+Case IDs (DS-01 … DS-46) refer to the catalog of cases (`Tests/Catalogs/DisjointSet/cases.md`, with `ref.py`, `cases.py` and `check.py`) harvested from petgraph, Boost, NetworkX,
 JGraphT, scipy and LEMON. Each test's name starts with its ID.
 
 | Cases | Section | File |

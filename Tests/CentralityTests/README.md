@@ -4,8 +4,9 @@
 Wasserman–Faust correction), harmonic, Brandes betweenness, eigenvector, Katz, PageRank (with an
 optional personalization) and HITS (hubs and authorities), on `Graph` and `DirectedGraph`,
 unweighted and weighted. The tests were written before the implementation, from the proposed API
-(`api.md`, phase 1). The suite uses only the public API, and each test is self-contained. The shared
-material is the `ReferencePseudograph` and `ReferenceDirectedMultigraph` test conformers,
+(`api.md`, phase 1; it, the catalog and its generator are in `Tests/Catalogs/Centrality/`). The
+suite uses only the public API, and each test is self-contained. The shared material is the
+`ReferencePseudograph` and `ReferenceDirectedMultigraph` test conformers,
 `Collider`, the seeded generator and the tags in `GrafluentTestSupport`. Conformers private to a
 file model representations the package does not have: no vertex or edge indices, or rows and
 vertex orders shuffled by a seed.
@@ -54,7 +55,8 @@ Every catalog row is written as the catalog writes it (listed vertices first, th
 first appearance, `nx(…)` graphs with NetworkX's node list and edge order; edges in written order,
 repeats and loops kept) on the `ReferencePseudograph` or `ReferenceDirectedMultigraph`, whose rows
 are in position order, so every vertex and edge position is exact. The catalog-row files were
-generated from `cases.md` by a script that re-evaluates each row with `ref.py` and writes the
+generated from `cases.md` by a script (`gen.py`, which also writes `CentralityPreconditionTests.swift`
+from the trap rows and two hand-written parts) that re-evaluates each row with `ref.py` and writes the
 model's value at full precision; the catalog cells are the same values rounded to 12 digits. Non-iterative
 rows compare within 1e-12 relative to max(1, |value|); iterative rows within the row's Tol of the
 limit (the model run to tolerance 1e-15, cross-checked by `ref.py` against dense numpy/scipy solves
@@ -63,7 +65,7 @@ every one-vertex closeness and harmonic call against the vector, the sum or norm
 documents, and, for undirected rows, the same call on `graph.directed` (equal; twice for degree
 and unnormalized betweenness). The `CompressedSparseRow` and `AdjacencyMatrix` rows rewrite the
 arcs in row-major order and were computed by `ref.py` on the rewritten graph. The stress literals
-were computed with `ref.py`'s model functions at their sizes (its dense matrix replaced by the same
+were computed with `ref.py`'s model functions at their sizes (`stress_vals*.py`) (its dense matrix replaced by the same
 rows), with the closed forms quoted in the tests checked against the model, and the 30 × 30 grid's
 betweenness checked against exact rational arithmetic (shortest-path counts above 2⁵³).
 

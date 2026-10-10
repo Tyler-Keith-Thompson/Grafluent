@@ -151,6 +151,19 @@ let package = Package(
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
         ),
         .executableTarget(
+            name: "ColoringBenchmarks",
+            dependencies: [
+                "BenchmarkSupport",
+                .product(name: "Benchmark", package: "benchmark"),
+                .product(name: "GraphProtocols", package: "Grafluent"),
+                .product(name: "ColoringModule", package: "Grafluent"),
+                .product(name: "AdjacencyListModule", package: "Grafluent"),
+                .product(name: "Multigraphs", package: "Grafluent"),
+            ],
+            path: "Benchmarks/ColoringBenchmarks",
+            plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
+        ),
+        .executableTarget(
             name: "MultigraphsBenchmarks",
             dependencies: [
                 "BenchmarkSupport",
@@ -258,6 +271,19 @@ let package = Package(
                 .product(name: "GraphProtocols", package: "Grafluent"),
             ] + representation.map { .product(name: "\($0)Module", package: "Grafluent") },
             path: "Benchmarks/DirectedGraphBenchmarks",
+            plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
+        ),
+        .executableTarget(
+            name: "FlowsBenchmarks",
+            dependencies: [
+                "BenchmarkSupport",
+                .product(name: "Benchmark", package: "benchmark"),
+                .product(name: "GraphProtocols", package: "Grafluent"),
+                .product(name: "Flows", package: "Grafluent"),
+                .product(name: "Multigraphs", package: "Grafluent"),
+                .product(name: "CompressedSparseRowModule", package: "Grafluent"),
+            ],
+            path: "Benchmarks/FlowsBenchmarks",
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
         ),
     ] + representation.map { name in

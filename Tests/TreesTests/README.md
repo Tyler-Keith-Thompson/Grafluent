@@ -110,7 +110,7 @@ that model. The property tests write their oracles inside each test.
 
 ## Case IDs
 
-Case IDs (TS-001 … TS-813) refer to the catalog (`cases.md`), harvested from NetworkX
+Case IDs (TS-001 … TS-813) refer to the catalog (`cases.md`, with `ref.py` and `api.md` in `Tests/Catalogs/Trees/`), harvested from NetworkX
 (`tree/tests/test_recognition.py`, `test_coding.py`, `traversal/tests/test_dfs.py`), igraph
 (`igraph_is_tree.c`, `igraph_is_forest.c`, `igraph_to_prufer.c`, `igraph_from_prufer.c`,
 `igraph_tree_from_parent_vector.c`), JGraphT (`GraphTestsTest`) and LEMON (`connectivity_test.cc`).

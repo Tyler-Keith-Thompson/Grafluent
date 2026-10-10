@@ -2,7 +2,7 @@ import BipartiteGraphs
 import GraphProtocols
 
 /// A proper edge colouring of a graph by the colours `0..<colorCount`, each of which is used: the
-/// result of `edgeColoring()` and `bipartiteEdgeColoring()`.
+/// result of `edgeColoring()`, `bipartiteEdgeColoring()` and `greedyEdgeColoring()`.
 ///
 /// It keeps a copy of the graph to look positions up (copy-on-write, O(1) to make), as `Coloring`
 /// does. A colour class's slice keeps the indices of the flat storage it is cut from: use
@@ -19,7 +19,9 @@ public struct EdgeColoring<G: Graph> {
     @usableFromInline let _members: [G.Edges.Index]
     @usableFromInline let _offsets: [Int]
 
-    /// The edge colouring given by a colour per edge number, every colour in `0..<k` used.
+    /// The edge colouring given by a colour per edge number, every colour in `0..<k` used. Edge
+    /// number e is the e-th position of `edges`: its offset there, or, with edge indices, its
+    /// edge index, which `Graph`'s laws put in `edges` order.
     @inlinable
     init(_ graph: G, colors: [Int]) {
         let m = colors.count
@@ -43,7 +45,7 @@ public struct EdgeColoring<G: Graph> {
     }
 
     /// The number of colours: between Δ and Δ + 1 for `edgeColoring()`, Δ for
-    /// `bipartiteEdgeColoring()`, 0 without edges.
+    /// `bipartiteEdgeColoring()`, at most 2Δ − 1 for `greedyEdgeColoring()`, 0 without edges.
     @inlinable
     public var colorCount: Int { _offsets.count - 1 }
 
@@ -90,58 +92,150 @@ extension EdgeColoring: CustomStringConvertible {
     }
 }
 
-/// Edge colouring state in index space: each edge's ends and colour, and per vertex the edge of
-/// each colour there (−1 when the colour is free), `width` colours a row, so "is c free at x" is
-/// O(1).
+/// Edge colouring state in index space: each edge's ends and colour, and per vertex a map from
+/// colour to the edge of that colour there, so "is c free at x" is O(1) (expected). A vertex's
+/// map is a row of `width` slots indexed by colour when that is at most twice the open-addressing
+/// table it would otherwise get (linear probing, a power of two at least twice its degree), so
+/// the maps take O(n + m) memory however large Δ is. Each vertex also keeps a colour below which
+/// every colour is used there, where the search for its least free colour starts. Edges, colours
+/// and slots are `Int32`.
 @frozen
 @usableFromInline
 struct _EdgeColorTable {
-    @usableFromInline var first: [Int]
-    @usableFromInline var second: [Int]
-    @usableFromInline var color: [Int]
-    @usableFromInline var at: [Int]
+    @usableFromInline var first: [Int32]
+    @usableFromInline var second: [Int32]
+    @usableFromInline var color: [Int32]
+    /// Per vertex, its slots' start (high 32 bits) and its table's mask (low 32 bits, all ones
+    /// for a row indexed by colour), packed so a lookup reads one word.
+    @usableFromInline var place: [UInt64]
+    @usableFromInline var low: [Int32]
+    /// Per slot, the colour held (tables only; −1 when empty) and the edge (−1 when free).
+    @usableFromInline var keys: [Int32]
+    @usableFromInline var slots: [Int32]
     @usableFromInline let width: Int
     @usableFromInline var path: [Int] = []
 
+    /// `degree[x]` bounds the edges coloured at x at any time.
     @inlinable
-    init(first: [Int], second: [Int], vertexCount n: Int, width: Int) {
+    init(first: [Int32], second: [Int32], degree: [Int], width: Int) {
+        let n = degree.count
         self.first = first
         self.second = second
-        color = [Int](repeating: -1, count: first.count)
-        at = [Int](repeating: -1, count: n * width)
+        color = [Int32](repeating: -1, count: first.count)
+        place = [UInt64](repeating: 0, count: n)
+        low = [Int32](repeating: 0, count: n)
+        var total = 0
+        for x in 0 ..< n {
+            var capacity = 2
+            while capacity < 2 * degree[x] { capacity <<= 1 }
+            if width <= 2 * capacity {
+                place[x] = UInt64(total) << 32 | 0xFFFF_FFFF
+                total += width
+            } else {
+                place[x] = UInt64(total) << 32 | UInt64(capacity - 1)
+                total += capacity
+            }
+        }
+        precondition(total < 1 << 32, "Edge colouring needs fewer than 2³² table slots")
+        keys = [Int32](repeating: -1, count: total)
+        slots = [Int32](repeating: -1, count: total)
         self.width = width
     }
 
     @inlinable @inline(__always)
-    func other(_ e: Int, _ x: Int) -> Int { first[e] == x ? second[e] : first[e] }
+    func other(_ e: Int, _ x: Int) -> Int { Int(first[e] ^ second[e]) ^ x }
+
+    /// The slot of colour `c` at `x`: its own in a row; in a table, the one holding it or the
+    /// empty one where probing stops.
+    @inlinable @inline(__always)
+    func slot(_ x: Int, _ c: Int) -> Int {
+        let word = place[x]
+        let base = Int(word >> 32), m = Int(word & 0xFFFF_FFFF)
+        if m == 0xFFFF_FFFF { return base &+ c }
+        var h = c & m
+        while true {
+            let key = keys[base &+ h]
+            if key == Int32(truncatingIfNeeded: c) || key < 0 { return base &+ h }
+            h = (h &+ 1) & m
+        }
+    }
+
+    /// Whether `x` keeps a row indexed by colour, and its slots.
+    @inlinable @inline(__always)
+    func isRow(_ x: Int) -> Bool { place[x] & 0xFFFF_FFFF == 0xFFFF_FFFF }
 
     @inlinable @inline(__always)
-    func isFree(_ x: Int, _ c: Int) -> Bool { at[x &* width &+ c] < 0 }
+    func slots(of x: Int) -> Range<Int> {
+        let word = place[x]
+        let base = Int(word >> 32), m = Int(word & 0xFFFF_FFFF)
+        return base ..< base + (m == 0xFFFF_FFFF ? width : m + 1)
+    }
+
+    /// The edge of colour `c` at `x`, or −1.
+    @inlinable @inline(__always)
+    func edge(at x: Int, _ c: Int) -> Int { Int(slots[slot(x, c)]) }
 
     @inlinable @inline(__always)
-    func edge(at x: Int, _ c: Int) -> Int { at[x &* width &+ c] }
+    func isFree(_ x: Int, _ c: Int) -> Bool { slots[slot(x, c)] < 0 }
 
     /// The least colour free at `x`.
-    @inlinable
-    func leastFree(_ x: Int) -> Int {
-        var c = 0
-        while c < width, at[x &* width &+ c] >= 0 { c += 1 }
+    @inlinable @inline(__always)
+    mutating func leastFree(_ x: Int) -> Int {
+        let from = Int(low[x])
+        var c = from
+        while c < width, !isFree(x, c) { c += 1 }
         precondition(c < width, "No colour is free at a vertex")
+        if c != from { low[x] = Int32(truncatingIfNeeded: c) }
         return c
     }
 
     @inlinable @inline(__always)
+    mutating func insert(_ x: Int, _ c: Int, _ e: Int) {
+        let i = slot(x, c)
+        if !isRow(x) { keys[i] = Int32(truncatingIfNeeded: c) }
+        slots[i] = Int32(truncatingIfNeeded: e)
+    }
+
+    /// Frees colour `c` at `x`; in a table, the entries after it in its probe run move back.
+    @inlinable @inline(__always)
+    mutating func remove(_ x: Int, _ c: Int) {
+        var i = slot(x, c)
+        slots[i] = -1
+        if c < low[x] { low[x] = Int32(truncatingIfNeeded: c) }
+        let word = place[x]
+        let base = Int(word >> 32), size = Int(word & 0xFFFF_FFFF)
+        guard size != 0xFFFF_FFFF else { return }
+        var j = i - base
+        var hole = j
+        while true {
+            j = (j &+ 1) & size
+            let key = keys[base &+ j]
+            if key < 0 { break }
+            let home = Int(key) & size
+            // Stays when its home lies cyclically in (hole, j].
+            let stays = hole <= j ? (hole < home && home <= j) : (hole < home || home <= j)
+            if stays { continue }
+            keys[base &+ hole] = key
+            slots[base &+ hole] = slots[base &+ j]
+            hole = j
+        }
+        i = base &+ hole
+        keys[i] = -1
+        slots[i] = -1
+    }
+
+    @inlinable @inline(__always)
     mutating func set(_ e: Int, _ c: Int) {
-        color[e] = c
-        at[first[e] &* width &+ c] = e
-        at[second[e] &* width &+ c] = e
+        color[e] = Int32(truncatingIfNeeded: c)
+        insert(Int(first[e]), c, e)
+        if second[e] != first[e] { insert(Int(second[e]), c, e) }
     }
 
     @inlinable @inline(__always)
     mutating func unset(_ e: Int) {
-        let c = color[e]
-        at[first[e] &* width &+ c] = -1
-        at[second[e] &* width &+ c] = -1
+        let c = Int(color[e])
+        remove(Int(first[e]), c)
+        if second[e] != first[e] { remove(Int(second[e]), c) }
         color[e] = -1
     }
 
@@ -152,7 +246,7 @@ struct _EdgeColorTable {
         path.removeAll(keepingCapacity: true)
         var x = start, c = c1
         while true {
-            let e = at[x &* width &+ c]
+            let e = edge(at: x, c)
             if e < 0 { break }
             path.append(e)
             precondition(path.count <= color.count, "A Kempe chain closed into a cycle")
@@ -167,18 +261,23 @@ struct _EdgeColorTable {
             next = next == c1 ? c2 : c1
         }
     }
+
+    /// Every colour as an `Int`, by edge number.
+    @inlinable
+    var colors: [Int] { color.map { Int($0) } }
 }
 
-/// Reads each edge's two ends from the rows, with the greatest degree counting every edge end.
+/// Reads each edge's two ends from the rows, with each vertex's edge ends (Δ is their maximum).
 /// With `simple`, traps on a self-loop or on parallel edges (a stamp per row).
 @inlinable
-func _edgeEnds<Rows: _IncidenceRowSource>(count n: Int, edgeCount m: Int, _ rows: inout Rows, simple: Bool) -> (first: [Int], second: [Int], maximumDegree: Int) {
-    var first = [Int](repeating: -1, count: m), second = [Int](repeating: -1, count: m)
+func _edgeEnds<Rows: _IncidenceRowSource>(count n: Int, edgeCount m: Int, _ rows: inout Rows, simple: Bool) -> (first: [Int32], second: [Int32], degree: [Int]) {
+    precondition(m < Int(Int32.max) && n < Int(Int32.max), "Edge colouring numbers vertices and edges in Int32")
+    var first = [Int32](repeating: -1, count: m), second = [Int32](repeating: -1, count: m)
+    var degree = [Int](repeating: 0, count: n)
     var stamp = simple ? [Int](repeating: -1, count: n) : []
-    var top = 0
     for v in 0 ..< n {
         let length = rows.count(v)
-        top = max(top, length)
+        degree[v] = length
         for k in 0 ..< length {
             let w = rows.neighbor(v, k), e = rows.edge(v, k)
             precondition(UInt(bitPattern: w) < UInt(bitPattern: n), "A neighbor index is out of range")
@@ -189,20 +288,21 @@ func _edgeEnds<Rows: _IncidenceRowSource>(count n: Int, edgeCount m: Int, _ rows
                 stamp[w] = v
             }
             if first[e] < 0 {
-                first[e] = v
-                second[e] = w
+                first[e] = Int32(truncatingIfNeeded: v)
+                second[e] = Int32(truncatingIfNeeded: w)
             }
         }
     }
-    return (first, second, top)
+    return (first, second, degree)
 }
 
 /// Misra and Gries (1992), edges by number. For an edge {u, v}, u the lesser end, c is the least
 /// colour free at u. The fan F = [v] grows while c is used at its last vertex: next is the
-/// neighbour of u not in F whose edge to u has the least colour free at the last vertex. If c is
-/// free at the last fan vertex then d = c; otherwise d is the least colour free there, and the d/c
-/// path from u is flipped. Then w is the first fan vertex such that F up to w is still a fan and d
-/// is free at w; the fan is rotated up to w and uw gets d. Colours stay in 0...Δ.
+/// neighbour of u not in F whose edge to u has the least colour free at the last vertex (found
+/// among u's coloured edges, O(deg u)). If c is free at the last fan vertex then d = c; otherwise
+/// d is the least colour free there, and the d/c path from u is flipped. Then w is the first fan
+/// vertex at which d is free (Misra and Gries show F up to w is still a fan); the fan is rotated
+/// up to w and uw gets d. Colours stay in 0...Δ.
 @frozen
 @usableFromInline
 struct _MisraGries: _UndirectedRowsAlgorithm {
@@ -211,14 +311,15 @@ struct _MisraGries: _UndirectedRowsAlgorithm {
 
     @inlinable
     func run<Rows: _IncidenceRowSource>(count n: Int, edgeCount m: Int, _ rows: inout Rows) -> [Int] {
-        let (first, second, top) = _edgeEnds(count: n, edgeCount: m, &rows, simple: true)
+        let (first, second, degree) = _edgeEnds(count: n, edgeCount: m, &rows, simple: true)
         guard m > 0 else { return [] }
-        var table = _EdgeColorTable(first: first, second: second, vertexCount: n, width: top + 1)
+        let top = degree.max()!
+        var table = _EdgeColorTable(first: first, second: second, degree: degree, width: top + 1)
         var fan: [Int] = [], fanEdges: [Int] = []
         var inFan = [Int](repeating: -1, count: n)
         var shifted: [Int] = []
         for e in 0 ..< m {
-            let u = min(first[e], second[e]), v = max(first[e], second[e])
+            let u = Int(min(first[e], second[e])), v = Int(max(first[e], second[e]))
             let c = table.leastFree(u)
             fan.removeAll(keepingCapacity: true)
             fanEdges.removeAll(keepingCapacity: true)
@@ -227,14 +328,25 @@ struct _MisraGries: _UndirectedRowsAlgorithm {
             inFan[v] = e
             while !table.isFree(fan[fan.count - 1], c) {
                 let last = fan[fan.count - 1]
-                var found = -1
-                for k in 0 ... top {
-                    let f = table.edge(at: u, k)
-                    guard f >= 0, table.isFree(last, k) else { continue }
-                    let x = table.other(f, u)
-                    if inFan[x] != e {
-                        found = f
-                        break
+                var found = -1, least = Int.max
+                if table.isRow(u) {
+                    let base = table.slots(of: u).lowerBound
+                    for k in 0 ... top {
+                        let f = Int(table.slots[base &+ k])
+                        guard f >= 0, table.isFree(last, k) else { continue }
+                        if inFan[table.other(f, u)] != e {
+                            found = f
+                            break
+                        }
+                    }
+                } else {
+                    for i in table.slots(of: u) {
+                        let k = Int(table.keys[i]), f = Int(table.slots[i])
+                        guard f >= 0, k < least, table.isFree(last, k) else { continue }
+                        if inFan[table.other(f, u)] != e {
+                            found = f
+                            least = k
+                        }
                     }
                 }
                 if found < 0 { break }
@@ -250,22 +362,15 @@ struct _MisraGries: _UndirectedRowsAlgorithm {
                 d = table.leastFree(fan[fan.count - 1])
                 table.flip(from: u, d, c)
             }
-            var w = -1
-            for i in 0 ..< fan.count {
-                if i > 0, !table.isFree(fan[i - 1], table.color[fanEdges[i]]) { break }
-                if table.isFree(fan[i], d) {
-                    w = i
-                    break
-                }
-            }
-            precondition(w >= 0, "Misra–Gries found no vertex to rotate the fan to")
+            var w = 0
+            while !table.isFree(fan[w], d) { w += 1 }
             shifted.removeAll(keepingCapacity: true)
-            for j in 0 ..< w { shifted.append(table.color[fanEdges[j + 1]]) }
+            for j in 0 ..< w { shifted.append(Int(table.color[fanEdges[j + 1]])) }
             for j in stride(from: 1, through: w, by: 1) { table.unset(fanEdges[j]) }
             for j in 0 ..< w { table.set(fanEdges[j], shifted[j]) }
             table.set(fanEdges[w], d)
         }
-        return table.color
+        return table.colors
     }
 }
 
@@ -283,16 +388,62 @@ struct _KonigEdgeColoring: _UndirectedRowsAlgorithm {
     @inlinable
     func run<Rows: _IncidenceRowSource>(count n: Int, edgeCount m: Int, _ rows: inout Rows) -> [Int]? {
         guard _TwoColoring(witness: false).run(count: n, edgeCount: m, &rows).sides != nil else { return nil }
-        let (first, second, top) = _edgeEnds(count: n, edgeCount: m, &rows, simple: false)
+        let (first, second, degree) = _edgeEnds(count: n, edgeCount: m, &rows, simple: false)
         guard m > 0 else { return [] }
-        var table = _EdgeColorTable(first: first, second: second, vertexCount: n, width: top)
+        var table = _EdgeColorTable(first: first, second: second, degree: degree, width: degree.max()!)
         for e in 0 ..< m {
-            let u = min(first[e], second[e]), v = max(first[e], second[e])
+            let u = Int(min(first[e], second[e])), v = Int(max(first[e], second[e]))
             let a = table.leastFree(u), b = table.leastFree(v)
             if !table.isFree(v, a) { table.flip(from: v, a, b) }
             table.set(e, a)
         }
-        return table.color
+        return table.colors
+    }
+}
+
+/// rustworkx's greedy edge colouring, its line graph's largest-first colouring: edges by the
+/// number of edges they meet, counted at each end (a parallel copy at both, a self-loop once at
+/// its vertex), most first, ties by number; each takes the least colour on no edge it meets
+/// coloured so far. The search for that colour starts at the greater of its ends' bounds below
+/// which every colour is used.
+@frozen
+@usableFromInline
+struct _GreedyEdgeColoring: _UndirectedRowsAlgorithm {
+    @inlinable
+    init() {}
+
+    @inlinable
+    func run<Rows: _IncidenceRowSource>(count n: Int, edgeCount m: Int, _ rows: inout Rows) -> [Int] {
+        var (first, second, degree) = _edgeEnds(count: n, edgeCount: m, &rows, simple: false)
+        guard m > 0 else { return [] }
+        // Edges at each vertex, a self-loop once.
+        for e in 0 ..< m where first[e] == second[e] { degree[Int(first[e])] -= 1 }
+        var met = [Int](repeating: 0, count: m)
+        var top = 0
+        for e in 0 ..< m {
+            let u = Int(first[e]), v = Int(second[e])
+            met[e] = u == v ? degree[u] - 1 : degree[u] + degree[v] - 2
+            top = max(top, met[e])
+        }
+        // Counting sort, most met first, stable by number.
+        var starts = [Int](repeating: 0, count: top + 2)
+        for e in 0 ..< m { starts[top - met[e] + 1] += 1 }
+        for d in 0 ... top { starts[d + 1] += starts[d] }
+        var order = [Int](repeating: 0, count: m)
+        for e in 0 ..< m {
+            order[starts[top - met[e]]] = e
+            starts[top - met[e]] += 1
+        }
+        var table = _EdgeColorTable(first: first, second: second, degree: degree, width: top + 1)
+        for e in order {
+            let u = Int(first[e]), v = Int(second[e])
+            var c = Int(max(table.low[u], table.low[v]))
+            while !table.isFree(u, c) || !table.isFree(v, c) { c += 1 }
+            table.set(e, c)
+            if c == table.low[u] { table.low[u] += 1 }
+            if c == table.low[v] { table.low[v] += 1 }
+        }
+        return table.colors
     }
 }
 
@@ -303,7 +454,10 @@ extension Graph {
     /// fan at its end with the lesser vertex index, every choice the least colour or vertex
     /// available. At least Δ colours always, and Δ + 1 on class-2 graphs (odd cycles, odd complete
     /// graphs, Petersen), but sometimes Δ + 1 on class-1 graphs too (K(4)); on a bipartite graph
-    /// `bipartiteEdgeColoring()` always gives Δ. O(n · m) time, O(n · Δ) memory.
+    /// `bipartiteEdgeColoring()` always gives Δ. O(m · (Δ² + n)) time: a fan has at most Δ
+    /// vertices, each found among the edges at u, and a path at most n edges. O(n + m) memory.
+    /// For a multigraph (`digraph.undirected` with an antiparallel pair is one), use
+    /// `greedyEdgeColoring()`.
     ///
     /// - Precondition: the graph is simple: no self-loops, no parallel edges.
     @inlinable
@@ -317,10 +471,22 @@ extension Graph {
     /// Parallel edges are fine. Edges in position order: each takes the least colour free at its
     /// end with the lesser vertex index, after the alternating path of that colour and the least
     /// colour free at the other end is flipped from the other end, when the two differ there.
-    /// O(n · m) time, O(n · Δ) memory.
+    /// O(m · (n + Δ)) time, O(n + m) memory.
     @inlinable
     public func bipartiteEdgeColoring() -> EdgeColoring<Self>? {
         guard let colors = _runOnUndirectedRows(_KonigEdgeColoring()) else { return nil }
         return EdgeColoring(self, colors: colors)
+    }
+
+    /// A greedy edge colouring of any graph, parallel edges and self-loops included, with at most
+    /// 2Δ − 1 colours: rustworkx `graph_greedy_edge_color`, the largest-first colouring of the
+    /// line graph, with the same colours. Edges by the number of other edges they share an end
+    /// with, most first (a parallel copy counts at both ends, a self-loop meets each other edge at
+    /// its vertex once), ties in position order; each takes the least colour of no edge it shares
+    /// an end with that is already coloured. A self-loop is one edge at its vertex, as for
+    /// `isEdgeColoring(_:)`. O(n + m · Δ) time, O(n + m) memory, without building the line graph.
+    @inlinable
+    public func greedyEdgeColoring() -> EdgeColoring<Self> {
+        EdgeColoring(self, colors: _runOnUndirectedRows(_GreedyEdgeColoring()))
     }
 }

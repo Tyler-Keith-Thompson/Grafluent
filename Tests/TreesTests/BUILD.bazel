@@ -27,7 +27,7 @@ swift_library(
 # `bazel test` / `just test`: a standalone executable, fast to start and run in Bazel's sandbox.
 swift_test(
     name = "TreesTests",
-    size = "small",
+    size = "medium",
     deps = [":TreesTestsLibrary"],
 )
 
@@ -37,7 +37,7 @@ swift_test(
 macos_unit_test(
     name = "TreesTestsBundle",
     bundle_name = "TreesTests",
-    size = "small",
+    size = "medium",
     minimum_os_version = "15.0",
     tags = ["manual", "no-sandbox"],
     # Visible so `//:xcodeproj` can name it as a top-level target.

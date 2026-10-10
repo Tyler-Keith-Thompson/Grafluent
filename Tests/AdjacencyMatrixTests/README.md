@@ -93,7 +93,7 @@ Where the reference libraries disagree, these are the choices and the reasons.
 | `AdjacencyMatrixValueTests.swift` | Value semantics, views as values, Collection laws, `Sendable`, a model-based randomized test starting at 0 to 120 vertices |
 | `AdjacencyMatrixOperationTests.swift` | Transpose, set algebra, complement, row and column clearing, `insertEdges(from:to:)`, a transitive closure written with row unions, stable edge positions, slices, Collection laws on wide matrices, the decoding limit, large descriptions |
 
-Case IDs (AM-C04, AM-W02, …) refer to the catalog of cases harvested from petgraph, Boost.Graph,
+Case IDs (AM-C04, AM-W02, …) refer to the catalog of cases (`Tests/Catalogs/AdjacencyMatrix/cases.md`) harvested from petgraph, Boost.Graph,
 gonum, NetworkX, LEMON, JGraphT, igraph (behavior reference only; GPL) and swift-algorithm-club.
 
 Amortized growth, iteration speed and allocation behavior are performance properties: a slower

@@ -62,11 +62,12 @@ func _restrictGrowth(_ colors: inout [Int], from: Int, high: Int, scratch: inout
 /// Segundo 2012): is there a proper colouring with colours `0..<k` agreeing with the given
 /// vertices? It branches on the uncoloured vertex with the fewest colours left (the most distinct
 /// neighbour colours, kept in linked lists by saturation, then the most uncoloured neighbours, then
-/// the least number), tries its
-/// allowed colours ascending, and of the colours above every one in use only the first, as they
-/// are interchangeable. Neighbour colours are counted per (vertex, colour) and mirrored in a bitset
-/// per vertex; the search is a flat stack of (vertex, colour tried, greatest colour before), with
-/// no recursion.
+/// the least number), tries its allowed colours ascending, and of the colours above every one in
+/// use only the first, as they are interchangeable. Neighbour colours are counted per (vertex,
+/// colour) and mirrored in a bitset per vertex; the search is a flat stack of (vertex, colour
+/// tried, greatest colour before), with no recursion. The lexicographic pass also asks it to
+/// backjump (each frame keeps the earlier frames that explain its failures), to try a given
+/// colouring's colours first, and to give up after a budget.
 @frozen
 @usableFromInline
 struct _ColoringSearch {
@@ -86,6 +87,12 @@ struct _ColoringSearch {
     @usableFromInline var frameVertex: [Int] = []
     @usableFromInline var frameColor: [Int] = []
     @usableFromInline var frameHigh: [Int] = []
+    /// Per frame, the earlier frames that explain its failed colours.
+    @usableFromInline var frameConflict: [[Int]] = []
+    /// The frame that coloured each vertex (−1 for a preset one), and scratch for failures.
+    @usableFromInline var level: [Int] = []
+    @usableFromInline var holder: [Int] = []
+    @usableFromInline var failure: [Int] = []
     /// The global → local map, −1 outside the component.
     @usableFromInline var local: [Int]
 
@@ -238,8 +245,17 @@ struct _ColoringSearch {
     /// themselves); when it does, `color` holds one. Each vertex tries `prefer`'s colour first
     /// when given (a colouring to stay close to), then the others ascending.
     @inlinable
-    mutating func extend(_ preset: [Int], colors: Int, prefer: [Int] = []) -> Bool {
+    mutating func extend(_ preset: [Int], colors: Int) -> Bool {
+        extend(preset, colors: colors, prefer: [], seed: 0, budget: .max, backjumping: false)!
+    }
+
+    /// `extend(_:colors:)` with `prefer`, ties among the most constrained vertices broken by a
+    /// hash of `seed` and the number instead of the number alone when `seed` is not 0, and at most
+    /// `budget` colours tried: nil when they run out first.
+    @inlinable
+    mutating func extend(_ preset: [Int], colors: Int, prefer: [Int], seed: UInt64, budget: Int, backjumping: Bool) -> Bool? {
         let p = count
+        var tries = 0
         k = colors
         words = (colors + 63) >> 6
         color.removeAll(keepingCapacity: true)
@@ -269,6 +285,10 @@ struct _ColoringSearch {
         frameVertex.removeAll(keepingCapacity: true)
         frameColor.removeAll(keepingCapacity: true)
         frameHigh.removeAll(keepingCapacity: true)
+        level.removeAll(keepingCapacity: true)
+        level.append(contentsOf: repeatElement(-1, count: p))
+        holder.removeAll(keepingCapacity: true)
+        holder.append(contentsOf: repeatElement(0, count: colors))
         // true: choose a vertex and open a frame; false: advance the top frame.
         var descend = true
         while true {
@@ -277,59 +297,118 @@ struct _ColoringSearch {
                 // The highest non-empty saturation list, then the most uncoloured neighbours there.
                 var bestSaturation = colors
                 while bucketHead[bestSaturation] < 0 { bestSaturation -= 1 }
-                var best = -1, bestOpen = -1
+                descend = false
+                if bestSaturation >= colors {
+                    // A vertex with no colour left: back to the latest frame that took one of them.
+                    failure.removeAll(keepingCapacity: true)
+                    if backjumping { addBlockers(of: bucketHead[colors], limit: colors - 1) }
+                    guard backjump(below: frameVertex.count, all: !backjumping) else { return false }
+                    high = frameHigh[frameHigh.count - 1]
+                    continue
+                }
+                var best = -1, bestOpen = -1, bestKey = UInt64.max
                 var v = bucketHead[bestSaturation]
                 while v >= 0 {
-                    if open[v] > bestOpen || (open[v] == bestOpen && v < best) {
+                    let key = seed == 0 ? UInt64(v) : (UInt64(v) &+ seed) &* 0x9E37_79B9_7F4A_7C15
+                    if open[v] > bestOpen || (open[v] == bestOpen && key < bestKey) {
                         best = v
                         bestOpen = open[v]
+                        bestKey = key
                     }
                     v = bucketNext[v]
                 }
-                if bestSaturation < colors {
-                    frameVertex.append(best)
-                    frameColor.append(-1)
-                    frameHigh.append(high)
-                }
-                descend = false
-                if bestSaturation >= colors {
-                    // A vertex with no colour left: undo the top frame's colour, then advance it.
-                    guard let top = frameVertex.last else { return false }
-                    unassign(top, frameColor[frameColor.count - 1])
-                    high = frameHigh[frameHigh.count - 1]
+                let t = frameVertex.count
+                frameVertex.append(best)
+                frameColor.append(-1)
+                frameHigh.append(high)
+                if t == frameConflict.count {
+                    frameConflict.append([])
+                } else {
+                    frameConflict[t].removeAll(keepingCapacity: true)
                 }
                 continue
             }
-            guard let v = frameVertex.last else { return false }
             let t = frameVertex.count - 1
+            let v = frameVertex[t]
             let base = frameHigh[t]
-            let c = nextColor(v, after: frameColor[t], limit: min(colors - 1, base + 1), prefer: prefer)
+            let limit = min(colors - 1, base + 1)
+            let c = nextColor(v, after: frameColor[t], limit: limit, prefer: prefer)
             if c >= 0 {
+                tries += 1
+                if tries > budget { return nil }
                 frameColor[t] = c
+                level[v] = t
                 assign(v, c)
                 high = max(base, c)
                 descend = true
                 continue
             }
-            frameVertex.removeLast()
-            frameColor.removeLast()
-            frameHigh.removeLast()
-            guard let top = frameVertex.last else { return false }
-            unassign(top, frameColor[frameColor.count - 1])
+            // Every colour failed: the frames that explain each. The colours above `limit`, left
+            // out as interchangeable with it, fail for the same frames: those frames use colours up
+            // to `base` only, so swapping two colours above it maps one failed search onto the other.
+            failure.removeAll(keepingCapacity: true)
+            if backjumping {
+                failure.append(contentsOf: frameConflict[t])
+                addBlockers(of: v, limit: limit)
+            }
+            guard backjump(below: t, all: !backjumping) else { return false }
             high = frameHigh[frameHigh.count - 1]
         }
     }
 
-    /// The chromatic number of the loaded component, known not bipartite (so at least 3), with a
-    /// colouring that uses that many colours; nil when greedy DSatur already uses no more than
-    /// `floor` (χ alone needs no better). DSatur gives the upper bound, a greedy clique the lower
-    /// one; each k between is decided with the clique fixed to colours `0..<q`, ascending.
+    /// Adds to `failure`, for each colour in `0...limit` that a neighbour of `x` holds, the
+    /// earliest frame holding it there; none when a preset vertex holds it.
     @inlinable
-    mutating func chromaticNumber(above floor: Int) -> (chi: Int, witness: [Int])? {
+    mutating func addBlockers(of x: Int, limit: Int) {
+        for c in 0 ... limit { holder[c] = Int.max }
+        for i in rows.offsets[x] ..< rows.offsets[x + 1] {
+            let w = rows.neighbors[i], c = color[w]
+            if c >= 0 && c <= limit { holder[c] = min(holder[c], level[w]) }
+        }
+        for c in 0 ... limit where holder[c] >= 0 && holder[c] != Int.max { failure.append(holder[c]) }
+    }
+
+    /// Conflict-directed backjumping (Prosser 1993) after a failure that the frames in `failure`
+    /// explain (all frames below `below` with `all`): pops every frame above the latest of them,
+    /// undoes that one's colour and hands it the rest. False when nothing explains the failure
+    /// but the presets.
+    @inlinable
+    mutating func backjump(below: Int, all: Bool) -> Bool {
+        var j = -1
+        if all {
+            j = below - 1
+        } else {
+            for f in failure where f > j { j = f }
+        }
+        guard j >= 0 else { return false }
+        while frameVertex.count - 1 > j {
+            let v = frameVertex.removeLast(), c = frameColor.removeLast()
+            frameHigh.removeLast()
+            if color[v] >= 0 { unassign(v, c) }
+        }
+        if !all {
+            failure.sort()
+            var last = -1
+            for f in failure where f != j && f != last {
+                frameConflict[j].append(f)
+                last = f
+            }
+        }
+        unassign(frameVertex[j], frameColor[j])
+        return true
+    }
+
+    /// The chromatic number of the loaded component, known not bipartite (so at least 3), with a
+    /// colouring that uses that many colours; when greedy DSatur already uses no more than `floor`,
+    /// its count and colouring instead (χ alone needs no better, nor does a colouring with `floor`
+    /// colours). DSatur gives the upper bound, a greedy clique the lower one; each k between is
+    /// decided with the clique fixed to colours `0..<q`, ascending.
+    @inlinable
+    mutating func chromaticNumber(above floor: Int) -> (chi: Int, witness: [Int]) {
         let greedy = _saturationColoring(rows)
         var upper = 0
         for c in greedy where c >= upper { upper = c + 1 }
-        guard upper > floor else { return nil }
+        guard upper > floor else { return (upper, greedy) }
         let clique = greedyClique()
         let lower = max(3, clique.count)
         guard lower < upper else { return (upper, greedy) }
@@ -346,10 +425,9 @@ struct _ColoringSearch {
     /// colouring of all, so it is the answer when it fits. Otherwise each vertex v in index order
     /// takes the least colour whose prefix still extends. The witness, renumbered to agree with
     /// the prefix and grow by one colour at a time, shows that its own colour does, so only lesser
-    /// colours c are decided, each in two steps. First a Kempe swap: when the chain of v in the
-    /// colours c and witness[v] has no vertex before v, swapping it is a new witness. Otherwise a
-    /// search, but only in the regions of the vertices after v that v touches (the components
-    /// they induce): the prefix separates the regions, so the others keep the witness's colours.
+    /// colours c are decided, each in up to two steps. First a Kempe swap: when the chain of v in
+    /// colours c and witness[v] has no vertex before v, swapping it gives the next witness.
+    /// Otherwise a search, only over the regions after v that v touches.
     @inlinable
     mutating func leastColoring(chi: Int, witness: [Int]) -> [Int] {
         let p = count
@@ -361,7 +439,10 @@ struct _ColoringSearch {
         var preset = [Int](repeating: -1, count: p)
         var mark = [Int](repeating: -1, count: p)
         var stamp = 0
-        var queue: [Int] = [], members: [Int] = [], found: [Int] = [], part: [Int] = [], hint: [Int] = []
+        var queue: [Int] = [], members: [Int] = [], boundary: [Int] = [], part: [Int] = [], hint: [Int] = []
+        var reached = -1
+        // Average degree at most 8.
+        let sparse = rows.neighbors.count <= 8 * p
         var region = _ColoringSearch(count: p)
         var high = -1
         for v in 0 ..< p {
@@ -396,52 +477,52 @@ struct _ColoringSearch {
                     chosen = c
                     break
                 }
-                // Each region v touches, with its neighbours before v and v itself fixed.
-                preset[v] = c
-                stamp += 1
-                found.removeAll(keepingCapacity: true)
-                var extends = true
-                for i in rows.offsets[v] ..< rows.offsets[v + 1] {
-                    let s = rows.neighbors[i]
-                    if s < v || mark[s] == stamp { continue }
-                    queue.removeAll(keepingCapacity: true)
+                // Otherwise a search over the vertices after v that v reaches through vertices
+                // after v (the regions it touches), with their neighbours before v and v fixed:
+                // the prefix separates the regions, so the others keep the witness's colours.
+                if reached != v {
+                    reached = v
+                    stamp += 1
                     members.removeAll(keepingCapacity: true)
-                    queue.append(s)
-                    mark[s] = stamp
+                    boundary.removeAll(keepingCapacity: true)
+                    mark[v] = stamp
+                    members.append(v)
                     head = 0
-                    while head < queue.count {
-                        let x = queue[head]
+                    while head < members.count {
+                        let x = members[head]
                         head += 1
                         for j in rows.offsets[x] ..< rows.offsets[x + 1] {
                             let y = rows.neighbors[j]
                             if mark[y] == stamp { continue }
                             mark[y] = stamp
-                            if y > v { queue.append(y) } else { members.append(y) }
+                            if y > v { members.append(y) } else { boundary.append(y) }
                         }
                     }
-                    // The fixed vertices met are marked too: unmark them for the next region.
-                    for y in members { mark[y] = -1 }
-                    members.append(contentsOf: queue)
+                    members.append(contentsOf: boundary)
                     members.sort()
                     region.load(members[...], of: rows)
-                    part.removeAll(keepingCapacity: true)
-                    hint.removeAll(keepingCapacity: true)
-                    for y in members {
-                        part.append(preset[y])
-                        hint.append(witness[y])
-                    }
-                    let t0 = ContinuousClock.now
-                    let ok = region.extend(part, colors: chi, prefer: hint)
-                    let dt = ContinuousClock.now - t0
-                    if dt > .milliseconds(5) { print("v", v, "c", c, "size", members.count, "fixed", members.count - queue.count, "ok", ok, dt) }
-                    if !ok {
-                        extends = false
+                }
+                preset[v] = c
+                part.removeAll(keepingCapacity: true)
+                hint.removeAll(keepingCapacity: true)
+                for y in members {
+                    part.append(y <= v ? preset[y] : -1)
+                    hint.append(witness[y])
+                }
+                // On a sparse component these searches have heavy tails, so there they backjump
+                // and restart with growing budgets, each trying the witness's colours first, with
+                // a new tie order each time. On a dense one that only repeats work.
+                var round = 0, extends = false
+                while true {
+                    let budget = !sparse || round >= 40 ? Int.max : 256 << round
+                    if let answer = region.extend(part, colors: chi, prefer: sparse ? hint : [], seed: UInt64(round), budget: budget, backjumping: sparse) {
+                        extends = answer
                         break
                     }
-                    for (j, y) in members.enumerated() where y > v { found.append(y); found.append(region.color[j]) }
+                    round += 1
                 }
                 if extends {
-                    for j in stride(from: 0, to: found.count, by: 2) { witness[found[j]] = found[j + 1] }
+                    for (j, y) in members.enumerated() where y > v { witness[y] = region.color[j] }
                     witness[v] = c
                     chosen = c
                     break
@@ -456,40 +537,69 @@ struct _ColoringSearch {
     }
 }
 
-/// χ (with `lexicographic` false) or the per-component least optimal colouring (with it), by
-/// vertex number. The whole graph is tried as bipartite first (BipartiteGraphs' two-colouring,
-/// whose sides are the least colouring: each component's least vertex left); otherwise each
-/// component on its own: a single vertex takes 0, a bipartite one its two-colouring, and the rest
-/// the search. For χ alone, a component whose DSatur bound is no more than the best so far is
-/// skipped.
+/// What `_exactColoring` computes.
+@usableFromInline
+enum _ExactColoringGoal {
+    /// χ alone.
+    case chromaticNumber
+    /// χ and a colouring with χ colours, numbered by first appearance.
+    case minimumColoring
+    /// χ and the per-component lexicographically first colouring with each component's χ colours.
+    case lexicographicallyFirst
+}
+
+/// χ, with a colouring by vertex number for `goal`. The whole graph is tried as bipartite first
+/// (BipartiteGraphs' two-colouring, whose sides are the lexicographically first colouring: each
+/// component's least vertex left); otherwise each component on its own: a single vertex takes 0,
+/// a bipartite one its two-colouring, and the rest the search. Except for the lexicographic goal,
+/// a component whose DSatur bound is no more than the best so far keeps its DSatur colouring.
 @inlinable
-func _exactColoring(_ rows: _ColoringRows, lexicographic: Bool) -> (chi: Int, colors: [Int]) {
+func _exactColoring(_ rows: _ColoringRows, goal: _ExactColoringGoal) -> (chi: Int, colors: [Int]) {
     let n = rows.count
     var colors = [Int](repeating: 0, count: n)
     guard n > 0 else { return (0, colors) }
     guard !rows.neighbors.isEmpty else { return (1, colors) }
     var whole = _ColoringRowSource(rows)
-    if let sides = _TwoColoring(witness: false).run(count: n, edgeCount: rows.neighbors.count / 2, &whole).sides {
+    if let sides = _TwoColoring(witness: false).run(count: n, edgeCount: rows.neighbors.count, &whole).sides {
         for v in 0 ..< n { colors[v] = Int(sides[v]) }
         return (2, colors)
     }
     let (members, starts) = _coloringComponents(rows)
     var search = _ColoringSearch(count: n)
+    let lexicographic = goal == .lexicographicallyFirst
     var chi = 1
     for c in 0 ..< starts.count - 1 {
         let part = members[starts[c] ..< starts[c + 1]]
         guard part.count > 1 else { continue }
         search.load(part, of: rows)
         var source = _ColoringRowSource(search.rows)
-        if let sides = _TwoColoring(witness: false).run(count: part.count, edgeCount: search.rows.neighbors.count / 2, &source).sides {
+        if let sides = _TwoColoring(witness: false).run(count: part.count, edgeCount: search.rows.neighbors.count, &source).sides {
             for (i, v) in part.enumerated() { colors[v] = Int(sides[i]) }
             continue
         }
-        guard let (k, witness) = search.chromaticNumber(above: lexicographic ? 0 : chi) else { continue }
+        let (k, witness) = search.chromaticNumber(above: lexicographic ? 0 : chi)
         chi = max(chi, k)
-        guard lexicographic else { continue }
-        let least = search.leastColoring(chi: k, witness: witness)
-        for (i, v) in part.enumerated() { colors[v] = least[i] }
+        switch goal {
+        case .chromaticNumber:
+            continue
+        case .minimumColoring:
+            for (i, v) in part.enumerated() { colors[v] = witness[i] }
+        case .lexicographicallyFirst:
+            let least = search.leastColoring(chi: k, witness: witness)
+            for (i, v) in part.enumerated() { colors[v] = least[i] }
+        }
+    }
+    if goal == .minimumColoring {
+        var renumbered = [Int](repeating: -1, count: chi)
+        var next = 0
+        for v in 0 ..< n {
+            let c = colors[v]
+            if renumbered[c] < 0 {
+                renumbered[c] = next
+                next += 1
+            }
+            colors[v] = renumbered[c]
+        }
     }
     return (chi, colors)
 }
@@ -500,26 +610,55 @@ extension Graph {
     /// bipartite with an edge (BipartiteGraphs' two-colouring, O(n + m)). Otherwise the greatest
     /// over the connected components, each non-bipartite one decided by DSatur branch and bound
     /// (Brélaz 1979) between a greedy clique and greedy DSatur (Sage `chromatic_number`, JGraphT
-    /// `BrownBacktrackColoring.getChromaticNumber`, Mathematica `ChromaticNumber`). Exponential in
-    /// the worst case: Mycielski graphs, whose χ exceeds ω by a lot, are the hard ones.
+    /// `BrownBacktrackColoring.getChromaticNumber`, Mathematica `VertexChromaticNumber`).
+    /// Exponential in the worst case: Mycielski graphs, whose χ exceeds ω by a lot, are the hard
+    /// ones. The search does not check for task cancellation.
     @inlinable
     public func chromaticNumber() -> Int {
-        _exactColoring(_runOnUndirectedRows(_CopyColoringRows()), lexicographic: false).chi
+        _exactColoring(_runOnUndirectedRows(_CopyColoringRows()), goal: .chromaticNumber).chi
     }
 
-    /// An optimal colouring of the simple graph: on each connected component, of all its
-    /// colourings with its own chromatic number of colours, the one whose colour vector (in
-    /// `vertices` order) is lexicographically least. So within a component colours appear in
-    /// order of first use, colour classes are numbered by their least vertex, a bipartite
-    /// component is coloured by its `bipartition()` sides (left 0), and `colorCount ==
-    /// chromaticNumber()`. Components are not coupled: a bipartite one keeps two colours beside a
-    /// triangle. Combinatorica `MinimumVertexColoring`, Sage `vertex_coloring()`, JGraphT
-    /// `BrownBacktrackColoring.getColoring`, with this tie rule. First fit in index order when it
-    /// is already optimal; otherwise DSatur branch and bound per vertex prefix. Exponential in the
-    /// worst case.
+    /// An optimal colouring of the simple graph: `colorCount == chromaticNumber()`, with colours
+    /// numbered by first appearance in `vertices` order (the first vertex has colour 0, and each
+    /// colour first appears after the one below it). It is the colouring `chromaticNumber()`'s
+    /// search finds, so it costs the same: a bipartite graph gets its `bipartition()` sides (left
+    /// 0), and each other component the colouring that DSatur branch and bound found for it, or
+    /// greedy DSatur's when that already uses no more colours than another component needs.
+    /// Sage `vertex_coloring()` and JGraphT `BrownBacktrackColoring.getColoring`, which also return
+    /// the optimal colouring their search finds; Mathematica `FindVertexColoring`. Deterministic, but which optimal colouring it is depends on the search; for one fixed
+    /// by a rule, see `lexicographicallyFirstMinimumColoring()`. Exponential in the worst case, as
+    /// `chromaticNumber()` is; the search does not check for task cancellation.
     @inlinable
     public func minimumColoring() -> Coloring<Self> {
-        let rows = _runOnUndirectedRows(_CopyColoringRows())
-        return Coloring(self, listed: _listedVertices(), colors: _exactColoring(rows, lexicographic: true).colors)
+        let numbering = _vertexNumbering()
+        let rows = _runOnUndirectedRows(_CopyColoringRows(), vertexNumbering: numbering)
+        return Coloring(self, numbering: numbering, colors: _exactColoring(rows, goal: .minimumColoring).colors)
+    }
+
+    /// The lexicographically first minimum colouring of the simple graph: on each connected
+    /// component, of all its colourings with its own chromatic number of colours, the one whose
+    /// colour vector (in `vertices` order) is lexicographically least, Khuller and Vazirani's
+    /// lexicographically first k-colouring (1991) with k = the component's χ. So within a
+    /// component colours appear in order of first use, colour classes are numbered by their least
+    /// vertex, a bipartite component is coloured by its `bipartition()` sides (left 0), and
+    /// `colorCount == chromaticNumber()`. Components are not coupled: a bipartite one keeps two
+    /// colours beside a triangle.
+    ///
+    /// First fit in index order (the lexicographically first proper colouring of all) when it is
+    /// already optimal. Otherwise each vertex in turn takes the least colour its prefix still
+    /// extends with (k-colouring's self-reduction to its decision problem): a Kempe swap of the last
+    /// colouring found when one avoids the prefix, else DSatur branch and bound over the parts
+    /// after the prefix that the vertex touches (on sparse components with conflict-directed
+    /// backjumping and restarts). Khuller and Vazirani show the lexicographically first
+    /// four-colouring of a planar graph is NP-hard to find, though some four-colouring is found in
+    /// polynomial time. It can be far slower than `minimumColoring()`: on random sparse
+    /// 3-colourable graphs with 2n edges it took about 0.2 s at 1,000 vertices, 2.7 s at 2,000 and
+    /// over 100 s at 5,000, where `minimumColoring()` takes about a millisecond. The search does not
+    /// check for task cancellation.
+    @inlinable
+    public func lexicographicallyFirstMinimumColoring() -> Coloring<Self> {
+        let numbering = _vertexNumbering()
+        let rows = _runOnUndirectedRows(_CopyColoringRows(), vertexNumbering: numbering)
+        return Coloring(self, numbering: numbering, colors: _exactColoring(rows, goal: .lexicographicallyFirst).colors)
     }
 }

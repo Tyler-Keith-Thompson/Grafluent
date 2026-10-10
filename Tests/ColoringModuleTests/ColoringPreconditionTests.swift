@@ -5,8 +5,10 @@
 // non-vertex; a negative index; a non-vertex on a graph without vertex indices, to `color(of:)` and
 // in an order; `minimumColoring().color(of:)`; `edgeColoring()` on parallel arcs through
 // `AdjacencyList.undirected`, on `graph.directed.undirected`, and on a self-loop away from the first
-// vertex. Each exit test builds its inputs inside the closure. Generated from cases.md by
-// swiftgen.py, the tests after CO-252 written by hand (extra_traps.swift); see README.md.
+// vertex; `color(ofEdgeAt:)` with a position the graph does not have, with and without edge indices;
+// a negative preset colour and two adjacent vertices preset alike. Each exit test builds its inputs
+// inside the closure. Generated from cases.md by swiftgen.py, the tests after CO-252 written by hand
+// (extra_traps.swift); see README.md.
 
 import AdjacencyListModule
 import ColoringModule
@@ -172,6 +174,38 @@ struct ColoringPreconditionTests {
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph<Int>(vertices: 0 ..< 4, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2), UndirectedEdge(2, 3), UndirectedEdge(3, 2)])
             _ = graph.edgeColoring()
+        }
+    }
+
+    @Test("color(ofEdgeAt:) with a position the graph does not have traps (edge indices)")
+    func foreignEdgePosition() async {
+        await #expect(processExitsWith: .failure) {
+            let graph = UndirectedAdjacencyList<Int>(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
+            _ = graph.edgeColoring().color(ofEdgeAt: 7)
+        }
+    }
+
+    @Test("color(ofEdgeAt:) with a position the graph does not have traps (no edge indices: the binary search misses)")
+    func foreignEdgePositionUnindexed() async {
+        await #expect(processExitsWith: .failure) {
+            let graph = UnindexedGraph<Int>(vertices: [0, 1, 2], edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
+            _ = graph.greedyEdgeColoring().color(ofEdgeAt: 2)
+        }
+    }
+
+    @Test("greedyColoring(strategy:presetColor:) with a negative preset colour traps")
+    func negativePreset() async {
+        await #expect(processExitsWith: .failure) {
+            let graph = UndirectedAdjacencyList<Int>(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1)])
+            _ = graph.greedyColoring { $0 == 2 ? -1 : nil }
+        }
+    }
+
+    @Test("greedyColoring(strategy:presetColor:) with two adjacent vertices preset alike traps")
+    func adjacentPresets() async {
+        await #expect(processExitsWith: .failure) {
+            let graph = UndirectedAdjacencyList<Int>(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
+            _ = graph.greedyColoring(strategy: .saturationLargestFirst) { $0 == 0 || $0 == 1 ? 3 : nil }
         }
     }
 }

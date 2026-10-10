@@ -1,8 +1,10 @@
 import GraphProtocols
 
 /// A proper colouring of a graph's vertices by the colours `0..<colorCount`, each of which is
-/// used: the result of `greedyColoring(strategy:)`, `greedyColoring(order:)` and
-/// `minimumColoring()` (JGraphT `VertexColoringAlgorithm.Coloring`, Graphs.jl `Coloring`).
+/// used (unless preset colours skip some): the result of `greedyColoring(strategy:)`,
+/// `greedyColoring(strategy:presetColor:)`, `greedyColoring(order:)`, `minimumColoring()` and
+/// `lexicographicallyFirstMinimumColoring()` (JGraphT `VertexColoringAlgorithm.Coloring`,
+/// Graphs.jl `Coloring`).
 ///
 /// It keeps a copy of the graph to look vertices up (copy-on-write, so O(1) to make; while the
 /// result is alive, the next mutation of the original copies the whole graph), as `Bipartition`
@@ -19,9 +21,10 @@ public struct Coloring<G: Graph> {
     @usableFromInline let _members: [G.Vertex]
     @usableFromInline let _offsets: [Int]
 
-    /// The colouring given by a colour per vertex number, every colour in `0..<k` used.
+    /// The colouring given by a colour per vertex number; `numbering` is the graph's
+    /// `_vertexNumbering()`.
     @inlinable
-    init(_ graph: G, listed: [G.Vertex]?, numbers: [G.Vertex: Int]? = nil, colors: [Int]) {
+    init(_ graph: G, numbering: (listed: [G.Vertex], numbers: [G.Vertex: Int])?, colors: [Int]) {
         let n = colors.count
         var k = 0
         for c in colors where c >= k { k = c + 1 }
@@ -35,24 +38,22 @@ public struct Coloring<G: Graph> {
             fill[colors[v]] += 1
         }
         _graph = graph
-        if let numbers {
-            _numbers = numbers
-        } else if let listed {
-            var numbers: [G.Vertex: Int] = [:]
-            numbers.reserveCapacity(listed.count)
-            for (i, v) in listed.enumerated() { numbers[v] = i }
-            _numbers = numbers
-        } else {
-            _numbers = nil
-        }
+        _numbers = numbering?.numbers
         _colors = colors
+        let listed = numbering?.listed
         _members = order.map { listed?[$0] ?? graph.vertex(atIndex: $0) }
         _offsets = offsets
     }
 
-    /// The number of colours: χ for `minimumColoring()`, 0 for the empty graph.
+    /// The number of colours: χ for the minimum colourings, 0 for the empty graph; with preset
+    /// colours, one more than the greatest colour.
     @inlinable
     public var colorCount: Int { _offsets.count - 1 }
+
+    /// The colour of every vertex, in `vertices` order (JGraphT `getColors`, Graphs.jl
+    /// `colors`).
+    @inlinable
+    public var colors: [Int] { _colors }
 
     /// The colour of `vertex`, in `0..<colorCount`. O(1) after the graph's `vertexIndex(of:)` (one
     /// hash for a graph without vertex indices).
@@ -79,7 +80,8 @@ public struct Coloring<G: Graph> {
     }
 
     /// The vertices of each colour, by colour, each in `vertices` order (JGraphT
-    /// `getColorClasses`): slices of one flat array. Each is an independent set.
+    /// `getColorClasses`): slices of one flat array. Each is an independent set; it is empty only
+    /// for a colour that preset colours skip.
     @inlinable
     public var colorClasses: [ArraySlice<G.Vertex>] {
         (0 ..< colorCount).map { _members[_offsets[$0] ..< _offsets[$0 + 1]] }
@@ -105,9 +107,9 @@ extension Coloring: CustomStringConvertible {
 
 /// How `greedyColoring(strategy:)` orders the vertices. Each vertex in turn takes the least colour
 /// none of its already coloured neighbours has (first fit). Degrees are simple degrees (distinct
-/// other neighbours, self-loops left out); ties go to the lesser vertex index. NetworkX
-/// `greedy_color(G, strategy)`, rustworkx `ColoringStrategy`, igraph `vertex_coloring_greedy`.
-@frozen
+/// other neighbours, self-loops left out); ties go to the lesser vertex index, except for
+/// `.coloredNeighbors`. NetworkX `greedy_color(G, strategy)`, rustworkx `ColoringStrategy`,
+/// igraph `vertex_coloring_greedy`.
 public enum ColoringStrategy: Hashable, Sendable, CaseIterable {
     /// Degree descending, the lesser index first on ties: Welsh–Powell, which colours class by
     /// class in this order and gives the same colouring as first fit. NetworkX `largest_first`
@@ -134,4 +136,11 @@ public enum ColoringStrategy: Hashable, Sendable, CaseIterable {
     case connectedSequentialBreadthFirst
     /// The same in depth-first preorder. NetworkX `connected_sequential_dfs`. O(n + m).
     case connectedSequentialDepthFirst
+    /// igraph's `IGRAPH_COLORING_GREEDY_COLORED_NEIGHBORS` (`vertex_coloring_greedy(method=
+    /// "colored_neighbors")`): first the vertex of greatest degree (the least index on ties), then
+    /// repeatedly the uncoloured vertex with the most coloured neighbours, ties as igraph's
+    /// indexed binary heap breaks them (so not by index), which this follows step for step: the
+    /// same colouring as igraph on simple graphs (igraph counts each parallel edge). O((n + m)
+    /// log n).
+    case coloredNeighbors
 }

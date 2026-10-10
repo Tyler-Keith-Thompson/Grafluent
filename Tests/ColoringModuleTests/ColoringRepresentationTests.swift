@@ -43,7 +43,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [])
             #expect(coloring.colorCount == 0)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = []
@@ -56,7 +56,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [])
             #expect(coloring.colorCount == 0)
             #expect((0 ..< 0).map { coloring.color(ofIndex: $0) } == [])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = []
@@ -67,7 +67,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [])
             #expect(coloring.colorCount == 0)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = []
@@ -78,7 +78,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [])
             #expect(coloring.colorCount == 0)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -94,7 +94,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [])
             #expect(coloring.colorCount == 0)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = []
@@ -107,7 +107,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [])
             #expect(coloring.colorCount == 0)
             #expect((0 ..< 0).map { coloring.color(ofIndex: $0) } == [])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = []
@@ -118,7 +118,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [])
             #expect(coloring.colorCount == 0)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = []
@@ -129,7 +129,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [])
             #expect(coloring.colorCount == 0)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -145,7 +145,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [])
             #expect(coloring.colorCount == 0)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = []
@@ -158,7 +158,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [])
             #expect(coloring.colorCount == 0)
             #expect((0 ..< 0).map { coloring.color(ofIndex: $0) } == [])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = []
@@ -169,7 +169,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [])
             #expect(coloring.colorCount == 0)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = []
@@ -180,7 +180,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [])
             #expect(coloring.colorCount == 0)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -196,7 +196,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [])
             #expect(coloring.colorCount == 0)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = []
@@ -209,7 +209,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [])
             #expect(coloring.colorCount == 0)
             #expect((0 ..< 0).map { coloring.color(ofIndex: $0) } == [])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = []
@@ -220,7 +220,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [])
             #expect(coloring.colorCount == 0)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = []
@@ -231,7 +231,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [])
             #expect(coloring.colorCount == 0)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -247,7 +247,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [])
             #expect(coloring.colorCount == 0)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = []
@@ -260,7 +260,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [])
             #expect(coloring.colorCount == 0)
             #expect((0 ..< 0).map { coloring.color(ofIndex: $0) } == [])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = []
@@ -271,7 +271,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [])
             #expect(coloring.colorCount == 0)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = []
@@ -282,7 +282,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [])
             #expect(coloring.colorCount == 0)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -298,7 +298,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialDepthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [])
             #expect(coloring.colorCount == 0)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = []
@@ -311,7 +311,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [])
             #expect(coloring.colorCount == 0)
             #expect((0 ..< 0).map { coloring.color(ofIndex: $0) } == [])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = []
@@ -322,7 +322,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialDepthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [])
             #expect(coloring.colorCount == 0)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = []
@@ -333,7 +333,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialDepthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [])
             #expect(coloring.colorCount == 0)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -349,7 +349,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = []
@@ -362,7 +362,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
             #expect((0 ..< 1).map { coloring.color(ofIndex: $0) } == [0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = []
@@ -373,7 +373,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = []
@@ -384,7 +384,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -400,7 +400,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = []
@@ -413,7 +413,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
             #expect((0 ..< 1).map { coloring.color(ofIndex: $0) } == [0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = []
@@ -424,7 +424,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = []
@@ -435,7 +435,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -451,7 +451,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = []
@@ -464,7 +464,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
             #expect((0 ..< 1).map { coloring.color(ofIndex: $0) } == [0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = []
@@ -475,7 +475,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = []
@@ -486,7 +486,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -502,7 +502,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = []
@@ -515,7 +515,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
             #expect((0 ..< 1).map { coloring.color(ofIndex: $0) } == [0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = []
@@ -526,7 +526,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = []
@@ -537,7 +537,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -553,7 +553,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = []
@@ -566,7 +566,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
             #expect((0 ..< 1).map { coloring.color(ofIndex: $0) } == [0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = []
@@ -577,7 +577,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = []
@@ -588,7 +588,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -604,7 +604,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialDepthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = []
@@ -617,7 +617,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
             #expect((0 ..< 1).map { coloring.color(ofIndex: $0) } == [0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = []
@@ -628,7 +628,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialDepthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = []
@@ -639,7 +639,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialDepthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -655,7 +655,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 0)]
@@ -668,7 +668,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
             #expect((0 ..< 1).map { coloring.color(ofIndex: $0) } == [0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 0)]
@@ -679,7 +679,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 0)]
@@ -690,7 +690,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -706,7 +706,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 0)]
@@ -719,7 +719,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
             #expect((0 ..< 1).map { coloring.color(ofIndex: $0) } == [0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 0)]
@@ -730,7 +730,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 0)]
@@ -741,7 +741,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -757,7 +757,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 0)]
@@ -770,7 +770,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
             #expect((0 ..< 1).map { coloring.color(ofIndex: $0) } == [0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 0)]
@@ -781,7 +781,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 0)]
@@ -792,7 +792,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -808,7 +808,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = []
@@ -821,7 +821,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0])
             #expect(coloring.colorCount == 1)
             #expect((0 ..< 2).map { coloring.color(ofIndex: $0) } == [0, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = []
@@ -832,7 +832,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = []
@@ -843,7 +843,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -859,7 +859,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1)]
@@ -872,7 +872,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 2).map { coloring.color(ofIndex: $0) } == [0, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1)]
@@ -883,7 +883,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1)]
@@ -894,7 +894,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -912,7 +912,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 1])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 3).map { coloring.color(ofIndex: $0) } == [1, 0, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 0), (1, 2)]
@@ -923,7 +923,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 0), (1, 2)]
@@ -934,7 +934,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -950,7 +950,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = []
@@ -963,7 +963,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0])
             #expect(coloring.colorCount == 1)
             #expect((0 ..< 2).map { coloring.color(ofIndex: $0) } == [0, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = []
@@ -974,7 +974,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = []
@@ -985,7 +985,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -1001,7 +1001,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1)]
@@ -1014,7 +1014,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 2).map { coloring.color(ofIndex: $0) } == [0, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1)]
@@ -1025,7 +1025,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1)]
@@ -1036,7 +1036,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -1054,7 +1054,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 1])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 3).map { coloring.color(ofIndex: $0) } == [1, 0, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 0), (1, 2)]
@@ -1065,7 +1065,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 0), (1, 2)]
@@ -1076,7 +1076,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -1092,7 +1092,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 2, 0, 1])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 1), (1, 2), (2, 3), (3, 3), (0, 2)]
@@ -1105,7 +1105,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 2, 0, 1])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 4).map { coloring.color(ofIndex: $0) } == [1, 2, 0, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 1), (1, 2), (2, 3), (3, 3), (0, 2)]
@@ -1116,7 +1116,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 2, 0, 1])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 1), (1, 2), (2, 3), (3, 3), (0, 2)]
@@ -1127,7 +1127,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 2, 0, 1])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -1143,7 +1143,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 2, 0, 1])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 1), (1, 2), (2, 3), (3, 3), (0, 2)]
@@ -1156,7 +1156,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 2, 0, 1])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 4).map { coloring.color(ofIndex: $0) } == [1, 2, 0, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 1), (1, 2), (2, 3), (3, 3), (0, 2)]
@@ -1167,7 +1167,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 2, 0, 1])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 1), (1, 2), (2, 3), (3, 3), (0, 2)]
@@ -1178,7 +1178,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 2, 0, 1])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -1194,7 +1194,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 0])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 1), (1, 2), (2, 3), (3, 3), (0, 2)]
@@ -1207,7 +1207,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 0])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 4).map { coloring.color(ofIndex: $0) } == [0, 1, 2, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 1), (1, 2), (2, 3), (3, 3), (0, 2)]
@@ -1218,7 +1218,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 0])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 1), (1, 2), (2, 3), (3, 3), (0, 2)]
@@ -1229,7 +1229,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 0])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -1245,7 +1245,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 0])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 1), (1, 2), (2, 3), (3, 3), (0, 2)]
@@ -1258,7 +1258,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 0])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 4).map { coloring.color(ofIndex: $0) } == [0, 1, 2, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 1), (1, 2), (2, 3), (3, 3), (0, 2)]
@@ -1269,7 +1269,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 0])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 1), (1, 2), (2, 3), (3, 3), (0, 2)]
@@ -1280,7 +1280,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 0])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -1296,7 +1296,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
@@ -1309,7 +1309,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 3).map { coloring.color(ofIndex: $0) } == [0, 1, 2])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
@@ -1320,7 +1320,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
@@ -1331,7 +1331,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -1347,7 +1347,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 3, 4])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
@@ -1360,7 +1360,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 3, 4])
             #expect(coloring.colorCount == 5)
             #expect((0 ..< 5).map { coloring.color(ofIndex: $0) } == [0, 1, 2, 3, 4])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
@@ -1371,7 +1371,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 3, 4])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
@@ -1382,7 +1382,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 3, 4])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -1398,7 +1398,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
@@ -1411,7 +1411,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 5).map { coloring.color(ofIndex: $0) } == [1, 0, 1, 0, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
@@ -1422,7 +1422,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
@@ -1433,7 +1433,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -1449,7 +1449,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
@@ -1462,7 +1462,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 5).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 2])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
@@ -1473,7 +1473,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
@@ -1484,7 +1484,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -1500,7 +1500,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0)]
@@ -1513,7 +1513,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 6).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 0, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0)]
@@ -1524,7 +1524,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0)]
@@ -1535,7 +1535,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -1551,7 +1551,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 1, 1, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4)]
@@ -1564,7 +1564,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 1, 1, 1])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 5).map { coloring.color(ofIndex: $0) } == [0, 1, 1, 1, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4)]
@@ -1575,7 +1575,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 1, 1, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4)]
@@ -1586,7 +1586,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 1, 1, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -1602,7 +1602,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 1, 2, 3])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (2, 3), (3, 4), (4, 5), (5, 1)]
@@ -1615,7 +1615,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 1, 2, 3])
             #expect(coloring.colorCount == 4)
             #expect((0 ..< 6).map { coloring.color(ofIndex: $0) } == [0, 1, 2, 1, 2, 3])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (2, 3), (3, 4), (4, 5), (5, 1)]
@@ -1626,7 +1626,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 1, 2, 3])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (2, 3), (3, 4), (4, 5), (5, 1)]
@@ -1637,7 +1637,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 1, 2, 3])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -1653,7 +1653,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 1, 2, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 1)]
@@ -1666,7 +1666,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 1, 2, 1, 2])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 7).map { coloring.color(ofIndex: $0) } == [0, 1, 2, 1, 2, 1, 2])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 1)]
@@ -1677,7 +1677,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 1, 2, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 1)]
@@ -1688,7 +1688,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 1, 2, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -1704,7 +1704,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2, 1, 0, 2, 2, 1])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
@@ -1717,7 +1717,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2, 1, 0, 2, 2, 1])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 10).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 2, 1, 0, 2, 2, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
@@ -1728,7 +1728,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2, 1, 0, 2, 2, 1])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
@@ -1739,7 +1739,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2, 1, 0, 2, 2, 1])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -1755,7 +1755,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (9, 10), (10, 11)]
@@ -1768,7 +1768,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 12).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (9, 10), (10, 11)]
@@ -1779,7 +1779,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (9, 10), (10, 11)]
@@ -1790,7 +1790,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -1806,7 +1806,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 1, 1, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4)]
@@ -1817,7 +1817,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 1, 1, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4)]
@@ -1830,7 +1830,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 1, 1, 1])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 5).map { coloring.color(ofIndex: $0) } == [0, 0, 1, 1, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4)]
@@ -1841,7 +1841,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 1, 1, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4)]
@@ -1852,7 +1852,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 1, 1, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -1868,7 +1868,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 0, 0, 1, 1, 1, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 5), (0, 6), (0, 7), (1, 4), (1, 6), (1, 7), (2, 4), (2, 5), (2, 7), (3, 4), (3, 5), (3, 6)]
@@ -1879,7 +1879,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 0, 0, 1, 1, 1, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 5), (0, 6), (0, 7), (1, 4), (1, 6), (1, 7), (2, 4), (2, 5), (2, 7), (3, 4), (3, 5), (3, 6)]
@@ -1892,7 +1892,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 0, 0, 1, 1, 1, 1])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 8).map { coloring.color(ofIndex: $0) } == [0, 0, 0, 0, 1, 1, 1, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 5), (0, 6), (0, 7), (1, 4), (1, 6), (1, 7), (2, 4), (2, 5), (2, 7), (3, 4), (3, 5), (3, 6)]
@@ -1903,7 +1903,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 0, 0, 1, 1, 1, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 5), (0, 6), (0, 7), (1, 4), (1, 6), (1, 7), (2, 4), (2, 5), (2, 7), (3, 4), (3, 5), (3, 6)]
@@ -1914,7 +1914,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 0, 0, 1, 1, 1, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -1930,7 +1930,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 1, 1, 2, 2, 3, 3])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 3), (0, 5), (0, 7), (2, 1), (2, 5), (2, 7), (4, 1), (4, 3), (4, 7), (6, 1), (6, 3), (6, 5)]
@@ -1943,7 +1943,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 1, 1, 2, 2, 3, 3])
             #expect(coloring.colorCount == 4)
             #expect((0 ..< 8).map { coloring.color(ofIndex: $0) } == [0, 0, 1, 1, 2, 2, 3, 3])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 3), (0, 5), (0, 7), (2, 1), (2, 5), (2, 7), (4, 1), (4, 3), (4, 7), (6, 1), (6, 3), (6, 5)]
@@ -1954,7 +1954,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 1, 1, 2, 2, 3, 3])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 3), (0, 5), (0, 7), (2, 1), (2, 5), (2, 7), (4, 1), (4, 3), (4, 7), (6, 1), (6, 3), (6, 5)]
@@ -1965,7 +1965,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 1, 1, 2, 2, 3, 3])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -1981,7 +1981,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 2, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(String, String)] = [("d", "a"), ("a", "c"), ("c", "b"), ("b", "d"), ("d", "c")]
@@ -1994,7 +1994,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 2, 1, 2])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 4).map { coloring.color(ofIndex: $0) } == [0, 2, 1, 2])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(String, String)] = [("d", "a"), ("a", "c"), ("c", "b"), ("b", "d"), ("d", "c")]
@@ -2005,7 +2005,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 2, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -2021,7 +2021,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(5, 4), (3, 2), (1, 0), (0, 5)]
@@ -2034,7 +2034,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 6).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 0, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(5, 4), (3, 2), (1, 0), (0, 5)]
@@ -2045,7 +2045,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(5, 4), (3, 2), (1, 0), (0, 5)]
@@ -2056,7 +2056,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -2072,7 +2072,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 0, 1, 1, 0])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (1, 3), (2, 4)]
@@ -2085,7 +2085,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 0, 1, 1, 0])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 5).map { coloring.color(ofIndex: $0) } == [2, 0, 1, 1, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (1, 3), (2, 4)]
@@ -2096,7 +2096,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 0, 1, 1, 0])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (1, 3), (2, 4)]
@@ -2107,7 +2107,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 0, 1, 1, 0])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -2123,7 +2123,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 3, 0, 1, 2])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 3), (1, 2), (2, 3), (2, 4), (3, 4)]
@@ -2136,7 +2136,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 3, 0, 1, 2])
             #expect(coloring.colorCount == 4)
             #expect((0 ..< 5).map { coloring.color(ofIndex: $0) } == [2, 3, 0, 1, 2])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 3), (1, 2), (2, 3), (2, 4), (3, 4)]
@@ -2147,7 +2147,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 3, 0, 1, 2])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 3), (1, 2), (2, 3), (2, 4), (3, 4)]
@@ -2158,7 +2158,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 3, 0, 1, 2])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -2174,7 +2174,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 1, 3, 0, 3, 1, 2, 0, 1, 0])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 5), (1, 3), (1, 4), (1, 6), (2, 3), (2, 5), (3, 4), (3, 5), (3, 6), (4, 6), (5, 6), (5, 7), (6, 7), (7, 8), (8, 9)]
@@ -2187,7 +2187,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 1, 3, 0, 3, 1, 2, 0, 1, 0])
             #expect(coloring.colorCount == 4)
             #expect((0 ..< 10).map { coloring.color(ofIndex: $0) } == [2, 1, 3, 0, 3, 1, 2, 0, 1, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 5), (1, 3), (1, 4), (1, 6), (2, 3), (2, 5), (3, 4), (3, 5), (3, 6), (4, 6), (5, 6), (5, 7), (6, 7), (7, 8), (8, 9)]
@@ -2198,7 +2198,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 1, 3, 0, 3, 1, 2, 0, 1, 0])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 5), (1, 3), (1, 4), (1, 6), (2, 3), (2, 5), (3, 4), (3, 5), (3, 6), (4, 6), (5, 6), (5, 7), (6, 7), (7, 8), (8, 9)]
@@ -2209,7 +2209,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 1, 3, 0, 3, 1, 2, 0, 1, 0])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -2225,7 +2225,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 3, 1, 1, 2, 4, 3, 1, 2, 1, 1, 4, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 0, 1, 1, 1, 1, 3, 2, 2, 1, 0])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8), (0, 10), (0, 11), (0, 12), (0, 13), (0, 17), (0, 19), (0, 21), (0, 31), (1, 2), (1, 3), (1, 7), (1, 13), (1, 17), (1, 19), (1, 21), (1, 30), (2, 3), (2, 7), (2, 8), (2, 9), (2, 13), (2, 27), (2, 28), (2, 32), (3, 7), (3, 12), (3, 13), (4, 6), (4, 10), (5, 6), (5, 10), (5, 16), (6, 16), (8, 30), (8, 32), (8, 33), (9, 33), (13, 33), (14, 32), (14, 33), (15, 32), (15, 33), (18, 32), (18, 33), (19, 33), (20, 32), (20, 33), (22, 32), (22, 33), (23, 25), (23, 27), (23, 29), (23, 32), (23, 33), (24, 25), (24, 27), (24, 31), (25, 31), (26, 29), (26, 33), (27, 33), (28, 31), (28, 33), (29, 32), (29, 33), (30, 32), (30, 33), (31, 32), (31, 33), (32, 33)]
@@ -2238,7 +2238,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 3, 1, 1, 2, 4, 3, 1, 2, 1, 1, 4, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 0, 1, 1, 1, 1, 3, 2, 2, 1, 0])
             #expect(coloring.colorCount == 5)
             #expect((0 ..< 34).map { coloring.color(ofIndex: $0) } == [0, 1, 2, 3, 1, 1, 2, 4, 3, 1, 2, 1, 1, 4, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 0, 1, 1, 1, 1, 3, 2, 2, 1, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8), (0, 10), (0, 11), (0, 12), (0, 13), (0, 17), (0, 19), (0, 21), (0, 31), (1, 2), (1, 3), (1, 7), (1, 13), (1, 17), (1, 19), (1, 21), (1, 30), (2, 3), (2, 7), (2, 8), (2, 9), (2, 13), (2, 27), (2, 28), (2, 32), (3, 7), (3, 12), (3, 13), (4, 6), (4, 10), (5, 6), (5, 10), (5, 16), (6, 16), (8, 30), (8, 32), (8, 33), (9, 33), (13, 33), (14, 32), (14, 33), (15, 32), (15, 33), (18, 32), (18, 33), (19, 33), (20, 32), (20, 33), (22, 32), (22, 33), (23, 25), (23, 27), (23, 29), (23, 32), (23, 33), (24, 25), (24, 27), (24, 31), (25, 31), (26, 29), (26, 33), (27, 33), (28, 31), (28, 33), (29, 32), (29, 33), (30, 32), (30, 33), (31, 32), (31, 33), (32, 33)]
@@ -2249,7 +2249,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 3, 1, 1, 2, 4, 3, 1, 2, 1, 1, 4, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 0, 1, 1, 1, 1, 3, 2, 2, 1, 0])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8), (0, 10), (0, 11), (0, 12), (0, 13), (0, 17), (0, 19), (0, 21), (0, 31), (1, 2), (1, 3), (1, 7), (1, 13), (1, 17), (1, 19), (1, 21), (1, 30), (2, 3), (2, 7), (2, 8), (2, 9), (2, 13), (2, 27), (2, 28), (2, 32), (3, 7), (3, 12), (3, 13), (4, 6), (4, 10), (5, 6), (5, 10), (5, 16), (6, 16), (8, 30), (8, 32), (8, 33), (9, 33), (13, 33), (14, 32), (14, 33), (15, 32), (15, 33), (18, 32), (18, 33), (19, 33), (20, 32), (20, 33), (22, 32), (22, 33), (23, 25), (23, 27), (23, 29), (23, 32), (23, 33), (24, 25), (24, 27), (24, 31), (25, 31), (26, 29), (26, 33), (27, 33), (28, 31), (28, 33), (29, 32), (29, 33), (30, 32), (30, 33), (31, 32), (31, 33), (32, 33)]
@@ -2260,7 +2260,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 3, 1, 1, 2, 4, 3, 1, 2, 1, 1, 4, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 0, 1, 1, 1, 1, 3, 2, 2, 1, 0])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -2276,7 +2276,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 1, 2, 0, 2, 1, 2, 1, 1, 0, 1, 0, 0, 1])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(String, String)] = [("Acciaiuoli", "Medici"), ("Medici", "Barbadori"), ("Medici", "Ridolfi"), ("Medici", "Tornabuoni"), ("Medici", "Albizzi"), ("Medici", "Salviati"), ("Castellani", "Peruzzi"), ("Castellani", "Strozzi"), ("Castellani", "Barbadori"), ("Peruzzi", "Strozzi"), ("Peruzzi", "Bischeri"), ("Strozzi", "Ridolfi"), ("Strozzi", "Bischeri"), ("Ridolfi", "Tornabuoni"), ("Tornabuoni", "Guadagni"), ("Albizzi", "Ginori"), ("Albizzi", "Guadagni"), ("Salviati", "Pazzi"), ("Bischeri", "Guadagni"), ("Guadagni", "Lamberteschi")]
@@ -2289,7 +2289,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 1, 2, 0, 2, 1, 2, 1, 1, 0, 1, 0, 0, 1])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 15).map { coloring.color(ofIndex: $0) } == [1, 0, 1, 2, 0, 2, 1, 2, 1, 1, 0, 1, 0, 0, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(String, String)] = [("Acciaiuoli", "Medici"), ("Medici", "Barbadori"), ("Medici", "Ridolfi"), ("Medici", "Tornabuoni"), ("Medici", "Albizzi"), ("Medici", "Salviati"), ("Castellani", "Peruzzi"), ("Castellani", "Strozzi"), ("Castellani", "Barbadori"), ("Peruzzi", "Strozzi"), ("Peruzzi", "Bischeri"), ("Strozzi", "Ridolfi"), ("Strozzi", "Bischeri"), ("Ridolfi", "Tornabuoni"), ("Tornabuoni", "Guadagni"), ("Albizzi", "Ginori"), ("Albizzi", "Guadagni"), ("Salviati", "Pazzi"), ("Bischeri", "Guadagni"), ("Guadagni", "Lamberteschi")]
@@ -2300,7 +2300,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 1, 2, 0, 2, 1, 2, 1, 1, 0, 1, 0, 0, 1])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -2316,7 +2316,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 2, 3, 1, 0, 1, 1, 1, 1, 2, 0, 2])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(2, 9), (0, 6), (6, 11), (2, 10), (9, 10), (3, 10), (2, 4), (10, 11), (4, 9), (7, 1), (2, 6), (9, 8), (0, 8), (0, 5), (6, 10), (4, 1), (11, 4), (0, 9), (6, 4), (8, 10), (1, 8), (2, 7), (7, 10), (9, 6)]
@@ -2329,7 +2329,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 2, 3, 1, 0, 1, 1, 1, 1, 2, 0, 2])
             #expect(coloring.colorCount == 4)
             #expect((0 ..< 12).map { coloring.color(ofIndex: $0) } == [0, 2, 3, 1, 0, 1, 1, 1, 1, 2, 0, 2])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(2, 9), (0, 6), (6, 11), (2, 10), (9, 10), (3, 10), (2, 4), (10, 11), (4, 9), (7, 1), (2, 6), (9, 8), (0, 8), (0, 5), (6, 10), (4, 1), (11, 4), (0, 9), (6, 4), (8, 10), (1, 8), (2, 7), (7, 10), (9, 6)]
@@ -2340,7 +2340,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 2, 3, 1, 0, 1, 1, 1, 1, 2, 0, 2])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(2, 9), (0, 6), (6, 11), (2, 10), (9, 10), (3, 10), (2, 4), (10, 11), (4, 9), (7, 1), (2, 6), (9, 8), (0, 8), (0, 5), (6, 10), (4, 1), (11, 4), (0, 9), (6, 4), (8, 10), (1, 8), (2, 7), (7, 10), (9, 6)]
@@ -2351,7 +2351,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 2, 3, 1, 0, 1, 1, 1, 1, 2, 0, 2])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -2367,7 +2367,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 3, 0, 1, 0, 0, 2, 1, 1, 2, 0, 1, 1, 2, 3, 2, 0, 0, 2, 1])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(18, 11), (5, 19), (19, 6), (12, 0), (9, 2), (16, 11), (16, 13), (14, 18), (13, 4), (0, 5), (13, 12), (12, 17), (10, 15), (13, 19), (9, 7), (5, 15), (8, 10), (0, 4), (6, 10), (12, 14), (17, 8), (14, 11), (8, 16), (6, 3), (3, 0), (12, 18), (1, 18), (10, 3), (8, 5), (10, 14), (12, 15), (16, 12), (17, 19), (18, 7), (5, 1), (17, 14), (8, 18), (15, 16), (5, 3), (16, 6), (5, 12), (15, 4), (1, 3), (8, 0), (5, 14), (2, 1), (10, 7), (7, 6), (18, 10), (5, 13)]
@@ -2380,7 +2380,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 3, 0, 1, 0, 0, 2, 1, 1, 2, 0, 1, 1, 2, 3, 2, 0, 0, 2, 1])
             #expect(coloring.colorCount == 4)
             #expect((0 ..< 20).map { coloring.color(ofIndex: $0) } == [2, 3, 0, 1, 0, 0, 2, 1, 1, 2, 0, 1, 1, 2, 3, 2, 0, 0, 2, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(18, 11), (5, 19), (19, 6), (12, 0), (9, 2), (16, 11), (16, 13), (14, 18), (13, 4), (0, 5), (13, 12), (12, 17), (10, 15), (13, 19), (9, 7), (5, 15), (8, 10), (0, 4), (6, 10), (12, 14), (17, 8), (14, 11), (8, 16), (6, 3), (3, 0), (12, 18), (1, 18), (10, 3), (8, 5), (10, 14), (12, 15), (16, 12), (17, 19), (18, 7), (5, 1), (17, 14), (8, 18), (15, 16), (5, 3), (16, 6), (5, 12), (15, 4), (1, 3), (8, 0), (5, 14), (2, 1), (10, 7), (7, 6), (18, 10), (5, 13)]
@@ -2391,7 +2391,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 3, 0, 1, 0, 0, 2, 1, 1, 2, 0, 1, 1, 2, 3, 2, 0, 0, 2, 1])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(18, 11), (5, 19), (19, 6), (12, 0), (9, 2), (16, 11), (16, 13), (14, 18), (13, 4), (0, 5), (13, 12), (12, 17), (10, 15), (13, 19), (9, 7), (5, 15), (8, 10), (0, 4), (6, 10), (12, 14), (17, 8), (14, 11), (8, 16), (6, 3), (3, 0), (12, 18), (1, 18), (10, 3), (8, 5), (10, 14), (12, 15), (16, 12), (17, 19), (18, 7), (5, 1), (17, 14), (8, 18), (15, 16), (5, 3), (16, 6), (5, 12), (15, 4), (1, 3), (8, 0), (5, 14), (2, 1), (10, 7), (7, 6), (18, 10), (5, 13)]
@@ -2402,7 +2402,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 3, 0, 1, 0, 0, 2, 1, 1, 2, 0, 1, 1, 2, 3, 2, 0, 0, 2, 1])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -2418,7 +2418,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 1, 1, 0, 3, 0, 3, 2, 2, 2, 2, 3, 2, 0, 0, 1, 1, 2, 1, 2, 0, 1, 2, 3, 0, 4, 2, 1, 1])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(29, 13), (5, 28), (24, 23), (25, 5), (29, 9), (13, 12), (26, 9), (9, 19), (7, 26), (5, 16), (11, 6), (25, 24), (19, 24), (11, 19), (5, 18), (21, 3), (18, 19), (25, 9), (0, 16), (0, 17), (5, 19), (19, 8), (11, 16), (14, 11), (1, 20), (7, 25), (5, 21), (11, 7), (12, 6), (29, 14), (3, 0), (7, 9), (18, 15), (24, 6), (15, 13), (19, 1), (10, 16), (19, 15), (29, 15), (8, 17), (25, 27), (15, 8), (2, 4), (25, 16), (3, 4), (26, 29), (6, 17), (11, 25), (23, 29), (15, 26), (6, 28), (6, 2), (16, 18), (21, 27), (0, 23), (18, 21), (6, 3), (18, 17), (25, 8), (22, 15), (23, 14), (21, 10), (13, 19), (20, 17), (6, 18), (12, 17), (11, 24), (23, 6), (22, 0), (15, 16), (6, 8), (19, 7), (7, 13), (26, 11), (11, 17), (24, 15), (14, 18), (9, 6), (23, 28), (6, 19), (26, 22), (20, 12), (10, 29), (2, 27), (14, 24), (28, 18), (2, 23), (27, 29), (20, 6), (27, 5)]
@@ -2431,7 +2431,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 1, 1, 0, 3, 0, 3, 2, 2, 2, 2, 3, 2, 0, 0, 1, 1, 2, 1, 2, 0, 1, 2, 3, 0, 4, 2, 1, 1])
             #expect(coloring.colorCount == 5)
             #expect((0 ..< 30).map { coloring.color(ofIndex: $0) } == [0, 0, 1, 1, 0, 3, 0, 3, 2, 2, 2, 2, 3, 2, 0, 0, 1, 1, 2, 1, 2, 0, 1, 2, 3, 0, 4, 2, 1, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(29, 13), (5, 28), (24, 23), (25, 5), (29, 9), (13, 12), (26, 9), (9, 19), (7, 26), (5, 16), (11, 6), (25, 24), (19, 24), (11, 19), (5, 18), (21, 3), (18, 19), (25, 9), (0, 16), (0, 17), (5, 19), (19, 8), (11, 16), (14, 11), (1, 20), (7, 25), (5, 21), (11, 7), (12, 6), (29, 14), (3, 0), (7, 9), (18, 15), (24, 6), (15, 13), (19, 1), (10, 16), (19, 15), (29, 15), (8, 17), (25, 27), (15, 8), (2, 4), (25, 16), (3, 4), (26, 29), (6, 17), (11, 25), (23, 29), (15, 26), (6, 28), (6, 2), (16, 18), (21, 27), (0, 23), (18, 21), (6, 3), (18, 17), (25, 8), (22, 15), (23, 14), (21, 10), (13, 19), (20, 17), (6, 18), (12, 17), (11, 24), (23, 6), (22, 0), (15, 16), (6, 8), (19, 7), (7, 13), (26, 11), (11, 17), (24, 15), (14, 18), (9, 6), (23, 28), (6, 19), (26, 22), (20, 12), (10, 29), (2, 27), (14, 24), (28, 18), (2, 23), (27, 29), (20, 6), (27, 5)]
@@ -2442,7 +2442,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 1, 1, 0, 3, 0, 3, 2, 2, 2, 2, 3, 2, 0, 0, 1, 1, 2, 1, 2, 0, 1, 2, 3, 0, 4, 2, 1, 1])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(29, 13), (5, 28), (24, 23), (25, 5), (29, 9), (13, 12), (26, 9), (9, 19), (7, 26), (5, 16), (11, 6), (25, 24), (19, 24), (11, 19), (5, 18), (21, 3), (18, 19), (25, 9), (0, 16), (0, 17), (5, 19), (19, 8), (11, 16), (14, 11), (1, 20), (7, 25), (5, 21), (11, 7), (12, 6), (29, 14), (3, 0), (7, 9), (18, 15), (24, 6), (15, 13), (19, 1), (10, 16), (19, 15), (29, 15), (8, 17), (25, 27), (15, 8), (2, 4), (25, 16), (3, 4), (26, 29), (6, 17), (11, 25), (23, 29), (15, 26), (6, 28), (6, 2), (16, 18), (21, 27), (0, 23), (18, 21), (6, 3), (18, 17), (25, 8), (22, 15), (23, 14), (21, 10), (13, 19), (20, 17), (6, 18), (12, 17), (11, 24), (23, 6), (22, 0), (15, 16), (6, 8), (19, 7), (7, 13), (26, 11), (11, 17), (24, 15), (14, 18), (9, 6), (23, 28), (6, 19), (26, 22), (20, 12), (10, 29), (2, 27), (14, 24), (28, 18), (2, 23), (27, 29), (20, 6), (27, 5)]
@@ -2453,7 +2453,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .largestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 1, 1, 0, 3, 0, 3, 2, 2, 2, 2, 3, 2, 0, 0, 1, 1, 2, 1, 2, 0, 1, 2, 3, 0, 4, 2, 1, 1])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -2469,7 +2469,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 1, 0])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
@@ -2482,7 +2482,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 1, 0])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 3).map { coloring.color(ofIndex: $0) } == [2, 1, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
@@ -2493,7 +2493,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 1, 0])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
@@ -2504,7 +2504,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 1, 0])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -2520,7 +2520,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
@@ -2533,7 +2533,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 5).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
@@ -2544,7 +2544,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
@@ -2555,7 +2555,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -2571,7 +2571,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 1, 0, 1, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0)]
@@ -2584,7 +2584,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 1, 0, 1, 0])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 6).map { coloring.color(ofIndex: $0) } == [1, 0, 1, 0, 1, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0)]
@@ -2595,7 +2595,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 1, 0, 1, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0)]
@@ -2606,7 +2606,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 1, 0, 1, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -2622,7 +2622,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 0, 0, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4)]
@@ -2635,7 +2635,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 0, 0, 0])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 5).map { coloring.color(ofIndex: $0) } == [1, 0, 0, 0, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4)]
@@ -2646,7 +2646,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 0, 0, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4)]
@@ -2657,7 +2657,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 0, 0, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -2673,7 +2673,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 3, 1, 0, 1, 0])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (2, 3), (3, 4), (4, 5), (5, 1)]
@@ -2686,7 +2686,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 3, 1, 0, 1, 0])
             #expect(coloring.colorCount == 4)
             #expect((0 ..< 6).map { coloring.color(ofIndex: $0) } == [2, 3, 1, 0, 1, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (2, 3), (3, 4), (4, 5), (5, 1)]
@@ -2697,7 +2697,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 3, 1, 0, 1, 0])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (2, 3), (3, 4), (4, 5), (5, 1)]
@@ -2708,7 +2708,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 3, 1, 0, 1, 0])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -2724,7 +2724,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 2, 0, 2, 1, 2, 1, 1, 0, 0])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
@@ -2737,7 +2737,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 2, 0, 2, 1, 2, 1, 1, 0, 0])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 10).map { coloring.color(ofIndex: $0) } == [0, 2, 0, 2, 1, 2, 1, 1, 0, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
@@ -2748,7 +2748,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 2, 0, 2, 1, 2, 1, 1, 0, 0])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
@@ -2759,7 +2759,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 2, 0, 2, 1, 2, 1, 1, 0, 0])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -2775,7 +2775,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (9, 10), (10, 11)]
@@ -2788,7 +2788,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 12).map { coloring.color(ofIndex: $0) } == [1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (9, 10), (10, 11)]
@@ -2799,7 +2799,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (9, 10), (10, 11)]
@@ -2810,7 +2810,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -2826,7 +2826,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 1, 1, 1, 0, 0, 0, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 5), (0, 6), (0, 7), (1, 4), (1, 6), (1, 7), (2, 4), (2, 5), (2, 7), (3, 4), (3, 5), (3, 6)]
@@ -2837,7 +2837,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 1, 1, 1, 0, 0, 0, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 5), (0, 6), (0, 7), (1, 4), (1, 6), (1, 7), (2, 4), (2, 5), (2, 7), (3, 4), (3, 5), (3, 6)]
@@ -2850,7 +2850,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 1, 1, 1, 0, 0, 0, 0])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 8).map { coloring.color(ofIndex: $0) } == [1, 1, 1, 1, 0, 0, 0, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 5), (0, 6), (0, 7), (1, 4), (1, 6), (1, 7), (2, 4), (2, 5), (2, 7), (3, 4), (3, 5), (3, 6)]
@@ -2861,7 +2861,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 1, 1, 1, 0, 0, 0, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 5), (0, 6), (0, 7), (1, 4), (1, 6), (1, 7), (2, 4), (2, 5), (2, 7), (3, 4), (3, 5), (3, 6)]
@@ -2872,7 +2872,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 1, 1, 1, 0, 0, 0, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -2888,7 +2888,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 3), (0, 5), (0, 7), (2, 1), (2, 5), (2, 7), (4, 1), (4, 3), (4, 7), (6, 1), (6, 3), (6, 5)]
@@ -2901,7 +2901,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 8).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 0, 1, 0, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 3), (0, 5), (0, 7), (2, 1), (2, 5), (2, 7), (4, 1), (4, 3), (4, 7), (6, 1), (6, 3), (6, 5)]
@@ -2912,7 +2912,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 3), (0, 5), (0, 7), (2, 1), (2, 5), (2, 7), (4, 1), (4, 3), (4, 7), (6, 1), (6, 3), (6, 5)]
@@ -2923,7 +2923,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -2939,7 +2939,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 1, 0, 0, 1])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (1, 3), (2, 4)]
@@ -2952,7 +2952,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 1, 0, 0, 1])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 5).map { coloring.color(ofIndex: $0) } == [2, 1, 0, 0, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (1, 3), (2, 4)]
@@ -2963,7 +2963,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 1, 0, 0, 1])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (1, 3), (2, 4)]
@@ -2974,7 +2974,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 1, 0, 0, 1])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -2990,7 +2990,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [3, 2, 1, 2, 0, 2, 0, 1, 0, 2, 0, 1, 2, 1, 0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 19), (0, 10), (1, 2), (1, 8), (2, 3), (2, 6), (3, 4), (3, 19), (4, 5), (4, 17), (5, 6), (5, 15), (6, 7), (7, 8), (7, 14), (8, 9), (9, 10), (9, 13), (10, 11), (11, 12), (11, 18), (12, 13), (12, 16), (13, 14), (14, 15), (15, 16), (16, 17), (17, 18), (18, 19)]
@@ -3003,7 +3003,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [3, 2, 1, 2, 0, 2, 0, 1, 0, 2, 0, 1, 2, 1, 0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 4)
             #expect((0 ..< 20).map { coloring.color(ofIndex: $0) } == [3, 2, 1, 2, 0, 2, 0, 1, 0, 2, 0, 1, 2, 1, 0, 1, 0, 1, 0, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 19), (0, 10), (1, 2), (1, 8), (2, 3), (2, 6), (3, 4), (3, 19), (4, 5), (4, 17), (5, 6), (5, 15), (6, 7), (7, 8), (7, 14), (8, 9), (9, 10), (9, 13), (10, 11), (11, 12), (11, 18), (12, 13), (12, 16), (13, 14), (14, 15), (15, 16), (16, 17), (17, 18), (18, 19)]
@@ -3014,7 +3014,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [3, 2, 1, 2, 0, 2, 0, 1, 0, 2, 0, 1, 2, 1, 0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 19), (0, 10), (1, 2), (1, 8), (2, 3), (2, 6), (3, 4), (3, 19), (4, 5), (4, 17), (5, 6), (5, 15), (6, 7), (7, 8), (7, 14), (8, 9), (9, 10), (9, 13), (10, 11), (11, 12), (11, 18), (12, 13), (12, 16), (13, 14), (14, 15), (15, 16), (16, 17), (17, 18), (18, 19)]
@@ -3025,7 +3025,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [3, 2, 1, 2, 0, 2, 0, 1, 0, 2, 0, 1, 2, 1, 0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -3041,7 +3041,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 3, 0, 4, 1, 1, 0, 1, 3, 1, 0, 0, 0, 1, 2, 2, 2, 0, 2, 1, 2, 0, 2, 3, 2, 0, 1, 1, 1, 2, 2, 3, 1, 0])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8), (0, 10), (0, 11), (0, 12), (0, 13), (0, 17), (0, 19), (0, 21), (0, 31), (1, 2), (1, 3), (1, 7), (1, 13), (1, 17), (1, 19), (1, 21), (1, 30), (2, 3), (2, 7), (2, 8), (2, 9), (2, 13), (2, 27), (2, 28), (2, 32), (3, 7), (3, 12), (3, 13), (4, 6), (4, 10), (5, 6), (5, 10), (5, 16), (6, 16), (8, 30), (8, 32), (8, 33), (9, 33), (13, 33), (14, 32), (14, 33), (15, 32), (15, 33), (18, 32), (18, 33), (19, 33), (20, 32), (20, 33), (22, 32), (22, 33), (23, 25), (23, 27), (23, 29), (23, 32), (23, 33), (24, 25), (24, 27), (24, 31), (25, 31), (26, 29), (26, 33), (27, 33), (28, 31), (28, 33), (29, 32), (29, 33), (30, 32), (30, 33), (31, 32), (31, 33), (32, 33)]
@@ -3054,7 +3054,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 3, 0, 4, 1, 1, 0, 1, 3, 1, 0, 0, 0, 1, 2, 2, 2, 0, 2, 1, 2, 0, 2, 3, 2, 0, 1, 1, 1, 2, 2, 3, 1, 0])
             #expect(coloring.colorCount == 5)
             #expect((0 ..< 34).map { coloring.color(ofIndex: $0) } == [2, 3, 0, 4, 1, 1, 0, 1, 3, 1, 0, 0, 0, 1, 2, 2, 2, 0, 2, 1, 2, 0, 2, 3, 2, 0, 1, 1, 1, 2, 2, 3, 1, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8), (0, 10), (0, 11), (0, 12), (0, 13), (0, 17), (0, 19), (0, 21), (0, 31), (1, 2), (1, 3), (1, 7), (1, 13), (1, 17), (1, 19), (1, 21), (1, 30), (2, 3), (2, 7), (2, 8), (2, 9), (2, 13), (2, 27), (2, 28), (2, 32), (3, 7), (3, 12), (3, 13), (4, 6), (4, 10), (5, 6), (5, 10), (5, 16), (6, 16), (8, 30), (8, 32), (8, 33), (9, 33), (13, 33), (14, 32), (14, 33), (15, 32), (15, 33), (18, 32), (18, 33), (19, 33), (20, 32), (20, 33), (22, 32), (22, 33), (23, 25), (23, 27), (23, 29), (23, 32), (23, 33), (24, 25), (24, 27), (24, 31), (25, 31), (26, 29), (26, 33), (27, 33), (28, 31), (28, 33), (29, 32), (29, 33), (30, 32), (30, 33), (31, 32), (31, 33), (32, 33)]
@@ -3065,7 +3065,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 3, 0, 4, 1, 1, 0, 1, 3, 1, 0, 0, 0, 1, 2, 2, 2, 0, 2, 1, 2, 0, 2, 3, 2, 0, 1, 1, 1, 2, 2, 3, 1, 0])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8), (0, 10), (0, 11), (0, 12), (0, 13), (0, 17), (0, 19), (0, 21), (0, 31), (1, 2), (1, 3), (1, 7), (1, 13), (1, 17), (1, 19), (1, 21), (1, 30), (2, 3), (2, 7), (2, 8), (2, 9), (2, 13), (2, 27), (2, 28), (2, 32), (3, 7), (3, 12), (3, 13), (4, 6), (4, 10), (5, 6), (5, 10), (5, 16), (6, 16), (8, 30), (8, 32), (8, 33), (9, 33), (13, 33), (14, 32), (14, 33), (15, 32), (15, 33), (18, 32), (18, 33), (19, 33), (20, 32), (20, 33), (22, 32), (22, 33), (23, 25), (23, 27), (23, 29), (23, 32), (23, 33), (24, 25), (24, 27), (24, 31), (25, 31), (26, 29), (26, 33), (27, 33), (28, 31), (28, 33), (29, 32), (29, 33), (30, 32), (30, 33), (31, 32), (31, 33), (32, 33)]
@@ -3076,7 +3076,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 3, 0, 4, 1, 1, 0, 1, 3, 1, 0, 0, 0, 1, 2, 2, 2, 0, 2, 1, 2, 0, 2, 3, 2, 0, 1, 1, 1, 2, 2, 3, 1, 0])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -3092,7 +3092,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 3, 3, 1, 0, 1, 2, 1, 2, 1, 0, 1])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(2, 9), (0, 6), (6, 11), (2, 10), (9, 10), (3, 10), (2, 4), (10, 11), (4, 9), (7, 1), (2, 6), (9, 8), (0, 8), (0, 5), (6, 10), (4, 1), (11, 4), (0, 9), (6, 4), (8, 10), (1, 8), (2, 7), (7, 10), (9, 6)]
@@ -3105,7 +3105,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 3, 3, 1, 0, 1, 2, 1, 2, 1, 0, 1])
             #expect(coloring.colorCount == 4)
             #expect((0 ..< 12).map { coloring.color(ofIndex: $0) } == [0, 3, 3, 1, 0, 1, 2, 1, 2, 1, 0, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(2, 9), (0, 6), (6, 11), (2, 10), (9, 10), (3, 10), (2, 4), (10, 11), (4, 9), (7, 1), (2, 6), (9, 8), (0, 8), (0, 5), (6, 10), (4, 1), (11, 4), (0, 9), (6, 4), (8, 10), (1, 8), (2, 7), (7, 10), (9, 6)]
@@ -3116,7 +3116,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 3, 3, 1, 0, 1, 2, 1, 2, 1, 0, 1])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(2, 9), (0, 6), (6, 11), (2, 10), (9, 10), (3, 10), (2, 4), (10, 11), (4, 9), (7, 1), (2, 6), (9, 8), (0, 8), (0, 5), (6, 10), (4, 1), (11, 4), (0, 9), (6, 4), (8, 10), (1, 8), (2, 7), (7, 10), (9, 6)]
@@ -3127,7 +3127,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 3, 3, 1, 0, 1, 2, 1, 2, 1, 0, 1])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -3143,7 +3143,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [4, 1, 2, 3, 0, 0, 1, 3, 1, 0, 2, 2, 2, 1, 1, 1, 0, 0, 0, 2])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(18, 11), (5, 19), (19, 6), (12, 0), (9, 2), (16, 11), (16, 13), (14, 18), (13, 4), (0, 5), (13, 12), (12, 17), (10, 15), (13, 19), (9, 7), (5, 15), (8, 10), (0, 4), (6, 10), (12, 14), (17, 8), (14, 11), (8, 16), (6, 3), (3, 0), (12, 18), (1, 18), (10, 3), (8, 5), (10, 14), (12, 15), (16, 12), (17, 19), (18, 7), (5, 1), (17, 14), (8, 18), (15, 16), (5, 3), (16, 6), (5, 12), (15, 4), (1, 3), (8, 0), (5, 14), (2, 1), (10, 7), (7, 6), (18, 10), (5, 13)]
@@ -3156,7 +3156,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [4, 1, 2, 3, 0, 0, 1, 3, 1, 0, 2, 2, 2, 1, 1, 1, 0, 0, 0, 2])
             #expect(coloring.colorCount == 5)
             #expect((0 ..< 20).map { coloring.color(ofIndex: $0) } == [4, 1, 2, 3, 0, 0, 1, 3, 1, 0, 2, 2, 2, 1, 1, 1, 0, 0, 0, 2])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(18, 11), (5, 19), (19, 6), (12, 0), (9, 2), (16, 11), (16, 13), (14, 18), (13, 4), (0, 5), (13, 12), (12, 17), (10, 15), (13, 19), (9, 7), (5, 15), (8, 10), (0, 4), (6, 10), (12, 14), (17, 8), (14, 11), (8, 16), (6, 3), (3, 0), (12, 18), (1, 18), (10, 3), (8, 5), (10, 14), (12, 15), (16, 12), (17, 19), (18, 7), (5, 1), (17, 14), (8, 18), (15, 16), (5, 3), (16, 6), (5, 12), (15, 4), (1, 3), (8, 0), (5, 14), (2, 1), (10, 7), (7, 6), (18, 10), (5, 13)]
@@ -3167,7 +3167,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [4, 1, 2, 3, 0, 0, 1, 3, 1, 0, 2, 2, 2, 1, 1, 1, 0, 0, 0, 2])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(18, 11), (5, 19), (19, 6), (12, 0), (9, 2), (16, 11), (16, 13), (14, 18), (13, 4), (0, 5), (13, 12), (12, 17), (10, 15), (13, 19), (9, 7), (5, 15), (8, 10), (0, 4), (6, 10), (12, 14), (17, 8), (14, 11), (8, 16), (6, 3), (3, 0), (12, 18), (1, 18), (10, 3), (8, 5), (10, 14), (12, 15), (16, 12), (17, 19), (18, 7), (5, 1), (17, 14), (8, 18), (15, 16), (5, 3), (16, 6), (5, 12), (15, 4), (1, 3), (8, 0), (5, 14), (2, 1), (10, 7), (7, 6), (18, 10), (5, 13)]
@@ -3178,7 +3178,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [4, 1, 2, 3, 0, 0, 1, 3, 1, 0, 2, 2, 2, 1, 1, 1, 0, 0, 0, 2])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -3194,7 +3194,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 1, 1, 2, 0, 2, 3, 1, 1, 2, 2, 2, 1, 3, 3, 2, 3, 0, 1, 0, 2, 0, 3, 0, 1, 0, 0, 3, 4, 1])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(29, 13), (5, 28), (24, 23), (25, 5), (29, 9), (13, 12), (26, 9), (9, 19), (7, 26), (5, 16), (11, 6), (25, 24), (19, 24), (11, 19), (5, 18), (21, 3), (18, 19), (25, 9), (0, 16), (0, 17), (5, 19), (19, 8), (11, 16), (14, 11), (1, 20), (7, 25), (5, 21), (11, 7), (12, 6), (29, 14), (3, 0), (7, 9), (18, 15), (24, 6), (15, 13), (19, 1), (10, 16), (19, 15), (29, 15), (8, 17), (25, 27), (15, 8), (2, 4), (25, 16), (3, 4), (26, 29), (6, 17), (11, 25), (23, 29), (15, 26), (6, 28), (6, 2), (16, 18), (21, 27), (0, 23), (18, 21), (6, 3), (18, 17), (25, 8), (22, 15), (23, 14), (21, 10), (13, 19), (20, 17), (6, 18), (12, 17), (11, 24), (23, 6), (22, 0), (15, 16), (6, 8), (19, 7), (7, 13), (26, 11), (11, 17), (24, 15), (14, 18), (9, 6), (23, 28), (6, 19), (26, 22), (20, 12), (10, 29), (2, 27), (14, 24), (28, 18), (2, 23), (27, 29), (20, 6), (27, 5)]
@@ -3207,7 +3207,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 1, 1, 2, 0, 2, 3, 1, 1, 2, 2, 2, 1, 3, 3, 2, 3, 0, 1, 0, 2, 0, 3, 0, 1, 0, 0, 3, 4, 1])
             #expect(coloring.colorCount == 5)
             #expect((0 ..< 30).map { coloring.color(ofIndex: $0) } == [1, 1, 1, 2, 0, 2, 3, 1, 1, 2, 2, 2, 1, 3, 3, 2, 3, 0, 1, 0, 2, 0, 3, 0, 1, 0, 0, 3, 4, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(29, 13), (5, 28), (24, 23), (25, 5), (29, 9), (13, 12), (26, 9), (9, 19), (7, 26), (5, 16), (11, 6), (25, 24), (19, 24), (11, 19), (5, 18), (21, 3), (18, 19), (25, 9), (0, 16), (0, 17), (5, 19), (19, 8), (11, 16), (14, 11), (1, 20), (7, 25), (5, 21), (11, 7), (12, 6), (29, 14), (3, 0), (7, 9), (18, 15), (24, 6), (15, 13), (19, 1), (10, 16), (19, 15), (29, 15), (8, 17), (25, 27), (15, 8), (2, 4), (25, 16), (3, 4), (26, 29), (6, 17), (11, 25), (23, 29), (15, 26), (6, 28), (6, 2), (16, 18), (21, 27), (0, 23), (18, 21), (6, 3), (18, 17), (25, 8), (22, 15), (23, 14), (21, 10), (13, 19), (20, 17), (6, 18), (12, 17), (11, 24), (23, 6), (22, 0), (15, 16), (6, 8), (19, 7), (7, 13), (26, 11), (11, 17), (24, 15), (14, 18), (9, 6), (23, 28), (6, 19), (26, 22), (20, 12), (10, 29), (2, 27), (14, 24), (28, 18), (2, 23), (27, 29), (20, 6), (27, 5)]
@@ -3218,7 +3218,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 1, 1, 2, 0, 2, 3, 1, 1, 2, 2, 2, 1, 3, 3, 2, 3, 0, 1, 0, 2, 0, 3, 0, 1, 0, 0, 3, 4, 1])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(29, 13), (5, 28), (24, 23), (25, 5), (29, 9), (13, 12), (26, 9), (9, 19), (7, 26), (5, 16), (11, 6), (25, 24), (19, 24), (11, 19), (5, 18), (21, 3), (18, 19), (25, 9), (0, 16), (0, 17), (5, 19), (19, 8), (11, 16), (14, 11), (1, 20), (7, 25), (5, 21), (11, 7), (12, 6), (29, 14), (3, 0), (7, 9), (18, 15), (24, 6), (15, 13), (19, 1), (10, 16), (19, 15), (29, 15), (8, 17), (25, 27), (15, 8), (2, 4), (25, 16), (3, 4), (26, 29), (6, 17), (11, 25), (23, 29), (15, 26), (6, 28), (6, 2), (16, 18), (21, 27), (0, 23), (18, 21), (6, 3), (18, 17), (25, 8), (22, 15), (23, 14), (21, 10), (13, 19), (20, 17), (6, 18), (12, 17), (11, 24), (23, 6), (22, 0), (15, 16), (6, 8), (19, 7), (7, 13), (26, 11), (11, 17), (24, 15), (14, 18), (9, 6), (23, 28), (6, 19), (26, 22), (20, 12), (10, 29), (2, 27), (14, 24), (28, 18), (2, 23), (27, 29), (20, 6), (27, 5)]
@@ -3229,7 +3229,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 1, 1, 2, 0, 2, 3, 1, 1, 2, 2, 2, 1, 3, 3, 2, 3, 0, 1, 0, 2, 0, 3, 0, 1, 0, 0, 3, 4, 1])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -3245,7 +3245,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [4, 2, 1, 3, 2, 1, 2, 3, 0, 1, 0, 0])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 5), (0, 7), (0, 8), (0, 11), (1, 2), (1, 5), (1, 6), (1, 8), (2, 3), (2, 6), (2, 8), (2, 9), (3, 4), (3, 6), (3, 9), (3, 10), (4, 5), (4, 6), (4, 10), (4, 11), (5, 6), (5, 11), (7, 8), (7, 9), (7, 10), (7, 11), (8, 9), (9, 10), (10, 11)]
@@ -3258,7 +3258,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [4, 2, 1, 3, 2, 1, 2, 3, 0, 1, 0, 0])
             #expect(coloring.colorCount == 5)
             #expect((0 ..< 12).map { coloring.color(ofIndex: $0) } == [4, 2, 1, 3, 2, 1, 2, 3, 0, 1, 0, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 5), (0, 7), (0, 8), (0, 11), (1, 2), (1, 5), (1, 6), (1, 8), (2, 3), (2, 6), (2, 8), (2, 9), (3, 4), (3, 6), (3, 9), (3, 10), (4, 5), (4, 6), (4, 10), (4, 11), (5, 6), (5, 11), (7, 8), (7, 9), (7, 10), (7, 11), (8, 9), (9, 10), (10, 11)]
@@ -3269,7 +3269,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .smallestLast)
             #expect(vertexList.map { coloring.color(of: $0) } == [4, 2, 1, 3, 2, 1, 2, 3, 0, 1, 0, 0])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -3285,7 +3285,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
@@ -3298,7 +3298,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 3).map { coloring.color(ofIndex: $0) } == [0, 1, 2])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
@@ -3309,7 +3309,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
@@ -3320,7 +3320,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -3336,7 +3336,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 3, 4])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
@@ -3349,7 +3349,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 3, 4])
             #expect(coloring.colorCount == 5)
             #expect((0 ..< 5).map { coloring.color(ofIndex: $0) } == [0, 1, 2, 3, 4])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
@@ -3360,7 +3360,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 3, 4])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
@@ -3371,7 +3371,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 3, 4])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -3387,7 +3387,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
@@ -3400,7 +3400,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 5).map { coloring.color(ofIndex: $0) } == [1, 0, 1, 0, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
@@ -3411,7 +3411,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
@@ -3422,7 +3422,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -3438,7 +3438,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
@@ -3451,7 +3451,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 5).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 2])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
@@ -3462,7 +3462,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
@@ -3473,7 +3473,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -3489,7 +3489,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 0)]
@@ -3502,7 +3502,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 2])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 7).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 0, 1, 2])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 0)]
@@ -3513,7 +3513,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 0)]
@@ -3524,7 +3524,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -3540,7 +3540,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 1, 1, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4)]
@@ -3553,7 +3553,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 1, 1, 1])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 5).map { coloring.color(ofIndex: $0) } == [0, 1, 1, 1, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4)]
@@ -3564,7 +3564,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 1, 1, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4)]
@@ -3575,7 +3575,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 1, 1, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -3591,7 +3591,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 1, 2, 3])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (2, 3), (3, 4), (4, 5), (5, 1)]
@@ -3604,7 +3604,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 1, 2, 3])
             #expect(coloring.colorCount == 4)
             #expect((0 ..< 6).map { coloring.color(ofIndex: $0) } == [0, 1, 2, 1, 2, 3])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (2, 3), (3, 4), (4, 5), (5, 1)]
@@ -3615,7 +3615,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 1, 2, 3])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (2, 3), (3, 4), (4, 5), (5, 1)]
@@ -3626,7 +3626,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 1, 2, 3])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -3642,7 +3642,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 1, 2, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 1)]
@@ -3655,7 +3655,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 1, 2, 1, 2])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 7).map { coloring.color(ofIndex: $0) } == [0, 1, 2, 1, 2, 1, 2])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 1)]
@@ -3666,7 +3666,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 1, 2, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 1)]
@@ -3677,7 +3677,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 1, 2, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -3693,7 +3693,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2, 1, 0, 2, 2, 1])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
@@ -3706,7 +3706,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2, 1, 0, 2, 2, 1])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 10).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 2, 1, 0, 2, 2, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
@@ -3717,7 +3717,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2, 1, 0, 2, 2, 1])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
@@ -3728,7 +3728,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2, 1, 0, 2, 2, 1])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -3744,7 +3744,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (9, 10), (10, 11)]
@@ -3757,7 +3757,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 12).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (9, 10), (10, 11)]
@@ -3768,7 +3768,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (9, 10), (10, 11)]
@@ -3779,7 +3779,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -3795,7 +3795,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 0, 0, 1, 1, 1, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 5), (0, 6), (0, 7), (1, 4), (1, 6), (1, 7), (2, 4), (2, 5), (2, 7), (3, 4), (3, 5), (3, 6)]
@@ -3806,7 +3806,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 0, 0, 1, 1, 1, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 5), (0, 6), (0, 7), (1, 4), (1, 6), (1, 7), (2, 4), (2, 5), (2, 7), (3, 4), (3, 5), (3, 6)]
@@ -3819,7 +3819,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 0, 0, 1, 1, 1, 1])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 8).map { coloring.color(ofIndex: $0) } == [0, 0, 0, 0, 1, 1, 1, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 5), (0, 6), (0, 7), (1, 4), (1, 6), (1, 7), (2, 4), (2, 5), (2, 7), (3, 4), (3, 5), (3, 6)]
@@ -3830,7 +3830,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 0, 0, 1, 1, 1, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 5), (0, 6), (0, 7), (1, 4), (1, 6), (1, 7), (2, 4), (2, 5), (2, 7), (3, 4), (3, 5), (3, 6)]
@@ -3841,7 +3841,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 0, 0, 1, 1, 1, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -3857,7 +3857,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 3), (0, 5), (0, 7), (0, 9), (2, 1), (2, 5), (2, 7), (2, 9), (4, 1), (4, 3), (4, 7), (4, 9), (6, 1), (6, 3), (6, 5), (6, 9), (8, 1), (8, 3), (8, 5), (8, 7)]
@@ -3870,7 +3870,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 10).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 3), (0, 5), (0, 7), (0, 9), (2, 1), (2, 5), (2, 7), (2, 9), (4, 1), (4, 3), (4, 7), (4, 9), (6, 1), (6, 3), (6, 5), (6, 9), (8, 1), (8, 3), (8, 5), (8, 7)]
@@ -3881,7 +3881,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 3), (0, 5), (0, 7), (0, 9), (2, 1), (2, 5), (2, 7), (2, 9), (4, 1), (4, 3), (4, 7), (4, 9), (6, 1), (6, 3), (6, 5), (6, 9), (8, 1), (8, 3), (8, 5), (8, 7)]
@@ -3892,7 +3892,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -3908,7 +3908,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 2, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(String, String)] = [("d", "a"), ("a", "c"), ("c", "b"), ("b", "d"), ("d", "c")]
@@ -3921,7 +3921,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 2, 1, 2])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 4).map { coloring.color(ofIndex: $0) } == [0, 2, 1, 2])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(String, String)] = [("d", "a"), ("a", "c"), ("c", "b"), ("b", "d"), ("d", "c")]
@@ -3932,7 +3932,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 2, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -3948,7 +3948,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 0, 1, 1, 0])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (1, 3), (2, 4)]
@@ -3961,7 +3961,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 0, 1, 1, 0])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 5).map { coloring.color(ofIndex: $0) } == [2, 0, 1, 1, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (1, 3), (2, 4)]
@@ -3972,7 +3972,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 0, 1, 1, 0])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (1, 3), (2, 4)]
@@ -3983,7 +3983,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 0, 1, 1, 0])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -3999,7 +3999,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 3, 0, 1, 2])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 3), (1, 2), (2, 3), (2, 4), (3, 4)]
@@ -4012,7 +4012,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 3, 0, 1, 2])
             #expect(coloring.colorCount == 4)
             #expect((0 ..< 5).map { coloring.color(ofIndex: $0) } == [2, 3, 0, 1, 2])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 3), (1, 2), (2, 3), (2, 4), (3, 4)]
@@ -4023,7 +4023,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 3, 0, 1, 2])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 3), (1, 2), (2, 3), (2, 4), (3, 4)]
@@ -4034,7 +4034,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 3, 0, 1, 2])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -4050,7 +4050,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 2, 0, 2, 0, 1, 0, 1, 2, 1, 2, 0, 2, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 19), (0, 10), (1, 2), (1, 8), (2, 3), (2, 6), (3, 4), (3, 19), (4, 5), (4, 17), (5, 6), (5, 15), (6, 7), (7, 8), (7, 14), (8, 9), (9, 10), (9, 13), (10, 11), (11, 12), (11, 18), (12, 13), (12, 16), (13, 14), (14, 15), (15, 16), (16, 17), (17, 18), (18, 19)]
@@ -4063,7 +4063,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 2, 0, 2, 0, 1, 0, 1, 2, 1, 2, 0, 2, 1, 2])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 20).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 0, 1, 2, 0, 2, 0, 1, 0, 1, 2, 1, 2, 0, 2, 1, 2])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 19), (0, 10), (1, 2), (1, 8), (2, 3), (2, 6), (3, 4), (3, 19), (4, 5), (4, 17), (5, 6), (5, 15), (6, 7), (7, 8), (7, 14), (8, 9), (9, 10), (9, 13), (10, 11), (11, 12), (11, 18), (12, 13), (12, 16), (13, 14), (14, 15), (15, 16), (16, 17), (17, 18), (18, 19)]
@@ -4074,7 +4074,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 2, 0, 2, 0, 1, 0, 1, 2, 1, 2, 0, 2, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 19), (0, 10), (1, 2), (1, 8), (2, 3), (2, 6), (3, 4), (3, 19), (4, 5), (4, 17), (5, 6), (5, 15), (6, 7), (7, 8), (7, 14), (8, 9), (9, 10), (9, 13), (10, 11), (11, 12), (11, 18), (12, 13), (12, 16), (13, 14), (14, 15), (15, 16), (16, 17), (17, 18), (18, 19)]
@@ -4085,7 +4085,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 2, 0, 2, 0, 1, 0, 1, 2, 1, 2, 0, 2, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -4101,7 +4101,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2, 0, 1, 0, 1, 2, 3, 3])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 6), (0, 9), (1, 2), (1, 5), (1, 7), (2, 3), (2, 6), (2, 8), (3, 4), (3, 7), (3, 9), (4, 5), (4, 8), (5, 10), (5, 11), (6, 10), (6, 11), (7, 8), (7, 11), (8, 10), (9, 10), (9, 11)]
@@ -4114,7 +4114,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2, 0, 1, 0, 1, 2, 3, 3])
             #expect(coloring.colorCount == 4)
             #expect((0 ..< 12).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 2, 0, 1, 0, 1, 2, 3, 3])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 6), (0, 9), (1, 2), (1, 5), (1, 7), (2, 3), (2, 6), (2, 8), (3, 4), (3, 7), (3, 9), (4, 5), (4, 8), (5, 10), (5, 11), (6, 10), (6, 11), (7, 8), (7, 11), (8, 10), (9, 10), (9, 11)]
@@ -4125,7 +4125,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2, 0, 1, 0, 1, 2, 3, 3])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 6), (0, 9), (1, 2), (1, 5), (1, 7), (2, 3), (2, 6), (2, 8), (3, 4), (3, 7), (3, 9), (4, 5), (4, 8), (5, 10), (5, 11), (6, 10), (6, 11), (7, 8), (7, 11), (8, 10), (9, 10), (9, 11)]
@@ -4136,7 +4136,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2, 0, 1, 0, 1, 2, 3, 3])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -4152,7 +4152,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 1, 2, 0, 1, 2, 1, 2, 3, 0])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 3), (0, 6), (0, 8), (1, 2), (1, 7), (1, 5), (2, 4), (2, 9), (2, 6), (3, 4), (3, 9), (3, 5), (4, 7), (4, 8), (5, 10), (6, 10), (7, 10), (8, 10), (9, 10)]
@@ -4165,7 +4165,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 1, 2, 0, 1, 2, 1, 2, 3, 0])
             #expect(coloring.colorCount == 4)
             #expect((0 ..< 11).map { coloring.color(ofIndex: $0) } == [1, 0, 1, 2, 0, 1, 2, 1, 2, 3, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 3), (0, 6), (0, 8), (1, 2), (1, 7), (1, 5), (2, 4), (2, 9), (2, 6), (3, 4), (3, 9), (3, 5), (4, 7), (4, 8), (5, 10), (6, 10), (7, 10), (8, 10), (9, 10)]
@@ -4176,7 +4176,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 1, 2, 0, 1, 2, 1, 2, 3, 0])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 3), (0, 6), (0, 8), (1, 2), (1, 7), (1, 5), (2, 4), (2, 9), (2, 6), (3, 4), (3, 9), (3, 5), (4, 7), (4, 8), (5, 10), (6, 10), (7, 10), (8, 10), (9, 10)]
@@ -4187,7 +4187,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 1, 2, 0, 1, 2, 1, 2, 3, 0])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -4203,7 +4203,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 2, 0, 3, 0, 0, 2, 4, 2, 1, 2, 0, 0, 4, 2, 2, 1, 0, 2, 3, 2, 0, 2, 2, 0, 1, 1, 1, 1, 3, 3, 2, 1, 0])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8), (0, 10), (0, 11), (0, 12), (0, 13), (0, 17), (0, 19), (0, 21), (0, 31), (1, 2), (1, 3), (1, 7), (1, 13), (1, 17), (1, 19), (1, 21), (1, 30), (2, 3), (2, 7), (2, 8), (2, 9), (2, 13), (2, 27), (2, 28), (2, 32), (3, 7), (3, 12), (3, 13), (4, 6), (4, 10), (5, 6), (5, 10), (5, 16), (6, 16), (8, 30), (8, 32), (8, 33), (9, 33), (13, 33), (14, 32), (14, 33), (15, 32), (15, 33), (18, 32), (18, 33), (19, 33), (20, 32), (20, 33), (22, 32), (22, 33), (23, 25), (23, 27), (23, 29), (23, 32), (23, 33), (24, 25), (24, 27), (24, 31), (25, 31), (26, 29), (26, 33), (27, 33), (28, 31), (28, 33), (29, 32), (29, 33), (30, 32), (30, 33), (31, 32), (31, 33), (32, 33)]
@@ -4216,7 +4216,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 2, 0, 3, 0, 0, 2, 4, 2, 1, 2, 0, 0, 4, 2, 2, 1, 0, 2, 3, 2, 0, 2, 2, 0, 1, 1, 1, 1, 3, 3, 2, 1, 0])
             #expect(coloring.colorCount == 5)
             #expect((0 ..< 34).map { coloring.color(ofIndex: $0) } == [1, 2, 0, 3, 0, 0, 2, 4, 2, 1, 2, 0, 0, 4, 2, 2, 1, 0, 2, 3, 2, 0, 2, 2, 0, 1, 1, 1, 1, 3, 3, 2, 1, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8), (0, 10), (0, 11), (0, 12), (0, 13), (0, 17), (0, 19), (0, 21), (0, 31), (1, 2), (1, 3), (1, 7), (1, 13), (1, 17), (1, 19), (1, 21), (1, 30), (2, 3), (2, 7), (2, 8), (2, 9), (2, 13), (2, 27), (2, 28), (2, 32), (3, 7), (3, 12), (3, 13), (4, 6), (4, 10), (5, 6), (5, 10), (5, 16), (6, 16), (8, 30), (8, 32), (8, 33), (9, 33), (13, 33), (14, 32), (14, 33), (15, 32), (15, 33), (18, 32), (18, 33), (19, 33), (20, 32), (20, 33), (22, 32), (22, 33), (23, 25), (23, 27), (23, 29), (23, 32), (23, 33), (24, 25), (24, 27), (24, 31), (25, 31), (26, 29), (26, 33), (27, 33), (28, 31), (28, 33), (29, 32), (29, 33), (30, 32), (30, 33), (31, 32), (31, 33), (32, 33)]
@@ -4227,7 +4227,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 2, 0, 3, 0, 0, 2, 4, 2, 1, 2, 0, 0, 4, 2, 2, 1, 0, 2, 3, 2, 0, 2, 2, 0, 1, 1, 1, 1, 3, 3, 2, 1, 0])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8), (0, 10), (0, 11), (0, 12), (0, 13), (0, 17), (0, 19), (0, 21), (0, 31), (1, 2), (1, 3), (1, 7), (1, 13), (1, 17), (1, 19), (1, 21), (1, 30), (2, 3), (2, 7), (2, 8), (2, 9), (2, 13), (2, 27), (2, 28), (2, 32), (3, 7), (3, 12), (3, 13), (4, 6), (4, 10), (5, 6), (5, 10), (5, 16), (6, 16), (8, 30), (8, 32), (8, 33), (9, 33), (13, 33), (14, 32), (14, 33), (15, 32), (15, 33), (18, 32), (18, 33), (19, 33), (20, 32), (20, 33), (22, 32), (22, 33), (23, 25), (23, 27), (23, 29), (23, 32), (23, 33), (24, 25), (24, 27), (24, 31), (25, 31), (26, 29), (26, 33), (27, 33), (28, 31), (28, 33), (29, 32), (29, 33), (30, 32), (30, 33), (31, 32), (31, 33), (32, 33)]
@@ -4238,7 +4238,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 2, 0, 3, 0, 0, 2, 4, 2, 1, 2, 0, 0, 4, 2, 2, 1, 0, 2, 3, 2, 0, 2, 2, 0, 1, 1, 1, 1, 3, 3, 2, 1, 0])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -4254,7 +4254,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 1, 0, 1, 1, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (3, 4), (3, 5), (3, 6)]
@@ -4267,7 +4267,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 1, 0, 1, 1, 1])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 7).map { coloring.color(ofIndex: $0) } == [1, 0, 1, 0, 1, 1, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (3, 4), (3, 5), (3, 6)]
@@ -4278,7 +4278,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 1, 0, 1, 1, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (3, 4), (3, 5), (3, 6)]
@@ -4289,7 +4289,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 1, 0, 1, 1, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -4305,7 +4305,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 2, 3, 1, 0, 1, 1, 1, 1, 2, 0, 2])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(2, 9), (0, 6), (6, 11), (2, 10), (9, 10), (3, 10), (2, 4), (10, 11), (4, 9), (7, 1), (2, 6), (9, 8), (0, 8), (0, 5), (6, 10), (4, 1), (11, 4), (0, 9), (6, 4), (8, 10), (1, 8), (2, 7), (7, 10), (9, 6)]
@@ -4318,7 +4318,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 2, 3, 1, 0, 1, 1, 1, 1, 2, 0, 2])
             #expect(coloring.colorCount == 4)
             #expect((0 ..< 12).map { coloring.color(ofIndex: $0) } == [0, 2, 3, 1, 0, 1, 1, 1, 1, 2, 0, 2])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(2, 9), (0, 6), (6, 11), (2, 10), (9, 10), (3, 10), (2, 4), (10, 11), (4, 9), (7, 1), (2, 6), (9, 8), (0, 8), (0, 5), (6, 10), (4, 1), (11, 4), (0, 9), (6, 4), (8, 10), (1, 8), (2, 7), (7, 10), (9, 6)]
@@ -4329,7 +4329,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 2, 3, 1, 0, 1, 1, 1, 1, 2, 0, 2])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(2, 9), (0, 6), (6, 11), (2, 10), (9, 10), (3, 10), (2, 4), (10, 11), (4, 9), (7, 1), (2, 6), (9, 8), (0, 8), (0, 5), (6, 10), (4, 1), (11, 4), (0, 9), (6, 4), (8, 10), (1, 8), (2, 7), (7, 10), (9, 6)]
@@ -4340,7 +4340,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 2, 3, 1, 0, 1, 1, 1, 1, 2, 0, 2])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -4356,7 +4356,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [3, 1, 0, 2, 0, 0, 3, 2, 2, 1, 1, 1, 1, 2, 2, 2, 0, 0, 0, 1])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(18, 11), (5, 19), (19, 6), (12, 0), (9, 2), (16, 11), (16, 13), (14, 18), (13, 4), (0, 5), (13, 12), (12, 17), (10, 15), (13, 19), (9, 7), (5, 15), (8, 10), (0, 4), (6, 10), (12, 14), (17, 8), (14, 11), (8, 16), (6, 3), (3, 0), (12, 18), (1, 18), (10, 3), (8, 5), (10, 14), (12, 15), (16, 12), (17, 19), (18, 7), (5, 1), (17, 14), (8, 18), (15, 16), (5, 3), (16, 6), (5, 12), (15, 4), (1, 3), (8, 0), (5, 14), (2, 1), (10, 7), (7, 6), (18, 10), (5, 13)]
@@ -4369,7 +4369,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [3, 1, 0, 2, 0, 0, 3, 2, 2, 1, 1, 1, 1, 2, 2, 2, 0, 0, 0, 1])
             #expect(coloring.colorCount == 4)
             #expect((0 ..< 20).map { coloring.color(ofIndex: $0) } == [3, 1, 0, 2, 0, 0, 3, 2, 2, 1, 1, 1, 1, 2, 2, 2, 0, 0, 0, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(18, 11), (5, 19), (19, 6), (12, 0), (9, 2), (16, 11), (16, 13), (14, 18), (13, 4), (0, 5), (13, 12), (12, 17), (10, 15), (13, 19), (9, 7), (5, 15), (8, 10), (0, 4), (6, 10), (12, 14), (17, 8), (14, 11), (8, 16), (6, 3), (3, 0), (12, 18), (1, 18), (10, 3), (8, 5), (10, 14), (12, 15), (16, 12), (17, 19), (18, 7), (5, 1), (17, 14), (8, 18), (15, 16), (5, 3), (16, 6), (5, 12), (15, 4), (1, 3), (8, 0), (5, 14), (2, 1), (10, 7), (7, 6), (18, 10), (5, 13)]
@@ -4380,7 +4380,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [3, 1, 0, 2, 0, 0, 3, 2, 2, 1, 1, 1, 1, 2, 2, 2, 0, 0, 0, 1])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(18, 11), (5, 19), (19, 6), (12, 0), (9, 2), (16, 11), (16, 13), (14, 18), (13, 4), (0, 5), (13, 12), (12, 17), (10, 15), (13, 19), (9, 7), (5, 15), (8, 10), (0, 4), (6, 10), (12, 14), (17, 8), (14, 11), (8, 16), (6, 3), (3, 0), (12, 18), (1, 18), (10, 3), (8, 5), (10, 14), (12, 15), (16, 12), (17, 19), (18, 7), (5, 1), (17, 14), (8, 18), (15, 16), (5, 3), (16, 6), (5, 12), (15, 4), (1, 3), (8, 0), (5, 14), (2, 1), (10, 7), (7, 6), (18, 10), (5, 13)]
@@ -4391,7 +4391,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [3, 1, 0, 2, 0, 0, 3, 2, 2, 1, 1, 1, 1, 2, 2, 2, 0, 0, 0, 1])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -4407,7 +4407,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 3, 1, 0, 3, 0, 3, 2, 2, 2, 2, 3, 2, 0, 0, 1, 1, 2, 1, 2, 0, 2, 2, 3, 0, 1, 1, 1, 3])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(29, 13), (5, 28), (24, 23), (25, 5), (29, 9), (13, 12), (26, 9), (9, 19), (7, 26), (5, 16), (11, 6), (25, 24), (19, 24), (11, 19), (5, 18), (21, 3), (18, 19), (25, 9), (0, 16), (0, 17), (5, 19), (19, 8), (11, 16), (14, 11), (1, 20), (7, 25), (5, 21), (11, 7), (12, 6), (29, 14), (3, 0), (7, 9), (18, 15), (24, 6), (15, 13), (19, 1), (10, 16), (19, 15), (29, 15), (8, 17), (25, 27), (15, 8), (2, 4), (25, 16), (3, 4), (26, 29), (6, 17), (11, 25), (23, 29), (15, 26), (6, 28), (6, 2), (16, 18), (21, 27), (0, 23), (18, 21), (6, 3), (18, 17), (25, 8), (22, 15), (23, 14), (21, 10), (13, 19), (20, 17), (6, 18), (12, 17), (11, 24), (23, 6), (22, 0), (15, 16), (6, 8), (19, 7), (7, 13), (26, 11), (11, 17), (24, 15), (14, 18), (9, 6), (23, 28), (6, 19), (26, 22), (20, 12), (10, 29), (2, 27), (14, 24), (28, 18), (2, 23), (27, 29), (20, 6), (27, 5)]
@@ -4420,7 +4420,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 3, 1, 0, 3, 0, 3, 2, 2, 2, 2, 3, 2, 0, 0, 1, 1, 2, 1, 2, 0, 2, 2, 3, 0, 1, 1, 1, 3])
             #expect(coloring.colorCount == 4)
             #expect((0 ..< 30).map { coloring.color(ofIndex: $0) } == [0, 0, 3, 1, 0, 3, 0, 3, 2, 2, 2, 2, 3, 2, 0, 0, 1, 1, 2, 1, 2, 0, 2, 2, 3, 0, 1, 1, 1, 3])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(29, 13), (5, 28), (24, 23), (25, 5), (29, 9), (13, 12), (26, 9), (9, 19), (7, 26), (5, 16), (11, 6), (25, 24), (19, 24), (11, 19), (5, 18), (21, 3), (18, 19), (25, 9), (0, 16), (0, 17), (5, 19), (19, 8), (11, 16), (14, 11), (1, 20), (7, 25), (5, 21), (11, 7), (12, 6), (29, 14), (3, 0), (7, 9), (18, 15), (24, 6), (15, 13), (19, 1), (10, 16), (19, 15), (29, 15), (8, 17), (25, 27), (15, 8), (2, 4), (25, 16), (3, 4), (26, 29), (6, 17), (11, 25), (23, 29), (15, 26), (6, 28), (6, 2), (16, 18), (21, 27), (0, 23), (18, 21), (6, 3), (18, 17), (25, 8), (22, 15), (23, 14), (21, 10), (13, 19), (20, 17), (6, 18), (12, 17), (11, 24), (23, 6), (22, 0), (15, 16), (6, 8), (19, 7), (7, 13), (26, 11), (11, 17), (24, 15), (14, 18), (9, 6), (23, 28), (6, 19), (26, 22), (20, 12), (10, 29), (2, 27), (14, 24), (28, 18), (2, 23), (27, 29), (20, 6), (27, 5)]
@@ -4431,7 +4431,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 3, 1, 0, 3, 0, 3, 2, 2, 2, 2, 3, 2, 0, 0, 1, 1, 2, 1, 2, 0, 2, 2, 3, 0, 1, 1, 1, 3])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(29, 13), (5, 28), (24, 23), (25, 5), (29, 9), (13, 12), (26, 9), (9, 19), (7, 26), (5, 16), (11, 6), (25, 24), (19, 24), (11, 19), (5, 18), (21, 3), (18, 19), (25, 9), (0, 16), (0, 17), (5, 19), (19, 8), (11, 16), (14, 11), (1, 20), (7, 25), (5, 21), (11, 7), (12, 6), (29, 14), (3, 0), (7, 9), (18, 15), (24, 6), (15, 13), (19, 1), (10, 16), (19, 15), (29, 15), (8, 17), (25, 27), (15, 8), (2, 4), (25, 16), (3, 4), (26, 29), (6, 17), (11, 25), (23, 29), (15, 26), (6, 28), (6, 2), (16, 18), (21, 27), (0, 23), (18, 21), (6, 3), (18, 17), (25, 8), (22, 15), (23, 14), (21, 10), (13, 19), (20, 17), (6, 18), (12, 17), (11, 24), (23, 6), (22, 0), (15, 16), (6, 8), (19, 7), (7, 13), (26, 11), (11, 17), (24, 15), (14, 18), (9, 6), (23, 28), (6, 19), (26, 22), (20, 12), (10, 29), (2, 27), (14, 24), (28, 18), (2, 23), (27, 29), (20, 6), (27, 5)]
@@ -4442,7 +4442,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 3, 1, 0, 3, 0, 3, 2, 2, 2, 2, 3, 2, 0, 0, 1, 1, 2, 1, 2, 0, 2, 2, 3, 0, 1, 1, 1, 3])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -4458,7 +4458,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
@@ -4471,7 +4471,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 3).map { coloring.color(ofIndex: $0) } == [0, 1, 2])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
@@ -4482,7 +4482,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
@@ -4493,7 +4493,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -4509,7 +4509,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
@@ -4522,7 +4522,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 5).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
@@ -4533,7 +4533,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
@@ -4544,7 +4544,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -4560,7 +4560,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
@@ -4573,7 +4573,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 5).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 2])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
@@ -4584,7 +4584,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
@@ -4595,7 +4595,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -4611,7 +4611,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 0, 0, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4)]
@@ -4624,7 +4624,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 0, 0, 0])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 5).map { coloring.color(ofIndex: $0) } == [1, 0, 0, 0, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4)]
@@ -4635,7 +4635,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 0, 0, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4)]
@@ -4646,7 +4646,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 0, 0, 0, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -4662,7 +4662,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 0, 1, 0, 1, 3])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (2, 3), (3, 4), (4, 5), (5, 1)]
@@ -4675,7 +4675,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 0, 1, 0, 1, 3])
             #expect(coloring.colorCount == 4)
             #expect((0 ..< 6).map { coloring.color(ofIndex: $0) } == [2, 0, 1, 0, 1, 3])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (2, 3), (3, 4), (4, 5), (5, 1)]
@@ -4686,7 +4686,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 0, 1, 0, 1, 3])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (2, 3), (3, 4), (4, 5), (5, 1)]
@@ -4697,7 +4697,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 0, 1, 0, 1, 3])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -4713,7 +4713,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2, 1, 2, 2, 0, 0])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
@@ -4726,7 +4726,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2, 1, 2, 2, 0, 0])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 10).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 2, 1, 2, 2, 0, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
@@ -4737,7 +4737,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2, 1, 2, 2, 0, 0])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
@@ -4748,7 +4748,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2, 1, 2, 2, 0, 0])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -4764,7 +4764,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (9, 10), (10, 11)]
@@ -4777,7 +4777,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 12).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (9, 10), (10, 11)]
@@ -4788,7 +4788,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (9, 10), (10, 11)]
@@ -4799,7 +4799,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -4815,7 +4815,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 3), (0, 5), (0, 7), (2, 1), (2, 5), (2, 7), (4, 1), (4, 3), (4, 7), (6, 1), (6, 3), (6, 5)]
@@ -4828,7 +4828,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 8).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 0, 1, 0, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 3), (0, 5), (0, 7), (2, 1), (2, 5), (2, 7), (4, 1), (4, 3), (4, 7), (6, 1), (6, 3), (6, 5)]
@@ -4839,7 +4839,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 3), (0, 5), (0, 7), (2, 1), (2, 5), (2, 7), (4, 1), (4, 3), (4, 7), (6, 1), (6, 3), (6, 5)]
@@ -4850,7 +4850,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -4866,7 +4866,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 0, 0])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (1, 3), (2, 4)]
@@ -4879,7 +4879,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 0, 0])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 5).map { coloring.color(ofIndex: $0) } == [0, 1, 2, 0, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (1, 3), (2, 4)]
@@ -4890,7 +4890,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 0, 0])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (1, 3), (2, 4)]
@@ -4901,7 +4901,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 0, 0])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -4917,7 +4917,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [3, 2, 4, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 2, 3, 4])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8), (0, 10), (0, 11), (0, 12), (0, 13), (0, 17), (0, 19), (0, 21), (0, 31), (1, 2), (1, 3), (1, 7), (1, 13), (1, 17), (1, 19), (1, 21), (1, 30), (2, 3), (2, 7), (2, 8), (2, 9), (2, 13), (2, 27), (2, 28), (2, 32), (3, 7), (3, 12), (3, 13), (4, 6), (4, 10), (5, 6), (5, 10), (5, 16), (6, 16), (8, 30), (8, 32), (8, 33), (9, 33), (13, 33), (14, 32), (14, 33), (15, 32), (15, 33), (18, 32), (18, 33), (19, 33), (20, 32), (20, 33), (22, 32), (22, 33), (23, 25), (23, 27), (23, 29), (23, 32), (23, 33), (24, 25), (24, 27), (24, 31), (25, 31), (26, 29), (26, 33), (27, 33), (28, 31), (28, 33), (29, 32), (29, 33), (30, 32), (30, 33), (31, 32), (31, 33), (32, 33)]
@@ -4930,7 +4930,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [3, 2, 4, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 2, 3, 4])
             #expect(coloring.colorCount == 5)
             #expect((0 ..< 34).map { coloring.color(ofIndex: $0) } == [3, 2, 4, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 2, 3, 4])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8), (0, 10), (0, 11), (0, 12), (0, 13), (0, 17), (0, 19), (0, 21), (0, 31), (1, 2), (1, 3), (1, 7), (1, 13), (1, 17), (1, 19), (1, 21), (1, 30), (2, 3), (2, 7), (2, 8), (2, 9), (2, 13), (2, 27), (2, 28), (2, 32), (3, 7), (3, 12), (3, 13), (4, 6), (4, 10), (5, 6), (5, 10), (5, 16), (6, 16), (8, 30), (8, 32), (8, 33), (9, 33), (13, 33), (14, 32), (14, 33), (15, 32), (15, 33), (18, 32), (18, 33), (19, 33), (20, 32), (20, 33), (22, 32), (22, 33), (23, 25), (23, 27), (23, 29), (23, 32), (23, 33), (24, 25), (24, 27), (24, 31), (25, 31), (26, 29), (26, 33), (27, 33), (28, 31), (28, 33), (29, 32), (29, 33), (30, 32), (30, 33), (31, 32), (31, 33), (32, 33)]
@@ -4941,7 +4941,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [3, 2, 4, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 2, 3, 4])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8), (0, 10), (0, 11), (0, 12), (0, 13), (0, 17), (0, 19), (0, 21), (0, 31), (1, 2), (1, 3), (1, 7), (1, 13), (1, 17), (1, 19), (1, 21), (1, 30), (2, 3), (2, 7), (2, 8), (2, 9), (2, 13), (2, 27), (2, 28), (2, 32), (3, 7), (3, 12), (3, 13), (4, 6), (4, 10), (5, 6), (5, 10), (5, 16), (6, 16), (8, 30), (8, 32), (8, 33), (9, 33), (13, 33), (14, 32), (14, 33), (15, 32), (15, 33), (18, 32), (18, 33), (19, 33), (20, 32), (20, 33), (22, 32), (22, 33), (23, 25), (23, 27), (23, 29), (23, 32), (23, 33), (24, 25), (24, 27), (24, 31), (25, 31), (26, 29), (26, 33), (27, 33), (28, 31), (28, 33), (29, 32), (29, 33), (30, 32), (30, 33), (31, 32), (31, 33), (32, 33)]
@@ -4952,7 +4952,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [3, 2, 4, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 2, 3, 4])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -4968,7 +4968,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 1, 1, 0, 0, 0, 2, 0, 0, 3, 4, 1])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(2, 9), (0, 6), (6, 11), (2, 10), (9, 10), (3, 10), (2, 4), (10, 11), (4, 9), (7, 1), (2, 6), (9, 8), (0, 8), (0, 5), (6, 10), (4, 1), (11, 4), (0, 9), (6, 4), (8, 10), (1, 8), (2, 7), (7, 10), (9, 6)]
@@ -4981,7 +4981,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 1, 1, 0, 0, 0, 2, 0, 0, 3, 4, 1])
             #expect(coloring.colorCount == 5)
             #expect((0 ..< 12).map { coloring.color(ofIndex: $0) } == [1, 1, 1, 0, 0, 0, 2, 0, 0, 3, 4, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(2, 9), (0, 6), (6, 11), (2, 10), (9, 10), (3, 10), (2, 4), (10, 11), (4, 9), (7, 1), (2, 6), (9, 8), (0, 8), (0, 5), (6, 10), (4, 1), (11, 4), (0, 9), (6, 4), (8, 10), (1, 8), (2, 7), (7, 10), (9, 6)]
@@ -4992,7 +4992,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 1, 1, 0, 0, 0, 2, 0, 0, 3, 4, 1])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(2, 9), (0, 6), (6, 11), (2, 10), (9, 10), (3, 10), (2, 4), (10, 11), (4, 9), (7, 1), (2, 6), (9, 8), (0, 8), (0, 5), (6, 10), (4, 1), (11, 4), (0, 9), (6, 4), (8, 10), (1, 8), (2, 7), (7, 10), (9, 6)]
@@ -5003,7 +5003,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 1, 1, 0, 0, 0, 2, 0, 0, 3, 4, 1])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -5019,7 +5019,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 1, 0, 0, 0, 2, 1, 0, 0, 1, 2, 0, 0, 1, 1, 1, 2, 2, 3, 0])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(18, 11), (5, 19), (19, 6), (12, 0), (9, 2), (16, 11), (16, 13), (14, 18), (13, 4), (0, 5), (13, 12), (12, 17), (10, 15), (13, 19), (9, 7), (5, 15), (8, 10), (0, 4), (6, 10), (12, 14), (17, 8), (14, 11), (8, 16), (6, 3), (3, 0), (12, 18), (1, 18), (10, 3), (8, 5), (10, 14), (12, 15), (16, 12), (17, 19), (18, 7), (5, 1), (17, 14), (8, 18), (15, 16), (5, 3), (16, 6), (5, 12), (15, 4), (1, 3), (8, 0), (5, 14), (2, 1), (10, 7), (7, 6), (18, 10), (5, 13)]
@@ -5032,7 +5032,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 1, 0, 0, 0, 2, 1, 0, 0, 1, 2, 0, 0, 1, 1, 1, 2, 2, 3, 0])
             #expect(coloring.colorCount == 4)
             #expect((0 ..< 20).map { coloring.color(ofIndex: $0) } == [1, 1, 0, 0, 0, 2, 1, 0, 0, 1, 2, 0, 0, 1, 1, 1, 2, 2, 3, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(18, 11), (5, 19), (19, 6), (12, 0), (9, 2), (16, 11), (16, 13), (14, 18), (13, 4), (0, 5), (13, 12), (12, 17), (10, 15), (13, 19), (9, 7), (5, 15), (8, 10), (0, 4), (6, 10), (12, 14), (17, 8), (14, 11), (8, 16), (6, 3), (3, 0), (12, 18), (1, 18), (10, 3), (8, 5), (10, 14), (12, 15), (16, 12), (17, 19), (18, 7), (5, 1), (17, 14), (8, 18), (15, 16), (5, 3), (16, 6), (5, 12), (15, 4), (1, 3), (8, 0), (5, 14), (2, 1), (10, 7), (7, 6), (18, 10), (5, 13)]
@@ -5043,7 +5043,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 1, 0, 0, 0, 2, 1, 0, 0, 1, 2, 0, 0, 1, 1, 1, 2, 2, 3, 0])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(18, 11), (5, 19), (19, 6), (12, 0), (9, 2), (16, 11), (16, 13), (14, 18), (13, 4), (0, 5), (13, 12), (12, 17), (10, 15), (13, 19), (9, 7), (5, 15), (8, 10), (0, 4), (6, 10), (12, 14), (17, 8), (14, 11), (8, 16), (6, 3), (3, 0), (12, 18), (1, 18), (10, 3), (8, 5), (10, 14), (12, 15), (16, 12), (17, 19), (18, 7), (5, 1), (17, 14), (8, 18), (15, 16), (5, 3), (16, 6), (5, 12), (15, 4), (1, 3), (8, 0), (5, 14), (2, 1), (10, 7), (7, 6), (18, 10), (5, 13)]
@@ -5054,7 +5054,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .independentSet)
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 1, 0, 0, 0, 2, 1, 0, 0, 1, 2, 0, 0, 1, 1, 1, 2, 2, 3, 0])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -5070,7 +5070,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
@@ -5083,7 +5083,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 5).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
@@ -5094,7 +5094,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
@@ -5105,7 +5105,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -5121,7 +5121,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialDepthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
@@ -5134,7 +5134,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 5).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
@@ -5145,7 +5145,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialDepthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
@@ -5156,7 +5156,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialDepthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -5172,7 +5172,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0)]
@@ -5185,7 +5185,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 6).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 0, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0)]
@@ -5196,7 +5196,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0)]
@@ -5207,7 +5207,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -5223,7 +5223,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialDepthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0)]
@@ -5236,7 +5236,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 6).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 0, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0)]
@@ -5247,7 +5247,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialDepthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0)]
@@ -5258,7 +5258,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialDepthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -5274,7 +5274,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 1, 1, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4)]
@@ -5287,7 +5287,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 1, 1, 1])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 5).map { coloring.color(ofIndex: $0) } == [0, 1, 1, 1, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4)]
@@ -5298,7 +5298,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 1, 1, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4)]
@@ -5309,7 +5309,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 1, 1, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -5325,7 +5325,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialDepthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 1, 1, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4)]
@@ -5338,7 +5338,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 1, 1, 1])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 5).map { coloring.color(ofIndex: $0) } == [0, 1, 1, 1, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4)]
@@ -5349,7 +5349,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialDepthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 1, 1, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4)]
@@ -5360,7 +5360,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialDepthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 1, 1, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -5376,7 +5376,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 2, 1, 1, 0, 3, 3, 2])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
@@ -5389,7 +5389,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 2, 1, 1, 0, 3, 3, 2])
             #expect(coloring.colorCount == 4)
             #expect((0 ..< 10).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 2, 1, 1, 0, 3, 3, 2])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
@@ -5400,7 +5400,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 2, 1, 1, 0, 3, 3, 2])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
@@ -5411,7 +5411,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 2, 1, 1, 0, 3, 3, 2])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -5427,7 +5427,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialDepthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2, 1, 2, 2, 0, 0])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
@@ -5440,7 +5440,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2, 1, 2, 2, 0, 0])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 10).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 2, 1, 2, 2, 0, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
@@ -5451,7 +5451,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialDepthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2, 1, 2, 2, 0, 0])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
@@ -5462,7 +5462,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialDepthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2, 1, 2, 2, 0, 0])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -5478,7 +5478,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (9, 10), (10, 11)]
@@ -5491,7 +5491,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 12).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (9, 10), (10, 11)]
@@ -5502,7 +5502,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (9, 10), (10, 11)]
@@ -5513,7 +5513,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -5529,7 +5529,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialDepthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (9, 10), (10, 11)]
@@ -5542,7 +5542,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 12).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (9, 10), (10, 11)]
@@ -5553,7 +5553,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialDepthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (9, 10), (10, 11)]
@@ -5564,7 +5564,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialDepthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -5580,7 +5580,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 3), (0, 5), (0, 7), (2, 1), (2, 5), (2, 7), (4, 1), (4, 3), (4, 7), (6, 1), (6, 3), (6, 5)]
@@ -5593,7 +5593,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 8).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 0, 1, 0, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 3), (0, 5), (0, 7), (2, 1), (2, 5), (2, 7), (4, 1), (4, 3), (4, 7), (6, 1), (6, 3), (6, 5)]
@@ -5604,7 +5604,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 3), (0, 5), (0, 7), (2, 1), (2, 5), (2, 7), (4, 1), (4, 3), (4, 7), (6, 1), (6, 3), (6, 5)]
@@ -5615,7 +5615,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -5631,7 +5631,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialDepthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 3), (0, 5), (0, 7), (2, 1), (2, 5), (2, 7), (4, 1), (4, 3), (4, 7), (6, 1), (6, 3), (6, 5)]
@@ -5644,7 +5644,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 8).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 0, 1, 0, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 3), (0, 5), (0, 7), (2, 1), (2, 5), (2, 7), (4, 1), (4, 3), (4, 7), (6, 1), (6, 3), (6, 5)]
@@ -5655,7 +5655,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialDepthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 3), (0, 5), (0, 7), (2, 1), (2, 5), (2, 7), (4, 1), (4, 3), (4, 7), (6, 1), (6, 3), (6, 5)]
@@ -5666,7 +5666,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialDepthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -5682,7 +5682,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 1, 0, 1, 1, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 4), (4, 6), (1, 2), (2, 3), (3, 5), (5, 1)]
@@ -5695,7 +5695,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 1, 0, 1, 1, 0])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 7).map { coloring.color(ofIndex: $0) } == [0, 0, 1, 0, 1, 1, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 4), (4, 6), (1, 2), (2, 3), (3, 5), (5, 1)]
@@ -5706,7 +5706,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 1, 0, 1, 1, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 4), (4, 6), (1, 2), (2, 3), (3, 5), (5, 1)]
@@ -5717,7 +5717,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 1, 0, 1, 1, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -5733,7 +5733,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialDepthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 1, 0, 1, 1, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 4), (4, 6), (1, 2), (2, 3), (3, 5), (5, 1)]
@@ -5746,7 +5746,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 1, 0, 1, 1, 0])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 7).map { coloring.color(ofIndex: $0) } == [0, 0, 1, 0, 1, 1, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 4), (4, 6), (1, 2), (2, 3), (3, 5), (5, 1)]
@@ -5757,7 +5757,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialDepthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 1, 0, 1, 1, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 4), (4, 6), (1, 2), (2, 3), (3, 5), (5, 1)]
@@ -5768,7 +5768,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialDepthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 1, 0, 1, 1, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -5784,7 +5784,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 0, 0, 1, 2, 1])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(9, 5), (0, 1), (1, 2), (2, 3), (3, 4), (6, 7), (7, 8), (8, 6)]
@@ -5797,7 +5797,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 0, 0, 1, 2, 1])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 10).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 0, 0, 0, 1, 2, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(9, 5), (0, 1), (1, 2), (2, 3), (3, 4), (6, 7), (7, 8), (8, 6)]
@@ -5808,7 +5808,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 0, 0, 1, 2, 1])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(9, 5), (0, 1), (1, 2), (2, 3), (3, 4), (6, 7), (7, 8), (8, 6)]
@@ -5819,7 +5819,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 0, 0, 1, 2, 1])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -5835,7 +5835,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialDepthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 0, 0, 1, 2, 1])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(9, 5), (0, 1), (1, 2), (2, 3), (3, 4), (6, 7), (7, 8), (8, 6)]
@@ -5848,7 +5848,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 0, 0, 1, 2, 1])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 10).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 0, 0, 0, 1, 2, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(9, 5), (0, 1), (1, 2), (2, 3), (3, 4), (6, 7), (7, 8), (8, 6)]
@@ -5859,7 +5859,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialDepthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 0, 0, 1, 2, 1])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(9, 5), (0, 1), (1, 2), (2, 3), (3, 4), (6, 7), (7, 8), (8, 6)]
@@ -5870,7 +5870,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialDepthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 0, 0, 1, 2, 1])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -5886,7 +5886,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 0, 0, 3, 1, 1, 1, 1, 2, 3, 0])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(2, 9), (0, 6), (6, 11), (2, 10), (9, 10), (3, 10), (2, 4), (10, 11), (4, 9), (7, 1), (2, 6), (9, 8), (0, 8), (0, 5), (6, 10), (4, 1), (11, 4), (0, 9), (6, 4), (8, 10), (1, 8), (2, 7), (7, 10), (9, 6)]
@@ -5899,7 +5899,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 0, 0, 3, 1, 1, 1, 1, 2, 3, 0])
             #expect(coloring.colorCount == 4)
             #expect((0 ..< 12).map { coloring.color(ofIndex: $0) } == [0, 0, 0, 0, 3, 1, 1, 1, 1, 2, 3, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(2, 9), (0, 6), (6, 11), (2, 10), (9, 10), (3, 10), (2, 4), (10, 11), (4, 9), (7, 1), (2, 6), (9, 8), (0, 8), (0, 5), (6, 10), (4, 1), (11, 4), (0, 9), (6, 4), (8, 10), (1, 8), (2, 7), (7, 10), (9, 6)]
@@ -5910,7 +5910,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 0, 0, 3, 1, 1, 1, 1, 2, 3, 0])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(2, 9), (0, 6), (6, 11), (2, 10), (9, 10), (3, 10), (2, 4), (10, 11), (4, 9), (7, 1), (2, 6), (9, 8), (0, 8), (0, 5), (6, 10), (4, 1), (11, 4), (0, 9), (6, 4), (8, 10), (1, 8), (2, 7), (7, 10), (9, 6)]
@@ -5921,7 +5921,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 2, 3, 1, 0, 1, 1, 1, 1, 2, 0, 2])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -5937,7 +5937,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialDepthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 0, 0, 2, 1, 1, 1, 1, 3, 2, 0])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(2, 9), (0, 6), (6, 11), (2, 10), (9, 10), (3, 10), (2, 4), (10, 11), (4, 9), (7, 1), (2, 6), (9, 8), (0, 8), (0, 5), (6, 10), (4, 1), (11, 4), (0, 9), (6, 4), (8, 10), (1, 8), (2, 7), (7, 10), (9, 6)]
@@ -5950,7 +5950,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 0, 0, 2, 1, 1, 1, 1, 3, 2, 0])
             #expect(coloring.colorCount == 4)
             #expect((0 ..< 12).map { coloring.color(ofIndex: $0) } == [0, 0, 0, 0, 2, 1, 1, 1, 1, 3, 2, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(2, 9), (0, 6), (6, 11), (2, 10), (9, 10), (3, 10), (2, 4), (10, 11), (4, 9), (7, 1), (2, 6), (9, 8), (0, 8), (0, 5), (6, 10), (4, 1), (11, 4), (0, 9), (6, 4), (8, 10), (1, 8), (2, 7), (7, 10), (9, 6)]
@@ -5961,7 +5961,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialDepthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 0, 0, 2, 1, 1, 1, 1, 3, 2, 0])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(2, 9), (0, 6), (6, 11), (2, 10), (9, 10), (3, 10), (2, 4), (10, 11), (4, 9), (7, 1), (2, 6), (9, 8), (0, 8), (0, 5), (6, 10), (4, 1), (11, 4), (0, 9), (6, 4), (8, 10), (1, 8), (2, 7), (7, 10), (9, 6)]
@@ -5972,7 +5972,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialDepthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 1, 0, 1, 1, 3, 2, 3, 0, 2])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -5988,7 +5988,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 3, 0, 1, 1, 2, 0, 1, 1, 2, 2, 1, 1, 0, 3, 0, 2, 0, 0, 1])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(18, 11), (5, 19), (19, 6), (12, 0), (9, 2), (16, 11), (16, 13), (14, 18), (13, 4), (0, 5), (13, 12), (12, 17), (10, 15), (13, 19), (9, 7), (5, 15), (8, 10), (0, 4), (6, 10), (12, 14), (17, 8), (14, 11), (8, 16), (6, 3), (3, 0), (12, 18), (1, 18), (10, 3), (8, 5), (10, 14), (12, 15), (16, 12), (17, 19), (18, 7), (5, 1), (17, 14), (8, 18), (15, 16), (5, 3), (16, 6), (5, 12), (15, 4), (1, 3), (8, 0), (5, 14), (2, 1), (10, 7), (7, 6), (18, 10), (5, 13)]
@@ -6001,7 +6001,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 3, 0, 1, 1, 2, 0, 1, 1, 2, 2, 1, 1, 0, 3, 0, 2, 0, 0, 1])
             #expect(coloring.colorCount == 4)
             #expect((0 ..< 20).map { coloring.color(ofIndex: $0) } == [0, 3, 0, 1, 1, 2, 0, 1, 1, 2, 2, 1, 1, 0, 3, 0, 2, 0, 0, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(18, 11), (5, 19), (19, 6), (12, 0), (9, 2), (16, 11), (16, 13), (14, 18), (13, 4), (0, 5), (13, 12), (12, 17), (10, 15), (13, 19), (9, 7), (5, 15), (8, 10), (0, 4), (6, 10), (12, 14), (17, 8), (14, 11), (8, 16), (6, 3), (3, 0), (12, 18), (1, 18), (10, 3), (8, 5), (10, 14), (12, 15), (16, 12), (17, 19), (18, 7), (5, 1), (17, 14), (8, 18), (15, 16), (5, 3), (16, 6), (5, 12), (15, 4), (1, 3), (8, 0), (5, 14), (2, 1), (10, 7), (7, 6), (18, 10), (5, 13)]
@@ -6012,7 +6012,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 1, 2, 1, 1, 3, 0, 2, 2, 4, 2, 2, 3, 0, 0, 1, 1, 1, 0])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(18, 11), (5, 19), (19, 6), (12, 0), (9, 2), (16, 11), (16, 13), (14, 18), (13, 4), (0, 5), (13, 12), (12, 17), (10, 15), (13, 19), (9, 7), (5, 15), (8, 10), (0, 4), (6, 10), (12, 14), (17, 8), (14, 11), (8, 16), (6, 3), (3, 0), (12, 18), (1, 18), (10, 3), (8, 5), (10, 14), (12, 15), (16, 12), (17, 19), (18, 7), (5, 1), (17, 14), (8, 18), (15, 16), (5, 3), (16, 6), (5, 12), (15, 4), (1, 3), (8, 0), (5, 14), (2, 1), (10, 7), (7, 6), (18, 10), (5, 13)]
@@ -6023,7 +6023,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialBreadthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 1, 2, 1, 1, 0, 2, 2, 0, 1, 2, 2, 0, 0, 0, 1, 1, 3, 2])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -6039,7 +6039,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialDepthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 1, 1, 1, 2, 3, 1, 1, 0, 0, 0, 1, 0, 3, 3, 2, 0, 2, 1])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(18, 11), (5, 19), (19, 6), (12, 0), (9, 2), (16, 11), (16, 13), (14, 18), (13, 4), (0, 5), (13, 12), (12, 17), (10, 15), (13, 19), (9, 7), (5, 15), (8, 10), (0, 4), (6, 10), (12, 14), (17, 8), (14, 11), (8, 16), (6, 3), (3, 0), (12, 18), (1, 18), (10, 3), (8, 5), (10, 14), (12, 15), (16, 12), (17, 19), (18, 7), (5, 1), (17, 14), (8, 18), (15, 16), (5, 3), (16, 6), (5, 12), (15, 4), (1, 3), (8, 0), (5, 14), (2, 1), (10, 7), (7, 6), (18, 10), (5, 13)]
@@ -6052,7 +6052,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 1, 1, 1, 2, 3, 1, 1, 0, 0, 0, 1, 0, 3, 3, 2, 0, 2, 1])
             #expect(coloring.colorCount == 4)
             #expect((0 ..< 20).map { coloring.color(ofIndex: $0) } == [0, 0, 1, 1, 1, 2, 3, 1, 1, 0, 0, 0, 1, 0, 3, 3, 2, 0, 2, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(18, 11), (5, 19), (19, 6), (12, 0), (9, 2), (16, 11), (16, 13), (14, 18), (13, 4), (0, 5), (13, 12), (12, 17), (10, 15), (13, 19), (9, 7), (5, 15), (8, 10), (0, 4), (6, 10), (12, 14), (17, 8), (14, 11), (8, 16), (6, 3), (3, 0), (12, 18), (1, 18), (10, 3), (8, 5), (10, 14), (12, 15), (16, 12), (17, 19), (18, 7), (5, 1), (17, 14), (8, 18), (15, 16), (5, 3), (16, 6), (5, 12), (15, 4), (1, 3), (8, 0), (5, 14), (2, 1), (10, 7), (7, 6), (18, 10), (5, 13)]
@@ -6063,7 +6063,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialDepthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 1, 2, 1, 1, 1, 3, 3, 0, 0, 1, 4, 2, 3, 2, 0, 1, 2, 0])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(18, 11), (5, 19), (19, 6), (12, 0), (9, 2), (16, 11), (16, 13), (14, 18), (13, 4), (0, 5), (13, 12), (12, 17), (10, 15), (13, 19), (9, 7), (5, 15), (8, 10), (0, 4), (6, 10), (12, 14), (17, 8), (14, 11), (8, 16), (6, 3), (3, 0), (12, 18), (1, 18), (10, 3), (8, 5), (10, 14), (12, 15), (16, 12), (17, 19), (18, 7), (5, 1), (17, 14), (8, 18), (15, 16), (5, 3), (16, 6), (5, 12), (15, 4), (1, 3), (8, 0), (5, 14), (2, 1), (10, 7), (7, 6), (18, 10), (5, 13)]
@@ -6074,7 +6074,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(strategy: .connectedSequentialDepthFirst)
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 1, 1, 1, 2, 0, 1, 1, 0, 3, 1, 1, 0, 0, 0, 2, 2, 2, 1])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -6090,7 +6090,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(order: [] as [Int])
             #expect(vertexList.map { coloring.color(of: $0) } == [])
             #expect(coloring.colorCount == 0)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = []
@@ -6103,7 +6103,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [])
             #expect(coloring.colorCount == 0)
             #expect((0 ..< 0).map { coloring.color(ofIndex: $0) } == [])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = []
@@ -6114,7 +6114,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(order: [] as [Int])
             #expect(vertexList.map { coloring.color(of: $0) } == [])
             #expect(coloring.colorCount == 0)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = []
@@ -6125,7 +6125,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(order: [] as [Int])
             #expect(vertexList.map { coloring.color(of: $0) } == [])
             #expect(coloring.colorCount == 0)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -6141,7 +6141,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(order: [4, 3, 2, 1, 0] as [Int])
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
@@ -6154,7 +6154,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 5).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
@@ -6165,7 +6165,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(order: [4, 3, 2, 1, 0] as [Int])
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
@@ -6176,7 +6176,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(order: [4, 3, 2, 1, 0] as [Int])
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -6192,7 +6192,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(order: [0, 4, 1, 5, 2, 6, 3, 7] as [Int])
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 3, 0, 1, 2, 3])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 5), (0, 6), (0, 7), (1, 4), (1, 6), (1, 7), (2, 4), (2, 5), (2, 7), (3, 4), (3, 5), (3, 6)]
@@ -6203,7 +6203,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(order: [0, 4, 1, 5, 2, 6, 3, 7] as [Int])
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 3, 0, 1, 2, 3])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 5), (0, 6), (0, 7), (1, 4), (1, 6), (1, 7), (2, 4), (2, 5), (2, 7), (3, 4), (3, 5), (3, 6)]
@@ -6216,7 +6216,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 3, 0, 1, 2, 3])
             #expect(coloring.colorCount == 4)
             #expect((0 ..< 8).map { coloring.color(ofIndex: $0) } == [0, 1, 2, 3, 0, 1, 2, 3])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 5), (0, 6), (0, 7), (1, 4), (1, 6), (1, 7), (2, 4), (2, 5), (2, 7), (3, 4), (3, 5), (3, 6)]
@@ -6227,7 +6227,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(order: [0, 4, 1, 5, 2, 6, 3, 7] as [Int])
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 3, 0, 1, 2, 3])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 5), (0, 6), (0, 7), (1, 4), (1, 6), (1, 7), (2, 4), (2, 5), (2, 7), (3, 4), (3, 5), (3, 6)]
@@ -6238,7 +6238,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(order: [0, 4, 1, 5, 2, 6, 3, 7] as [Int])
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 3, 0, 1, 2, 3])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -6254,7 +6254,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(order: [0, 1, 2, 3, 4, 5, 6, 7] as [Int])
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 0, 0, 1, 1, 1, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 5), (0, 6), (0, 7), (1, 4), (1, 6), (1, 7), (2, 4), (2, 5), (2, 7), (3, 4), (3, 5), (3, 6)]
@@ -6265,7 +6265,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(order: [0, 1, 2, 3, 4, 5, 6, 7] as [Int])
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 0, 0, 1, 1, 1, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 5), (0, 6), (0, 7), (1, 4), (1, 6), (1, 7), (2, 4), (2, 5), (2, 7), (3, 4), (3, 5), (3, 6)]
@@ -6278,7 +6278,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 0, 0, 1, 1, 1, 1])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 8).map { coloring.color(ofIndex: $0) } == [0, 0, 0, 0, 1, 1, 1, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 5), (0, 6), (0, 7), (1, 4), (1, 6), (1, 7), (2, 4), (2, 5), (2, 7), (3, 4), (3, 5), (3, 6)]
@@ -6289,7 +6289,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(order: [0, 1, 2, 3, 4, 5, 6, 7] as [Int])
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 0, 0, 1, 1, 1, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 5), (0, 6), (0, 7), (1, 4), (1, 6), (1, 7), (2, 4), (2, 5), (2, 7), (3, 4), (3, 5), (3, 6)]
@@ -6300,7 +6300,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(order: [0, 1, 2, 3, 4, 5, 6, 7] as [Int])
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 0, 0, 1, 1, 1, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -6316,7 +6316,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(order: ["c", "b", "a", "d"] as [String])
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 1, 0, 1])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(String, String)] = [("d", "a"), ("a", "c"), ("c", "b"), ("b", "d"), ("d", "c")]
@@ -6329,7 +6329,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 1, 0, 1])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 4).map { coloring.color(ofIndex: $0) } == [2, 1, 0, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(String, String)] = [("d", "a"), ("a", "c"), ("c", "b"), ("b", "d"), ("d", "c")]
@@ -6340,7 +6340,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(order: ["c", "b", "a", "d"] as [String])
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 1, 0, 1])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -6356,7 +6356,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(order: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int])
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2, 1, 0, 2, 2, 1])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
@@ -6369,7 +6369,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2, 1, 0, 2, 2, 1])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 10).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 2, 1, 0, 2, 2, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
@@ -6380,7 +6380,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(order: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int])
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2, 1, 0, 2, 2, 1])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
@@ -6391,7 +6391,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(order: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int])
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2, 1, 0, 2, 2, 1])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -6407,7 +6407,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(order: [5, 6, 7, 8, 9, 0, 1, 2, 3, 4] as [Int])
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 2, 0, 2, 0, 0, 0, 1, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
@@ -6420,7 +6420,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 2, 0, 2, 0, 0, 0, 1, 1, 2])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 10).map { coloring.color(ofIndex: $0) } == [1, 2, 0, 2, 0, 0, 0, 1, 1, 2])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
@@ -6431,7 +6431,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(order: [5, 6, 7, 8, 9, 0, 1, 2, 3, 4] as [Int])
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 2, 0, 2, 0, 0, 0, 1, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
@@ -6442,7 +6442,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(order: [5, 6, 7, 8, 9, 0, 1, 2, 3, 4] as [Int])
             #expect(vertexList.map { coloring.color(of: $0) } == [1, 2, 0, 2, 0, 0, 0, 1, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -6458,7 +6458,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(order: [3, 2, 1, 0] as [Int])
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 0, 1, 0])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 1), (1, 2), (2, 3), (3, 3), (0, 2)]
@@ -6471,7 +6471,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 0, 1, 0])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 4).map { coloring.color(ofIndex: $0) } == [2, 0, 1, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 1), (1, 2), (2, 3), (3, 3), (0, 2)]
@@ -6482,7 +6482,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(order: [3, 2, 1, 0] as [Int])
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 0, 1, 0])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 1), (1, 2), (2, 3), (3, 3), (0, 2)]
@@ -6493,7 +6493,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(order: [3, 2, 1, 0] as [Int])
             #expect(vertexList.map { coloring.color(of: $0) } == [2, 0, 1, 0])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -6511,7 +6511,7 @@ struct ColoringRepresentationTests {
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 3).map { coloring.color(ofIndex: $0) } == [0, 1, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 0), (1, 2)]
@@ -6522,7 +6522,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(order: [2, 1, 0] as [Int])
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 0), (1, 2)]
@@ -6533,7 +6533,7 @@ struct ColoringRepresentationTests {
             let coloring = graph.greedyColoring(order: [2, 1, 0] as [Int])
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -7673,17 +7673,17 @@ struct ColoringRepresentationTests {
 
     @Test("CO-167 empty graph, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
     func co167() {
-        // V []; E []; minimumColoring()
+        // V []; E []; lexicographicallyFirstMinimumColoring()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = []
             let graph = ReferencePseudograph<Int>(vertices: [] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 0)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [])
             #expect(coloring.colorCount == 0)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = []
@@ -7692,11 +7692,11 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 0)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [])
             #expect(coloring.colorCount == 0)
             #expect((0 ..< 0).map { coloring.color(ofIndex: $0) } == [])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = []
@@ -7704,10 +7704,10 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 0)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [])
             #expect(coloring.colorCount == 0)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = []
@@ -7715,26 +7715,26 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 0)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [])
             #expect(coloring.colorCount == 0)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
     @Test("CO-168 one vertex, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
     func co168() {
-        // V [0]; E []; minimumColoring()
+        // V [0]; E []; lexicographicallyFirstMinimumColoring()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = []
             let graph = ReferencePseudograph<Int>(vertices: [0] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 0)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = []
@@ -7743,11 +7743,11 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 0)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
             #expect((0 ..< 1).map { coloring.color(ofIndex: $0) } == [0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = []
@@ -7755,10 +7755,10 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 0)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = []
@@ -7766,26 +7766,26 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 0)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
     @Test("CO-169 self-loop ignored, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
     func co169() {
-        // V [0]; E [0-0]; minimumColoring()
+        // V [0]; E [0-0]; lexicographicallyFirstMinimumColoring()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 0)]
             let graph = ReferencePseudograph<Int>(vertices: [0] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 1)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 0)]
@@ -7794,11 +7794,11 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 1)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
             #expect((0 ..< 1).map { coloring.color(ofIndex: $0) } == [0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 0)]
@@ -7806,10 +7806,10 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 1)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 0)]
@@ -7817,26 +7817,26 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 1)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
     @Test("CO-170 two isolated, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
     func co170() {
-        // V [0, 1]; E []; minimumColoring()
+        // V [0, 1]; E []; lexicographicallyFirstMinimumColoring()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = []
             let graph = ReferencePseudograph<Int>(vertices: [0, 1] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 0)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = []
@@ -7845,11 +7845,11 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 0)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0])
             #expect(coloring.colorCount == 1)
             #expect((0 ..< 2).map { coloring.color(ofIndex: $0) } == [0, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = []
@@ -7857,10 +7857,10 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 0)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = []
@@ -7868,26 +7868,26 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 0)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0])
             #expect(coloring.colorCount == 1)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
     @Test("CO-171 one edge, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
     func co171() {
-        // V [0, 1]; E [0-1]; minimumColoring()
+        // V [0, 1]; E [0-1]; lexicographicallyFirstMinimumColoring()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 1)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1)]
@@ -7896,11 +7896,11 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 1)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 2).map { coloring.color(ofIndex: $0) } == [0, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1)]
@@ -7908,10 +7908,10 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 1)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1)]
@@ -7919,16 +7919,16 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 1)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
     @Test("CO-172 parallel edges, on no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
     func co172() {
-        // multigraph V [0, 1, 2]; E [0-1, 1-0, 1-2]; minimumColoring()
+        // multigraph V [0, 1, 2]; E [0-1, 1-0, 1-2]; lexicographicallyFirstMinimumColoring()
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 0), (1, 2)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
@@ -7936,11 +7936,11 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 3)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 3).map { coloring.color(ofIndex: $0) } == [0, 1, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 0), (1, 2)]
@@ -7948,10 +7948,10 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 3)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 0), (1, 2)]
@@ -7959,26 +7959,26 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 3)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
     @Test("CO-173 triangle, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
     func co173() {
-        // K(3); minimumColoring()
+        // K(3); lexicographicallyFirstMinimumColoring()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 3)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
@@ -7987,11 +7987,11 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 3)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 3).map { coloring.color(ofIndex: $0) } == [0, 1, 2])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
@@ -7999,10 +7999,10 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 3)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
@@ -8010,26 +8010,26 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 3)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
     @Test("CO-174 K(5): index order, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
     func co174() {
-        // K(5); minimumColoring()
+        // K(5); lexicographicallyFirstMinimumColoring()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 10)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 3, 4])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
@@ -8038,11 +8038,11 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 10)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 3, 4])
             #expect(coloring.colorCount == 5)
             #expect((0 ..< 5).map { coloring.color(ofIndex: $0) } == [0, 1, 2, 3, 4])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
@@ -8050,10 +8050,10 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 10)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 3, 4])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
@@ -8061,26 +8061,26 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 10)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 3, 4])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
     @Test("CO-175 path P(5): bipartition, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
     func co175() {
-        // P(5); minimumColoring()
+        // P(5); lexicographicallyFirstMinimumColoring()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 4)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
@@ -8089,11 +8089,11 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 4)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 5).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
@@ -8101,10 +8101,10 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 4)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
@@ -8112,26 +8112,26 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 4)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
     @Test("CO-176 cycle C(5), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
     func co176() {
-        // C(5); minimumColoring()
+        // C(5); lexicographicallyFirstMinimumColoring()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 5)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
@@ -8140,11 +8140,11 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 5)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 5).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 2])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
@@ -8152,10 +8152,10 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 5)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
@@ -8163,26 +8163,26 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 5)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
     @Test("CO-177 cycle C(7), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
     func co177() {
-        // C(7); minimumColoring()
+        // C(7); lexicographicallyFirstMinimumColoring()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 0)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 7)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 0)]
@@ -8191,11 +8191,11 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 7)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 2])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 7).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 0, 1, 2])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 0)]
@@ -8203,10 +8203,10 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 7)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 0)]
@@ -8214,26 +8214,26 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 7)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
     @Test("CO-178 wheel(5), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
     func co178() {
-        // wheel(5); minimumColoring()
+        // wheel(5); lexicographicallyFirstMinimumColoring()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (2, 3), (3, 4), (4, 5), (5, 1)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 10)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 1, 2, 3])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (2, 3), (3, 4), (4, 5), (5, 1)]
@@ -8242,11 +8242,11 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 10)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 1, 2, 3])
             #expect(coloring.colorCount == 4)
             #expect((0 ..< 6).map { coloring.color(ofIndex: $0) } == [0, 1, 2, 1, 2, 3])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (2, 3), (3, 4), (4, 5), (5, 1)]
@@ -8254,10 +8254,10 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 10)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 1, 2, 3])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (2, 3), (3, 4), (4, 5), (5, 1)]
@@ -8265,26 +8265,26 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 10)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 1, 2, 3])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
     @Test("CO-179 wheel(6), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
     func co179() {
-        // wheel(6); minimumColoring()
+        // wheel(6); lexicographicallyFirstMinimumColoring()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 1)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 12)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 1, 2, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 1)]
@@ -8293,11 +8293,11 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 12)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 1, 2, 1, 2])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 7).map { coloring.color(ofIndex: $0) } == [0, 1, 2, 1, 2, 1, 2])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 1)]
@@ -8305,10 +8305,10 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 12)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 1, 2, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 1)]
@@ -8316,26 +8316,26 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 12)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 1, 2, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
     @Test("CO-180 Petersen, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
     func co180() {
-        // nx(petersen_graph); minimumColoring()
+        // nx(petersen_graph); lexicographicallyFirstMinimumColoring()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 15)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2, 1, 0, 2, 2, 1])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
@@ -8344,11 +8344,11 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 15)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2, 1, 0, 2, 2, 1])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 10).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 2, 1, 0, 2, 2, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
@@ -8356,10 +8356,10 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 15)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2, 1, 0, 2, 2, 1])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
@@ -8367,26 +8367,26 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 15)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2, 1, 0, 2, 2, 1])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
     @Test("CO-181 crownx(4): 2 colours, where first fit needs 4, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
     func co181() {
-        // crownx(4); minimumColoring()
+        // crownx(4); lexicographicallyFirstMinimumColoring()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 3), (0, 5), (0, 7), (2, 1), (2, 5), (2, 7), (4, 1), (4, 3), (4, 7), (6, 1), (6, 3), (6, 5)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 12)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 3), (0, 5), (0, 7), (2, 1), (2, 5), (2, 7), (4, 1), (4, 3), (4, 7), (6, 1), (6, 3), (6, 5)]
@@ -8395,11 +8395,11 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 12)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
             #expect((0 ..< 8).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 0, 1, 0, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 3), (0, 5), (0, 7), (2, 1), (2, 5), (2, 7), (4, 1), (4, 3), (4, 7), (6, 1), (6, 3), (6, 5)]
@@ -8407,10 +8407,10 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 12)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 3), (0, 5), (0, 7), (2, 1), (2, 5), (2, 7), (4, 1), (4, 3), (4, 7), (6, 1), (6, 3), (6, 5)]
@@ -8418,26 +8418,26 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 12)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 0, 1])
             #expect(coloring.colorCount == 2)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
     @Test("CO-182 first fit not optimal, so the search decides, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
     func co182() {
-        // V [0, 1, 2, 3, 4, 5]; E [0-2, 2-3, 3-1, 1-4, 4-5, 5-0, 2-5]; minimumColoring()
+        // V [0, 1, 2, 3, 4, 5]; E [0-2, 2-3, 3-1, 1-4, 4-5, 5-0, 2-5]; lexicographicallyFirstMinimumColoring()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 2), (2, 3), (3, 1), (1, 4), (4, 5), (5, 0), (2, 5)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 7)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 1, 2, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 2), (2, 3), (3, 1), (1, 4), (4, 5), (5, 0), (2, 5)]
@@ -8446,11 +8446,11 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 7)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 1, 2, 1, 2])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 6).map { coloring.color(ofIndex: $0) } == [0, 0, 1, 2, 1, 2])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 2), (2, 3), (3, 1), (1, 4), (4, 5), (5, 0), (2, 5)]
@@ -8458,10 +8458,10 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 7)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 1, 2, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 2), (2, 3), (3, 1), (1, 4), (4, 5), (5, 0), (2, 5)]
@@ -8469,26 +8469,26 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 7)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 1, 2, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
     @Test("CO-183 P4 numbered 0-2-3-1 beside a triangle: each component its own chi, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
     func co183() {
-        // V [0, 1, 2, 3, 4, 5, 6]; E [0-2, 2-3, 3-1, 4-5, 5-6, 6-4]; minimumColoring()
+        // V [0, 1, 2, 3, 4, 5, 6]; E [0-2, 2-3, 3-1, 4-5, 5-6, 6-4]; lexicographicallyFirstMinimumColoring()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 2), (2, 3), (3, 1), (4, 5), (5, 6), (6, 4)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 6)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 1, 0, 0, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 2), (2, 3), (3, 1), (4, 5), (5, 6), (6, 4)]
@@ -8497,11 +8497,11 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 6)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 1, 0, 0, 1, 2])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 7).map { coloring.color(ofIndex: $0) } == [0, 1, 1, 0, 0, 1, 2])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 2), (2, 3), (3, 1), (4, 5), (5, 6), (6, 4)]
@@ -8509,10 +8509,10 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 6)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 1, 0, 0, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 2), (2, 3), (3, 1), (4, 5), (5, 6), (6, 4)]
@@ -8520,26 +8520,26 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 6)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 1, 0, 0, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
     @Test("CO-184 vertex order, not label order, on ReferencePseudograph, no indices, AdjacencyList.undirected")
     func co184() {
-        // V [d, a, c, b]; E [d-a, a-c, c-b, b-d, d-c]; minimumColoring()
+        // V [d, a, c, b]; E [d-a, a-c, c-b, b-d, d-c]; lexicographicallyFirstMinimumColoring()
         do { // ReferencePseudograph
             let pairs: [(String, String)] = [("d", "a"), ("a", "c"), ("c", "b"), ("b", "d"), ("d", "c")]
             let graph = ReferencePseudograph<String>(vertices: ["d", "a", "c", "b"] as [String], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 5)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == ["d", "a", "c", "b"] as [String])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 1])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(String, String)] = [("d", "a"), ("a", "c"), ("c", "b"), ("b", "d"), ("d", "c")]
@@ -8548,11 +8548,11 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 5)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == ["d", "a", "c", "b"] as [String])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 1])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 4).map { coloring.color(ofIndex: $0) } == [0, 1, 2, 1])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(String, String)] = [("d", "a"), ("a", "c"), ("c", "b"), ("b", "d"), ("d", "c")]
@@ -8560,26 +8560,26 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 5)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == ["d", "a", "c", "b"] as [String])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 1])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
     @Test("CO-185 nx(mycielski_graph,4): Groetzsch, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
     func co185() {
-        // nx(mycielski_graph,4); minimumColoring()
+        // nx(mycielski_graph,4); lexicographicallyFirstMinimumColoring()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 3), (0, 6), (0, 8), (1, 2), (1, 7), (1, 5), (2, 4), (2, 9), (2, 6), (3, 4), (3, 9), (3, 5), (4, 7), (4, 8), (5, 10), (6, 10), (7, 10), (8, 10), (9, 10)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 20)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2, 0, 1, 0, 1, 2, 3])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 3), (0, 6), (0, 8), (1, 2), (1, 7), (1, 5), (2, 4), (2, 9), (2, 6), (3, 4), (3, 9), (3, 5), (4, 7), (4, 8), (5, 10), (6, 10), (7, 10), (8, 10), (9, 10)]
@@ -8588,11 +8588,11 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 20)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2, 0, 1, 0, 1, 2, 3])
             #expect(coloring.colorCount == 4)
             #expect((0 ..< 11).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 2, 0, 1, 0, 1, 2, 3])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 3), (0, 6), (0, 8), (1, 2), (1, 7), (1, 5), (2, 4), (2, 9), (2, 6), (3, 4), (3, 9), (3, 5), (4, 7), (4, 8), (5, 10), (6, 10), (7, 10), (8, 10), (9, 10)]
@@ -8600,10 +8600,10 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 20)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2, 0, 1, 0, 1, 2, 3])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 3), (0, 6), (0, 8), (1, 2), (1, 7), (1, 5), (2, 4), (2, 9), (2, 6), (3, 4), (3, 9), (3, 5), (4, 7), (4, 8), (5, 10), (6, 10), (7, 10), (8, 10), (9, 10)]
@@ -8611,26 +8611,26 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 20)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2, 0, 1, 0, 1, 2, 3])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
     @Test("CO-186 nx(chvatal_graph), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
     func co186() {
-        // nx(chvatal_graph); minimumColoring()
+        // nx(chvatal_graph); lexicographicallyFirstMinimumColoring()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 6), (0, 9), (1, 2), (1, 5), (1, 7), (2, 3), (2, 6), (2, 8), (3, 4), (3, 7), (3, 9), (4, 5), (4, 8), (5, 10), (5, 11), (6, 10), (6, 11), (7, 8), (7, 11), (8, 10), (9, 10), (9, 11)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 24)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2, 0, 1, 0, 1, 2, 3, 3])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 6), (0, 9), (1, 2), (1, 5), (1, 7), (2, 3), (2, 6), (2, 8), (3, 4), (3, 7), (3, 9), (4, 5), (4, 8), (5, 10), (5, 11), (6, 10), (6, 11), (7, 8), (7, 11), (8, 10), (9, 10), (9, 11)]
@@ -8639,11 +8639,11 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 24)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2, 0, 1, 0, 1, 2, 3, 3])
             #expect(coloring.colorCount == 4)
             #expect((0 ..< 12).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 2, 0, 1, 0, 1, 2, 3, 3])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 6), (0, 9), (1, 2), (1, 5), (1, 7), (2, 3), (2, 6), (2, 8), (3, 4), (3, 7), (3, 9), (4, 5), (4, 8), (5, 10), (5, 11), (6, 10), (6, 11), (7, 8), (7, 11), (8, 10), (9, 10), (9, 11)]
@@ -8651,10 +8651,10 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 24)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2, 0, 1, 0, 1, 2, 3, 3])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 6), (0, 9), (1, 2), (1, 5), (1, 7), (2, 3), (2, 6), (2, 8), (3, 4), (3, 7), (3, 9), (4, 5), (4, 8), (5, 10), (5, 11), (6, 10), (6, 11), (7, 8), (7, 11), (8, 10), (9, 10), (9, 11)]
@@ -8662,26 +8662,26 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 24)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 2, 0, 1, 0, 1, 2, 3, 3])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
     @Test("CO-187 queen(5), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
     func co187() {
-        // queen(5); minimumColoring()
+        // queen(5); lexicographicallyFirstMinimumColoring()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 10), (0, 12), (0, 15), (0, 18), (0, 20), (0, 24), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 11), (1, 13), (1, 16), (1, 19), (1, 21), (2, 3), (2, 4), (2, 6), (2, 7), (2, 8), (2, 10), (2, 12), (2, 14), (2, 17), (2, 22), (3, 4), (3, 7), (3, 8), (3, 9), (3, 11), (3, 13), (3, 15), (3, 18), (3, 23), (4, 8), (4, 9), (4, 12), (4, 14), (4, 16), (4, 19), (4, 20), (4, 24), (5, 6), (5, 7), (5, 8), (5, 9), (5, 10), (5, 11), (5, 15), (5, 17), (5, 20), (5, 23), (6, 7), (6, 8), (6, 9), (6, 10), (6, 11), (6, 12), (6, 16), (6, 18), (6, 21), (6, 24), (7, 8), (7, 9), (7, 11), (7, 12), (7, 13), (7, 15), (7, 17), (7, 19), (7, 22), (8, 9), (8, 12), (8, 13), (8, 14), (8, 16), (8, 18), (8, 20), (8, 23), (9, 13), (9, 14), (9, 17), (9, 19), (9, 21), (9, 24), (10, 11), (10, 12), (10, 13), (10, 14), (10, 15), (10, 16), (10, 20), (10, 22), (11, 12), (11, 13), (11, 14), (11, 15), (11, 16), (11, 17), (11, 21), (11, 23), (12, 13), (12, 14), (12, 16), (12, 17), (12, 18), (12, 20), (12, 22), (12, 24), (13, 14), (13, 17), (13, 18), (13, 19), (13, 21), (13, 23), (14, 18), (14, 19), (14, 22), (14, 24), (15, 16), (15, 17), (15, 18), (15, 19), (15, 20), (15, 21), (16, 17), (16, 18), (16, 19), (16, 20), (16, 21), (16, 22), (17, 18), (17, 19), (17, 21), (17, 22), (17, 23), (18, 19), (18, 22), (18, 23), (18, 24), (19, 23), (19, 24), (20, 21), (20, 22), (20, 23), (20, 24), (21, 22), (21, 23), (21, 24), (22, 23), (22, 24), (23, 24)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 160)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 3, 4, 2, 3, 4, 0, 1, 4, 0, 1, 2, 3, 1, 2, 3, 4, 0, 3, 4, 0, 1, 2])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 10), (0, 12), (0, 15), (0, 18), (0, 20), (0, 24), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 11), (1, 13), (1, 16), (1, 19), (1, 21), (2, 3), (2, 4), (2, 6), (2, 7), (2, 8), (2, 10), (2, 12), (2, 14), (2, 17), (2, 22), (3, 4), (3, 7), (3, 8), (3, 9), (3, 11), (3, 13), (3, 15), (3, 18), (3, 23), (4, 8), (4, 9), (4, 12), (4, 14), (4, 16), (4, 19), (4, 20), (4, 24), (5, 6), (5, 7), (5, 8), (5, 9), (5, 10), (5, 11), (5, 15), (5, 17), (5, 20), (5, 23), (6, 7), (6, 8), (6, 9), (6, 10), (6, 11), (6, 12), (6, 16), (6, 18), (6, 21), (6, 24), (7, 8), (7, 9), (7, 11), (7, 12), (7, 13), (7, 15), (7, 17), (7, 19), (7, 22), (8, 9), (8, 12), (8, 13), (8, 14), (8, 16), (8, 18), (8, 20), (8, 23), (9, 13), (9, 14), (9, 17), (9, 19), (9, 21), (9, 24), (10, 11), (10, 12), (10, 13), (10, 14), (10, 15), (10, 16), (10, 20), (10, 22), (11, 12), (11, 13), (11, 14), (11, 15), (11, 16), (11, 17), (11, 21), (11, 23), (12, 13), (12, 14), (12, 16), (12, 17), (12, 18), (12, 20), (12, 22), (12, 24), (13, 14), (13, 17), (13, 18), (13, 19), (13, 21), (13, 23), (14, 18), (14, 19), (14, 22), (14, 24), (15, 16), (15, 17), (15, 18), (15, 19), (15, 20), (15, 21), (16, 17), (16, 18), (16, 19), (16, 20), (16, 21), (16, 22), (17, 18), (17, 19), (17, 21), (17, 22), (17, 23), (18, 19), (18, 22), (18, 23), (18, 24), (19, 23), (19, 24), (20, 21), (20, 22), (20, 23), (20, 24), (21, 22), (21, 23), (21, 24), (22, 23), (22, 24), (23, 24)]
@@ -8690,11 +8690,11 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 160)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 3, 4, 2, 3, 4, 0, 1, 4, 0, 1, 2, 3, 1, 2, 3, 4, 0, 3, 4, 0, 1, 2])
             #expect(coloring.colorCount == 5)
             #expect((0 ..< 25).map { coloring.color(ofIndex: $0) } == [0, 1, 2, 3, 4, 2, 3, 4, 0, 1, 4, 0, 1, 2, 3, 1, 2, 3, 4, 0, 3, 4, 0, 1, 2])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 10), (0, 12), (0, 15), (0, 18), (0, 20), (0, 24), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 11), (1, 13), (1, 16), (1, 19), (1, 21), (2, 3), (2, 4), (2, 6), (2, 7), (2, 8), (2, 10), (2, 12), (2, 14), (2, 17), (2, 22), (3, 4), (3, 7), (3, 8), (3, 9), (3, 11), (3, 13), (3, 15), (3, 18), (3, 23), (4, 8), (4, 9), (4, 12), (4, 14), (4, 16), (4, 19), (4, 20), (4, 24), (5, 6), (5, 7), (5, 8), (5, 9), (5, 10), (5, 11), (5, 15), (5, 17), (5, 20), (5, 23), (6, 7), (6, 8), (6, 9), (6, 10), (6, 11), (6, 12), (6, 16), (6, 18), (6, 21), (6, 24), (7, 8), (7, 9), (7, 11), (7, 12), (7, 13), (7, 15), (7, 17), (7, 19), (7, 22), (8, 9), (8, 12), (8, 13), (8, 14), (8, 16), (8, 18), (8, 20), (8, 23), (9, 13), (9, 14), (9, 17), (9, 19), (9, 21), (9, 24), (10, 11), (10, 12), (10, 13), (10, 14), (10, 15), (10, 16), (10, 20), (10, 22), (11, 12), (11, 13), (11, 14), (11, 15), (11, 16), (11, 17), (11, 21), (11, 23), (12, 13), (12, 14), (12, 16), (12, 17), (12, 18), (12, 20), (12, 22), (12, 24), (13, 14), (13, 17), (13, 18), (13, 19), (13, 21), (13, 23), (14, 18), (14, 19), (14, 22), (14, 24), (15, 16), (15, 17), (15, 18), (15, 19), (15, 20), (15, 21), (16, 17), (16, 18), (16, 19), (16, 20), (16, 21), (16, 22), (17, 18), (17, 19), (17, 21), (17, 22), (17, 23), (18, 19), (18, 22), (18, 23), (18, 24), (19, 23), (19, 24), (20, 21), (20, 22), (20, 23), (20, 24), (21, 22), (21, 23), (21, 24), (22, 23), (22, 24), (23, 24)]
@@ -8702,10 +8702,10 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 160)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 3, 4, 2, 3, 4, 0, 1, 4, 0, 1, 2, 3, 1, 2, 3, 4, 0, 3, 4, 0, 1, 2])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 10), (0, 12), (0, 15), (0, 18), (0, 20), (0, 24), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 11), (1, 13), (1, 16), (1, 19), (1, 21), (2, 3), (2, 4), (2, 6), (2, 7), (2, 8), (2, 10), (2, 12), (2, 14), (2, 17), (2, 22), (3, 4), (3, 7), (3, 8), (3, 9), (3, 11), (3, 13), (3, 15), (3, 18), (3, 23), (4, 8), (4, 9), (4, 12), (4, 14), (4, 16), (4, 19), (4, 20), (4, 24), (5, 6), (5, 7), (5, 8), (5, 9), (5, 10), (5, 11), (5, 15), (5, 17), (5, 20), (5, 23), (6, 7), (6, 8), (6, 9), (6, 10), (6, 11), (6, 12), (6, 16), (6, 18), (6, 21), (6, 24), (7, 8), (7, 9), (7, 11), (7, 12), (7, 13), (7, 15), (7, 17), (7, 19), (7, 22), (8, 9), (8, 12), (8, 13), (8, 14), (8, 16), (8, 18), (8, 20), (8, 23), (9, 13), (9, 14), (9, 17), (9, 19), (9, 21), (9, 24), (10, 11), (10, 12), (10, 13), (10, 14), (10, 15), (10, 16), (10, 20), (10, 22), (11, 12), (11, 13), (11, 14), (11, 15), (11, 16), (11, 17), (11, 21), (11, 23), (12, 13), (12, 14), (12, 16), (12, 17), (12, 18), (12, 20), (12, 22), (12, 24), (13, 14), (13, 17), (13, 18), (13, 19), (13, 21), (13, 23), (14, 18), (14, 19), (14, 22), (14, 24), (15, 16), (15, 17), (15, 18), (15, 19), (15, 20), (15, 21), (16, 17), (16, 18), (16, 19), (16, 20), (16, 21), (16, 22), (17, 18), (17, 19), (17, 21), (17, 22), (17, 23), (18, 19), (18, 22), (18, 23), (18, 24), (19, 23), (19, 24), (20, 21), (20, 22), (20, 23), (20, 24), (21, 22), (21, 23), (21, 24), (22, 23), (22, 24), (23, 24)]
@@ -8713,26 +8713,26 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 160)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 3, 4, 2, 3, 4, 0, 1, 4, 0, 1, 2, 3, 1, 2, 3, 4, 0, 3, 4, 0, 1, 2])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
     @Test("CO-188 nx(dodecahedral_graph), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
     func co188() {
-        // nx(dodecahedral_graph); minimumColoring()
+        // nx(dodecahedral_graph); lexicographicallyFirstMinimumColoring()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 19), (0, 10), (1, 2), (1, 8), (2, 3), (2, 6), (3, 4), (3, 19), (4, 5), (4, 17), (5, 6), (5, 15), (6, 7), (7, 8), (7, 14), (8, 9), (9, 10), (9, 13), (10, 11), (11, 12), (11, 18), (12, 13), (12, 16), (13, 14), (14, 15), (15, 16), (16, 17), (17, 18), (18, 19)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 30)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 2, 0, 2, 0, 1, 0, 1, 2, 1, 2, 0, 2, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 19), (0, 10), (1, 2), (1, 8), (2, 3), (2, 6), (3, 4), (3, 19), (4, 5), (4, 17), (5, 6), (5, 15), (6, 7), (7, 8), (7, 14), (8, 9), (9, 10), (9, 13), (10, 11), (11, 12), (11, 18), (12, 13), (12, 16), (13, 14), (14, 15), (15, 16), (16, 17), (17, 18), (18, 19)]
@@ -8741,11 +8741,11 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 30)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 2, 0, 2, 0, 1, 0, 1, 2, 1, 2, 0, 2, 1, 2])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 20).map { coloring.color(ofIndex: $0) } == [0, 1, 0, 1, 0, 1, 2, 0, 2, 0, 1, 0, 1, 2, 1, 2, 0, 2, 1, 2])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 19), (0, 10), (1, 2), (1, 8), (2, 3), (2, 6), (3, 4), (3, 19), (4, 5), (4, 17), (5, 6), (5, 15), (6, 7), (7, 8), (7, 14), (8, 9), (9, 10), (9, 13), (10, 11), (11, 12), (11, 18), (12, 13), (12, 16), (13, 14), (14, 15), (15, 16), (16, 17), (17, 18), (18, 19)]
@@ -8753,10 +8753,10 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 30)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 2, 0, 2, 0, 1, 0, 1, 2, 1, 2, 0, 2, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 19), (0, 10), (1, 2), (1, 8), (2, 3), (2, 6), (3, 4), (3, 19), (4, 5), (4, 17), (5, 6), (5, 15), (6, 7), (7, 8), (7, 14), (8, 9), (9, 10), (9, 13), (10, 11), (11, 12), (11, 18), (12, 13), (12, 16), (13, 14), (14, 15), (15, 16), (16, 17), (17, 18), (18, 19)]
@@ -8764,26 +8764,26 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 30)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 0, 1, 0, 1, 2, 0, 2, 0, 1, 0, 1, 2, 1, 2, 0, 2, 1, 2])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
     @Test("CO-189 nx(bull_graph), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
     func co189() {
-        // nx(bull_graph); minimumColoring()
+        // nx(bull_graph); lexicographicallyFirstMinimumColoring()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (1, 3), (2, 4)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 5)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 0, 0])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (1, 3), (2, 4)]
@@ -8792,11 +8792,11 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 5)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 0, 0])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 5).map { coloring.color(ofIndex: $0) } == [0, 1, 2, 0, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (1, 3), (2, 4)]
@@ -8804,10 +8804,10 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 5)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 0, 0])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (1, 3), (2, 4)]
@@ -8815,26 +8815,26 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 5)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 0, 0])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
     @Test("CO-190 nx(house_x_graph), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
     func co190() {
-        // nx(house_x_graph); minimumColoring()
+        // nx(house_x_graph); lexicographicallyFirstMinimumColoring()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 3), (1, 2), (2, 3), (2, 4), (3, 4)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 8)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 3, 0])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 3), (1, 2), (2, 3), (2, 4), (3, 4)]
@@ -8843,11 +8843,11 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 8)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 3, 0])
             #expect(coloring.colorCount == 4)
             #expect((0 ..< 5).map { coloring.color(ofIndex: $0) } == [0, 1, 2, 3, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 3), (1, 2), (2, 3), (2, 4), (3, 4)]
@@ -8855,10 +8855,10 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 8)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 3, 0])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 3), (1, 2), (2, 3), (2, 4), (3, 4)]
@@ -8866,26 +8866,26 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 8)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 3, 0])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
     @Test("CO-191 lcg(12,24,1), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
     func co191() {
-        // lcg(12,24,1); minimumColoring()
+        // lcg(12,24,1); lexicographicallyFirstMinimumColoring()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(2, 9), (0, 6), (6, 11), (2, 10), (9, 10), (3, 10), (2, 4), (10, 11), (4, 9), (7, 1), (2, 6), (9, 8), (0, 8), (0, 5), (6, 10), (4, 1), (11, 4), (0, 9), (6, 4), (8, 10), (1, 8), (2, 7), (7, 10), (9, 6)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 24)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 0, 0, 1, 1, 2, 2, 2, 3, 1, 0])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(2, 9), (0, 6), (6, 11), (2, 10), (9, 10), (3, 10), (2, 4), (10, 11), (4, 9), (7, 1), (2, 6), (9, 8), (0, 8), (0, 5), (6, 10), (4, 1), (11, 4), (0, 9), (6, 4), (8, 10), (1, 8), (2, 7), (7, 10), (9, 6)]
@@ -8894,11 +8894,11 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 24)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 0, 0, 1, 1, 2, 2, 2, 3, 1, 0])
             #expect(coloring.colorCount == 4)
             #expect((0 ..< 12).map { coloring.color(ofIndex: $0) } == [0, 0, 0, 0, 1, 1, 2, 2, 2, 3, 1, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(2, 9), (0, 6), (6, 11), (2, 10), (9, 10), (3, 10), (2, 4), (10, 11), (4, 9), (7, 1), (2, 6), (9, 8), (0, 8), (0, 5), (6, 10), (4, 1), (11, 4), (0, 9), (6, 4), (8, 10), (1, 8), (2, 7), (7, 10), (9, 6)]
@@ -8906,10 +8906,10 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 24)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 0, 0, 1, 1, 2, 2, 2, 3, 1, 0])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(2, 9), (0, 6), (6, 11), (2, 10), (9, 10), (3, 10), (2, 4), (10, 11), (4, 9), (7, 1), (2, 6), (9, 8), (0, 8), (0, 5), (6, 10), (4, 1), (11, 4), (0, 9), (6, 4), (8, 10), (1, 8), (2, 7), (7, 10), (9, 6)]
@@ -8917,26 +8917,26 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 24)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 0, 0, 0, 1, 1, 2, 2, 2, 3, 1, 0])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
     @Test("CO-192 lcg(14,40,5), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
     func co192() {
-        // lcg(14,40,5); minimumColoring()
+        // lcg(14,40,5); lexicographicallyFirstMinimumColoring()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 11), (4, 1), (3, 5), (12, 2), (8, 7), (8, 13), (12, 8), (6, 8), (13, 2), (1, 11), (10, 5), (9, 1), (0, 1), (12, 4), (2, 6), (6, 0), (6, 4), (2, 8), (3, 6), (13, 10), (9, 5), (4, 8), (3, 8), (0, 12), (9, 13), (11, 10), (4, 3), (6, 13), (8, 11), (11, 13), (5, 13), (8, 1), (0, 2), (2, 7), (6, 1), (9, 6), (0, 13), (3, 12), (7, 13), (9, 2)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 40)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 1, 1, 2, 3, 3, 3, 0, 0, 0, 3, 3, 2])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 11), (4, 1), (3, 5), (12, 2), (8, 7), (8, 13), (12, 8), (6, 8), (13, 2), (1, 11), (10, 5), (9, 1), (0, 1), (12, 4), (2, 6), (6, 0), (6, 4), (2, 8), (3, 6), (13, 10), (9, 5), (4, 8), (3, 8), (0, 12), (9, 13), (11, 10), (4, 3), (6, 13), (8, 11), (11, 13), (5, 13), (8, 1), (0, 2), (2, 7), (6, 1), (9, 6), (0, 13), (3, 12), (7, 13), (9, 2)]
@@ -8945,11 +8945,11 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 40)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 1, 1, 2, 3, 3, 3, 0, 0, 0, 3, 3, 2])
             #expect(coloring.colorCount == 4)
             #expect((0 ..< 14).map { coloring.color(ofIndex: $0) } == [0, 1, 1, 1, 2, 3, 3, 3, 0, 0, 0, 3, 3, 2])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 11), (4, 1), (3, 5), (12, 2), (8, 7), (8, 13), (12, 8), (6, 8), (13, 2), (1, 11), (10, 5), (9, 1), (0, 1), (12, 4), (2, 6), (6, 0), (6, 4), (2, 8), (3, 6), (13, 10), (9, 5), (4, 8), (3, 8), (0, 12), (9, 13), (11, 10), (4, 3), (6, 13), (8, 11), (11, 13), (5, 13), (8, 1), (0, 2), (2, 7), (6, 1), (9, 6), (0, 13), (3, 12), (7, 13), (9, 2)]
@@ -8957,10 +8957,10 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 40)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 1, 1, 2, 3, 3, 3, 0, 0, 0, 3, 3, 2])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 11), (4, 1), (3, 5), (12, 2), (8, 7), (8, 13), (12, 8), (6, 8), (13, 2), (1, 11), (10, 5), (9, 1), (0, 1), (12, 4), (2, 6), (6, 0), (6, 4), (2, 8), (3, 6), (13, 10), (9, 5), (4, 8), (3, 8), (0, 12), (9, 13), (11, 10), (4, 3), (6, 13), (8, 11), (11, 13), (5, 13), (8, 1), (0, 2), (2, 7), (6, 1), (9, 6), (0, 13), (3, 12), (7, 13), (9, 2)]
@@ -8968,26 +8968,26 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 40)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 1, 1, 2, 3, 3, 3, 0, 0, 0, 3, 3, 2])
             #expect(coloring.colorCount == 4)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
     @Test("CO-193 lcg(16,60,9), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
     func co193() {
-        // lcg(16,60,9); minimumColoring()
+        // lcg(16,60,9); lexicographicallyFirstMinimumColoring()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(11, 1), (8, 4), (12, 3), (11, 5), (11, 3), (12, 6), (9, 14), (14, 15), (15, 2), (3, 2), (13, 11), (15, 12), (1, 5), (10, 13), (8, 0), (9, 0), (13, 8), (1, 0), (9, 4), (8, 2), (7, 0), (3, 15), (14, 13), (8, 15), (12, 2), (0, 3), (7, 12), (4, 12), (4, 6), (7, 6), (14, 5), (0, 5), (14, 11), (14, 0), (12, 10), (6, 9), (12, 5), (10, 4), (13, 12), (15, 13), (13, 9), (8, 14), (13, 2), (8, 9), (6, 10), (14, 10), (7, 9), (1, 8), (2, 0), (15, 6), (10, 5), (5, 6), (8, 7), (2, 11), (10, 8), (11, 9), (6, 13), (1, 13), (12, 14), (5, 4)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 60)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 1, 2, 0, 2, 1, 2, 3, 4, 4, 0, 3, 2, 1, 0])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(11, 1), (8, 4), (12, 3), (11, 5), (11, 3), (12, 6), (9, 14), (14, 15), (15, 2), (3, 2), (13, 11), (15, 12), (1, 5), (10, 13), (8, 0), (9, 0), (13, 8), (1, 0), (9, 4), (8, 2), (7, 0), (3, 15), (14, 13), (8, 15), (12, 2), (0, 3), (7, 12), (4, 12), (4, 6), (7, 6), (14, 5), (0, 5), (14, 11), (14, 0), (12, 10), (6, 9), (12, 5), (10, 4), (13, 12), (15, 13), (13, 9), (8, 14), (13, 2), (8, 9), (6, 10), (14, 10), (7, 9), (1, 8), (2, 0), (15, 6), (10, 5), (5, 6), (8, 7), (2, 11), (10, 8), (11, 9), (6, 13), (1, 13), (12, 14), (5, 4)]
@@ -8996,11 +8996,11 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 60)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 1, 2, 0, 2, 1, 2, 3, 4, 4, 0, 3, 2, 1, 0])
             #expect(coloring.colorCount == 5)
             #expect((0 ..< 16).map { coloring.color(ofIndex: $0) } == [0, 1, 1, 2, 0, 2, 1, 2, 3, 4, 4, 0, 3, 2, 1, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(11, 1), (8, 4), (12, 3), (11, 5), (11, 3), (12, 6), (9, 14), (14, 15), (15, 2), (3, 2), (13, 11), (15, 12), (1, 5), (10, 13), (8, 0), (9, 0), (13, 8), (1, 0), (9, 4), (8, 2), (7, 0), (3, 15), (14, 13), (8, 15), (12, 2), (0, 3), (7, 12), (4, 12), (4, 6), (7, 6), (14, 5), (0, 5), (14, 11), (14, 0), (12, 10), (6, 9), (12, 5), (10, 4), (13, 12), (15, 13), (13, 9), (8, 14), (13, 2), (8, 9), (6, 10), (14, 10), (7, 9), (1, 8), (2, 0), (15, 6), (10, 5), (5, 6), (8, 7), (2, 11), (10, 8), (11, 9), (6, 13), (1, 13), (12, 14), (5, 4)]
@@ -9008,10 +9008,10 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 60)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 1, 2, 0, 2, 1, 2, 3, 4, 4, 0, 3, 2, 1, 0])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(11, 1), (8, 4), (12, 3), (11, 5), (11, 3), (12, 6), (9, 14), (14, 15), (15, 2), (3, 2), (13, 11), (15, 12), (1, 5), (10, 13), (8, 0), (9, 0), (13, 8), (1, 0), (9, 4), (8, 2), (7, 0), (3, 15), (14, 13), (8, 15), (12, 2), (0, 3), (7, 12), (4, 12), (4, 6), (7, 6), (14, 5), (0, 5), (14, 11), (14, 0), (12, 10), (6, 9), (12, 5), (10, 4), (13, 12), (15, 13), (13, 9), (8, 14), (13, 2), (8, 9), (6, 10), (14, 10), (7, 9), (1, 8), (2, 0), (15, 6), (10, 5), (5, 6), (8, 7), (2, 11), (10, 8), (11, 9), (6, 13), (1, 13), (12, 14), (5, 4)]
@@ -9019,26 +9019,26 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 60)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 1, 2, 0, 2, 1, 2, 3, 4, 4, 0, 3, 2, 1, 0])
             #expect(coloring.colorCount == 5)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
     @Test("CO-194 self-loops ignored in a bigger graph, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
     func co194() {
-        // V [0, 1, 2, 3]; E [0-1, 1-1, 1-2, 2-3, 3-3, 0-2]; minimumColoring()
+        // V [0, 1, 2, 3]; E [0-1, 1-1, 1-2, 2-3, 3-3, 0-2]; lexicographicallyFirstMinimumColoring()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (1, 1), (1, 2), (2, 3), (3, 3), (0, 2)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 6)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 0])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 1), (1, 2), (2, 3), (3, 3), (0, 2)]
@@ -9047,11 +9047,11 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 6)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 0])
             #expect(coloring.colorCount == 3)
             #expect((0 ..< 4).map { coloring.color(ofIndex: $0) } == [0, 1, 2, 0])
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 1), (1, 2), (2, 3), (3, 3), (0, 2)]
@@ -9059,10 +9059,10 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 6)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 0])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 1), (1, 2), (2, 3), (3, 3), (0, 2)]
@@ -9070,10 +9070,10 @@ struct ColoringRepresentationTests {
             #expect(graph.edgeCount == 6)
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3] as [Int])
-            let coloring = graph.minimumColoring()
+            let coloring = graph.lexicographicallyFirstMinimumColoring()
             #expect(vertexList.map { coloring.color(of: $0) } == [0, 1, 2, 0])
             #expect(coloring.colorCount == 3)
-            #expect(graph.isColoring { coloring.color(of: $0) })
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
         }
     }
 
@@ -10671,7 +10671,7 @@ struct ColoringRepresentationTests {
 
     @Test("CO-232 empty colouring of the empty graph, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
     func co232() {
-        // V []; E []; isColoring { [][$0] }
+        // V []; E []; isVertexColoring { [][$0] }
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = []
             let graph = ReferencePseudograph<Int>(vertices: [] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
@@ -10679,7 +10679,7 @@ struct ColoringRepresentationTests {
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [] as [Int])
             let given = [] as [Int]
-            #expect(graph.isColoring { given[vertexList.firstIndex(of: $0)!] } == true)
+            #expect(graph.isVertexColoring { given[vertexList.firstIndex(of: $0)!] } == true)
         }
         do { // no indices
             let pairs: [(Int, Int)] = []
@@ -10689,7 +10689,7 @@ struct ColoringRepresentationTests {
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [] as [Int])
             let given = [] as [Int]
-            #expect(graph.isColoring { given[vertexList.firstIndex(of: $0)!] } == true)
+            #expect(graph.isVertexColoring { given[vertexList.firstIndex(of: $0)!] } == true)
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = []
@@ -10698,7 +10698,7 @@ struct ColoringRepresentationTests {
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [] as [Int])
             let given = [] as [Int]
-            #expect(graph.isColoring { given[vertexList.firstIndex(of: $0)!] } == true)
+            #expect(graph.isVertexColoring { given[vertexList.firstIndex(of: $0)!] } == true)
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = []
@@ -10707,13 +10707,13 @@ struct ColoringRepresentationTests {
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [] as [Int])
             let given = [] as [Int]
-            #expect(graph.isColoring { given[vertexList.firstIndex(of: $0)!] } == true)
+            #expect(graph.isVertexColoring { given[vertexList.firstIndex(of: $0)!] } == true)
         }
     }
 
     @Test("CO-233 one colour on an edge, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
     func co233() {
-        // V [0, 1]; E [0-1]; isColoring { [0, 0][$0] }
+        // V [0, 1]; E [0-1]; isVertexColoring { [0, 0][$0] }
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
@@ -10721,7 +10721,7 @@ struct ColoringRepresentationTests {
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1] as [Int])
             let given = [0, 0]
-            #expect(graph.isColoring { given[vertexList.firstIndex(of: $0)!] } == false)
+            #expect(graph.isVertexColoring { given[vertexList.firstIndex(of: $0)!] } == false)
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1)]
@@ -10731,7 +10731,7 @@ struct ColoringRepresentationTests {
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1] as [Int])
             let given = [0, 0]
-            #expect(graph.isColoring { given[vertexList.firstIndex(of: $0)!] } == false)
+            #expect(graph.isVertexColoring { given[vertexList.firstIndex(of: $0)!] } == false)
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1)]
@@ -10740,7 +10740,7 @@ struct ColoringRepresentationTests {
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1] as [Int])
             let given = [0, 0]
-            #expect(graph.isColoring { given[vertexList.firstIndex(of: $0)!] } == false)
+            #expect(graph.isVertexColoring { given[vertexList.firstIndex(of: $0)!] } == false)
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1)]
@@ -10749,13 +10749,13 @@ struct ColoringRepresentationTests {
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1] as [Int])
             let given = [0, 0]
-            #expect(graph.isColoring { given[vertexList.firstIndex(of: $0)!] } == false)
+            #expect(graph.isVertexColoring { given[vertexList.firstIndex(of: $0)!] } == false)
         }
     }
 
     @Test("CO-234 two colours on an edge, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
     func co234() {
-        // V [0, 1]; E [0-1]; isColoring { [0, 1][$0] }
+        // V [0, 1]; E [0-1]; isVertexColoring { [0, 1][$0] }
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
@@ -10763,7 +10763,7 @@ struct ColoringRepresentationTests {
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1] as [Int])
             let given = [0, 1]
-            #expect(graph.isColoring { given[vertexList.firstIndex(of: $0)!] } == true)
+            #expect(graph.isVertexColoring { given[vertexList.firstIndex(of: $0)!] } == true)
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1)]
@@ -10773,7 +10773,7 @@ struct ColoringRepresentationTests {
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1] as [Int])
             let given = [0, 1]
-            #expect(graph.isColoring { given[vertexList.firstIndex(of: $0)!] } == true)
+            #expect(graph.isVertexColoring { given[vertexList.firstIndex(of: $0)!] } == true)
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1)]
@@ -10782,7 +10782,7 @@ struct ColoringRepresentationTests {
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1] as [Int])
             let given = [0, 1]
-            #expect(graph.isColoring { given[vertexList.firstIndex(of: $0)!] } == true)
+            #expect(graph.isVertexColoring { given[vertexList.firstIndex(of: $0)!] } == true)
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1)]
@@ -10791,13 +10791,13 @@ struct ColoringRepresentationTests {
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1] as [Int])
             let given = [0, 1]
-            #expect(graph.isColoring { given[vertexList.firstIndex(of: $0)!] } == true)
+            #expect(graph.isVertexColoring { given[vertexList.firstIndex(of: $0)!] } == true)
         }
     }
 
     @Test("CO-235 self-loop ignored, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
     func co235() {
-        // V [0]; E [0-0]; isColoring { [0][$0] }
+        // V [0]; E [0-0]; isVertexColoring { [0][$0] }
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 0)]
             let graph = ReferencePseudograph<Int>(vertices: [0] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
@@ -10805,7 +10805,7 @@ struct ColoringRepresentationTests {
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0] as [Int])
             let given = [0]
-            #expect(graph.isColoring { given[vertexList.firstIndex(of: $0)!] } == true)
+            #expect(graph.isVertexColoring { given[vertexList.firstIndex(of: $0)!] } == true)
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 0)]
@@ -10815,7 +10815,7 @@ struct ColoringRepresentationTests {
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0] as [Int])
             let given = [0]
-            #expect(graph.isColoring { given[vertexList.firstIndex(of: $0)!] } == true)
+            #expect(graph.isVertexColoring { given[vertexList.firstIndex(of: $0)!] } == true)
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 0)]
@@ -10824,7 +10824,7 @@ struct ColoringRepresentationTests {
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0] as [Int])
             let given = [0]
-            #expect(graph.isColoring { given[vertexList.firstIndex(of: $0)!] } == true)
+            #expect(graph.isVertexColoring { given[vertexList.firstIndex(of: $0)!] } == true)
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 0)]
@@ -10833,13 +10833,13 @@ struct ColoringRepresentationTests {
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0] as [Int])
             let given = [0]
-            #expect(graph.isColoring { given[vertexList.firstIndex(of: $0)!] } == true)
+            #expect(graph.isVertexColoring { given[vertexList.firstIndex(of: $0)!] } == true)
         }
     }
 
     @Test("CO-236 self-loop ignored with a proper rest, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
     func co236() {
-        // V [0, 1, 2, 3]; E [0-1, 1-1, 1-2, 2-3, 3-3, 0-2]; isColoring { [0, 1, 2, 0][$0] }
+        // V [0, 1, 2, 3]; E [0-1, 1-1, 1-2, 2-3, 3-3, 0-2]; isVertexColoring { [0, 1, 2, 0][$0] }
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (1, 1), (1, 2), (2, 3), (3, 3), (0, 2)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
@@ -10847,7 +10847,7 @@ struct ColoringRepresentationTests {
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3] as [Int])
             let given = [0, 1, 2, 0]
-            #expect(graph.isColoring { given[vertexList.firstIndex(of: $0)!] } == true)
+            #expect(graph.isVertexColoring { given[vertexList.firstIndex(of: $0)!] } == true)
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 1), (1, 2), (2, 3), (3, 3), (0, 2)]
@@ -10857,7 +10857,7 @@ struct ColoringRepresentationTests {
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3] as [Int])
             let given = [0, 1, 2, 0]
-            #expect(graph.isColoring { given[vertexList.firstIndex(of: $0)!] } == true)
+            #expect(graph.isVertexColoring { given[vertexList.firstIndex(of: $0)!] } == true)
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 1), (1, 2), (2, 3), (3, 3), (0, 2)]
@@ -10866,7 +10866,7 @@ struct ColoringRepresentationTests {
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3] as [Int])
             let given = [0, 1, 2, 0]
-            #expect(graph.isColoring { given[vertexList.firstIndex(of: $0)!] } == true)
+            #expect(graph.isVertexColoring { given[vertexList.firstIndex(of: $0)!] } == true)
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 1), (1, 2), (2, 3), (3, 3), (0, 2)]
@@ -10875,13 +10875,13 @@ struct ColoringRepresentationTests {
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3] as [Int])
             let given = [0, 1, 2, 0]
-            #expect(graph.isColoring { given[vertexList.firstIndex(of: $0)!] } == true)
+            #expect(graph.isVertexColoring { given[vertexList.firstIndex(of: $0)!] } == true)
         }
     }
 
     @Test("CO-237 parallel edges, on no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
     func co237() {
-        // multigraph V [0, 1, 2]; E [0-1, 1-0, 1-2]; isColoring { [0, 1, 0][$0] }
+        // multigraph V [0, 1, 2]; E [0-1, 1-0, 1-2]; isVertexColoring { [0, 1, 0][$0] }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 0), (1, 2)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
@@ -10890,7 +10890,7 @@ struct ColoringRepresentationTests {
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2] as [Int])
             let given = [0, 1, 0]
-            #expect(graph.isColoring { given[vertexList.firstIndex(of: $0)!] } == true)
+            #expect(graph.isVertexColoring { given[vertexList.firstIndex(of: $0)!] } == true)
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 0), (1, 2)]
@@ -10899,7 +10899,7 @@ struct ColoringRepresentationTests {
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2] as [Int])
             let given = [0, 1, 0]
-            #expect(graph.isColoring { given[vertexList.firstIndex(of: $0)!] } == true)
+            #expect(graph.isVertexColoring { given[vertexList.firstIndex(of: $0)!] } == true)
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 0), (1, 2)]
@@ -10908,13 +10908,13 @@ struct ColoringRepresentationTests {
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2] as [Int])
             let given = [0, 1, 0]
-            #expect(graph.isColoring { given[vertexList.firstIndex(of: $0)!] } == true)
+            #expect(graph.isVertexColoring { given[vertexList.firstIndex(of: $0)!] } == true)
         }
     }
 
     @Test("CO-238 triangle with a repeat, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
     func co238() {
-        // K(3); isColoring { [0, 1, 1][$0] }
+        // K(3); isVertexColoring { [0, 1, 1][$0] }
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
@@ -10922,7 +10922,7 @@ struct ColoringRepresentationTests {
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2] as [Int])
             let given = [0, 1, 1]
-            #expect(graph.isColoring { given[vertexList.firstIndex(of: $0)!] } == false)
+            #expect(graph.isVertexColoring { given[vertexList.firstIndex(of: $0)!] } == false)
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
@@ -10932,7 +10932,7 @@ struct ColoringRepresentationTests {
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2] as [Int])
             let given = [0, 1, 1]
-            #expect(graph.isColoring { given[vertexList.firstIndex(of: $0)!] } == false)
+            #expect(graph.isVertexColoring { given[vertexList.firstIndex(of: $0)!] } == false)
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
@@ -10941,7 +10941,7 @@ struct ColoringRepresentationTests {
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2] as [Int])
             let given = [0, 1, 1]
-            #expect(graph.isColoring { given[vertexList.firstIndex(of: $0)!] } == false)
+            #expect(graph.isVertexColoring { given[vertexList.firstIndex(of: $0)!] } == false)
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
@@ -10950,13 +10950,13 @@ struct ColoringRepresentationTests {
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2] as [Int])
             let given = [0, 1, 1]
-            #expect(graph.isColoring { given[vertexList.firstIndex(of: $0)!] } == false)
+            #expect(graph.isVertexColoring { given[vertexList.firstIndex(of: $0)!] } == false)
         }
     }
 
     @Test("CO-239 colours need not be 0..<k or contiguous, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
     func co239() {
-        // P(3); isColoring { [7, -2, 7][$0] }
+        // P(3); isVertexColoring { [7, -2, 7][$0] }
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
@@ -10964,7 +10964,7 @@ struct ColoringRepresentationTests {
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2] as [Int])
             let given = [7, -2, 7]
-            #expect(graph.isColoring { given[vertexList.firstIndex(of: $0)!] } == true)
+            #expect(graph.isVertexColoring { given[vertexList.firstIndex(of: $0)!] } == true)
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
@@ -10974,7 +10974,7 @@ struct ColoringRepresentationTests {
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2] as [Int])
             let given = [7, -2, 7]
-            #expect(graph.isColoring { given[vertexList.firstIndex(of: $0)!] } == true)
+            #expect(graph.isVertexColoring { given[vertexList.firstIndex(of: $0)!] } == true)
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
@@ -10983,7 +10983,7 @@ struct ColoringRepresentationTests {
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2] as [Int])
             let given = [7, -2, 7]
-            #expect(graph.isColoring { given[vertexList.firstIndex(of: $0)!] } == true)
+            #expect(graph.isVertexColoring { given[vertexList.firstIndex(of: $0)!] } == true)
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
@@ -10992,13 +10992,13 @@ struct ColoringRepresentationTests {
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2] as [Int])
             let given = [7, -2, 7]
-            #expect(graph.isColoring { given[vertexList.firstIndex(of: $0)!] } == true)
+            #expect(graph.isVertexColoring { given[vertexList.firstIndex(of: $0)!] } == true)
         }
     }
 
     @Test("CO-240 Petersen, a greedy colouring, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
     func co240() {
-        // nx(petersen_graph); isColoring { [0, 1, 0, 1, 2, 1, 0, 2, 2, 1][$0] }
+        // nx(petersen_graph); isVertexColoring { [0, 1, 0, 1, 2, 1, 0, 2, 2, 1][$0] }
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
@@ -11006,7 +11006,7 @@ struct ColoringRepresentationTests {
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int])
             let given = [0, 1, 0, 1, 2, 1, 0, 2, 2, 1]
-            #expect(graph.isColoring { given[vertexList.firstIndex(of: $0)!] } == true)
+            #expect(graph.isVertexColoring { given[vertexList.firstIndex(of: $0)!] } == true)
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
@@ -11016,7 +11016,7 @@ struct ColoringRepresentationTests {
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int])
             let given = [0, 1, 0, 1, 2, 1, 0, 2, 2, 1]
-            #expect(graph.isColoring { given[vertexList.firstIndex(of: $0)!] } == true)
+            #expect(graph.isVertexColoring { given[vertexList.firstIndex(of: $0)!] } == true)
         }
         do { // AdjacencyList.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
@@ -11025,7 +11025,7 @@ struct ColoringRepresentationTests {
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int])
             let given = [0, 1, 0, 1, 2, 1, 0, 2, 2, 1]
-            #expect(graph.isColoring { given[vertexList.firstIndex(of: $0)!] } == true)
+            #expect(graph.isVertexColoring { given[vertexList.firstIndex(of: $0)!] } == true)
         }
         do { // AdjacencyMatrix.undirected
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
@@ -11034,7 +11034,7 @@ struct ColoringRepresentationTests {
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int])
             let given = [0, 1, 0, 1, 2, 1, 0, 2, 2, 1]
-            #expect(graph.isColoring { given[vertexList.firstIndex(of: $0)!] } == true)
+            #expect(graph.isVertexColoring { given[vertexList.firstIndex(of: $0)!] } == true)
         }
     }
 
@@ -11319,6 +11319,2256 @@ struct ColoringRepresentationTests {
             #expect(coloring.colorCount == 7)
             #expect(coloring.colorClasses.map { $0.map { [$0.source, $0.target] } } == [[[0, 8], [1, 11], [2, 10], [3, 12], [4, 9]], [[0, 9], [1, 8], [2, 12], [3, 10], [4, 11]], [[0, 10], [1, 9], [2, 8], [3, 11], [4, 12]], [[0, 11], [1, 10], [3, 8], [6, 12], [7, 9]], [[1, 12], [3, 9], [4, 10], [5, 8], [6, 11]], [[5, 10], [6, 9], [7, 11]], [[5, 11], [6, 8]]])
             #expect(graph.isEdgeColoring { coloring.color(ofEdgeAt: $0) })
+        }
+    }
+
+    @Test("CO-254 empty graph, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    func co254() {
+        // V []; E []; minimumColoring()
+        do { // ReferencePseudograph
+            let pairs: [(Int, Int)] = []
+            let graph = ReferencePseudograph<Int>(vertices: [] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.edgeCount == 0)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 0)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [])
+        }
+        do { // no indices
+            let pairs: [(Int, Int)] = []
+            let graph = UnindexedGraph<Int>(vertices: [] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
+            #expect(graph.edgeCount == 0)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [] as [Int])
+            let n = vertexList.count
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 0)
+            #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [])
+        }
+        do { // AdjacencyList.undirected
+            let pairs: [(Int, Int)] = []
+            let graph = AdjacencyList<Int>(vertices: [] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 0)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 0)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [])
+        }
+        do { // AdjacencyMatrix.undirected
+            let pairs: [(Int, Int)] = []
+            let graph = AdjacencyMatrix(vertexCount: 0, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 0)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 0)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [])
+        }
+    }
+
+    @Test("CO-255 one vertex, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    func co255() {
+        // V [0]; E []; minimumColoring()
+        do { // ReferencePseudograph
+            let pairs: [(Int, Int)] = []
+            let graph = ReferencePseudograph<Int>(vertices: [0] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.edgeCount == 0)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 1)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0])
+        }
+        do { // no indices
+            let pairs: [(Int, Int)] = []
+            let graph = UnindexedGraph<Int>(vertices: [0] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
+            #expect(graph.edgeCount == 0)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0] as [Int])
+            let n = vertexList.count
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 1)
+            #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0])
+        }
+        do { // AdjacencyList.undirected
+            let pairs: [(Int, Int)] = []
+            let graph = AdjacencyList<Int>(vertices: [0] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 0)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 1)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0])
+        }
+        do { // AdjacencyMatrix.undirected
+            let pairs: [(Int, Int)] = []
+            let graph = AdjacencyMatrix(vertexCount: 1, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 0)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 1)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0])
+        }
+    }
+
+    @Test("CO-256 self-loop ignored, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    func co256() {
+        // V [0]; E [0-0]; minimumColoring()
+        do { // ReferencePseudograph
+            let pairs: [(Int, Int)] = [(0, 0)]
+            let graph = ReferencePseudograph<Int>(vertices: [0] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.edgeCount == 1)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 1)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0])
+        }
+        do { // no indices
+            let pairs: [(Int, Int)] = [(0, 0)]
+            let graph = UnindexedGraph<Int>(vertices: [0] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
+            #expect(graph.edgeCount == 1)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0] as [Int])
+            let n = vertexList.count
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 1)
+            #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0])
+        }
+        do { // AdjacencyList.undirected
+            let pairs: [(Int, Int)] = [(0, 0)]
+            let graph = AdjacencyList<Int>(vertices: [0] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 1)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 1)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0])
+        }
+        do { // AdjacencyMatrix.undirected
+            let pairs: [(Int, Int)] = [(0, 0)]
+            let graph = AdjacencyMatrix(vertexCount: 1, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 1)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 1)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0])
+        }
+    }
+
+    @Test("CO-257 two isolated, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    func co257() {
+        // V [0, 1]; E []; minimumColoring()
+        do { // ReferencePseudograph
+            let pairs: [(Int, Int)] = []
+            let graph = ReferencePseudograph<Int>(vertices: [0, 1] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.edgeCount == 0)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 1)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0, 0])
+        }
+        do { // no indices
+            let pairs: [(Int, Int)] = []
+            let graph = UnindexedGraph<Int>(vertices: [0, 1] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
+            #expect(graph.edgeCount == 0)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1] as [Int])
+            let n = vertexList.count
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 1)
+            #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0, 0])
+        }
+        do { // AdjacencyList.undirected
+            let pairs: [(Int, Int)] = []
+            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 0)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 1)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0, 0])
+        }
+        do { // AdjacencyMatrix.undirected
+            let pairs: [(Int, Int)] = []
+            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 0)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 1)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0, 0])
+        }
+    }
+
+    @Test("CO-258 one edge, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    func co258() {
+        // V [0, 1]; E [0-1]; minimumColoring()
+        do { // ReferencePseudograph
+            let pairs: [(Int, Int)] = [(0, 1)]
+            let graph = ReferencePseudograph<Int>(vertices: [0, 1] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.edgeCount == 1)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 2)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0, 1])
+        }
+        do { // no indices
+            let pairs: [(Int, Int)] = [(0, 1)]
+            let graph = UnindexedGraph<Int>(vertices: [0, 1] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
+            #expect(graph.edgeCount == 1)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1] as [Int])
+            let n = vertexList.count
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 2)
+            #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0, 1])
+        }
+        do { // AdjacencyList.undirected
+            let pairs: [(Int, Int)] = [(0, 1)]
+            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 1)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 2)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0, 1])
+        }
+        do { // AdjacencyMatrix.undirected
+            let pairs: [(Int, Int)] = [(0, 1)]
+            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 1)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 2)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0, 1])
+        }
+    }
+
+    @Test("CO-259 parallel edges, on no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    func co259() {
+        // multigraph V [0, 1, 2]; E [0-1, 1-0, 1-2]; minimumColoring()
+        do { // no indices
+            let pairs: [(Int, Int)] = [(0, 1), (1, 0), (1, 2)]
+            let graph = UnindexedGraph<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
+            #expect(graph.edgeCount == 3)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2] as [Int])
+            let n = vertexList.count
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 2)
+            #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0, 1, 0])
+        }
+        do { // AdjacencyList.undirected
+            let pairs: [(Int, Int)] = [(0, 1), (1, 0), (1, 2)]
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 3)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 2)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0, 1, 0])
+        }
+        do { // AdjacencyMatrix.undirected
+            let pairs: [(Int, Int)] = [(0, 1), (1, 0), (1, 2)]
+            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 3)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 2)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0, 1, 0])
+        }
+    }
+
+    @Test("CO-260 triangle, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    func co260() {
+        // K(3); minimumColoring()
+        do { // ReferencePseudograph
+            let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
+            let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.edgeCount == 3)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0, 1, 2])
+        }
+        do { // no indices
+            let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
+            let graph = UnindexedGraph<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
+            #expect(graph.edgeCount == 3)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2] as [Int])
+            let n = vertexList.count
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0, 1, 2])
+        }
+        do { // AdjacencyList.undirected
+            let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 3)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0, 1, 2])
+        }
+        do { // AdjacencyMatrix.undirected
+            let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
+            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 3)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0, 1, 2])
+        }
+    }
+
+    @Test("CO-261 K(5): index order, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    func co261() {
+        // K(5); minimumColoring()
+        do { // ReferencePseudograph
+            let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
+            let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.edgeCount == 10)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 5)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0, 1, 2, 3, 4])
+        }
+        do { // no indices
+            let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
+            let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
+            #expect(graph.edgeCount == 10)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
+            let n = vertexList.count
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 5)
+            #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0, 1, 2, 3, 4])
+        }
+        do { // AdjacencyList.undirected
+            let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 10)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 5)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0, 1, 2, 3, 4])
+        }
+        do { // AdjacencyMatrix.undirected
+            let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 10)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 5)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0, 1, 2, 3, 4])
+        }
+    }
+
+    @Test("CO-262 path P(5): bipartition, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    func co262() {
+        // P(5); minimumColoring()
+        do { // ReferencePseudograph
+            let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
+            let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.edgeCount == 4)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 2)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0, 1, 0, 1, 0])
+        }
+        do { // no indices
+            let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
+            let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
+            #expect(graph.edgeCount == 4)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
+            let n = vertexList.count
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 2)
+            #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0, 1, 0, 1, 0])
+        }
+        do { // AdjacencyList.undirected
+            let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 4)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 2)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0, 1, 0, 1, 0])
+        }
+        do { // AdjacencyMatrix.undirected
+            let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 4)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 2)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0, 1, 0, 1, 0])
+        }
+    }
+
+    @Test("CO-263 cycle C(5), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    func co263() {
+        // C(5); minimumColoring()
+        do { // ReferencePseudograph
+            let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
+            let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.edgeCount == 5)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // no indices
+            let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
+            let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
+            #expect(graph.edgeCount == 5)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
+            let n = vertexList.count
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // AdjacencyList.undirected
+            let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 5)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // AdjacencyMatrix.undirected
+            let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 5)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+    }
+
+    @Test("CO-264 cycle C(7), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    func co264() {
+        // C(7); minimumColoring()
+        do { // ReferencePseudograph
+            let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 0)]
+            let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.edgeCount == 7)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // no indices
+            let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 0)]
+            let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
+            #expect(graph.edgeCount == 7)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6] as [Int])
+            let n = vertexList.count
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // AdjacencyList.undirected
+            let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 0)]
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 7)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // AdjacencyMatrix.undirected
+            let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 0)]
+            let graph = AdjacencyMatrix(vertexCount: 7, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 7)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+    }
+
+    @Test("CO-265 wheel(5), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    func co265() {
+        // wheel(5); minimumColoring()
+        do { // ReferencePseudograph
+            let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (2, 3), (3, 4), (4, 5), (5, 1)]
+            let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.edgeCount == 10)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 4)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // no indices
+            let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (2, 3), (3, 4), (4, 5), (5, 1)]
+            let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
+            #expect(graph.edgeCount == 10)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5] as [Int])
+            let n = vertexList.count
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 4)
+            #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // AdjacencyList.undirected
+            let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (2, 3), (3, 4), (4, 5), (5, 1)]
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 10)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 4)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // AdjacencyMatrix.undirected
+            let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (2, 3), (3, 4), (4, 5), (5, 1)]
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 10)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 4)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+    }
+
+    @Test("CO-266 wheel(6), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    func co266() {
+        // wheel(6); minimumColoring()
+        do { // ReferencePseudograph
+            let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 1)]
+            let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.edgeCount == 12)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0, 1, 2, 1, 2, 1, 2])
+        }
+        do { // no indices
+            let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 1)]
+            let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
+            #expect(graph.edgeCount == 12)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6] as [Int])
+            let n = vertexList.count
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0, 1, 2, 1, 2, 1, 2])
+        }
+        do { // AdjacencyList.undirected
+            let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 1)]
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 12)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0, 1, 2, 1, 2, 1, 2])
+        }
+        do { // AdjacencyMatrix.undirected
+            let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 1)]
+            let graph = AdjacencyMatrix(vertexCount: 7, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 12)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0, 1, 2, 1, 2, 1, 2])
+        }
+    }
+
+    @Test("CO-267 Petersen, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    func co267() {
+        // nx(petersen_graph); minimumColoring()
+        do { // ReferencePseudograph
+            let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
+            let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.edgeCount == 15)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // no indices
+            let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
+            let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
+            #expect(graph.edgeCount == 15)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int])
+            let n = vertexList.count
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // AdjacencyList.undirected
+            let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 15)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // AdjacencyMatrix.undirected
+            let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
+            let graph = AdjacencyMatrix(vertexCount: 10, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 15)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+    }
+
+    @Test("CO-268 crownx(4): 2 colours, where first fit needs 4, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    func co268() {
+        // crownx(4); minimumColoring()
+        do { // ReferencePseudograph
+            let pairs: [(Int, Int)] = [(0, 3), (0, 5), (0, 7), (2, 1), (2, 5), (2, 7), (4, 1), (4, 3), (4, 7), (6, 1), (6, 3), (6, 5)]
+            let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.edgeCount == 12)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 2)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0, 1, 0, 1, 0, 1, 0, 1])
+        }
+        do { // no indices
+            let pairs: [(Int, Int)] = [(0, 3), (0, 5), (0, 7), (2, 1), (2, 5), (2, 7), (4, 1), (4, 3), (4, 7), (6, 1), (6, 3), (6, 5)]
+            let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
+            #expect(graph.edgeCount == 12)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7] as [Int])
+            let n = vertexList.count
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 2)
+            #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0, 1, 0, 1, 0, 1, 0, 1])
+        }
+        do { // AdjacencyList.undirected
+            let pairs: [(Int, Int)] = [(0, 3), (0, 5), (0, 7), (2, 1), (2, 5), (2, 7), (4, 1), (4, 3), (4, 7), (6, 1), (6, 3), (6, 5)]
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 12)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 2)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0, 1, 0, 1, 0, 1, 0, 1])
+        }
+        do { // AdjacencyMatrix.undirected
+            let pairs: [(Int, Int)] = [(0, 3), (0, 5), (0, 7), (2, 1), (2, 5), (2, 7), (4, 1), (4, 3), (4, 7), (6, 1), (6, 3), (6, 5)]
+            let graph = AdjacencyMatrix(vertexCount: 8, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 12)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 2)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0, 1, 0, 1, 0, 1, 0, 1])
+        }
+    }
+
+    @Test("CO-269 first fit not optimal, so the search decides, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    func co269() {
+        // V [0, 1, 2, 3, 4, 5]; E [0-2, 2-3, 3-1, 1-4, 4-5, 5-0, 2-5]; minimumColoring()
+        do { // ReferencePseudograph
+            let pairs: [(Int, Int)] = [(0, 2), (2, 3), (3, 1), (1, 4), (4, 5), (5, 0), (2, 5)]
+            let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.edgeCount == 7)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // no indices
+            let pairs: [(Int, Int)] = [(0, 2), (2, 3), (3, 1), (1, 4), (4, 5), (5, 0), (2, 5)]
+            let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
+            #expect(graph.edgeCount == 7)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5] as [Int])
+            let n = vertexList.count
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // AdjacencyList.undirected
+            let pairs: [(Int, Int)] = [(0, 2), (2, 3), (3, 1), (1, 4), (4, 5), (5, 0), (2, 5)]
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 7)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // AdjacencyMatrix.undirected
+            let pairs: [(Int, Int)] = [(0, 2), (2, 3), (3, 1), (1, 4), (4, 5), (5, 0), (2, 5)]
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 7)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+    }
+
+    @Test("CO-270 P4 numbered 0-2-3-1 beside a triangle: each component its own chi, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    func co270() {
+        // V [0, 1, 2, 3, 4, 5, 6]; E [0-2, 2-3, 3-1, 4-5, 5-6, 6-4]; minimumColoring()
+        do { // ReferencePseudograph
+            let pairs: [(Int, Int)] = [(0, 2), (2, 3), (3, 1), (4, 5), (5, 6), (6, 4)]
+            let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.edgeCount == 6)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // no indices
+            let pairs: [(Int, Int)] = [(0, 2), (2, 3), (3, 1), (4, 5), (5, 6), (6, 4)]
+            let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
+            #expect(graph.edgeCount == 6)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6] as [Int])
+            let n = vertexList.count
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // AdjacencyList.undirected
+            let pairs: [(Int, Int)] = [(0, 2), (2, 3), (3, 1), (4, 5), (5, 6), (6, 4)]
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 6)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // AdjacencyMatrix.undirected
+            let pairs: [(Int, Int)] = [(0, 2), (2, 3), (3, 1), (4, 5), (5, 6), (6, 4)]
+            let graph = AdjacencyMatrix(vertexCount: 7, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 6)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+    }
+
+    @Test("CO-271 vertex order, not label order, on ReferencePseudograph, no indices, AdjacencyList.undirected")
+    func co271() {
+        // V [d, a, c, b]; E [d-a, a-c, c-b, b-d, d-c]; minimumColoring()
+        do { // ReferencePseudograph
+            let pairs: [(String, String)] = [("d", "a"), ("a", "c"), ("c", "b"), ("b", "d"), ("d", "c")]
+            let graph = ReferencePseudograph<String>(vertices: ["d", "a", "c", "b"] as [String], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.edgeCount == 5)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == ["d", "a", "c", "b"] as [String])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0, 1, 2, 1])
+        }
+        do { // no indices
+            let pairs: [(String, String)] = [("d", "a"), ("a", "c"), ("c", "b"), ("b", "d"), ("d", "c")]
+            let graph = UnindexedGraph<String>(vertices: ["d", "a", "c", "b"] as [String], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
+            #expect(graph.edgeCount == 5)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == ["d", "a", "c", "b"] as [String])
+            let n = vertexList.count
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0, 1, 2, 1])
+        }
+        do { // AdjacencyList.undirected
+            let pairs: [(String, String)] = [("d", "a"), ("a", "c"), ("c", "b"), ("b", "d"), ("d", "c")]
+            let graph = AdjacencyList<String>(vertices: ["d", "a", "c", "b"] as [String], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 5)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == ["d", "a", "c", "b"] as [String])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+            #expect(colors == [0, 1, 2, 1])
+        }
+    }
+
+    @Test("CO-272 nx(mycielski_graph,4): Groetzsch, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    func co272() {
+        // nx(mycielski_graph,4); minimumColoring()
+        do { // ReferencePseudograph
+            let pairs: [(Int, Int)] = [(0, 1), (0, 3), (0, 6), (0, 8), (1, 2), (1, 7), (1, 5), (2, 4), (2, 9), (2, 6), (3, 4), (3, 9), (3, 5), (4, 7), (4, 8), (5, 10), (6, 10), (7, 10), (8, 10), (9, 10)]
+            let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.edgeCount == 20)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 4)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // no indices
+            let pairs: [(Int, Int)] = [(0, 1), (0, 3), (0, 6), (0, 8), (1, 2), (1, 7), (1, 5), (2, 4), (2, 9), (2, 6), (3, 4), (3, 9), (3, 5), (4, 7), (4, 8), (5, 10), (6, 10), (7, 10), (8, 10), (9, 10)]
+            let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
+            #expect(graph.edgeCount == 20)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as [Int])
+            let n = vertexList.count
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 4)
+            #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // AdjacencyList.undirected
+            let pairs: [(Int, Int)] = [(0, 1), (0, 3), (0, 6), (0, 8), (1, 2), (1, 7), (1, 5), (2, 4), (2, 9), (2, 6), (3, 4), (3, 9), (3, 5), (4, 7), (4, 8), (5, 10), (6, 10), (7, 10), (8, 10), (9, 10)]
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 20)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 4)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // AdjacencyMatrix.undirected
+            let pairs: [(Int, Int)] = [(0, 1), (0, 3), (0, 6), (0, 8), (1, 2), (1, 7), (1, 5), (2, 4), (2, 9), (2, 6), (3, 4), (3, 9), (3, 5), (4, 7), (4, 8), (5, 10), (6, 10), (7, 10), (8, 10), (9, 10)]
+            let graph = AdjacencyMatrix(vertexCount: 11, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 20)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 4)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+    }
+
+    @Test("CO-273 nx(chvatal_graph), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    func co273() {
+        // nx(chvatal_graph); minimumColoring()
+        do { // ReferencePseudograph
+            let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 6), (0, 9), (1, 2), (1, 5), (1, 7), (2, 3), (2, 6), (2, 8), (3, 4), (3, 7), (3, 9), (4, 5), (4, 8), (5, 10), (5, 11), (6, 10), (6, 11), (7, 8), (7, 11), (8, 10), (9, 10), (9, 11)]
+            let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.edgeCount == 24)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 4)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // no indices
+            let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 6), (0, 9), (1, 2), (1, 5), (1, 7), (2, 3), (2, 6), (2, 8), (3, 4), (3, 7), (3, 9), (4, 5), (4, 8), (5, 10), (5, 11), (6, 10), (6, 11), (7, 8), (7, 11), (8, 10), (9, 10), (9, 11)]
+            let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
+            #expect(graph.edgeCount == 24)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int])
+            let n = vertexList.count
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 4)
+            #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // AdjacencyList.undirected
+            let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 6), (0, 9), (1, 2), (1, 5), (1, 7), (2, 3), (2, 6), (2, 8), (3, 4), (3, 7), (3, 9), (4, 5), (4, 8), (5, 10), (5, 11), (6, 10), (6, 11), (7, 8), (7, 11), (8, 10), (9, 10), (9, 11)]
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 24)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 4)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // AdjacencyMatrix.undirected
+            let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 6), (0, 9), (1, 2), (1, 5), (1, 7), (2, 3), (2, 6), (2, 8), (3, 4), (3, 7), (3, 9), (4, 5), (4, 8), (5, 10), (5, 11), (6, 10), (6, 11), (7, 8), (7, 11), (8, 10), (9, 10), (9, 11)]
+            let graph = AdjacencyMatrix(vertexCount: 12, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 24)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 4)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+    }
+
+    @Test("CO-274 queen(5), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    func co274() {
+        // queen(5); minimumColoring()
+        do { // ReferencePseudograph
+            let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 10), (0, 12), (0, 15), (0, 18), (0, 20), (0, 24), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 11), (1, 13), (1, 16), (1, 19), (1, 21), (2, 3), (2, 4), (2, 6), (2, 7), (2, 8), (2, 10), (2, 12), (2, 14), (2, 17), (2, 22), (3, 4), (3, 7), (3, 8), (3, 9), (3, 11), (3, 13), (3, 15), (3, 18), (3, 23), (4, 8), (4, 9), (4, 12), (4, 14), (4, 16), (4, 19), (4, 20), (4, 24), (5, 6), (5, 7), (5, 8), (5, 9), (5, 10), (5, 11), (5, 15), (5, 17), (5, 20), (5, 23), (6, 7), (6, 8), (6, 9), (6, 10), (6, 11), (6, 12), (6, 16), (6, 18), (6, 21), (6, 24), (7, 8), (7, 9), (7, 11), (7, 12), (7, 13), (7, 15), (7, 17), (7, 19), (7, 22), (8, 9), (8, 12), (8, 13), (8, 14), (8, 16), (8, 18), (8, 20), (8, 23), (9, 13), (9, 14), (9, 17), (9, 19), (9, 21), (9, 24), (10, 11), (10, 12), (10, 13), (10, 14), (10, 15), (10, 16), (10, 20), (10, 22), (11, 12), (11, 13), (11, 14), (11, 15), (11, 16), (11, 17), (11, 21), (11, 23), (12, 13), (12, 14), (12, 16), (12, 17), (12, 18), (12, 20), (12, 22), (12, 24), (13, 14), (13, 17), (13, 18), (13, 19), (13, 21), (13, 23), (14, 18), (14, 19), (14, 22), (14, 24), (15, 16), (15, 17), (15, 18), (15, 19), (15, 20), (15, 21), (16, 17), (16, 18), (16, 19), (16, 20), (16, 21), (16, 22), (17, 18), (17, 19), (17, 21), (17, 22), (17, 23), (18, 19), (18, 22), (18, 23), (18, 24), (19, 23), (19, 24), (20, 21), (20, 22), (20, 23), (20, 24), (21, 22), (21, 23), (21, 24), (22, 23), (22, 24), (23, 24)]
+            let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.edgeCount == 160)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 5)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // no indices
+            let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 10), (0, 12), (0, 15), (0, 18), (0, 20), (0, 24), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 11), (1, 13), (1, 16), (1, 19), (1, 21), (2, 3), (2, 4), (2, 6), (2, 7), (2, 8), (2, 10), (2, 12), (2, 14), (2, 17), (2, 22), (3, 4), (3, 7), (3, 8), (3, 9), (3, 11), (3, 13), (3, 15), (3, 18), (3, 23), (4, 8), (4, 9), (4, 12), (4, 14), (4, 16), (4, 19), (4, 20), (4, 24), (5, 6), (5, 7), (5, 8), (5, 9), (5, 10), (5, 11), (5, 15), (5, 17), (5, 20), (5, 23), (6, 7), (6, 8), (6, 9), (6, 10), (6, 11), (6, 12), (6, 16), (6, 18), (6, 21), (6, 24), (7, 8), (7, 9), (7, 11), (7, 12), (7, 13), (7, 15), (7, 17), (7, 19), (7, 22), (8, 9), (8, 12), (8, 13), (8, 14), (8, 16), (8, 18), (8, 20), (8, 23), (9, 13), (9, 14), (9, 17), (9, 19), (9, 21), (9, 24), (10, 11), (10, 12), (10, 13), (10, 14), (10, 15), (10, 16), (10, 20), (10, 22), (11, 12), (11, 13), (11, 14), (11, 15), (11, 16), (11, 17), (11, 21), (11, 23), (12, 13), (12, 14), (12, 16), (12, 17), (12, 18), (12, 20), (12, 22), (12, 24), (13, 14), (13, 17), (13, 18), (13, 19), (13, 21), (13, 23), (14, 18), (14, 19), (14, 22), (14, 24), (15, 16), (15, 17), (15, 18), (15, 19), (15, 20), (15, 21), (16, 17), (16, 18), (16, 19), (16, 20), (16, 21), (16, 22), (17, 18), (17, 19), (17, 21), (17, 22), (17, 23), (18, 19), (18, 22), (18, 23), (18, 24), (19, 23), (19, 24), (20, 21), (20, 22), (20, 23), (20, 24), (21, 22), (21, 23), (21, 24), (22, 23), (22, 24), (23, 24)]
+            let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
+            #expect(graph.edgeCount == 160)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24] as [Int])
+            let n = vertexList.count
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 5)
+            #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // AdjacencyList.undirected
+            let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 10), (0, 12), (0, 15), (0, 18), (0, 20), (0, 24), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 11), (1, 13), (1, 16), (1, 19), (1, 21), (2, 3), (2, 4), (2, 6), (2, 7), (2, 8), (2, 10), (2, 12), (2, 14), (2, 17), (2, 22), (3, 4), (3, 7), (3, 8), (3, 9), (3, 11), (3, 13), (3, 15), (3, 18), (3, 23), (4, 8), (4, 9), (4, 12), (4, 14), (4, 16), (4, 19), (4, 20), (4, 24), (5, 6), (5, 7), (5, 8), (5, 9), (5, 10), (5, 11), (5, 15), (5, 17), (5, 20), (5, 23), (6, 7), (6, 8), (6, 9), (6, 10), (6, 11), (6, 12), (6, 16), (6, 18), (6, 21), (6, 24), (7, 8), (7, 9), (7, 11), (7, 12), (7, 13), (7, 15), (7, 17), (7, 19), (7, 22), (8, 9), (8, 12), (8, 13), (8, 14), (8, 16), (8, 18), (8, 20), (8, 23), (9, 13), (9, 14), (9, 17), (9, 19), (9, 21), (9, 24), (10, 11), (10, 12), (10, 13), (10, 14), (10, 15), (10, 16), (10, 20), (10, 22), (11, 12), (11, 13), (11, 14), (11, 15), (11, 16), (11, 17), (11, 21), (11, 23), (12, 13), (12, 14), (12, 16), (12, 17), (12, 18), (12, 20), (12, 22), (12, 24), (13, 14), (13, 17), (13, 18), (13, 19), (13, 21), (13, 23), (14, 18), (14, 19), (14, 22), (14, 24), (15, 16), (15, 17), (15, 18), (15, 19), (15, 20), (15, 21), (16, 17), (16, 18), (16, 19), (16, 20), (16, 21), (16, 22), (17, 18), (17, 19), (17, 21), (17, 22), (17, 23), (18, 19), (18, 22), (18, 23), (18, 24), (19, 23), (19, 24), (20, 21), (20, 22), (20, 23), (20, 24), (21, 22), (21, 23), (21, 24), (22, 23), (22, 24), (23, 24)]
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 160)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 5)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // AdjacencyMatrix.undirected
+            let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 10), (0, 12), (0, 15), (0, 18), (0, 20), (0, 24), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 11), (1, 13), (1, 16), (1, 19), (1, 21), (2, 3), (2, 4), (2, 6), (2, 7), (2, 8), (2, 10), (2, 12), (2, 14), (2, 17), (2, 22), (3, 4), (3, 7), (3, 8), (3, 9), (3, 11), (3, 13), (3, 15), (3, 18), (3, 23), (4, 8), (4, 9), (4, 12), (4, 14), (4, 16), (4, 19), (4, 20), (4, 24), (5, 6), (5, 7), (5, 8), (5, 9), (5, 10), (5, 11), (5, 15), (5, 17), (5, 20), (5, 23), (6, 7), (6, 8), (6, 9), (6, 10), (6, 11), (6, 12), (6, 16), (6, 18), (6, 21), (6, 24), (7, 8), (7, 9), (7, 11), (7, 12), (7, 13), (7, 15), (7, 17), (7, 19), (7, 22), (8, 9), (8, 12), (8, 13), (8, 14), (8, 16), (8, 18), (8, 20), (8, 23), (9, 13), (9, 14), (9, 17), (9, 19), (9, 21), (9, 24), (10, 11), (10, 12), (10, 13), (10, 14), (10, 15), (10, 16), (10, 20), (10, 22), (11, 12), (11, 13), (11, 14), (11, 15), (11, 16), (11, 17), (11, 21), (11, 23), (12, 13), (12, 14), (12, 16), (12, 17), (12, 18), (12, 20), (12, 22), (12, 24), (13, 14), (13, 17), (13, 18), (13, 19), (13, 21), (13, 23), (14, 18), (14, 19), (14, 22), (14, 24), (15, 16), (15, 17), (15, 18), (15, 19), (15, 20), (15, 21), (16, 17), (16, 18), (16, 19), (16, 20), (16, 21), (16, 22), (17, 18), (17, 19), (17, 21), (17, 22), (17, 23), (18, 19), (18, 22), (18, 23), (18, 24), (19, 23), (19, 24), (20, 21), (20, 22), (20, 23), (20, 24), (21, 22), (21, 23), (21, 24), (22, 23), (22, 24), (23, 24)]
+            let graph = AdjacencyMatrix(vertexCount: 25, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 160)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 5)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+    }
+
+    @Test("CO-275 nx(dodecahedral_graph), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    func co275() {
+        // nx(dodecahedral_graph); minimumColoring()
+        do { // ReferencePseudograph
+            let pairs: [(Int, Int)] = [(0, 1), (0, 19), (0, 10), (1, 2), (1, 8), (2, 3), (2, 6), (3, 4), (3, 19), (4, 5), (4, 17), (5, 6), (5, 15), (6, 7), (7, 8), (7, 14), (8, 9), (9, 10), (9, 13), (10, 11), (11, 12), (11, 18), (12, 13), (12, 16), (13, 14), (14, 15), (15, 16), (16, 17), (17, 18), (18, 19)]
+            let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.edgeCount == 30)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // no indices
+            let pairs: [(Int, Int)] = [(0, 1), (0, 19), (0, 10), (1, 2), (1, 8), (2, 3), (2, 6), (3, 4), (3, 19), (4, 5), (4, 17), (5, 6), (5, 15), (6, 7), (7, 8), (7, 14), (8, 9), (9, 10), (9, 13), (10, 11), (11, 12), (11, 18), (12, 13), (12, 16), (13, 14), (14, 15), (15, 16), (16, 17), (17, 18), (18, 19)]
+            let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
+            #expect(graph.edgeCount == 30)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19] as [Int])
+            let n = vertexList.count
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // AdjacencyList.undirected
+            let pairs: [(Int, Int)] = [(0, 1), (0, 19), (0, 10), (1, 2), (1, 8), (2, 3), (2, 6), (3, 4), (3, 19), (4, 5), (4, 17), (5, 6), (5, 15), (6, 7), (7, 8), (7, 14), (8, 9), (9, 10), (9, 13), (10, 11), (11, 12), (11, 18), (12, 13), (12, 16), (13, 14), (14, 15), (15, 16), (16, 17), (17, 18), (18, 19)]
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 30)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // AdjacencyMatrix.undirected
+            let pairs: [(Int, Int)] = [(0, 1), (0, 19), (0, 10), (1, 2), (1, 8), (2, 3), (2, 6), (3, 4), (3, 19), (4, 5), (4, 17), (5, 6), (5, 15), (6, 7), (7, 8), (7, 14), (8, 9), (9, 10), (9, 13), (10, 11), (11, 12), (11, 18), (12, 13), (12, 16), (13, 14), (14, 15), (15, 16), (16, 17), (17, 18), (18, 19)]
+            let graph = AdjacencyMatrix(vertexCount: 20, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 30)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+    }
+
+    @Test("CO-276 nx(bull_graph), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    func co276() {
+        // nx(bull_graph); minimumColoring()
+        do { // ReferencePseudograph
+            let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (1, 3), (2, 4)]
+            let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.edgeCount == 5)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // no indices
+            let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (1, 3), (2, 4)]
+            let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
+            #expect(graph.edgeCount == 5)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
+            let n = vertexList.count
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // AdjacencyList.undirected
+            let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (1, 3), (2, 4)]
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 5)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // AdjacencyMatrix.undirected
+            let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (1, 3), (2, 4)]
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 5)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+    }
+
+    @Test("CO-277 nx(house_x_graph), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    func co277() {
+        // nx(house_x_graph); minimumColoring()
+        do { // ReferencePseudograph
+            let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 3), (1, 2), (2, 3), (2, 4), (3, 4)]
+            let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.edgeCount == 8)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 4)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // no indices
+            let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 3), (1, 2), (2, 3), (2, 4), (3, 4)]
+            let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
+            #expect(graph.edgeCount == 8)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
+            let n = vertexList.count
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 4)
+            #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // AdjacencyList.undirected
+            let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 3), (1, 2), (2, 3), (2, 4), (3, 4)]
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 8)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 4)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // AdjacencyMatrix.undirected
+            let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 3), (1, 2), (2, 3), (2, 4), (3, 4)]
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 8)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 4)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+    }
+
+    @Test("CO-278 lcg(12,24,1), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    func co278() {
+        // lcg(12,24,1); minimumColoring()
+        do { // ReferencePseudograph
+            let pairs: [(Int, Int)] = [(2, 9), (0, 6), (6, 11), (2, 10), (9, 10), (3, 10), (2, 4), (10, 11), (4, 9), (7, 1), (2, 6), (9, 8), (0, 8), (0, 5), (6, 10), (4, 1), (11, 4), (0, 9), (6, 4), (8, 10), (1, 8), (2, 7), (7, 10), (9, 6)]
+            let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.edgeCount == 24)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 4)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // no indices
+            let pairs: [(Int, Int)] = [(2, 9), (0, 6), (6, 11), (2, 10), (9, 10), (3, 10), (2, 4), (10, 11), (4, 9), (7, 1), (2, 6), (9, 8), (0, 8), (0, 5), (6, 10), (4, 1), (11, 4), (0, 9), (6, 4), (8, 10), (1, 8), (2, 7), (7, 10), (9, 6)]
+            let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
+            #expect(graph.edgeCount == 24)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int])
+            let n = vertexList.count
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 4)
+            #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // AdjacencyList.undirected
+            let pairs: [(Int, Int)] = [(2, 9), (0, 6), (6, 11), (2, 10), (9, 10), (3, 10), (2, 4), (10, 11), (4, 9), (7, 1), (2, 6), (9, 8), (0, 8), (0, 5), (6, 10), (4, 1), (11, 4), (0, 9), (6, 4), (8, 10), (1, 8), (2, 7), (7, 10), (9, 6)]
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 24)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 4)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // AdjacencyMatrix.undirected
+            let pairs: [(Int, Int)] = [(2, 9), (0, 6), (6, 11), (2, 10), (9, 10), (3, 10), (2, 4), (10, 11), (4, 9), (7, 1), (2, 6), (9, 8), (0, 8), (0, 5), (6, 10), (4, 1), (11, 4), (0, 9), (6, 4), (8, 10), (1, 8), (2, 7), (7, 10), (9, 6)]
+            let graph = AdjacencyMatrix(vertexCount: 12, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 24)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 4)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+    }
+
+    @Test("CO-279 lcg(14,40,5), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    func co279() {
+        // lcg(14,40,5); minimumColoring()
+        do { // ReferencePseudograph
+            let pairs: [(Int, Int)] = [(0, 11), (4, 1), (3, 5), (12, 2), (8, 7), (8, 13), (12, 8), (6, 8), (13, 2), (1, 11), (10, 5), (9, 1), (0, 1), (12, 4), (2, 6), (6, 0), (6, 4), (2, 8), (3, 6), (13, 10), (9, 5), (4, 8), (3, 8), (0, 12), (9, 13), (11, 10), (4, 3), (6, 13), (8, 11), (11, 13), (5, 13), (8, 1), (0, 2), (2, 7), (6, 1), (9, 6), (0, 13), (3, 12), (7, 13), (9, 2)]
+            let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.edgeCount == 40)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 4)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // no indices
+            let pairs: [(Int, Int)] = [(0, 11), (4, 1), (3, 5), (12, 2), (8, 7), (8, 13), (12, 8), (6, 8), (13, 2), (1, 11), (10, 5), (9, 1), (0, 1), (12, 4), (2, 6), (6, 0), (6, 4), (2, 8), (3, 6), (13, 10), (9, 5), (4, 8), (3, 8), (0, 12), (9, 13), (11, 10), (4, 3), (6, 13), (8, 11), (11, 13), (5, 13), (8, 1), (0, 2), (2, 7), (6, 1), (9, 6), (0, 13), (3, 12), (7, 13), (9, 2)]
+            let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
+            #expect(graph.edgeCount == 40)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as [Int])
+            let n = vertexList.count
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 4)
+            #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // AdjacencyList.undirected
+            let pairs: [(Int, Int)] = [(0, 11), (4, 1), (3, 5), (12, 2), (8, 7), (8, 13), (12, 8), (6, 8), (13, 2), (1, 11), (10, 5), (9, 1), (0, 1), (12, 4), (2, 6), (6, 0), (6, 4), (2, 8), (3, 6), (13, 10), (9, 5), (4, 8), (3, 8), (0, 12), (9, 13), (11, 10), (4, 3), (6, 13), (8, 11), (11, 13), (5, 13), (8, 1), (0, 2), (2, 7), (6, 1), (9, 6), (0, 13), (3, 12), (7, 13), (9, 2)]
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 40)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 4)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // AdjacencyMatrix.undirected
+            let pairs: [(Int, Int)] = [(0, 11), (4, 1), (3, 5), (12, 2), (8, 7), (8, 13), (12, 8), (6, 8), (13, 2), (1, 11), (10, 5), (9, 1), (0, 1), (12, 4), (2, 6), (6, 0), (6, 4), (2, 8), (3, 6), (13, 10), (9, 5), (4, 8), (3, 8), (0, 12), (9, 13), (11, 10), (4, 3), (6, 13), (8, 11), (11, 13), (5, 13), (8, 1), (0, 2), (2, 7), (6, 1), (9, 6), (0, 13), (3, 12), (7, 13), (9, 2)]
+            let graph = AdjacencyMatrix(vertexCount: 14, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 40)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 4)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+    }
+
+    @Test("CO-280 lcg(16,60,9), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    func co280() {
+        // lcg(16,60,9); minimumColoring()
+        do { // ReferencePseudograph
+            let pairs: [(Int, Int)] = [(11, 1), (8, 4), (12, 3), (11, 5), (11, 3), (12, 6), (9, 14), (14, 15), (15, 2), (3, 2), (13, 11), (15, 12), (1, 5), (10, 13), (8, 0), (9, 0), (13, 8), (1, 0), (9, 4), (8, 2), (7, 0), (3, 15), (14, 13), (8, 15), (12, 2), (0, 3), (7, 12), (4, 12), (4, 6), (7, 6), (14, 5), (0, 5), (14, 11), (14, 0), (12, 10), (6, 9), (12, 5), (10, 4), (13, 12), (15, 13), (13, 9), (8, 14), (13, 2), (8, 9), (6, 10), (14, 10), (7, 9), (1, 8), (2, 0), (15, 6), (10, 5), (5, 6), (8, 7), (2, 11), (10, 8), (11, 9), (6, 13), (1, 13), (12, 14), (5, 4)]
+            let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.edgeCount == 60)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 5)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // no indices
+            let pairs: [(Int, Int)] = [(11, 1), (8, 4), (12, 3), (11, 5), (11, 3), (12, 6), (9, 14), (14, 15), (15, 2), (3, 2), (13, 11), (15, 12), (1, 5), (10, 13), (8, 0), (9, 0), (13, 8), (1, 0), (9, 4), (8, 2), (7, 0), (3, 15), (14, 13), (8, 15), (12, 2), (0, 3), (7, 12), (4, 12), (4, 6), (7, 6), (14, 5), (0, 5), (14, 11), (14, 0), (12, 10), (6, 9), (12, 5), (10, 4), (13, 12), (15, 13), (13, 9), (8, 14), (13, 2), (8, 9), (6, 10), (14, 10), (7, 9), (1, 8), (2, 0), (15, 6), (10, 5), (5, 6), (8, 7), (2, 11), (10, 8), (11, 9), (6, 13), (1, 13), (12, 14), (5, 4)]
+            let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
+            #expect(graph.edgeCount == 60)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] as [Int])
+            let n = vertexList.count
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 5)
+            #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // AdjacencyList.undirected
+            let pairs: [(Int, Int)] = [(11, 1), (8, 4), (12, 3), (11, 5), (11, 3), (12, 6), (9, 14), (14, 15), (15, 2), (3, 2), (13, 11), (15, 12), (1, 5), (10, 13), (8, 0), (9, 0), (13, 8), (1, 0), (9, 4), (8, 2), (7, 0), (3, 15), (14, 13), (8, 15), (12, 2), (0, 3), (7, 12), (4, 12), (4, 6), (7, 6), (14, 5), (0, 5), (14, 11), (14, 0), (12, 10), (6, 9), (12, 5), (10, 4), (13, 12), (15, 13), (13, 9), (8, 14), (13, 2), (8, 9), (6, 10), (14, 10), (7, 9), (1, 8), (2, 0), (15, 6), (10, 5), (5, 6), (8, 7), (2, 11), (10, 8), (11, 9), (6, 13), (1, 13), (12, 14), (5, 4)]
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 60)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 5)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // AdjacencyMatrix.undirected
+            let pairs: [(Int, Int)] = [(11, 1), (8, 4), (12, 3), (11, 5), (11, 3), (12, 6), (9, 14), (14, 15), (15, 2), (3, 2), (13, 11), (15, 12), (1, 5), (10, 13), (8, 0), (9, 0), (13, 8), (1, 0), (9, 4), (8, 2), (7, 0), (3, 15), (14, 13), (8, 15), (12, 2), (0, 3), (7, 12), (4, 12), (4, 6), (7, 6), (14, 5), (0, 5), (14, 11), (14, 0), (12, 10), (6, 9), (12, 5), (10, 4), (13, 12), (15, 13), (13, 9), (8, 14), (13, 2), (8, 9), (6, 10), (14, 10), (7, 9), (1, 8), (2, 0), (15, 6), (10, 5), (5, 6), (8, 7), (2, 11), (10, 8), (11, 9), (6, 13), (1, 13), (12, 14), (5, 4)]
+            let graph = AdjacencyMatrix(vertexCount: 16, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 60)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 5)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+    }
+
+    @Test("CO-281 self-loops ignored in a bigger graph, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    func co281() {
+        // V [0, 1, 2, 3]; E [0-1, 1-1, 1-2, 2-3, 3-3, 0-2]; minimumColoring()
+        do { // ReferencePseudograph
+            let pairs: [(Int, Int)] = [(0, 1), (1, 1), (1, 2), (2, 3), (3, 3), (0, 2)]
+            let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.edgeCount == 6)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // no indices
+            let pairs: [(Int, Int)] = [(0, 1), (1, 1), (1, 2), (2, 3), (3, 3), (0, 2)]
+            let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
+            #expect(graph.edgeCount == 6)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3] as [Int])
+            let n = vertexList.count
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // AdjacencyList.undirected
+            let pairs: [(Int, Int)] = [(0, 1), (1, 1), (1, 2), (2, 3), (3, 3), (0, 2)]
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 6)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
+        }
+        do { // AdjacencyMatrix.undirected
+            let pairs: [(Int, Int)] = [(0, 1), (1, 1), (1, 2), (2, 3), (3, 3), (0, 2)]
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            #expect(graph.edgeCount == 6)
+            let vertexList = Array(graph.vertices)
+            #expect(vertexList == [0, 1, 2, 3] as [Int])
+            let coloring = graph.minimumColoring()
+            let colors = vertexList.map { coloring.color(of: $0) }
+            #expect(coloring.colorCount == 3)
+            #expect(graph.isVertexColoring { coloring.color(of: $0) })
+            // Numbered by first appearance: the first vertex has colour 0, and each colour first appears
+            // after the one below it.
+            var high = -1
+            for c in colors {
+                #expect(c <= high + 1, "\(colors)")
+                high = max(high, c)
+            }
         }
     }
 }

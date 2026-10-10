@@ -15,3 +15,10 @@ bazel-testlogs
 
 # The benchmark package is SwiftPM-only.
 Benchmarks
+
+# The differential and fuzz packages build with SwiftPM too.
+Differential/.build
+Fuzz/.build
+
+# Test catalogs (Tests/Catalogs/README.md): Python and generator inputs, never built.
+Tests/Catalogs

@@ -135,7 +135,7 @@ conformer.
 | `GraphReviewTests.swift` | Added after the critical review: the edge-index laws (UG-L24) on the adjacency list and the pseudograph, and their absence on the undirected view; with edge indices, `edges` in index order (UG-L25); the directed view's predecessor indices and emptiness; the builder's `if` without `else` |
 | `DirectedEdgeIndexTests.swift` | Dense edge indices on `DirectedGraph`: one-to-one onto `0..<edgeCount` (DG-L29), out-edges by index (DG-L30), and `edges` in index order (DG-L31, so `undirected` keeps UG-L25), on the adjacency list and compressed sparse row; in-edges by index (DG-L32) on every bidirectional representation and the directed view, through removals |
 
-Case IDs (DG-L01, DG-A09, …) refer to the protocol design catalog, which drew on Boost's graph
+Case IDs (DG-L01, DG-A09, …) refer to the protocol design catalog (`Tests/Catalogs/GraphProtocols/directed-graph.md`), which drew on Boost's graph
 concepts, petgraph's `visit` traits, JGraphT's `Graph`, LEMON's concepts and NetworkX.
 
 Each representation's suite also checks that its own members are what generic code reaches:
@@ -149,7 +149,7 @@ algorithm that needs it.
 
 ## Undirected catalog (UG)
 
-The undirected cases are numbered as in the `Graph` protocol design catalog, which drew on Boost's
+The undirected cases are numbered as in the `Graph` protocol design catalog (`Tests/Catalogs/GraphProtocols/graph.md`), which drew on Boost's
 `undirectedS` adjacency list and `undirected_dfs`, LEMON's `Graph` concept, igraph's loop
 conventions, petgraph, JGraphT and NetworkX. Expected values for the algorithms and views were
 computed with NetworkX 3.7 (`Graph`, `MultiGraph`, `to_directed`, `to_undirected`). NetworkX lists a

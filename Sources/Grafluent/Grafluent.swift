@@ -19,7 +19,6 @@
 @_exported import BipartiteGraphs
 @_exported import Multigraphs
 @_exported import Hypergraphs
-@_exported import FlowNetworks
 @_exported import FunctionalGraphs
 @_exported import GraphOperations
 @_exported import GraphProducts
