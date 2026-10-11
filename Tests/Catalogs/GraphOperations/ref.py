@@ -936,6 +936,18 @@ def hashes_after(view, calls):
     return run
 
 
+def hashes_then_lookups(calls, label_calls):
+    """Resets the counter, runs each index-space (text, call) and reports the lookups they made; then
+    runs each call that takes vertices, which looks its vertices up, and reports only its result."""
+    def run(v):
+        v.hashes = 0
+        res = [f"{t} {sw(c(v))}" for t, c in calls]
+        res.append(f"hashes {v.hashes}")
+        res += [f"{t} {sw(c(v))} (looks its vertices up)" for t, c in label_calls]
+        return "; ".join(res)
+    return run
+
+
 def define():
     # ---- reverseView
     G = "Reverse"
@@ -1081,11 +1093,11 @@ def define():
               ".complement", spec_complement, fmt_rows)
     view_case(G, "undirected: K4 has an empty complement", UL("a b c d", "a-b a-c a-d b-c b-d c-d"),
               lambda g: ComplementView(g), ".complement", spec_complement)
-    view_case(G, "rows hash nothing; contains(edge:) is the base's negated", AL("a b c", "a>b"),
+    view_case(G, "index-space rows hash nothing; contains(edge:) looks its vertices up, the base's negated", AL("a b c", "a>b"),
               lambda g: ComplementView(g), ".complement", spec_complement,
-              hashes_after(None, [("outEdges(ofIndex: 0)", lambda v: [p for p in v.out_edges(0)]),
-                                  ("contains(edge: a→b)", lambda v: v.contains_edge(0, 1)),
-                                  ("contains(edge: b→b)", lambda v: v.contains_edge(1, 1))]))
+              hashes_then_lookups([("outEdges(ofIndex: 0)", lambda v: [p for p in v.out_edges(0)])],
+                                  [("contains(edge: a→b)", lambda v: v.contains_edge(v.vertex_index("a"), v.vertex_index("b"))),
+                                   ("contains(edge: b→b)", lambda v: v.contains_edge(v.vertex_index("b"), v.vertex_index("b")))]))
     view_case(G, "base without vertex indices traps (phase 1)", (no_indices(DiBase(["a", "b"], [])), "Stable (with holes) V [a, b]; E []"),
               lambda g: ComplementView(g), ".complement")
 

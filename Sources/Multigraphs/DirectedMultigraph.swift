@@ -318,6 +318,10 @@ extension DirectedMultigraph: BidirectionalDirectedGraph {
     @inlinable public func predecessorIndices(ofIndex index: Int) -> ArraySlice<Int> { _base.predecessorIndices(ofIndex: index) }
     @inlinable public func outEdges(ofIndex index: Int) -> ArraySlice<Int> { _base.outEdges(ofIndex: index) }
     @inlinable public func inEdges(ofIndex index: Int) -> ArraySlice<Int> { _base.inEdges(ofIndex: index) }
+    @inlinable public func outDegree(ofIndex index: Int) -> Int { _base.outDegree(ofIndex: index) }
+    @inlinable public func inDegree(ofIndex index: Int) -> Int { _base.inDegree(ofIndex: index) }
+    @inlinable public func sourceIndex(ofEdgeAt position: Int) -> Int { _base.sourceIndex(ofEdgeAt: position) }
+    @inlinable public func targetIndex(ofEdgeAt position: Int) -> Int { _base.targetIndex(ofEdgeAt: position) }
     @inlinable public var edgeIndexBound: Int? { _base.edgeIndexBound }
     @inlinable public func edgeIndex(of position: Int) -> Int { position }
 

@@ -641,6 +641,18 @@ extension UndirectedAdjacencyList: Graph {
     @inlinable
     public func incidentEdgeIndices(ofIndex index: Int) -> ArraySlice<Int> { _incident[row: index] }
 
+    /// The length of the stored row of the vertex in slot `index`, a self-loop twice. O(1), no
+    /// lookup.
+    @inlinable
+    public func degree(ofIndex index: Int) -> Int { _neighbors.count(ofRow: index) }
+
+    /// The slots of the edge's ends, read from its record. O(1), no lookup.
+    @inlinable
+    public func endpointIndices(ofEdgeAt position: Int) -> (u: Int, v: Int) {
+        let record = _records[position]
+        return (record.u, record.v)
+    }
+
     /// The stored rows: `_neighbors` and `_incident`, whose entries are slots and edge positions,
     /// which are the vertex and edge indices.
     @inlinable

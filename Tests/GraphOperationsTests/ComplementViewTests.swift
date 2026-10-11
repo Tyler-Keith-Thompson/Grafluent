@@ -1,0 +1,702 @@
+// complement (catalog GO-048 – GO-062): every non-edge between distinct vertices, rows ascending
+// by index, positions as index pairs in row-major order, self-loops and parallel edges of the
+// base ignored; index-space rows hash nothing.
+// Generated from cases.md by swiftgen.py; see README.md.
+
+import AdjacencyListModule
+import GraphOperations
+import GraphProtocols
+import Multigraphs
+import Testing
+
+@Suite("GraphOperations complement")
+struct ComplementViewTests {
+    @Test("GO-048 empty graph")
+    func go048() {
+        // AL V []; E [] / .complement
+        // Expected: V []; E []; bounds 0/nil; rows []
+        let graph = AdjacencyList<String>(vertices: [] as [String], edges: [] as [DirectedEdge<String>])
+        let view = graph.complement
+        #expect(Array(view.vertices) == [] as [String])
+        #expect(view.vertices.map { view.vertexIndex(of: $0) } == [] as [Int])
+        #expect((0 ..< 0).map { view.vertex(atIndex: $0) } == [] as [String])
+        #expect(view.vertexCount == 0 && view.edgeCount == 0 && view.edges.count == 0)
+        #expect(view.vertexIndexBound == 0 && view.edgeIndexBound == nil)
+        #expect(view.edges.indices.map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [] as [[Int]])
+        #expect(view.edges.map { [$0.source, $0.target] } == [] as [[String]])
+    }
+
+    @Test("GO-049 one vertex: no self-loop")
+    func go049() {
+        // AL V [a]; E [] / .complement
+        // Expected: V [a#0]; E []; bounds 1/nil; rows [a: ]
+        let graph = AdjacencyList<String>(vertices: ["a"], edges: [] as [DirectedEdge<String>])
+        let view = graph.complement
+        #expect(Array(view.vertices) == ["a"])
+        #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0])
+        #expect((0 ..< 1).map { view.vertex(atIndex: $0) } == ["a"])
+        #expect(view.vertexCount == 1 && view.edgeCount == 0 && view.edges.count == 0)
+        #expect(view.vertexIndexBound == 1 && view.edgeIndexBound == nil)
+        #expect(view.edges.indices.map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [] as [[Int]])
+        #expect(view.edges.map { [$0.source, $0.target] } == [] as [[String]])
+        #expect(view.contains("a"))
+        #expect(Array(view.successors(of: "a")) == [] as [String])
+        #expect(Array(view.successorIndices(ofIndex: 0)) == [] as [Int])
+        #expect(view.outEdges(of: "a").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [] as [[Int]])
+        #expect(view.outEdges(ofIndex: 0).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [] as [[Int]])
+        #expect(view.outDegree(of: "a") == 0 && view.outDegree(ofIndex: 0) == 0)
+        #expect(Array(view.predecessors(of: "a")) == [] as [String])
+        #expect(Array(view.predecessorIndices(ofIndex: 0)) == [] as [Int])
+        #expect(view.inEdges(of: "a").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [] as [[Int]])
+        #expect(view.inEdges(ofIndex: 0).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [] as [[Int]])
+        #expect(view.inDegree(of: "a") == 0 && view.inDegree(ofIndex: 0) == 0 && view.degree(of: "a") == 0)
+        // contains(edge:) for every ordered pair, source-major.
+        #expect(view.vertices.flatMap { s in view.vertices.map { t in view.contains(edge: DirectedEdge(from: s, to: t)) } } == [false])
+    }
+
+    @Test("GO-050 edgeless on three: complete digraph")
+    func go050() {
+        // AL V [a, b, c]; E [] / .complement
+        // Expected: V [a#0, b#1, c#2]; E [(0,1):a→b, (0,2):a→c, (1,0):b→a, (1,2):b→c, (2,0):c→a, (2,1):c→b]; bounds 3/nil; rows [a: b c; b: a c; c: a b]
+        let graph = AdjacencyList<String>(vertices: ["a", "b", "c"], edges: [] as [DirectedEdge<String>])
+        let view = graph.complement
+        #expect(Array(view.vertices) == ["a", "b", "c"])
+        #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2])
+        #expect((0 ..< 3).map { view.vertex(atIndex: $0) } == ["a", "b", "c"])
+        #expect(view.vertexCount == 3 && view.edgeCount == 6 && view.edges.count == 6)
+        #expect(view.vertexIndexBound == 3 && view.edgeIndexBound == nil)
+        #expect(view.edges.indices.map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 1], [0, 2], [1, 0], [1, 2], [2, 0], [2, 1]])
+        #expect(view.edges.map { [$0.source, $0.target] } == [["a", "b"], ["a", "c"], ["b", "a"], ["b", "c"], ["c", "a"], ["c", "b"]])
+        #expect(view.edges.indices.map { [view.source(ofEdgeAt: $0), view.target(ofEdgeAt: $0)] } == [["a", "b"], ["a", "c"], ["b", "a"], ["b", "c"], ["c", "a"], ["c", "b"]])
+        #expect(view.edges.indices.map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 1], [0, 2], [1, 0], [1, 2], [2, 0], [2, 1]])
+        #expect(view.contains("a"))
+        #expect(Array(view.successors(of: "a")) == ["b", "c"])
+        #expect(Array(view.successorIndices(ofIndex: 0)) == [1, 2])
+        #expect(view.outEdges(of: "a").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 1], [0, 2]])
+        #expect(view.outEdges(ofIndex: 0).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 1], [0, 2]])
+        #expect(view.outDegree(of: "a") == 2 && view.outDegree(ofIndex: 0) == 2)
+        #expect(Array(view.predecessors(of: "a")) == ["b", "c"])
+        #expect(Array(view.predecessorIndices(ofIndex: 0)) == [1, 2])
+        #expect(view.inEdges(of: "a").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[1, 0], [2, 0]])
+        #expect(view.inEdges(ofIndex: 0).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[1, 0], [2, 0]])
+        #expect(view.inDegree(of: "a") == 2 && view.inDegree(ofIndex: 0) == 2 && view.degree(of: "a") == 4)
+        #expect(view.contains("b"))
+        #expect(Array(view.successors(of: "b")) == ["a", "c"])
+        #expect(Array(view.successorIndices(ofIndex: 1)) == [0, 2])
+        #expect(view.outEdges(of: "b").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[1, 0], [1, 2]])
+        #expect(view.outEdges(ofIndex: 1).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[1, 0], [1, 2]])
+        #expect(view.outDegree(of: "b") == 2 && view.outDegree(ofIndex: 1) == 2)
+        #expect(Array(view.predecessors(of: "b")) == ["a", "c"])
+        #expect(Array(view.predecessorIndices(ofIndex: 1)) == [0, 2])
+        #expect(view.inEdges(of: "b").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 1], [2, 1]])
+        #expect(view.inEdges(ofIndex: 1).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 1], [2, 1]])
+        #expect(view.inDegree(of: "b") == 2 && view.inDegree(ofIndex: 1) == 2 && view.degree(of: "b") == 4)
+        #expect(view.contains("c"))
+        #expect(Array(view.successors(of: "c")) == ["a", "b"])
+        #expect(Array(view.successorIndices(ofIndex: 2)) == [0, 1])
+        #expect(view.outEdges(of: "c").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[2, 0], [2, 1]])
+        #expect(view.outEdges(ofIndex: 2).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[2, 0], [2, 1]])
+        #expect(view.outDegree(of: "c") == 2 && view.outDegree(ofIndex: 2) == 2)
+        #expect(Array(view.predecessors(of: "c")) == ["a", "b"])
+        #expect(Array(view.predecessorIndices(ofIndex: 2)) == [0, 1])
+        #expect(view.inEdges(of: "c").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 2], [1, 2]])
+        #expect(view.inEdges(ofIndex: 2).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 2], [1, 2]])
+        #expect(view.inDegree(of: "c") == 2 && view.inDegree(ofIndex: 2) == 2 && view.degree(of: "c") == 4)
+        // contains(edge:) for every ordered pair, source-major.
+        #expect(view.vertices.flatMap { s in view.vertices.map { t in view.contains(edge: DirectedEdge(from: s, to: t)) } } == [false, true, true, true, false, true, true, true, false])
+    }
+
+    @Test("GO-051 one arc: the other five")
+    func go051() {
+        // AL V [a, b, c]; E [a→b] / .complement
+        // Expected: V [a#0, b#1, c#2]; E [(0,2):a→c, (1,0):b→a, (1,2):b→c, (2,0):c→a, (2,1):c→b]; bounds 3/nil; rows [a: c; b: a c; c: a b]
+        let graph = AdjacencyList<String>(vertices: ["a", "b", "c"], edges: [DirectedEdge(from: "a", to: "b")])
+        let view = graph.complement
+        #expect(Array(view.vertices) == ["a", "b", "c"])
+        #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2])
+        #expect((0 ..< 3).map { view.vertex(atIndex: $0) } == ["a", "b", "c"])
+        #expect(view.vertexCount == 3 && view.edgeCount == 5 && view.edges.count == 5)
+        #expect(view.vertexIndexBound == 3 && view.edgeIndexBound == nil)
+        #expect(view.edges.indices.map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 2], [1, 0], [1, 2], [2, 0], [2, 1]])
+        #expect(view.edges.map { [$0.source, $0.target] } == [["a", "c"], ["b", "a"], ["b", "c"], ["c", "a"], ["c", "b"]])
+        #expect(view.edges.indices.map { [view.source(ofEdgeAt: $0), view.target(ofEdgeAt: $0)] } == [["a", "c"], ["b", "a"], ["b", "c"], ["c", "a"], ["c", "b"]])
+        #expect(view.edges.indices.map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 2], [1, 0], [1, 2], [2, 0], [2, 1]])
+        #expect(view.contains("a"))
+        #expect(Array(view.successors(of: "a")) == ["c"])
+        #expect(Array(view.successorIndices(ofIndex: 0)) == [2])
+        #expect(view.outEdges(of: "a").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 2]])
+        #expect(view.outEdges(ofIndex: 0).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 2]])
+        #expect(view.outDegree(of: "a") == 1 && view.outDegree(ofIndex: 0) == 1)
+        #expect(Array(view.predecessors(of: "a")) == ["b", "c"])
+        #expect(Array(view.predecessorIndices(ofIndex: 0)) == [1, 2])
+        #expect(view.inEdges(of: "a").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[1, 0], [2, 0]])
+        #expect(view.inEdges(ofIndex: 0).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[1, 0], [2, 0]])
+        #expect(view.inDegree(of: "a") == 2 && view.inDegree(ofIndex: 0) == 2 && view.degree(of: "a") == 3)
+        #expect(view.contains("b"))
+        #expect(Array(view.successors(of: "b")) == ["a", "c"])
+        #expect(Array(view.successorIndices(ofIndex: 1)) == [0, 2])
+        #expect(view.outEdges(of: "b").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[1, 0], [1, 2]])
+        #expect(view.outEdges(ofIndex: 1).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[1, 0], [1, 2]])
+        #expect(view.outDegree(of: "b") == 2 && view.outDegree(ofIndex: 1) == 2)
+        #expect(Array(view.predecessors(of: "b")) == ["c"])
+        #expect(Array(view.predecessorIndices(ofIndex: 1)) == [2])
+        #expect(view.inEdges(of: "b").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[2, 1]])
+        #expect(view.inEdges(ofIndex: 1).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[2, 1]])
+        #expect(view.inDegree(of: "b") == 1 && view.inDegree(ofIndex: 1) == 1 && view.degree(of: "b") == 3)
+        #expect(view.contains("c"))
+        #expect(Array(view.successors(of: "c")) == ["a", "b"])
+        #expect(Array(view.successorIndices(ofIndex: 2)) == [0, 1])
+        #expect(view.outEdges(of: "c").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[2, 0], [2, 1]])
+        #expect(view.outEdges(ofIndex: 2).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[2, 0], [2, 1]])
+        #expect(view.outDegree(of: "c") == 2 && view.outDegree(ofIndex: 2) == 2)
+        #expect(Array(view.predecessors(of: "c")) == ["a", "b"])
+        #expect(Array(view.predecessorIndices(ofIndex: 2)) == [0, 1])
+        #expect(view.inEdges(of: "c").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 2], [1, 2]])
+        #expect(view.inEdges(ofIndex: 2).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 2], [1, 2]])
+        #expect(view.inDegree(of: "c") == 2 && view.inDegree(ofIndex: 2) == 2 && view.degree(of: "c") == 4)
+        // contains(edge:) for every ordered pair, source-major.
+        #expect(view.vertices.flatMap { s in view.vertices.map { t in view.contains(edge: DirectedEdge(from: s, to: t)) } } == [false, false, true, true, false, true, true, true, false])
+    }
+
+    @Test("GO-052 complete digraph: no arcs")
+    func go052() {
+        // AL V [a, b]; E [a→b, b→a] / .complement
+        // Expected: V [a#0, b#1]; E []; bounds 2/nil; rows [a: ; b: ]
+        let graph = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "a")])
+        let view = graph.complement
+        #expect(Array(view.vertices) == ["a", "b"])
+        #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1])
+        #expect((0 ..< 2).map { view.vertex(atIndex: $0) } == ["a", "b"])
+        #expect(view.vertexCount == 2 && view.edgeCount == 0 && view.edges.count == 0)
+        #expect(view.vertexIndexBound == 2 && view.edgeIndexBound == nil)
+        #expect(view.edges.indices.map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [] as [[Int]])
+        #expect(view.edges.map { [$0.source, $0.target] } == [] as [[String]])
+        #expect(view.contains("a"))
+        #expect(Array(view.successors(of: "a")) == [] as [String])
+        #expect(Array(view.successorIndices(ofIndex: 0)) == [] as [Int])
+        #expect(view.outEdges(of: "a").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [] as [[Int]])
+        #expect(view.outEdges(ofIndex: 0).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [] as [[Int]])
+        #expect(view.outDegree(of: "a") == 0 && view.outDegree(ofIndex: 0) == 0)
+        #expect(Array(view.predecessors(of: "a")) == [] as [String])
+        #expect(Array(view.predecessorIndices(ofIndex: 0)) == [] as [Int])
+        #expect(view.inEdges(of: "a").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [] as [[Int]])
+        #expect(view.inEdges(ofIndex: 0).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [] as [[Int]])
+        #expect(view.inDegree(of: "a") == 0 && view.inDegree(ofIndex: 0) == 0 && view.degree(of: "a") == 0)
+        #expect(view.contains("b"))
+        #expect(Array(view.successors(of: "b")) == [] as [String])
+        #expect(Array(view.successorIndices(ofIndex: 1)) == [] as [Int])
+        #expect(view.outEdges(of: "b").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [] as [[Int]])
+        #expect(view.outEdges(ofIndex: 1).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [] as [[Int]])
+        #expect(view.outDegree(of: "b") == 0 && view.outDegree(ofIndex: 1) == 0)
+        #expect(Array(view.predecessors(of: "b")) == [] as [String])
+        #expect(Array(view.predecessorIndices(ofIndex: 1)) == [] as [Int])
+        #expect(view.inEdges(of: "b").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [] as [[Int]])
+        #expect(view.inEdges(ofIndex: 1).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [] as [[Int]])
+        #expect(view.inDegree(of: "b") == 0 && view.inDegree(ofIndex: 1) == 0 && view.degree(of: "b") == 0)
+        // contains(edge:) for every ordered pair, source-major.
+        #expect(view.vertices.flatMap { s in view.vertices.map { t in view.contains(edge: DirectedEdge(from: s, to: t)) } } == [false, false, false, false])
+    }
+
+    @Test("GO-053 self-loop ignored")
+    func go053() {
+        // AL V [a, b]; E [a→a] / .complement
+        // Expected: V [a#0, b#1]; E [(0,1):a→b, (1,0):b→a]; bounds 2/nil; rows [a: b; b: a]
+        let graph = DirectedPseudograph<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "a")])
+        let view = graph.complement
+        #expect(Array(view.vertices) == ["a", "b"])
+        #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1])
+        #expect((0 ..< 2).map { view.vertex(atIndex: $0) } == ["a", "b"])
+        #expect(view.vertexCount == 2 && view.edgeCount == 2 && view.edges.count == 2)
+        #expect(view.vertexIndexBound == 2 && view.edgeIndexBound == nil)
+        #expect(view.edges.indices.map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 1], [1, 0]])
+        #expect(view.edges.map { [$0.source, $0.target] } == [["a", "b"], ["b", "a"]])
+        #expect(view.edges.indices.map { [view.source(ofEdgeAt: $0), view.target(ofEdgeAt: $0)] } == [["a", "b"], ["b", "a"]])
+        #expect(view.edges.indices.map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 1], [1, 0]])
+        #expect(view.contains("a"))
+        #expect(Array(view.successors(of: "a")) == ["b"])
+        #expect(Array(view.successorIndices(ofIndex: 0)) == [1])
+        #expect(view.outEdges(of: "a").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 1]])
+        #expect(view.outEdges(ofIndex: 0).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 1]])
+        #expect(view.outDegree(of: "a") == 1 && view.outDegree(ofIndex: 0) == 1)
+        #expect(Array(view.predecessors(of: "a")) == ["b"])
+        #expect(Array(view.predecessorIndices(ofIndex: 0)) == [1])
+        #expect(view.inEdges(of: "a").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[1, 0]])
+        #expect(view.inEdges(ofIndex: 0).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[1, 0]])
+        #expect(view.inDegree(of: "a") == 1 && view.inDegree(ofIndex: 0) == 1 && view.degree(of: "a") == 2)
+        #expect(view.contains("b"))
+        #expect(Array(view.successors(of: "b")) == ["a"])
+        #expect(Array(view.successorIndices(ofIndex: 1)) == [0])
+        #expect(view.outEdges(of: "b").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[1, 0]])
+        #expect(view.outEdges(ofIndex: 1).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[1, 0]])
+        #expect(view.outDegree(of: "b") == 1 && view.outDegree(ofIndex: 1) == 1)
+        #expect(Array(view.predecessors(of: "b")) == ["a"])
+        #expect(Array(view.predecessorIndices(ofIndex: 1)) == [0])
+        #expect(view.inEdges(of: "b").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 1]])
+        #expect(view.inEdges(ofIndex: 1).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 1]])
+        #expect(view.inDegree(of: "b") == 1 && view.inDegree(ofIndex: 1) == 1 && view.degree(of: "b") == 2)
+        // contains(edge:) for every ordered pair, source-major.
+        #expect(view.vertices.flatMap { s in view.vertices.map { t in view.contains(edge: DirectedEdge(from: s, to: t)) } } == [false, true, true, false])
+    }
+
+    @Test("GO-054 parallel arcs count as one")
+    func go054() {
+        // AL V [a, b, c]; E [a→b, a→b] / .complement
+        // Expected: V [a#0, b#1, c#2]; E [(0,2):a→c, (1,0):b→a, (1,2):b→c, (2,0):c→a, (2,1):c→b]; bounds 3/nil; rows [a: c; b: a c; c: a b]
+        let graph = DirectedPseudograph<String>(vertices: ["a", "b", "c"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "a", to: "b")])
+        let view = graph.complement
+        #expect(Array(view.vertices) == ["a", "b", "c"])
+        #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2])
+        #expect((0 ..< 3).map { view.vertex(atIndex: $0) } == ["a", "b", "c"])
+        #expect(view.vertexCount == 3 && view.edgeCount == 5 && view.edges.count == 5)
+        #expect(view.vertexIndexBound == 3 && view.edgeIndexBound == nil)
+        #expect(view.edges.indices.map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 2], [1, 0], [1, 2], [2, 0], [2, 1]])
+        #expect(view.edges.map { [$0.source, $0.target] } == [["a", "c"], ["b", "a"], ["b", "c"], ["c", "a"], ["c", "b"]])
+        #expect(view.edges.indices.map { [view.source(ofEdgeAt: $0), view.target(ofEdgeAt: $0)] } == [["a", "c"], ["b", "a"], ["b", "c"], ["c", "a"], ["c", "b"]])
+        #expect(view.edges.indices.map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 2], [1, 0], [1, 2], [2, 0], [2, 1]])
+        #expect(view.contains("a"))
+        #expect(Array(view.successors(of: "a")) == ["c"])
+        #expect(Array(view.successorIndices(ofIndex: 0)) == [2])
+        #expect(view.outEdges(of: "a").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 2]])
+        #expect(view.outEdges(ofIndex: 0).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 2]])
+        #expect(view.outDegree(of: "a") == 1 && view.outDegree(ofIndex: 0) == 1)
+        #expect(Array(view.predecessors(of: "a")) == ["b", "c"])
+        #expect(Array(view.predecessorIndices(ofIndex: 0)) == [1, 2])
+        #expect(view.inEdges(of: "a").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[1, 0], [2, 0]])
+        #expect(view.inEdges(ofIndex: 0).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[1, 0], [2, 0]])
+        #expect(view.inDegree(of: "a") == 2 && view.inDegree(ofIndex: 0) == 2 && view.degree(of: "a") == 3)
+        #expect(view.contains("b"))
+        #expect(Array(view.successors(of: "b")) == ["a", "c"])
+        #expect(Array(view.successorIndices(ofIndex: 1)) == [0, 2])
+        #expect(view.outEdges(of: "b").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[1, 0], [1, 2]])
+        #expect(view.outEdges(ofIndex: 1).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[1, 0], [1, 2]])
+        #expect(view.outDegree(of: "b") == 2 && view.outDegree(ofIndex: 1) == 2)
+        #expect(Array(view.predecessors(of: "b")) == ["c"])
+        #expect(Array(view.predecessorIndices(ofIndex: 1)) == [2])
+        #expect(view.inEdges(of: "b").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[2, 1]])
+        #expect(view.inEdges(ofIndex: 1).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[2, 1]])
+        #expect(view.inDegree(of: "b") == 1 && view.inDegree(ofIndex: 1) == 1 && view.degree(of: "b") == 3)
+        #expect(view.contains("c"))
+        #expect(Array(view.successors(of: "c")) == ["a", "b"])
+        #expect(Array(view.successorIndices(ofIndex: 2)) == [0, 1])
+        #expect(view.outEdges(of: "c").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[2, 0], [2, 1]])
+        #expect(view.outEdges(ofIndex: 2).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[2, 0], [2, 1]])
+        #expect(view.outDegree(of: "c") == 2 && view.outDegree(ofIndex: 2) == 2)
+        #expect(Array(view.predecessors(of: "c")) == ["a", "b"])
+        #expect(Array(view.predecessorIndices(ofIndex: 2)) == [0, 1])
+        #expect(view.inEdges(of: "c").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 2], [1, 2]])
+        #expect(view.inEdges(ofIndex: 2).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 2], [1, 2]])
+        #expect(view.inDegree(of: "c") == 2 && view.inDegree(ofIndex: 2) == 2 && view.degree(of: "c") == 4)
+        // contains(edge:) for every ordered pair, source-major.
+        #expect(view.vertices.flatMap { s in view.vertices.map { t in view.contains(edge: DirectedEdge(from: s, to: t)) } } == [false, false, true, true, false, true, true, true, false])
+    }
+
+    @Test("GO-055 rows ascending by index")
+    func go055() {
+        // AL V [c, a, b]; E [c→b] / .complement
+        // Expected: V [c#0, a#1, b#2]; E [(0,1):c→a, (1,0):a→c, (1,2):a→b, (2,0):b→c, (2,1):b→a]; bounds 3/nil; rows [c: a; a: c b; b: c a]
+        let graph = AdjacencyList<String>(vertices: ["c", "a", "b"], edges: [DirectedEdge(from: "c", to: "b")])
+        let view = graph.complement
+        #expect(Array(view.vertices) == ["c", "a", "b"])
+        #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2])
+        #expect((0 ..< 3).map { view.vertex(atIndex: $0) } == ["c", "a", "b"])
+        #expect(view.vertexCount == 3 && view.edgeCount == 5 && view.edges.count == 5)
+        #expect(view.vertexIndexBound == 3 && view.edgeIndexBound == nil)
+        #expect(view.edges.indices.map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 1], [1, 0], [1, 2], [2, 0], [2, 1]])
+        #expect(view.edges.map { [$0.source, $0.target] } == [["c", "a"], ["a", "c"], ["a", "b"], ["b", "c"], ["b", "a"]])
+        #expect(view.edges.indices.map { [view.source(ofEdgeAt: $0), view.target(ofEdgeAt: $0)] } == [["c", "a"], ["a", "c"], ["a", "b"], ["b", "c"], ["b", "a"]])
+        #expect(view.edges.indices.map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 1], [1, 0], [1, 2], [2, 0], [2, 1]])
+        #expect(view.contains("c"))
+        #expect(Array(view.successors(of: "c")) == ["a"])
+        #expect(Array(view.successorIndices(ofIndex: 0)) == [1])
+        #expect(view.outEdges(of: "c").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 1]])
+        #expect(view.outEdges(ofIndex: 0).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 1]])
+        #expect(view.outDegree(of: "c") == 1 && view.outDegree(ofIndex: 0) == 1)
+        #expect(Array(view.predecessors(of: "c")) == ["a", "b"])
+        #expect(Array(view.predecessorIndices(ofIndex: 0)) == [1, 2])
+        #expect(view.inEdges(of: "c").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[1, 0], [2, 0]])
+        #expect(view.inEdges(ofIndex: 0).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[1, 0], [2, 0]])
+        #expect(view.inDegree(of: "c") == 2 && view.inDegree(ofIndex: 0) == 2 && view.degree(of: "c") == 3)
+        #expect(view.contains("a"))
+        #expect(Array(view.successors(of: "a")) == ["c", "b"])
+        #expect(Array(view.successorIndices(ofIndex: 1)) == [0, 2])
+        #expect(view.outEdges(of: "a").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[1, 0], [1, 2]])
+        #expect(view.outEdges(ofIndex: 1).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[1, 0], [1, 2]])
+        #expect(view.outDegree(of: "a") == 2 && view.outDegree(ofIndex: 1) == 2)
+        #expect(Array(view.predecessors(of: "a")) == ["c", "b"])
+        #expect(Array(view.predecessorIndices(ofIndex: 1)) == [0, 2])
+        #expect(view.inEdges(of: "a").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 1], [2, 1]])
+        #expect(view.inEdges(ofIndex: 1).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 1], [2, 1]])
+        #expect(view.inDegree(of: "a") == 2 && view.inDegree(ofIndex: 1) == 2 && view.degree(of: "a") == 4)
+        #expect(view.contains("b"))
+        #expect(Array(view.successors(of: "b")) == ["c", "a"])
+        #expect(Array(view.successorIndices(ofIndex: 2)) == [0, 1])
+        #expect(view.outEdges(of: "b").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[2, 0], [2, 1]])
+        #expect(view.outEdges(ofIndex: 2).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[2, 0], [2, 1]])
+        #expect(view.outDegree(of: "b") == 2 && view.outDegree(ofIndex: 2) == 2)
+        #expect(Array(view.predecessors(of: "b")) == ["a"])
+        #expect(Array(view.predecessorIndices(ofIndex: 2)) == [1])
+        #expect(view.inEdges(of: "b").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[1, 2]])
+        #expect(view.inEdges(ofIndex: 2).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[1, 2]])
+        #expect(view.inDegree(of: "b") == 1 && view.inDegree(ofIndex: 2) == 1 && view.degree(of: "b") == 3)
+        // contains(edge:) for every ordered pair, source-major.
+        #expect(view.vertices.flatMap { s in view.vertices.map { t in view.contains(edge: DirectedEdge(from: s, to: t)) } } == [false, true, false, true, false, true, true, true, false])
+    }
+
+    @Test("GO-056 predecessors when the base is bidirectional")
+    func go056() {
+        // AL V [a, b, c]; E [a→c] / .complement
+        // Expected: V [a#0, b#1, c#2]; E [(0,1):a→b, (1,0):b→a, (1,2):b→c, (2,0):c→a, (2,1):c→b]; bounds 3/nil; predecessors(of: c) [b]
+        let graph = AdjacencyList<String>(vertices: ["a", "b", "c"], edges: [DirectedEdge(from: "a", to: "c")])
+        let view = graph.complement
+        #expect(Array(view.predecessors(of: "c")) == ["b"])
+        #expect(Array(view.vertices) == ["a", "b", "c"])
+        #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2])
+        #expect((0 ..< 3).map { view.vertex(atIndex: $0) } == ["a", "b", "c"])
+        #expect(view.vertexCount == 3 && view.edgeCount == 5 && view.edges.count == 5)
+        #expect(view.vertexIndexBound == 3 && view.edgeIndexBound == nil)
+        #expect(view.edges.indices.map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 1], [1, 0], [1, 2], [2, 0], [2, 1]])
+        #expect(view.edges.map { [$0.source, $0.target] } == [["a", "b"], ["b", "a"], ["b", "c"], ["c", "a"], ["c", "b"]])
+        #expect(view.edges.indices.map { [view.source(ofEdgeAt: $0), view.target(ofEdgeAt: $0)] } == [["a", "b"], ["b", "a"], ["b", "c"], ["c", "a"], ["c", "b"]])
+        #expect(view.edges.indices.map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 1], [1, 0], [1, 2], [2, 0], [2, 1]])
+        #expect(view.contains("a"))
+        #expect(Array(view.successors(of: "a")) == ["b"])
+        #expect(Array(view.successorIndices(ofIndex: 0)) == [1])
+        #expect(view.outEdges(of: "a").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 1]])
+        #expect(view.outEdges(ofIndex: 0).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 1]])
+        #expect(view.outDegree(of: "a") == 1 && view.outDegree(ofIndex: 0) == 1)
+        #expect(Array(view.predecessors(of: "a")) == ["b", "c"])
+        #expect(Array(view.predecessorIndices(ofIndex: 0)) == [1, 2])
+        #expect(view.inEdges(of: "a").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[1, 0], [2, 0]])
+        #expect(view.inEdges(ofIndex: 0).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[1, 0], [2, 0]])
+        #expect(view.inDegree(of: "a") == 2 && view.inDegree(ofIndex: 0) == 2 && view.degree(of: "a") == 3)
+        #expect(view.contains("b"))
+        #expect(Array(view.successors(of: "b")) == ["a", "c"])
+        #expect(Array(view.successorIndices(ofIndex: 1)) == [0, 2])
+        #expect(view.outEdges(of: "b").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[1, 0], [1, 2]])
+        #expect(view.outEdges(ofIndex: 1).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[1, 0], [1, 2]])
+        #expect(view.outDegree(of: "b") == 2 && view.outDegree(ofIndex: 1) == 2)
+        #expect(Array(view.predecessors(of: "b")) == ["a", "c"])
+        #expect(Array(view.predecessorIndices(ofIndex: 1)) == [0, 2])
+        #expect(view.inEdges(of: "b").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 1], [2, 1]])
+        #expect(view.inEdges(ofIndex: 1).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 1], [2, 1]])
+        #expect(view.inDegree(of: "b") == 2 && view.inDegree(ofIndex: 1) == 2 && view.degree(of: "b") == 4)
+        #expect(view.contains("c"))
+        #expect(Array(view.successors(of: "c")) == ["a", "b"])
+        #expect(Array(view.successorIndices(ofIndex: 2)) == [0, 1])
+        #expect(view.outEdges(of: "c").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[2, 0], [2, 1]])
+        #expect(view.outEdges(ofIndex: 2).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[2, 0], [2, 1]])
+        #expect(view.outDegree(of: "c") == 2 && view.outDegree(ofIndex: 2) == 2)
+        #expect(Array(view.predecessors(of: "c")) == ["b"])
+        #expect(Array(view.predecessorIndices(ofIndex: 2)) == [1])
+        #expect(view.inEdges(of: "c").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[1, 2]])
+        #expect(view.inEdges(ofIndex: 2).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[1, 2]])
+        #expect(view.inDegree(of: "c") == 1 && view.inDegree(ofIndex: 2) == 1 && view.degree(of: "c") == 3)
+        // contains(edge:) for every ordered pair, source-major.
+        #expect(view.vertices.flatMap { s in view.vertices.map { t in view.contains(edge: DirectedEdge(from: s, to: t)) } } == [false, true, false, true, false, true, true, true, false])
+    }
+
+    @Test("GO-057 complement twice is the simple loopless base only")
+    func go057() {
+        // AL V [a, b]; E [a→a, a→b, a→b] / .complement.complement
+        // Expected: V [a#0, b#1]; E [(0,1):a→b]; bounds 2/nil; rows [a: b; b: ]
+        let graph = DirectedPseudograph<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "a"), DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "a", to: "b")])
+        let view = graph.complement.complement
+        // The base of the outer complement is the inner one, whose base is the graph.
+        #expect(view.base.base == graph)
+        #expect(Array(view.vertices) == ["a", "b"])
+        #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1])
+        #expect((0 ..< 2).map { view.vertex(atIndex: $0) } == ["a", "b"])
+        #expect(view.vertexCount == 2 && view.edgeCount == 1 && view.edges.count == 1)
+        #expect(view.vertexIndexBound == 2 && view.edgeIndexBound == nil)
+        #expect(view.edges.indices.map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 1]])
+        #expect(view.edges.map { [$0.source, $0.target] } == [["a", "b"]])
+        #expect(view.edges.indices.map { [view.source(ofEdgeAt: $0), view.target(ofEdgeAt: $0)] } == [["a", "b"]])
+        #expect(view.edges.indices.map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 1]])
+        #expect(view.contains("a"))
+        #expect(Array(view.successors(of: "a")) == ["b"])
+        #expect(Array(view.successorIndices(ofIndex: 0)) == [1])
+        #expect(view.outEdges(of: "a").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 1]])
+        #expect(view.outEdges(ofIndex: 0).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 1]])
+        #expect(view.outDegree(of: "a") == 1 && view.outDegree(ofIndex: 0) == 1)
+        #expect(Array(view.predecessors(of: "a")) == [] as [String])
+        #expect(Array(view.predecessorIndices(ofIndex: 0)) == [] as [Int])
+        #expect(view.inEdges(of: "a").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [] as [[Int]])
+        #expect(view.inEdges(ofIndex: 0).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [] as [[Int]])
+        #expect(view.inDegree(of: "a") == 0 && view.inDegree(ofIndex: 0) == 0 && view.degree(of: "a") == 1)
+        #expect(view.contains("b"))
+        #expect(Array(view.successors(of: "b")) == [] as [String])
+        #expect(Array(view.successorIndices(ofIndex: 1)) == [] as [Int])
+        #expect(view.outEdges(of: "b").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [] as [[Int]])
+        #expect(view.outEdges(ofIndex: 1).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [] as [[Int]])
+        #expect(view.outDegree(of: "b") == 0 && view.outDegree(ofIndex: 1) == 0)
+        #expect(Array(view.predecessors(of: "b")) == ["a"])
+        #expect(Array(view.predecessorIndices(ofIndex: 1)) == [0])
+        #expect(view.inEdges(of: "b").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 1]])
+        #expect(view.inEdges(ofIndex: 1).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 1]])
+        #expect(view.inDegree(of: "b") == 1 && view.inDegree(ofIndex: 1) == 1 && view.degree(of: "b") == 1)
+        // contains(edge:) for every ordered pair, source-major.
+        #expect(view.vertices.flatMap { s in view.vertices.map { t in view.contains(edge: DirectedEdge(from: s, to: t)) } } == [false, true, false, false])
+    }
+
+    @Test("GO-058 undirected: path P4 to its complement P4")
+    func go058() {
+        // UL V [a, b, c, d]; E [a–b, b–c, c–d] / .complement
+        // Expected: V [a#0, b#1, c#2, d#3]; E [(0,2):a–c, (0,3):a–d, (1,3):b–d]; bounds 4/nil; rows [a: c d; b: d; c: a; d: a b]
+        let graph = UndirectedAdjacencyList<String>(vertices: ["a", "b", "c", "d"], edges: [UndirectedEdge("a", "b"), UndirectedEdge("b", "c"), UndirectedEdge("c", "d")])
+        let view = graph.complement
+        #expect(Array(view.vertices) == ["a", "b", "c", "d"])
+        #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2, 3])
+        #expect((0 ..< 4).map { view.vertex(atIndex: $0) } == ["a", "b", "c", "d"])
+        #expect(view.vertexCount == 4 && view.edgeCount == 3 && view.edges.count == 3)
+        #expect(view.vertexIndexBound == 4 && view.edgeIndexBound == nil)
+        #expect(view.edges.indices.map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [[0, 2], [0, 3], [1, 3]])
+        #expect(view.edges.map { [$0.u, $0.v] } == [["a", "c"], ["a", "d"], ["b", "d"]])
+        #expect(view.edges.indices.map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [[0, 2], [0, 3], [1, 3]])
+        #expect(view.contains("a"))
+        #expect(Array(view.neighbors(of: "a")) == ["c", "d"])
+        #expect(Array(view.neighborIndices(ofIndex: 0)) == [2, 3])
+        #expect(view.incidentEdges(of: "a").map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [[0, 2], [0, 3]])
+        #expect(view.incidentEdges(ofIndex: 0).map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [[0, 2], [0, 3]])
+        #expect(view.degree(of: "a") == 2 && view.degree(ofIndex: 0) == 2)
+        #expect(view.incidentEdges(of: "a").map { view.oppositeVertex(to: "a", acrossEdgeAt: $0) } == ["c", "d"])
+        #expect(view.contains("b"))
+        #expect(Array(view.neighbors(of: "b")) == ["d"])
+        #expect(Array(view.neighborIndices(ofIndex: 1)) == [3])
+        #expect(view.incidentEdges(of: "b").map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [[1, 3]])
+        #expect(view.incidentEdges(ofIndex: 1).map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [[1, 3]])
+        #expect(view.degree(of: "b") == 1 && view.degree(ofIndex: 1) == 1)
+        #expect(view.incidentEdges(of: "b").map { view.oppositeVertex(to: "b", acrossEdgeAt: $0) } == ["d"])
+        #expect(view.contains("c"))
+        #expect(Array(view.neighbors(of: "c")) == ["a"])
+        #expect(Array(view.neighborIndices(ofIndex: 2)) == [0])
+        #expect(view.incidentEdges(of: "c").map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [[0, 2]])
+        #expect(view.incidentEdges(ofIndex: 2).map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [[0, 2]])
+        #expect(view.degree(of: "c") == 1 && view.degree(ofIndex: 2) == 1)
+        #expect(view.incidentEdges(of: "c").map { view.oppositeVertex(to: "c", acrossEdgeAt: $0) } == ["a"])
+        #expect(view.contains("d"))
+        #expect(Array(view.neighbors(of: "d")) == ["a", "b"])
+        #expect(Array(view.neighborIndices(ofIndex: 3)) == [0, 1])
+        #expect(view.incidentEdges(of: "d").map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [[0, 3], [1, 3]])
+        #expect(view.incidentEdges(ofIndex: 3).map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [[0, 3], [1, 3]])
+        #expect(view.degree(of: "d") == 2 && view.degree(ofIndex: 3) == 2)
+        #expect(view.incidentEdges(of: "d").map { view.oppositeVertex(to: "d", acrossEdgeAt: $0) } == ["a", "b"])
+        // contains(edge:) for every ordered pair, first-end-major.
+        #expect(view.vertices.flatMap { s in view.vertices.map { t in view.contains(edge: UndirectedEdge(s, t)) } } == [false, false, true, true, false, false, false, true, true, false, false, false, true, true, false, false])
+    }
+
+    @Test("GO-059 undirected: C5 is self-complementary (as a set of edges, a different C5)")
+    func go059() {
+        // UL V [a, b, c, d, e]; E [a–b, b–c, c–d, d–e, e–a] / .complement
+        // Expected: V [a#0, b#1, c#2, d#3, e#4]; E [(0,2):a–c, (0,3):a–d, (1,3):b–d, (1,4):b–e, (2,4):c–e]; bounds 5/nil; rows [a: c d; b: d e; c: a e; d: a b; e: b c]
+        let graph = UndirectedAdjacencyList<String>(vertices: ["a", "b", "c", "d", "e"], edges: [UndirectedEdge("a", "b"), UndirectedEdge("b", "c"), UndirectedEdge("c", "d"), UndirectedEdge("d", "e"), UndirectedEdge("e", "a")])
+        let view = graph.complement
+        #expect(Array(view.vertices) == ["a", "b", "c", "d", "e"])
+        #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2, 3, 4])
+        #expect((0 ..< 5).map { view.vertex(atIndex: $0) } == ["a", "b", "c", "d", "e"])
+        #expect(view.vertexCount == 5 && view.edgeCount == 5 && view.edges.count == 5)
+        #expect(view.vertexIndexBound == 5 && view.edgeIndexBound == nil)
+        #expect(view.edges.indices.map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [[0, 2], [0, 3], [1, 3], [1, 4], [2, 4]])
+        #expect(view.edges.map { [$0.u, $0.v] } == [["a", "c"], ["a", "d"], ["b", "d"], ["b", "e"], ["c", "e"]])
+        #expect(view.edges.indices.map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [[0, 2], [0, 3], [1, 3], [1, 4], [2, 4]])
+        #expect(view.contains("a"))
+        #expect(Array(view.neighbors(of: "a")) == ["c", "d"])
+        #expect(Array(view.neighborIndices(ofIndex: 0)) == [2, 3])
+        #expect(view.incidentEdges(of: "a").map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [[0, 2], [0, 3]])
+        #expect(view.incidentEdges(ofIndex: 0).map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [[0, 2], [0, 3]])
+        #expect(view.degree(of: "a") == 2 && view.degree(ofIndex: 0) == 2)
+        #expect(view.incidentEdges(of: "a").map { view.oppositeVertex(to: "a", acrossEdgeAt: $0) } == ["c", "d"])
+        #expect(view.contains("b"))
+        #expect(Array(view.neighbors(of: "b")) == ["d", "e"])
+        #expect(Array(view.neighborIndices(ofIndex: 1)) == [3, 4])
+        #expect(view.incidentEdges(of: "b").map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [[1, 3], [1, 4]])
+        #expect(view.incidentEdges(ofIndex: 1).map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [[1, 3], [1, 4]])
+        #expect(view.degree(of: "b") == 2 && view.degree(ofIndex: 1) == 2)
+        #expect(view.incidentEdges(of: "b").map { view.oppositeVertex(to: "b", acrossEdgeAt: $0) } == ["d", "e"])
+        #expect(view.contains("c"))
+        #expect(Array(view.neighbors(of: "c")) == ["a", "e"])
+        #expect(Array(view.neighborIndices(ofIndex: 2)) == [0, 4])
+        #expect(view.incidentEdges(of: "c").map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [[0, 2], [2, 4]])
+        #expect(view.incidentEdges(ofIndex: 2).map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [[0, 2], [2, 4]])
+        #expect(view.degree(of: "c") == 2 && view.degree(ofIndex: 2) == 2)
+        #expect(view.incidentEdges(of: "c").map { view.oppositeVertex(to: "c", acrossEdgeAt: $0) } == ["a", "e"])
+        #expect(view.contains("d"))
+        #expect(Array(view.neighbors(of: "d")) == ["a", "b"])
+        #expect(Array(view.neighborIndices(ofIndex: 3)) == [0, 1])
+        #expect(view.incidentEdges(of: "d").map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [[0, 3], [1, 3]])
+        #expect(view.incidentEdges(ofIndex: 3).map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [[0, 3], [1, 3]])
+        #expect(view.degree(of: "d") == 2 && view.degree(ofIndex: 3) == 2)
+        #expect(view.incidentEdges(of: "d").map { view.oppositeVertex(to: "d", acrossEdgeAt: $0) } == ["a", "b"])
+        #expect(view.contains("e"))
+        #expect(Array(view.neighbors(of: "e")) == ["b", "c"])
+        #expect(Array(view.neighborIndices(ofIndex: 4)) == [1, 2])
+        #expect(view.incidentEdges(of: "e").map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [[1, 4], [2, 4]])
+        #expect(view.incidentEdges(ofIndex: 4).map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [[1, 4], [2, 4]])
+        #expect(view.degree(of: "e") == 2 && view.degree(ofIndex: 4) == 2)
+        #expect(view.incidentEdges(of: "e").map { view.oppositeVertex(to: "e", acrossEdgeAt: $0) } == ["b", "c"])
+        // contains(edge:) for every ordered pair, first-end-major.
+        #expect(view.vertices.flatMap { s in view.vertices.map { t in view.contains(edge: UndirectedEdge(s, t)) } } == [false, false, true, true, false, false, false, false, true, true, true, false, false, false, true, true, true, false, false, false, false, true, true, false, false])
+    }
+
+    @Test("GO-060 undirected: loop and parallel edges ignored")
+    func go060() {
+        // UL V [a, b, c]; E [a–a, a–b, b–a] / .complement
+        // Expected: V [a#0, b#1, c#2]; E [(0,2):a–c, (1,2):b–c]; bounds 3/nil; rows [a: c; b: c; c: a b]
+        let graph = Pseudograph<String>(vertices: ["a", "b", "c"], edges: [UndirectedEdge("a", "a"), UndirectedEdge("a", "b"), UndirectedEdge("b", "a")])
+        let view = graph.complement
+        #expect(Array(view.vertices) == ["a", "b", "c"])
+        #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2])
+        #expect((0 ..< 3).map { view.vertex(atIndex: $0) } == ["a", "b", "c"])
+        #expect(view.vertexCount == 3 && view.edgeCount == 2 && view.edges.count == 2)
+        #expect(view.vertexIndexBound == 3 && view.edgeIndexBound == nil)
+        #expect(view.edges.indices.map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [[0, 2], [1, 2]])
+        #expect(view.edges.map { [$0.u, $0.v] } == [["a", "c"], ["b", "c"]])
+        #expect(view.edges.indices.map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [[0, 2], [1, 2]])
+        #expect(view.contains("a"))
+        #expect(Array(view.neighbors(of: "a")) == ["c"])
+        #expect(Array(view.neighborIndices(ofIndex: 0)) == [2])
+        #expect(view.incidentEdges(of: "a").map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [[0, 2]])
+        #expect(view.incidentEdges(ofIndex: 0).map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [[0, 2]])
+        #expect(view.degree(of: "a") == 1 && view.degree(ofIndex: 0) == 1)
+        #expect(view.incidentEdges(of: "a").map { view.oppositeVertex(to: "a", acrossEdgeAt: $0) } == ["c"])
+        #expect(view.contains("b"))
+        #expect(Array(view.neighbors(of: "b")) == ["c"])
+        #expect(Array(view.neighborIndices(ofIndex: 1)) == [2])
+        #expect(view.incidentEdges(of: "b").map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [[1, 2]])
+        #expect(view.incidentEdges(ofIndex: 1).map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [[1, 2]])
+        #expect(view.degree(of: "b") == 1 && view.degree(ofIndex: 1) == 1)
+        #expect(view.incidentEdges(of: "b").map { view.oppositeVertex(to: "b", acrossEdgeAt: $0) } == ["c"])
+        #expect(view.contains("c"))
+        #expect(Array(view.neighbors(of: "c")) == ["a", "b"])
+        #expect(Array(view.neighborIndices(ofIndex: 2)) == [0, 1])
+        #expect(view.incidentEdges(of: "c").map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [[0, 2], [1, 2]])
+        #expect(view.incidentEdges(ofIndex: 2).map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [[0, 2], [1, 2]])
+        #expect(view.degree(of: "c") == 2 && view.degree(ofIndex: 2) == 2)
+        #expect(view.incidentEdges(of: "c").map { view.oppositeVertex(to: "c", acrossEdgeAt: $0) } == ["a", "b"])
+        // contains(edge:) for every ordered pair, first-end-major.
+        #expect(view.vertices.flatMap { s in view.vertices.map { t in view.contains(edge: UndirectedEdge(s, t)) } } == [false, false, true, false, false, true, true, true, false])
+    }
+
+    @Test("GO-061 undirected: K4 has an empty complement")
+    func go061() {
+        // UL V [a, b, c, d]; E [a–b, a–c, a–d, b–c, b–d, c–d] / .complement
+        // Expected: V [a#0, b#1, c#2, d#3]; E []; bounds 4/nil
+        let graph = UndirectedAdjacencyList<String>(vertices: ["a", "b", "c", "d"], edges: [UndirectedEdge("a", "b"), UndirectedEdge("a", "c"), UndirectedEdge("a", "d"), UndirectedEdge("b", "c"), UndirectedEdge("b", "d"), UndirectedEdge("c", "d")])
+        let view = graph.complement
+        #expect(Array(view.vertices) == ["a", "b", "c", "d"])
+        #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2, 3])
+        #expect((0 ..< 4).map { view.vertex(atIndex: $0) } == ["a", "b", "c", "d"])
+        #expect(view.vertexCount == 4 && view.edgeCount == 0 && view.edges.count == 0)
+        #expect(view.vertexIndexBound == 4 && view.edgeIndexBound == nil)
+        #expect(view.edges.indices.map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [] as [[Int]])
+        #expect(view.edges.map { [$0.u, $0.v] } == [] as [[String]])
+        #expect(view.contains("a"))
+        #expect(Array(view.neighbors(of: "a")) == [] as [String])
+        #expect(Array(view.neighborIndices(ofIndex: 0)) == [] as [Int])
+        #expect(view.incidentEdges(of: "a").map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [] as [[Int]])
+        #expect(view.incidentEdges(ofIndex: 0).map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [] as [[Int]])
+        #expect(view.degree(of: "a") == 0 && view.degree(ofIndex: 0) == 0)
+        #expect(view.contains("b"))
+        #expect(Array(view.neighbors(of: "b")) == [] as [String])
+        #expect(Array(view.neighborIndices(ofIndex: 1)) == [] as [Int])
+        #expect(view.incidentEdges(of: "b").map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [] as [[Int]])
+        #expect(view.incidentEdges(ofIndex: 1).map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [] as [[Int]])
+        #expect(view.degree(of: "b") == 0 && view.degree(ofIndex: 1) == 0)
+        #expect(view.contains("c"))
+        #expect(Array(view.neighbors(of: "c")) == [] as [String])
+        #expect(Array(view.neighborIndices(ofIndex: 2)) == [] as [Int])
+        #expect(view.incidentEdges(of: "c").map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [] as [[Int]])
+        #expect(view.incidentEdges(ofIndex: 2).map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [] as [[Int]])
+        #expect(view.degree(of: "c") == 0 && view.degree(ofIndex: 2) == 0)
+        #expect(view.contains("d"))
+        #expect(Array(view.neighbors(of: "d")) == [] as [String])
+        #expect(Array(view.neighborIndices(ofIndex: 3)) == [] as [Int])
+        #expect(view.incidentEdges(of: "d").map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [] as [[Int]])
+        #expect(view.incidentEdges(ofIndex: 3).map { [view.endpointIndices(ofEdgeAt: $0).u, view.endpointIndices(ofEdgeAt: $0).v] } == [] as [[Int]])
+        #expect(view.degree(of: "d") == 0 && view.degree(ofIndex: 3) == 0)
+        // contains(edge:) for every ordered pair, first-end-major.
+        #expect(view.vertices.flatMap { s in view.vertices.map { t in view.contains(edge: UndirectedEdge(s, t)) } } == [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false])
+    }
+
+    @Test("GO-062 index-space rows hash nothing; contains(edge:) looks its vertices up, the base's negated")
+    func go062() {
+        // AL V [a, b, c]; E [a→b] / .complement
+        // Expected: V [a#0, b#1, c#2]; E [(0,2):a→c, (1,0):b→a, (1,2):b→c, (2,0):c→a, (2,1):c→b]; bounds 3/nil; outEdges(ofIndex: 0) [(0, 2)]; hashes 0; contains(edge: a→b) false (looks its vertices up); contains(edge: b→b) false (looks its vertices up)
+        let graph = AdjacencyList<String>(vertices: ["a", "b", "c"], edges: [DirectedEdge(from: "a", to: "b")])
+        let view = graph.complement
+        #expect(Array(view.vertices) == ["a", "b", "c"])
+        #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2])
+        #expect((0 ..< 3).map { view.vertex(atIndex: $0) } == ["a", "b", "c"])
+        #expect(view.vertexCount == 3 && view.edgeCount == 5 && view.edges.count == 5)
+        #expect(view.vertexIndexBound == 3 && view.edgeIndexBound == nil)
+        #expect(view.edges.indices.map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 2], [1, 0], [1, 2], [2, 0], [2, 1]])
+        #expect(view.edges.map { [$0.source, $0.target] } == [["a", "c"], ["b", "a"], ["b", "c"], ["c", "a"], ["c", "b"]])
+        #expect(view.edges.indices.map { [view.source(ofEdgeAt: $0), view.target(ofEdgeAt: $0)] } == [["a", "c"], ["b", "a"], ["b", "c"], ["c", "a"], ["c", "b"]])
+        #expect(view.edges.indices.map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 2], [1, 0], [1, 2], [2, 0], [2, 1]])
+        #expect(view.contains("a"))
+        #expect(Array(view.successors(of: "a")) == ["c"])
+        #expect(Array(view.successorIndices(ofIndex: 0)) == [2])
+        #expect(view.outEdges(of: "a").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 2]])
+        #expect(view.outEdges(ofIndex: 0).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 2]])
+        #expect(view.outDegree(of: "a") == 1 && view.outDegree(ofIndex: 0) == 1)
+        #expect(Array(view.predecessors(of: "a")) == ["b", "c"])
+        #expect(Array(view.predecessorIndices(ofIndex: 0)) == [1, 2])
+        #expect(view.inEdges(of: "a").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[1, 0], [2, 0]])
+        #expect(view.inEdges(ofIndex: 0).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[1, 0], [2, 0]])
+        #expect(view.inDegree(of: "a") == 2 && view.inDegree(ofIndex: 0) == 2 && view.degree(of: "a") == 3)
+        #expect(view.contains("b"))
+        #expect(Array(view.successors(of: "b")) == ["a", "c"])
+        #expect(Array(view.successorIndices(ofIndex: 1)) == [0, 2])
+        #expect(view.outEdges(of: "b").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[1, 0], [1, 2]])
+        #expect(view.outEdges(ofIndex: 1).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[1, 0], [1, 2]])
+        #expect(view.outDegree(of: "b") == 2 && view.outDegree(ofIndex: 1) == 2)
+        #expect(Array(view.predecessors(of: "b")) == ["c"])
+        #expect(Array(view.predecessorIndices(ofIndex: 1)) == [2])
+        #expect(view.inEdges(of: "b").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[2, 1]])
+        #expect(view.inEdges(ofIndex: 1).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[2, 1]])
+        #expect(view.inDegree(of: "b") == 1 && view.inDegree(ofIndex: 1) == 1 && view.degree(of: "b") == 3)
+        #expect(view.contains("c"))
+        #expect(Array(view.successors(of: "c")) == ["a", "b"])
+        #expect(Array(view.successorIndices(ofIndex: 2)) == [0, 1])
+        #expect(view.outEdges(of: "c").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[2, 0], [2, 1]])
+        #expect(view.outEdges(ofIndex: 2).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[2, 0], [2, 1]])
+        #expect(view.outDegree(of: "c") == 2 && view.outDegree(ofIndex: 2) == 2)
+        #expect(Array(view.predecessors(of: "c")) == ["a", "b"])
+        #expect(Array(view.predecessorIndices(ofIndex: 2)) == [0, 1])
+        #expect(view.inEdges(of: "c").map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 2], [1, 2]])
+        #expect(view.inEdges(ofIndex: 2).map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 2], [1, 2]])
+        #expect(view.inDegree(of: "c") == 2 && view.inDegree(ofIndex: 2) == 2 && view.degree(of: "c") == 4)
+        // contains(edge:) for every ordered pair, source-major.
+        #expect(view.vertices.flatMap { s in view.vertices.map { t in view.contains(edge: DirectedEdge(from: s, to: t)) } } == [false, false, true, true, false, true, true, true, false])
+        // Hashes, on the same graph over a counting vertex type.
+        do {
+            // Vertex hashes, counted by a vertex type whose hash(into:) counts. The base's dictionary
+            // hashes a vertex once per lookup.
+            final class Tally {
+                var hashes = 0
+            }
+            struct Counted: Hashable {
+                let name: String
+                let tally: Tally
+                static func == (lhs: Counted, rhs: Counted) -> Bool { lhs.name == rhs.name }
+                func hash(into hasher: inout Hasher) {
+                    tally.hashes += 1
+                    hasher.combine(name)
+                }
+            }
+            let tally = Tally()
+            func label(_ name: String) -> Counted { Counted(name: name, tally: tally) }
+            let counted = AdjacencyList<Counted>(vertices: ["a", "b", "c"].map(label), edges: [DirectedEdge(from: label("a"), to: label("b"))])
+            let complement = counted.complement
+            tally.hashes = 0
+            let out = complement.outEdges(ofIndex: 0).map { [complement.sourceIndex(ofEdgeAt: $0), complement.targetIndex(ofEdgeAt: $0)] }
+            let rows = (0 ..< 3).map { Array(complement.successorIndices(ofIndex: $0)) + Array(complement.predecessorIndices(ofIndex: $0)) }
+            let bounds = [complement.vertexIndexBound, complement.edgeIndexBound]
+            #expect(tally.hashes == 0)
+            #expect(out == [[0, 2]] && rows == [[2, 1, 2], [0, 2, 2], [0, 1, 0, 1]] && bounds == [3, nil])
+            // contains(edge:) takes vertices, so it looks them up; the answers are the base's negated.
+            #expect(!complement.contains(edge: DirectedEdge(from: label("a"), to: label("b"))))
+            #expect(!complement.contains(edge: DirectedEdge(from: label("b"), to: label("b"))))
+            #expect(complement.contains(edge: DirectedEdge(from: label("b"), to: label("a"))))
+        }
+    }
+}

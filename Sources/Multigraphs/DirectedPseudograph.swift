@@ -708,6 +708,22 @@ extension DirectedPseudograph: BidirectionalDirectedGraph {
     @inlinable
     public func inEdges(ofIndex index: Int) -> ArraySlice<Int> { _inEdges[row: index] }
 
+    /// The length of the stored out-row of the vertex in slot `index`. O(1), no lookup.
+    @inlinable
+    public func outDegree(ofIndex index: Int) -> Int { _out.count(ofRow: index) }
+
+    /// The length of the stored in-row of the vertex in slot `index`. O(1), no lookup.
+    @inlinable
+    public func inDegree(ofIndex index: Int) -> Int { _in.count(ofRow: index) }
+
+    /// The slot of the edge's source, read from its record. O(1), no lookup.
+    @inlinable
+    public func sourceIndex(ofEdgeAt position: Int) -> Int { _records[position].source }
+
+    /// The slot of the edge's target, read from its record. O(1), no lookup.
+    @inlinable
+    public func targetIndex(ofEdgeAt position: Int) -> Int { _records[position].target }
+
     /// Edge positions are dense: `0..<edgeCount`, valid until the next removal.
     @inlinable
     public var edgeIndexBound: Int? { _records.count }

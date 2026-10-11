@@ -60,6 +60,44 @@ extension StableDirectedGraph: BidirectionalDirectedGraph {
     @inlinable
     public func inEdges(ofIndex index: Int) -> InEdges { _inEdges(slot: index) }
 
+    /// The stored out-degree of the vertex at `index`, without the hash. O(1).
+    ///
+    /// - Precondition: `vertexIndexBound` is not `nil`, and `index` is in `0..<vertexIndexBound`.
+    @inlinable
+    public func outDegree(ofIndex index: Int) -> Int {
+        precondition(_vertexCount == _vertexEnd, "The graph has vertex holes, so no vertex indices; check vertexIndexBound first")
+        precondition(UInt(bitPattern: index) < UInt(bitPattern: _vertexEnd), "Vertex index out of range")
+        return _outDegree(index)
+    }
+
+    /// The stored in-degree of the vertex at `index`, without the hash. O(1).
+    ///
+    /// - Precondition: `vertexIndexBound` is not `nil`, and `index` is in `0..<vertexIndexBound`.
+    @inlinable
+    public func inDegree(ofIndex index: Int) -> Int {
+        precondition(_vertexCount == _vertexEnd, "The graph has vertex holes, so no vertex indices; check vertexIndexBound first")
+        precondition(UInt(bitPattern: index) < UInt(bitPattern: _vertexEnd), "Vertex index out of range")
+        return _inDegree(index)
+    }
+
+    /// The index of the edge's source, read from its record without the hash. O(1).
+    ///
+    /// - Precondition: `vertexIndexBound` is not `nil`, and an edge is at `position`.
+    @inlinable
+    public func sourceIndex(ofEdgeAt position: Int) -> Int {
+        precondition(_vertexCount == _vertexEnd, "The graph has vertex holes, so no vertex indices; check vertexIndexBound first")
+        return _liveRecord(position).source
+    }
+
+    /// The index of the edge's target, read from its record without the hash. O(1).
+    ///
+    /// - Precondition: `vertexIndexBound` is not `nil`, and an edge is at `position`.
+    @inlinable
+    public func targetIndex(ofEdgeAt position: Int) -> Int {
+        precondition(_vertexCount == _vertexEnd, "The graph has vertex holes, so no vertex indices; check vertexIndexBound first")
+        return _liveRecord(position).target
+    }
+
     /// While no edge has been removed since the last reset: `edgeCount`, and each position is its
     /// index. While edge holes exist: `nil`.
     @inlinable

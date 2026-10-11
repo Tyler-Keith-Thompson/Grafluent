@@ -309,6 +309,8 @@ extension Multigraph: Graph {
     @inlinable public func edgeIndex(of position: Int) -> Int { position }
     @inlinable public func incidentEdges(ofIndex index: Int) -> ArraySlice<Int> { _base.incidentEdges(ofIndex: index) }
     @inlinable public func incidentEdgeIndices(ofIndex index: Int) -> ArraySlice<Int> { _base.incidentEdgeIndices(ofIndex: index) }
+    @inlinable public func degree(ofIndex index: Int) -> Int { _base.degree(ofIndex: index) }
+    @inlinable public func endpointIndices(ofEdgeAt position: Int) -> (u: Int, v: Int) { _base.endpointIndices(ofEdgeAt: position) }
 
     @inlinable
     public func _withIncidentIndexRows<Result>(

@@ -96,13 +96,28 @@ base's `edgeIndex`, plus one `Int32` prefix count per 64-bit word. With it the v
 edge indices: `edgeIndex(of: p)` is the rank of `p`'s bit, O(1) by popcount (GO-031). An induced
 subgraph reports `edgeIndexBound == nil` (GO-012), because building its edge mask costs O(m).
 
+**An edge filter over a base without edge indices** (an `AdjacencyMatrix`, whose positions are
+cells; a complement; an induced subgraph; a `StableDirectedGraph` with edge holes) takes the slower
+path rather than trapping: the view keeps the listed positions that pass, sorted and deduplicated
+(`Collection.Index` is `Comparable`). A row entry is kept by a binary search, O(log k), and
+`edgeIndex(of:)` is the position's offset in that array, so the view still has dense edge indices
+by rank. A listed position is checked against `edges.startIndex ..< endIndex` and through the
+base's `sourceIndex(ofEdgeAt:)`, which traps on a cell or slot that holds no edge. Building costs
+O(listed log listed). Tested by the hand-written conformance test "An edge set over a base without
+edge indices", over an `AdjacencyMatrix` and an undirected complement.
+
 **Complement.** The vertices and their indices are the base's. Row `i` is every `j ≠ i` absent
 from the base row. The row iterator marks the base row in a `⌈n/64⌉`-word mask, O(deg + n/64),
 then yields the clear bits by trailing-zero count. A row therefore costs O(n/64 + output) and one
 small allocation. The complement has Θ(n²) edges on a sparse base, so a traversal is Θ(n²)
-whatever the layout. `edgeIndexBound` is `nil`. `Edges.Index` is a nested struct of the two
-endpoint indices, Comparable in row-major order, as `AdjacencyMatrix.Edges.Index` is.
-`contains(edge:)` is `u ≠ v` and not `base.contains(edge:)` (GO-062). Self-loops and parallel
+whatever the layout. `edgeIndexBound` is `nil`. `Edges.Index` is **`ComplementView.Cell`**, the cell of the adjacency
+matrix: a `@frozen` struct with `public let row: Int` and `public let column: Int` (vertex indices)
+and a public `init(row:column:)`, `Hashable`, `Sendable`, and `Comparable` in row-major order, as
+`AdjacencyMatrix.Edges.Index` is. One type serves both directions: directed, the edge runs from
+`row` to `column`; undirected, `row < column`. The init checks nothing, like
+`DirectedView.Edges.Index`'s. `contains(edge:)` is `u ≠ v` and not `base.contains(edge:)` (GO-062).
+It takes vertices, so it looks both up (and the base's `contains(edge:)` looks them up again); GO-062
+counts hashes over the index-space rows only, and lists the `contains(edge:)` answers after. Self-loops and parallel
 edges of the base are ignored (GO-053, GO-054, GO-060), as in NetworkX and igraph
 (`loops=False`). The complement of the complement is therefore the simple, loopless base (GO-057).
 
@@ -133,15 +148,28 @@ self-loops trap in phase 1:
   (NetworkX keeps it; GO-070);
 - a disjoint union or join of inputs with self-loops (GO-099, GO-105).
 
-**Requests to other modules**, none made here:
+**Requests to other modules.** Made with the implementation:
+
+- DirectedAcyclicGraphModule: `package init(_reverseVertexOrderedBase:)`, the mirror of
+  `_vertexOrderedBase`, so the condensation initializer sets the order to `n−1, …, 0` without a
+  Kahn pass.
+- `scripts/modules.py`: `GraphOperations` gains `Connectivity` (for `Condensation`) and
+  `CompressedSparseRowModule` (the condensation's graph is one, and an `@inlinable` initializer
+  reads it).
+- README: the Terminology row, and the Operations table.
+- **Index-space hooks on the representations.** `AdjacencyList`, `DirectedPseudograph`,
+  `DirectedMultigraph`, `StableDirectedGraph`, `CompressedSparseRow` and `AdjacencyMatrix` now
+  implement `outDegree(ofIndex:)` (and `inDegree(ofIndex:)` where bidirectional) and
+  `sourceIndex(ofEdgeAt:)` / `targetIndex(ofEdgeAt:)`; `UndirectedAdjacencyList`, `Pseudograph`
+  and `Multigraph` implement `degree(ofIndex:)` and `endpointIndices(ofEdgeAt:)`. Each reads the
+  stored row length or the edge record, where the protocol defaults looked the vertex up. Views
+  that forward them (this module's, `DirectedView`, `UndirectedView`, `DirectedAcyclicGraph`) hash
+  nothing as a result, and so does every algorithm that reads degrees or edge ends by index.
+
+Still open:
 
 - GraphProtocols: allowing self-loops in `_DirectedGraphConstruction`'s contract would remove both
   traps. Every conformer's sorted build must be checked for loops first.
-- DirectedAcyclicGraphModule: a `package init(_reverseVertexOrderedBase:)`, the mirror of
-  `_vertexOrderedBase`, so the condensation initializer sets the order to `n−1, …, 0` without a
-  Kahn pass.
-- `scripts/modules.py`: `GraphOperations` gains a `Connectivity` dependency, for `Condensation`.
-- README: the Terminology row, and the Operations table's `reversed` cell.
 
 ### Condensation
 
@@ -188,23 +216,43 @@ extension DirectedGraph {
 extension Graph { /* the same three */ }
 
 @frozen public struct SubgraphView<Base> {
-    public var base: Base { get }
-    @usableFromInline var _old: [Int]             // view index → base index; empty for identity
-    @usableFromInline var _new: [Int]             // base index → view index or −1; empty for identity
-    @usableFromInline var _edgeMask: _EdgeMask?   // bits by base edgeIndex + per-word prefix counts
-    @usableFromInline var _edgeCount: Int?        // known when an edge set was given
+    public let base: Base
+    @usableFromInline let _old: [Int]             // view index → base index; empty when every vertex is kept
+    @usableFromInline let _new: [Int]             // base index → view index or −1; empty when every vertex is kept
+    @usableFromInline let _vertexCount: Int
+    @usableFromInline let _edgeMask: _EdgeMask?   // bits by base edgeIndex + per-word prefix counts
+    @usableFromInline let _keptPositions: _KeptPositionsBox?  // sorted positions, base without edge indices
+    @usableFromInline let _edgeCount: Int?        // known when an edge set was given
+}
+// An induced subgraph that keeps every vertex leaves _old and _new empty, so its rows and
+// degrees are the base's.
+extension SubgraphView {
+    // Rows shared by both directions, generic over the base's index row and position row:
+    public struct IndexRow<Indices: Sequence<Int>, Positions: Sequence>: Sequence      // renumbered
+    public struct EdgeRow<Indices: Sequence<Int>, Positions: Sequence>: Sequence       // positions
+    public struct EdgeIndexRow<Indices: Sequence<Int>, Positions: Sequence>: Sequence  // ranks
 }
 extension SubgraphView: DirectedGraph where Base: DirectedGraph
+    // Vertices: LazyMapCollection<Range<Int>, Base.Vertex>; Edges: DirectedEdges (base positions);
+    // SuccessorIndices: IndexRow<Base.SuccessorIndices, Base.OutEdges>;
+    // OutEdges: EdgeRow<Base.SuccessorIndices, Base.OutEdges>; Successors: a lazy map of IndexRow.
 extension SubgraphView: BidirectionalDirectedGraph where Base: BidirectionalDirectedGraph
+    // The same over Base.PredecessorIndices and Base.InEdges.
 extension SubgraphView: Graph where Base: Graph
+    // Edges: UndirectedEdges; NeighborIndices: IndexRow<Base.NeighborIndices, Base.IncidentEdges>;
+    // IncidentEdges: EdgeRow<…>; IncidentEdgeIndices: EdgeIndexRow<…> (each kept position's rank).
 
 // MARK: Complement
 extension DirectedGraph { public var complement: ComplementView<Self> { get } }  // O(1)
 extension Graph { public var complement: ComplementView<Self> { get } }
 @frozen public struct ComplementView<Base> {
-    public var base: Base { get }
-    // Edges.Index: a nested struct (sourceIndex, targetIndex), Comparable row-major;
-    // undirected (u, v) with u < v.
+    public let base: Base
+    @frozen public struct Cell: Hashable, Comparable, Sendable {   // Edges.Index, both directions
+        public let row: Int, column: Int                         // undirected: row < column
+        public init(row: Int, column: Int)
+    }
+    public struct IndexRow<Row: Sequence<Int>>: Sequence          // the clear bits of the row's mask
+    public struct CellRow<Row: Sequence<Int>>: Sequence           // IndexRow as cells
 }
 extension ComplementView: DirectedGraph where Base: DirectedGraph
 extension ComplementView: BidirectionalDirectedGraph where Base: BidirectionalDirectedGraph
@@ -256,6 +304,8 @@ Result numbering:
 | `quotient`: edges inside a block | Dropped, with no self-loops, as in NetworkX | GO-086 |
 | `disjointUnion` / `join` with a self-loop | **Trap** (phase 1) | GO-099, GO-105 |
 | Mutating the base after making a view | Impossible: the view holds a copy (value semantics). Mutating the original never shows through | — |
+| `spanningSubgraph` / `subgraph` over a base without edge indices | The slower path: sorted kept positions, binary search per row entry and per rank; dense edge indices still | hand-written test |
+| A materialized operation over a graph without vertex indices | **Trap** in phase 1, like the views | — |
 
 ## Complexity
 
@@ -284,9 +334,15 @@ n and m are the base's counts, and k is the number of kept vertices.
 - Row sequences are concrete structs that hold the base row and read `_new` / `_old` by index.
   They are not `lazy.map { self… }` closures: a lazy map capturing `self` copies the view's base on
   every call.
-- `_withSuccessorIndexRows` and `_withIncidentIndexRows` return `nil` on every view here. Their
-  contract forbids forwarding through a view that changes incidence, and a `ReverseView`'s rows
-  are not the base's out-rows.
+- `_withSuccessorIndexRows` and `_withIncidentIndexRows` return `nil` on every view here, with one
+  exception. Their contract forbids forwarding through a view that changes incidence, and a
+  `ReverseView`'s rows are not the base's out-rows. A directed induced subgraph that keeps every
+  vertex leaves `_old` and `_new` empty and has no edge set, so its rows and positions are the
+  base's, and it forwards `_withSuccessorIndexRows`. (The undirected hook is not forwarded: it
+  carries edge indices, which an induced subgraph does not report.)
+- The edge set is a class (`_EdgeTest<Position>`, subclassed per base) held once by the view, so
+  a row holds one optional reference rather than a copy of the base; a row that would hold the base
+  by value was copied through value witnesses on every row (measured: 2–3× on BFS).
 - Every requirement with a default is implemented by forwarding (`DirectedGraph`'s "Defaults"
   rule). A default chosen for the view would ignore the base's faster member.
 - Overflow guards are written as comparisons, not `multipliedReportingOverflow` with the product

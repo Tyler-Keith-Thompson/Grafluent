@@ -47,7 +47,7 @@ MODULES = [
     ("FunctionalGraphs", "Structures", "FunctionalGraph: every vertex has outdegree 1; Floyd's and Brent's cycle detection.", ["GraphProtocols", "Walks"]),
 
     # Operations
-    ("GraphOperations", "Operations", "Subgraph, induced subgraph, converse, underlying graph, complement, line graph, condensation, quotient graph, union, intersection and join.", ["GraphProtocols", "DirectedAcyclicGraphModule"]),
+    ("GraphOperations", "Operations", "Subgraph, induced subgraph, converse, underlying graph, complement, line graph, condensation, quotient graph, union, intersection and join.", ["GraphProtocols", "DirectedAcyclicGraphModule", "Connectivity", "CompressedSparseRowModule"]),
     ("GraphProducts", "Operations", "Cartesian, tensor, strong and lexicographic products.", ["GraphProtocols"]),
 
     # Algorithms
@@ -123,6 +123,8 @@ TEST_TARGETS = [
     ("SemiringsTests", ["Semirings", "ShortestPaths", "GraphProtocols", "Multigraphs", "AdjacencyListModule", "DirectedAcyclicGraphModule", "Traversal", "Walks", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("GraphDrawingTests", ["GraphProtocols", "GraphDrawing", "Cycles", "Trees", "RandomGraphs", "Multigraphs", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "StableGraphs", "DirectedAcyclicGraphModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("SpectralGraphTheoryTests", ["GraphProtocols", "SpectralGraphTheory", "CompressedSparseRowModule", "AdjacencyListModule", "AdjacencyMatrixModule", "Multigraphs", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
+    ("GraphOperationsTests", ["GraphProtocols", "GraphOperations", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "Multigraphs", "StableGraphs", "DirectedAcyclicGraphModule", "Traversal", "Connectivity", "ShortestPaths", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
+    ("GraphProductsTests", ["GraphProtocols", "GraphProducts", "AdjacencyListModule", "CompressedSparseRowModule", "Multigraphs", "StableGraphs", "NamedGraphs", "Traversal", "Connectivity", "ShortestPaths", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
 ]
 
 # Bazel test sizes above the default "small" (60 s timeout), for suites whose solo run takes more

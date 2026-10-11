@@ -11,6 +11,8 @@ swift_library(
     deps = [
         "//Sources/GraphProtocols",
         "//Sources/DirectedAcyclicGraphModule",
+        "//Sources/Connectivity",
+        "//Sources/CompressedSparseRowModule",
     ],
     visibility = ["//visibility:public"],
 )
@@ -23,6 +25,8 @@ docc_archive(
     deps = [
         "//Sources/GraphProtocols:GraphProtocolsDocumentation",
         "//Sources/DirectedAcyclicGraphModule:DirectedAcyclicGraphModuleDocumentation",
+        "//Sources/Connectivity:ConnectivityDocumentation",
+        "//Sources/CompressedSparseRowModule:CompressedSparseRowModuleDocumentation",
     ],
     tags = ["manual"],
     visibility = ["//visibility:public"],

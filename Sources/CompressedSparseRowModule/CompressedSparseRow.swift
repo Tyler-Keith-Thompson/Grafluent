@@ -763,6 +763,18 @@ extension CompressedSparseRow: DirectedGraph {
     @inlinable
     public func successorIndices(ofIndex index: Int) -> ArraySlice<Int> { successors(of: index) }
 
+    /// `outDegree(of: index)`: vertices are their own indices. O(1).
+    @inlinable
+    public func outDegree(ofIndex index: Int) -> Int { outDegree(of: index) }
+
+    /// `source(ofEdgeAt:)`: vertices are their own indices. O(log n).
+    @inlinable
+    public func sourceIndex(ofEdgeAt position: Int) -> Int { source(ofEdgeAt: position) }
+
+    /// `target(ofEdgeAt:)`: vertices are their own indices. O(1).
+    @inlinable
+    public func targetIndex(ofEdgeAt position: Int) -> Int { target(ofEdgeAt: position) }
+
     /// The offsets and targets themselves.
     @inlinable
     public func _withSuccessorIndexRows<Result>(

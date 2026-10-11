@@ -1007,6 +1007,22 @@ extension AdjacencyMatrix: BidirectionalDirectedGraph {
     /// The predecessors themselves, since vertices are their own indices.
     @inlinable
     public func predecessorIndices(ofIndex index: Int) -> BitSet { predecessors(of: index) }
+
+    /// `outDegree(of: index)`: vertices are their own indices. O(1).
+    @inlinable
+    public func outDegree(ofIndex index: Int) -> Int { outDegree(of: index) }
+
+    /// `inDegree(of: index)`: vertices are their own indices. O(1).
+    @inlinable
+    public func inDegree(ofIndex index: Int) -> Int { inDegree(of: index) }
+
+    /// `source(ofEdgeAt:)`: vertices are their own indices. O(1).
+    @inlinable
+    public func sourceIndex(ofEdgeAt position: Edges.Index) -> Int { source(ofEdgeAt: position) }
+
+    /// `target(ofEdgeAt:)`: vertices are their own indices. O(1).
+    @inlinable
+    public func targetIndex(ofEdgeAt position: Edges.Index) -> Int { target(ofEdgeAt: position) }
 }
 
 extension AdjacencyMatrix {

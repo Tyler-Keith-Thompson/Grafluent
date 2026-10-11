@@ -85,7 +85,24 @@ A nested product such as `cartesianProduct(cartesianProduct(a, b), c)` has verti
 | ⊠ | □'s row, then ×'s | d_G + d_H + d_G·d_H |
 | ∘ | `(g′, h′)` for g′ in G's row and **every** h′ in V(H), then H-moves `(g, h′)` | d_G·\|V(H)\| + d_H |
 
-**Edge positions** are nested `Edges.Index` types, ordered as `edges` lists them:
+**Edge positions** are nested `Edges.Index` types, ordered as `edges` lists them. Each is a
+`@frozen` generic type nested in its product, over the factors' position types
+(`CartesianProduct<G, H>.Position<G.Edges.Index, H.Edges.Index>`), so one type serves the
+directed and the undirected product. All are `Hashable` and `Comparable`, and `Sendable` when the
+factor positions are. Enum cases are public, and the tensor struct has a public memberwise
+`init(first:second:reversed:)`; nothing is checked, as with `DirectedView.Edges.Index`:
+
+| Product | Type | Cases or fields |
+|---|---|---|
+| □ | `enum CartesianProduct.Position` | `.first(edge: FirstEdge, vertexIndex: Int)` (G's edge at H's vertex index), `.second(vertexIndex: Int, edge: SecondEdge)` |
+| × | `struct TensorProduct.Position` | `first: FirstEdge`, `second: SecondEdge`, `reversed: Bool` |
+| ⊠ | `enum StrongProduct.Position` | `.first(edge:vertexIndex:)`, `.second(vertexIndex:edge:)` as □, then `.both(first:second:reversed:)` as × |
+| ∘ | `enum LexicographicProduct.Position` | `.first(edge: FirstEdge, sourceVertexIndex: Int, targetVertexIndex: Int)` (H's vertex indices at the G-edge's source, or `u`, end and at its target, or `v`, end), `.second(vertexIndex: Int, edge: SecondEdge)` |
+
+The comparisons are the derived ones for □ and ∘ (case order, then the associated values), and
+written out for × and ⊠ (`Bool` is not `Comparable`; straight before reversed). The end index of
+□, ∘ is `.second(vertexIndex: |V(G)|, edge: H.edges.startIndex)`, and of ×, ⊠ the tensor position
+past G's last edge. The positions in detail:
 
 - □: `.first(edgeOfG, vertexIndexOfH)` for every G-edge and H-vertex, G-edge outer, then
   `.second(vertexIndexOfG, edgeOfH)`.
@@ -173,6 +190,16 @@ Phase 1 has no `Equatable`, `Hashable` or `Codable` on the product types. Compar
 materialized copy. That matches the GraphOperations views and NetworkX's views. Products are
 `Sendable` when both factors are.
 
+### Parallel arcs in a directed strong product
+
+A directed ⊠ can have parallel arcs although neither factor has any: a G-loop at g with an H-arc
+h → h′ gives (g, h) → (g, h′) twice, once as the □ arc `.second(g, h→h′)` and once as the × arc
+`.both(g→g, h→h′)`. The product lists both, and `edgeCount`, the rows and the degrees count both.
+`CompressedSparseRow(product)` and `AdjacencyList(product)` merge them, as those types keep simple
+graphs; materialize into `DirectedPseudograph(product)` to keep every arc. `strongProduct`'s doc
+comment says so. Undirected, a G-loop and an H-edge likewise give a □ edge and a × edge on the same
+ends; `Pseudograph(product)` keeps both.
+
 ### Row types and the measured traps
 
 - Stored generic iterators cost about 3× in index-space loops. A row is a struct holding the two
@@ -182,6 +209,17 @@ materialized copy. That matches the GraphOperations views and NetworkX's views. 
 - ∘'s G-part is a counted loop over `0..<nH` for each G-neighbour, with no inner iterator.
 - No `lazy.map { self… }`: it copies the product, and both factors, on every call.
 - `_withSuccessorIndexRows` and `_withIncidentIndexRows` are `nil`. The rows are computed.
+- The public row types are nested in each product. Directed rows and □'s undirected rows are
+  generic over the factor rows (`CartesianProduct.IndexRow<First.SuccessorIndices,
+  Second.SuccessorIndices>`, `EdgeRow`, and □'s `EdgeIndexRow`), so one type serves out-rows,
+  in-rows and undirected rows. The undirected ×, ⊠ and ∘ rows (`UndirectedIndexRow`,
+  `UndirectedEdgeRow`) walk each factor's neighbor indices and incident positions in step, to tell
+  a self-loop's two appearances apart; their position rows also read the factor edge's ends
+  (`endpointIndices(ofEdgeAt:)`, O(1) on the adjacency lists) for `reversed` and for ∘'s
+  orientation. Factor rows are re-iterated (the H-row once per G-entry in ×), never copied.
+- `vertices` is a `LazyMapCollection` over `0..<|V(G)|·|V(H)|`; label-space rows are the index
+  rows mapped through `vertex(atIndex:)`, so `neighbors(of:)` costs the two lookups of
+  `vertexIndex(of:)` and no more.
 
 ## Complexity
 
