@@ -3,17 +3,21 @@
 Generated and checked by `ref.py` (`uv run --quiet --no-project --with networkx==3.7 --with xgi==0.10.2
 python3 Tests/Catalogs/IncidenceMatrix/ref.py`; `--write` regenerates this file, `--stress` adds the random
 matrices and mutation sequences). Every state is checked against NetworkX 3.7 `incidence_matrix` (both
-modes, parallel edges and self-loops included), XGI 0.10.2 `incidence_matrix` for hypergraph inputs, the
-algebraic identities (B·Bᵀ = D + A, Bᵀ·B = 2I + A(L(G)), oriented B·Bᵀ = L) and the protocol laws.
+modes, parallel edges and self-loops included), XGI 0.10.2 `incidence_matrix` for hypergraph inputs and
+`DiHypergraph` for oriented ones, the algebraic identities (B·Bᵀ = D + A, Bᵀ·B = 2I + A(L(G)), oriented
+B·Bᵀ = L) and the `Hypergraph` / `DirectedHypergraph` laws.
 
 Conventions:
 
 * `IM n N; E [{…}, …]` is `IncidenceMatrix(vertexCount: N, hyperedges: E)`; `IncidenceMatrix(Pseudograph(…))`
   and `IncidenceMatrix(DirectedPseudograph(…))` convert a graph whose vertices are `0..<n`, one column per
-  edge in `edges` order. `OIM n N; E [s→t, …]` is `OrientedIncidenceMatrix(vertexCount: N, edges: E)`.
-* A state `N×M [r₀, r₁, …]` (`∅` for a row of a matrix with no columns) lists the rows: character `p` of row `v` is the cell (vertex `v`, column `p`),
-  `1`/`0`, or for the oriented matrix `+` (target), `-` (source), `0`; `columns [p:s→t]` lists each column's
-  stored ends.
+  edge in `edges` order.
+* `OIM n N; E [{s, …}→{t, …}, …]` is `OrientedIncidenceMatrix(vertexCount: N, hyperedges: E)` with `E` a
+  list of `(sources:, targets:)` pairs; `OIM n N; A [s→t, …]` is `OrientedIncidenceMatrix(vertexCount: N,
+  edges: A)` with `DirectedEdge`s, one source and one target per column.
+* A state `N×M [r₀, r₁, …]` (`∅` for a row of a matrix with no columns) lists the rows: character `p` of
+  row `v` is the cell (vertex `v`, column `p`), `1`/`0`, or for the oriented matrix the entry `+` (target
+  only), `-` (source only), `0` (neither, or both); `columns [p:{…}→{…}]` lists each column's two planes.
 * `**trap**` rows are preconditions, run as exit tests (`#expect(processExitsWith:)`); results before the
   trap are listed.
 
@@ -56,17 +60,29 @@ Conventions:
 | IM-035 | Equality | column order is observable | IM n 3; E [{0}, {1}] == IM n 3; E [{1}, {0}] | false |
 | IM-036 | Equality | shape matters: an extra zero row | IM n 2; E [{0}] == IM n 3; E [{0}] | false |
 | IM-037 | Equality | shape matters: an extra empty column | IM n 2; E [{0}] == IM n 2; E [{0}, {}] | false |
-| IM-038 | Oriented | empty | OIM n 0; E [] | 0×0 []; columns [] |
-| IM-039 | Oriented | a path: −1 at the source, +1 at the target (NetworkX oriented=True) | OIM n 3; E [0→1, 1→2] | 3×2 [-0, +-, 0+]; columns [0:0→1, 1:1→2] |
-| IM-040 | Oriented | opposite arcs are negated columns | OIM n 2; E [0→1, 1→0] | 2×2 [-+, +-]; columns [0:0→1, 1:1→0] |
-| IM-041 | Oriented | a self-loop is a zero column, its ends still recorded (NetworkX: zero) | OIM n 2; E [0→1, 1→1] / [vertex: 1, edge: 1] / source(ofEdgeAt: 1) / target(ofEdgeAt: 1) / outEdges(of: 1) / inEdges(of: 1) | 0; 1; 1; [1]; [0, 1] ⇒ 2×2 [-0, +0]; columns [0:0→1, 1:1→1] |
-| IM-042 | Oriented | parallel arcs keep their own columns | OIM n 2; E [0→1, 0→1] | 2×2 [--, ++]; columns [0:0→1, 1:0→1] |
-| IM-043 | Oriented | from an undirected graph: each edge from its stored u to v (NetworkX's edgelist order) | OrientedIncidenceMatrix(Pseudograph(n 3; [0–1, 1–2, 0–2])) | 3×3 [-0-, +-0, 0++]; columns [0:0→1, 1:1→2, 2:0→2] |
-| IM-044 | Oriented | B·Bᵀ is the Laplacian of the loopless underlying graph | OIM n 4; E [0→1, 2→1, 1→3, 3→3] / IncidenceMatrix(self) | 4×4 [1000, 1110, 0100, 0011] ⇒ 4×4 [-000, ++-0, 0-00, 00+0]; columns [0:0→1, 1:2→1, 2:1→3, 3:3→3] |
-| IM-045 | Oriented | reads | OIM n 3; E [0→1, 1→2, 2→0, 0→2] / [vertex: 0, edge: 0] / [vertex: 1, edge: 0] / [vertex: 2, edge: 0] / outEdges(of: 0) / inEdges(of: 2) / source(ofEdgeAt: 3) / target(ofEdgeAt: 3) | -1; 1; 0; [0, 3]; [1, 3]; 0; 2 |
-| IM-046 | Oriented | appendVertex then insert(edge:) | OIM n 1; E [] / appendVertex() / insert(edge: 1→0) / insert(edge: 0→0) | 1; 0; 1 ⇒ 2×2 [+0, -0]; columns [0:1→0, 1:0→0] |
-| IM-047 | Oriented | insert(edge:) with an endpoint out of range | OIM n 2; E [] / insert(edge: 0→2) | **trap** (vertex out of range) |
-| IM-048 | Oriented | entry with a column out of range | OIM n 2; E [0→1] / [vertex: 0, edge: 1] | **trap** (edge position out of range) |
-| IM-049 | Oriented | removeAll | OIM n 2; E [0→1] / removeAll() / vertexCount/edgeCount | (); 0/0 ⇒ 0×0 []; columns [] |
-| IM-050 | Equality | oriented: two loops at different vertices differ although every entry is 0 | OIM n 2; E [0→0] == OIM n 2; E [1→1] | false |
-| IM-051 | Equality | oriented: reversed arc differs | OIM n 2; E [0→1] == OIM n 2; E [1→0] | false |
+| IM-038 | Oriented, from a graph | empty | OIM n 0; A [] | 0×0 []; columns [] |
+| IM-039 | Oriented, from a graph | a path: −1 at the source, +1 at the target (NetworkX oriented=True) | OIM n 3; A [0→1, 1→2] | 3×2 [-0, +-, 0+]; columns [0:{0}→{1}, 1:{1}→{2}] |
+| IM-040 | Oriented, from a graph | opposite arcs are negated columns | OIM n 2; A [0→1, 1→0] | 2×2 [-+, +-]; columns [0:{0}→{1}, 1:{1}→{0}] |
+| IM-041 | Oriented, from a graph | a self-loop: source and target bits at one vertex, entry 0 (NetworkX: zero column) | OIM n 2; A [0→1, 1→1] / [vertex: 1, hyperedge: 1] / sources(ofHyperedgeAt: 1) / targets(ofHyperedgeAt: 1) / outHyperedges(of: 1) / inHyperedges(of: 1) | 0; [1]; [1]; [1]; [0, 1] ⇒ 2×2 [-0, +0]; columns [0:{0}→{1}, 1:{1}→{1}] |
+| IM-042 | Oriented, from a graph | parallel arcs keep their own columns | OIM n 2; A [0→1, 0→1] | 2×2 [--, ++]; columns [0:{0}→{1}, 1:{0}→{1}] |
+| IM-043 | Oriented, from a graph | from an undirected graph: each edge from its stored u to v (NetworkX's edgelist order) | OrientedIncidenceMatrix(Pseudograph(n 3; [0–1, 1–2, 0–2])) | 3×3 [-0-, +-0, 0++]; columns [0:{0}→{1}, 1:{1}→{2}, 2:{0}→{2}] |
+| IM-044 | Oriented, from a graph | B·Bᵀ is the Laplacian of the loopless underlying graph | OIM n 4; A [0→1, 2→1, 1→3, 3→3] / IncidenceMatrix(self) | 4×4 [1000, 1110, 0100, 0011] ⇒ 4×4 [-000, ++-0, 0-00, 00+0]; columns [0:{0}→{1}, 1:{2}→{1}, 2:{1}→{3}, 3:{3}→{3}] |
+| IM-045 | Oriented hypergraph | −1 for each source, +1 for each target (Gallo et al. 1993, section 2) | OIM n 4; E [{0, 1}→{2}, {2}→{2, 3}, {}→{}, {3}→{0, 1}] | 4×4 [-00+, -00+, +000, 0+0-]; columns [0:{0, 1}→{2}, 1:{2}→{2, 3}, 2:{}→{}, 3:{3}→{0, 1}] |
+| IM-046 | Oriented hypergraph | a vertex on both sides: entry 0, both bits kept (HyperGraphs.jl sums −1 + 1) | OIM n 4; E [{0, 1}→{2}, {2}→{2, 3}, {}→{}, {3}→{0, 1}] / [vertex: 2, hyperedge: 1] / sources(ofHyperedgeAt: 1) / targets(ofHyperedgeAt: 1) / outHyperedges(of: 2) / inHyperedges(of: 2) | 0; [2]; [2, 3]; [1]; [0, 1] |
+| IM-047 | Oriented hypergraph | degrees: in + out; the overlap counts twice | OIM n 4; E [{0, 1}→{2}, {2}→{2, 3}, {}→{}, {3}→{0, 1}] / outDegree(of: 2) / inDegree(of: 2) / degree(of: 2) / degree(of: 3) | 1; 2; 3; 2 |
+| IM-048 | Oriented hypergraph | counts | OIM n 4; E [{0, 1}→{2}, {2}→{2, 3}, {}→{}, {3}→{0, 1}] / vertexCount/hyperedgeCount | 4/4 |
+| IM-049 | Oriented hypergraph | transposed() is the dual: column v has sources = outHyperedges(of: v), targets = inHyperedges(of: v) | OIM n 4; E [{0, 1}→{2}, {2}→{2, 3}, {}→{}, {3}→{0, 1}] / transposed() | 4×4 [--+0, 000+, 0000, ++0-]; columns [0:{0}→{3}, 1:{0}→{3}, 2:{1}→{0, 1}, 3:{3}→{1}] |
+| IM-050 | Oriented hypergraph | reversed swaps the planes: every entry negated, the overlap stays 0 | OIM n 4; E [{0, 1}→{2}, {2}→{2, 3}, {}→{}, {3}→{0, 1}] / reversed | 4×4 [+00-, +00-, -000, 0-0+]; columns [0:{2}→{0, 1}, 1:{2, 3}→{2}, 2:{}→{}, 3:{0, 1}→{3}] |
+| IM-051 | Oriented hypergraph | IncidenceMatrix(self) is the union of the planes | OIM n 4; E [{0, 1}→{2}, {2}→{2, 3}, {}→{}, {3}→{0, 1}] / IncidenceMatrix(self) | 4×4 [1001, 1001, 1100, 0101] |
+| IM-052 | Oriented mutation | appendVertex then insert(sources:targets:) | OIM n 1; E [] / appendVertex() / insert(sources: [1], targets: [0]) / insert(sources: [], targets: [0, 1]) | 1; 0; 1 ⇒ 2×2 [++, -+]; columns [0:{1}→{0}, 1:{}→{0, 1}] |
+| IM-053 | Oriented mutation | insert into each plane once; a source bit may join a target bit | OIM n 3; E [{0}→{1}] / insert(0, intoTargetsOfHyperedgeAt: 0) / insert(0, intoTargetsOfHyperedgeAt: 0) / insert(2, intoSourcesOfHyperedgeAt: 0) / [vertex: 0, hyperedge: 0] | true; false; true; 0 ⇒ 3×1 [0, +, -]; columns [0:{0, 2}→{0, 1}] |
+| IM-054 | Oriented mutation | remove from each plane once; the column stays | OIM n 3; E [{0, 2}→{1}] / remove(0, fromSourcesOfHyperedgeAt: 0) / remove(0, fromSourcesOfHyperedgeAt: 0) / remove(1, fromTargetsOfHyperedgeAt: 0) / vertexCount/hyperedgeCount | true; false; true; 3/1 ⇒ 3×1 [0, 0, -]; columns [0:{2}→{}] |
+| IM-055 | Oriented mutation | removeAll | OIM n 4; E [{0, 1}→{2}, {2}→{2, 3}, {}→{}, {3}→{0, 1}] / removeAll() / vertexCount/hyperedgeCount | (); 0/0 ⇒ 0×0 []; columns [] |
+| IM-056 | Oriented traps | insert(sources:targets:) with a vertex out of range | OIM n 2; E [] / insert(sources: [0], targets: [2]) | **trap** (vertex out of range) |
+| IM-057 | Oriented traps | entry with a column out of range | OIM n 2; E [{0}→{1}] / [vertex: 0, hyperedge: 1] | **trap** (hyperedge position out of range) |
+| IM-058 | Oriented traps | targets(ofHyperedgeAt:) out of range | OIM n 2; E [{0}→{1}] / targets(ofHyperedgeAt: -1) | **trap** (hyperedge position out of range) |
+| IM-059 | Oriented traps | outHyperedges(of:) out of range | OIM n 2; E [{0}→{1}] / outHyperedges(of: 2) | **trap** (vertex out of range) |
+| IM-060 | Equality | oriented: a vertex on both sides differs from it on neither, although both entries are 0 | OIM n 2; E [{0}→{0, 1}] == OIM n 2; E [{}→{1}] | false |
+| IM-061 | Equality | oriented: two loops at different vertices differ although every entry is 0 | OIM n 2; A [0→0] == OIM n 2; A [1→1] | false |
+| IM-062 | Equality | oriented: reversed arc differs | OIM n 2; A [0→1] == OIM n 2; A [1→0] | false |
+| IM-063 | Equality | oriented: column order is observable | OIM n 2; E [{0}→{}, {}→{1}] == OIM n 2; E [{}→{1}, {0}→{}] | false |
