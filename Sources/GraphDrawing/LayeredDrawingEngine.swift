@@ -26,9 +26,27 @@ func _layeredDrawing(vertexCount n: Int, sources: [Int], targets: [Int], layers 
     var upper = [Int](repeating: -1, count: m), lower = [Int](repeating: -1, count: m)
     var isReversed = [Bool](repeating: false, count: m)
     var reversed: [Int] = []
+    // The layers the engine works on are dense: `layer` numbers the non-empty layers 0, 1, …,
+    // and `layerValue[l]` is the y (and the reported layer) of layer l. Caller layers with empty
+    // layers between them are compressed, so memory does not grow with the layer numbers; a long
+    // edge gets a bend only on the non-empty layers it crosses.
     let layer: [Int]
+    var layerValue: [Int] = []
     if let given {
-        layer = given
+        var distinct = given
+        distinct.sort()
+        for l in distinct where layerValue.last != l { layerValue.append(l) }
+        var dense = given
+        for v in 0 ..< n {
+            // The rank of the vertex's layer among the distinct ones.
+            var lo = 0, hi = layerValue.count - 1
+            while lo < hi {
+                let mid = (lo + hi) / 2
+                if layerValue[mid] < given[v] { lo = mid + 1 } else { hi = mid }
+            }
+            dense[v] = lo
+        }
+        layer = dense
         for k in 0 ..< m {
             let s = sources[k], t = targets[k]
             guard s != t, layer[s] != layer[t] else { continue }
@@ -58,6 +76,7 @@ func _layeredDrawing(vertexCount n: Int, sources: [Int], targets: [Int], layers 
     }
     var layerCount = 0
     for l in layer { layerCount = Swift.max(layerCount, l + 1) }
+    if given == nil { layerValue = Array(0 ..< layerCount) }
 
     // Dummies: arc k's are numbered dummyStart[k] ..< dummyStart[k + 1], one per inner layer, top
     // down. Nodes are the vertices, then the dummies.
@@ -125,18 +144,23 @@ func _layeredDrawing(vertexCount n: Int, sources: [Int], targets: [Int], layers 
     let x = graph.brandesKopf(order, position)
 
     var positions = [SIMD2<Double>](repeating: .zero, count: n)
-    for v in 0 ..< n { positions[v] = SIMD2(x[v], Double(layer[v])) }
+    for v in 0 ..< n { positions[v] = SIMD2(x[v], Double(layerValue[layer[v]])) }
     var bendStart = [Int](repeating: 0, count: m + 1)
     var bends: [SIMD2<Double>] = []
     bends.reserveCapacity(nodeCount - n)
     for k in 0 ..< m {
         let range = dummyStart[k] ..< dummyStart[k + 1]
         if isReversed[k] {
-            for d in range.reversed() { bends.append(SIMD2(x[d], Double(nodeLayer[d]))) }
+            for d in range.reversed() { bends.append(SIMD2(x[d], Double(layerValue[nodeLayer[d]]))) }
         } else {
-            for d in range { bends.append(SIMD2(x[d], Double(nodeLayer[d]))) }
+            for d in range { bends.append(SIMD2(x[d], Double(layerValue[nodeLayer[d]]))) }
         }
         bendStart[k + 1] = bends.count
+    }
+    if let given {
+        return _LayeredResult(
+            layer: given, layerCount: (layerValue.last ?? -1) + 1, positions: positions, bendStart: bendStart, bends: bends, reversed: reversed,
+            crossings: crossings)
     }
     return _LayeredResult(layer: layer, layerCount: layerCount, positions: positions, bendStart: bendStart, bends: bends, reversed: reversed, crossings: crossings)
 }
@@ -239,33 +263,26 @@ struct _LayerGraph {
             var seen = 0
             for i in layerStart[l] ..< layerStart[l + 1] {
                 let x = order[i]
-                // This node's lower ends, ascending.
-                buffer.removeAll(keepingCapacity: true)
+                // This node's segments cross the earlier nodes' segments that end strictly to the
+                // right; they do not cross each other, so all are counted before any is added and
+                // no sort is needed.
                 for slot in downStart[x] ..< downStart[x + 1] {
-                    let p = position[down[slot]]
-                    var j = buffer.count
-                    buffer.append(p)
-                    while j > 0, buffer[j - 1] > p {
-                        buffer[j] = buffer[j - 1]
-                        j -= 1
-                    }
-                    buffer[j] = p
-                }
-                for p in buffer {
                     // Earlier segments ending at most p.
-                    var atMost = 0, k = p + 1
+                    var atMost = 0, k = position[down[slot]] + 1
                     while k > 0 {
                         atMost += tree[k]
                         k -= k & -k
                     }
                     total += seen - atMost
-                    k = p + 1
+                }
+                for slot in downStart[x] ..< downStart[x + 1] {
+                    var k = position[down[slot]] + 1
                     while k <= width {
                         tree[k] += 1
                         k += k & -k
                     }
-                    seen += 1
                 }
+                seen += downStart[x + 1] - downStart[x]
             }
         }
         return total
@@ -278,13 +295,34 @@ struct _LayerGraph {
         let nodeCount = position.count
         guard nodeCount > 0 else { return [] }
         let marked = typeOneConflicts(order, position)
+        // Every node's upper and lower neighbours by position, by one pass over the layers in
+        // order (a sort per node would be O(d log d), an insertion sort O(d²) on a hub).
+        var sortedUp = [Int](repeating: 0, count: up.count), sortedDown = [Int](repeating: 0, count: down.count)
+        do {
+            var upFill = upStart, downFill = downStart
+            for u in order {
+                for slot in downStart[u] ..< downStart[u + 1] {
+                    let v = down[slot]
+                    sortedUp[upFill[v]] = u
+                    upFill[v] += 1
+                }
+                for slot in upStart[u] ..< upStart[u + 1] {
+                    let v = up[slot]
+                    sortedDown[downFill[v]] = u
+                    downFill[v] += 1
+                }
+            }
+        }
         var results: [[Int]] = []
         results.reserveCapacity(4)
         var root = [Int](repeating: 0, count: nodeCount), align = [Int](repeating: 0, count: nodeCount)
         var place = [Int](repeating: 0, count: nodeCount)
         for upward in [true, false] {
             for leftward in [true, false] {
-                results.append(alignAndCompact(order, position, marked: marked, upward: upward, leftward: leftward, &root, &align, &place))
+                results.append(
+                    alignAndCompact(
+                        order, position, sorted: upward ? sortedUp : sortedDown, marked: marked, upward: upward, leftward: leftward, &root, &align,
+                        &place))
             }
         }
         var widths: [Int] = []
@@ -358,7 +396,7 @@ struct _LayerGraph {
     /// One of the four vertical alignments and its compaction: x per node (negated for the
     /// rightward ones, so every result reads left to right).
     mutating func alignAndCompact(
-        _ order: [Int], _ position: [Int], marked: Set<Int>, upward: Bool, leftward: Bool,
+        _ order: [Int], _ position: [Int], sorted neighbors: [Int], marked: Set<Int>, upward: Bool, leftward: Bool,
         _ root: inout [Int], _ align: inout [Int], _ place: inout [Int]
     ) -> [Int] {
         let nodeCount = position.count
@@ -370,7 +408,6 @@ struct _LayerGraph {
             align[x] = x
         }
         let start = upward ? upStart : downStart
-        let neighbors = upward ? up : down
         for step in 1 ..< Swift.max(layers, 1) {
             let l = upward ? step : layers - 1 - step
             let adjacent = upward ? l - 1 : l + 1
@@ -381,24 +418,13 @@ struct _LayerGraph {
                 let v = order[leftward ? s + t : e - 1 - t]
                 let a = start[v], b = start[v + 1]
                 guard a < b else { continue }
-                // v's neighbours by position in this direction.
-                buffer.removeAll(keepingCapacity: true)
-                for slot in a ..< b {
-                    let u = neighbors[slot]
-                    let pu = p(position[u], adjacentWidth)
-                    var j = buffer.count
-                    buffer.append(u)
-                    while j > 0, p(position[buffer[j - 1]], adjacentWidth) > pu {
-                        buffer[j] = buffer[j - 1]
-                        j -= 1
-                    }
-                    buffer[j] = u
-                }
                 let d = b - a
-                // The median, or the two medians (left first) of an even count.
+                // The median, or the two medians (left first in this direction) of an even count;
+                // `neighbors` rows ascend by position, so the rightward directions read them back
+                // to front.
                 for mi in (d - 1) / 2 ... d / 2 {
                     guard align[v] == v else { break }
-                    let u = buffer[mi]
+                    let u = neighbors[leftward ? a + mi : b - 1 - mi]
                     let key = upward ? u * nodeCount + v : v * nodeCount + u
                     let pu = p(position[u], adjacentWidth)
                     if !marked.contains(key) && r < pu {

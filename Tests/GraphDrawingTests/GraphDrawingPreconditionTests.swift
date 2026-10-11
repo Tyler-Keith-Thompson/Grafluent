@@ -298,4 +298,24 @@ struct GraphDrawingPreconditionTests {
         #expect(layered.bends(ofEdgeAt: 1).isEmpty)
         #expect(graph.sugiyamaLayout(layers: { $0 }).drawing == layered.drawing)
     }
+
+    @Test("Fruchterman–Reingold and stress majorization trap on a non-finite initial position")
+    func nonFiniteInitial() async {
+        await #expect(processExitsWith: .failure) {
+            let graph = Pseudograph<Int>(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
+            _ = graph.fruchtermanReingoldLayout(initial: Drawing(vertices: 0 ..< 3, positions: [SIMD2(0, 0), SIMD2(.nan, 0), SIMD2(1, 1)]))
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = Pseudograph<Int>(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
+            _ = FruchtermanReingoldLayout(graph, initial: Drawing(vertices: 0 ..< 3, positions: [SIMD2(0, 0), SIMD2(0, .infinity), SIMD2(1, 1)]))
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = Pseudograph<Int>(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
+            _ = graph.stressMajorizationLayout(initial: Drawing(vertices: [2, 1, 0], positions: [SIMD2(0, 0), SIMD2(-.infinity, 0), SIMD2(1, 1)]))
+        }
+        // Without the calls: finite starts, in or out of the graph's order, lay out.
+        let graph = Pseudograph<Int>(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
+        #expect(graph.fruchtermanReingoldLayout(initial: Drawing(vertices: 0 ..< 3, positions: [SIMD2(0, 0), SIMD2(2, 0), SIMD2(1, 1)])).count == 3)
+        #expect(graph.stressMajorizationLayout(initial: Drawing(vertices: [2, 1, 0], positions: [SIMD2(0, 0), SIMD2(2, 0), SIMD2(1, 1)])).count == 3)
+    }
 }

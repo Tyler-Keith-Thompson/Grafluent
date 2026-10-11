@@ -33,6 +33,8 @@ struct _ForceEngine: Sendable {
             let side = high - low
             temperature = 0.1 * Swift.max(side.x, side.y)
         }
+        // Every vertex at one point: the coincident repulsion separates them, at k's scale.
+        if temperature == 0 { temperature = 0.1 * k }
         self.temperature = temperature
         cooling = temperature / Double(iterations + 1)
         displacement = [SIMD2<Double>](repeating: .zero, count: count)
@@ -65,8 +67,12 @@ struct _ForceEngine: Sendable {
                         var sum = SIMD2<Double>.zero
                         for u in 0 ..< n {
                             let delta = pv - p[u]
-                            let d2 = Swift.max((delta * delta).sum(), 1e-4)
-                            sum += delta * (k2 / d2)
+                            let d2 = (delta * delta).sum()
+                            if d2 == 0 {
+                                if u != v { sum += _coincidentOffset(v, u) * (k2 / 1e-4) }
+                                continue
+                            }
+                            sum += delta * (k2 / Swift.max(d2, 1e-4))
                         }
                         disp[v] = sum
                     }
@@ -237,9 +243,14 @@ struct _QuadTree: Sendable {
             let first = firstChild[cell]
             if first < 0 {
                 for i in low[cell] ..< high[cell] {
-                    let delta = pv - p[order[i]]
-                    let d2 = Swift.max((delta * delta).sum(), 1e-4)
-                    sum += delta * (k2 / d2)
+                    let u = order[i]
+                    let delta = pv - p[u]
+                    let d2 = (delta * delta).sum()
+                    if d2 == 0 {
+                        if u != v { sum += _coincidentOffset(v, u) * (k2 / 1e-4) }
+                        continue
+                    }
+                    sum += delta * (k2 / Swift.max(d2, 1e-4))
                 }
                 continue
             }
@@ -256,4 +267,19 @@ struct _QuadTree: Sendable {
         }
         return sum
     }
+}
+
+/// The offset of vertex `v` from vertex `u` that repulsion uses when the two are at the same point:
+/// length 0.01 (the least distance forces use), in a direction fixed by the pair, opposite for
+/// (u, v). Deterministic, so a start with coincident vertices still gives one drawing; without
+/// it they would feel no repulsion and never separate.
+@inline(__always)
+func _coincidentOffset(_ v: Int, _ u: Int) -> SIMD2<Double> {
+    let a = UInt64(truncatingIfNeeded: Swift.min(u, v)), b = UInt64(truncatingIfNeeded: Swift.max(u, v))
+    var h = (a &* 0x9E37_79B9_7F4A_7C15) ^ (b &* 0xC2B2_AE3D_27D4_EB4F)
+    h ^= h >> 29
+    // Each coordinate in −127.5 … 127.5, never both 0.
+    let d = SIMD2(Double(h & 0xFF) - 127.5, Double((h >> 8) & 0xFF) - 127.5)
+    let unit = d / (d * d).sum().squareRoot() * 0.01
+    return v > u ? unit : -unit
 }

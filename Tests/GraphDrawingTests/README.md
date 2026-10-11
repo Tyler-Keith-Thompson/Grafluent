@@ -45,9 +45,9 @@ collection's (by offset) and the vertex's.
 
 | Rows | How |
 |---|---|
-| `Drawing`, Reingold–Tilford, Sugiyama, FR's start | Exact: whole point lists compared with `==` (separation-1 arithmetic gives dyadic values) |
+| `Drawing`, Reingold–Tilford, Sugiyama, FR's start | Exact: whole point lists compared with `==` (on the catalog's inputs, separation-1 arithmetic gives dyadic values; Walker's even spacing can divide by 3, see Review) |
 | Circular layouts, the circular tree layout | Within 1e-9 (`cos` and `sin` differ in the last bits across libm builds) |
-| Stress majorization | Converged stress within ±1%; normalized stress at most 1.02 × NetworkX's Kamada–Kawai + 1e-4; `stress` equal to the stress of `drawing` computed in the test |
+| Stress majorization | Converged stress within ±1%; normalized stress at most 1.02 × NetworkX's Kamada–Kawai + 1e-4, or, where the default tolerance (10⁻⁴) stops above that (DR-200), 1.01 × the model's + 1e-4; `stress` equal to the stress of `drawing` computed in the test within 1e-5 relative (the target distances are kept in single precision) |
 | FR quality | The median over seeds 1…20 of `Xoshiro256StarStar(seed:)` of normalized stress or crossings, against the catalog's bound; Barnes–Hut within 15% of exact |
 | FR determinism | Exactly 2n draws, checked by generator state and by a counting generator; same seed, equal drawing |
 
@@ -57,15 +57,18 @@ edges, and `feedbackArcSet()`. DR-152 (several optimal layerings) checks the tot
 invariants. DR-163 runs on a `DirectedAcyclicGraph`.
 
 The catalog-row files are every file except `GraphDrawingConformanceTests.swift`,
-`GraphDrawingPropertyTests.swift`, `GraphDrawingReviewTests.swift` and `GraphDrawingStressTests.swift`. `swiftgen.py` generates them
-from `cases.md`, next to `ref.py`:
+`GraphDrawingPropertyTests.swift`, `GraphDrawingReviewTests.swift`, `GraphDrawingStressTests.swift`
+and `SugiyamaLayeringLinearProgramTests.swift`. `swiftgen.py` generates them from `cases.md`, next
+to `ref.py`, and also writes `SugiyamaLayeringLinearProgramTests.swift` (not catalog rows: 400
+random DAGs and one of 5 × 10⁴ vertices whose least total span scipy's HiGHS solves once, at
+generation; the test compares `sugiyamaLayout()`'s total span with it):
 
 ```
 uv run --quiet --no-project --with networkx==3.7 --with igraph==1.0.0 --with numpy==2.3.4 --with scipy==1.18.1 python3 Tests/Catalogs/GraphDrawing/swiftgen.py [--phase2]
 ```
 
 It checks that `ref.py` reproduces `cases.md` byte for byte, recomputes each row on the model,
-asserts that it formats to the catalog cell, and writes one `@Test` per phase-1 row (206 rows, 212
+asserts that it formats to the catalog cell, and writes one `@Test` per phase-1 row (206 rows, 213
 tests with the hand-written exit tests in `extra_traps.swift`). `--phase2` also writes
 `GraphDrawingPhase2Tests.swift` (DR-207 – DR-214: spectral, BFS, multipartite, ForceAtlas2), for
 when those entry points exist.
@@ -93,22 +96,27 @@ process without the call.
   - Reingold–Tilford on random trees: separation ≥ 1 at each depth, parents centred over their
     first and last child, children left to right, y = depth, root at x = 0, the mirrored tree drawn
     as the reflection, and the circular form at radius = depth with equal x on one ray.
-  - Sugiyama on random digraphs with loops, parallel arcs and cycles: `reversedEdges ==
-    feedbackArcSet()`, every edge points down once the reversed ones are turned, one bend per inner
+  - Sugiyama on random digraphs with loops, parallel arcs and cycles: `reversedEdges` is
+    `feedbackArcSet()` without its self-loops, every edge points down once the reversed ones are turned, one bend per inner
     layer on that layer, ordered from source to target, separation ≥ 1 among vertices and bends,
     least x 0, and `crossingCount` equal to a brute-force count over the drawn segments.
-  - Caller layers.
+  - Caller layers: as given, upward arcs reversed, bends only on the non-empty layers between.
   - `step()` by step equals `run()` and the function, for both steppers.
   - `rescaled` and `circularLayout` on random input.
 - **Review.** These tests cover what the catalog leaves open, found by planting bugs:
   - the layering is optimal (brute force over every layering of small DAGs, and one DAG where a
     feasible tree without pivots gives span 8 instead of 7);
   - crossing reduction keeps the best order it has seen;
-  - FR's `weight:` scales attraction (weight 0 is no edge, and weight 2 equals a doubled edge).
+  - FR's `weight:` scales attraction (weight 0 is no edge, and weight 2 equals a doubled edge);
+  - Walker's even spacing dividing by 3 (positions ±5/6, not dyadic);
+  - FR from coincident vertices (all at one point, or two of six), exact and Barnes–Hut: they
+    separate, and the drawing is deterministic;
+  - caller layers with numbers up to 3 × 10¹² and `Int.max / 2`: empty layers skipped, y as given.
 - **Stress.** Each test runs inside a Task with a one-minute limit and a wall-clock bound:
   - Reingold–Tilford on a 2 × 10⁵-vertex LCG tree, and on a 10⁵-vertex path (no recursion);
   - `circularLayout` on 10⁶ vertices;
-  - Sugiyama on a 1 000-vertex random DAG and a 500-vertex cyclic digraph;
+  - Sugiyama on a 1 000-vertex random DAG and a 500-vertex cyclic digraph, and on a star and an
+    in-star with 4 × 10⁴ leaves (a hub's neighbours are not sorted per vertex);
   - FR exact on 500 vertices, and Barnes–Hut on 5 000;
   - stress majorization on a 15 × 15 grid.
 

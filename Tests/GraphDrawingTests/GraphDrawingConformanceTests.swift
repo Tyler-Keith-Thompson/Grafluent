@@ -102,7 +102,9 @@ struct GraphDrawingConformanceTests {
         let reference = pseudograph.sugiyamaLayout()
         let referenceBends = Dictionary(uniqueKeysWithValues: pseudograph.edges.indices.map { (pseudograph.edges[$0], Array(reference.bends(ofEdgeAt: $0))) })
         let referenceReversed = reference.reversedEdges.map { pseudograph.edges[$0] }
-        #expect(pseudograph.feedbackArcSet().map { pseudograph.edges[$0] } == referenceReversed, "\(context)")
+        // reversedEdges is feedbackArcSet() without its self-loops.
+        let referenceFeedback = pseudograph.feedbackArcSet().map { pseudograph.edges[$0] }
+        #expect(referenceFeedback.filter { $0.source != $0.target } == referenceReversed, "\(context)")
 
         func check<G: DirectedGraph<Int>>(_ graph: G, _ name: String) {
             let layered = graph.sugiyamaLayout()
@@ -110,7 +112,7 @@ struct GraphDrawingConformanceTests {
             #expect(graph.vertices.map { layered.layer(of: $0) } == pseudograph.vertices.map { reference.layer(of: $0) }, "\(name): \(context)")
             #expect(layered.layerCount == reference.layerCount && layered.crossingCount == reference.crossingCount, "\(name): \(context)")
             #expect(layered.reversedEdges.map { graph.edges[$0] } == referenceReversed, "\(name): \(context)")
-            #expect(graph.feedbackArcSet().map { graph.edges[$0] } == referenceReversed, "\(name): \(context)")
+            #expect(graph.feedbackArcSet().map { graph.edges[$0] } == referenceFeedback, "\(name): \(context)")
             for p in graph.edges.indices {
                 #expect(Array(layered.bends(ofEdgeAt: p)) == referenceBends[graph.edges[p]], "\(name): \(context)")
             }

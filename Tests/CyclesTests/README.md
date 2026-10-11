@@ -26,6 +26,8 @@ extension Graph {
 extension DirectedGraph {
     func simpleCycles(maxLength: Int = .max) -> DirectedSimpleCycles<Self>
     func girth() -> Int?
+    func feedbackArcSet() -> [Edges.Index]                          // Eades–Lin–Smyth; every self-loop in it (igraph)
+    func feedbackArcSet(weight: (Edges.Index) -> Double) -> [Edges.Index]   // igraph's weights; traps on a non-finite one
 }
 struct DirectedSimpleCycles<G: DirectedGraph>: Sequence     // Element == Cycle<G.Vertex, G.Edges.Index>
 struct UndirectedSimpleCycles<G: Graph>: Sequence           // the same shape
@@ -83,8 +85,9 @@ test.
 | `CycleConformanceTests.swift` | 8 | §L: `Sendable` (CY-852), value semantics (CY-853), not a `Collection` (CY-854), laziness on a row-counting conformer (CY-855), generic code (CY-856), no hashing on indexed adjacency lists (CY-857), `isAcyclic` on the views (CY-858), `Codable` and rotation equality (CY-859) |
 | `CyclePreconditionTests.swift` | 4 | §L exit tests: negative bound (CY-850), root not a vertex (CY-851), index rows that break the laws (CY-860) |
 | `CycleReviewTests.swift` | 11 | Added after planting bugs and the review (CY-1001 – CY-1011): girth after a longer cycle from earlier roots, a windmill with its hub last, a bounded 100 × 100 grid, girth of 10⁵-vertex forests and DAGs, edge indices out of range and edges in no row, iterators copied part-way, Traversal's directed `findCycle` against `simpleCycles`, `isAcyclic` without hashing |
+| `FeedbackArcSetTests.swift` | 4 | `feedbackArcSet()` and `feedbackArcSet(weight:)` (GraphDrawing's review; no catalog rows): self-loops in the set and weighted sets checked against python-igraph 1.0, random multigraphs (ascending, loops in, the rest acyclic by Kahn's algorithm, equal weights give the unweighted set), and exit tests for non-finite weights |
 
-375 tests in all.
+379 tests in all.
 
 ## Case IDs
 

@@ -5,12 +5,13 @@ extension DirectedGraph {
     /// A layered drawing by the Sugiyama framework: every vertex on a horizontal layer, edges
     /// pointing down, long edges bent through every layer they cross, few crossings.
     ///
-    /// 1. Cycles are broken by reversing `feedbackArcSet()` (Eades, Lin and Smyth); a DAG reverses
-    ///    nothing. Self-loops are left out of the drawing.
+    /// 1. Cycles are broken by reversing the edges of `feedbackArcSet()` (Eades, Lin and Smyth)
+    ///    other than self-loops; a DAG reverses nothing. Self-loops are left out of the drawing.
     /// 2. Layers minimize the total edge span Σ (layer(target) − layer(source)) with every edge
     ///    spanning at least one layer, parallel edges counted each (Gansner et al.'s network
-    ///    simplex, as Graphviz's `dot`); each weakly connected component starts at layer 0. Where
-    ///    several layerings are optimal, which one is chosen is not specified.
+    ///    simplex, solved through its dual min-cost flow as OGDF's `OptimalRanking`); each weakly
+    ///    connected component starts at layer 0. Where several layerings are optimal, which one is
+    ///    chosen is not specified.
     /// 3. An edge spanning k > 1 layers gets a bend point on each of the k − 1 between.
     /// 4. Crossings are reduced by barycenter sweeps: each layer starts with its vertices in
     ///    `vertices` order, then its bend points by edge position; a sweep sorts layers 1 … L−1 by
@@ -32,9 +33,11 @@ extension DirectedGraph {
     /// class shifts, which Brandes, Walter and Zink show can violate the separation ("Erratum:
     /// Fast and simple horizontal coordinate assignment", arXiv:2008.01252, 2020).
     ///
-    /// O(n + m) for cycle removal; network simplex is not polynomially bounded but near-linear in
-    /// practice; O(maxIterations · (N + M) log N) for crossing reduction over N vertices and bend
-    /// points and M segments; O(N + M) for coordinates.
+    /// O((n + m) log n) for cycle removal. Network simplex has no polynomial bound and is
+    /// superlinear in practice: on random DAGs with m = 2n it takes about 60 ms at n = 10⁴ and
+    /// 0.65 s at 4 · 10⁴, growing about as n^1.5 to n^1.7 (release build). O(maxIterations ·
+    /// (N + M) log N) for crossing reduction over N vertices and bend points and M segments;
+    /// O(N + M) for coordinates.
     ///
     /// - Precondition: `maxIterations ≥ 0`.
     @inlinable
@@ -44,9 +47,11 @@ extension DirectedGraph {
     }
 
     /// A layered drawing with the caller's layers (igraph's `layers=`): steps 3 to 5 of
-    /// `sugiyamaLayout(maxIterations:)` on layer `layers(v)` for each vertex. An edge pointing
-    /// to a lower layer is reversed (and listed in `reversedEdges`); an edge within one layer
-    /// gets no segment and no bends.
+    /// `sugiyamaLayout(maxIterations:)` on layer `layers(v)` for each vertex, and y = `layers(v)`.
+    /// An edge pointing to a lower layer is reversed (and listed in `reversedEdges`); an edge
+    /// within one layer gets no segment and no bends. Layers that no vertex is on are skipped: a
+    /// long edge gets a bend on each non-empty layer it crosses, so time and memory do not depend
+    /// on how large the layer numbers are (igraph puts a bend on every layer between).
     ///
     /// - Precondition: every layer is at least 0; `maxIterations ≥ 0`.
     @inlinable
@@ -123,8 +128,9 @@ public struct LayeredDrawing<G: DirectedGraph> {
     public var layerCount: Int { _layerCount }
 
     /// The bend points of the edge at `position`, from its source to its target (bottom to top
-    /// for a reversed edge): one per layer strictly between its ends, empty for an edge between
-    /// adjacent layers, within one layer, or a self-loop.
+    /// for a reversed edge): one per layer strictly between its ends (with caller layers, per
+    /// layer that has a vertex), empty for an edge between adjacent layers, within one layer, or a
+    /// self-loop.
     ///
     /// - Precondition: `position` is a position in the graph's `edges`.
     @inlinable
@@ -138,8 +144,8 @@ public struct LayeredDrawing<G: DirectedGraph> {
         return _bends[_bendStart[lo] ..< _bendStart[lo + 1]]
     }
 
-    /// The edges drawn against their direction, by position: `feedbackArcSet()`, or with caller
-    /// layers the edges that point to a lower layer.
+    /// The edges drawn against their direction, by position: `feedbackArcSet()` without its
+    /// self-loops, or with caller layers the edges that point to a lower layer.
     @inlinable
     public var reversedEdges: [G.Edges.Index] { _reversedEdges }
 

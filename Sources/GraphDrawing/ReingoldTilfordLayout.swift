@@ -19,8 +19,11 @@ extension RootedTree {
     /// contour, and every parent centred over its first and last child. Where two subtrees had to
     /// be pushed apart, the smaller subtrees between them are spaced evenly (Walker's
     /// improvement), so a mirrored tree draws as the reflection of the drawing and isomorphic
-    /// subtrees are drawn identically up to translation. Coordinates are multiples of a power of
-    /// ½, exact in `Double`.
+    /// subtrees are drawn identically up to translation. Coordinates are `Double` arithmetic:
+    /// separations and centring alone give multiples of a power of ½, which are exact, but the even
+    /// spacing divides a shift by the number of gaps it is spread over, so values such as ±5/6
+    /// occur and are rounded (and a mirrored tree's drawing then matches the reflection only to
+    /// rounding).
     ///
     /// - Reingold and Tilford, "Tidier drawings of trees", IEEE Transactions on Software
     ///   Engineering SE-7(2), 1981.

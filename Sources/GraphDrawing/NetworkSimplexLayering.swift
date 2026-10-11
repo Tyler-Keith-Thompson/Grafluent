@@ -2,73 +2,441 @@
 /// edge, minimizing Σ (layer(head) − layer(tail)) over the edges (parallel edges count each), each
 /// weakly connected component shifted so that its least layer is 0. The edges must form a DAG.
 ///
-/// Gansner, Koutsofios, North and Vo's network simplex ("A technique for drawing directed graphs",
-/// IEEE Transactions on Software Engineering 19(3), 1993), as Graphviz's `dot` implements it: a
-/// longest-path ranking; a feasible spanning tree of tight edges (slack 0), grown by merging
-/// maximal tight subtrees, smallest first, each shifted along its least-slack edge to a
-/// neighbour; then pivots while a tree edge has a negative cut value. The leaving edge is the
-/// tree edge with the most negative cut value (fewer pivots than the first negative one: 731
-/// against 15,000 on a random 1,000-vertex DAG with 2,000 edges); the entering edge is the
-/// least-slack edge crossing the cut the other way. Cut values are kept up to date along the
-/// cycle each pivot closes, with Graphviz's postorder (low, lim) numbering for subtree tests.
+/// The ranking LP (Gansner, Koutsofios, North and Vo, "A technique for drawing directed graphs",
+/// IEEE Transactions on Software Engineering 19(3), 1993) is the dual of a min-cost flow: every
+/// edge an uncapacitated arc of cost −1, every vertex a supply of out-degree − in-degree. This
+/// solves that flow by the primal network simplex, as OGDF's `OptimalRanking` does through a
+/// min-cost flow and LEMON's `NetworkSimplex` implements it, and returns minus the optimal node
+/// potentials:
+///
+/// - Warm start: longest-path ranks, every vertex with more out-edges than in-edges (every source)
+///   pulled down to just above its nearest successor in reverse topological order, and Gansner's
+///   feasible tree of tight edges on them (maximal tight subtrees merged smallest first). Each
+///   component's tree is rooted, its flows computed bottom up, and an edge whose flow would be
+///   negative, or zero against the direction toward the root, is cut and its subtree hung from an
+///   artificial root (big M, LEMON's scheme). Where longest path is already optimal no pivot
+///   follows.
+/// - The tree is kept as LEMON keeps it (parent, thread, subtree size, last successor), so a pivot
+///   costs the cycle's length plus the smaller of the moved subtree and the rest.
+/// - Entering arc: LEMON's block search (the most negative reduced cost in the first block of √m
+///   edges that has one, cyclically). Leaving arc: Cunningham's strongly feasible tree rule (the
+///   last blocking arc from the join in the direction of the flow), which rules out cycling
+///   ("A network simplex method", Mathematical Programming 11, 1976): every run ends at an optimum,
+///   and there is no pivot cap.
+///
+/// Not polynomially bounded. Measured on random DAGs with m = 2n (release build): about 13,000
+/// pivots and 60 ms at n = 10⁴, 0.23 s at 2 · 10⁴, 63,000 pivots and 0.65 s at 4 · 10⁴, growing
+/// about as n^1.5 to n^1.7. Gansner's own pivots (tree edges with negative cut values leave, as in
+/// `dot`) took 0.71 s, 4.4 s and 42 s: almost all of them are degenerate, and each searches one
+/// side of a cut that splits the tree about evenly.
 @usableFromInline
 func _minimumSpanLayers(vertexCount n: Int, tails: [Int], heads: [Int]) -> [Int] {
-    var simplex = _NetworkSimplex(vertexCount: n, tails: tails, heads: heads)
-    simplex.solve()
-    return simplex.rank
+    var flow = _RankingFlow(vertexCount: n, tails: tails, heads: heads)
+    flow.solve()
+    return flow.ranks()
 }
 
-struct _NetworkSimplex {
+struct _RankingFlow {
     let n: Int
-    let tails: [Int]
-    let heads: [Int]
-    /// Out- and in-edges per vertex, by edge number.
-    var outStart: [Int], outEdges: [Int]
-    var inStart: [Int], inEdges: [Int]
-    var rank: [Int]
+    let m: Int
+    /// Arcs `0..<m` are the edges; arc `m + v` is vertex v's artificial arc to or from the root,
+    /// node `n`.
+    var source: [Int]
+    var target: [Int]
+    var cost: [Int]
+    var flow: [Int]
     var inTree: [Bool]
-    var cut: [Int]
-    /// Tree edges per vertex, in slots `incidentStart[v] ..< incidentStart[v] + treeCount[v]`.
-    var treeEdges: [Int]
-    var treeCount: [Int]
-    var incidentStart: [Int]
-    /// The rooted spanning forest: each vertex's parent edge (−1 at a root), and Graphviz's
-    /// postorder numbers: `lim` the vertex's, `low` the least in its subtree.
-    var parentEdge: [Int]
-    var low: [Int]
-    var lim: [Int]
-    /// The vertex with each `lim`.
-    var vertexAtLim: [Int]
-    /// Every tree edge, and each one's slot here (−1 off the tree).
-    var treeList: [Int]
-    var treeSlot: [Int]
-    /// The pivot that last put each vertex on its cycle; renumbering skips the subtrees of the
-    /// others, which a pivot leaves unchanged.
-    var cycleStamp: [Int]
-    var stamp = 0
-    var numberStack: [(vertex: Int, slot: Int, low: Int)] = []
-    /// The vertices by their numbers before a renumbering, from `oldBase`; −1 when the numbering
-    /// is built from nothing.
-    var oldAtLim: [Int] = []
-    var oldBase = -1
+    /// Per node `0...n`: the tree arc to its parent and whether it points to the parent, the
+    /// parent (−1 at the root), the next node in preorder (cyclic) and the previous one, the
+    /// subtree's size and its last node in preorder, and the potential (reduced cost of arc a:
+    /// cost(a) + potential(source) − potential(target), 0 on tree arcs).
+    var pred: [Int]
+    var up: [Bool]
+    var parent: [Int]
+    var thread: [Int]
+    var revThread: [Int]
+    var succNum: [Int]
+    var lastSucc: [Int]
+    var potential: [Int]
+    var dirty: [Int] = []
+    var nextArc = 0
+    let blockSize: Int
 
     init(vertexCount n: Int, tails: [Int], heads: [Int]) {
         self.n = n
-        self.tails = tails
-        self.heads = heads
-        let m = tails.count
-        outStart = [Int](repeating: 0, count: n + 1)
-        inStart = [Int](repeating: 0, count: n + 1)
-        for e in 0 ..< m {
-            outStart[tails[e] + 1] += 1
-            inStart[heads[e] + 1] += 1
-        }
+        m = tails.count
+        let all = m + n
+        source = tails
+        target = heads
+        source.reserveCapacity(all)
+        target.reserveCapacity(all)
+        cost = [Int](repeating: -1, count: all)
+        flow = [Int](repeating: 0, count: all)
+        inTree = [Bool](repeating: false, count: all)
+        pred = [Int](repeating: -1, count: n + 1)
+        up = [Bool](repeating: true, count: n + 1)
+        parent = [Int](repeating: -1, count: n + 1)
+        thread = [Int](repeating: 0, count: n + 1)
+        revThread = [Int](repeating: 0, count: n + 1)
+        succNum = [Int](repeating: 1, count: n + 1)
+        lastSucc = [Int](repeating: 0, count: n + 1)
+        potential = [Int](repeating: 0, count: n + 1)
+        var block = 1
+        while block * block < m { block += 1 }
+        blockSize = Swift.max(block, 10)
         for v in 0 ..< n {
-            outStart[v + 1] += outStart[v]
-            inStart[v + 1] += inStart[v]
+            source.append(v)
+            target.append(n)
+            cost[m + v] = 0
         }
-        outEdges = [Int](repeating: 0, count: m)
-        inEdges = [Int](repeating: 0, count: m)
+        warmStart(tails: tails, heads: heads)
+    }
+
+    /// The initial strongly feasible tree (every tree arc with zero flow points toward the root)
+    /// from Gansner's tight tree; see `_minimumSpanLayers`.
+    mutating func warmStart(tails: [Int], heads: [Int]) {
+        var supply = [Int](repeating: 0, count: n)
+        for e in 0 ..< m {
+            supply[tails[e]] += 1
+            supply[heads[e]] -= 1
+        }
+        // Big M: a unit routed through the root costs more than any path of edges saves.
+        let artificial = 2 * (n + 1)
+        let forest = _tightForest(vertexCount: n, tails: tails, heads: heads)
+        // Breadth-first order of each tree from its least vertex.
+        var order: [Int] = []
+        order.reserveCapacity(n)
+        var visited = [Bool](repeating: false, count: n)
+        var treeParentEdge = [Int](repeating: -1, count: n)
+        for r in 0 ..< n where !visited[r] {
+            visited[r] = true
+            var i = order.count
+            order.append(r)
+            while i < order.count {
+                let v = order[i]
+                i += 1
+                for slot in forest.start[v] ..< forest.start[v + 1] {
+                    let e = forest.edges[slot]
+                    let w = tails[e] == v ? heads[e] : tails[e]
+                    guard !visited[w] else { continue }
+                    visited[w] = true
+                    treeParentEdge[w] = e
+                    order.append(w)
+                }
+            }
+        }
+        // Flows bottom up: the subtree's net supply leaves through its parent edge.
+        var net = supply
+        for v in order.reversed() {
+            let e = treeParentEdge[v]
+            if e >= 0 {
+                let upward = tails[e] == v
+                if upward ? net[v] >= 0 : net[v] < 0 {
+                    let p = upward ? heads[e] : tails[e]
+                    parent[v] = p
+                    pred[v] = e
+                    up[v] = upward
+                    flow[e] = upward ? net[v] : -net[v]
+                    inTree[e] = true
+                    net[p] += net[v]
+                    continue
+                }
+            }
+            parent[v] = n
+            pred[v] = m + v
+            inTree[m + v] = true
+            if net[v] >= 0 {
+                up[v] = true
+                flow[m + v] = net[v]
+            } else {
+                source[m + v] = n
+                target[m + v] = v
+                cost[m + v] = artificial
+                up[v] = false
+                flow[m + v] = -net[v]
+            }
+        }
+        // Preorder from the root, with potentials from the tree arcs.
+        var childStart = [Int](repeating: 0, count: n + 2)
+        for v in 0 ..< n { childStart[parent[v] + 1] += 1 }
+        for v in 0 ... n { childStart[v + 1] += childStart[v] }
+        var children = [Int](repeating: 0, count: n)
+        var fill = childStart
+        for v in 0 ..< n {
+            children[fill[parent[v]]] = v
+            fill[parent[v]] += 1
+        }
+        var preorder: [Int] = [n]
+        preorder.reserveCapacity(n + 1)
+        var path: [Int] = [n]
+        while let v = path.last {
+            if fill[v] > childStart[v] {
+                fill[v] -= 1
+                let w = children[fill[v]]
+                potential[w] = up[w] ? potential[v] - cost[pred[w]] : potential[v] + cost[pred[w]]
+                preorder.append(w)
+                path.append(w)
+            } else {
+                path.removeLast()
+            }
+        }
+        var position = [Int](repeating: 0, count: n + 1)
+        for i in 0 ... n {
+            let v = preorder[i], w = preorder[i == n ? 0 : i + 1]
+            thread[v] = w
+            revThread[w] = v
+            position[v] = i
+        }
+        for i in stride(from: n, to: 0, by: -1) { succNum[parent[preorder[i]]] += succNum[preorder[i]] }
+        for v in 0 ... n { lastSucc[v] = preorder[position[v] + succNum[v] - 1] }
+    }
+
+    /// Block search pricing: the most negative reduced cost in the first block of edges,
+    /// cyclically from the last stop, that has one; −1 at optimum.
+    mutating func enteringArc() -> Int {
+        guard m > 0 else { return -1 }
+        var best = -1, least = 0, count = blockSize
+        var e = nextArc
+        for _ in 0 ..< m {
+            if !inTree[e] {
+                let c = cost[e] + potential[source[e]] - potential[target[e]]
+                if c < least {
+                    least = c
+                    best = e
+                }
+            }
+            e += 1
+            if e == m { e = 0 }
+            count -= 1
+            if count == 0 {
+                if best >= 0 { break }
+                count = blockSize
+            }
+        }
+        nextArc = e
+        return best
+    }
+
+    mutating func solve() {
+        while true {
+            let entering = enteringArc()
+            guard entering >= 0 else { break }
+            pivot(entering)
+        }
+    }
+
+    mutating func pivot(_ entering: Int) {
+        let first = source[entering], second = target[entering]
+        var a = first, b = second
+        while a != b {
+            if succNum[a] < succNum[b] { a = parent[a] } else { b = parent[b] }
+        }
+        let join = a
+        // The flow runs first → second on the entering arc, so down from the join to first and
+        // up from second. Ties go to the last blocking arc in that direction (strongly feasible).
+        var delta = Int.max, uOut = -1, fromFirst = true
+        var u = first
+        while u != join {
+            if up[u], flow[pred[u]] < delta {
+                delta = flow[pred[u]]
+                uOut = u
+                fromFirst = true
+            }
+            u = parent[u]
+        }
+        u = second
+        while u != join {
+            if !up[u], flow[pred[u]] <= delta {
+                delta = flow[pred[u]]
+                uOut = u
+                fromFirst = false
+            }
+            u = parent[u]
+        }
+        // A cycle with no blocking arc would have negative cost in a DAG plus the root.
+        precondition(uOut >= 0, "Layering: unbounded flow")
+        if delta > 0 {
+            flow[entering] += delta
+            u = first
+            while u != join {
+                flow[pred[u]] += up[u] ? -delta : delta
+                u = parent[u]
+            }
+            u = second
+            while u != join {
+                flow[pred[u]] += up[u] ? delta : -delta
+                u = parent[u]
+            }
+        }
+        let (uIn, vIn) = fromFirst ? (first, second) : (second, first)
+        inTree[entering] = true
+        inTree[pred[uOut]] = false
+        updateTree(entering, join: join, uIn: uIn, vIn: vIn, uOut: uOut)
+        // Potentials: the moved subtree by sigma, or the rest by −sigma, whichever is smaller.
+        let sigma = potential[vIn] - potential[uIn] - (up[uIn] ? cost[entering] : -cost[entering])
+        let end = thread[lastSucc[uIn]]
+        if 2 * succNum[uIn] <= n + 1 {
+            var x = uIn
+            while x != end {
+                potential[x] += sigma
+                x = thread[x]
+            }
+        } else {
+            var x = end
+            while x != uIn {
+                potential[x] -= sigma
+                x = thread[x]
+            }
+        }
+    }
+
+    /// LEMON's `updateTreeStructure`: hangs the subtree of `uOut` from `vIn` through the entering
+    /// arc, reversing the stem `uIn` … `uOut`, and repairs thread, sizes and last successors
+    /// along the stem and the two paths to the join.
+    mutating func updateTree(_ inArc: Int, join: Int, uIn: Int, vIn: Int, uOut: Int) {
+        let oldRevThread = revThread[uOut]
+        let oldSuccNum = succNum[uOut]
+        let oldLastSucc = lastSucc[uOut]
+        let vOut = parent[uOut]
+        if uIn == uOut {
+            parent[uIn] = vIn
+            pred[uIn] = inArc
+            up[uIn] = uIn == source[inArc]
+            if thread[vIn] != uOut {
+                var after = thread[oldLastSucc]
+                thread[oldRevThread] = after
+                revThread[after] = oldRevThread
+                after = thread[vIn]
+                thread[vIn] = uOut
+                revThread[uOut] = vIn
+                thread[oldLastSucc] = after
+                revThread[after] = oldLastSucc
+            }
+        } else {
+            let threadContinue = oldRevThread == vIn ? thread[oldLastSucc] : thread[vIn]
+            var stem = uIn, parentStem = vIn
+            var last = lastSucc[uIn]
+            var after = thread[last]
+            thread[vIn] = uIn
+            dirty.removeAll(keepingCapacity: true)
+            dirty.append(vIn)
+            while stem != uOut {
+                let nextStem = parent[stem]
+                thread[last] = nextStem
+                dirty.append(last)
+                let before = revThread[stem]
+                thread[before] = after
+                revThread[after] = before
+                parent[stem] = parentStem
+                parentStem = stem
+                stem = nextStem
+                last = lastSucc[stem] == lastSucc[parentStem] ? revThread[parentStem] : lastSucc[stem]
+                after = thread[last]
+            }
+            parent[uOut] = parentStem
+            thread[last] = threadContinue
+            revThread[threadContinue] = last
+            lastSucc[uOut] = last
+            if oldRevThread != vIn {
+                thread[oldRevThread] = after
+                revThread[after] = oldRevThread
+            }
+            for d in dirty { revThread[thread[d]] = d }
+            var size = 0
+            let stemLast = lastSucc[uOut]
+            var x = uOut
+            while x != uIn {
+                let p = parent[x]
+                pred[x] = pred[p]
+                up[x] = !up[p]
+                size += succNum[x] - succNum[p]
+                succNum[x] = size
+                lastSucc[p] = stemLast
+                x = p
+            }
+            pred[uIn] = inArc
+            up[uIn] = uIn == source[inArc]
+            succNum[uIn] = oldSuccNum
+        }
+        let upLimitOut = lastSucc[join] == vIn ? join : -1
+        let lastSuccOut = lastSucc[uOut]
+        var x = vIn
+        while x != -1 && lastSucc[x] == vIn {
+            lastSucc[x] = lastSuccOut
+            x = parent[x]
+        }
+        if join != oldRevThread && vIn != oldRevThread {
+            x = vOut
+            while x != upLimitOut && lastSucc[x] == oldLastSucc {
+                lastSucc[x] = oldRevThread
+                x = parent[x]
+            }
+        } else if lastSuccOut != oldLastSucc {
+            x = vOut
+            while x != upLimitOut && lastSucc[x] == oldLastSucc {
+                lastSucc[x] = lastSuccOut
+                x = parent[x]
+            }
+        }
+        x = vIn
+        while x != join {
+            succNum[x] += oldSuccNum
+            x = parent[x]
+        }
+        x = vOut
+        while x != join {
+            succNum[x] -= oldSuccNum
+            x = parent[x]
+        }
+    }
+
+    /// Minus the potentials, each weakly connected component shifted to start at 0.
+    func ranks() -> [Int] {
+        var rank = [Int](repeating: 0, count: n)
+        for v in 0 ..< n { rank[v] = -potential[v] }
+        var set = Array(0 ..< n)
+        for e in 0 ..< m {
+            let a = _find(source[e], &set), b = _find(target[e], &set)
+            if a != b { set[a] = b }
+        }
+        var least = [Int](repeating: Int.max, count: n)
+        for v in 0 ..< n {
+            let r = _find(v, &set)
+            least[r] = Swift.min(least[r], rank[v])
+        }
+        for v in 0 ..< n { rank[v] -= least[_find(v, &set)] }
+        return rank
+    }
+}
+
+private func _find(_ x: Int, _ set: inout [Int]) -> Int {
+    var x = x
+    while set[x] != x {
+        set[x] = set[set[x]]
+        x = set[x]
+    }
+    return x
+}
+
+/// The warm start's ranking and Gansner's feasible tree on it: longest-path ranks, then, in
+/// reverse topological order, every vertex with more out-edges than in-edges raised to one below
+/// its least successor (that shortens more edges than it lengthens); then a spanning forest of
+/// tight edges, maximal tight subtrees merged smallest first, each shifted along its least-slack
+/// edge to a neighbour (each vertex is scanned O(log n) times, since a merge at least doubles the
+/// smallest set). Returns the forest's edges per vertex as rows.
+private func _tightForest(vertexCount n: Int, tails: [Int], heads: [Int]) -> (start: [Int], edges: [Int]) {
+    let m = tails.count
+    var outStart = [Int](repeating: 0, count: n + 1), inStart = [Int](repeating: 0, count: n + 1)
+    for e in 0 ..< m {
+        outStart[tails[e] + 1] += 1
+        inStart[heads[e] + 1] += 1
+    }
+    for v in 0 ..< n {
+        outStart[v + 1] += outStart[v]
+        inStart[v + 1] += inStart[v]
+    }
+    var outEdges = [Int](repeating: 0, count: m), inEdges = [Int](repeating: 0, count: m)
+    do {
         var outFill = outStart, inFill = inStart
         for e in 0 ..< m {
             outEdges[outFill[tails[e]]] = e
@@ -76,437 +444,153 @@ struct _NetworkSimplex {
             inEdges[inFill[heads[e]]] = e
             inFill[heads[e]] += 1
         }
-        rank = [Int](repeating: 0, count: n)
-        inTree = [Bool](repeating: false, count: m)
-        cut = [Int](repeating: 0, count: m)
-        incidentStart = [Int](repeating: 0, count: n + 1)
-        for v in 0 ..< n { incidentStart[v + 1] = incidentStart[v] + (outStart[v + 1] - outStart[v]) + (inStart[v + 1] - inStart[v]) }
-        treeEdges = [Int](repeating: -1, count: incidentStart[n])
-        treeCount = [Int](repeating: 0, count: n)
-        parentEdge = [Int](repeating: -1, count: n)
-        low = [Int](repeating: 0, count: n)
-        lim = [Int](repeating: 0, count: n)
-        vertexAtLim = [Int](repeating: 0, count: n)
-        treeList = []
-        treeSlot = [Int](repeating: -1, count: m)
-        cycleStamp = [Int](repeating: -1, count: n)
     }
-
-    @inline(__always) func slack(_ e: Int) -> Int { rank[heads[e]] - rank[tails[e]] - 1 }
-
-    mutating func solve() {
-        guard n > 0 else { return }
-        longestPathRanks()
-        feasibleTree()
-        numberAll()
-        initialCutValues()
-        // Pivots. Degenerate cycling is possible in theory; the cap is far above what is seen.
-        var pivots = 0
-        let cap = 100 * (n + tails.count) + 1000
-        while pivots < cap {
-            var leaving = -1, least = 0
-            for e in treeList where cut[e] < least {
-                least = cut[e]
-                leaving = e
-            }
-            guard leaving >= 0 else { break }
-            let entering = enteringEdge(leaving)
-            guard entering >= 0 else { break }
-            exchange(leaving, entering)
-            pivots += 1
+    var rank = [Int](repeating: 0, count: n)
+    var indegree = [Int](repeating: 0, count: n)
+    for v in 0 ..< n { indegree[v] = inStart[v + 1] - inStart[v] }
+    var queue: [Int] = []
+    queue.reserveCapacity(n)
+    for v in 0 ..< n where indegree[v] == 0 { queue.append(v) }
+    var head = 0
+    while head < queue.count {
+        let v = queue[head]
+        head += 1
+        for slot in outStart[v] ..< outStart[v + 1] {
+            let w = heads[outEdges[slot]]
+            rank[w] = Swift.max(rank[w], rank[v] + 1)
+            indegree[w] -= 1
+            if indegree[w] == 0 { queue.append(w) }
         }
-        normalize()
+    }
+    precondition(queue.count == n, "Layering needs an acyclic graph")
+    for v in queue.reversed() where outStart[v + 1] - outStart[v] > inStart[v + 1] - inStart[v] {
+        var least = Int.max
+        for slot in outStart[v] ..< outStart[v + 1] { least = Swift.min(least, rank[heads[outEdges[slot]]]) }
+        rank[v] = least - 1
     }
 
-    /// Every vertex at the longest path to it from a source (Kahn's order).
-    mutating func longestPathRanks() {
-        var indegree = [Int](repeating: 0, count: n)
-        for v in 0 ..< n { indegree[v] = inStart[v + 1] - inStart[v] }
-        var queue: [Int] = []
-        queue.reserveCapacity(n)
-        for v in 0 ..< n where indegree[v] == 0 { queue.append(v) }
-        var head = 0
-        while head < queue.count {
-            let v = queue[head]
-            head += 1
+    var treeList: [Int] = []
+    treeList.reserveCapacity(n)
+    // Union–find over vertices; each set's members as a linked list.
+    var setParent = Array(0 ..< n)
+    var size = [Int](repeating: 1, count: n)
+    var next = [Int](repeating: -1, count: n)
+    var last = Array(0 ..< n)
+    // Maximal tight subtrees by search over tight edges.
+    var seen = [Bool](repeating: false, count: n)
+    var stack: [Int] = []
+    for s in 0 ..< n where !seen[s] {
+        seen[s] = true
+        stack.append(s)
+        while let v = stack.popLast() {
+            for pass in 0 ..< 2 {
+                let range = pass == 0 ? outStart[v] ..< outStart[v + 1] : inStart[v] ..< inStart[v + 1]
+                for slot in range {
+                    let e = pass == 0 ? outEdges[slot] : inEdges[slot]
+                    let w = pass == 0 ? heads[e] : tails[e]
+                    guard !seen[w], rank[heads[e]] - rank[tails[e]] == 1 else { continue }
+                    seen[w] = true
+                    treeList.append(e)
+                    stack.append(w)
+                    setParent[w] = s
+                    size[s] += 1
+                    next[last[s]] = w
+                    last[s] = w
+                }
+            }
+        }
+    }
+    // A min-heap of (size, set), stale entries skipped.
+    var heap: [(Int, Int)] = []
+    for v in 0 ..< n where setParent[v] == v { _heapPush(&heap, (size[v], v)) }
+    while let (s, t) = _heapPop(&heap) {
+        guard setParent[t] == t, size[t] == s else { continue }
+        // The least-slack edge with one end in t and the other outside.
+        var best = -1, bestSlack = Int.max, bestFromInside = true
+        var v = t
+        while v >= 0 {
             for slot in outStart[v] ..< outStart[v + 1] {
-                let e = outEdges[slot], w = heads[e]
-                rank[w] = Swift.max(rank[w], rank[v] + 1)
-                indegree[w] -= 1
-                if indegree[w] == 0 { queue.append(w) }
-            }
-        }
-        precondition(queue.count == n, "Layering needs an acyclic graph")
-    }
-
-    mutating func addTreeEdge(_ e: Int) {
-        inTree[e] = true
-        treeSlot[e] = treeList.count
-        treeList.append(e)
-        attach(e, to: tails[e])
-        attach(e, to: heads[e])
-    }
-
-    @inline(__always)
-    mutating func attach(_ e: Int, to v: Int) {
-        treeEdges[incidentStart[v] + treeCount[v]] = e
-        treeCount[v] += 1
-    }
-
-    @inline(__always)
-    mutating func detach(_ e: Int, from v: Int) {
-        let start = incidentStart[v]
-        // Order-preserving, so that renumbering after a pivot keeps the numbers of the subtrees
-        // visited before the change.
-        let end = start + treeCount[v]
-        for i in start ..< end where treeEdges[i] == e {
-            for k in i ..< end - 1 { treeEdges[k] = treeEdges[k + 1] }
-            treeCount[v] -= 1
-            return
-        }
-    }
-
-    mutating func removeTreeEdge(_ e: Int) {
-        inTree[e] = false
-        let slot = treeSlot[e]
-        let last = treeList.removeLast()
-        if last != e {
-            treeList[slot] = last
-            treeSlot[last] = slot
-        }
-        treeSlot[e] = -1
-        detach(e, from: tails[e])
-        detach(e, from: heads[e])
-    }
-
-    /// A spanning forest of tight edges: maximal tight subtrees, then the smallest subtree is
-    /// repeatedly shifted along its least-slack edge to another and merged with it.
-    mutating func feasibleTree() {
-        // Union–find over vertices; each set's members as a linked list.
-        var setParent = Array(0 ..< n)
-        var size = [Int](repeating: 1, count: n)
-        var next = [Int](repeating: -1, count: n)
-        var last = Array(0 ..< n)
-        func find(_ x: Int, _ setParent: inout [Int]) -> Int {
-            var x = x
-            while setParent[x] != x {
-                setParent[x] = setParent[setParent[x]]
-                x = setParent[x]
-            }
-            return x
-        }
-        // Maximal tight subtrees by search over tight edges.
-        var seen = [Bool](repeating: false, count: n)
-        var stack: [Int] = []
-        for s in 0 ..< n where !seen[s] {
-            seen[s] = true
-            stack.append(s)
-            while let v = stack.popLast() {
-                for slot in outStart[v] ..< outStart[v + 1] {
-                    let e = outEdges[slot], w = heads[e]
-                    if !seen[w] && slack(e) == 0 {
-                        seen[w] = true
-                        addTreeEdge(e)
-                        stack.append(w)
-                        setParent[w] = s
-                        size[s] += 1
-                        next[last[s]] = w
-                        last[s] = w
-                    }
-                }
-                for slot in inStart[v] ..< inStart[v + 1] {
-                    let e = inEdges[slot], w = tails[e]
-                    if !seen[w] && slack(e) == 0 {
-                        seen[w] = true
-                        addTreeEdge(e)
-                        stack.append(w)
-                        setParent[w] = s
-                        size[s] += 1
-                        next[last[s]] = w
-                        last[s] = w
-                    }
+                let e = outEdges[slot]
+                let slack = rank[heads[e]] - rank[tails[e]] - 1
+                if slack < bestSlack, _find(heads[e], &setParent) != t {
+                    best = e
+                    bestSlack = slack
+                    bestFromInside = true
                 }
             }
-        }
-        // A min-heap of (size, set), stale entries skipped.
-        var heap: [(Int, Int)] = []
-        func push(_ entry: (Int, Int), _ heap: inout [(Int, Int)]) {
-            heap.append(entry)
-            var i = heap.count - 1
-            while i > 0, heap[i] < heap[(i - 1) / 2] {
-                heap.swapAt(i, (i - 1) / 2)
-                i = (i - 1) / 2
-            }
-        }
-        func pop(_ heap: inout [(Int, Int)]) -> (Int, Int)? {
-            guard let top = heap.first else { return nil }
-            let tail = heap.removeLast()
-            if !heap.isEmpty {
-                heap[0] = tail
-                var i = 0
-                while true {
-                    let l = 2 * i + 1, r = l + 1
-                    var m = i
-                    if l < heap.count, heap[l] < heap[m] { m = l }
-                    if r < heap.count, heap[r] < heap[m] { m = r }
-                    if m == i { break }
-                    heap.swapAt(i, m)
-                    i = m
+            for slot in inStart[v] ..< inStart[v + 1] {
+                let e = inEdges[slot]
+                let slack = rank[heads[e]] - rank[tails[e]] - 1
+                if slack < bestSlack, _find(tails[e], &setParent) != t {
+                    best = e
+                    bestSlack = slack
+                    bestFromInside = false
                 }
             }
-            return top
+            v = next[v]
         }
-        for v in 0 ..< n where setParent[v] == v { push((size[v], v), &heap) }
-        while let (s, t) = pop(&heap) {
-            guard setParent[t] == t, size[t] == s else { continue }
-            // The least-slack edge with one end in t and the other outside.
-            var best = -1, bestSlack = Int.max, bestFromInside = true
-            var v = t
+        // No edge leaves: t spans its component.
+        guard best >= 0 else { continue }
+        // Shift t so that the edge is tight: down when it leaves t, up when it enters.
+        let delta = bestFromInside ? bestSlack : -bestSlack
+        if delta != 0 {
+            v = t
             while v >= 0 {
-                for slot in outStart[v] ..< outStart[v + 1] {
-                    let e = outEdges[slot]
-                    if find(heads[e], &setParent) != t, slack(e) < bestSlack {
-                        best = e
-                        bestSlack = slack(e)
-                        bestFromInside = true
-                    }
-                }
-                for slot in inStart[v] ..< inStart[v + 1] {
-                    let e = inEdges[slot]
-                    if find(tails[e], &setParent) != t, slack(e) < bestSlack {
-                        best = e
-                        bestSlack = slack(e)
-                        bestFromInside = false
-                    }
-                }
+                rank[v] += delta
                 v = next[v]
             }
-            // No edge leaves: t spans its component.
-            guard best >= 0 else { continue }
-            // Shift t so that the edge is tight: down when it leaves t, up when it enters.
-            let delta = bestFromInside ? bestSlack : -bestSlack
-            if delta != 0 {
-                v = t
-                while v >= 0 {
-                    rank[v] += delta
-                    v = next[v]
-                }
-            }
-            addTreeEdge(best)
-            let other = find(bestFromInside ? heads[best] : tails[best], &setParent)
-            // Union, the larger set's root kept.
-            let (big, small) = size[other] >= size[t] ? (other, t) : (t, other)
-            setParent[small] = big
-            size[big] += size[small]
-            next[last[big]] = small
-            last[big] = last[small]
-            push((size[big], big), &heap)
+        }
+        treeList.append(best)
+        let other = _find(bestFromInside ? heads[best] : tails[best], &setParent)
+        // Union, the larger set's root kept.
+        let (big, small) = size[other] >= size[t] ? (other, t) : (t, other)
+        setParent[small] = big
+        size[big] += size[small]
+        next[last[big]] = small
+        last[big] = last[small]
+        _heapPush(&heap, (size[big], big))
+    }
+    var start = [Int](repeating: 0, count: n + 1)
+    for e in treeList {
+        start[tails[e] + 1] += 1
+        start[heads[e] + 1] += 1
+    }
+    for v in 0 ..< n { start[v + 1] += start[v] }
+    var edges = [Int](repeating: 0, count: start[n])
+    var fill = start
+    for e in treeList {
+        edges[fill[tails[e]]] = e
+        fill[tails[e]] += 1
+        edges[fill[heads[e]]] = e
+        fill[heads[e]] += 1
+    }
+    return (start, edges)
+}
+
+private func _heapPush(_ heap: inout [(Int, Int)], _ entry: (Int, Int)) {
+    heap.append(entry)
+    var i = heap.count - 1
+    while i > 0, heap[i] < heap[(i - 1) / 2] {
+        heap.swapAt(i, (i - 1) / 2)
+        i = (i - 1) / 2
+    }
+}
+
+private func _heapPop(_ heap: inout [(Int, Int)]) -> (Int, Int)? {
+    guard let top = heap.first else { return nil }
+    let tail = heap.removeLast()
+    if !heap.isEmpty {
+        heap[0] = tail
+        var i = 0
+        while true {
+            let l = 2 * i + 1, r = l + 1
+            var m = i
+            if l < heap.count, heap[l] < heap[m] { m = l }
+            if r < heap.count, heap[r] < heap[m] { m = r }
+            if m == i { break }
+            heap.swapAt(i, m)
+            i = m
         }
     }
-
-    /// Roots every tree of the forest at its least vertex and numbers it in postorder.
-    mutating func numberAll() {
-        var counter = 0
-        var rooted = [Bool](repeating: false, count: n)
-        for v in 0 ..< n where !rooted[v] {
-            let end = number(from: v, parent: -1, low: counter)
-            counter = end
-            // Mark the tree's vertices.
-            for l in low[v] ... lim[v] { rooted[vertexAtLim[l]] = true }
-        }
-    }
-
-    /// Graphviz's `dfs_range`: sets parent edges and (low, lim) in the subtree of `root` entered
-    /// by `parent`, numbering from `low`; returns one past the last number used. After a pivot, a
-    /// child off its cycle, entered by the same edge, has the same subtree as before: its numbers
-    /// are kept when its `low` is unchanged, and otherwise shifted in one pass over its range of
-    /// the old numbering, so only the cycle is searched.
-    @discardableResult
-    mutating func number(from root: Int, parent: Int, low start: Int) -> Int {
-        // An explicit stack of (vertex, next tree-edge slot, low).
-        var stack: [(vertex: Int, slot: Int, low: Int)] = []
-        swap(&stack, &numberStack)
-        stack.removeAll(keepingCapacity: true)
-        stack.append((root, 0, start))
-        defer { swap(&stack, &numberStack) }
-        parentEdge[root] = parent
-        var counter = start
-        while !stack.isEmpty {
-            let top = stack.count - 1
-            let v = stack[top].vertex, i = stack[top].slot
-            if i < treeCount[v] {
-                stack[top].slot = i + 1
-                let e = treeEdges[incidentStart[v] + i]
-                guard e != parentEdge[v] else { continue }
-                let w = tails[e] == v ? heads[e] : tails[e]
-                if oldBase >= 0 && cycleStamp[w] != stamp && parentEdge[w] == e {
-                    let oldLow = low[w], oldLim = lim[w]
-                    let shift = counter - oldLow
-                    if shift != 0 {
-                        for l in oldLow ... oldLim {
-                            let x = oldAtLim[l - oldBase]
-                            low[x] += shift
-                            lim[x] += shift
-                            vertexAtLim[l + shift] = x
-                        }
-                    }
-                    counter += oldLim - oldLow + 1
-                    continue
-                }
-                parentEdge[w] = e
-                stack.append((w, 0, counter))
-                continue
-            }
-            low[v] = stack[top].low
-            lim[v] = counter
-            vertexAtLim[counter] = v
-            counter += 1
-            stack.removeLast()
-        }
-        return counter
-    }
-
-    @inline(__always) func inSubtree(_ w: Int, of v: Int) -> Bool { low[v] <= lim[w] && lim[w] <= lim[v] }
-
-    /// Every tree edge's cut value, children before parents.
-    mutating func initialCutValues() {
-        for l in 0 ..< n {
-            let v = vertexAtLim[l]
-            if parentEdge[v] >= 0 { cutValue(parentEdge[v]) }
-        }
-    }
-
-    /// Graphviz's `x_cutval`: the cut value of tree edge `f` from its child end's incident edges
-    /// and the cut values of the tree edges below it.
-    mutating func cutValue(_ f: Int) {
-        let v: Int, dir: Int
-        if parentEdge[tails[f]] == f {
-            v = tails[f]
-            dir = 1
-        } else {
-            v = heads[f]
-            dir = -1
-        }
-        var sum = 0
-        for slot in outStart[v] ..< outStart[v + 1] { sum += crossValue(outEdges[slot], v, dir) }
-        for slot in inStart[v] ..< inStart[v + 1] { sum += crossValue(inEdges[slot], v, dir) }
-        cut[f] = sum
-    }
-
-    /// Graphviz's `x_val`.
-    func crossValue(_ e: Int, _ v: Int, _ dir: Int) -> Int {
-        let other = tails[e] == v ? heads[e] : tails[e]
-        var rv: Int
-        let crosses = !inSubtree(other, of: v)
-        if crosses {
-            rv = 1
-        } else {
-            rv = inTree[e] ? cut[e] : 0
-            rv -= 1
-        }
-        var d: Int
-        if dir > 0 {
-            d = heads[e] == v ? 1 : -1
-        } else {
-            d = tails[e] == v ? 1 : -1
-        }
-        if crosses { d = -d }
-        return d < 0 ? -rv : rv
-    }
-
-    /// The least-slack non-tree edge crossing the cut of tree edge `e` from its head side to its
-    /// tail side; −1 when there is none.
-    func enteringEdge(_ e: Int) -> Int {
-        let v: Int, outward: Bool
-        if lim[tails[e]] < lim[heads[e]] {
-            v = tails[e]
-            outward = false
-        } else {
-            v = heads[e]
-            outward = true
-        }
-        let lo = low[v], hi = lim[v]
-        var best = -1, bestSlack = Int.max
-        for l in lo ... hi {
-            let w = vertexAtLim[l]
-            if outward {
-                for slot in outStart[w] ..< outStart[w + 1] {
-                    let f = outEdges[slot]
-                    let x = lim[heads[f]]
-                    if !inTree[f], x < lo || x > hi {
-                        let s = slack(f)
-                        if s < bestSlack {
-                            bestSlack = s
-                            best = f
-                            if s == 0 { return best }
-                        }
-                    }
-                }
-            } else {
-                for slot in inStart[w] ..< inStart[w + 1] {
-                    let f = inEdges[slot]
-                    let x = lim[tails[f]]
-                    if !inTree[f], x < lo || x > hi {
-                        let s = slack(f)
-                        if s < bestSlack {
-                            bestSlack = s
-                            best = f
-                            if s == 0 { return best }
-                        }
-                    }
-                }
-            }
-        }
-        return best
-    }
-
-    /// Graphviz's `update`: replaces tree edge `e` by `f`, reranking the subtree below `e` so that
-    /// `f` is tight, and updates the cut values on the cycle `f` closes.
-    mutating func exchange(_ e: Int, _ f: Int) {
-        let delta = slack(f)
-        if delta > 0 {
-            // The subtree below e moves by delta toward the other side.
-            let (v, by) = lim[tails[e]] < lim[heads[e]] ? (tails[e], -delta) : (heads[e], delta)
-            for l in low[v] ... lim[v] { rank[vertexAtLim[l]] += by }
-        }
-        let value = cut[e]
-        stamp += 1
-        let lca = treeUpdate(tails[f], heads[f], value, true)
-        let other = treeUpdate(heads[f], tails[f], value, false)
-        precondition(lca == other, "Network simplex: the cycle's two paths meet at different vertices")
-        cut[f] = -value
-        cut[e] = 0
-        removeTreeEdge(e)
-        addTreeEdge(f)
-        oldBase = low[lca]
-        oldAtLim.removeAll(keepingCapacity: true)
-        oldAtLim.append(contentsOf: vertexAtLim[low[lca] ... lim[lca]])
-        number(from: lca, parent: parentEdge[lca], low: low[lca])
-    }
-
-    /// Graphviz's `treeupdate`: adds or subtracts `value` on the tree edges from `v` up to the
-    /// least common ancestor with `w`, which it returns.
-    mutating func treeUpdate(_ v: Int, _ w: Int, _ value: Int, _ dir: Bool) -> Int {
-        var v = v
-        cycleStamp[v] = stamp
-        while !inSubtree(w, of: v) {
-            let e = parentEdge[v]
-            let d = v == tails[e] ? dir : !dir
-            if d { cut[e] += value } else { cut[e] -= value }
-            v = lim[tails[e]] > lim[heads[e]] ? tails[e] : heads[e]
-            cycleStamp[v] = stamp
-        }
-        return v
-    }
-
-    /// Shifts each tree so that its least rank is 0.
-    mutating func normalize() {
-        for r in 0 ..< n where parentEdge[r] < 0 {
-            var least = Int.max
-            for l in low[r] ... lim[r] { least = Swift.min(least, rank[vertexAtLim[l]]) }
-            if least != 0 {
-                for l in low[r] ... lim[r] { rank[vertexAtLim[l]] -= least }
-            }
-        }
-    }
+    return top
 }

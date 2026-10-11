@@ -11,11 +11,15 @@ extension Graph {
     /// `vertices` order to the minimizer of a majorant of the stress in that vertex (Gansner,
     /// Koren and North's localized update), so the stress never increases. The run stops one step
     /// after a step that lowered the stress by at most `tolerance` times its value (each step
-    /// measures its starting stress on the way), or after `maxIterations` steps.
+    /// measures its starting stress on the way), or after `maxIterations` steps. The default
+    /// tolerance, 10⁻⁴, is Graphviz's `epsilon` for `neato -Gmode=major`; a smaller one can leave a
+    /// plateau that 10⁻⁴ stops on (on a random 40-vertex graph, 10⁻⁵ ends 9% lower).
     ///
-    /// The start is `initial`, or by default `circularLayout(radius: L̄)`, NetworkX's start for
-    /// Kamada–Kawai scaled by the mean edge length (Graphviz's practice), so that scaling every
-    /// length scales the drawing. Deterministic: no randomness anywhere. A directed graph is drawn
+    /// The start is `initial`, or by default `circularLayout(radius: L̄)`: NetworkX's start for
+    /// Kamada–Kawai, scaled by the mean edge length so that scaling every length by a power of 2
+    /// scales every step's drawing by exactly that factor (the update is homogeneous), and any
+    /// other factor up to rounding. (`neato -Gmode=major`, the like-for-like Graphviz run, starts
+    /// from random positions.) Deterministic: no randomness anywhere. A directed graph is drawn
     /// through `undirected`.
     ///
     /// - Gansner, Koren and North, "Graph drawing by stress majorization", Graph Drawing (GD
@@ -24,14 +28,16 @@ extension Graph {
     ///   Processing Letters 31(1), 1989.
     ///
     /// O(n·(n + m)) for the distances by breadth-first search (O(n·m log n) by Dijkstra when the
-    /// lengths differ), then O(n²) per step; O(n²) memory, so for graphs up to about 10⁴
-    /// vertices.
+    /// lengths differ), then O(n²) per step. The reciprocal target distances are kept in single
+    /// precision for the pairs i < j only: 2n² bytes (200 MB at 10⁴ vertices), so `stress` and the
+    /// drawing are those of distances rounded to about 7 significant digits.
     ///
     /// - Precondition: every edge length is positive and finite; `tolerance ≥ 0`;
-    ///   `maxIterations ≥ 0`; every vertex of the graph is in `initial` when it is given.
+    ///   `maxIterations ≥ 0`; every vertex of the graph is in `initial`, at a finite position,
+    ///   when it is given.
     @inlinable
     public func stressMajorizationLayout(
-        initial: Drawing<Vertex>? = nil, edgeLength: (Edges.Index) -> Double = { _ in 1 }, tolerance: Double = 1e-5, maxIterations: Int = 1000
+        initial: Drawing<Vertex>? = nil, edgeLength: (Edges.Index) -> Double = { _ in 1 }, tolerance: Double = 1e-4, maxIterations: Int = 1000
     ) -> Drawing<Vertex> {
         var layout = StressMajorizationLayout(self, initial: initial, edgeLength: edgeLength, tolerance: tolerance, maxIterations: maxIterations)
         layout.run()
@@ -59,7 +65,7 @@ public struct StressMajorizationLayout<G: Graph> {
     /// - Precondition: as for `Graph.stressMajorizationLayout(initial:edgeLength:tolerance:maxIterations:)`.
     @inlinable
     public init(
-        _ graph: G, initial: Drawing<G.Vertex>? = nil, edgeLength: (G.Edges.Index) -> Double = { _ in 1 }, tolerance: Double = 1e-5,
+        _ graph: G, initial: Drawing<G.Vertex>? = nil, edgeLength: (G.Edges.Index) -> Double = { _ in 1 }, tolerance: Double = 1e-4,
         maxIterations: Int = 1000
     ) {
         precondition(tolerance >= 0, "The tolerance must not be negative")
@@ -116,17 +122,24 @@ public struct StressMajorizationLayout<G: Graph> {
 
 extension StressMajorizationLayout: Sendable where G.Vertex: Sendable {}
 
-/// The target distances of a stress layout, as reciprocals in a dense n × n matrix (d_ij⁻¹, so
-/// w_ij = d_ij⁻² is its square), each row's Σ_j w_ij, and the current stress.
+/// The target distances of a stress layout, as reciprocals in single precision over the pairs
+/// i < j (a_ij = 1/d_ij, so w_ij = d_ij⁻² is its square), each vertex's Σ_j w_ij, and scratch for
+/// a sweep. 2n² bytes: a quarter of a full n × n matrix of doubles.
 @usableFromInline
 struct _StressEngine: Sendable {
     let count: Int
-    /// Row-major n × n: 1 / d_ij, and 0 on the diagonal.
-    var inverseDistance: [Double]
+    /// Row i holds a_ij for j = i + 1 ..< n, from `rowStart(i)`.
+    var upper: [Float]
     var weightSums: [Double]
     @usableFromInline let meanEdgeLength: Double
     var xs: [Double] = []
     var ys: [Double] = []
+    /// Per vertex, the terms of its update from the vertices before it, added as they move.
+    var sumX: [Double] = []
+    var sumY: [Double] = []
+
+    @inline(__always)
+    static func rowStart(_ i: Int, _ n: Int) -> Int { i * n - i * (i + 1) / 2 }
 
     @usableFromInline
     init(count n: Int, us: [Int], vs: [Int], lengths: [Double]) {
@@ -152,8 +165,8 @@ struct _StressEngine: Sendable {
         }
         let uniform = lengths.allSatisfy { $0 == lengths[0] }
         let apart = 1 + meanEdgeLength * Double(n).squareRoot()
-        var inverse = [Double](repeating: 0, count: n * n)
-        var distance = [Double](repeating: -1, count: n)
+        var upper = [Float](repeating: 0, count: n * (n - 1) / 2)
+        var weightSums = [Double](repeating: 0, count: n)
         if uniform {
             let unit = lengths.first ?? 1
             var hops = [Int](repeating: -1, count: n), queue = [Int](repeating: 0, count: n)
@@ -171,17 +184,23 @@ struct _StressEngine: Sendable {
                         tail += 1
                     }
                 }
-                for v in 0 ..< n where v != s { inverse[s * n + v] = 1 / (hops[v] < 0 ? apart : Double(hops[v]) * unit) }
+                let row = Self.rowStart(s, n) - s - 1
+                for v in s + 1 ..< n { upper[row + v] = Float(1 / (hops[v] < 0 ? apart : Double(hops[v]) * unit)) }
             }
         } else {
             // Dijkstra from each source with a binary heap of (distance, vertex), lazy deletion.
             var heap: [(Double, Int)] = []
+            var distance = [Double](repeating: -1, count: n)
+            var settled = [Bool](repeating: false, count: n)
+            var best = [Double](repeating: .infinity, count: n)
             for s in 0 ..< n {
-                for v in 0 ..< n { distance[v] = -1 }
+                for v in 0 ..< n {
+                    distance[v] = -1
+                    settled[v] = false
+                    best[v] = .infinity
+                }
                 heap.removeAll(keepingCapacity: true)
                 heap.append((0, s))
-                var settled = [Bool](repeating: false, count: n)
-                var best = [Double](repeating: .infinity, count: n)
                 best[s] = 0
                 while let (d, v) = Self.pop(&heap) {
                     if settled[v] { continue }
@@ -195,16 +214,20 @@ struct _StressEngine: Sendable {
                         }
                     }
                 }
-                for v in 0 ..< n where v != s { inverse[s * n + v] = 1 / (distance[v] < 0 ? apart : distance[v]) }
+                let row = Self.rowStart(s, n) - s - 1
+                for v in s + 1 ..< n { upper[row + v] = Float(1 / (distance[v] < 0 ? apart : distance[v])) }
             }
         }
-        inverseDistance = inverse
-        weightSums = [Double](repeating: 0, count: n)
         for i in 0 ..< n {
-            var sum = 0.0
-            for j in 0 ..< n { sum += inverse[i * n + j] * inverse[i * n + j] }
-            weightSums[i] = sum
+            let row = Self.rowStart(i, n) - i - 1
+            for j in i + 1 ..< n {
+                let a = Double(upper[row + j])
+                weightSums[i] += a * a
+                weightSums[j] += a * a
+            }
         }
+        self.upper = upper
+        self.weightSums = weightSums
     }
 
     static func push(_ heap: inout [(Double, Int)], _ entry: (Double, Int)) {
@@ -235,18 +258,18 @@ struct _StressEngine: Sendable {
         return top
     }
 
-    /// The stress of `positions`.
+    /// The stress of `positions`, with the single-precision target distances.
     @usableFromInline
     func stress(of positions: [SIMD2<Double>]) -> Double {
         let n = count
         var total = 0.0
         positions.withUnsafeBufferPointer { p in
-            inverseDistance.withUnsafeBufferPointer { inv in
+            upper.withUnsafeBufferPointer { a in
                 for i in 0 ..< n {
-                    let row = i * n
+                    let row = Self.rowStart(i, n) - i - 1
                     for j in i + 1 ..< n {
                         let delta = p[i] - p[j]
-                        let r = (delta * delta).sum().squareRoot() * inv[row + j] - 1
+                        let r = (delta * delta).sum().squareRoot() * Double(a[row + j]) - 1
                         total += r * r
                     }
                 }
@@ -260,95 +283,115 @@ struct _StressEngine: Sendable {
         UnsafeRawPointer(p).loadUnaligned(as: SIMD4<Double>.self)
     }
 
-    /// Copies the positions into the coordinate columns.
+    @inline(__always)
+    static func load4(_ p: UnsafePointer<Float>) -> SIMD4<Double> {
+        SIMD4<Double>(UnsafeRawPointer(p).loadUnaligned(as: SIMD4<Float>.self))
+    }
+
+    @inline(__always)
+    static func store4(_ value: SIMD4<Double>, _ p: UnsafeMutablePointer<Double>) {
+        UnsafeMutableRawPointer(p).storeBytes(of: value, as: SIMD4<Double>.self)
+    }
+
+    /// Copies the positions into the coordinate columns and clears the sums.
     mutating func load(_ positions: [SIMD2<Double>]) {
         let n = count
         if xs.count != n {
             xs = [Double](repeating: 0, count: n)
             ys = [Double](repeating: 0, count: n)
+            sumX = [Double](repeating: 0, count: n)
+            sumY = [Double](repeating: 0, count: n)
         }
         for i in 0 ..< n {
             xs[i] = positions[i].x
             ys[i] = positions[i].y
+            sumX[i] = 0
+            sumY[i] = 0
         }
     }
 
     /// One Gauss–Seidel sweep of the localized update; returns the stress of the positions it
-    /// started from, summed on the way (when vertex i is updated, the vertices after it have not
-    /// moved yet). Each vertex's update runs four other vertices at a time over coordinate
-    /// columns.
+    /// started from, summed on the way. Vertex i's update is Σ_j w_ij (x_j + d_ij (x_i − x_j) /
+    /// ‖x_i − x_j‖) / Σ_j w_ij, with x_i its position before the update and x_j the current one.
+    /// Only row i of the triangle (j > i) is read, contiguously and twice: before the update for
+    /// the vertices after i, which have not moved (and the starting stress of those pairs); after
+    /// it, to add the pair's term with i's new position to each later vertex's sum. Four pairs at
+    /// a time over coordinate columns.
     @usableFromInline
     mutating func sweep(_ positions: inout [SIMD2<Double>]) -> Double {
-        load(positions)
         let n = count
+        guard n > 1 else { return 0 }
+        load(positions)
         var before = 0.0
         xs.withUnsafeMutableBufferPointer { xs in
             ys.withUnsafeMutableBufferPointer { ys in
-                inverseDistance.withUnsafeBufferPointer { inv in
-                    weightSums.withUnsafeBufferPointer { sums in
-                        let x = xs.baseAddress!, y = ys.baseAddress!, d = inv.baseAddress!
-                        for i in 0 ..< n {
-                            let xi = x[i], yi = y[i]
-                            let row = d + i * n
-                            // Σ_j w (x_j + d (x_i − x_j) / e), with w = a² and w·d = a for a = 1/d;
-                            // the diagonal has a = 0 and adds nothing.
-                            var sx = SIMD4<Double>.zero, sy = SIMD4<Double>.zero
-                            var j = 0
-                            // Vertices up to i: moved this sweep (or i itself).
-                            while j + 4 <= i + 1 {
-                                let a = Self.load4(row + j)
-                                let xj = Self.load4(x + j), yj = Self.load4(y + j)
-                                let dx = SIMD4(repeating: xi) - xj, dy = SIMD4(repeating: yi) - yj
-                                var e = (dx * dx + dy * dy).squareRoot()
-                                e.replace(with: 1e-12, where: e .< 1e-12)
-                                let q = a / e, w = a * a
-                                sx += w * xj + dx * q
-                                sy += w * yj + dy * q
-                                j += 4
+                sumX.withUnsafeMutableBufferPointer { sumX in
+                    sumY.withUnsafeMutableBufferPointer { sumY in
+                        upper.withUnsafeBufferPointer { upper in
+                            weightSums.withUnsafeBufferPointer { weights in
+                                let x = xs.baseAddress!, y = ys.baseAddress!, tx = sumX.baseAddress!, ty = sumY.baseAddress!
+                                for i in 0 ..< n {
+                                    let xi = x[i], yi = y[i]
+                                    let count = n - i - 1
+                                    // Row i and the coordinates of the vertices after i, aligned.
+                                    let a = upper.baseAddress! + Self.rowStart(i, n), xj = x + i + 1, yj = y + i + 1
+                                    // Σ w (x_j + d (x_i − x_j) / e) with w = a² and w·d = a.
+                                    var sx = SIMD4<Double>.zero, sy = SIMD4<Double>.zero, r2 = SIMD4<Double>.zero
+                                    var k = 0
+                                    while k + 4 <= count {
+                                        let ak = Self.load4(a + k), xk = Self.load4(xj + k), yk = Self.load4(yj + k)
+                                        let dx = SIMD4(repeating: xi) - xk, dy = SIMD4(repeating: yi) - yk
+                                        let length = (dx * dx + dy * dy).squareRoot()
+                                        let r = length * ak - 1
+                                        r2 += r * r
+                                        var e = length
+                                        e.replace(with: 1e-12, where: e .< 1e-12)
+                                        let q = ak / e, w = ak * ak
+                                        sx += w * xk + dx * q
+                                        sy += w * yk + dy * q
+                                        k += 4
+                                    }
+                                    var rx = 0.0, ry = 0.0, rest = 0.0
+                                    while k < count {
+                                        let ak = Double(a[k])
+                                        let dx = xi - xj[k], dy = yi - yj[k]
+                                        let length = (dx * dx + dy * dy).squareRoot()
+                                        let r = length * ak - 1
+                                        rest += r * r
+                                        let e = Swift.max(length, 1e-12)
+                                        let q = ak / e, w = ak * ak
+                                        rx += w * xj[k] + dx * q
+                                        ry += w * yj[k] + dy * q
+                                        k += 1
+                                    }
+                                    before += r2.sum() + rest
+                                    let nx = (tx[i] + sx.sum() + rx) / weights[i], ny = (ty[i] + sy.sum() + ry) / weights[i]
+                                    x[i] = nx
+                                    y[i] = ny
+                                    // The same pairs from the later vertices' side, with i moved.
+                                    let txj = tx + i + 1, tyj = ty + i + 1
+                                    k = 0
+                                    while k + 4 <= count {
+                                        let ak = Self.load4(a + k), xk = Self.load4(xj + k), yk = Self.load4(yj + k)
+                                        let dx = xk - SIMD4(repeating: nx), dy = yk - SIMD4(repeating: ny)
+                                        var e = (dx * dx + dy * dy).squareRoot()
+                                        e.replace(with: 1e-12, where: e .< 1e-12)
+                                        let q = ak / e, w = ak * ak
+                                        Self.store4(Self.load4(txj + k) + w * nx + dx * q, txj + k)
+                                        Self.store4(Self.load4(tyj + k) + w * ny + dy * q, tyj + k)
+                                        k += 4
+                                    }
+                                    while k < count {
+                                        let ak = Double(a[k])
+                                        let dx = xj[k] - nx, dy = yj[k] - ny
+                                        let e = Swift.max((dx * dx + dy * dy).squareRoot(), 1e-12)
+                                        let q = ak / e, w = ak * ak
+                                        txj[k] += w * nx + dx * q
+                                        tyj[k] += w * ny + dy * q
+                                        k += 1
+                                    }
+                                }
                             }
-                            var rx = 0.0, ry = 0.0
-                            while j < i + 1 {
-                                let a = row[j]
-                                let dx = xi - x[j], dy = yi - y[j]
-                                let e = Swift.max((dx * dx + dy * dy).squareRoot(), 1e-12)
-                                let q = a / e, w = a * a
-                                rx += w * x[j] + dx * q
-                                ry += w * y[j] + dy * q
-                                j += 1
-                            }
-                            // Vertices after i: not moved yet, so their pairs with i are the
-                            // starting drawing's.
-                            var r2 = SIMD4<Double>.zero
-                            while j + 4 <= n {
-                                let a = Self.load4(row + j)
-                                let xj = Self.load4(x + j), yj = Self.load4(y + j)
-                                let dx = SIMD4(repeating: xi) - xj, dy = SIMD4(repeating: yi) - yj
-                                let length = (dx * dx + dy * dy).squareRoot()
-                                let r = length * a - 1
-                                r2 += r * r
-                                var e = length
-                                e.replace(with: 1e-12, where: e .< 1e-12)
-                                let q = a / e, w = a * a
-                                sx += w * xj + dx * q
-                                sy += w * yj + dy * q
-                                j += 4
-                            }
-                            var rest = 0.0
-                            while j < n {
-                                let a = row[j]
-                                let dx = xi - x[j], dy = yi - y[j]
-                                let length = (dx * dx + dy * dy).squareRoot()
-                                let r = length * a - 1
-                                rest += r * r
-                                let e = Swift.max(length, 1e-12)
-                                let q = a / e, w = a * a
-                                rx += w * x[j] + dx * q
-                                ry += w * y[j] + dy * q
-                                j += 1
-                            }
-                            before += r2.sum() + rest
-                            x[i] = (sx.sum() + rx) / sums[i]
-                            y[i] = (sy.sum() + ry) / sums[i]
                         }
                     }
                 }

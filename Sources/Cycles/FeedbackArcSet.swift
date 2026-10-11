@@ -1,27 +1,56 @@
 import GraphProtocols
 
 extension DirectedGraph {
-    /// The edges that Eades, Lin and Smyth's greedy heuristic reverses to make the graph acyclic,
-    /// by position in `edges`: a feedback arc set, small in practice but not minimum (igraph's
-    /// `feedback_arc_set` with `algo="eades"`).
+    /// The edges that Eades, Lin and Smyth's greedy heuristic removes to make the graph acyclic,
+    /// by position in `edges`, ascending: a feedback arc set, small in practice but not minimum
+    /// (igraph's `feedback_arc_set` with `method="eades"`). Every self-loop is in it, as in igraph:
+    /// arcs 0 → 0, 0 → 1, 1 → 0 give positions [0, 2].
     ///
-    /// The heuristic orders the vertices in a sequence and reverses every edge that points
-    /// leftward in it. It repeatedly removes a sink (placed at the right end of the sequence),
-    /// else a source (at the left end), else the vertex whose out-degree minus in-degree is
-    /// largest (at the left end), with the least `vertices` offset on ties. Sinks and sources are
-    /// removed in the order they became one, starting from `vertices` order. Self-loops are
-    /// ignored and never returned; parallel edges count once each. On an acyclic graph the result
-    /// is empty, and for every graph, reversing the returned edges leaves no directed cycle
-    /// other than self-loops.
+    /// The heuristic orders the vertices in a sequence and takes every edge that points leftward
+    /// in it, and every self-loop. It repeatedly removes a sink (placed at the right end of the
+    /// sequence), else a source (at the left end), else the vertex whose out-degree minus
+    /// in-degree is largest (at the left end), with the least `vertices` offset on ties. Sinks and
+    /// sources are removed in the order they became one, starting from `vertices` order.
+    /// Self-loops do not count toward degrees; parallel edges count once each. On an acyclic
+    /// graph the result is empty, and for every graph, removing (or reversing) the returned edges
+    /// leaves no directed cycle.
     ///
     /// Eades, Lin and Smyth, "A fast and effective heuristic for the feedback arc set problem",
     /// Information Processing Letters 47(6), 1993. Linear time with bucket queues; this
     /// implementation keeps the largest-difference vertices in a binary heap so that ties go to
-    /// the least offset: O((n + m) log n) time, O(n + m) memory.
+    /// the least offset: O((n + m) log n) time, O(n + m) memory. igraph breaks ties in its own
+    /// bucket order, so on some graphs it returns another set of the same kind.
     @inlinable
     public func feedbackArcSet() -> [Edges.Index] {
         let arcs = _arcsInPositionOrder()
-        return _eadesLinSmythReversedArcs(vertexCount: arcs.vertexCount, sources: arcs.sources, targets: arcs.targets).map { arcs.positions[$0] }
+        let reversed = _eadesLinSmythReversedArcs(vertexCount: arcs.vertexCount, sources: arcs.sources, targets: arcs.targets)
+        return _withSelfLoops(reversed, arcs.sources, arcs.targets).map { arcs.positions[$0] }
+    }
+
+    /// `feedbackArcSet()` with edge weights (igraph's `weights`): the heuristic compares weighted
+    /// out-degree minus weighted in-degree (sums of `weight` over the remaining out- and
+    /// in-edges), so that it tends to leave out light edges. Sinks and sources are still the
+    /// vertices with no remaining out- or in-edges, whatever their weights; ties, order and
+    /// self-loops are as unweighted. Constant weights give `feedbackArcSet()`.
+    ///
+    /// O((n + m) log n) time plus one call of `weight` per edge, O(n + m) memory.
+    ///
+    /// - Precondition: every weight is finite, and so is the sum of their magnitudes.
+    @inlinable
+    public func feedbackArcSet(weight: (Edges.Index) -> Double) -> [Edges.Index] {
+        let arcs = _arcsInPositionOrder()
+        var weights: [Double] = []
+        weights.reserveCapacity(arcs.positions.count)
+        var total = 0.0
+        for position in arcs.positions {
+            let w = weight(position)
+            precondition(w.isFinite, "An edge weight must be finite")
+            total += w.magnitude
+            weights.append(w)
+        }
+        precondition(total.isFinite, "The edge weights' total magnitude must be finite")
+        let reversed = _eadesLinSmythReversedArcs(vertexCount: arcs.vertexCount, sources: arcs.sources, targets: arcs.targets, weights: weights)
+        return _withSelfLoops(reversed, arcs.sources, arcs.targets).map { arcs.positions[$0] }
     }
 
     /// Every edge's source and target as vertex numbers (`vertices` offsets), and its position,
@@ -59,28 +88,60 @@ extension DirectedGraph {
     }
 }
 
-/// The arc numbers that point leftward in Eades–Lin–Smyth's vertex sequence, ascending. Arc `k`
-/// runs from `sources[k]` to `targets[k]`, vertex numbers in `0..<vertexCount`.
+/// `reversed` (ascending arc numbers, no loops) merged with every self-loop's arc number.
+@usableFromInline
+package func _withSelfLoops(_ reversed: [Int], _ sources: [Int], _ targets: [Int]) -> [Int] {
+    var result: [Int] = []
+    result.reserveCapacity(reversed.count)
+    var i = 0
+    for k in 0 ..< sources.count {
+        if sources[k] == targets[k] {
+            result.append(k)
+        } else if i < reversed.count, reversed[i] == k {
+            result.append(k)
+            i += 1
+        }
+    }
+    return result
+}
+
+/// The arc numbers that point leftward in Eades–Lin–Smyth's vertex sequence, ascending; loops are
+/// left out. Arc `k` runs from `sources[k]` to `targets[k]`, vertex numbers in `0..<vertexCount`.
 @usableFromInline
 package func _eadesLinSmythReversedArcs(vertexCount n: Int, sources: [Int], targets: [Int]) -> [Int] {
+    _eadesLinSmyth(vertexCount: n, sources: sources, targets: targets, weights: [Int](repeating: 1, count: sources.count))
+}
+
+/// `_eadesLinSmythReversedArcs` with arc `k` weighing `weights[k]`.
+@usableFromInline
+package func _eadesLinSmythReversedArcs(vertexCount n: Int, sources: [Int], targets: [Int], weights: [Double]) -> [Int] {
+    _eadesLinSmyth(vertexCount: n, sources: sources, targets: targets, weights: weights)
+}
+
+private func _eadesLinSmyth<W: AdditiveArithmetic & Comparable>(vertexCount n: Int, sources: [Int], targets: [Int], weights: [W]) -> [Int] {
     let m = sources.count
-    // Out- and in-arcs per vertex in arc order, loops left out.
+    // Out- and in-arcs per vertex in arc order, loops left out; degrees count arcs, strengths
+    // sum their weights.
     var outDegree = [Int](repeating: 0, count: n), inDegree = [Int](repeating: 0, count: n)
+    var outStrength = [W](repeating: .zero, count: n), inStrength = [W](repeating: .zero, count: n)
     for k in 0 ..< m where sources[k] != targets[k] {
         outDegree[sources[k]] += 1
         inDegree[targets[k]] += 1
+        outStrength[sources[k]] += weights[k]
+        inStrength[targets[k]] += weights[k]
     }
     var outStart = [Int](repeating: 0, count: n + 1), inStart = [Int](repeating: 0, count: n + 1)
     for v in 0 ..< n {
         outStart[v + 1] = outStart[v] + outDegree[v]
         inStart[v + 1] = inStart[v] + inDegree[v]
     }
-    var successors = [Int](repeating: 0, count: outStart[n]), predecessors = [Int](repeating: 0, count: inStart[n])
+    // Rows of arc numbers.
+    var outArcs = [Int](repeating: 0, count: outStart[n]), inArcs = [Int](repeating: 0, count: inStart[n])
     var outFill = outStart, inFill = inStart
     for k in 0 ..< m where sources[k] != targets[k] {
-        successors[outFill[sources[k]]] = targets[k]
+        outArcs[outFill[sources[k]]] = k
         outFill[sources[k]] += 1
-        predecessors[inFill[targets[k]]] = sources[k]
+        inArcs[inFill[targets[k]]] = k
         inFill[targets[k]] += 1
     }
 
@@ -93,15 +154,10 @@ package func _eadesLinSmythReversedArcs(vertexCount n: Int, sources: [Int], targ
     for v in 0 ..< n where outDegree[v] == 0 { sinkQueue.append(v) }
     for v in 0 ..< n where outDegree[v] != 0 && inDegree[v] == 0 { sourceQueue.append(v) }
     var sinkHead = 0, sourceHead = 0
-    // A max-heap of (out-degree − in-degree, vertex), built the first time neither queue has a
-    // vertex; stale entries (dead vertices, old differences) are skipped when popped.
-    var heap: [(difference: Int, vertex: Int)] = []
+    // A max-heap of (out-strength − in-strength, vertex), built the first time neither queue has
+    // a vertex; stale entries (dead vertices, old differences) are skipped when popped.
+    var heap: [(difference: W, vertex: Int)] = []
     var heapBuilt = false
-
-    @inline(__always)
-    func above(_ a: (difference: Int, vertex: Int), _ b: (difference: Int, vertex: Int)) -> Bool {
-        a.difference > b.difference || (a.difference == b.difference && a.vertex < b.vertex)
-    }
 
     var remaining = n
     while remaining > 0 {
@@ -129,14 +185,7 @@ package func _eadesLinSmythReversedArcs(vertexCount n: Int, sources: [Int], targ
         if v < 0 {
             if !heapBuilt {
                 heapBuilt = true
-                for w in 0 ..< n where alive[w] {
-                    heap.append((outDegree[w] - inDegree[w], w))
-                    var i = heap.count - 1
-                    while i > 0, above(heap[i], heap[(i - 1) / 2]) {
-                        heap.swapAt(i, (i - 1) / 2)
-                        i = (i - 1) / 2
-                    }
-                }
+                for w in 0 ..< n where alive[w] { _pushDifference(&heap, (outStrength[w] - inStrength[w], w)) }
             }
             while v < 0 {
                 let top = heap[0]
@@ -147,14 +196,14 @@ package func _eadesLinSmythReversedArcs(vertexCount n: Int, sources: [Int], targ
                     while true {
                         let l = 2 * i + 1, r = l + 1
                         var best = i
-                        if l < heap.count, above(heap[l], heap[best]) { best = l }
-                        if r < heap.count, above(heap[r], heap[best]) { best = r }
+                        if l < heap.count, _above(heap[l], heap[best]) { best = l }
+                        if r < heap.count, _above(heap[r], heap[best]) { best = r }
                         if best == i { break }
                         heap.swapAt(i, best)
                         i = best
                     }
                 }
-                if alive[top.vertex], outDegree[top.vertex] - inDegree[top.vertex] == top.difference { v = top.vertex }
+                if alive[top.vertex], outStrength[top.vertex] - inStrength[top.vertex] == top.difference { v = top.vertex }
             }
         }
         if toRight {
@@ -167,18 +216,20 @@ package func _eadesLinSmythReversedArcs(vertexCount n: Int, sources: [Int], targ
         alive[v] = false
         remaining -= 1
         for slot in inStart[v] ..< inStart[v + 1] {
-            let w = predecessors[slot]
+            let k = inArcs[slot], w = sources[k]
             guard alive[w] else { continue }
             outDegree[w] -= 1
+            outStrength[w] -= weights[k]
             if outDegree[w] == 0 { sinkQueue.append(w) }
-            if heapBuilt { _pushDifference(&heap, (outDegree[w] - inDegree[w], w)) }
+            if heapBuilt { _pushDifference(&heap, (outStrength[w] - inStrength[w], w)) }
         }
         for slot in outStart[v] ..< outStart[v + 1] {
-            let w = successors[slot]
+            let k = outArcs[slot], w = targets[k]
             guard alive[w] else { continue }
             inDegree[w] -= 1
+            inStrength[w] -= weights[k]
             if inDegree[w] == 0, outDegree[w] != 0 { sourceQueue.append(w) }
-            if heapBuilt { _pushDifference(&heap, (outDegree[w] - inDegree[w], w)) }
+            if heapBuilt { _pushDifference(&heap, (outStrength[w] - inStrength[w], w)) }
         }
     }
     var reversed: [Int] = []
@@ -187,13 +238,17 @@ package func _eadesLinSmythReversedArcs(vertexCount n: Int, sources: [Int], targ
 }
 
 @inline(__always)
-private func _pushDifference(_ heap: inout [(difference: Int, vertex: Int)], _ entry: (difference: Int, vertex: Int)) {
+private func _above<W: Comparable>(_ a: (difference: W, vertex: Int), _ b: (difference: W, vertex: Int)) -> Bool {
+    a.difference > b.difference || (a.difference == b.difference && a.vertex < b.vertex)
+}
+
+@inline(__always)
+private func _pushDifference<W: Comparable>(_ heap: inout [(difference: W, vertex: Int)], _ entry: (difference: W, vertex: Int)) {
     heap.append(entry)
     var i = heap.count - 1
     while i > 0 {
         let p = (i - 1) / 2
-        let a = heap[i], b = heap[p]
-        guard a.difference > b.difference || (a.difference == b.difference && a.vertex < b.vertex) else { break }
+        guard _above(heap[i], heap[p]) else { break }
         heap.swapAt(i, p)
         i = p
     }

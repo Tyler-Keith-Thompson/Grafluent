@@ -8,8 +8,10 @@ extension Graph {
     /// `weight` · d²/k, where d is their distance (at least 0.01) and k is `optimalDistance`
     /// (default √(1/n), NetworkX's). Each step moves every vertex along its net force by at most
     /// the temperature, which starts at a tenth of the larger side of the start's bounding box
-    /// and falls by the same amount each step, reaching 0 after `iterations + 1` steps
-    /// (NetworkX's schedule). The run stops after `iterations` steps, or earlier once the moves'
+    /// (k/10 when every vertex starts at one point) and falls by the same amount each step,
+    /// reaching 0 after `iterations + 1` steps (NetworkX's schedule). Two vertices at exactly the
+    /// same point repel as if 0.01 apart, along a direction fixed by their two `vertices`
+    /// offsets, so a start with coincident vertices separates them deterministically. The run stops after `iterations` steps, or earlier once the moves'
     /// root-sum-square divided by n is below `threshold`. Self-loops are ignored; parallel edges
     /// add their weights. The drawing is in layout units (vertices end about k apart), not
     /// rescaled. A directed graph is drawn through `undirected`.
@@ -65,8 +67,8 @@ extension Graph {
     /// `fruchtermanReingoldLayout(iterations:optimalDistance:threshold:barnesHutTheta:weight:using:)`.
     /// Vertices of `initial` that are not in the graph are ignored.
     ///
-    /// - Precondition: every vertex of the graph is in `initial`, and the other preconditions of
-    ///   the generator form.
+    /// - Precondition: every vertex of the graph is in `initial`, at a finite position, and the
+    ///   other preconditions of the generator form.
     @inlinable
     public func fruchtermanReingoldLayout(
         initial: Drawing<Vertex>, iterations: Int = 50, optimalDistance: Double? = nil, threshold: Double = 1e-4,
@@ -115,7 +117,8 @@ public struct FruchtermanReingoldLayout<G: Graph> {
 
     /// A layout of `graph` that starts from `initial`'s positions.
     ///
-    /// - Precondition: every vertex of the graph is in `initial`, and the preconditions of
+    /// - Precondition: every vertex of the graph is in `initial`, at a finite position, and the
+    ///   preconditions of
     ///   `Graph.fruchtermanReingoldLayout(iterations:optimalDistance:threshold:barnesHutTheta:weight:using:)`.
     @inlinable
     public init(

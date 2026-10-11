@@ -2,7 +2,8 @@
 // linear or near-linear implementation needs in a debug build; the benchmarks take timings. Every
 // expected value is known by construction or is an invariant: Reingold–Tilford on a 2 × 10⁵-vertex
 // random tree and a 10⁵-vertex path (no recursion), circularLayout on 10⁶ isolated vertices,
-// Sugiyama on a 1 000-vertex random DAG and a 500-vertex cyclic digraph, Fruchterman–Reingold
+// Sugiyama on a 1 000-vertex random DAG and a 500-vertex cyclic digraph and on a star and an in-star
+// of 4 × 10⁴ leaves (the layering at 5 × 10⁴ is in SugiyamaLayeringLinearProgramTests), Fruchterman–Reingold
 // exact on 500 vertices and with Barnes–Hut on 5 000, stress majorization on a 15 × 15 grid. See
 // README.md.
 
@@ -114,6 +115,30 @@ struct GraphDrawingStressTests {
                     #expect(zip(sorted, sorted.dropFirst()).allSatisfy { $1 - $0 >= 1 - 1e-9 })
                 }
                 #expect(layered.crossingCount >= 0)
+            }
+        }.value
+    }
+
+    @Test("Sugiyama on a star and an in-star of 4 × 10⁴ leaves: no per-vertex sort of a hub's neighbours", .timeLimit(.minutes(1)))
+    func largeStars() async {
+        await Task {
+            let n = 40_001
+            for inward in [false, true] {
+                // Hub 0 and leaves 1 … n − 1: 0 → leaf, or leaf → 0.
+                let arcs = (1 ..< n).map { inward ? DirectedEdge(from: $0, to: 0) : DirectedEdge(from: 0, to: $0) }
+                let graph = DirectedPseudograph<Int>(vertices: 0 ..< n, edges: arcs)
+                let clock = ContinuousClock()
+                let start = clock.now
+                let layered = graph.sugiyamaLayout()
+                let elapsed = clock.now - start
+                // An insertion sort per hub took 1.08 s in a release build here.
+                #expect(elapsed < .seconds(20), "inward \(inward): \(elapsed)")
+                #expect(layered.reversedEdges.isEmpty && layered.crossingCount == 0 && layered.layerCount == 2)
+                let p = layered.drawing.positions
+                #expect(p[0].y == (inward ? 1 : 0) && (1 ..< n).allSatisfy { p[$0].y == (inward ? 0 : 1) })
+                // Leaves 1 apart in vertex order; the hub over the median leaves.
+                #expect((1 ..< n).allSatisfy { p[$0].x == Double($0 - 1) })
+                #expect(p[0].x == Double(n - 2) / 2)
             }
         }.value
     }

@@ -327,6 +327,11 @@ def span_of(g, layer):
     return sum(abs(layer[v] - layer[u]) for u, v in g.edges if u != v)
 
 
+def fas(g, reversed_edges):
+    """feedbackArcSet(): the reversed edges and every self-loop, by position (igraph includes loops)."""
+    return sorted(set(reversed_edges) | {e for e, (u, v) in enumerate(g.edges) if u == v})
+
+
 def layered_test(n):
     import re
     spec, o = inp(n), op(n)
@@ -371,7 +376,7 @@ def layered_test(n):
               "let spans = graph.edges.indices.map { layered.layer(of: graph.target(ofEdgeAt: $0)) - layered.layer(of: graph.source(ofEdgeAt: $0)) }",
               "#expect(spans.reduce(0, +) == %d)" % res["span"],
               "#expect(spans.allSatisfy { $0 >= 1 })",
-              "#expect(layered.reversedEdges == [] as [Int] && graph.feedbackArcSet() == [] as [Int])",
+              "#expect(layered.reversedEdges == [] as [Int] && graph.feedbackArcSet() == %s)" % ints(fas(g, [])),
               "#expect(graph.vertices.map { layered.layer(of: $0) }.min() == 0)",
               "#expect(layered.layerCount == graph.vertices.map { layered.layer(of: $0) }.max()! + 1)",
               "for p in graph.edges.indices {",
@@ -385,7 +390,7 @@ def layered_test(n):
     if "reversedEdges" in o:
         assert ex == str(res["reversed"]), n
         if layers is None:
-            b.append("#expect(graph.feedbackArcSet() == %s)" % ints(res["reversed"]))
+            b.append("#expect(graph.feedbackArcSet() == %s)" % ints(fas(g, res["reversed"])))
     elif "layer(of:)" in o:
         assert ex == str(res["layer"]), n
     elif "crossingCount" in o:
@@ -399,7 +404,7 @@ def layered_test(n):
     else:
         raise AssertionError(n)
     if layers is None and "reversedEdges" not in o:
-        b.append("#expect(graph.feedbackArcSet() == %s)" % ints(res["reversed"]))
+        b.append("#expect(graph.feedbackArcSet() == %s)" % ints(fas(g, res["reversed"])))
     b += layered_state(g, res, "")
     return L + ["        " + x if x else "" for x in b] + ["    }"]
 
@@ -645,8 +650,8 @@ def stress_test(n):
             assert ex.startswith("stress ≤ 0.001")
             b.append("#expect(stepper.stress <= 0.001, \"stress \\(stepper.stress)\")")
         b += hop_lines("") + raw_stress_lines("")
-        b += ["// `stress` is the stress of `drawing`.",
-              "#expect(abs(rawStress(layout.positions) - stepper.stress) <= 1e-9 * Swift.max(1, stepper.stress))"]
+        b += ["// `stress` is the stress of `drawing`, with the target distances rounded to single precision.",
+              "#expect(abs(rawStress(layout.positions) - stepper.stress) <= 1e-5 * Swift.max(1, stepper.stress))"]
         m2 = re.search(r"normalized ≤ (\S+) ", ex)
         if m2:
             b += normalized_lines("")
@@ -895,3 +900,171 @@ for fname, suite, rows, comment in FILES:
     rows_total += len(rows)
 assert rows_total == (N if PHASE2 else 206), rows_total
 print("catalog rows", rows_total, "tests", total)
+
+
+# ---------------------------------------------------------------------------------------------
+# Minimum-span layering against a linear-program solver (not catalog rows)
+# ---------------------------------------------------------------------------------------------
+
+def lp_layering_cases(count=400, seed=3):
+    """Random DAGs from a SplitMix64 stream: n = 3 + draw % 25 vertices, draw % 3n arc attempts
+    (a, b) with a ≠ b drawn as min → max. Each with the least total span of the ranking LP
+    (min Σ r_head − r_tail subject to r_head − r_tail ≥ 1, r ≥ 0), solved by scipy's HiGHS; the
+    constraint matrix is totally unimodular, so the optimum is integral."""
+    import numpy as np
+    from scipy.optimize import linprog
+    state = seed
+    mask = (1 << 64) - 1
+
+    def draw():
+        nonlocal state
+        state = (state + 0x9E3779B97F4A7C15) & mask
+        z = state
+        z = ((z ^ (z >> 30)) * 0xBF58476D1CE4E5B9) & mask
+        z = ((z ^ (z >> 27)) * 0x94D049BB133111EB) & mask
+        return (z ^ (z >> 31)) >> 2
+
+    out = []
+    for _ in range(count):
+        n = 3 + draw() % 25
+        m = draw() % (3 * n)
+        arcs = []
+        for _ in range(m):
+            a, b = draw() % n, draw() % n
+            if a != b:
+                arcs.append((min(a, b), max(a, b)))
+        span = 0
+        if arcs:
+            cost = np.zeros(n)
+            A = np.zeros((len(arcs), n))
+            for k, (a, b) in enumerate(arcs):
+                cost[b] += 1
+                cost[a] -= 1
+                A[k, a] = 1
+                A[k, b] = -1
+            r = linprog(cost, A_ub=A, b_ub=-np.ones(len(arcs)), bounds=[(0, None)] * n, method="highs")
+            assert r.status == 0
+            span = round(r.fun)
+            assert abs(r.fun - span) < 1e-6
+        out.append((n, arcs, span))
+    return out
+
+
+def short_arcs_dag(n, seed=1):
+    """n vertices; from each v two arcs v → v + 1 + draw % 20 (kept when below n), draws from the
+    catalog's LCG (the state's top 31 bits after a step)."""
+    x = seed
+    arcs = []
+    for v in range(n):
+        for _ in range(2):
+            x = (x * 6364136223846793005 + 1442695040888963407) & ((1 << 64) - 1)
+            w = v + 1 + (x >> 33) % 20
+            if w < n:
+                arcs.append((v, w))
+    return arcs
+
+
+def lp_span(n, arcs):
+    """The ranking LP's optimum by scipy's HiGHS, sparse."""
+    import numpy as np
+    from scipy.optimize import linprog
+    from scipy.sparse import coo_matrix
+    m = len(arcs)
+    cost = np.zeros(n)
+    rows, cols, vals = [], [], []
+    for k, (a, b) in enumerate(arcs):
+        cost[b] += 1
+        cost[a] -= 1
+        rows += [k, k]
+        cols += [a, b]
+        vals += [1.0, -1.0]
+    A = coo_matrix((vals, (rows, cols)), shape=(m, n)).tocsr()
+    r = linprog(cost, A_ub=A, b_ub=-np.ones(m), bounds=[(0, None)] * n, method="highs")
+    assert r.status == 0
+    span = round(r.fun)
+    assert abs(r.fun - span) < 1e-6
+    return span
+
+
+def write_lp_test():
+    large_n = 50_000
+    large_span = lp_span(large_n, short_arcs_dag(large_n))
+    cases = lp_layering_cases()
+    lines = ["%d %s= %d" % (n, "".join("%d>%d " % a for a in arcs), span) for n, arcs, span in cases]
+    out = [
+        "// Minimum-span layering against a linear-program solver: 400 random DAGs (up to 27 vertices and",
+        "// 80 arcs, from a SplitMix64 stream) with the least total span that scipy's HiGHS finds for the",
+        "// ranking LP, precomputed by swiftgen.py (lp_layering_cases), so no solver runs here. Each line is",
+        "// `n arcs… = span`. Generated by swiftgen.py; see README.md.",
+        "",
+        "import GraphDrawing",
+        "import GraphProtocols",
+        "import Multigraphs",
+        "import Testing",
+        "",
+        '@Suite("Sugiyama layering against a linear program")',
+        "struct SugiyamaLayeringLinearProgramTests {",
+        '    @Test("The total edge span is the LP optimum on 400 random DAGs, every edge spans ≥ 1, each component starts at 0")',
+        "    func spansMatchTheLinearProgram() {",
+        '        let cases = """',
+    ]
+    out += ["            " + l for l in lines]
+    out += [
+        '            """',
+        '        for line in cases.split(separator: "\\n") {',
+        '            let fields = line.split(separator: " ")',
+        "            let n = Int(fields[0])!, expected = Int(fields[fields.count - 1])!",
+        "            let arcs = fields[1 ..< fields.count - 2].map { field in",
+        '                let ends = field.split(separator: ">")',
+        "                return DirectedEdge(from: Int(ends[0])!, to: Int(ends[1])!)",
+        "            }",
+        "            let graph = DirectedPseudograph<Int>(vertices: 0 ..< n, edges: arcs)",
+        "            let layered = graph.sugiyamaLayout()",
+        "            let spans = arcs.map { layered.layer(of: $0.target) - layered.layer(of: $0.source) }",
+        '            #expect(layered.reversedEdges.isEmpty, "\\(line)")',
+        '            #expect(spans.allSatisfy { $0 >= 1 }, "\\(line)")',
+        '            #expect(spans.reduce(0, +) == expected, "\\(line)")',
+        "            // Each weakly connected component's least layer is 0.",
+        "            var component = Array(0 ..< n)",
+        "            func find(_ x: Int) -> Int { component[x] == x ? x : find(component[x]) }",
+        "            for arc in arcs { component[find(arc.source)] = find(arc.target) }",
+        "            var least = [Int: Int]()",
+        "            for v in 0 ..< n { least[find(v)] = min(least[find(v)] ?? .max, layered.layer(of: v)) }",
+        '            #expect(least.values.allSatisfy { $0 == 0 }, "\\(line)")',
+        "        }",
+        "    }",
+        "",
+        "    // Release: 0.23 s; Gansner's pivots, searching a side of a cut each, took 1.5 s. The",
+        "    // bound is for a debug build. Crossing reduction is off: the layering is under test.",
+        '    @Test("At 5 × 10⁴ vertices with short random arcs: the LP optimum (HiGHS: %d)", .timeLimit(.minutes(1)))' % large_span,
+        "    func largeSpanMatchesTheLinearProgram() async {",
+        "        await Task {",
+        "            let n = %d" % large_n,
+        "            var x: UInt64 = 1",
+        "            var arcs: [DirectedEdge<Int>] = []",
+        "            for v in 0 ..< n {",
+        "                for _ in 0 ..< 2 {",
+        "                    x = x &* 6_364_136_223_846_793_005 &+ 1_442_695_040_888_963_407",
+        "                    let w = v + 1 + Int((x >> 33) % 20)",
+        "                    if w < n { arcs.append(DirectedEdge(from: v, to: w)) }",
+        "                }",
+        "            }",
+        "            let graph = DirectedPseudograph<Int>(vertices: 0 ..< n, edges: arcs)",
+        "            let clock = ContinuousClock()",
+        "            let start = clock.now",
+        "            let layered = graph.sugiyamaLayout(maxIterations: 0)",
+        "            let elapsed = clock.now - start",
+        '            #expect(elapsed < .seconds(30), "\\(elapsed)")',
+        "            let spans = arcs.map { layered.layer(of: $0.target) - layered.layer(of: $0.source) }",
+        "            #expect(spans.allSatisfy { $0 >= 1 })",
+        "            #expect(spans.reduce(0, +) == %d)" % large_span,
+        "        }.value",
+        "    }",
+        "}",
+    ]
+    with open(os.path.join(OUT, "SugiyamaLayeringLinearProgramTests.swift"), "w") as f:
+        f.write("\n".join(out) + "\n")
+    print("SugiyamaLayeringLinearProgramTests.swift", len(cases), "cases")
+
+
+write_lp_test()

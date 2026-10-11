@@ -2,10 +2,10 @@
 // vertices at one depth closer than 1, every parent centred over its first and last child, children
 // left to right, y = depth, the root at x = 0, the mirrored tree drawn as the reflection, and the
 // circular form at radius = depth with equal x on one ray. Sugiyama on random digraphs with loops,
-// parallel arcs and cycles: `reversedEdges` is `feedbackArcSet()`, every edge points down once the
+// parallel arcs and cycles: `reversedEdges` is `feedbackArcSet()` less its self-loops, every edge points down once the
 // reversed ones are turned, the bends of an edge lie on the layers it crosses, one per layer, no two
 // points of a layer closer than 1, and `crossingCount` equals a brute-force count over the drawn
-// segments. Caller layers. Then `step()` by step equals `run()` for both steppers, and `rescaled`
+// segments. Caller layers (bends only on the non-empty layers between). Then `step()` by step equals `run()` for both steppers, and `rescaled`
 // and `circularLayout` on random inputs. See README.md.
 
 import Cycles
@@ -89,7 +89,9 @@ struct GraphDrawingPropertyTests {
             let layered = graph.sugiyamaLayout()
             let context = "n = \(n), arcs \(arcs)"
             let reversed = Set(layered.reversedEdges)
-            #expect(layered.reversedEdges == graph.feedbackArcSet(), "\(context)")
+            // reversedEdges is feedbackArcSet() without its self-loops.
+            #expect(layered.reversedEdges == graph.feedbackArcSet().filter { graph.source(ofEdgeAt: $0) != graph.target(ofEdgeAt: $0) }, "\(context)")
+            #expect(graph.feedbackArcSet().filter { graph.source(ofEdgeAt: $0) == graph.target(ofEdgeAt: $0) } == graph.edges.indices.filter { graph.source(ofEdgeAt: $0) == graph.target(ofEdgeAt: $0) }, "\(context)")
             #expect(layered.reversedEdges == layered.reversedEdges.sorted(), "\(context)")
             #expect(layered.reversedEdges.allSatisfy { graph.source(ofEdgeAt: $0) != graph.target(ofEdgeAt: $0) }, "\(context)")
             let layer = graph.vertices.map { layered.layer(of: $0) }
@@ -132,9 +134,10 @@ struct GraphDrawingPropertyTests {
                 }
             }
             #expect(layered.crossingCount == count, "\(context)")
-            // An acyclic graph reverses nothing.
             let forward = DirectedPseudograph<Int>(vertices: 0 ..< n, edges: arcs.map { DirectedEdge(from: min($0.0, $0.1), to: max($0.0, $0.1)) })
-            #expect(forward.feedbackArcSet().isEmpty && forward.sugiyamaLayout().reversedEdges.isEmpty, "\(context)")
+            // An acyclic graph reverses nothing; its feedback arc set is its self-loops.
+            let loops = forward.edges.indices.filter { forward.source(ofEdgeAt: $0) == forward.target(ofEdgeAt: $0) }
+            #expect(forward.feedbackArcSet() == loops && forward.sugiyamaLayout().reversedEdges.isEmpty, "\(context)")
         }
     }
 
@@ -149,9 +152,12 @@ struct GraphDrawingPropertyTests {
             let drawnLayers = graph.vertices.map { layered.layer(of: $0) }
             #expect(drawnLayers == given && layered.layerCount == given.max()! + 1, "\(context)")
             #expect(layered.reversedEdges == graph.edges.indices.filter { given[graph.source(ofEdgeAt: $0)] > given[graph.target(ofEdgeAt: $0)] }, "\(context)")
+            // A bend on each layer strictly between the ends that has a vertex; none on an empty one.
             for e in graph.edges.indices {
-                let span = abs(given[graph.target(ofEdgeAt: e)] - given[graph.source(ofEdgeAt: e)])
-                #expect(layered.bends(ofEdgeAt: e).count == max(span - 1, 0), "\(context): edge \(e)")
+                let a = given[graph.source(ofEdgeAt: e)], b = given[graph.target(ofEdgeAt: e)]
+                let between = Set(given.filter { min(a, b) < $0 && $0 < max(a, b) })
+                let bends = layered.bends(ofEdgeAt: e).map { Int($0.y) }
+                #expect(bends.count == between.count && Set(bends) == between, "\(context): edge \(e)")
             }
             #expect(layered.drawing.positions.map(\.y) == given.map(Double.init), "\(context)")
         }

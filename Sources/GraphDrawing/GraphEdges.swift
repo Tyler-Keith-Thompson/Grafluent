@@ -79,12 +79,16 @@ extension Graph {
 
 /// The positions of `vertices` in `drawing`, in order.
 ///
-/// - Precondition: every vertex is in the drawing.
+/// - Precondition: every vertex is in the drawing, at a finite position.
 @inlinable
 func _startPositions<Vertex: Hashable>(_ vertices: ContiguousArray<Vertex>, in drawing: Drawing<Vertex>) -> [SIMD2<Double>] {
-    if drawing._vertices == vertices { return drawing._positions }
-    return vertices.map { v in
-        guard let p = drawing.position(safe: v) else { preconditionFailure("The initial drawing has no position for vertex \(v)") }
-        return p
-    }
+    let positions =
+        drawing._vertices == vertices
+        ? drawing._positions
+        : vertices.map { v in
+            guard let p = drawing.position(safe: v) else { preconditionFailure("The initial drawing has no position for vertex \(v)") }
+            return p
+        }
+    for p in positions { precondition(p.x.isFinite && p.y.isFinite, "Every initial position must be finite") }
+    return positions
 }

@@ -3,7 +3,9 @@
 // where a feasible tree without network simplex pivots is not); crossing reduction keeps the best order it
 // has seen, not the last one (a DAG whose last sweep is worse, values from ref.py's model); and
 // Fruchterman–Reingold's `weight:` scales attraction (weight 0 is no edge, and parallel edges add
-// their weights).
+// their weights). From the second review: Walker's even spacing divides by 3 (positions are not
+// dyadic), coincident vertices separate under Fruchterman–Reingold, and caller layers with huge
+// numbers skip the empty layers.
 
 import GraphDrawing
 import GraphProtocols
@@ -11,6 +13,7 @@ import Multigraphs
 import PropertyBased
 import RandomGraphs
 import Testing
+import Trees
 
 @Suite("GraphDrawing review")
 struct GraphDrawingReviewTests {
@@ -80,5 +83,56 @@ struct GraphDrawingReviewTests {
         }
         // And weight 2 is not weight 1.
         #expect(graph.fruchtermanReingoldLayout(iterations: 10, using: &g5) != weighted)
+    }
+
+    @Test("Reingold–Tilford: Walker's even spacing divides by 3, so positions are not dyadic (ref.py's model)")
+    func walkerSpacingByThirds() throws {
+        // The root's children 1, 2, 3, 4: 1 and 4 each over a chain to five leaves, which forces
+        // them 5 apart at depth 3; the leaves 2 and 3 between are spaced evenly, 5/3 apart.
+        let parents: [Int?] = [nil, 0, 0, 0, 0, 1, 4] + Array(repeating: 5, count: 5) + Array(repeating: 6, count: 5)
+        let tree = try #require(RootedTree(parents: parents))
+        let p = tree.reingoldTilfordLayout().positions
+        #expect(p[0] == SIMD2(0, 0) && p[1] == SIMD2(-2.5, 1) && p[4] == SIMD2(2.5, 1))
+        // ref.py: −0.833333333333333 and 0.8333333333333339, ±5/6 rounded two ways.
+        #expect(abs(p[2].x + 5.0 / 6) <= 1e-12 && abs(p[3].x - 5.0 / 6) <= 1e-12 && p[2].y == 1 && p[3].y == 1)
+        for (a, b) in [(1, 2), (2, 3), (3, 4)] { #expect(abs(p[b].x - p[a].x - 5.0 / 3) <= 1e-12) }
+        #expect((7 ... 16).map { p[$0] } == (0 ..< 10).map { SIMD2(Double($0) - 4.5, 3) })
+    }
+
+    @Test("Fruchterman–Reingold from coincident vertices: they separate, deterministically", arguments: [nil, 1.2] as [Double?])
+    func coincidentStart(theta: Double?) {
+        let graph = Pseudograph<Int>(vertices: 0 ..< 6, edges: [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0)].map { UndirectedEdge($0.0, $0.1) })
+        // Every vertex at one point: the temperature would be 0 and repulsion 0 without the rule.
+        let point = Drawing(vertices: 0 ..< 6, positions: Array(repeating: SIMD2(1.0, 1.0), count: 6))
+        let spread = graph.fruchtermanReingoldLayout(initial: point, barnesHutTheta: theta)
+        #expect(spread == graph.fruchtermanReingoldLayout(initial: point, barnesHutTheta: theta))
+        let p = spread.positions
+        #expect(p.allSatisfy { $0.x.isFinite && $0.y.isFinite })
+        for i in 0 ..< 6 {
+            for j in i + 1 ..< 6 { #expect(((p[i] - p[j]) * (p[i] - p[j])).sum() > 1e-6, "\(i), \(j): \(p)") }
+        }
+        // Two of six coincide in an otherwise spread start: they separate too.
+        var start = graph.circularLayout()
+        start.setPosition(start.position(of: 0), of: 3)
+        let q = graph.fruchtermanReingoldLayout(initial: start, barnesHutTheta: theta).positions
+        #expect(((q[0] - q[3]) * (q[0] - q[3])).sum() > 1e-6, "\(q)")
+    }
+
+    @Test("sugiyamaLayout(layers:) with huge layer numbers: empty layers are skipped, y is the given layer")
+    func hugeCallerLayers() {
+        // DR-158's graph and layers [0, 2, 1, 3], times 10¹²: the same drawing, stretched in y.
+        let graph = DirectedPseudograph<Int>(vertices: 0 ..< 4, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 1, to: 3)])
+        let t = 1_000_000_000_000
+        let layered = graph.sugiyamaLayout(layers: { [0, 2 * t, t, 3 * t][$0] })
+        #expect(graph.vertices.map { layered.layer(of: $0) } == [0, 2 * t, t, 3 * t])
+        #expect(layered.layerCount == 3 * t + 1)
+        #expect(layered.drawing.positions == [SIMD2(0.5, 0), SIMD2(1, 2 * Double(t)), SIMD2(0, Double(t)), SIMD2(1, 3 * Double(t))])
+        #expect(Array(layered.bends(ofEdgeAt: 0)) == [SIMD2(1, Double(t))])
+        #expect(layered.bends(ofEdgeAt: 1).isEmpty && layered.bends(ofEdgeAt: 2).isEmpty)
+        // An edge across empty layers only: no bend.
+        let pair = DirectedPseudograph<Int>(vertices: 0 ..< 2, edges: [DirectedEdge(from: 1, to: 0)])
+        let apart = pair.sugiyamaLayout(layers: { [Int.max / 2, 7][$0] })
+        #expect(apart.drawing.positions == [SIMD2(0, Double(Int.max / 2)), SIMD2(0, 7)])
+        #expect(apart.bends(ofEdgeAt: 0).isEmpty && apart.reversedEdges.isEmpty && apart.layerCount == Int.max / 2 + 1)
     }
 }

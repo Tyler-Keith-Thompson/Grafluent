@@ -13,8 +13,11 @@ import Trees
 //
 //   FR exact, 10³, 50 iterations          ≤ igraph 939.9 ms, ≥ 20× NetworkX 1988.5 ms (≤ 99 ms)
 //   FR Barnes–Hut θ = 1.2, 10⁵            ≤ igraph's grid FR 6633.9 ms
-//   Stress majorization, 10³              ≤ igraph layout_kamada_kawai 672.9 ms
-//   Sugiyama, random DAG m = 2n, 10³/10⁴  ≤ igraph layout_sugiyama 110.8 ms / 1680.0 ms
+//   Stress majorization, 10³              ≤ igraph layout_kamada_kawai 672.9 ms (like for like:
+//                                         neato -Gmode=major, not installed)
+//   Sugiyama, random DAG m = 2n, 10³/10⁴  ≤ igraph layout_sugiyama 110.8 ms / 1680.0 ms (at 10⁴ igraph
+//                                         skips its LP layering: not the same work)
+//   Layering alone, 4 × 10⁴; stars of 4 × 10⁴: guards for the review's superlinear cases
 //   Reingold–Tilford, LCG tree, 10⁶       ≤ 200 ms, within 4× one preorder pass
 //   circularLayout, 10⁶                   one pass
 
@@ -100,6 +103,21 @@ let benchmarks: @Sendable () -> Void = {
     }
     Benchmark("GraphDrawing: sugiyamaLayout, LCG DAG m = 2n, 10⁴ (igraph 1680 ms)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(dag10k.sugiyamaLayout()) }
+    }
+    // The layering's guard: crossing reduction off, so network simplex dominates (Gansner's
+    // pivots took 42 s here; the dual min-cost flow about 0.65 s).
+    let dag40k = lcgDAG(40000)
+    Benchmark("GraphDrawing: sugiyamaLayout(maxIterations: 0), LCG DAG m = 2n, 4 × 10⁴ (layering)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(dag40k.sugiyamaLayout(maxIterations: 0)) }
+    }
+    // Hubs: a star and an in-star of 4 × 10⁴ leaves (an insertion sort per hub took 1.08 s).
+    let star = CompressedSparseRow(vertexCount: 40001, edges: (1 ... 40000).map { DirectedEdge(from: 0, to: $0) })
+    let inStar = CompressedSparseRow(vertexCount: 40001, edges: (1 ... 40000).map { DirectedEdge(from: $0, to: 0) })
+    Benchmark("GraphDrawing: sugiyamaLayout, star of 4 × 10⁴ leaves") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(star.sugiyamaLayout()) }
+    }
+    Benchmark("GraphDrawing: sugiyamaLayout, in-star of 4 × 10⁴ leaves") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(inStar.sugiyamaLayout()) }
     }
 
     let tree = lcgTree(1_000_000)

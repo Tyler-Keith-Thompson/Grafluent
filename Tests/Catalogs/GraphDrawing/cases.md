@@ -236,15 +236,15 @@ the phase 2 entry points exist.
 | DR-190 | Stress | one vertex | `U: n=1;` | `stressMajorizationLayout()` | [(0.0, 0.0)]; stress 0.0 |
 | DR-191 | Stress | one edge | `U: 0-1` | `stressMajorizationLayout()` | [(0.0, 0.0), (-1.0, 0.0)]; stress 0.0 |
 | DR-192 | Stress | path of 3 | `U: P(0,1,2)` | `stressMajorizationLayout()` | stress ≤ 0.001, normalized ≤ 0.0002 (NetworkX Kamada–Kawai 0.0000) |
-| DR-193 | Stress | cycle C6 | `U: C(0,1,2,3,4,5)` | `stressMajorizationLayout()` | stress ≈ 0.284077 (±1%), normalized ≤ 0.0195 (NetworkX Kamada–Kawai 0.0189) |
-| DR-194 | Stress | K4 | `U: K(4)` | `stressMajorizationLayout()` | stress ≈ 0.171573 (±1%), normalized ≤ 0.0293 (NetworkX Kamada–Kawai 0.0286) |
-| DR-195 | Stress | cycle C12 | `U: C(0,1,2,3,4,5,6,7,8,9,10,11)` | `stressMajorizationLayout()` | stress ≈ 1.08842 (±1%), normalized ≤ 0.017 (NetworkX Kamada–Kawai 0.0165) |
-| DR-196 | Stress | grid 5 x 5 | `U: grid(5,5)` | `stressMajorizationLayout()` | stress ≈ 6.61676 (±1%), normalized ≤ 0.0226 (NetworkX Kamada–Kawai 0.0221) |
-| DR-197 | Stress | binary tree of height 4 (as a graph) | `U: 0-1, 0-2, 1-3, 1-4, 2-5, 2-6, 3-7, 3-8, 4-9, 4-10, 5-11, 5-12, 6-13, 6-14, 7-15, 7-16, 8-17, 8-18, 9-19, 9-20, 10-21, 10-22, 11-23, 11-24, 12-25, 12-26, 13-27, 13-28, 14-29, 14-30` | `stressMajorizationLayout()` | stress ≈ 18.0246 (±1%), normalized ≤ 0.0397 (NetworkX Kamada–Kawai 0.0388) |
-| DR-198 | Stress | cube Q4 | `U: Q(4)` | `stressMajorizationLayout()` | stress ≈ 15.2964 (±1%), normalized ≤ 0.2572 (NetworkX Kamada–Kawai 0.2520) |
-| DR-199 | Stress | Petersen | `U: petersen` | `stressMajorizationLayout()` | stress ≈ 5.22849 (±1%), normalized ≤ 0.1195 (NetworkX Kamada–Kawai 0.1170) |
-| DR-200 | Stress | random graph, 40 vertices, 60 edges | `U: lcggraph(40,60,5)` | `stressMajorizationLayout()` | stress ≈ 67.7529 (±1%), normalized ≤ 0.0933 (NetworkX Kamada–Kawai 0.0913) |
-| DR-201 | Stress | two components: a triangle and an edge | `U: C(0,1,2), 3-4` | `stressMajorizationLayout()` | stress ≈ 0.0794561 (±1%) |
+| DR-193 | Stress | cycle C6 | `U: C(0,1,2,3,4,5)` | `stressMajorizationLayout()` | stress ≈ 0.284088 (±1%), normalized ≤ 0.0195 (NetworkX Kamada–Kawai 0.0189) |
+| DR-194 | Stress | K4 | `U: K(4)` | `stressMajorizationLayout()` | stress ≈ 0.171576 (±1%), normalized ≤ 0.0293 (NetworkX Kamada–Kawai 0.0286) |
+| DR-195 | Stress | cycle C12 | `U: C(0,1,2,3,4,5,6,7,8,9,10,11)` | `stressMajorizationLayout()` | stress ≈ 1.08869 (±1%), normalized ≤ 0.017 (NetworkX Kamada–Kawai 0.0165) |
+| DR-196 | Stress | grid 5 x 5 | `U: grid(5,5)` | `stressMajorizationLayout()` | stress ≈ 6.61757 (±1%), normalized ≤ 0.0226 (NetworkX Kamada–Kawai 0.0221) |
+| DR-197 | Stress | binary tree of height 4 (as a graph) | `U: 0-1, 0-2, 1-3, 1-4, 2-5, 2-6, 3-7, 3-8, 4-9, 4-10, 5-11, 5-12, 6-13, 6-14, 7-15, 7-16, 8-17, 8-18, 9-19, 9-20, 10-21, 10-22, 11-23, 11-24, 12-25, 12-26, 13-27, 13-28, 14-29, 14-30` | `stressMajorizationLayout()` | stress ≈ 18.0323 (±1%), normalized ≤ 0.0397 (NetworkX Kamada–Kawai 0.0388) |
+| DR-198 | Stress | cube Q4 | `U: Q(4)` | `stressMajorizationLayout()` | stress ≈ 15.3057 (±1%), normalized ≤ 0.2572 (NetworkX Kamada–Kawai 0.2520) |
+| DR-199 | Stress | Petersen | `U: petersen` | `stressMajorizationLayout()` | stress ≈ 5.23048 (±1%), normalized ≤ 0.1195 (NetworkX Kamada–Kawai 0.1170) |
+| DR-200 | Stress | random graph, 40 vertices, 60 edges | `U: lcggraph(40,60,5)` | `stressMajorizationLayout()` | stress ≈ 74.6895 (±1%), normalized ≤ 0.0969 (NetworkX Kamada–Kawai 0.0913; above it at the default tolerance, 0.0869 at tolerance 1e-5) |
+| DR-201 | Stress | two components: a triangle and an edge | `U: C(0,1,2), 3-4` | `stressMajorizationLayout()` | stress ≈ 0.0794909 (±1%) |
 | DR-202 | Stress | stress never increases between steps | `U: grid(5,5)` | `StressMajorizationLayout: stress after each step()` | non-increasing |
 | DR-203 | Stress | initial drawing is used as given (no randomness) | `U: grid(5,5)` | `two calls` | equal |
 | DR-204 | Stress | edge length 2 doubles the drawing | `U: C(0,1,2,3,4,5)` | `stressMajorizationLayout(edgeLength: { _ in 2 }) vs default` | positions × 2 (exact) |

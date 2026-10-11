@@ -54,7 +54,7 @@ rendering and stay out.
 | `circularLayout(radius:center:)` | NetworkX `circular_layout`, igraph `layout_circle`, Graphviz `circo`'s base, Mathematica `"CircularEmbedding"`. Deterministic, exact (DR-022 – DR-032). |
 | `fruchtermanReingoldLayout(…)`, `FruchtermanReingoldLayout<G>` with `step()` | NetworkX `spring_layout` / `fruchterman_reingold_layout`, igraph `layout_fruchterman_reingold`, Graphviz `fdp`, OGDF `SpringEmbedderFRExact`. Random start from the caller's generator. `barnesHutTheta:` switches the O(n²) repulsion to a Barnes–Hut quadtree (Graphviz `sfdp`, Gephi's ForceAtlas2 `barnesHutTheta`, NetworkX's `method="energy"` is the other route) for large graphs. |
 | `stressMajorizationLayout(…)`, `StressMajorizationLayout<G>` with `step()` | Gansner–Koren–North 2004; Graphviz `neato` (`mode=major`, its default), OGDF `StressMinimization`. Minimizes Kamada–Kawai's energy (see Algorithms). Deterministic. |
-| `RootedTree.reingoldTilfordLayout()` | igraph `layout_reingold_tilford`, OGDF `TreeLayout`, Graphviz `dot` on trees. Linear time (Buchheim–Jünger–Leipert 2002). Exact (DR-033 – DR-057). |
+| `RootedTree.reingoldTilfordLayout()` | igraph `layout_reingold_tilford`, OGDF `TreeLayout`, Graphviz `dot` on trees. Linear time (Buchheim–Jünger–Leipert 2002). Deterministic; the catalog trees give dyadic coordinates, compared exactly (DR-033 – DR-057), but Walker's even spacing can divide by any count (±5/6 occurs), so coordinates are in general rounded. |
 | `RootedTree.reingoldTilfordCircularLayout()` | igraph `layout_reingold_tilford_circular` (the radial tree layout), Graphviz `twopi`'s use case. Exact up to `cos`/`sin` (DR-058 – DR-063). |
 | `sugiyamaLayout(…)` → `LayeredDrawing<G>` | igraph `layout_sugiyama`, OGDF `SugiyamaLayout`, Graphviz `dot`, Mathematica `"LayeredDigraphEmbedding"`. On every `DirectedGraph`; cycles are broken by reversing arcs. Exact where the optimal layering is unique (DR-064 – DR-165). |
 
@@ -67,6 +67,20 @@ rendering and stay out.
 | `bfsLayout(start:)`, `multipartiteLayout(layer:)` | NetworkX `bfs_layout`, `multipartite_layout`: layers by BFS distance or by a caller's key, rescaled. Cheap, deterministic (DR-211, DR-212). |
 | Network-simplex layering on its own, Coffman–Graham layering (width-bounded) | OGDF `OptimalRanking`, `CoffmanGrahamRanking`. Phase 1 solves the same minimum-span problem inside `sugiyamaLayout`; a public layering entry point waits for a caller. |
 
+**Phase 2 from the review** (missing against prior art; recorded, not started)
+
+| Feature | Prior art | Note |
+|---|---|---|
+| Fixed (pinned) vertices | NetworkX `fixed=`, Graphviz `pin`, OGDF | A `(Vertex) -> Bool` on FR and stress: pinned vertices skip the update and still act on the others. |
+| Sugiyama edge weights and minimum lengths | Graphviz `weight`, `minlen`; OGDF `OptimalRanking` costs and lengths | The min-cost flow takes both directly: cost −w per arc, and minlen as the arc's length in the potentials' constraint. |
+| Per-vertex widths | OGDF `GraphAttributes::width`, Graphviz `width`, Brandes–Köpf with widths | A `width:` closure in Brandes–Köpf's compaction (separation (w_a + w_b)/2 + gap); still numbers, no rendering. |
+| Median plus transpose crossing reduction | Graphviz `dot` (weighted median, adjacent exchange), OGDF `MedianHeuristic` + `SplitHeuristic` | Barycenter with best-order retention is phase 1 (Algorithms 5). |
+| Exact feedback arc set | igraph `feedback_arc_set(method="ip")`, the integer program | NP-hard; for small graphs, in `Cycles` next to Eades–Lin–Smyth. |
+| Forest layout | igraph `layout_reingold_tilford(root=[…])` | Trees side by side, 1 apart at every shared depth. |
+| Component packing | Graphviz `pack`, igraph's per-component FR | A separate operation on `Drawing`s. |
+| Sparse stress | Ortmann–Klimenta–Brandes 2016 (pivots), Graphviz `sfdp`'s use case | Past ~10⁴ vertices, where the 2n² bytes of target distances stop fitting. |
+| Classical-scaling or pivot MDS start for stress | Gansner–Koren–North 2004, Brandes–Pich 2006 | Algorithms 2: cheap, but symmetric graphs need a tie rule. |
+
 **Not planned, or later**
 
 | Not in phase 1 | Reason |
@@ -74,8 +88,8 @@ rendering and stay out.
 | Rendering of any kind; colours, shapes, labels, sizes, SVG, images | The boundary above. |
 | Kamada–Kawai's own Newton–Raphson method (`kamadaKawaiLayout`) | Stress majorization minimizes the same energy with a monotone, globally convergent iteration (Algorithms); a second minimizer of one objective is a synonym. NetworkX's `kamada_kawai_layout` is the cross-check. |
 | DrL / OpenOrd (igraph `layout_drl`), LGL, GraphOpt, Davidson–Harel, FMMM (OGDF) | Large-graph or niche force models; Barnes–Hut FR and stress cover the cases. Candidates after phase 2 if benchmarks ask. |
-| Component packing (Graphviz `pack`, igraph's per-component layout for FR) | Phase 1 lays out the whole graph (as NetworkX). A packing step is a separate operation on `Drawing`s; later. |
-| Fixed vertices (NetworkX `fixed=`, Graphviz `pin`) | Phase 2 candidate as a `(Vertex) -> Bool` closure on FR and stress. |
+| Component packing (Graphviz `pack`, igraph's per-component layout for FR) | Phase 2 (see Phase 2 from the review). Phase 1 lays out the whole graph (as NetworkX). A packing step is a separate operation on `Drawing`s. |
+| Fixed vertices (NetworkX `fixed=`, Graphviz `pin`) | Phase 2 (see Phase 2 from the review), as a `(Vertex) -> Bool` closure on FR and stress. |
 | 3-D layouts (`dim=3`) | `SIMD2` only; a `SIMD3` variant if asked for. |
 | `planar_layout`, orthogonal layouts, `spiral_layout`, `shell_layout`, `random_layout`, `arf_layout` | Planar straight-line embedding belongs with `Planarity`; the rest are trivial or NetworkX-only. |
 | Quality metrics as public API (stress of an arbitrary drawing, crossing count of a straight-line drawing; OGDF `LayoutStatistics`) | Tests compute them inline from `positions` (definitions below). Phase 1 exposes only the values the algorithms already compute: `LayeredDrawing.crossingCount` and `StressMajorizationLayout.stress`. |
@@ -114,7 +128,7 @@ extension Graph {   // DirectedGraph through `digraph.undirected`
     public func stressMajorizationLayout(
         initial: Drawing<Vertex>? = nil,                           // nil = circularLayout(radius: mean edge length)
         edgeLength: (Edges.Index) -> Double = { _ in 1 },
-        tolerance: Double = 1e-5, maxIterations: Int = 1000
+        tolerance: Double = 1e-4, maxIterations: Int = 1000       // 1e-4: Graphviz's epsilon for mode=major
     ) -> Drawing<Vertex>
 
     // Phase 2
@@ -136,7 +150,7 @@ extension Graph {   // DirectedGraph through `digraph.undirected`
     public mutating func run()                   // step() until finished
 }
 @frozen public struct StressMajorizationLayout<G: Graph> {
-    public init(_ graph: G, initial: Drawing<G.Vertex>? = nil, edgeLength: …, tolerance: Double = 1e-5, maxIterations: Int = 1000)
+    public init(_ graph: G, initial: Drawing<G.Vertex>? = nil, edgeLength: …, tolerance: Double = 1e-4, maxIterations: Int = 1000)
     public var drawing: Drawing<G.Vertex> { get }
     public var stress: Double { get }            // Σ_{i<j} d_ij⁻² (‖x_i − x_j‖ − d_ij)²
     public var iteration: Int { get }
@@ -152,7 +166,7 @@ extension RootedTree {
 
 extension DirectedGraph {
     public func sugiyamaLayout(maxIterations: Int = 100) -> LayeredDrawing<Self>
-    public func sugiyamaLayout(layers: (Vertex) -> Int, maxIterations: Int = 100) -> LayeredDrawing<Self>  // igraph's layers=
+    public func sugiyamaLayout(layers: (Vertex) -> Int, maxIterations: Int = 100) -> LayeredDrawing<Self>  // igraph's layers=; empty layers skipped
 }
 @frozen public struct LayeredDrawing<G: DirectedGraph> {
     public var drawing: Drawing<G.Vertex> { get }                    // y = layer, x ≥ 0, separation 1
@@ -231,7 +245,13 @@ drawn identically (DR-057).
 (no division when x₁ = x₀). The root, at depth 0, is at the origin.
 
 Forests: phase 1 takes `RootedTree` only (a `Tree` is rooted with `RootedTree(_:root:)`). A
-`Forest` would place its trees side by side (igraph, with `root=` a list); later.
+`Forest` would place its trees side by side (igraph, with `root=` a list); phase 2.
+
+Coordinates are `Double` arithmetic. Separations and centring alone give multiples of a power of
+½ (exact), but the even spacing divides a shift by the number of gaps it spreads over, so ±5/6
+occurs (a root with children over five-leaf fans at both ends and two leaves between: the leaves
+sit 5/3 apart, GraphDrawingReviewTests). Rows on the catalog trees are exact; in general the
+mirror property holds to rounding.
 
 ### Layered (Sugiyama)
 
@@ -242,19 +262,36 @@ The pipeline, with the tie rules that make it deterministic:
    in-degree (least index on ties). Sinks and sources leave in first-in-first-out order of
    becoming one, seeded in index order. Self-loops are ignored; parallel arcs count. Arcs that
    point leftward in the sequence are reversed (`reversedEdges`, by position). A DAG reverses
-   nothing (DR-163).
+   nothing (DR-163). This is `Cycles.feedbackArcSet()` less its self-loops: the feedback arc set
+   includes every loop, as igraph's does, and the drawing leaves loops out.
 2. **Layering**: the minimum total edge span Σ (layer(v) − layer(u)) subject to
    layer(v) ≥ layer(u) + 1 for every arc (parallel arcs count each), each connected component
    shifted so its least layer is 0. This is network simplex's problem (Gansner et al. 1993,
-   Graphviz `dot`), solved as `dot` does: longest-path ranks, a feasible tree of tight edges grown
-   by merging tight subtrees smallest first, then pivots. The leaving edge is the tree edge with
-   the **most negative cut value** (decided: 731 pivots against about 15,000 for the first negative
-   one on a random DAG with n = 1,000, m = 2,000); the entering edge is the least-slack edge across
-   the cut. When the optimum is not unique, the implementation's network simplex picks
-   one; rows pin only the span then (DR-152), and `layers:`
+   Graphviz `dot`). It is solved through its dual, a min-cost flow (every arc uncapacitated at
+   cost −1, every vertex a supply of out-degree − in-degree), by the primal network simplex, as
+   OGDF's `OptimalRanking` routes it through a min-cost flow and LEMON's `NetworkSimplex` keeps
+   its tree (parent, thread, subtree size, last successor); the layers are minus the optimal
+   potentials. Warm start: longest-path ranks, every vertex with more out- than in-arcs pulled
+   down to just above its nearest successor, Gansner's feasible tree of tight edges on them, cut
+   where a tree arc's flow would be negative (or zero pointing away from the root) and hung from
+   an artificial root by big-M arcs. Entering arc by block search (√m arcs per block), leaving
+   arc by Cunningham's strongly feasible rule, which rules out cycling, so every run ends at an
+   optimum with no pivot cap. Decided in review: Gansner's own pivots (the leaving tree edge with
+   the most negative cut value, the entering edge searched over one side of the cut, as `dot`)
+   took 0.71 s at n = 10⁴, 4.4 s at 2 · 10⁴ and 42 s at 4 · 10⁴ on random DAGs with m = 2n
+   (almost every pivot degenerate, the cut splitting the tree about evenly); searching the
+   smaller side and pulling sources down did not change that (sides were balanced, pivots fell
+   by 10%). The primal simplex takes 60 ms, 0.23 s and 0.65 s (release), growing about as n^1.5
+   to n^1.7. Rows pin optimality: 400 random DAGs and one of 5 · 10⁴ vertices against scipy's
+   HiGHS (SugiyamaLayeringLinearProgramTests, generated by swiftgen.py). When the optimum is not
+   unique, the implementation picks one; rows pin only the span then (DR-152), and `layers:`
    gives a caller's layering instead (igraph `layers=`; an upward arc is then reversed, an arc
-   inside one layer gets no segment and no bends, a negative layer traps).
-3. **Dummies**: an edge spanning k > 1 layers gets k − 1 dummy vertices, one per inner layer.
+   inside one layer gets no segment and no bends, a negative layer traps). Only the order of the
+   caller's layers shapes the drawing: layers no vertex is on are skipped (no dummies there), y
+   is the caller's layer, and memory does not grow with the layer numbers (igraph puts a bend on
+   every layer between).
+3. **Dummies**: an edge spanning k > 1 layers gets k − 1 dummy vertices, one per inner layer
+   (with caller layers, one per non-empty inner layer).
 4. **Crossing reduction**: each layer starts with its real vertices in `vertices` order, then its
    dummies by edge position. One iteration is a down sweep (layers 1 … L−1 ordered by barycenter
    of upper neighbours) then an up sweep (layers L−2 … 0, lower neighbours). The barycenter is the
@@ -294,17 +331,28 @@ The pipeline, with the tie rules that make it deterministic:
 - Target distances d_ij: shortest-path distances with `edgeLength` (hops by default); between
   components, 1 + L̄ · √n, L̄ the mean edge length (the rule `neato` uses for disconnected
   graphs without packing). Weights w_ij = d_ij⁻²: then stress is exactly Kamada–Kawai's energy.
-- Start: `initial`, or `circularLayout(radius: L̄)` with L̄ the mean edge length (NetworkX's start
-  for `kamada_kawai_layout`, scaled as Graphviz's `neato` scales its start by the edge lengths),
-  so the whole computation is deterministic with no generator, and scaling every length by c
-  scales every iterate by c: with lengths 2 the drawing is exactly twice the unit one (DR-204; with
-  an unscaled start the doubled run converges to the same shape turned, not to 2× the drawing).
+- Start: `initial` (every position finite, or a trap), or `circularLayout(radius: L̄)` with L̄
+  the mean edge length (NetworkX's start for `kamada_kawai_layout`), so the whole computation is
+  deterministic with no generator. The start is scaled for the exact ×2 law: the update is
+  homogeneous, so scaling every length by c scales every iterate by c, exactly when c is a power
+  of 2: with lengths 2 the drawing is exactly twice the unit one (DR-204; with an unscaled start
+  the doubled run converges to the same shape turned, not to 2× the drawing). (`neato
+  -Gmode=major`, the like-for-like Graphviz run, starts from random positions; it does not scale
+  a start.)
 - One step: for each vertex i in `vertices` order (Gauss–Seidel),
   x_i ← Σ_j w_ij (x_j + d_ij (x_i − x_j) / ‖x_i − x_j‖) / Σ_j w_ij, Gansner et al.'s localized
   update. Each update minimizes a majorant of the stress in x_i, so the stress never increases
-  (DR-202). Stop when the relative decrease is below `tolerance` or after `maxIterations`.
+  (DR-202). Stop when the relative decrease is below `tolerance` (default 10⁻⁴, Graphviz's
+  `epsilon` for `mode=major`) or after `maxIterations`.
+- The reciprocal target distances 1/d_ij are stored in single precision for i < j only (2n²
+  bytes, a quarter of a full n × n matrix of doubles: 200 MB at 10⁴ vertices). A sweep reads row
+  i of that triangle twice, contiguously: before i moves, for the vertices after it (not yet
+  moved this sweep); after, to add each later vertex's term with i's new position to its running
+  sum. `stress` is that of the rounded distances (about 7 significant digits).
 - Pinned: the converged stress to ±1% and a bound of 1.02 × NetworkX's Kamada–Kawai normalized
-  stress (+ 10⁻⁴) on every row (DR-190 – DR-201).
+  stress (+ 10⁻⁴) on every row (DR-190 – DR-201), except DR-200, where the default tolerance stops
+  on a plateau (0.0958 against Kamada–Kawai's 0.0913; 10⁻⁵ reaches 0.0869): there the bound is the
+  model's value + 1%.
 
 ### Quality measures (computed in tests from `positions`)
 
@@ -350,13 +398,18 @@ matched (it draws from NumPy's generator and moves every vertex by exactly t).
    choice of the vertex with the largest gradient (O(n) per move); (b) needs no Hessian and no
    linear solver in the localized form, so no `SpectralGraphTheory` dependency; (c) is Graphviz
    `neato`'s default and Gansner et al. measure it better than KK in quality and time. Measured
-   here: on every catalog graph it is within 2% (+ 10⁻⁴) of NetworkX's KK (on Q4 it is half of
-   KK's: 0.127 against 0.252), and on 18 of 21 random connected graphs in `--stress`; on 3 the
-   circular start leads to a worse local minimum than NetworkX's L-BFGS. Recommendation: keep the
-   circular start for phase 1 (deterministic, no eigensolver) and evaluate a classical-scaling
-   start (Gansner et al.'s, or Brandes–Pich's pivot MDS) once the eigensolver exists. Tolerance
-   10⁻⁵, not 10⁻⁴: at 10⁻⁴ the random 40-vertex graph stops at 0.0958 (KK: 0.0913), at 10⁻⁵ it
-   reaches 0.0869.
+   here: on every catalog graph but DR-200 it is within 2% (+ 10⁻⁴) of NetworkX's KK (on Q4 it is
+   half of KK's: 0.127 against 0.252), and on 16 of 21 random connected graphs in `--stress` (18 of 21 at 10⁻⁵);
+   elsewhere the circular start, or the default tolerance's stop on a plateau, leaves it above
+   NetworkX's L-BFGS. Tolerance 10⁻⁴ (decided in review, Graphviz's documented `epsilon` for
+   `mode=major`): on the benchmark's random 3-regular graph with 10³ vertices it takes 291 sweeps
+   instead of 526 (about 480 ms instead of 850 ms) for 1% more stress; on the random 40-vertex graph it stops at 0.0958 (KK: 0.0913) where
+   10⁻⁵ reaches 0.0869, so a caller who wants the lower stress passes 10⁻⁵. A classical-scaling
+   start (Gansner et al.'s, or Brandes–Pich's pivot MDS) is phase 2: pivot MDS needs only the top
+   two eigenvectors of a k × k matrix (power iteration, no `SpectralGraphTheory` dependency), but
+   most catalog graphs are symmetric (cycles, grids, Q4, Petersen), where those eigenvalues
+   repeat and the start depends on rounding unless a tie rule is designed; it would also move
+   every stress row.
 3. **Reingold–Tilford: Buchheim–Jünger–Leipert's linear Walker.** Walker's algorithm is the one
    that centres parents and spaces small subtrees evenly (mirror symmetry); Walker's original is
    O(n²) in the worst case and Buchheim et al. fix that. igraph's implementation is neither: it
@@ -367,13 +420,12 @@ matched (it draws from NumPy's generator and moves every vertex by exactly t).
    "longest path layering", but its python-igraph 1.0 build (GLPK) produces neither: on random DAGs
    its total span exceeds the minimum on 49 of 157, and it appears to keep every source on layer 0.
    Longest path puts all sources on top and stretches edges (many dummies, wide bottom layers);
-   the minimum-span problem is the `dot` standard. Network simplex solves it in practice in
-   near-linear time; ties are not pinned (Determinism), so rows with several optimal layerings pin
-   the span only.
+   the minimum-span problem is the `dot` standard. Network simplex has no polynomial bound and is
+   superlinear in practice (about n^1.5 to n^1.7 on random DAGs, Semantics); ties are not pinned
+   (Determinism), so rows with several optimal layerings pin the span only.
 5. **Barycenter with best-order retention, not median plus transpose.** Barycenter is igraph's
    and Sugiyama's own; it is deterministic with the rules above and good in practice. `dot`'s
-   weighted median with adjacent-exchange ("transpose") is a phase 2 candidate if crossing counts
-   on benchmark DAGs lag `dot`'s.
+   weighted median with adjacent-exchange ("transpose") is phase 2 (see Phase 2 from the review).
 6. **Brandes–Köpf with longest-path compaction.** The original horizontal compaction (place_block
    with class shifts) can violate the separation; Brandes, Walter and Zink's erratum (2020) gives a
    corrected version. Longest path over the block graph is the simplest correct compaction; the
@@ -381,28 +433,35 @@ matched (it draws from NumPy's generator and moves every vertex by exactly t).
    DAGs lag.
 7. **Eades–Lin–Smyth for cycles.** Linear time with bucket queues; igraph's documented choice.
    Rows pin the reversed set on cyclic digraphs (on random cyclic digraphs igraph's total span
-   matches ours on 21 of 43; its exact feedback arc set reverses other arcs).
+   matches ours on 21 of 43; its exact feedback arc set reverses other arcs). `feedbackArcSet()`
+   includes self-loops as igraph's does (0 → 0, 0 → 1, 1 → 0 gives [0, 2]), and
+   `feedbackArcSet(weight:)` takes igraph's `weights` (weighted out- minus in-degree; sources and
+   sinks by remaining arcs). On 3,000 random multigraphs igraph's bucket order breaks ties
+   differently on about 10% (unweighted and weighted alike); the sets are of the same kind.
 
 ## Implementation notes (index space)
 
 - Number the vertices through the protocol: `vertexIndexBound` / `vertexIndex(of:)`, or
   `_vertexNumbering()`; read rows with `_withIncidentIndexRows`, `_withSuccessorIndexRows` or
   `neighborIndices(ofIndex:)`. Positions live in one `[SIMD2<Double>]` indexed by vertex index; the
-  `Drawing` is built once at the end. As built, `GraphDrawing` depends on `GraphProtocols`, `Trees`
-  and `Cycles` only (BFS and Dijkstra for stress are a few lines in index space, so not
-  `Traversal`).
+  `Drawing` is built once at the end. `GraphDrawing` depends on `GraphProtocols`, `Trees` and
+  `Cycles` only (scripts/modules.py and the BUILD file agree; BFS and Dijkstra for stress are a
+  few lines in index space, so not `Traversal`).
 - FR: the exact repulsion loop is O(n²) per step over contiguous `SIMD2<Double>` arrays; Barnes–Hut
-  builds a quadtree per step into reused `~Copyable` buffers (no per-node allocation) and walks it
-  per vertex, O(n log n). Attraction walks edge rows once per step.
-- Stress: all-pairs distances by BFS (unit lengths) or Dijkstra (`edgeLength`), O(n²) memory;
-  phase 1 targets graphs up to ~10⁴ vertices, as `neato`. Sparse stress (Ortmann–Klimenta–Brandes
-  2016, pivots) is the route past that, later.
+  builds a quadtree per step into flat arrays reused from step to step (cells by index, bodies
+  partitioned in place, no per-node allocation) and walks it per vertex, O(n log n). Attraction
+  walks edge rows once per step. Two vertices at exactly one point repel as if 0.01 apart (the
+  clamp distance) along a direction hashed from their pair of offsets, opposite for the reverse
+  pair, so coincident starts separate deterministically; a start with every vertex at one point
+  takes temperature k/10 (a tenth of an empty bounding box would be 0). `initial` must be finite.
+- Stress: all-pairs distances by BFS (unit lengths) or Dijkstra (`edgeLength`), kept as single-
+  precision reciprocals over i < j (2n² bytes); phase 1 targets graphs up to ~10⁴ vertices, as
+  `neato`. Sparse stress (Ortmann–Klimenta–Brandes 2016, pivots) is the route past that, phase 2.
 - Reingold–Tilford reads `RootedTree`'s `_TreeLayout` arrays (children rows, preorder) directly:
-  `GraphDrawing` depends on `Trees`. The BUILD file today lists `Traversal`, `Cycles`,
-  `SpectralGraphTheory`; phase 1 needs `GraphProtocols`, `Trees` and `Traversal` (BFS distances);
-  `SpectralGraphTheory` only for phase 2. `Cycles` is needed only if Eades–Lin–Smyth moves there
-  as a public `feedbackArcSet()` (igraph `feedback_arc_set`), which is the recommendation: a
-  feedback arc set is a cycle concept, and then `reversedEdges` is that result.
+  `GraphDrawing` depends on `Trees`. `Cycles` provides `feedbackArcSet()` (igraph
+  `feedback_arc_set`): a feedback arc set is a cycle concept, and `reversedEdges` is that result
+  without its self-loops. `SpectralGraphTheory` (it exists now) is needed only for phase 2's
+  `spectralLayout()`.
 - `uniform01` is internal to `RandomGraphs`; `GraphDrawing` repeats the one-line draw (top 53
   bits) rather than depend on `RandomGraphs`. Tests take the generator from `RandomGraphs`.
 - No Foundation: `cos`, `sin`, `sqrt` from Darwin/Glibc/Musl as `RandomGraphs/Draws.swift` imports
@@ -415,9 +474,9 @@ matched (it draws from NumPy's generator and moves every vertex by exactly t).
 | `circularLayout` | O(n) | O(n) |
 | `rescaled`, `boundingBox` | O(n) | O(n) / O(1) |
 | `fruchtermanReingoldLayout` | O(iterations · (n² + m)); with Barnes–Hut O(iterations · (n log n + m)) | O(n) |
-| `stressMajorizationLayout` | O(n (n + m)) distances (BFS) + O(iterations · n²) | O(n²) |
+| `stressMajorizationLayout` | O(n (n + m)) distances (BFS) + O(iterations · n²) | 2n² bytes (single-precision triangle) + O(n + m) |
 | `reingoldTilfordLayout`, circular form | O(n) | O(n) |
-| `sugiyamaLayout` | O(n + m) cycle removal; network simplex (polynomial bound not tight, near-linear in practice); O(iterations · (N + M) log N) crossing reduction over N real + dummy vertices and M segments, crossing counts by Barth–Jünger–Mutzel accumulator trees; O(N + M) Brandes–Köpf | O(N + M) |
+| `sugiyamaLayout` | O((n + m) log n) cycle removal; network simplex (no polynomial bound; about n^1.5 to n^1.7 on random DAGs); O(iterations · (N + M) log N) crossing reduction over N real + dummy vertices and M segments, crossing counts by Barth–Jünger–Mutzel accumulator trees (no per-node sort); O(N + M) Brandes–Köpf (median neighbours from one pass over the layers, not a sort per node) | O(N + M) |
 
 ## Performance
 
@@ -425,6 +484,10 @@ Baselines from `ref.py --bench` (one run on the development machine, Apple silic
 random 3-regular graphs from NetworkX seed 1, random trees and DAGs from the catalog's LCG;
 `> 120 s` is the timeout). Graphviz (`dot`, `neato`, `sfdp`) is not installed on the development
 machine, so its baselines are not measured; the benchmark target should add them where available.
+The like-for-like baseline for stress majorization is `neato -Gmode=major` (same energy, same
+minimizer, `epsilon` 10⁻⁴); igraph's `layout_kamada_kawai` minimizes the same energy by another
+method. igraph's `layout_sugiyama` at 10⁴ skips the LP it layers smaller graphs with, so that row
+times a cheaper layering than ours (minimum span), not the same work.
 
 | Layout and input | n | Time |
 |---|---|---|
@@ -452,11 +515,17 @@ Targets for the Swift implementation, measured in the benchmark target against t
 |---|---|
 | FR exact, 10³ vertices, 50 iterations | ≤ igraph `layout_fruchterman_reingold` (C), ≥ 20× NetworkX |
 | FR with Barnes–Hut (θ = 1.2), 10⁴ and 10⁵ vertices, 50 iterations | ≤ igraph's grid FR at 10⁵ (6.6 s), so ≥ 15× igraph DrL; within 2× `sfdp` where installed; quality bound of DR-186/DR-187 kept |
-| Stress majorization, 10³ vertices | ≤ igraph `layout_kamada_kawai`, ≥ 20× NetworkX `kamada_kawai_layout` |
+| Stress majorization, 10³ vertices | ≤ igraph `layout_kamada_kawai`, ≥ 20× NetworkX `kamada_kawai_layout`; within 2× `neato -Gmode=major` where installed |
 | Reingold–Tilford, 10⁶ vertices (the LCG tree) | ≤ 200 ms, linear (within 4× one preorder pass of `RootedTree`); igraph exceeds 120 s |
 | Sugiyama, random DAGs with 10³ and 10⁴ vertices, m = 2n | ≤ igraph `layout_sugiyama`; crossings ≤ igraph's on the same DAG; within 2× `dot` where installed |
 | `circularLayout`, 10⁶ vertices | one pass, no allocation beyond the result |
 | Allocations per `step()` | none in steady state (FR exact, stress); one reused quadtree for Barnes–Hut |
+
+Measured in review (GraphDrawingBenchmarks, release, a loaded machine, medians): stress
+majorization at 10³ 355 ms (813–882 ms before, at tolerance 10⁻⁵ with a full matrix of doubles);
+`sugiyamaLayout()` 31 ms at 10³ and 524 ms at 10⁴; the layering alone (`maxIterations: 0`) at
+4 · 10⁴ about 0.7 s (42 s before); a star and an in-star of 4 · 10⁴ leaves 12 ms each (1.08 s
+before, an insertion sort per hub).
 
 ## Library disagreements found
 
@@ -469,6 +538,8 @@ Targets for the Swift implementation, measured in the benchmark target against t
 | igraph `layout_sugiyama` | documented as longest-path layering after Eades–Lin–Smyth; in python-igraph 1.0 its layering is neither longest path nor minimum span (sources stay on layer 0); 49 of 157 random DAGs have a larger span than ours | `--stress`; DR-152 |
 | igraph `layout_sugiyama` return value | python-igraph 1.0 returns control points per edge ("an additional list of matrices"), not the extended graph with dummies of earlier versions | Names |
 | NetworkX `kamada_kawai_layout` | on disconnected graphs uses distance 10⁶ between components; ours uses `neato`'s 1 + L̄√n | DR-201 |
+| igraph `feedback_arc_set` | includes self-loops (adopted); breaks Eades–Lin–Smyth's ties in its bucket order, so on about 10% of random multigraphs it returns another set (weighted too) | CyclesTests/FeedbackArcSetTests |
+| igraph `layout_sugiyama(layers=)` | puts a bend on every layer between an edge's ends, empty or not; ours skips empty layers | GraphDrawingReviewTests |
 
 ## README edits proposed
 
@@ -486,9 +557,11 @@ Targets for the Swift implementation, measured in the benchmark target against t
 1. **Feedback arc set in `Cycles`.** *Decided as recommended:* `feedbackArcSet() -> [Edges.Index]`
    on `DirectedGraph` (Eades–Lin–Smyth, with the tie rules above, in position order, igraph's
    `feedback_arc_set`) is public in `Cycles`, with an exact phase 2 variant; `sugiyamaLayout` calls
-   it, and `reversedEdges` is its result.
+   it, and `reversedEdges` is its result less self-loops (which `feedbackArcSet()` includes, as
+   igraph does). `feedbackArcSet(weight:)` (igraph's `weights`) was added in review.
 2. **Network simplex ties.** *Decided as recommended:* ties are unpinned (rows pin the span), so
-   the pivoting rule can change for speed; phase 1 takes the most negative cut value.
+   the pivoting rule can change for speed; it did in review (the dual min-cost flow by primal
+   network simplex, Semantics).
 3. **`Drawing` generic over `Vertex`, not over the graph.** *Recommendation:* over `Vertex`, as the
    README says: callers build drawings without a graph (initial positions) and keep them after the
    graph changes. `LayeredDrawing` is over the graph because it reads edge positions.
