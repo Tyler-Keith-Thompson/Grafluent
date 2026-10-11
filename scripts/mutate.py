@@ -76,11 +76,14 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE = os.environ.get("GRAFLUENT_MUTATION_DIR") or os.path.join(
     os.path.expanduser("~/Library/Caches") if sys.platform == "darwin" else os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache")),
     "grafluent-mutation")
-WORK = os.path.join(BASE, "work")
+# One scratch copy per module, so runs on different modules proceed in parallel; runs on the same
+# module take turns on that copy's lock. The module is the first positional argument.
+_MODULE_ARG = next((a for a in sys.argv[1:] if not a.startswith("-")), "default")
+WORK = os.path.join(BASE, "work", _MODULE_ARG)
 RESULTS = os.path.join(BASE, "results")
 # A second copy for the coverage pass, the same sources with the module instrumented, so the
 # mutant runs use an uninstrumented build.
-COVERAGE_WORK = os.path.join(BASE, "coverage")
+COVERAGE_WORK = os.path.join(BASE, "coverage", _MODULE_ARG)
 SWIFT = ["env", "-u", "TOOLCHAINS", "xcrun", "--toolchain", "default", "swift"]
 # Bump when the schemata, the runner or the stored format change meaning: every stored result
 # is then stale.
@@ -520,16 +523,17 @@ def main():
                         help="run each mutant first against only the tests that reach it (coverage-based)")
     args = parser.parse_args()
 
-    # One run at a time: every run shares the scratch workspace in WORK, so a second run would
-    # overwrite the first's sources and builds. Later runs wait here for the lock.
+    # One run per module at a time: a second run on the same module would overwrite the first's
+    # sources and builds in WORK. Later runs on that module wait here for the lock.
     import fcntl
     os.makedirs(os.path.dirname(WORK), exist_ok=True)
-    lock = open(WORK + ".lock", "w")
+    # Kept in a name of its own for the whole run: rebinding it would close the file and drop the lock.
+    workspace_lock = open(WORK + ".lock", "w")
     try:
-        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        fcntl.flock(workspace_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except BlockingIOError:
         print("Another mutation run holds the workspace; waiting for it to finish...", flush=True)
-        fcntl.flock(lock, fcntl.LOCK_EX)
+        fcntl.flock(workspace_lock, fcntl.LOCK_EX)
 
     mutants, bundles = load_spec(args.module)
     names = {m.name for m in mutants}
