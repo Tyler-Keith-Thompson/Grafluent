@@ -21,9 +21,12 @@ Conventions:
 * Groups `Generic` and `Closures` are cross-module. `Generic` runs the existing Traversal,
   Connectivity, Cycles and ShortestPaths algorithms on the implicit graph and compares with
   NetworkX. Components are compared as sets, since their order is the owning module's rule.
-  `Closures` rows are design input for ShortestPaths D19 (unimplemented) and one existing Traversal
-  entry point. They belong in those suites, and they pin distances and path vertex counts, not
-  tie-breaking. `P(x, y)` is a `Hashable` point, and `knight1` gives each knight move cost 1.
+  `Closures` rows cover ShortestPaths D19 and one existing Traversal entry point. They pin
+  distances and path vertex counts, not tie-breaking. `P(x, y)` is a `Hashable` point, and
+  `knight1` gives each knight move cost 1. In `costly` a step's cost depends only on the cell
+  entered, so the goal's first push already has its distance; in `twoEnded` it depends on both
+  ends, and a search that tests the goal when it is pushed, not when it is settled, answers more
+  (`ref.py` asserts this for IG-030 and IG-031).
 * `**trap**` rows are preconditions, run as exit tests.
 
 | ID | Group | Case | Input / call | Expected |
@@ -57,3 +60,5 @@ Conventions:
 | IG-027 | Closures | D19 A*: the same with Manhattan distance (admissible: every step costs ≥ 1) | aStarShortestPath(from: P(0, 0), successors: costly, heuristic: manhattan(to: P(4, -3)), success: { $0 == P(4, -3) }) / distance | 12 |
 | IG-028 | Closures | D19: the start satisfies success | dijkstraShortestPath(from: 3, successors: { [($0 + 1, 1)] }, success: { $0 == 3 }) / (distance, path.count) | (0, 1) |
 | IG-029 | Closures | D19: a finite space with no goal returns nil | dijkstraShortestPath(from: 0, successors: { $0 < 10 ? [($0 + 1, 1)] : [] }, success: { $0 == 20 }) / (distance, path.count) | nil |
+| IG-030 | Closures | D19 Dijkstra: a step from p to q costs 1 + (p.x · q.y) mod 3, so the goal's first push is not its distance | dijkstraShortestPath(from: P(0, 0), successors: twoEnded, success: { $0 == P(-4, 4) }) / distance | 8 |
+| IG-031 | Closures | D19 A*: the same with Manhattan distance | aStarShortestPath(from: P(0, 0), successors: twoEnded, heuristic: manhattan(to: P(-4, 4)), success: { $0 == P(-4, 4) }) / distance | 8 |

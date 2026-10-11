@@ -1,0 +1,170 @@
+// Reads (catalog FG-016 – FG-018): the one-element rows, membership false off 0..<n, and the
+// dense indices, which are the vertices and the edge positions.
+// Generated from cases.md by swiftgen.py; see README.md.
+
+import FunctionalGraphs
+import GraphProtocols
+import Testing
+
+@Suite("FunctionalGraphs reads")
+struct FunctionalGraphReadTests {
+    @Test("FG-016 successor rows")
+    func fg016() {
+        // FG [1, 2, 0, 0] / successor(of: 3) / successors(of: 3) / outEdges(of: 3) / outDegree(of: 3) / successorIndices(ofIndex: 1) → 0; [0]; [3]; 1; [2]
+        let graph = FunctionalGraph(successors: [1, 2, 0, 0])
+        #expect(graph.successor(of: 3) == 0)
+        #expect(Array(graph.successors(of: 3)) == [0])
+        #expect(Array(graph.outEdges(of: 3)) == [3])
+        #expect(graph.outDegree(of: 3) == 1)
+        #expect(Array(graph.successorIndices(ofIndex: 1)) == [2])
+        do {
+            // The whole graph, from the model.
+            #expect(graph.vertexCount == 4 && graph.edgeCount == 4 && graph.edges.count == 4)
+            #expect(graph.vertexIndexBound == 4 && graph.edgeIndexBound == 4)
+            #expect(Array(graph.vertices) == [0, 1, 2, 3])
+            #expect(graph.vertices.map { graph.successor(of: $0) } == [1, 2, 0, 0])
+            #expect(graph.edges.map { [$0.source, $0.target] } == [[0, 1], [1, 2], [2, 0], [3, 0]])
+            #expect(Array(graph.edges.indices) == [0, 1, 2, 3])
+            #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0), graph.edgeIndex(of: $0)] } == [[0, 1, 0], [1, 2, 1], [2, 0, 2], [3, 0, 3]])
+            #expect(graph.vertices.map { Array(graph.successors(of: $0)) } == [[1], [2], [0], [0]])
+            #expect(graph.vertices.map { Array(graph.successorIndices(ofIndex: $0)) } == [[1], [2], [0], [0]])
+            #expect(graph.vertices.map { Array(graph.outEdges(of: $0)) } == [[0], [1], [2], [3]])
+            #expect(graph.vertices.map { Array(graph.outEdges(ofIndex: $0)) } == [[0], [1], [2], [3]])
+            #expect(graph.vertices.map { graph.outDegree(of: $0) } == [1, 1, 1, 1])
+            #expect(graph.vertices.map { [graph.vertexIndex(of: $0), graph.vertex(atIndex: $0)] } == [[0, 0], [1, 1], [2, 2], [3, 3]])
+            #expect(graph.vertices.allSatisfy { graph.contains($0) && graph.contains(edge: DirectedEdge(from: $0, to: graph.successor(of: $0))) })
+            #expect(!graph.contains(-1) && !graph.contains(4))
+            // The cycle decomposition, from the model.
+            let whole = graph.cycleDecomposition()
+            #expect(whole.cycles.map { Array($0) } == [[0, 1, 2]])
+            #expect(whole.cycles.count == 1)
+            #expect(graph.vertices.map { whole.component(of: $0) } == [0, 0, 0, 0])
+            #expect(graph.vertices.map { whole.root(of: $0) } == [0, 1, 2, 0])
+            #expect(graph.vertices.map { whole.tailLength(of: $0) } == [0, 0, 0, 1])
+            #expect(graph.vertices.map { whole.cycleLength(of: $0) } == [3, 3, 3, 3])
+            #expect(graph.vertices.map { whole.inDegree(of: $0) } == [2, 1, 1, 0])
+            #expect(graph.vertices.map { Array(whole.preimages(of: $0)) } == [[2, 3], [0], [1], [] as [Int]])
+            #expect(graph.vertices.map { graph.successor(of: $0, steps: 0) } == [0, 1, 2, 3])
+            #expect(graph.vertices.map { whole.successor(of: $0, steps: 0) } == [0, 1, 2, 3])
+            #expect(graph.vertices.map { graph.successor(of: $0, steps: 1) } == [1, 2, 0, 0])
+            #expect(graph.vertices.map { whole.successor(of: $0, steps: 1) } == [1, 2, 0, 0])
+            #expect(graph.vertices.map { graph.successor(of: $0, steps: 2) } == [2, 0, 1, 1])
+            #expect(graph.vertices.map { whole.successor(of: $0, steps: 2) } == [2, 0, 1, 1])
+            #expect(graph.vertices.map { graph.successor(of: $0, steps: 4) } == [1, 2, 0, 0])
+            #expect(graph.vertices.map { whole.successor(of: $0, steps: 4) } == [1, 2, 0, 0])
+            #expect(graph.vertices.map { graph.successor(of: $0, steps: 5) } == [2, 0, 1, 1])
+            #expect(graph.vertices.map { whole.successor(of: $0, steps: 5) } == [2, 0, 1, 1])
+            #expect(graph.vertices.map { graph.successor(of: $0, steps: 10) } == [1, 2, 0, 0])
+            #expect(graph.vertices.map { whole.successor(of: $0, steps: 10) } == [1, 2, 0, 0])
+            #expect(graph.vertices.map { graph.successor(of: $0, steps: Int.max) } == [1, 2, 0, 0])
+            #expect(graph.vertices.map { whole.successor(of: $0, steps: Int.max) } == [1, 2, 0, 0])
+        }
+    }
+
+    @Test("FG-017 contains is false for non-vertices")
+    func fg017() {
+        // FG [1, 2, 0] / contains(2) / contains(3) / contains(-1) / contains(edge: 2→0) / contains(edge: 2→1) / contains(edge: 5→0) → true; false; false; true; false; false
+        let graph = FunctionalGraph(successors: [1, 2, 0])
+        #expect(graph.contains(2))
+        #expect(!graph.contains(3))
+        #expect(!graph.contains(-1))
+        #expect(graph.contains(edge: DirectedEdge(from: 2, to: 0)))
+        #expect(!graph.contains(edge: DirectedEdge(from: 2, to: 1)))
+        #expect(!graph.contains(edge: DirectedEdge(from: 5, to: 0)))
+        do {
+            // The whole graph, from the model.
+            #expect(graph.vertexCount == 3 && graph.edgeCount == 3 && graph.edges.count == 3)
+            #expect(graph.vertexIndexBound == 3 && graph.edgeIndexBound == 3)
+            #expect(Array(graph.vertices) == [0, 1, 2])
+            #expect(graph.vertices.map { graph.successor(of: $0) } == [1, 2, 0])
+            #expect(graph.edges.map { [$0.source, $0.target] } == [[0, 1], [1, 2], [2, 0]])
+            #expect(Array(graph.edges.indices) == [0, 1, 2])
+            #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0), graph.edgeIndex(of: $0)] } == [[0, 1, 0], [1, 2, 1], [2, 0, 2]])
+            #expect(graph.vertices.map { Array(graph.successors(of: $0)) } == [[1], [2], [0]])
+            #expect(graph.vertices.map { Array(graph.successorIndices(ofIndex: $0)) } == [[1], [2], [0]])
+            #expect(graph.vertices.map { Array(graph.outEdges(of: $0)) } == [[0], [1], [2]])
+            #expect(graph.vertices.map { Array(graph.outEdges(ofIndex: $0)) } == [[0], [1], [2]])
+            #expect(graph.vertices.map { graph.outDegree(of: $0) } == [1, 1, 1])
+            #expect(graph.vertices.map { [graph.vertexIndex(of: $0), graph.vertex(atIndex: $0)] } == [[0, 0], [1, 1], [2, 2]])
+            #expect(graph.vertices.allSatisfy { graph.contains($0) && graph.contains(edge: DirectedEdge(from: $0, to: graph.successor(of: $0))) })
+            #expect(!graph.contains(-1) && !graph.contains(3))
+            // The cycle decomposition, from the model.
+            let whole = graph.cycleDecomposition()
+            #expect(whole.cycles.map { Array($0) } == [[0, 1, 2]])
+            #expect(whole.cycles.count == 1)
+            #expect(graph.vertices.map { whole.component(of: $0) } == [0, 0, 0])
+            #expect(graph.vertices.map { whole.root(of: $0) } == [0, 1, 2])
+            #expect(graph.vertices.map { whole.tailLength(of: $0) } == [0, 0, 0])
+            #expect(graph.vertices.map { whole.cycleLength(of: $0) } == [3, 3, 3])
+            #expect(graph.vertices.map { whole.inDegree(of: $0) } == [1, 1, 1])
+            #expect(graph.vertices.map { Array(whole.preimages(of: $0)) } == [[2], [0], [1]])
+            #expect(graph.vertices.map { graph.successor(of: $0, steps: 0) } == [0, 1, 2])
+            #expect(graph.vertices.map { whole.successor(of: $0, steps: 0) } == [0, 1, 2])
+            #expect(graph.vertices.map { graph.successor(of: $0, steps: 1) } == [1, 2, 0])
+            #expect(graph.vertices.map { whole.successor(of: $0, steps: 1) } == [1, 2, 0])
+            #expect(graph.vertices.map { graph.successor(of: $0, steps: 2) } == [2, 0, 1])
+            #expect(graph.vertices.map { whole.successor(of: $0, steps: 2) } == [2, 0, 1])
+            #expect(graph.vertices.map { graph.successor(of: $0, steps: 3) } == [0, 1, 2])
+            #expect(graph.vertices.map { whole.successor(of: $0, steps: 3) } == [0, 1, 2])
+            #expect(graph.vertices.map { graph.successor(of: $0, steps: 4) } == [1, 2, 0])
+            #expect(graph.vertices.map { whole.successor(of: $0, steps: 4) } == [1, 2, 0])
+            #expect(graph.vertices.map { graph.successor(of: $0, steps: 8) } == [2, 0, 1])
+            #expect(graph.vertices.map { whole.successor(of: $0, steps: 8) } == [2, 0, 1])
+            #expect(graph.vertices.map { graph.successor(of: $0, steps: Int.max) } == [1, 2, 0])
+            #expect(graph.vertices.map { whole.successor(of: $0, steps: Int.max) } == [1, 2, 0])
+        }
+    }
+
+    @Test("FG-018 dense indices are the vertices")
+    func fg018() {
+        // FG [1, 2, 0] / vertexIndexBound / vertexIndex(of: 2) / vertex(atIndex: 1) / source(ofEdgeAt: 1) / target(ofEdgeAt: 1) → 3; 2; 1; 1; 2
+        let graph = FunctionalGraph(successors: [1, 2, 0])
+        #expect(graph.vertexIndexBound == 3)
+        #expect(graph.vertexIndex(of: 2) == 2)
+        #expect(graph.vertex(atIndex: 1) == 1)
+        #expect(graph.source(ofEdgeAt: 1) == 1)
+        #expect(graph.target(ofEdgeAt: 1) == 2)
+        do {
+            // The whole graph, from the model.
+            #expect(graph.vertexCount == 3 && graph.edgeCount == 3 && graph.edges.count == 3)
+            #expect(graph.vertexIndexBound == 3 && graph.edgeIndexBound == 3)
+            #expect(Array(graph.vertices) == [0, 1, 2])
+            #expect(graph.vertices.map { graph.successor(of: $0) } == [1, 2, 0])
+            #expect(graph.edges.map { [$0.source, $0.target] } == [[0, 1], [1, 2], [2, 0]])
+            #expect(Array(graph.edges.indices) == [0, 1, 2])
+            #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0), graph.edgeIndex(of: $0)] } == [[0, 1, 0], [1, 2, 1], [2, 0, 2]])
+            #expect(graph.vertices.map { Array(graph.successors(of: $0)) } == [[1], [2], [0]])
+            #expect(graph.vertices.map { Array(graph.successorIndices(ofIndex: $0)) } == [[1], [2], [0]])
+            #expect(graph.vertices.map { Array(graph.outEdges(of: $0)) } == [[0], [1], [2]])
+            #expect(graph.vertices.map { Array(graph.outEdges(ofIndex: $0)) } == [[0], [1], [2]])
+            #expect(graph.vertices.map { graph.outDegree(of: $0) } == [1, 1, 1])
+            #expect(graph.vertices.map { [graph.vertexIndex(of: $0), graph.vertex(atIndex: $0)] } == [[0, 0], [1, 1], [2, 2]])
+            #expect(graph.vertices.allSatisfy { graph.contains($0) && graph.contains(edge: DirectedEdge(from: $0, to: graph.successor(of: $0))) })
+            #expect(!graph.contains(-1) && !graph.contains(3))
+            // The cycle decomposition, from the model.
+            let whole = graph.cycleDecomposition()
+            #expect(whole.cycles.map { Array($0) } == [[0, 1, 2]])
+            #expect(whole.cycles.count == 1)
+            #expect(graph.vertices.map { whole.component(of: $0) } == [0, 0, 0])
+            #expect(graph.vertices.map { whole.root(of: $0) } == [0, 1, 2])
+            #expect(graph.vertices.map { whole.tailLength(of: $0) } == [0, 0, 0])
+            #expect(graph.vertices.map { whole.cycleLength(of: $0) } == [3, 3, 3])
+            #expect(graph.vertices.map { whole.inDegree(of: $0) } == [1, 1, 1])
+            #expect(graph.vertices.map { Array(whole.preimages(of: $0)) } == [[2], [0], [1]])
+            #expect(graph.vertices.map { graph.successor(of: $0, steps: 0) } == [0, 1, 2])
+            #expect(graph.vertices.map { whole.successor(of: $0, steps: 0) } == [0, 1, 2])
+            #expect(graph.vertices.map { graph.successor(of: $0, steps: 1) } == [1, 2, 0])
+            #expect(graph.vertices.map { whole.successor(of: $0, steps: 1) } == [1, 2, 0])
+            #expect(graph.vertices.map { graph.successor(of: $0, steps: 2) } == [2, 0, 1])
+            #expect(graph.vertices.map { whole.successor(of: $0, steps: 2) } == [2, 0, 1])
+            #expect(graph.vertices.map { graph.successor(of: $0, steps: 3) } == [0, 1, 2])
+            #expect(graph.vertices.map { whole.successor(of: $0, steps: 3) } == [0, 1, 2])
+            #expect(graph.vertices.map { graph.successor(of: $0, steps: 4) } == [1, 2, 0])
+            #expect(graph.vertices.map { whole.successor(of: $0, steps: 4) } == [1, 2, 0])
+            #expect(graph.vertices.map { graph.successor(of: $0, steps: 8) } == [2, 0, 1])
+            #expect(graph.vertices.map { whole.successor(of: $0, steps: 8) } == [2, 0, 1])
+            #expect(graph.vertices.map { graph.successor(of: $0, steps: Int.max) } == [1, 2, 0])
+            #expect(graph.vertices.map { whole.successor(of: $0, steps: Int.max) } == [1, 2, 0])
+        }
+    }
+}

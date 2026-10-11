@@ -115,6 +115,8 @@ TEST_TARGETS = [
     ("NamedGraphsTests", ["GraphProtocols", "NamedGraphs", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "Multigraphs", "StableGraphs", "Trees", "BipartiteGraphs", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("RandomGraphsTests", ["GraphProtocols", "RandomGraphs", "NamedGraphs", "BipartiteGraphs", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "Multigraphs", "StableGraphs", "Trees", "DirectedAcyclicGraphModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("GraphProtocolsTests", ["GraphProtocols", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "EdgeListModule", "GrafluentTestSupport", "swift-collections/BitCollections"]),
+    ("FunctionalGraphsTests", ["GraphProtocols", "FunctionalGraphs", "Multigraphs", "LabeledGraphs", "Traversal", "Connectivity", "ShortestPaths", "Walks", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
+    ("ImplicitGraphsTests", ["GraphProtocols", "ImplicitGraphs", "Multigraphs", "CompressedSparseRowModule", "LabeledGraphs", "Traversal", "Connectivity", "ShortestPaths", "Walks", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
 ]
 
 # Bazel test sizes above the default "small" (60 s timeout), for suites whose solo run takes more

@@ -60,7 +60,7 @@ Conventions:
 | FG-037 | Decomposition | a constant map: one fixed point | FG [0, 0, 0, 0] / cycles / tailLength(of:) for 0..<4 | [[0]]; [0, 1, 1, 1] |
 | FG-038 | Decomposition | the identity: n fixed points | FG [0, 1, 2] / cycles / component(of:) for 0..<3 | [[0], [1], [2]]; [0, 1, 2] |
 | FG-039 | Decomposition | a path into a fixed point | FG [1, 2, 3, 4, 4] / cycles / tailLength(of:) for 0..<5 / root(of: 0) | [[4]]; [4, 3, 2, 1, 0]; 4 |
-| FG-040 | Decomposition | a cycle is rotated to start at its least vertex | FG [2, 0, 1] / cycles | [[0, 2, 1]] |
+| FG-040 | Decomposition | a cycle is rotated to start at its least vertex: the walk from 0 enters it at 3 | FG [3, 3, 1, 2] / cycles / root(of: 0) | [[1, 3, 2]]; 3 |
 | FG-041 | Decomposition | cycles ordered by least vertex, not by discovery | FG [3, 2, 1, 4, 3] / cycles / component(of:) for 0..<5 | [[1, 2], [3, 4]]; [1, 0, 0, 1, 1] |
 | FG-042 | Decomposition | one long cycle | FG [1, 2, 3, 4, 5, 6, 7, 0] / cycles / successor(of: 5, steps: 11) | [[0, 1, 2, 3, 4, 5, 6, 7]]; 0 |
 | FG-043 | Traps | decomposition query on a non-vertex | FG [3, 0, 1, 5, 3, 6, 3, 7, 9, 10, 9, 8] / cycleDecomposition().tailLength(of: 12) | **trap** (12 is not a vertex of the graph) |

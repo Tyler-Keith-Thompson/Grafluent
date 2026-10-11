@@ -128,5 +128,6 @@ starts with its ID. WK-12nn cases are the Walks catalog's migration section (`Te
 | SP-B01 – SP-B08 | Benchmarks | not tests; SP-115 and SP-116 assert only answers (and SP-115 that Bellman–Ford reads each weight about once on a path) |
 
 Not tested here: the successor-closure entry points (`dijkstraShortestPath(from:successors:success:)`
-and `aStarShortestPath(from:successors:heuristic:success:)`, catalog D19), deferred to a later
-phase; and `bidirectionalShortestPath`, which stays in Traversal and is tested there.
+and `aStarShortestPath(from:successors:heuristic:success:)`, catalog D19), tested with the implicit
+graphs in `Tests/ImplicitGraphsTests` (IG-024 – IG-031, properties and stress); and
+`bidirectionalShortestPath`, which stays in Traversal and is tested there.

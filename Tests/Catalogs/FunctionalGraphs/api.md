@@ -118,7 +118,7 @@ extension FunctionalGraph {
     /// f^k(v). O(min(k, n)) time, O(1) memory: walks k steps when k <= n, otherwise finds v's
     /// tail and cycle by Brent's algorithm and walks μ + (k − μ) mod λ steps.
     public func successor(of v: Int, steps k: Int) -> Int
-    public func cycleDecomposition() -> CycleDecomposition            // O(n) time, ≈ 6n Ints
+    public func cycleDecomposition() -> CycleDecomposition            // O(n) time, ≈ 5n Ints
 }
 ```
 
@@ -143,29 +143,30 @@ extension FunctionalGraph {
 }
 ```
 
-**Algorithm.** One pass in vertex order:
+**Algorithm** (as implemented; the walk-and-unwind plan first written here measured 4× slower on
+a random mapping, a chain of dependent cache misses per vertex):
 
-1. From each unvisited vertex, walk f and mark vertices *active*, until reaching a marked vertex.
-   Reaching an active vertex closes a new cycle.
-2. Unwind the path: `tail[u] = tail[f(u)] + 1` and `root[u] = root[f(u)]`. No recursion, so a path
-   of 10⁷ vertices does not overflow the stack.
-3. Rotate each cycle to its least vertex, and order the cycles by least vertex in a second O(n)
-   pass. Discovery order is not least-vertex order (FG-041).
-4. Build the preimage rows by a counting sort of f (ascending, FG-031).
-5. For `successor(of:steps:)`:
-   - number the tree vertices in preorder from each cyclic root over the preimage rows, and keep,
-     per depth, the sorted preorder numbers;
-   - for k < tail(v), the answer is the vertex at depth tail(v) − k with the greatest preorder
-     number ≤ pre(v), found by binary search (a level-ancestor query, Bender and Farach-Colton's
-     problem);
-   - for k ≥ tail(v), it is `cycle[(position(root) + k − tail) mod λ]`, with no overflow even at
-     `Int.max`.
+1. A counting sort of f gives the preimage rows (ascending, FG-031) and the in-degrees.
+2. Peel the vertices of in-degree zero, repeatedly, leaves first, adding each one's subtree size
+   to its successor's. What remains is exactly the cyclic vertices.
+3. Walk each cycle from its least vertex, the cycles in order of least vertex (FG-040, FG-041).
+4. Revisit the peeled vertices in reverse (parents first): tail length, root, and a preorder
+   number from the subtree sizes (each child takes its parent's next free number).
+5. A counting sort of the tree vertices by depth, each depth in preorder, with each one's
+   preorder number beside it.
+6. For `successor(of:steps:)`: for k < tail(v), the answer is the vertex at depth tail(v) − k
+   with the greatest preorder number ≤ pre(v), by binary search (a level-ancestor query, Bender
+   and Farach-Colton's problem); for k ≥ tail(v), it is
+   `cycle[(position(root) + k − tail) mod λ]`, with no overflow even at `Int.max`.
 
-The result is O(n) in total, with no log factor in memory.
+Nothing recurses. The result is 5n + O(1) `Int`s plus one per cycle and per unit of the longest
+tail: the per-vertex records are three `Int32`s (as `Trees` keeps its nodes), so the
+decomposition needs fewer than 2³¹ vertices.
 
 **Traps:**
 - a vertex outside `0..<n` (FG-043);
-- `steps < 0` (FG-044).
+- `steps < 0` (FG-044);
+- `cycleDecomposition()` on 2³¹ − 1 vertices or more (not testable at that size).
 
 ### Cycle detection over a closure
 

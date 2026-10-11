@@ -7,10 +7,10 @@ and duplicates nothing.
 | Case | Where it lives | Status |
 |---|---|---|
 | **Infinite or unbounded state spaces** (puzzles, unbounded grids): no vertex collection exists | Free functions over a successor closure, in the module of the algorithm: `Traversal.breadthFirstSearch(from:depthLimit:successors:)`, `depthFirstSearch(from:depthLimit:successors:)`, `topologicalSort(from:successors:)`, `iterativeDeepeningDepthFirstSearch(from:successors:until:)` (`Sources/Traversal/SuccessorFunctionSearch.swift`) | **Implemented** |
-| The weighted searches of the same shape: `dijkstraShortestPath(from:successors:success:)` and `aStarShortestPath(from:successors:heuristic:success:)`, `successors: (V) -> some Sequence<(V, W)>` | `ShortestPaths`, decision D19 (`Tests/Catalogs/ShortestPaths/cases.md`), pathfinding's signatures | **Designed, not implemented**: IG-024 – IG-029 give it values |
+| The weighted searches of the same shape: `dijkstraShortestPath(from:successors:success:)` and `aStarShortestPath(from:successors:heuristic:success:)`, `successors: (V) -> some Sequence<(V, W)>` | `ShortestPaths`, decision D19 (`Tests/Catalogs/ShortestPaths/cases.md`), pathfinding's signatures | **Implemented** (`Sources/ShortestPaths/SuccessorFunctionSearch.swift`); IG-024 – IG-031 give it values |
 | **Finite but unstored** (a bounded grid, a bounded state space numbered `0..<n`): every `DirectedGraph` algorithm should run on it with no edge storage | **`ImplicitDirectedGraph`**, this module (README Representations row) | **This catalog** |
 
-`cases.md` (IG-001 – IG-029, 29 rows) pins the values. `ref.py` ports the type, counts every
+`cases.md` (IG-001 – IG-031, 31 rows) pins the values. `ref.py` ports the type, counts every
 closure call, and checks each graph against:
 
 - the `DirectedGraph` laws: `successors`, `outEdges`, `edges`, the counts, `contains(edge:)`, and
@@ -83,14 +83,16 @@ extension ImplicitDirectedGraph {
 extension ImplicitDirectedGraph: DirectedGraph {
     public typealias Vertex = Int
     public typealias Vertices = Range<Int>
-    public typealias Successors = LazyMapSequence<Row, Int>             // range-checks each element as it is read
+    public struct Successors: Sequence<Int>                              // the row; range-checks each element as it is read
     public typealias SuccessorIndices = Successors                       // overrides the hashing default
-    public typealias OutEdges = LazyMapSequence<EnumeratedSequence<Row>, Edges.Index>
+    public struct OutEdges: Sequence<Edges.Index>                        // the row with ranks
+    // Structs, not lazy maps: a lazy map's closure captures the vertex, and an algorithm that keeps
+    // an iterator per vertex (Tarjan's) then allocated its context once per vertex (measured).
     public struct Edges: Collection {                                    // Element = DirectedEdge<Int>
         public struct Index: Comparable, Hashable, Sendable {            // ==, <, hash on (source, rank) only
             public let source: Int, rank: Int, target: Int
         }
-        // makeIterator(): O(n + m), one call per vertex (IG-007)
+        // makeIterator(), Array(edges): O(n + m), one call per vertex (IG-007); underestimatedCount 0
         // startIndex: O(rows until the first non-empty one); index(after:): O(d) — re-reads the row (IG-008)
         // subscript: O(1) from the index
     }
@@ -182,8 +184,9 @@ calls per settled vertex**. That is a known cost, listed below with its fix.
    wrapping per dimension (Boost), and an `Int` numbering. It would conform to `Graph` directly,
    with positions defined by (cell, direction), so it avoids question 3's problem.
    `NamedGraphs`' materialized grids stay as they are.
-5. **D19 belongs in `ShortestPaths`, not here.** IG-024 – IG-029 are design input for its catalog:
-   distances, and vertex counts where every shortest path has the same count. They are checked
+5. **D19 belongs in `ShortestPaths`, not here.** IG-024 – IG-031 pin it: distances, and vertex
+   counts where every shortest path has the same count. IG-030 and IG-031 make step costs depend on
+   both ends, so a search that tests the goal when it is pushed answers more. They are checked
    against NetworkX on a bounded box. Tie-breaking between equal paths is ShortestPaths' rule to
    set.
 

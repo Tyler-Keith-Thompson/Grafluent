@@ -540,8 +540,8 @@ def define():
     graph_row("Decomposition", "a path into a fixed point", [1, 2, 3, 4, 4], [
         ("cycles", lambda g: D(g).cycles), ("tailLength(of:) for 0..<5", allv(Decomposition.tail_length)),
         ("root(of: 0)", lambda g: D(g).root_of(0))])
-    graph_row("Decomposition", "a cycle is rotated to start at its least vertex", [2, 0, 1], [
-        ("cycles", lambda g: D(g).cycles)])
+    graph_row("Decomposition", "a cycle is rotated to start at its least vertex: the walk from 0 enters it at 3", [3, 3, 1, 2], [
+        ("cycles", lambda g: D(g).cycles), ("root(of: 0)", lambda g: D(g).root_of(0))])
     graph_row("Decomposition", "cycles ordered by least vertex, not by discovery", [3, 2, 1, 4, 3], [
         ("cycles", lambda g: D(g).cycles), ("component(of:) for 0..<5", allv(Decomposition.component))])
     graph_row("Decomposition", "one long cycle", [1, 2, 3, 4, 5, 6, 7, 0], [

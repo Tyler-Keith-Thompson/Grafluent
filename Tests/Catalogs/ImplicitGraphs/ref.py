@@ -13,7 +13,7 @@ Every graph is checked against the DirectedGraph laws and against NetworkX 3.7 o
 graph (a DiGraph or MultiDiGraph built from the same rows in the same order): bfs_layers,
 weakly/strongly connected components, topological_sort, shortest path lengths, Dijkstra.
 
-The `Closures` rows are design input for ShortestPaths D19 (dijkstraShortestPath(from:successors:
+The `Closures` rows cover ShortestPaths D19 (dijkstraShortestPath(from:successors:
 success:), aStarShortestPath(from:successors:heuristic:success:)) and one existing Traversal entry
 point; infinite spaces are checked against NetworkX on a box with enough slack.
 --write regenerates cases.md; without it the run fails if cases.md differs. --stress adds random
@@ -147,6 +147,29 @@ def dijkstra_closure(start, successors, success, heuristic=None):
             if w not in dist or nd < dist[w]:
                 dist[w] = nd
                 parent[w] = u
+                heapq.heappush(heap, (nd + h(w), nd, tie, w))
+                tie += 1
+    return None
+
+
+def dijkstra_closure_testing_on_push(start, successors, success, heuristic=None):
+    """A wrong variant, for the rows that must tell it apart: the goal tested when it is pushed."""
+    h = heuristic or (lambda v: 0)
+    if success(start):
+        return [start], 0
+    dist = {start: 0}
+    heap = [(h(start), 0, 0, start)]
+    tie = 1
+    while heap:
+        _, d, _, u = heapq.heappop(heap)
+        if d > dist[u]:
+            continue
+        for w, c in successors(u):
+            nd = d + c
+            if w not in dist or nd < dist[w]:
+                dist[w] = nd
+                if success(w):
+                    return None, nd
                 heapq.heappush(heap, (nd + h(w), nd, tie, w))
                 tie += 1
     return None
@@ -372,8 +395,11 @@ def define():
         "breadthFirstSearch(from: [P(0, 0)], depthLimit: 2, successors: grid4)",
         [("discovered vertices", lambda: reached_within((0, 0), grid4, 2))])
 
-    def d19(title, text, start, succ_w, goal, heuristic=None, box=None, steps=True):
+    def d19(title, text, start, succ_w, goal, heuristic=None, box=None, steps=True, catches_push=False):
         r = dijkstra_closure(start, succ_w, lambda v: v == goal, heuristic)
+        if catches_push:  # testing the goal when it is pushed gives a longer distance on this row
+            wrong = dijkstra_closure_testing_on_push(start, succ_w, lambda v: v == goal, heuristic)
+            assert wrong is not None and wrong[1] > r[1], (wrong, r)
         if r is not None and box is not None:
             assert r[1] == box_check(succ_w, start, goal, *box)
             p, d = r
@@ -398,6 +424,12 @@ def define():
         3, lambda v: [(v + 1, 1)], 3)
     d19("D19: a finite space with no goal returns nil", "dijkstraShortestPath(from: 0, successors: { $0 < 10 ? [($0 + 1, 1)] : [] }, success: { $0 == 20 })",
         0, lambda v: [(v + 1, 1)] if v < 10 else [], 20)
+    two_ended = lambda p: [(q, 1 + (p[0] * q[1]) % 3) for q in grid4(p)]
+    d19("D19 Dijkstra: a step from p to q costs 1 + (p.x · q.y) mod 3, so the goal's first push is not its distance",
+        "dijkstraShortestPath(from: P(0, 0), successors: twoEnded, success: { $0 == P(-4, 4) })",
+        (0, 0), two_ended, (-4, 4), box=(-12, 8), steps=False, catches_push=True)
+    d19("D19 A*: the same with Manhattan distance", "aStarShortestPath(from: P(0, 0), successors: twoEnded, heuristic: manhattan(to: P(-4, 4)), success: { $0 == P(-4, 4) })",
+        (0, 0), two_ended, (-4, 4), heuristic=lambda p: abs(-4 - p[0]) + abs(4 - p[1]), box=(-12, 8), steps=False, catches_push=True)
 
 
 # ---------------------------------------------------------------- render, stress, main
@@ -425,9 +457,12 @@ Conventions:
 * Groups `Generic` and `Closures` are cross-module. `Generic` runs the existing Traversal,
   Connectivity, Cycles and ShortestPaths algorithms on the implicit graph and compares with
   NetworkX. Components are compared as sets, since their order is the owning module's rule.
-  `Closures` rows are design input for ShortestPaths D19 (unimplemented) and one existing Traversal
-  entry point. They belong in those suites, and they pin distances and path vertex counts, not
-  tie-breaking. `P(x, y)` is a `Hashable` point, and `knight1` gives each knight move cost 1.
+  `Closures` rows cover ShortestPaths D19 and one existing Traversal entry point. They pin
+  distances and path vertex counts, not tie-breaking. `P(x, y)` is a `Hashable` point, and
+  `knight1` gives each knight move cost 1. In `costly` a step's cost depends only on the cell
+  entered, so the goal's first push already has its distance; in `twoEnded` it depends on both
+  ends, and a search that tests the goal when it is pushed, not when it is settled, answers more
+  (`ref.py` asserts this for IG-030 and IG-031).
 * `**trap**` rows are preconditions, run as exit tests.
 
 | ID | Group | Case | Input / call | Expected |
