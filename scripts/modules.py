@@ -65,7 +65,7 @@ MODULES = [
     ("Centrality", "Algorithms", "Degree, closeness, harmonic, betweenness, eigenvector, Katz, PageRank, HITS.", ["GraphProtocols", "PriorityQueueModule"]),
     ("CommunityDetection", "Algorithms", "Louvain, Leiden, label propagation, Girvan–Newman, modularity.", ["GraphProtocols", "PriorityQueueModule"]),
     ("IsomorphismModule", "Algorithms", "Isomorphism: VF2, VF2++, Weisfeiler–Leman, canonical labeling.", ["GraphProtocols"]),
-    ("Planarity", "Algorithms", "Boyer–Myrvold planarity testing and planar embeddings.", ["GraphProtocols", "Traversal"]),
+    ("Planarity", "Algorithms", "Planarity testing and planar embeddings by the left-right test, Kuratowski subgraphs by Boyer–Myrvold, outerplanarity.", ["GraphProtocols", "Walks"]),
     ("TreeAlgorithms", "Algorithms", "Lowest common ancestor, Euler tour, heavy–light decomposition, center, centroid, diameter.", ["GraphProtocols", "Trees", "Walks"]),
     ("Distances", "Algorithms", "Eccentricity, radius, diameter, center, periphery, centroid, Wiener index, average shortest path length, density.", ["GraphProtocols", "Walks", "PriorityQueueModule"]),
     ("SpectralGraphTheory", "Algorithms", "Adjacency, Laplacian, normalized, random-walk and signless Laplacian matrices as a SparseMatrix; dense spectra; algebraic connectivity, Fiedler vector, spectral ordering and spectral radius by thick-restart Lanczos; spanning-tree counts, resistance distance, effective graph resistance and the Kemeny constant.", ["GraphProtocols", "CompressedSparseRowModule"]),
@@ -125,6 +125,7 @@ TEST_TARGETS = [
     ("SpectralGraphTheoryTests", ["GraphProtocols", "SpectralGraphTheory", "CompressedSparseRowModule", "AdjacencyListModule", "AdjacencyMatrixModule", "Multigraphs", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("GraphOperationsTests", ["GraphProtocols", "GraphOperations", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "Multigraphs", "StableGraphs", "DirectedAcyclicGraphModule", "Traversal", "Connectivity", "ShortestPaths", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("GraphProductsTests", ["GraphProtocols", "GraphProducts", "AdjacencyListModule", "CompressedSparseRowModule", "Multigraphs", "StableGraphs", "NamedGraphs", "Traversal", "Connectivity", "ShortestPaths", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
+    ("PlanarityTests", ["GraphProtocols", "Planarity", "Walks", "Multigraphs", "AdjacencyListModule", "AdjacencyMatrixModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
 ]
 
 # Bazel test sizes above the default "small" (60 s timeout), for suites whose solo run takes more

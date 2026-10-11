@@ -3,14 +3,14 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Boyer–Myrvold planarity testing and planar embeddings.
+# Planarity testing and planar embeddings by the left-right test, Kuratowski subgraphs by Boyer–Myrvold, outerplanarity.
 swift_library(
     name = "Planarity",
     srcs = glob(["**/*.swift"]),
     module_name = "Planarity",
     deps = [
         "//Sources/GraphProtocols",
-        "//Sources/Traversal",
+        "//Sources/Walks",
     ],
     visibility = ["//visibility:public"],
 )
@@ -22,7 +22,7 @@ docc_archive(
     catalog = glob(["*.docc/**"], allow_empty = True),
     deps = [
         "//Sources/GraphProtocols:GraphProtocolsDocumentation",
-        "//Sources/Traversal:TraversalDocumentation",
+        "//Sources/Walks:WalksDocumentation",
     ],
     tags = ["manual"],
     visibility = ["//visibility:public"],

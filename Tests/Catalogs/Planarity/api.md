@@ -75,7 +75,7 @@ public struct PlanarEmbedding<G: Graph> {
     public func clockwiseIncidentEdges(safe vertex: G.Vertex) -> ArraySlice<G.Edges.Index>? // Principle 6
     public func clockwiseNeighbors(of vertex: G.Vertex) -> ClockwiseNeighbors               // RandomAccessCollection<G.Vertex>
     public func clockwiseNeighbors(safe vertex: G.Vertex) -> ClockwiseNeighbors?
-    public func clockwiseNeighborIndices(ofIndex index: Int) -> ArraySlice<Int>             // index space, O(1)
+    public func clockwiseNeighborIndices(ofIndex index: Int) -> ArraySlice<Int>             // index space, O(1); without vertex indices, index i is the i-th vertex of `vertices`
 
     public var faceCount: Int                       // Σ (2 − n_c + m_c) over components with an edge
     public var faces: Faces                         // RandomAccessCollection<Walk<G.Vertex, G.Edges.Index>>, closed walks
@@ -90,13 +90,15 @@ public struct PlanarEmbedding<G: Graph> {
 extension PlanarEmbedding: CustomStringConvertible
 
 public struct KuratowskiSubgraph<G: Graph> {
-    public enum Kind: Hashable, Sendable { case k5, k33 }    // K₅, K₃,₃
-    public var kind: Kind
-    public var edges: [G.Edges.Index]               // ascending position; no loops, one copy of each parallel pair
-    public var branchVertices: [G.Vertex]           // K₅: 5 in vertices order; K₃,₃: the side holding the first branch vertex, then the other, each in vertices order
-    public var paths: [Path<G.Vertex, G.Edges.Index>]  // 10 or 9: branchVertices[i] to branchVertices[j], i < j lexicographic (K₃,₃: across the sides)
+    public let kind: KuratowskiGraph
+    public let edges: [G.Edges.Index]               // ascending position; no loops, one copy of each parallel pair
+    public let branchVertices: [G.Vertex]           // K₅: 5 in vertices order; K₃,₃: the side holding the first branch vertex, then the other, each in vertices order
+    public let paths: [Path<G.Vertex, G.Edges.Index>]  // 10 or 9: branchVertices[i] to branchVertices[j], i < j lexicographic (K₃,₃: across the sides)
 }
-extension KuratowskiSubgraph: CustomStringConvertible
+extension KuratowskiSubgraph: Equatable, CustomStringConvertible
+
+// Top level, not nested in the generic KuratowskiSubgraph, so kinds compare across graph types.
+public enum KuratowskiGraph: Hashable, Sendable, CaseIterable { case k5, k33 }   // K₅, K₃,₃
 ```
 
 ## Names
@@ -106,7 +108,7 @@ extension KuratowskiSubgraph: CustomStringConvertible
 | `isPlanar` | NetworkX `is_planar`, rustworkx, JGraphT `isPlanar()`, OGDF `isPlanar`, Sage | Boost `boyer_myrvold_planarity_test` and LEMON `checkPlanarity` name the algorithm or a verb. A Swift `Bool` property reads `is…` (as `isBipartite`). |
 | `planarEmbedding()`, `PlanarEmbedding` | NetworkX `PlanarEmbedding`, LEMON `PlanarEmbedding`, the README row | Boost has no type, only a property map named `embedding`. JGraphT's `Embedding` alone drops "planar", and OGDF's `CombinatorialEmbedding` is the textbook term but longer and less familiar. |
 | `findKuratowskiSubgraph()`, `KuratowskiSubgraph` | Boost `kuratowski_subgraph` and `is_kuratowski_subgraph`, NetworkX's docstring ("a Kuratowski subgraph"), the README row | JGraphT `getKuratowskiSubdivision`, OGDF `KuratowskiSubdivision`: "subdivision" is the more precise term, and the doc comment says the subgraph *is* a subdivision. Boost and NetworkX agree on "subgraph", which reads better as a noun beside `findCycle()`. NetworkX's `counterexample` says nothing about the shape. |
-| `Kind`: `.k5`, `.k33` | K₅ and K₃,₃ (Kuratowski 1930). Sage writes "K5" and "K33" | `.completeGraph` / `.completeBipartiteGraph` are unambiguous but hide the sizes, and a reader looks for K₅ and K₃,₃. |
+| `KuratowskiGraph`: `.k5`, `.k33` | K₅ and K₃,₃ are "the Kuratowski graphs" in the literature (Kuratowski 1930). Sage writes "K5" and "K33". A top-level type rather than `KuratowskiSubgraph<G>.Kind`: nested in a generic type, a kind could not be compared across graph types | `.completeGraph` / `.completeBipartiteGraph` are unambiguous but hide the sizes, and a reader looks for K₅ and K₃,₃. |
 | `branchVertices`, `paths` | "branch vertices" of a subdivision (Diestel; OGDF's `KuratowskiSubdivision` is a list of paths) | NetworkX and JGraphT return a graph and leave the reader to find the structure. Tests and drawing code both need it. |
 | `clockwiseNeighbors(of:)`, `clockwiseIncidentEdges(of:)` | NetworkX `neighbors_cw_order`, Boost's embedding (each vertex's edges in order), JGraphT `getEdgesAround`, written with the repo's `neighbors(of:)` and `incidentEdges(of:)` | `neighborsClockwise`, `rotation(of:)`: "rotation system" is the textbook name for the whole structure, but no library names an accessor after it. |
 | `faces`, `faceCount`, `face(from:alongEdgeAt:)` | NetworkX `faces()`, `traverse_face(v, w)`; Boost `planar_face_traversal`; OGDF `CombinatorialEmbedding` | NetworkX names the face by a half-edge (v, w). A position is the repo's edge identity (parallel edges differ), and `alongEdgeAt:` follows `oppositeVertex(to:acrossEdgeAt:)`. |
@@ -152,7 +154,8 @@ component, so equality means genus 0. Hence:
   one block (PL-138, PL-150).
 - **Directed graphs** go through `graph.undirected` (Scope).
 - **Vertex labels**: results are in the graph's vertices and edge positions, never indices
-  (PL-116, PL-151); `clockwiseNeighborIndices(ofIndex:)` is the index-space accessor.
+  (PL-116, PL-151); `clockwiseNeighborIndices(ofIndex:)` is the index-space accessor. On a graph
+  without vertex indices, index i is the i-th vertex of `vertices` (its position).
 
 ### Results
 
@@ -185,6 +188,12 @@ Euler's formula, each rotation a permutation of the vertex's half-edges, `faces`
 call returns the same result. The algorithm is deterministic (depth-first search in index order,
 edges in incidence order), but pinning its choice would freeze the DFS order, and so the choice
 of algorithm.
+
+**Guaranteed (decision):** graphs with identical rows (the same vertices in the same order, the
+same edge positions, the same incidence order) get the same embedding and the same witness,
+position for position, whatever the representation (`Pseudograph`, `Multigraph`, a conformer
+without vertex or edge indices). Both engines read only the rows, so this holds by construction;
+the conformance tests check it.
 
 Whitney's theorem (a 3-connected planar graph has one embedding up to mirror image, and so does a
 subdivision of one) is what makes uniqueness checkable on large rows (PL-170, PL-172). `ref.py`
@@ -335,7 +344,8 @@ once and stored as edge lists):
    runs twice. *Recommendation:* no combined entry in phase 1, since both runs are linear. Add one
    only if a caller shows the cost, and then as an enum in NetworkX's spirit rather than a `Result`
    (a Kuratowski subgraph is not an `Error`).
-3. **`Kind` case names.** *Recommendation:* `.k5`, `.k33`, documented as K₅ and K₃,₃.
+3. **`Kind` case names.** *Decided:* `.k5`, `.k33`, documented as K₅ and K₃,₃, on the top-level
+   `KuratowskiGraph`.
 4. **Pinning the embedding.** *Recommendation:* not pinned (Determinism). Revisit only if a caller
    needs reproducible drawings across library versions.
 5. **Face order and the clockwise start.** *Recommendation:* the start is pinned (first incident
