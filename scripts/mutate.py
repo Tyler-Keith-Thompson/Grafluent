@@ -515,6 +515,17 @@ def main():
                         help="run each mutant first against only the tests that reach it (coverage-based)")
     args = parser.parse_args()
 
+    # One run at a time: every run shares the scratch workspace in WORK, so a second run would
+    # overwrite the first's sources and builds. Later runs wait here for the lock.
+    import fcntl
+    os.makedirs(os.path.dirname(WORK), exist_ok=True)
+    lock = open(WORK + ".lock", "w")
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        print("Another mutation run holds the workspace; waiting for it to finish...", flush=True)
+        fcntl.flock(lock, fcntl.LOCK_EX)
+
     mutants, bundles = load_spec(args.module)
     names = {m.name for m in mutants}
     if len(names) != len(mutants):
