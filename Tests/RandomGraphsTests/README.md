@@ -1,0 +1,142 @@
+# RandomGraphs test suite
+
+`RandomGraphs` builds the random families as static factories on the representation types, through
+`NamedGraphs`' two underscored protocols:
+
+- `erdosRenyi` (G(n, p) and G(n, m)), `barabasiAlbert`, `wattsStrogatz`, `randomGeometric` and
+  `stochasticBlockModel` on the protocols;
+- `Tree.random(vertexCount:)`;
+- `DirectedAcyclicGraph.erdosRenyi`;
+- a public seedable generator, `Xoshiro256StarStar`.
+
+The tests come from the proposed API (`api.md` in
+[`Tests/Catalogs/RandomGraphs/`](../Catalogs/RandomGraphs/)), with its open questions decided as
+recommended:
+
+- the families live on the `NamedGraphs` protocols, with `Int` vertices `0..<n`;
+- every factory takes `inout some RandomNumberGenerator`, and has an overload without `using:`;
+- the stream is pinned: each procedure draws only `uniform01` (the top 53 bits) and `below(n)`
+  (CPython's rejection on the top bit-length-of-n bits), each NetworkX's procedure draw for draw,
+  except that Barabási–Albert and the SBM use ascending order where NetworkX uses set order;
+- Barabási–Albert's directed form points new → old, as igraph's does;
+- Watts–Strogatz and random geometric graphs have no directed form;
+- `randomGeometric` returns `(graph:, positions:)`, with the positions as a flat `[Double]`;
+- the further families are deferred.
+
+The suite uses only the public API, and each test is self-contained. Nothing is shared but the tags
+in `GrafluentTestSupport`. `RandomGraphsTests` depends on `NamedGraphs` for one row, RG-094, whose
+catalog value is "equals `completeBipartite(leftCount: 5, rightCount: 5)`".
+
+## API under test
+
+```swift
+struct Xoshiro256StarStar: RandomNumberGenerator, Equatable, Hashable, Sendable
+    init(seed: UInt64), init(state: (UInt64, UInt64, UInt64, UInt64)), next()
+extension _GraphConstruction {     // UndirectedAdjacencyList, Pseudograph, Multigraph
+    static func erdosRenyi(vertexCount:edgeProbability:using:), erdosRenyi(vertexCount:edgeCount:using:),
+        barabasiAlbert(vertexCount:edgesPerVertex:using:),
+        wattsStrogatz(vertexCount:nearestNeighborCount:rewiringProbability:using:),
+        randomGeometric(vertexCount:radius:dimension:using:) -> (graph:, positions:),
+        stochasticBlockModel(blockSizes:edgeProbabilities:using:)
+}
+extension _DirectedGraphConstruction {   // CSR, AdjacencyMatrix, AdjacencyList, DirectedPseudograph,
+                                         // DirectedMultigraph, StableDirectedGraph
+    static func erdosRenyi(…), erdosRenyi(…), barabasiAlbert(…), stochasticBlockModel(…)
+}
+extension Tree where Vertex == Int { static func random(vertexCount:using:) }
+extension DirectedAcyclicGraph { static func erdosRenyi(vertexCount:edgeProbability:using:),
+                                             erdosRenyi(vertexCount:edgeCount:using:) }
+// …and each again without `using:`.
+```
+
+## How values are pinned
+
+**Exact rows** run their family on every conformer, each with a fresh generator:
+
+- the undirected form on the three undirected types;
+- the directed form of G(n, p), G(n, m), Barabási–Albert and the SBM on the six directed types;
+- random DAGs on `DirectedAcyclicGraph` over `AdjacencyList<Int>`, `StableDirectedGraph<Int>` and
+  `DirectedPseudograph<Int>`.
+
+The catalog shows one form. `swiftgen.py` takes the other from `ref.py`'s port of the procedures.
+Each run checks the vertex and edge counts, `edges` in order (sorted for every factory but
+`Tree.random`, which keeps `Tree(pruferSequence:)`'s order), the degrees, and the number of draws:
+the generator after the call equals a fresh one advanced that many times. Geometric rows compare
+every position exactly. Tree rows compare `pruferSequence` with the drawn code. DAG rows check
+`topologicalOrder == 0..<n`, and that the undirected procedure on the same stream gives the same
+pairs.
+
+**Statistical rows** recompute the catalog's exact aggregate over the same seeds on every conformer
+of the row's kind. The aggregates are an edge sum, a pooled degree variance (to 5 · 10⁻⁵), a count
+of degree-m vertices, or a count of missing ring edges. Each row then checks its law with
+`api.md`'s tolerance: |z| ≤ 4, within 5 %, ± 0.02 or ± 0.01. The chi-square rows (RG-029,
+RG-044 – RG-046, RG-102) pin the count of every outcome from the model, and check χ² against the
+catalog's value and its 0.999 quantile. The "laws hold for every seed" rows check each seed:
+Barabási–Albert's edge count, degree sum and minimum degree, with the directed out-degrees exactly;
+Watts–Strogatz's edge count and minimum degree; a random tree's edge count, its connectivity, and
+`degree(v) = 1 + occurrences of v`, where the code is replayed from the stream in the test.
+
+**Trap rows** run the call as an exit test on every conformer the rule covers. G(n, p)'s traps also
+run on the DAG. The m > N rows run on the conformers whose N the m exceeds. A valid neighbour of the
+call then runs in this process. RG-002 runs `Xoshiro256StarStar(state: (0, 0, 0, 0))`, then a state
+with one nonzero word.
+
+The catalog-row files are every file except `RandomGraphPropertyTests.swift`. `swiftgen.py`
+generated them from `cases.md`; it sits next to `ref.py` and `cases.md` in
+[`Tests/Catalogs/RandomGraphs/`](../Catalogs/RandomGraphs/):
+
+```
+uv run --quiet --no-project --with networkx==3.7 --with igraph==1.0.0 python3 Tests/Catalogs/RandomGraphs/swiftgen.py
+```
+
+It first checks that `ref.py` reproduces `cases.md` byte for byte. `ref.py` checks the generator's
+published vectors, and NetworkX on the same stream, as it builds the rows. `swiftgen.py` then
+re-runs every row on the model, asserts that each value is the row's cell, and writes the test.
+
+## Hand-written file
+
+**Properties** (swift-property-based, with shrinking):
+
+- the generator: rand_xoshiro's ten-value vector from (1, 2, 3, 4), and splitmix64.c's vector for
+  seed 1234567 through `init(seed:) == init(state:)`. Then, from any seed, the generator agrees
+  with SplitMix64 and xoshiro256\*\* written out in the test, and a copy replays;
+- G(n, p): simple and sorted, with no draws at p = 0 or 1. Every conformer gives the same edges and
+  the same generator state. The directed lower → higher arcs are the undirected draw. The DAG is the
+  undirected draw oriented upward;
+- G(n, m): exactly m edges in both branches and both kinds, with no draws at m = 0 or m = N;
+- Barabási–Albert: m(n − m) edges, the star on 0…m, m older targets per new vertex, connected, and
+  the directed form as the reversed undirected edges with the same draws;
+- Watts–Strogatz: nk/2 edges, minimum degree k/2, the ring lattice at p = 0;
+- random geometric graphs: the positions are the stream's `uniform01` draws, and u – v exactly when
+  the squared distance, summed in coordinate order, is at most r²;
+- the SBM: no edge in a block pair of probability 0 and every pair in one of probability 1, both
+  kinds;
+- `Tree.random`: a connected tree whose `pruferSequence` is the stream's n − 2 `below(n)` draws;
+- every overload without `using:`.
+
+## Planted bugs
+
+The suite was checked against a model of `api.md` written outside the repository, built by Bazel
+in a scratch copy of the workspace. It passed there, and caught every one of the bugs below,
+planted one at a time.
+
+| Planted bug | Caught by |
+|---|---|
+| `uniform01` reads all 64 bits | RG-074 – RG-079 and the geometric property |
+| `below(n)` uses the bit length of n − 1 | 13 tests, among them RG-037, RG-044, RG-047 – RG-054 |
+| SplitMix64 words stored in reverse | 69 tests, among them RG-003 – RG-007 |
+| xoshiro's rotation by 45 written as 44 | 65 tests, among them RG-001 |
+| The all-zero state accepted | RG-002 |
+| G(n, p)'s two directed sweeps swapped | RG-009 – RG-016 and the G(n, p) property |
+| G(n, p) drawing at p = 1 instead of taking the shortcut | RG-018, RG-019 and the G(n, p) property |
+| G(n, m) treats u–v and v–u as different pairs | RG-030 – RG-036, RG-044, RG-045, RG-106 and the properties |
+| Barabási–Albert appends its targets in `Set` order | RG-049 – RG-054, RG-059 and the property |
+| Watts–Strogatz checks for a full vertex before drawing | RG-067 |
+| Geometric positions read coordinate-major | RG-074 – RG-079, RG-083 and the property |
+| The SBM rounds its skip to nearest | RG-084 – RG-088, RG-092, RG-093 |
+| `Tree.random` draws `below(n − 1)` | RG-097 – RG-103 and the property |
+| The random DAG takes its pairs from the directed sweep | RG-104, RG-105 and the G(n, p) property |
+
+An earlier candidate was equivalent in the model, and the table above replaces it: G(n, m) taking
+the complement branch from 2m ≥ N. At 2m = N, the two branches draw the same number of pairs, so
+it changes nothing.

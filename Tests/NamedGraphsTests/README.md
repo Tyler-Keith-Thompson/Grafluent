@@ -1,0 +1,110 @@
+# NamedGraphs test suite
+
+`NamedGraphs` builds the named families as static factories on the representation types:
+`complete`, `completeBipartite`, `path`, `cycle`, `star`, `wheel`, `grid`, `hypercube`, `petersen`
+and `empty`. The tests come from the proposed API (`api.md` in
+[`Tests/Catalogs/NamedGraphs/`](../Catalogs/NamedGraphs/)), with its open questions decided as
+recommended:
+
+- the factories live on the underscored `_GraphConstruction` and `_DirectedGraphConstruction`
+  protocols, so each family reaches every conformer;
+- vertices are `Int`s `0..<n`, with each family's numbering fixed (grids row-major, hypercubes by
+  bits, Petersen as NetworkX numbers it);
+- `empty(vertexCount:)` is kept beside `init(vertexCount:)`;
+- `cycle` traps below 3 vertices and `wheel` below 4;
+- more `Tree` and `BipartiteGraph` shapes, and the generalized Petersen graph, are deferred.
+
+The suite uses only the public API, and each test is self-contained. Nothing is shared but the tags
+in `GrafluentTestSupport`. The suite never names the underscored protocols. It calls the factories
+on the concrete types.
+
+## API under test
+
+```swift
+extension _GraphConstruction, _DirectedGraphConstruction {   // 3 undirected and 6 directed conformers
+    static func complete(vertexCount:), completeBipartite(leftCount:rightCount:), path(vertexCount:),
+        cycle(vertexCount:), star(vertexCount:), wheel(vertexCount:), grid(dimensions:periodic:),
+        hypercube(dimension:), petersen(), empty(vertexCount:)
+}
+extension Tree where Vertex == Int { static func path(vertexCount:), star(vertexCount:) }
+extension BipartiteGraph where Vertex == Int { static func completeBipartite(leftCount:rightCount:) }
+```
+
+The undirected conformers are `UndirectedAdjacencyList<Int>`, `Pseudograph<Int>` and
+`Multigraph<Int>`. The directed ones are `CompressedSparseRow`, `AdjacencyMatrix`,
+`AdjacencyList<Int>`, `DirectedPseudograph<Int>`, `DirectedMultigraph<Int>` and
+`StableDirectedGraph<Int>`.
+
+## How values are pinned
+
+Every catalog row runs its family on all nine conformers. The undirected form runs on the three
+undirected types. The directed form runs on the six directed types, with one arc per edge along
+the natural orientation (path, cycle, star, wheel, complete bipartite) or both arcs (complete,
+grid, hypercube, Petersen). The catalog shows one form. `swiftgen.py` takes the other from
+`ref.py`'s model, which checks both against NetworkX 3.7 and igraph 1.0. Each run checks:
+
+- the vertex and edge counts, `vertices` as `0..<n` in order, and `vertexIndex(of:)` as the identity;
+- `edges` in order, written out. Undirected edges are `UndirectedEdge(u, v)` with `u < v`, sorted;
+  directed edges are row-major. The order is part of the contract;
+- every degree (out-degrees, and in-degrees counted from the edges), and every vertex's neighbours
+  or successors;
+- `contains(edge:)` for every edge and both orientations, and for one pair that is not an edge;
+- that every incident or outgoing position names an edge at that vertex.
+
+Three rows are too large to write out: K60, the 100 × 100 grid and Q10. Their edges are instead
+checked as sorted, in range and following the family's rule, with every degree from its formula.
+The `Tree` and `BipartiteGraph` rows run on their own type, and the bipartite rows also check
+`left`, `right` and `side(of:)`.
+
+A trap row runs its call as an exit test on every conformer the rule covers. "One rule on every
+type" means all nine conformers. NG-011, whose n(n − 1) overflows only for the directed count, runs
+on the directed conformers only, so that no implementation tries to build 2^63 undirected edges.
+Some rows add sibling traps: a negative left side, `Tree.star(0)`, `grid(dimensions: [],
+periodic: true)` and `Tree.path(-1)`. A valid neighbour of the call then runs in this process.
+
+The catalog-row files are every file except `NamedGraphPropertyTests.swift`. `swiftgen.py`
+generated them from `cases.md`; it sits next to `ref.py` and `cases.md` in
+[`Tests/Catalogs/NamedGraphs/`](../Catalogs/NamedGraphs/):
+
+```
+uv run --quiet --no-project --with networkx==3.7 --with igraph==1.0.0 python3 Tests/Catalogs/NamedGraphs/swiftgen.py
+```
+
+It first checks that `ref.py` reproduces `cases.md` byte for byte. Then it parses each row's call
+(the catalog writes valid Swift), rebuilds both forms on the model, and asserts that the model's
+summary is the row's cell. Only then does it write the test.
+
+## Hand-written file
+
+**Properties** (swift-property-based, with shrinking). Each family is checked over a range of sizes
+against its definition in api.md, which the test writes out:
+
+- complete graphs up to 40 vertices;
+- complete bipartite graphs up to 9 + 9 vertices, with the `BipartiteGraph` sides;
+- paths, cycles, stars and wheels up to 50 vertices, with connectivity, `Tree.path` and `Tree.star`;
+- grids of one to three dimensions of length 0 to 5, periodic or not, against the coordinate
+  definition, the count and degree laws, and connectivity;
+- hypercubes up to Q9;
+- Petersen as a strongly regular (10, 3, 0, 1) graph in NetworkX's numbering;
+- empty graphs;
+- equality with the same graph built edge by edge, and mutation after a build.
+
+Every property builds all nine conformers and requires the same edges in the same order.
+
+## Planted bugs
+
+The suite was checked against a model of `api.md` written outside the repository, built by Bazel
+in a scratch copy of the workspace. It passed there, and caught every one of the bugs below,
+planted one at a time.
+
+| Planted bug | Caught by |
+|---|---|
+| A periodic dimension of length 2 wraps | NG-060, grid property |
+| Grids numbered with the first dimension fastest | NG-053, NG-059, NG-060, NG-063, grid property |
+| `hypercube(dimension: 0)` is the null graph, as in NetworkX | NG-069 (and the hypercube property when it draws d = 0) |
+| `completeBipartite` with both arcs in the directed form | NG-014 – NG-017 and the bipartite property |
+| The wheel's rim closed as 1 → n − 1 | NG-045 – NG-049, NG-089, NG-090 and the wheel property |
+| `cycle` accepts 2 vertices | NG-036, NG-037 |
+| Petersen's inner pentagram drawn as a pentagon (the prism graph) | NG-077, NG-078, Petersen property |
+| Edges left in construction order | 29 tests, among them NG-030 – NG-033 and the grid rows |
+| `Tree.star` with its hub last | NG-042 and the star property |

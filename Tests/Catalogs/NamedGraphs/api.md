@@ -51,8 +51,12 @@ initializers and never re-validated:
 | `BipartiteGraph<Int>` | `completeBipartite(leftCount:rightCount:)`: sides known, no 2-colouring pass |
 
 Package changes (outside this folder): `GraphProtocols` gains the two protocols; each
-representation module adds its conformance, written against a `package` unchecked bulk initializer;
-`NamedGraphs` depends on `GraphProtocols`, `Trees` and `BipartiteGraphs`. `LabeledGraph` and
+representation module adds its conformance, written against a `package` unchecked bulk initializer,
+`init(_uncheckedVertexCount:sortedEdges:)`; `Trees` adds `package Tree(_vertexCount:treeEnds:)` (the
+dense layout from known tree edges) and `BipartiteGraphs` adds `package BipartiteGraph(_leftCount:graph:)`
+(sides known, no 2-colouring); `NamedGraphs` depends on `GraphProtocols`, `Trees` and `BipartiteGraphs`.
+The lazy pair collections (`_AscendingPairs`, `_DistinctPairs`, `_CrossPairs`) and the count checks are
+`package`, so `RandomGraphs` reuses them for its complete-graph shortcuts. `LabeledGraph` and
 `EdgeList` do not conform: a labeled graph's labels are not `Int`s (`LabeledGraph(CompressedSparseRow.grid(dimensions: [3, 4]), labels: …)` labels one), and an
 `EdgeList` cannot hold isolated vertices.
 
@@ -119,7 +123,7 @@ ours. igraph's `Lattice(dims)` runs the first dimension fastest, so ours is `Lat
 | Trap | Rows | Note |
 |---|---|---|
 | Negative count, side or dimension | NG-010, NG-020, NG-029, NG-067, NG-075, NG-083 | |
-| Edge or vertex count overflows `Int` | NG-011, NG-068, NG-076 | checked with `multipliedReportingOverflow` before allocating |
+| Edge or vertex count overflows `Int` | NG-011, NG-068, NG-076 | the kind's own count: n(n − 1)/2 edges undirected, n(n − 1) arcs directed (likewise d·2^(d−1) or d·2^d for the hypercube, and twice the grid's edges). NG-011, n = 2^32, overflows only the directed count, so it runs on the directed conformers; the undirected K_{2^32} passes the check and would fail only to allocate. Checked by division before allocating, never with `multipliedReportingOverflow` and a discarded product (Swift 6.4 folded that flag to false under -O in `Flows`) |
 | `cycle` with n < 3 | NG-034 – NG-037 | Cₙ is defined for n ≥ 3; C₁ and C₂ are not simple. NetworkX gives a self-loop for `cycle_graph(1)` and a single edge for `cycle_graph(2)`. One rule on every type, directed included (NG-037) |
 | `wheel` with n < 4 | NG-050, NG-051 | the rim must be a cycle |
 | `star` with n < 1 | NG-043 | no hub |
@@ -171,7 +175,7 @@ are igraph's time, since that representation hashes every vertex and edge by des
 No `Graph` suffix: the type already says it. No `lattice` spelling beside `grid`, and no 2-D
 `grid(rowCount:columnCount:)` beside `grid(dimensions:)`.
 
-## Open questions, with recommendations
+## Open questions, decided as recommended
 
 1. **Where factories live.** *Recommended: the two underscored protocols above.* Alternatives
    considered:

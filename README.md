@@ -292,14 +292,29 @@ Failures that are part of the mathematics, such as "has a cycle," "not bipartite
 
 ## Generators (`NamedGraphs`, `RandomGraphs`)
 
-All families are static factories on the representation types, for example `CompressedSparseRow.complete(vertexCount: 5)`.
+All families are static factories on the representation types, for example
+`CompressedSparseRow.complete(vertexCount: 5)` or
+`UndirectedAdjacencyList<Int>.erdosRenyi(vertexCount: 1000, edgeProbability: 0.01, using: &generator)`
+(**implemented**). Each family is written once, against two underscored protocols in
+`GraphProtocols`, `_DirectedGraphConstruction` and `_GraphConstruction`, whose one requirement is a
+bulk initializer from sorted, simple `Int` edges (Boost's edge-iterator constructor, by name). The
+conformers are `CompressedSparseRow` (one pass, no hashing), `AdjacencyMatrix`, `AdjacencyList<Int>`,
+`DirectedPseudograph<Int>`, `DirectedMultigraph<Int>` and `StableDirectedGraph<Int>`, and undirected
+`UndirectedAdjacencyList<Int>`, `Pseudograph<Int>` and `Multigraph<Int>`. Vertices are `0..<n` with a
+documented numbering, and edges come sorted, so `edges` reads the same on every conformer.
 
 | Module | Graphs |
 |---|---|
-| `NamedGraphs` | Complete Kₙ, complete bipartite Kₘ,ₙ, path Pₙ, cycle Cₙ, star Sₙ, wheel Wₙ, grid / lattice, hypercube Qₙ, Petersen, empty graph |
-| `RandomGraphs` | Erdős–Rényi G(n, p) and G(n, m), Barabási–Albert, Watts–Strogatz, random geometric, stochastic block model, random trees (Prüfer sequences), random DAGs |
+| `NamedGraphs` | `complete`, `completeBipartite`, `path`, `cycle`, `star`, `wheel`, `grid(dimensions:periodic:)` (any number of dimensions, row-major, optionally a torus), `hypercube`, `petersen`, `empty`; directed forms along the natural orientation (path, cycle, star, wheel, left → right) or with both arcs (complete, grid, hypercube, Petersen); `Tree.path`, `Tree.star` and `BipartiteGraph.completeBipartite` built without validation. The Θ(n²) families read their edges lazily, with no edge list |
+| `RandomGraphs` | `erdosRenyi` G(n, p) (Batagelj–Brandes skipping) and G(n, m), `barabasiAlbert` (directed new → old), `wattsStrogatz`, `randomGeometric` (with its positions, through a cell grid), `stochasticBlockModel` (skipping over each block pair, indexed arithmetically), `Tree.random` (a Prüfer code), and the Barak–Erdős random DAG `DirectedAcyclicGraph.erdosRenyi`, whose order 0..<n is handed to the wrapper with no Kahn pass |
 
-Random generators take `inout some RandomNumberGenerator` so their output is reproducible.
+Random generators take `inout some RandomNumberGenerator` so their output is reproducible, and each
+has an overload on the system generator. `RandomGraphs` ships `Xoshiro256StarStar` (Blackman and
+Vigna), seeded through SplitMix64. Every procedure draws only a 53-bit `uniform01` and CPython's
+rejection `below(n)`, never the standard library's `random(in:)`, so each output is a function of the
+generator's stream and is pinned in the catalog: NetworkX 3.7, run on the same stream, reproduces
+the graphs edge for edge (Barabási–Albert and the block model wherever CPython's set order happens
+to be ascending, G(n, m) while 2m ≤ n(n − 1)/2). See `Tests/Catalogs/NamedGraphs/` and `Tests/Catalogs/RandomGraphs/`.
 
 ## Drawing (`GraphDrawing`)
 

@@ -1,0 +1,403 @@
+"""Writes the catalog-row test files of Tests/NamedGraphsTests from cases.md and ref.py.
+
+    uv run --quiet --no-project --with networkx==3.7 --with igraph==1.0.0 python3 Tests/Catalogs/NamedGraphs/swiftgen.py [OUT_DIR]
+    # default OUT_DIR: Tests/NamedGraphsTests
+
+First checks that ref.py reproduces cases.md byte for byte. Then it parses each row's call (the
+catalog writes valid Swift), rebuilds the row on ref.py's model, asserts that the model's summary is
+the row's cell, and writes one @Test per row. A row runs its family on every conformer api.md lists:
+the undirected form on UndirectedAdjacencyList, Pseudograph and Multigraph, the directed form on
+CompressedSparseRow, AdjacencyMatrix, AdjacencyList, DirectedPseudograph, DirectedMultigraph and
+StableDirectedGraph. Both forms come from ref.py's model, which checks them against NetworkX and
+igraph. Tree and BipartiteGraph rows run on their own type. A trap row runs its call as an exit
+test on every conformer the rule covers, then runs a valid neighbour of the call in this process.
+"""
+import os
+import re
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+import ref  # noqa: E402
+
+OUT = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else os.path.join(HERE, "..", "..", "NamedGraphsTests")
+
+ref.build_rows()
+TEXT = ref.render()
+with open(os.path.join(HERE, "cases.md")) as f:
+    assert f.read() == TEXT, "cases.md is not ref.py's output"
+CELLS = {}
+for line in TEXT.splitlines():
+    if line.startswith("| NG-"):
+        parts = [p.strip() for p in line.strip().strip("|").split(" | ")]
+        CELLS[int(parts[0][3:])] = parts
+N = len(CELLS)
+assert N == 90
+
+
+def group(n): return CELLS[n][1]
+def title(n): return CELLS[n][2]
+def call(n): return CELLS[n][3].strip("`")
+def cell(n): return CELLS[n][4]
+def is_trap(n): return cell(n).startswith("**trap**")
+
+
+UNDIRECTED = ["UndirectedAdjacencyList<Int>", "Pseudograph<Int>", "Multigraph<Int>"]
+DIRECTED = ["CompressedSparseRow", "AdjacencyMatrix", "AdjacencyList<Int>", "DirectedPseudograph<Int>",
+            "DirectedMultigraph<Int>", "StableDirectedGraph<Int>"]
+FAMILIES = {
+    "complete": lambda d, vertexCount: ref.complete(vertexCount, d),
+    "completeBipartite": lambda d, leftCount, rightCount: ref.complete_bipartite(leftCount, rightCount, d),
+    "path": lambda d, vertexCount: ref.path(vertexCount, d),
+    "cycle": lambda d, vertexCount: ref.cycle(vertexCount, d),
+    "star": lambda d, vertexCount: ref.star(vertexCount, d),
+    "wheel": lambda d, vertexCount: ref.wheel(vertexCount, d),
+    "grid": lambda d, dimensions, periodic=False: ref.grid(dimensions, periodic, d),
+    "hypercube": lambda d, dimension: ref.hypercube(dimension, d),
+    "petersen": lambda d: ref.petersen(d),
+    "empty": lambda d, vertexCount: ref.empty(vertexCount, d),
+}
+ORIENTATION = {
+    "complete": "both arcs", "completeBipartite": "left → right", "path": "i → i + 1",
+    "cycle": "i → (i + 1) mod n", "star": "hub → leaf", "wheel": "hub → rim, rim i → i + 1 and n − 1 → 1",
+    "grid": "both arcs", "hypercube": "both arcs", "petersen": "both arcs", "empty": "no arcs",
+}
+
+
+def parse(text):
+    """`Type.family(label: value, …)` → (type, family, argument text, keyword arguments)."""
+    m = re.fullmatch(r"(.+?)\.(\w+)\((.*)\)", text)
+    assert m, text
+    typ, fam, args = m.groups()
+    py = re.sub(r"(\w+): ", r"\1=", args).replace("true", "True").replace("false", "False")
+    kwargs = eval("dict(%s)" % py)
+    return typ, fam, args, kwargs
+
+
+def model(fam, directed, kwargs):
+    try:
+        return FAMILIES[fam](directed, **kwargs)
+    except ref.Trap as t:
+        return t
+
+
+# ---------------------------------------------------------------------------------------------
+# Swift literals
+# ---------------------------------------------------------------------------------------------
+
+def ints(xs): return "[" + ", ".join(str(x) for x in xs) + "] as [Int]"
+def pairs(es): return "[" + ", ".join("[%d, %d]" % e for e in es) + "] as [[Int]]"
+def rows(rs): return "[" + ", ".join("[" + ", ".join(str(x) for x in r) + "]" for r in rs) + "] as [[Int]]"
+
+
+def adjacency(g):
+    nb = [[] for _ in range(g.n)]
+    for u, v in g.edges:
+        nb[u].append(v)
+        if not g.directed:
+            nb[v].append(u)
+    return [sorted(r) for r in nb]
+
+
+def first_non_edge(g):
+    es = set(g.edges)
+    for u in range(g.n):
+        for v in range(g.n):
+            if u != v and (u, v) not in es and (g.directed or (min(u, v), max(u, v)) not in es):
+                return (u, v)
+    return None
+
+
+LITERAL_LIMIT = 200  # edges; above it, the edges are checked by the family's rule instead
+
+
+def big_rule(fam, kwargs, directed):
+    """The family's adjacency rule for rows too large to write out (K60, 100×100, Q10)."""
+    pair = "e.source, e.target" if directed else "e.u, e.v"
+    if fam == "complete":
+        return None  # sorted, no repeats, in range and m = n(n − 1)/2 (or n(n − 1)) leave only every pair
+    if fam == "grid":
+        c = kwargs["dimensions"][-1]
+        return "{ let (a, b) = (min(%s), max(%s)); return (b - a == 1 && a %% %d != %d) || b - a == %d }()" % (
+            pair, pair, c, c - 1, c)
+    if fam == "hypercube":
+        return "(%s).nonzeroBitCount == 1" % pair.replace(", ", " ^ ")
+    raise AssertionError(fam)
+
+
+def undirected_check(g, fam, kwargs, ind):
+    n, m = g.n, len(g.edges)
+    d = ref.degrees(g)
+    L = [ind + "func check(_ graph: some Graph<Int>, _ type: String) {"]
+    i = ind + "    "
+    L.append(i + "#expect(graph.vertexCount == %d && graph.edgeCount == %d && graph.edges.count == %d, \"\\(type)\")" % (n, m, m))
+    L.append(i + "#expect(Array(graph.vertices) == Array(0 ..< %d), \"\\(type)\")" % n)
+    L.append(i + "#expect((0 ..< %d).map { graph.vertexIndex(of: $0) } == Array(0 ..< %d), \"\\(type)\")" % (n, n))
+    if m <= LITERAL_LIMIT:
+        L.append(i + "#expect(graph.edges.map { [$0.u, $0.v] } == %s, \"\\(type)\")" % pairs(g.edges))
+        L.append(i + "#expect((0 ..< %d).map { graph.degree(of: $0) } == %s, \"\\(type)\")" % (n, ints(d)))
+        L.append(i + "#expect((0 ..< %d).map { graph.neighbors(of: $0).sorted() } == %s, \"\\(type)\")" % (n, rows(adjacency(g))))
+    else:
+        L.append(i + "// Sorted, u < v, no repeats, and each edge by the family's rule.")
+        L.append(i + "let ends = graph.edges.map { [$0.u, $0.v] }")
+        L.append(i + "#expect(zip(ends, ends.dropFirst()).allSatisfy { $0.lexicographicallyPrecedes($1) }, \"\\(type)\")")
+        rule = big_rule(fam, kwargs, False)
+        L.append(i + "#expect(graph.edges.allSatisfy { e in e.u < e.v && e.v < %d%s }, \"\\(type)\")" % (n, " && " + rule if rule else ""))
+        if min(d) == max(d):
+            L.append(i + "#expect((0 ..< %d).allSatisfy { graph.degree(of: $0) == %d }, \"\\(type)\")" % (n, d[0]))
+        else:
+            assert fam == "grid" and len(kwargs["dimensions"]) == 2
+            r, c = kwargs["dimensions"]
+            L.append(i + "#expect((0 ..< %d).allSatisfy { v in graph.degree(of: v) == [v / %d > 0, v / %d < %d, v %% %d > 0, v %% %d < %d].filter { $0 }.count }, \"\\(type)\")"
+                     % (n, c, c, r - 1, c, c, c - 1))
+            assert all(d[v] == sum([v // c > 0, v // c < r - 1, v % c > 0, v % c < c - 1]) for v in range(n))
+    L.append(i + "#expect(graph.edges.allSatisfy { graph.contains(edge: $0) && graph.contains(edge: UndirectedEdge($0.v, $0.u)) }, \"\\(type)\")")
+    if n <= 64:
+        L.append(i + "#expect((0 ..< %d).allSatisfy { v in graph.incidentEdges(of: v).allSatisfy { graph.edges[$0].u == v || graph.edges[$0].v == v } }, \"\\(type)\")" % n)
+    ne = first_non_edge(g)
+    if ne:
+        L.append(i + "#expect(!graph.contains(edge: UndirectedEdge(%d, %d)), \"\\(type)\")" % ne)
+    L.append(ind + "}")
+    return L
+
+
+def directed_check(g, fam, kwargs, ind):
+    n, m = g.n, len(g.edges)
+    out, inn = ref.degrees(g)
+    L = [ind + "func checkDirected(_ graph: some DirectedGraph<Int>, _ type: String) {"]
+    i = ind + "    "
+    L.append(i + "#expect(graph.vertexCount == %d && graph.edgeCount == %d && graph.edges.count == %d, \"\\(type)\")" % (n, m, m))
+    L.append(i + "#expect(Array(graph.vertices) == Array(0 ..< %d), \"\\(type)\")" % n)
+    L.append(i + "#expect((0 ..< %d).map { graph.vertexIndex(of: $0) } == Array(0 ..< %d), \"\\(type)\")" % (n, n))
+    L.append(i + "var inDegrees = [Int](repeating: 0, count: %d)" % n)
+    L.append(i + "for edge in graph.edges { inDegrees[edge.target] += 1 }")
+    if m <= LITERAL_LIMIT:
+        L.append(i + "#expect(graph.edges.map { [$0.source, $0.target] } == %s, \"\\(type)\")" % pairs(g.edges))
+        L.append(i + "#expect((0 ..< %d).map { graph.outDegree(of: $0) } == %s, \"\\(type)\")" % (n, ints(out)))
+        L.append(i + "#expect(inDegrees == %s, \"\\(type)\")" % ints(inn))
+        L.append(i + "#expect((0 ..< %d).map { graph.successors(of: $0).sorted() } == %s, \"\\(type)\")" % (n, rows(adjacency(g))))
+    else:
+        L.append(i + "// Row-major, no repeats, no self-loops, and each arc by the family's rule.")
+        L.append(i + "let ends = graph.edges.map { [$0.source, $0.target] }")
+        L.append(i + "#expect(zip(ends, ends.dropFirst()).allSatisfy { $0.lexicographicallyPrecedes($1) }, \"\\(type)\")")
+        rule = big_rule(fam, kwargs, True)
+        L.append(i + "#expect(graph.edges.allSatisfy { e in e.source != e.target && e.source < %d && e.target < %d%s }, \"\\(type)\")"
+                 % (n, n, " && " + rule if rule else ""))
+        if min(out) == max(out) and min(inn) == max(inn):
+            L.append(i + "#expect((0 ..< %d).allSatisfy { graph.outDegree(of: $0) == %d } && inDegrees.allSatisfy { $0 == %d }, \"\\(type)\")" % (n, out[0], inn[0]))
+        else:
+            assert fam == "grid" and len(kwargs["dimensions"]) == 2
+            r, c = kwargs["dimensions"]
+            L.append(i + "#expect((0 ..< %d).allSatisfy { v in graph.outDegree(of: v) == [v / %d > 0, v / %d < %d, v %% %d > 0, v %% %d < %d].filter { $0 }.count && inDegrees[v] == graph.outDegree(of: v) }, \"\\(type)\")"
+                     % (n, c, c, r - 1, c, c, c - 1))
+    L.append(i + "#expect(graph.edges.allSatisfy { graph.contains(edge: $0) }, \"\\(type)\")")
+    if n <= 64:
+        L.append(i + "#expect((0 ..< %d).allSatisfy { v in graph.outEdges(of: v).allSatisfy { graph.source(ofEdgeAt: $0) == v } }, \"\\(type)\")" % n)
+    ne = first_non_edge(g)
+    if ne:
+        L.append(i + "#expect(!graph.contains(edge: DirectedEdge(from: %d, to: %d)), \"\\(type)\")" % ne)
+    L.append(ind + "}")
+    return L
+
+
+def header(n, is_async=False):
+    return ['    @Test("NG-%03d %s")' % (n, title(n)),
+            "    func ng%03d()%s {" % (n, " async" if is_async else ""),
+            "        // %s → %s" % (call(n), cell(n))]
+
+
+# ---------------------------------------------------------------------------------------------
+# Rows
+# ---------------------------------------------------------------------------------------------
+
+def family_row(n):
+    typ, fam, args, kwargs = parse(call(n).split(" == ")[0])
+    row_directed = typ in DIRECTED
+    g = model(fam, row_directed, kwargs)
+    full = "; E [" in cell(n)
+    text = ref.summary(g, full)
+    if n == 48:
+        text += "; equal true"
+    assert text == cell(n), (n, text, cell(n))
+    gu, gd = model(fam, False, kwargs), model(fam, True, kwargs)
+    L = header(n)
+    if not isinstance(gu, ref.Trap):
+        L += undirected_check(gu, fam, kwargs, "        ")
+        for t in UNDIRECTED:
+            L.append("        check(%s.%s(%s), %s)" % (t, fam, args, '"%s"' % t))
+    if n == 48:
+        L.append("        // W4 is K4 on every undirected conformer.")
+        for t in UNDIRECTED:
+            L.append("        #expect(%s.wheel(vertexCount: 4) == %s.complete(vertexCount: 4))" % (t, t))
+    if not isinstance(gd, ref.Trap):
+        L.append("        // The directed form: %s." % ORIENTATION[fam])
+        L += directed_check(gd, fam, kwargs, "        ")
+        for t in DIRECTED:
+            L.append("        checkDirected(%s.%s(%s), %s)" % (t, fam, args, '"%s"' % t))
+    L.append("    }")
+    return L
+
+
+def structure_row(n):
+    typ, fam, args, kwargs = parse(call(n))
+    if typ == "Tree<Int>":
+        g = (ref.tree_path if fam == "path" else ref.tree_star)(kwargs["vertexCount"])
+        assert ref.summary(g) == cell(n), n
+    else:
+        g = ref.bipartite_complete(kwargs["leftCount"], kwargs["rightCount"])
+        assert ref.summary(g) + "; left %s; right %s" % (g.left, g.right) == cell(n), n
+    L = header(n)
+    L.append("        let graph = %s" % call(n))
+    L += undirected_check(g, fam, kwargs, "        ")
+    L.append('        check(graph, "%s")' % typ)
+    if typ != "Tree<Int>":
+        L.append("        #expect(Array(graph.left) == %s && Array(graph.right) == %s)" % (ints(g.left), ints(g.right)))
+        L.append("        #expect((0 ..< %d).map { graph.side(of: $0) } == %s)" % (
+            g.n, "[" + ", ".join(".left" if v in g.left else ".right" for v in range(g.n)) + "] as [BipartiteSide]"))
+    L.append("    }")
+    return L
+
+
+# Trap rows: (calls run as exit tests, the valid neighbour run in this process, its expected n and m).
+def every(fam, args, kinds=("U", "D")):
+    out = []
+    if "U" in kinds:
+        out += ["%s.%s(%s)" % (t, fam, args) for t in UNDIRECTED]
+    if "D" in kinds:
+        out += ["%s.%s(%s)" % (t, fam, args) for t in DIRECTED]
+    return out
+
+
+TRAPS = {
+    10: (every("complete", "vertexCount: -1"), "UndirectedAdjacencyList<Int>.complete(vertexCount: 0)", (0, 0)),
+    11: (every("complete", "vertexCount: 1 << 32", "D"), "CompressedSparseRow.complete(vertexCount: 3)", (3, 6)),
+    20: (every("completeBipartite", "leftCount: 2, rightCount: -1") + every("completeBipartite", "leftCount: -1, rightCount: 2")
+         + ["BipartiteGraph<Int>.completeBipartite(leftCount: 2, rightCount: -1)"],
+         "UndirectedAdjacencyList<Int>.completeBipartite(leftCount: 2, rightCount: 0)", (2, 0)),
+    28: (["Tree<Int>.path(vertexCount: 0)", "Tree<Int>.path(vertexCount: -1)"], "Tree<Int>.path(vertexCount: 1)", (1, 0)),
+    29: (every("path", "vertexCount: -2"), "UndirectedAdjacencyList<Int>.path(vertexCount: 0)", (0, 0)),
+    34: (every("cycle", "vertexCount: 0"), "UndirectedAdjacencyList<Int>.cycle(vertexCount: 3)", (3, 3)),
+    35: (every("cycle", "vertexCount: 1"), "UndirectedAdjacencyList<Int>.cycle(vertexCount: 3)", (3, 3)),
+    36: (every("cycle", "vertexCount: 2"), "UndirectedAdjacencyList<Int>.cycle(vertexCount: 3)", (3, 3)),
+    37: (every("cycle", "vertexCount: 2", "D"), "CompressedSparseRow.cycle(vertexCount: 3)", (3, 3)),
+    43: (every("star", "vertexCount: 0") + ["Tree<Int>.star(vertexCount: 0)"], "UndirectedAdjacencyList<Int>.star(vertexCount: 1)", (1, 0)),
+    50: (every("wheel", "vertexCount: 0"), "UndirectedAdjacencyList<Int>.wheel(vertexCount: 4)", (4, 6)),
+    51: (every("wheel", "vertexCount: 3"), "UndirectedAdjacencyList<Int>.wheel(vertexCount: 4)", (4, 6)),
+    66: (every("grid", "dimensions: []") + every("grid", "dimensions: [], periodic: true", "U"),
+         "UndirectedAdjacencyList<Int>.grid(dimensions: [1])", (1, 0)),
+    67: (every("grid", "dimensions: [3, -1]"), "UndirectedAdjacencyList<Int>.grid(dimensions: [3, 0])", (0, 0)),
+    68: (every("grid", "dimensions: [1 << 32, 1 << 32]"), "UndirectedAdjacencyList<Int>.grid(dimensions: [1 << 32, 0])", (0, 0)),
+    75: (every("hypercube", "dimension: -1"), "UndirectedAdjacencyList<Int>.hypercube(dimension: 0)", (1, 0)),
+    76: (every("hypercube", "dimension: 63"), "UndirectedAdjacencyList<Int>.hypercube(dimension: 4)", (16, 32)),
+    83: (every("empty", "vertexCount: -1"), "UndirectedAdjacencyList<Int>.empty(vertexCount: 0)", (0, 0)),
+}
+TREE_TRAP = {"path": ref.tree_path, "star": ref.tree_star}
+
+
+def trap_test(n):
+    calls, valid, (vn, vm) = TRAPS[n]
+    assert call(n) in calls, n
+    for c in calls:
+        typ, fam, args, kwargs = parse(c)
+        if typ == "Tree<Int>":
+            fn = lambda: TREE_TRAP[fam](kwargs["vertexCount"])
+        elif typ.startswith("BipartiteGraph"):
+            fn = lambda: ref.bipartite_complete(kwargs["leftCount"], kwargs["rightCount"])
+        else:
+            fn = lambda: FAMILIES[fam](typ in DIRECTED, **kwargs)
+        try:
+            fn()
+            raise AssertionError("no trap: %s" % c)
+        except ref.Trap as t:
+            if c == call(n):
+                assert cell(n) == "**trap**: %s" % t, (n, t)
+    typ, fam, args, kwargs = parse(valid)
+    g = (TREE_TRAP[fam](kwargs["vertexCount"]) if typ == "Tree<Int>" else FAMILIES[fam](typ in DIRECTED, **kwargs))
+    assert (g.n, len(g.edges)) == (vn, vm), (n, g.n, len(g.edges))
+    L = header(n, True)
+    for c in calls:
+        L.append("        await #expect(processExitsWith: .failure) {")
+        L.append("            _ = %s" % c)
+        L.append("        }")
+    L.append("        // Without the fault: accepted.")
+    L.append("        let graph = %s" % valid)
+    L.append("        #expect(graph.vertexCount == %d && graph.edgeCount == %d)" % (vn, vm))
+    L.append("    }")
+    return L
+
+
+def test_for(n):
+    if is_trap(n):
+        return trap_test(n)
+    if call(n).startswith(("Tree<", "BipartiteGraph<")):
+        return structure_row(n)
+    return family_row(n)
+
+
+# ---------------------------------------------------------------------------------------------
+# Files
+# ---------------------------------------------------------------------------------------------
+
+def ids(*groups):
+    return [n for n in range(1, N + 1) if group(n) in groups and not is_trap(n)]
+
+
+FILES = [
+    ("CompleteGraphTests.swift", "NamedGraphs complete and complete bipartite graphs", ids("Complete", "CompleteBipartite"),
+     "Complete and complete bipartite graphs (catalog NG-001 – NG-019): K_n on 0..<n with every pair, both\n"
+     "// arcs when directed; K_{a,b} with left 0..<a and right a..<a+b, left → right when directed; and\n"
+     "// BipartiteGraph.completeBipartite with its sides."),
+    ("PathCycleStarWheelTests.swift", "NamedGraphs paths, cycles, stars and wheels", ids("Path", "Cycle", "Star", "Wheel"),
+     "Paths, cycles, stars and wheels (catalog NG-021 – NG-049): i – i+1; the cycle's closing edge stored\n"
+     "// as 0 – (n − 1); hub 0; the wheel as a star and a rim cycle composed. Directed forms follow the\n"
+     "// natural orientation. Tree.path and Tree.star."),
+    ("GridHypercubePetersenTests.swift", "NamedGraphs grids, hypercubes, Petersen and empty graphs", ids("Grid", "Hypercube", "Petersen", "Empty"),
+     "Grids, hypercubes, the Petersen graph and empty graphs (catalog NG-052 – NG-082): grids row-major\n"
+     "// with the last dimension fastest, periodic wraps only in dimensions of length ≥ 3; Q_d by bits;\n"
+     "// Petersen in NetworkX's numbering; both arcs when directed."),
+    ("RepresentationTests.swift", "NamedGraphs on every conformer", ids("Representations"),
+     "Representations (catalog NG-084 – NG-090): one family on every conformer reads the same vertices\n"
+     "// and the same edges in the same order."),
+    ("NamedGraphPreconditionTests.swift", "NamedGraphs preconditions", [n for n in range(1, N + 1) if is_trap(n)],
+     "Preconditions (catalog trap rows): each trapping call runs in a child process (exit test), on every\n"
+     "// conformer the rule covers. A valid neighbour of the call then runs in this process."),
+]
+IMPORTS = {"AdjacencyListModule": ("AdjacencyList<", "UndirectedAdjacencyList<"), "AdjacencyMatrixModule": ("AdjacencyMatrix",),
+           "CompressedSparseRowModule": ("CompressedSparseRow",), "Multigraphs": ("Pseudograph<", "Multigraph<"),
+           "StableGraphs": ("StableDirectedGraph",), "Trees": ("Tree<",), "BipartiteGraphs": ("BipartiteGraph<",)}
+
+
+def write(fname, suite, rws, comment):
+    body = []
+    for i, n in enumerate(rws):
+        if i:
+            body.append("")
+        body += test_for(n)
+    text = "\n".join(body)
+    imports = ["GraphProtocols", "NamedGraphs", "Testing"]
+    for module, needles in IMPORTS.items():
+        if any(x in text for x in needles):
+            imports.append(module)
+    pre = fname == "NamedGraphPreconditionTests.swift"
+    if pre:
+        imports.append("GrafluentTestSupport")
+    imports.sort(key=str.lower)
+    out = ["// " + comment, "// Generated from cases.md by swiftgen.py; see README.md.", ""]
+    out += ["import " + m for m in imports]
+    out += ["", '@Suite("%s"%s)' % (suite, ", .tags(.precondition)" if pre else ""), "struct %s {" % fname[:-6]]
+    out += body
+    out.append("}")
+    with open(os.path.join(OUT, fname), "w") as f:
+        f.write("\n".join(out) + "\n")
+    return sum(1 for l in body if l.lstrip().startswith("@Test("))
+
+
+os.makedirs(OUT, exist_ok=True)
+total = rows_total = 0
+for fname, suite, rws, comment in FILES:
+    k = write(fname, suite, rws, comment)
+    print(fname, k)
+    total += k
+    rows_total += len(rws)
+assert rows_total == N == total, (rows_total, total)
+print("catalog rows", rows_total, "tests", total)

@@ -70,7 +70,8 @@ def _count(n, name="vertexCount"):
 
 def complete(n, directed=False):
     _count(n)
-    require(n * (n - 1) <= INT_MAX, "edge count overflows Int")
+    # The kind's own count: n(n - 1) arcs, n(n - 1)/2 edges.
+    require((n * (n - 1) if directed else n * (n - 1) // 2) <= INT_MAX, "edge count overflows Int")
     g = _undirected(n, itertools.combinations(range(n), 2))
     return _both_arcs(g) if directed else g
 
@@ -140,6 +141,7 @@ def hypercube(d, directed=False):
     require(d >= 0, f"dimension {d} is negative")
     require(d <= 62, f"2^{d} vertices overflow Int")
     n = 1 << d
+    require(d * n // (1 if directed else 2) <= INT_MAX, "edge count overflows Int")
     g = _undirected(n, [(v, v ^ (1 << k)) for v in range(n) for k in range(d) if not v >> k & 1])
     return _both_arcs(g) if directed else g
 

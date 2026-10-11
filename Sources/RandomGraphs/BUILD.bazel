@@ -10,6 +10,9 @@ swift_library(
     module_name = "RandomGraphs",
     deps = [
         "//Sources/GraphProtocols",
+        "//Sources/NamedGraphs",
+        "//Sources/Trees",
+        "//Sources/DirectedAcyclicGraphModule",
     ],
     visibility = ["//visibility:public"],
 )
@@ -21,6 +24,9 @@ docc_archive(
     catalog = glob(["*.docc/**"], allow_empty = True),
     deps = [
         "//Sources/GraphProtocols:GraphProtocolsDocumentation",
+        "//Sources/NamedGraphs:NamedGraphsDocumentation",
+        "//Sources/Trees:TreesDocumentation",
+        "//Sources/DirectedAcyclicGraphModule:DirectedAcyclicGraphModuleDocumentation",
     ],
     tags = ["manual"],
     visibility = ["//visibility:public"],

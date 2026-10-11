@@ -10,6 +10,8 @@ swift_library(
     module_name = "NamedGraphs",
     deps = [
         "//Sources/GraphProtocols",
+        "//Sources/Trees",
+        "//Sources/BipartiteGraphs",
     ],
     visibility = ["//visibility:public"],
 )
@@ -21,6 +23,8 @@ docc_archive(
     catalog = glob(["*.docc/**"], allow_empty = True),
     deps = [
         "//Sources/GraphProtocols:GraphProtocolsDocumentation",
+        "//Sources/Trees:TreesDocumentation",
+        "//Sources/BipartiteGraphs:BipartiteGraphsDocumentation",
     ],
     tags = ["manual"],
     visibility = ["//visibility:public"],

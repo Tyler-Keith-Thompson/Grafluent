@@ -4,6 +4,9 @@ Random families as static factories on the representation types, through the sam
 protocols as `NamedGraphs` (`_DirectedGraphConstruction`, `_GraphConstruction`; see
 `../NamedGraphs/api.md`), plus statics on `Tree` and `DirectedAcyclicGraph`. Every factory takes
 `inout some RandomNumberGenerator`, and the module ships a public seedable generator.
+`RandomGraphs` depends on `GraphProtocols`, `NamedGraphs` (the complete-graph shortcuts at p = 1 and
+k = n, and the lazy pair collections), `Trees` and `DirectedAcyclicGraphModule`.
+`Xoshiro256StarStar` lives here: `NamedGraphs` draws nothing.
 
 `cases.md` (RG-001 – RG-108, 108 rows) pins the values: 8 generator rows (one a trap), 59 exact
 outputs for fixed seeds (55 of them reproduced by NetworkX), 23 traps, 16 statistical laws and 2
@@ -102,7 +105,7 @@ extension _DirectedGraphConstruction {
 extension Tree where Vertex == Int {
     public static func random(vertexCount n: Int, using g: inout some RandomNumberGenerator) -> Tree
 }
-extension DirectedAcyclicGraph where Base: MutableDirectedGraph & _DirectedGraphConstruction {
+extension DirectedAcyclicGraph where Base: _DirectedGraphConstruction {   // Base is already a MutableDirectedGraph
     public static func erdosRenyi(vertexCount:edgeProbability:using:) -> Self
     public static func erdosRenyi(vertexCount:edgeCount:using:) -> Self
 }
@@ -127,12 +130,14 @@ keeps `Tree(pruferSequence:)`'s edge order (RG-095 – RG-100).
 | `randomGeometric(vertexCount:radius:dimension:)` | positions vertex by vertex, coordinate by coordinate, each `uniform01()`. u–v when Σᵢ (aᵢ − bᵢ)·(aᵢ − bᵢ), summed in coordinate order, ≤ r·r. Found with a cell grid of side ≥ r (Bentley, Stanat and Williams, IPL 6(6), 1977), checking the 3^d neighbouring cells; the cell count is capped at n so memory stays O(n) for tiny r | `random_geometric_graph(n, r, dim=)` without scipy, exactly, positions included | O(n + m) expected for uniform points, plus 3^d per cell | RG-074 – RG-083 |
 | `stochasticBlockModel(blockSizes:edgeProbabilities:)` | Blocks are consecutive vertex ranges. Block pairs (i, j): undirected i ≤ j in `combinations_with_replacement` order, directed every (i, j) row-major. Pairs within a pair-block: undirected `combinations` of block i, directed `permutations`, between blocks the `product`, all in ascending order. p = 1: every pair, no draws; 0 < p < 1: repeat `u = uniform01()` (u = 0 ends the block pair), `skip = floor(log(u) / log(1 − p))`, pass `skip` pairs and keep the next; stop past the end | `stochastic_block_model(sizes, p, directed=)` (its default `sparse=True`) when CPython's set of each block iterates in ascending order | O(n + m + B²) expected, by indexing the pair-block arithmetically. NetworkX passes skipped pairs one by one through `islice`, so its "sparse" mode is O(pairs): 26.8 s for 100 000 vertices | RG-084 – RG-094 |
 | `Tree.random(vertexCount:)` | n = 1: one vertex, no draws. Otherwise a Prüfer code of n − 2 draws `below(n)`, decoded by `Tree(pruferSequence:)` (O(n), already in `Trees`) | `random_labeled_tree(n)`, exactly | O(n) | RG-095 – RG-103 |
-| `DirectedAcyclicGraph.erdosRenyi(…)` | the undirected procedure, each edge u–v (u < v) oriented u → v: the Barak–Erdős model (SIAM J. Algebraic Discrete Methods 5(4), 1984). The order 0..<n is a topological order, handed to the wrapper as its order, so it runs no Kahn pass | `fast_gnp_random_graph(n, p)` / `gnm_random_graph(n, m)` oriented upward (NetworkX's documented recipe for a random DAG) | as the undirected forms | RG-104 – RG-108 |
+| `DirectedAcyclicGraph.erdosRenyi(…)` | the undirected procedure, each edge u–v (u < v) oriented u → v: the Barak–Erdős model (SIAM J. Algebraic Discrete Methods 5(4), 1984). The sorted pairs build the base in bulk, and `package DirectedAcyclicGraph(_vertexOrderedBase:)` (in `DirectedAcyclicGraphModule`) takes its `vertices` order, 0..<n, as the topological order: O(n), no hashing, no Kahn pass and no per-edge insertion. Bases: the three `MutableDirectedGraph`s, `AdjacencyList<Int>`, `StableDirectedGraph<Int>` and `DirectedPseudograph<Int>`, which all conform to `_DirectedGraphConstruction` | `fast_gnp_random_graph(n, p)` / `gnm_random_graph(n, m)` oriented upward (NetworkX's documented recipe for a random DAG) | as the undirected forms | RG-104 – RG-108 |
 
-The skip in G(n, p) is compared against the number of pairs left before it becomes an `Int`
-(RG-021). The quotient can reach about 3·10¹⁷, which fits a 64-bit `Int` but not a 32-bit one, and
-the comparison costs nothing. For `1 − p == 1` (p below about 1.1·10⁻¹⁶), `log(1 − p)` is 0 and the
-result is empty with no draws (RG-020). NetworkX divides by zero there.
+The skip in G(n, p) is compared, as a `Double`, against n² before it becomes an `Int` (RG-021): a
+skip of n² or more passes every pair left in the sweep (there are fewer than n²/2), so the sweep ends
+there, after the draw that produced it. `ref.py` does the same (`if not skip < n * n: return`). The
+quotient can reach about 3·10¹⁷, which fits a 64-bit `Int` but not a 32-bit one, and the comparison
+costs nothing. For `1 − p == 1` (p below about 1.1·10⁻¹⁶), `log(1 − p)` is 0 and the result is empty
+with no draws (RG-020). NetworkX divides by zero there.
 
 ### Directed variants
 
@@ -209,7 +214,7 @@ of the per-file `LCG`s.
 | `Tree.random(vertexCount:)` | Swift's `random(…using:)` idiom on the type | `random_labeled_tree` | `Tree_Game` | — | `RandomTree` |
 | `Xoshiro256StarStar` | the algorithm's name, spelled as Rust's `rand_xoshiro` spells it | — | — | — | — |
 
-## Open questions, with recommendations
+## Open questions, decided as recommended
 
 1. **Where factories live.** *Recommended: the `NamedGraphs` protocols*, so each family is written
    once. The procedure body is generic only over the generator (it must be `@inlinable` and specialized,
