@@ -92,7 +92,8 @@ extension Graph {
     // Weisfeiler–Leman (colour refinement); iterations ≥ 0, default 3 as NetworkX
     public func weisfeilerLehmanGraphHash(iterations: Int = 3) -> Int
     public func weisfeilerLehmanSubgraphHashes(iterations: Int = 3) -> WeisfeilerLehmanSubgraphHashes<Self>
-    // and both with vertexColor: / edgeColor: (one graph, so no `other` closures)
+    // and both as (iterations:vertexColor:) and (iterations:vertexColor:edgeColor:) (one graph, so no
+    // `other` closures; iterations defaults to 3 there too)
 
     // Phase 2
     public func automorphismGroup() -> AutomorphismGroup<Self>          // + vertexColor:/edgeColor:
@@ -385,6 +386,20 @@ Targets for the Swift implementation, measured in the benchmark target against t
   isomorphism (Ullmann)". "Vertex and edge classes a mapping must preserve: colour (igraph, bliss,
   nauty); NetworkX, LEMON: label".
 - The module needs only `GraphProtocols`, as its BUILD file says now.
+
+## Settled in the phase 1 implementation
+
+- The Weisfeiler–Leman colour overloads are `(iterations:vertexColor:)` and
+  `(iterations:vertexColor:edgeColor:)`, on both protocols, for both the graph hash and the
+  subgraph hashes.
+- `weisfeilerLehmanSubgraphHashes` are invariant under isomorphism vertex by vertex: an
+  isomorphism f gives `hashes(of: f(v))` on the target equal to `hashes(of: v)` on the pattern
+  (same colours, within one process).
+- Colour closures are read at most once per vertex and edge, at the call (exactly once each in
+  the implementation); iterating a sequence reads none.
+- `isomorphism(to:)` is not promised to be the first element of `isomorphisms(to:)`. In phase 1 it
+  is (both run the same search), but a later dispatch (phase 2's canonical forms) may change that.
+- Every open question below is decided as recommended.
 
 ## Open questions (with recommendations)
 

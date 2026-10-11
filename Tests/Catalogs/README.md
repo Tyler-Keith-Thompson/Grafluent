@@ -53,6 +53,7 @@ for f in /tmp/co/*; do cmp "$f" Tests/ColoringModuleTests/"$(basename "$f")"; do
 | Covering | igraph | `swiftgen.py` | `ref.py --stress`; `PYTHONHASHSEED=0 ref.py --write` reproduces `cases.md` exactly (CV-124's note follows the hash seed) |
 | Cycles | igraph (for `ref.py`) | `gen.py` (also assembles `CycleRepresentationTests.swift`) | `ref.py` (about 2 minutes) |
 | Distances | scipy | `gen.py` | `ref.py` (reads `../TreeAlgorithms/cases.md`) |
+| Isomorphism | igraph, rustworkx | `swiftgen.py` (phase 1; `--phase2` adds `AutomorphismGroupTests.swift`) | `ref.py --stress` |
 | MatchingModule | scipy | `swiftgen.py` | `ref.py --stress` |
 | Multigraphs | — | `swiftgen.py` | `ref.py` |
 | Traversal | none (stdlib) | `gen.py` (`SearchTranscriptTests.swift`) | `check.py`; `dump.py`, `compact.py` reproduce `dump.txt`, `compact.txt` |

@@ -117,13 +117,14 @@ TEST_TARGETS = [
     ("GraphProtocolsTests", ["GraphProtocols", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "EdgeListModule", "GrafluentTestSupport", "swift-collections/BitCollections"]),
     ("FunctionalGraphsTests", ["GraphProtocols", "FunctionalGraphs", "Multigraphs", "LabeledGraphs", "Traversal", "Connectivity", "ShortestPaths", "Walks", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("ImplicitGraphsTests", ["GraphProtocols", "ImplicitGraphs", "Multigraphs", "CompressedSparseRowModule", "LabeledGraphs", "Traversal", "Connectivity", "ShortestPaths", "Walks", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
+    ("IsomorphismTests", ["GraphProtocols", "IsomorphismModule", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "Multigraphs", "LabeledGraphs", "RandomGraphs", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
 ]
 
 # Bazel test sizes above the default "small" (60 s timeout), for suites whose solo run takes more
 # than about 15 s and so can pass 60 s when other builds load the machine. "medium" is 300 s.
 # Solo debug runs, measured 2026-10-10: Coloring 16 s, Distances 19 s, ShortestPaths, Trees and
 # TreeAlgorithms 16 s, PriorityQueue 14 s; the rest at most 13 s.
-TEST_SIZES = {name: "medium" for name in ["ColoringModuleTests", "DistancesTests", "ShortestPathsTests", "TreesTests", "TreeAlgorithmsTests", "PriorityQueueTests"]}
+TEST_SIZES = {name: "medium" for name in ["ColoringModuleTests", "DistancesTests", "ShortestPathsTests", "TreesTests", "TreeAlgorithmsTests", "PriorityQueueTests", "IsomorphismTests", "SpectralGraphTheoryTests"]}
 
 # The library modules the differential harness (Differential/, scripts/differential.py) links.
 # Both its Package.swift and its BUILD.bazel are written from this list.
