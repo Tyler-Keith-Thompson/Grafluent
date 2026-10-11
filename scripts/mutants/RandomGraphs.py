@@ -2,7 +2,27 @@
 # build through (module=...). Run with `just mutate RandomGraphs`; see scripts/mutate.py.
 #
 # Known equivalent mutants (they survive by design):
-#   (filled in after the run)
+#
+# Removed checks that leave a trap at the same call (an exit test passes either way):
+#   gnmcount, gnpcount, gnpdicount, dagcount — a negative n reaches `0 ..< n` in the sort, or
+#   complete(vertexCount:)'s check; bacount, wscount — the next precondition (m < n, k ≤ n) fails;
+#   balow (m = 0 makes `1 ... 0`), bahigh (m = n makes `n + 1 ..< n`); wsnegative — [Int] of
+#   negative count; treecheck — Tree's own check; sbmsize — Int.max − size overflows for a negative
+#   size in the running block starts; dagoverflow, baoverflow, rgoverflow,
+#   sbmoverflow, sbmbetweenoverflow — the guarded product or sum overflows and traps.
+# Shortcuts the next step makes anyway:
+#   gnpzero, sbmzero — p = 0 gives log(1 − p) = 0, and the `lp != 0` guard returns before a draw;
+#   sbmlogzero — log(0) / lp is +∞, which fails `skip < total − t` and ends the block pair;
+#   gnpend — a skip is at most 36.8 / |log(1 − p)| < 2⁵⁹ once lp ≠ 0, so `Int(skip)` never traps,
+#   and the wrap loop passes the rest of the sweep in O(n);
+#   gnmhalf — at 2m = N both branches pick k = m, and `k == m` returns the drawn pairs;
+#   sbmrowend — with column = a the row walk's loop moves to the next row on its first pass
+#   (rest ≥ 0 = a − column), which is what the original does;
+#   bainsertion — the full sort and the insertion sort give the same order.
+# Grid sizing only (the pairs found are the same; memory and time differ):
+#   rgcells (c^d may exceed n), rgbrute (the grid when 3^d > n), rgpowerend (c^d = n exactly), and
+#   rgmargin — the 2⁻²⁰ margin matters only for a pair whose rounded distance lands within 2⁻²⁰ of
+#   a cell side, which uniform points do not reach.
 
 TESTS = ["RandomGraphsTests"]
 
@@ -16,6 +36,8 @@ WS = "WattsStrogatz.swift"
 RG = "RandomGeometric.swift"
 RT = "RandomTree.swift"
 SB = "StochasticBlockModel.swift"
+RR = "RandomRegular.swift"
+RB = "RandomBipartite.swift"
 
 MUTANTS = [
     # xoshiro256**: the scrambler, the linear step, the rotation.
@@ -60,16 +82,10 @@ MUTANTS = [
     Mutant("bytargetprefix", EO, "    for v in 0 ..< n { offsets[v &+ 1] &+= offsets[v] }", "", mode="stmt", nth=1),
     Mutant("rowmajor", EO, "_sortedBySource(n, byTarget, [])", "_sortedBySource(n, pairs, [])"),
 
-    # The pair set.
-    Mutant("pairsetsize", PS, "(1 << bits) < 2 * capacity", "(1 << bits) < capacity"),
-    Mutant("pairsetshift", PS, "UInt64(64 - bits)", "UInt64(65 - bits)"),
-    Mutant("pairsetcontains", PS, "if k == key { return true }", "if k == key { return false }", mode="stmt"),
-    Mutant("pairsetinsert", PS, "if k == key { return false }", "if k == key { return true }", mode="stmt", nth=1),
-    Mutant("pairsetreach", PS, "hole < h && h <= j", "hole <= h && h <= j"),
-    Mutant("pairsetreachwrap", PS, "hole < h || h <= j", "hole < h || h < j"),
-    Mutant("pairsetshiftback", PS, "!reachable", "reachable"),
-    Mutant("pairsethole", PS, "                    hole = j", "", mode="stmt"),
-    Mutant("pairsetclear", PS, "            keys[hole] = 0", "", mode="stmt"),
+    # The pair set: a wrapper over AdjacencyListModule's _SlotPairTable (whose probing that spec plants).
+    Mutant("pairsetcontains", PS, "table.contains(_SlotPair(u, v))", "false"),
+    Mutant("pairsetinsert", PS, "table.insert(_SlotPair(u, v), ()).inserted", "true"),
+    Mutant("pairsetremove", PS, "        table.remove(at: i)", "", mode="stmt"),
 
     # G(n, p): the Batagelj–Brandes sweep.
     Mutant("gnplimit", ER, "Double(n) * Double(n)", "Double(n)"),
@@ -86,6 +102,7 @@ MUTANTS = [
 
     # G(n, m): the rejection loop and the complement.
     Mutant("gnmcount", ER, "_checkCount(n)", "", mode="stmt", nth=0),
+    Mutant("orderedcount", "Preconditions.swift", "_productFits(n, n - 1) ? n * (n - 1) : nil", "_productFits(n, n - 1) ? n * (n - 1) / 2 : nil", module="NamedGraphs"),
     Mutant("gnmtotal", ER, "directed ? _orderedPairCount(n) : _unorderedPairCount(n)", "directed ? _unorderedPairCount(n) : _orderedPairCount(n)"),
     Mutant("gnmlow", ER, "m >= 0 && m <= total", "m <= total"),
     Mutant("gnmhigh", ER, "m >= 0 && m <= total", "m >= 0"),
@@ -93,11 +110,10 @@ MUTANTS = [
     Mutant("gnmhalf", ER, "m <= total - m ? m : total - m", "m < total - m ? m : total - m"),
     Mutant("gnmself", ER, "        if u == v { continue }", "", mode="stmt"),
     Mutant("gnmorient", ER, "directed || u < v ? (u, v) : (v, u)", "(u, v)"),
-    Mutant("gnmkey", ER, "UInt64(a) &* width &+ UInt64(b) &+ 1", "UInt64(a) &* width &+ UInt64(b)"),
     Mutant("gnmsort", ER, "_sortedRowMajor(n, drawn)", "drawn"),
     Mutant("gnmrest", ER, "(directed ? 0 : u + 1)", "0"),
     Mutant("gnmrestself", ER, "v != u", "true"),
-    Mutant("gnmrestout", ER, "!chosen.contains(UInt64(u) &* width &+ UInt64(v) &+ 1)", "chosen.contains(UInt64(u) &* width &+ UInt64(v) &+ 1)"),
+    Mutant("gnmrestout", ER, "!chosen.contains(u, v)", "chosen.contains(u, v)"),
 
     # The public G(n, p) entries and the random DAG.
     Mutant("gnpcount", ER, "_checkCount(n)", "", mode="stmt", nth=1),
@@ -108,10 +124,10 @@ MUTANTS = [
     Mutant("dagcheck", ER, '_checkProbability(p, "edgeProbability")', "", mode="stmt", nth=2),
     Mutant("gnpone", ER, "        if p >= 1 { return complete(vertexCount: n) }", "", mode="stmt", nth=0),
     Mutant("gnpdione", ER, "        if p >= 1 { return complete(vertexCount: n) }", "", mode="stmt", nth=1),
-    Mutant("dagone", ER, "        if p >= 1 {\n            precondition(_unorderedPairCount(n) != nil, \"edge count overflows Int\")\n            return Self(_vertexOrderedBase: Base(_vertexCount: n, sortedEdges: _AscendingPairs(n)))\n        }", "", mode="stmt"),
+    Mutant("dagone", ER, "        if p >= 1 {\n            precondition(_unorderedPairCount(n) != nil, \"edge count overflows Int\")\n            return Self(_vertexOrderedBase: Base(_vertexCount: n, sortedEdges: _AscendingPairs(n), _ConstructionToken()))\n        }", "", mode="stmt"),
     Mutant("dagoverflow", ER, "            precondition(_unorderedPairCount(n) != nil, \"edge count overflows Int\")", "", mode="stmt"),
-    Mutant("dagorient", ER, "_gnpPairs(n, p, directed: false, &generator)))", "_gnpPairs(n, p, directed: true, &generator)))"),
-    Mutant("daggnmorient", ER, "_gnmPairs(n, m, directed: false, &generator)))", "_gnmPairs(n, m, directed: true, &generator)))"),
+    Mutant("dagorient", ER, "_gnpPairs(n, p, directed: false, &generator)", "_gnpPairs(n, p, directed: true, &generator)", nth=1),
+    Mutant("daggnmorient", ER, "_gnmPairs(n, m, directed: false, &generator)", "_gnmPairs(n, m, directed: true, &generator)", nth=1),
 
     # The known-order DAG.
     Mutant("dagorderlabel", "DirectedAcyclicGraph+KnownOrder.swift", "            table.insert(key, label: order.count)", "            table.insert(key, label: 0)", mode="stmt", module="DirectedAcyclicGraphModule"),
@@ -145,15 +161,15 @@ MUTANTS = [
     Mutant("wslarge", WS, "k <= n", "true"),
     Mutant("wsprob", WS, '    _checkProbability(p, "rewiringProbability")', "", mode="stmt"),
     Mutant("wscomplete", WS, "    if k == n { return nil }", "", mode="stmt"),
-    Mutant("wsring", WS, "            _ = edges.insert(UInt64(Swift.min(u, v)) &* width &+ UInt64(Swift.max(u, v)) &+ 1)", "", mode="stmt"),
+    Mutant("wsring", WS, "            _ = edges.insert(Swift.min(u, v), Swift.max(u, v))", "", mode="stmt"),
     Mutant("wsringfar", WS, "            far[(j - 1) * n + u] = v", "            far[(j - 1) * n + u] = (u + 1) % n", mode="stmt"),
     Mutant("wscoin", WS, "_uniform01(&g) < p", "_uniform01(&g) > p"),
     Mutant("wsself", WS, "w == u", "false"),
     Mutant("wsredraw", WS, "                w = _below(n, &g)", "", mode="stmt"),
     Mutant("wsfull", WS, "degree[u] >= n - 1", "degree[u] >= n"),
     Mutant("wsrewiredpair", WS, "(u + j) % n", "(u + j + 1) % n", nth=1),
-    Mutant("wsremove", WS, "            edges.remove(UInt64(Swift.min(u, v)) &* width &+ UInt64(Swift.max(u, v)) &+ 1)", "", mode="stmt"),
-    Mutant("wsinsert", WS, "            _ = edges.insert(UInt64(Swift.min(u, w)) &* width &+ UInt64(Swift.max(u, w)) &+ 1)", "", mode="stmt"),
+    Mutant("wsremove", WS, "            edges.remove(Swift.min(u, v), Swift.max(u, v))", "", mode="stmt"),
+    Mutant("wsinsert", WS, "            _ = edges.insert(Swift.min(u, w), Swift.max(u, w))", "", mode="stmt"),
     Mutant("wsdegreeold", WS, "            degree[v] -= 1", "", mode="stmt"),
     Mutant("wsdegreenew", WS, "            degree[w] += 1", "", mode="stmt"),
     Mutant("wsfar", WS, "            far[(j - 1) * n + u] = w", "", mode="stmt"),
@@ -164,7 +180,7 @@ MUTANTS = [
     Mutant("rgradius", RG, "r >= 0", "true"),
     Mutant("rgdimension", RG, "dimension >= 1", "dimension >= 0"),
     Mutant("rgoverflow", RG, "_productFits(n, dimension)", "true"),
-    Mutant("rgmargin", RG, "Swift.min(1 / r, Double(n)) * (1 - 0x1p-30)", "Swift.min(1 / r, Double(n))"),
+    Mutant("rgmargin", RG, "(1 - 0x1p-20) / (r + 0x1p-50)", "1 / (r + 0x1p-50)"),
     Mutant("rgcells", RG, "        while c > 1, !_powerAtMost(c, d, n) { c -= 1 }", "", mode="stmt"),
     Mutant("rgbrute", RG, "_powerAtMost(3, d, n)", "true"),
     Mutant("rgbrutefrom", RG, "u + 1 ..< n", "u ..< n"),
@@ -187,6 +203,44 @@ MUTANTS = [
     Mutant("rgsort", RG, "_sortedRowMajor(n, pairs)", "pairs"),
     Mutant("rgpowerstep", RG, "power <= limit / base", "true"),
     Mutant("rgpowerend", RG, "return power <= limit", "return power < limit", mode="stmt"),
+
+    # Both arcs of each pair (the directed symmetric families).
+    Mutant("botharcsorder", EO, "_sortedBySource(n, pairs.map { DirectedEdge(from: $0.target, to: $0.source) }, pairs)", "_sortedBySource(n, pairs, pairs.map { DirectedEdge(from: $0.target, to: $0.source) })"),
+    Mutant("wsdirected", WS, "_bothArcs(n, pairs)", "pairs"),
+    Mutant("wsdirectedcomplete", WS, "complete(vertexCount: n)", "Self(_vertexCount: n, sortedEdges: EmptyCollection(), _ConstructionToken())", nth=1),
+    Mutant("rgdirected", RG, "_bothArcs(n, pairs)", "pairs"),
+
+    # Random regular graphs.
+    Mutant("rrrange", RR, "d >= 0 && d < n", "d >= 0 && d <= n"),
+    Mutant("rrodd", RR, "(n * d).isMultiple(of: 2)", "true"),
+    Mutant("rrshuffle", RR, "stubs.swapAt(i, _below(i + 1, &g))", "stubs.swapAt(i, _below(i, &g))", mode="stmt"),
+    Mutant("rrshuffleend", RR, "i >= 1", "i >= 2"),
+    Mutant("rrorient", RR, "a < b ? (a, b) : (b, a)", "(a, b)"),
+    Mutant("rrself", RR, "u != v", "true"),
+    Mutant("rrstep", RR, "                k += 2", "                k += 1", mode="stmt"),
+    Mutant("rrkeptorder", RR, "if kept[u] == 0 { order.append(u) }", "", mode="stmt"),
+    Mutant("rrkeptcount", RR, "                    kept[v] += 1", "", mode="stmt"),
+    Mutant("rrsuitable", RR, "order.isEmpty", "true"),
+    Mutant("rrquirk", RR, "                    s1 = a", "", mode="stmt"),
+    Mutant("rrquirkstop", RR, "                    if s1 == y { break }", "", mode="stmt"),
+    Mutant("rrcontains", RR, "!chosen.contains(a, b)", "chosen.contains(a, b)"),
+    Mutant("rrrestart", RR, "                failed = true", "                failed = false", mode="stmt"),
+    Mutant("rrkeptreset", RR, "                kept[v] = 0", "", mode="stmt"),
+    Mutant("rrarcs", RR, "_bothArcs(n, _randomRegularPairs(n, d, &generator))", "_randomRegularPairs(n, d, &generator)"),
+
+    # Random bipartite graphs.
+    Mutant("rblimit", RB, "Double(a) * Double(b)", "Double(a)", nth=0),
+    Mutant("rbstep", RB, "        w = w &+ 1 &+ Int(skip)", "        w = w &+ Int(skip)", mode="stmt"),
+    Mutant("rbwrap", RB, "w >= b", "w > b"),
+    Mutant("rbwrapby", RB, "            w &-= b", "            w &-= b &+ 1", mode="stmt"),
+    Mutant("rbright", RB, "rightFirst ? DirectedEdge(from: a + w, to: v) : DirectedEdge(from: v, to: a + w)", "DirectedEdge(from: v, to: a + w)"),
+    Mutant("rbround", RB, "    guard lp != 0 else { return [] }", "", mode="stmt"),
+    Mutant("rbbacksort", RB, "_sortedBySource(a + b, back, [])", "back"),
+    Mutant("rbprob", RB, '    _checkProbability(p, "edgeProbability")', "", mode="stmt"),
+    Mutant("rbone", RB, "        if p >= 1 { return completeBipartite(leftCount: a, rightCount: b) }", "", mode="stmt"),
+    Mutant("rbdirectedone", RB, "forward.append(DirectedEdge(from: v, to: w))", "if w > a { forward.append(DirectedEdge(from: v, to: w)) }", mode="stmt"),
+    Mutant("rbdirectedarcs", RB, "_bothArcs(a + b, forward)", "forward"),
+    Mutant("rbsides", RB, "BipartiteGraph(_leftCount: a, graph: UndirectedAdjacencyList<Int>.randomBipartite(\n            leftCount: a, rightCount: b, edgeProbability: p, using: &generator))", "BipartiteGraph(_leftCount: b, graph: UndirectedAdjacencyList<Int>.randomBipartite(\n            leftCount: a, rightCount: b, edgeProbability: p, using: &generator))"),
 
     # Random trees.
     Mutant("treecheck", RT, "n >= 1", "n >= 0"),
@@ -219,7 +273,7 @@ MUTANTS = [
     Mutant("sbmrowskip", SB, "                        rest -= a - column", "", mode="stmt"),
     Mutant("sbmcolumn", SB, "                    column += rest", "", mode="stmt"),
     Mutant("sbmpair", SB, "                    (x, y) = (row, column)", "                    (x, y) = (column, row)", mode="stmt"),
-    Mutant("sbmcolumnnext", SB, "                    column += 1\n", "", mode="stmt"),
+    Mutant("sbmcolumnnext", SB, "                    column += 1", "", mode="stmt"),
     Mutant("sbmrowend", SB, "column >= a", "column > a"),
     Mutant("sbmdirectedrow", SB, "                    x = t / (a - 1)", "                    x = t / a", mode="stmt"),
     Mutant("sbmdirectedcolumn", SB, "r < x ? r : r + 1", "r <= x ? r : r + 1"),

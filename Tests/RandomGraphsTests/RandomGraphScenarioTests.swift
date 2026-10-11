@@ -160,4 +160,48 @@ struct RandomGraphScenarioTests {
             }
         }
     }
+
+    @Test("Random geometric: a pair exactly r apart is an edge, in the check of every pair, within a cell and between neighbouring cells")
+    func geometricTies() {
+        // A generator that returns the given words in turn: uniform01 is the top 53 bits × 2⁻⁵³, so
+        // 2⁶² draws 0.25 and 2⁶³ draws 0.5, and the points sit exactly where the test puts them.
+        struct Words: RandomNumberGenerator {
+            let words: [UInt64]
+            var index = 0
+            mutating func next() -> UInt64 {
+                defer { index = (index + 1) % words.count }
+                return words[index]
+            }
+        }
+        // Two coincident points at radius 0: 3^1 > 2, so every pair is checked.
+        var g = Words(words: [1 << 62])
+        let coincident = UndirectedAdjacencyList<Int>.randomGeometric(vertexCount: 2, radius: 0, dimension: 1, using: &g)
+        #expect(coincident.positions == [0.25, 0.25])
+        #expect(Array(coincident.graph.edges).map { [$0.u, $0.v] } == [[0, 1]])
+        // Four coincident points at radius 0: the grid of 4 cells, all four in one cell.
+        g = Words(words: [1 << 62])
+        let cell = UndirectedAdjacencyList<Int>.randomGeometric(vertexCount: 4, radius: 0, dimension: 1, using: &g)
+        #expect(Array(cell.graph.edges).map { [$0.u, $0.v] } == [[0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [2, 3]])
+        // Points at 0.25 and 0.5, radius 0.25 (0.25² = 0.0625 exactly): cells of side 1/3, so 0.25 and
+        // 0.5 fall in neighbouring cells, and every pair is within the radius.
+        var h = Words(words: [1 << 62, 1 << 63])
+        let neighbours = UndirectedAdjacencyList<Int>.randomGeometric(vertexCount: 4, radius: 0.25, dimension: 1, using: &h)
+        #expect(neighbours.positions == [0.25, 0.5, 0.25, 0.5])
+        #expect(Array(neighbours.graph.edges).map { [$0.u, $0.v] } == [[0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [2, 3]])
+    }
+
+    @Test("Random bipartite and block model: a probability for which 1 − p rounds to 1 gives no edges and makes no draws")
+    func probabilityRoundingToZero() {
+        var generator = Xoshiro256StarStar(seed: 7)
+        let bipartite = UndirectedAdjacencyList<Int>.randomBipartite(leftCount: 3, rightCount: 4, edgeProbability: 1e-17, using: &generator)
+        #expect(bipartite.vertexCount == 7 && bipartite.edgeCount == 0)
+        #expect(generator == Xoshiro256StarStar(seed: 7))
+        let directed = CompressedSparseRow.randomBipartite(leftCount: 3, rightCount: 4, edgeProbability: 1e-17, using: &generator)
+        #expect(directed.vertexCount == 7 && directed.edgeCount == 0)
+        #expect(generator == Xoshiro256StarStar(seed: 7))
+        let blocks = UndirectedAdjacencyList<Int>.stochasticBlockModel(
+            blockSizes: [3, 2], edgeProbabilities: [[1e-17, 1e-17], [1e-17, 1e-17]], using: &generator)
+        #expect(blocks.vertexCount == 5 && blocks.edgeCount == 0)
+        #expect(generator == Xoshiro256StarStar(seed: 7))
+    }
 }

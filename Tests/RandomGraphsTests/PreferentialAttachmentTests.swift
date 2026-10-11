@@ -1,5 +1,5 @@
-// Barabási–Albert and Watts–Strogatz for fixed seeds (catalog RG-047 – RG-068, RG-109): the
-// repeated-nodes list with targets appended in ascending order, and NetworkX's ring rewiring.
+// Barabási–Albert and Watts–Strogatz for fixed seeds (catalog RG-047 – RG-068, RG-109,
+// RG-142, RG-144): the repeated-nodes list with targets appended in ascending order, and NetworkX's ring rewiring.
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import AdjacencyListModule
@@ -1305,6 +1305,150 @@ struct PreferentialAttachmentTests {
         do {
             var generator = Xoshiro256StarStar(seed: 0)
             let graph = StableDirectedGraph<Int>.wattsStrogatz(vertexCount: 8, nearestNeighborCount: 2, rewiringProbability: 0.5, using: &generator)
+            checkDirected(graph, generator, "StableDirectedGraph<Int>")
+        }
+    }
+
+    @Test("RG-142 n 4, k 2, p 0.8: a vertex rewired away from loses degree, so it is not full")
+    func rg142() {
+        // UndirectedAdjacencyList<Int>.wattsStrogatz(vertexCount: 4, nearestNeighborCount: 2, rewiringProbability: 0.8, using: &Xoshiro256StarStar(seed: 0)) → n 4; m 4; E [0–1, 0–2, 1–2, 1–3]; draws 34; = NetworkX
+        func check(_ graph: some Graph<Int>, _ generator: Xoshiro256StarStar, _ type: String) {
+            #expect(graph.vertexCount == 4 && graph.edgeCount == 4 && graph.edges.count == 4, "\(type)")
+            #expect(Array(graph.vertices) == Array(0 ..< 4), "\(type)")
+            #expect(graph.edges.map { [$0.u, $0.v] } == [[0, 1], [0, 2], [1, 2], [1, 3]] as [[Int]], "\(type)")
+            #expect((0 ..< 4).map { graph.degree(of: $0) } == [2, 3, 2, 1] as [Int], "\(type)")
+            var expected = Xoshiro256StarStar(seed: 0)
+            for _ in 0 ..< 34 { _ = expected.next() }
+            #expect(generator == expected, "\(type): 34 draws")
+        }
+        do {
+            var generator = Xoshiro256StarStar(seed: 0)
+            let graph = UndirectedAdjacencyList<Int>.wattsStrogatz(vertexCount: 4, nearestNeighborCount: 2, rewiringProbability: 0.8, using: &generator)
+            check(graph, generator, "UndirectedAdjacencyList<Int>")
+        }
+        do {
+            var generator = Xoshiro256StarStar(seed: 0)
+            let graph = Pseudograph<Int>.wattsStrogatz(vertexCount: 4, nearestNeighborCount: 2, rewiringProbability: 0.8, using: &generator)
+            check(graph, generator, "Pseudograph<Int>")
+        }
+        do {
+            var generator = Xoshiro256StarStar(seed: 0)
+            let graph = Multigraph<Int>.wattsStrogatz(vertexCount: 4, nearestNeighborCount: 2, rewiringProbability: 0.8, using: &generator)
+            check(graph, generator, "Multigraph<Int>")
+        }
+        // The directed form, from the same model.
+        func checkDirected(_ graph: some DirectedGraph<Int>, _ generator: Xoshiro256StarStar, _ type: String) {
+            #expect(graph.vertexCount == 4 && graph.edgeCount == 8 && graph.edges.count == 8, "\(type)")
+            #expect(Array(graph.vertices) == Array(0 ..< 4), "\(type)")
+            #expect(graph.edges.map { [$0.source, $0.target] } == [[0, 1], [0, 2], [1, 0], [1, 2], [1, 3], [2, 0], [2, 1], [3, 1]] as [[Int]], "\(type)")
+            #expect((0 ..< 4).map { graph.outDegree(of: $0) } == [2, 3, 2, 1] as [Int], "\(type)")
+            var inDegrees = [Int](repeating: 0, count: 4)
+            for edge in graph.edges { inDegrees[edge.target] += 1 }
+            #expect(inDegrees == [2, 3, 2, 1] as [Int], "\(type)")
+            var expected = Xoshiro256StarStar(seed: 0)
+            for _ in 0 ..< 34 { _ = expected.next() }
+            #expect(generator == expected, "\(type): 34 draws")
+        }
+        do {
+            var generator = Xoshiro256StarStar(seed: 0)
+            let graph = CompressedSparseRow.wattsStrogatz(vertexCount: 4, nearestNeighborCount: 2, rewiringProbability: 0.8, using: &generator)
+            checkDirected(graph, generator, "CompressedSparseRow")
+        }
+        do {
+            var generator = Xoshiro256StarStar(seed: 0)
+            let graph = AdjacencyMatrix.wattsStrogatz(vertexCount: 4, nearestNeighborCount: 2, rewiringProbability: 0.8, using: &generator)
+            checkDirected(graph, generator, "AdjacencyMatrix")
+        }
+        do {
+            var generator = Xoshiro256StarStar(seed: 0)
+            let graph = AdjacencyList<Int>.wattsStrogatz(vertexCount: 4, nearestNeighborCount: 2, rewiringProbability: 0.8, using: &generator)
+            checkDirected(graph, generator, "AdjacencyList<Int>")
+        }
+        do {
+            var generator = Xoshiro256StarStar(seed: 0)
+            let graph = DirectedPseudograph<Int>.wattsStrogatz(vertexCount: 4, nearestNeighborCount: 2, rewiringProbability: 0.8, using: &generator)
+            checkDirected(graph, generator, "DirectedPseudograph<Int>")
+        }
+        do {
+            var generator = Xoshiro256StarStar(seed: 0)
+            let graph = DirectedMultigraph<Int>.wattsStrogatz(vertexCount: 4, nearestNeighborCount: 2, rewiringProbability: 0.8, using: &generator)
+            checkDirected(graph, generator, "DirectedMultigraph<Int>")
+        }
+        do {
+            var generator = Xoshiro256StarStar(seed: 0)
+            let graph = StableDirectedGraph<Int>.wattsStrogatz(vertexCount: 4, nearestNeighborCount: 2, rewiringProbability: 0.8, using: &generator)
+            checkDirected(graph, generator, "StableDirectedGraph<Int>")
+        }
+    }
+
+    @Test("RG-144 directed, m 17: more than 16 targets, sorted by the full sort")
+    func rg144() {
+        // CompressedSparseRow.barabasiAlbert(vertexCount: 20, edgesPerVertex: 17, using: &Xoshiro256StarStar(seed: 0)) → n 20; m 51; E [1→0, 2→0, 3→0, 4→0, 5→0, 6→0, 7→0, 8→0, 9→0, 10→0, 11→0, 12→0, 13→0, 14→0, 15→0, 16→0, 17→0, 18→0, 18→1, 18→2, 18→3, 18→4, 18→5, 18→6, 18→7, 18→8, 18→9, 18→10, 18→11, 18→12, 18→13, 18→14, 18→15, 18→16, 19→0, 19→1, 19→2, 19→3, 19→4, 19→5, 19→6, 19→7, 19→8, 19→9, 19→10, 19→12, 19→13, 19→14, 19→16, 19→17, 19→18]; draws 373; = NetworkX
+        // The undirected form, from the same model.
+        func check(_ graph: some Graph<Int>, _ generator: Xoshiro256StarStar, _ type: String) {
+            #expect(graph.vertexCount == 20 && graph.edgeCount == 51 && graph.edges.count == 51, "\(type)")
+            #expect(Array(graph.vertices) == Array(0 ..< 20), "\(type)")
+            #expect(graph.edges.map { [$0.u, $0.v] } == [[0, 1], [0, 2], [0, 3], [0, 4], [0, 5], [0, 6], [0, 7], [0, 8], [0, 9], [0, 10], [0, 11], [0, 12], [0, 13], [0, 14], [0, 15], [0, 16], [0, 17], [0, 18], [0, 19], [1, 18], [1, 19], [2, 18], [2, 19], [3, 18], [3, 19], [4, 18], [4, 19], [5, 18], [5, 19], [6, 18], [6, 19], [7, 18], [7, 19], [8, 18], [8, 19], [9, 18], [9, 19], [10, 18], [10, 19], [11, 18], [12, 18], [12, 19], [13, 18], [13, 19], [14, 18], [14, 19], [15, 18], [16, 18], [16, 19], [17, 19], [18, 19]] as [[Int]], "\(type)")
+            #expect((0 ..< 20).map { graph.degree(of: $0) } == [19, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 3, 3, 3, 2, 3, 2, 18, 17] as [Int], "\(type)")
+            var expected = Xoshiro256StarStar(seed: 0)
+            for _ in 0 ..< 373 { _ = expected.next() }
+            #expect(generator == expected, "\(type): 373 draws")
+        }
+        do {
+            var generator = Xoshiro256StarStar(seed: 0)
+            let graph = UndirectedAdjacencyList<Int>.barabasiAlbert(vertexCount: 20, edgesPerVertex: 17, using: &generator)
+            check(graph, generator, "UndirectedAdjacencyList<Int>")
+        }
+        do {
+            var generator = Xoshiro256StarStar(seed: 0)
+            let graph = Pseudograph<Int>.barabasiAlbert(vertexCount: 20, edgesPerVertex: 17, using: &generator)
+            check(graph, generator, "Pseudograph<Int>")
+        }
+        do {
+            var generator = Xoshiro256StarStar(seed: 0)
+            let graph = Multigraph<Int>.barabasiAlbert(vertexCount: 20, edgesPerVertex: 17, using: &generator)
+            check(graph, generator, "Multigraph<Int>")
+        }
+        func checkDirected(_ graph: some DirectedGraph<Int>, _ generator: Xoshiro256StarStar, _ type: String) {
+            #expect(graph.vertexCount == 20 && graph.edgeCount == 51 && graph.edges.count == 51, "\(type)")
+            #expect(Array(graph.vertices) == Array(0 ..< 20), "\(type)")
+            #expect(graph.edges.map { [$0.source, $0.target] } == [[1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0], [7, 0], [8, 0], [9, 0], [10, 0], [11, 0], [12, 0], [13, 0], [14, 0], [15, 0], [16, 0], [17, 0], [18, 0], [18, 1], [18, 2], [18, 3], [18, 4], [18, 5], [18, 6], [18, 7], [18, 8], [18, 9], [18, 10], [18, 11], [18, 12], [18, 13], [18, 14], [18, 15], [18, 16], [19, 0], [19, 1], [19, 2], [19, 3], [19, 4], [19, 5], [19, 6], [19, 7], [19, 8], [19, 9], [19, 10], [19, 12], [19, 13], [19, 14], [19, 16], [19, 17], [19, 18]] as [[Int]], "\(type)")
+            #expect((0 ..< 20).map { graph.outDegree(of: $0) } == [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 17, 17] as [Int], "\(type)")
+            var inDegrees = [Int](repeating: 0, count: 20)
+            for edge in graph.edges { inDegrees[edge.target] += 1 }
+            #expect(inDegrees == [19, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 1, 2, 1, 1, 0] as [Int], "\(type)")
+            var expected = Xoshiro256StarStar(seed: 0)
+            for _ in 0 ..< 373 { _ = expected.next() }
+            #expect(generator == expected, "\(type): 373 draws")
+        }
+        do {
+            var generator = Xoshiro256StarStar(seed: 0)
+            let graph = CompressedSparseRow.barabasiAlbert(vertexCount: 20, edgesPerVertex: 17, using: &generator)
+            checkDirected(graph, generator, "CompressedSparseRow")
+        }
+        do {
+            var generator = Xoshiro256StarStar(seed: 0)
+            let graph = AdjacencyMatrix.barabasiAlbert(vertexCount: 20, edgesPerVertex: 17, using: &generator)
+            checkDirected(graph, generator, "AdjacencyMatrix")
+        }
+        do {
+            var generator = Xoshiro256StarStar(seed: 0)
+            let graph = AdjacencyList<Int>.barabasiAlbert(vertexCount: 20, edgesPerVertex: 17, using: &generator)
+            checkDirected(graph, generator, "AdjacencyList<Int>")
+        }
+        do {
+            var generator = Xoshiro256StarStar(seed: 0)
+            let graph = DirectedPseudograph<Int>.barabasiAlbert(vertexCount: 20, edgesPerVertex: 17, using: &generator)
+            checkDirected(graph, generator, "DirectedPseudograph<Int>")
+        }
+        do {
+            var generator = Xoshiro256StarStar(seed: 0)
+            let graph = DirectedMultigraph<Int>.barabasiAlbert(vertexCount: 20, edgesPerVertex: 17, using: &generator)
+            checkDirected(graph, generator, "DirectedMultigraph<Int>")
+        }
+        do {
+            var generator = Xoshiro256StarStar(seed: 0)
+            let graph = StableDirectedGraph<Int>.barabasiAlbert(vertexCount: 20, edgesPerVertex: 17, using: &generator)
             checkDirected(graph, generator, "StableDirectedGraph<Int>")
         }
     }

@@ -70,7 +70,8 @@ on the directed conformers only, so that no implementation tries to build 2^63 u
 Some rows add sibling traps: a negative left side, `Tree.star(0)`, `grid(dimensions: [],
 periodic: true)` and `Tree.path(-1)`. A valid neighbour of the call then runs in this process.
 
-The catalog-row files are every file except `NamedGraphPropertyTests.swift`. `swiftgen.py`
+The catalog-row files are every file except `NamedGraphPropertyTests.swift` and
+`BulkConstructionTests.swift`. `swiftgen.py`
 generated them from `cases.md`; it sits next to `ref.py` and `cases.md` in
 [`Tests/Catalogs/NamedGraphs/`](../Catalogs/NamedGraphs/):
 
@@ -82,7 +83,16 @@ It first checks that `ref.py` reproduces `cases.md` byte for byte. Then it parse
 (the catalog writes valid Swift), rebuilds both forms on the model, and asserts that the model's
 summary is the row's cell. Only then does it write the test.
 
-## Hand-written file
+## Hand-written files
+
+**Bulk construction** (`BulkConstructionTests.swift`). What the catalog's generic checks do not read:
+`AdjacencyMatrix`'s in-degrees; the in-rows, incident edges and row order of a generated
+`AdjacencyList`, `DirectedPseudograph`, `DirectedMultigraph`, `UndirectedAdjacencyList`,
+`Pseudograph` and `Multigraph` against the same graph inserted edge by edge, through a fixed script
+of insertions (parallel copies and a loop where allowed) and removals of edges and vertices;
+`BipartiteGraph.completeBipartite`'s sides after removals; and `balancedTree` with branching
+factor 0 and height `Int.max`, which must stop after the root.
+
 
 **Properties** (swift-property-based, with shrinking). Each family is checked over a range of sizes
 against its definition in api.md, which the test writes out:

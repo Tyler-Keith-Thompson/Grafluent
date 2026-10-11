@@ -8,11 +8,14 @@ protocols as `NamedGraphs` (`_DirectedGraphConstruction`, `_GraphConstruction`; 
 k = n, and the lazy pair collections), `Trees` and `DirectedAcyclicGraphModule`.
 `Xoshiro256StarStar` lives here: `NamedGraphs` draws nothing.
 
-`cases.md` (RG-001 – RG-141, 141 rows) pins the values: 8 generator rows (one a trap), 80 exact
-outputs for fixed seeds (76 of them reproduced by NetworkX), 31 traps, 20 statistical laws and 2
+`cases.md` (RG-001 – RG-151, 151 rows) pins the values: 8 generator rows (one a trap), 84 exact
+outputs for fixed seeds (80 of them reproduced by NetworkX), 37 traps, 20 statistical laws and 2
 further edge cases. RG-109 – RG-141 came with the review (the directed forms of Watts–Strogatz and
 random geometric graphs, the geometric grid's paths, random regular and random bipartite graphs)
-and are numbered after the first 108 so that those keep their IDs. `ref.py` ports the generator and
+and are numbered after the first 108 so that those keep their IDs. RG-142 – RG-151 came with the
+planted-bug pass (a Watts–Strogatz degree that falls, the random regular suitability quirk,
+Barabási–Albert with more than 16 targets, a geometric dimension past 2^d's range, and traps the
+checks before them would otherwise have missed). `ref.py` ports the generator and
 every procedure draw for draw. Because the procedures draw exactly what CPython's `random.Random`
 draws, NetworkX 3.7 can run its own generators on our stream, and every exact row marked
 `= NetworkX` is checked edge for edge against it. `--stress` repeats that over 16 000 graphs.

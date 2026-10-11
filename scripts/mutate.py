@@ -23,7 +23,7 @@ every test passes. A survivor needs a test or a note saying why it is equivalent
     python3 scripts/mutate.py ShortestPaths --select   # coverage-based test selection
     python3 scripts/mutate.py ShortestPaths --jobs 2
 
-Stored results. Each mutant's outcome is kept in .build/mutation/results/<Module>.json under a
+Stored results. Each mutant's outcome is kept in results/<Module>.json under the mutation directory (see BASE) under a
 key hashing everything it depends on: its definition and those of the mutants before it in the
 same file (their text can move where its `old` matches), every source file of the test bundles'
 modules and their dependencies (from scripts/modules.py), the bundles' own sources and
@@ -36,7 +36,7 @@ property test can take minutes on an unlucky input, so a mutant that times out r
 after the others, with less running; only a second timeout counts as caught.
 
 Test selection (`--select`, off by default). One coverage pass runs every test of the unmutated
-build in its own process, in a second copy (.build/mutation-coverage) where only the module under
+build in its own process, in a second copy (coverage/ under the mutation directory) where only the module under
 test is compiled with -profile-generate, writing profiles continuously so that exit tests'
 trapping children count too. llvm-cov maps each test to the lines it executed. A mutant then runs
 first only the tests that execute a line of its schema (a test that never reaches the mutated
@@ -48,7 +48,7 @@ full suite and was no faster: Swift Testing runs a suite in parallel and stops a
 failure, so most kills take under a second either way, and survivors run everything regardless.
 It may pay where kills come late, from slow tests.
 
-The scratch copy lives in .build/mutation/ and is kept between runs, so later builds are
+The scratch copy lives in work/ under the mutation directory (~/Library/Caches/grafluent-mutation on macOS) and is kept between runs, so later builds are
 incremental; files whose contents did not change keep their timestamps. The real sources are
 never written.
 """
@@ -71,11 +71,16 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-WORK = os.path.join(ROOT, ".build", "mutation")
-RESULTS = os.path.join(WORK, "results")
+# Outside the repository: root SwiftPM and Xcode builds manage .build/ and were seen to delete
+# files from a scratch copy kept there mid-run. GRAFLUENT_MUTATION_DIR overrides the location.
+BASE = os.environ.get("GRAFLUENT_MUTATION_DIR") or os.path.join(
+    os.path.expanduser("~/Library/Caches") if sys.platform == "darwin" else os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache")),
+    "grafluent-mutation")
+WORK = os.path.join(BASE, "work")
+RESULTS = os.path.join(BASE, "results")
 # A second copy for the coverage pass, the same sources with the module instrumented, so the
 # mutant runs use an uninstrumented build.
-COVERAGE_WORK = os.path.join(ROOT, ".build", "mutation-coverage")
+COVERAGE_WORK = os.path.join(BASE, "coverage")
 SWIFT = ["env", "-u", "TOOLCHAINS", "xcrun", "--toolchain", "default", "swift"]
 # Bump when the schemata, the runner or the stored format change meaning: every stored result
 # is then stale.

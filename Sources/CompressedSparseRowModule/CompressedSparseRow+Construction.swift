@@ -7,10 +7,6 @@ extension CompressedSparseRow {
     /// allocations, no hashing.
     @inlinable
     package init(_uncheckedVertexCount n: Int, sortedEdges edges: some Collection<DirectedEdge<Int>>) {
-        guard n > 0 else {
-            self.init()
-            return
-        }
         let m = edges.count
         var offsets = [Int](repeating: 0, count: n + 1)
         let targets = offsets.withUnsafeMutableBufferPointer { offsets in

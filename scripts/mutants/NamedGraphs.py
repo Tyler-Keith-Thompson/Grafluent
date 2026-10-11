@@ -4,7 +4,35 @@
 # and Tree's dense layout. Run with `just mutate NamedGraphs`; see scripts/mutate.py.
 #
 # Known equivalent mutants (they survive by design):
-#   (filled in after the run)
+#
+# Removed checks that leave a trap at the same call (an exit test passes either way): Swift's
+# overflow trap on the arithmetic the check guards, or a later precondition that the bad value fails.
+#   productfits, unorderednil, bipartitesum, bipartiteproduct, gridvertexoverflow, gridedgeoverflow,
+#   griddirectedoverflow, cubeoverflow, cubelarge, wheeloverflow — the product, sum or doubling right
+#   after the check overflows and traps.
+#   bipartiteleft, bipartiteright — a negative side fails `_productFits` (a·b against Int.max / a < 0)
+#   or overflows Int.max − b.
+#   cubenegative — d < 0 makes 1 << d zero, and `_productFits(d, 0)` with d < 0 is false.
+#   laddercount — `_bothArcs` and the conformers trap on 2n + 1 < 0 rows.
+#   barbellpathcount, balancedr — Int.max − p (p < 0) and Int.max − level (level < 0) overflow.
+#   emptycount, completecount, pathcount — the conformers trap on a negative vertex count.
+#   orderednil, completeoverflow, completedioverflow — the pair collection's endIndex multiplies
+#   n(n − 1) and overflows as soon as anything reads it (the conformers' `_isSortedSimple`
+#   assertion does at the first edge).
+#   treepathcheck, treestarcheck — `0 ..< n − 1` traps for n = 0; treecheck — Tree's own check is
+#   behind those of every caller (path, star, balanced tree, random tree).
+#   laddercircmin — circularLadder(rungCount: 2) repeats the edge 0–1, which the conformers'
+#   `_isSortedSimple` assertion traps on in the debug builds the tests run.
+# Checks no test can reach: the inputs that tell them apart need about 2⁶³ edges allocated.
+#   productedge (b == Int.max / a exactly), unorderedhalves (n(n − 1) overflows while n(n − 1)/2 fits).
+# Same value by arithmetic.
+#   unorderedsmall, orderedsmall, ascendingsmall, distinctend — n = 0 or 1 give 0 without the guard;
+#   distinctsmall — the iterator ends at once for n < 2 with either bound; rowpoolstart — offsets[v + 1]
+#   − length is offsets[v]; gridwritten — a self-check that the count formula matches the loop.
+# The position subscript's corrections: the root estimate is exact for every n the suites reach, so
+#   the loops that correct it never run (ascendingroot, ascendingdown, ascendingup).
+# Layout and capacity only: stablepack (the rows packed after the build), stablereserve, treesingle
+#   (the one-vertex layout, which the general layout equals).
 
 TESTS = ["NamedGraphsTests"]
 
@@ -15,6 +43,10 @@ PC = "PairCollections.swift"
 PA = "PathsAndCycles.swift"
 PE = "PetersenGraph.swift"
 PR = "Preconditions.swift"
+LD = "Ladders.swift"
+BB = "BarbellAndLollipop.swift"
+CM = "CompleteMultipartite.swift"
+BT = "BalancedTree.swift"
 
 MUTANTS = [
     # Size checks.
@@ -27,7 +59,6 @@ MUTANTS = [
     Mutant("unorderedhalves", PR, "n.isMultiple(of: 2) ? (n / 2, n - 1) : (n, (n - 1) / 2)", "(n, n - 1)"),
     Mutant("unorderednil", PR, "_productFits(a, b) ? a * b : nil", "Optional(a &* b)"),
     Mutant("orderednil", PR, "_productFits(n, n - 1) ? n * (n - 1) : nil", "Optional(n &* (n - 1))"),
-    Mutant("orderedcount", PR, "_productFits(n, n - 1) ? n * (n - 1) : nil", "_productFits(n, n - 1) ? n * (n - 1) / 2 : nil"),
 
     # Complete graphs and K_{a,b}.
     Mutant("completecount", CG, "_checkCount(n)", "", mode="stmt", nth=0),
@@ -38,8 +69,7 @@ MUTANTS = [
     Mutant("bipartiteright", CG, '_checkCount(b, "rightCount")', "", mode="stmt"),
     Mutant("bipartitesum", CG, "a <= Int.max - b && _productFits(a, b)", "_productFits(a, b)"),
     Mutant("bipartiteproduct", CG, "a <= Int.max - b && _productFits(a, b)", "a <= Int.max - b"),
-    Mutant("bipartiteundirected", CG, "_CrossPairs(a, b)", "_CrossPairs(b, a)", nth=0),
-    Mutant("bipartitedirected", CG, "_CrossPairs(a, b)", "_CrossPairs(b, a)", nth=1),
+    Mutant("bipartiteundirected", CG, "_CrossPairs(a, b)", "_CrossPairs(b, a)"),
     Mutant("bipartitesides", CG, "BipartiteGraph(_leftCount: a, graph: UndirectedAdjacencyList<Int>.completeBipartite(leftCount: a, rightCount: b))", "BipartiteGraph(_leftCount: b, graph: UndirectedAdjacencyList<Int>.completeBipartite(leftCount: a, rightCount: b))"),
 
     # The lazy pair collections.
@@ -51,7 +81,7 @@ MUTANTS = [
     Mutant("ascendingup", PC, "while u < n - 2, rowStart(u + 1) <= position { u += 1 }", "", mode="stmt"),
     Mutant("ascendingat", PC, "DirectedEdge(from: u, to: u + 1 + position - rowStart(u))", "DirectedEdge(from: u, to: u + position - rowStart(u))"),
     Mutant("ascendingrowend", PC, "u &+ 2 < n", "u < n &- 1"),
-    Mutant("ascendingnext", PC, "                v = u &+ 1\n", "                v = u\n", mode="stmt"),
+    Mutant("ascendingnext", PC, "                v = u &+ 1", "                v = u", mode="stmt"),
     Mutant("distinctat", PC, "DirectedEdge(from: u, to: r < u ? r : r + 1)", "DirectedEdge(from: u, to: r <= u ? r : r + 1)"),
     Mutant("distinctsmall", PC, "n < 2 ? 0 : n", "n", nth=1),
     Mutant("distinctrow", PC, "u &+ 1 < n", "u < n &- 2"),
@@ -60,7 +90,7 @@ MUTANTS = [
     Mutant("distinctend", PC, "n < 2 ? 0 : n * (n - 1)", "n * (n - 1)"),
     Mutant("crossat", PC, "DirectedEdge(from: position / b, to: a + position % b)", "DirectedEdge(from: position % a, to: a + position / a)"),
     Mutant("crossempty", PC, "b == 0 ? 0 : a", "a"),
-    Mutant("crossrow", PC, "                v = a\n", "                v = 0\n", mode="stmt"),
+    Mutant("crossrow", PC, "                v = a", "                v = 0", mode="stmt"),
     Mutant("crossend", PC, "u < a", "u <= a"),
     Mutant("undirectedswap", PC, "UndirectedEdge(pair.source, pair.target)", "UndirectedEdge(pair.target, pair.source)"),
 
@@ -84,7 +114,7 @@ MUTANTS = [
     Mutant("gridforwardwrap", LA, "x == 0", "x == 1"),
     Mutant("gridforwardwrapto", LA, "DirectedEdge(from: v, to: v + (d - 1) * s)", "DirectedEdge(from: v, to: v + d * s)"),
     Mutant("gridorder", LA, "stride(from: k - 1, through: 0, by: -1)", "stride(from: 0, through: k - 1, by: 1)"),
-    Mutant("gridodometer", LA, "                coordinates[i] = 0\n", "", mode="stmt"),
+    Mutant("gridodometer", LA, "                coordinates[i] = 0", "", mode="stmt"),
     Mutant("gridodometerbreak", LA, "coordinates[i] < dimensions[i]", "coordinates[i] <= dimensions[i]"),
     Mutant("gridwritten", LA, '        precondition(written == m, "grid edge count")', "", mode="stmt"),
 
@@ -105,7 +135,7 @@ MUTANTS = [
     Mutant("cyclesmall", PA, "n >= 3", "n >= 2", nth=1),
     Mutant("cyclearcs", PA, "for i in 0 ..< n - 1 { pairs.append(DirectedEdge(from: i, to: i + 1)) }", "for i in 1 ..< n - 1 { pairs.append(DirectedEdge(from: i, to: i + 1)) }", mode="stmt"),
     Mutant("cycleclosearc", PA, "DirectedEdge(from: n - 1, to: 0)", "DirectedEdge(from: 0, to: n - 1)"),
-    Mutant("cyclefirst", PA, "        pairs.append(DirectedEdge(from: 0, to: 1))\n", "", mode="stmt"),
+    Mutant("cyclefirst", PA, "        pairs.append(DirectedEdge(from: 0, to: 1))", "", mode="stmt"),
     Mutant("cycleclose", PA, "        pairs.append(DirectedEdge(from: 0, to: n - 1))", "        pairs.append(DirectedEdge(from: 1, to: n - 1))", mode="stmt"),
     Mutant("cyclerest", PA, "for i in 1 ..< n - 1 { pairs.append(DirectedEdge(from: i, to: i + 1)) }", "for i in 2 ..< n - 1 { pairs.append(DirectedEdge(from: i, to: i + 1)) }", mode="stmt", nth=1),
     Mutant("starsmall", PA, "n >= 1", "n >= 2", nth=0),
@@ -115,13 +145,75 @@ MUTANTS = [
     Mutant("wheelspokes", PA, "for i in 1 ..< n { pairs.append(DirectedEdge(from: 0, to: i)) }", "for i in 2 ..< n { pairs.append(DirectedEdge(from: 0, to: i)) }", mode="stmt"),
     Mutant("wheelrimarcs", PA, "for i in 1 ..< n - 1 { pairs.append(DirectedEdge(from: i, to: i + 1)) }", "for i in 2 ..< n - 1 { pairs.append(DirectedEdge(from: i, to: i + 1)) }", mode="stmt", nth=2),
     Mutant("wheelclosearc", PA, "DirectedEdge(from: n - 1, to: 1)", "DirectedEdge(from: 1, to: n - 1)"),
-    Mutant("wheelfirst", PA, "        pairs.append(DirectedEdge(from: 1, to: 2))\n", "", mode="stmt"),
-    Mutant("wheelclose", PA, "        pairs.append(DirectedEdge(from: 1, to: n - 1))\n", "", mode="stmt", nth=1),
+    Mutant("wheelfirst", PA, "        pairs.append(DirectedEdge(from: 1, to: 2))", "", mode="stmt"),
+    Mutant("wheelclose", PA, "        pairs.append(DirectedEdge(from: 1, to: n - 1))", "", mode="stmt", nth=1),
     Mutant("wheelrest", PA, "for i in 2 ..< n - 1 { pairs.append(DirectedEdge(from: i, to: i + 1)) }", "for i in 3 ..< n - 1 { pairs.append(DirectedEdge(from: i, to: i + 1)) }", mode="stmt", nth=2),
     Mutant("treepathcheck", PA, 'precondition(n >= 1, "a Tree has at least one vertex")', "", mode="stmt", nth=0),
     Mutant("treepath", PA, "            ends.append(k + 1)", "            ends.append(n - 1 - k)", mode="stmt"),
     Mutant("treestarcheck", PA, 'precondition(n >= 1, "a Tree has at least one vertex")', "", mode="stmt", nth=1),
     Mutant("treestar", PA, "            ends.append(0)", "            ends.append(n - 1)", mode="stmt"),
+
+    # Ladders and circular ladders.
+    Mutant("laddercircmin", LD, "n >= 3", "n >= 2"),
+    Mutant("laddercount", LD, '_checkCount(n, "rungCount")', "", mode="stmt"),
+    Mutant("ladderempty", LD, "    guard n >= 1 else { return [] }", "", mode="stmt"),
+    Mutant("ladderrailfirst", LD, "rail * n", "rail * (n - 1)"),
+    Mutant("ladderrail", LD, "i < last", "i < last - 1"),
+    Mutant("ladderclose", LD, "i == first", "i == last"),
+    Mutant("ladderrung", LD, "rail == 0", "rail == 1"),
+    Mutant("ladderrungto", LD, "DirectedEdge(from: i, to: i + n)", "DirectedEdge(from: i, to: i + n - 1)"),
+    Mutant("laddervertices", LD, "Self(_vertexCount: 2 * n, sortedEdges: pairs.lazy.map(_undirected), _ConstructionToken())", "Self(_vertexCount: 2 * n + 1, sortedEdges: pairs.lazy.map(_undirected), _ConstructionToken())", nth=0),
+    Mutant("ladderarcs", LD, "_bothArcs(vertexCount: 2 * n, pairs)", "pairs", nth=0),
+    Mutant("circladderarcs", LD, "_bothArcs(vertexCount: 2 * n, pairs)", "pairs", nth=1),
+
+    # Barbells and lollipops.
+    Mutant("barbellmin", BB, "k >= 2", "k >= 1"),
+    Mutant("barbellpathcount", BB, '_checkCount(p, "pathVertexCount")', "", mode="stmt"),
+    Mutant("barbellcliques", BB, "twoCliques ? 2 : 1", "1"),
+    Mutant("barbellvertices", BB, "cliques * k + p", "cliques * k + p + 1"),
+    Mutant("barbellclique", BB, "u + 1 ..< k", "u + 1 ..< Swift.max(u + 1, k - 1)"),
+    Mutant("barbellpathstart", BB, "pairs.append(DirectedEdge(from: i, to: i + 1))", "if i >= k { pairs.append(DirectedEdge(from: i, to: i + 1)) }", mode="stmt"),
+    Mutant("barbellpathend", BB, "twoCliques ? 0 : 1", "0"),
+    Mutant("barbellsecond", BB, "first ..< n", "first + 1 ..< n"),
+    Mutant("barbellsecondrow", BB, "u + 1 ..< n", "Swift.min(u + 2, n) ..< n"),
+    Mutant("barbellarcs", BB, "_bothArcs(vertexCount: n, pairs)", "pairs", nth=0),
+    Mutant("lollipoparcs", BB, "_bothArcs(vertexCount: n, pairs)", "pairs", nth=1),
+
+    # Both arcs of each pair, by counting placement.
+    Mutant("botharcssource", PC, "        fill[pair.source + 1] += 1", "", mode="stmt"),
+    Mutant("botharcstarget", PC, "        fill[pair.target + 1] += 1", "", mode="stmt"),
+    Mutant("botharcsprefix", PC, "    for v in 0 ..< n { fill[v + 1] += fill[v] }", "", mode="stmt"),
+    Mutant("botharcsback", PC, "DirectedEdge(from: pair.target, to: pair.source)", "DirectedEdge(from: pair.source, to: pair.target)"),
+    Mutant("botharcsbackfill", PC, "            fill[pair.target] += 1", "", mode="stmt"),
+    Mutant("botharcsforwardfill", PC, "            fill[pair.source] += 1", "", mode="stmt"),
+
+    # Complete multipartite and Turán graphs.
+    Mutant("multicheck", CM, '_checkCount(size, "part size")', "", mode="stmt"),
+    Mutant("multiskip", CM, "        guard size > 0 else { continue }", "", mode="stmt"),
+    Mutant("multicount", CM, "m += size * n", "m += size * n + 1", mode="stmt"),
+    Mutant("multiadvance", CM, "        n += size", "", mode="stmt"),
+    Mutant("turanrange", CM, "1 <= r && r <= n", "1 <= r"),
+    Mutant("turanorder", CM, "[Int](repeating: small, count: r - large) + [Int](repeating: small + 1, count: large)", "[Int](repeating: small + 1, count: large) + [Int](repeating: small, count: r - large)"),
+    Mutant("multidirectedbip", CG, "_CrossPartArcs(_multipartitePairs([a, b]))", "_CrossPartArcs(_multipartitePairs([b, a]))"),
+    Mutant("multistart", PC, "ends.count < 2 ? endIndex : Index(u: 0, v: ends[0], part: 0)", "Index(u: 0, v: ends.isEmpty ? 0 : ends[0], part: 0)", nth=0),
+    Mutant("multinext", PC, "i.v &+ 1 < n", "i.v &+ 2 < n"),
+    Mutant("multipart", PC, "u == ends[i.part] ? i.part &+ 1 : i.part", "i.part", nth=0),
+    Mutant("multilast", PC, "part < ends.count &- 1", "part < ends.count"),
+    Mutant("multirow", PC, "Index(u: u, v: ends[part], part: part)", "Index(u: u, v: ends[part] &+ 1, part: part)"),
+    Mutant("crossarcscount", PC, "count = 2 * pairs.count", "count = pairs.count", mode="stmt"),
+    Mutant("crossarcsstart", PC, "ends.count < 2 ? endIndex : Index(u: 0, v: ends[0], part: 0)", "Index(u: 0, v: ends.isEmpty ? 0 : ends[0], part: 0)", nth=1),
+    Mutant("crossarcsskip", PC, "        if v == (i.part == 0 ? 0 : ends[i.part &- 1]) { v = ends[i.part] }", "", mode="stmt"),
+    Mutant("crossarcsskipstart", PC, "i.part == 0 ? 0 : ends[i.part &- 1]", "0"),
+    Mutant("crossarcsnext", PC, "if v < n { return Index(u: i.u, v: v, part: i.part) }", "if v < n &- 1 { return Index(u: i.u, v: v, part: i.part) }", mode="stmt"),
+    Mutant("crossarcspart", PC, "u == ends[i.part] ? i.part &+ 1 : i.part", "i.part", nth=1),
+    Mutant("crossarcsrow", PC, "part == 0 ? ends[0] : 0", "ends[0]"),
+
+    # Balanced trees.
+    Mutant("balancedr", BT, '_checkCount(r, "branchingFactor")', "", mode="stmt"),
+    Mutant("balancedlevel", BT, "        guard level > 0 else { break }", "", mode="stmt"),
+    Mutant("balancedmul", BT, "        level *= r", "        level += r", mode="stmt"),
+    Mutant("balancedparent", BT, "DirectedEdge(from: ($0 - 1) / r, to: $0)", "DirectedEdge(from: $0 / r, to: $0)"),
+    Mutant("balancedtreeends", BT, "ends.append((c - 1) / r)", "ends.append(c - 1)", mode="stmt"),
 
     # Petersen and empty.
     Mutant("petersenpair", PE, "DirectedEdge(from: $0.0, to: $0.1)", "DirectedEdge(from: $0.0, to: $0.0 == 5 && $0.1 == 7 ? 6 : $0.1)"),
@@ -131,7 +223,6 @@ MUTANTS = [
     Mutant("emptydicount", EG, "_checkCount(n)", "", mode="stmt", nth=1),
 
     # CompressedSparseRow's one-pass build.
-    Mutant("csrempty", "CompressedSparseRow+Construction.swift", "        guard n > 0 else {\n            self.init()\n            return\n        }", "", mode="stmt", module="CompressedSparseRowModule"),
     Mutant("csrrowend", "CompressedSparseRow+Construction.swift", "offsets[row] = k", "offsets[row] = k &+ 1", mode="stmt", nth=0, module="CompressedSparseRowModule"),
     Mutant("csrtarget", "CompressedSparseRow+Construction.swift", "targets.initializeElement(at: k, to: edge.target)", "targets.initializeElement(at: k, to: edge.source)", mode="stmt", module="CompressedSparseRowModule"),
     Mutant("csrtail", "CompressedSparseRow+Construction.swift", "                while row < n {\n                    row &+= 1\n                    offsets[row] = k\n                }", "", mode="stmt", module="CompressedSparseRowModule"),
@@ -151,25 +242,25 @@ MUTANTS = [
     Mutant("arcinprefix", "SortedConstruction.swift", "            inOffsets[v &+ 1] &+= inOffsets[v]", "", mode="stmt", module="AdjacencyListModule"),
     Mutant("arcinsource", "SortedConstruction.swift", "inStorage[slot] = source", "inStorage[slot] = target", mode="stmt", module="AdjacencyListModule"),
     Mutant("arcinedge", "SortedConstruction.swift", "inEdgeStorage[slot] = position", "inEdgeStorage[slot] = 0", mode="stmt", module="AdjacencyListModule"),
-    Mutant("arcrecordout", "SortedConstruction.swift", "out: position &- outOffsets[source]", "out: position", module="AdjacencyListModule"),
-    Mutant("arcrecordin", "SortedConstruction.swift", "in: slot &- inOffsets[target]", "in: slot", module="AdjacencyListModule"),
+    Mutant("arcrecordout", "SortedConstruction.swift", "position &- outOffsets[source]", "position", module="AdjacencyListModule"),
+    Mutant("arcrecordin", "SortedConstruction.swift", "slot &- inOffsets[target]", "slot", module="AdjacencyListModule"),
     Mutant("arcoutedges", "SortedConstruction.swift", "ContiguousArray(0 ..< m)", "ContiguousArray((0 ..< m).reversed())", module="AdjacencyListModule"),
     Mutant("edgedegree", "SortedConstruction.swift", "            offsets[edge.v &+ 1] &+= 1", "", mode="stmt", module="AdjacencyListModule"),
     Mutant("edgeprefix", "SortedConstruction.swift", "        for v in 0 ..< n { offsets[v &+ 1] &+= offsets[v] }", "", mode="stmt", module="AdjacencyListModule"),
     Mutant("edgeuneighbor", "SortedConstruction.swift", "neighborStorage[uSlot] = v", "neighborStorage[uSlot] = u", mode="stmt", module="AdjacencyListModule"),
     Mutant("edgevincident", "SortedConstruction.swift", "incidentStorage[vSlot] = position", "incidentStorage[vSlot] = 0", mode="stmt", module="AdjacencyListModule"),
-    Mutant("edgerecord", "SortedConstruction.swift", "uOffset: uSlot &- offsets[u], vOffset: vSlot &- offsets[v]", "uOffset: vSlot &- offsets[v], vOffset: uSlot &- offsets[u]", module="AdjacencyListModule"),
-    Mutant("listslots", "SortedConstruction.swift", "for v in 0 ..< n { _slots[v] = v }", "for v in 0 ..< n { _slots[v] = n - 1 - v }", nth=0, mode="stmt", module="AdjacencyListModule"),
-    Mutant("listpairs", "SortedConstruction.swift", "            _edges[_SlotPair(record.source, record.target)] = position", "", mode="stmt", module="AdjacencyListModule"),
-    Mutant("undirectedslots", "SortedConstruction.swift", "for v in 0 ..< n { _slots[v] = v }", "for v in 0 ..< n { _slots[v] = n - 1 - v }", nth=1, mode="stmt", module="AdjacencyListModule"),
-    Mutant("undirectedpairs", "SortedConstruction.swift", "            _positions[_SlotPair(record.u, record.v)] = position", "", mode="stmt", module="AdjacencyListModule"),
+    Mutant("edgerecord", "SortedConstruction.swift", "_EdgeRecord(u: u, v: v, uOffset: uSlot &- offsets[u], vOffset: vSlot &- offsets[v])", "_EdgeRecord(u: u, v: v, uOffset: vSlot &- offsets[v], vOffset: uSlot &- offsets[u])", module="AdjacencyListModule"),
+    Mutant("listslots", "SortedConstruction.swift", "_VertexSlots(identityCount: n)", "_VertexSlots(identityCount: Swift.max(0, n - 1))", nth=0, module="AdjacencyListModule"),
+    Mutant("listpairs", "SortedConstruction.swift", "            _edges.insert(_SlotPair(record.source, record.target), position)", "", mode="stmt", nth=0, module="AdjacencyListModule"),
+    Mutant("undirectedslots", "SortedConstruction.swift", "_VertexSlots(identityCount: n)", "_VertexSlots(identityCount: Swift.max(0, n - 1))", nth=1, module="AdjacencyListModule"),
+    Mutant("undirectedpairs", "SortedConstruction.swift", "            _positions.insert(_SlotPair(record.u, record.v), position)", "", mode="stmt", nth=0, module="AdjacencyListModule"),
 
     # The multigraphs' single-copy classes.
-    Mutant("parallellinks", "SortedConstruction.swift", "_ParallelLinks(previous: -1, next: -1), count: count)", "_ParallelLinks(previous: -1, next: -1), count: 0)", module="Multigraphs"),
-    Mutant("parallelclasses", "SortedConstruction.swift", "for position in 0 ..< count { classes[key(position)] = position }", "for position in 0 ..< count { classes[key(position)] = 0 }", mode="stmt", module="Multigraphs"),
-    Mutant("pseudoslots", "SortedConstruction.swift", "for v in 0 ..< n { _slots[v] = v }", "for v in 0 ..< n { _slots[v] = n - 1 - v }", nth=0, mode="stmt", module="Multigraphs"),
+    Mutant("parallellinks", "SortedConstruction.swift", "ContiguousArray(repeating: _ParallelLinks(previous: -1, next: -1), count: count)", "ContiguousArray(repeating: _ParallelLinks(previous: -1, next: -1), count: 0)", module="Multigraphs"),
+    Mutant("parallelclasses", "SortedConstruction.swift", "for position in 0 ..< count { classes.insert(key(position), position) }", "for position in 0 ..< count { classes.insert(key(position), 0) }", mode="stmt", module="Multigraphs"),
+    Mutant("pseudoslots", "SortedConstruction.swift", "_VertexSlots(identityCount: n)", "_VertexSlots(identityCount: Swift.max(0, n - 1))", nth=0, module="Multigraphs"),
     Mutant("pseudodirectedkey", "SortedConstruction.swift", "_SlotPair(records[$0].source, records[$0].target)", "_SlotPair(records[$0].target, records[$0].source)", module="Multigraphs"),
-    Mutant("pseudoundirectedslots", "SortedConstruction.swift", "for v in 0 ..< n { _slots[v] = v }", "for v in 0 ..< n { _slots[v] = n - 1 - v }", nth=1, mode="stmt", module="Multigraphs"),
+    Mutant("pseudoundirectedslots", "SortedConstruction.swift", "_VertexSlots(identityCount: n)", "_VertexSlots(identityCount: Swift.max(0, n - 1))", nth=1, module="Multigraphs"),
     Mutant("pseudoundirectedkey", "SortedConstruction.swift", "_SlotPair(records[$0].u, records[$0].v)", "_SlotPair(records[$0].v, records[$0].u)", module="Multigraphs"),
 
     # StableDirectedGraph.

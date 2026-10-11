@@ -1,6 +1,7 @@
 // The NamedGraphs and RandomGraphs families on every conformer: the three undirected ones
 // (UndirectedAdjacencyList, Pseudograph, Multigraph) and the six directed ones (CompressedSparseRow,
 // AdjacencyMatrix, AdjacencyList, DirectedPseudograph, DirectedMultigraph, StableDirectedGraph),
+// Watts–Strogatz and the geometric graph directed as both arcs of the undirected graph's edges,
 // plus the random DAG on its three bases, Tree's path, star and random tree, and
 // BipartiteGraph.completeBipartite. Sizes and parameters are small and drawn so that some fall
 // outside the documented ranges; such a call is never made (a trap would end the run), but every
@@ -60,8 +61,8 @@ func valid(_ spec: Spec, directed: Bool) -> Bool {
     case .gnp(let n, let p): n >= 0 && inUnit(p)
     case .gnm(let n, let m): n >= 0 && m >= 0 && m <= pairCount(n, directed: directed)
     case .barabasiAlbert(let n, let m): m >= 1 && m < n
-    case .wattsStrogatz(let n, let k, let p): !directed && n >= 0 && k >= 0 && k % 2 == 0 && k <= n && inUnit(p)
-    case .geometric(let n, let r, let d): !directed && n >= 0 && r >= 0 && d >= 1
+    case .wattsStrogatz(let n, let k, let p): n >= 0 && k >= 0 && k % 2 == 0 && k <= n && inUnit(p)
+    case .geometric(let n, let r, let d): n >= 0 && r >= 0 && d >= 1
     case .blockModel(let sizes, let p):
         sizes.allSatisfy { $0 >= 0 } && p.count == sizes.count && p.allSatisfy { $0.count == sizes.count }
             && p.allSatisfy { $0.allSatisfy(inUnit) }
@@ -185,6 +186,15 @@ func directedModel(_ spec: Spec) -> [[Int]]? {
     }
 }
 
+/// The families whose directed form is the undirected graph with both arcs of every edge, on the
+/// same draws.
+func bothArcsOfUndirected(_ spec: Spec) -> Bool {
+    switch spec {
+    case .wattsStrogatz, .geometric: true
+    default: false
+    }
+}
+
 // MARK: Building
 
 /// A fresh generator per seed: the conformers and the repeat each start from the same state.
@@ -224,6 +234,7 @@ func buildUndirected<G: _GraphConstruction>(_: G.Type, _ spec: Spec, _ seed: UIn
 
 func buildDirected<G: _DirectedGraphConstruction>(_: G.Type, _ spec: Spec, _ seed: UInt64) -> Built {
     var g = Xoshiro256StarStar(seed: seed)
+    var positions: [Double]?
     let graph: G
     switch spec {
     case .complete(let n): graph = .complete(vertexCount: n)
@@ -240,9 +251,13 @@ func buildDirected<G: _DirectedGraphConstruction>(_: G.Type, _ spec: Spec, _ see
     case .gnm(let n, let m): graph = .erdosRenyi(vertexCount: n, edgeCount: m, using: &g)
     case .barabasiAlbert(let n, let m): graph = .barabasiAlbert(vertexCount: n, edgesPerVertex: m, using: &g)
     case .blockModel(let sizes, let p): graph = .stochasticBlockModel(blockSizes: sizes, edgeProbabilities: p, using: &g)
-    case .wattsStrogatz, .geometric: preconditionFailure("no directed form")
+    case .wattsStrogatz(let n, let k, let p): graph = .wattsStrogatz(vertexCount: n, nearestNeighborCount: k, rewiringProbability: p, using: &g)
+    case .geometric(let n, let r, let d):
+        let result = G.randomGeometric(vertexCount: n, radius: r, dimension: d, using: &g)
+        graph = result.graph
+        positions = result.positions
     }
-    return Built(edges: checkedDirected(graph, "\(G.self)"), generator: g, positions: nil)
+    return Built(edges: checkedDirected(graph, "\(G.self)"), generator: g, positions: positions)
 }
 
 // MARK: The representation contract
@@ -384,8 +399,6 @@ func runFamily(_ spec: Spec, seed: UInt64) {
         checkSpecialTypes(spec, reference, seed: seed)
     }
     if valid(spec, directed: true) {
-        if case .wattsStrogatz = spec { return }
-        if case .geometric = spec { return }
         let reference = buildDirected(CompressedSparseRow.self, spec, seed)
         let others = [
             buildDirected(AdjacencyMatrix.self, spec, seed), buildDirected(AdjacencyList<Int>.self, spec, seed),
@@ -395,8 +408,16 @@ func runFamily(_ spec: Spec, seed: UInt64) {
         for other in others {
             check(other.edges == reference.edges, "directed conformers disagree on \(spec)")
             check(other.generator == reference.generator, "directed conformers drew differently on \(spec)")
+            check(other.positions == reference.positions, "directed conformers placed points differently on \(spec)")
         }
-        if spec.isRandom {
+        if bothArcsOfUndirected(spec) {
+            // The undirected form's draws, positions and edges, with both arcs of every edge.
+            let undirected = buildUndirected(UndirectedAdjacencyList<Int>.self, spec, seed)
+            let arcs = undirected.edges.flatMap { [$0, [$0[1], $0[0]]] }.sorted { $0.lexicographicallyPrecedes($1) }
+            check(reference.edges == arcs, "directed \(spec) is not both arcs of the undirected graph")
+            check(reference.generator == undirected.generator && reference.positions == undirected.positions,
+                  "directed \(spec) drew differently from the undirected form")
+        } else if spec.isRandom {
             let again = buildDirected(CompressedSparseRow.self, spec, seed)
             check(again.edges == reference.edges && again.generator == reference.generator, "seed \(seed) does not reproduce directed \(spec)")
             checkRandom(spec, reference, directed: true, seed: seed)

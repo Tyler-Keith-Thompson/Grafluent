@@ -63,7 +63,7 @@ for line in TEXT.splitlines():
         parts = [p.strip() for p in line.strip().strip("|").split(" | ")]
         CELLS[int(parts[0][3:])] = parts
 N = len(CELLS)
-assert N == 141
+assert N == 151
 
 
 def group(n): return CELLS[n][1]
@@ -369,6 +369,12 @@ TRAPS = {
     138: (on(UNDIRECTED + DIRECTED + ["BipartiteGraph<Int>"], "bip", (3, 3, 1.5)), ("bip", (3, 3, 1.0))),
     139: ([(t, c.replace("nan", ".nan")) for t, c in on(UNDIRECTED + DIRECTED + ["BipartiteGraph<Int>"], "bip", (3, 3, float("nan")))],
           ("bip", (3, 3, 0.5))),
+    146: (on(UNDIRECTED + DIRECTED, "ws", (0, 2, 0.5)), ("ws", (0, 0, 0.5))),
+    147: (on(UNDIRECTED + DIRECTED, "rgg", (3, 0.6, 0)), ("rgg", (3, 0.6, 1))),
+    148: (on(UNDIRECTED + DIRECTED, "reg", (4, 4)), ("reg", (4, 3))),
+    149: (on(UNDIRECTED + DIRECTED, "sbm", ([1, -1], [[0.5, 0.5], [0.5, 0.5]])), ("sbm", ([1, 0], [[0.5, 0.5], [0.5, 0.5]]))),
+    150: (on(UNDIRECTED + DIRECTED, "sbm", ([2, 2], [[0.5, 0.1], [0.1, 0.5], [0.1, 0.5]])), ("sbm", ([2, 2], [[0.5, 0.1], [0.1, 0.5]]))),
+    151: (on(UNDIRECTED + DIRECTED, "sbm", ([2, 2], [[0.5, 0.1, 0.1], [0.1, 0.5, 0.1]])), ("sbm", ([2, 2], [[0.5, 0.1], [0.1, 0.5]]))),
 }
 
 
@@ -873,12 +879,12 @@ FILES = [
      "// NetworkX's rejection loop, draw for draw, on every conformer, with the number of draws."),
     ("PreferentialAttachmentTests.swift", "RandomGraphs Barabási–Albert and Watts–Strogatz exact outputs",
      ids("BarabasiAlbert", "WattsStrogatz", stats=False),
-     "Barabási–Albert and Watts–Strogatz for fixed seeds (catalog RG-047 – RG-068, RG-109): the\n"
-     "// repeated-nodes list with targets appended in ascending order, and NetworkX's ring rewiring."),
+     "Barabási–Albert and Watts–Strogatz for fixed seeds (catalog RG-047 – RG-068, RG-109,\n"
+     "// RG-142, RG-144): the repeated-nodes list with targets appended in ascending order, and NetworkX's ring rewiring."),
     ("GeometricBlockModelTests.swift", "RandomGraphs random geometric graphs and block models exact outputs",
      ids("RandomGeometric", "StochasticBlockModel", stats=False),
      "Random geometric graphs and stochastic block models for fixed seeds (catalog RG-074 – RG-094,\n"
-     "// RG-110 – RG-113): positions vertex by vertex, edges by squared distance; block pairs skipped\n"
+     "// RG-110 – RG-113, RG-145): positions vertex by vertex, edges by squared distance; block pairs skipped\n"
      "// geometrically."),
     ("RandomTreeDAGTests.swift", "RandomGraphs random trees and DAGs exact outputs", ids("RandomTree", "RandomDAG", stats=False),
      "Random trees and random DAGs for fixed seeds (catalog RG-095 – RG-106): a Prüfer code of n − 2\n"
@@ -886,7 +892,7 @@ FILES = [
      "// topological order."),
     ("RegularBipartiteTests.swift", "RandomGraphs random regular and random bipartite exact outputs",
      ids("RandomRegular", "RandomBipartite", stats=False),
-     "Random regular and random bipartite graphs for fixed seeds (catalog RG-114 – RG-135): NetworkX's\n"
+     "Random regular and random bipartite graphs for fixed seeds (catalog RG-114 – RG-135, RG-143): NetworkX's\n"
      "// stub pairing with its repair rounds, and Batagelj–Brandes skipping over the left–right pairs."),
     ("StatisticalLawTests.swift", "RandomGraphs statistical laws", ids(*STAT_GROUPS, stats=True),
      "Statistical laws (catalog rows with seeds 0..<S): the exact aggregate of the pinned procedure over\n"

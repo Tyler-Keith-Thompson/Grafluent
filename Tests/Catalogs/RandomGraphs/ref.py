@@ -1029,6 +1029,30 @@ def build_rows():
     tot = sum(len(random_bipartite(30, 20, 0.1, Xoshiro256StarStar(s), True).edges) for s in range(S))
     stat_row("RandomBipartite", "law: E[m] = 2·a·b·p", "G(30, 20, 0.1) directed", z_text(tot, S, 1200 * 0.1, 1200 * 0.1 * 0.9))
 
+    # ---- rows added after the mutation pass, numbered after RG-141 so those keep their IDs
+    exact_row("WattsStrogatz", "n 4, k 2, p 0.8: a vertex rewired away from loses degree, so it is not full",
+              f"{UL}.wattsStrogatz(vertexCount: 4, nearestNeighborCount: 2, rewiringProbability: 0.8, using: &Xoshiro256StarStar(seed: SEED))",
+              "ws", (4, 2, 0.8), 0, lambda rng: watts_strogatz(4, 2, 0.8, rng))
+    exact_row("RandomRegular", "n 7, d 4: the suitability check's quirk decides whether a round restarts",
+              f"{UL}.randomRegular(vertexCount: 7, degree: 4, using: &Xoshiro256StarStar(seed: SEED))",
+              "reg", (7, 4), 3, lambda rng: random_regular(7, 4, rng))
+    exact_row("BarabasiAlbert", "directed, m 17: more than 16 targets, sorted by the full sort",
+              f"{CSR}.barabasiAlbert(vertexCount: 20, edgesPerVertex: 17, using: &Xoshiro256StarStar(seed: SEED))",
+              "ba", (20, 17, True), 0, lambda rng: barabasi_albert(20, 17, rng, True))
+    exact_row("RandomGeometric", "n 5, radius 0.1, dimension 70: 2^d and 3^d overflow Int, every pair checked",
+              f"{UL}.randomGeometric(vertexCount: 5, radius: 0.1, dimension: 70, using: &Xoshiro256StarStar(seed: SEED))",
+              "rgg", (5, 0.1, 70), 0, lambda rng: random_geometric(5, 0.1, rng, 70))
+    trap_row("WattsStrogatz", "k > n = 0", f"{UL}.wattsStrogatz(…)", lambda rng: watts_strogatz(0, 2, 0.5, rng))
+    trap_row("RandomGeometric", "dimension 0 with radius ≥ 1/2 (every pair checked)", f"{UL}.randomGeometric(…)",
+             lambda rng: random_geometric(3, 0.6, rng, 0))
+    trap_row("RandomRegular", "d = n with n·d even", f"{UL}.randomRegular(…)", lambda rng: random_regular(4, 4, rng))
+    trap_row("StochasticBlockModel", "negative block size after a block of 1", f"{UL}.stochasticBlockModel(…)",
+             lambda rng: sbm([1, -1], [[0.5, 0.5], [0.5, 0.5]], rng))
+    trap_row("StochasticBlockModel", "more rows than blocks", f"{UL}.stochasticBlockModel(…)",
+             lambda rng: sbm([2, 2], [[0.5, 0.1], [0.1, 0.5], [0.1, 0.5]], rng))
+    trap_row("StochasticBlockModel", "longer rows than blocks", f"{UL}.stochasticBlockModel(…)",
+             lambda rng: sbm([2, 2], [[0.5, 0.1, 0.1], [0.1, 0.5, 0.1]], rng))
+
 
 HEADER = [
     "# RandomGraphs: case catalog",

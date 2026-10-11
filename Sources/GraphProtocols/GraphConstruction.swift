@@ -45,29 +45,43 @@ public struct _ConstructionToken {
 
 /// Whether `edges` are what `_DirectedGraphConstruction` requires: endpoints in `0..<vertexCount`,
 /// no self-loop, and strictly increasing in row-major order (so no repeats). O(m). The conformers
-/// `assert` it, so the check runs in debug builds only.
+/// `assert` it, so the check runs in debug builds only. It also checks that the collection is
+/// consistent: iteration, the indices with their subscript, and `count` give the same edges, since a
+/// conformer sizes its storage by `count` and the generators' lazy collections compute all three.
 @inlinable
 package func _isSortedSimple(vertexCount n: Int, _ edges: some Collection<DirectedEdge<Int>>) -> Bool {
     var previous: (source: Int, target: Int) = (-1, -1)
+    var index = edges.startIndex
+    var count = 0
     for edge in edges {
         let source = edge.source, target = edge.target
         guard 0 <= source, source < n, 0 <= target, target < n, source != target,
-              (source, target) > previous
+              (source, target) > previous,
+              index < edges.endIndex, edges[index] == edge
         else { return false }
         previous = (source, target)
+        edges.formIndex(after: &index)
+        count += 1
     }
-    return true
+    return index == edges.endIndex && count == edges.count
 }
 
 /// Whether `edges` are what `_GraphConstruction` requires: every edge `UndirectedEdge(u, v)` with
-/// `0 <= u < v < vertexCount`, strictly increasing in lexicographic order (so no repeats). O(m).
+/// `0 <= u < v < vertexCount`, strictly increasing in lexicographic order (so no repeats), in a
+/// consistent collection, as the directed form checks. O(m).
 @inlinable
 package func _isSortedSimple(vertexCount n: Int, _ edges: some Collection<UndirectedEdge<Int>>) -> Bool {
     var previous: (u: Int, v: Int) = (-1, -1)
+    var index = edges.startIndex
+    var count = 0
     for edge in edges {
         let u = edge.u, v = edge.v
-        guard 0 <= u, u < v, v < n, (u, v) > previous else { return false }
+        guard 0 <= u, u < v, v < n, (u, v) > previous,
+              index < edges.endIndex, edges[index].u == u, edges[index].v == v
+        else { return false }
         previous = (u, v)
+        edges.formIndex(after: &index)
+        count += 1
     }
-    return true
+    return index == edges.endIndex && count == edges.count
 }

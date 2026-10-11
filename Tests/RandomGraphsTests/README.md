@@ -109,6 +109,11 @@ re-runs every row on the model, asserts that each value is the row's cell, and w
   irregular radii, at radius 0 (which used to fall back to every pair), and where 3^d > n makes the
   factory check every pair itself; both forms, the directed one as both arcs;
 - radius 0 at n = 5·10⁴ through the grid, and a radius past 1/2;
+- pairs exactly r apart are edges, on the points a generator of fixed words places: coincident
+  points at radius 0 through every-pair checking and within one cell, and points 0.25 apart at
+  radius 0.25 in neighbouring cells;
+- a probability for which 1 − p rounds to 1 (1e-17) gives no edges and no draws in the random
+  bipartite graph, both kinds, and in the block model;
 - random DAGs built in bulk on all three bases, the same edges inserted one by one, then 400 random
   insertions and removals of edges and vertices against a model with its own cycle check: rejected
   exactly when an edge closes a cycle, the same vertices and edges, and a topological
