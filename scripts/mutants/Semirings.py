@@ -36,9 +36,6 @@
 #   unvertex          non-vertex source traps in the directed Bellman–Ford it calls next.
 #   The range checks, the path guard and the pre-pass checks stay: removing them was declined as
 #   removing safety checks.
-#   dagrows           DirectedAcyclicGraph over a SparselyIndexedDirectedGraph with holes, whose
-#                     topological order goes through the numbered rows: only StableDirectedGraph
-#                     has holes, and SemiringsTests does not depend on StableGraphs (modules.py).
 #
 # Removed as dead code after planting: Bellman–Ford's `queuedIn[s] = 0` (rounds start at 1), its
 # `< .one` tests before `_isSaturated` (which implies them), and the undirected single-target

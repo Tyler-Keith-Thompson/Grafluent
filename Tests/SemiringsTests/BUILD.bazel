@@ -19,6 +19,7 @@ swift_library(
         "//Sources/Multigraphs",
         "//Sources/AdjacencyListModule",
         "//Sources/DirectedAcyclicGraphModule",
+        "//Sources/StableGraphs",
         "//Sources/Traversal",
         "//Sources/Walks",
         "//Tests/GrafluentTestSupport",
