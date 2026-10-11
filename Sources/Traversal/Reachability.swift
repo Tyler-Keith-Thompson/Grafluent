@@ -2,6 +2,13 @@ import GraphProtocols
 import Walks
 
 extension DirectedGraph {
+    /// `descendants(of: vertex)`, or `nil` when `vertex` is not a vertex: the `safe:` spelling
+    /// (README Principle 6), for a vertex that may not belong to the graph.
+    @inlinable
+    public func descendants(safe vertex: Vertex) -> Set<Vertex>? {
+        contains(vertex) ? descendants(of: vertex) : nil
+    }
+
     /// Every vertex reachable from `vertex` by at least one edge, `vertex` itself excluded even on a
     /// cycle (NetworkX's `descendants`).
     ///
@@ -60,6 +67,13 @@ extension DirectedGraph {
 }
 
 extension BidirectionalDirectedGraph {
+    /// `ancestors(of: vertex)`, or `nil` when `vertex` is not a vertex: the `safe:` spelling
+    /// (README Principle 6).
+    @inlinable
+    public func ancestors(safe vertex: Vertex) -> Set<Vertex>? {
+        contains(vertex) ? ancestors(of: vertex) : nil
+    }
+
     /// Every vertex from which a path leads to `vertex`, `vertex` itself excluded (NetworkX's
     /// `ancestors`).
     ///

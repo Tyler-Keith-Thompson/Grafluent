@@ -11,7 +11,7 @@ move. FlowNavigation needs three things the swap-remove types cannot give:
 3. Lookups that answer "no" for a stale identity.
 
 This module adds one type, after petgraph's `StableGraph`. Its cases are `cases.md`
-(SG-001 – SG-096, 96 rows). `ref.py` holds two models:
+(SG-001 – SG-112, 112 rows; SG-097 on are the FlowNavigation additions and the review fixes). `ref.py` holds two models:
 
 - a port of the storage below;
 - a plain specification, in which everything sits at a monotone position.
@@ -40,7 +40,7 @@ the newest, and reusing a vacated vertex slot.
 
 There is no type named `StableGraph`. In petgraph it is generic over directedness, and in this
 library `Graph` means *undirected*, so a directed type called `StableGraph` would read as the
-undirected one. `StableDirectedGraph` is unambiguous and follows our own spelling; petgraph's name for exactly this type is `StableDirectedGraph`.
+undirected one. `StableDirectedGraph` is unambiguous and follows our own spelling; petgraph's name for exactly this type is `StableDiGraph`.
 There are no typealiases. The catalog folder keeps the name the plan gave it
 (`Tests/Catalogs/StableGraphs`, renamed with the module; open question 1).
 
@@ -69,10 +69,11 @@ never comes back (SG-015, SG-031). Only `removeAll()` and `removeAllEdges()` res
    slot. It is sized `edges.endIndex` and appended to on insert.
 
 The cost is memory proportional to *total insertions*, not live elements: 1 tombstoned vertex
-slot (about 40 bytes plus the vertex) and 1 edge record (48 bytes) per removed element, until
-`removeAll`. FlowNavigation's graphs are small and long-lived. A program with unbounded churn
-converts to `DirectedPseudograph(g)` (compacting, SG-072) or rebuilds. A compaction method that
-reports where everything moved is phase 2, if a caller needs it (open question 3).
+slot (about 40 bytes plus the vertex) and 1 edge record (32 bytes) per removed element, until
+`removeAll`, and a copy-on-write copy that is then mutated copies all of it. *Decided, as a
+follow-up:* paged storage, with vertex and edge records in fixed-size pages and a page freed once
+every slot in it is dead, positions still never reused, and `VertexMap` / `EdgeMap` side maps
+after LEMON's `NodeMap` / `ArcMap` (open question 3).
 
 ## Storage
 
@@ -123,7 +124,7 @@ question 5).
     public func contains(_ vertex: Vertex) -> Bool                     // O(1) expected
     public func contains(edge: DirectedEdge<Vertex>) -> Bool           // O(min(outDegree(source), inDegree(target)))
     public func edges(from source: Vertex, to target: Vertex) -> EdgesConnecting   // oldest first; empty for a non-vertex
-    public func edgeCount(from source: Vertex, to target: Vertex) -> Int           // O(outDegree(source))
+    public func edgeCount(from source: Vertex, to target: Vertex) -> Int           // O(min(outDegree(source), inDegree(target)))
 
     // Neighborhoods (precondition: a vertex)
     public func successors(of vertex: Vertex) -> Neighbors             // O(1) to make, O(degree) to walk
@@ -136,13 +137,27 @@ question 5).
     public func source(ofEdgeAt position: Int) -> Vertex               // O(1); precondition: live position
     public func target(ofEdgeAt position: Int) -> Vertex
 
+    // safe: lookups (README Principle 6): nil for a vertex not in the graph, one hash like the trapping spelling
+    public func successors(safe vertex: Vertex) -> Neighbors?
+    public func predecessors(safe vertex: Vertex) -> Neighbors?
+    public func outEdges(safe vertex: Vertex) -> OutEdges?
+    public func inEdges(safe vertex: Vertex) -> InEdges?
+    public func outDegree(safe vertex: Vertex) -> Int?
+    public func inDegree(safe vertex: Vertex) -> Int?
+
     // Mutation
     public mutating func insert(_ vertex: Vertex) -> (inserted: Bool, memberAfterInsert: Vertex)  // O(1) amortized
     public mutating func insert(edge: DirectedEdge<Vertex>) -> Int     // O(1) amortized; returns the old edges.endIndex
-    public mutating func remove(_ vertex: Vertex) -> Vertex?           // O(degree); its slot and its edges become holes
-    public mutating func remove(edge: DirectedEdge<Vertex>) -> DirectedEdge<Vertex>?  // newest copy; O(outDegree(source))
-    public mutating func remove(edgeAt position: Int) -> DirectedEdge<Vertex>         // O(1); precondition: live position
-    public mutating func removeAllEdges(from source: Vertex, to target: Vertex) -> Int // O(outDegree(source))
+    public mutating func insert(safe edge: DirectedEdge<Vertex>) -> Int?  // nil, nothing changed, unless both endpoints are vertices
+    public mutating func remove(_ vertex: Vertex) -> Vertex?           // O(degree) amortized; its slot and its edges become holes
+    public mutating func remove(edge: DirectedEdge<Vertex>) -> DirectedEdge<Vertex>?  // newest copy; O(min(outDegree(source),
+                                                                       //   inDegree(target))) to find, O(1) amortized to remove
+    public mutating func remove(edgeAt position: Int) -> DirectedEdge<Vertex>         // O(1) amortized; precondition: live position
+    public mutating func removeAllEdges(from source: Vertex, to target: Vertex) -> Int // one pass over the shorter row
+    public mutating func removeAllEdges<E>(from vertex: Vertex, where: (Int) throws(E) -> Bool) throws(E) -> Int
+                                                                       // one pass over the out-row, positions in row order
+    public mutating func removeAllEdges<E>(where: (Int) throws(E) -> Bool) throws(E) -> Int
+                                                                       // petgraph's retain_edges, inverted; every out-row once
     public mutating func removeAll(keepingCapacity: Bool = false)      // resets both endIndexes to 0
     public mutating func removeAllEdges(keepingCapacity: Bool = false) // resets edges.endIndex to 0
     public mutating func reserveCapacity(vertexCount: Int, edgeCount: Int)
@@ -218,10 +233,15 @@ public protocol SparselyIndexedDirectedGraph<Vertex>: BidirectionalDirectedGraph
 
 The name follows petgraph's traits: `NodeIndexable` / `EdgeIndexable` allow holes (a bound
 "suitable for the size of a bitmap"), `NodeCompactIndexable` does not; our `vertexIndexBound` is
-the compact kind. `_numberedRows` builds, with arrays sized by the bound and no hashing, the
-position → number map and flat successor (or predecessor) rows with edge positions beside them,
-in O(bound + m). `DirectedGraph._sparselyIndexed()` casts to the refinement once per run when
-`vertexIndexBound` is `nil`.
+the compact kind. `StableDirectedGraph`'s `_numberedRows` builds, with arrays sized by the bound
+and no hashing, the position → number map and flat successor (or predecessor) rows with edge
+positions beside them, in O(bound + m). A conformer outside the library gets a default built
+from the public members, which hashes once per vertex and per edge (`_NumberedRows`' initializer
+is `package`, so the requirement could not otherwise be met). `DirectedGraph._sparselyIndexed()`
+casts to the refinement once per structure when `vertexIndexBound` is `nil`, and the structure
+keeps the cast: a later lookup by vertex (`component(of:)`, a dominator tree's queries) is one
+hash in the graph's own map and one call through the existential, about 2× the hole-free lookup.
+Building the numbering hashes nothing per vertex or per edge; answering by vertex does hash.
 
 Wired in phase 1 (each keeps its hash path for other index-less graphs):
 
@@ -230,8 +250,10 @@ Wired in phase 1 (each keeps its hash path for other index-less graphs):
   iterators, `breadthFirstLayers`, reachability, bidirectional paths, topological sorts, step
   edges) and ShortestPaths (`_runInIndexSpace` over `_NumberedArcs`) run on the numbered rows;
 - Connectivity's `_DenseVertices`: weak components, strong components (Tarjan over the numbered
-  rows with integer cursors), condensation, attracting components and dominator trees;
-- Flows' directed `_flowEdges`: edge numbers from positions through an array.
+  rows with integer cursors), condensation, attracting components, dominator trees and
+  post-dominator trees (over `_numberedRows(outward: false)`);
+- Flows' directed `_flowEdges`: edge numbers from positions through an array, with vertex holes
+  and also with edge holes only.
 
 Not wired: the undirected helpers (`_vertexNumbering`, `_LazyIncidenceRows`, `_edgeNumbers`)
 serve `Graph`, reached only through the `undirected` view, which does not conform; SpanningTrees,
@@ -276,8 +298,9 @@ holes exist", and names the refinement.
 - `index(after: endIndex)`.
 - A negative `reserveCapacity`.
 
-`remove(_:)`, `remove(edge:)` and `removeAllEdges(from:to:)` never trap. They return `nil` or 0,
-and `contains`, `contains(edge:)`, `edges(from:to:)` and `*.indices.contains` never trap either.
+`remove(_:)`, `remove(edge:)`, `removeAllEdges(from:to:)`, `removeAllEdges(from:where:)` and
+`insert(safe:)` never trap. They return `nil` or 0, and `contains`, `contains(edge:)`,
+`edges(from:to:)`, `*.indices.contains` and the `safe:` lookups never trap either.
 
 ## Codable
 
@@ -293,21 +316,37 @@ before encoding (SG-083). Errors are `DecodingError.dataCorrupted` for:
 - a repeated vertex;
 - a positions/values count mismatch;
 - positions that do not strictly increase or that reach past the end;
-- an endpoint out of range.
+- an endpoint out of range;
+- an implausible end (SG-108 – SG-112): one that leaves more than `16 × count + 65,536` holes,
+  `count` being the vertices (or edges) listed. Decoding allocates every position up to the end,
+  so without a bound `"vertexEnd": 4611686018427387903` with no vertices trapped in the
+  allocation instead of throwing. The bound caps a payload's amplification at about 17 holes per
+  listed element plus a few megabytes; a graph whose positions ran further past its live
+  elements does not round-trip until paged storage makes empty pages free and the bound can
+  count pages instead.
 
 ## Accommodating the later plan items
 
-- **`safe:` lookups.** Monotone positions make every `safe:` variant a plain membership test, with
-  no generation check. Two kinds follow the same pattern:
-  - vertex lookups: `successors(safe:)`, `outEdges(safe:)`, `outDegree(safe:)` and the rest are
-    `contains(v) ? … : nil`;
-  - position lookups: `source(safe:)`, `edges[safe: p]` and the rest are
-    `edges.indices.contains(p) ? … : nil`.
-
-  The underlying O(1) checks ship now.
-- **Endpoints-required failable insert** (JGraphT `addEdge`). It is `insert(edge:)` with
-  `guard contains(source), contains(target) else { return nil }` and no state change. Its
-  spelling is chosen repo-wide later.
+- **`safe:` lookups (shipped for FlowNavigation).** Monotone positions make every `safe:` variant
+  a plain membership test, with no generation check. The vertex lookups FlowNavigation uses ship:
+  `successors(safe:)`, `predecessors(safe:)`, `outEdges(safe:)`, `inEdges(safe:)`,
+  `outDegree(safe:)`, `inDegree(safe:)` (SG-105, SG-106), each one hash, the same as the trapping
+  spelling; and `descendants(safe:)` / `ancestors(safe:)` in Traversal, generic over
+  `DirectedGraph` / `BidirectionalDirectedGraph` (SG-107), since StableGraphs does not depend on
+  Traversal. Position lookups (`source(safe:)`, `edges[safe: p]`) would be
+  `edges.indices.contains(p) ? … : nil`; FlowNavigation does not need them yet.
+- **Endpoints-required failable insert (shipped): `insert(safe:)`** (SG-103, SG-104). Requiring
+  the endpoints is JGraphT's `addEdge` precondition (`IllegalArgumentException` on a missing
+  endpoint) and petgraph's `try_add_edge` (`Err(GraphError::NodeMissed)`); LEMON's `addArc`
+  requires valid nodes, and NetworkX's `add_edge` inserts them. None has an optional-returning
+  name, and a labelled `insert(edge:requiringEndpoints:)` would be invented, so the failing case
+  takes the `safe:` label: the new position, or `nil` with nothing changed.
+- **Bulk removal (shipped).** `removeAllEdges(from:where:)` and `removeAllEdges(where:)` (after
+  `Array.removeAll(where:)`; the second is petgraph's `retain_edges` with the predicate inverted)
+  and `removeAllEdges(from:to:)` remove in one pass over a row: the walked row is compacted once,
+  its records' offsets updated, and each removed edge's far entry killed (SG-097 – SG-102). The
+  predicate gets positions in row order (rows in `vertices` order for the whole-graph form), uses
+  typed throws, and leaves the remaining edges if it throws.
 - **Side arrays → NodeMap/ArcMap or payloads.** Positions that never move are the easiest case:
   a map over positions only has to grow on insert, and a removal never moves a value. The final
   phase can wrap a `ContiguousArray<Value?>` sized `endIndex`, or store payloads in the records
@@ -331,6 +370,14 @@ vertex hashing. The `DirectedPseudograph` column is from `Benchmarks/README.md`.
 | `insert(edge:)` one at a time | 33 ms (Python loop) | measure | ≤ 1.1× `DirectedPseudograph.insert(edge:)` | 92 ms against 161 ms |
 | `contains(edge:)` for every edge | n/a | O(1) hash | ≤ 2× DirectedPseudograph at mean degree 5 (row scan) | 72 ms against 47 ms (1.5×) |
 
+Review fixes (2026-10-10, p50): 10⁴ steps of vertex churn (a new vertex with an edge, the
+previous one removed) took 33.6 s, because each row pool packed on almost every cleared row, at
+O(rows ever) each; packing now waits until garbage also reaches the row count, and 10⁴ steps take
+3.6 ms, 10⁵ take 36 ms (linear). With one vertex hole, `component(of:)` for every vertex took 34×
+the hole-free time (an existential cast and box per lookup) and now takes 2.2× (3.2 ms against
+1.5 ms for 10⁵ lookups); `postDominatorTree` took 17× and now runs over numbered predecessor rows
+in 28 ms against 32 ms without holes. `removeAllEdges(where:)` for half of 5·10⁵ edges: 24 ms.
+
 The numbered rows of the graph with holes take 1.2 ms to build. A churned graph (10⁴ vertices,
 5·10⁴ live edges, 5·10⁵ edges inserted and removed) sums over `edges` in 49 µs against its
 compacted copy's 25 µs (the walk is O(`endIndex`) over the 32-byte records), and finds weak
@@ -351,10 +398,10 @@ holes the docs will quote.
    module's loops and results. *Decided:* the laws stay, and the `SparselyIndexedDirectedGraph`
    refinement above carries the positions, so index-space helpers number live vertices with
    arrays instead of hashing.
-3. **Compaction.** *Recommend* deferring a `compact()`-style method that returns the old → new
-   maps until a caller with unbounded churn appears. No established library offers it on a
-   stable graph (petgraph converts `StableGraph` into `Graph` instead). `DirectedPseudograph(g)`
-   covers the need today.
+3. **Compaction.** *Decided:* no `compact()` method. Memory under churn is addressed by paged
+   storage in a follow-up: records in fixed-size pages, a page freed once all its slots are dead,
+   positions never reused, and `VertexMap` / `EdgeMap` side maps after LEMON's `NodeMap` /
+   `ArcMap`. `DirectedPseudograph(g)` still compacts for a hot loop.
 4. **Should `removeAll()` / `removeAllEdges()` reset `endIndex`?** If they reset, a position from
    before the reset can name a new edge (SG-039). If they keep it, the "never comes back" rule
    holds with no exception. *Recommend reset.* It matches petgraph's `clear` and Swift's

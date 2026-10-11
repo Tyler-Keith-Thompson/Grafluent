@@ -40,5 +40,6 @@ let package = Package(
         target("FuzzTrees", ["GraphProtocols", "AdjacencyListModule", "Trees", "Walks"]),
         target("FuzzCycles", ["GraphProtocols", "AdjacencyListModule", "Cycles", "Walks"]),
         target("FuzzShortestPaths", ["GraphProtocols", "AdjacencyListModule", "CompressedSparseRowModule", "ShortestPaths", "Walks"]),
+        target("FuzzStableGraphs", ["GraphProtocols", "StableGraphs", "Multigraphs", "Traversal", "Connectivity", "ShortestPaths"]),
     ]
 )

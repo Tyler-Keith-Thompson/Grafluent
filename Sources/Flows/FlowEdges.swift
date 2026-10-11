@@ -74,7 +74,19 @@ extension DirectedGraph {
                 return (_FlowEdges(vertexCount: n, tail: tail, head: head, directed: true), vertices)
             }
             let indexed = edgeIndexBound != nil
-            let numbers = indexed ? [:] : _flowEdgeNumbers()
+            // Edge holes only: a sparsely indexed graph numbers its edge positions through an
+            // array sized by the bound, not a dictionary.
+            let sparse = indexed ? nil : self as? any SparselyIndexedDirectedGraph<Vertex>
+            var positionNumbers: [Int] = []
+            if let sparse {
+                positionNumbers = [Int](repeating: -1, count: sparse.edgePositionBound)
+                var k = 0
+                for position in edges.indices {
+                    positionNumbers[unsafeBitCast(position, to: Int.self)] = k
+                    k += 1
+                }
+            }
+            let numbers = indexed || sparse != nil ? [:] : _flowEdgeNumbers()
             tail.withUnsafeMutableBufferPointer { tail in
                 head.withUnsafeMutableBufferPointer { head in
                     for v in 0 ..< n {
@@ -82,7 +94,8 @@ extension DirectedGraph {
                         for position in outEdges(ofIndex: v) {
                             guard let w = successors.next() else { preconditionFailure("successorIndices and outEdges differ in length") }
                             precondition(UInt(bitPattern: w) < UInt(bitPattern: n), "A successor index is out of range")
-                            let e = indexed ? edgeIndex(of: position) : numbers[position]!
+                            let e = indexed ? edgeIndex(of: position)
+                                : sparse != nil ? positionNumbers[unsafeBitCast(position, to: Int.self)] : numbers[position]!
                             precondition(UInt(bitPattern: e) < UInt(bitPattern: m) && tail[e] < 0, "An edge is listed twice in the rows")
                             tail[e] = Int32(truncatingIfNeeded: v)
                             head[e] = Int32(truncatingIfNeeded: w)

@@ -284,7 +284,14 @@ extension StableDirectedGraph: Decodable where Vertex: Decodable {
     /// Decodes the format `encode(to:)` writes, every position and both ends restored. Throws
     /// `DecodingError.dataCorrupted` for a positions/values count mismatch, a repeated vertex,
     /// positions that do not strictly increase or that reach past their end, an odd-length edge
-    /// list, or an endpoint out of range.
+    /// list, an endpoint out of range, or an implausible end.
+    ///
+    /// An end is implausible when it leaves more than `16 × count + 65,536` holes, where `count` is
+    /// the number of vertices (or edges) listed: decoding allocates storage for every position up
+    /// to the end, so the bound keeps a hostile payload (`"vertexEnd": 4611686018427387903` with no
+    /// vertices) from allocating without limit, at most about 17 holes' storage per listed element
+    /// plus a few megabytes. A graph whose positions have run further past its live elements than
+    /// that does not round-trip.
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: _StableCodingKeys.self)
         let listed = try container.decode([Vertex].self, forKey: .vertices)
@@ -304,6 +311,9 @@ extension StableDirectedGraph: Decodable where Vertex: Decodable {
                 throw DecodingError.dataCorruptedError(forKey: .vertices, in: container, debugDescription: "Repeated vertex")
             }
         }
+        guard Self._isPlausible(end: vertexEnd, count: listed.count) else {
+            throw DecodingError.dataCorruptedError(forKey: .vertexEnd, in: container, debugDescription: "End leaves too many holes")
+        }
         guard Self._isIncreasing(positions, within: vertexEnd) else {
             throw DecodingError.dataCorruptedError(forKey: .vertexPositions, in: container, debugDescription: "Positions not increasing within vertexEnd")
         }
@@ -315,6 +325,9 @@ extension StableDirectedGraph: Decodable where Vertex: Decodable {
         }
         guard ends.allSatisfy({ $0 >= 0 && $0 < listed.count }) else {
             throw DecodingError.dataCorruptedError(forKey: .edges, in: container, debugDescription: "Edge endpoint out of range")
+        }
+        guard Self._isPlausible(end: edgeEnd, count: edgePositions.count) else {
+            throw DecodingError.dataCorruptedError(forKey: .edgeEnd, in: container, debugDescription: "End leaves too many holes")
         }
         guard Self._isIncreasing(edgePositions, within: edgeEnd) else {
             throw DecodingError.dataCorruptedError(forKey: .edgePositions, in: container, debugDescription: "Positions not increasing within edgeEnd")
@@ -347,6 +360,13 @@ extension StableDirectedGraph: Decodable where Vertex: Decodable {
         while _records.count < edgeEnd { _records.append(.hole) }
         _packRows()
         _firstEdge = edgePositions.first ?? edgeEnd
+    }
+
+    /// Whether `end` leaves at most `16 × count + 65,536` holes after `count` listed elements; a
+    /// negative or too-small end is left to `_isIncreasing`.
+    internal static func _isPlausible(end: Int, count: Int) -> Bool {
+        let (scaled, overflow) = count.multipliedReportingOverflow(by: 16)
+        return overflow || end <= count || end - count <= scaled + 65_536
     }
 
     /// Whether `positions` strictly increase and lie in `0..<end`, and there are at most `end`.

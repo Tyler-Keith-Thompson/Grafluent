@@ -138,6 +138,33 @@ class Port:
             p = q
         return n
 
+    def removeAllEdges_from_where(self, u, chosen):
+        """One pass over u's out-row, oldest first; the predicate is membership in `chosen`."""
+        if u not in self.slot:
+            return 0
+        n, p = 0, self.head_out[self.slot[u]]
+        while p != NIL:
+            q = self.next_out[p]
+            if p in chosen:
+                self._unlink(p); n += 1
+            p = q
+        return n
+
+    def removeAllEdges_where(self, chosen):
+        """Each live vertex's out-row in turn, in vertices order."""
+        return sum(self.removeAllEdges_from_where(v, chosen) for v, _ in self.vertices())
+
+    def visit_order(self, u=None):
+        """The positions the predicate sees: u's out-row, or every out-row in vertices order."""
+        if u is not None:
+            return self.out_edges(u) if u in self.slot else []
+        return [p for v, _ in self.vertices() for p in self.out_edges(v)]
+
+    def insert_safe(self, u, v):
+        if u not in self.slot or v not in self.slot:
+            return None
+        return self.insert_edge(u, v)
+
     def remove(self, v):
         if v not in self.slot:
             return None
@@ -226,6 +253,20 @@ class Spec:
         copies = [q for q, a, b in self.E if (a, b) == (u, v)]
         for q in copies: self.remove_edgeAt(q)
         return len(copies)
+
+    def removeAllEdges_from_where(self, u, chosen):
+        if not self.has(u): return 0
+        copies = [q for q, a, _ in self.E if a == u and q in chosen]
+        for q in copies: self.remove_edgeAt(q)
+        return len(copies)
+
+    def removeAllEdges_where(self, chosen):
+        copies = [q for q, _, _ in self.E if q in chosen]
+        for q in copies: self.remove_edgeAt(q)
+        return len(copies)
+
+    def insert_safe(self, u, v):
+        return self.insert_edge(u, v) if self.has(u) and self.has(v) else None
 
     def remove(self, v):
         if not self.has(v): return None
@@ -330,6 +371,9 @@ def apply(g, op):
     if k == "removeEdge": return g.remove_edge(op[1], op[2])
     if k == "removeAt": return g.remove_edgeAt(op[1])
     if k == "removeAllBetween": return g.removeAllEdges_between(op[1], op[2])
+    if k == "removeFromWhere": return g.removeAllEdges_from_where(op[1], set(op[2]))
+    if k == "removeWhere": return g.removeAllEdges_where(set(op[1]))
+    if k == "insertSafe": return g.insert_safe(op[1], op[2])
     if k == "removeAll": g.removeAll(); return None
     if k == "removeAllEdges": g.removeAllEdges(); return None
     # queries that may trap
@@ -363,13 +407,52 @@ def apply(g, op):
         o, i = len(g.out_edges(op[1])), len(g.in_edges(op[1]))
         return [o, i, o + i]
     if k == "bfs": return bfs(g, op[1])
+    if k in SAFE:
+        # The safe: lookups: nil for a non-vertex, otherwise the trapping spelling's answer.
+        if not any(v == op[1] for v, _ in g.vertices()): return None
+        return apply(g, (SAFE[k], op[1]))
+    if k == "outDegree": return len(g.out_edges(op[1]))
+    if k == "inDegree": return len(g.in_edges(op[1]))
+    if k == "predecessors":
+        d = {q: a for q, a, _ in g.edges()}
+        return [d[p] for p in g.in_edges(op[1])]
+    if k == "descendants": return reach(g, op[1], forward=True)
+    if k == "ancestors": return reach(g, op[1], forward=False)
     if k == "numbering": return [v for v, _ in g.vertices()]
     if k == "compact": return compact(g)
     raise ValueError(op)
 
 
+SAFE = {"successorsSafe": "successors", "predecessorsSafe": "predecessors", "outEdgesSafe": "outEdges",
+        "inEdgesSafe": "inEdges", "outDegreeSafe": "outDegree", "inDegreeSafe": "inDegree",
+        "descendantsSafe": "descendants", "ancestorsSafe": "ancestors"}
+
+
+def reach(g, s, forward):
+    """Traversal's descendants / ancestors: every vertex reachable from s (or reaching it), s itself
+    excluded even on a cycle, sorted for display (the result is a Set)."""
+    need(any(v == s for v, _ in g.vertices()), "not a vertex")
+    E = g.edges()
+    seen, stack = {s}, [s]
+    while stack:
+        u = stack.pop()
+        for _, a, b in E:
+            x, y = (a, b) if forward else (b, a)
+            if x == u and y not in seen:
+                seen.add(y); stack.append(y)
+    return sorted(seen - {s})
+
+
+def predicate(chosen):
+    return "{ " + lst(chosen) + ".contains($0) }" if chosen else "{ _ in false }"
+
+
 def show_op(op):
     k = op[0]
+    if k == "removeFromWhere": return f"removeAllEdges(from: {fmt(op[1])}, where: {predicate(op[2])})"
+    if k == "removeWhere": return f"removeAllEdges(where: {predicate(op[1])})"
+    if k == "insertSafe": return f"insert(safe: {fmt(op[1])}→{fmt(op[2])})"
+    if k in SAFE: return f"{SAFE[k]}(safe: {fmt(op[1])})"
     two = {"edge": "insert(edge: {}→{})", "removeEdge": "remove(edge: {}→{})",
            "removeAllBetween": "removeAllEdges(from: {}, to: {})", "containsEdge": "contains(edge: {}→{})",
            "edgesFromTo": "edges(from: {}, to: {})"}
@@ -444,11 +527,13 @@ def decode(d):
     E, EP, eend = d["edges"], d["edgePositions"], d["edgeEnd"]
     if len(V) != len(VP): return "dataCorrupted(vertexPositions): Count differs from vertices"
     if len(set(V)) != len(V): return "dataCorrupted(vertices): Repeated vertex"
+    if not plausible(vend, len(V)): return "dataCorrupted(vertexEnd): End leaves too many holes"
     if any(b <= a for a, b in zip(VP, VP[1:])) or (VP and (VP[0] < 0 or VP[-1] >= vend)) or vend < len(V):
         return "dataCorrupted(vertexPositions): Positions not increasing within vertexEnd"
     if len(E) % 2: return "dataCorrupted(edges): Edge list has odd length"
     if len(E) // 2 != len(EP): return "dataCorrupted(edgePositions): Count differs from edges"
     if any(not (0 <= x < len(V)) for x in E): return "dataCorrupted(edges): Edge endpoint out of range"
+    if not plausible(eend, len(EP)): return "dataCorrupted(edgeEnd): End leaves too many holes"
     if any(b <= a for a, b in zip(EP, EP[1:])) or (EP and (EP[0] < 0 or EP[-1] >= eend)) or eend < len(EP):
         return "dataCorrupted(edgePositions): Positions not increasing within edgeEnd"
     g = Port()
@@ -468,6 +553,11 @@ def decode(d):
             g.insert_edge(V[0] if V else None, V[0] if V else None) if V else _dead_edge(g)
             if V: g.remove_edgeAt(p)
     return g
+
+
+def plausible(end, count):
+    """At most 16 holes per listed element plus 65,536: decoding allocates every position up to the end."""
+    return end <= count or end - count <= 16 * count + 65_536
 
 
 def _dead_edge(g):
@@ -635,6 +725,54 @@ def define():
     raw(D, "description lists live vertices and edges", "V [0, 1, 2]; E [0→1, 1→2] / remove(edgeAt: 0)", "[0, 1, 2]; [1→2]")
     raw(D, "debugDescription", "V [0, 1]; E [0→1] / remove(0)",
         "StableDirectedGraph<Int>(vertexCount: 1, edgeCount: 0, vertices: [1], edges: [])")
+    define_flow_navigation()
+
+
+def define_flow_navigation():
+    """The FlowNavigation additions and the review fixes, after the phase-1 rows (SG-097 on)."""
+    R = "Edge removal"
+    case(R, "removeAllEdges(from:where:) sees only the vertex's out-row, oldest first", [0, 1, 2],
+         [(0, 1), (0, 2), (1, 2), (0, 1), (0, 0)], [("removeFromWhere", 0, [0, 2, 3, 4]), ("removeAt", 1), ("edge", 0, 2)])
+    case(R, "removeAllEdges(from:where:) non-vertex or nothing chosen: 0", [0, 1], [(0, 1)],
+         [("removeFromWhere", 9, [0]), ("removeFromWhere", 0, [])])
+    case(R, "removeAllEdges(from:where:) self-loops and in-edges", [0, 1], [(1, 0), (0, 0), (0, 1), (0, 0)],
+         [("removeFromWhere", 0, [1, 2]), ("removeAt", 3), ("edge", 0, 0)])
+    case(R, "removeAllEdges(from:to:) one pass over the shorter row", [0, 1, 2], [(0, 1), (0, 2), (0, 2), (2, 1), (0, 1), (0, 2)],
+         [("removeAllBetween", 0, 1), ("removeAt", 3), ("edge", 2, 1)])
+    case(R, "removeAllEdges(where:) over every edge", [0, 1, 2], [(0, 1), (1, 2), (2, 0), (0, 2), (1, 1)],
+         [("removeWhere", [1, 3, 4]), ("edge", 1, 1)])
+    case(R, "removeAllEdges(where:) with a vertex hole", [0, 1, 2], [(0, 1), (1, 2), (2, 0), (0, 2)],
+         [("remove", 1), ("removeWhere", []), ("removeWhere", [3])])
+
+    X = "Insertion"
+    case(X, "insert(safe:) with both endpoints: the new position", [0, 1], [(0, 1)], [("insertSafe", 1, 0), ("insertSafe", 1, 1)])
+    case(X, "insert(safe:) with a missing endpoint: nil, nothing changes", [0, 1], [(0, 0)],
+         [("insertSafe", 0, 9), ("insertSafe", 9, 0), ("insertSafe", 9, 9), ("remove", 1), ("insertSafe", 0, 1)])
+
+    Q = "Queries"
+    case(Q, "safe: lookups on a vertex", [0, 1, 2], [(0, 1), (2, 0), (0, 0)],
+         [("successorsSafe", 0), ("predecessorsSafe", 0), ("outEdgesSafe", 0), ("inEdgesSafe", 0), ("outDegreeSafe", 0), ("inDegreeSafe", 0)])
+    case(Q, "safe: lookups on a removed vertex or a non-vertex: nil", [0, 1], [(0, 1)],
+         [("remove", 1), ("successorsSafe", 1), ("predecessorsSafe", 1), ("outEdgesSafe", 9), ("inEdgesSafe", 1),
+          ("outDegreeSafe", 1), ("inDegreeSafe", 9)])
+    case(Q, "descendants(safe:) and ancestors(safe:)", [0, 1, 2, 3], [(0, 1), (1, 2), (2, 0), (2, 3)],
+         [("descendantsSafe", 1), ("ancestorsSafe", 3), ("remove", 0), ("descendantsSafe", 1), ("descendantsSafe", 0), ("ancestorsSafe", 9)])
+
+    K = "Codable"
+    for title, d in [
+        ("vertexEnd far past the payload", {"vertices": [], "vertexPositions": [], "vertexEnd": 4611686018427387903, "edges": [], "edgePositions": [], "edgeEnd": 0}),
+        ("edgeEnd far past the payload", {"vertices": [0], "vertexPositions": [0], "vertexEnd": 1, "edges": [], "edgePositions": [], "edgeEnd": 9223372036854775807}),
+        ("vertexEnd one hole past the bound", {"vertices": [0], "vertexPositions": [0], "vertexEnd": 65554, "edges": [], "edgePositions": [], "edgeEnd": 0}),
+        ("edgeEnd one hole past the bound", {"vertices": [0], "vertexPositions": [0], "vertexEnd": 1, "edges": [0, 0], "edgePositions": [0], "edgeEnd": 65554}),
+    ]:
+        raw(K, title, json.dumps(d, separators=(",", ":")), str(decode(d)))
+    for title, d in [
+        ("ends at the bound decode", {"vertices": [0], "vertexPositions": [0], "vertexEnd": 65553, "edges": [0, 0], "edgePositions": [0], "edgeEnd": 65553}),
+    ]:
+        g = decode(d)
+        assert isinstance(g, Port)
+        check_laws(g)
+        raw(K, title, json.dumps(d, separators=(",", ":")), show_state(g))
 
 
 def _built(V, E):

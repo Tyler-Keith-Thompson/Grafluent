@@ -436,11 +436,22 @@ extension BidirectionalDirectedGraph {
         precondition(contains(exit), "The exit \(exit) is not a vertex of the graph")
         let vertices = _DenseVertices(self)
         let x = vertices.number(of: exit)
-        let result = vertices.isIndexed
-            ? _lengauerTarjan(count: vertices.count, root: x) { predecessorIndices(ofIndex: $0).makeIterator() }
-            : _lengauerTarjan(count: vertices.count, root: x) { u in
+        let result: _Dominators
+        if vertices.isIndexed {
+            result = _lengauerTarjan(count: vertices.count, root: x) { predecessorIndices(ofIndex: $0).makeIterator() }
+        } else if let sparse = vertices.sparse {
+            // The predecessor rows in the same numbering, built once with arrays.
+            let rows = sparse._numberedRows(outward: false, edges: false)
+            result = rows.offsets.withUnsafeBufferPointer { offsets in
+                rows.neighbors.withUnsafeBufferPointer { sources in
+                    _lengauerTarjan(count: vertices.count, root: x) { _RowCursor(row: $0, offsets: offsets, targets: sources) }
+                }
+            }
+        } else {
+            result = _lengauerTarjan(count: vertices.count, root: x) { u in
                 predecessors(of: vertices.vertices[u]).lazy.map { vertices.number(of: $0) }.makeIterator()
             }
+        }
         return DominatorTree(vertices: vertices, root: x, result)
     }
 }

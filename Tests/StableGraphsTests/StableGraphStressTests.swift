@@ -2,7 +2,8 @@
 // a debug build; the benchmarks take timings. Every expected value is known by construction: a
 // cycle on 10⁵ vertices with every other vertex removed, 10⁵ copies of one pair churned from the
 // front and the back, a star whose every other edge is removed by position, and a grid with
-// vertices removed and re-inserted. See README.md.
+// vertices removed and re-inserted, 10⁵ steps of vertex churn, and the bulk removals over 10⁵
+// edges. See README.md.
 
 import Connectivity
 import GraphProtocols
@@ -98,6 +99,42 @@ struct StableGraphStressTests {
             #expect(graph.vertices.firstIndex(of: 0) == side * side)
             #expect(graph.weaklyConnectedComponents().count >= removed.count)
             #expect(graph.edges.endIndex == edges.count && graph.edgeCount == alive.count)
+        }.value
+    }
+
+    @Test("10⁵ steps of vertex churn finish in linear time: each step a new vertex with an edge, the previous vertex removed", .timeLimit(.minutes(1)))
+    func vertexChurn() async {
+        await Task {
+            // Quadratic before the row pools bounded packing by the row table: 10⁴ steps took 33.6 s.
+            let n = 100_000
+            var graph = StableDirectedGraph<Int>()
+            for i in 0 ..< n {
+                #expect(graph.insert(edge: DirectedEdge(from: i, to: i + 1)) == i)
+                #expect(graph.remove(i) == i)
+            }
+            #expect(graph.vertexCount == 1 && graph.edgeCount == 0)
+            #expect(Array(graph.vertices) == [n] && graph.vertices.firstIndex(of: n) == n)
+            #expect(graph.vertices.endIndex == n + 1 && graph.edges.endIndex == n)
+            #expect(graph.insert(edge: DirectedEdge(from: n, to: n)) == n)
+            #expect(Array(graph.outEdges(of: n)) == [n] && Array(graph.inEdges(of: n)) == [n])
+        }.value
+    }
+
+    @Test("Bulk removals on a 10⁵-edge star: removeAllEdges(from:where:), removeAllEdges(where:), removeAllEdges(from:to:)", .timeLimit(.minutes(1)))
+    func bulkRemovalsOnAStar() async {
+        await Task {
+            let n = 100_000
+            var graph = StableDirectedGraph<Int>(edges: (1 ... n).map { DirectedEdge(from: 0, to: $0 % 10 + 1) })
+            #expect(graph.removeAllEdges(from: 0) { $0.isMultiple(of: 2) } == n / 2)
+            #expect(Array(graph.outEdges(of: 0)) == Array(stride(from: 1, to: n, by: 2)))
+            #expect(graph.removeAllEdges { $0 % 4 == 1 } == n / 4)
+            #expect(Array(graph.outEdges(of: 0)) == Array(stride(from: 3, to: n, by: 4)))
+            // Position p is 0 → (p + 1) % 10 + 1: the survivors to 5 are p ≡ 3 (mod 20), to 9 p ≡ 7 (mod 20).
+            let toFive = Array(stride(from: 3, to: n, by: 20))
+            #expect(Array(graph.edges(from: 0, to: 5)) == toFive)
+            #expect(graph.removeAllEdges(from: 0, to: 5) == n / 20)
+            #expect(graph.edgeCount == n / 4 - n / 20 && graph.inDegree(of: 5) == 0)
+            #expect(Array(graph.inEdges(of: 9)) == Array(stride(from: 7, to: n, by: 20)))
         }.value
     }
 }

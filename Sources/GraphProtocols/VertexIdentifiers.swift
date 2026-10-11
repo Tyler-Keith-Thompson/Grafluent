@@ -13,6 +13,8 @@ package struct _VertexIdentifiers<G: DirectedGraph> {
     /// Numbered: the successor rows by number (and the predecessor rows, once asked for).
     @usableFromInline package let rows: _NumberedRows?
     @usableFromInline package var predecessorRows: _NumberedRows?
+    /// Numbered: the graph as the refinement, cast once here rather than per lookup.
+    @usableFromInline package let sparse: (any SparselyIndexedDirectedGraph<G.Vertex>)?
 
     @inlinable
     package init(_ graph: G) {
@@ -23,9 +25,11 @@ package struct _VertexIdentifiers<G: DirectedGraph> {
         if !isIndexed, let sparse = graph._sparselyIndexed() {
             self.vertices = Array(graph.vertices)
             self.rows = sparse._numberedRows(outward: true, edges: true)
+            self.sparse = sparse
         } else {
             self.vertices = []
             self.rows = nil
+            self.sparse = nil
         }
     }
 
@@ -53,7 +57,7 @@ package struct _VertexIdentifiers<G: DirectedGraph> {
     /// The number of `vertex` in a numbered graph. - Precondition: `vertex` is a vertex.
     @inlinable
     package func _number(of vertex: G.Vertex, _ rows: _NumberedRows) -> Int {
-        guard let sparse = graph._sparselyIndexed(), graph.contains(vertex) else { preconditionFailure("\(vertex) is not a vertex of the graph") }
+        guard let sparse, graph.contains(vertex) else { preconditionFailure("\(vertex) is not a vertex of the graph") }
         return rows.numbers[sparse.vertexPosition(of: vertex)]
     }
 
@@ -84,14 +88,15 @@ package struct _VertexIdentifiers<G: DirectedGraph> {
     }
 }
 
-extension _VertexIdentifiers: Sendable where G: Sendable, G.Vertex: Sendable {}
+// `sparse` is `graph` itself, cast to the refinement: Sendable exactly when `G` is.
+extension _VertexIdentifiers: @unchecked Sendable where G: Sendable, G.Vertex: Sendable {}
 
 extension _VertexIdentifiers where G: BidirectionalDirectedGraph {
     /// Numbered: the predecessor rows, built on first use.
     @inlinable
     package mutating func numberedPredecessorRows() -> _NumberedRows {
         if let predecessorRows { return predecessorRows }
-        let built = graph._sparselyIndexed()!._numberedRows(outward: false, edges: true)
+        let built = sparse!._numberedRows(outward: false, edges: true)
         predecessorRows = built
         return built
     }

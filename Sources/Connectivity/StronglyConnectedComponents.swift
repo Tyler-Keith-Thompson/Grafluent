@@ -119,6 +119,14 @@ extension DirectedGraph {
     /// every edge between components goes from a later component to an earlier one, so
     /// `reversed()` lists the components with every edge going forward. Each component lists its
     /// vertices in `vertices` order.
+    ///
+    /// Each component's first vertex is its earliest in `vertices`, so on a graph whose vertex
+    /// positions are insertion order (`StableDirectedGraph`), one sort puts the components in
+    /// insertion order:
+    ///
+    /// ```swift
+    /// let inInsertionOrder = graph.stronglyConnectedComponents().sorted { graph.vertices.firstIndex(of: $0.first!)! < graph.vertices.firstIndex(of: $1.first!)! }
+    /// ```
     @inlinable
     public func stronglyConnectedComponents() -> Components<Self> {
         let vertices = _DenseVertices(self)

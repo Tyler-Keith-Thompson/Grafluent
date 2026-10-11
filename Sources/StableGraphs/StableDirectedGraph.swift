@@ -37,7 +37,13 @@ import GraphProtocols
 /// `ListDigraph`, unlink in O(1) but walked 3.6–5.4× slower in strong and weak components on a
 /// random graph, a cache miss per edge, so rows are arrays.) Memory grows with the total number
 /// of insertions, not the live count: a 32-byte record per edge position and one tombstoned slot
-/// per removed vertex stay until a reset. Iterating `vertices` or `edges` costs O(`endIndex`).
+/// per removed vertex stay until a reset, and a copy that is then mutated copies all of it.
+/// Iterating `vertices` or `edges` costs O(`endIndex`).
+///
+/// **Missing vertices.** The lookups trap on a vertex that is not in the graph, like an `Array`
+/// subscript; `successors(safe:)`, `outDegree(safe:)` and the other `safe:` spellings return `nil`
+/// instead, and `insert(safe:)` inserts only between existing vertices. `remove(_:)`,
+/// `remove(edge:)` and the `removeAllEdges` family return `nil` or 0 rather than trap.
 ///
 /// There is no map from vertex pairs to copies: `contains(edge:)`, `edges(from:to:)` and
 /// `remove(edge:)` scan the shorter of the two endpoints' rows, as petgraph's `find_edge` scans
@@ -309,6 +315,52 @@ extension StableDirectedGraph {
         return _outDegree(slot) + _inDegree(slot)
     }
 
+    // The `safe:` lookups (README Principle 6): `nil` for a vertex that is not in the graph,
+    // after the `array[safe: i]` idiom, where the trapping spellings above are the fast path. Each
+    // is one hash, the same as its trapping spelling.
+
+    /// `successors(of: vertex)`, or `nil` when `vertex` is not a vertex. O(1) to make.
+    @inlinable
+    public func successors(safe vertex: Vertex) -> Neighbors? {
+        guard let slot = _slots[vertex] else { return nil }
+        return Neighbors(vertices: _vertices, row: _LiveRow(ends: _out[row: slot], positions: _outEdges[row: slot], count: _outDegree(slot)))
+    }
+
+    /// `predecessors(of: vertex)`, or `nil` when `vertex` is not a vertex. O(1) to make.
+    @inlinable
+    public func predecessors(safe vertex: Vertex) -> Neighbors? {
+        guard let slot = _slots[vertex] else { return nil }
+        return Neighbors(vertices: _vertices, row: _LiveRow(ends: _in[row: slot], positions: _inEdges[row: slot], count: _inDegree(slot)))
+    }
+
+    /// `outEdges(of: vertex)`, or `nil` when `vertex` is not a vertex. O(1).
+    @inlinable
+    public func outEdges(safe vertex: Vertex) -> OutEdges? {
+        guard let slot = _slots[vertex] else { return nil }
+        return _outEdges(slot: slot)
+    }
+
+    /// `inEdges(of: vertex)`, or `nil` when `vertex` is not a vertex. O(1).
+    @inlinable
+    public func inEdges(safe vertex: Vertex) -> InEdges? {
+        guard let slot = _slots[vertex] else { return nil }
+        return _inEdges(slot: slot)
+    }
+
+    /// `outDegree(of: vertex)`, or `nil` when `vertex` is not a vertex. O(1).
+    @inlinable
+    public func outDegree(safe vertex: Vertex) -> Int? {
+        guard let slot = _slots[vertex] else { return nil }
+        return _outDegree(slot)
+    }
+
+    /// `inDegree(of: vertex)`, or `nil` when `vertex` is not a vertex. O(1).
+    @inlinable
+    public func inDegree(safe vertex: Vertex) -> Int? {
+        guard let slot = _slots[vertex] else { return nil }
+        return _inDegree(slot)
+    }
+
     /// The source of the edge at `position`. O(1).
     ///
     /// - Precondition: `position` is a live edge position: `edges.indices.contains(position)`.
@@ -415,6 +467,23 @@ extension StableDirectedGraph {
         return _insertEdge(slots: source, target)
     }
 
+    /// Adds a copy of `edge` at position `edges.endIndex` only when both endpoints are already
+    /// vertices; otherwise returns `nil` and changes nothing. O(1) amortized.
+    ///
+    /// `insert(edge:)` inserts a missing endpoint (NetworkX's `add_edge`). Requiring the endpoints
+    /// is JGraphT's `addEdge` precondition (it throws `IllegalArgumentException`) and petgraph's
+    /// `try_add_edge`; this library spells the failing case as `nil`, with the `safe:` label of the
+    /// lookups (README Principle 6), for callers whose vertices may come from another graph.
+    ///
+    /// - Returns: The new copy's position (the old `edges.endIndex`), or `nil` if either endpoint is
+    ///   not a vertex.
+    @inlinable
+    @discardableResult
+    public mutating func insert(safe edge: DirectedEdge<Vertex>) -> Int? {
+        guard let source = _slots[edge.source], let target = _slots[edge.target] else { return nil }
+        return _insertEdge(slots: source, target)
+    }
+
     /// Appends an edge from slot `source` to slot `target` at the tails of both lists.
     @inlinable
     @discardableResult
@@ -503,7 +572,8 @@ extension StableDirectedGraph {
 
     /// Removes the newest copy of `edge` (NetworkX's `remove_edge(u, v)`). Its position becomes a
     /// hole; nothing moves. Never inserts or removes a vertex.
-    /// O(`outDegree(of: edge.source)` + `inDegree(of: edge.target)`).
+    /// O(min(`outDegree(of: edge.source)`, `inDegree(of: edge.target)`)) to find it, by scanning
+    /// the shorter row, plus O(1) amortized to remove it.
     ///
     /// - Returns: The removed edge, whose endpoints are the graph's own vertex instances, or `nil`
     ///   if no copy of `edge` was an edge.
@@ -533,7 +603,8 @@ extension StableDirectedGraph {
     }
 
     /// Removes every copy from `source` to `target`. Copies from `target` to `source` stay, and so
-    /// do both vertices. O(copies × (`outDegree(of: source)` + `inDegree(of: target)`)).
+    /// do both vertices. One pass over the shorter of the two rows:
+    /// O(min(`outDegree(of: source)`, `inDegree(of: target)`)) plus O(1) amortized per copy.
     ///
     /// - Returns: How many copies were removed: 0, without trapping, when there were none or
     ///   either is not a vertex.
@@ -541,14 +612,127 @@ extension StableDirectedGraph {
     @discardableResult
     public mutating func removeAllEdges(from source: Vertex, to target: Vertex) -> Int {
         guard let s = _slots[source], let t = _slots[target] else { return 0 }
+        // Found before mutating, so removing nothing never copies shared storage.
+        guard _newestEdge(from: s, to: t) >= 0 else { return 0 }
+        if _outDegree(s) <= _inDegree(t) {
+            return _killAll(inRow: s, outward: true) { end, _ in end == t }
+        }
+        return _killAll(inRow: t, outward: false) { end, _ in end == s }
+    }
+
+    /// Removes every edge leaving `vertex` whose position `shouldBeRemoved` returns true for, in one
+    /// pass over its out-row, like `Array.removeAll(where:)`. The predicate is called once per
+    /// out-edge, with its position, in `outEdges(of:)` order, and must not mutate the graph. The
+    /// removed positions become holes; the other edges keep theirs, and the row keeps its order.
+    /// O(`outDegree(of: vertex)`) plus O(1) amortized per removed edge.
+    ///
+    /// If the predicate throws, the edges it already chose are removed, the rest are kept, and the
+    /// error is rethrown.
+    ///
+    /// - Returns: How many edges were removed: 0, without calling the predicate, when `vertex` is
+    ///   not a vertex.
+    @inlinable
+    @discardableResult
+    public mutating func removeAllEdges<E: Error>(from vertex: Vertex, where shouldBeRemoved: (_ position: Int) throws(E) -> Bool) throws(E) -> Int {
+        guard let slot = _slots[vertex], _outDegree(slot) > 0 else { return 0 }
+        return try _killAll(inRow: slot, outward: true) { (_, position) throws(E) -> Bool in try shouldBeRemoved(position) }
+    }
+
+    /// Removes every edge whose position `shouldBeRemoved` returns true for: petgraph's
+    /// `retain_edges` with the predicate inverted, after `Array.removeAll(where:)`. The predicate is
+    /// called once per edge, with its position, vertex by vertex in `vertices` order and each
+    /// vertex's out-edges in `outEdges(of:)` order, and must not mutate the graph. Each out-row is
+    /// compacted once. O(`vertices.endIndex` + `edgeCount`), plus O(1) amortized per removed edge.
+    ///
+    /// If the predicate throws, the edges it already chose are removed, the rest are kept, and the
+    /// error is rethrown.
+    ///
+    /// - Returns: How many edges were removed.
+    @inlinable
+    @discardableResult
+    public mutating func removeAllEdges<E: Error>(where shouldBeRemoved: (_ position: Int) throws(E) -> Bool) throws(E) -> Int {
         var removed = 0
-        var position = _newestEdge(from: s, to: t)
-        while position >= 0 {
-            _unlink(position)
-            removed += 1
-            position = _newestEdge(from: s, to: t)
+        var slot = _firstVertex
+        while slot < _outDead.count {
+            if _outDead[slot] >= 0, _outDegree(slot) > 0 {
+                removed &+= try _killAll(inRow: slot, outward: true) { (_, position) throws(E) -> Bool in try shouldBeRemoved(position) }
+            }
+            slot &+= 1
         }
         return removed
+    }
+
+    /// Removes, in one pass over the out-row (`outward`) or the in-row of `slot`, every live entry
+    /// that `shouldBeRemoved(far end's slot, position)` chooses: the walked row is compacted once,
+    /// its kept records' offsets updated, and each removed edge's entry in the far row killed and
+    /// its position made a hole. After a throw, the remaining entries are kept.
+    @inlinable
+    internal mutating func _killAll<E: Error>(
+        inRow slot: Int, outward: Bool, where shouldBeRemoved: (_ end: Int, _ position: Int) throws(E) -> Bool
+    ) throws(E) -> Int {
+        let (removed, lowest, failure): (Int, Int, E?)
+        if outward {
+            (removed, lowest, failure) = Self._killAll(
+                inRow: slot, &_out, &_outEdges, &_outDead, far: &_in, &_inEdges, &_inDead, &_records, outward: true, where: shouldBeRemoved)
+        } else {
+            (removed, lowest, failure) = Self._killAll(
+                inRow: slot, &_in, &_inEdges, &_inDead, far: &_out, &_outEdges, &_outDead, &_records, outward: false, where: shouldBeRemoved)
+        }
+        _edgeCount &-= removed
+        if lowest == _firstEdge {
+            var first = lowest + 1
+            while first < _records.count, _records[first].source < 0 { first += 1 }
+            _firstEdge = first
+        }
+        if let failure { throw failure }
+        return removed
+    }
+
+    /// `_killAll(inRow:outward:where:)` on explicit storage: the removed count, the lowest removed
+    /// position (or -1), and the predicate's error, if it threw.
+    @inlinable
+    internal static func _killAll<E: Error>(
+        inRow row: Int, _ ends: inout _RowPool, _ positions: inout _RowPool, _ dead: inout ContiguousArray<Int>,
+        far farEnds: inout _RowPool, _ farPositions: inout _RowPool, _ farDead: inout ContiguousArray<Int>,
+        _ records: inout ContiguousArray<_EdgeRecord>, outward: Bool,
+        where shouldBeRemoved: (_ end: Int, _ position: Int) throws(E) -> Bool
+    ) -> (removed: Int, lowest: Int, failure: E?) {
+        let count = ends.rows[row].count
+        var kept = 0
+        var removed = 0
+        var lowest = -1
+        var failure: E?
+        for k in 0 ..< count {
+            let end = ends[row: row, k]
+            if end < 0 { continue }
+            let position = positions[row: row, k]
+            var remove = false
+            if failure == nil {
+                do throws(E) { remove = try shouldBeRemoved(end, position) } catch { failure = error }
+            }
+            if remove {
+                let record = records[position]
+                if outward {
+                    _kill(record.in, inRow: end, &farEnds, &farPositions, &farDead, &records, outward: false)
+                } else {
+                    _kill(record.out, inRow: end, &farEnds, &farPositions, &farDead, &records, outward: true)
+                }
+                records[position] = .hole
+                if lowest < 0 || position < lowest { lowest = position }
+                removed &+= 1
+            } else {
+                if kept != k {
+                    ends[row: row, kept] = end
+                    positions[row: row, kept] = position
+                }
+                if outward { records[position].out = kept } else { records[position].in = kept }
+                kept &+= 1
+            }
+        }
+        ends.rows[row].count = kept
+        positions.rows[row].count = kept
+        dead[row] = 0
+        return (removed, lowest, failure)
     }
 
     /// Removes the live edge at `position` from both rows and leaves a hole.

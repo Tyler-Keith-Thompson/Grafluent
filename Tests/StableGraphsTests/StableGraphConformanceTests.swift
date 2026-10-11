@@ -46,6 +46,7 @@ struct StableGraphConformanceTests {
             #expect(Array(g.weaklyConnectedComponents().map { Array($0) }) == Array(compacted.weaklyConnectedComponents().map { Array($0) }))
             #expect(Array(g.stronglyConnectedComponents().map { Array($0) }) == Array(compacted.stronglyConnectedComponents().map { Array($0) }))
             #expect(Array(g.condensation().components.map { Array($0) }) == Array(compacted.condensation().components.map { Array($0) }))
+            #expect(Array(g.condensation().graph.edges) == Array(compacted.condensation().graph.edges))
             #expect(g.attractingComponents().map { Array($0) } == compacted.attractingComponents().map { Array($0) })
             #expect(g.isStronglyConnected == compacted.isStronglyConnected)
             #expect(g.topologicalSort() == compacted.topologicalSort())
@@ -65,6 +66,10 @@ struct StableGraphConformanceTests {
                     #expect(tree.distance(to: vertex) == copy.distance(to: vertex))
                     #expect(tree.parentEdge(of: vertex) == copy.parentEdge(of: vertex).map { positions[$0] })
                     #expect(hops.distance(to: vertex) == copyHops.distance(to: vertex))
+                    let path = g.bidirectionalShortestPath(from: source, to: vertex)
+                    let copyPath = compacted.bidirectionalShortestPath(from: source, to: vertex)
+                    #expect(path?.vertices == copyPath?.vertices)
+                    #expect(path?.edges == copyPath?.edges.map { positions[$0] })
                     #expect(dominators.immediateDominator(of: vertex) == copyDominators.immediateDominator(of: vertex))
                     #expect(dominators.dominators(of: vertex) == copyDominators.dominators(of: vertex))
                     if let p = tree.parentEdge(of: vertex) {
@@ -73,6 +78,27 @@ struct StableGraphConformanceTests {
                 }
             }
         }
+    }
+
+    @Test("A row whose oldest entries were removed starts at its oldest live position, forwards and backwards")
+    func rowStartsAfterRemovingTheOldest() {
+        var graph = StableDirectedGraph<Int>()
+        for target in [1, 2, 3] { graph.insert(edge: DirectedEdge(from: 0, to: target)) }
+        for source in [1, 2, 3] { graph.insert(edge: DirectedEdge(from: source, to: 4)) }
+        graph.remove(edgeAt: 0)
+        graph.remove(edgeAt: 3)
+        #expect(graph.outEdges(of: 0).startIndex == 1)
+        #expect(graph.outEdges(of: 0).first == 1)
+        #expect(graph.successors(of: 0).first == 2)
+        #expect(graph.inEdges(of: 4).startIndex == 4)
+        #expect(graph.inEdges(of: 4).first == 4)
+        #expect(graph.predecessors(of: 4).first == 2)
+        #expect(Array(graph.outEdges(of: 0).indices) == [1, 2])
+        #expect(graph.outEdges(of: 0).index(before: graph.outEdges(of: 0).endIndex) == 2)
+        graph.remove(edgeAt: 1)
+        graph.remove(edgeAt: 2)
+        #expect(graph.outEdges(of: 0).startIndex == graph.outEdges(of: 0).endIndex)
+        #expect(graph.outEdges(of: 0).first == nil)
     }
 
     @Test("A DAG with many holes sorts topologically, as its compacted copy does")

@@ -60,7 +60,7 @@ vertex's `firstIndex(of:)`, `vertices[p]`, rows (`successors`, `outEdges`, `pred
 other initializer that fits (the builder included) against the same state.
 
 The catalog-row files (every file but `StableGraphConformanceTests.swift`,
-`StableGraphPropertyTests.swift` and `StableGraphStressTests.swift`) were generated from `cases.md`
+`StableGraphPropertyTests.swift`, `StableGraphSparseConformerTests.swift` and `StableGraphStressTests.swift`) were generated from `cases.md`
 by `swiftgen.py`, next to `ref.py` and `cases.md` in
 [`Tests/Catalogs/StableGraphs/`](../Catalogs/StableGraphs/), which says how to run it. It first
 checks that `ref.py` reproduces `cases.md` byte for byte, then re-runs each row one call at a time
@@ -106,26 +106,27 @@ removal (a trap), and `degree(of:)` counting a self-loop once (41).
 | File | Tests | Covers |
 |---|---|---|
 | `StableGraphConstructionTests.swift` | 6 | SG-001 – SG-006: empty, listed vertices first (a repeat once), endpoints in first-appearance order, copies and loops kept, `String` vertices; every other initializer, the builder included |
-| `StableGraphInsertionTests.swift` | 4 | SG-007 – SG-010: `insert(_:)`, `insert(edge:)` returning `edges.endIndex` and inserting endpoints, a self-loop |
-| `StableGraphEdgeRemovalTests.swift` | 15 | SG-011 – SG-025: holes, no moves, positions never reused, the newest copy, absent pairs and non-vertices, `removeAllEdges(from:to:)`, row order across removals |
+| `StableGraphInsertionTests.swift` | 6 | SG-007 – SG-010, SG-103, SG-104: `insert(_:)`, `insert(edge:)` returning `edges.endIndex` and inserting endpoints, a self-loop; `insert(safe:)` with both endpoints, and with one missing (nil, nothing changed) |
+| `StableGraphEdgeRemovalTests.swift` | 21 | SG-011 – SG-025, SG-097 – SG-102: holes, no moves, positions never reused, the newest copy, absent pairs and non-vertices, `removeAllEdges(from:to:)` (one pass over the shorter row), row order across removals; `removeAllEdges(from:where:)` and `removeAllEdges(where:)`, each predicate call's position recorded and checked against row order |
 | `StableGraphVertexRemovalTests.swift` | 9 | SG-026 – SG-034: vertex and edge holes, loops and copies, re-insertion at a fresh position, every vertex removed |
 | `StableGraphSequenceTests.swift` | 6 | SG-035 – SG-040: mixed sequences, churn on one pair, a FlowNavigation replacement, both resets |
-| `StableGraphQueryTests.swift` | 9 | SG-041 – SG-049: rows and copies in insertion order, membership after removals, degrees, live-or-stale checks |
+| `StableGraphQueryTests.swift` | 12 | SG-041 – SG-049, SG-105 – SG-107: rows and copies in insertion order, membership after removals, degrees, live-or-stale checks; the `safe:` lookups on a vertex, a removed vertex and a non-vertex, `descendants(safe:)` and `ancestors(safe:)` |
 | `StableGraphIndexTests.swift` | 12 | SG-066 – SG-077 without SG-062: dense indices and holes, numbering, BFS, the compacting conversion, `init(_:)` both ways, the undirected view, components, Dijkstra by position and topological sort against the compacted copy |
 | `StableGraphEqualityTests.swift` | 4 | SG-078 – SG-081 |
-| `StableGraphCodableTests.swift` | 13 | SG-082 – SG-094: encoding, round trips keeping fresh positions, the empty and all-holes graphs, nine corrupt payloads |
+| `StableGraphCodableTests.swift` | 18 | SG-082 – SG-094, SG-108 – SG-112: encoding, round trips keeping fresh positions, the empty and all-holes graphs, nine corrupt payloads; ends with more holes than the bound (huge, and one past it) throw, ends at the bound decode |
 | `StableGraphDescriptionTests.swift` | 2 | SG-095, SG-096 |
 | `StableGraphPreconditionTests.swift` | 23 | Exit tests: SG-050 – SG-065, then `extra_traps.swift`: every neighbourhood and degree of a non-vertex or removed vertex; position lookups at holes, negative and past the end; positions from before a reset; dense index lookups; stepping past either end; a negative edge capacity; the sparse lookups |
 | `StableGraphConformanceTests.swift` | 13 | Algorithms (Traversal; Connectivity's components, condensation, attracting components and dominator trees; ShortestPaths) on eight seeded graphs with many holes and before any removal, against the compacted copy; a DAG with holes; the laws with holes; `SparselyIndexedDirectedGraph` through generic code; the collections skipping holes and as values; rows as random-access collections of positions indexed by offset; Codable through JSON and property lists; Hashable; Sendable; the builder and initializers; resets; copy-on-write; capacity |
 | `StableGraphPropertyTests.swift` | 4 | PropertyBased, shrinking: random sequences against the model; Codable round trips keeping the next fresh positions; equality and hashing ignoring positions and holes; algorithms on random graphs with holes against the compacted copy |
-| `StableGraphStressTests.swift` | 4 | Inside a `Task` with a one-minute limit: a 10⁵-vertex cycle with every other vertex removed and re-connected; 10⁵ copies of one pair churned from both ends; a 10⁵-edge star with every other edge removed by position; a 300 × 300 grid with vertices removed and re-inserted |
+| `StableGraphStressTests.swift` | 6 | Inside a `Task` with a one-minute limit: a 10⁵-vertex cycle with every other vertex removed and re-connected; 10⁵ copies of one pair churned from both ends; a 10⁵-edge star with every other edge removed by position; a 300 × 300 grid with vertices removed and re-inserted; 10⁵ steps of vertex churn (quadratic before the row pools bounded packing by the row table); the three bulk removals on a 10⁵-edge star |
+| `StableGraphSparseConformerTests.swift` | 2 | A test-local `SparselyIndexedDirectedGraph` outside the library, on the default `_numberedRows`: components, depth- and breadth-first search, descendants, ancestors, dominator and post-dominator trees against the wrapped graph and the compacted copy; post-dominators and `component(of:)` with one vertex hole against the hole-free graph |
 
-96 catalog rows (80 value rows, 16 trap rows), 7 more exit tests and 21 more tests (13
-conformance, 4 property, 4 stress): 124 tests in all.
+112 catalog rows (96 value rows, 16 trap rows), 7 more exit tests and 25 more tests (13
+conformance, 4 property, 6 stress, 2 sparse conformer): 144 tests in all.
 
 ## Case IDs
 
-Case IDs (SG-001 … SG-096) refer to the catalog (`cases.md`), whose values `ref.py` computes with a
+Case IDs (SG-001 … SG-112) refer to the catalog (`cases.md`), whose values `ref.py` computes with a
 port of the proposed storage, checks against a plain specification and the laws in every state, and,
 with `--stress`, checks against rustworkx 0.18.1 (petgraph's `StableGraph`) and NetworkX 3.7. Each
 test's name starts with its ID; tests without an ID check laws, properties or conformance that the
@@ -134,15 +135,15 @@ catalog does not list.
 | Cases | Section | File |
 |---|---|---|
 | SG-001 – SG-006 | Construction | `StableGraphConstructionTests.swift` |
-| SG-007 – SG-010 | Insertion | `StableGraphInsertionTests.swift` |
-| SG-011 – SG-025 | Edge removal | `StableGraphEdgeRemovalTests.swift` |
+| SG-007 – SG-010, SG-103, SG-104 | Insertion | `StableGraphInsertionTests.swift` |
+| SG-011 – SG-025, SG-097 – SG-102 | Edge removal | `StableGraphEdgeRemovalTests.swift` |
 | SG-026 – SG-034 | Vertex removal | `StableGraphVertexRemovalTests.swift` |
 | SG-035 – SG-040 | Interleaving | `StableGraphSequenceTests.swift` |
-| SG-041 – SG-049 | Queries | `StableGraphQueryTests.swift` |
+| SG-041 – SG-049, SG-105 – SG-107 | Queries | `StableGraphQueryTests.swift` |
 | SG-050 – SG-065 | Traps (SG-062 is listed under Conformance) | `StableGraphPreconditionTests.swift` |
 | SG-066 – SG-077 | Conformance | `StableGraphIndexTests.swift` |
 | SG-078 – SG-081 | Equality and hashing | `StableGraphEqualityTests.swift` |
-| SG-082 – SG-094 | Codable | `StableGraphCodableTests.swift` |
+| SG-082 – SG-094, SG-108 – SG-112 | Codable | `StableGraphCodableTests.swift` |
 | SG-095, SG-096 | Description | `StableGraphDescriptionTests.swift` |
 
 ## Readings of what api.md leaves open

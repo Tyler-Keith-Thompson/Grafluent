@@ -176,4 +176,61 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("StableGraphs: StableDirectedGraph churned 10×, weaklyConnectedComponents") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(churned.weaklyConnectedComponents()) }
     }
+
+    // Vertex churn: each step inserts a fresh vertex with an edge and removes the previous one,
+    // so the row table only grows. Linear in the steps (each row pool packs only once its garbage
+    // outweighs the row table); 10⁴ steps took 33.6 s before that bound, 10⁵ took longer than
+    // anyone waited.
+    for steps in [10_000, 100_000] {
+        Benchmark("StableGraphs: StableDirectedGraph vertex churn, \(steps) steps") { benchmark in
+            for _ in benchmark.scaledIterations {
+                var g = StableDirectedGraph<Int>()
+                for i in 0 ..< steps {
+                    g.insert(edge: DirectedEdge(from: i, to: i + 1))
+                    g.remove(i)
+                }
+                blackHole(g)
+            }
+        }
+    }
+
+    // Per-vertex lookups with one vertex hole, against the same graph without it: the numbered
+    // mode casts to SparselyIndexedDirectedGraph once per structure, not once per lookup.
+    var oneHole = stable
+    oneHole.insert(-1)
+    oneHole.remove(-1)
+    let denseComponents = stable.stronglyConnectedComponents()
+    let holedComponents = oneHole.stronglyConnectedComponents()
+    Benchmark("StableGraphs: BASELINE StableDirectedGraph component(of:) for every vertex, no holes") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var total = 0
+            for v in 0 ..< 100_000 { total &+= denseComponents.component(of: v) }
+            blackHole(total)
+        }
+    }
+    Benchmark("StableGraphs: StableDirectedGraph component(of:) for every vertex, one vertex hole") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var total = 0
+            for v in 0 ..< 100_000 { total &+= holedComponents.component(of: v) }
+            blackHole(total)
+        }
+    }
+    Benchmark("StableGraphs: BASELINE StableDirectedGraph postDominatorTree, no holes") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(stable.postDominatorTree(exit: 0)) }
+    }
+    Benchmark("StableGraphs: StableDirectedGraph postDominatorTree, one vertex hole") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(oneHole.postDominatorTree(exit: 0)) }
+    }
+
+    // FlowNavigation's bulk removals: one pass over the row (or over every row).
+    Benchmark("StableGraphs: StableDirectedGraph removeAllEdges(where:) for half the edges") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var g = stable
+            g.remove(edgeAt: 1)
+            benchmark.startMeasurement()
+            blackHole(g.removeAllEdges { $0.isMultiple(of: 2) })
+            benchmark.stopMeasurement()
+            blackHole(g)
+        }
+    }
 }

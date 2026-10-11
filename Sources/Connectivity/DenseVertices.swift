@@ -4,8 +4,9 @@ import GraphProtocols
 /// indices when it has them (which are in `vertices` order by the `DirectedGraph` laws), otherwise
 /// numbers assigned by one pass over `vertices`. A `SparselyIndexedDirectedGraph` with holes is
 /// numbered from its positions with arrays, and its successor rows are built once in that
-/// numbering, so nothing is hashed per vertex or per edge. Results keep it to answer per-vertex
-/// queries.
+/// numbering, so building it hashes nothing per vertex or per edge; a lookup by vertex
+/// (`number(of:)`) is one hash in the graph's own map plus a call through the refinement, cast
+/// once here. Results keep it to answer per-vertex queries.
 @frozen
 @usableFromInline
 package struct _DenseVertices<G: DirectedGraph> {
@@ -16,6 +17,8 @@ package struct _DenseVertices<G: DirectedGraph> {
     @usableFromInline let vertices: [G.Vertex]
     /// A sparsely indexed graph with holes: its successor rows by number.
     @usableFromInline package let rows: _NumberedRows?
+    /// A sparsely indexed graph with holes: the graph as the refinement, cast once.
+    @usableFromInline package let sparse: (any SparselyIndexedDirectedGraph<G.Vertex>)?
 
     @inlinable
     package init(_ graph: G) {
@@ -25,13 +28,16 @@ package struct _DenseVertices<G: DirectedGraph> {
             numbers = [:]
             vertices = []
             rows = nil
+            sparse = nil
         } else if let sparse = graph._sparselyIndexed() {
             isIndexed = false
             numbers = [:]
             vertices = Array(graph.vertices)
             rows = sparse._numberedRows(outward: true, edges: false)
+            self.sparse = sparse
         } else {
             rows = nil
+            sparse = nil
             isIndexed = false
             let vertices = Array(graph.vertices)
             var numbers: [G.Vertex: Int] = [:]
@@ -49,7 +55,7 @@ package struct _DenseVertices<G: DirectedGraph> {
     @inlinable
     package func number(of vertex: G.Vertex) -> Int {
         if isIndexed { return graph.vertexIndex(of: vertex) }
-        if let rows, let sparse = graph._sparselyIndexed() {
+        if let rows, let sparse {
             precondition(graph.contains(vertex), "\(vertex) is not a vertex of the graph")
             return rows.numbers[sparse.vertexPosition(of: vertex)]
         }
@@ -63,7 +69,8 @@ package struct _DenseVertices<G: DirectedGraph> {
     }
 }
 
-extension _DenseVertices: Sendable where G: Sendable, G.Vertex: Sendable {}
+// `sparse` is `graph` itself, cast to the refinement: Sendable exactly when `G` is.
+extension _DenseVertices: @unchecked Sendable where G: Sendable, G.Vertex: Sendable {}
 
 /// Groups the numbers `0..<labels.count` by label, each group in increasing number, which is
 /// `vertices` order: `order[offsets[c] ..< offsets[c + 1]]` are the members of group `c`. A

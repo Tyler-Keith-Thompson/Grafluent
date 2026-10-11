@@ -48,8 +48,48 @@ public protocol SparselyIndexedDirectedGraph<Vertex>: BidirectionalDirectedGraph
     /// predecessor rows in that numbering, with each entry's edge position when `edges` (otherwise
     /// `_NumberedRows.edges` is empty), in O(`vertexPositionBound` + `edgeCount`) with no hashing.
     ///
-    /// Not for use outside the library: index-space algorithms call it once per run.
+    /// Not for use outside the library: index-space algorithms call it once per run. A conformer
+    /// outside it gets a default built from the public members above.
     func _numberedRows(outward: Bool, edges: Bool) -> _NumberedRows
+}
+
+extension SparselyIndexedDirectedGraph {
+    /// The default: live vertices numbered by one pass over `0..<vertexPositionBound`, and each row
+    /// read through `outEdges(of:)` or `inEdges(of:)`, the far end numbered through
+    /// `vertexPosition(of:)`, so one hash per vertex and per edge. O(`vertexPositionBound` +
+    /// `edgeCount`).
+    @inlinable
+    public func _numberedRows(outward: Bool, edges withEdges: Bool) -> _NumberedRows {
+        let bound = vertexPositionBound
+        var numbers = [Int](repeating: -1, count: bound)
+        var n = 0
+        for position in 0 ..< bound where containsVertex(atPosition: position) {
+            numbers[position] = n
+            n += 1
+        }
+        var offsets = [0]
+        offsets.reserveCapacity(n + 1)
+        var neighbors: [Int] = []
+        neighbors.reserveCapacity(edgeCount)
+        var edges: [Int] = []
+        if withEdges { edges.reserveCapacity(edgeCount) }
+        for position in 0 ..< bound where numbers[position] >= 0 {
+            let vertex = vertex(atPosition: position)
+            if outward {
+                for edge in outEdges(of: vertex) {
+                    neighbors.append(numbers[vertexPosition(of: target(ofEdgeAt: edge))])
+                    if withEdges { edges.append(edge) }
+                }
+            } else {
+                for edge in inEdges(of: vertex) {
+                    neighbors.append(numbers[vertexPosition(of: source(ofEdgeAt: edge))])
+                    if withEdges { edges.append(edge) }
+                }
+            }
+            offsets.append(neighbors.count)
+        }
+        return _NumberedRows(numbers: numbers, offsets: offsets, neighbors: neighbors, edges: edges)
+    }
 }
 
 /// A graph's adjacency in a dense numbering of its live vertices: what

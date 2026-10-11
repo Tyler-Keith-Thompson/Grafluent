@@ -307,7 +307,9 @@ extension StableDirectedGraph {
     }
 
     /// The positions of the edges leaving one vertex, increasing (oldest first), read from the stored
-    /// row. `Index` is the position itself, `endIndex` is `Int.max`; `count` is O(1).
+    /// row. `Index` is the position itself, `endIndex` is `Int.max`; `count` is O(1). Iterating steps
+    /// in O(1); `index(after:)` and `index(before:)` find the position in the row by binary search,
+    /// O(log d).
     @frozen
     public struct OutEdges: BidirectionalCollection {
         @usableFromInline internal let _row: _LiveRow
@@ -340,11 +342,12 @@ extension StableDirectedGraph {
             return position
         }
 
-        /// The next position in the row, or `Int.max`. O(log d).
+        /// The next position in the row, or `Int.max`. O(log d): the index is the position, found in
+        /// the row by binary search. Iterating (`for`-`in`, `makeIterator()`) steps in O(1).
         @inlinable
         public func index(after i: Int) -> Int { _row.index(after: i) }
 
-        /// The previous position in the row. O(log d).
+        /// The previous position in the row. O(log d), by binary search.
         @inlinable
         public func index(before i: Int) -> Int { _row.index(before: i) }
 
@@ -353,7 +356,9 @@ extension StableDirectedGraph {
     }
 
     /// The positions of the edges entering one vertex, increasing (oldest first), read from the stored
-    /// row. `Index` is the position itself, `endIndex` is `Int.max`; `count` is O(1).
+    /// row. `Index` is the position itself, `endIndex` is `Int.max`; `count` is O(1). Iterating steps
+    /// in O(1); `index(after:)` and `index(before:)` find the position in the row by binary search,
+    /// O(log d).
     @frozen
     public struct InEdges: BidirectionalCollection {
         @usableFromInline internal let _row: _LiveRow
@@ -386,11 +391,12 @@ extension StableDirectedGraph {
             return position
         }
 
-        /// The next position in the row, or `Int.max`. O(log d).
+        /// The next position in the row, or `Int.max`. O(log d): the index is the position, found in
+        /// the row by binary search. Iterating (`for`-`in`, `makeIterator()`) steps in O(1).
         @inlinable
         public func index(after i: Int) -> Int { _row.index(after: i) }
 
-        /// The previous position in the row. O(log d).
+        /// The previous position in the row. O(log d), by binary search.
         @inlinable
         public func index(before i: Int) -> Int { _row.index(before: i) }
 
@@ -432,9 +438,12 @@ extension StableDirectedGraph {
             _vertices[_row.end(atPosition: position)].unsafelyUnwrapped
         }
 
+        /// The next position in the row, or `Int.max`. O(log d), by binary search; iterating steps
+        /// in O(1).
         @inlinable
         public func index(after i: Int) -> Int { _row.index(after: i) }
 
+        /// The previous position in the row. O(log d), by binary search.
         @inlinable
         public func index(before i: Int) -> Int { _row.index(before: i) }
 

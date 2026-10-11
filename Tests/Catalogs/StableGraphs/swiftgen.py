@@ -49,7 +49,8 @@ for line in TEXT.splitlines():
     if line.startswith("| SG-"):
         parts = [p.strip().replace("\\|", "|") for p in line.strip().strip("|").split(" | ")]
         CELLS[int(parts[0][3:])] = parts
-assert len(CELLS) == 96 and sorted(ROWS) == list(range(1, 97))
+N = len(CELLS)
+assert N == 112 and sorted(ROWS) == list(range(1, N + 1))
 
 
 def title(n): return CELLS[n][2]
@@ -96,7 +97,8 @@ def construct(V, E, t, var="graph", mutable=True):
     return "%s %s = StableDirectedGraph<%s>(vertices: %s, edges: %s)" % ("var" if mutable else "let", var, t, arr(V, t), edges_lit(E, t))
 
 
-MUTATING = {"insert", "edge", "remove", "removeEdge", "removeAt", "removeAllBetween", "removeAll", "removeAllEdges"}
+MUTATING = {"insert", "edge", "remove", "removeEdge", "removeAt", "removeAllBetween", "removeAll", "removeAllEdges",
+            "removeFromWhere", "removeWhere", "insertSafe"}
 
 # ---------------------------------------------------------------------------------------------
 # Running a row on the model, one call at a time
@@ -212,12 +214,42 @@ def call_text(op):
         "contains": lambda: "graph.contains(%s)" % lit(a[0]),
         "containsEdge": lambda: "graph.contains(edge: %s)" % edge(*a),
         "edgesFromTo": lambda: "Array(graph.edges(from: %s, to: %s))" % (lit(a[0]), lit(a[1])),
+        "insertSafe": lambda: "graph.insert(safe: %s)" % edge(*a),
+        "outDegreeSafe": lambda: "graph.outDegree(safe: %s)" % lit(a[0]),
+        "inDegreeSafe": lambda: "graph.inDegree(safe: %s)" % lit(a[0]),
+        "successorsSafe": lambda: "graph.successors(safe: %s)" % lit(a[0]),
+        "predecessorsSafe": lambda: "graph.predecessors(safe: %s)" % lit(a[0]),
+        "outEdgesSafe": lambda: "graph.outEdges(safe: %s)" % lit(a[0]),
+        "inEdgesSafe": lambda: "graph.inEdges(safe: %s)" % lit(a[0]),
+        "descendantsSafe": lambda: "graph.descendants(safe: %s)" % lit(a[0]),
+        "ancestorsSafe": lambda: "graph.ancestors(safe: %s)" % lit(a[0]),
     }[k]()
+
+
+def predicate_body(chosen):
+    """The Swift predicate of a removeAllEdges(…where:) row, recording the positions it is called with."""
+    return "{ visited.append($0); return %s }" % ("%s.contains($0)" % arr(chosen, "Int") if chosen else "false")
 
 
 def call_lines(port, spec, op, t, ind="        "):
     k = op[0]
+    if k in ("removeFromWhere", "removeWhere"):
+        # The predicate sees each candidate position once, in row order (rows in vertices order).
+        visit = port.visit_order(op[1] if k == "removeFromWhere" else None)
+        r = step(port, spec, op)
+        call = ("graph.removeAllEdges(from: %s, where: %s)" % (lit(op[1]), predicate_body(op[2])) if k == "removeFromWhere"
+                else "graph.removeAllEdges(where: %s)" % predicate_body(op[1]))
+        return r, [ind + "do {", ind + "    var visited: [Int] = []", ind + "    let removed = " + call,
+                   ind + "    #expect(removed == %d)" % r, ind + "    #expect(visited == %s)" % arr(visit, "Int"), ind + "}"]
     r = step(port, spec, op)
+    if k in ("insertSafe", "outDegreeSafe", "inDegreeSafe"):
+        return r, [ind + "#expect(%s == %s)" % (call_text(op), opt(r))]
+    if k in ("successorsSafe", "predecessorsSafe", "outEdgesSafe", "inEdgesSafe"):
+        if r is None:
+            return r, [ind + "#expect(%s == nil)" % call_text(op)]
+        return r, [ind + "#expect(%s.map { Array($0) } == %s)" % (call_text(op), arr(r, "Int" if k in ("outEdgesSafe", "inEdgesSafe") else t))]
+    if k in ("descendantsSafe", "ancestorsSafe"):
+        return r, [ind + "#expect(%s == %s)" % (call_text(op), "nil" if r is None else "Set(%s)" % arr(r, t))]
     if k == "insert":
         return r, [ind + "do {", ind + "    let result = graph.insert(%s)" % lit(op[1]),
                    ind + "    #expect(%sresult.inserted)" % ("" if r[0] else "!"),
@@ -546,7 +578,7 @@ def codable_tests():
     lines, catalog, h = encode_test(85, *hv)
     assert catalog + " ⇒ " + ref.show_state(h) == cell(85)
     out[85] = lines
-    for n in range(86, 95):
+    for n in [n for n in range(86, N + 1) if CELLS[n][1] == "Codable" and cell(n).startswith("dataCorrupted(")]:
         payload = inp(n)
         err = str(ref.decode(json.loads(payload)))
         assert err == cell(n)
@@ -564,6 +596,17 @@ def codable_tests():
             "            Issue.record(\"unexpected error \\(error)\")",
             "        }",
             "    }"]
+    # The largest ends the bound allows decode, holes and all.
+    n = 112
+    payload = inp(n)
+    h = ref.decode(json.loads(payload))
+    assert ref.show_state(h) == cell(n)
+    out[n] = header(n, [".conformance"]) + [
+        "    func sg%03d() throws {" % n, "        // %s → %s" % (payload, cell(n)),
+        "        var decoded = try JSONDecoder().decode(StableDirectedGraph<Int>.self, from: Data(%s.utf8))" % swift_string(payload)]
+    out[n] += state_lines(h, "Int", var="decoded")
+    out[n] += ["        #expect(decoded.insert(edge: DirectedEdge(from: -1, to: -1)) == %d)" % h.edge_end(),
+               "        #expect(decoded.vertices.firstIndex(of: -1) == %d)" % h.vertex_end(), "    }"]
     return out
 
 
@@ -618,7 +661,7 @@ def is_trap(n):
     return cell(n).endswith("**trap**")
 
 
-TRAPS = [n for n in range(1, 97) if is_trap(n)]
+TRAPS = [n for n in range(1, N + 1) if is_trap(n)]
 CODABLE = codable_tests()
 DESCRIPTIONS = description_tests()
 
@@ -641,7 +684,7 @@ def test_for(n):
 
 
 def ids(group):
-    return [n for n in range(1, 97) if CELLS[n][1] == group and n not in TRAPS]
+    return [n for n in range(1, N + 1) if CELLS[n][1] == group and n not in TRAPS]
 
 
 FILES = [
@@ -649,12 +692,14 @@ FILES = [
      "Construction (catalog SG-001 – SG-006): listed vertices first (a repeat once), then endpoints in\n"
      "// first-appearance order; copies and self-loops kept; every initializer gives the same state."),
     ("StableGraphInsertionTests.swift", "StableGraphs insertion", ids("Insertion"),
-     "Insertion (catalog SG-007 – SG-010): `insert(edge:)` returns the old `edges.endIndex` and inserts\n"
-     "// missing endpoints; a self-loop is once in its out-row and once in its in-row."),
+     "Insertion (catalog SG-007 – SG-010, SG-103, SG-104): `insert(edge:)` returns the old `edges.endIndex`\n"
+     "// and inserts missing endpoints; a self-loop is once in its out-row and once in its in-row;\n"
+     "// `insert(safe:)` inserts only between existing vertices and otherwise returns nil, changing nothing."),
     ("StableGraphEdgeRemovalTests.swift", "StableGraphs edge removal", ids("Edge removal"),
-     "Edge removal (catalog SG-011 – SG-025): a removed edge leaves a hole, nothing moves, a removed\n"
-     "// position never returns, `remove(edge:)` takes the newest copy, rows keep insertion order, and\n"
-     "// `edgeIndexBound` is nil while an edge hole exists."),
+     "Edge removal (catalog SG-011 – SG-025, SG-097 – SG-102): a removed edge leaves a hole, nothing\n"
+     "// moves, a removed position never returns, `remove(edge:)` takes the newest copy, rows keep\n"
+     "// insertion order, and `edgeIndexBound` is nil while an edge hole exists; the one-pass bulk\n"
+     "// removals call their predicate once per candidate position, in row order."),
     ("StableGraphVertexRemovalTests.swift", "StableGraphs vertex removal", ids("Vertex removal"),
      "Vertex removal (catalog SG-026 – SG-034): the vertex's slot and its edges become holes; a\n"
      "// re-inserted vertex gets a fresh position and goes last; the neighbours' rows keep their order."),
@@ -662,9 +707,9 @@ FILES = [
      "Interleaved sequences (catalog SG-035 – SG-040): mixed insertions and removals, churn on one pair,\n"
      "// a FlowNavigation-shaped replacement, and the two resets, `removeAllEdges()` and `removeAll()`."),
     ("StableGraphQueryTests.swift", "StableGraphs queries", ids("Queries"),
-     "Queries (catalog SG-041 – SG-049): rows and `edges(from:to:)` in insertion order across holes,\n"
-     "// membership after removals, and the O(1) live-or-stale checks `edges.indices.contains` and\n"
-     "// `vertices.indices.contains`."),
+     "Queries (catalog SG-041 – SG-049, SG-105 – SG-107): rows and `edges(from:to:)` in insertion order\n"
+     "// across holes, membership after removals, the O(1) live-or-stale checks `edges.indices.contains`\n"
+     "// and `vertices.indices.contains`, and the `safe:` lookups, nil for a vertex not in the graph."),
     ("StableGraphIndexTests.swift", "StableGraphs indices, views and conversions", [n for n in ids("Conformance")],
      "Indices, views and conversions (catalog SG-066 – SG-077 without SG-062): dense indices exactly while\n"
      "// there are no holes, vertex and edge holes independent; algorithms on a graph with holes (BFS,\n"
@@ -674,10 +719,11 @@ FILES = [
      "Equality and hashing (catalog SG-078 – SG-081): equal vertex sets and equal edge multisets;\n"
      "// positions and holes do not matter."),
     ("StableGraphCodableTests.swift", "StableGraphs Codable", ids("Codable"),
-     "Codable (catalog SG-082 – SG-094): `{vertices, vertexPositions, vertexEnd, edges, edgePositions,\n"
+     "Codable (catalog SG-082 – SG-094, SG-108 – SG-112): `{vertices, vertexPositions, vertexEnd, edges, edgePositions,\n"
      "// edgeEnd}`. Encoding is checked byte for byte (with sorted keys); decoding keeps every position\n"
      "// and both ends, so the next insertions get the positions they would have got before encoding.\n"
-     "// Corrupt payloads throw `DecodingError.dataCorrupted` with the catalog's key and message."),
+     "// Corrupt payloads, ends with more holes than the bound included, throw\n"
+     "// `DecodingError.dataCorrupted` with the catalog's key and message."),
     ("StableGraphDescriptionTests.swift", "StableGraphs descriptions", ids("Description"),
      "Descriptions (catalog SG-095, SG-096): the live vertices and edges, holes skipped."),
     ("StableGraphPreconditionTests.swift", "StableGraphs preconditions", TRAPS,
@@ -705,7 +751,7 @@ def write(fname, suite, rows, comment):
     imports = ["GraphProtocols", "StableGraphs", "Testing"]
     for module, needle in IMPORTS.items():
         if needle in text_body or (module == "Connectivity" and "stronglyConnectedComponents(" in text_body) \
-                or (module == "Traversal" and "topologicalSort(" in text_body):
+                or (module == "Traversal" and ("topologicalSort(" in text_body or "descendants(safe:" in text_body)):
             imports.append(module)
     if ".tags(" in text_body or fname == "StableGraphPreconditionTests.swift":
         imports.append("GrafluentTestSupport")
@@ -727,5 +773,5 @@ for fname, suite, rows, comment in FILES:
     print(fname, k)
     total += k
     rows_total += len(rows)
-assert rows_total == 96, rows_total
+assert rows_total == N, rows_total
 print("catalog rows", rows_total, "tests", total)
