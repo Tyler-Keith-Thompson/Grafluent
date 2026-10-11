@@ -489,6 +489,11 @@ struct SemiringPreconditionTests {
             let graph = DirectedPseudograph(vertices: 0 ..< 2, edges: [DirectedEdge(from: 0, to: 1)])
             _ = graph.floydWarshallShortestPaths { _ in BooleanSemiring(true) }!.distance(fromIndex: -1, toIndex: 0)
         }
+        await #expect(processExitsWith: .failure) {
+            // A target index of -1 from row 1 would land in row 0 of the flat matrix.
+            let graph = DirectedPseudograph(vertices: 0 ..< 2, edges: [DirectedEdge(from: 0, to: 1)])
+            _ = graph.floydWarshallShortestPaths { _ in BooleanSemiring(true) }!.distance(fromIndex: 1, toIndex: -1)
+        }
         // Without the fault: the last index answers.
         let graph = DirectedPseudograph(vertices: 0 ..< 2, edges: [DirectedEdge(from: 0, to: 1)])
         #expect(graph.dijkstraShortestPaths(from: 0) { _ in BottleneckSemiring(4) }.distance(toIndex: 1)?.value == 4)
@@ -523,7 +528,7 @@ struct SemiringPreconditionTests {
         #expect(graph.dijkstraShortestPaths(from: 0) { _ in TropicalSemiring(1) }.path(to: 1)?.vertices == [0, 1])
     }
 
-    @Test("A NaN weight traps in every semiring engine, tropical and bottleneck, and so does a NaN cutoff")
+    @Test("A NaN weight traps in every semiring engine, tropical and bottleneck, and so does a NaN cutoff, directed or undirected")
     func nanWeights() async throws {
         await #expect(processExitsWith: .failure) {
             let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
@@ -537,6 +542,11 @@ struct SemiringPreconditionTests {
         }
         await #expect(processExitsWith: .failure) {
             let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+            _ = graph.dijkstraShortestPaths(from: 0, cutoff: TropicalSemiring(Double.nan)) { _ in TropicalSemiring(1.0) }
+        }
+        await #expect(processExitsWith: .failure) {
+            // The undirected native search checks the cutoff itself.
+            let graph = Pseudograph(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
             _ = graph.dijkstraShortestPaths(from: 0, cutoff: TropicalSemiring(Double.nan)) { _ in TropicalSemiring(1.0) }
         }
         await #expect(processExitsWith: .failure) {

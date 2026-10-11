@@ -1,9 +1,15 @@
 // The sentinels the catalog leaves out: the unsigned scalars (the bottleneck zero is 0, and
 // UInt.max is the tropical zero and absorbs) and the signed tropical −∞ (Int.min), which absorbs
-// every finite value but not the zero. Hand-written; they pin planted bugs the catalog rows
-// missed (scripts/mutants/Semirings.py).
+// every finite value but not the zero, on its own and as an edge weight in Bellman–Ford, where a
+// cycle behind −∞ stops relaxing; and the tropical zero as an edge weight in DAG paths, an edge
+// that carries no path. Hand-written; they pin planted bugs the catalog rows missed
+// (scripts/mutants/Semirings.py).
 
+import DirectedAcyclicGraphModule
+import GraphProtocols
+import Multigraphs
 import Semirings
+import ShortestPaths
 import Testing
 
 @Suite("Semirings: the unsigned and −∞ sentinels")
@@ -54,5 +60,62 @@ struct SemiringSentinelTests {
         let product = minus ⊗ zero
         #expect(product.value == Int.max)
         #expect(TropicalSemiring<Int16>(Int16.max).times(TropicalSemiring(Int16.min)).value == Int16.max)
+    }
+
+    @Test("Bellman–Ford: a chain of −∞ edges, with a zero-weight edge back, is no cycle")
+    func negativeInfinityChain() throws {
+        // 0 → 1 → 2 at −∞, and 2 → 1 at the tropical zero, which carries no path.
+        let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 1)])
+        let w = [Int.min, Int.min, Int.max]
+        let tree = try #require(graph.bellmanFordShortestPaths(from: 0) { TropicalSemiring(w[$0]) })
+        #expect((0 ..< 3).map { tree.distance(to: $0)?.value } == [0, Int.min, Int.min])
+        #expect(tree.path(to: 2)?.vertices == [0, 1, 2])
+        // Without the zero edge, the same.
+        let chain = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+        #expect(chain.bellmanFordShortestPaths(from: 0) { _ in TropicalSemiring(Int.min) }?.distance(to: 2)?.value == Int.min)
+    }
+
+    @Test("Bellman–Ford: a cycle through a −∞ edge, closed two edges later, is nil")
+    func negativeInfinityLongCycle() {
+        // 0 → 1 at −∞, then 1 → 2 at −∞, 2 → 3 and 3 → 1 at 0: the cycle 1 → 2 → 3 → 1 is −∞.
+        let graph = DirectedPseudograph(vertices: 0 ..< 4, edges: [
+            DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 3), DirectedEdge(from: 3, to: 1),
+        ])
+        let w = [Int.min, Int.min, 0, 0]
+        #expect(graph.bellmanFordShortestPaths(from: 0) { TropicalSemiring(w[$0]) } == nil)
+        #expect(graph.bellmanFordShortestPaths(from: 0) { TropicalSemiring(w[$0] == Int.min ? -Double.infinity : 0.0) } == nil)
+        // A −∞ edge only into the cycle, whose own edges add to 1: a tree.
+        let outside = [Int.min, 1, 0, 0]
+        #expect(graph.bellmanFordShortestPaths(from: 0) { TropicalSemiring(outside[$0]) }?.distance(to: 3)?.value == Int.min)
+    }
+
+    @Test("Bellman–Ford: a finite negative cycle behind a −∞ edge is nil")
+    func finiteCycleBehindNegativeInfinity() {
+        // 0 → 1 → 2 at −∞; 2 ⇄ 3 at -1 each, a negative cycle every vertex of which is at −∞.
+        let graph = DirectedPseudograph(vertices: 0 ..< 4, edges: [
+            DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 3), DirectedEdge(from: 3, to: 2),
+        ])
+        let w = [Int.min, Int.min, -1, -1]
+        #expect(graph.bellmanFordShortestPaths(from: 0) { TropicalSemiring(w[$0]) } == nil)
+        #expect(graph.bellmanFordShortestPaths(from: 0) { w[$0] == Int.min ? -1000 : w[$0] } == nil)
+        // At +1 each, a tree.
+        let positive = [Int.min, Int.min, 1, 1]
+        #expect(graph.bellmanFordShortestPaths(from: 0) { TropicalSemiring(positive[$0]) }?.distance(to: 3)?.value == Int.min)
+    }
+
+    @Test("DAG paths: an edge at the tropical zero reaches nothing")
+    func zeroWeightEdgeInDAGPaths() throws {
+        let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+        let w = [3, Int.max]
+        let tree = try #require(graph.dagShortestPaths(from: 0) { TropicalSemiring(w[$0]) })
+        #expect((0 ..< 3).map { tree.distance(to: $0)?.value } == [0, 3, nil])
+        #expect(!tree.hasPath(to: 2) && tree.path(to: 2) == nil && tree.parentEdge(of: 2) == nil)
+        let dag = try #require(DirectedAcyclicGraph(graph))
+        let ordered = dag.dagShortestPaths(from: 0) { TropicalSemiring(w[$0]) }
+        #expect((0 ..< 3).map { ordered.distance(to: $0)?.value } == [0, 3, nil])
+        #expect(!ordered.hasPath(to: 2) && ordered.parentEdge(of: 2) == nil)
+        // Over Double, +∞ is the zero.
+        let real = dag.dagShortestPaths(from: 0) { w[$0] == Int.max ? TropicalSemiring(Double.infinity) : TropicalSemiring(3.0) }
+        #expect(!real.hasPath(to: 2))
     }
 }

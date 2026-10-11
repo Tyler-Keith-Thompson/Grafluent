@@ -118,11 +118,12 @@ parenthesize them.
   reflexive. Dijkstra and Bellman–Ford reach the same vertices, and every matrix path uses only true
   edges.
 
-**Undirected overloads** (`SemiringUndirectedTests.swift`, hand-written, 6 tests): the `Graph`
+**Undirected overloads** (`SemiringUndirectedTests.swift`, hand-written, 8 tests): the `Graph`
 overloads of Dijkstra (one source, several, a cutoff, the single-target search), Bellman–Ford and
 Floyd–Warshall against the same call on `.directed` and against the numeric overloads, on a
 `Pseudograph` (native search) and an `UndirectedAdjacencyList<String>` (through the view); `nil`
-exactly when an edge better than one is reachable; and the same traps as the directed calls.
+exactly when an edge better than one is reachable (an edge at one is not); tree edges oriented the
+way they are taken, against the stored edge's order too; and the same traps as the directed calls.
 
 **Review additions** (`SemiringReviewTests.swift`, hand-written, 6 tests): Floyd–Warshall over
 `Double` and `Float` reads `.infinity` (or a path rounding to it) as no edge, as in scipy, while
@@ -131,10 +132,13 @@ an integer or generic `W` keeps every weight as an edge, also on undirected grap
 (`.max()` is the narrowest); and −∞ ⊗ +∞ over `Double` is NaN (the carrier is ℝ ∪ {+∞}). The
 NaN-weight exit tests for every engine are in `extra_traps.swift`.
 
-**Sentinels** (`SemiringSentinelTests.swift`, hand-written, 4 tests): what the catalog leaves out.
+**Sentinels** (`SemiringSentinelTests.swift`, hand-written, 8 tests): what the catalog leaves out.
 The unsigned bottleneck zero is 0, and `UInt.max` is the unsigned tropical zero and absorbs.
 `Int.min` is the tropical −∞ and absorbs every finite value, and the zero absorbs before it
-(`Int.max ⊗ Int.min` is the zero).
+(`Int.max ⊗ Int.min` is the zero). Bellman–Ford with −∞ edges: a −∞ chain with a zero-weight
+edge back is a tree; a cycle through a −∞ edge closed two edges later is `nil`; so is a finite
+negative cycle whose vertices are already at −∞. DAG paths: an edge at the tropical zero reaches
+nothing.
 
 ## Planted bugs
 

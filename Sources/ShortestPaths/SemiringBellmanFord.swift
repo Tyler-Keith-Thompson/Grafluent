@@ -35,7 +35,6 @@ struct _SemiringBellmanFord<G: DirectedGraph, W: SelectiveSemiring>: _IndexSpace
             parent[s] = -1
             distance[s] = .one
             active.append(s)
-            queuedIn[s] = 0
         }
         var next: [Int] = []
         var round = 0
@@ -81,7 +80,7 @@ struct _SemiringBellmanFord<G: DirectedGraph, W: SelectiveSemiring>: _IndexSpace
         var members: [Int] = []
         for v in 0 ..< n {
             let d = distance[v]
-            if d < .one && (d as! any _SaturatingSemiring)._isSaturated {
+            if (d as! any _SaturatingSemiring)._isSaturated {
                 local[v] = members.count
                 members.append(v)
             }
@@ -103,7 +102,7 @@ struct _SemiringBellmanFord<G: DirectedGraph, W: SelectiveSemiring>: _IndexSpace
                 guard w != .zero else { continue }
                 targets.append(target)
                 weights.append(w)
-                absorbing.append(w < .one && (w as! any _SaturatingSemiring)._isSaturated)
+                absorbing.append((w as! any _SaturatingSemiring)._isSaturated)
             }
             offsets.append(targets.count)
         }

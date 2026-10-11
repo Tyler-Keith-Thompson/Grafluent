@@ -165,4 +165,33 @@ struct SemiringUndirectedTests {
         #expect(graph.dijkstraShortestPath(from: 0, to: 2) { _ in BottleneckSemiring(1) }?.distance.value == 1)
         #expect(graph.bellmanFordShortestPaths(from: [0]) { _ in TropicalSemiring(1) }?.distance(to: 2)?.value == 2)
     }
+
+    @Test("Tree edges are oriented the way they are taken, also against the stored edge's order")
+    func orientation() throws {
+        // Stored as (0, 1) and (1, 2); searched from 2, so both are taken backwards.
+        let graph = Pseudograph(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
+        let directed = graph.directed
+        let tree = graph.dijkstraShortestPaths(from: 2) { _ in TropicalSemiring(1) }
+        let path = try #require(tree.path(to: 0))
+        #expect(path.vertices == [2, 1, 0])
+        for (k, e) in path.edges.enumerated() {
+            #expect(directed.source(ofEdgeAt: e) == path.vertices[k] && directed.target(ofEdgeAt: e) == path.vertices[k + 1])
+        }
+        let edge = try #require(tree.parentEdge(of: 0))
+        #expect(directed.source(ofEdgeAt: edge) == 1 && directed.target(ofEdgeAt: edge) == 0)
+        let route = try #require(graph.dijkstraShortestPath(from: 2, to: 0) { _ in BottleneckSemiring(4) })
+        #expect(route.path.edges.map { directed.source(ofEdgeAt: $0) } == [2, 1])
+    }
+
+    @Test("Bellman–Ford: an edge exactly at one is not better than one")
+    func edgeAtOne() throws {
+        let graph = Pseudograph(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
+        let w = [0, 4]
+        let tree = try #require(graph.bellmanFordShortestPaths(from: 0) { TropicalSemiring(w[$0]) })
+        #expect((0 ..< 3).map { tree.distance(to: $0)?.value } == [0, 0, 4])
+        let widest = try #require(graph.bellmanFordShortestPaths(from: 0) { _ in BottleneckSemiring(Int.max) })
+        #expect(widest.distance(to: 2)?.value == Int.max)
+        // Just below one, nil.
+        #expect(graph.bellmanFordShortestPaths(from: 0) { _ in TropicalSemiring(-1) } == nil)
+    }
 }

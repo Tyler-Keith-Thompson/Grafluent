@@ -21,9 +21,6 @@ extension Graph {
         let t = target.map { view._index(of: $0, ids) } ?? -1
         var result = _SemiringDijkstra<DirectedView<Self>, S>(sources: indices, target: t, cutoff: cutoff, placeholder: view.edges.endIndex)
             .run(count: ids.count, { _undirectedArcs($0) }, { weight($0.position) })
-        if target != nil && !result.reachedTarget {
-            result.parent = result.parent.map { $0 == -1 ? -1 : -2 }
-        }
         _orientParentEdges(result.parent, &result.parentEdge)
         return ShortestPathTree(ids: ids, distance: result.distance, parent: result.parent, parentEdge: result.parentEdge, sources: listed)
     }
