@@ -1,8 +1,10 @@
 // Stress. Long chains on each base: built forward (the fast path), closed by a rejected edge whose
-// witness runs the whole chain, and taken apart from the front (each removal shifts the whole order).
+// witness runs the whole chain, and taken apart from the front (each removal trims the order's front).
 // An adversarial insert order that forces a reordering of the whole prefix on every insert: reversing
 // a chain one edge at a time. A random DAG with a hidden order, its edges inserted in random order
-// (Pearce and Kelly's model), checked against the hidden order's reachability. See README.md.
+// (Pearce and Kelly's model), checked against the hidden order's reachability. Churn on each base:
+// new sources placed first, new targets last, reorderings and removals anywhere, with every place,
+// subscript and index checked against the order after each round. See README.md.
 
 import AdjacencyListModule
 import DirectedAcyclicGraphModule
@@ -160,5 +162,53 @@ struct DirectedAcyclicGraphStressTests {
         for v in 0 ..< n where v.isMultiple(of: 10) { _ = graph.remove(v) }
         #expect(Array(graph.topologicalOrder) == before.filter { !$0.isMultiple(of: 10) })
         #expect(graph.edges.allSatisfy { graph.topologicalPosition(of: $0.source) < graph.topologicalPosition(of: $0.target) })
+    }
+
+    @Test("Churn: new sources first, new targets last, reorderings and removals; every place agrees with the order", arguments: [1, 2, 3])
+    func churn(seed: Int) {
+        func run<Base: MutableDirectedGraph<Int>>(_ graph: inout DirectedAcyclicGraph<Base>, _ rng: inout SeededRandomNumberGenerator, _ context: String) {
+            var next = 0
+            var live: [Int] = []
+            for round in 0 ..< 40 {
+                for _ in 0 ..< 150 {
+                    let roll = Int.random(in: 0 ..< 10, using: &rng)
+                    if roll < 3 || live.count < 2 {
+                        // A new source to an old vertex (placed first), or a new target (last).
+                        let old = live.isEmpty ? nil : live.randomElement(using: &rng)
+                        let new = next
+                        next += 1
+                        if let old {
+                            let edge = roll.isMultiple(of: 2) ? DirectedEdge(from: new, to: old) : DirectedEdge(from: old, to: new)
+                            #expect(graph.insert(edge: edge) != nil, "\(context)")
+                            if edge.source == new { #expect(graph.topologicalPosition(of: new) == 0, "\(context)") }
+                            else { #expect(graph.topologicalPosition(of: new) == graph.vertexCount - 1, "\(context)") }
+                        } else {
+                            graph.insert(new)
+                        }
+                        live.append(new)
+                    } else if roll < 7 {
+                        let u = live.randomElement(using: &rng)!, v = live.randomElement(using: &rng)!
+                        let closes = u == v || graph.base.hasPath(from: v, to: u)
+                        #expect((graph.insert(edge: DirectedEdge(from: u, to: v)) == nil) == closes, "\(context)")
+                    } else {
+                        let k = Int.random(in: 0 ..< live.count, using: &rng)
+                        #expect(graph.remove(live[k]) == live[k], "\(context)")
+                        live.swapAt(k, live.count - 1)
+                        live.removeLast()
+                    }
+                }
+                let order = Array(graph.topologicalOrder)
+                #expect(order.count == live.count && Set(order) == Set(live), "round \(round) \(context)")
+                #expect(order.indices.allSatisfy { graph.topologicalPosition(of: order[$0]) == $0 && graph.topologicalOrder[$0] == order[$0] && graph.topologicalOrder.firstIndex(of: order[$0]) == $0 }, "round \(round) \(context)")
+                #expect(graph.edges.allSatisfy { graph.topologicalPosition(of: $0.source) < graph.topologicalPosition(of: $0.target) }, "round \(round) \(context)")
+            }
+        }
+        var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+        var list = DirectedAcyclicGraph<AdjacencyList<Int>>()
+        run(&list, &rng, "AdjacencyList")
+        var pseudograph = DirectedAcyclicGraph<DirectedPseudograph<Int>>()
+        run(&pseudograph, &rng, "DirectedPseudograph")
+        var stable = DirectedAcyclicGraph<StableDirectedGraph<Int>>()
+        run(&stable, &rng, "StableDirectedGraph")
     }
 }

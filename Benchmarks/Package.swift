@@ -193,6 +193,7 @@ let package = Package(
                 .product(name: "StableGraphs", package: "Grafluent"),
                 .product(name: "Connectivity", package: "Grafluent"),
                 .product(name: "Traversal", package: "Grafluent"),
+                .product(name: "ShortestPaths", package: "Grafluent"),
             ],
             path: "Benchmarks/DirectedAcyclicGraphBenchmarks",
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]

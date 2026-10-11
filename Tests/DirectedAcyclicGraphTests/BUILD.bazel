@@ -20,6 +20,7 @@ swift_library(
         "//Sources/StableGraphs",
         "//Sources/Traversal",
         "//Sources/Connectivity",
+        "//Sources/ShortestPaths",
         "//Sources/Walks",
         "//Tests/GrafluentTestSupport",
         "@swiftpkg_swift_property_based//:PropertyBased",

@@ -16,7 +16,7 @@ extension DirectedAcyclicGraph {
         if start == goal { return true }
         let lower = _table.label(start), upper = _table.label(goal)
         if lower > upper { return false }
-        // One bit per label between the two; labels span at most 2n + 1024.
+        // One bit per label between the two: labels are slots, which compaction keeps O(n).
         var seen = [UInt64](repeating: 0, count: (upper &- lower) &>> 6 &+ 1)
         var stack = [start]
         while let key = stack.popLast() {
@@ -41,7 +41,7 @@ extension DirectedAcyclicGraph {
     /// `p`. Computed in reverse order, each row the union of its successors' rows and bits.
     /// O(n · m / 64) time and n² / 8 bytes.
     @inlinable
-    internal func _reachability(_ places: _KeyTable) -> (rows: [UInt64], words: Int) {
+    internal func _reachability(_ places: _Places) -> (rows: [UInt64], words: Int) {
         let n = _order.count
         let words = (n &+ 63) &>> 6
         var rows = [UInt64](repeating: 0, count: n &* words)
@@ -49,8 +49,8 @@ extension DirectedAcyclicGraph {
             var p = n &- 1
             while p >= 0 {
                 let row = p &* words
-                for next in _base._successorKeys(ofKey: _order[p]) {
-                    let q = places.label(next)
+                for next in _base._successorKeys(ofKey: places.key(atPlace: p)) {
+                    let q = places.place(ofKey: next)
                     rows[row &+ q &>> 6] |= UInt64(1) &<< UInt64(q & 63)
                     // Successors are placed later, so a row only ever reads rows after it.
                     let other = q &* words
@@ -73,15 +73,15 @@ extension DirectedAcyclicGraph {
     /// O(n · m / 64 + n + output) time and n² / 8 bytes of scratch.
     @inlinable
     public func transitiveClosure() -> Self {
-        let places = _placeTable()
+        let places = _places()
         let (rows, words) = _reachability(places)
         var closure = self
         let n = _order.count
         var have = [UInt64](repeating: 0, count: words)
         for p in 0 ..< n {
-            let key = _order[p]
+            let key = places.key(atPlace: p)
             for next in _base._successorKeys(ofKey: key) {
-                let q = places.label(next)
+                let q = places.place(ofKey: next)
                 have[q &>> 6] |= UInt64(1) &<< UInt64(q & 63)
             }
             let row = p &* words
@@ -89,7 +89,7 @@ extension DirectedAcyclicGraph {
                 var missing = rows[row &+ w] & ~have[w]
                 while missing != 0 {
                     let q = w &<< 6 | missing.trailingZeroBitCount
-                    _ = closure._base._insertEdge(fromKey: key, toKey: _order[q])
+                    _ = closure._base._insertEdge(fromKey: key, toKey: places.key(atPlace: q))
                     missing &= missing &- 1
                 }
                 have[w] = 0
@@ -105,7 +105,7 @@ extension DirectedAcyclicGraph {
     /// order. O(n · m / 64 + n + m) time and n² / 8 bytes of scratch.
     @inlinable
     public func transitiveReduction() -> Self {
-        let places = _placeTable()
+        let places = _places()
         let reachability = _reachability(places)
         var rows = reachability.rows
         let words = reachability.words
@@ -116,8 +116,8 @@ extension DirectedAcyclicGraph {
         var far = [UInt64](repeating: 0, count: words)
         rows.withUnsafeMutableBufferPointer { rows in
             for p in 0 ..< n {
-                for next in _base._successorKeys(ofKey: _order[p]) {
-                    let other = places.label(next) &* words
+                for next in _base._successorKeys(ofKey: places.key(atPlace: p)) {
+                    let other = places.place(ofKey: next) &* words
                     for w in 0 ..< words { far[w] |= rows[other &+ w] }
                 }
                 let row = p &* words
@@ -135,22 +135,23 @@ extension DirectedAcyclicGraph {
             keys.insert(key, label: reduced._insertVertex(_base._vertex(atKey: key)))
         }
         for position in _base.edges.indices {
-            let s = places.label(_base._sourceKey(ofEdgeAt: position))
+            let s = places.place(ofKey: _base._sourceKey(ofEdgeAt: position))
             let target = _base._targetKey(ofEdgeAt: position)
-            let t = places.label(target)
+            let t = places.place(ofKey: target)
             let at = s &* words &+ t &>> 6, mask = UInt64(1) &<< UInt64(t & 63)
             // Marking the kept edge's bit drops its later copies.
             if rows[at] & mask != 0 { continue }
             rows[at] |= mask
-            _ = reduced._insertEdge(fromKey: keys.label(_order[s]), toKey: keys.label(target))
+            _ = reduced._insertEdge(fromKey: keys.label(places.key(atPlace: s)), toKey: keys.label(target))
         }
         var order = ContiguousArray<Int>()
         order.reserveCapacity(n)
         var table = _KeyTable()
-        for (place, key) in _order.enumerated() {
-            let new = keys.label(key)
+        for key in reduced.vertices.indices { table.insert(key, label: 0) }
+        for place in 0 ..< n {
+            let new = keys.label(places.key(atPlace: place))
             order.append(new)
-            table.insert(new, label: place)
+            table.setLabel(new, place)
         }
         return Self(_base: reduced, order: order, table: table)
     }
@@ -162,34 +163,60 @@ extension DirectedAcyclicGraph {
     /// its first vertex in the order. O(n + m).
     @inlinable
     public func longestPath() -> Path<Vertex, Edges.Index>? {
+        _longestPath { _ in 1 }
+    }
+
+    /// A path of greatest total weight (NetworkX's `dag_longest_path(G, weight=…, topo_order=…)`
+    /// given this order, rustworkx's `dag_weighted_longest_path`), weights read by edge position
+    /// as in ShortestPaths. Walking the order, each vertex takes the predecessor edge, first in
+    /// `inEdges` order among equals, that maximizes its distance plus the edge's weight, and
+    /// starts afresh at distance zero when that maximum is negative (or it has no in-edge), as
+    /// NetworkX does; the path ends at the first vertex in the order with the greatest distance,
+    /// and its weight is that distance. So with negative weights the path may be a single vertex;
+    /// a zero-weight edge extends a path. `nil` only for the empty graph. O(n + m).
+    ///
+    /// - Precondition: no distance is NaN; every sum fits in `W`.
+    @inlinable
+    public func longestPath<W: Comparable & AdditiveArithmetic>(weight: (Edges.Index) -> W) -> Path<Vertex, Edges.Index>? {
+        _longestPath(weight)
+    }
+
+    @inlinable
+    internal func _longestPath<W: Comparable & AdditiveArithmetic>(_ weight: (Edges.Index) -> W) -> Path<Vertex, Edges.Index>? {
         let n = _order.count
         guard n > 0 else { return nil }
-        var distance = [Int](repeating: 0, count: n)
+        var distance = [W](repeating: .zero, count: n)
         var parent = [Int](repeating: -1, count: n)
         var parentEdge = [Edges.Index?](repeating: nil, count: n)
-        let places = _placeTable()
+        let places = _places()
         var best = 0
         for p in 0 ..< n {
-            let key = _order[p]
-            var d = 0
+            let key = places.key(atPlace: p)
+            var d = W.zero
+            var from = -1
+            var through: Edges.Index?
             for (previous, edge) in zip(_base._predecessorKeys(ofKey: key), _base._inEdges(ofKey: key)) {
-                let q = places.label(previous)
-                if distance[q] &+ 1 > d {
-                    d = distance[q] &+ 1
-                    parent[p] = q
-                    parentEdge[p] = edge
+                let q = places.place(ofKey: previous)
+                let candidate = distance[q] + weight(edge)
+                precondition(candidate == candidate, "A path's weight is NaN")
+                if from < 0 || candidate > d {
+                    d = candidate
+                    from = q
+                    through = edge
                 }
             }
-            distance[p] = d
-            if d > distance[best] { best = p }
+            if from >= 0, d >= .zero {
+                distance[p] = d
+                parent[p] = from
+                parentEdge[p] = through
+            }
+            if distance[p] > distance[best] { best = p }
         }
         var vertices: [Vertex] = []
         var edges: [Edges.Index] = []
-        vertices.reserveCapacity(distance[best] &+ 1)
-        edges.reserveCapacity(distance[best])
         var p = best
         while true {
-            vertices.append(_base._vertex(atKey: _order[p]))
+            vertices.append(_base._vertex(atKey: places.key(atPlace: p)))
             guard let edge = parentEdge[p] else { break }
             edges.append(edge)
             p = parent[p]

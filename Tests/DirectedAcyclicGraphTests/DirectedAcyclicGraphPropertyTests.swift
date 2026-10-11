@@ -4,7 +4,8 @@
 // when it is a self-loop or v reaches u in the model; a rejected insert returns nil and changes nothing
 // (equality, order, edges and positions all as before), and its witness, Traversal's
 // `bidirectionalShortestPath(from: v, to: u)`, is a genuine path of the graph as short as the model's
-// distance. An accepted backward edge moves B then F into their pooled places, where F is v and its
+// distance. A new source to an existing target is placed first, any other new endpoint last. An
+// accepted backward edge moves B then F into their pooled places, where F is v and its
 // descendants placed before u and B is u and its ancestors placed after v; nothing placed outside the
 // endpoints' range moves. After every step the order must equal the model's, every edge must go
 // forward, and the graph must be acyclic. Then random bulk builds against Kahn's algorithm, and Codable
@@ -108,6 +109,12 @@ struct DirectedAcyclicGraphPropertyTests {
                             Issue.record("no witness: \(context)")
                         }
                     } else {
+                        // A new source to an existing target is placed first; any other new
+                        // endpoint last, source first.
+                        if !vertices.contains(x) && vertices.contains(y) {
+                            vertices.insert(x)
+                            order.insert(x, at: 0)
+                        }
                         for w in [x, y] where vertices.insert(w).inserted { order.append(w) }
                         if let position = result {
                             #expect(graph.source(ofEdgeAt: position) == x && graph.target(ofEdgeAt: position) == y, "\(context)")
@@ -247,6 +254,12 @@ struct DirectedAcyclicGraphPropertyTests {
                             Issue.record("no witness: \(context)")
                         }
                     } else {
+                        // A new source to an existing target is placed first; any other new
+                        // endpoint last, source first.
+                        if !vertices.contains(x) && vertices.contains(y) {
+                            vertices.insert(x)
+                            order.insert(x, at: 0)
+                        }
                         for w in [x, y] where vertices.insert(w).inserted { order.append(w) }
                         if let position = result {
                             #expect(graph.source(ofEdgeAt: position) == x && graph.target(ofEdgeAt: position) == y, "\(context)")
@@ -389,6 +402,12 @@ struct DirectedAcyclicGraphPropertyTests {
                             Issue.record("no witness: \(context)")
                         }
                     } else {
+                        // A new source to an existing target is placed first; any other new
+                        // endpoint last, source first.
+                        if !vertices.contains(x) && vertices.contains(y) {
+                            vertices.insert(x)
+                            order.insert(x, at: 0)
+                        }
                         for w in [x, y] where vertices.insert(w).inserted { order.append(w) }
                         if let position = result {
                             #expect(graph.source(ofEdgeAt: position) == x && graph.target(ofEdgeAt: position) == y, "\(context)")

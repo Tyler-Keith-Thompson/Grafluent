@@ -33,7 +33,10 @@ extension DirectedAcyclicGraph: Encodable where Base: Encodable {
         try container.encode(_base, forKey: .base)
         var offsets = _KeyTable()
         for (offset, key) in _base.vertices.indices.enumerated() { offsets.insert(key, label: offset) }
-        try container.encode(_order.map { offsets.label($0) }, forKey: .order)
+        var order: [Int] = []
+        order.reserveCapacity(_order.count)
+        for key in _order.slots[_order.first...] where key >= 0 { order.append(offsets.label(key)) }
+        try container.encode(order, forKey: .order)
     }
 }
 
@@ -52,17 +55,17 @@ extension DirectedAcyclicGraph: Decodable where Base: Decodable {
         guard offsets.count == keys.count else {
             throw DecodingError.dataCorruptedError(forKey: .order, in: container, debugDescription: "The order is not a permutation of the vertices")
         }
+        // Keys inserted in increasing order, so the table spans only the live keys' pages.
         var table = _KeyTable()
-        var placed = [Bool](repeating: false, count: keys.count)
+        for key in keys { table.insert(key, label: -1) }
         var order = ContiguousArray<Int>()
         order.reserveCapacity(keys.count)
         for (place, offset) in offsets.enumerated() {
-            guard offset >= 0, offset < keys.count, !placed[offset] else {
+            guard offset >= 0, offset < keys.count, table.label(keys[offset]) < 0 else {
                 throw DecodingError.dataCorruptedError(forKey: .order, in: container, debugDescription: "The order is not a permutation of the vertices")
             }
-            placed[offset] = true
             order.append(keys[offset])
-            table.insert(keys[offset], label: place)
+            table.setLabel(keys[offset], place)
         }
         for position in base.edges.indices where table.label(base._sourceKey(ofEdgeAt: position)) >= table.label(base._targetKey(ofEdgeAt: position)) {
             throw DecodingError.dataCorruptedError(forKey: .order, in: container, debugDescription: "An edge goes backward in the order")

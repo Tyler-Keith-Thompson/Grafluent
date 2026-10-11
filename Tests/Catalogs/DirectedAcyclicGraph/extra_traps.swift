@@ -69,9 +69,65 @@
             _ = graph.remove(2)
             _ = graph.topologicalOrder[2]
         }
+        await #expect(processExitsWith: .failure) {
+            // A hole in the middle: the last place is count - 1, though a slot lies past it.
+            var graph = DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [0, 1, 2, 3])
+            _ = graph.remove(1)
+            _ = graph.topologicalOrder[3]
+        }
+        await #expect(processExitsWith: .failure) {
+            // A source placed first: free slots lie before place 0.
+            var graph = DirectedAcyclicGraph<AdjacencyList<Int>>(vertices: [0])
+            _ = graph.insert(edge: DirectedEdge(from: 5, to: 0))
+            _ = graph.topologicalOrder[-1]
+        }
         // Without the calls: the last place answers.
         let graph = DirectedAcyclicGraph<StableDirectedGraph<Int>>(vertices: [0, 1])
         #expect(graph.topologicalOrder[1] == 1 && graph.topologicalOrder[0] == 0)
+        var holed = DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [0, 1, 2, 3])
+        _ = holed.remove(1)
+        #expect(holed.topologicalOrder[2] == 3 && holed.topologicalOrder.count == 3)
+        var prepended = DirectedAcyclicGraph<AdjacencyList<Int>>(vertices: [0])
+        _ = prepended.insert(edge: DirectedEdge(from: 5, to: 0))
+        #expect(prepended.topologicalOrder[0] == 5 && prepended.topologicalOrder[1] == 0)
+    }
+
+    @Test("Maps through the wrapper trap as the base's do: a value for a non-vertex or a vacated position, a detached map")
+    func mapPreconditions() async throws {
+        await #expect(processExitsWith: .failure) {
+            var graph = DirectedAcyclicGraph<StableDirectedGraph<Int>>(vertices: [0, 1])
+            let map = graph.addVertexMap(of: Int.self)
+            graph[map, of: 9] = 1
+        }
+        await #expect(processExitsWith: .failure) {
+            var graph = DirectedAcyclicGraph<StableDirectedGraph<Int>>(edges: [DirectedEdge(from: 0, to: 1)])!
+            let map = graph.addEdgeMap(of: Int.self)
+            _ = graph.remove(edgeAt: 0)
+            graph[map, ofEdgeAt: 0] = 1
+        }
+        await #expect(processExitsWith: .failure) {
+            var graph = DirectedAcyclicGraph<StableDirectedGraph<Int>>(vertices: [0, 1])
+            let map = graph.addVertexMap(of: Int.self)
+            graph.removeVertexMap(map)
+            _ = graph[map, ofVertexAt: 0]
+        }
+        // Without the calls: removing the value of a non-vertex is allowed, and reading it is nil.
+        var graph = DirectedAcyclicGraph<StableDirectedGraph<Int>>(vertices: [0, 1])
+        let map = graph.addVertexMap(of: Int.self)
+        graph[map, of: 9] = nil
+        graph[map, of: 1] = 4
+        #expect(graph[map, of: 9] == nil && graph[map, ofVertexAt: 1] == 4)
+    }
+
+    @Test("longestPath(weight:) traps on a NaN distance")
+    func longestPathNaN() async throws {
+        await #expect(processExitsWith: .failure) {
+            let graph = DirectedAcyclicGraph<AdjacencyList<Int>>(edges: [DirectedEdge(from: 0, to: 1)])!
+            _ = graph.longestPath(weight: { _ in Double.nan })
+        }
+        // Without the NaN: infinities are ordinary values.
+        let graph = DirectedAcyclicGraph<AdjacencyList<Int>>(edges: [DirectedEdge(from: 0, to: 1)])!
+        #expect(graph.longestPath(weight: { _ in Double.infinity })?.edges == [0])
     }
 
     @Test("remove(edgeAt:) traps below 0, past the end, and at a position a removal vacated")

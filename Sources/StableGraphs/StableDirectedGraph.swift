@@ -621,6 +621,12 @@ extension StableDirectedGraph {
     @discardableResult
     public mutating func remove(_ vertex: Vertex) -> Vertex? {
         guard let slot = _slots.removeValue(forKey: vertex) else { return nil }
+        return _removeSlot(slot)
+    }
+
+    /// Removes the vertex at position `slot`, already dropped from `_slots`, and returns it.
+    @inlinable
+    internal mutating func _removeSlot(_ slot: Int) -> Vertex {
         let k = _vk(slot), l = slot & _PositionPage.mask
         let removed = _vertexPages[k].vertices[l].unsafelyUnwrapped
         // Each edge leaves the far end's row and becomes a hole; the vertex's own rows are

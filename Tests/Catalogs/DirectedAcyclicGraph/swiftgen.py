@@ -222,6 +222,29 @@ def call_lines(g, kind, t, op, k, ind="        "):
             return shown, ex("graph.longestPath() == nil")
         return shown, [ind + "let longest%d = try #require(graph.longestPath())" % k,
                        ind + "#expect(longest%d.vertices == %s && longest%d.edges == %s)" % (k, arr(r[1], t), k, arr(r[2], "Int"))]
+    if name == "longestW":
+        w = arr(a[0], "Int")
+        if r is None:
+            return shown, ex("graph.longestPath(weight: { (%s)[$0] }) == nil" % w)
+        return shown, [ind + "let longest%d = try #require(graph.longestPath(weight: { %s[$0] }))" % (k, w),
+                       ind + "#expect(longest%d.vertices == %s && longest%d.edges == %s)" % (k, arr(r[1], t), k, arr(r[2], "Int"))]
+    if name == "dagSP":
+        src, weights = a
+        w = arr(weights, "Int")
+        rows = r[1]
+        st = {g.b.key(v): x for v, x in rows if x is not None}
+        lines = [ind + "let weights%d = %s" % (k, w),
+                 ind + "let tree%d = graph.dagShortestPaths(from: %s, weight: { weights%d[$0] })" % (k, lit(src), k),
+                 ind + "// The same distances from any DirectedGraph, by a topological sort of the reachable part.",
+                 ind + "let sorted%d = try #require(graph.base.dagShortestPaths(from: %s, weight: { weights%d[$0] }))" % (k, lit(src), k)]
+        for v, x in rows:
+            if x is None:
+                lines += ex("tree%d.distance(to: %s) == nil && tree%d.path(to: %s) == nil && sorted%d.distance(to: %s) == nil" % (k, lit(v), k, lit(v), k, lit(v)))
+            else:
+                ps = ref.tree_path(g, st, g.b.key(v))
+                lines += ex("tree%d.distance(to: %s) == %d && tree%d.path(to: %s)?.edges == %s && sorted%d.distance(to: %s) == %d" % (
+                    k, lit(v), x[0], k, lit(v), arr(ps, "Int"), k, lit(v), x[0]))
+        return shown, lines
     if name == "equals":
         kb, Vb, Eb = a
         other = "other%d" % k
@@ -379,50 +402,86 @@ def trap_test(n):
 
 def codable_test(n):
     text, exp = RAW[n]
-    m = re.match(r"DirectedPseudograph; decode \{base: V \[(.*?)\]; E \[(.*?)\], order: \[(.*?)\]\}$", text)
-    V = [int(x) for x in m.group(1).split(", ") if x]
-    E = [tuple(int(y) for y in x.split("→")) for x in m.group(2).split(", ") if x]
-    order = [int(x) for x in m.group(3).split(", ") if x]
-    r = ref.decode("DP", V, E, order)
+    kind = {v: k for k, v in BASE.items()}[text.split(";")[0]]
+    T = "DirectedAcyclicGraph<%s<Int>>" % BASE[kind]
     lines = header(n, [".conformance"])
+    if 'decode {"base"' in text:
+        return lines + hostile_test(n, text, exp, T)
     lines.append("    func dag%03d() throws {" % n)
     lines.append("        // %s → %s" % (text, exp))
-    lines.append("        let base = String(decoding: try JSONEncoder().encode(DirectedPseudograph<Int>(vertices: %s, edges: %s)), as: UTF8.self)" % (
-        arr(V, "Int"), dedges(E, "Int")))
+    m = re.match(r"\w+; decode \{base: V \[(.*?)\]; E \[(.*?)\]((?: / remove\(\d+\))*), order: \[(.*?)\]\}$", text)
+    V = [int(x) for x in m.group(1).split(", ") if x]
+    E = [tuple(int(y) for y in x.split("→")) for x in m.group(2).split(", ") if x]
+    removed = [int(x) for x in re.findall(r"remove\((\d+)\)", m.group(3))]
+    order = [int(x) for x in m.group(4).split(", ") if x]
+    r = ref.decode(kind, V, E, order, removed)
+    built = "%s<Int>(vertices: %s, edges: %s)" % (BASE[kind], arr(V, "Int"), dedges(E, "Int"))
+    if removed:
+        lines.append("        var baseGraph = " + built)
+        lines += ["        _ = baseGraph.remove(%d)" % x for x in removed]
+        lines.append("        let base = String(decoding: try JSONEncoder().encode(baseGraph), as: UTF8.self)")
+    else:
+        lines.append("        let base = String(decoding: try JSONEncoder().encode(%s), as: UTF8.self)" % built)
     lines.append('        let payload = Data(#"{"base": \\#(base), "order": %s}"#.utf8)' % arr(order, "Int").replace(" as [Int]", ""))
     if isinstance(r, str):
         assert r == exp
         lines += ["        do {",
-                  "            let decoded = try JSONDecoder().decode(DirectedAcyclicGraph<DirectedPseudograph<Int>>.self, from: payload)",
+                  "            let decoded = try JSONDecoder().decode(%s.self, from: payload)" % T,
                   "            Issue.record(\"decoded \\(decoded)\")",
                   "        } catch DecodingError.dataCorrupted {",
                   "        } catch {",
                   "            Issue.record(\"unexpected error \\(error)\")",
-                  "        }",
-                  "        // The same base with a valid order decodes.",
-                  "        let valid = Data(#\"{\"base\": \\#(base), \"order\": %s}\"#.utf8)" % arr(list(range(len(V))), "Int").replace(" as [Int]", "")]
-        if ref.DAG.build("DP", V, E) is None:
+                  "        }"]
+        g = ref.DAG.build(kind, V, E)
+        if g is None:
             lines += ["        // The base itself has a cycle, so no order decodes.",
-                      "        #expect(throws: DecodingError.self) { try JSONDecoder().decode(DirectedAcyclicGraph<DirectedPseudograph<Int>>.self, from: valid) }",
+                      "        let valid = Data(#\"{\"base\": \\#(base), \"order\": %s}\"#.utf8)" % arr(list(range(len(V))), "Int").replace(" as [Int]", ""),
+                      "        #expect(throws: DecodingError.self) { try JSONDecoder().decode(%s.self, from: valid) }" % T,
                       "    }"]
             return lines
-        g = ref.DAG.build("DP", V, E)
-        place = {k: i for i, k in enumerate(g.order)}
+        for x in removed:
+            g.remove_vertex(x)
         offsets = [g.b.keys().index(k) for k in g.order]
-        lines[-1] = "        let valid = Data(#\"{\"base\": \\#(base), \"order\": %s}\"#.utf8)" % ("[" + ", ".join(map(str, offsets)) + "]")
-        lines.append("        let graph = try JSONDecoder().decode(DirectedAcyclicGraph<DirectedPseudograph<Int>>.self, from: valid)")
+        lines.append("        // The same base with a valid order decodes.")
+        lines.append("        let valid = Data(#\"{\"base\": \\#(base), \"order\": %s}\"#.utf8)" % ("[" + ", ".join(map(str, offsets)) + "]"))
+        lines.append("        let graph = try JSONDecoder().decode(%s.self, from: valid)" % T)
         lines += state(g, "Int")
-        del place
         lines.append("    }")
         return lines
     assert ref.show_state(r) == exp
-    lines.append("        let graph = try JSONDecoder().decode(DirectedAcyclicGraph<DirectedPseudograph<Int>>.self, from: payload)")
+    lines.append("        let graph = try JSONDecoder().decode(%s.self, from: payload)" % T)
     lines += state(r, "Int")
     lines.append("        // Encoding and decoding again keeps the order.")
-    lines.append("        let again = try JSONDecoder().decode(DirectedAcyclicGraph<DirectedPseudograph<Int>>.self, from: try JSONEncoder().encode(graph))")
+    lines.append("        let again = try JSONDecoder().decode(%s.self, from: try JSONEncoder().encode(graph))" % T)
     lines += state(r, "Int", var="again", short=True)
     lines.append("        #expect(again == graph)")
     lines.append("    }")
+    return lines
+
+
+def hostile_test(n, text, exp, T):
+    """A payload whose one vertex sits at a far position: the key table must start at its page."""
+    payload = text.split("decode ", 1)[1]
+    g = ref.decode_stable([7], [ref.HOSTILE], ref.HOSTILE + 1, [0])
+    assert ref.show_state(g) == exp
+    lines = ["    func dag%03d() throws {" % n,
+             "        // %s → %s" % (text, exp),
+             "        // Before the key table started at the first live page, this allocated a table entry for",
+             "        // every page below the position: 2⁴⁰ words.",
+             '        let payload = Data(#"%s"#.utf8)' % payload,
+             "        var graph = try JSONDecoder().decode(%s.self, from: payload)" % T]
+    lines += state(g, "Int")
+    lines += ["        let again = try JSONDecoder().decode(%s.self, from: try JSONEncoder().encode(graph))" % T,
+              "        #expect(again == graph && Array(again.topologicalOrder) == [7])",
+              "        // Inserting next to it, before it, and removing it all work from that one page.",
+              "        #expect(graph.insert(edge: DirectedEdge(from: 7, to: 8)) == 0)",
+              "        #expect(graph.insert(edge: DirectedEdge(from: 9, to: 7)) == 1)",
+              "        #expect(Array(graph.topologicalOrder) == [9, 7, 8])",
+              "        #expect(graph.base.vertexPosition(of: 9) == %d)" % (ref.HOSTILE + 2),
+              "        #expect(graph.topologicalPosition(of: 8) == 2 && graph.insert(edge: DirectedEdge(from: 8, to: 9)) == nil)",
+              "        #expect(graph.remove(7) == 7)",
+              "        #expect(Array(graph.topologicalOrder) == [9, 8] && graph.topologicalPosition(of: 8) == 1)",
+              "    }"]
     return lines
 
 
@@ -500,6 +559,8 @@ def write(fname, suite, rows, comment):
             imports.append(module)
     if "bidirectionalShortestPath(" in text or ".hasPath(" in text:
         imports.append("Traversal")
+    if "dagShortestPaths(" in text:
+        imports.append("ShortestPaths")
     if "JSONEncoder" in text:
         imports.append("Foundation")
     if ".tags(" in text or fname == "DirectedAcyclicGraphPreconditionTests.swift":

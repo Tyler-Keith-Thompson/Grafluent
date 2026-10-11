@@ -1,4 +1,4 @@
-// Order queries and algorithms (catalog DAG-059 – DAG-069, DAG-070 – DAG-086): `topologicalPosition`, the order's
+// Order queries and algorithms (catalog DAG-070 – DAG-080, DAG-081 – DAG-111): `topologicalPosition`, the order's
 // subscript, the order-pruned `hasPath`, equality that ignores the order, `transitiveClosure()`,
 // `transitiveReduction()` and `longestPath()`.
 // Generated from cases.md by swiftgen.py; see README.md.
@@ -7,6 +7,7 @@ import AdjacencyListModule
 import DirectedAcyclicGraphModule
 import GraphProtocols
 import Multigraphs
+import ShortestPaths
 import StableGraphs
 import Testing
 import Traversal
@@ -14,8 +15,8 @@ import Walks
 
 @Suite("DirectedAcyclicGraph order queries and algorithms")
 struct DirectedAcyclicGraphQueryTests {
-    @Test("DAG-059 topologicalPosition(of:)")
-    func dag059() throws {
+    @Test("DAG-070 topologicalPosition(of:)")
+    func dag070() throws {
         // DirectedPseudograph; V [0, 1, 2]; E [2→0] / topologicalPosition(of: 2) / topologicalPosition(of: 0) / topologicalPosition(of: 1)
         let graph = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [0, 1, 2], edges: [DirectedEdge(from: 2, to: 0)]))
         #expect(graph.topologicalPosition(of: 2) == 1)
@@ -50,8 +51,8 @@ struct DirectedAcyclicGraphQueryTests {
         #expect(graph.inEdges(safe: 102) == nil && graph.outDegree(safe: 102) == nil && graph.inDegree(safe: 102) == nil)
     }
 
-    @Test("DAG-061 topologicalPosition(safe:)")
-    func dag061() throws {
+    @Test("DAG-072 topologicalPosition(safe:)")
+    func dag072() throws {
         // AdjacencyList; V [0, 1]; E [1→0] / topologicalPosition(safe: 1) / topologicalPosition(safe: 9)
         let graph = try #require(DirectedAcyclicGraph<AdjacencyList<Int>>(vertices: [0, 1], edges: [DirectedEdge(from: 1, to: 0)]))
         #expect(graph.topologicalPosition(safe: 1) == 0)
@@ -80,8 +81,8 @@ struct DirectedAcyclicGraphQueryTests {
         #expect(graph.inEdges(safe: 101) == nil && graph.outDegree(safe: 101) == nil && graph.inDegree(safe: 101) == nil)
     }
 
-    @Test("DAG-062 topologicalOrder subscript")
-    func dag062() throws {
+    @Test("DAG-073 topologicalOrder subscript")
+    func dag073() throws {
         // DirectedPseudograph; V [0, 1, 2]; E [2→1] / topologicalOrder[0] / topologicalOrder[2]
         let graph = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [0, 1, 2], edges: [DirectedEdge(from: 2, to: 1)]))
         #expect(graph.topologicalOrder[0] == 0)
@@ -115,8 +116,8 @@ struct DirectedAcyclicGraphQueryTests {
         #expect(graph.inEdges(safe: 102) == nil && graph.outDegree(safe: 102) == nil && graph.inDegree(safe: 102) == nil)
     }
 
-    @Test("DAG-064 hasPath: same vertex true")
-    func dag064() throws {
+    @Test("DAG-075 hasPath: same vertex true")
+    func dag075() throws {
         // DirectedPseudograph; V [0]; E [] / hasPath(from: 0, to: 0)
         let graph = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [0], edges: [] as [DirectedEdge<Int>]))
         #expect(graph.hasPath(from: 0, to: 0) == true)
@@ -139,8 +140,8 @@ struct DirectedAcyclicGraphQueryTests {
         #expect(graph.inEdges(safe: 100) == nil && graph.outDegree(safe: 100) == nil && graph.inDegree(safe: 100) == nil)
     }
 
-    @Test("DAG-065 hasPath: placed later, so false without a search")
-    func dag065() throws {
+    @Test("DAG-076 hasPath: placed later, so false without a search")
+    func dag076() throws {
         // DirectedPseudograph; V [0, 1]; E [0→1] / hasPath(from: 1, to: 0)
         let graph = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)]))
         #expect(graph.hasPath(from: 1, to: 0) == false)
@@ -169,8 +170,8 @@ struct DirectedAcyclicGraphQueryTests {
         #expect(graph.inEdges(safe: 101) == nil && graph.outDegree(safe: 101) == nil && graph.inDegree(safe: 101) == nil)
     }
 
-    @Test("DAG-066 hasPath: placed earlier, searched within the bound")
-    func dag066() throws {
+    @Test("DAG-077 hasPath: placed earlier, searched within the bound")
+    func dag077() throws {
         // DirectedPseudograph; V [0, 1, 2, 3]; E [0→1, 1→3, 0→2] / hasPath(from: 0, to: 3) / hasPath(from: 2, to: 3)
         let graph = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [0, 1, 2, 3], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 3), DirectedEdge(from: 0, to: 2)]))
         #expect(graph.hasPath(from: 0, to: 3) == true)
@@ -211,8 +212,8 @@ struct DirectedAcyclicGraphQueryTests {
         #expect(graph.inEdges(safe: 103) == nil && graph.outDegree(safe: 103) == nil && graph.inDegree(safe: 103) == nil)
     }
 
-    @Test("DAG-068 equality ignores the order")
-    func dag068() throws {
+    @Test("DAG-079 equality ignores the order")
+    func dag079() throws {
         // DirectedPseudograph; V [0, 1]; E [] / insert(edge: 1→0) / remove(edge: 1→0) / == DirectedAcyclicGraph<DirectedPseudograph>(vertices: [0, 1], edges: [])
         var graph = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [0, 1], edges: [] as [DirectedEdge<Int>]))
         #expect(graph.insert(edge: DirectedEdge(from: 1, to: 0)) == 0)
@@ -250,8 +251,8 @@ struct DirectedAcyclicGraphQueryTests {
         #expect(graph.inEdges(safe: 101) == nil && graph.outDegree(safe: 101) == nil && graph.inDegree(safe: 101) == nil)
     }
 
-    @Test("DAG-069 equality: different edges")
-    func dag069() throws {
+    @Test("DAG-080 equality: different edges")
+    func dag080() throws {
         // AdjacencyList; V [0, 1]; E [0→1] / == DirectedAcyclicGraph<AdjacencyList>(vertices: [0, 1], edges: [])
         let graph = try #require(DirectedAcyclicGraph<AdjacencyList<Int>>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)]))
         let other1 = try #require(DirectedAcyclicGraph<AdjacencyList<Int>>(vertices: [0, 1], edges: [] as [DirectedEdge<Int>]))
@@ -280,8 +281,8 @@ struct DirectedAcyclicGraphQueryTests {
         #expect(graph.inEdges(safe: 101) == nil && graph.outDegree(safe: 101) == nil && graph.inDegree(safe: 101) == nil)
     }
 
-    @Test("DAG-070 transitiveClosure: chain")
-    func dag070() throws {
+    @Test("DAG-081 transitiveClosure: chain")
+    func dag081() throws {
         // DirectedPseudograph; V []; E [0→1, 1→2, 2→3] / transitiveClosure()
         let graph = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [] as [Int], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 3)]))
         let closure1 = graph.transitiveClosure()
@@ -350,8 +351,8 @@ struct DirectedAcyclicGraphQueryTests {
         #expect(graph.inEdges(safe: 103) == nil && graph.outDegree(safe: 103) == nil && graph.inDegree(safe: 103) == nil)
     }
 
-    @Test("DAG-071 transitiveClosure: existing edges keep their positions")
-    func dag071() throws {
+    @Test("DAG-082 transitiveClosure: existing edges keep their positions")
+    func dag082() throws {
         // DirectedPseudograph; V [0, 1, 2]; E [1→2, 0→1, 0→2] / transitiveClosure()
         let graph = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [0, 1, 2], edges: [DirectedEdge(from: 1, to: 2), DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2)]))
         let closure1 = graph.transitiveClosure()
@@ -410,8 +411,8 @@ struct DirectedAcyclicGraphQueryTests {
         #expect(graph.inEdges(safe: 102) == nil && graph.outDegree(safe: 102) == nil && graph.inDegree(safe: 102) == nil)
     }
 
-    @Test("DAG-072 transitiveClosure: copies kept, none added")
-    func dag072() throws {
+    @Test("DAG-083 transitiveClosure: copies kept, none added")
+    func dag083() throws {
         // DirectedPseudograph; V []; E [0→1, 0→1] / transitiveClosure()
         let graph = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [] as [Int], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 1)]))
         let closure1 = graph.transitiveClosure()
@@ -460,8 +461,8 @@ struct DirectedAcyclicGraphQueryTests {
         #expect(graph.inEdges(safe: 101) == nil && graph.outDegree(safe: 101) == nil && graph.inDegree(safe: 101) == nil)
     }
 
-    @Test("DAG-073 transitiveClosure: diamond plus tail")
-    func dag073() throws {
+    @Test("DAG-084 transitiveClosure: diamond plus tail")
+    func dag084() throws {
         // AdjacencyList; V []; E [0→1, 0→2, 1→3, 2→3, 3→4] / transitiveClosure()
         let graph = try #require(DirectedAcyclicGraph<AdjacencyList<Int>>(vertices: [] as [Int], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 1, to: 3), DirectedEdge(from: 2, to: 3), DirectedEdge(from: 3, to: 4)]))
         let closure1 = graph.transitiveClosure()
@@ -540,8 +541,8 @@ struct DirectedAcyclicGraphQueryTests {
         #expect(graph.inEdges(safe: 104) == nil && graph.outDegree(safe: 104) == nil && graph.inDegree(safe: 104) == nil)
     }
 
-    @Test("DAG-074 transitiveClosure: empty")
-    func dag074() throws {
+    @Test("DAG-085 transitiveClosure: empty")
+    func dag085() throws {
         // StableDirectedGraph; V []; E [] / transitiveClosure()
         let graph = try #require(DirectedAcyclicGraph<StableDirectedGraph<Int>>(vertices: [] as [Int], edges: [] as [DirectedEdge<Int>]))
         let closure1 = graph.transitiveClosure()
@@ -568,8 +569,8 @@ struct DirectedAcyclicGraphQueryTests {
         #expect(graph.inEdges(safe: 100) == nil && graph.outDegree(safe: 100) == nil && graph.inDegree(safe: 100) == nil)
     }
 
-    @Test("DAG-075 transitiveClosure: missing edges appended in topological order, not vertices order")
-    func dag075() throws {
+    @Test("DAG-086 transitiveClosure: missing edges appended in topological order, not vertices order")
+    func dag086() throws {
         // DirectedPseudograph; V [0, 1, 2, 3]; E [0→3, 3→2, 2→1] / transitiveClosure()
         let graph = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [0, 1, 2, 3], edges: [DirectedEdge(from: 0, to: 3), DirectedEdge(from: 3, to: 2), DirectedEdge(from: 2, to: 1)]))
         let closure1 = graph.transitiveClosure()
@@ -638,8 +639,8 @@ struct DirectedAcyclicGraphQueryTests {
         #expect(graph.inEdges(safe: 103) == nil && graph.outDegree(safe: 103) == nil && graph.inDegree(safe: 103) == nil)
     }
 
-    @Test("DAG-076 transitiveReduction: drops the shortcut")
-    func dag076() throws {
+    @Test("DAG-087 transitiveReduction: drops the shortcut")
+    func dag087() throws {
         // DirectedPseudograph; V [0, 1, 2]; E [0→1, 1→2, 0→2] / transitiveReduction()
         let graph = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [0, 1, 2], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 0, to: 2)]))
         let reduction1 = graph.transitiveReduction()
@@ -698,8 +699,8 @@ struct DirectedAcyclicGraphQueryTests {
         #expect(graph.inEdges(safe: 102) == nil && graph.outDegree(safe: 102) == nil && graph.inDegree(safe: 102) == nil)
     }
 
-    @Test("DAG-077 transitiveReduction: copies collapse to the first")
-    func dag077() throws {
+    @Test("DAG-088 transitiveReduction: copies collapse to the first")
+    func dag088() throws {
         // DirectedPseudograph; V []; E [0→1, 1→2, 0→1] / transitiveReduction()
         let graph = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [] as [Int], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 0, to: 1)]))
         let reduction1 = graph.transitiveReduction()
@@ -758,8 +759,8 @@ struct DirectedAcyclicGraphQueryTests {
         #expect(graph.inEdges(safe: 102) == nil && graph.outDegree(safe: 102) == nil && graph.inDegree(safe: 102) == nil)
     }
 
-    @Test("DAG-078 transitiveReduction: closure of a chain reduces to the chain")
-    func dag078() throws {
+    @Test("DAG-089 transitiveReduction: closure of a chain reduces to the chain")
+    func dag089() throws {
         // AdjacencyList; V []; E [0→1, 0→2, 0→3, 1→2, 1→3, 2→3] / transitiveReduction()
         let graph = try #require(DirectedAcyclicGraph<AdjacencyList<Int>>(vertices: [] as [Int], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 0, to: 3), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 1, to: 3), DirectedEdge(from: 2, to: 3)]))
         let reduction1 = graph.transitiveReduction()
@@ -828,8 +829,8 @@ struct DirectedAcyclicGraphQueryTests {
         #expect(graph.inEdges(safe: 103) == nil && graph.outDegree(safe: 103) == nil && graph.inDegree(safe: 103) == nil)
     }
 
-    @Test("DAG-079 transitiveReduction: Stable base is compacted")
-    func dag079() throws {
+    @Test("DAG-090 transitiveReduction: Stable base is compacted")
+    func dag090() throws {
         // StableDirectedGraph; V [0, 1, 2, 3]; E [0→1, 1→2, 0→2, 2→3] / remove(1) / transitiveReduction()
         var graph = try #require(DirectedAcyclicGraph<StableDirectedGraph<Int>>(vertices: [0, 1, 2, 3], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 2, to: 3)]))
         #expect(graph.remove(1) == 1)
@@ -889,8 +890,8 @@ struct DirectedAcyclicGraphQueryTests {
         #expect(graph.inEdges(safe: 103) == nil && graph.outDegree(safe: 103) == nil && graph.inDegree(safe: 103) == nil)
     }
 
-    @Test("DAG-080 transitiveReduction keeps the order")
-    func dag080() throws {
+    @Test("DAG-091 transitiveReduction keeps the order")
+    func dag091() throws {
         // DirectedPseudograph; V [0, 1, 2]; E [] / insert(edge: 2→0) / insert(edge: 1→0) / insert(edge: 2→1) / transitiveReduction()
         var graph = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [0, 1, 2], edges: [] as [DirectedEdge<Int>]))
         #expect(graph.insert(edge: DirectedEdge(from: 2, to: 0)) == 0)
@@ -962,8 +963,8 @@ struct DirectedAcyclicGraphQueryTests {
         #expect(graph.inEdges(safe: 102) == nil && graph.outDegree(safe: 102) == nil && graph.inDegree(safe: 102) == nil)
     }
 
-    @Test("DAG-081 longestPath: empty is nil")
-    func dag081() throws {
+    @Test("DAG-092 longestPath: empty is nil")
+    func dag092() throws {
         // DirectedPseudograph; V []; E [] / longestPath()
         let graph = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [] as [Int], edges: [] as [DirectedEdge<Int>]))
         #expect(graph.longestPath() == nil)
@@ -980,8 +981,8 @@ struct DirectedAcyclicGraphQueryTests {
         #expect(graph.inEdges(safe: 100) == nil && graph.outDegree(safe: 100) == nil && graph.inDegree(safe: 100) == nil)
     }
 
-    @Test("DAG-082 longestPath: edgeless is the first vertex")
-    func dag082() throws {
+    @Test("DAG-093 longestPath: edgeless is the first vertex")
+    func dag093() throws {
         // DirectedPseudograph; V [3, 1]; E [] / longestPath()
         let graph = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [3, 1], edges: [] as [DirectedEdge<Int>]))
         let longest1 = try #require(graph.longestPath())
@@ -1009,8 +1010,8 @@ struct DirectedAcyclicGraphQueryTests {
         #expect(graph.inEdges(safe: 103) == nil && graph.outDegree(safe: 103) == nil && graph.inDegree(safe: 103) == nil)
     }
 
-    @Test("DAG-083 longestPath: chain")
-    func dag083() throws {
+    @Test("DAG-094 longestPath: chain")
+    func dag094() throws {
         // AdjacencyList; V []; E [0→1, 1→2, 2→3] / longestPath()
         let graph = try #require(DirectedAcyclicGraph<AdjacencyList<Int>>(vertices: [] as [Int], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 3)]))
         let longest1 = try #require(graph.longestPath())
@@ -1049,8 +1050,8 @@ struct DirectedAcyclicGraphQueryTests {
         #expect(graph.inEdges(safe: 103) == nil && graph.outDegree(safe: 103) == nil && graph.inDegree(safe: 103) == nil)
     }
 
-    @Test("DAG-084 longestPath: ties go to the first in-edge and the first end in order")
-    func dag084() throws {
+    @Test("DAG-095 longestPath: ties go to the first in-edge and the first end in order")
+    func dag095() throws {
         // DirectedPseudograph; V [0, 1, 2, 3]; E [0→2, 1→2, 0→3] / longestPath()
         let graph = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [0, 1, 2, 3], edges: [DirectedEdge(from: 0, to: 2), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 0, to: 3)]))
         let longest1 = try #require(graph.longestPath())
@@ -1089,8 +1090,8 @@ struct DirectedAcyclicGraphQueryTests {
         #expect(graph.inEdges(safe: 103) == nil && graph.outDegree(safe: 103) == nil && graph.inDegree(safe: 103) == nil)
     }
 
-    @Test("DAG-085 longestPath: the longer branch wins")
-    func dag085() throws {
+    @Test("DAG-096 longestPath: the longer branch wins")
+    func dag096() throws {
         // DirectedPseudograph; V []; E [0→1, 1→2, 2→5, 0→3, 3→5] / longestPath()
         let graph = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [] as [Int], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 5), DirectedEdge(from: 0, to: 3), DirectedEdge(from: 3, to: 5)]))
         let longest1 = try #require(graph.longestPath())
@@ -1134,8 +1135,8 @@ struct DirectedAcyclicGraphQueryTests {
         #expect(graph.inEdges(safe: 105) == nil && graph.outDegree(safe: 105) == nil && graph.inDegree(safe: 105) == nil)
     }
 
-    @Test("DAG-086 longestPath: parallel copies, the first in-edge")
-    func dag086() throws {
+    @Test("DAG-097 longestPath: parallel copies, the first in-edge")
+    func dag097() throws {
         // DirectedPseudograph; V []; E [0→1, 0→1] / longestPath()
         let graph = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [] as [Int], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 1)]))
         let longest1 = try #require(graph.longestPath())
@@ -1162,5 +1163,638 @@ struct DirectedAcyclicGraphQueryTests {
         #expect(!graph.contains(101) && graph.topologicalPosition(safe: 101) == nil && graph.topologicalOrder.firstIndex(of: 101) == nil)
         #expect(graph.successors(safe: 101) == nil && graph.predecessors(safe: 101) == nil && graph.outEdges(safe: 101) == nil)
         #expect(graph.inEdges(safe: 101) == nil && graph.outDegree(safe: 101) == nil && graph.inDegree(safe: 101) == nil)
+    }
+
+    @Test("DAG-098 after removals: hasPath, closure, reduction and longest path skip the holes")
+    func dag098() throws {
+        // DirectedPseudograph; V [0, 1, 2, 3, 4, 5, 6]; E [0→2, 2→4, 4→6, 0→6, 1→5, 3→5] / remove(1) / remove(3) / hasPath(from: 0, to: 6) / hasPath(from: 6, to: 0) / hasPath(from: 5, to: 6) / transitiveClosure() / transitiveReduction() / longestPath()
+        var graph = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [0, 1, 2, 3, 4, 5, 6], edges: [DirectedEdge(from: 0, to: 2), DirectedEdge(from: 2, to: 4), DirectedEdge(from: 4, to: 6), DirectedEdge(from: 0, to: 6), DirectedEdge(from: 1, to: 5), DirectedEdge(from: 3, to: 5)]))
+        #expect(graph.remove(1) == 1)
+        // After remove(1).
+        #expect(Array(graph.topologicalOrder) == [0, 3, 2, 5, 4, 6])
+        #expect(Array(graph.vertices) == [0, 6, 2, 3, 4, 5])
+        #expect(Array(graph.edges.indices) == [0, 1, 2, 3, 4])
+        #expect(Array(graph.edges) == [DirectedEdge(from: 0, to: 2), DirectedEdge(from: 2, to: 4), DirectedEdge(from: 4, to: 6), DirectedEdge(from: 0, to: 6), DirectedEdge(from: 3, to: 5)])
+        #expect(graph.remove(3) == 3)
+        #expect(graph.hasPath(from: 0, to: 6) == true)
+        #expect(graph.base.hasPath(from: 0, to: 6) == true)
+        #expect(graph.hasPath(from: 6, to: 0) == false)
+        #expect(graph.base.hasPath(from: 6, to: 0) == false)
+        #expect(graph.hasPath(from: 5, to: 6) == false)
+        #expect(graph.base.hasPath(from: 5, to: 6) == false)
+        let closure6 = graph.transitiveClosure()
+        #expect(Array(closure6.topologicalOrder) == [0, 2, 5, 4, 6])
+        #expect(Array(closure6.vertices) == [0, 6, 2, 5, 4])
+        #expect(Array(closure6.edges.indices) == [0, 1, 2, 3, 4, 5])
+        #expect(Array(closure6.edges) == [DirectedEdge(from: 0, to: 2), DirectedEdge(from: 2, to: 4), DirectedEdge(from: 4, to: 6), DirectedEdge(from: 0, to: 6), DirectedEdge(from: 0, to: 4), DirectedEdge(from: 2, to: 6)])
+        #expect(closure6.vertexCount == 5 && closure6.edgeCount == 6)
+        #expect(closure6.topologicalOrder.count == 5 && closure6.topologicalOrder.indices == 0 ..< 5)
+        #expect(closure6.edges.indices.map { [closure6.source(ofEdgeAt: $0), closure6.target(ofEdgeAt: $0)] } == [[0, 2], [2, 4], [4, 6], [0, 6], [0, 4], [2, 6]])
+        #expect(Array(closure6.base.vertices) == [0, 6, 2, 5, 4] && Array(closure6.base.edges) == [DirectedEdge(from: 0, to: 2), DirectedEdge(from: 2, to: 4), DirectedEdge(from: 4, to: 6), DirectedEdge(from: 0, to: 6), DirectedEdge(from: 0, to: 4), DirectedEdge(from: 2, to: 6)])
+        #expect(closure6.topologicalPosition(of: 0) == 0 && closure6.topologicalPosition(safe: 0) == 0 && closure6.topologicalOrder.firstIndex(of: 0) == 0)
+        #expect(Array(closure6.successors(of: 0)) == [2, 6, 4] && Array(closure6.outEdges(of: 0)) == [0, 3, 4] && closure6.outDegree(of: 0) == 3)
+        #expect(Array(closure6.predecessors(of: 0)) == [] as [Int] && Array(closure6.inEdges(of: 0)) == [] as [Int] && closure6.inDegree(of: 0) == 0)
+        #expect(closure6.successors(safe: 0).map { Array($0) } == [2, 6, 4] && closure6.outEdges(safe: 0).map { Array($0) } == [0, 3, 4] && closure6.outDegree(safe: 0) == 3)
+        #expect(closure6.predecessors(safe: 0).map { Array($0) } == [] as [Int] && closure6.inEdges(safe: 0).map { Array($0) } == [] as [Int] && closure6.inDegree(safe: 0) == 0)
+        #expect(closure6.topologicalPosition(of: 6) == 4 && closure6.topologicalPosition(safe: 6) == 4 && closure6.topologicalOrder.firstIndex(of: 6) == 4)
+        #expect(Array(closure6.successors(of: 6)) == [] as [Int] && Array(closure6.outEdges(of: 6)) == [] as [Int] && closure6.outDegree(of: 6) == 0)
+        #expect(Array(closure6.predecessors(of: 6)) == [4, 0, 2] && Array(closure6.inEdges(of: 6)) == [2, 3, 5] && closure6.inDegree(of: 6) == 3)
+        #expect(closure6.successors(safe: 6).map { Array($0) } == [] as [Int] && closure6.outEdges(safe: 6).map { Array($0) } == [] as [Int] && closure6.outDegree(safe: 6) == 0)
+        #expect(closure6.predecessors(safe: 6).map { Array($0) } == [4, 0, 2] && closure6.inEdges(safe: 6).map { Array($0) } == [2, 3, 5] && closure6.inDegree(safe: 6) == 3)
+        #expect(closure6.topologicalPosition(of: 2) == 1 && closure6.topologicalPosition(safe: 2) == 1 && closure6.topologicalOrder.firstIndex(of: 2) == 1)
+        #expect(Array(closure6.successors(of: 2)) == [4, 6] && Array(closure6.outEdges(of: 2)) == [1, 5] && closure6.outDegree(of: 2) == 2)
+        #expect(Array(closure6.predecessors(of: 2)) == [0] && Array(closure6.inEdges(of: 2)) == [0] && closure6.inDegree(of: 2) == 1)
+        #expect(closure6.successors(safe: 2).map { Array($0) } == [4, 6] && closure6.outEdges(safe: 2).map { Array($0) } == [1, 5] && closure6.outDegree(safe: 2) == 2)
+        #expect(closure6.predecessors(safe: 2).map { Array($0) } == [0] && closure6.inEdges(safe: 2).map { Array($0) } == [0] && closure6.inDegree(safe: 2) == 1)
+        #expect(closure6.topologicalPosition(of: 5) == 2 && closure6.topologicalPosition(safe: 5) == 2 && closure6.topologicalOrder.firstIndex(of: 5) == 2)
+        #expect(Array(closure6.successors(of: 5)) == [] as [Int] && Array(closure6.outEdges(of: 5)) == [] as [Int] && closure6.outDegree(of: 5) == 0)
+        #expect(Array(closure6.predecessors(of: 5)) == [] as [Int] && Array(closure6.inEdges(of: 5)) == [] as [Int] && closure6.inDegree(of: 5) == 0)
+        #expect(closure6.successors(safe: 5).map { Array($0) } == [] as [Int] && closure6.outEdges(safe: 5).map { Array($0) } == [] as [Int] && closure6.outDegree(safe: 5) == 0)
+        #expect(closure6.predecessors(safe: 5).map { Array($0) } == [] as [Int] && closure6.inEdges(safe: 5).map { Array($0) } == [] as [Int] && closure6.inDegree(safe: 5) == 0)
+        #expect(closure6.topologicalPosition(of: 4) == 3 && closure6.topologicalPosition(safe: 4) == 3 && closure6.topologicalOrder.firstIndex(of: 4) == 3)
+        #expect(Array(closure6.successors(of: 4)) == [6] && Array(closure6.outEdges(of: 4)) == [2] && closure6.outDegree(of: 4) == 1)
+        #expect(Array(closure6.predecessors(of: 4)) == [2, 0] && Array(closure6.inEdges(of: 4)) == [1, 4] && closure6.inDegree(of: 4) == 2)
+        #expect(closure6.successors(safe: 4).map { Array($0) } == [6] && closure6.outEdges(safe: 4).map { Array($0) } == [2] && closure6.outDegree(safe: 4) == 1)
+        #expect(closure6.predecessors(safe: 4).map { Array($0) } == [2, 0] && closure6.inEdges(safe: 4).map { Array($0) } == [1, 4] && closure6.inDegree(safe: 4) == 2)
+        #expect(!closure6.contains(106) && closure6.topologicalPosition(safe: 106) == nil && closure6.topologicalOrder.firstIndex(of: 106) == nil)
+        #expect(closure6.successors(safe: 106) == nil && closure6.predecessors(safe: 106) == nil && closure6.outEdges(safe: 106) == nil)
+        #expect(closure6.inEdges(safe: 106) == nil && closure6.outDegree(safe: 106) == nil && closure6.inDegree(safe: 106) == nil)
+        let reduction7 = graph.transitiveReduction()
+        #expect(Array(reduction7.topologicalOrder) == [0, 2, 5, 4, 6])
+        #expect(Array(reduction7.vertices) == [0, 6, 2, 5, 4])
+        #expect(Array(reduction7.edges.indices) == [0, 1, 2])
+        #expect(Array(reduction7.edges) == [DirectedEdge(from: 0, to: 2), DirectedEdge(from: 2, to: 4), DirectedEdge(from: 4, to: 6)])
+        #expect(reduction7.vertexCount == 5 && reduction7.edgeCount == 3)
+        #expect(reduction7.topologicalOrder.count == 5 && reduction7.topologicalOrder.indices == 0 ..< 5)
+        #expect(reduction7.edges.indices.map { [reduction7.source(ofEdgeAt: $0), reduction7.target(ofEdgeAt: $0)] } == [[0, 2], [2, 4], [4, 6]])
+        #expect(Array(reduction7.base.vertices) == [0, 6, 2, 5, 4] && Array(reduction7.base.edges) == [DirectedEdge(from: 0, to: 2), DirectedEdge(from: 2, to: 4), DirectedEdge(from: 4, to: 6)])
+        #expect(reduction7.topologicalPosition(of: 0) == 0 && reduction7.topologicalPosition(safe: 0) == 0 && reduction7.topologicalOrder.firstIndex(of: 0) == 0)
+        #expect(Array(reduction7.successors(of: 0)) == [2] && Array(reduction7.outEdges(of: 0)) == [0] && reduction7.outDegree(of: 0) == 1)
+        #expect(Array(reduction7.predecessors(of: 0)) == [] as [Int] && Array(reduction7.inEdges(of: 0)) == [] as [Int] && reduction7.inDegree(of: 0) == 0)
+        #expect(reduction7.successors(safe: 0).map { Array($0) } == [2] && reduction7.outEdges(safe: 0).map { Array($0) } == [0] && reduction7.outDegree(safe: 0) == 1)
+        #expect(reduction7.predecessors(safe: 0).map { Array($0) } == [] as [Int] && reduction7.inEdges(safe: 0).map { Array($0) } == [] as [Int] && reduction7.inDegree(safe: 0) == 0)
+        #expect(reduction7.topologicalPosition(of: 6) == 4 && reduction7.topologicalPosition(safe: 6) == 4 && reduction7.topologicalOrder.firstIndex(of: 6) == 4)
+        #expect(Array(reduction7.successors(of: 6)) == [] as [Int] && Array(reduction7.outEdges(of: 6)) == [] as [Int] && reduction7.outDegree(of: 6) == 0)
+        #expect(Array(reduction7.predecessors(of: 6)) == [4] && Array(reduction7.inEdges(of: 6)) == [2] && reduction7.inDegree(of: 6) == 1)
+        #expect(reduction7.successors(safe: 6).map { Array($0) } == [] as [Int] && reduction7.outEdges(safe: 6).map { Array($0) } == [] as [Int] && reduction7.outDegree(safe: 6) == 0)
+        #expect(reduction7.predecessors(safe: 6).map { Array($0) } == [4] && reduction7.inEdges(safe: 6).map { Array($0) } == [2] && reduction7.inDegree(safe: 6) == 1)
+        #expect(reduction7.topologicalPosition(of: 2) == 1 && reduction7.topologicalPosition(safe: 2) == 1 && reduction7.topologicalOrder.firstIndex(of: 2) == 1)
+        #expect(Array(reduction7.successors(of: 2)) == [4] && Array(reduction7.outEdges(of: 2)) == [1] && reduction7.outDegree(of: 2) == 1)
+        #expect(Array(reduction7.predecessors(of: 2)) == [0] && Array(reduction7.inEdges(of: 2)) == [0] && reduction7.inDegree(of: 2) == 1)
+        #expect(reduction7.successors(safe: 2).map { Array($0) } == [4] && reduction7.outEdges(safe: 2).map { Array($0) } == [1] && reduction7.outDegree(safe: 2) == 1)
+        #expect(reduction7.predecessors(safe: 2).map { Array($0) } == [0] && reduction7.inEdges(safe: 2).map { Array($0) } == [0] && reduction7.inDegree(safe: 2) == 1)
+        #expect(reduction7.topologicalPosition(of: 5) == 2 && reduction7.topologicalPosition(safe: 5) == 2 && reduction7.topologicalOrder.firstIndex(of: 5) == 2)
+        #expect(Array(reduction7.successors(of: 5)) == [] as [Int] && Array(reduction7.outEdges(of: 5)) == [] as [Int] && reduction7.outDegree(of: 5) == 0)
+        #expect(Array(reduction7.predecessors(of: 5)) == [] as [Int] && Array(reduction7.inEdges(of: 5)) == [] as [Int] && reduction7.inDegree(of: 5) == 0)
+        #expect(reduction7.successors(safe: 5).map { Array($0) } == [] as [Int] && reduction7.outEdges(safe: 5).map { Array($0) } == [] as [Int] && reduction7.outDegree(safe: 5) == 0)
+        #expect(reduction7.predecessors(safe: 5).map { Array($0) } == [] as [Int] && reduction7.inEdges(safe: 5).map { Array($0) } == [] as [Int] && reduction7.inDegree(safe: 5) == 0)
+        #expect(reduction7.topologicalPosition(of: 4) == 3 && reduction7.topologicalPosition(safe: 4) == 3 && reduction7.topologicalOrder.firstIndex(of: 4) == 3)
+        #expect(Array(reduction7.successors(of: 4)) == [6] && Array(reduction7.outEdges(of: 4)) == [2] && reduction7.outDegree(of: 4) == 1)
+        #expect(Array(reduction7.predecessors(of: 4)) == [2] && Array(reduction7.inEdges(of: 4)) == [1] && reduction7.inDegree(of: 4) == 1)
+        #expect(reduction7.successors(safe: 4).map { Array($0) } == [6] && reduction7.outEdges(safe: 4).map { Array($0) } == [2] && reduction7.outDegree(safe: 4) == 1)
+        #expect(reduction7.predecessors(safe: 4).map { Array($0) } == [2] && reduction7.inEdges(safe: 4).map { Array($0) } == [1] && reduction7.inDegree(safe: 4) == 1)
+        #expect(!reduction7.contains(106) && reduction7.topologicalPosition(safe: 106) == nil && reduction7.topologicalOrder.firstIndex(of: 106) == nil)
+        #expect(reduction7.successors(safe: 106) == nil && reduction7.predecessors(safe: 106) == nil && reduction7.outEdges(safe: 106) == nil)
+        #expect(reduction7.inEdges(safe: 106) == nil && reduction7.outDegree(safe: 106) == nil && reduction7.inDegree(safe: 106) == nil)
+        let longest8 = try #require(graph.longestPath())
+        #expect(longest8.vertices == [0, 2, 4, 6] && longest8.edges == [0, 1, 2])
+        // Final state.
+        #expect(Array(graph.topologicalOrder) == [0, 2, 5, 4, 6])
+        #expect(Array(graph.vertices) == [0, 6, 2, 5, 4])
+        #expect(Array(graph.edges.indices) == [0, 1, 2, 3])
+        #expect(Array(graph.edges) == [DirectedEdge(from: 0, to: 2), DirectedEdge(from: 2, to: 4), DirectedEdge(from: 4, to: 6), DirectedEdge(from: 0, to: 6)])
+        #expect(graph.vertexCount == 5 && graph.edgeCount == 4)
+        #expect(graph.topologicalOrder.count == 5 && graph.topologicalOrder.indices == 0 ..< 5)
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [[0, 2], [2, 4], [4, 6], [0, 6]])
+        #expect(Array(graph.base.vertices) == [0, 6, 2, 5, 4] && Array(graph.base.edges) == [DirectedEdge(from: 0, to: 2), DirectedEdge(from: 2, to: 4), DirectedEdge(from: 4, to: 6), DirectedEdge(from: 0, to: 6)])
+        #expect(graph.topologicalPosition(of: 0) == 0 && graph.topologicalPosition(safe: 0) == 0 && graph.topologicalOrder.firstIndex(of: 0) == 0)
+        #expect(Array(graph.successors(of: 0)) == [2, 6] && Array(graph.outEdges(of: 0)) == [0, 3] && graph.outDegree(of: 0) == 2)
+        #expect(Array(graph.predecessors(of: 0)) == [] as [Int] && Array(graph.inEdges(of: 0)) == [] as [Int] && graph.inDegree(of: 0) == 0)
+        #expect(graph.successors(safe: 0).map { Array($0) } == [2, 6] && graph.outEdges(safe: 0).map { Array($0) } == [0, 3] && graph.outDegree(safe: 0) == 2)
+        #expect(graph.predecessors(safe: 0).map { Array($0) } == [] as [Int] && graph.inEdges(safe: 0).map { Array($0) } == [] as [Int] && graph.inDegree(safe: 0) == 0)
+        #expect(graph.topologicalPosition(of: 6) == 4 && graph.topologicalPosition(safe: 6) == 4 && graph.topologicalOrder.firstIndex(of: 6) == 4)
+        #expect(Array(graph.successors(of: 6)) == [] as [Int] && Array(graph.outEdges(of: 6)) == [] as [Int] && graph.outDegree(of: 6) == 0)
+        #expect(Array(graph.predecessors(of: 6)) == [4, 0] && Array(graph.inEdges(of: 6)) == [2, 3] && graph.inDegree(of: 6) == 2)
+        #expect(graph.successors(safe: 6).map { Array($0) } == [] as [Int] && graph.outEdges(safe: 6).map { Array($0) } == [] as [Int] && graph.outDegree(safe: 6) == 0)
+        #expect(graph.predecessors(safe: 6).map { Array($0) } == [4, 0] && graph.inEdges(safe: 6).map { Array($0) } == [2, 3] && graph.inDegree(safe: 6) == 2)
+        #expect(graph.topologicalPosition(of: 2) == 1 && graph.topologicalPosition(safe: 2) == 1 && graph.topologicalOrder.firstIndex(of: 2) == 1)
+        #expect(Array(graph.successors(of: 2)) == [4] && Array(graph.outEdges(of: 2)) == [1] && graph.outDegree(of: 2) == 1)
+        #expect(Array(graph.predecessors(of: 2)) == [0] && Array(graph.inEdges(of: 2)) == [0] && graph.inDegree(of: 2) == 1)
+        #expect(graph.successors(safe: 2).map { Array($0) } == [4] && graph.outEdges(safe: 2).map { Array($0) } == [1] && graph.outDegree(safe: 2) == 1)
+        #expect(graph.predecessors(safe: 2).map { Array($0) } == [0] && graph.inEdges(safe: 2).map { Array($0) } == [0] && graph.inDegree(safe: 2) == 1)
+        #expect(graph.topologicalPosition(of: 5) == 2 && graph.topologicalPosition(safe: 5) == 2 && graph.topologicalOrder.firstIndex(of: 5) == 2)
+        #expect(Array(graph.successors(of: 5)) == [] as [Int] && Array(graph.outEdges(of: 5)) == [] as [Int] && graph.outDegree(of: 5) == 0)
+        #expect(Array(graph.predecessors(of: 5)) == [] as [Int] && Array(graph.inEdges(of: 5)) == [] as [Int] && graph.inDegree(of: 5) == 0)
+        #expect(graph.successors(safe: 5).map { Array($0) } == [] as [Int] && graph.outEdges(safe: 5).map { Array($0) } == [] as [Int] && graph.outDegree(safe: 5) == 0)
+        #expect(graph.predecessors(safe: 5).map { Array($0) } == [] as [Int] && graph.inEdges(safe: 5).map { Array($0) } == [] as [Int] && graph.inDegree(safe: 5) == 0)
+        #expect(graph.topologicalPosition(of: 4) == 3 && graph.topologicalPosition(safe: 4) == 3 && graph.topologicalOrder.firstIndex(of: 4) == 3)
+        #expect(Array(graph.successors(of: 4)) == [6] && Array(graph.outEdges(of: 4)) == [2] && graph.outDegree(of: 4) == 1)
+        #expect(Array(graph.predecessors(of: 4)) == [2] && Array(graph.inEdges(of: 4)) == [1] && graph.inDegree(of: 4) == 1)
+        #expect(graph.successors(safe: 4).map { Array($0) } == [6] && graph.outEdges(safe: 4).map { Array($0) } == [2] && graph.outDegree(safe: 4) == 1)
+        #expect(graph.predecessors(safe: 4).map { Array($0) } == [2] && graph.inEdges(safe: 4).map { Array($0) } == [1] && graph.inDegree(safe: 4) == 1)
+        #expect(!graph.contains(106) && graph.topologicalPosition(safe: 106) == nil && graph.topologicalOrder.firstIndex(of: 106) == nil)
+        #expect(graph.successors(safe: 106) == nil && graph.predecessors(safe: 106) == nil && graph.outEdges(safe: 106) == nil)
+        #expect(graph.inEdges(safe: 106) == nil && graph.outDegree(safe: 106) == nil && graph.inDegree(safe: 106) == nil)
+    }
+
+    @Test("DAG-099 longestPath(weight:): a heavy shortcut beats the long way")
+    func dag099() throws {
+        // DirectedPseudograph; V []; E [0→1, 1→2, 0→2] / longestPath(weight: [1, 1, 5])
+        let graph = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [] as [Int], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 0, to: 2)]))
+        let longest1 = try #require(graph.longestPath(weight: { [1, 1, 5][$0] }))
+        #expect(longest1.vertices == [0, 2] && longest1.edges == [2])
+        // Final state.
+        #expect(Array(graph.topologicalOrder) == [0, 1, 2])
+        #expect(Array(graph.vertices) == [0, 1, 2])
+        #expect(Array(graph.edges.indices) == [0, 1, 2])
+        #expect(Array(graph.edges) == [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 0, to: 2)])
+        #expect(graph.vertexCount == 3 && graph.edgeCount == 3)
+        #expect(graph.topologicalOrder.count == 3 && graph.topologicalOrder.indices == 0 ..< 3)
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [[0, 1], [1, 2], [0, 2]])
+        #expect(Array(graph.base.vertices) == [0, 1, 2] && Array(graph.base.edges) == [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 0, to: 2)])
+        #expect(graph.topologicalPosition(of: 0) == 0 && graph.topologicalPosition(safe: 0) == 0 && graph.topologicalOrder.firstIndex(of: 0) == 0)
+        #expect(Array(graph.successors(of: 0)) == [1, 2] && Array(graph.outEdges(of: 0)) == [0, 2] && graph.outDegree(of: 0) == 2)
+        #expect(Array(graph.predecessors(of: 0)) == [] as [Int] && Array(graph.inEdges(of: 0)) == [] as [Int] && graph.inDegree(of: 0) == 0)
+        #expect(graph.successors(safe: 0).map { Array($0) } == [1, 2] && graph.outEdges(safe: 0).map { Array($0) } == [0, 2] && graph.outDegree(safe: 0) == 2)
+        #expect(graph.predecessors(safe: 0).map { Array($0) } == [] as [Int] && graph.inEdges(safe: 0).map { Array($0) } == [] as [Int] && graph.inDegree(safe: 0) == 0)
+        #expect(graph.topologicalPosition(of: 1) == 1 && graph.topologicalPosition(safe: 1) == 1 && graph.topologicalOrder.firstIndex(of: 1) == 1)
+        #expect(Array(graph.successors(of: 1)) == [2] && Array(graph.outEdges(of: 1)) == [1] && graph.outDegree(of: 1) == 1)
+        #expect(Array(graph.predecessors(of: 1)) == [0] && Array(graph.inEdges(of: 1)) == [0] && graph.inDegree(of: 1) == 1)
+        #expect(graph.successors(safe: 1).map { Array($0) } == [2] && graph.outEdges(safe: 1).map { Array($0) } == [1] && graph.outDegree(safe: 1) == 1)
+        #expect(graph.predecessors(safe: 1).map { Array($0) } == [0] && graph.inEdges(safe: 1).map { Array($0) } == [0] && graph.inDegree(safe: 1) == 1)
+        #expect(graph.topologicalPosition(of: 2) == 2 && graph.topologicalPosition(safe: 2) == 2 && graph.topologicalOrder.firstIndex(of: 2) == 2)
+        #expect(Array(graph.successors(of: 2)) == [] as [Int] && Array(graph.outEdges(of: 2)) == [] as [Int] && graph.outDegree(of: 2) == 0)
+        #expect(Array(graph.predecessors(of: 2)) == [1, 0] && Array(graph.inEdges(of: 2)) == [1, 2] && graph.inDegree(of: 2) == 2)
+        #expect(graph.successors(safe: 2).map { Array($0) } == [] as [Int] && graph.outEdges(safe: 2).map { Array($0) } == [] as [Int] && graph.outDegree(safe: 2) == 0)
+        #expect(graph.predecessors(safe: 2).map { Array($0) } == [1, 0] && graph.inEdges(safe: 2).map { Array($0) } == [1, 2] && graph.inDegree(safe: 2) == 2)
+        #expect(!graph.contains(102) && graph.topologicalPosition(safe: 102) == nil && graph.topologicalOrder.firstIndex(of: 102) == nil)
+        #expect(graph.successors(safe: 102) == nil && graph.predecessors(safe: 102) == nil && graph.outEdges(safe: 102) == nil)
+        #expect(graph.inEdges(safe: 102) == nil && graph.outDegree(safe: 102) == nil && graph.inDegree(safe: 102) == nil)
+    }
+
+    @Test("DAG-100 longestPath(weight:): a negative best restarts at zero")
+    func dag100() throws {
+        // DirectedPseudograph; V []; E [0→1, 1→2] / longestPath(weight: [-3, 2])
+        let graph = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [] as [Int], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)]))
+        let longest1 = try #require(graph.longestPath(weight: { [-3, 2][$0] }))
+        #expect(longest1.vertices == [1, 2] && longest1.edges == [1])
+        // Final state.
+        #expect(Array(graph.topologicalOrder) == [0, 1, 2])
+        #expect(Array(graph.vertices) == [0, 1, 2])
+        #expect(Array(graph.edges.indices) == [0, 1])
+        #expect(Array(graph.edges) == [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+        #expect(graph.vertexCount == 3 && graph.edgeCount == 2)
+        #expect(graph.topologicalOrder.count == 3 && graph.topologicalOrder.indices == 0 ..< 3)
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [[0, 1], [1, 2]])
+        #expect(Array(graph.base.vertices) == [0, 1, 2] && Array(graph.base.edges) == [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+        #expect(graph.topologicalPosition(of: 0) == 0 && graph.topologicalPosition(safe: 0) == 0 && graph.topologicalOrder.firstIndex(of: 0) == 0)
+        #expect(Array(graph.successors(of: 0)) == [1] && Array(graph.outEdges(of: 0)) == [0] && graph.outDegree(of: 0) == 1)
+        #expect(Array(graph.predecessors(of: 0)) == [] as [Int] && Array(graph.inEdges(of: 0)) == [] as [Int] && graph.inDegree(of: 0) == 0)
+        #expect(graph.successors(safe: 0).map { Array($0) } == [1] && graph.outEdges(safe: 0).map { Array($0) } == [0] && graph.outDegree(safe: 0) == 1)
+        #expect(graph.predecessors(safe: 0).map { Array($0) } == [] as [Int] && graph.inEdges(safe: 0).map { Array($0) } == [] as [Int] && graph.inDegree(safe: 0) == 0)
+        #expect(graph.topologicalPosition(of: 1) == 1 && graph.topologicalPosition(safe: 1) == 1 && graph.topologicalOrder.firstIndex(of: 1) == 1)
+        #expect(Array(graph.successors(of: 1)) == [2] && Array(graph.outEdges(of: 1)) == [1] && graph.outDegree(of: 1) == 1)
+        #expect(Array(graph.predecessors(of: 1)) == [0] && Array(graph.inEdges(of: 1)) == [0] && graph.inDegree(of: 1) == 1)
+        #expect(graph.successors(safe: 1).map { Array($0) } == [2] && graph.outEdges(safe: 1).map { Array($0) } == [1] && graph.outDegree(safe: 1) == 1)
+        #expect(graph.predecessors(safe: 1).map { Array($0) } == [0] && graph.inEdges(safe: 1).map { Array($0) } == [0] && graph.inDegree(safe: 1) == 1)
+        #expect(graph.topologicalPosition(of: 2) == 2 && graph.topologicalPosition(safe: 2) == 2 && graph.topologicalOrder.firstIndex(of: 2) == 2)
+        #expect(Array(graph.successors(of: 2)) == [] as [Int] && Array(graph.outEdges(of: 2)) == [] as [Int] && graph.outDegree(of: 2) == 0)
+        #expect(Array(graph.predecessors(of: 2)) == [1] && Array(graph.inEdges(of: 2)) == [1] && graph.inDegree(of: 2) == 1)
+        #expect(graph.successors(safe: 2).map { Array($0) } == [] as [Int] && graph.outEdges(safe: 2).map { Array($0) } == [] as [Int] && graph.outDegree(safe: 2) == 0)
+        #expect(graph.predecessors(safe: 2).map { Array($0) } == [1] && graph.inEdges(safe: 2).map { Array($0) } == [1] && graph.inDegree(safe: 2) == 1)
+        #expect(!graph.contains(102) && graph.topologicalPosition(safe: 102) == nil && graph.topologicalOrder.firstIndex(of: 102) == nil)
+        #expect(graph.successors(safe: 102) == nil && graph.predecessors(safe: 102) == nil && graph.outEdges(safe: 102) == nil)
+        #expect(graph.inEdges(safe: 102) == nil && graph.outDegree(safe: 102) == nil && graph.inDegree(safe: 102) == nil)
+    }
+
+    @Test("DAG-101 longestPath(weight:): a zero-weight edge extends the path")
+    func dag101() throws {
+        // AdjacencyList; V []; E [0→1, 1→2] / longestPath(weight: [0, 1])
+        let graph = try #require(DirectedAcyclicGraph<AdjacencyList<Int>>(vertices: [] as [Int], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)]))
+        let longest1 = try #require(graph.longestPath(weight: { [0, 1][$0] }))
+        #expect(longest1.vertices == [0, 1, 2] && longest1.edges == [0, 1])
+        // Final state.
+        #expect(Array(graph.topologicalOrder) == [0, 1, 2])
+        #expect(Array(graph.vertices) == [0, 1, 2])
+        #expect(Array(graph.edges.indices) == [0, 1])
+        #expect(Array(graph.edges) == [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+        #expect(graph.vertexCount == 3 && graph.edgeCount == 2)
+        #expect(graph.topologicalOrder.count == 3 && graph.topologicalOrder.indices == 0 ..< 3)
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [[0, 1], [1, 2]])
+        #expect(Array(graph.base.vertices) == [0, 1, 2] && Array(graph.base.edges) == [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+        #expect(graph.topologicalPosition(of: 0) == 0 && graph.topologicalPosition(safe: 0) == 0 && graph.topologicalOrder.firstIndex(of: 0) == 0)
+        #expect(Array(graph.successors(of: 0)) == [1] && Array(graph.outEdges(of: 0)) == [0] && graph.outDegree(of: 0) == 1)
+        #expect(Array(graph.predecessors(of: 0)) == [] as [Int] && Array(graph.inEdges(of: 0)) == [] as [Int] && graph.inDegree(of: 0) == 0)
+        #expect(graph.successors(safe: 0).map { Array($0) } == [1] && graph.outEdges(safe: 0).map { Array($0) } == [0] && graph.outDegree(safe: 0) == 1)
+        #expect(graph.predecessors(safe: 0).map { Array($0) } == [] as [Int] && graph.inEdges(safe: 0).map { Array($0) } == [] as [Int] && graph.inDegree(safe: 0) == 0)
+        #expect(graph.topologicalPosition(of: 1) == 1 && graph.topologicalPosition(safe: 1) == 1 && graph.topologicalOrder.firstIndex(of: 1) == 1)
+        #expect(Array(graph.successors(of: 1)) == [2] && Array(graph.outEdges(of: 1)) == [1] && graph.outDegree(of: 1) == 1)
+        #expect(Array(graph.predecessors(of: 1)) == [0] && Array(graph.inEdges(of: 1)) == [0] && graph.inDegree(of: 1) == 1)
+        #expect(graph.successors(safe: 1).map { Array($0) } == [2] && graph.outEdges(safe: 1).map { Array($0) } == [1] && graph.outDegree(safe: 1) == 1)
+        #expect(graph.predecessors(safe: 1).map { Array($0) } == [0] && graph.inEdges(safe: 1).map { Array($0) } == [0] && graph.inDegree(safe: 1) == 1)
+        #expect(graph.topologicalPosition(of: 2) == 2 && graph.topologicalPosition(safe: 2) == 2 && graph.topologicalOrder.firstIndex(of: 2) == 2)
+        #expect(Array(graph.successors(of: 2)) == [] as [Int] && Array(graph.outEdges(of: 2)) == [] as [Int] && graph.outDegree(of: 2) == 0)
+        #expect(Array(graph.predecessors(of: 2)) == [1] && Array(graph.inEdges(of: 2)) == [1] && graph.inDegree(of: 2) == 1)
+        #expect(graph.successors(safe: 2).map { Array($0) } == [] as [Int] && graph.outEdges(safe: 2).map { Array($0) } == [] as [Int] && graph.outDegree(safe: 2) == 0)
+        #expect(graph.predecessors(safe: 2).map { Array($0) } == [1] && graph.inEdges(safe: 2).map { Array($0) } == [1] && graph.inDegree(safe: 2) == 1)
+        #expect(!graph.contains(102) && graph.topologicalPosition(safe: 102) == nil && graph.topologicalOrder.firstIndex(of: 102) == nil)
+        #expect(graph.successors(safe: 102) == nil && graph.predecessors(safe: 102) == nil && graph.outEdges(safe: 102) == nil)
+        #expect(graph.inEdges(safe: 102) == nil && graph.outDegree(safe: 102) == nil && graph.inDegree(safe: 102) == nil)
+    }
+
+    @Test("DAG-102 longestPath(weight:): every weight negative gives the first vertex")
+    func dag102() throws {
+        // DirectedPseudograph; V []; E [0→1, 1→2] / longestPath(weight: [-1, -1])
+        let graph = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [] as [Int], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)]))
+        let longest1 = try #require(graph.longestPath(weight: { [-1, -1][$0] }))
+        #expect(longest1.vertices == [0] && longest1.edges == [] as [Int])
+        // Final state.
+        #expect(Array(graph.topologicalOrder) == [0, 1, 2])
+        #expect(Array(graph.vertices) == [0, 1, 2])
+        #expect(Array(graph.edges.indices) == [0, 1])
+        #expect(Array(graph.edges) == [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+        #expect(graph.vertexCount == 3 && graph.edgeCount == 2)
+        #expect(graph.topologicalOrder.count == 3 && graph.topologicalOrder.indices == 0 ..< 3)
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [[0, 1], [1, 2]])
+        #expect(Array(graph.base.vertices) == [0, 1, 2] && Array(graph.base.edges) == [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+        #expect(graph.topologicalPosition(of: 0) == 0 && graph.topologicalPosition(safe: 0) == 0 && graph.topologicalOrder.firstIndex(of: 0) == 0)
+        #expect(Array(graph.successors(of: 0)) == [1] && Array(graph.outEdges(of: 0)) == [0] && graph.outDegree(of: 0) == 1)
+        #expect(Array(graph.predecessors(of: 0)) == [] as [Int] && Array(graph.inEdges(of: 0)) == [] as [Int] && graph.inDegree(of: 0) == 0)
+        #expect(graph.successors(safe: 0).map { Array($0) } == [1] && graph.outEdges(safe: 0).map { Array($0) } == [0] && graph.outDegree(safe: 0) == 1)
+        #expect(graph.predecessors(safe: 0).map { Array($0) } == [] as [Int] && graph.inEdges(safe: 0).map { Array($0) } == [] as [Int] && graph.inDegree(safe: 0) == 0)
+        #expect(graph.topologicalPosition(of: 1) == 1 && graph.topologicalPosition(safe: 1) == 1 && graph.topologicalOrder.firstIndex(of: 1) == 1)
+        #expect(Array(graph.successors(of: 1)) == [2] && Array(graph.outEdges(of: 1)) == [1] && graph.outDegree(of: 1) == 1)
+        #expect(Array(graph.predecessors(of: 1)) == [0] && Array(graph.inEdges(of: 1)) == [0] && graph.inDegree(of: 1) == 1)
+        #expect(graph.successors(safe: 1).map { Array($0) } == [2] && graph.outEdges(safe: 1).map { Array($0) } == [1] && graph.outDegree(safe: 1) == 1)
+        #expect(graph.predecessors(safe: 1).map { Array($0) } == [0] && graph.inEdges(safe: 1).map { Array($0) } == [0] && graph.inDegree(safe: 1) == 1)
+        #expect(graph.topologicalPosition(of: 2) == 2 && graph.topologicalPosition(safe: 2) == 2 && graph.topologicalOrder.firstIndex(of: 2) == 2)
+        #expect(Array(graph.successors(of: 2)) == [] as [Int] && Array(graph.outEdges(of: 2)) == [] as [Int] && graph.outDegree(of: 2) == 0)
+        #expect(Array(graph.predecessors(of: 2)) == [1] && Array(graph.inEdges(of: 2)) == [1] && graph.inDegree(of: 2) == 1)
+        #expect(graph.successors(safe: 2).map { Array($0) } == [] as [Int] && graph.outEdges(safe: 2).map { Array($0) } == [] as [Int] && graph.outDegree(safe: 2) == 0)
+        #expect(graph.predecessors(safe: 2).map { Array($0) } == [1] && graph.inEdges(safe: 2).map { Array($0) } == [1] && graph.inDegree(safe: 2) == 1)
+        #expect(!graph.contains(102) && graph.topologicalPosition(safe: 102) == nil && graph.topologicalOrder.firstIndex(of: 102) == nil)
+        #expect(graph.successors(safe: 102) == nil && graph.predecessors(safe: 102) == nil && graph.outEdges(safe: 102) == nil)
+        #expect(graph.inEdges(safe: 102) == nil && graph.outDegree(safe: 102) == nil && graph.inDegree(safe: 102) == nil)
+    }
+
+    @Test("DAG-103 longestPath(weight:): ties go to the first in-edge and the first end")
+    func dag103() throws {
+        // DirectedPseudograph; V [0, 1, 2, 3]; E [0→2, 1→2, 0→3] / longestPath(weight: [2, 2, 2])
+        let graph = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [0, 1, 2, 3], edges: [DirectedEdge(from: 0, to: 2), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 0, to: 3)]))
+        let longest1 = try #require(graph.longestPath(weight: { [2, 2, 2][$0] }))
+        #expect(longest1.vertices == [0, 3] && longest1.edges == [2])
+        // Final state.
+        #expect(Array(graph.topologicalOrder) == [0, 1, 3, 2])
+        #expect(Array(graph.vertices) == [0, 1, 2, 3])
+        #expect(Array(graph.edges.indices) == [0, 1, 2])
+        #expect(Array(graph.edges) == [DirectedEdge(from: 0, to: 2), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 0, to: 3)])
+        #expect(graph.vertexCount == 4 && graph.edgeCount == 3)
+        #expect(graph.topologicalOrder.count == 4 && graph.topologicalOrder.indices == 0 ..< 4)
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [[0, 2], [1, 2], [0, 3]])
+        #expect(Array(graph.base.vertices) == [0, 1, 2, 3] && Array(graph.base.edges) == [DirectedEdge(from: 0, to: 2), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 0, to: 3)])
+        #expect(graph.topologicalPosition(of: 0) == 0 && graph.topologicalPosition(safe: 0) == 0 && graph.topologicalOrder.firstIndex(of: 0) == 0)
+        #expect(Array(graph.successors(of: 0)) == [2, 3] && Array(graph.outEdges(of: 0)) == [0, 2] && graph.outDegree(of: 0) == 2)
+        #expect(Array(graph.predecessors(of: 0)) == [] as [Int] && Array(graph.inEdges(of: 0)) == [] as [Int] && graph.inDegree(of: 0) == 0)
+        #expect(graph.successors(safe: 0).map { Array($0) } == [2, 3] && graph.outEdges(safe: 0).map { Array($0) } == [0, 2] && graph.outDegree(safe: 0) == 2)
+        #expect(graph.predecessors(safe: 0).map { Array($0) } == [] as [Int] && graph.inEdges(safe: 0).map { Array($0) } == [] as [Int] && graph.inDegree(safe: 0) == 0)
+        #expect(graph.topologicalPosition(of: 1) == 1 && graph.topologicalPosition(safe: 1) == 1 && graph.topologicalOrder.firstIndex(of: 1) == 1)
+        #expect(Array(graph.successors(of: 1)) == [2] && Array(graph.outEdges(of: 1)) == [1] && graph.outDegree(of: 1) == 1)
+        #expect(Array(graph.predecessors(of: 1)) == [] as [Int] && Array(graph.inEdges(of: 1)) == [] as [Int] && graph.inDegree(of: 1) == 0)
+        #expect(graph.successors(safe: 1).map { Array($0) } == [2] && graph.outEdges(safe: 1).map { Array($0) } == [1] && graph.outDegree(safe: 1) == 1)
+        #expect(graph.predecessors(safe: 1).map { Array($0) } == [] as [Int] && graph.inEdges(safe: 1).map { Array($0) } == [] as [Int] && graph.inDegree(safe: 1) == 0)
+        #expect(graph.topologicalPosition(of: 2) == 3 && graph.topologicalPosition(safe: 2) == 3 && graph.topologicalOrder.firstIndex(of: 2) == 3)
+        #expect(Array(graph.successors(of: 2)) == [] as [Int] && Array(graph.outEdges(of: 2)) == [] as [Int] && graph.outDegree(of: 2) == 0)
+        #expect(Array(graph.predecessors(of: 2)) == [0, 1] && Array(graph.inEdges(of: 2)) == [0, 1] && graph.inDegree(of: 2) == 2)
+        #expect(graph.successors(safe: 2).map { Array($0) } == [] as [Int] && graph.outEdges(safe: 2).map { Array($0) } == [] as [Int] && graph.outDegree(safe: 2) == 0)
+        #expect(graph.predecessors(safe: 2).map { Array($0) } == [0, 1] && graph.inEdges(safe: 2).map { Array($0) } == [0, 1] && graph.inDegree(safe: 2) == 2)
+        #expect(graph.topologicalPosition(of: 3) == 2 && graph.topologicalPosition(safe: 3) == 2 && graph.topologicalOrder.firstIndex(of: 3) == 2)
+        #expect(Array(graph.successors(of: 3)) == [] as [Int] && Array(graph.outEdges(of: 3)) == [] as [Int] && graph.outDegree(of: 3) == 0)
+        #expect(Array(graph.predecessors(of: 3)) == [0] && Array(graph.inEdges(of: 3)) == [2] && graph.inDegree(of: 3) == 1)
+        #expect(graph.successors(safe: 3).map { Array($0) } == [] as [Int] && graph.outEdges(safe: 3).map { Array($0) } == [] as [Int] && graph.outDegree(safe: 3) == 0)
+        #expect(graph.predecessors(safe: 3).map { Array($0) } == [0] && graph.inEdges(safe: 3).map { Array($0) } == [2] && graph.inDegree(safe: 3) == 1)
+        #expect(!graph.contains(103) && graph.topologicalPosition(safe: 103) == nil && graph.topologicalOrder.firstIndex(of: 103) == nil)
+        #expect(graph.successors(safe: 103) == nil && graph.predecessors(safe: 103) == nil && graph.outEdges(safe: 103) == nil)
+        #expect(graph.inEdges(safe: 103) == nil && graph.outDegree(safe: 103) == nil && graph.inDegree(safe: 103) == nil)
+    }
+
+    @Test("DAG-104 longestPath(weight:): the heavier of parallel copies")
+    func dag104() throws {
+        // DirectedPseudograph; V []; E [0→1, 0→1, 1→2] / longestPath(weight: [1, 4, 1])
+        let graph = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [] as [Int], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)]))
+        let longest1 = try #require(graph.longestPath(weight: { [1, 4, 1][$0] }))
+        #expect(longest1.vertices == [0, 1, 2] && longest1.edges == [1, 2])
+        // Final state.
+        #expect(Array(graph.topologicalOrder) == [0, 1, 2])
+        #expect(Array(graph.vertices) == [0, 1, 2])
+        #expect(Array(graph.edges.indices) == [0, 1, 2])
+        #expect(Array(graph.edges) == [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+        #expect(graph.vertexCount == 3 && graph.edgeCount == 3)
+        #expect(graph.topologicalOrder.count == 3 && graph.topologicalOrder.indices == 0 ..< 3)
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [[0, 1], [0, 1], [1, 2]])
+        #expect(Array(graph.base.vertices) == [0, 1, 2] && Array(graph.base.edges) == [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+        #expect(graph.topologicalPosition(of: 0) == 0 && graph.topologicalPosition(safe: 0) == 0 && graph.topologicalOrder.firstIndex(of: 0) == 0)
+        #expect(Array(graph.successors(of: 0)) == [1, 1] && Array(graph.outEdges(of: 0)) == [0, 1] && graph.outDegree(of: 0) == 2)
+        #expect(Array(graph.predecessors(of: 0)) == [] as [Int] && Array(graph.inEdges(of: 0)) == [] as [Int] && graph.inDegree(of: 0) == 0)
+        #expect(graph.successors(safe: 0).map { Array($0) } == [1, 1] && graph.outEdges(safe: 0).map { Array($0) } == [0, 1] && graph.outDegree(safe: 0) == 2)
+        #expect(graph.predecessors(safe: 0).map { Array($0) } == [] as [Int] && graph.inEdges(safe: 0).map { Array($0) } == [] as [Int] && graph.inDegree(safe: 0) == 0)
+        #expect(graph.topologicalPosition(of: 1) == 1 && graph.topologicalPosition(safe: 1) == 1 && graph.topologicalOrder.firstIndex(of: 1) == 1)
+        #expect(Array(graph.successors(of: 1)) == [2] && Array(graph.outEdges(of: 1)) == [2] && graph.outDegree(of: 1) == 1)
+        #expect(Array(graph.predecessors(of: 1)) == [0, 0] && Array(graph.inEdges(of: 1)) == [0, 1] && graph.inDegree(of: 1) == 2)
+        #expect(graph.successors(safe: 1).map { Array($0) } == [2] && graph.outEdges(safe: 1).map { Array($0) } == [2] && graph.outDegree(safe: 1) == 1)
+        #expect(graph.predecessors(safe: 1).map { Array($0) } == [0, 0] && graph.inEdges(safe: 1).map { Array($0) } == [0, 1] && graph.inDegree(safe: 1) == 2)
+        #expect(graph.topologicalPosition(of: 2) == 2 && graph.topologicalPosition(safe: 2) == 2 && graph.topologicalOrder.firstIndex(of: 2) == 2)
+        #expect(Array(graph.successors(of: 2)) == [] as [Int] && Array(graph.outEdges(of: 2)) == [] as [Int] && graph.outDegree(of: 2) == 0)
+        #expect(Array(graph.predecessors(of: 2)) == [1] && Array(graph.inEdges(of: 2)) == [2] && graph.inDegree(of: 2) == 1)
+        #expect(graph.successors(safe: 2).map { Array($0) } == [] as [Int] && graph.outEdges(safe: 2).map { Array($0) } == [] as [Int] && graph.outDegree(safe: 2) == 0)
+        #expect(graph.predecessors(safe: 2).map { Array($0) } == [1] && graph.inEdges(safe: 2).map { Array($0) } == [2] && graph.inDegree(safe: 2) == 1)
+        #expect(!graph.contains(102) && graph.topologicalPosition(safe: 102) == nil && graph.topologicalOrder.firstIndex(of: 102) == nil)
+        #expect(graph.successors(safe: 102) == nil && graph.predecessors(safe: 102) == nil && graph.outEdges(safe: 102) == nil)
+        #expect(graph.inEdges(safe: 102) == nil && graph.outDegree(safe: 102) == nil && graph.inDegree(safe: 102) == nil)
+    }
+
+    @Test("DAG-105 longestPath(weight:) on Stable positions with holes")
+    func dag105() throws {
+        // StableDirectedGraph; V [0, 1, 2, 3]; E [0→1, 1→2, 0→2, 2→3] / remove(edgeAt: 0) / remove(1) / longestPath(weight: [9, 9, 3, 4])
+        var graph = try #require(DirectedAcyclicGraph<StableDirectedGraph<Int>>(vertices: [0, 1, 2, 3], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 2, to: 3)]))
+        #expect(graph.remove(edgeAt: 0) == DirectedEdge(from: 0, to: 1))
+        // After remove(edgeAt: 0).
+        #expect(Array(graph.topologicalOrder) == [0, 1, 2, 3])
+        #expect(Array(graph.vertices) == [0, 1, 2, 3])
+        #expect(Array(graph.edges.indices) == [1, 2, 3])
+        #expect(Array(graph.edges) == [DirectedEdge(from: 1, to: 2), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 2, to: 3)])
+        #expect(graph.remove(1) == 1)
+        let longest3 = try #require(graph.longestPath(weight: { [9, 9, 3, 4][$0] }))
+        #expect(longest3.vertices == [0, 2, 3] && longest3.edges == [2, 3])
+        // Final state.
+        #expect(Array(graph.topologicalOrder) == [0, 2, 3])
+        #expect(Array(graph.vertices) == [0, 2, 3])
+        #expect(Array(graph.edges.indices) == [2, 3])
+        #expect(Array(graph.edges) == [DirectedEdge(from: 0, to: 2), DirectedEdge(from: 2, to: 3)])
+        #expect(graph.vertexCount == 3 && graph.edgeCount == 2)
+        #expect(graph.topologicalOrder.count == 3 && graph.topologicalOrder.indices == 0 ..< 3)
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [[0, 2], [2, 3]])
+        #expect(Array(graph.base.vertices) == [0, 2, 3] && Array(graph.base.edges) == [DirectedEdge(from: 0, to: 2), DirectedEdge(from: 2, to: 3)])
+        #expect(graph.topologicalPosition(of: 0) == 0 && graph.topologicalPosition(safe: 0) == 0 && graph.topologicalOrder.firstIndex(of: 0) == 0)
+        #expect(Array(graph.successors(of: 0)) == [2] && Array(graph.outEdges(of: 0)) == [2] && graph.outDegree(of: 0) == 1)
+        #expect(Array(graph.predecessors(of: 0)) == [] as [Int] && Array(graph.inEdges(of: 0)) == [] as [Int] && graph.inDegree(of: 0) == 0)
+        #expect(graph.successors(safe: 0).map { Array($0) } == [2] && graph.outEdges(safe: 0).map { Array($0) } == [2] && graph.outDegree(safe: 0) == 1)
+        #expect(graph.predecessors(safe: 0).map { Array($0) } == [] as [Int] && graph.inEdges(safe: 0).map { Array($0) } == [] as [Int] && graph.inDegree(safe: 0) == 0)
+        #expect(graph.topologicalPosition(of: 2) == 1 && graph.topologicalPosition(safe: 2) == 1 && graph.topologicalOrder.firstIndex(of: 2) == 1)
+        #expect(Array(graph.successors(of: 2)) == [3] && Array(graph.outEdges(of: 2)) == [3] && graph.outDegree(of: 2) == 1)
+        #expect(Array(graph.predecessors(of: 2)) == [0] && Array(graph.inEdges(of: 2)) == [2] && graph.inDegree(of: 2) == 1)
+        #expect(graph.successors(safe: 2).map { Array($0) } == [3] && graph.outEdges(safe: 2).map { Array($0) } == [3] && graph.outDegree(safe: 2) == 1)
+        #expect(graph.predecessors(safe: 2).map { Array($0) } == [0] && graph.inEdges(safe: 2).map { Array($0) } == [2] && graph.inDegree(safe: 2) == 1)
+        #expect(graph.topologicalPosition(of: 3) == 2 && graph.topologicalPosition(safe: 3) == 2 && graph.topologicalOrder.firstIndex(of: 3) == 2)
+        #expect(Array(graph.successors(of: 3)) == [] as [Int] && Array(graph.outEdges(of: 3)) == [] as [Int] && graph.outDegree(of: 3) == 0)
+        #expect(Array(graph.predecessors(of: 3)) == [2] && Array(graph.inEdges(of: 3)) == [3] && graph.inDegree(of: 3) == 1)
+        #expect(graph.successors(safe: 3).map { Array($0) } == [] as [Int] && graph.outEdges(safe: 3).map { Array($0) } == [] as [Int] && graph.outDegree(safe: 3) == 0)
+        #expect(graph.predecessors(safe: 3).map { Array($0) } == [2] && graph.inEdges(safe: 3).map { Array($0) } == [3] && graph.inDegree(safe: 3) == 1)
+        #expect(!graph.contains(103) && graph.topologicalPosition(safe: 103) == nil && graph.topologicalOrder.firstIndex(of: 103) == nil)
+        #expect(graph.successors(safe: 103) == nil && graph.predecessors(safe: 103) == nil && graph.outEdges(safe: 103) == nil)
+        #expect(graph.inEdges(safe: 103) == nil && graph.outDegree(safe: 103) == nil && graph.inDegree(safe: 103) == nil)
+    }
+
+    @Test("DAG-106 longestPath(weight:): empty is nil")
+    func dag106() throws {
+        // StableDirectedGraph; V []; E [] / longestPath(weight: [])
+        let graph = try #require(DirectedAcyclicGraph<StableDirectedGraph<Int>>(vertices: [] as [Int], edges: [] as [DirectedEdge<Int>]))
+        #expect(graph.longestPath(weight: { ([] as [Int])[$0] }) == nil)
+        // Final state.
+        #expect(Array(graph.topologicalOrder) == [] as [Int])
+        #expect(Array(graph.vertices) == [] as [Int])
+        #expect(Array(graph.edges.indices) == [] as [Int])
+        #expect(Array(graph.edges) == [] as [DirectedEdge<Int>])
+        #expect(graph.vertexCount == 0 && graph.edgeCount == 0)
+        #expect(graph.topologicalOrder.count == 0 && graph.topologicalOrder.indices == 0 ..< 0)
+        #expect(Array(graph.base.vertices) == [] as [Int] && Array(graph.base.edges) == [] as [DirectedEdge<Int>])
+        #expect(!graph.contains(100) && graph.topologicalPosition(safe: 100) == nil && graph.topologicalOrder.firstIndex(of: 100) == nil)
+        #expect(graph.successors(safe: 100) == nil && graph.predecessors(safe: 100) == nil && graph.outEdges(safe: 100) == nil)
+        #expect(graph.inEdges(safe: 100) == nil && graph.outDegree(safe: 100) == nil && graph.inDegree(safe: 100) == nil)
+    }
+
+    @Test("DAG-107 dagShortestPaths: a negative edge, and an unreached vertex placed before the source")
+    func dag107() throws {
+        // DirectedPseudograph; V [3]; E [3→0, 0→1, 1→2, 0→2] / dagShortestPaths(from: 0, weight: [1, 2, -5, 1])
+        let graph = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [3], edges: [DirectedEdge(from: 3, to: 0), DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 0, to: 2)]))
+        let weights1 = [1, 2, -5, 1]
+        let tree1 = graph.dagShortestPaths(from: 0, weight: { weights1[$0] })
+        // The same distances from any DirectedGraph, by a topological sort of the reachable part.
+        let sorted1 = try #require(graph.base.dagShortestPaths(from: 0, weight: { weights1[$0] }))
+        #expect(tree1.distance(to: 3) == nil && tree1.path(to: 3) == nil && sorted1.distance(to: 3) == nil)
+        #expect(tree1.distance(to: 0) == 0 && tree1.path(to: 0)?.edges == [] as [Int] && sorted1.distance(to: 0) == 0)
+        #expect(tree1.distance(to: 1) == 2 && tree1.path(to: 1)?.edges == [1] && sorted1.distance(to: 1) == 2)
+        #expect(tree1.distance(to: 2) == -3 && tree1.path(to: 2)?.edges == [1, 2] && sorted1.distance(to: 2) == -3)
+        // Final state.
+        #expect(Array(graph.topologicalOrder) == [3, 0, 1, 2])
+        #expect(Array(graph.vertices) == [3, 0, 1, 2])
+        #expect(Array(graph.edges.indices) == [0, 1, 2, 3])
+        #expect(Array(graph.edges) == [DirectedEdge(from: 3, to: 0), DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 0, to: 2)])
+        #expect(graph.vertexCount == 4 && graph.edgeCount == 4)
+        #expect(graph.topologicalOrder.count == 4 && graph.topologicalOrder.indices == 0 ..< 4)
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [[3, 0], [0, 1], [1, 2], [0, 2]])
+        #expect(Array(graph.base.vertices) == [3, 0, 1, 2] && Array(graph.base.edges) == [DirectedEdge(from: 3, to: 0), DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 0, to: 2)])
+        #expect(graph.topologicalPosition(of: 3) == 0 && graph.topologicalPosition(safe: 3) == 0 && graph.topologicalOrder.firstIndex(of: 3) == 0)
+        #expect(Array(graph.successors(of: 3)) == [0] && Array(graph.outEdges(of: 3)) == [0] && graph.outDegree(of: 3) == 1)
+        #expect(Array(graph.predecessors(of: 3)) == [] as [Int] && Array(graph.inEdges(of: 3)) == [] as [Int] && graph.inDegree(of: 3) == 0)
+        #expect(graph.successors(safe: 3).map { Array($0) } == [0] && graph.outEdges(safe: 3).map { Array($0) } == [0] && graph.outDegree(safe: 3) == 1)
+        #expect(graph.predecessors(safe: 3).map { Array($0) } == [] as [Int] && graph.inEdges(safe: 3).map { Array($0) } == [] as [Int] && graph.inDegree(safe: 3) == 0)
+        #expect(graph.topologicalPosition(of: 0) == 1 && graph.topologicalPosition(safe: 0) == 1 && graph.topologicalOrder.firstIndex(of: 0) == 1)
+        #expect(Array(graph.successors(of: 0)) == [1, 2] && Array(graph.outEdges(of: 0)) == [1, 3] && graph.outDegree(of: 0) == 2)
+        #expect(Array(graph.predecessors(of: 0)) == [3] && Array(graph.inEdges(of: 0)) == [0] && graph.inDegree(of: 0) == 1)
+        #expect(graph.successors(safe: 0).map { Array($0) } == [1, 2] && graph.outEdges(safe: 0).map { Array($0) } == [1, 3] && graph.outDegree(safe: 0) == 2)
+        #expect(graph.predecessors(safe: 0).map { Array($0) } == [3] && graph.inEdges(safe: 0).map { Array($0) } == [0] && graph.inDegree(safe: 0) == 1)
+        #expect(graph.topologicalPosition(of: 1) == 2 && graph.topologicalPosition(safe: 1) == 2 && graph.topologicalOrder.firstIndex(of: 1) == 2)
+        #expect(Array(graph.successors(of: 1)) == [2] && Array(graph.outEdges(of: 1)) == [2] && graph.outDegree(of: 1) == 1)
+        #expect(Array(graph.predecessors(of: 1)) == [0] && Array(graph.inEdges(of: 1)) == [1] && graph.inDegree(of: 1) == 1)
+        #expect(graph.successors(safe: 1).map { Array($0) } == [2] && graph.outEdges(safe: 1).map { Array($0) } == [2] && graph.outDegree(safe: 1) == 1)
+        #expect(graph.predecessors(safe: 1).map { Array($0) } == [0] && graph.inEdges(safe: 1).map { Array($0) } == [1] && graph.inDegree(safe: 1) == 1)
+        #expect(graph.topologicalPosition(of: 2) == 3 && graph.topologicalPosition(safe: 2) == 3 && graph.topologicalOrder.firstIndex(of: 2) == 3)
+        #expect(Array(graph.successors(of: 2)) == [] as [Int] && Array(graph.outEdges(of: 2)) == [] as [Int] && graph.outDegree(of: 2) == 0)
+        #expect(Array(graph.predecessors(of: 2)) == [1, 0] && Array(graph.inEdges(of: 2)) == [2, 3] && graph.inDegree(of: 2) == 2)
+        #expect(graph.successors(safe: 2).map { Array($0) } == [] as [Int] && graph.outEdges(safe: 2).map { Array($0) } == [] as [Int] && graph.outDegree(safe: 2) == 0)
+        #expect(graph.predecessors(safe: 2).map { Array($0) } == [1, 0] && graph.inEdges(safe: 2).map { Array($0) } == [2, 3] && graph.inDegree(safe: 2) == 2)
+        #expect(!graph.contains(103) && graph.topologicalPosition(safe: 103) == nil && graph.topologicalOrder.firstIndex(of: 103) == nil)
+        #expect(graph.successors(safe: 103) == nil && graph.predecessors(safe: 103) == nil && graph.outEdges(safe: 103) == nil)
+        #expect(graph.inEdges(safe: 103) == nil && graph.outDegree(safe: 103) == nil && graph.inDegree(safe: 103) == nil)
+    }
+
+    @Test("DAG-108 dagShortestPaths: ties go to the first relaxation in the order")
+    func dag108() throws {
+        // DirectedPseudograph; V []; E [0→1, 0→2, 1→3, 2→3] / dagShortestPaths(from: 0, weight: [1, 1, 1, 1])
+        let graph = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [] as [Int], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 1, to: 3), DirectedEdge(from: 2, to: 3)]))
+        let weights1 = [1, 1, 1, 1]
+        let tree1 = graph.dagShortestPaths(from: 0, weight: { weights1[$0] })
+        // The same distances from any DirectedGraph, by a topological sort of the reachable part.
+        let sorted1 = try #require(graph.base.dagShortestPaths(from: 0, weight: { weights1[$0] }))
+        #expect(tree1.distance(to: 0) == 0 && tree1.path(to: 0)?.edges == [] as [Int] && sorted1.distance(to: 0) == 0)
+        #expect(tree1.distance(to: 1) == 1 && tree1.path(to: 1)?.edges == [0] && sorted1.distance(to: 1) == 1)
+        #expect(tree1.distance(to: 2) == 1 && tree1.path(to: 2)?.edges == [1] && sorted1.distance(to: 2) == 1)
+        #expect(tree1.distance(to: 3) == 2 && tree1.path(to: 3)?.edges == [0, 2] && sorted1.distance(to: 3) == 2)
+        // Final state.
+        #expect(Array(graph.topologicalOrder) == [0, 1, 2, 3])
+        #expect(Array(graph.vertices) == [0, 1, 2, 3])
+        #expect(Array(graph.edges.indices) == [0, 1, 2, 3])
+        #expect(Array(graph.edges) == [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 1, to: 3), DirectedEdge(from: 2, to: 3)])
+        #expect(graph.vertexCount == 4 && graph.edgeCount == 4)
+        #expect(graph.topologicalOrder.count == 4 && graph.topologicalOrder.indices == 0 ..< 4)
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [[0, 1], [0, 2], [1, 3], [2, 3]])
+        #expect(Array(graph.base.vertices) == [0, 1, 2, 3] && Array(graph.base.edges) == [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 1, to: 3), DirectedEdge(from: 2, to: 3)])
+        #expect(graph.topologicalPosition(of: 0) == 0 && graph.topologicalPosition(safe: 0) == 0 && graph.topologicalOrder.firstIndex(of: 0) == 0)
+        #expect(Array(graph.successors(of: 0)) == [1, 2] && Array(graph.outEdges(of: 0)) == [0, 1] && graph.outDegree(of: 0) == 2)
+        #expect(Array(graph.predecessors(of: 0)) == [] as [Int] && Array(graph.inEdges(of: 0)) == [] as [Int] && graph.inDegree(of: 0) == 0)
+        #expect(graph.successors(safe: 0).map { Array($0) } == [1, 2] && graph.outEdges(safe: 0).map { Array($0) } == [0, 1] && graph.outDegree(safe: 0) == 2)
+        #expect(graph.predecessors(safe: 0).map { Array($0) } == [] as [Int] && graph.inEdges(safe: 0).map { Array($0) } == [] as [Int] && graph.inDegree(safe: 0) == 0)
+        #expect(graph.topologicalPosition(of: 1) == 1 && graph.topologicalPosition(safe: 1) == 1 && graph.topologicalOrder.firstIndex(of: 1) == 1)
+        #expect(Array(graph.successors(of: 1)) == [3] && Array(graph.outEdges(of: 1)) == [2] && graph.outDegree(of: 1) == 1)
+        #expect(Array(graph.predecessors(of: 1)) == [0] && Array(graph.inEdges(of: 1)) == [0] && graph.inDegree(of: 1) == 1)
+        #expect(graph.successors(safe: 1).map { Array($0) } == [3] && graph.outEdges(safe: 1).map { Array($0) } == [2] && graph.outDegree(safe: 1) == 1)
+        #expect(graph.predecessors(safe: 1).map { Array($0) } == [0] && graph.inEdges(safe: 1).map { Array($0) } == [0] && graph.inDegree(safe: 1) == 1)
+        #expect(graph.topologicalPosition(of: 2) == 2 && graph.topologicalPosition(safe: 2) == 2 && graph.topologicalOrder.firstIndex(of: 2) == 2)
+        #expect(Array(graph.successors(of: 2)) == [3] && Array(graph.outEdges(of: 2)) == [3] && graph.outDegree(of: 2) == 1)
+        #expect(Array(graph.predecessors(of: 2)) == [0] && Array(graph.inEdges(of: 2)) == [1] && graph.inDegree(of: 2) == 1)
+        #expect(graph.successors(safe: 2).map { Array($0) } == [3] && graph.outEdges(safe: 2).map { Array($0) } == [3] && graph.outDegree(safe: 2) == 1)
+        #expect(graph.predecessors(safe: 2).map { Array($0) } == [0] && graph.inEdges(safe: 2).map { Array($0) } == [1] && graph.inDegree(safe: 2) == 1)
+        #expect(graph.topologicalPosition(of: 3) == 3 && graph.topologicalPosition(safe: 3) == 3 && graph.topologicalOrder.firstIndex(of: 3) == 3)
+        #expect(Array(graph.successors(of: 3)) == [] as [Int] && Array(graph.outEdges(of: 3)) == [] as [Int] && graph.outDegree(of: 3) == 0)
+        #expect(Array(graph.predecessors(of: 3)) == [1, 2] && Array(graph.inEdges(of: 3)) == [2, 3] && graph.inDegree(of: 3) == 2)
+        #expect(graph.successors(safe: 3).map { Array($0) } == [] as [Int] && graph.outEdges(safe: 3).map { Array($0) } == [] as [Int] && graph.outDegree(safe: 3) == 0)
+        #expect(graph.predecessors(safe: 3).map { Array($0) } == [1, 2] && graph.inEdges(safe: 3).map { Array($0) } == [2, 3] && graph.inDegree(safe: 3) == 2)
+        #expect(!graph.contains(103) && graph.topologicalPosition(safe: 103) == nil && graph.topologicalOrder.firstIndex(of: 103) == nil)
+        #expect(graph.successors(safe: 103) == nil && graph.predecessors(safe: 103) == nil && graph.outEdges(safe: 103) == nil)
+        #expect(graph.inEdges(safe: 103) == nil && graph.outDegree(safe: 103) == nil && graph.inDegree(safe: 103) == nil)
+    }
+
+    @Test("DAG-109 dagShortestPaths: parallel copies, the lighter")
+    func dag109() throws {
+        // DirectedPseudograph; V []; E [0→1, 0→1] / dagShortestPaths(from: 0, weight: [3, 2])
+        let graph = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [] as [Int], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 1)]))
+        let weights1 = [3, 2]
+        let tree1 = graph.dagShortestPaths(from: 0, weight: { weights1[$0] })
+        // The same distances from any DirectedGraph, by a topological sort of the reachable part.
+        let sorted1 = try #require(graph.base.dagShortestPaths(from: 0, weight: { weights1[$0] }))
+        #expect(tree1.distance(to: 0) == 0 && tree1.path(to: 0)?.edges == [] as [Int] && sorted1.distance(to: 0) == 0)
+        #expect(tree1.distance(to: 1) == 2 && tree1.path(to: 1)?.edges == [1] && sorted1.distance(to: 1) == 2)
+        // Final state.
+        #expect(Array(graph.topologicalOrder) == [0, 1])
+        #expect(Array(graph.vertices) == [0, 1])
+        #expect(Array(graph.edges.indices) == [0, 1])
+        #expect(Array(graph.edges) == [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 1)])
+        #expect(graph.vertexCount == 2 && graph.edgeCount == 2)
+        #expect(graph.topologicalOrder.count == 2 && graph.topologicalOrder.indices == 0 ..< 2)
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [[0, 1], [0, 1]])
+        #expect(Array(graph.base.vertices) == [0, 1] && Array(graph.base.edges) == [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 1)])
+        #expect(graph.topologicalPosition(of: 0) == 0 && graph.topologicalPosition(safe: 0) == 0 && graph.topologicalOrder.firstIndex(of: 0) == 0)
+        #expect(Array(graph.successors(of: 0)) == [1, 1] && Array(graph.outEdges(of: 0)) == [0, 1] && graph.outDegree(of: 0) == 2)
+        #expect(Array(graph.predecessors(of: 0)) == [] as [Int] && Array(graph.inEdges(of: 0)) == [] as [Int] && graph.inDegree(of: 0) == 0)
+        #expect(graph.successors(safe: 0).map { Array($0) } == [1, 1] && graph.outEdges(safe: 0).map { Array($0) } == [0, 1] && graph.outDegree(safe: 0) == 2)
+        #expect(graph.predecessors(safe: 0).map { Array($0) } == [] as [Int] && graph.inEdges(safe: 0).map { Array($0) } == [] as [Int] && graph.inDegree(safe: 0) == 0)
+        #expect(graph.topologicalPosition(of: 1) == 1 && graph.topologicalPosition(safe: 1) == 1 && graph.topologicalOrder.firstIndex(of: 1) == 1)
+        #expect(Array(graph.successors(of: 1)) == [] as [Int] && Array(graph.outEdges(of: 1)) == [] as [Int] && graph.outDegree(of: 1) == 0)
+        #expect(Array(graph.predecessors(of: 1)) == [0, 0] && Array(graph.inEdges(of: 1)) == [0, 1] && graph.inDegree(of: 1) == 2)
+        #expect(graph.successors(safe: 1).map { Array($0) } == [] as [Int] && graph.outEdges(safe: 1).map { Array($0) } == [] as [Int] && graph.outDegree(safe: 1) == 0)
+        #expect(graph.predecessors(safe: 1).map { Array($0) } == [0, 0] && graph.inEdges(safe: 1).map { Array($0) } == [0, 1] && graph.inDegree(safe: 1) == 2)
+        #expect(!graph.contains(101) && graph.topologicalPosition(safe: 101) == nil && graph.topologicalOrder.firstIndex(of: 101) == nil)
+        #expect(graph.successors(safe: 101) == nil && graph.predecessors(safe: 101) == nil && graph.outEdges(safe: 101) == nil)
+        #expect(graph.inEdges(safe: 101) == nil && graph.outDegree(safe: 101) == nil && graph.inDegree(safe: 101) == nil)
+    }
+
+    @Test("DAG-110 dagShortestPaths after removals and reordering (Stable holes)")
+    func dag110() throws {
+        // StableDirectedGraph; V [0, 1, 2, 3, 4]; E [0→1, 1→2, 3→4] / remove(3) / insert(edge: 4→0) / dagShortestPaths(from: 4, weight: [5, 1, 99, -2])
+        var graph = try #require(DirectedAcyclicGraph<StableDirectedGraph<Int>>(vertices: [0, 1, 2, 3, 4], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 3, to: 4)]))
+        #expect(graph.remove(3) == 3)
+        // After remove(3).
+        #expect(Array(graph.topologicalOrder) == [0, 1, 4, 2])
+        #expect(Array(graph.vertices) == [0, 1, 2, 4])
+        #expect(Array(graph.edges.indices) == [0, 1])
+        #expect(Array(graph.edges) == [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+        #expect(graph.insert(edge: DirectedEdge(from: 4, to: 0)) == 3)
+        let weights3 = [5, 1, 99, -2]
+        let tree3 = graph.dagShortestPaths(from: 4, weight: { weights3[$0] })
+        // The same distances from any DirectedGraph, by a topological sort of the reachable part.
+        let sorted3 = try #require(graph.base.dagShortestPaths(from: 4, weight: { weights3[$0] }))
+        #expect(tree3.distance(to: 0) == -2 && tree3.path(to: 0)?.edges == [3] && sorted3.distance(to: 0) == -2)
+        #expect(tree3.distance(to: 1) == 3 && tree3.path(to: 1)?.edges == [3, 0] && sorted3.distance(to: 1) == 3)
+        #expect(tree3.distance(to: 2) == 4 && tree3.path(to: 2)?.edges == [3, 0, 1] && sorted3.distance(to: 2) == 4)
+        #expect(tree3.distance(to: 4) == 0 && tree3.path(to: 4)?.edges == [] as [Int] && sorted3.distance(to: 4) == 0)
+        // Final state.
+        #expect(Array(graph.topologicalOrder) == [4, 0, 1, 2])
+        #expect(Array(graph.vertices) == [0, 1, 2, 4])
+        #expect(Array(graph.edges.indices) == [0, 1, 3])
+        #expect(Array(graph.edges) == [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 4, to: 0)])
+        #expect(graph.vertexCount == 4 && graph.edgeCount == 3)
+        #expect(graph.topologicalOrder.count == 4 && graph.topologicalOrder.indices == 0 ..< 4)
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [[0, 1], [1, 2], [4, 0]])
+        #expect(Array(graph.base.vertices) == [0, 1, 2, 4] && Array(graph.base.edges) == [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 4, to: 0)])
+        #expect(graph.topologicalPosition(of: 0) == 1 && graph.topologicalPosition(safe: 0) == 1 && graph.topologicalOrder.firstIndex(of: 0) == 1)
+        #expect(Array(graph.successors(of: 0)) == [1] && Array(graph.outEdges(of: 0)) == [0] && graph.outDegree(of: 0) == 1)
+        #expect(Array(graph.predecessors(of: 0)) == [4] && Array(graph.inEdges(of: 0)) == [3] && graph.inDegree(of: 0) == 1)
+        #expect(graph.successors(safe: 0).map { Array($0) } == [1] && graph.outEdges(safe: 0).map { Array($0) } == [0] && graph.outDegree(safe: 0) == 1)
+        #expect(graph.predecessors(safe: 0).map { Array($0) } == [4] && graph.inEdges(safe: 0).map { Array($0) } == [3] && graph.inDegree(safe: 0) == 1)
+        #expect(graph.topologicalPosition(of: 1) == 2 && graph.topologicalPosition(safe: 1) == 2 && graph.topologicalOrder.firstIndex(of: 1) == 2)
+        #expect(Array(graph.successors(of: 1)) == [2] && Array(graph.outEdges(of: 1)) == [1] && graph.outDegree(of: 1) == 1)
+        #expect(Array(graph.predecessors(of: 1)) == [0] && Array(graph.inEdges(of: 1)) == [0] && graph.inDegree(of: 1) == 1)
+        #expect(graph.successors(safe: 1).map { Array($0) } == [2] && graph.outEdges(safe: 1).map { Array($0) } == [1] && graph.outDegree(safe: 1) == 1)
+        #expect(graph.predecessors(safe: 1).map { Array($0) } == [0] && graph.inEdges(safe: 1).map { Array($0) } == [0] && graph.inDegree(safe: 1) == 1)
+        #expect(graph.topologicalPosition(of: 2) == 3 && graph.topologicalPosition(safe: 2) == 3 && graph.topologicalOrder.firstIndex(of: 2) == 3)
+        #expect(Array(graph.successors(of: 2)) == [] as [Int] && Array(graph.outEdges(of: 2)) == [] as [Int] && graph.outDegree(of: 2) == 0)
+        #expect(Array(graph.predecessors(of: 2)) == [1] && Array(graph.inEdges(of: 2)) == [1] && graph.inDegree(of: 2) == 1)
+        #expect(graph.successors(safe: 2).map { Array($0) } == [] as [Int] && graph.outEdges(safe: 2).map { Array($0) } == [] as [Int] && graph.outDegree(safe: 2) == 0)
+        #expect(graph.predecessors(safe: 2).map { Array($0) } == [1] && graph.inEdges(safe: 2).map { Array($0) } == [1] && graph.inDegree(safe: 2) == 1)
+        #expect(graph.topologicalPosition(of: 4) == 0 && graph.topologicalPosition(safe: 4) == 0 && graph.topologicalOrder.firstIndex(of: 4) == 0)
+        #expect(Array(graph.successors(of: 4)) == [0] && Array(graph.outEdges(of: 4)) == [3] && graph.outDegree(of: 4) == 1)
+        #expect(Array(graph.predecessors(of: 4)) == [] as [Int] && Array(graph.inEdges(of: 4)) == [] as [Int] && graph.inDegree(of: 4) == 0)
+        #expect(graph.successors(safe: 4).map { Array($0) } == [0] && graph.outEdges(safe: 4).map { Array($0) } == [3] && graph.outDegree(safe: 4) == 1)
+        #expect(graph.predecessors(safe: 4).map { Array($0) } == [] as [Int] && graph.inEdges(safe: 4).map { Array($0) } == [] as [Int] && graph.inDegree(safe: 4) == 0)
+        #expect(!graph.contains(104) && graph.topologicalPosition(safe: 104) == nil && graph.topologicalOrder.firstIndex(of: 104) == nil)
+        #expect(graph.successors(safe: 104) == nil && graph.predecessors(safe: 104) == nil && graph.outEdges(safe: 104) == nil)
+        #expect(graph.inEdges(safe: 104) == nil && graph.outDegree(safe: 104) == nil && graph.inDegree(safe: 104) == nil)
+    }
+
+    @Test("DAG-111 dagShortestPaths on AdjacencyList after a swap-remove")
+    func dag111() throws {
+        // AdjacencyList; V [0, 1, 2, 3]; E [0→1, 1→3, 0→2, 2→3] / remove(0) / insert(edge: 2→1) / dagShortestPaths(from: 2, weight: [4, 1, 1, 1])
+        var graph = try #require(DirectedAcyclicGraph<AdjacencyList<Int>>(vertices: [0, 1, 2, 3], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 3), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 2, to: 3)]))
+        #expect(graph.remove(0) == 0)
+        // After remove(0).
+        #expect(Array(graph.topologicalOrder) == [1, 2, 3])
+        #expect(Array(graph.vertices) == [3, 1, 2])
+        #expect(Array(graph.edges.indices) == [0, 1])
+        #expect(Array(graph.edges) == [DirectedEdge(from: 2, to: 3), DirectedEdge(from: 1, to: 3)])
+        #expect(graph.insert(edge: DirectedEdge(from: 2, to: 1)) == 2)
+        let weights3 = [4, 1, 1, 1]
+        let tree3 = graph.dagShortestPaths(from: 2, weight: { weights3[$0] })
+        // The same distances from any DirectedGraph, by a topological sort of the reachable part.
+        let sorted3 = try #require(graph.base.dagShortestPaths(from: 2, weight: { weights3[$0] }))
+        #expect(tree3.distance(to: 3) == 2 && tree3.path(to: 3)?.edges == [2, 1] && sorted3.distance(to: 3) == 2)
+        #expect(tree3.distance(to: 1) == 1 && tree3.path(to: 1)?.edges == [2] && sorted3.distance(to: 1) == 1)
+        #expect(tree3.distance(to: 2) == 0 && tree3.path(to: 2)?.edges == [] as [Int] && sorted3.distance(to: 2) == 0)
+        // Final state.
+        #expect(Array(graph.topologicalOrder) == [2, 1, 3])
+        #expect(Array(graph.vertices) == [3, 1, 2])
+        #expect(Array(graph.edges.indices) == [0, 1, 2])
+        #expect(Array(graph.edges) == [DirectedEdge(from: 2, to: 3), DirectedEdge(from: 1, to: 3), DirectedEdge(from: 2, to: 1)])
+        #expect(graph.vertexCount == 3 && graph.edgeCount == 3)
+        #expect(graph.topologicalOrder.count == 3 && graph.topologicalOrder.indices == 0 ..< 3)
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [[2, 3], [1, 3], [2, 1]])
+        #expect(Array(graph.base.vertices) == [3, 1, 2] && Array(graph.base.edges) == [DirectedEdge(from: 2, to: 3), DirectedEdge(from: 1, to: 3), DirectedEdge(from: 2, to: 1)])
+        #expect(graph.topologicalPosition(of: 3) == 2 && graph.topologicalPosition(safe: 3) == 2 && graph.topologicalOrder.firstIndex(of: 3) == 2)
+        #expect(Array(graph.successors(of: 3)) == [] as [Int] && Array(graph.outEdges(of: 3)) == [] as [Int] && graph.outDegree(of: 3) == 0)
+        #expect(Array(graph.predecessors(of: 3)) == [1, 2] && Array(graph.inEdges(of: 3)) == [1, 0] && graph.inDegree(of: 3) == 2)
+        #expect(graph.successors(safe: 3).map { Array($0) } == [] as [Int] && graph.outEdges(safe: 3).map { Array($0) } == [] as [Int] && graph.outDegree(safe: 3) == 0)
+        #expect(graph.predecessors(safe: 3).map { Array($0) } == [1, 2] && graph.inEdges(safe: 3).map { Array($0) } == [1, 0] && graph.inDegree(safe: 3) == 2)
+        #expect(graph.topologicalPosition(of: 1) == 1 && graph.topologicalPosition(safe: 1) == 1 && graph.topologicalOrder.firstIndex(of: 1) == 1)
+        #expect(Array(graph.successors(of: 1)) == [3] && Array(graph.outEdges(of: 1)) == [1] && graph.outDegree(of: 1) == 1)
+        #expect(Array(graph.predecessors(of: 1)) == [2] && Array(graph.inEdges(of: 1)) == [2] && graph.inDegree(of: 1) == 1)
+        #expect(graph.successors(safe: 1).map { Array($0) } == [3] && graph.outEdges(safe: 1).map { Array($0) } == [1] && graph.outDegree(safe: 1) == 1)
+        #expect(graph.predecessors(safe: 1).map { Array($0) } == [2] && graph.inEdges(safe: 1).map { Array($0) } == [2] && graph.inDegree(safe: 1) == 1)
+        #expect(graph.topologicalPosition(of: 2) == 0 && graph.topologicalPosition(safe: 2) == 0 && graph.topologicalOrder.firstIndex(of: 2) == 0)
+        #expect(Array(graph.successors(of: 2)) == [3, 1] && Array(graph.outEdges(of: 2)) == [0, 2] && graph.outDegree(of: 2) == 2)
+        #expect(Array(graph.predecessors(of: 2)) == [] as [Int] && Array(graph.inEdges(of: 2)) == [] as [Int] && graph.inDegree(of: 2) == 0)
+        #expect(graph.successors(safe: 2).map { Array($0) } == [3, 1] && graph.outEdges(safe: 2).map { Array($0) } == [0, 2] && graph.outDegree(safe: 2) == 2)
+        #expect(graph.predecessors(safe: 2).map { Array($0) } == [] as [Int] && graph.inEdges(safe: 2).map { Array($0) } == [] as [Int] && graph.inDegree(safe: 2) == 0)
+        #expect(!graph.contains(103) && graph.topologicalPosition(safe: 103) == nil && graph.topologicalOrder.firstIndex(of: 103) == nil)
+        #expect(graph.successors(safe: 103) == nil && graph.predecessors(safe: 103) == nil && graph.outEdges(safe: 103) == nil)
+        #expect(graph.inEdges(safe: 103) == nil && graph.outDegree(safe: 103) == nil && graph.inDegree(safe: 103) == nil)
     }
 }

@@ -351,10 +351,19 @@ enum FuzzDirectedAcyclicGraph {
         }
         check(lane.graph.source(ofEdgeAt: position) == u && lane.graph.target(ofEdgeAt: position) == v, "insert returned \(position), not an edge \(u)→\(v): \(context)")
         lane.model.insert(Pair(source: u, target: v))
-        // With both ends already placed, a forward edge moves nothing and a backward one moves only
-        // the places between the endpoints'. Where a new endpoint goes is left open: the checks
-        // after the step cover it.
-        if missing { return }
+        // A new source to an existing target is placed first; any other new endpoint last, source
+        // first. Either way nothing else moves. With both ends already placed, a forward edge moves
+        // nothing and a backward one moves only the places between the endpoints'.
+        if missing {
+            let after = Array(lane.graph.topologicalOrder)
+            if !model.vertices.contains(u) && model.vertices.contains(v) {
+                check(after == [u] + before.order, "a new source \(u) to \(v) is placed first: \(before.order) to \(after): \(context)")
+            } else {
+                let added = [u, v].filter { !model.vertices.contains($0) }
+                check(after == before.order + added, "new endpoints \(added) are placed last: \(before.order) to \(after): \(context)")
+            }
+            return
+        }
         let order = before.order
         let after = Array(lane.graph.topologicalOrder)
         let low = order.firstIndex(of: v)!, high = order.firstIndex(of: u)!

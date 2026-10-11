@@ -81,7 +81,7 @@ let targets: [Target] = [
     .target(name: "ImplicitGraphs", dependencies: ["GraphProtocols"], exclude: bazelFiles),
     .target(name: "LabeledGraphs", dependencies: ["GraphProtocols", "CompressedSparseRowModule", "AdjacencyMatrixModule", .product(name: "OrderedCollections", package: "swift-collections")], exclude: bazelFiles),
     // Structures
-    .target(name: "DirectedAcyclicGraphModule", dependencies: ["GraphProtocols", "Walks"], exclude: bazelFiles),
+    .target(name: "DirectedAcyclicGraphModule", dependencies: ["GraphProtocols", "Walks", "StableGraphs"], exclude: bazelFiles),
     .target(name: "Trees", dependencies: ["GraphProtocols", "Walks"], exclude: bazelFiles),
     .target(name: "BipartiteGraphs", dependencies: ["GraphProtocols", "Walks", "AdjacencyListModule"], exclude: bazelFiles),
     .target(name: "Multigraphs", dependencies: ["GraphProtocols", "AdjacencyListModule"], exclude: bazelFiles),
@@ -93,7 +93,7 @@ let targets: [Target] = [
     .target(name: "GraphProducts", dependencies: ["GraphProtocols"], exclude: bazelFiles),
     // Algorithms
     .target(name: "Traversal", dependencies: ["GraphProtocols", "Walks"], exclude: bazelFiles),
-    .target(name: "ShortestPaths", dependencies: ["GraphProtocols", "Walks", "PriorityQueueModule"], exclude: bazelFiles),
+    .target(name: "ShortestPaths", dependencies: ["GraphProtocols", "Walks", "PriorityQueueModule", "DirectedAcyclicGraphModule"], exclude: bazelFiles),
     .target(name: "SpanningTrees", dependencies: ["GraphProtocols", "DisjointSetModule", "PriorityQueueModule"], exclude: bazelFiles),
     .target(name: "Connectivity", dependencies: ["GraphProtocols", "CompressedSparseRowModule"], exclude: bazelFiles),
     .target(name: "Cycles", dependencies: ["GraphProtocols", "Walks", "DisjointSetModule"], exclude: bazelFiles),
@@ -133,7 +133,7 @@ let targets: [Target] = [
     .testTarget(name: "TraversalTests", dependencies: ["GraphProtocols", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", "Walks"], exclude: ["BUILD.bazel", "README.md"]),
     .testTarget(name: "PriorityQueueTests", dependencies: ["PriorityQueueModule", "GrafluentTestSupport"], exclude: ["BUILD.bazel", "README.md"]),
     .testTarget(name: "DisjointSetTests", dependencies: ["DisjointSetModule", "GrafluentTestSupport"], exclude: ["BUILD.bazel", "README.md"]),
-    .testTarget(name: "ShortestPathsTests", dependencies: ["GraphProtocols", "ShortestPaths", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", .product(name: "PropertyBased", package: "swift-property-based"), "Walks"], exclude: ["BUILD.bazel", "README.md"]),
+    .testTarget(name: "ShortestPathsTests", dependencies: ["GraphProtocols", "ShortestPaths", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "DirectedAcyclicGraphModule", "Multigraphs", "StableGraphs", "GrafluentTestSupport", .product(name: "PropertyBased", package: "swift-property-based"), "Walks"], exclude: ["BUILD.bazel", "README.md"]),
     .testTarget(name: "SpanningTreesTests", dependencies: ["GraphProtocols", "SpanningTrees", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", .product(name: "PropertyBased", package: "swift-property-based")], exclude: ["BUILD.bazel", "README.md"]),
     .testTarget(name: "WalksTests", dependencies: ["GraphProtocols", "Walks", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", .product(name: "PropertyBased", package: "swift-property-based")], exclude: ["BUILD.bazel", "README.md"]),
     .testTarget(name: "CyclesTests", dependencies: ["GraphProtocols", "Cycles", "Walks", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", .product(name: "PropertyBased", package: "swift-property-based")], exclude: ["BUILD.bazel", "README.md"]),
@@ -153,7 +153,7 @@ let targets: [Target] = [
     .testTarget(name: "ConnectivityTests", dependencies: ["GraphProtocols", "Connectivity", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", .product(name: "PropertyBased", package: "swift-property-based")], exclude: ["BUILD.bazel", "README.md"]),
     .testTarget(name: "StableGraphsTests", dependencies: ["GraphProtocols", "StableGraphs", "Multigraphs", "Traversal", "Connectivity", "ShortestPaths", "AdjacencyListModule", "GrafluentTestSupport", .product(name: "PropertyBased", package: "swift-property-based")], exclude: ["BUILD.bazel", "README.md"]),
     .testTarget(name: "LabeledGraphsTests", dependencies: ["GraphProtocols", "LabeledGraphs", "CompressedSparseRowModule", "AdjacencyMatrixModule", "AdjacencyListModule", "Multigraphs", "StableGraphs", "Traversal", "Connectivity", "ShortestPaths", "SpanningTrees", "Centrality", "Flows", "Distances", "GrafluentTestSupport", .product(name: "PropertyBased", package: "swift-property-based"), .product(name: "OrderedCollections", package: "swift-collections")], exclude: ["BUILD.bazel", "README.md"]),
-    .testTarget(name: "DirectedAcyclicGraphTests", dependencies: ["GraphProtocols", "DirectedAcyclicGraphModule", "AdjacencyListModule", "Multigraphs", "StableGraphs", "Traversal", "Connectivity", "Walks", "GrafluentTestSupport", .product(name: "PropertyBased", package: "swift-property-based")], exclude: ["BUILD.bazel", "README.md"]),
+    .testTarget(name: "DirectedAcyclicGraphTests", dependencies: ["GraphProtocols", "DirectedAcyclicGraphModule", "AdjacencyListModule", "Multigraphs", "StableGraphs", "Traversal", "Connectivity", "ShortestPaths", "Walks", "GrafluentTestSupport", .product(name: "PropertyBased", package: "swift-property-based")], exclude: ["BUILD.bazel", "README.md"]),
     .testTarget(name: "GraphProtocolsTests", dependencies: ["GraphProtocols", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "EdgeListModule", "GrafluentTestSupport", .product(name: "BitCollections", package: "swift-collections")], exclude: ["BUILD.bazel", "README.md"]),
 ]
 

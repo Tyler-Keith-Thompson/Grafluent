@@ -550,7 +550,8 @@ extension StableDirectedGraph: MutableDirectedGraph {
     /// Removes the vertex at position `key`, leaving a hole: nothing moves, so always `nil`.
     @inlinable
     public mutating func _removeVertex(atKey key: Int) -> Int? {
-        remove(_vertex(atSlot: key))
+        _slots.removeValue(forKey: _vertex(atSlot: key))
+        _ = _removeSlot(key)
         return nil
     }
 

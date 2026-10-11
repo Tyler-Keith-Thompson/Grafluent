@@ -3,7 +3,7 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# DirectedAcyclicGraph: a wrapper over any MutableDirectedGraph that rejects an edge closing a cycle and keeps a topological order by Pearce–Kelly, with every read member forwarded to the base.
+# DirectedAcyclicGraph: a wrapper over any MutableDirectedGraph that rejects an edge closing a cycle and keeps a topological order by Pearce–Kelly, with every read member forwarded to the base; transitive closure and reduction, longest paths (unit and weighted).
 swift_library(
     name = "DirectedAcyclicGraphModule",
     srcs = glob(["**/*.swift"]),
@@ -11,6 +11,7 @@ swift_library(
     deps = [
         "//Sources/GraphProtocols",
         "//Sources/Walks",
+        "//Sources/StableGraphs",
     ],
     visibility = ["//visibility:public"],
 )
@@ -23,6 +24,7 @@ docc_archive(
     deps = [
         "//Sources/GraphProtocols:GraphProtocolsDocumentation",
         "//Sources/Walks:WalksDocumentation",
+        "//Sources/StableGraphs:StableGraphsDocumentation",
     ],
     tags = ["manual"],
     visibility = ["//visibility:public"],

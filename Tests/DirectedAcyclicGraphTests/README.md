@@ -32,10 +32,14 @@ struct DirectedAcyclicGraph<Base: MutableDirectedGraph>: BidirectionalDirectedGr
     topologicalPosition(of:), topologicalPosition(safe:)
     successors(safe:), predecessors(safe:), outEdges(safe:), inEdges(safe:), outDegree(safe:), inDegree(safe:)
     insert(_:) -> (inserted:, memberAfterInsert:)                    // placed last
-    insert(edge:) -> Edges.Index?, insert(safe:) -> Edges.Index?     // nil: would close a cycle (or missing, safe:)
+    insert(edge:) -> Edges.Index?, insert(safe:) -> Edges.Index?     // nil: would close a cycle (or missing, safe:);
+                                                                     // a new source to an old target placed first
     remove(_:), remove(edge:), remove(edgeAt:) (DirectedPseudograph, StableDirectedGraph),
         removeAll(keepingCapacity:), removeAllEdges(keepingCapacity:), reserveCapacity(vertexCount:edgeCount:)
-    hasPath(from:to:), transitiveClosure(), transitiveReduction(), longestPath() -> Path?
+    hasPath(from:to:), transitiveClosure(), transitiveReduction(), longestPath() -> Path?, longestPath(weight:) -> Path?
+    addEdgeMap(of:), addVertexMap(of:), removeEdgeMap(_:), removeVertexMap(_:), self[map, …]  // Base == StableDirectedGraph
+// ShortestPaths: dagShortestPaths(from:weight:) on any DirectedGraph (nil when a cycle is reachable),
+// and on DirectedAcyclicGraph in its order (not optional).
 ```
 
 ## Conventions
@@ -46,15 +50,15 @@ struct DirectedAcyclicGraph<Base: MutableDirectedGraph>: BidirectionalDirectedGr
 | The base | Built as it builds itself: listed vertices first, then new endpoints. Copies collapse on `AdjacencyList` and are kept on the others | DAG-006 – DAG-008, DAG-011 |
 | Bulk failure | `nil` when the edges have a cycle, a self-loop included, from every initializer | DAG-009, DAG-010 |
 | New vertex | Placed last | DAG-012 |
-| Forward edge | Inserted with no reordering. A missing endpoint is inserted first, source then target, each placed last, and can never close a cycle | DAG-013 – DAG-019 |
-| Backward edge | Pearce–Kelly. B (u and its ancestors placed after v), then F (v and its descendants placed before u), each by old place, take the pooled places. Nothing else moves | DAG-020 – DAG-029 |
-| Rejected edge | `nil`, a self-loop included (even on a non-vertex), and nothing changes. The witness is `bidirectionalShortestPath(from: target, to: source)`, one of the shortest paths the cell lists | DAG-029 – DAG-040 |
-| `insert(safe:)` | `nil` for a missing endpoint or a rejected edge, otherwise `insert(edge:)` | DAG-041 – DAG-045 |
-| Removal | Keeps the order. `remove(_:)` closes the gap and follows the base's swap-remove; `removeAllEdges()` keeps the order; `removeAll()` clears it | DAG-046 – DAG-058 |
-| Order queries | `topologicalPosition`, the order's subscript, and an order-pruned `hasPath` (true for the same vertex) | DAG-059 – DAG-067 |
-| Equality | The base's: the order is history and does not count | DAG-068, DAG-069 |
-| Algorithms | `transitiveClosure()` appends the missing edges per source in topological order. `transitiveReduction()` keeps the first copy, at fresh positions. `longestPath()` takes the first tying in-edge and the first end in topological order | DAG-070 – DAG-086 |
-| Codable | `{base, order}`, with the order as offsets into `base.vertices`. Decoding re-checks the payload: a cycle, an order that is not a permutation, or a backward edge is `dataCorrupted` | DAG-087 – DAG-090 |
+| Forward edge | Inserted with no reordering. A missing endpoint is inserted first, source then target. A new source whose target is already a vertex is placed first, any other new endpoint last, so an edge with a new endpoint goes forward and never reorders; the free front slots grow as sources arrive | DAG-013 – DAG-022 |
+| Backward edge | Pearce–Kelly. B (u and its ancestors placed after v), then F (v and its descendants placed before u), each by old place, take the pooled places. Nothing else moves | DAG-023 – DAG-032 |
+| Rejected edge | `nil`, a self-loop included (even on a non-vertex), and nothing changes. The witness is `bidirectionalShortestPath(from: target, to: source)`, one of the shortest paths the cell lists | DAG-032 – DAG-043 |
+| `insert(safe:)` | `nil` for a missing endpoint or a rejected edge, otherwise `insert(edge:)` | DAG-044 – DAG-048 |
+| Removal | Keeps the order. `remove(_:)` leaves a hole in the vertex's slot (trimmed at either end; the slots are compacted once holes outnumber vertices), places count past the holes, and a swap-removed base's moved vertex keeps its slot; `removeAllEdges()` keeps the order; `removeAll()` clears it | DAG-049 – DAG-069 |
+| Order queries | `topologicalPosition`, the order's subscript, and an order-pruned `hasPath` (true for the same vertex) | DAG-070 – DAG-078 |
+| Equality | The base's: the order is history and does not count | DAG-079, DAG-080 |
+| Algorithms | `transitiveClosure()` appends the missing edges per source in topological order. `transitiveReduction()` keeps the first copy, at fresh positions. `longestPath()` takes the first tying in-edge and the first end in topological order; `longestPath(weight:)` is NetworkX's `dag_longest_path(weight=)`, restarting at zero where the best is negative; `dagShortestPaths` (ShortestPaths) relaxes in the order, and agrees with the generic run on `base` | DAG-081 – DAG-111 |
+| Codable | `{base, order}`, with the order as offsets into `base.vertices`. Decoding re-checks the payload: a cycle, an order that is not a permutation, or a backward edge is `dataCorrupted`. On every base, holes included; a Stable vertex at position 2⁵⁰ costs one page | DAG-112 – DAG-120 |
 
 ## How values are pinned
 
@@ -126,7 +130,18 @@ not from the setup.
   An adversarial order reverses a chain one edge at a time, moving the whole prefix on every
   insert. Pearce and Kelly's own model is a random DAG with a hidden order and its edges inserted
   in random order. Later edges down the hidden order are rejected exactly when the base finds a
-  path.
+  path. Churn on each base puts new sources first and new targets last, reorders and removes
+  anywhere (so the free front slots grow, holes are made, trimmed and compacted), and after each
+  round checks every place three ways and every subscript against the order.
+- **Review findings.** The attached maps of a `StableDirectedGraph` base, through the wrapper
+  (README Q9); `remove(_:)` as a `MutableDirectedGraph` requirement, from generic code; vertex
+  removal through the wrapper hashing as the bare base's removal does (one more on the stable
+  base, whose removal finds and drops the vertex in one dictionary operation), compared between
+  two copies of one base since a dictionary removal rehashes the entries it shifts; the two
+  causes of `insert(safe:)`'s nil.
+- **ShortestPaths** (`Tests/ShortestPathsTests/DAGShortestPathTests.swift`): `dagShortestPaths`
+  on every representation, `nil` exactly when a cycle is reachable, several sources, ties, and
+  random DAGs with holes against Bellman–Ford.
 
 ## Planted bugs
 

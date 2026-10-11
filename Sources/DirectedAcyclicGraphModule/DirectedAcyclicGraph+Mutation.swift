@@ -15,8 +15,10 @@ extension DirectedAcyclicGraph {
     }
 
     /// Inserts `edge`, unless it would close a cycle, inserting either endpoint that is not already
-    /// a vertex (source first, each placed last). A self-loop closes a cycle and is rejected
-    /// before anything is inserted.
+    /// a vertex, source first. A new source whose target is already a vertex is placed first in the
+    /// order; any other new endpoint is placed last. So an edge with a new endpoint always goes
+    /// forward and never reorders. A self-loop closes a cycle and is rejected before anything is
+    /// inserted.
     ///
     /// When the source is already placed before the target, the cost is two array reads plus the
     /// base's insertion. Otherwise Pearce and Kelly's reordering runs, O(‖δ‖ + δ log δ) for the δ
@@ -30,9 +32,14 @@ extension DirectedAcyclicGraph {
     @discardableResult
     public mutating func insert(edge: DirectedEdge<Vertex>) -> Edges.Index? {
         if edge.source == edge.target { return nil }
-        let source = _base._key(of: edge.source) ?? _appendVertex(edge.source)
-        let target = _base._key(of: edge.target) ?? _appendVertex(edge.target)
-        return _insertEdge(source, target)
+        if let source = _base._key(of: edge.source) {
+            return _insertEdge(source, _base._key(of: edge.target) ?? _appendVertex(edge.target))
+        }
+        if let target = _base._key(of: edge.target) {
+            return _insertEdge(_prependVertex(edge.source), target)
+        }
+        let source = _appendVertex(edge.source)
+        return _insertEdge(source, _appendVertex(edge.target))
     }
 
     /// Inserts `edge` only when both endpoints are already vertices and the edge would not close a
@@ -41,8 +48,12 @@ extension DirectedAcyclicGraph {
     /// petgraph's `Acyclic::try_add_edge` does (`AcyclicEdgeError::InvalidEdge`). Costs as
     /// `insert(edge:)`.
     ///
+    /// `nil` has two causes; `contains(edge.source) && contains(edge.target)` tells them apart: when
+    /// both are vertices, the edge would close a cycle (a self-loop included), and
+    /// `bidirectionalShortestPath(from: edge.target, to: edge.source)` is the path it would close.
+    ///
     /// - Returns: The edge's position, as `insert(edge:)`'s, or `nil` when an endpoint is missing
-    ///   or the edge would close a cycle (a self-loop included).
+    ///   or the edge would close a cycle.
     @inlinable
     @discardableResult
     public mutating func insert(safe edge: DirectedEdge<Vertex>) -> Edges.Index? {
@@ -54,9 +65,19 @@ extension DirectedAcyclicGraph {
     @inlinable
     internal mutating func _appendVertex(_ vertex: Vertex) -> Int {
         let key = _base._insertVertex(vertex)
-        _table.insert(key, label: _nextLabel)
-        _nextLabel &+= 1
-        _order.append(key)
+        _table.insert(key, label: _order.slots.count)
+        _order.slots.append(key)
+        return key
+    }
+
+    /// Appends `vertex`, which is not a vertex, to the base, and places it first in the order.
+    @inlinable
+    internal mutating func _prependVertex(_ vertex: Vertex) -> Int {
+        let key = _base._insertVertex(vertex)
+        if _order.first == 0 { _growFront() }
+        _order.first &-= 1
+        _order.slots[_order.first] = key
+        _table.insert(key, label: _order.first)
         return key
     }
 
@@ -70,10 +91,33 @@ extension DirectedAcyclicGraph {
         return _base._insertEdge(fromKey: source, toKey: target)
     }
 
+    /// Sorts by label: an insertion sort up to 24 elements, where it beats the standard sort's
+    /// setup, and the standard sort above.
+    @inlinable
+    internal static func _sortByLabel(_ placed: inout ContiguousArray<_Placed>) {
+        if placed.count > 24 {
+            placed.sort { $0.label < $1.label }
+            return
+        }
+        placed.withUnsafeMutableBufferPointer { placed in
+            var i = 1
+            while i < placed.count {
+                let moving = placed[i]
+                var j = i
+                while j > 0, placed[j &- 1].label > moving.label {
+                    placed[j] = placed[j &- 1]
+                    j &-= 1
+                }
+                placed[j] = moving
+                i &+= 1
+            }
+        }
+    }
+
     /// Pearce and Kelly's reordering for an edge `source → target` with `source` placed after
     /// `target`: true once the order fits the edge, false, with the order unchanged, when `target`
-    /// reaches `source`. Places are compared by label. One inline loop per search, on scratch kept
-    /// in the value (a nested function would box the scratch it captures).
+    /// reaches `source`. Places are compared by label, which is the slot. One inline loop per
+    /// search, on scratch kept in the value (a nested function would box the scratch it captures).
     @inlinable
     internal mutating func _reorder(source: Int, target: Int) -> Bool {
         let upper = _table.label(source), lower = _table.label(target)
@@ -118,43 +162,38 @@ extension DirectedAcyclicGraph {
         }
 
         // Each set in its old order; the pooled labels, merged in increasing order, go to the
-        // backward set and then the forward set, and the keys to those labels' places.
-        _forward.sort { $0.label < $1.label }
-        _backward.sort { $0.label < $1.label }
+        // backward set and then the forward set, and each key to the slot its label names.
+        Self._sortByLabel(&_forward)
+        Self._sortByLabel(&_backward)
         _labels.removeAll(keepingCapacity: true)
-        _places.removeAll(keepingCapacity: true)
         var f = 0, b = 0
         while f < _forward.count || b < _backward.count {
-            let moved: _Placed
             if b == _backward.count || (f < _forward.count && _forward[f].label < _backward[b].label) {
-                moved = _forward[f]
+                _labels.append(_forward[f].label)
                 f &+= 1
             } else {
-                moved = _backward[b]
+                _labels.append(_backward[b].label)
                 b &+= 1
             }
-            _labels.append(moved.label)
-            _places.append(_table.position(ofLabel: moved.label, key: moved.key, in: _order))
         }
         var i = 0
         for moved in _backward {
             _table.setLabel(moved.key, _labels[i])
-            _order[_places[i]] = moved.key
+            _order.slots[_labels[i]] = moved.key
             i &+= 1
         }
         for moved in _forward {
             _table.setLabel(moved.key, _labels[i])
-            _order[_places[i]] = moved.key
+            _order.slots[_labels[i]] = moved.key
             i &+= 1
         }
         return true
     }
 
-    /// Removes `vertex` and every edge at it, closing its gap in the order: the vertices after it
-    /// move up one place, in one memmove, and keep their labels (see the type's documentation).
-    /// On a base that fills the hole by moving its last vertex in (`AdjacencyList`,
-    /// `DirectedPseudograph`), the moved vertex keeps its place. O(n − place) for the memmove,
-    /// O(log n) to find the place, amortized O(1) for renumbering, plus the base's removal.
+    /// Removes `vertex` and every edge at it. Its slot becomes a hole and no other vertex moves
+    /// (see the type's documentation). On a base that fills the hole by moving its last vertex in
+    /// (`AdjacencyList`, `DirectedPseudograph`), the moved vertex keeps its place. Amortized O(1)
+    /// for the order, plus O(log n) while there are holes, plus the base's removal.
     ///
     /// - Returns: The removed vertex instance, or `nil` if `vertex` was not a vertex.
     @inlinable
@@ -162,18 +201,19 @@ extension DirectedAcyclicGraph {
     public mutating func remove(_ vertex: Vertex) -> Vertex? {
         guard let key = _base._key(of: vertex) else { return nil }
         let removed = _base._vertex(atKey: key)
-        _order.remove(at: _position(ofKey: key))
-        _table.remove(key)
+        let slot = _table.label(key)
         if let moved = _base._removeVertex(atKey: key) {
-            let label = _table.label(moved)
-            let place = _position(ofKey: moved)
+            // The vertex that had key `moved` now has key `key`, and keeps its slot.
+            let movedSlot = _table.label(moved)
+            _table.setLabel(key, movedSlot)
             _table.remove(moved)
-            _table.insert(key, label: label)
-            _order[place] = key
+            _order.slots[movedSlot] = key
+        } else {
+            _table.remove(key)
         }
-        // Renumbered once the labels span twice the vertices: after at least as many removals as
-        // vertices remain, so O(1) amortized.
-        if _nextLabel > _order.count &* 2 &+ 1024 { _renumber() }
+        _order.remove(at: slot)
+        let live = _order.count
+        if (_order.holes > 0 && _order.holes >= live) || _order.first > live &* 2 &+ 16 { _compact() }
         return removed
     }
 
@@ -205,7 +245,6 @@ extension DirectedAcyclicGraph {
         _base.removeAll(keepingCapacity: keepingCapacity)
         _order.removeAll(keepingCapacity: keepingCapacity)
         _table.removeAll(keepingCapacity: keepingCapacity)
-        _nextLabel = 0
     }
 
     /// Removes every edge, keeping every vertex and the order (any order fits an edgeless graph).
@@ -218,6 +257,6 @@ extension DirectedAcyclicGraph {
     @inlinable
     public mutating func reserveCapacity(vertexCount: Int, edgeCount: Int) {
         _base.reserveCapacity(vertexCount: vertexCount, edgeCount: edgeCount)
-        _order.reserveCapacity(vertexCount)
+        _order.slots.reserveCapacity(vertexCount)
     }
 }

@@ -268,16 +268,18 @@ def compare(case, mine, ref, sections):
 def compare_dag(case, mine):
     """DirectedAcyclicGraph: the case's edges inserted one at a time; NetworkX rejects an edge
     exactly when it is a self-loop or its target already reaches its source. Then the order must
-    be topological, and the closure, the reduction (as edge sets), the longest path (exactly,
-    given our order as topo_order: no removals, no parallel edges) and has_path must match."""
+    be topological, and the closure, the reduction (as edge sets), the longest path, unit and
+    weighted (exactly, given our order as topo_order: no removals, no parallel edges), has_path and
+    the DAG shortest-path distances must match; on the whole case graph, dagShortestPaths must be
+    nil exactly when a cycle is reachable from the source."""
     problems = []
     H = nx.DiGraph()
     H.add_nodes_from(range(case["n"]))
     accepted = []
-    for u, v, _ in case["edges"]:
+    for u, v, w in case["edges"]:
         ok = u != v and not nx.has_path(H, v, u)
         accepted.append(ok)
-        if ok: H.add_edge(u, v)
+        if ok: H.add_edge(u, v, weight=w)
     if mine["accepted"] != accepted:
         return [f"dag: accepted {mine['accepted']}, NetworkX {accepted}"]
     order = mine["order"]
@@ -290,10 +292,37 @@ def compare_dag(case, mine):
         problems.append("dag: transitiveClosure differs from NetworkX's transitive_closure_dag")
     if sorted(map(tuple, mine["reduction"])) != sorted(nx.transitive_reduction(H).edges()):
         problems.append("dag: transitiveReduction differs from NetworkX's transitive_reduction")
-    if case["n"] and mine["longestPath"] != nx.dag_longest_path(H, topo_order=order):
-        problems.append(f"dag: longestPath {mine['longestPath']}, NetworkX {nx.dag_longest_path(H, topo_order=order)}")
+    # Unit weights: no edge has the attribute "unit", so each weighs default_weight = 1.
+    if case["n"] and mine["longestPath"] != nx.dag_longest_path(H, weight="unit", topo_order=order):
+        problems.append(f"dag: longestPath {mine['longestPath']}, NetworkX {nx.dag_longest_path(H, weight='unit', topo_order=order)}")
     if case["n"] and mine["hasPath"] != nx.has_path(H, case["sources"][0], case["target"]):
         problems.append(f"dag: hasPath {mine['hasPath']}, NetworkX the opposite")
+    if case["n"]:
+        # Weighted: NetworkX's dag_longest_path(weight=) given our order, exactly, and its length.
+        want = nx.dag_longest_path(H, weight="weight", topo_order=order)
+        if mine.get("weightedLongestPath") != want:
+            problems.append(f"dag: longestPath(weight:) {mine['weightedLongestPath']}, NetworkX {want}")
+        if mine.get("weightedLongestLength") != nx.dag_longest_path_length(H, weight="weight"):
+            problems.append(f"dag: longestPath(weight:) weighs {mine.get('weightedLongestLength')}, NetworkX {nx.dag_longest_path_length(H, weight='weight')}")
+        # dagShortestPaths on the DAG: Bellman–Ford distances (acyclic, so no negative cycle).
+        s = case["sources"][0]
+        lengths = nx.single_source_bellman_ford_path_length(H, s)
+        if mine["dagDistances"] != [lengths.get(v) for v in range(case["n"])]:
+            problems.append(f"dag: dagShortestPaths {mine['dagDistances']}, NetworkX {[lengths.get(v) for v in range(case['n'])]}")
+        if not mine["dagPathsAgree"]:
+            problems.append("dag: a dagShortestPaths path does not weigh its distance")
+        # dagShortestPaths on the whole case graph: nil exactly when a cycle is reachable from s.
+        G = nx.DiGraph()
+        G.add_nodes_from(range(case["n"]))
+        for u, v, w in case["edges"]: G.add_edge(u, v, weight=w)
+        reach = G.subgraph(nx.descendants(G, s) | {s})
+        if not nx.is_directed_acyclic_graph(reach):
+            if mine.get("caseDistances") is not None:
+                problems.append("dag: dagShortestPaths on the case graph answered though a cycle is reachable")
+        else:
+            lengths = nx.single_source_bellman_ford_path_length(reach, s)
+            if mine.get("caseDistances") != [lengths.get(v) for v in range(case["n"])]:
+                problems.append(f"dag: dagShortestPaths on the case graph {mine['caseDistances']}, NetworkX {[lengths.get(v) for v in range(case['n'])]}")
     return problems
 
 

@@ -221,6 +221,9 @@ class DAG:
         an endpoint is missing. A rejected edge changes nothing."""
         if safe and (self.b.key(u) is None or self.b.key(v) is None): return None
         if u == v: return None
+        if self.b.key(u) is None and self.b.key(v) is not None:
+            # a new source to an existing target is placed first: the edge goes forward
+            k = self.b.add_vertex(u); self.order.insert(0, k); self.ord = {x: i for i, x in enumerate(self.order)}
         self.insert_vertex(u); self.insert_vertex(v)
         ku, kv = self.b.key(u), self.b.key(v)
         if self.ord[ku] > self.ord[kv] and self._pearce_kelly(ku, kv) is not None: return None
@@ -349,6 +352,39 @@ class DAG:
             s, p = best[ks[-1]]; ps.append(p); ks.append(s)
         return [self.b.vertex(k) for k in ks[::-1]], ps[::-1]
 
+    def longest_path_weighted(self, w):
+        """NetworkX's dag_longest_path(weight=, topo_order=order), per edge: the first in-edge (in
+        in-row order) with the greatest dist + w; a vertex whose best is negative, or with no in-edge,
+        starts afresh at 0; the path ends at the first vertex in the order with the greatest dist."""
+        if not self.order: return None
+        dist, best = {}, {}
+        for k in self.order:
+            top = None
+            for s, p in self.b.in_row(k):
+                c = dist[s] + w[p]
+                if top is None or c > top[0]: top = (c, s, p)
+            if top is not None and top[0] >= 0: dist[k] = top[0]; best[k] = (top[1], top[2])
+            else: dist[k] = 0
+        m = max(dist.values())
+        end = next(k for k in self.order if dist[k] == m)
+        ks, ps = [end], []
+        while ks[-1] in best:
+            s, p = best[ks[-1]]; ps.append(p); ks.append(s)
+        return [self.b.vertex(k) for k in ks[::-1]], ps[::-1], m
+
+    def dag_shortest_paths(self, src, w):
+        """Boost's dag_shortest_paths in this order: each reached vertex's out-edges relaxed once, in
+        out-row order; the first relaxation to the final distance wins. {key: (dist, parent key, edge)}."""
+        ks = self._need_vertex(src)
+        state = {ks: (0, None, None)}
+        for k in self.order:
+            if k not in state: continue
+            d = state[k][0]
+            for t, p in self.b.out_row(k):
+                c = d + w[p]
+                if t not in state or c < state[t][0]: state[t] = (c, k, p)
+        return state
+
     def __eq__(self, other):
         def ms(g):
             return sorted((repr(g.b.vertex(s)), repr(g.b.vertex(t))) for _, s, t in g.b.edges())
@@ -368,10 +404,12 @@ def kahn(b):
     return queue if len(queue) == b.vcount() else None
 
 
-def decode(kind, V, E, order):
-    """Codable: {base, order}, order as indices into base.vertices; re-checked."""
+def decode(kind, V, E, order, removed=()):
+    """Codable: {base, order}, order as indices into base.vertices; re-checked. `removed` vertices
+    are removed from the base first (holes in a Stable base)."""
     g = DAG.build(kind, V, E)
     if g is None: return "DecodingError.dataCorrupted (a cycle)"
+    for v in removed: g.remove_vertex(v)
     keys = g.b.keys()
     if sorted(order) != list(range(len(keys))): return "DecodingError.dataCorrupted (not a permutation)"
     place = {keys[i]: j for j, i in enumerate(order)}
@@ -379,6 +417,23 @@ def decode(kind, V, E, order):
         return "DecodingError.dataCorrupted (an edge goes backward)"
     g.order = [keys[i] for i in order]; g.ord = place
     return g
+
+
+def decode_stable(vertices, positions, vend, order):
+    """Codable on a StableDirectedGraph payload with no edges, positions as given."""
+    b = StableBase()
+    for v, p in zip(vertices, positions):
+        b.V[p] = v; b.slot[v] = p; b.out[p] = []; b.inn[p] = []
+    b.vend = vend
+    g = DAG(b)
+    keys = b.keys()
+    g.order = [keys[i] for i in order]; g.ord = {k: i for i, k in enumerate(g.order)}
+    return g
+
+
+HOSTILE = 1 << 50
+HOSTILE_JSON = ('{"base": {"vertices": [7], "vertexPositions": [%d], "vertexEnd": %d, "edges": [], "edgePositions": [], '
+                '"edgeEnd": 0}, "order": [0]}' % (HOSTILE, HOSTILE + 1))
 
 
 # ---------------------------------------------------------------------------------------------
@@ -447,6 +502,7 @@ class Spec:
 
     def insert_edge(self, u, v):
         nx = self.nx
+        if u != v and u not in self.G and v in self.G: self.G.add_node(u); self.order.insert(0, u)
         for w in (u, v):
             if u != v and w not in self.G: self.G.add_node(w); self.order.append(w)
         if u == v: return False
@@ -494,10 +550,27 @@ def show_result(r):
     if isinstance(r, tuple) and r and r[0] == "paths": return " or ".join(show_path(vs, ps) for vs, ps in r[1]) or "nil"
     if isinstance(r, tuple) and r and r[0] == "path": return show_path(r[1], r[2])
     if isinstance(r, tuple) and r and r[0] == "graph": return "{" + show_state(r[1]) + "}"
+    if isinstance(r, tuple) and r and r[0] == "tree": return show_tree(r[1], r[2])
     if isinstance(r, tuple) and len(r) == 2 and isinstance(r[0], bool): return f"({show_result(r[0])}, {fmt(r[1])})"
     if isinstance(r, tuple) and len(r) == 2: return f"{fmt(r[0])}→{fmt(r[1])}"
     if isinstance(r, list): return lst(r)
     return str(r)
+
+
+def tree_path(g, st, k):
+    """The edge positions of the tree path to key k."""
+    ps = []
+    while st[k][1] is not None: ps.append(st[k][2]); k = st[k][1]
+    return ps[::-1]
+
+
+def show_tree(rows, g):
+    """Each vertex, in vertices order: its distance and the positions of its path, or nil."""
+    st = {g.b.key(v): x for v, x in rows if x is not None}
+    out = []
+    for v, x in rows:
+        out.append(f"{fmt(v)}: nil" if x is None else f"{fmt(v)}: {x[0]} via {tree_path(g, st, g.b.key(v))}")
+    return "{" + ", ".join(out) + "}"
 
 
 def show_state(g):
@@ -525,6 +598,8 @@ def show_op(op):
     if k == "reduction": return "transitiveReduction()"
     if k == "longest": return "longestPath()"
     if k == "orderAt": return f"topologicalOrder[{op[1]}]"
+    if k == "longestW": return f"longestPath(weight: {op[1]})"
+    if k == "dagSP": return f"dagShortestPaths(from: {fmt(op[1])}, weight: {op[2]})"
     if k == "equals": return f"== DirectedAcyclicGraph<{NAMES[op[1]]}>(vertices: {lst(op[2])}, edges: [" + ", ".join(f"{fmt(a)}→{fmt(b)}" for a, b in op[3]) + "])"
     raise ValueError(op)
 
@@ -550,6 +625,11 @@ def apply(g, op):
     if k == "reduction": return ("graph", g.transitive_reduction())
     if k == "longest":
         r = g.longest_path(); return None if r is None else ("path",) + r
+    if k == "longestW":
+        r = g.longest_path_weighted(op[1]); return None if r is None else ("path",) + r[:2]
+    if k == "dagSP":
+        st = g.dag_shortest_paths(op[1], op[2])
+        return ("tree", [(g.b.vertex(k), st.get(k)) for k in g.b.keys()], g)
     if k == "equals":
         other = DAG.build(op[1], op[2], op[3]); return g == other
     raise ValueError(op)
@@ -618,9 +698,12 @@ def define():
     I = "Insertion"
     case(I, "insert(_:) appends to the order", "DP", [0], [(0, 1)], [("insert", 2), ("insert", 0)])
     case(I, "forward edge: no reordering", "DP", [0, 1, 2], [], [("edge", 0, 2), ("edge", 1, 2)])
-    case(I, "new endpoints appended, source first", "DP", [], [], [("edge", 7, 8), ("edge", 9, 7)])
+    case(I, "two new endpoints placed last, source first; a new source to an old target placed first", "DP", [], [], [("edge", 7, 8), ("edge", 9, 7)])
     case(I, "new target: always forward", "DP", [0, 1], [(0, 1)], [("edge", 1, 5)])
-    case(I, "new source to an old vertex reorders", "DP", [0, 1], [(0, 1)], [("edge", 5, 0)])
+    case(I, "new source to an old vertex: placed first, no reordering", "DP", [0, 1], [(0, 1)], [("edge", 5, 0)])
+    case(I, "new source placed first in the order, not just before its target", "DP", [0, 1, 2], [], [("edge", 5, 1)])
+    case(I, "sources arriving last build a chain without reordering", "AL", [], [], [("edge", 1, 0), ("edge", 2, 1), ("edge", 3, 2), ("position", 0), ("position", 3)])
+    case(I, "twenty new sources: the free front slots grow", "DP", [0], [], [("edge", i, 0) for i in range(1, 21)] + [("position", 0), ("position", 20), ("orderAt", 0), ("edge", 0, 21)])
     case(I, "parallel copy on DirectedPseudograph: a new position", "DP", [0, 1], [(0, 1)], [("edge", 0, 1)])
     case(I, "existing edge on AdjacencyList: its position, nothing changes", "AL", [0, 1, 2], [(1, 2), (0, 1)], [("edge", 0, 1)])
     case(I, "StableDirectedGraph: position is edges.endIndex", "SG", [0, 1], [(0, 1)], [("removeAt", 0), ("edge", 0, 1)])
@@ -668,6 +751,14 @@ def define():
     case(R, "after the swap-remove, reordering uses the moved vertex's new slot", "AL", [0, 1, 2, 3], [(0, 1)], [("remove", 0), ("edge", 3, 1), ("edge", 2, 3)])
     case(R, "remove(_:) on Stable: holes, nothing renamed", "SG", [0, 1, 2], [(2, 0), (0, 1)], [("remove", 2), ("insert", 2)])
     case(R, "remove(_:) absent: nil", "AL", [0], [], [("remove", 4)])
+    case(R, "remove(_:) in the middle: a hole; places count past it", "DP", [0, 1, 2, 3, 4, 5], [], [("remove", 2), ("position", 1), ("position", 3), ("position", 5), ("orderAt", 2), ("orderAt", 4), ("positionSafe", 2)])
+    case(R, "reordering across holes", "DP", [0, 1, 2, 3, 4, 5, 6], [(1, 3)], [("remove", 2), ("remove", 4), ("edge", 5, 1), ("position", 5), ("position", 3), ("edge", 6, 0)])
+    case(R, "removing the first and last vertices trims the holes they uncover", "DP", [0, 1, 2, 3, 4], [], [("remove", 1), ("remove", 0), ("remove", 3), ("remove", 4), ("position", 2), ("edge", 9, 2), ("edge", 2, 8)])
+    case(R, "holes outnumbering the vertices: the slots are compacted", "DP", [0, 1, 2, 3, 4, 5, 6, 7], [(0, 7)], [("remove", 1), ("remove", 2), ("remove", 3), ("remove", 4), ("remove", 5), ("position", 6), ("position", 7), ("edge", 7, 6), ("edge", 9, 0), ("orderAt", 0)])
+    case(R, "new sources placed first while there are holes", "AL", [0, 1, 2, 3], [], [("remove", 1)] + [("edge", 10 + i, 2) for i in range(18)] + [("position", 2), ("position", 0), ("orderAt", 18)])
+    case(R, "removing every vertex, then inserting again", "SG", [0, 1, 2], [(0, 1)], [("remove", 1), ("remove", 0), ("remove", 2), ("edge", 3, 4), ("edge", 5, 3)])
+    case(R, "Stable: holes in the order and in the positions", "SG", [0, 1, 2, 3, 4], [(4, 0), (1, 2)], [("remove", 1), ("remove", 3), ("edge", 2, 4), ("position", 2), ("position", 0), ("orderAt", 1)])
+    case(R, "the moved vertex keeps its slot while there are holes", "AL", [0, 1, 2, 3, 4], [(4, 1)], [("remove", 2), ("remove", 0), ("position", 4), ("edge", 3, 4)])
     case(R, "removeAllEdges() keeps vertices and order", "DP", [0, 1, 2], [], [("edge", 2, 0), ("removeAllEdges",), ("edge", 1, 2)])
     case(R, "removeAll() then rebuild", "SG", [0, 1], [(1, 0)], [("removeAll",), ("edge", 1, 0)])
     case(R, "removing an edge makes a reverse edge acceptable", "DP", [0, 1], [(0, 1)], [("removeEdge", 0, 1), ("edge", 1, 0)])
@@ -703,17 +794,38 @@ def define():
     case(A, "longestPath: ties go to the first in-edge and the first end in order", "DP", [0, 1, 2, 3], [(0, 2), (1, 2), (0, 3)], [("longest",)])
     case(A, "longestPath: the longer branch wins", "DP", [], [(0, 1), (1, 2), (2, 5), (0, 3), (3, 5)], [("longest",)])
     case(A, "longestPath: parallel copies, the first in-edge", "DP", [], [(0, 1), (0, 1)], [("longest",)])
+    case(A, "after removals: hasPath, closure, reduction and longest path skip the holes", "DP", [0, 1, 2, 3, 4, 5, 6], [(0, 2), (2, 4), (4, 6), (0, 6), (1, 5), (3, 5)], [("remove", 1), ("remove", 3), ("hasPath", 0, 6), ("hasPath", 6, 0), ("hasPath", 5, 6), ("closure",), ("reduction",), ("longest",)])
+    case(A, "longestPath(weight:): a heavy shortcut beats the long way", "DP", [], [(0, 1), (1, 2), (0, 2)], [("longestW", [1, 1, 5])])
+    case(A, "longestPath(weight:): a negative best restarts at zero", "DP", [], [(0, 1), (1, 2)], [("longestW", [-3, 2])])
+    case(A, "longestPath(weight:): a zero-weight edge extends the path", "AL", [], [(0, 1), (1, 2)], [("longestW", [0, 1])])
+    case(A, "longestPath(weight:): every weight negative gives the first vertex", "DP", [], [(0, 1), (1, 2)], [("longestW", [-1, -1])])
+    case(A, "longestPath(weight:): ties go to the first in-edge and the first end", "DP", [0, 1, 2, 3], [(0, 2), (1, 2), (0, 3)], [("longestW", [2, 2, 2])])
+    case(A, "longestPath(weight:): the heavier of parallel copies", "DP", [], [(0, 1), (0, 1), (1, 2)], [("longestW", [1, 4, 1])])
+    case(A, "longestPath(weight:) on Stable positions with holes", "SG", [0, 1, 2, 3], [(0, 1), (1, 2), (0, 2), (2, 3)], [("removeAt", 0), ("remove", 1), ("longestW", [9, 9, 3, 4])])
+    case(A, "longestPath(weight:): empty is nil", "SG", [], [], [("longestW", [])])
+    case(A, "dagShortestPaths: a negative edge, and an unreached vertex placed before the source", "DP", [3], [(3, 0), (0, 1), (1, 2), (0, 2)], [("dagSP", 0, [1, 2, -5, 1])])
+    case(A, "dagShortestPaths: ties go to the first relaxation in the order", "DP", [], [(0, 1), (0, 2), (1, 3), (2, 3)], [("dagSP", 0, [1, 1, 1, 1])])
+    case(A, "dagShortestPaths: parallel copies, the lighter", "DP", [], [(0, 1), (0, 1)], [("dagSP", 0, [3, 2])])
+    case(A, "dagShortestPaths after removals and reordering (Stable holes)", "SG", [0, 1, 2, 3, 4], [(0, 1), (1, 2), (3, 4)], [("remove", 3), ("edge", 4, 0), ("dagSP", 4, [5, 1, 99, -2])])
+    case(A, "dagShortestPaths on AdjacencyList after a swap-remove", "AL", [0, 1, 2, 3], [(0, 1), (1, 3), (0, 2), (2, 3)], [("remove", 0), ("edge", 2, 1), ("dagSP", 2, [4, 1, 1, 1])])
 
     D = "Codable"
-    for title, V, E, order in [
-        ("round trip keeps the order", [0, 1, 2], [(2, 0)], [1, 2, 0]),
-        ("cyclic base rejected", [0, 1], [(0, 1), (1, 0)], [0, 1]),
-        ("order not a permutation rejected", [0, 1], [], [0, 0]),
-        ("edge going backward in the order rejected", [0, 1], [(0, 1)], [1, 0]),
+    for kind, title, V, E, removed, order in [
+        ("DP", "round trip keeps the order", [0, 1, 2], [(2, 0)], [], [1, 2, 0]),
+        ("DP", "cyclic base rejected", [0, 1], [(0, 1), (1, 0)], [], [0, 1]),
+        ("DP", "order not a permutation rejected", [0, 1], [], [], [0, 0]),
+        ("DP", "edge going backward in the order rejected", [0, 1], [(0, 1)], [], [1, 0]),
+        ("AL", "AdjacencyList: round trip keeps the order", [0, 1, 2, 3], [(3, 1), (1, 0)], [], [2, 3, 1, 0]),
+        ("AL", "AdjacencyList: edge going backward rejected", [0, 1, 2], [(1, 2)], [], [2, 1, 0]),
+        ("SG", "StableDirectedGraph with holes: offsets into the live vertices", [0, 1, 2, 3, 4], [(4, 0), (0, 2)], [1, 3], [2, 0, 1]),
+        ("SG", "StableDirectedGraph with holes: an offset past the live vertices rejected", [0, 1, 2], [], [1], [0, 2]),
     ]:
-        r = decode("DP", V, E, order)
-        inp = f"DirectedPseudograph; decode {{base: V {lst(V)}; E [" + ", ".join(f"{u}→{v}" for u, v in E) + f"], order: {order}}}"
+        r = decode(kind, V, E, order, removed)
+        inp = f"{NAMES[kind]}; decode {{base: V {lst(V)}; E [" + ", ".join(f"{u}→{v}" for u, v in E) + "]" + \
+            "".join(f" / remove({x})" for x in removed) + f", order: {order}}}"
         raw(D, title, inp, r if isinstance(r, str) else show_state(r))
+    raw(D, "StableDirectedGraph: a vertex at position 2⁵⁰ costs one page, not a table to it",
+        "StableDirectedGraph; decode " + HOSTILE_JSON, show_state(decode_stable([7], [HOSTILE], HOSTILE + 1, [0])))
 
 
 def render():
@@ -848,6 +960,17 @@ def stress():
                 for a in list(G.nodes)[:3]:
                     for b in list(G.nodes)[:3]:
                         assert g.has_path(a, b) == nx.has_path(G, a, b)
+                # weighted longest path and DAG shortest paths against NetworkX, random weights
+                if G.number_of_nodes():
+                    w = {p: rng.randint(-3, 5) for p, _, _ in g.b.edges()}
+                    W = nx.MultiDiGraph(); W.add_nodes_from(G.nodes)
+                    for p, s_, t_ in g.b.edges(): W.add_edge(g.b.vertex(s_), g.b.vertex(t_), weight=w[p])
+                    vs, ps, length = g.longest_path_weighted(w)
+                    assert length == sum(w[p] for p in ps) == nx.dag_longest_path_length(W, weight="weight"), (seed, length)
+                    src = g.b.vertex(g.order[0])
+                    st = g.dag_shortest_paths(src, w)
+                    want = nx.single_source_bellman_ford_path_length(W, src)
+                    assert {g.b.vertex(k): d for k, (d, _, _) in st.items()} == want, (seed, st, want)
     return self_loop_quirk
 
 

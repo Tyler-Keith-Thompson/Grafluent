@@ -4,6 +4,7 @@ import Connectivity
 import DirectedAcyclicGraphModule
 import GraphProtocols
 import Multigraphs
+import ShortestPaths
 import StableGraphs
 import Traversal
 
@@ -125,6 +126,27 @@ let benchmarks: @Sendable () -> Void = {
     // hidden order inserted in random order.
     for (n, m) in [(10_000, 50_000), (10_000, 100_000), (100_000, 200_000)] {
         let pairs = hiddenOrderPairs(n, m, seed: 13)
+        // The bare bases on the same pairs: what the DAG costs above them is the order's, the part
+        // to set against rustworkx's PyDiGraph(check_cycle=True), whose add_edge is keyed by node
+        // index where ours hashes each endpoint.
+        Benchmark("DirectedAcyclicGraph: BASELINE DirectedPseudograph insert(edge:), hidden-order model n = \(n), m = \(m)") { benchmark in
+            for _ in benchmark.scaledIterations {
+                var g = DirectedPseudograph(vertices: 0 ..< n)
+                benchmark.startMeasurement()
+                for e in pairs { blackHole(g.insert(edge: e)) }
+                benchmark.stopMeasurement()
+                blackHole(g)
+            }
+        }
+        Benchmark("DirectedAcyclicGraph: BASELINE StableDirectedGraph insert(edge:), hidden-order model n = \(n), m = \(m)") { benchmark in
+            for _ in benchmark.scaledIterations {
+                var g = StableDirectedGraph(vertices: 0 ..< n)
+                benchmark.startMeasurement()
+                for e in pairs { blackHole(g.insert(edge: e)) }
+                benchmark.stopMeasurement()
+                blackHole(g)
+            }
+        }
         Benchmark("DirectedAcyclicGraph: DAG<DirectedPseudograph> insert(edge:), hidden-order model n = \(n), m = \(m)") { benchmark in
             for _ in benchmark.scaledIterations {
                 var g = DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: 0 ..< n)
@@ -179,7 +201,7 @@ let benchmarks: @Sendable () -> Void = {
     }
 
     // Adversarial: reverse a chain one edge at a time; each insert moves every vertex placed
-    // between its endpoints, O(n) per insert.
+    // between its endpoints, O(n) per insert, Θ(n²) in all (as for any dynamic topological sort).
     for n in [2_000, 8_000] {
         Benchmark("DirectedAcyclicGraph: reverse a chain of \(n) one edge at a time") { benchmark in
             for _ in benchmark.scaledIterations {
@@ -190,7 +212,23 @@ let benchmarks: @Sendable () -> Void = {
                 blackHole(g)
             }
         }
-        Benchmark("DirectedAcyclicGraph: a chain of \(n) whose sources arrive last (each insert reorders one new vertex)") { benchmark in
+    }
+
+    // Complexity guard: a chain whose sources arrive last. Each new source is placed first, so no
+    // insert reorders and the chain builds in O(n), as the bare base does. Placed last, as before
+    // the review, each insert moved the whole chain: Θ(n²), 635 ms at n = 8000, and minutes at
+    // n = 10⁵. Likewise new targets arrive last on a chain built forward.
+    for n in [8_000, 100_000] {
+        Benchmark("DirectedAcyclicGraph: BASELINE DirectedPseudograph, a chain of \(n) whose sources arrive last") { benchmark in
+            for _ in benchmark.scaledIterations {
+                var g = DirectedPseudograph<Int>()
+                benchmark.startMeasurement()
+                for i in 0 ..< n - 1 { blackHole(g.insert(edge: DirectedEdge(from: i + 1, to: i))) }
+                benchmark.stopMeasurement()
+                blackHole(g)
+            }
+        }
+        Benchmark("DirectedAcyclicGraph: a chain of \(n) whose sources arrive last (each placed first, no reordering)") { benchmark in
             for _ in benchmark.scaledIterations {
                 var g = DirectedAcyclicGraph<DirectedPseudograph<Int>>()
                 benchmark.startMeasurement()
@@ -199,9 +237,19 @@ let benchmarks: @Sendable () -> Void = {
                 blackHole(g)
             }
         }
+        Benchmark("DirectedAcyclicGraph: a chain of \(n) whose targets arrive last (each placed last)") { benchmark in
+            for _ in benchmark.scaledIterations {
+                var g = DirectedAcyclicGraph<DirectedPseudograph<Int>>()
+                benchmark.startMeasurement()
+                for i in 0 ..< n - 1 { blackHole(g.insert(edge: DirectedEdge(from: i, to: i + 1))) }
+                benchmark.stopMeasurement()
+                blackHole(g)
+            }
+        }
     }
 
-    // Vertex removal: 10% of the vertices, the base's cost plus a memmove of the order each.
+    // Vertex removal: 10% of the vertices. Each leaves a hole in the order, O(1) plus a Fenwick
+    // update, O(log n); before the review each closed its gap with a memmove, O(n).
     Benchmark("DirectedAcyclicGraph: BASELINE DirectedPseudograph remove 10% of vertices") { benchmark in
         let built = DirectedPseudograph(vertices: 0 ..< 100_000, edges: forward)
         for _ in benchmark.scaledIterations {
@@ -222,6 +270,67 @@ let benchmarks: @Sendable () -> Void = {
             for v in stride(from: 0, to: 100_000, by: 10) { g.remove(v) }
             benchmark.stopMeasurement()
             blackHole(g)
+        }
+    }
+
+    let stableBuilt = StableDirectedGraph(vertices: 0 ..< 100_000, edges: forward)
+    Benchmark("DirectedAcyclicGraph: BASELINE StableDirectedGraph remove 10% of vertices") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var g = stableBuilt
+            g.insert(-1)
+            benchmark.startMeasurement()
+            for v in stride(from: 0, to: 100_000, by: 10) { g.remove(v) }
+            benchmark.stopMeasurement()
+            blackHole(g)
+        }
+    }
+    Benchmark("DirectedAcyclicGraph: DAG<StableDirectedGraph> remove 10% of vertices") { benchmark in
+        let built = DirectedAcyclicGraph(stableBuilt)!
+        for _ in benchmark.scaledIterations {
+            var g = built
+            g.insert(-1)
+            benchmark.startMeasurement()
+            for v in stride(from: 0, to: 100_000, by: 10) { g.remove(v) }
+            benchmark.stopMeasurement()
+            blackHole(g)
+        }
+    }
+
+    // Places after removals: without a hole, a place is the slot less the free front slots; with
+    // one, a Fenwick tree counts the holes before the slot, O(log n). Before the review one early
+    // removal made every lookup a binary search (143 against 16 ns).
+    let placed = DirectedAcyclicGraph(stableBuilt)!
+    let placedOrder = Array(placed.topologicalOrder)
+    var holed = placed
+    holed.remove(placedOrder[10])
+    var trimmed = placed
+    trimmed.remove(placedOrder[0])
+    Benchmark("DirectedAcyclicGraph: topologicalPosition of 10⁵ vertices, no removal") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var sum = 0
+            for v in 0 ..< 100_000 { sum &+= placed.topologicalPosition(of: v) }
+            blackHole(sum)
+        }
+    }
+    Benchmark("DirectedAcyclicGraph: topologicalPosition of 10⁵ vertices, the first removed (trimmed, no hole)") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var sum = 0
+            for v in 0 ..< 100_000 where v != placedOrder[0] { sum &+= trimmed.topologicalPosition(of: v) }
+            blackHole(sum)
+        }
+    }
+    Benchmark("DirectedAcyclicGraph: topologicalPosition of 10⁵ vertices, one hole") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var sum = 0
+            for v in 0 ..< 100_000 where v != placedOrder[10] { sum &+= holed.topologicalPosition(of: v) }
+            blackHole(sum)
+        }
+    }
+    Benchmark("DirectedAcyclicGraph: topologicalOrder[i] for every place, one hole") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var sum = 0
+            for i in 0 ..< 99_999 { sum &+= holed.topologicalOrder[i] }
+            blackHole(sum)
         }
     }
 
@@ -288,6 +397,21 @@ let benchmarks: @Sendable () -> Void = {
     }
     Benchmark("DirectedAcyclicGraph: longestPath, n = 10⁵, m ≈ 5·10⁵") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(big.longestPath()) }
+    }
+    let weights = (0 ..< 500_000).map { ($0 &* 7919) % 21 - 10 }
+    Benchmark("DirectedAcyclicGraph: longestPath(weight:), n = 10⁵, m ≈ 5·10⁵") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(big.longestPath(weight: { weights[$0] })) }
+    }
+    Benchmark("DirectedAcyclicGraph: dagShortestPaths on DAG<AdjacencyList> (its order), n = 10⁵, m ≈ 5·10⁵") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(big.dagShortestPaths(from: 0, weight: { weights[$0] })) }
+    }
+    Benchmark("DirectedAcyclicGraph: dagShortestPaths on AdjacencyList (Kahn's order), n = 10⁵, m ≈ 5·10⁵") { benchmark in
+        let base = big.base
+        for _ in benchmark.scaledIterations { blackHole(base.dagShortestPaths(from: 0, weight: { weights[$0] })) }
+    }
+    Benchmark("DirectedAcyclicGraph: BASELINE bellmanFordShortestPaths on AdjacencyList, n = 10⁵, m ≈ 5·10⁵") { benchmark in
+        let base = big.base
+        for _ in benchmark.scaledIterations { blackHole(base.bellmanFordShortestPaths(from: 0, weight: { weights[$0] })) }
     }
     Benchmark("DirectedAcyclicGraph: init(_ base:) (Kahn's order), n = 10⁵, m = 5·10⁵") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(DirectedAcyclicGraph(pseudograph)) }

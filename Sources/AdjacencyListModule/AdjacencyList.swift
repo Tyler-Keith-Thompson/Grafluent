@@ -294,6 +294,12 @@ extension AdjacencyList {
     @discardableResult
     public mutating func remove(_ vertex: Vertex) -> Vertex? {
         guard let slot = _slots[vertex] else { return nil }
+        return _removeSlot(slot)
+    }
+
+    /// Removes the vertex in `slot` (`remove(_:)` after its lookup) and returns it.
+    @inlinable
+    internal mutating func _removeSlot(_ slot: Int) -> Vertex {
         let removed = _vertices[slot]
 
         // Detach every edge incident to the vertex, last entry first, so nothing moves in its own
@@ -755,7 +761,7 @@ extension AdjacencyList: MutableDirectedGraph {
     @inlinable
     public mutating func _removeVertex(atKey key: Int) -> Int? {
         let last = _vertices.count - 1
-        remove(_vertices[key])
+        _ = _removeSlot(key)
         return key == last ? nil : last
     }
 

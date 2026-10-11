@@ -118,14 +118,18 @@ extension DirectedAcyclicGraph {
 
 extension DirectedAcyclicGraph {
     /// Every vertex once, each edge going from an earlier vertex to a later one. O(1).
+    ///
+    /// A value that shares the graph's storage: while it is alive, the graph's next mutation
+    /// copies the base and the order once, as holding a copy of the graph would. Read it and drop
+    /// it before mutating, or copy it to an `Array`.
     @inlinable
     public var topologicalOrder: TopologicalOrder {
         TopologicalOrder(base: _base, order: _order, table: _table)
     }
 
     /// The place of `vertex` in `topologicalOrder`, in `0..<vertexCount`. One hash, then O(1)
-    /// while no vertex placed before it has been removed since the labels were last renumbered,
-    /// and a binary search over the order, O(log n), otherwise (see the type's documentation).
+    /// while no vertex has been removed since the slots were last compacted, and O(log n), a
+    /// Fenwick tree count of the holes before its slot, otherwise (see the type's documentation).
     /// petgraph's `get_position` returns its label instead, which is not a place.
     ///
     /// - Precondition: `vertex` is a vertex.
@@ -142,15 +146,17 @@ extension DirectedAcyclicGraph {
     }
 
     /// The vertices in topological order: `topologicalOrder[i]` is the vertex at place `i`
-    /// (petgraph's `at_position`). A value: unaffected by later changes to the graph.
+    /// (petgraph's `at_position`). A value: unaffected by later changes to the graph. The
+    /// subscript is O(1) without holes and O(log n) with them; iteration is O(1) per vertex
+    /// either way.
     @frozen
     public struct TopologicalOrder: RandomAccessCollection {
         @usableFromInline let base: Base
-        @usableFromInline let order: ContiguousArray<Int>
+        @usableFromInline let order: _TopologicalSlots
         @usableFromInline let table: _KeyTable
 
         @inlinable
-        init(base: Base, order: ContiguousArray<Int>, table: _KeyTable) {
+        init(base: Base, order: _TopologicalSlots, table: _KeyTable) {
             self.base = base
             self.order = order
             self.table = table
@@ -163,18 +169,50 @@ extension DirectedAcyclicGraph {
         @inlinable public var startIndex: Int { 0 }
         @inlinable public var endIndex: Int { order.count }
 
-        /// The vertex at place `position`. O(1).
+        /// The vertex at place `position`.
         ///
         /// - Precondition: `position` is in `0..<count`.
         @inlinable
         public subscript(position: Int) -> Base.Vertex {
-            base._vertex(atKey: order[position])
+            precondition(UInt(bitPattern: position) < UInt(bitPattern: order.count), "Index out of range")
+            return base._vertex(atKey: order.slots[order.slot(atPlace: position)])
         }
+
+        /// The vertices in order, skipping holes.
+        @frozen
+        public struct Iterator: IteratorProtocol {
+            @usableFromInline let base: Base
+            @usableFromInline let slots: ContiguousArray<Int>
+            @usableFromInline var slot: Int
+
+            @inlinable
+            init(base: Base, slots: ContiguousArray<Int>, slot: Int) {
+                self.base = base
+                self.slots = slots
+                self.slot = slot
+            }
+
+            @inlinable
+            public mutating func next() -> Base.Vertex? {
+                while slot < slots.count {
+                    let key = slots[slot]
+                    slot &+= 1
+                    if key >= 0 { return base._vertex(atKey: key) }
+                }
+                return nil
+            }
+        }
+
+        @inlinable
+        public func makeIterator() -> Iterator { Iterator(base: base, slots: order.slots, slot: order.first) }
+
+        @inlinable
+        public var underestimatedCount: Int { order.count }
 
         /// The vertex's place: one hash, then as `topologicalPosition(of:)`.
         @inlinable
         public func firstIndex(of element: Base.Vertex) -> Int? {
-            base._key(of: element).map { table.position(of: $0, in: order) }
+            base._key(of: element).map { order.place(ofSlot: table.label($0)) }
         }
 
         /// `firstIndex(of:)`: each vertex appears once.
@@ -199,3 +237,4 @@ extension DirectedAcyclicGraph {
 }
 
 extension DirectedAcyclicGraph.TopologicalOrder: Sendable where Base: Sendable {}
+extension DirectedAcyclicGraph.TopologicalOrder.Iterator: Sendable where Base: Sendable {}

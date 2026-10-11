@@ -182,7 +182,11 @@ extension DirectedAcyclicGraph {
 
 1. **Self-loop:** `nil` before anything is inserted, even when u is not a vertex (DAG-030,
    DAG-031, DAG-044).
-2. **Missing endpoints** are inserted, source first, each placed last in the order (DAG-014).
+2. **Missing endpoints** are inserted, source first. **As implemented** after the review, a new
+   source whose target is already a vertex is placed first, any other new endpoint last, so the
+   edge goes forward and nothing reorders (DAG-014, DAG-016 – DAG-019). Placed last, as first
+   proposed, each such source moved its target and all the target's descendants: a chain whose
+   sources arrive last took Θ(n²), 637 ms at n = 8000 against the bare base's 1.8 ms.
 3. **Fast path:** if u is placed before v, the base inserts the edge. Cost: two array reads plus
    the base's insert (DAG-013, DAG-015, DAG-017).
 4. **Forward search:** otherwise, search depth-first from v in `outEdges` order, only through
@@ -199,14 +203,16 @@ extension DirectedAcyclicGraph {
 **Removals never create a cycle, so they keep the order** (DAG-044 – DAG-056):
 
 - **`remove(edge:)`** and `remove(edgeAt:)` leave the order untouched.
-- **`remove(_:)`** closes the vertex's gap in the order by shifting the tail of `_order` down one
-  place, one memmove, O(n − position), as `Array.remove(at:)` costs. **As implemented**, the
-  table holds labels, increasing along the order, not places: updating the place of every
-  shifted key made removing 10% of 10⁵ vertices cost 1.24 s against the base's 72 ms, and leaving
-  the labels makes it 159 ms. A label is its place until a vertex before it is removed;
-  `topologicalPosition(of:)` is O(1) then and a binary search over `_order` otherwise, and the
-  labels are renumbered once they span 2n + 1024 (amortized O(1) per removal). petgraph's
-  `get_position` likewise returns a gapped label (its `remove_node` is O(v)).
+- **`remove(_:)`** leaves a hole in the vertex's slot (JGraphT leaves a gap too). **As
+  implemented** after the review, each vertex's label is its slot in an array of slots with free
+  slots at the front (for sources placed first) and holes where vertices were removed; holes at
+  either end are trimmed, and the slots are compacted once holes outnumber vertices, so removal
+  is amortized O(1) for the order. A Fenwick tree over the slots counts the holes before a slot,
+  O(log n) per removal and per `topologicalPosition(of:)` while there are holes, O(1) with none.
+  The first implementation closed the gap with a memmove, O(n − position) (removing 10% of 10⁵
+  vertices: 185 ms against the base's 75 ms; now 70 against 72), and one early removal made
+  every lookup a binary search (143 against 16 ns; now 16 ns after a trimmed removal and 38 ns
+  with a hole). petgraph's `get_position` returns a gapped label (its `remove_node` is O(log n)).
 - **Swap-remove on dense bases:** the base reports the move (the last slot into the hole). The
   wrapper re-keys the moved vertex in O(1) and its place stays the same (DAG-050, DAG-051).
 - **`StableDirectedGraph`** never moves a vertex (DAG-052).
@@ -299,7 +305,7 @@ Benchmarks against petgraph `Acyclic<StableDiGraph>::try_add_edge` (Rust, releas
 | Random pairs with rejections (most inserts reject once the graph is dense) | ≥ petgraph's; a rejection allocates nothing |
 | Adversarial: reverse a chain one edge at a time | O(n) per insert, no worse than petgraph |
 | Index-space algorithms (components, Dijkstra, BFS layers) through the wrapper | within 1.05× the bare base |
-| `remove(_:)` over 10% of vertices | the base's cost plus a memmove of the order |
+| `remove(_:)` over 10% of vertices | the base's cost plus O(log n) per removal |
 
 `--stress` also counts work for the algorithm choice, below.
 

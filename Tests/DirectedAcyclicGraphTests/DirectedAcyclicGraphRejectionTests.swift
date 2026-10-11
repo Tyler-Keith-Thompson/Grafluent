@@ -1,4 +1,4 @@
-// Rejected edges (catalog DAG-030 – DAG-040, DAG-041 – DAG-045): `insert(edge:)` and `insert(safe:)` return nil for an
+// Rejected edges (catalog DAG-033 – DAG-043, DAG-044 – DAG-048): `insert(edge:)` and `insert(safe:)` return nil for an
 // edge that would close a cycle, a self-loop included, and change nothing; the witness is Traversal's
 // `bidirectionalShortestPath(from: target, to: source)`, checked as a genuine shortest path; `insert(safe:)`
 // also returns nil for a missing endpoint.
@@ -14,8 +14,8 @@ import Traversal
 
 @Suite("DirectedAcyclicGraph rejection")
 struct DirectedAcyclicGraphRejectionTests {
-    @Test("DAG-030 self-loop: nil, nothing inserted; the witness is the trivial path")
-    func dag030() throws {
+    @Test("DAG-033 self-loop: nil, nothing inserted; the witness is the trivial path")
+    func dag033() throws {
         // DirectedPseudograph; V [0]; E [] / insert(edge: 0→0) / bidirectionalShortestPath(from: 0, to: 0)
         var graph = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [0], edges: [] as [DirectedEdge<Int>]))
         #expect(graph.insert(edge: DirectedEdge(from: 0, to: 0)) == nil)
@@ -42,8 +42,8 @@ struct DirectedAcyclicGraphRejectionTests {
         #expect(graph.inEdges(safe: 100) == nil && graph.outDegree(safe: 100) == nil && graph.inDegree(safe: 100) == nil)
     }
 
-    @Test("DAG-031 self-loop on a non-vertex inserts nothing")
-    func dag031() throws {
+    @Test("DAG-034 self-loop on a non-vertex inserts nothing")
+    func dag034() throws {
         // AdjacencyList; V [0]; E [] / insert(edge: 9→9)
         var graph = try #require(DirectedAcyclicGraph<AdjacencyList<Int>>(vertices: [0], edges: [] as [DirectedEdge<Int>]))
         #expect(graph.insert(edge: DirectedEdge(from: 9, to: 9)) == nil)
@@ -65,8 +65,8 @@ struct DirectedAcyclicGraphRejectionTests {
         #expect(graph.inEdges(safe: 100) == nil && graph.outDegree(safe: 100) == nil && graph.inDegree(safe: 100) == nil)
     }
 
-    @Test("DAG-032 two-cycle: the existing edge")
-    func dag032() throws {
+    @Test("DAG-035 two-cycle: the existing edge")
+    func dag035() throws {
         // DirectedPseudograph; V [0, 1]; E [0→1] / insert(edge: 1→0) / bidirectionalShortestPath(from: 0, to: 1)
         var graph = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)]))
         #expect(graph.insert(edge: DirectedEdge(from: 1, to: 0)) == nil)
@@ -99,8 +99,8 @@ struct DirectedAcyclicGraphRejectionTests {
         #expect(graph.inEdges(safe: 101) == nil && graph.outDegree(safe: 101) == nil && graph.inDegree(safe: 101) == nil)
     }
 
-    @Test("DAG-033 long cycle: the path from target to source")
-    func dag033() throws {
+    @Test("DAG-036 long cycle: the path from target to source")
+    func dag036() throws {
         // DirectedPseudograph; V []; E [0→1, 1→2, 2→3, 3→4] / insert(edge: 4→0) / bidirectionalShortestPath(from: 0, to: 4)
         var graph = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [] as [Int], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 3), DirectedEdge(from: 3, to: 4)]))
         #expect(graph.insert(edge: DirectedEdge(from: 4, to: 0)) == nil)
@@ -148,8 +148,8 @@ struct DirectedAcyclicGraphRejectionTests {
         #expect(graph.inEdges(safe: 104) == nil && graph.outDegree(safe: 104) == nil && graph.inDegree(safe: 104) == nil)
     }
 
-    @Test("DAG-034 two shortest paths: either")
-    func dag034() throws {
+    @Test("DAG-037 two shortest paths: either")
+    func dag037() throws {
         // DirectedPseudograph; V [0, 1, 2, 3]; E [0→2, 0→1, 1→3, 2→3] / insert(edge: 3→0) / bidirectionalShortestPath(from: 0, to: 3)
         var graph = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [0, 1, 2, 3], edges: [DirectedEdge(from: 0, to: 2), DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 3), DirectedEdge(from: 2, to: 3)]))
         #expect(graph.insert(edge: DirectedEdge(from: 3, to: 0)) == nil)
@@ -192,8 +192,8 @@ struct DirectedAcyclicGraphRejectionTests {
         #expect(graph.inEdges(safe: 103) == nil && graph.outDegree(safe: 103) == nil && graph.inDegree(safe: 103) == nil)
     }
 
-    @Test("DAG-035 a dead branch and a long way round: the shortest path")
-    func dag035() throws {
+    @Test("DAG-038 a dead branch and a long way round: the shortest path")
+    func dag038() throws {
         // DirectedPseudograph; V [0, 1, 2, 3]; E [0→1, 1→2, 2→3, 0→3] / insert(edge: 3→0) / bidirectionalShortestPath(from: 0, to: 3)
         var graph = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [0, 1, 2, 3], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 3), DirectedEdge(from: 0, to: 3)]))
         #expect(graph.insert(edge: DirectedEdge(from: 3, to: 0)) == nil)
@@ -236,8 +236,8 @@ struct DirectedAcyclicGraphRejectionTests {
         #expect(graph.inEdges(safe: 103) == nil && graph.outDegree(safe: 103) == nil && graph.inDegree(safe: 103) == nil)
     }
 
-    @Test("DAG-036 parallel copies: either copy")
-    func dag036() throws {
+    @Test("DAG-039 parallel copies: either copy")
+    func dag039() throws {
         // DirectedPseudograph; V [0, 1]; E [0→1, 0→1] / insert(edge: 1→0) / bidirectionalShortestPath(from: 0, to: 1)
         var graph = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 1)]))
         #expect(graph.insert(edge: DirectedEdge(from: 1, to: 0)) == nil)
@@ -270,8 +270,8 @@ struct DirectedAcyclicGraphRejectionTests {
         #expect(graph.inEdges(safe: 101) == nil && graph.outDegree(safe: 101) == nil && graph.inDegree(safe: 101) == nil)
     }
 
-    @Test("DAG-037 witness positions after a swap-remove")
-    func dag037() throws {
+    @Test("DAG-040 witness positions after a swap-remove")
+    func dag040() throws {
         // DirectedPseudograph; V [0, 1, 2]; E [0→1, 1→2, 0→2] / remove(edgeAt: 0) / insert(edge: 2→0) / bidirectionalShortestPath(from: 0, to: 2)
         var graph = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [0, 1, 2], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 0, to: 2)]))
         #expect(graph.remove(edgeAt: 0) == DirectedEdge(from: 0, to: 1))
@@ -315,8 +315,8 @@ struct DirectedAcyclicGraphRejectionTests {
         #expect(graph.inEdges(safe: 102) == nil && graph.outDegree(safe: 102) == nil && graph.inDegree(safe: 102) == nil)
     }
 
-    @Test("DAG-038 Stable positions in the witness")
-    func dag038() throws {
+    @Test("DAG-041 Stable positions in the witness")
+    func dag041() throws {
         // StableDirectedGraph; V [0, 1, 2]; E [0→1, 0→1, 1→2] / remove(edgeAt: 0) / insert(edge: 2→0) / bidirectionalShortestPath(from: 0, to: 2)
         var graph = try #require(DirectedAcyclicGraph<StableDirectedGraph<Int>>(vertices: [0, 1, 2], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)]))
         #expect(graph.remove(edgeAt: 0) == DirectedEdge(from: 0, to: 1))
@@ -360,8 +360,8 @@ struct DirectedAcyclicGraphRejectionTests {
         #expect(graph.inEdges(safe: 102) == nil && graph.outDegree(safe: 102) == nil && graph.inDegree(safe: 102) == nil)
     }
 
-    @Test("DAG-039 rejected edge changes nothing; later insert works")
-    func dag039() throws {
+    @Test("DAG-042 rejected edge changes nothing; later insert works")
+    func dag042() throws {
         // AdjacencyList; V [0, 1, 2]; E [0→1, 1→2] / insert(edge: 2→0) / insert(edge: 0→2)
         var graph = try #require(DirectedAcyclicGraph<AdjacencyList<Int>>(vertices: [0, 1, 2], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)]))
         #expect(graph.insert(edge: DirectedEdge(from: 2, to: 0)) == nil)
@@ -400,8 +400,8 @@ struct DirectedAcyclicGraphRejectionTests {
         #expect(graph.inEdges(safe: 102) == nil && graph.outDegree(safe: 102) == nil && graph.inDegree(safe: 102) == nil)
     }
 
-    @Test("DAG-040 rejection found through vertices placed between the endpoints only")
-    func dag040() throws {
+    @Test("DAG-043 rejection found through vertices placed between the endpoints only")
+    func dag043() throws {
         // DirectedPseudograph; V [0, 1, 2, 3]; E [1→2, 0→3, 2→3] / insert(edge: 2→1) / bidirectionalShortestPath(from: 1, to: 2) / insert(edge: 3→0) / bidirectionalShortestPath(from: 0, to: 3)
         var graph = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [0, 1, 2, 3], edges: [DirectedEdge(from: 1, to: 2), DirectedEdge(from: 0, to: 3), DirectedEdge(from: 2, to: 3)]))
         #expect(graph.insert(edge: DirectedEdge(from: 2, to: 1)) == nil)
@@ -455,8 +455,8 @@ struct DirectedAcyclicGraphRejectionTests {
         #expect(graph.inEdges(safe: 103) == nil && graph.outDegree(safe: 103) == nil && graph.inDegree(safe: 103) == nil)
     }
 
-    @Test("DAG-041 both endpoints present: as insert(edge:)")
-    func dag041() throws {
+    @Test("DAG-044 both endpoints present: as insert(edge:)")
+    func dag044() throws {
         // DirectedPseudograph; V [0, 1]; E [] / insert(safe: 1→0)
         var graph = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [0, 1], edges: [] as [DirectedEdge<Int>]))
         #expect(graph.insert(safe: DirectedEdge(from: 1, to: 0)) == 0)
@@ -484,8 +484,8 @@ struct DirectedAcyclicGraphRejectionTests {
         #expect(graph.inEdges(safe: 101) == nil && graph.outDegree(safe: 101) == nil && graph.inDegree(safe: 101) == nil)
     }
 
-    @Test("DAG-042 missing endpoint: nil, nothing inserted")
-    func dag042() throws {
+    @Test("DAG-045 missing endpoint: nil, nothing inserted")
+    func dag045() throws {
         // DirectedPseudograph; V [0]; E [] / insert(safe: 0→1) / insert(safe: 2→0)
         var graph = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [0], edges: [] as [DirectedEdge<Int>]))
         #expect(graph.insert(safe: DirectedEdge(from: 0, to: 1)) == nil)
@@ -513,8 +513,8 @@ struct DirectedAcyclicGraphRejectionTests {
         #expect(graph.inEdges(safe: 100) == nil && graph.outDegree(safe: 100) == nil && graph.inDegree(safe: 100) == nil)
     }
 
-    @Test("DAG-043 cycle: nil, nothing changes")
-    func dag043() throws {
+    @Test("DAG-046 cycle: nil, nothing changes")
+    func dag046() throws {
         // AdjacencyList; V [0, 1]; E [0→1] / insert(safe: 1→0) / bidirectionalShortestPath(from: 0, to: 1)
         var graph = try #require(DirectedAcyclicGraph<AdjacencyList<Int>>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)]))
         #expect(graph.insert(safe: DirectedEdge(from: 1, to: 0)) == nil)
@@ -547,8 +547,8 @@ struct DirectedAcyclicGraphRejectionTests {
         #expect(graph.inEdges(safe: 101) == nil && graph.outDegree(safe: 101) == nil && graph.inDegree(safe: 101) == nil)
     }
 
-    @Test("DAG-044 self-loop on a vertex and on a non-vertex: nil")
-    func dag044() throws {
+    @Test("DAG-047 self-loop on a vertex and on a non-vertex: nil")
+    func dag047() throws {
         // StableDirectedGraph; V [0]; E [] / insert(safe: 0→0) / insert(safe: 3→3)
         var graph = try #require(DirectedAcyclicGraph<StableDirectedGraph<Int>>(vertices: [0], edges: [] as [DirectedEdge<Int>]))
         #expect(graph.insert(safe: DirectedEdge(from: 0, to: 0)) == nil)
@@ -576,8 +576,8 @@ struct DirectedAcyclicGraphRejectionTests {
         #expect(graph.inEdges(safe: 100) == nil && graph.outDegree(safe: 100) == nil && graph.inDegree(safe: 100) == nil)
     }
 
-    @Test("DAG-045 existing edge on AdjacencyList: its position")
-    func dag045() throws {
+    @Test("DAG-048 existing edge on AdjacencyList: its position")
+    func dag048() throws {
         // AdjacencyList; V [0, 1]; E [0→1] / insert(safe: 0→1)
         var graph = try #require(DirectedAcyclicGraph<AdjacencyList<Int>>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)]))
         #expect(graph.insert(safe: DirectedEdge(from: 0, to: 1)) == 0)
