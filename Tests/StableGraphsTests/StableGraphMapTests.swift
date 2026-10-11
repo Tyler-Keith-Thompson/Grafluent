@@ -11,21 +11,21 @@ import Testing
 struct StableGraphMapTests {
     @Test("SG-131 attached EdgeMap: set, get, nil removes; removing the edge clears its value")
     func sg131() {
-        // V [0, 1, 2]; E [0→1, 1→2, 2→0] / let labels = addEdgeMap(of: String.self) / [map: labels, ofEdgeAt: 0] = "a" / [map: labels, ofEdgeAt: 1] = "b" / [map: labels, ofEdgeAt: 2] = "c" / [map: labels, ofEdgeAt: 1] / [map: labels, ofEdgeAt: 2] = nil / [map: labels, ofEdgeAt: 2] / remove(edgeAt: 1) / [map: labels, ofEdgeAt: 1] / insert(edge: 0→2) / [map: labels, ofEdgeAt: 3] / values of labels
+        // V [0, 1, 2]; E [0→1, 1→2, 2→0] / let labels = addEdgeMap(of: String.self) / [labels, ofEdgeAt: 0] = "a" / [labels, ofEdgeAt: 1] = "b" / [labels, ofEdgeAt: 2] = "c" / [labels, ofEdgeAt: 1] / [labels, ofEdgeAt: 2] = nil / [labels, ofEdgeAt: 2] / remove(edgeAt: 1) / [labels, ofEdgeAt: 1] / insert(edge: 0→2) / [labels, ofEdgeAt: 3] / values of labels
         var graph = StableDirectedGraph<Int>(vertices: [0, 1, 2], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 0)])
         let labels = graph.addEdgeMap(of: String.self)
-        graph[map: labels, ofEdgeAt: 0] = "a"
-        graph[map: labels, ofEdgeAt: 1] = "b"
-        graph[map: labels, ofEdgeAt: 2] = "c"
-        #expect(graph[map: labels, ofEdgeAt: 1] == "b")
-        graph[map: labels, ofEdgeAt: 2] = nil
-        #expect(graph[map: labels, ofEdgeAt: 2] == nil)
+        graph[labels, ofEdgeAt: 0] = "a"
+        graph[labels, ofEdgeAt: 1] = "b"
+        graph[labels, ofEdgeAt: 2] = "c"
+        #expect(graph[labels, ofEdgeAt: 1] == "b")
+        graph[labels, ofEdgeAt: 2] = nil
+        #expect(graph[labels, ofEdgeAt: 2] == nil)
         #expect(graph.remove(edgeAt: 1) == DirectedEdge(from: 1, to: 2))
-        #expect(graph[map: labels, ofEdgeAt: 1] == nil)
+        #expect(graph[labels, ofEdgeAt: 1] == nil)
         #expect(graph.insert(edge: DirectedEdge(from: 0, to: 2)) == 3)
-        #expect(graph[map: labels, ofEdgeAt: 3] == nil)
-        #expect((0 ..< graph.edges.endIndex).filter { graph[map: labels, ofEdgeAt: $0] != nil } == [0])
-        #expect((0 ..< graph.edges.endIndex).compactMap { graph[map: labels, ofEdgeAt: $0] } == ["a"])
+        #expect(graph[labels, ofEdgeAt: 3] == nil)
+        #expect((0 ..< graph.edges.endIndex).filter { graph[labels, ofEdgeAt: $0] != nil } == [0])
+        #expect((0 ..< graph.edges.endIndex).compactMap { graph[labels, ofEdgeAt: $0] } == ["a"])
         // Final state.
         #expect(Array(graph.vertices) == [0, 1, 2])
         #expect(Array(graph.vertices.indices) == [0, 1, 2])
@@ -79,20 +79,20 @@ struct StableGraphMapTests {
 
     @Test("SG-132 every edge removal path clears the attached maps")
     func sg132() {
-        // V [0, 1, 2, 3]; E [0→1, 0→1, 1→2, 2→3, 3→0, 0→2, 1→1, 2→2] / let w = addEdgeMap(of: Int.self) / [map: w, ofEdgeAt: 0] = 0 / [map: w, ofEdgeAt: 1] = 10 / [map: w, ofEdgeAt: 2] = 20 / [map: w, ofEdgeAt: 3] = 30 / [map: w, ofEdgeAt: 4] = 40 / [map: w, ofEdgeAt: 5] = 50 / [map: w, ofEdgeAt: 6] = 60 / [map: w, ofEdgeAt: 7] = 70 / remove(edge: 0→1) / values of w / removeAllEdges(from: 2, to: 3) / removeAllEdges(from: 0, where: { [5].contains($0) }) / removeAllEdges(where: { [6].contains($0) }) / remove(3) / values of w / removeAllEdges() / insert(edge: 1→2) / [map: w, ofEdgeAt: 0] / values of w
+        // V [0, 1, 2, 3]; E [0→1, 0→1, 1→2, 2→3, 3→0, 0→2, 1→1, 2→2] / let w = addEdgeMap(of: Int.self) / [w, ofEdgeAt: 0] = 0 / [w, ofEdgeAt: 1] = 10 / [w, ofEdgeAt: 2] = 20 / [w, ofEdgeAt: 3] = 30 / [w, ofEdgeAt: 4] = 40 / [w, ofEdgeAt: 5] = 50 / [w, ofEdgeAt: 6] = 60 / [w, ofEdgeAt: 7] = 70 / remove(edge: 0→1) / values of w / removeAllEdges(from: 2, to: 3) / removeAllEdges(from: 0, where: { [5].contains($0) }) / removeAllEdges(where: { [6].contains($0) }) / remove(3) / values of w / removeAllEdges() / insert(edge: 1→2) / [w, ofEdgeAt: 0] / values of w
         var graph = StableDirectedGraph<Int>(vertices: [0, 1, 2, 3], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 3), DirectedEdge(from: 3, to: 0), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 1, to: 1), DirectedEdge(from: 2, to: 2)])
         let w = graph.addEdgeMap(of: Int.self)
-        graph[map: w, ofEdgeAt: 0] = 0
-        graph[map: w, ofEdgeAt: 1] = 10
-        graph[map: w, ofEdgeAt: 2] = 20
-        graph[map: w, ofEdgeAt: 3] = 30
-        graph[map: w, ofEdgeAt: 4] = 40
-        graph[map: w, ofEdgeAt: 5] = 50
-        graph[map: w, ofEdgeAt: 6] = 60
-        graph[map: w, ofEdgeAt: 7] = 70
+        graph[w, ofEdgeAt: 0] = 0
+        graph[w, ofEdgeAt: 1] = 10
+        graph[w, ofEdgeAt: 2] = 20
+        graph[w, ofEdgeAt: 3] = 30
+        graph[w, ofEdgeAt: 4] = 40
+        graph[w, ofEdgeAt: 5] = 50
+        graph[w, ofEdgeAt: 6] = 60
+        graph[w, ofEdgeAt: 7] = 70
         #expect(graph.remove(edge: DirectedEdge(from: 0, to: 1)) == DirectedEdge(from: 0, to: 1))
-        #expect((0 ..< graph.edges.endIndex).filter { graph[map: w, ofEdgeAt: $0] != nil } == [0, 2, 3, 4, 5, 6, 7])
-        #expect((0 ..< graph.edges.endIndex).compactMap { graph[map: w, ofEdgeAt: $0] } == [0, 20, 30, 40, 50, 60, 70])
+        #expect((0 ..< graph.edges.endIndex).filter { graph[w, ofEdgeAt: $0] != nil } == [0, 2, 3, 4, 5, 6, 7])
+        #expect((0 ..< graph.edges.endIndex).compactMap { graph[w, ofEdgeAt: $0] } == [0, 20, 30, 40, 50, 60, 70])
         #expect(graph.removeAllEdges(from: 2, to: 3) == 1)
         do {
             var visited: [Int] = []
@@ -107,13 +107,13 @@ struct StableGraphMapTests {
             #expect(visited == [0, 2, 6, 7, 4])
         }
         #expect(graph.remove(3) == 3)
-        #expect((0 ..< graph.edges.endIndex).filter { graph[map: w, ofEdgeAt: $0] != nil } == [0, 2, 7])
-        #expect((0 ..< graph.edges.endIndex).compactMap { graph[map: w, ofEdgeAt: $0] } == [0, 20, 70])
+        #expect((0 ..< graph.edges.endIndex).filter { graph[w, ofEdgeAt: $0] != nil } == [0, 2, 7])
+        #expect((0 ..< graph.edges.endIndex).compactMap { graph[w, ofEdgeAt: $0] } == [0, 20, 70])
         graph.removeAllEdges()
         #expect(graph.insert(edge: DirectedEdge(from: 1, to: 2)) == 0)
-        #expect(graph[map: w, ofEdgeAt: 0] == nil)
-        #expect((0 ..< graph.edges.endIndex).filter { graph[map: w, ofEdgeAt: $0] != nil } == [] as [Int])
-        #expect((0 ..< graph.edges.endIndex).compactMap { graph[map: w, ofEdgeAt: $0] } == [] as [Int])
+        #expect(graph[w, ofEdgeAt: 0] == nil)
+        #expect((0 ..< graph.edges.endIndex).filter { graph[w, ofEdgeAt: $0] != nil } == [] as [Int])
+        #expect((0 ..< graph.edges.endIndex).compactMap { graph[w, ofEdgeAt: $0] } == [] as [Int])
         // Final state.
         #expect(Array(graph.vertices) == [0, 1, 2])
         #expect(Array(graph.vertices.indices) == [0, 1, 2])
@@ -160,26 +160,26 @@ struct StableGraphMapTests {
 
     @Test("SG-133 attached VertexMap: by position and by vertex; removal and churn clear")
     func sg133() {
-        // V [0, 1]; E [] / let names = addVertexMap(of: String.self) / [map: names, of: 0] = "zero" / [map: names, ofVertexAt: 1] = "one" / [map: names, of: 1] / [map: names, ofVertexAt: 0] / [map: names, of: 9] / for i in 1..<2001 { insert(edge: i→i+1); remove(i) } / [map: names, of: 2001] = "last" / values of names / remove(0) / values of names / removeAll() / insert(edge: 5→6) / [map: names, ofVertexAt: 0] / values of names
+        // V [0, 1]; E [] / let names = addVertexMap(of: String.self) / [names, of: 0] = "zero" / [names, ofVertexAt: 1] = "one" / [names, of: 1] / [names, ofVertexAt: 0] / [names, of: 9] / for i in 1..<2001 { insert(edge: i→i+1); remove(i) } / [names, of: 2001] = "last" / values of names / remove(0) / values of names / removeAll() / insert(edge: 5→6) / [names, ofVertexAt: 0] / values of names
         var graph = StableDirectedGraph<Int>(vertices: [0, 1], edges: [] as [DirectedEdge<Int>])
         let names = graph.addVertexMap(of: String.self)
-        graph[map: names, of: 0] = "zero"
-        graph[map: names, ofVertexAt: 1] = "one"
-        #expect(graph[map: names, of: 1] == "one")
-        #expect(graph[map: names, ofVertexAt: 0] == "zero")
-        #expect(graph[map: names, of: 9] == nil)
+        graph[names, of: 0] = "zero"
+        graph[names, ofVertexAt: 1] = "one"
+        #expect(graph[names, of: 1] == "one")
+        #expect(graph[names, ofVertexAt: 0] == "zero")
+        #expect(graph[names, of: 9] == nil)
         for i in 1 ..< 2001 { graph.insert(edge: DirectedEdge(from: i, to: i + 1)); graph.remove(i) }
-        graph[map: names, of: 2001] = "last"
-        #expect((0 ..< graph.vertices.endIndex).filter { graph[map: names, ofVertexAt: $0] != nil } == [0, 2001])
-        #expect((0 ..< graph.vertices.endIndex).compactMap { graph[map: names, ofVertexAt: $0] } == ["zero", "last"])
+        graph[names, of: 2001] = "last"
+        #expect((0 ..< graph.vertices.endIndex).filter { graph[names, ofVertexAt: $0] != nil } == [0, 2001])
+        #expect((0 ..< graph.vertices.endIndex).compactMap { graph[names, ofVertexAt: $0] } == ["zero", "last"])
         #expect(graph.remove(0) == 0)
-        #expect((0 ..< graph.vertices.endIndex).filter { graph[map: names, ofVertexAt: $0] != nil } == [2001])
-        #expect((0 ..< graph.vertices.endIndex).compactMap { graph[map: names, ofVertexAt: $0] } == ["last"])
+        #expect((0 ..< graph.vertices.endIndex).filter { graph[names, ofVertexAt: $0] != nil } == [2001])
+        #expect((0 ..< graph.vertices.endIndex).compactMap { graph[names, ofVertexAt: $0] } == ["last"])
         graph.removeAll()
         #expect(graph.insert(edge: DirectedEdge(from: 5, to: 6)) == 0)
-        #expect(graph[map: names, ofVertexAt: 0] == nil)
-        #expect((0 ..< graph.vertices.endIndex).filter { graph[map: names, ofVertexAt: $0] != nil } == [] as [Int])
-        #expect((0 ..< graph.vertices.endIndex).compactMap { graph[map: names, ofVertexAt: $0] } == [] as [String])
+        #expect(graph[names, ofVertexAt: 0] == nil)
+        #expect((0 ..< graph.vertices.endIndex).filter { graph[names, ofVertexAt: $0] != nil } == [] as [Int])
+        #expect((0 ..< graph.vertices.endIndex).compactMap { graph[names, ofVertexAt: $0] } == [] as [String])
         // Final state.
         #expect(Array(graph.vertices) == [5, 6])
         #expect(Array(graph.vertices.indices) == [0, 1])
@@ -221,29 +221,29 @@ struct StableGraphMapTests {
 
     @Test("SG-134 several maps, copy-on-write, changeTarget keeps values, removeEdgeMap")
     func sg134() {
-        // V [0, 1, 2]; E [0→1, 1→2] / let a = addEdgeMap(of: Int.self) / let b = addEdgeMap(of: String.self) / [map: a, ofEdgeAt: 0] = 1 / [map: b, ofEdgeAt: 0] = "x" / [map: a, ofEdgeAt: 1] = 2 / let copy = graph / changeTarget(ofEdgeAt: 0, to: 2) / [map: a, ofEdgeAt: 0] / remove(edgeAt: 1) / [map: b, ofEdgeAt: 0] = "y" / values of a / values of b / values of a in copy / values of b in copy / removeEdgeMap(a) / values of b
+        // V [0, 1, 2]; E [0→1, 1→2] / let a = addEdgeMap(of: Int.self) / let b = addEdgeMap(of: String.self) / [a, ofEdgeAt: 0] = 1 / [b, ofEdgeAt: 0] = "x" / [a, ofEdgeAt: 1] = 2 / let copy = graph / changeTarget(ofEdgeAt: 0, to: 2) / [a, ofEdgeAt: 0] / remove(edgeAt: 1) / [b, ofEdgeAt: 0] = "y" / values of a / values of b / values of a in copy / values of b in copy / removeEdgeMap(a) / values of b
         var graph = StableDirectedGraph<Int>(vertices: [0, 1, 2], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
         let a = graph.addEdgeMap(of: Int.self)
         let b = graph.addEdgeMap(of: String.self)
-        graph[map: a, ofEdgeAt: 0] = 1
-        graph[map: b, ofEdgeAt: 0] = "x"
-        graph[map: a, ofEdgeAt: 1] = 2
+        graph[a, ofEdgeAt: 0] = 1
+        graph[b, ofEdgeAt: 0] = "x"
+        graph[a, ofEdgeAt: 1] = 2
         let copy = graph
         graph.changeTarget(ofEdgeAt: 0, to: 2)
-        #expect(graph[map: a, ofEdgeAt: 0] == 1)
+        #expect(graph[a, ofEdgeAt: 0] == 1)
         #expect(graph.remove(edgeAt: 1) == DirectedEdge(from: 1, to: 2))
-        graph[map: b, ofEdgeAt: 0] = "y"
-        #expect((0 ..< graph.edges.endIndex).filter { graph[map: a, ofEdgeAt: $0] != nil } == [0])
-        #expect((0 ..< graph.edges.endIndex).compactMap { graph[map: a, ofEdgeAt: $0] } == [1])
-        #expect((0 ..< graph.edges.endIndex).filter { graph[map: b, ofEdgeAt: $0] != nil } == [0])
-        #expect((0 ..< graph.edges.endIndex).compactMap { graph[map: b, ofEdgeAt: $0] } == ["y"])
-        #expect((0 ..< copy.edges.endIndex).filter { copy[map: a, ofEdgeAt: $0] != nil } == [0, 1])
-        #expect((0 ..< copy.edges.endIndex).compactMap { copy[map: a, ofEdgeAt: $0] } == [1, 2])
-        #expect((0 ..< copy.edges.endIndex).filter { copy[map: b, ofEdgeAt: $0] != nil } == [0])
-        #expect((0 ..< copy.edges.endIndex).compactMap { copy[map: b, ofEdgeAt: $0] } == ["x"])
+        graph[b, ofEdgeAt: 0] = "y"
+        #expect((0 ..< graph.edges.endIndex).filter { graph[a, ofEdgeAt: $0] != nil } == [0])
+        #expect((0 ..< graph.edges.endIndex).compactMap { graph[a, ofEdgeAt: $0] } == [1])
+        #expect((0 ..< graph.edges.endIndex).filter { graph[b, ofEdgeAt: $0] != nil } == [0])
+        #expect((0 ..< graph.edges.endIndex).compactMap { graph[b, ofEdgeAt: $0] } == ["y"])
+        #expect((0 ..< copy.edges.endIndex).filter { copy[a, ofEdgeAt: $0] != nil } == [0, 1])
+        #expect((0 ..< copy.edges.endIndex).compactMap { copy[a, ofEdgeAt: $0] } == [1, 2])
+        #expect((0 ..< copy.edges.endIndex).filter { copy[b, ofEdgeAt: $0] != nil } == [0])
+        #expect((0 ..< copy.edges.endIndex).compactMap { copy[b, ofEdgeAt: $0] } == ["x"])
         graph.removeEdgeMap(a)
-        #expect((0 ..< graph.edges.endIndex).filter { graph[map: b, ofEdgeAt: $0] != nil } == [0])
-        #expect((0 ..< graph.edges.endIndex).compactMap { graph[map: b, ofEdgeAt: $0] } == ["y"])
+        #expect((0 ..< graph.edges.endIndex).filter { graph[b, ofEdgeAt: $0] != nil } == [0])
+        #expect((0 ..< graph.edges.endIndex).compactMap { graph[b, ofEdgeAt: $0] } == ["y"])
         // Final state.
         #expect(Array(graph.vertices) == [0, 1, 2])
         #expect(Array(graph.vertices.indices) == [0, 1, 2])

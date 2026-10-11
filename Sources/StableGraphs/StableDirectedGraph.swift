@@ -51,7 +51,7 @@ import GraphProtocols
 /// values (LEMON's `ArcMap` and `NodeMap`, which observe their graph through its
 /// `AlterationNotifier`): the graph stores it, paged like itself, and every removal clears the
 /// removed element's value in every attached map in the same mutation, O(maps) with no
-/// allocation. Values are read and written through `graph[map: handle, ofEdgeAt: position]`.
+/// allocation. Values are read and written through `graph[handle, ofEdgeAt: position]`.
 ///
 /// **Missing vertices.** The lookups trap on a vertex that is not in the graph, like an `Array`
 /// subscript; `successors(safe:)`, `outDegree(safe:)` and the other `safe:` spellings return `nil`

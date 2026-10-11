@@ -107,8 +107,8 @@ let benchmarks: @Sendable () -> Void = {
             var g = StableDirectedGraph(vertices: 0 ..< 100_000, edges: raw)
             let weights = g.addEdgeMap(of: Double.self), labels = g.addEdgeMap(of: Int.self)
             for p in stride(from: 0, to: 500_000, by: 3) {
-                g[map: weights, ofEdgeAt: p] = Double(p)
-                g[map: labels, ofEdgeAt: p] = p
+                g[weights, ofEdgeAt: p] = Double(p)
+                g[labels, ofEdgeAt: p] = p
             }
             g.remove(edgeAt: 1)
             benchmark.startMeasurement()
@@ -304,13 +304,13 @@ let benchmarks: @Sendable () -> Void = {
         var state: UInt64 = 5
         var g = StableDirectedGraph<Int>(vertices: 0 ..< 1_000)
         let labels = g.addEdgeMap(of: Int.self)
-        for _ in 0 ..< 5_000 { g[map: labels, ofEdgeAt: g.insert(edge: DirectedEdge(from: lcg(&state) % 1_000, to: lcg(&state) % 1_000))] = 1 }
+        for _ in 0 ..< 5_000 { g[labels, ofEdgeAt: g.insert(edge: DirectedEdge(from: lcg(&state) % 1_000, to: lcg(&state) % 1_000))] = 1 }
         for oldest in 0 ..< steps {
-            g[map: labels, ofEdgeAt: g.insert(edge: DirectedEdge(from: lcg(&state) % 1_000, to: lcg(&state) % 1_000))] = oldest
+            g[labels, ofEdgeAt: g.insert(edge: DirectedEdge(from: lcg(&state) % 1_000, to: lcg(&state) % 1_000))] = oldest
             g.remove(edgeAt: oldest)
         }
         let bytes = bytesInUse() - before
-        precondition(g.edgeCount == 5_000 && g[map: labels, ofEdgeAt: steps + 4_999] == steps - 1 && g[map: labels, ofEdgeAt: 0] == nil)
+        precondition(g.edgeCount == 5_000 && g[labels, ofEdgeAt: steps + 4_999] == steps - 1 && g[labels, ofEdgeAt: 0] == nil)
         return bytes
     }
     // Rows keep the largest capacity they reached, so the footprint settles once the degrees'
@@ -328,10 +328,10 @@ let benchmarks: @Sendable () -> Void = {
             var state: UInt64 = 7
             var g = StableDirectedGraph<Int>(vertices: 0 ..< 10_000)
             let labels = g.addEdgeMap(of: Int.self)
-            for _ in 0 ..< 50_000 { g[map: labels, ofEdgeAt: g.insert(edge: DirectedEdge(from: lcg(&state) % 10_000, to: lcg(&state) % 10_000))] = 0 }
+            for _ in 0 ..< 50_000 { g[labels, ofEdgeAt: g.insert(edge: DirectedEdge(from: lcg(&state) % 10_000, to: lcg(&state) % 10_000))] = 0 }
             benchmark.startMeasurement()
             for oldest in 0 ..< 1_000_000 {
-                g[map: labels, ofEdgeAt: g.insert(edge: DirectedEdge(from: lcg(&state) % 10_000, to: lcg(&state) % 10_000))] = oldest
+                g[labels, ofEdgeAt: g.insert(edge: DirectedEdge(from: lcg(&state) % 10_000, to: lcg(&state) % 10_000))] = oldest
                 g.remove(edgeAt: oldest)
             }
             benchmark.stopMeasurement()

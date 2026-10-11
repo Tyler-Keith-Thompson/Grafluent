@@ -204,7 +204,7 @@ internal struct _AttachedMap: @unchecked Sendable {
 
 /// A handle to a map from edge positions to `Value` attached to a `StableDirectedGraph` (LEMON's
 /// `ArcMap`), returned by `addEdgeMap(of:)`. It holds no values: read and write them through the
-/// graph, `graph[map: handle, ofEdgeAt: position]`. It is valid on the graph that added it and on
+/// graph, `graph[handle, ofEdgeAt: position]`. It is valid on the graph that added it and on
 /// every copy of that graph, until `removeEdgeMap(_:)`; on another graph it traps.
 @frozen
 public struct EdgeMap<Value>: Hashable, Sendable {
@@ -227,7 +227,7 @@ public struct EdgeMap<Value>: Hashable, Sendable {
 
 /// A handle to a map from vertex positions to `Value` attached to a `StableDirectedGraph`
 /// (LEMON's `NodeMap`), returned by `addVertexMap(of:)`; read and write values through
-/// `graph[map: handle, ofVertexAt: position]` or `graph[map: handle, of: vertex]`.
+/// `graph[handle, ofVertexAt: position]` or `graph[handle, of: vertex]`.
 @frozen
 public struct VertexMap<Value>: Hashable, Sendable {
     @usableFromInline internal let _token: _MapToken
@@ -294,7 +294,7 @@ extension StableDirectedGraph {
     /// - Precondition: `map` is attached to this graph, and, to set a value, `position` is a live
     ///   edge position.
     @inlinable
-    public subscript<Value>(map map: EdgeMap<Value>, ofEdgeAt position: Int) -> Value? {
+    public subscript<Value>(_ map: EdgeMap<Value>, ofEdgeAt position: Int) -> Value? {
         get {
             let k = Self._index(of: map._token, hint: map._hint, in: _edgeMaps)
             return unsafeDowncast(_edgeMaps[k].box, to: _TypedBox<Value>.self).map.value(at: position)
@@ -312,7 +312,7 @@ extension StableDirectedGraph {
     /// - Precondition: `map` is attached to this graph, and, to set a value, `position` is a live
     ///   vertex position.
     @inlinable
-    public subscript<Value>(map map: VertexMap<Value>, ofVertexAt position: Int) -> Value? {
+    public subscript<Value>(_ map: VertexMap<Value>, ofVertexAt position: Int) -> Value? {
         get {
             let k = Self._index(of: map._token, hint: map._hint, in: _vertexMaps)
             return unsafeDowncast(_vertexMaps[k].box, to: _TypedBox<Value>.self).map.value(at: position)
@@ -324,12 +324,12 @@ extension StableDirectedGraph {
         }
     }
 
-    /// The value of `vertex` in `map`: `self[map: map, ofVertexAt: vertexPosition(of: vertex)]`,
+    /// The value of `vertex` in `map`: `self[map, ofVertexAt: vertexPosition(of: vertex)]`,
     /// or `nil` for a vertex not in the graph when reading. One hash.
     ///
     /// - Precondition: `map` is attached to this graph, and, to set a value, `vertex` is a vertex.
     @inlinable
-    public subscript<Value>(map map: VertexMap<Value>, of vertex: Vertex) -> Value? {
+    public subscript<Value>(_ map: VertexMap<Value>, of vertex: Vertex) -> Value? {
         get {
             let k = Self._index(of: map._token, hint: map._hint, in: _vertexMaps)
             guard let slot = _slots[vertex] else { return nil }

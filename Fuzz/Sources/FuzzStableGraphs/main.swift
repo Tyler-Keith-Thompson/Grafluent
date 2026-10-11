@@ -150,12 +150,12 @@ enum FuzzStableGraphs {
     ) {
         for (m, map) in edgeMaps.enumerated() {
             for p in 0 ..< model.edges.count {
-                check(graph[map: map.handle, ofEdgeAt: p] == map.values[p], "edge map \(m) at \(p): \(String(describing: graph[map: map.handle, ofEdgeAt: p])), expected \(String(describing: map.values[p])) \(context)")
+                check(graph[map.handle, ofEdgeAt: p] == map.values[p], "edge map \(m) at \(p): \(String(describing: graph[map.handle, ofEdgeAt: p])), expected \(String(describing: map.values[p])) \(context)")
             }
         }
         if let tags {
             for p in 0 ..< model.vertices.count {
-                check(graph[map: tags, ofVertexAt: p] == tagValues[p], "vertex map at \(p) \(context)")
+                check(graph[tags, ofVertexAt: p] == tagValues[p], "vertex map at \(p) \(context)")
             }
         }
     }
@@ -367,7 +367,7 @@ enum FuzzStableGraphs {
                     }
                     graph.insert(v)
                     model.vertices.append(v)
-                    graph[map: tags, ofVertexAt: model.vertices.count - 1] = v
+                    graph[tags, ofVertexAt: model.vertices.count - 1] = v
                     tagValues[model.vertices.count - 1] = v
                     if round % 3 == 0 {
                         let w = (v + 1 + round / 8) % 8
@@ -387,7 +387,7 @@ enum FuzzStableGraphs {
                 default:
                     for m in edgeMaps.indices {
                         for p in model.liveEdges where (p + b + m) % 3 == 0 {
-                            graph[map: edgeMaps[m].handle, ofEdgeAt: p] = p &* 7 &+ m
+                            graph[edgeMaps[m].handle, ofEdgeAt: p] = p &* 7 &+ m
                             edgeMaps[m].values[p] = p &* 7 &+ m
                         }
                     }

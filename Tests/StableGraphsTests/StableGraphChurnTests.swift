@@ -42,7 +42,7 @@ struct StableGraphChurnTests {
                     let s = vertices[next(vertices.count)], t = vertices[next(vertices.count)]
                     let p = graph.insert(edge: DirectedEdge(from: s, to: t))
                     live[p] = (s, t)
-                    graph[map: labels, ofEdgeAt: p] = p
+                    graph[labels, ofEdgeAt: p] = p
                 case 5, 6:
                     // The oldest live edge, so whole pages die.
                     if let p = graph.edges.indices.first {
@@ -96,8 +96,8 @@ struct StableGraphChurnTests {
                     #expect(graph.weaklyConnectedComponents().count == compacted.weaklyConnectedComponents().count)
                     #expect(graph.stronglyConnectedComponents().count == compacted.stronglyConnectedComponents().count)
                     // The labels of removed edges went with them; the live ones stay.
-                    #expect((0 ..< graph.edges.endIndex).filter { graph[map: labels, ofEdgeAt: $0] != nil } == positions)
-                    #expect(positions.allSatisfy { graph[map: labels, ofEdgeAt: $0] == $0 })
+                    #expect((0 ..< graph.edges.endIndex).filter { graph[labels, ofEdgeAt: $0] != nil } == positions)
+                    #expect(positions.allSatisfy { graph[labels, ofEdgeAt: $0] == $0 })
                     // A round trip keeps every position and the next fresh one.
                     let decoded = try? JSONDecoder().decode(StableDirectedGraph<Int>.self, from: JSONEncoder().encode(graph))
                     #expect(decoded.map { Array($0.edges.indices) } == positions)
@@ -146,25 +146,25 @@ struct StableGraphChurnTests {
     func mapsAcrossPages() {
         var graph = StableDirectedGraph<Int>(vertices: 0 ..< 50_000)
         let names = graph.addVertexMap(of: String.self), weights = graph.addVertexMap(of: Double.self)
-        for v in stride(from: 0, to: 50_000, by: 7) { graph[map: names, of: v] = "v\(v)" }
-        graph[map: weights, of: 14] = 1.5
+        for v in stride(from: 0, to: 50_000, by: 7) { graph[names, of: v] = "v\(v)" }
+        graph[weights, of: 14] = 1.5
         let copy = graph
         for v in stride(from: 0, to: 40_000, by: 7) { _ = graph.remove(v) }
-        #expect((0 ..< 50_000).filter { graph[map: names, ofVertexAt: $0] != nil } == Array(stride(from: 40_005, to: 50_000, by: 7)))
-        #expect(graph[map: weights, of: 14] == nil && copy[map: weights, of: 14] == 1.5)
-        #expect(copy[map: names, of: 0] == "v0" && copy[map: names, of: 49_994] == "v49994")
-        #expect((0 ..< 50_000).filter { copy[map: names, ofVertexAt: $0] != nil }.count == 7_143)
-        graph[map: names, of: 40_005] = "x"
-        #expect(graph[map: names, of: 40_005] == "x" && copy[map: names, of: 40_005] == "v40005")
-        graph[map: names, of: 40_005] = nil
-        #expect(graph[map: names, of: 40_005] == nil && graph[map: names, of: -1] == nil && graph[map: names, ofVertexAt: Int.max] == nil)
+        #expect((0 ..< 50_000).filter { graph[names, ofVertexAt: $0] != nil } == Array(stride(from: 40_005, to: 50_000, by: 7)))
+        #expect(graph[weights, of: 14] == nil && copy[weights, of: 14] == 1.5)
+        #expect(copy[names, of: 0] == "v0" && copy[names, of: 49_994] == "v49994")
+        #expect((0 ..< 50_000).filter { copy[names, ofVertexAt: $0] != nil }.count == 7_143)
+        graph[names, of: 40_005] = "x"
+        #expect(graph[names, of: 40_005] == "x" && copy[names, of: 40_005] == "v40005")
+        graph[names, of: 40_005] = nil
+        #expect(graph[names, of: 40_005] == nil && graph[names, of: -1] == nil && graph[names, ofVertexAt: Int.max] == nil)
         // A handle stays valid on copies; removing the map from one copy leaves the other's.
         var other = copy
         other.removeVertexMap(names)
-        #expect(copy[map: names, of: 7] == "v7" && other[map: weights, of: 14] == 1.5)
+        #expect(copy[names, of: 7] == "v7" && other[weights, of: 14] == 1.5)
         let another = graph.addVertexMap(of: String.self)
         #expect(names == names && names != another && Set([names, another, names]).count == 2)
-        #expect(graph[map: another, of: 40_012] == nil)
+        #expect(graph[another, of: 40_012] == nil)
     }
 
     @Test("removeAllEdges(keepingCapacity:) keeps vertex holes and freed pages, both ways")

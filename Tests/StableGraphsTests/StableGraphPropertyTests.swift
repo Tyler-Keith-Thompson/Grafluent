@@ -118,8 +118,8 @@ struct StableGraphPropertyTests {
                     }
                 case 19:
                     // Values for every live edge and vertex in the attached maps.
-                    for e in edges { graph[map: labels, ofEdgeAt: e.position] = e.position &* 3; edgeValues[e.position] = e.position &* 3 }
-                    for (vertex, position) in vertices { graph[map: tags, of: vertex] = -position; vertexValues[position] = -position }
+                    for e in edges { graph[labels, ofEdgeAt: e.position] = e.position &* 3; edgeValues[e.position] = e.position &* 3 }
+                    for (vertex, position) in vertices { graph[tags, of: vertex] = -position; vertexValues[position] = -position }
                 default:
                     if k % 16 == 0 {
                         graph.removeAll()
@@ -134,9 +134,9 @@ struct StableGraphPropertyTests {
                 // The maps hold values only at live positions: the removal cleared the rest.
                 edgeValues = edgeValues.filter { p, _ in edges.contains { $0.position == p } }
                 vertexValues = vertexValues.filter { p, _ in vertices.contains { $0.position == p } }
-                #expect((0 ..< edgeEnd).filter { graph[map: labels, ofEdgeAt: $0] != nil } == edgeValues.keys.sorted(), "\(context)")
-                #expect((0 ..< vertexEnd).filter { graph[map: tags, ofVertexAt: $0] != nil } == vertexValues.keys.sorted(), "\(context)")
-                for (p, value) in edgeValues { #expect(graph[map: labels, ofEdgeAt: p] == value, "\(context)") }
+                #expect((0 ..< edgeEnd).filter { graph[labels, ofEdgeAt: $0] != nil } == edgeValues.keys.sorted(), "\(context)")
+                #expect((0 ..< vertexEnd).filter { graph[tags, ofVertexAt: $0] != nil } == vertexValues.keys.sorted(), "\(context)")
+                for (p, value) in edgeValues { #expect(graph[labels, ofEdgeAt: p] == value, "\(context)") }
                 // The whole state.
                 #expect(Array(graph.vertices) == vertices.map(\.vertex), "\(context)")
                 #expect(Array(graph.vertices.indices) == vertices.map(\.position), "\(context)")

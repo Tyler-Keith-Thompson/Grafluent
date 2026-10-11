@@ -172,9 +172,9 @@ extension StableDirectedGraph {
     mutating func addVertexMap<Value: Sendable>(of type: Value.Type) -> VertexMap<Value>  // LEMON's NodeMap
     mutating func removeEdgeMap<Value>(_ map: EdgeMap<Value>)
     mutating func removeVertexMap<Value>(_ map: VertexMap<Value>)
-    subscript<Value>(map map: EdgeMap<Value>, ofEdgeAt position: Int) -> Value? { get set }
-    subscript<Value>(map map: VertexMap<Value>, ofVertexAt position: Int) -> Value? { get set }
-    subscript<Value>(map map: VertexMap<Value>, of vertex: Vertex) -> Value? { get set }
+    subscript<Value>(_ map: EdgeMap<Value>, ofEdgeAt position: Int) -> Value? { get set }
+    subscript<Value>(_ map: VertexMap<Value>, ofVertexAt position: Int) -> Value? { get set }
+    subscript<Value>(_ map: VertexMap<Value>, of vertex: Vertex) -> Value? { get set }
 }
 @frozen public struct EdgeMap<Value>: Hashable, Sendable    // a handle: an identity token, no values
 @frozen public struct VertexMap<Value>: Hashable, Sendable
@@ -215,7 +215,7 @@ extension StableDirectedGraph {
   beside the graph if they need them.
 
 Cases: SG-131 – SG-134; misuse traps in extra_traps.swift. The spellings are the coordinator's
-usage guide's: `graph[map: labels, ofEdgeAt: p]`, `graph[map: names, of: vertex]`; the labels keep
+usage guide's: `graph[labels, ofEdgeAt: p]`, `graph[names, of: vertex]`; the labels keep
 `Vertex == Int` unambiguous.
 
 ## Re-pointing an edge: `changeTarget(ofEdgeAt:to:)` and `changeSource(ofEdgeAt:to:)`
@@ -395,7 +395,7 @@ holes exist; each can adopt `_numberedRows` the same way.
 `_numberedRows` is called through the existential, so it runs unspecialized: it must not touch a
 `Vertex?` per slot (a witness call each, 4.8 ms for 10⁵ slots). Liveness is read from the out-pages'
 dead counts (-1 at a vertex hole) instead, 1.2 ms for the benchmark graph. Weights stay closures
-over positions (README question 3): `w[p]` over an array, or `graph[map: weights, ofEdgeAt: p]`; `_withSuccessorIndexRows` stays at its `nil` default.
+over positions (README question 3): `w[p]` over an array, or `graph[weights, ofEdgeAt: p]`; `_withSuccessorIndexRows` stays at its `nil` default.
 For hot loops, `DirectedPseudograph(g)` still compacts in O(n + m), and edge `k` of the copy is
 the `k`th live position (SG-072).
 

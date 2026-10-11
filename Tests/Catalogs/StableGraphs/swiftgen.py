@@ -631,8 +631,8 @@ def map_values_lines(var, name, kind, m, value, ind="        "):
     items = sorted(m.items())
     at = "ofEdgeAt" if kind == "Edge" else "ofVertexAt"
     end = "%s.%s.endIndex" % (var, "edges" if kind == "Edge" else "vertices")
-    return [ind + "#expect((0 ..< %s).filter { %s[map: %s, %s: $0] != nil } == %s)" % (end, var, name, at, arr([p for p, _ in items], "Int")),
-            ind + "#expect((0 ..< %s).compactMap { %s[map: %s, %s: $0] } == %s)" % (end, var, name, at, arr([x for _, x in items], value))]
+    return [ind + "#expect((0 ..< %s).filter { %s[%s, %s: $0] != nil } == %s)" % (end, var, name, at, arr([p for p, _ in items], "Int")),
+            ind + "#expect((0 ..< %s).compactMap { %s[%s, %s: $0] } == %s)" % (end, var, name, at, arr([x for _, x in items], value))]
 
 
 def map_test(n):
@@ -653,13 +653,13 @@ def map_test(n):
             elif k == "removeMap":
                 lines.append("        graph.removeEdgeMap(%s)" % op[1])
             elif k in ("eset", "vset"):
-                lines.append("        graph[map: %s, %s: %d] = %s" % (op[1], "ofEdgeAt" if k == "eset" else "ofVertexAt", op[2], opt(op[3])))
+                lines.append("        graph[%s, %s: %d] = %s" % (op[1], "ofEdgeAt" if k == "eset" else "ofVertexAt", op[2], opt(op[3])))
             elif k == "vsetOf":
-                lines.append("        graph[map: %s, of: %s] = %s" % (op[1], lit(op[2]), lit(op[3])))
+                lines.append("        graph[%s, of: %s] = %s" % (op[1], lit(op[2]), lit(op[3])))
             elif k in ("eget", "vget"):
-                lines.append("        #expect(graph[map: %s, %s: %d] == %s)" % (op[1], "ofEdgeAt" if k == "eget" else "ofVertexAt", op[2], "nil" if r == "nil" else lit(json.loads(r) if r.startswith('"') else int(r))))
+                lines.append("        #expect(graph[%s, %s: %d] == %s)" % (op[1], "ofEdgeAt" if k == "eget" else "ofVertexAt", op[2], "nil" if r == "nil" else lit(json.loads(r) if r.startswith('"') else int(r))))
             elif k == "vgetOf":
-                lines.append("        #expect(graph[map: %s, of: %s] == %s)" % (op[1], lit(op[2]), "nil" if r == "nil" else lit(json.loads(r) if r.startswith('"') else int(r))))
+                lines.append("        #expect(graph[%s, of: %s] == %s)" % (op[1], lit(op[2]), "nil" if r == "nil" else lit(json.loads(r) if r.startswith('"') else int(r))))
             elif k in ("evalues", "vvalues"):
                 lines += map_values_lines("graph", op[1], maps.kind[op[1]], maps.values[op[1]], types[op[1]])
             elif k == "snapshot":

@@ -1018,13 +1018,13 @@ struct StableGraphPreconditionTests {
             var graph = StableDirectedGraph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])
             let labels = graph.addEdgeMap(of: String.self)
             let other = StableDirectedGraph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])
-            _ = other[map: labels, ofEdgeAt: 0]
+            _ = other[labels, ofEdgeAt: 0]
         }
         await #expect(processExitsWith: .failure) {
             var graph = StableDirectedGraph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])
             let labels = graph.addEdgeMap(of: String.self)
             graph.removeEdgeMap(labels)
-            _ = graph[map: labels, ofEdgeAt: 0]
+            _ = graph[labels, ofEdgeAt: 0]
         }
         await #expect(processExitsWith: .failure) {
             // Two copies of one graph each add a map: one copy's handle does not name the other's map.
@@ -1032,27 +1032,27 @@ struct StableGraphPreconditionTests {
             var a = graph, b = graph
             _ = b.addVertexMap(of: Int.self)
             let names = a.addVertexMap(of: Int.self)
-            _ = b[map: names, ofVertexAt: 0]
+            _ = b[names, ofVertexAt: 0]
         }
         await #expect(processExitsWith: .failure) {
             var graph = StableDirectedGraph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])
             let labels = graph.addEdgeMap(of: String.self)
             graph.remove(edgeAt: 0)
-            graph[map: labels, ofEdgeAt: 0] = "stale"
+            graph[labels, ofEdgeAt: 0] = "stale"
         }
         await #expect(processExitsWith: .failure) {
             var graph = StableDirectedGraph<Int>(vertices: [0, 1])
             let names = graph.addVertexMap(of: String.self)
-            graph[map: names, of: 9] = "missing"
+            graph[names, of: 9] = "missing"
         }
         // Without the misuse: the handle works on its graph and on copies, and nil is always allowed.
         var graph = StableDirectedGraph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])
         let labels = graph.addEdgeMap(of: String.self), names = graph.addVertexMap(of: String.self)
-        graph[map: labels, ofEdgeAt: 0] = "a"
+        graph[labels, ofEdgeAt: 0] = "a"
         var copy = graph
-        copy[map: labels, ofEdgeAt: 0] = "b"
-        graph[map: labels, ofEdgeAt: 5] = nil
-        graph[map: names, of: 9] = nil
-        #expect(graph[map: labels, ofEdgeAt: 0] == "a" && copy[map: labels, ofEdgeAt: 0] == "b" && graph[map: names, of: 9] == nil)
+        copy[labels, ofEdgeAt: 0] = "b"
+        graph[labels, ofEdgeAt: 5] = nil
+        graph[names, of: 9] = nil
+        #expect(graph[labels, ofEdgeAt: 0] == "a" && copy[labels, ofEdgeAt: 0] == "b" && graph[names, of: 9] == nil)
     }
 }
