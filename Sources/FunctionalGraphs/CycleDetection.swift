@@ -9,7 +9,9 @@
 /// Returns `tailLength`, the number of steps from `start` to the first vertex on the cycle (μ,
 /// Sage's "preperiod"), `cycleLength` (λ), and that first cyclic vertex, `root`. The closure is
 /// called exactly 3ν + 2μ + λ times, where ν is the least multiple of λ that is at least
-/// max(μ, 1). `brentCycleDetection(from:successor:)` calls it less often.
+/// max(μ, 1); that count includes calling it on `start` twice, once for each runner's first step
+/// (Knuth's formulation, kept as pinned). `brentCycleDetection(from:successor:)` calls it less
+/// often.
 ///
 /// - Precondition: the orbit of `start` is eventually periodic (always so on a finite state
 ///   space). On an infinite orbit the function does not return.
@@ -17,6 +19,8 @@
 public func floydCycleDetection<Vertex: Equatable>(
     from start: Vertex, successor f: (Vertex) -> Vertex
 ) -> (tailLength: Int, cycleLength: Int, root: Vertex) {
+    // f(start) is called twice here, as the pinned call count requires; reusing the tortoise's
+    // value for the hare would save one call.
     var tortoise = f(start)
     var hare = f(f(start))
     while tortoise != hare {

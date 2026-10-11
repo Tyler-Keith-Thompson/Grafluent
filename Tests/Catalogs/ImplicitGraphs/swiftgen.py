@@ -72,7 +72,7 @@ for line in TEXT.splitlines():
         parts = [p.strip().replace("\\|", "|") for p in line.strip().strip("|").split(" | ")]
         CELLS[int(parts[0][3:])] = parts
 N = len(CELLS)
-assert N == 31 and sorted(RECORD) == list(range(1, N + 1))
+assert N == 45 and sorted(RECORD) == list(range(1, N + 1))
 
 
 def group(n): return CELLS[n][1]
@@ -197,6 +197,11 @@ def call_lines(n, text, v):
         return ["#expect(calls == %d)" % v, "calls = 0"]
     if text in ("vertexCount", "vertexIndexBound", "edgeIndexBound", "edgeCount"):
         return ["#expect(graph.%s == %s)" % (text, "nil" if v is None else v)]
+    if text == "edges.isEmpty":
+        return ["#expect(graph.edges.isEmpty == %s)" % ("true" if v else "false")]
+    if text == "edges.first":
+        assert v is None
+        return ["#expect(graph.edges.first == nil)"]
     if text == "vertices":
         return ["#expect(Array(graph.vertices) == %s)" % ints(v)]
     if text == "Array(edges)":
@@ -318,6 +323,27 @@ TRAPS = {
          ["// Without reading the row, nothing traps.",
           "_ = graph.successors(of: 0)",
           "#expect(calls == 1 && graph.vertexCount == 2)"]),
+    39: (["_ = dijkstraShortestPath(from: 0, successors: { _ in [(1, -1)] }, success: { $0 == 1 })"],
+         ["// Without the fault: a zero cost is allowed.",
+          "#expect(dijkstraShortestPath(from: 0, successors: { _ in [(1, 0)] }, success: { $0 == 1 })?.distance == 0)"]),
+    40: (["_ = dijkstraShortestPath(from: 0, cutoff: 0, successors: { _ in [(1, -1)] }, success: { $0 == 1 })"],
+         ["// Without the fault: the cutoff drops a step of cost 1, and nothing else is reachable.",
+          "#expect(dijkstraShortestPath(from: 0, cutoff: 0, successors: { _ in [(1, 1)] }, success: { $0 == 1 }) == nil)"]),
+    41: (["_ = dijkstraShortestPath(from: 0, successors: { _ in [(1, Double.nan)] }, success: { $0 == 1 })"],
+         ["// Without the fault: an infinite cost is a cost.",
+          "#expect(dijkstraShortestPath(from: 0, successors: { _ in [(1, Double.infinity)] }, success: { $0 == 1 })?.distance == .infinity)"]),
+    42: (["_ = aStarShortestPath(from: 0, successors: { (v: Int) -> [(Int, Double)] in v == 0 ? [(1, 1.0)] : [] }, heuristic: { $0 == 1 ? .nan : 0 }, success: { $0 == 1 })"],
+         ["// Without the fault: a zero estimate.",
+          "let result = aStarShortestPath(from: 0, successors: { (v: Int) -> [(Int, Double)] in v == 0 ? [(1, 1.0)] : [] }, heuristic: { _ in 0 }, success: { $0 == 1 })",
+          "#expect(result?.distance == 1 && result?.path == [0, 1])"]),
+    43: (["_ = aStarShortestPath(from: 0, successors: { (v: Int) -> [(Int, Double)] in v == 0 ? [(1, .infinity), (3, 5)] : [] }, heuristic: { $0 == 1 ? -.infinity : 0 }, success: { $0 == 1 || $0 == 3 })"],
+         ["// Without the fault: with a finite estimate at 1, the nearer goal 3 is found. (Before the",
+          "// check, the NaN priority broke the heap's order.)",
+          "let result = aStarShortestPath(from: 0, successors: { (v: Int) -> [(Int, Double)] in v == 0 ? [(1, .infinity), (3, 5)] : [] }, heuristic: { _ in 0 }, success: { $0 == 1 || $0 == 3 })",
+          "#expect(result?.distance == 5 && result?.path == [0, 3])"]),
+    44: (["_ = dijkstraShortestPath(from: 0, cutoff: .nan, successors: { _ in [(1, 1.0)] }, success: { $0 == 1 })"],
+         ["// Without the fault: an infinite cutoff drops nothing.",
+          "#expect(dijkstraShortestPath(from: 0, cutoff: .infinity, successors: { _ in [(1, 1.0)] }, success: { $0 == 1 })?.distance == 1)"]),
 }
 
 
@@ -387,7 +413,9 @@ def path_checks(succ, start, goal, dist, count=None):
 
 def closure_test(n):
     text, calls = RECORD[n]
-    (_, v), = calls
+    v = calls[-1][1]
+    if n <= 31:
+        (_, v), = calls
     lines = header(n) + ["    func ig%03d() {" % n, "        // %s → %s" % (inp(n), cell(n))]
     body = []
     if n == 23:
@@ -447,6 +475,94 @@ def closure_test(n):
                 "#expect(result == nil)",
                 "// Every reachable state is expanded once, nearest first.",
                 "#expect(expanded == Array(0 ... 10))"]
+    elif n in (32, 33):
+        body = ["let line2 = { (v: Int) -> [(Int, Int)] in [(v + 1, 2)] }"]
+        if n == 32:
+            assert v == [0, 1, 2] and calls[0][1] == "(6, 4)" and calls[1][1] is None
+            body += ["let result = dijkstraShortestPath(from: 0, cutoff: 6, successors: line2, success: { $0 == 3 })",
+                     "// Inclusive: the goal at exactly the cutoff is found.",
+                     "#expect(result?.distance == 6 && result?.path == [0, 1, 2, 3])",
+                     "var expanded: [Int] = []",
+                     "let beyond = dijkstraShortestPath(from: 0, cutoff: 5, successors: { (v: Int) -> [(Int, Int)] in",
+                     "    expanded.append(v)",
+                     "    return line2(v)",
+                     "}, success: { $0 == 3 })",
+                     "#expect(beyond == nil)",
+                     "// The infinite line ends at the cutoff: 3, at 6, is dropped when 2 is expanded.",
+                     "#expect(expanded == %s)" % ints(v)]
+        else:
+            assert v == 1 and calls[0][1] == "(0, 1)" and calls[1][1] is None
+            body += ["let atStart = dijkstraShortestPath(from: 0, cutoff: -1, successors: line2, success: { $0 == 0 })",
+                     "#expect(atStart?.distance == 0 && atStart?.path == [0])",
+                     "var calls = 0",
+                     "let result = dijkstraShortestPath(from: 0, cutoff: -1, successors: { (v: Int) -> [(Int, Int)] in",
+                     "    calls += 1",
+                     "    return line2(v)",
+                     "}, success: { $0 == 1 })",
+                     "#expect(result == nil)",
+                     "// The start is reached at zero and expanded; every step is beyond the cutoff.",
+                     "#expect(calls == %d)" % v]
+    elif n == 34:
+        assert [c[1] for c in calls] == [12, None, None]
+        body = P_DECL + COSTLY + [
+            "let manhattan = { (p: P) -> Int in abs(4 - p.x) + abs(-3 - p.y) }",
+            "let result = aStarShortestPath(from: P(x: 0, y: 0), cutoff: 12, successors: costly, heuristic: manhattan, success: { $0 == P(x: 4, y: -3) })"]
+        body += path_checks("costly", "P(x: 0, y: 0)", "P(x: 4, y: -3)", 12)
+        body += ["// The cutoff bounds the distance, not the distance plus the estimate: A* and Dijkstra agree.",
+                 "#expect(aStarShortestPath(from: P(x: 0, y: 0), cutoff: 11, successors: costly, heuristic: manhattan, success: { $0 == P(x: 4, y: -3) }) == nil)",
+                 "#expect(dijkstraShortestPath(from: P(x: 0, y: 0), cutoff: 11, successors: costly, success: { $0 == P(x: 4, y: -3) }) == nil)"]
+    elif n == 35:
+        assert [c[1] for c in calls] == ["(6, [0, 2, 3, 4])", [0, 1, 3, 2, 3], [0, 1, 2, 3, 4, 3, 4], [0, 1, 2, 3]]
+        body = ["// S→A 1, S→B 2, A→C 3, B→C 1, C→G 3 on states 0…4 (S, A, B, C, G).",
+                "let reopen = { (v: Int) -> [(Int, Int)] in [[(1, 1), (2, 2)], [(3, 3)], [(3, 1)], [(4, 3)], []][v] }",
+                "var expanded: [Int] = []",
+                "var estimated: [Int] = []",
+                "let result = aStarShortestPath(from: 0, successors: { (v: Int) -> [(Int, Int)] in",
+                "    expanded.append(v)",
+                "    return reopen(v)",
+                "}, heuristic: { (v: Int) -> Int in",
+                "    estimated.append(v)",
+                "    return [0, 0, 4, 0, 0][v]",
+                "}, success: { $0 == 4 })",
+                "#expect(result?.distance == 6 && result?.path == [0, 2, 3, 4])",
+                "// h(B) = 4 is more than cost(B, C) + h(C) = 1, so C is expanded at 4 (through A) before B,",
+                "// then again at 3 (through B): one successors call per expansion.",
+                "#expect(expanded == [0, 1, 3, 2, 3])",
+                "// One estimate per push: the start, A, B, C, G, then C and G again, shorter.",
+                "#expect(estimated == [0, 1, 2, 3, 4, 3, 4])",
+                "var settled: [Int] = []",
+                "let plain = dijkstraShortestPath(from: 0, successors: { (v: Int) -> [(Int, Int)] in",
+                "    settled.append(v)",
+                "    return reopen(v)",
+                "}, success: { $0 == 4 })",
+                "#expect(plain?.distance == 6 && plain?.path == [0, 2, 3, 4])",
+                "#expect(settled == [0, 1, 2, 3])"]
+    elif n == 36:
+        assert [c[1] for c in calls] == ["(1.5, 4)", "(1.5, 4)"]
+        body = ["let halves = { (v: Int) -> [(Int, Double)] in v < 3 ? [(v + 1, 0.5), (v + 2, 1.25)] : [] }",
+                "let result = dijkstraShortestPath(from: 0, successors: halves, success: { $0 == 3 })",
+                "#expect(result?.distance == 1.5 && result?.path == [0, 1, 2, 3])",
+                "let guided = aStarShortestPath(from: 0, successors: halves, heuristic: { Double(3 - $0) * 0.5 }, success: { $0 == 3 })",
+                "#expect(guided?.distance == 1.5 && guided?.path == [0, 1, 2, 3])"]
+    elif n == 37:
+        assert [c[1] for c in calls] == ["(1, [0, 1, 2, 3, 9])", [0, 1, 2, 3]]
+        body = ["// 0→1→2→3→0 at cost 0, with 0→9 at 2 and 3→9 at 1.",
+                "let zeroCycle = { (v: Int) -> [(Int, Int)] in [0: [(1, 0), (9, 2)], 1: [(2, 0)], 2: [(3, 0)], 3: [(0, 0), (9, 1)], 9: []][v]! }",
+                "var expanded: [Int] = []",
+                "let result = dijkstraShortestPath(from: 0, successors: { (v: Int) -> [(Int, Int)] in",
+                "    expanded.append(v)",
+                "    return zeroCycle(v)",
+                "}, success: { $0 == 9 })",
+                "#expect(result?.distance == 1 && result?.path == [0, 1, 2, 3, 9])",
+                "// Coming back to 0 at cost 0 is no improvement, so nothing is expanded twice.",
+                "#expect(expanded == [0, 1, 2, 3])"]
+    elif n == 38:
+        assert [c[1] for c in calls] == ["(5, [0, 1, 2, 3, 4, 5])"] * 2
+        body = ["let both = { (v: Int) -> [(Int, Int)] in [(v + 1, 1), (v - 1, 2)] }",
+                "let result = dijkstraShortestPath(from: 0, successors: both, success: { $0 == 5 || $0 == -3 })",
+                "#expect(result?.distance == 5 && result?.path == [0, 1, 2, 3, 4, 5])",
+                "let guided = aStarShortestPath(from: 0, successors: both, heuristic: { min(abs(5 - $0), abs(-3 - $0)) }, success: { $0 == 5 || $0 == -3 })",
+                "#expect(guided?.distance == 5 && guided?.path == [0, 1, 2, 3, 4, 5])"]
     lines += ["        " + l for l in body]
     lines.append("    }")
     return lines
@@ -474,19 +590,22 @@ FILES = [
      "Construction (catalog IG-001, IG-002): the closure is never called to build the graph, and an\n"
      "// empty graph never calls it at all."),
     ("ImplicitGraphReadTests.swift", "ImplicitGraphs reads", ids("Reads"),
-     "Reads (catalog IG-004 – IG-011): one closure call per row read, positions (source, rank, target)\n"
-     "// that read their ends without a call, edges in row order with one call per vertex, index(after:)\n"
-     "// re-reading the row, parallel edges and self-loops as distinct positions, and contains."),
+     "Reads (catalog IG-004 – IG-011, IG-045): one closure call per row read, positions (source, rank,\n"
+     "// target) that read their ends without a call, edges in row order with one call per vertex,\n"
+     "// index(after:) re-reading the row, parallel edges and self-loops as distinct positions, contains,\n"
+     "// and isEmpty and first reading every empty row."),
     ("ImplicitGraphGenericTests.swift", "ImplicitGraphs generic algorithms", ids("Generic"),
      "Generic algorithms on the implicit graph (catalog IG-016 – IG-022): Traversal's layers with one\n"
      "// call per discovered vertex, ShortestPaths with the weight read from the position's target,\n"
      "// Connectivity's components (as sets), topological order and findCycle."),
     ("ImplicitGraphClosureSearchTests.swift", "ImplicitGraphs closure searches", ids("Closures"),
-     "Searches over successor closures on unbounded spaces (catalog IG-023 – IG-031): Traversal's\n"
+     "Searches over successor closures on unbounded spaces (catalog IG-023 – IG-038): Traversal's\n"
      "// breadthFirstSearch(from:depthLimit:successors:), and ShortestPaths D19's\n"
-     "// dijkstraShortestPath(from:successors:success:) and aStarShortestPath(from:successors:heuristic:\n"
-     "// success:), pinning distances and, with unit costs, path vertex counts; each path is checked\n"
-     "// step by step against the closure, since ties between equal paths are not pinned."),
+     "// dijkstraShortestPath(from:cutoff:successors:success:) and aStarShortestPath(from:cutoff:\n"
+     "// successors:heuristic:success:), pinning distances and, with unit costs, path vertex counts;\n"
+     "// each path is checked step by step against the closure, since ties between equal paths are not\n"
+     "// pinned. Then the cutoff, reopening under an inconsistent heuristic, the closures' call counts,\n"
+     "// Double costs, zero costs and several goals, where paths are unique."),
     ("ImplicitGraphPreconditionTests.swift", "ImplicitGraphs preconditions", PRECONDITIONS,
      "Preconditions (catalog trap rows): each trapping call runs in a child process (exit test). The\n"
      "// same setup then runs in this process without the fault. Then the preconditions the catalog\n"

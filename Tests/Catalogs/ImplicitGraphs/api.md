@@ -7,10 +7,10 @@ and duplicates nothing.
 | Case | Where it lives | Status |
 |---|---|---|
 | **Infinite or unbounded state spaces** (puzzles, unbounded grids): no vertex collection exists | Free functions over a successor closure, in the module of the algorithm: `Traversal.breadthFirstSearch(from:depthLimit:successors:)`, `depthFirstSearch(from:depthLimit:successors:)`, `topologicalSort(from:successors:)`, `iterativeDeepeningDepthFirstSearch(from:successors:until:)` (`Sources/Traversal/SuccessorFunctionSearch.swift`) | **Implemented** |
-| The weighted searches of the same shape: `dijkstraShortestPath(from:successors:success:)` and `aStarShortestPath(from:successors:heuristic:success:)`, `successors: (V) -> some Sequence<(V, W)>` | `ShortestPaths`, decision D19 (`Tests/Catalogs/ShortestPaths/cases.md`), pathfinding's signatures | **Implemented** (`Sources/ShortestPaths/SuccessorFunctionSearch.swift`); IG-024 – IG-031 give it values |
+| The weighted searches of the same shape: `dijkstraShortestPath(from:cutoff:successors:success:)` and `aStarShortestPath(from:cutoff:successors:heuristic:success:)`, `successors: (V) -> some Sequence<(V, W)>` | `ShortestPaths`, decision D19 (`Tests/Catalogs/ShortestPaths/cases.md`), pathfinding's signatures, with the stored-graph Dijkstra's inclusive `cutoff:` | **Implemented** (`Sources/ShortestPaths/SuccessorFunctionSearch.swift`); IG-024 – IG-044 give it values |
 | **Finite but unstored** (a bounded grid, a bounded state space numbered `0..<n`): every `DirectedGraph` algorithm should run on it with no edge storage | **`ImplicitDirectedGraph`**, this module (README Representations row) | **This catalog** |
 
-`cases.md` (IG-001 – IG-031, 31 rows) pins the values. `ref.py` ports the type, counts every
+`cases.md` (IG-001 – IG-045, 45 rows) pins the values. `ref.py` ports the type, counts every
 closure call, and checks each graph against:
 
 - the `DirectedGraph` laws: `successors`, `outEdges`, `edges`, the counts, `contains(edge:)`, and
@@ -68,7 +68,10 @@ Vertices are `Int`s `0..<n`, as in `CompressedSparseRow`. A grid is numbered row
 hashable states over a finite set, use `LabeledGraph<State, ImplicitDirectedGraph<…>>`: its
 `init(_:labels:)` needs only base vertices `0..<n` in index order, which this type has. The
 generic parameter is the closure's result (an `Array`, a lazy filter over a fixed neighbor list,
-…), so a specialized build inlines the closure's sequence with no type erasure.
+…), so a specialized build inlines the closure's sequence with no type erasure. On a hot path the
+row should be a small struct that computes its elements up front into fixed slots and yields them
+by count: a lazy filter calls its predicate per element and keeps the unfiltered iterator, and cost
+1.2–1.8× such a row in the grid benchmarks (below).
 
 ## API
 
@@ -93,7 +96,8 @@ extension ImplicitDirectedGraph: DirectedGraph {
             public let source: Int, rank: Int, target: Int
         }
         // makeIterator(), Array(edges): O(n + m), one call per vertex (IG-007); underestimatedCount 0
-        // startIndex: O(rows until the first non-empty one); index(after:): O(d) — re-reads the row (IG-008)
+        // startIndex: O(rows until the first non-empty one), so isEmpty and first call the closure up to n times (IG-045)
+        // index(after:): O(d) — re-reads the row (IG-008)
         // subscript: O(1) from the index
     }
 
@@ -127,7 +131,7 @@ extension ImplicitDirectedGraph: DirectedGraph {
   - a negative `vertexCount` (IG-003);
   - a vertex outside `0..<n` (IG-012, IG-013);
   - a successor outside `0..<n`, trapped when that element is read (IG-014, IG-015). The check is
-    one compare per edge inside the lazy map, measured below.
+    one compare per edge in `Successors.Iterator.next()`, measured below.
 - **Not conformed:**
   - `BidirectionalDirectedGraph`, since predecessors would need an inverse closure (phase 2,
     open question 3);
@@ -146,10 +150,11 @@ calls per settled vertex**. That is a known cost, listed below with its fix.
 | Measure | Target |
 |---|---|
 | Memory | O(1) for the graph; algorithms keep only their own O(n) per-vertex state |
-| `breadthFirstLayers`, 4-neighbor grid 1 000 × 1 000 with a lazy-filter closure | ≤ 1.5× the same call on a `CompressedSparseRow` of the materialized grid; exactly one closure call per discovered vertex |
-| `weaklyConnectedComponents` / `stronglyConnectedComponents`, same grid | ≤ 1.5× CSR |
-| `dijkstraShortestPaths`, same grid, weight from `Index.target` | ≤ 2× CSR, at two calls per settled vertex. **Phase 2 fix:** an `OutEdges`-only arc source in `_runInIndexSpace` (the target is already in the position), which brings it to one call and ≤ 1.5× |
-| The successor range check | ≤ 3% over an unchecked closure, measured in the BFS benchmark; if over, keep it in debug builds only and document the precondition |
+| `breadthFirstLayers`, 4-neighbor grid 1 000 × 1 000, each row computed into four slots and yielded by count | ≤ 1.5× the same call on a `CompressedSparseRow` of the materialized grid; exactly one closure call per discovered vertex. **Met**: 0.8× (16 against 20 ms, 2026-10-11, p50) |
+| `weaklyConnectedComponents` / `stronglyConnectedComponents`, same grid | ≤ 1.5× CSR. **Met**: 1.4× (17 against 12 ms) and 1.1× (30 against 27 ms) |
+| `dijkstraShortestPaths`, same grid, weight from `Index.target` | ≤ 2× CSR, at two calls per settled vertex. **Met**: 0.9× (63 against 67 ms). **Phase 2 fix:** an `OutEdges`-only arc source in `_runInIndexSpace` (the target is already in the position), which brings it to one call |
+| The same four with a `lazy.filter` row | Not a target: 1.2–1.8× the precomputed row (layers 19 ms, components 23 and 46 ms, Dijkstra 116 ms), so the type's documentation steers hot paths away from it |
+| The successor range check | ≤ 3% over an unchecked closure, measured in the BFS benchmark; if over, keep it in debug builds only and document the precondition. **Met**: within noise of 0 % (16 against 16 ms) |
 
 ## Prior art (checked 2026-10-11)
 
@@ -184,21 +189,31 @@ calls per settled vertex**. That is a known cost, listed below with its fix.
    wrapping per dimension (Boost), and an `Int` numbering. It would conform to `Graph` directly,
    with positions defined by (cell, direction), so it avoids question 3's problem.
    `NamedGraphs`' materialized grids stay as they are.
-5. **D19 belongs in `ShortestPaths`, not here.** IG-024 – IG-031 pin it: distances, and vertex
+5. **D19 belongs in `ShortestPaths`, not here.** IG-024 – IG-038 pin it: distances, and vertex
    counts where every shortest path has the same count. IG-030 and IG-031 make step costs depend on
    both ends, so a search that tests the goal when it is pushed answers more. They are checked
-   against NetworkX on a bounded box. Tie-breaking between equal paths is ShortestPaths' rule to
-   set.
+   against NetworkX on a bounded box. IG-032 – IG-034 pin `cutoff:` (inclusive, a bound on the
+   distance alone under A* too, the start always expanded); IG-035 an admissible, inconsistent
+   heuristic that reopens a state, with the closures' call sequences; IG-036 – IG-038 `Double`
+   costs, zero costs with a zero-cost cycle, and several goals. IG-039 – IG-044 are its traps,
+   including a NaN priority from an infinite cost and an estimate of −∞. Tie-breaking between
+   equal paths is ShortestPaths' rule to set.
 
 ## Phases
 
 - **Phase 1 (this catalog):** `ImplicitDirectedGraph` with its lawful `DirectedGraph` conformance
-  and its range-checked lazy rows.
-- **Alongside, in `ShortestPaths`:** D19's two closure functions (IG-024 – IG-029).
+  and its range-checked rows.
+- **Alongside, in `ShortestPaths`:** D19's two closure functions with `cutoff:` (IG-024 – IG-044).
 - **Phase 2:**
   - the one-call arc source in `_runInIndexSpace`;
   - the `@Sendable` initializer;
   - `init(vertices:indexOf:successors:)`;
   - `predecessors:` (bidirectional);
   - `GridGraph` (Boost `grid_graph`, LEMON `GridGraph`);
-  - an undirected `ImplicitGraph`, if a caller needs one beyond `GridGraph`.
+  - an undirected `ImplicitGraph`, if a caller needs one beyond `GridGraph`;
+  - more closure searches in `ShortestPaths`, after Rust's `pathfinding`: `dijkstra_all` (every
+    reachable state's distance and parent, a `ShortestPathTree` over hashed states) and
+    `dijkstra_reach` (states in settle order, lazily, as an iterator); `astar_bag` (every shortest
+    path to the goal, as Centrality's predecessor lists would give); `idastar` (iterative-deepening
+    A*, O(depth) memory, for spaces too large to number); and `fringe` (the fringe search, A*'s
+    order without a heap).

@@ -4,7 +4,8 @@ extension ImplicitDirectedGraph {
     /// Every edge, row by row from vertex 0, each row in the closure's order.
     ///
     /// Iterating, `count` and `Array(edges)` call the closure once per vertex. `startIndex` calls
-    /// it for each row up to the first non-empty one, and `index(after:)` re-reads the row of its
+    /// it for each row up to the first non-empty one, so `isEmpty` and `first` call it up to n
+    /// times (O(n) on a graph with no edges, not O(1)), and `index(after:)` re-reads the row of its
     /// position (and each later row up to a non-empty one), so stepping through the edges by index
     /// costs O(d) per step: iterate instead. `underestimatedCount` is 0, so copying the edges never
     /// counts them first.
@@ -81,7 +82,8 @@ extension ImplicitDirectedGraph {
             return endIndex
         }
 
-        /// The first edge. Calls the closure once per row up to the first non-empty one.
+        /// The first edge. Calls the closure once per row up to the first non-empty one: up to n
+        /// times, and so do `isEmpty` and `first`, which read it.
         @inlinable
         public var startIndex: Index { _firstEdge(from: 0) }
 

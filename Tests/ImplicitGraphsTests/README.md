@@ -6,8 +6,8 @@ It is a lawful `DirectedGraph`, so every generic algorithm runs on it with no ed
 suite also covers the closure searches over unbounded spaces that sit beside it:
 
 - Traversal's existing `breadthFirstSearch(from:depthLimit:successors:)`;
-- ShortestPaths decision D19: `dijkstraShortestPath(from:successors:success:)` and
-  `aStarShortestPath(from:successors:heuristic:success:)`.
+- ShortestPaths decision D19: `dijkstraShortestPath(from:cutoff:successors:success:)` and
+  `aStarShortestPath(from:cutoff:successors:heuristic:success:)`.
 
 The tests come from the proposed API (`api.md` in
 [`Tests/Catalogs/ImplicitGraphs/`](../Catalogs/ImplicitGraphs/), phase 1), with its open questions
@@ -30,8 +30,8 @@ struct ImplicitDirectedGraph<Row: Sequence<Int>>: DirectedGraph
     // OutEdges, the row's positions
     struct Edges: Collection                   // Element = DirectedEdge<Int>
         struct Index: Comparable, Hashable    // source, rank, target; ==, < and hash on (source, rank)
-func dijkstraShortestPath(from:successors:success:) -> (path: [V], distance: W)?              // ShortestPaths
-func aStarShortestPath(from:successors:heuristic:success:) -> (path: [V], distance: W)?       // ShortestPaths
+func dijkstraShortestPath(from:cutoff:successors:success:) -> (path: [V], distance: W)?        // ShortestPaths
+func aStarShortestPath(from:cutoff:successors:heuristic:success:) -> (path: [V], distance: W)? // ShortestPaths
 ```
 
 ## Conventions
@@ -41,12 +41,15 @@ func aStarShortestPath(from:successors:heuristic:success:) -> (path: [V], distan
 | Construction | Calls nothing; an empty graph never calls the closure | IG-001, IG-002 |
 | Row reads | `successors(of:)`, `outEdges(of:)`, `outDegree(of:)` and `contains(edge:)` call the closure once | IG-004, IG-005, IG-010 |
 | Positions | (source, rank, target); the ends are read from the position with no call | IG-005, IG-006, IG-009 |
-| Edges | Iteration, `Array(edges)` and `edgeCount` call once per vertex; `index(after:)` re-reads the row, then each later row up to a non-empty one | IG-007, IG-008 |
+| Edges | Iteration, `Array(edges)` and `edgeCount` call once per vertex; `index(after:)` re-reads the row, then each later row up to a non-empty one; `isEmpty` and `first` read `startIndex`, a call per row up to the first non-empty one (n with no edges) | IG-007, IG-008, IG-045 |
 | Membership | `contains(_:)` calls nothing; `contains(edge:)` calls nothing for an endpoint off `0..<n` | IG-010 |
 | Bounds | `vertexIndexBound` is n, `edgeIndexBound` nil; the index members are the identity | IG-002, IG-011 |
 | Range check | Lazy: a successor off `0..<n` traps when it is read, not when the row is formed | IG-014, IG-015 |
 | Generic algorithms | Traversal calls once per discovered vertex; the weight closure can read `$0.target` | IG-016 – IG-022 |
 | D19 | Distances, and path vertex counts under unit costs. Ties between equal paths are not pinned, so each path is checked step by step against the closure. The goal is tested when it is settled, not when it is pushed | IG-024 – IG-031 |
+| D19 cutoff | Inclusive; it bounds the distance, not the distance plus the estimate; the start is reached and expanded even under a negative cutoff; the search ends on an infinite space | IG-032 – IG-034 |
+| D19 calls | `successors` once per expansion (twice for a state an inconsistent heuristic reopens), `heuristic` once per push; `Double` costs, zero costs and a zero-cost cycle, several goals, where the path is unique | IG-035 – IG-038 |
+| D19 traps | A negative cost (even when the cutoff drops its step), a NaN cost, a NaN estimate, an infinite cost plus an estimate of −∞, a NaN cutoff | IG-039 – IG-044 |
 
 ## How values are pinned
 

@@ -26,7 +26,9 @@ Conventions:
   `knight1` gives each knight move cost 1. In `costly` a step's cost depends only on the cell
   entered, so the goal's first push already has its distance; in `twoEnded` it depends on both
   ends, and a search that tests the goal when it is pushed, not when it is settled, answers more
-  (`ref.py` asserts this for IG-030 and IG-031).
+  (`ref.py` asserts this for IG-030 and IG-031). `line2` = `{ [($0 + 1, 2)] }`; `reopen` is
+  S→A 1, S→B 2, A→C 3, B→C 1, C→G 3 on states 0…4 (S, A, B, C, G); `zeroCycle` is
+  0→1→2→3→0 at cost 0, with 0→9 at 2 and 3→9 at 1.
 * `**trap**` rows are preconditions, run as exit tests.
 
 | ID | Group | Case | Input / call | Expected |
@@ -62,3 +64,17 @@ Conventions:
 | IG-029 | Closures | D19: a finite space with no goal returns nil | dijkstraShortestPath(from: 0, successors: { $0 < 10 ? [($0 + 1, 1)] : [] }, success: { $0 == 20 }) / (distance, path.count) | nil |
 | IG-030 | Closures | D19 Dijkstra: a step from p to q costs 1 + (p.x · q.y) mod 3, so the goal's first push is not its distance | dijkstraShortestPath(from: P(0, 0), successors: twoEnded, success: { $0 == P(-4, 4) }) / distance | 8 |
 | IG-031 | Closures | D19 A*: the same with Manhattan distance | aStarShortestPath(from: P(0, 0), successors: twoEnded, heuristic: manhattan(to: P(-4, 4)), success: { $0 == P(-4, 4) }) / distance | 8 |
+| IG-032 | Closures | D19 cutoff, inclusive: each step costs 2, so the goal 3 (distance 6) is found under cutoff 6 and not under 5, and the search ends on the infinite line | dijkstraShortestPath(from: 0, cutoff: 6, successors: line2, success: { $0 == 3 }) / (distance, path.count) / the same with cutoff: 5 / states expanded under cutoff 5 | (6, 4); nil; [0, 1, 2] |
+| IG-033 | Closures | D19 cutoff below zero: only the start is reached, and it is still expanded | dijkstraShortestPath(from: 0, cutoff: -1, successors: line2, success: { $0 == 0 }) / (distance, path.count) / the same with success: { $0 == 1 } / successors calls | (0, 1); nil; 1 |
+| IG-034 | Closures | D19 cutoff under A*: it bounds the distance, so the costly grid's goal (12) is found under cutoff 12, not under 11, by A* and Dijkstra alike | aStarShortestPath(from: P(0, 0), cutoff: 12, successors: costly, heuristic: manhattan(to: P(4, -3)), success: { $0 == P(4, -3) }) / distance / the same with cutoff: 11 / dijkstraShortestPath with cutoff: 11 | 12; nil; nil |
+| IG-035 | Closures | D19 A* with an admissible, inconsistent heuristic reopens C (3) and still answers 6; successors is called once per expansion and heuristic once per push | aStarShortestPath(from: 0, successors: reopen, heuristic: { [0, 0, 4, 0, 0][$0] }, success: { $0 == 4 }) / (distance, path) / states expanded / heuristic calls / dijkstraShortestPath: states expanded | (6, [0, 2, 3, 4]); [0, 1, 3, 2, 3]; [0, 1, 2, 3, 4, 3, 4]; [0, 1, 2, 3] |
+| IG-036 | Closures | D19 with Double costs | dijkstraShortestPath(from: 0, successors: { $0 < 3 ? [($0 + 1, 0.5), ($0 + 2, 1.25)] : [] }, success: { $0 == 3 }) / (distance, path.count) / aStarShortestPath with heuristic: { Double(3 - $0) * 0.5 } | (1.5, 4); (1.5, 4) |
+| IG-037 | Closures | D19 zero-cost steps and a zero-cost cycle: each state is expanded once | dijkstraShortestPath(from: 0, successors: zeroCycle, success: { $0 == 9 }) / (distance, path) / states expanded | (1, [0, 1, 2, 3, 9]); [0, 1, 2, 3] |
+| IG-038 | Closures | D19 several goals: the nearest by cost (5, five steps), not by steps (-3, three steps costing 6) | dijkstraShortestPath(from: 0, successors: { [($0 + 1, 1), ($0 - 1, 2)] }, success: { $0 == 5 \|\| $0 == -3 }) / (distance, path) / aStarShortestPath with heuristic: { min(abs(5 - $0), abs(-3 - $0)) } | (5, [0, 1, 2, 3, 4, 5]); (5, [0, 1, 2, 3, 4, 5]) |
+| IG-039 | Closures | D19: a negative step cost | dijkstraShortestPath(from: 0, successors: { _ in [(1, -1)] }, success: { $0 == 1 }) | **trap** (Dijkstra's algorithm and A* need nonnegative weights (and no NaN); use Bellman–Ford) |
+| IG-040 | Closures | D19: a negative step cost traps even when the cutoff drops the step | dijkstraShortestPath(from: 0, cutoff: 0, successors: { _ in [(1, -1)] }, success: { $0 == 1 }) | **trap** (Dijkstra's algorithm and A* need nonnegative weights (and no NaN); use Bellman–Ford) |
+| IG-041 | Closures | D19: a NaN step cost | dijkstraShortestPath(from: 0, successors: { _ in [(1, Double.nan)] }, success: { $0 == 1 }) | **trap** (Dijkstra's algorithm and A* need nonnegative weights (and no NaN); use Bellman–Ford) |
+| IG-042 | Closures | D19: a NaN heuristic estimate | aStarShortestPath(from: 0, successors: { $0 == 0 ? [(1, 1.0)] : [] }, heuristic: { $0 == 1 ? .nan : 0 }, success: { $0 == 1 }) | **trap** (An A* priority (distance plus heuristic estimate) is NaN) |
+| IG-043 | Closures | D19: an infinite cost plus an estimate of -∞ is a NaN priority | aStarShortestPath(from: 0, successors: { $0 == 0 ? [(1, .infinity), (3, 5)] : [] }, heuristic: { $0 == 1 ? -.infinity : 0 }, success: { $0 == 1 \|\| $0 == 3 }) | **trap** (An A* priority (distance plus heuristic estimate) is NaN) |
+| IG-044 | Closures | D19: a NaN cutoff | dijkstraShortestPath(from: 0, cutoff: .nan, successors: { _ in [(1, 1.0)] }, success: { $0 == 1 }) | **trap** (The cutoff is NaN) |
+| IG-045 | Reads | edges.isEmpty and edges.first read startIndex: a call per row up to the first non-empty one, so n calls when there are no edges | IG (5, { _ in [] }) / edges.isEmpty / calls() / edges.first / calls() | true; 5; nil; 5 |

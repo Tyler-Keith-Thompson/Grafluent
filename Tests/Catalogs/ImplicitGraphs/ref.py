@@ -84,6 +84,14 @@ class IG:
             return False
         return t in self._row(s)
 
+    def start_index(self):
+        """edges.startIndex (and so isEmpty and first): each row until one is non-empty."""
+        for v in range(self.n):
+            row = self._row(v)
+            if row:
+                return (v, 0, row[0])
+        return "endIndex"
+
     def index_of_edge_after(self, p):
         """edges.index(after:): re-reads p's row, then later rows until one is non-empty."""
         s, r, _ = p
@@ -122,12 +130,19 @@ def bfs_layers(g, s):
         layers.append(nxt)
 
 
-def dijkstra_closure(start, successors, success, heuristic=None):
-    """D19's contract, by distance only (ties between equal paths are not pinned)."""
+NAN_PRIORITY = "An A* priority (distance plus heuristic estimate) is NaN"
+
+
+def dijkstra_closure(start, successors, success, heuristic=None, cutoff=None):
+    """D19's contract, by distance only (ties between equal paths are not pinned). A step whose
+    distance would pass `cutoff` is dropped after its cost is checked; the start is always expanded."""
+    require(cutoff is None or cutoff == cutoff, "The cutoff is NaN")
     h = heuristic or (lambda v: 0)
     dist = {start: 0}
     parent = {start: None}
-    heap = [(h(start), 0, 0, start)]
+    first = h(start)
+    require(first == first, NAN_PRIORITY)
+    heap = [(first, 0, 0, start)]
     tie = 1
     done = set()
     while heap:
@@ -143,11 +158,16 @@ def dijkstra_closure(start, successors, success, heuristic=None):
             return path[::-1], d
         done.add(u)
         for w, c in successors(u):
+            require(c >= 0, "Dijkstra's algorithm and A* need nonnegative weights (and no NaN); use Bellman–Ford")
             nd = d + c
+            if cutoff is not None and cutoff < nd:
+                continue
             if w not in dist or nd < dist[w]:
                 dist[w] = nd
                 parent[w] = u
-                heapq.heappush(heap, (nd + h(w), nd, tie, w))
+                priority = nd + h(w)
+                require(priority == priority, NAN_PRIORITY)
+                heapq.heappush(heap, (priority, nd, tie, w))
                 tie += 1
     return None
 
@@ -431,6 +451,98 @@ def define():
     d19("D19 A*: the same with Manhattan distance", "aStarShortestPath(from: P(0, 0), successors: twoEnded, heuristic: manhattan(to: P(-4, 4)), success: { $0 == P(-4, 4) })",
         (0, 0), two_ended, (-4, 4), heuristic=lambda p: abs(-4 - p[0]) + abs(4 - p[1]), box=(-12, 8), steps=False, catches_push=True)
 
+    # --- D19: cutoff, reopening, call counts, Double costs, zero costs, several goals, traps
+    def logged(succ, log):
+        def f(v):
+            log.append(v)
+            return succ(v)
+        return f
+
+    def summary(r):
+        return None if r is None else f"({r[1]}, {len(r[0])})"
+
+    line2 = lambda v: [(v + 1, 2)]
+    expanded = []
+    row("Closures", "D19 cutoff, inclusive: each step costs 2, so the goal 3 (distance 6) is found under cutoff 6 "
+        "and not under 5, and the search ends on the infinite line",
+        "dijkstraShortestPath(from: 0, cutoff: 6, successors: line2, success: { $0 == 3 })", [
+            ("(distance, path.count)", lambda: summary(dijkstra_closure(0, line2, lambda v: v == 3, cutoff=6))),
+            ("the same with cutoff: 5", lambda: dijkstra_closure(0, logged(line2, expanded), lambda v: v == 3, cutoff=5)),
+            ("states expanded under cutoff 5", lambda: expanded)])
+    calls = []
+    row("Closures", "D19 cutoff below zero: only the start is reached, and it is still expanded",
+        "dijkstraShortestPath(from: 0, cutoff: -1, successors: line2, success: { $0 == 0 })", [
+            ("(distance, path.count)", lambda: summary(dijkstra_closure(0, line2, lambda v: v == 0, cutoff=-1))),
+            ("the same with success: { $0 == 1 }", lambda: dijkstra_closure(0, logged(line2, calls), lambda v: v == 1, cutoff=-1)),
+            ("successors calls", lambda: len(calls))])
+    to_goal = lambda p: abs(4 - p[0]) + abs(-3 - p[1])
+    row("Closures", "D19 cutoff under A*: it bounds the distance, so the costly grid's goal (12) is found under cutoff 12, "
+        "not under 11, by A* and Dijkstra alike",
+        "aStarShortestPath(from: P(0, 0), cutoff: 12, successors: costly, heuristic: manhattan(to: P(4, -3)), success: { $0 == P(4, -3) })", [
+            ("distance", lambda: dijkstra_closure((0, 0), cost, lambda v: v == (4, -3), to_goal, cutoff=12)[1]),
+            ("the same with cutoff: 11", lambda: dijkstra_closure((0, 0), cost, lambda v: v == (4, -3), to_goal, cutoff=11)),
+            ("dijkstraShortestPath with cutoff: 11", lambda: dijkstra_closure((0, 0), cost, lambda v: v == (4, -3), cutoff=11))])
+    reopen_rows = {0: [(1, 1), (2, 2)], 1: [(3, 3)], 2: [(3, 1)], 3: [(4, 3)], 4: []}
+    reopen = lambda v: reopen_rows[v]
+    a_expanded, h_calls, d_expanded = [], [], []
+
+    def h_reopen(v):
+        h_calls.append(v)
+        return [0, 0, 4, 0, 0][v]
+    found = {}
+    row("Closures", "D19 A* with an admissible, inconsistent heuristic reopens C (3) and still answers 6; successors "
+        "is called once per expansion and heuristic once per push",
+        "aStarShortestPath(from: 0, successors: reopen, heuristic: { [0, 0, 4, 0, 0][$0] }, success: { $0 == 4 })", [
+            ("(distance, path)", lambda: (lambda r: f"({r[1]}, {fmt(r[0])})")(
+                found.setdefault("r", dijkstra_closure(0, logged(reopen, a_expanded), lambda v: v == 4, h_reopen)))),
+            ("states expanded", lambda: a_expanded), ("heuristic calls", lambda: h_calls),
+            ("dijkstraShortestPath: states expanded", lambda: (dijkstra_closure(0, logged(reopen, d_expanded), lambda v: v == 4), d_expanded)[1])])
+    halves = lambda v: [(v + 1, 0.5), (v + 2, 1.25)] if v < 3 else []
+    row("Closures", "D19 with Double costs",
+        "dijkstraShortestPath(from: 0, successors: { $0 < 3 ? [($0 + 1, 0.5), ($0 + 2, 1.25)] : [] }, success: { $0 == 3 })", [
+            ("(distance, path.count)", lambda: summary(dijkstra_closure(0, halves, lambda v: v == 3))),
+            ("aStarShortestPath with heuristic: { Double(3 - $0) * 0.5 }",
+             lambda: summary(dijkstra_closure(0, halves, lambda v: v == 3, lambda v: (3 - v) * 0.5)))])
+    zero_rows = {0: [(1, 0), (9, 2)], 1: [(2, 0)], 2: [(3, 0)], 3: [(0, 0), (9, 1)], 9: []}
+    z_expanded = []
+    row("Closures", "D19 zero-cost steps and a zero-cost cycle: each state is expanded once",
+        "dijkstraShortestPath(from: 0, successors: zeroCycle, success: { $0 == 9 })", [
+            ("(distance, path)", lambda: (lambda r: f"({r[1]}, {fmt(r[0])})")(
+                dijkstra_closure(0, logged(lambda v: zero_rows[v], z_expanded), lambda v: v == 9))),
+            ("states expanded", lambda: z_expanded)])
+    both = lambda v: [(v + 1, 1), (v - 1, 2)]
+    row("Closures", "D19 several goals: the nearest by cost (5, five steps), not by steps (-3, three steps costing 6)",
+        "dijkstraShortestPath(from: 0, successors: { [($0 + 1, 1), ($0 - 1, 2)] }, success: { $0 == 5 || $0 == -3 })", [
+            ("(distance, path)", lambda: (lambda r: f"({r[1]}, {fmt(r[0])})")(dijkstra_closure(0, both, lambda v: v in (5, -3)))),
+            ("aStarShortestPath with heuristic: { min(abs(5 - $0), abs(-3 - $0)) }",
+             lambda: (lambda r: f"({r[1]}, {fmt(r[0])})")(dijkstra_closure(0, both, lambda v: v in (5, -3), lambda v: min(abs(5 - v), abs(-3 - v)))))])
+    nan = float("nan")
+    inf = float("inf")
+    for title, text, thunk in [
+        ("D19: a negative step cost", "dijkstraShortestPath(from: 0, successors: { _ in [(1, -1)] }, success: { $0 == 1 })",
+         lambda: dijkstra_closure(0, lambda v: [(1, -1)], lambda v: v == 1)),
+        ("D19: a negative step cost traps even when the cutoff drops the step",
+         "dijkstraShortestPath(from: 0, cutoff: 0, successors: { _ in [(1, -1)] }, success: { $0 == 1 })",
+         lambda: dijkstra_closure(0, lambda v: [(1, -1)], lambda v: v == 1, cutoff=0)),
+        ("D19: a NaN step cost", "dijkstraShortestPath(from: 0, successors: { _ in [(1, Double.nan)] }, success: { $0 == 1 })",
+         lambda: dijkstra_closure(0, lambda v: [(1, nan)], lambda v: v == 1)),
+        ("D19: a NaN heuristic estimate",
+         "aStarShortestPath(from: 0, successors: { $0 == 0 ? [(1, 1.0)] : [] }, heuristic: { $0 == 1 ? .nan : 0 }, success: { $0 == 1 })",
+         lambda: dijkstra_closure(0, lambda v: [(1, 1.0)] if v == 0 else [], lambda v: v == 1, lambda v: nan if v == 1 else 0)),
+        ("D19: an infinite cost plus an estimate of -∞ is a NaN priority",
+         "aStarShortestPath(from: 0, successors: { $0 == 0 ? [(1, .infinity), (3, 5)] : [] }, heuristic: { $0 == 1 ? -.infinity : 0 }, success: { $0 == 1 || $0 == 3 })",
+         lambda: dijkstra_closure(0, lambda v: [(1, inf), (3, 5.0)] if v == 0 else [], lambda v: v in (1, 3), lambda v: -inf if v == 1 else 0)),
+        ("D19: a NaN cutoff", "dijkstraShortestPath(from: 0, cutoff: .nan, successors: { _ in [(1, 1.0)] }, success: { $0 == 1 })",
+         lambda: dijkstra_closure(0, lambda v: [(1, 1.0)], lambda v: v == 1, cutoff=nan)),
+    ]:
+        row("Closures", title, text, [("", thunk)])
+
+    # --- reads, continued
+    graph_row("Reads", "edges.isEmpty and edges.first read startIndex: a call per row up to the first non-empty one, "
+              "so n calls when there are no edges", "(5, { _ in [] })", 5, lambda v: [], [
+        ("edges.isEmpty", lambda g: g.start_index() == "endIndex"), ("calls()", calls_since),
+        ("edges.first", lambda g: None if g.start_index() == "endIndex" else g.start_index()), ("calls()", calls_since)])
+
 
 # ---------------------------------------------------------------- render, stress, main
 
@@ -462,7 +574,9 @@ Conventions:
   `knight1` gives each knight move cost 1. In `costly` a step's cost depends only on the cell
   entered, so the goal's first push already has its distance; in `twoEnded` it depends on both
   ends, and a search that tests the goal when it is pushed, not when it is settled, answers more
-  (`ref.py` asserts this for IG-030 and IG-031).
+  (`ref.py` asserts this for IG-030 and IG-031). `line2` = `{ [($0 + 1, 2)] }`; `reopen` is
+  S→A 1, S→B 2, A→C 3, B→C 1, C→G 3 on states 0…4 (S, A, B, C, G); `zeroCycle` is
+  0→1→2→3→0 at cost 0, with 0→9 at 2 and 3→9 at 1.
 * `**trap**` rows are preconditions, run as exit tests.
 
 | ID | Group | Case | Input / call | Expected |

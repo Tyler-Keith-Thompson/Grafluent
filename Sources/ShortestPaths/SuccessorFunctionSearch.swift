@@ -73,10 +73,12 @@ struct _SearchHeap<W: Comparable> {
 /// numbered in a dictionary as they are reached and a binary heap with lazy deletion: a state whose
 /// distance improves is queued again, and the stale entry is skipped when it comes out. Under A*,
 /// that reopens a state already expanded, so an admissible but inconsistent heuristic stays exact.
+/// A step whose distance would pass `cutoff` is dropped before its state is numbered.
 @inlinable
 func _closureShortestPath<V: Hashable, W: Comparable & AdditiveArithmetic, S: Sequence<(V, W)>>(
-    from start: V, successors: (V) -> S, heuristic: ((V) -> W)?, success: (V) -> Bool
+    from start: V, cutoff: W?, successors: (V) -> S, heuristic: ((V) -> W)?, success: (V) -> Bool
 ) -> (path: [V], distance: W)? {
+    precondition(cutoff.map { $0 == $0 } ?? true, "The cutoff is NaN")
     var number: [V: Int] = [start: 0]
     var states = [start]
     var distance = [W.zero]
@@ -85,7 +87,7 @@ func _closureShortestPath<V: Hashable, W: Comparable & AdditiveArithmetic, S: Se
     var first = W.zero
     if let heuristic {
         first = heuristic(start)
-        precondition(first == first, "A heuristic estimate is NaN")
+        precondition(first == first, "An A* priority (distance plus heuristic estimate) is NaN")
     }
     heap.push(_SearchEntry(state: 0, priority: first, distance: .zero))
     while let entry = heap.popMin() {
@@ -108,6 +110,7 @@ func _closureShortestPath<V: Hashable, W: Comparable & AdditiveArithmetic, S: Se
         for (next, weight) in successors(state) {
             precondition(weight >= .zero, "Dijkstra's algorithm and A* need nonnegative weights (and no NaN); use Bellman–Ford")
             let candidate = entry.distance + weight
+            if let cutoff, cutoff < candidate { continue }
             let v: Int
             if let known = number[next] {
                 guard candidate < distance[known] else { continue }
@@ -123,9 +126,10 @@ func _closureShortestPath<V: Hashable, W: Comparable & AdditiveArithmetic, S: Se
             }
             var priority = candidate
             if let heuristic {
-                let h = heuristic(next)
-                precondition(h == h, "A heuristic estimate is NaN")
-                priority = candidate + h
+                priority = candidate + heuristic(next)
+                // Covers a NaN estimate, and an infinite distance plus the opposite infinity: a NaN
+                // priority would break the heap's order and end the search at a wrong state.
+                precondition(priority == priority, "An A* priority (distance plus heuristic estimate) is NaN")
             }
             heap.push(_SearchEntry(state: v, priority: priority, distance: candidate))
         }
@@ -146,20 +150,26 @@ func _closureShortestPath<V: Hashable, W: Comparable & AdditiveArithmetic, S: Se
 /// depend on both ends of the step. Among equal-cost paths, which one is returned is unspecified.
 ///
 /// Inside an extension of `DirectedGraph`, the methods of the same name hide this function; call it
-/// as `ShortestPaths.dijkstraShortestPath(from:successors:success:)` there.
+/// as `ShortestPaths.dijkstraShortestPath(from:cutoff:successors:success:)` there.
 ///
-/// - Precondition: every examined cost is at least `.zero` and not NaN; every sum fits in `W`.
+/// - Parameter cutoff: When given, states other than `start` are reached only at distance at most
+///   `cutoff` (inclusive, as the stored-graph `dijkstraShortestPaths(from:cutoff:weight:)` and
+///   NetworkX's `cutoff`), and `nil` is returned when no goal is that close. The search then ends
+///   whenever finitely many states are within the cutoff, even on an infinite space. `start` is
+///   always reached, at zero, and expanded, even under a negative cutoff.
+/// - Precondition: every examined cost is at least `.zero` and not NaN (a cost is examined, and
+///   checked, before the cutoff drops its step); `cutoff` is not NaN; every sum fits in `W`.
 @inlinable
 public func dijkstraShortestPath<V: Hashable, W: Comparable & AdditiveArithmetic, S: Sequence<(V, W)>>(
-    from start: V, successors: (V) -> S, success: (V) -> Bool
+    from start: V, cutoff: W? = nil, successors: (V) -> S, success: (V) -> Bool
 ) -> (path: [V], distance: W)? {
-    _closureShortestPath(from: start, successors: successors, heuristic: nil, success: success)
+    _closureShortestPath(from: start, cutoff: cutoff, successors: successors, heuristic: nil, success: success)
 }
 
 /// A shortest path from `start` to the nearest state satisfying `success`, by A* over a successor
 /// function (decision D19; the `pathfinding` crate's `astar`), guided by `heuristic`, an estimate
-/// of each state's cost to the nearest goal. Returns as `dijkstraShortestPath(from:successors:
-/// success:)` does, and calls `heuristic` once each time a state is queued.
+/// of each state's cost to the nearest goal. Returns as `dijkstraShortestPath(from:cutoff:
+/// successors:success:)` does, and calls `heuristic` once each time a state is queued.
 ///
 /// With an admissible heuristic (never more than the true remaining cost, and so zero or less at a
 /// goal) the path is a shortest one, even when the heuristic is not consistent, since a state whose
@@ -167,12 +177,17 @@ public func dijkstraShortestPath<V: Hashable, W: Comparable & AdditiveArithmetic
 /// (`h(u) <= cost(u, v) + h(v)`) no state is expanded twice. A heuristic of zero is Dijkstra's
 /// algorithm.
 ///
-/// - Precondition: as for `dijkstraShortestPath(from:successors:success:)`; no estimate is NaN.
+/// - Parameter cutoff: As for `dijkstraShortestPath(from:cutoff:successors:success:)`: it bounds
+///   the distance from `start`, not the distance plus the estimate (NetworkX's `astar_path` bounds
+///   the sum), so the answer does not depend on the heuristic.
+/// - Precondition: as for `dijkstraShortestPath(from:cutoff:successors:success:)`; no priority
+///   (a distance plus its state's estimate) is NaN, so no estimate is NaN, and no estimate is an
+///   infinity opposite to an infinite distance.
 @inlinable
 public func aStarShortestPath<V: Hashable, W: Comparable & AdditiveArithmetic, S: Sequence<(V, W)>>(
-    from start: V, successors: (V) -> S, heuristic: (V) -> W, success: (V) -> Bool
+    from start: V, cutoff: W? = nil, successors: (V) -> S, heuristic: (V) -> W, success: (V) -> Bool
 ) -> (path: [V], distance: W)? {
     withoutActuallyEscaping(heuristic) { heuristic in
-        _closureShortestPath(from: start, successors: successors, heuristic: heuristic, success: success)
+        _closureShortestPath(from: start, cutoff: cutoff, successors: successors, heuristic: heuristic, success: success)
     }
 }

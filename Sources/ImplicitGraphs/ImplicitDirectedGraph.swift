@@ -8,8 +8,8 @@ import GraphProtocols
 ///
 /// For a state space with no vertex collection (an unbounded grid, a puzzle), use the closure
 /// searches instead: Traversal's `breadthFirstSearch(from:successors:)` and ShortestPaths'
-/// `dijkstraShortestPath(from:successors:success:)` and `aStarShortestPath(from:successors:
-/// heuristic:success:)`. For `Hashable` states over a finite set, number them and use
+/// `dijkstraShortestPath(from:cutoff:successors:success:)` and `aStarShortestPath(from:cutoff:
+/// successors:heuristic:success:)`. For `Hashable` states over a finite set, number them and use
 /// `LabeledGraph<State, ImplicitDirectedGraph<Row>>`; a grid is numbered row-major.
 ///
 /// **The closure.** `successors(v)` lists the targets of the edges leaving `v`, once per edge, as
@@ -20,6 +20,12 @@ import GraphProtocols
 /// protocol's "asking again gives the same answer"); this is documented, not checked, and a
 /// closure that breaks it breaks every algorithm, as a mutating `==` breaks `Set`. Each target is
 /// checked to be a vertex when it is read, not when the row is formed.
+///
+/// On a hot path, return a small struct that computes the row up front into fixed slots and
+/// yields them by count, rather than a `lazy.filter` over a fixed neighbor list: the filter calls
+/// its predicate per element and keeps the unfiltered iterator's state, and in the benchmarks on a
+/// 1000 × 1000 grid it cost 1.2–1.8× the precomputed row (breadth-first layers, components,
+/// Dijkstra).
 ///
 /// **Positions.** An edge's position is `Edges.Index`: its source, its rank in the source's row,
 /// and its target. Equality, order and hashing use `(source, rank)`, unique even among parallel

@@ -1,6 +1,7 @@
-// Reads (catalog IG-004 – IG-011): one closure call per row read, positions (source, rank, target)
-// that read their ends without a call, edges in row order with one call per vertex, index(after:)
-// re-reading the row, parallel edges and self-loops as distinct positions, and contains.
+// Reads (catalog IG-004 – IG-011, IG-045): one closure call per row read, positions (source, rank,
+// target) that read their ends without a call, edges in row order with one call per vertex,
+// index(after:) re-reading the row, parallel edges and self-loops as distinct positions, contains,
+// and isEmpty and first reading every empty row.
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import GraphProtocols
@@ -476,6 +477,60 @@ struct ImplicitGraphReadTests {
             calls = 0
             #expect(positions.allSatisfy { graph.contains(edge: DirectedEdge(from: $0.source, to: $0.target)) })
             #expect(calls == 4)
+        }
+    }
+
+    @Test("IG-045 edges.isEmpty and edges.first read startIndex: a call per row up to the first non-empty one, so n calls when there are no edges")
+    func ig045() {
+        // IG (5, { _ in [] }) / edges.isEmpty / calls() / edges.first / calls() → true; 5; nil; 5
+        var calls = 0
+        let graph = ImplicitDirectedGraph(vertexCount: 5, successors: { (v: Int) -> [Int] in
+            calls += 1
+            return []
+        })
+        #expect(graph.edges.isEmpty == true)
+        #expect(calls == 5)
+        calls = 0
+        #expect(graph.edges.first == nil)
+        #expect(calls == 5)
+        calls = 0
+        do {
+            // The whole graph, from the model, with the closure calls each read makes.
+            calls = 0
+            #expect(graph.vertexCount == 5 && graph.vertexIndexBound == 5 && graph.edgeIndexBound == nil)
+            #expect(Array(graph.vertices) == [0, 1, 2, 3, 4] && !graph.contains(-1) && !graph.contains(5))
+            #expect(graph.edgeCount == 0)
+            #expect(calls == 5)
+            calls = 0
+            var iterated: [[Int]] = []
+            for edge in graph.edges { iterated.append([edge.source, edge.target]) }
+            #expect(iterated == [] as [[Int]])
+            #expect(calls == 5)
+            calls = 0
+            #expect(graph.vertices.map { Array(graph.successors(of: $0)) } == [[] as [Int], [] as [Int], [] as [Int], [] as [Int], [] as [Int]])
+            #expect(calls == 5)
+            #expect(graph.vertices.map { Array(graph.successorIndices(ofIndex: $0)) } == [[] as [Int], [] as [Int], [] as [Int], [] as [Int], [] as [Int]])
+            #expect(graph.vertices.map { graph.outDegree(of: $0) } == [0, 0, 0, 0, 0])
+            #expect(graph.vertices.map { graph.outDegree(ofIndex: $0) } == [0, 0, 0, 0, 0])
+            #expect(graph.vertices.map { [graph.vertexIndex(of: $0), graph.vertex(atIndex: $0)] } == [[0, 0], [1, 1], [2, 2], [3, 3], [4, 4]])
+            calls = 0
+            let positions = graph.vertices.flatMap { Array(graph.outEdges(of: $0)) }
+            #expect(calls == 5)
+            #expect(positions.map { [$0.source, $0.rank, $0.target] } == [] as [[Int]])
+            #expect(graph.vertices.flatMap { Array(graph.outEdges(ofIndex: $0)) } == positions)
+            calls = 0
+            #expect(positions.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == positions.map { [$0.source, $0.target] })
+            #expect(positions.map { graph.edges[$0] } == positions.map { DirectedEdge(from: $0.source, to: $0.target) })
+            #expect(calls == 0)
+            // Stepping by index(after:) visits the positions iteration lists, in order.
+            var stepped: [ImplicitDirectedGraph<[Int]>.Edges.Index] = []
+            var position = graph.edges.startIndex
+            while position != graph.edges.endIndex {
+                stepped.append(position)
+                position = graph.edges.index(after: position)
+            }
+            #expect(stepped == positions && stepped.map(\.target) == positions.map(\.target))
+            #expect(Set(positions).count == 0 && positions == positions.sorted())
         }
     }
 }

@@ -38,20 +38,31 @@ struct GridNeighbors: Sequence, IteratorProtocol {
     }
 }
 
-/// The in-grid neighbors of a cell, in the same order, skipping the sides off the grid itself: a
-/// row with no filter closure to call per element.
-struct InGridNeighbors: Sequence, IteratorProtocol {
-    var base: GridNeighbors
+/// The in-grid neighbors of a cell, in the same order, computed up front into four slots and
+/// yielded by count: the row a hot path should use. A lazy filter over `GridNeighbors` calls its
+/// predicate per element and keeps the unfiltered iterator's state machine, and measured 1.2–1.8×
+/// this row in the searches below.
+struct GridRow: Sequence, IteratorProtocol {
+    var slots: (Int, Int, Int, Int) = (0, 0, 0, 0)
+    var count = 0, position = 0
 
     @inline(__always)
-    init(_ v: Int, width: Int, height: Int) { base = GridNeighbors(v, width: width, height: height) }
+    init(_ v: Int, width: Int, height: Int) {
+        let c = v % width
+        withUnsafeMutableBytes(of: &slots) { raw in
+            let slot = raw.bindMemory(to: Int.self)
+            if v >= width { slot[count] = v &- width; count &+= 1 }
+            if c > 0 { slot[count] = v &- 1; count &+= 1 }
+            if c < width &- 1 { slot[count] = v &+ 1; count &+= 1 }
+            if v < width &* (height &- 1) { slot[count] = v &+ width; count &+= 1 }
+        }
+    }
 
     @inline(__always)
     mutating func next() -> Int? {
-        while let w = base.next() {
-            if w >= 0 { return w }
-        }
-        return nil
+        guard position < count else { return nil }
+        defer { position &+= 1 }
+        return withUnsafeBytes(of: slots) { $0.load(fromByteOffset: position &* 8, as: Int.self) }
     }
 }
 
@@ -75,15 +86,14 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark.defaultConfiguration.metrics = [.wallClock, .mallocCountTotal]
     Benchmark.defaultConfiguration.maxDuration = .seconds(2)
 
-    // A 1000 × 1000 4-neighbor grid, row-major, from a lazy-filter closure; and its CSR.
+    // A 1000 × 1000 4-neighbor grid, row-major, with rows precomputed into slots; the same with
+    // lazy-filter rows, and without the range check; and its CSR.
     let width = 1000, height = 1000, n = width * height
-    let grid = ImplicitDirectedGraph(vertexCount: n) { v in
+    let grid = ImplicitDirectedGraph(vertexCount: n) { v in GridRow(v, width: width, height: height) }
+    let unchecked = UncheckedImplicitGraph(n: n) { v in GridRow(v, width: width, height: height) }
+    let filtered = ImplicitDirectedGraph(vertexCount: n) { v in
         GridNeighbors(v, width: width, height: height).lazy.filter { $0 >= 0 }
     }
-    let unchecked = UncheckedImplicitGraph(n: n) { v in
-        GridNeighbors(v, width: width, height: height).lazy.filter { $0 >= 0 }
-    }
-    let unfiltered = ImplicitDirectedGraph(vertexCount: n) { v in InGridNeighbors(v, width: width, height: height) }
     var gridEdges: [DirectedEdge<Int>] = []
     for v in 0 ..< n { for w in grid.successors(of: v) { gridEdges.append(DirectedEdge(from: v, to: w)) } }
     let csr = CompressedSparseRow(vertexCount: n, edges: gridEdges)
@@ -96,7 +106,8 @@ let benchmarks: @Sendable () -> Void = {
     precondition(grid.breadthFirstLayers(from: 0) == csr.breadthFirstLayers(from: 0))
     precondition(unchecked.breadthFirstLayers(from: 0) == csr.breadthFirstLayers(from: 0))
     precondition(grid.stronglyConnectedComponents().count == 1 && grid.weaklyConnectedComponents().count == 1)
-    precondition(grid.edgeCount == csr.edgeCount && unfiltered.edgeCount == csr.edgeCount)
+    precondition(grid.edgeCount == csr.edgeCount && filtered.edgeCount == csr.edgeCount)
+    precondition(filtered.breadthFirstLayers(from: 0) == csr.breadthFirstLayers(from: 0))
     let far = n - 1
     precondition(grid.dijkstraShortestPaths(from: 0) { cellCost[$0.target] }.distance(to: far) == csr.dijkstraShortestPaths(from: 0) { csrWeights[$0] }.distance(to: far))
 
@@ -112,8 +123,8 @@ let benchmarks: @Sendable () -> Void = {
         for _ in benchmark.scaledIterations { blackHole(unchecked.breadthFirstLayers(from: 0)) }
     }
 
-    Benchmark("ImplicitGraphs: breadthFirstLayers on ImplicitDirectedGraph, rows without a filter closure") { benchmark in
-        for _ in benchmark.scaledIterations { blackHole(unfiltered.breadthFirstLayers(from: 0)) }
+    Benchmark("ImplicitGraphs: breadthFirstLayers on ImplicitDirectedGraph, lazy-filter rows") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(filtered.breadthFirstLayers(from: 0)) }
     }
 
     // MARK: Connectivity
@@ -127,8 +138,8 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("ImplicitGraphs: BASELINE weaklyConnectedComponents on the grid without the range check") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(unchecked.weaklyConnectedComponents().count) }
     }
-    Benchmark("ImplicitGraphs: weaklyConnectedComponents on ImplicitDirectedGraph, rows without a filter closure") { benchmark in
-        for _ in benchmark.scaledIterations { blackHole(unfiltered.weaklyConnectedComponents().count) }
+    Benchmark("ImplicitGraphs: weaklyConnectedComponents on ImplicitDirectedGraph, lazy-filter rows") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(filtered.weaklyConnectedComponents().count) }
     }
     Benchmark("ImplicitGraphs: BASELINE stronglyConnectedComponents on CompressedSparseRow") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(csr.stronglyConnectedComponents().count) }
@@ -140,8 +151,8 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("ImplicitGraphs: BASELINE stronglyConnectedComponents on the grid without the range check") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(unchecked.stronglyConnectedComponents().count) }
     }
-    Benchmark("ImplicitGraphs: stronglyConnectedComponents on ImplicitDirectedGraph, rows without a filter closure") { benchmark in
-        for _ in benchmark.scaledIterations { blackHole(unfiltered.stronglyConnectedComponents().count) }
+    Benchmark("ImplicitGraphs: stronglyConnectedComponents on ImplicitDirectedGraph, lazy-filter rows") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(filtered.stronglyConnectedComponents().count) }
     }
 
     // MARK: Shortest paths
@@ -153,8 +164,8 @@ let benchmarks: @Sendable () -> Void = {
         for _ in benchmark.scaledIterations { blackHole(grid.dijkstraShortestPaths(from: 0) { cellCost[$0.target] }) }
     }
 
-    Benchmark("ImplicitGraphs: dijkstraShortestPaths on ImplicitDirectedGraph, rows without a filter closure") { benchmark in
-        for _ in benchmark.scaledIterations { blackHole(unfiltered.dijkstraShortestPaths(from: 0) { cellCost[$0.target] }) }
+    Benchmark("ImplicitGraphs: dijkstraShortestPaths on ImplicitDirectedGraph, lazy-filter rows") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(filtered.dijkstraShortestPaths(from: 0) { cellCost[$0.target] }) }
     }
 
     // MARK: Closure searches (ShortestPaths D19) on an unbounded grid

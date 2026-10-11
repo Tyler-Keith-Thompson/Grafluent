@@ -6,6 +6,7 @@
 import GrafluentTestSupport
 import GraphProtocols
 import ImplicitGraphs
+import ShortestPaths
 import Testing
 import Traversal
 
@@ -185,6 +186,69 @@ struct ImplicitGraphPreconditionTests {
         // Without reading the row, nothing traps.
         _ = graph.successors(of: 0)
         #expect(calls == 1 && graph.vertexCount == 2)
+    }
+
+    @Test("IG-039 D19: a negative step cost")
+    func ig039() async {
+        // dijkstraShortestPath(from: 0, successors: { _ in [(1, -1)] }, success: { $0 == 1 }) → **trap** (Dijkstra's algorithm and A* need nonnegative weights (and no NaN); use Bellman–Ford)
+        await #expect(processExitsWith: .failure) {
+            _ = dijkstraShortestPath(from: 0, successors: { _ in [(1, -1)] }, success: { $0 == 1 })
+        }
+        // Without the fault: a zero cost is allowed.
+        #expect(dijkstraShortestPath(from: 0, successors: { _ in [(1, 0)] }, success: { $0 == 1 })?.distance == 0)
+    }
+
+    @Test("IG-040 D19: a negative step cost traps even when the cutoff drops the step")
+    func ig040() async {
+        // dijkstraShortestPath(from: 0, cutoff: 0, successors: { _ in [(1, -1)] }, success: { $0 == 1 }) → **trap** (Dijkstra's algorithm and A* need nonnegative weights (and no NaN); use Bellman–Ford)
+        await #expect(processExitsWith: .failure) {
+            _ = dijkstraShortestPath(from: 0, cutoff: 0, successors: { _ in [(1, -1)] }, success: { $0 == 1 })
+        }
+        // Without the fault: the cutoff drops a step of cost 1, and nothing else is reachable.
+        #expect(dijkstraShortestPath(from: 0, cutoff: 0, successors: { _ in [(1, 1)] }, success: { $0 == 1 }) == nil)
+    }
+
+    @Test("IG-041 D19: a NaN step cost")
+    func ig041() async {
+        // dijkstraShortestPath(from: 0, successors: { _ in [(1, Double.nan)] }, success: { $0 == 1 }) → **trap** (Dijkstra's algorithm and A* need nonnegative weights (and no NaN); use Bellman–Ford)
+        await #expect(processExitsWith: .failure) {
+            _ = dijkstraShortestPath(from: 0, successors: { _ in [(1, Double.nan)] }, success: { $0 == 1 })
+        }
+        // Without the fault: an infinite cost is a cost.
+        #expect(dijkstraShortestPath(from: 0, successors: { _ in [(1, Double.infinity)] }, success: { $0 == 1 })?.distance == .infinity)
+    }
+
+    @Test("IG-042 D19: a NaN heuristic estimate")
+    func ig042() async {
+        // aStarShortestPath(from: 0, successors: { $0 == 0 ? [(1, 1.0)] : [] }, heuristic: { $0 == 1 ? .nan : 0 }, success: { $0 == 1 }) → **trap** (An A* priority (distance plus heuristic estimate) is NaN)
+        await #expect(processExitsWith: .failure) {
+            _ = aStarShortestPath(from: 0, successors: { (v: Int) -> [(Int, Double)] in v == 0 ? [(1, 1.0)] : [] }, heuristic: { $0 == 1 ? .nan : 0 }, success: { $0 == 1 })
+        }
+        // Without the fault: a zero estimate.
+        let result = aStarShortestPath(from: 0, successors: { (v: Int) -> [(Int, Double)] in v == 0 ? [(1, 1.0)] : [] }, heuristic: { _ in 0 }, success: { $0 == 1 })
+        #expect(result?.distance == 1 && result?.path == [0, 1])
+    }
+
+    @Test("IG-043 D19: an infinite cost plus an estimate of -∞ is a NaN priority")
+    func ig043() async {
+        // aStarShortestPath(from: 0, successors: { $0 == 0 ? [(1, .infinity), (3, 5)] : [] }, heuristic: { $0 == 1 ? -.infinity : 0 }, success: { $0 == 1 || $0 == 3 }) → **trap** (An A* priority (distance plus heuristic estimate) is NaN)
+        await #expect(processExitsWith: .failure) {
+            _ = aStarShortestPath(from: 0, successors: { (v: Int) -> [(Int, Double)] in v == 0 ? [(1, .infinity), (3, 5)] : [] }, heuristic: { $0 == 1 ? -.infinity : 0 }, success: { $0 == 1 || $0 == 3 })
+        }
+        // Without the fault: with a finite estimate at 1, the nearer goal 3 is found. (Before the
+        // check, the NaN priority broke the heap's order.)
+        let result = aStarShortestPath(from: 0, successors: { (v: Int) -> [(Int, Double)] in v == 0 ? [(1, .infinity), (3, 5)] : [] }, heuristic: { _ in 0 }, success: { $0 == 1 || $0 == 3 })
+        #expect(result?.distance == 5 && result?.path == [0, 3])
+    }
+
+    @Test("IG-044 D19: a NaN cutoff")
+    func ig044() async {
+        // dijkstraShortestPath(from: 0, cutoff: .nan, successors: { _ in [(1, 1.0)] }, success: { $0 == 1 }) → **trap** (The cutoff is NaN)
+        await #expect(processExitsWith: .failure) {
+            _ = dijkstraShortestPath(from: 0, cutoff: .nan, successors: { _ in [(1, 1.0)] }, success: { $0 == 1 })
+        }
+        // Without the fault: an infinite cutoff drops nothing.
+        #expect(dijkstraShortestPath(from: 0, cutoff: .infinity, successors: { _ in [(1, 1.0)] }, success: { $0 == 1 })?.distance == 1)
     }
 
     @Test("Every vertex-taking read traps off 0..<n")

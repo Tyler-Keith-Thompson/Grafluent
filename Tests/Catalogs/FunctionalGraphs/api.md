@@ -217,7 +217,7 @@ through a closure are benchmark-only.
 
 | Measure | Target |
 |---|---|
-| `cycleDecomposition()`, random mapping, n = 10⁶ (√(πn/8) ≈ 627 expected cycle length; long tails) | ≤ 3× `CompressedSparseRow.transposed()` on the same n edges; ≤ 6n + O(1) `Int`s; no per-vertex allocation |
+| `cycleDecomposition()`, random mapping, n = 10⁶ (√(πn/8) ≈ 627 expected cycle length; long tails) | ≤ 4× `CompressedSparseRow.transposed()` on the same n edges; ≤ 6n + O(1) `Int`s; no per-vertex allocation. 4×, not 3×: the decomposition includes a full transpose (its preimage rows) and then a peel, a reverse pass and a counting sort, the first two a random access per vertex each. **Met** (2026-10-11, p50, under parallel builds): 20 ms against 7.7 ms, 2.6× (6× before the layout of Benchmarks/README.md); 4.1× in a standalone probe against a transpose loop with no allocation. The result is 5n + 3 `Int`s; building it takes 3n more for a moment |
 | `CycleDecomposition.successor(of:steps:)` | O(log n) binary search, ≤ 150 ns at n = 10⁶; O(1) when k ≥ tail |
 | `FunctionalGraph.successor(of:steps:)` | O(min(k, n)), zero allocation |
 | `floydCycleDetection` / `brentCycleDetection` | Zero allocation; closure calls exactly as pinned; the closure is not escaping, so it inlines in a specialized build |

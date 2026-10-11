@@ -44,9 +44,64 @@ extension FunctionalGraph {
                 _key = Int32(truncatingIfNeeded: key)
             }
 
+            @inlinable @inline(__always)
+            init(_tail: Int32, _root: Int32, _key: Int32) {
+                self._tail = _tail
+                self._root = _root
+                self._key = _key
+            }
+
             @inlinable var tail: Int { @inline(__always) get { Int(_tail) } }
             @inlinable var root: Int { @inline(__always) get { Int(_root) } }
             @inlinable var key: Int { @inline(__always) get { Int(_key) } }
+        }
+
+        /// A vertex's state while peeling: its preimages not yet peeled, the size of its subtree
+        /// so far, and its successor, in one 12-byte entry so that a step reads one line.
+        @frozen
+        @usableFromInline
+        struct _PeelNode {
+            @usableFromInline var remaining: Int32
+            @usableFromInline var size: Int32
+            @usableFromInline var successor: Int32
+
+            @inlinable @inline(__always)
+            init(remaining: Int32, size: Int32, successor: Int32) {
+                self.remaining = remaining
+                self.size = size
+                self.successor = successor
+            }
+        }
+
+        /// A peeled vertex, its successor and its subtree size, in peeling order, so that the
+        /// reverse pass reads neither f nor the sizes.
+        @frozen
+        @usableFromInline
+        struct _PeelEntry {
+            @usableFromInline var vertex: Int32
+            @usableFromInline var successor: Int32
+            @usableFromInline var size: Int32
+
+            @inlinable @inline(__always)
+            init(vertex: Int32, successor: Int32, size: Int32) {
+                self.vertex = vertex
+                self.successor = successor
+                self.size = size
+            }
+        }
+
+        /// A tree vertex and its depth, stored by preorder number for the counting sort by depth.
+        @frozen
+        @usableFromInline
+        struct _PlacedVertex {
+            @usableFromInline var vertex: Int32
+            @usableFromInline var depth: Int32
+
+            @inlinable @inline(__always)
+            init(vertex: Int32, depth: Int32) {
+                self.vertex = vertex
+                self.depth = depth
+            }
         }
 
         @inlinable
@@ -199,7 +254,7 @@ extension FunctionalGraph {
     /// allocation per vertex. The result holds 5n + 3 `Int`s (two `Int` arrays for the preimage
     /// rows, one for the vertices by depth, a 12-byte record per vertex and a 4-byte preorder
     /// number beside each vertex by depth), plus one per cycle and one per unit of the longest
-    /// tail; building it takes 1.5n more for a moment.
+    /// tail; building it takes 3n more for a moment (two 12-byte entries per vertex).
     ///
     /// A counting sort of f gives the preimage rows and the in-degrees. Peeling the vertices of
     /// in-degree zero, repeatedly, visits the tree vertices leaves first, summing subtree sizes on
@@ -213,8 +268,11 @@ extension FunctionalGraph {
     @inlinable
     public func cycleDecomposition() -> CycleDecomposition {
         typealias Record = CycleDecomposition._Record
+        typealias Node = CycleDecomposition._PeelNode
+        typealias Entry = CycleDecomposition._PeelEntry
+        typealias Placed = CycleDecomposition._PlacedVertex
         let n = _successors.count
-        precondition(n < Int(Int32.max), "cycleDecomposition() needs fewer than 2³¹ vertices")
+        precondition(n <= Int(Int32.max), "cycleDecomposition() needs fewer than 2³¹ vertices")
         // Arrays every element of which is written before it is read start uninitialized: fresh
         // pages are much of the cost, and a fill would touch each one twice.
         func uninitialized<T>(_: T.Type, _ count: Int) -> [T] {
@@ -224,42 +282,44 @@ extension FunctionalGraph {
         var preimages = uninitialized(Int.self, n)
         var records = uninitialized(Record.self, n)
         var byDepth = uninitialized(Int.self, n)
-        // The depth-0 part is never read. Until step 5 fills it, this is the peeling queue.
+        // The depth-0 part is never read: until step 5 fills the rest, it holds each cyclic
+        // vertex's next free preorder number, and the part after it counts the depths.
         var keysByDepth = uninitialized(Int32.self, n)
         var depthStarts: [Int] = [0]
         var cycleStarts: [Int] = [0]
-        // Scratch: the in-degrees still to peel, then the depths by preorder number; subtree
-        // sizes, then the next free preorder number below each vertex; the tree vertices by
-        // preorder number.
-        var remaining = uninitialized(Int32.self, n)
-        var scratch = uninitialized(Int32.self, n)
-        var inPreorder = uninitialized(Int32.self, n)
+        // Scratch, 24 bytes per vertex: each vertex's peeling state, which the vertices by
+        // preorder number reuse once the cycles are placed; and the peeling queue.
+        let scratch = UnsafeMutableRawPointer.allocate(
+            byteCount: n * MemoryLayout<Node>.stride, alignment: MemoryLayout<Node>.alignment)
+        defer { scratch.deallocate() }
+        let queue = UnsafeMutablePointer<Entry>.allocate(capacity: n)
+        defer { queue.deallocate() }
         _successors.withUnsafeBufferPointer { f in
             preimageStarts.withUnsafeMutableBufferPointer { starts in
             preimages.withUnsafeMutableBufferPointer { rows in
             records.withUnsafeMutableBufferPointer { records in
             byDepth.withUnsafeMutableBufferPointer { byDepth in
             keysByDepth.withUnsafeMutableBufferPointer { keysByDepth in
-            remaining.withUnsafeMutableBufferPointer { remaining in
-            scratch.withUnsafeMutableBufferPointer { scratch in
-            inPreorder.withUnsafeMutableBufferPointer { inPreorder in
-                // 1. In-degrees, and the leaves into the queue. Then the preimage rows: inclusive
-                //    prefix sums (the end of each row), and each source placed from the end of its
-                //    row, sources descending, so every row is ascending and `starts[w]` ends at the
-                //    start of row w.
-                let queue = keysByDepth
+                // 1. In-degrees, each vertex's peeling state, and the leaves into the queue. Then
+                //    the preimage rows: inclusive prefix sums (the end of each row), and each
+                //    source placed from the end of its row, sources descending, so every row is
+                //    ascending and `starts[w]` ends at the start of row w. The queue entry is
+                //    written for every vertex and kept only for a leaf: a branch there is
+                //    unpredictable, and an entry past the last is overwritten or never read.
+                //    (`end` stays below n: some vertex is on a cycle.)
+                let node = scratch.bindMemory(to: Node.self, capacity: n)
                 for v in 0 ..< n { starts[f[v]] &+= 1 }
                 var end = 0
+                var sum = 0
                 for w in 0 ..< n {
                     let degree = starts[w]
-                    remaining[w] = Int32(truncatingIfNeeded: degree)
-                    scratch[w] = 1
-                    if degree == 0 {
-                        queue[end] = Int32(truncatingIfNeeded: w)
-                        end &+= 1
-                    }
+                    let successor = Int32(truncatingIfNeeded: f[w])
+                    node[w] = Node(remaining: Int32(truncatingIfNeeded: degree), size: 1, successor: successor)
+                    queue[end] = Entry(vertex: Int32(truncatingIfNeeded: w), successor: successor, size: 1)
+                    end &+= degree == 0 ? 1 : 0
+                    sum &+= degree
+                    starts[w] = sum
                 }
-                for w in 1 ..< max(n, 1) { starts[w] &+= starts[w &- 1] }
                 starts[n] = n
                 var v = n &- 1
                 while v >= 0 {
@@ -270,37 +330,41 @@ extension FunctionalGraph {
                 }
 
                 // 2. Peel, leaves first; a vertex leaves the queue after all its preimages, so its
-                //    subtree size is complete when it is added to its successor's.
+                //    subtree size is final when it is queued, and goes in its entry. As in step 1,
+                //    the entry is written either way, and `end` advances by the sign bit of the
+                //    remaining in-degree minus one: a branch on it mispredicts about half the time
+                //    on a random mapping, which cost a third of this step.
                 var head = 0
                 while head < end {
-                    let u = Int(queue[head])
+                    let entry = queue[head]
                     head &+= 1
-                    let w = f[u]
-                    scratch[w] &+= scratch[u]
-                    let left = remaining[w] &- 1
-                    remaining[w] = left
-                    if left == 0 {
-                        queue[end] = Int32(truncatingIfNeeded: w)
-                        end &+= 1
-                    }
+                    let w = Int(entry.successor)
+                    var state = node[w]
+                    state.size &+= entry.size
+                    state.remaining &-= 1
+                    node[w] = state
+                    queue[end] = Entry(vertex: entry.successor, successor: state.successor, size: state.size)
+                    end &+= Int(UInt32(bitPattern: state.remaining &- 1) >> 31)
                 }
 
                 // 3. The cycles (what peeling left), each from its least vertex, in order of least
-                //    vertex. Each root's trees get the next run of preorder numbers.
+                //    vertex. Each root's trees get the next run of preorder numbers, handed out
+                //    from the end of the run: the root's entry in `keysByDepth` is the last free
+                //    number.
                 var placed = 0
                 var base: Int32 = 0
-                for w in 0 ..< n where remaining[w] > 0 {
-                    let component = cycleStarts.count &- 1
+                for w in 0 ..< n where node[w].remaining > 0 {
+                    let component = Int32(truncatingIfNeeded: cycleStarts.count &- 1)
                     var x = w
                     repeat {
-                        records[x] = Record(tail: 0, root: component, key: placed)
-                        remaining[x] = 0
+                        let state = node[x]
+                        node[x].remaining = 0
+                        records[x] = Record(_tail: 0, _root: component, _key: Int32(truncatingIfNeeded: placed))
+                        keysByDepth[placed] = base &+ state.size &- 2
+                        base &+= state.size &- 1
                         byDepth[placed] = x
                         placed &+= 1
-                        let size = scratch[x]
-                        scratch[x] = base
-                        base &+= size &- 1
-                        x = f[x]
+                        x = Int(state.successor)
                     } while x != w
                     cycleStarts.append(placed)
                 }
@@ -308,27 +372,45 @@ extension FunctionalGraph {
                 depthStarts.append(cyclic)
 
                 // 4. Parents first (the peeling order reversed): depth, root and preorder number.
-                //    `scratch` holds each numbered vertex's next free number for its children. The
-                //    tree vertices go to `inPreorder` and their depths to `remaining`, both by
-                //    preorder number, and each depth is counted. (A breadth-first search from the
-                //    cycles, which lays each depth out in preorder directly, took twice as long on
-                //    a random mapping: it reads each parent's row and record at random.)
+                //    A tree vertex's record holds the last free number of its run until its
+                //    children have taken theirs, which leaves its own number. The tree vertices go
+                //    to `byNumber` with their depths, by preorder number, and each depth is
+                //    counted after the cyclic part of `keysByDepth`. (A breadth-first search from
+                //    the cycles, which lays each depth out in preorder directly, took twice as
+                //    long on a random mapping: it reads each parent's row and record at random. A
+                //    16-byte build record holding the next free number beside the key, copied into
+                //    the records at the end, took about 1.3 times as long as this.)
+                let byNumber = scratch.bindMemory(to: Placed.self, capacity: n)
+                var deepest: Int32 = 0
                 var i = end
                 while i > 0 {
                     i &-= 1
-                    let u = Int(queue[i])
-                    let p = f[u]
+                    let entry = queue[i]
+                    let p = Int(entry.successor)
                     let parent = records[p]
-                    let number = scratch[p]
-                    scratch[p] = number &+ scratch[u]
-                    scratch[u] = number &+ 1
-                    let depth = parent.tail &+ 1
-                    records[u] = Record(tail: depth, root: parent.tail == 0 ? p : parent.root, key: Int(number))
-                    inPreorder[Int(number)] = Int32(truncatingIfNeeded: u)
-                    remaining[Int(number)] = Int32(truncatingIfNeeded: depth)
-                    if depth &+ 1 == depthStarts.count { depthStarts.append(0) }
-                    depthStarts[depth &+ 1] &+= 1
+                    let last: Int32
+                    let root: Int32
+                    if parent._tail == 0 {
+                        last = keysByDepth[Int(parent._key)]
+                        keysByDepth[Int(parent._key)] = last &- entry.size
+                        root = entry.successor
+                    } else {
+                        last = parent._key
+                        records[p]._key = last &- entry.size
+                        root = parent._root
+                    }
+                    let depth = parent._tail &+ 1
+                    let number = last &- entry.size &+ 1
+                    records[Int(entry.vertex)] = Record(_tail: depth, _root: root, _key: last)
+                    byNumber[Int(number)] = Placed(vertex: entry.vertex, depth: depth)
+                    // A child is at most one deeper than any depth so far.
+                    if depth > deepest {
+                        keysByDepth[cyclic &+ Int(deepest)] = 0
+                        deepest = depth
+                    }
+                    keysByDepth[cyclic &+ Int(depth) &- 1] &+= 1
                 }
+                for d in 0 ..< Int(deepest) { depthStarts.append(Int(keysByDepth[cyclic &+ d])) }
 
                 // 5. A counting sort of the preorder by depth, so each depth's vertices are in
                 //    preorder.
@@ -337,15 +419,13 @@ extension FunctionalGraph {
                 var cursor = Array(depthStarts.dropLast())
                 cursor.withUnsafeMutableBufferPointer { cursor in
                     for number in 0 ..< (n &- cyclic) {
-                        let depth = Int(remaining[number])
-                        byDepth[cursor[depth]] = Int(inPreorder[number])
+                        let vertex = byNumber[number]
+                        let depth = Int(vertex.depth)
+                        byDepth[cursor[depth]] = Int(vertex.vertex)
                         keysByDepth[cursor[depth]] = Int32(truncatingIfNeeded: number)
                         cursor[depth] &+= 1
                     }
                 }
-            }
-            }
-            }
             }
             }
             }
