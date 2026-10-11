@@ -80,4 +80,55 @@ struct IncidenceMatrixStressTests {
             #expect(matrix.dual() == list.dual())
         }.value
     }
+
+    @Test("incidenceGraph of a 1 024 × 1 024 matrix at density 1/8 reads exactly as an incidence-list copy's", .timeLimit(.minutes(1)))
+    func incidenceGraphAtScale() async {
+        await Task {
+            // Every row and every edge of the view: before the view kept the hyperedges' first
+            // incidence numbers, each read on a matrix cost O(m) and this walk O(p·m).
+            var rng = SeededRandomNumberGenerator(seed: 17)
+            let n = 1024
+            let columns = (0 ..< n).map { _ in (0 ..< n).filter { _ in Int.random(in: 0 ..< 8, using: &rng) == 0 } }
+            let matrix = IncidenceMatrix(vertexCount: n, hyperedges: columns)
+            let list = UndirectedIncidenceList<Int>(matrix)
+            let view = matrix.incidenceGraph, listView = list.incidenceGraph
+            #expect(view.vertexCount == 2 * n && view.edgeCount == columns.map(\.count).reduce(0, +))
+            #expect(view.edgeCount == listView.edgeCount)
+            for x in view.vertices {
+                #expect(Array(view.neighbors(of: x)) == Array(listView.neighbors(of: x)))
+                #expect(Array(view.incidentEdges(of: x)) == Array(listView.incidentEdges(of: x)))
+                #expect(view.degree(of: x) == listView.degree(of: x))
+            }
+            #expect(Array(view.edges) == Array(listView.edges))
+            for q in stride(from: 0, to: view.edgeCount, by: 97) {
+                #expect(view.endpointIndices(ofEdgeAt: q) == listView.endpointIndices(ofEdgeAt: q))
+            }
+        }.value
+    }
+
+    @Test("incidenceGraph of a 512 × 512 oriented matrix at density 1/16 per side reads exactly as an incidence-list copy's", .timeLimit(.minutes(1)))
+    func directedIncidenceGraphAtScale() async {
+        await Task {
+            var rng = SeededRandomNumberGenerator(seed: 19)
+            let n = 512
+            let oriented = OrientedIncidenceMatrix(vertexCount: n, hyperedges: (0 ..< n).map { _ in
+                (sources: (0 ..< n).filter { _ in Int.random(in: 0 ..< 16, using: &rng) == 0 },
+                 targets: (0 ..< n).filter { _ in Int.random(in: 0 ..< 16, using: &rng) == 0 })
+            })
+            let list = IncidenceList<Int>(oriented)
+            let view = oriented.incidenceGraph, listView = list.incidenceGraph
+            #expect(view.edgeCount == listView.edgeCount)
+            for x in view.vertices {
+                #expect(Array(view.successors(of: x)) == Array(listView.successors(of: x)))
+                #expect(Array(view.predecessors(of: x)) == Array(listView.predecessors(of: x)))
+                #expect(Array(view.outEdges(of: x)) == Array(listView.outEdges(of: x)))
+                #expect(Array(view.inEdges(of: x)) == Array(listView.inEdges(of: x)))
+            }
+            #expect(Array(view.edges) == Array(listView.edges))
+            #expect(oriented.weaklyConnectedComponents() == list.weaklyConnectedComponents())
+            #expect(oriented.stronglyConnectedComponents() == list.stronglyConnectedComponents())
+            #expect(oriented.bConnectedVertices(from: 0) == list.bConnectedVertices(from: 0))
+            #expect(oriented.isBHypergraph == list.isBHypergraph && oriented.targetSizeHistogram() == list.targetSizeHistogram())
+        }.value
+    }
 }

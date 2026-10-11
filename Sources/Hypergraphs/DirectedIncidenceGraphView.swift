@@ -8,8 +8,8 @@ extension DirectedHypergraph {
     /// `0 ..< n`.
     ///
     /// - Precondition: both index bounds are non-nil.
-    /// - Complexity: O(1) for `IncidenceList` and `OrientedIncidenceMatrix` (O(m) for a conformer
-    ///   that does not store its incidence counts).
+    /// - Complexity: O(1) for `IncidenceList`; O(m) otherwise, for each side's first incidence
+    ///   numbers (from the cached side sizes, for `OrientedIncidenceMatrix`).
     @inlinable
     public var incidenceGraph: DirectedIncidenceGraphView<Self> { DirectedIncidenceGraphView(base: self) }
 }
@@ -20,20 +20,30 @@ extension DirectedHypergraph {
 /// `i` of `p` and `n + p → j` for each target `j`. A vertex on both sides of `p` gives the 2-cycle
 /// `i → n + p → i`.
 ///
-/// **Edges.** Positions `0 ..< P_s` are the source incidences, by hyperedge index and then vertex
-/// index, and `P_s + q` is target incidence `q`, in the same order. A per-incidence array is
-/// indexed by edge position.
+/// **Edges.** Positions `0 ..< P_s` are the source incidences, hyperedge by hyperedge in index
+/// order and within one in `sourceIndices` order, and `P_s + q` is target incidence `q`, in the
+/// same order. A per-incidence array is indexed by edge position. A view is a snapshot, so its own
+/// positions never change, but they are valid for the hypergraph only until its next mutation:
+/// the view of the mutated hypergraph numbers the incidences afresh (on `OrientedIncidenceMatrix`,
+/// inserting one cell shifts every later incidence by one).
 ///
-/// **The LabeledGraph law.** Every index member reads the base's stored rows, shifted where they
-/// hold hyperedges: `successorIndices(ofIndex: i)` is `outHyperedges(ofIndex: i)` plus n, and of
-/// `n + p` it is `targetIndices(ofHyperedgeAt: p)`; `predecessorIndices` is `inHyperedges` plus n,
-/// or `sourceIndices`. So graph algorithms run on the view without hashing a vertex. The view
-/// does not offer `_withSuccessorIndexRows`, because the stored rows are not shifted.
+/// **The LabeledGraph law.** Every index member reads the base's rows, shifted where they hold
+/// hyperedges: `successorIndices(ofIndex: i)` is `outHyperedgeIndices(ofIndex: i)` plus n, and
+/// of `n + p` it is `targetIndices(ofHyperedgeAt: p)`; `predecessorIndices` is
+/// `inHyperedgeIndices` plus n, or `sourceIndices`. So graph algorithms run on the view without
+/// hashing a vertex. The view does not offer `_withSuccessorIndexRows`, whose contract needs edge
+/// positions in row order.
+///
+/// **Costs.** As for `IncidenceGraphView`: O(1) reads on `IncidenceList`, which stores its
+/// incidences; on another base a hyperedge's incidence numbers are a range, O(1), `edges[q]`
+/// binary-searches and selects by rank, O(log m + ⌈n/64⌉) on `OrientedIncidenceMatrix`, and a vertex's `outEdges` or `inEdges` is computed from `_memberRank`, O(d·⌈n/64⌉) on
+/// `OrientedIncidenceMatrix`.
 @frozen
 public struct DirectedIncidenceGraphView<Base: DirectedHypergraph>: BidirectionalDirectedGraph {
     public typealias Vertex = Int
     public typealias SuccessorIndices = Neighbors
     public typealias PredecessorIndices = Neighbors
+    public typealias InEdges = OutEdges
 
     /// The directed hypergraph.
     public let base: Base
@@ -43,6 +53,12 @@ public struct DirectedIncidenceGraphView<Base: DirectedHypergraph>: Bidirectiona
     /// The number of source incidences, P_s: the first target incidence's position.
     @usableFromInline internal let _sourceCount: Int
     @usableFromInline internal let _targetCount: Int
+    /// The first source incidence number of each hyperedge, by index, and P_s at the end.
+    @usableFromInline internal let _sourceOffsets: ContiguousArray<Int>
+    /// The first target incidence number of each hyperedge, by index, and P_t at the end.
+    @usableFromInline internal let _targetOffsets: ContiguousArray<Int>
+    /// The positions by hyperedge index (empty for an `IncidenceList`).
+    @usableFromInline internal let _positions: ContiguousArray<Base.Hyperedges.Index>
     /// The base's two planes when it is an `IncidenceList`, read directly.
     @usableFromInline internal let _sourcePlane: _IncidencePlane
     @usableFromInline internal let _targetPlane: _IncidencePlane
@@ -52,6 +68,7 @@ public struct DirectedIncidenceGraphView<Base: DirectedHypergraph>: Bidirectiona
     /// The view of `base`.
     ///
     /// - Precondition: both of `base`'s index bounds are non-nil.
+    /// - Complexity: O(1) for `IncidenceList`, O(m) otherwise.
     @inlinable
     public init(base: Base) {
         guard let n = base.vertexIndexBound, let m = base.hyperedgeIndexBound else {
@@ -60,100 +77,196 @@ public struct DirectedIncidenceGraphView<Base: DirectedHypergraph>: Bidirectiona
         self.base = base
         _n = n
         _m = m
-        _sourceCount = base._incidenceCount(targets: false)
-        _targetCount = base._incidenceCount(targets: true)
         if let list = base as? IncidenceList<Base.Vertex> {
             _sourcePlane = list._sources
             _targetPlane = list._targets
             _hasPlanes = true
+            _sourceOffsets = list._sources.memberOffsets
+            _targetOffsets = list._targets.memberOffsets
+            _positions = []
         } else {
             _sourcePlane = _IncidencePlane()
             _targetPlane = _IncidencePlane()
             _hasPlanes = false
+            var sourceOffsets = ContiguousArray<Int>(), targetOffsets = ContiguousArray<Int>()
+            sourceOffsets.reserveCapacity(m &+ 1)
+            targetOffsets.reserveCapacity(m &+ 1)
+            sourceOffsets.append(0)
+            targetOffsets.append(0)
+            var sourceTotal = 0, targetTotal = 0
+            for position in base.hyperedges.indices {
+                sourceTotal &+= base.sourceSize(ofHyperedgeAt: position)
+                targetTotal &+= base.targetSize(ofHyperedgeAt: position)
+                sourceOffsets.append(sourceTotal)
+                targetOffsets.append(targetTotal)
+            }
+            precondition(sourceOffsets.count == m &+ 1, "hyperedgeIndexBound differs from the number of hyperedges")
+            _sourceOffsets = sourceOffsets
+            _targetOffsets = targetOffsets
+            _positions = ContiguousArray(base.hyperedges.indices)
+        }
+        _sourceCount = _sourceOffsets[m]
+        _targetCount = _targetOffsets[m]
+    }
+
+    /// The incidence numbers at one vertex of a directed incidence graph view, its edge
+    /// positions: a stored or computed row (shifted by a constant), or a contiguous range. Random
+    /// access, O(1) per element. Also the view's `InEdges`.
+    @frozen
+    public struct OutEdges: RandomAccessCollection, Sendable {
+        @usableFromInline internal let _row: ArraySlice<Int>
+        @usableFromInline internal let _range: Range<Int>
+        @usableFromInline internal let _shift: Int
+        @usableFromInline internal let _isRange: Bool
+
+        /// `row`'s entries plus `shift`.
+        @inlinable
+        internal init(row: ArraySlice<Int>, shift: Int) {
+            _row = row
+            _range = 0 ..< row.count
+            _shift = shift
+            _isRange = false
+        }
+
+        /// The numbers in `range`.
+        @inlinable
+        internal init(range: Range<Int>) {
+            _row = []
+            _range = range
+            _shift = 0
+            _isRange = true
+        }
+
+        @inlinable public var startIndex: Int { 0 }
+        @inlinable public var endIndex: Int { _isRange ? _range.count : _row.count }
+        @inlinable public func index(after i: Int) -> Int { i &+ 1 }
+        @inlinable public func index(before i: Int) -> Int { i &- 1 }
+
+        @inlinable
+        public subscript(position: Int) -> Int {
+            if _isRange {
+                precondition(position >= 0 && position < _range.count, "Index out of range")
+                return _range.lowerBound &+ position
+            }
+            return _row[_row.startIndex &+ position] &+ _shift
         }
     }
 
     /// Every incidence as an arc: the source incidences, then the target incidences.
     @frozen
     public struct Edges: RandomAccessCollection {
-        @usableFromInline internal let _base: Base
-        @usableFromInline internal let _n: Int
-        @usableFromInline internal let _sourceCount: Int
-        @usableFromInline internal let _count: Int
+        @usableFromInline internal let _view: DirectedIncidenceGraphView
 
         @inlinable
-        internal init(_base: Base, _n: Int, _sourceCount: Int, _count: Int) {
-            self._base = _base
-            self._n = _n
-            self._sourceCount = _sourceCount
-            self._count = _count
-        }
+        internal init(_view: DirectedIncidenceGraphView) { self._view = _view }
 
         @inlinable public var startIndex: Int { 0 }
-        @inlinable public var endIndex: Int { _count }
+        @inlinable public var endIndex: Int { _view._sourceCount &+ _view._targetCount }
         @inlinable public func index(after i: Int) -> Int { i &+ 1 }
         @inlinable public func index(before i: Int) -> Int { i &- 1 }
 
         @inlinable
         public subscript(position: Int) -> DirectedEdge<Int> {
-            precondition(position >= 0 && position < _count, "Edge position \(position) is out of range 0..<\(_count)")
-            if position < _sourceCount {
-                let (i, p) = _base._incidence(position, targets: false)
-                return DirectedEdge(from: i, to: _n &+ p)
-            }
-            let (j, p) = _base._incidence(position &- _sourceCount, targets: true)
-            return DirectedEdge(from: _n &+ p, to: j)
+            let (source, target) = _view._endpoints(ofEdgeAt: position)
+            return DirectedEdge(from: source, to: target)
         }
+
+        /// Walks the source sides in hyperedge order, then the target sides, so a full pass
+        /// costs O(m + p) reads of the base (plus its member scans), not a search per edge.
+        @frozen
+        public struct Iterator: IteratorProtocol {
+            @usableFromInline internal let _view: DirectedIncidenceGraphView
+            @usableFromInline internal var _q: Int
+            @usableFromInline internal var _h: Int
+            @usableFromInline internal var _onTargets: Bool
+            @usableFromInline internal var _members: Base.MemberIndices.Iterator?
+
+            @inlinable
+            internal init(_view: DirectedIncidenceGraphView) {
+                self._view = _view
+                _q = 0
+                _h = -1
+                _onTargets = false
+                _members = nil
+            }
+
+            @inlinable
+            public mutating func next() -> DirectedEdge<Int>? {
+                if !_onTargets, _q == _view._sourceCount {
+                    _onTargets = true
+                    _q = 0
+                    _h = -1
+                    _members = nil
+                }
+                guard _q < (_onTargets ? _view._targetCount : _view._sourceCount) else { return nil }
+                defer { _q &+= 1 }
+                let i: Int, h: Int
+                if _view._hasPlanes {
+                    (i, h) = _view._incidence(_q, targets: _onTargets)
+                } else {
+                    let offsets = _onTargets ? _view._targetOffsets : _view._sourceOffsets
+                    while _h < 0 || _q >= offsets[_h &+ 1] {
+                        _h &+= 1
+                        _members = nil
+                    }
+                    if _members == nil {
+                        let position = _view._positionOfIndex(_h)
+                        _members = (_onTargets ? _view.base.targetIndices(ofHyperedgeAt: position) : _view.base.sourceIndices(ofHyperedgeAt: position)).makeIterator()
+                    }
+                    guard let member = _members!.next() else {
+                        preconditionFailure("The hypergraph changed size since the view was made")
+                    }
+                    (i, h) = (member, _h)
+                }
+                return _onTargets ? DirectedEdge(from: _view._n &+ h, to: i) : DirectedEdge(from: i, to: _view._n &+ h)
+            }
+        }
+
+        @inlinable
+        public func makeIterator() -> Iterator { Iterator(_view: _view) }
     }
 
     /// The successors or predecessors of one vertex of the view: a vertex's out- or
-    /// in-hyperedges shifted by n, or a hyperedge's targets or sources.
+    /// in-hyperedge indices shifted by n, or a hyperedge's target or source indices, read from
+    /// the base without boxing.
     @frozen
     public struct Neighbors: Sequence {
-        /// The stored row, its entries shifted by `_shift`: a vertex's hyperedge positions
-        /// shifted by n, or a hyperedge's vertex indices unshifted.
-        @usableFromInline internal let _row: ArraySlice<Int>
+        @usableFromInline internal let _hyperedges: Base.IncidentHyperedgeIndices?
+        @usableFromInline internal let _members: Base.MemberIndices?
         @usableFromInline internal let _shift: Int
-        /// For a base whose storage the view does not read directly: the base's own row, boxed,
-        /// so the iterator stays small enough for callers to inline.
-        @usableFromInline internal let _fallback: AnySequence<Int>?
 
         @inlinable
-        internal init(row: ArraySlice<Int>, shift: Int) {
-            _row = row
+        internal init(hyperedges: Base.IncidentHyperedgeIndices, shift: Int) {
+            _hyperedges = hyperedges
+            _members = nil
             _shift = shift
-            _fallback = nil
         }
 
         @inlinable
-        internal init(_fallback: AnySequence<Int>) {
-            _row = []
+        internal init(members: Base.MemberIndices) {
+            _hyperedges = nil
+            _members = members
             _shift = 0
-            self._fallback = _fallback
         }
 
         @frozen
         public struct Iterator: IteratorProtocol {
-            @usableFromInline internal let _row: ArraySlice<Int>
+            @usableFromInline internal var _hyperedges: Base.IncidentHyperedgeIndices.Iterator?
+            @usableFromInline internal var _members: Base.MemberIndices.Iterator?
             @usableFromInline internal let _shift: Int
-            @usableFromInline internal var _cursor: Int
-            @usableFromInline internal var _fallback: AnyIterator<Int>?
 
             @inlinable
             internal init(_ neighbors: Neighbors) {
-                _row = neighbors._row
+                _hyperedges = neighbors._hyperedges?.makeIterator()
+                _members = neighbors._members?.makeIterator()
                 _shift = neighbors._shift
-                _cursor = neighbors._row.startIndex
-                _fallback = neighbors._fallback?.makeIterator()
             }
 
             @inlinable
             public mutating func next() -> Int? {
-                if _fallback != nil { return _fallback!.next() }
-                guard _cursor < _row.endIndex else { return nil }
-                let entry = _row[_cursor]
-                _cursor &+= 1
-                return entry &+ _shift
+                if _members != nil { return _members!.next() }
+                guard let p = _hyperedges!.next() else { return nil }
+                return p &+ _shift
             }
         }
 
@@ -161,7 +274,9 @@ public struct DirectedIncidenceGraphView<Base: DirectedHypergraph>: Bidirectiona
         public func makeIterator() -> Iterator { Iterator(self) }
 
         @inlinable
-        public var underestimatedCount: Int { _fallback == nil ? _row.count : 0 }
+        public var underestimatedCount: Int {
+            _members?.underestimatedCount ?? _hyperedges!.underestimatedCount
+        }
     }
 
     @inlinable
@@ -170,9 +285,73 @@ public struct DirectedIncidenceGraphView<Base: DirectedHypergraph>: Bidirectiona
         precondition(x >= 0 && x < _n &+ _m, "Vertex \(x) is out of range 0..<\(_n &+ _m)")
     }
 
+    /// The position of the hyperedge whose view vertex is `x`.
     @inlinable
     internal func _position(_ x: Int) -> Base.Hyperedges.Index {
-        base._hyperedgePosition(ofIndex: x &- _n)
+        _positionOfIndex(x &- _n)
+    }
+
+    /// The position of hyperedge index `h`.
+    @inlinable
+    internal func _positionOfIndex(_ h: Int) -> Base.Hyperedges.Index {
+        // On the incidence list (`_hasPlanes`) the positions are the indices, `Int`s.
+        _hasPlanes ? unsafeBitCast(h, to: Base.Hyperedges.Index.self) : _positions[h]
+    }
+
+    /// The hyperedge index holding incidence `q` of one side: the last hyperedge whose first
+    /// number is at most `q`. O(log m).
+    @inlinable
+    internal func _hyperedge(ofIncidence q: Int, offsets: ContiguousArray<Int>) -> Int {
+        var low = 0, high = _m
+        while high &- low > 1 {
+            let middle = low &+ (high &- low) / 2
+            if offsets[middle] <= q { low = middle } else { high = middle }
+        }
+        return low
+    }
+
+    /// The vertex index and hyperedge index of incidence `q` of one side.
+    @inlinable
+    internal func _incidence(_ q: Int, targets: Bool) -> (vertexIndex: Int, hyperedgeIndex: Int) {
+        if _hasPlanes {
+            if targets { return (_targetPlane.members[q], _targetPlane.hyperedgeOfIncidence[q]) }
+            return (_sourcePlane.members[q], _sourcePlane.hyperedgeOfIncidence[q])
+        }
+        let h = _hyperedge(ofIncidence: q, offsets: targets ? _targetOffsets : _sourceOffsets)
+        let rank = q &- (targets ? _targetOffsets[h] : _sourceOffsets[h])
+        return (base._memberIndex(atRank: rank, inHyperedgeAt: _positionOfIndex(h), targets: targets), h)
+    }
+
+    /// The incidence numbers of vertex index `i` on one side: its place in each of its
+    /// hyperedges' side (`_memberRank`), after that side's first number: O(d·⌈n/64⌉) on
+    /// `OrientedIncidenceMatrix`, O(Σ k) on a base with the default rank.
+    @inlinable
+    internal func _computedIncidences(ofIndex i: Int, targets: Bool) -> [Int] {
+        var numbers: [Int] = []
+        numbers.reserveCapacity(targets ? base.inDegree(ofIndex: i) : base.outDegree(ofIndex: i))
+        for h in targets ? base.inHyperedgeIndices(ofIndex: i) : base.outHyperedgeIndices(ofIndex: i) {
+            let rank = base._memberRank(ofIndex: i, inHyperedgeAt: _positionOfIndex(h), targets: targets)
+            numbers.append((targets ? _targetOffsets[h] : _sourceOffsets[h]) &+ rank)
+        }
+        return numbers
+    }
+
+    /// The vertex's incidence numbers on one side, stored or computed.
+    @inlinable
+    internal func _incidences(ofIndex i: Int, targets: Bool) -> ArraySlice<Int> {
+        if _hasPlanes { return targets ? _targetPlane.row(i) : _sourcePlane.row(i) }
+        return _computedIncidences(ofIndex: i, targets: targets)[...]
+    }
+
+    @inlinable
+    internal func _endpoints(ofEdgeAt position: Int) -> (source: Int, target: Int) {
+        precondition(position >= 0 && position < _sourceCount &+ _targetCount, "Edge position \(position) is out of range 0..<\(_sourceCount &+ _targetCount)")
+        if position < _sourceCount {
+            let (i, h) = _incidence(position, targets: false)
+            return (i, _n &+ h)
+        }
+        let (j, h) = _incidence(position &- _sourceCount, targets: true)
+        return (_n &+ h, j)
     }
 
     /// `0 ..< n + m`. O(1).
@@ -181,7 +360,7 @@ public struct DirectedIncidenceGraphView<Base: DirectedHypergraph>: Bidirectiona
 
     /// Every incidence as an arc. O(1).
     @inlinable
-    public var edges: Edges { Edges(_base: base, _n: _n, _sourceCount: _sourceCount, _count: _sourceCount &+ _targetCount) }
+    public var edges: Edges { Edges(_view: self) }
 
     @inlinable
     public var vertexCount: Int { _n &+ _m }
@@ -189,58 +368,38 @@ public struct DirectedIncidenceGraphView<Base: DirectedHypergraph>: Bidirectiona
     @inlinable
     public var edgeCount: Int { _sourceCount &+ _targetCount }
 
-    /// A vertex's out-hyperedges shifted by n, or a hyperedge's targets.
+    /// A vertex's out-hyperedge indices shifted by n, or a hyperedge's targets.
     @inlinable
     public func successors(of vertex: Int) -> Neighbors {
         _check(vertex)
-        if _hasPlanes {
-            if vertex < _n { return Neighbors(row: _sourcePlane.hyperedgeRow(vertex), shift: _n) }
-            return Neighbors(row: _targetPlane.memberIndices(of: vertex &- _n), shift: 0)
-        }
-        if vertex < _n {
-            return Neighbors(_fallback: AnySequence(base.outHyperedges(ofIndex: vertex).lazy.map { [base = self.base, n = self._n] in n &+ base.hyperedgeIndex(of: $0) }))
-        }
-        return Neighbors(_fallback: AnySequence(base.targetIndices(ofHyperedgeAt: _position(vertex))))
+        if vertex < _n { return Neighbors(hyperedges: base.outHyperedgeIndices(ofIndex: vertex), shift: _n) }
+        return Neighbors(members: base.targetIndices(ofHyperedgeAt: _position(vertex)))
     }
 
-    /// A vertex's in-hyperedges shifted by n, or a hyperedge's sources.
+    /// A vertex's in-hyperedge indices shifted by n, or a hyperedge's sources.
     @inlinable
     public func predecessors(of vertex: Int) -> Neighbors {
         _check(vertex)
-        if _hasPlanes {
-            if vertex < _n { return Neighbors(row: _targetPlane.hyperedgeRow(vertex), shift: _n) }
-            return Neighbors(row: _sourcePlane.memberIndices(of: vertex &- _n), shift: 0)
-        }
-        if vertex < _n {
-            return Neighbors(_fallback: AnySequence(base.inHyperedges(ofIndex: vertex).lazy.map { [base = self.base, n = self._n] in n &+ base.hyperedgeIndex(of: $0) }))
-        }
-        return Neighbors(_fallback: AnySequence(base.sourceIndices(ofHyperedgeAt: _position(vertex))))
+        if vertex < _n { return Neighbors(hyperedges: base.inHyperedgeIndices(ofIndex: vertex), shift: _n) }
+        return Neighbors(members: base.sourceIndices(ofHyperedgeAt: _position(vertex)))
     }
 
     /// A vertex's source incidences, or `P_s` plus a hyperedge's target incidences.
     @inlinable
-    public func outEdges(of vertex: Int) -> IncidenceNumbers {
+    public func outEdges(of vertex: Int) -> OutEdges {
         _check(vertex)
-        if _hasPlanes {
-            if vertex < _n { return IncidenceNumbers(row: _sourcePlane.row(vertex), shift: 0) }
-            let range = _targetPlane.range(of: vertex &- _n)
-            return IncidenceNumbers(range: _sourceCount &+ range.lowerBound ..< _sourceCount &+ range.upperBound)
-        }
-        if vertex < _n { return IncidenceNumbers(row: base._incidences(ofIndex: vertex, targets: false), shift: 0) }
-        let range = base._incidences(ofHyperedgeIndex: vertex &- _n, targets: true)
-        return IncidenceNumbers(range: _sourceCount &+ range.lowerBound ..< _sourceCount &+ range.upperBound)
+        if vertex < _n { return OutEdges(row: _incidences(ofIndex: vertex, targets: false), shift: 0) }
+        let h = vertex &- _n
+        return OutEdges(range: _sourceCount &+ _targetOffsets[h] ..< _sourceCount &+ _targetOffsets[h &+ 1])
     }
 
     /// `P_s` plus a vertex's target incidences, or a hyperedge's source incidences.
     @inlinable
-    public func inEdges(of vertex: Int) -> IncidenceNumbers {
+    public func inEdges(of vertex: Int) -> OutEdges {
         _check(vertex)
-        if _hasPlanes {
-            if vertex < _n { return IncidenceNumbers(row: _targetPlane.row(vertex), shift: _sourceCount) }
-            return IncidenceNumbers(range: _sourcePlane.range(of: vertex &- _n))
-        }
-        if vertex < _n { return IncidenceNumbers(row: base._incidences(ofIndex: vertex, targets: true), shift: _sourceCount) }
-        return IncidenceNumbers(range: base._incidences(ofHyperedgeIndex: vertex &- _n, targets: false))
+        if vertex < _n { return OutEdges(row: _incidences(ofIndex: vertex, targets: true), shift: _sourceCount) }
+        let h = vertex &- _n
+        return OutEdges(range: _sourceOffsets[h] ..< _sourceOffsets[h &+ 1])
     }
 
     @inlinable
@@ -253,18 +412,18 @@ public struct DirectedIncidenceGraphView<Base: DirectedHypergraph>: Bidirectiona
     @inlinable
     public func outDegree(of vertex: Int) -> Int {
         _check(vertex)
-        if _hasPlanes { return vertex < _n ? _sourcePlane.degree(vertex) : _targetPlane.size(of: vertex &- _n) }
         if vertex < _n { return base.outDegree(ofIndex: vertex) }
-        return base.targets(ofHyperedgeAt: _position(vertex)).count
+        let h = vertex &- _n
+        return _targetOffsets[h &+ 1] &- _targetOffsets[h]
     }
 
     /// The base's in-degree of a vertex, or the number of sources of a hyperedge.
     @inlinable
     public func inDegree(of vertex: Int) -> Int {
         _check(vertex)
-        if _hasPlanes { return vertex < _n ? _targetPlane.degree(vertex) : _sourcePlane.size(of: vertex &- _n) }
         if vertex < _n { return base.inDegree(ofIndex: vertex) }
-        return base.sources(ofHyperedgeAt: _position(vertex)).count
+        let h = vertex &- _n
+        return _sourceOffsets[h &+ 1] &- _sourceOffsets[h]
     }
 
     @inlinable
@@ -278,9 +437,9 @@ public struct DirectedIncidenceGraphView<Base: DirectedHypergraph>: Bidirectiona
     public func contains(edge: DirectedEdge<Int>) -> Bool {
         guard contains(edge.source), contains(edge.target) else { return false }
         if edge.source < _n, edge.target >= _n {
-            for position in base.outHyperedges(ofIndex: edge.source) where base.hyperedgeIndex(of: position) == edge.target &- _n { return true }
+            for p in base.outHyperedgeIndices(ofIndex: edge.source) where p == edge.target &- _n { return true }
         } else if edge.source >= _n, edge.target < _n {
-            for position in base.inHyperedges(ofIndex: edge.target) where base.hyperedgeIndex(of: position) == edge.source &- _n { return true }
+            for p in base.inHyperedgeIndices(ofIndex: edge.target) where p == edge.source &- _n { return true }
         }
         return false
     }
@@ -307,10 +466,10 @@ public struct DirectedIncidenceGraphView<Base: DirectedHypergraph>: Bidirectiona
     public func predecessorIndices(ofIndex index: Int) -> Neighbors { predecessors(of: index) }
 
     @inlinable
-    public func outEdges(ofIndex index: Int) -> IncidenceNumbers { outEdges(of: index) }
+    public func outEdges(ofIndex index: Int) -> OutEdges { outEdges(of: index) }
 
     @inlinable
-    public func inEdges(ofIndex index: Int) -> IncidenceNumbers { inEdges(of: index) }
+    public func inEdges(ofIndex index: Int) -> OutEdges { inEdges(of: index) }
 
     @inlinable
     public func outDegree(ofIndex index: Int) -> Int { outDegree(of: index) }
@@ -318,21 +477,13 @@ public struct DirectedIncidenceGraphView<Base: DirectedHypergraph>: Bidirectiona
     @inlinable
     public func inDegree(ofIndex index: Int) -> Int { inDegree(of: index) }
 
-    /// The arc's tail, read from the stored incidence, without hashing.
+    /// The arc's tail, read from the incidence, without hashing.
     @inlinable
-    public func sourceIndex(ofEdgeAt position: Int) -> Int {
-        precondition(position >= 0 && position < _sourceCount &+ _targetCount, "Edge position \(position) is out of range")
-        if position < _sourceCount { return base._incidence(position, targets: false).vertexIndex }
-        return _n &+ base._incidence(position &- _sourceCount, targets: true).hyperedgeIndex
-    }
+    public func sourceIndex(ofEdgeAt position: Int) -> Int { _endpoints(ofEdgeAt: position).source }
 
-    /// The arc's head, read from the stored incidence, without hashing.
+    /// The arc's head, read from the incidence, without hashing.
     @inlinable
-    public func targetIndex(ofEdgeAt position: Int) -> Int {
-        precondition(position >= 0 && position < _sourceCount &+ _targetCount, "Edge position \(position) is out of range")
-        if position < _sourceCount { return _n &+ base._incidence(position, targets: false).hyperedgeIndex }
-        return base._incidence(position &- _sourceCount, targets: true).vertexIndex
-    }
+    public func targetIndex(ofEdgeAt position: Int) -> Int { _endpoints(ofEdgeAt: position).target }
 
     @inlinable
     public var edgeIndexBound: Int? { _sourceCount &+ _targetCount }
@@ -344,5 +495,6 @@ public struct DirectedIncidenceGraphView<Base: DirectedHypergraph>: Bidirectiona
     }
 }
 
-extension DirectedIncidenceGraphView: Sendable where Base: Sendable {}
-extension DirectedIncidenceGraphView.Edges: Sendable where Base: Sendable {}
+extension DirectedIncidenceGraphView: Sendable where Base: Sendable, Base.Hyperedges.Index: Sendable {}
+extension DirectedIncidenceGraphView.Edges: Sendable where Base: Sendable, Base.Hyperedges.Index: Sendable {}
+extension DirectedIncidenceGraphView.Neighbors: Sendable where Base.IncidentHyperedgeIndices: Sendable, Base.MemberIndices: Sendable {}

@@ -444,7 +444,7 @@ enum FuzzHypergraphs {
 
     static func decodeMatrix(_ values: [String: Any], limit: Int? = nil) -> IncidenceMatrix? {
         var decoder = PayloadDecoder(values: values)
-        if let limit { decoder.userInfo[IncidenceMatrix.maximumDecodedCellCountKey] = limit }
+        if let limit { decoder.userInfo[IncidenceMatrix.maximumDecodedWordCountKey] = limit }
         return try? IncidenceMatrix(from: decoder)
     }
 
@@ -467,10 +467,12 @@ enum FuzzHypergraphs {
             let limit = input.int(below: 12)
             let shapeN = input.int(below: 5), shapeM = input.int(below: 5)
             let payload: [String: Any] = ["vertexCount": shapeN, "hyperedges": Array(repeating: [Int](), count: shapeM)]
-            check((decodeMatrix(payload, limit: limit) != nil) == (shapeN * shapeM <= limit), "limit \(limit) for \(shapeN) × \(shapeM)")
+            // The limit is on stored words: n·⌈m/64⌉ + m·⌈n/64⌉ + n + m per plane.
+            let words = shapeN * ((shapeM + 63) / 64) + shapeM * ((shapeN + 63) / 64) + shapeN + shapeM
+            check((decodeMatrix(payload, limit: limit) != nil) == (words <= limit), "limit \(limit) for \(shapeN) × \(shapeM)")
             var decoder = PayloadDecoder(values: ["vertexCount": shapeN, "sources": Array(repeating: [Int](), count: shapeM), "targets": Array(repeating: [Int](), count: shapeM)])
-            decoder.userInfo[IncidenceMatrix.maximumDecodedCellCountKey] = limit
-            check(throwsOnDecode(OrientedIncidenceMatrix.self, decoder) == (shapeN * shapeM > limit), "oriented limit \(limit) for \(shapeN) × \(shapeM)")
+            decoder.userInfo[IncidenceMatrix.maximumDecodedWordCountKey] = limit
+            check(throwsOnDecode(OrientedIncidenceMatrix.self, decoder) == (2 * words > limit), "oriented limit \(limit) for \(shapeN) × \(shapeM)")
         case 3:
             check(decodeMatrix(["vertexCount": Int.max / (1 + input.int(below: 3)), "hyperedges": [[Int]](repeating: [], count: 2 + input.int(below: 3))]) == nil, "overflowing shape")
             check(decodeMatrix(["vertexCount": 1 << 20, "hyperedges": [[Int]](repeating: [], count: 1 << 9)]) == nil, "shape over the default limit")

@@ -109,6 +109,7 @@ public protocol Hypergraph<Vertex> {
     associatedtype Hyperedges: Collection<Members> where Hyperedges.Index: Hashable
     associatedtype IncidentHyperedges: Sequence<Hyperedges.Index>
     associatedtype MemberIndices: Sequence<Int> = LazyMapSequence<Members, Int>
+    associatedtype IncidentHyperedgeIndices: Sequence<Int> = LazyMapSequence<IncidentHyperedges, Int>
 
     var vertices: Vertices { get }
     var hyperedges: Hyperedges { get }                    // position = identity
@@ -130,14 +131,18 @@ public protocol Hypergraph<Vertex> {
     func incidentHyperedges(ofIndex index: Int) -> IncidentHyperedges
     func degree(ofIndex index: Int) -> Int
 
-    // The incidence numbering the incidence-graph view uses as edge positions (underscored, as
-    // `_withIncidentIndexRows` is): incidences numbered hyperedge by hyperedge in index order,
-    // members in index order. Defaults compute it in O(m) and up per call; the incidence lists
-    // answer each in O(1) from their storage, and the matrices store the count.
-    var _incidenceCount: Int { get }
-    func _incidences(ofHyperedgeIndex index: Int) -> Range<Int>
-    func _incidences(ofIndex index: Int) -> ArraySlice<Int>
-    func _incidence(_ number: Int) -> (vertexIndex: Int, hyperedgeIndex: Int)
+    func incidentHyperedgeIndices(ofIndex index: Int) -> IncidentHyperedgeIndices  // hyperedge indices
+
+    // Underscored, as `_withIncidentIndexRows` is. `_forEachMemberIndex` runs `body` over
+    // `memberIndices` (the matrix scans its words). `_withIncidenceRows` lends the incidences as
+    // flat rows, numbered hyperedge by hyperedge in index order, members in `memberIndices` order,
+    // with each vertex's incidence numbers and hyperedge indices: the default writes them out in
+    // O(n + m + p) per call, the incidence list lends its storage. The incidence-graph view numbers
+    // its edges this way and builds its rows from it once per whole-graph algorithm.
+    func _forEachMemberIndex(ofHyperedgeAt position: Hyperedges.Index, _ body: (Int) -> Void)
+    func _withIncidenceRows<Result>(_ body: (_ memberOffsets: UnsafeBufferPointer<Int>, _ members: UnsafeBufferPointer<Int>,
+        _ incidences: UnsafeBufferPointer<Int>, _ incidenceRows: UnsafeBufferPointer<Int>,
+        _ hyperedges: UnsafeBufferPointer<Int>, _ hyperedgeRows: UnsafeBufferPointer<Int>) -> Result) -> Result
 }
 
 /// A directed hypergraph: each hyperedge is a pair of vertex sets, its sources and its targets
@@ -147,19 +152,21 @@ public protocol DirectedHypergraph<Vertex> {
     associatedtype Vertex: Hashable
     associatedtype Vertices: Collection<Vertex>
     associatedtype Members: Collection<Vertex>            // one side of a hyperedge
-    associatedtype Hyperedges: Collection where Hyperedges.Index: Hashable,
-        Hyperedges.Element == (sources: Members, targets: Members)
+    associatedtype Hyperedges: Collection where Hyperedges.Index: Hashable  // element: the representation's
     associatedtype IncidentHyperedges: Sequence<Hyperedges.Index>
     associatedtype MemberIndices: Sequence<Int> = LazyMapSequence<Members, Int>
+    associatedtype IncidentHyperedgeIndices: Sequence<Int> = LazyMapSequence<IncidentHyperedges, Int>
 
     var vertices: Vertices { get }
     var hyperedges: Hyperedges { get }
     func outHyperedges(of vertex: Vertex) -> IncidentHyperedges        // v is a source: FS(v)
     func inHyperedges(of vertex: Vertex) -> IncidentHyperedges         // v is a target: BS(v)
+    func sources(ofHyperedgeAt position: Hyperedges.Index) -> Members   // the tail
+    func targets(ofHyperedgeAt position: Hyperedges.Index) -> Members   // the head
 
     // Requirements with defaults:
-    func sources(ofHyperedgeAt position: Hyperedges.Index) -> Members
-    func targets(ofHyperedgeAt position: Hyperedges.Index) -> Members
+    func sourceSize(ofHyperedgeAt position: Hyperedges.Index) -> Int    // XGI tail_size
+    func targetSize(ofHyperedgeAt position: Hyperedges.Index) -> Int    // XGI head_size
     func outDegree(of vertex: Vertex) -> Int
     func inDegree(of vertex: Vertex) -> Int
     func degree(of vertex: Vertex) -> Int                               // outDegree + inDegree
@@ -178,14 +185,24 @@ public protocol DirectedHypergraph<Vertex> {
     func outDegree(ofIndex index: Int) -> Int
     func inDegree(ofIndex index: Int) -> Int
 
-    // The same numbering per side (`targets: false` the source incidences, `true` the target
-    // incidences, each from 0).
-    func _incidenceCount(targets: Bool) -> Int
-    func _incidences(ofHyperedgeIndex index: Int, targets: Bool) -> Range<Int>
-    func _incidences(ofIndex index: Int, targets: Bool) -> ArraySlice<Int>
-    func _incidence(_ number: Int, targets: Bool) -> (vertexIndex: Int, hyperedgeIndex: Int)
+    func outHyperedgeIndices(ofIndex index: Int) -> IncidentHyperedgeIndices
+    func inHyperedgeIndices(ofIndex index: Int) -> IncidentHyperedgeIndices
+
+    // `_forEachMemberIndex` runs over both sides, each vertex at least once (the oriented matrix
+    // ORs its planes' words); `_withIncidenceRows(targets:_:)` is the undirected hook per side
+    // (`targets: false` the source incidences, `true` the target incidences, each from 0).
+    func _forEachMemberIndex(ofHyperedgeAt position: Hyperedges.Index, _ body: (Int) -> Void)
+    func _withIncidenceRows<Result>(targets: Bool, _ body: /* as above */) -> Result
 }
 ```
+
+**`Hyperedges.Element` is free.** An earlier draft required `Hyperedges.Element == (sources:
+Members, targets: Members)`. That compiles on Swift 6.1 – 6.3, but associated-type inference
+cannot see through a labeled tuple, so every third-party conformer had to write `typealias
+Members`. Generic code now reads a hyperedge only through `sources(ofHyperedgeAt:)` and
+`targets(ofHyperedgeAt:)`, which are plain requirements, and `Members` is inferred from them. The
+library's `hyperedges` still yield `(sources:, targets:)` pairs (HypergraphConformanceTests'
+`minimalDirectedConformer` has no typealias).
 
 `DirectedHypergraph` asks for both stars, so there is no `Bidirectional` split as on the graph
 side. Both phase-1 conformers store both, and B-Visit needs the forward star while F-Visit needs
@@ -403,9 +420,10 @@ vertices on the left, hyperedges on the right.
     // vertices: Range<Int> (0 ..< n + m)
     // edges: RandomAccessCollection of UndirectedEdge<Int> with Index == Int;
     //   position q = incidence number, edges[q] = (vertex index, n + hyperedge of q)
-    // neighborIndices(ofIndex: i < n) = incidentHyperedges(ofIndex: i) shifted by n
+    // neighborIndices(ofIndex: i < n) = incidentHyperedgeIndices(ofIndex: i) shifted by n
     // neighborIndices(ofIndex: n + p) = memberIndices(ofHyperedgeAt: p)
-    // incidentEdgeIndices: the stored incidence rows / the member offsets range
+    // incidentEdgeIndices: IncidentEdgeIndices, the member offsets range of a hyperedge; a
+    //   vertex's stored incidence row (the list) or its computed one (other bases, O(Σ k))
     // edgeIndexBound = p; endpointIndices(ofEdgeAt: q) without hashing
 }
 
@@ -416,8 +434,9 @@ vertices on the left, hyperedges on the right.
     // edges: RandomAccessCollection of DirectedEdge<Int> with Index == Int;
     //   0..<P_s: source incidence q is (vertex index → n + p);
     //   P_s + q: target incidence q is (n + p → vertex index)
-    // successorIndices(ofIndex: i < n) = outHyperedges(ofIndex: i) + n; of n + p = targetIndices(p)
-    // predecessorIndices(ofIndex: i < n) = inHyperedges(ofIndex: i) + n; of n + p = sourceIndices(p)
+    // successorIndices(ofIndex: i < n) = outHyperedgeIndices(ofIndex: i) + n; of n + p = targetIndices(p)
+    // predecessorIndices(ofIndex: i < n) = inHyperedgeIndices(ofIndex: i) + n; of n + p = sourceIndices(p)
+    // outEdges / inEdges: OutEdges (InEdges is the same type)
 }
 ```
 
@@ -427,11 +446,18 @@ vertices on the left, hyperedges on the right.
   `DiHypergraph`, tail → edge → head. A vertex on both sides of `p` gives the 2-cycle i → n + p → i
   (DH-026). Our edge order lists all source incidences before all target incidences; XGI's
   `DiGraph` has no edge positions, so `ref.py` compares edge sets.
-- **The LabeledGraph law.** Every index member reads the base's stored rows, so `Traversal`,
-  `Connectivity`, `ShortestPaths` and the rest run on the views with no hashing. The
-  undirected view's `_withIncidentIndexRows` writes its rows out for the call, O(n + m + p), since
-  the vertex side's stored rows lack the `+ n` shift: whole-graph algorithms (components, bridges)
-  then run at an adjacency-list copy's speed. The directed view offers no
+- **Positions are valid until the next mutation.** A view is a snapshot, so its own positions never
+  change, but the view of a mutated hypergraph numbers the incidences afresh: on the matrices one
+  cell edit shifts every later incidence. A per-incidence array is rebuilt after a mutation (README
+  open question 9: maps attached through a view key by (vertex, hyperedge)).
+- **The LabeledGraph law.** Every index member reads the base's rows, unboxed, so `Traversal`,
+  `Connectivity`, `ShortestPaths` and the rest run on the views with no hashing. Each view keeps
+  every hyperedge's first incidence number (a prefix sum of the sizes, O(m) at init, lent by the
+  list), so a hyperedge's incidence numbers are a range and `edges[q]` a binary search plus a walk
+  of one hyperedge. The undirected view's `_withIncidentIndexRows` writes its rows out for the
+  call from the base's `_withIncidenceRows`, O(n + m + p) on every base, since the vertex side's
+  rows lack the `+ n` shift: whole-graph algorithms (components, bridges) then run at an
+  adjacency-list copy's speed, on the matrices too. The directed view offers no
   `_withSuccessorIndexRows`, whose contract needs edge positions in row order.
 - **`BipartiteGraph`.** `BipartiteGraph(h.incidenceGraph, left: 0 ..< h.vertexCount)` builds one
   through the existing failable initializer. The undirected view is always simple.
@@ -494,7 +520,7 @@ references. Previous run on the development machine (Python 3.12):
 
 | Measure | Target |
 |---|---|
-| Build from nested arrays | ≤ 1.3× `CompressedSparseRow(edges:)` on p edges, plus n hashes. At least 50× XGI's build |
+| Build from nested arrays | ≤ 1.6× `CompressedSparseRow(edges:)` on p edges (retargeted from 1.3×, see below). At least 50× XGI's build |
 | `memberIndices`, `sourceIndices`, `incidentHyperedges(ofIndex:)`, `outHyperedges(ofIndex:)` | an `ArraySlice` and a lazy map over one: no allocation, no hashing |
 | BFS and components on `incidenceGraph` (both views) | ≤ 1.10× the same call on an adjacency-list copy of the view |
 | `connectedComponents()`, `weaklyConnectedComponents()` | ≤ 1.2× a bare union–find over the rows. At least 100× XGI |
@@ -502,7 +528,17 @@ references. Previous run on the development machine (Python 3.12):
 | `bConnectedVertices(from:)` | one counter array of m `Int`s and one queue; O(n + m + p); at least 50× halp's `b_visit` |
 | `lineGraph(s: 2)` | O(Σ d²) with one counter array, no hashing. At least 20× XGI |
 | `reversed` | O(1) |
+| Matrix conformers (`IncidenceMatrix`, `OrientedIncidenceMatrix`) | the algorithms allocate nothing per vertex or per hyperedge: allocation counts equal an incidence-list copy's (`IncidenceMatrixBenchmarks`, `mallocCountTotal`) |
 | Vertex hashes in any index-space algorithm | 0, checked with a hash-counting `Vertex` in the benchmark target |
+
+**Why the build target is 1.6×, not 1.3×.** The baseline, `CompressedSparseRow(vertexCount:edges:)`,
+counting-sorts p edges into rows and stops. The incidence list does that and more that the
+baseline never does: it sorts each hyperedge's members and drops repeats, and it builds the
+`OrderedSet` of vertices. The review's probe composed the fastest measured version of each step
+(a single-buffer insertion sort that drops repeats as it inserts, the plane's hyperedge-of-incidence
+pass fused into the scatter over uninitialized storage, `OrderedSet(uncheckedUniqueElements:)`
+for the vertices `0..<n`) at 16 ms against the baseline's 10 ms: 1.6× is that floor. All three are
+in; measured 19 against 11 ms (1.7×) at load average 70, and 2.2× before them.
 
 ## Prior art (verified 2026-10-11)
 
@@ -531,11 +567,13 @@ references. Previous run on the development machine (Python 3.12):
 2. **`size(ofHyperedgeAt:)`.** The README avoids `size`. *Recommendation:* keep it for the
    undirected protocol only ("of a hyperedge", XGI, HyperNetX, Berge) and add a Terminology row.
    The directed protocol has no `size`: XGI's `edges.size` there is \|tail ∪ head\|, which hides
-   the sides; `sources(ofHyperedgeAt:).count` and `targets(ofHyperedgeAt:).count` are O(1).
-3. **`Hyperedge<Vertex>`.** *Recommendation:* no stored or returned hyperedge value in phase 1;
-   `hyperedges[p]` is a view over the stored rows (or a labeled tuple of two). If the tuple element
-   cannot carry a same-type constraint in an associated type, a `@frozen` `DirectedHyperedge<Members>`
-   struct with `sources` and `targets` replaces it, and nothing else changes.
+   the sides. It has `sourceSize(ofHyperedgeAt:)` and `targetSize(ofHyperedgeAt:)` instead (XGI's
+   `tail_size` / `head_size`), O(1) from the stored rows or the matrices' cached sizes, where
+   `sources(ofHyperedgeAt:).count` copies a `BitSet` on a matrix.
+3. **`Hyperedge<Vertex>`.** *Decided:* no stored or returned hyperedge value in phase 1;
+   `hyperedges[p]` is a view over the stored rows (or a labeled tuple of two). The protocol leaves
+   `Hyperedges.Element` free (see "`Hyperedges.Element` is free" above), so no
+   `DirectedHyperedge<Members>` struct is needed.
 4. **`insert(safe:targets:)`.** The repo's rule makes the first label `safe:`. It reads a little
    oddly here. *Recommendation:* keep the rule rather than invent `insert(safeSources:targets:)`.
 5. **`sConnectedComponents(s:)`.** *Recommendation:* hyperedges by default (HyperNetX
@@ -549,16 +587,24 @@ references. Previous run on the development machine (Python 3.12):
 7. **Removal.** *Recommendation:* phase 2, swap-remove (as `UndirectedAdjacencyList`) or stable
    positions (a `StableIncidenceList` after `StableDirectedGraph`); XGI and HyperNetX keep names
    stable, which argues for stable positions if only one is built.
-8. **Other phase-2 algorithms:** s-walks and s-distances; weighted clique expansion and hypergraph
+8. **Missing against the prior art, all phase 2** (recorded after the phase-1 review):
+   - removal of vertices and hyperedges (question 7);
+   - restriction: the sub-hypergraph on a vertex subset or a hyperedge subset (XGI `subhypergraph`,
+     `restrict_to_nodes` / `restrict_to_edges`; HyperNetX `restrict_to_nodes` / `restrict_to_edges`);
+   - duplicate-hyperedge detection (XGI `edges.duplicates()`, HyperNetX `collapse_edges`);
+   - B-Visit with predecessors, and shortest B-hyperpaths (halp `b_visit` returns `Pv`/`Pe`;
+     Gallo's SBT procedure, halp `shortest_b_tree`);
+   - s-distance and s-paths (Aksoy et al. 2020; HyperNetX `s_distance`, `s_diameter`).
+9. **Other phase-2 algorithms:** s-walks and s-distances; weighted clique expansion and hypergraph
    Laplacians (with `SpectralGraphTheory`, including the directed ones); toplexes and simple
    reduction; induced subhypergraphs; random hypergraphs (XGI's uniform Erdős–Rényi, configuration
    model, SimpleDirectedHypergraphs.jl's random models); directed line graphs; HIF in `GraphFormats`
    (HIF has a directed form).
-9. **Components result type.** `Connectivity`'s `Components<G>` is tied to a graph.
+10. **Components result type.** `Connectivity`'s `Components<G>` is tied to a graph.
    *Recommendation:* `[[Vertex]]` in phase 1, a shared partition type in the final reuse pass.
    `h.incidenceGraph.stronglyConnectedComponents()` already gives `Components` today, hyperedge
    vertices included.
-10. **Dependencies.** `Hypergraphs` depends on `GraphProtocols`, `AdjacencyListModule` (`_RowPool`,
+11. **Dependencies.** `Hypergraphs` depends on `GraphProtocols`, `AdjacencyListModule` (`_RowPool`,
     and the adjacency lists the expansions return), `DisjointSetModule` and `OrderedCollections`.
     Both protocols live in `GraphProtocols`, so `IncidenceMatrixModule` does not depend on
     `Hypergraphs`; the algorithms, written once on the protocols, reach the matrices when both are

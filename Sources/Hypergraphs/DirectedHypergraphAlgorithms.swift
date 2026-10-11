@@ -31,7 +31,7 @@ extension DirectedHypergraph {
         offsets.append(0)
         var flat = ContiguousArray<Int>()
         for i in 0 ..< n {
-            for position in targets ? inHyperedges(ofIndex: i) : outHyperedges(ofIndex: i) { flat.append(hyperedgeIndex(of: position)) }
+            for h in targets ? inHyperedgeIndices(ofIndex: i) : outHyperedgeIndices(ofIndex: i) { flat.append(h) }
             offsets.append(flat.count)
         }
         return _IncidencePlane(vertexCount: m, offsets: offsets, members: flat)
@@ -60,21 +60,21 @@ extension DirectedHypergraph {
     /// hypergraph; halp's `is_B_hypergraph`). Vacuously true with no hyperedges. O(m).
     @inlinable
     public var isBHypergraph: Bool {
-        hyperedges.indices.allSatisfy { targets(ofHyperedgeAt: $0).count == 1 }
+        hyperedges.indices.allSatisfy { targetSize(ofHyperedgeAt: $0) == 1 }
     }
 
     /// Whether every hyperedge has exactly one source: an F-graph (forward hypergraph). Vacuously
     /// true with no hyperedges. O(m).
     @inlinable
     public var isFHypergraph: Bool {
-        hyperedges.indices.allSatisfy { sources(ofHyperedgeAt: $0).count == 1 }
+        hyperedges.indices.allSatisfy { sourceSize(ofHyperedgeAt: $0) == 1 }
     }
 
     /// Whether every hyperedge has exactly one target or exactly one source: a BF-graph. Vacuously
     /// true with no hyperedges. O(m).
     @inlinable
     public var isBFHypergraph: Bool {
-        hyperedges.indices.allSatisfy { targets(ofHyperedgeAt: $0).count == 1 || sources(ofHyperedgeAt: $0).count == 1 }
+        hyperedges.indices.allSatisfy { targetSize(ofHyperedgeAt: $0) == 1 || sourceSize(ofHyperedgeAt: $0) == 1 }
     }
 
     @inlinable
@@ -105,7 +105,7 @@ extension DirectedHypergraph {
     @inlinable
     public func sourceSizeHistogram() -> [Int] {
         let positions = _positions()
-        return _histogram(count: positions.count) { sources(ofHyperedgeAt: positions[$0]).count }
+        return _histogram(count: positions.count) { sourceSize(ofHyperedgeAt: positions[$0]) }
     }
 
     /// Element `k` counts the hyperedges with `k` targets (XGI's `head_size`); `[]` with no
@@ -113,7 +113,7 @@ extension DirectedHypergraph {
     @inlinable
     public func targetSizeHistogram() -> [Int] {
         let positions = _positions()
-        return _histogram(count: positions.count) { targets(ofHyperedgeAt: positions[$0]).count }
+        return _histogram(count: positions.count) { targetSize(ofHyperedgeAt: positions[$0]) }
     }
 }
 
@@ -130,14 +130,15 @@ extension DirectedHypergraph {
     @inlinable
     public func cliqueExpansion() -> AdjacencyList<Vertex> {
         let (n, _) = _indexBounds()
+        let positions = _positions()
         var stamp = [Int](repeating: -1, count: n)
         var edges: [DirectedEdge<Int>] = []
         var found: [Int] = []
         for u in 0 ..< n {
             found.removeAll(keepingCapacity: true)
             stamp[u] = u
-            for position in outHyperedges(ofIndex: u) {
-                for w in targetIndices(ofHyperedgeAt: position) where stamp[w] != u {
+            for h in outHyperedgeIndices(ofIndex: u) {
+                for w in targetIndices(ofHyperedgeAt: positions[h]) where stamp[w] != u {
                     stamp[w] = u
                     found.append(w)
                 }
@@ -181,10 +182,7 @@ extension DirectedHypergraph {
     internal func _unionSides(_ sets: inout DisjointSet) {
         for position in hyperedges.indices {
             var first = -1
-            for v in sourceIndices(ofHyperedgeAt: position) {
-                if first < 0 { first = v } else { sets.union(first, v) }
-            }
-            for v in targetIndices(ofHyperedgeAt: position) {
+            _forEachMemberIndex(ofHyperedgeAt: position) { v in
                 if first < 0 { first = v } else { sets.union(first, v) }
             }
         }
@@ -237,11 +235,11 @@ extension DirectedHypergraph {
         var offsets = [Int](repeating: 0, count: count + 1)
         var total = 0
         for i in 0 ..< n { total &+= outDegree(ofIndex: i) }
-        for position in hyperedges.indices { total &+= targets(ofHyperedgeAt: position).count }
+        for position in hyperedges.indices { total &+= targetSize(ofHyperedgeAt: position) }
         var targets: [Int] = []
         targets.reserveCapacity(total)
         for i in 0 ..< n {
-            for position in outHyperedges(ofIndex: i) { targets.append(n &+ hyperedgeIndex(of: position)) }
+            for h in outHyperedgeIndices(ofIndex: i) { targets.append(n &+ h) }
             offsets[i + 1] = targets.count
         }
         var p = n
@@ -333,11 +331,10 @@ extension DirectedHypergraph {
     @inlinable
     internal func _visit(from start: Int, backward: Bool, stop: Int = -1) -> [Bool] {
         let (n, m) = _indexBounds()
+        let positions = _positions()
         var remaining = [Int](repeating: 0, count: m)
-        var k = 0
-        for position in hyperedges.indices {
-            remaining[k] = backward ? targets(ofHyperedgeAt: position).count : sources(ofHyperedgeAt: position).count
-            k &+= 1
+        for h in 0 ..< m {
+            remaining[h] = backward ? targetSize(ofHyperedgeAt: positions[h]) : sourceSize(ofHyperedgeAt: positions[h])
         }
         var reached = [Bool](repeating: false, count: n)
         reached[start] = true
@@ -347,10 +344,10 @@ extension DirectedHypergraph {
         while head < queue.count {
             let u = queue[head]
             head &+= 1
-            for position in backward ? inHyperedges(ofIndex: u) : outHyperedges(ofIndex: u) {
-                let p = hyperedgeIndex(of: position)
+            for p in backward ? inHyperedgeIndices(ofIndex: u) : outHyperedgeIndices(ofIndex: u) {
                 remaining[p] &-= 1
                 guard remaining[p] == 0 else { continue }
+                let position = positions[p]
                 for w in backward ? sourceIndices(ofHyperedgeAt: position) : targetIndices(ofHyperedgeAt: position) where !reached[w] {
                     reached[w] = true
                     if w == stop { return reached }
@@ -370,8 +367,15 @@ extension DirectedHypergraph {
 
     /// Every vertex B-connected to `source`, `source` included, in vertex-index order: Gallo et
     /// al.'s B-Visit (halp's `b_visit`). A hyperedge fires once every one of its sources has been
-    /// reached, and then reaches all its targets; a hyperedge with no sources never fires. On a
-    /// directed graph read as a hypergraph this is reachability.
+    /// reached, and then reaches all its targets. On a directed graph read as a hypergraph this is
+    /// reachability.
+    ///
+    /// B-connection here is path-based, as B-Visit computes it: `v` is B-connected to `source`
+    /// when `v` is `source`, or some hyperedge with `v` among its targets is entered along a path
+    /// from `source` (it has a source, and all its sources are B-connected). So **a hyperedge with
+    /// no sources never fires**: no path enters it, and B-Visit scans only the forward stars of
+    /// reached vertices. The recursive reading ("every source is B-connected") would fire it
+    /// vacuously from any start; Gallo et al.'s visit and halp do not.
     ///
     /// - Precondition: `source` is a vertex.
     /// - Complexity: O(n + m + p): one counter per hyperedge and one queue; one hash.
@@ -393,7 +397,8 @@ extension DirectedHypergraph {
     /// Every vertex `s` such that `target` is F-connected to `s`, `target` included, in
     /// vertex-index order. Gallo et al.: "the F-Visit must start from the destination of the
     /// F-paths to retain a linear time complexity"; it is B-Visit on the symmetric image, so it
-    /// equals `reversed.bConnectedVertices(from: target)` (halp's `f_visit`).
+    /// equals `reversed.bConnectedVertices(from: target)` (halp's `f_visit`), and a hyperedge with
+    /// no targets never fires.
     ///
     /// - Precondition: `target` is a vertex.
     /// - Complexity: O(n + m + p); one hash.

@@ -137,6 +137,66 @@ package struct _BitRows {
         words.reserveCapacity(rows * wordsPerRow)
     }
 
+    /// ORs `other`'s rows into these, word by word. Both have the same shape; the strides may
+    /// differ.
+    @inlinable
+    package mutating func formUnion(_ other: _BitRows) {
+        precondition(rowCount == other.rowCount && columnCount == other.columnCount, "The planes differ in shape")
+        let used = Self.wordsNeeded(columnCount), stride = wordsPerRow, otherStride = other.wordsPerRow
+        words.withUnsafeMutableBufferPointer { words in
+            other.words.withUnsafeBufferPointer { otherWords in
+                for r in 0 ..< rowCount {
+                    for w in 0 ..< used { words[r &* stride &+ w] |= otherWords[r &* otherStride &+ w] }
+                }
+            }
+        }
+    }
+
+    /// The number of set bits in row `row` before column `column`, which is in range.
+    @inlinable
+    package func popCount(ofRow row: Int, before column: Int) -> Int {
+        let start = row &* wordsPerRow, whole = column / UInt.bitWidth
+        let partial = column & (UInt.bitWidth &- 1)
+        return words.withUnsafeBufferPointer { words in
+            var count = 0
+            for w in 0 ..< whole { count &+= words[start &+ w].nonzeroBitCount }
+            if partial != 0 { count &+= (words[start &+ whole] & (Self.mask(partial) &- 1)).nonzeroBitCount }
+            return count
+        }
+    }
+
+    /// The column of the set bit at offset `rank` of row `row`, or −1 when the row has fewer.
+    @inlinable
+    package func column(ofRow row: Int, atRank rank: Int) -> Int {
+        let start = row &* wordsPerRow, used = Self.wordsNeeded(columnCount)
+        return words.withUnsafeBufferPointer { words in
+            var remaining = rank
+            for w in 0 ..< used {
+                var word = words[start &+ w]
+                let count = word.nonzeroBitCount
+                if remaining >= count {
+                    remaining &-= count
+                    continue
+                }
+                while remaining > 0 {
+                    word &= word &- 1
+                    remaining &-= 1
+                }
+                return w &* UInt.bitWidth &+ word.trailingZeroBitCount
+            }
+            return -1
+        }
+    }
+
+    /// The number of set bits in row `row`.
+    @inlinable
+    package func popCount(ofRow row: Int) -> Int {
+        let start = row &* wordsPerRow
+        var count = 0
+        for w in 0 ..< Self.wordsNeeded(columnCount) { count &+= words[start &+ w].nonzeroBitCount }
+        return count
+    }
+
     /// Whether the used words of every row are equal; capacity is not compared.
     @inlinable
     package func sameBits(as other: _BitRows) -> Bool {

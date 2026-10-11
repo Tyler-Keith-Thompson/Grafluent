@@ -188,13 +188,67 @@ extension OrientedIncidenceMatrix {
     @inlinable
     public func targets(ofHyperedgeAt position: Int) -> BitSet { _targets.members(ofHyperedgeAt: position) }
 
+    /// The number of sources of the column at `position`. O(1), cached.
+    @inlinable
+    public func sourceSize(ofHyperedgeAt position: Int) -> Int { _sources.size(ofHyperedgeAt: position) }
+
+    /// The number of targets of the column at `position`. O(1), cached.
+    @inlinable
+    public func targetSize(ofHyperedgeAt position: Int) -> Int { _targets.size(ofHyperedgeAt: position) }
+
+    /// The stored column of either plane, read in place: `IncidenceMatrix.MemberIndices`.
+    public typealias MemberIndices = IncidenceMatrix.MemberIndices
+
+    /// The stored row of either plane, read in place.
+    public typealias IncidentHyperedgeIndices = IncidenceMatrix.MemberIndices
+
     /// The sources of the column at `position`, read in place without a copy.
     @inlinable
-    public func sourceIndices(ofHyperedgeAt position: Int) -> SetBits { _sources.memberIndices(ofHyperedgeAt: position) }
+    public func sourceIndices(ofHyperedgeAt position: Int) -> MemberIndices { _sources.memberIndices(ofHyperedgeAt: position) }
 
     /// The targets of the column at `position`, read in place without a copy.
     @inlinable
-    public func targetIndices(ofHyperedgeAt position: Int) -> SetBits { _targets.memberIndices(ofHyperedgeAt: position) }
+    public func targetIndices(ofHyperedgeAt position: Int) -> MemberIndices { _targets.memberIndices(ofHyperedgeAt: position) }
+
+    /// The columns with `index` among their sources, read in place without a copy.
+    @inlinable
+    public func outHyperedgeIndices(ofIndex index: Int) -> IncidentHyperedgeIndices { _sources.incidentHyperedgeIndices(ofIndex: index) }
+
+    /// The columns with `index` among their targets, read in place without a copy.
+    @inlinable
+    public func inHyperedgeIndices(ofIndex index: Int) -> IncidentHyperedgeIndices { _targets.incidentHyperedgeIndices(ofIndex: index) }
+
+    /// The set bits of one plane's column below `index`.
+    @inlinable
+    public func _memberRank(ofIndex index: Int, inHyperedgeAt position: Int, targets: Bool) -> Int {
+        targets ? _targets._memberRank(ofIndex: index, inHyperedgeAt: position) : _sources._memberRank(ofIndex: index, inHyperedgeAt: position)
+    }
+
+    /// One plane's column member at offset `rank`.
+    @inlinable
+    public func _memberIndex(atRank rank: Int, inHyperedgeAt position: Int, targets: Bool) -> Int {
+        targets ? _targets._memberIndex(atRank: rank, inHyperedgeAt: position) : _sources._memberIndex(atRank: rank, inHyperedgeAt: position)
+    }
+
+    /// Each vertex on either side of the column once: the two planes' words ORed.
+    @inlinable
+    public func _forEachMemberIndex(ofHyperedgeAt position: Int, _ body: (Int) -> Void) {
+        _sources._checkHyperedge(position)
+        let sources = _sources._columns, targets = _targets._columns
+        let sourceStart = position &* sources.wordsPerRow, targetStart = position &* targets.wordsPerRow
+        let used = _BitRows.wordsNeeded(sources.columnCount)
+        sources.words.withUnsafeBufferPointer { sourceWords in
+            targets.words.withUnsafeBufferPointer { targetWords in
+                for k in 0 ..< used {
+                    var word = sourceWords[sourceStart &+ k] | targetWords[targetStart &+ k]
+                    while word != 0 {
+                        body(k &* UInt.bitWidth &+ word.trailingZeroBitCount)
+                        word &= word &- 1
+                    }
+                }
+            }
+        }
+    }
 
     /// The columns with `vertex` among their sources: the source plane's row. O(⌈m/64⌉).
     @inlinable
@@ -279,12 +333,6 @@ extension OrientedIncidenceMatrix {
 
     @inlinable
     public func hyperedgeIndex(of position: Int) -> Int { _sources.hyperedgeIndex(of: position) }
-
-    /// The number of set cells in one plane, cached. O(1).
-    @inlinable
-    public func _incidenceCount(targets: Bool) -> Int {
-        targets ? _targets._cellCount : _sources._cellCount
-    }
 
     /// Every column as its sources and targets, at its position.
     @frozen
@@ -464,7 +512,7 @@ extension OrientedIncidenceMatrix: Codable {
     }
 
     /// Decodes the form `encode(to:)` writes, throwing `DecodingError.dataCorrupted` for a negative
-    /// vertex count, a shape over `IncidenceMatrix.maximumDecodedCellCountKey`'s limit, a vertex
+    /// vertex count, storage over `IncidenceMatrix.maximumDecodedWordCountKey`'s limit (two planes' words), a vertex
     /// out of range, a side not strictly ascending, or `sources` and `targets` of different
     /// lengths.
     public init(from decoder: any Decoder) throws {
@@ -475,8 +523,8 @@ extension OrientedIncidenceMatrix: Codable {
         guard sources.count == targets.count else {
             throw DecodingError.dataCorruptedError(forKey: .targets, in: container, debugDescription: "sources and targets have different lengths")
         }
-        let maximum = decoder.userInfo[IncidenceMatrix.maximumDecodedCellCountKey] as? Int ?? IncidenceMatrix.defaultMaximumDecodedCellCount
-        try IncidenceMatrix._checkDecodedShape(n, sources.count, maximum: maximum, key: .vertexCount, in: container)
+        let maximum = decoder.userInfo[IncidenceMatrix.maximumDecodedWordCountKey] as? Int ?? IncidenceMatrix.defaultMaximumDecodedWordCount
+        try IncidenceMatrix._checkDecodedShape(n, sources.count, planes: 2, maximum: maximum, key: .vertexCount, in: container)
         for column in sources { try IncidenceMatrix._checkDecodedColumn(column, vertexCount: n, key: .sources, in: container) }
         for column in targets { try IncidenceMatrix._checkDecodedColumn(column, vertexCount: n, key: .targets, in: container) }
         _sources = IncidenceMatrix(vertexCount: n, hyperedges: sources)

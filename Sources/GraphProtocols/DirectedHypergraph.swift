@@ -36,15 +36,18 @@ public protocol DirectedHypergraph<Vertex> {
     associatedtype Vertices: Collection<Vertex>
     /// One side of a hyperedge.
     associatedtype Members: Collection<Vertex>
-    associatedtype Hyperedges: Collection where Hyperedges.Index: Hashable,
-        Hyperedges.Element == (sources: Members, targets: Members)
+    /// The hyperedges, one element per position. The element type is the representation's own (the
+    /// library's are `(sources:, targets:)` pairs); generic code reads a hyperedge's sides through
+    /// `sources(ofHyperedgeAt:)` and `targets(ofHyperedgeAt:)`, which is how `Members` is inferred.
+    associatedtype Hyperedges: Collection where Hyperedges.Index: Hashable
     associatedtype IncidentHyperedges: Sequence<Hyperedges.Index>
     associatedtype MemberIndices: Sequence<Int> = LazyMapSequence<Members, Int>
+    associatedtype IncidentHyperedgeIndices: Sequence<Int> = LazyMapSequence<IncidentHyperedges, Int>
 
     /// Every vertex once, in an order the representation documents.
     var vertices: Vertices { get }
 
-    /// Every hyperedge, as its sources and its targets, at its position.
+    /// Every hyperedge at its position.
     var hyperedges: Hyperedges { get }
 
     /// The positions of the hyperedges with `vertex` among their sources, Gallo's forward star
@@ -60,15 +63,27 @@ public protocol DirectedHypergraph<Vertex> {
     /// - Precondition: `contains(vertex)`, as for `outHyperedges(of:)`.
     func inHyperedges(of vertex: Vertex) -> IncidentHyperedges
 
-    /// The sources of the hyperedge at `position`. Default: `hyperedges[position].sources`.
+    /// The sources of the hyperedge at `position`, its tail.
     ///
     /// - Precondition: `position` is a position in `hyperedges`.
     func sources(ofHyperedgeAt position: Hyperedges.Index) -> Members
 
-    /// The targets of the hyperedge at `position`. Default: `hyperedges[position].targets`.
+    /// The targets of the hyperedge at `position`, its head.
     ///
     /// - Precondition: `position` is a position in `hyperedges`.
     func targets(ofHyperedgeAt position: Hyperedges.Index) -> Members
+
+    /// The number of sources of the hyperedge at `position` (XGI's `tail_size`). Default:
+    /// `sources(ofHyperedgeAt: position).count`.
+    ///
+    /// - Precondition: `position` is a position in `hyperedges`.
+    func sourceSize(ofHyperedgeAt position: Hyperedges.Index) -> Int
+
+    /// The number of targets of the hyperedge at `position` (XGI's `head_size`). Default:
+    /// `targets(ofHyperedgeAt: position).count`.
+    ///
+    /// - Precondition: `position` is a position in `hyperedges`.
+    func targetSize(ofHyperedgeAt position: Hyperedges.Index) -> Int
 
     /// The number of hyperedges with `vertex` among their sources. Default: the length of
     /// `outHyperedges(of: vertex)`.
@@ -137,36 +152,63 @@ public protocol DirectedHypergraph<Vertex> {
     /// `inDegree(of: vertex(atIndex: index))`, without the lookup. Default: exactly that.
     func inDegree(ofIndex index: Int) -> Int
 
-    /// The incidence numbering the directed incidence-graph view uses as its edge positions: the
-    /// source incidences (a vertex among a hyperedge's sources) numbered
-    /// `0..<_sourceIncidenceCount` hyperedge by hyperedge, in index order, within a hyperedge in
-    /// `sourceIndices` order; the target incidences likewise from 0. `targets: true` reads the
-    /// target side. Defaults compute it from the other members, in O(m) and up per call; a
-    /// representation that stores incidences (`IncidenceList`) answers each in O(1).
+    /// `outHyperedges(ofIndex: index)` mapped through `hyperedgeIndex(of:)`. Default: exactly that.
     ///
-    /// Not for use outside the library. Each requires both index bounds.
-    func _incidenceCount(targets: Bool) -> Int
+    /// - Precondition: both index bounds are non-nil, and `index` is in `0..<vertexIndexBound`.
+    func outHyperedgeIndices(ofIndex index: Int) -> IncidentHyperedgeIndices
 
-    /// The incidence numbers of one side of the hyperedge whose index is `index`.
-    func _incidences(ofHyperedgeIndex index: Int, targets: Bool) -> Range<Int>
+    /// `inHyperedges(ofIndex: index)` mapped through `hyperedgeIndex(of:)`. Default: exactly that.
+    ///
+    /// - Precondition: both index bounds are non-nil, and `index` is in `0..<vertexIndexBound`.
+    func inHyperedgeIndices(ofIndex index: Int) -> IncidentHyperedgeIndices
 
-    /// The incidence numbers of the vertex whose index is `index` on one side, in
-    /// `outHyperedges` or `inHyperedges` order.
-    func _incidences(ofIndex index: Int, targets: Bool) -> ArraySlice<Int>
+    /// Calls `body` with each vertex index on either side of the hyperedge at `position`, at least
+    /// once (a vertex on both sides may come twice). Default: `sourceIndices`, then
+    /// `targetIndices`. `OrientedIncidenceMatrix` ORs the two planes' words, so each comes once.
+    ///
+    /// Not for use outside the library.
+    func _forEachMemberIndex(ofHyperedgeAt position: Hyperedges.Index, _ body: (Int) -> Void)
 
-    /// The vertex index and hyperedge index of incidence `number` on one side.
-    func _incidence(_ number: Int, targets: Bool) -> (vertexIndex: Int, hyperedgeIndex: Int)
+    /// `Hypergraph._memberRank` for one side: the number of entries before `index` in
+    /// `sourceIndices` (`targets: false`) or `targetIndices`. Default: a walk, O(k).
+    /// `OrientedIncidenceMatrix` counts set bits, O(⌈n/64⌉).
+    ///
+    /// Not for use outside the library.
+    func _memberRank(ofIndex index: Int, inHyperedgeAt position: Hyperedges.Index, targets: Bool) -> Int
+
+    /// `Hypergraph._memberIndex(atRank:inHyperedgeAt:)` for one side. Default: a walk, O(k).
+    ///
+    /// Not for use outside the library.
+    func _memberIndex(atRank rank: Int, inHyperedgeAt position: Hyperedges.Index, targets: Bool) -> Int
+
+    /// `Hypergraph._withIncidenceRows` for one side: the source incidences (`targets: false`),
+    /// numbered hyperedge by hyperedge in `sourceIndices` order, or the target incidences, each
+    /// side from 0, with each vertex's row of incidence numbers and hyperedge indices beside
+    /// them. The directed incidence-graph view numbers its edges this way.
+    ///
+    /// Default: the rows written out for the call, O(n + m + p). `IncidenceList` lends its
+    /// storage.
+    ///
+    /// Not for use outside the library. Requires both index bounds.
+    func _withIncidenceRows<Result>(
+        targets: Bool,
+        _ body: (
+            _ memberOffsets: UnsafeBufferPointer<Int>, _ members: UnsafeBufferPointer<Int>,
+            _ incidences: UnsafeBufferPointer<Int>, _ incidenceRows: UnsafeBufferPointer<Int>,
+            _ hyperedges: UnsafeBufferPointer<Int>, _ hyperedgeRows: UnsafeBufferPointer<Int>
+        ) -> Result
+    ) -> Result
 }
 
 extension DirectedHypergraph {
     @inlinable
-    public func sources(ofHyperedgeAt position: Hyperedges.Index) -> Members {
-        hyperedges[position].sources
+    public func sourceSize(ofHyperedgeAt position: Hyperedges.Index) -> Int {
+        sources(ofHyperedgeAt: position).count
     }
 
     @inlinable
-    public func targets(ofHyperedgeAt position: Hyperedges.Index) -> Members {
-        hyperedges[position].targets
+    public func targetSize(ofHyperedgeAt position: Hyperedges.Index) -> Int {
+        targets(ofHyperedgeAt: position).count
     }
 
     @inlinable
@@ -203,8 +245,10 @@ extension DirectedHypergraph {
     public func contains(sources: some Sequence<Vertex>, targets: some Sequence<Vertex>) -> Bool {
         let wantedSources = Set(sources), wantedTargets = Set(targets)
         for v in wantedSources.union(wantedTargets) where !contains(v) { return false }
-        for hyperedge in hyperedges where hyperedge.sources.count == wantedSources.count && hyperedge.targets.count == wantedTargets.count {
-            if hyperedge.sources.allSatisfy({ wantedSources.contains($0) }), hyperedge.targets.allSatisfy({ wantedTargets.contains($0) }) {
+        for position in hyperedges.indices
+            where sourceSize(ofHyperedgeAt: position) == wantedSources.count && targetSize(ofHyperedgeAt: position) == wantedTargets.count {
+            if self.sources(ofHyperedgeAt: position).allSatisfy({ wantedSources.contains($0) }),
+               self.targets(ofHyperedgeAt: position).allSatisfy({ wantedTargets.contains($0) }) {
                 return true
             }
         }
@@ -265,7 +309,19 @@ extension DirectedHypergraph where MemberIndices == LazyMapSequence<Members, Int
     }
 }
 
-// MARK: - Incidence numbers, computed
+extension DirectedHypergraph where IncidentHyperedgeIndices == LazyMapSequence<IncidentHyperedges, Int> {
+    @inlinable
+    public func outHyperedgeIndices(ofIndex index: Int) -> LazyMapSequence<IncidentHyperedges, Int> {
+        outHyperedges(ofIndex: index).lazy.map { hyperedgeIndex(of: $0) }
+    }
+
+    @inlinable
+    public func inHyperedgeIndices(ofIndex index: Int) -> LazyMapSequence<IncidentHyperedges, Int> {
+        inHyperedges(ofIndex: index).lazy.map { hyperedgeIndex(of: $0) }
+    }
+}
+
+// MARK: - Incidence rows, computed
 
 extension DirectedHypergraph {
     /// The position whose hyperedge index is `index`: `hyperedges` is in index order.
@@ -276,64 +332,54 @@ extension DirectedHypergraph {
     }
 
     @inlinable
-    package func _sideCount(ofHyperedgeAt position: Hyperedges.Index, targets: Bool) -> Int {
-        targets ? self.targets(ofHyperedgeAt: position).count : sources(ofHyperedgeAt: position).count
+    public func _forEachMemberIndex(ofHyperedgeAt position: Hyperedges.Index, _ body: (Int) -> Void) {
+        for i in sourceIndices(ofHyperedgeAt: position) { body(i) }
+        for i in targetIndices(ofHyperedgeAt: position) { body(i) }
     }
 
-    /// The first incidence number of one side of each hyperedge, by index, and the total at the end.
     @inlinable
-    package func _incidenceOffsets(targets: Bool) -> [Int] {
-        var offsets = [0]
-        offsets.reserveCapacity(hyperedgeCount + 1)
-        var total = 0
+    public func _memberIndex(atRank rank: Int, inHyperedgeAt position: Hyperedges.Index, targets: Bool) -> Int {
+        var remaining = rank
+        for member in targets ? targetIndices(ofHyperedgeAt: position) : sourceIndices(ofHyperedgeAt: position) {
+            if remaining == 0 { return member }
+            remaining &-= 1
+        }
+        preconditionFailure("Rank \(rank) is out of range for that side of the hyperedge")
+    }
+
+    @inlinable
+    public func _memberRank(ofIndex index: Int, inHyperedgeAt position: Hyperedges.Index, targets: Bool) -> Int {
+        var rank = 0
+        for member in targets ? targetIndices(ofHyperedgeAt: position) : sourceIndices(ofHyperedgeAt: position) {
+            if member == index { return rank }
+            rank &+= 1
+        }
+        preconditionFailure("Vertex index \(index) is not on that side of the hyperedge")
+    }
+
+    @inlinable
+    public func _withIncidenceRows<Result>(
+        targets: Bool,
+        _ body: (
+            _ memberOffsets: UnsafeBufferPointer<Int>, _ members: UnsafeBufferPointer<Int>,
+            _ incidences: UnsafeBufferPointer<Int>, _ incidenceRows: UnsafeBufferPointer<Int>,
+            _ hyperedges: UnsafeBufferPointer<Int>, _ hyperedgeRows: UnsafeBufferPointer<Int>
+        ) -> Result
+    ) -> Result {
+        guard let n = vertexIndexBound, hyperedgeIndexBound != nil else {
+            preconditionFailure("\(Self.self) has no vertex or hyperedge indices")
+        }
+        var memberOffsets: [Int] = [0]
+        memberOffsets.reserveCapacity(hyperedgeCount &+ 1)
+        var members: [Int] = []
         for position in hyperedges.indices {
-            total &+= _sideCount(ofHyperedgeAt: position, targets: targets)
-            offsets.append(total)
-        }
-        return offsets
-    }
-
-    @inlinable
-    public func _incidenceCount(targets: Bool) -> Int {
-        _incidenceOffsets(targets: targets).last!
-    }
-
-    @inlinable
-    public func _incidences(ofHyperedgeIndex index: Int, targets: Bool) -> Range<Int> {
-        let offsets = _incidenceOffsets(targets: targets)
-        precondition(index >= 0 && index < offsets.count - 1, "Hyperedge index \(index) is out of range")
-        return offsets[index] ..< offsets[index + 1]
-    }
-
-    @inlinable
-    public func _incidences(ofIndex index: Int, targets: Bool) -> ArraySlice<Int> {
-        let offsets = _incidenceOffsets(targets: targets)
-        var numbers: [Int] = []
-        for position in targets ? inHyperedges(ofIndex: index) : outHyperedges(ofIndex: index) {
-            var offset = 0
-            for member in targets ? targetIndices(ofHyperedgeAt: position) : sourceIndices(ofHyperedgeAt: position) {
-                if member == index { break }
-                offset &+= 1
+            if targets {
+                for i in targetIndices(ofHyperedgeAt: position) { members.append(i) }
+            } else {
+                for i in sourceIndices(ofHyperedgeAt: position) { members.append(i) }
             }
-            numbers.append(offsets[hyperedgeIndex(of: position)] &+ offset)
+            memberOffsets.append(members.count)
         }
-        return numbers[...]
-    }
-
-    @inlinable
-    public func _incidence(_ number: Int, targets: Bool) -> (vertexIndex: Int, hyperedgeIndex: Int) {
-        var first = 0
-        for (index, position) in hyperedges.indices.enumerated() {
-            let size = _sideCount(ofHyperedgeAt: position, targets: targets)
-            if number < first &+ size {
-                var offset = number &- first
-                for member in targets ? targetIndices(ofHyperedgeAt: position) : sourceIndices(ofHyperedgeAt: position) {
-                    if offset == 0 { return (member, index) }
-                    offset &-= 1
-                }
-            }
-            first &+= size
-        }
-        preconditionFailure("Incidence number \(number) is out of range")
+        return _withTransposedIncidenceRows(vertexCount: n, memberOffsets: memberOffsets, members: members, body)
     }
 }

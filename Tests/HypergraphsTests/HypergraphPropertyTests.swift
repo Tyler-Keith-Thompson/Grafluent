@@ -309,6 +309,17 @@ struct HypergraphPropertyTests {
         }
     }
 
+    @Test("sConnectedComponents(s: 1) equals the connected components of the dual")
+    func oneComponentsAreTheDualsComponents() async {
+        let input = Gen.int(in: 0 ... 9).array(of: 0 ... 5).array(of: 0 ... 12)
+        await propertyCheck(count: 300, input: input) { raw in
+            // Two hyperedges share a member exactly when they meet at a vertex of the dual.
+            let hypergraph = UndirectedIncidenceList(vertices: 0 ... 9, hyperedges: raw)
+            #expect(hypergraph.sConnectedComponents(s: 1) == hypergraph.dual().connectedComponents())
+            #expect(hypergraph.sConnectedComponents(s: 1).flatMap { $0 }.sorted() == Array(0 ..< raw.count))
+        }
+    }
+
     @Test("Equality and hashing ignore vertex and hyperedge order; Codable round trips")
     func equalityUnderReordering() async {
         let input = zip(Gen.int(in: 0 ... 7).array(of: 0 ... 4).array(of: 0 ... 8), Gen.int(in: 0 ... 1_000))

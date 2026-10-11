@@ -190,14 +190,21 @@ extension IncidenceMatrix {
 
     /// The union of the oriented matrix's planes: each column its sources and targets together.
     ///
-    /// - Complexity: O(n·⌈m/64⌉ + P_t).
+    /// - Complexity: O(n·⌈m/64⌉ + m·⌈n/64⌉): the planes' words ORed, then the counts recounted.
     @inlinable
     public init(_ oriented: OrientedIncidenceMatrix) {
         self = oriented._sources
         let targets = oriented._targets
-        for p in 0 ..< targets.hyperedgeCount {
-            for v in targets._columns.row(p) { _setCell(v, p, to: true) }
+        _rows.formUnion(targets._rows)
+        _columns.formUnion(targets._columns)
+        var total = 0
+        for v in 0 ..< _rows.rowCount {
+            let count = _rows.popCount(ofRow: v)
+            _degrees[v] = count
+            total &+= count
         }
+        for p in 0 ..< _columns.rowCount { _sizes[p] = _columns.popCount(ofRow: p) }
+        _cellCount = total
     }
 
     /// The one hypergraph conversion for a type that is both a graph and a hypergraph: read as a
@@ -283,9 +290,52 @@ extension IncidenceMatrix {
     ///
     /// - Precondition: `position` is in `0..<hyperedgeCount`.
     @inlinable
-    public func memberIndices(ofHyperedgeAt position: Int) -> SetBits {
+    public func memberIndices(ofHyperedgeAt position: Int) -> MemberIndices {
         _checkHyperedge(position)
-        return SetBits(_words: _columns.words(ofRow: position))
+        return MemberIndices(_words: _columns.words(ofRow: position))
+    }
+
+    /// The columns `vertex` is a member of, ascending, read from the stored row without a copy.
+    /// O(1) to make, O(⌈m/64⌉ + d) to iterate.
+    ///
+    /// - Precondition: `index` is in `0..<vertexCount`.
+    @inlinable
+    public func incidentHyperedgeIndices(ofIndex index: Int) -> MemberIndices {
+        _checkVertex(index)
+        return MemberIndices(_words: _rows.words(ofRow: index))
+    }
+
+    /// The set bits of the column below `index`.
+    @inlinable
+    public func _memberRank(ofIndex index: Int, inHyperedgeAt position: Int) -> Int {
+        _checkVertex(index)
+        _checkHyperedge(position)
+        precondition(_columns.bit(position, index), "Vertex \(index) is not a member of column \(position)")
+        return _columns.popCount(ofRow: position, before: index)
+    }
+
+    /// The column's member at offset `rank`: whole words skipped by popcount.
+    @inlinable
+    public func _memberIndex(atRank rank: Int, inHyperedgeAt position: Int) -> Int {
+        _checkHyperedge(position)
+        precondition(rank >= 0 && rank < _sizes[position], "Rank \(rank) is out of range 0..<\(_sizes[position])")
+        return _columns.column(ofRow: position, atRank: rank)
+    }
+
+    /// The column's members, one word at a time.
+    @inlinable
+    public func _forEachMemberIndex(ofHyperedgeAt position: Int, _ body: (Int) -> Void) {
+        _checkHyperedge(position)
+        let start = position &* _columns.wordsPerRow, used = _BitRows.wordsNeeded(_columns.columnCount)
+        _columns.words.withUnsafeBufferPointer { words in
+            for k in 0 ..< used {
+                var word = words[start &+ k]
+                while word != 0 {
+                    body(k &* UInt.bitWidth &+ word.trailingZeroBitCount)
+                    word &= word &- 1
+                }
+            }
+        }
     }
 
     /// The columns `vertex` is a member of, ascending. O(⌈m/64⌉): one `BitSet` copy.
@@ -369,10 +419,6 @@ extension IncidenceMatrix {
         return position
     }
 
-    /// The number of set cells, cached. O(1).
-    @inlinable
-    public var _incidenceCount: Int { _cellCount }
-
     /// Every column, at its position.
     @frozen
     public struct Hyperedges: RandomAccessCollection, Sendable {
@@ -398,43 +444,50 @@ extension IncidenceMatrix {
     public var hyperedges: Hyperedges { Hyperedges(_columns: _columns) }
 }
 
-/// The indices of the set bits of one stored row of a matrix, ascending, read in place: no copy
-/// and no allocation, unlike a `BitSet`.
-@frozen
-public struct SetBits: Sequence, Sendable {
-    @usableFromInline internal let _words: ArraySlice<UInt>
-
-    @inlinable
-    internal init(_words: ArraySlice<UInt>) { self._words = _words }
-
+extension IncidenceMatrix {
+    /// The indices of the set bits of one stored row, ascending, read in place: a column's member
+    /// indices, or a vertex's column indices (`IncidentHyperedgeIndices`). No copy and no
+    /// allocation, unlike a `BitSet`. It shares the matrix's words copy-on-write, so a later
+    /// mutation of the matrix leaves it unchanged.
     @frozen
-    public struct Iterator: IteratorProtocol, Sendable {
+    public struct MemberIndices: Sequence, Sendable {
         @usableFromInline internal let _words: ArraySlice<UInt>
-        @usableFromInline internal var _wordIndex: Int
-        @usableFromInline internal var _current: UInt
 
         @inlinable
-        internal init(_words: ArraySlice<UInt>) {
-            self._words = _words
-            _wordIndex = _words.startIndex
-            _current = _words.isEmpty ? 0 : _words[_words.startIndex]
-        }
+        internal init(_words: ArraySlice<UInt>) { self._words = _words }
 
-        @inlinable
-        public mutating func next() -> Int? {
-            while _current == 0 {
-                _wordIndex &+= 1
-                guard _wordIndex < _words.endIndex else { return nil }
-                _current = _words[_wordIndex]
+        @frozen
+        public struct Iterator: IteratorProtocol, Sendable {
+            @usableFromInline internal let _words: ArraySlice<UInt>
+            @usableFromInline internal var _wordIndex: Int
+            @usableFromInline internal var _current: UInt
+
+            @inlinable
+            internal init(_words: ArraySlice<UInt>) {
+                self._words = _words
+                _wordIndex = _words.startIndex
+                _current = _words.isEmpty ? 0 : _words[_words.startIndex]
             }
-            let bit = _current.trailingZeroBitCount
-            _current &= _current &- 1
-            return (_wordIndex &- _words.startIndex) &* UInt.bitWidth &+ bit
+
+            @inlinable
+            public mutating func next() -> Int? {
+                while _current == 0 {
+                    _wordIndex &+= 1
+                    guard _wordIndex < _words.endIndex else { return nil }
+                    _current = _words[_wordIndex]
+                }
+                let bit = _current.trailingZeroBitCount
+                _current &= _current &- 1
+                return (_wordIndex &- _words.startIndex) &* UInt.bitWidth &+ bit
+            }
         }
+
+        @inlinable
+        public func makeIterator() -> Iterator { Iterator(_words: _words) }
     }
 
-    @inlinable
-    public func makeIterator() -> Iterator { Iterator(_words: _words) }
+    /// A vertex's column indices: its stored row, read in place.
+    public typealias IncidentHyperedgeIndices = MemberIndices
 }
 
 extension IncidenceMatrix: Hypergraph {}
@@ -552,7 +605,7 @@ extension IncidenceMatrix: Sendable {}
 
 /// The decoding limit both matrices share.
 @usableFromInline
-internal let _defaultMaximumDecodedCellCount = 1 << 28
+internal let _defaultMaximumDecodedWordCount = 1 << 24
 
 extension IncidenceMatrix: Codable {
     @usableFromInline
@@ -561,13 +614,16 @@ extension IncidenceMatrix: Codable {
         case hyperedges
     }
 
-    /// The `userInfo` key for the largest n × m a decoder accepts. Its value is an `Int`.
-    public static let maximumDecodedCellCountKey = CodingUserInfoKey(rawValue: "IncidenceMatrix.maximumDecodedCellCount")!
+    /// The `userInfo` key for the most words of storage a decoded matrix may take. Its value is
+    /// an `Int`.
+    public static let maximumDecodedWordCountKey = CodingUserInfoKey(rawValue: "IncidenceMatrix.maximumDecodedWordCount")!
 
-    /// The largest n × m decoded by default: 2²⁸ cells, 32 MiB per stored orientation. A short
-    /// payload can name a large vertex count, so decoding refuses a larger shape unless the
-    /// decoder's `userInfo[maximumDecodedCellCountKey]` allows it.
-    public static let defaultMaximumDecodedCellCount = _defaultMaximumDecodedCellCount
+    /// The most words (8 bytes each) a decoded matrix may take by default: 2²⁴, 128 MiB. An
+    /// n × m matrix stores n·⌈m/64⌉ + m·⌈n/64⌉ words of bits and n + m counts, and an
+    /// `OrientedIncidenceMatrix` twice that. A short payload can name a large shape (43 bytes
+    /// name 2²⁸ vertices), so decoding refuses one whose storage would pass the limit unless the
+    /// decoder's `userInfo[maximumDecodedWordCountKey]` allows it.
+    public static let defaultMaximumDecodedWordCount = _defaultMaximumDecodedWordCount
 
     /// Encodes `{"vertexCount": n, "hyperedges": [[v, …], …]}`: the shape, and each column, by
     /// position, as its members in ascending order. The encoding of a matrix is always the same.
@@ -584,8 +640,8 @@ extension IncidenceMatrix: Codable {
         let container = try decoder.container(keyedBy: _CodingKeys.self)
         let n = try container.decode(Int.self, forKey: .vertexCount)
         let columns = try container.decode([[Int]].self, forKey: .hyperedges)
-        let maximum = decoder.userInfo[Self.maximumDecodedCellCountKey] as? Int ?? Self.defaultMaximumDecodedCellCount
-        try Self._checkDecodedShape(n, columns.count, maximum: maximum, key: .vertexCount, in: container)
+        let maximum = decoder.userInfo[Self.maximumDecodedWordCountKey] as? Int ?? Self.defaultMaximumDecodedWordCount
+        try Self._checkDecodedShape(n, columns.count, planes: 1, maximum: maximum, key: .vertexCount, in: container)
         self.init(_vertexCount: n, hyperedgeCount: columns.count)
         for (p, column) in columns.enumerated() {
             try Self._checkDecodedColumn(column, vertexCount: n, key: .hyperedges, in: container)
@@ -593,14 +649,33 @@ extension IncidenceMatrix: Codable {
         }
     }
 
-    internal static func _checkDecodedShape<Key: CodingKey>(_ n: Int, _ m: Int, maximum: Int, key: Key, in container: KeyedDecodingContainer<Key>) throws {
+    /// Throws unless `n >= 0` and `planes` n × m planes fit in `maximum` words.
+    internal static func _checkDecodedShape<Key: CodingKey>(_ n: Int, _ m: Int, planes: Int, maximum: Int, key: Key, in container: KeyedDecodingContainer<Key>) throws {
         guard n >= 0 else {
             throw DecodingError.dataCorruptedError(forKey: key, in: container, debugDescription: "Negative vertex count")
         }
-        let cells = n.multipliedReportingOverflow(by: m)
-        guard !cells.overflow, cells.partialValue <= maximum else {
-            throw DecodingError.dataCorruptedError(forKey: key, in: container, debugDescription: "A \(n) × \(m) matrix exceeds the decoding limit of \(maximum) cells")
+        guard let words = _storedWordCount(n, m, planes: planes), words <= maximum else {
+            throw DecodingError.dataCorruptedError(forKey: key, in: container, debugDescription: "A \(n) × \(m) matrix exceeds the decoding limit of \(maximum) words")
         }
+    }
+
+    /// `planes · (n·⌈m/64⌉ + m·⌈n/64⌉ + n + m)`, the words the planes store, or `nil` when it
+    /// overflows. Guards are comparisons, not discarded overflow flags.
+    internal static func _storedWordCount(_ n: Int, _ m: Int, planes: Int) -> Int? {
+        let width = UInt.bitWidth
+        let wordsPerRow = m / width + (m % width == 0 ? 0 : 1)
+        let wordsPerColumn = n / width + (n % width == 0 ? 0 : 1)
+        guard wordsPerRow == 0 || n <= Int.max / wordsPerRow else { return nil }
+        let rowWords = n * wordsPerRow
+        guard wordsPerColumn == 0 || m <= Int.max / wordsPerColumn else { return nil }
+        let columnWords = m * wordsPerColumn
+        var total = 0
+        for part in [rowWords, columnWords, n, m] {
+            guard part <= Int.max - total else { return nil }
+            total += part
+        }
+        guard planes <= 1 || total <= Int.max / planes else { return nil }
+        return total * planes
     }
 
     internal static func _checkDecodedColumn<Key: CodingKey>(_ column: [Int], vertexCount n: Int, key: Key, in container: KeyedDecodingContainer<Key>) throws {

@@ -44,6 +44,7 @@ public protocol Hypergraph<Vertex> {
     associatedtype Hyperedges: Collection<Members> where Hyperedges.Index: Hashable
     associatedtype IncidentHyperedges: Sequence<Hyperedges.Index>
     associatedtype MemberIndices: Sequence<Int> = LazyMapSequence<Members, Int>
+    associatedtype IncidentHyperedgeIndices: Sequence<Int> = LazyMapSequence<IncidentHyperedges, Int>
 
     /// Every vertex once, in an order the representation documents.
     var vertices: Vertices { get }
@@ -131,24 +132,55 @@ public protocol Hypergraph<Vertex> {
     /// - Precondition: `vertexIndexBound` is not `nil`, and `index` is in `0..<vertexIndexBound`.
     func degree(ofIndex index: Int) -> Int
 
-    /// The incidence numbering the incidence-graph view uses as its edge positions: the
-    /// incidences (a vertex in a hyperedge) numbered `0..<_incidenceCount` hyperedge by hyperedge,
-    /// in index order, and within a hyperedge in `memberIndices` order. These four members read
-    /// it. Defaults compute it from the other members: `_incidenceCount` in O(m), the others in
-    /// O(m) and up per call. A representation that stores incidences (`UndirectedIncidenceList`)
-    /// answers each in O(1).
+    /// The indices of the hyperedges the vertex whose index is `index` is a member of, in
+    /// `incidentHyperedges` order: `incidentHyperedges(ofIndex: index)` mapped through
+    /// `hyperedgeIndex(of:)`. Default: exactly that.
     ///
-    /// Not for use outside the library. Each requires both index bounds.
-    var _incidenceCount: Int { get }
+    /// - Precondition: both index bounds are non-nil, and `index` is in `0..<vertexIndexBound`.
+    func incidentHyperedgeIndices(ofIndex index: Int) -> IncidentHyperedgeIndices
 
-    /// The incidence numbers of the hyperedge whose index is `index`: a contiguous range.
-    func _incidences(ofHyperedgeIndex index: Int) -> Range<Int>
+    /// Calls `body` with each of `memberIndices(ofHyperedgeAt: position)`, in order. Default: a
+    /// loop over `memberIndices`. `IncidenceMatrix` scans the column's words in place, which a
+    /// loop over every hyperedge (union–find) runs faster than through an iterator.
+    ///
+    /// Not for use outside the library.
+    func _forEachMemberIndex(ofHyperedgeAt position: Hyperedges.Index, _ body: (Int) -> Void)
 
-    /// The incidence numbers of the vertex whose index is `index`, in `incidentHyperedges` order.
-    func _incidences(ofIndex index: Int) -> ArraySlice<Int>
+    /// The number of members before `index` in `memberIndices(ofHyperedgeAt: position)`, where
+    /// `index` is a member: its place in the hyperedge. Default: a walk of `memberIndices`, O(k).
+    /// `IncidenceMatrix` counts the column's set bits below `index`, O(⌈n/64⌉). The
+    /// incidence-graph view numbers a vertex's incidences with it.
+    ///
+    /// Not for use outside the library.
+    func _memberRank(ofIndex index: Int, inHyperedgeAt position: Hyperedges.Index) -> Int
 
-    /// The vertex index and hyperedge index of incidence `number`.
-    func _incidence(_ number: Int) -> (vertexIndex: Int, hyperedgeIndex: Int)
+    /// The member index at offset `rank` of `memberIndices(ofHyperedgeAt: position)`, the inverse
+    /// of `_memberRank`. Default: a walk, O(k). `IncidenceMatrix` skips whole words by popcount,
+    /// O(⌈n/64⌉). The incidence-graph view's `edges[q]` reads it.
+    ///
+    /// Not for use outside the library.
+    func _memberIndex(atRank rank: Int, inHyperedgeAt position: Hyperedges.Index) -> Int
+
+    /// Calls `body` with the incidences as flat rows, valid only during the call. Incidence `q`
+    /// is the `q`th member, hyperedge by hyperedge in index order and within a hyperedge in
+    /// `memberIndices` order: hyperedge `h`'s are `memberOffsets[h] ..< memberOffsets[h + 1]`
+    /// (`m + 1` offsets) and `members[q]` is incidence `q`'s vertex index. Vertex `i`'s row in
+    /// `incidences` lists its incidence numbers, ascending, and its row in `hyperedges` the
+    /// hyperedge indices beside them; each row table has three entries per vertex (start, length,
+    /// unused), as `Graph._withIncidentIndexRows`'s do. The incidence-graph views number their
+    /// edges this way.
+    ///
+    /// Default: the rows written out for the call, O(n + m + p) plus the cost of reading every
+    /// `memberIndices` once. `UndirectedIncidenceList` lends its storage.
+    ///
+    /// Not for use outside the library. Requires both index bounds.
+    func _withIncidenceRows<Result>(
+        _ body: (
+            _ memberOffsets: UnsafeBufferPointer<Int>, _ members: UnsafeBufferPointer<Int>,
+            _ incidences: UnsafeBufferPointer<Int>, _ incidenceRows: UnsafeBufferPointer<Int>,
+            _ hyperedges: UnsafeBufferPointer<Int>, _ hyperedgeRows: UnsafeBufferPointer<Int>
+        ) -> Result
+    ) -> Result
 }
 
 extension Hypergraph {
@@ -229,7 +261,14 @@ extension Hypergraph where MemberIndices == LazyMapSequence<Members, Int> {
     }
 }
 
-// MARK: - Incidence numbers, computed
+extension Hypergraph where IncidentHyperedgeIndices == LazyMapSequence<IncidentHyperedges, Int> {
+    @inlinable
+    public func incidentHyperedgeIndices(ofIndex index: Int) -> LazyMapSequence<IncidentHyperedges, Int> {
+        incidentHyperedges(ofIndex: index).lazy.map { hyperedgeIndex(of: $0) }
+    }
+}
+
+// MARK: - Incidence rows, computed
 
 extension Hypergraph {
     /// The position whose hyperedge index is `index`: `hyperedges` is in index order.
@@ -239,62 +278,108 @@ extension Hypergraph {
         return hyperedges.index(hyperedges.startIndex, offsetBy: index)
     }
 
-    /// The first incidence number of each hyperedge, by index, and the total at the end.
     @inlinable
-    package func _incidenceOffsets() -> [Int] {
-        var offsets = [0]
-        offsets.reserveCapacity(hyperedgeCount + 1)
-        var total = 0
+    public func _forEachMemberIndex(ofHyperedgeAt position: Hyperedges.Index, _ body: (Int) -> Void) {
+        for i in memberIndices(ofHyperedgeAt: position) { body(i) }
+    }
+
+    @inlinable
+    public func _memberIndex(atRank rank: Int, inHyperedgeAt position: Hyperedges.Index) -> Int {
+        var remaining = rank
+        for member in memberIndices(ofHyperedgeAt: position) {
+            if remaining == 0 { return member }
+            remaining &-= 1
+        }
+        preconditionFailure("Rank \(rank) is out of range for the hyperedge")
+    }
+
+    @inlinable
+    public func _memberRank(ofIndex index: Int, inHyperedgeAt position: Hyperedges.Index) -> Int {
+        var rank = 0
+        for member in memberIndices(ofHyperedgeAt: position) {
+            if member == index { return rank }
+            rank &+= 1
+        }
+        preconditionFailure("Vertex index \(index) is not a member of the hyperedge")
+    }
+
+    @inlinable
+    public func _withIncidenceRows<Result>(
+        _ body: (
+            _ memberOffsets: UnsafeBufferPointer<Int>, _ members: UnsafeBufferPointer<Int>,
+            _ incidences: UnsafeBufferPointer<Int>, _ incidenceRows: UnsafeBufferPointer<Int>,
+            _ hyperedges: UnsafeBufferPointer<Int>, _ hyperedgeRows: UnsafeBufferPointer<Int>
+        ) -> Result
+    ) -> Result {
+        guard let n = vertexIndexBound, hyperedgeIndexBound != nil else {
+            preconditionFailure("\(Self.self) has no vertex or hyperedge indices")
+        }
+        var memberOffsets: [Int] = [0]
+        memberOffsets.reserveCapacity(hyperedgeCount &+ 1)
+        var members: [Int] = []
         for position in hyperedges.indices {
-            total &+= size(ofHyperedgeAt: position)
-            offsets.append(total)
+            for i in memberIndices(ofHyperedgeAt: position) { members.append(i) }
+            memberOffsets.append(members.count)
         }
-        return offsets
+        return _withTransposedIncidenceRows(vertexCount: n, memberOffsets: memberOffsets, members: members, body)
     }
+}
 
-    @inlinable
-    public var _incidenceCount: Int {
-        var total = 0
-        for position in hyperedges.indices { total &+= size(ofHyperedgeAt: position) }
-        return total
-    }
-
-    @inlinable
-    public func _incidences(ofHyperedgeIndex index: Int) -> Range<Int> {
-        let offsets = _incidenceOffsets()
-        precondition(index >= 0 && index < offsets.count - 1, "Hyperedge index \(index) is out of range")
-        return offsets[index] ..< offsets[index + 1]
-    }
-
-    @inlinable
-    public func _incidences(ofIndex index: Int) -> ArraySlice<Int> {
-        let offsets = _incidenceOffsets()
-        var numbers: [Int] = []
-        for position in incidentHyperedges(ofIndex: index) {
-            var offset = 0
-            for member in memberIndices(ofHyperedgeAt: position) {
-                if member == index { break }
-                offset &+= 1
-            }
-            numbers.append(offsets[hyperedgeIndex(of: position)] &+ offset)
-        }
-        return numbers[...]
-    }
-
-    @inlinable
-    public func _incidence(_ number: Int) -> (vertexIndex: Int, hyperedgeIndex: Int) {
-        var first = 0
-        for (index, position) in hyperedges.indices.enumerated() {
-            let size = size(ofHyperedgeAt: position)
-            if number < first &+ size {
-                var offset = number &- first
-                for member in memberIndices(ofHyperedgeAt: position) {
-                    if offset == 0 { return (member, index) }
-                    offset &-= 1
+/// Calls `body` with `members` (flat rows at `memberOffsets`) and its transpose: for each of the
+/// `n` vertex indices, its incidence numbers ascending and the row numbers beside them, under one
+/// row table of (start, length, unused) per vertex, laid out by a counting pass. O(n + m + p).
+@inlinable
+package func _withTransposedIncidenceRows<Result>(
+    vertexCount n: Int, memberOffsets: [Int], members: [Int],
+    _ body: (
+        _ memberOffsets: UnsafeBufferPointer<Int>, _ members: UnsafeBufferPointer<Int>,
+        _ incidences: UnsafeBufferPointer<Int>, _ incidenceRows: UnsafeBufferPointer<Int>,
+        _ hyperedges: UnsafeBufferPointer<Int>, _ hyperedgeRows: UnsafeBufferPointer<Int>
+    ) -> Result
+) -> Result {
+    let p = members.count, m = memberOffsets.count &- 1
+    var rows = [Int](repeating: 0, count: 3 &* n)
+    var incidences = [Int](repeating: 0, count: p)
+    var rowHyperedges = [Int](repeating: 0, count: p)
+    memberOffsets.withUnsafeBufferPointer { offsets in
+        members.withUnsafeBufferPointer { members in
+            rows.withUnsafeMutableBufferPointer { rows in
+                for q in 0 ..< p {
+                    let i = members[q]
+                    precondition(i >= 0 && i < n, "Member index \(i) is out of range 0..<\(n)")
+                    rows[3 &* i &+ 1] &+= 1
+                }
+                var start = 0
+                for i in 0 ..< n {
+                    rows[3 &* i] = start
+                    start &+= rows[3 &* i &+ 1]
+                    rows[3 &* i &+ 1] = 0
+                }
+                incidences.withUnsafeMutableBufferPointer { incidences in
+                    rowHyperedges.withUnsafeMutableBufferPointer { rowHyperedges in
+                        for h in 0 ..< m {
+                            for q in offsets[h] ..< offsets[h &+ 1] {
+                                let i = members[q]
+                                let slot = rows[3 &* i] &+ rows[3 &* i &+ 1]
+                                rows[3 &* i &+ 1] &+= 1
+                                incidences[slot] = q
+                                rowHyperedges[slot] = h
+                            }
+                        }
+                    }
                 }
             }
-            first &+= size
         }
-        preconditionFailure("Incidence number \(number) is out of range")
+    }
+    return memberOffsets.withUnsafeBufferPointer { offsets in
+        members.withUnsafeBufferPointer { members in
+            incidences.withUnsafeBufferPointer { incidences in
+                rowHyperedges.withUnsafeBufferPointer { rowHyperedges in
+                    rows.withUnsafeBufferPointer { rows in
+                        body(offsets, members, incidences, rows, rowHyperedges, rows)
+                    }
+                }
+            }
+        }
     }
 }

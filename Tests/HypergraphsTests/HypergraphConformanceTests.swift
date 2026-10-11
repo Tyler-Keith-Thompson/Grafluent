@@ -186,17 +186,25 @@ struct HypergraphConformanceTests {
             #expect(minimal.cliqueExpansion() == list.cliqueExpansion() && minimal.lineGraph(s: 1) == list.lineGraph(s: 1))
             #expect(minimal.sConnectedComponents(s: 2) == list.sConnectedComponents(s: 2))
             #expect(Array(minimal.incidenceGraph.edges) == Array(list.incidenceGraph.edges))
+            for x in minimal.incidenceGraph.vertices {
+                #expect(Array(minimal.incidenceGraph.neighbors(of: x)) == Array(list.incidenceGraph.neighbors(of: x)))
+                #expect(Array(minimal.incidenceGraph.incidentEdges(of: x)) == Array(list.incidenceGraph.incidentEdges(of: x)))
+            }
+            #expect(minimal.sConnectedComponents(s: 1) == list.sConnectedComponents(s: 1))
         }
     }
 
-    @Test("The DirectedHypergraph defaults and the algorithms work for any conformer with indices")
+    @Test("The DirectedHypergraph defaults and the algorithms work for any conformer with indices, with no typealias")
     func minimalDirectedConformer() {
+        // A third-party conformer: only the requirements without defaults, and no typealias.
+        // `Members` is inferred from `sources(ofHyperedgeAt:)`; `hyperedges` may be any collection.
         struct Arcs: DirectedHypergraph {
-            typealias Members = [String]
             let names: [String]
             let arcs: [(sources: [String], targets: [String])]
             var vertices: [String] { names }
             var hyperedges: [(sources: [String], targets: [String])] { arcs }
+            func sources(ofHyperedgeAt position: Int) -> [String] { arcs[position].sources }
+            func targets(ofHyperedgeAt position: Int) -> [String] { arcs[position].targets }
             func outHyperedges(of vertex: String) -> [Int] { arcs.indices.filter { arcs[$0].sources.contains(vertex) } }
             func inHyperedges(of vertex: String) -> [Int] { arcs.indices.filter { arcs[$0].targets.contains(vertex) } }
             var vertexIndexBound: Int? { names.count }
@@ -235,7 +243,14 @@ struct HypergraphConformanceTests {
             #expect(minimal.cliqueExpansion() == list.cliqueExpansion())
             #expect(minimal.isBHypergraph == list.isBHypergraph && minimal.isFHypergraph == list.isFHypergraph && minimal.isBFHypergraph == list.isBFHypergraph)
             #expect(minimal.outDegreeHistogram() == list.outDegreeHistogram() && minimal.targetSizeHistogram() == list.targetSizeHistogram())
+            #expect(minimal.sourceSizeHistogram() == list.sourceSizeHistogram() && minimal.inDegreeHistogram() == list.inDegreeHistogram())
             #expect(Array(minimal.incidenceGraph.edges) == Array(list.incidenceGraph.edges))
+            for x in minimal.incidenceGraph.vertices {
+                #expect(Array(minimal.incidenceGraph.successors(of: x)) == Array(list.incidenceGraph.successors(of: x)))
+                #expect(Array(minimal.incidenceGraph.predecessors(of: x)) == Array(list.incidenceGraph.predecessors(of: x)))
+                #expect(Array(minimal.incidenceGraph.outEdges(of: x)) == Array(list.incidenceGraph.outEdges(of: x)))
+                #expect(Array(minimal.incidenceGraph.inEdges(of: x)) == Array(list.incidenceGraph.inEdges(of: x)))
+            }
         }
     }
 

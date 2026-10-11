@@ -40,51 +40,74 @@ package struct _IncidencePlane {
 
     /// The plane of `vertexCount` vertices whose hyperedges are given as flat rows: hyperedge `p`
     /// is `members[offsets[p] ..< offsets[p + 1]]`, each row strictly ascending and in range
-    /// (unchecked). The vertex rows are laid out at their exact sizes in one counting pass. O(n + p).
+    /// (unchecked). One counting pass sizes the vertex rows; one scatter then writes each
+    /// incidence's hyperedge and its place in its vertex's rows, into uninitialized storage.
+    /// O(n + p).
     @inlinable
     package init(vertexCount n: Int, offsets: ContiguousArray<Int>, members: ContiguousArray<Int>) {
-        let m = offsets.count - 1
+        let m = offsets.count &- 1
         let total = members.count
-        var hyperedgeOfIncidence = ContiguousArray<Int>(repeating: 0, count: total)
-        var rowOffsets = [Int](repeating: 0, count: n + 1)
-        var storage = ContiguousArray<Int>(repeating: 0, count: total)
-        var positionStorage = ContiguousArray<Int>(repeating: 0, count: total)
+        var rowOffsets = [Int](repeating: 0, count: n &+ 1)
         members.withUnsafeBufferPointer { members in
-            offsets.withUnsafeBufferPointer { offsets in
-                hyperedgeOfIncidence.withUnsafeMutableBufferPointer { hyperedgeOf in
-                    rowOffsets.withUnsafeMutableBufferPointer { rowOffsets in
-                        for p in 0 ..< m {
-                            for q in offsets[p] ..< offsets[p &+ 1] { hyperedgeOf[q] = p }
-                        }
-                        for q in 0 ..< total { rowOffsets[members[q] &+ 1] &+= 1 }
-                        for i in 0 ..< n { rowOffsets[i &+ 1] &+= rowOffsets[i] }
-                    }
-                }
+            rowOffsets.withUnsafeMutableBufferPointer { rowOffsets in
+                for q in 0 ..< total { rowOffsets[members[q] &+ 1] &+= 1 }
+                for i in 0 ..< n { rowOffsets[i &+ 1] &+= rowOffsets[i] }
             }
         }
         var fill = rowOffsets
-        members.withUnsafeBufferPointer { members in
-            hyperedgeOfIncidence.withUnsafeBufferPointer { hyperedgeOf in
-                storage.withUnsafeMutableBufferPointer { storage in
-                    positionStorage.withUnsafeMutableBufferPointer { positionStorage in
-                        fill.withUnsafeMutableBufferPointer { fill in
-                            for q in 0 ..< total {
-                                let i = members[q]
-                                let slot = fill[i]
-                                storage[slot] = q
-                                positionStorage[slot] = hyperedgeOf[q]
-                                fill[i] = slot &+ 1
+        var storage = ContiguousArray<Int>()
+        var positionStorage = ContiguousArray<Int>()
+        let hyperedgeOfIncidence = ContiguousArray<Int>(unsafeUninitializedCapacity: total) { hyperedgeOf, hyperedgeCount in
+            storage = ContiguousArray(unsafeUninitializedCapacity: total) { storage, storageCount in
+                positionStorage = ContiguousArray(unsafeUninitializedCapacity: total) { positionStorage, positionCount in
+                    members.withUnsafeBufferPointer { members in
+                        offsets.withUnsafeBufferPointer { offsets in
+                            fill.withUnsafeMutableBufferPointer { fill in
+                                for p in 0 ..< m {
+                                    for q in offsets[p] ..< offsets[p &+ 1] {
+                                        hyperedgeOf[q] = p
+                                        let i = members[q]
+                                        let slot = fill[i]
+                                        fill[i] = slot &+ 1
+                                        storage[slot] = q
+                                        positionStorage[slot] = p
+                                    }
+                                }
                             }
                         }
                     }
+                    positionCount = total
                 }
+                storageCount = total
             }
+            hyperedgeCount = total
         }
         memberOffsets = offsets
         self.members = members
         self.hyperedgeOfIncidence = hyperedgeOfIncidence
         incidences = _RowPool(storage: storage, offsets: rowOffsets)
         positions = _RowPool(storage: positionStorage, offsets: rowOffsets)
+    }
+
+    /// `Hypergraph._withIncidenceRows`, lent from the storage: the member rows and both vertex
+    /// row pools, whose row tables are (start, count, capacity).
+    @inlinable
+    package func withIncidenceRows<Result>(
+        _ body: (
+            _ memberOffsets: UnsafeBufferPointer<Int>, _ members: UnsafeBufferPointer<Int>,
+            _ incidences: UnsafeBufferPointer<Int>, _ incidenceRows: UnsafeBufferPointer<Int>,
+            _ hyperedges: UnsafeBufferPointer<Int>, _ hyperedgeRows: UnsafeBufferPointer<Int>
+        ) -> Result
+    ) -> Result {
+        memberOffsets.withUnsafeBufferPointer { offsets in
+            members.withUnsafeBufferPointer { members in
+                incidences.withUnsafeRows { incidences, incidenceRows in
+                    positions.withUnsafeRows { positions, positionRows in
+                        body(offsets, members, incidences, incidenceRows, positions, positionRows)
+                    }
+                }
+            }
+        }
     }
 
     @inlinable
@@ -243,16 +266,18 @@ package func _sameRowMultiset(_ lhs: [[Int]], _ rhs: [[Int]]) -> Bool {
     return lhs.sorted(by: order) == rhs.sorted(by: order)
 }
 
-/// Assigns vertex indices during a bulk build: an `OrderedSet` that, while its elements are the
-/// `Int`s `0..<identityCount` in order, answers an `Int` member below that count as its own index
-/// without hashing it (`AdjacencyListModule`'s identity slots do the same). Any other vertex, or
-/// an `Int` out of order, goes through the set, and an out-of-order insertion ends the identity.
+/// Assigns vertex indices during a bulk build. While the vertices are the `Int`s
+/// `0..<identityCount` in order, an `Int` member below that count, or equal to it (a new vertex),
+/// is its own index and nothing is hashed or stored; `vertices()` then builds the set at once
+/// with `OrderedSet(uncheckedUniqueElements:)`. Any other vertex, or an `Int` out of order, moves
+/// the identity prefix into `set` and goes through it from then on.
 @frozen
 @usableFromInline
 internal struct _VertexIndexer<Vertex: Hashable> {
+    /// The vertices, once the identity has ended (empty before).
     @usableFromInline internal var set: OrderedSet<Vertex>
-    /// The vertices are `0..<identityCount` in order when it is not negative; always −1 unless
-    /// `Vertex` is `Int`.
+    /// The vertices are `0..<identityCount` in order and `set` is empty when it is not negative;
+    /// always −1 unless `Vertex` is `Int`.
     @usableFromInline internal var identityCount: Int
 
     @inlinable
@@ -261,6 +286,10 @@ internal struct _VertexIndexer<Vertex: Hashable> {
         identityCount = Vertex.self == Int.self ? 0 : -1
     }
 
+    /// The number of vertices so far.
+    @inlinable
+    internal var count: Int { identityCount >= 0 ? identityCount : set.count }
+
     /// The index of `vertex`, inserting it at the next index if it is new.
     @inlinable
     @inline(__always)
@@ -268,11 +297,118 @@ internal struct _VertexIndexer<Vertex: Hashable> {
         if identityCount >= 0 {
             let i = unsafeBitCast(vertex, to: Int.self)
             if UInt(bitPattern: i) < UInt(bitPattern: identityCount) { return i }
-            let (inserted, index) = set.append(vertex)
-            if inserted { identityCount = i == identityCount ? identityCount &+ 1 : -1 }
-            return index
+            if i == identityCount {
+                identityCount &+= 1
+                return i
+            }
+            _endIdentity()
         }
         return set.append(vertex).index
+    }
+
+    @inlinable
+    internal mutating func _endIdentity() {
+        // `Vertex` is `Int` here; building from the range itself is what makes this fast.
+        set = OrderedSet<Int>(uncheckedUniqueElements: 0 ..< identityCount) as! OrderedSet<Vertex>
+        identityCount = -1
+    }
+
+    /// The vertices, in index order.
+    @inlinable
+    internal mutating func vertices() -> OrderedSet<Vertex> {
+        if identityCount >= 0 { _endIdentity() }
+        return set
+    }
+}
+
+/// Flat rows built one entry at a time, each kept strictly ascending, in one buffer: an entry is
+/// inserted in place from the row's end and a repeat is dropped as it arrives, so a short row
+/// needs no separate sort. A row that grows past 32 entries is appended unsorted and sorted once
+/// at its end, keeping long rows at O(k log k). The buffer is raw memory grown by doubling, so
+/// an insertion has no bounds or uniqueness checks; `finish()` copies it into the members array
+/// and frees it, and must be called exactly once.
+@frozen
+@usableFromInline
+internal struct _SortedRowsBuilder {
+    @usableFromInline internal var offsets: ContiguousArray<Int>
+    @usableFromInline internal var buffer: UnsafeMutablePointer<Int>
+    @usableFromInline internal var capacity: Int
+    @usableFromInline internal var count: Int
+    @usableFromInline internal var rowStart: Int
+    @usableFromInline internal var rowSorted: Bool
+
+    @inlinable
+    internal init(rowCapacity: Int) {
+        offsets = [0]
+        offsets.reserveCapacity(rowCapacity &+ 1)
+        capacity = Swift.max(16, rowCapacity &* 4)
+        buffer = .allocate(capacity: capacity)
+        count = 0
+        rowStart = 0
+        rowSorted = true
+    }
+
+    @inlinable
+    internal mutating func _grow() {
+        let newCapacity = capacity &* 2
+        let moved = UnsafeMutablePointer<Int>.allocate(capacity: newCapacity)
+        moved.moveInitialize(from: buffer, count: count)
+        buffer.deallocate()
+        buffer = moved
+        capacity = newCapacity
+    }
+
+    @inlinable
+    @inline(__always)
+    internal mutating func append(_ x: Int) {
+        if count == capacity { _grow() }
+        guard rowSorted, count &- rowStart < 32 else {
+            rowSorted = false
+            buffer[count] = x
+            count &+= 1
+            return
+        }
+        var j = count
+        while j > rowStart {
+            let y = buffer[j &- 1]
+            if y < x { break }
+            if y == x { return }
+            j &-= 1
+        }
+        var k = count
+        while k > j {
+            buffer[k] = buffer[k &- 1]
+            k &-= 1
+        }
+        buffer[j] = x
+        count &+= 1
+    }
+
+    @inlinable
+    internal mutating func endRow() {
+        if !rowSorted {
+            var row = UnsafeMutableBufferPointer(start: buffer + rowStart, count: count &- rowStart)
+            row.sort()
+            var write = 1
+            for read in 1 ..< row.count where row[read] != row[write &- 1] {
+                row[write] = row[read]
+                write &+= 1
+            }
+            count = rowStart &+ write
+            rowSorted = true
+        }
+        offsets.append(count)
+        rowStart = count
+    }
+
+    /// The offsets and the members; frees the buffer.
+    @inlinable
+    internal mutating func finish() -> (offsets: ContiguousArray<Int>, members: ContiguousArray<Int>) {
+        let members = ContiguousArray(UnsafeBufferPointer(start: buffer, count: count))
+        buffer.deallocate()
+        capacity = 0
+        count = 0
+        return (offsets, members)
     }
 }
 

@@ -78,24 +78,19 @@ extension IncidenceList {
     public init<S: Sequence, T: Sequence>(vertices: some Sequence<Vertex>, hyperedges: some Sequence<(sources: S, targets: T)>)
         where S.Element == Vertex, T.Element == Vertex {
         var indexer = _VertexIndexer<Vertex>()
-        indexer.set.reserveCapacity(vertices.underestimatedCount)
         for v in vertices { _ = indexer.index(of: v) }
-        var sourceOffsets: ContiguousArray<Int> = [0], targetOffsets: ContiguousArray<Int> = [0]
-        var sourceFlat = ContiguousArray<Int>(), targetFlat = ContiguousArray<Int>()
+        var sourceRows = _SortedRowsBuilder(rowCapacity: hyperedges.underestimatedCount)
+        var targetRows = _SortedRowsBuilder(rowCapacity: hyperedges.underestimatedCount)
         for hyperedge in hyperedges {
-            let sourceStart = sourceFlat.count
-            for v in hyperedge.sources { sourceFlat.append(indexer.index(of: v)) }
-            _sortUniqueTail(&sourceFlat, from: sourceStart)
-            sourceOffsets.append(sourceFlat.count)
-            let targetStart = targetFlat.count
-            for v in hyperedge.targets { targetFlat.append(indexer.index(of: v)) }
-            _sortUniqueTail(&targetFlat, from: targetStart)
-            targetOffsets.append(targetFlat.count)
+            for v in hyperedge.sources { sourceRows.append(indexer.index(of: v)) }
+            sourceRows.endRow()
+            for v in hyperedge.targets { targetRows.append(indexer.index(of: v)) }
+            targetRows.endRow()
         }
-        let n = indexer.set.count
-        self.init(_uncheckedVertices: indexer.set,
-                  sources: _IncidencePlane(vertexCount: n, offsets: sourceOffsets, members: sourceFlat),
-                  targets: _IncidencePlane(vertexCount: n, offsets: targetOffsets, members: targetFlat))
+        let set = indexer.vertices()
+        self.init(_uncheckedVertices: set,
+                  sources: _IncidencePlane(vertexCount: set.count, offsets: sourceRows.offsets, members: sourceRows.finish().members),
+                  targets: _IncidencePlane(vertexCount: set.count, offsets: targetRows.offsets, members: targetRows.finish().members))
     }
 
     /// A copy of any directed hypergraph: its vertices in order and its hyperedges at their
@@ -114,37 +109,31 @@ extension IncidenceList {
             self = same
             return
         }
-        let set = OrderedSet(hypergraph.vertices)
+        // The vertices are distinct (the protocol's law).
+        let set = OrderedSet(uncheckedUniqueElements: hypergraph.vertices)
         let indexed = hypergraph.vertexIndexBound == set.count
-        var offsets: (ContiguousArray<Int>, ContiguousArray<Int>) = ([0], [0])
-        var flat: (ContiguousArray<Int>, ContiguousArray<Int>) = ([], [])
-        var row: [Int] = []
+        var sourceRows = _SortedRowsBuilder(rowCapacity: hypergraph.hyperedgeCount)
+        var targetRows = _SortedRowsBuilder(rowCapacity: hypergraph.hyperedgeCount)
         for position in hypergraph.hyperedges.indices {
-            for side in 0 ..< 2 {
-                row.removeAll(keepingCapacity: true)
-                if indexed {
-                    for i in side == 0 ? hypergraph.sourceIndices(ofHyperedgeAt: position) : hypergraph.targetIndices(ofHyperedgeAt: position) {
-                        row.append(i)
-                    }
-                } else {
-                    for v in side == 0 ? hypergraph.sources(ofHyperedgeAt: position) : hypergraph.targets(ofHyperedgeAt: position) {
-                        guard let i = set.firstIndex(of: v) else { preconditionFailure("A vertex of hyperedge \(position) is not a vertex") }
-                        row.append(i)
-                    }
+            if indexed {
+                for i in hypergraph.sourceIndices(ofHyperedgeAt: position) { sourceRows.append(i) }
+                for i in hypergraph.targetIndices(ofHyperedgeAt: position) { targetRows.append(i) }
+            } else {
+                for v in hypergraph.sources(ofHyperedgeAt: position) {
+                    guard let i = set.firstIndex(of: v) else { preconditionFailure("A vertex of hyperedge \(position) is not a vertex") }
+                    sourceRows.append(i)
                 }
-                _sortUnique(&row)
-                if side == 0 {
-                    flat.0.append(contentsOf: row)
-                    offsets.0.append(flat.0.count)
-                } else {
-                    flat.1.append(contentsOf: row)
-                    offsets.1.append(flat.1.count)
+                for v in hypergraph.targets(ofHyperedgeAt: position) {
+                    guard let i = set.firstIndex(of: v) else { preconditionFailure("A vertex of hyperedge \(position) is not a vertex") }
+                    targetRows.append(i)
                 }
             }
+            sourceRows.endRow()
+            targetRows.endRow()
         }
         self.init(_uncheckedVertices: set,
-                  sources: _IncidencePlane(vertexCount: set.count, offsets: offsets.0, members: flat.0),
-                  targets: _IncidencePlane(vertexCount: set.count, offsets: offsets.1, members: flat.1))
+                  sources: _IncidencePlane(vertexCount: set.count, offsets: sourceRows.offsets, members: sourceRows.finish().members),
+                  targets: _IncidencePlane(vertexCount: set.count, offsets: targetRows.offsets, members: targetRows.finish().members))
     }
 
     /// The directed graph as a directed hypergraph: its vertices in order, and each edge, in
@@ -509,28 +498,45 @@ extension IncidenceList {
         return position
     }
 
-    /// The stored count of one side. O(1).
+    /// The number of sources of the hyperedge at `position`. O(1).
     @inlinable
-    public func _incidenceCount(targets: Bool) -> Int {
-        targets ? _targets.incidenceCount : _sources.incidenceCount
+    public func sourceSize(ofHyperedgeAt position: Int) -> Int { _sources.size(of: position) }
+
+    /// The number of targets of the hyperedge at `position`. O(1).
+    @inlinable
+    public func targetSize(ofHyperedgeAt position: Int) -> Int { _targets.size(of: position) }
+
+    /// `outHyperedges(ofIndex:)`: the positions are the indices. O(1), no hashing.
+    @inlinable
+    public func outHyperedgeIndices(ofIndex index: Int) -> ArraySlice<Int> { _sources.hyperedgeRow(index) }
+
+    /// `inHyperedges(ofIndex:)`: the positions are the indices. O(1), no hashing.
+    @inlinable
+    public func inHyperedgeIndices(ofIndex index: Int) -> ArraySlice<Int> { _targets.hyperedgeRow(index) }
+
+    /// The stored sides, run through directly.
+    @inlinable
+    public func _forEachMemberIndex(ofHyperedgeAt position: Int, _ body: (Int) -> Void) {
+        let sourceRange = _sources.range(of: position), targetRange = _targets.range(of: position)
+        _sources.members.withUnsafeBufferPointer { members in
+            for q in sourceRange { body(members[q]) }
+        }
+        _targets.members.withUnsafeBufferPointer { members in
+            for q in targetRange { body(members[q]) }
+        }
     }
 
-    /// The stored range. O(1).
+    /// One plane's storage, lent. O(1).
     @inlinable
-    public func _incidences(ofHyperedgeIndex index: Int, targets: Bool) -> Range<Int> {
-        targets ? _targets.range(of: index) : _sources.range(of: index)
-    }
-
-    /// The stored row. O(1).
-    @inlinable
-    public func _incidences(ofIndex index: Int, targets: Bool) -> ArraySlice<Int> {
-        targets ? _targets.row(index) : _sources.row(index)
-    }
-
-    /// Two loads. O(1).
-    @inlinable
-    public func _incidence(_ number: Int, targets: Bool) -> (vertexIndex: Int, hyperedgeIndex: Int) {
-        targets ? (_targets.members[number], _targets.hyperedgeOfIncidence[number]) : (_sources.members[number], _sources.hyperedgeOfIncidence[number])
+    public func _withIncidenceRows<Result>(
+        targets: Bool,
+        _ body: (
+            _ memberOffsets: UnsafeBufferPointer<Int>, _ members: UnsafeBufferPointer<Int>,
+            _ incidences: UnsafeBufferPointer<Int>, _ incidenceRows: UnsafeBufferPointer<Int>,
+            _ hyperedges: UnsafeBufferPointer<Int>, _ hyperedgeRows: UnsafeBufferPointer<Int>
+        ) -> Result
+    ) -> Result {
+        targets ? _targets.withIncidenceRows(body) : _sources.withIncidenceRows(body)
     }
 }
 
@@ -636,8 +642,12 @@ extension IncidenceList: Codable where Vertex: Codable {
         guard set.count == vertexList.count else {
             throw DecodingError.dataCorruptedError(forKey: .vertices, in: container, debugDescription: "Repeated vertex")
         }
-        func plane(_ key: _CodingKeys) throws -> _IncidencePlane {
-            let rows = try container.decode([[Int]].self, forKey: key)
+        let sourceRows = try container.decode([[Int]].self, forKey: .sources)
+        let targetRows = try container.decode([[Int]].self, forKey: .targets)
+        guard sourceRows.count == targetRows.count else {
+            throw DecodingError.dataCorruptedError(forKey: .targets, in: container, debugDescription: "sources and targets have different lengths")
+        }
+        func plane(_ rows: [[Int]], _ key: _CodingKeys) throws -> _IncidencePlane {
             var offsets: ContiguousArray<Int> = [0]
             var flat = ContiguousArray<Int>()
             for row in rows {
@@ -656,10 +666,7 @@ extension IncidenceList: Codable where Vertex: Codable {
             }
             return _IncidencePlane(vertexCount: set.count, offsets: offsets, members: flat)
         }
-        let sources = try plane(.sources), targets = try plane(.targets)
-        guard sources.hyperedgeCount == targets.hyperedgeCount else {
-            throw DecodingError.dataCorruptedError(forKey: .targets, in: container, debugDescription: "sources and targets have different lengths")
-        }
+        let sources = try plane(sourceRows, .sources), targets = try plane(targetRows, .targets)
         self.init(_uncheckedVertices: set, sources: sources, targets: targets)
     }
 }

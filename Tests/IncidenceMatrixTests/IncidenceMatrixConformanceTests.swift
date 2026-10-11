@@ -131,6 +131,104 @@ struct IncidenceMatrixConformanceTests {
         #expect(try JSONDecoder().decode(IncidenceMatrix.self, from: JSONEncoder().encode(IncidenceMatrix())) == IncidenceMatrix())
     }
 
+    @Test("IncidenceMatrix decoding rejects a negative count, a member out of range, a column not ascending, and storage over the limit")
+    func unorientedDecodingRejects() throws {
+        func decodes(_ json: String, limit: Int? = nil) -> Bool {
+            let decoder = JSONDecoder()
+            if let limit { decoder.userInfo[IncidenceMatrix.maximumDecodedWordCountKey] = limit }
+            do {
+                _ = try decoder.decode(IncidenceMatrix.self, from: Data(json.utf8))
+                return true
+            } catch DecodingError.dataCorrupted {
+                return false
+            } catch {
+                Issue.record("unexpected error \(error)")
+                return false
+            }
+        }
+        #expect(decodes(#"{"vertexCount":3,"hyperedges":[[0,2],[],[1]]}"#))
+        #expect(!decodes(#"{"vertexCount":-1,"hyperedges":[]}"#))
+        #expect(!decodes(#"{"vertexCount":3,"hyperedges":[[0,3]]}"#))
+        #expect(!decodes(#"{"vertexCount":3,"hyperedges":[[-1]]}"#))
+        #expect(!decodes(#"{"vertexCount":3,"hyperedges":[[2,1]]}"#))
+        #expect(!decodes(#"{"vertexCount":3,"hyperedges":[[1,1]]}"#))
+        // 43 bytes naming 2²⁸ vertices: 2²⁸ row words, 2²² column words, n + m counts, 4.3 GB.
+        #expect(!decodes(#"{"vertexCount":268435456,"hyperedges":[[]]}"#))
+        // No columns, but n counts and n empty rows still cost memory: 2⁴⁰ is over the limit.
+        #expect(!decodes(#"{"vertexCount":1099511627776,"hyperedges":[]}"#))
+        #expect(!decodes(#"{"vertexCount":9223372036854775807,"hyperedges":[[],[]]}"#))
+        // The default limit is 2²⁴ words. n = 2²⁴ − 1 with m = 0 is n − 1 words below it plus n.
+        #expect(IncidenceMatrix.defaultMaximumDecodedWordCount == 1 << 24)
+        #expect(decodes(#"{"vertexCount":1000,"hyperedges":[]}"#))
+        // The userInfo key: n·w(m) + m·w(n) + n + m. 3 × 2 is 3·1 + 2·1 + 3 + 2 = 10 words.
+        #expect(decodes(#"{"vertexCount":3,"hyperedges":[[0],[1]]}"#, limit: 10))
+        #expect(!decodes(#"{"vertexCount":3,"hyperedges":[[0],[1]]}"#, limit: 9))
+        // 64 × 64: 64 + 64 + 64 + 64 = 256 words.
+        let square = "{\"vertexCount\":64,\"hyperedges\":[" + Array(repeating: "[]", count: 64).joined(separator: ",") + "]}"
+        #expect(decodes(square, limit: 256) && !decodes(square, limit: 255))
+        #expect(!decodes(#"{"vertexCount":0,"hyperedges":[]}"#, limit: -1))
+    }
+
+    @Test("OrientedIncidenceMatrix decoding rejects the same, two planes against the limit, and sides of different lengths")
+    func orientedDecodingRejects() throws {
+        func decodes(_ json: String, limit: Int? = nil) -> Bool {
+            let decoder = JSONDecoder()
+            if let limit { decoder.userInfo[IncidenceMatrix.maximumDecodedWordCountKey] = limit }
+            do {
+                _ = try decoder.decode(OrientedIncidenceMatrix.self, from: Data(json.utf8))
+                return true
+            } catch DecodingError.dataCorrupted {
+                return false
+            } catch {
+                Issue.record("unexpected error \(error)")
+                return false
+            }
+        }
+        #expect(decodes(#"{"vertexCount":3,"sources":[[0],[]],"targets":[[1,2],[0]]}"#))
+        #expect(!decodes(#"{"vertexCount":-2,"sources":[],"targets":[]}"#))
+        #expect(!decodes(#"{"vertexCount":3,"sources":[[3]],"targets":[[]]}"#))
+        #expect(!decodes(#"{"vertexCount":3,"sources":[[]],"targets":[[0,5]]}"#))
+        #expect(!decodes(#"{"vertexCount":3,"sources":[[1,0]],"targets":[[]]}"#))
+        #expect(!decodes(#"{"vertexCount":3,"sources":[[]],"targets":[[2,2]]}"#))
+        #expect(!decodes(#"{"vertexCount":3,"sources":[[0]],"targets":[]}"#))
+        #expect(!decodes(#"{"vertexCount":3,"sources":[],"targets":[[0]]}"#))
+        #expect(!decodes(#"{"vertexCount":268435456,"sources":[[]],"targets":[[]]}"#))
+        #expect(!decodes(#"{"vertexCount":1099511627776,"sources":[],"targets":[]}"#))
+        // Two planes of 3 × 2: 2 · 10 = 20 words.
+        #expect(decodes(#"{"vertexCount":3,"sources":[[0],[]],"targets":[[],[1]]}"#, limit: 20))
+        #expect(!decodes(#"{"vertexCount":3,"sources":[[0],[]],"targets":[[],[1]]}"#, limit: 19))
+    }
+
+    @Test("IncidenceMatrix(_:) of an oriented matrix is the cellwise union of its planes, counts included", arguments: 1 ... 4)
+    func unionOfPlanes(seed: Int) {
+        var rng = SeededRandomNumberGenerator(seed: UInt(400 + seed))
+        let n = seed * 37, m = seed * 29
+        var oriented = OrientedIncidenceMatrix(vertexCount: n)
+        var cells = Set<[Int]>()
+        for p in 0 ..< m {
+            let sources = (0 ..< Int.random(in: 0 ... 6, using: &rng)).map { _ in Int.random(in: 0 ..< n, using: &rng) }
+            let targets = (0 ..< Int.random(in: 0 ... 6, using: &rng)).map { _ in Int.random(in: 0 ..< n, using: &rng) }
+            oriented.insert(sources: sources, targets: targets)
+            for v in sources + targets { cells.insert([v, p]) }
+        }
+        // Grow past a word boundary so the planes' strides differ from their used widths.
+        oriented.appendVertex()
+        let union = IncidenceMatrix(oriented)
+        #expect(union.vertexCount == n + 1 && union.hyperedgeCount == m)
+        #expect(union.incidenceGraph.edgeCount == cells.count)
+        for v in 0 ... n {
+            #expect(Array(union.incidentHyperedges(of: v)) == (0 ..< m).filter { cells.contains([v, $0]) })
+            #expect(union.degree(of: v) == (0 ..< m).filter { cells.contains([v, $0]) }.count)
+        }
+        for p in 0 ..< m {
+            #expect(Array(union.members(ofHyperedgeAt: p)) == (0 ... n).filter { cells.contains([$0, p]) })
+            #expect(union.size(ofHyperedgeAt: p) == (0 ... n).filter { cells.contains([$0, p]) }.count)
+        }
+        var expected = IncidenceMatrix(vertexCount: n + 1)
+        for p in 0 ..< m { expected.insert(hyperedge: (0 ... n).filter { cells.contains([$0, p]) }) }
+        #expect(union == expected)
+    }
+
     @Test("Copy-on-write: editing a copy leaves the original alone", .tags(.copyOnWrite))
     func copyOnWrite() {
         let original = IncidenceMatrix(vertexCount: 3, hyperedges: [[0, 1]])

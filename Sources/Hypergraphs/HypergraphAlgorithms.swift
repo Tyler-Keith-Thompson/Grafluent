@@ -32,23 +32,26 @@ extension Hypergraph {
     /// `vertex` itself (XGI's `nodes.neighbors`).
     ///
     /// - Precondition: `vertex` is a vertex.
-    /// - Complexity: O(Σ k + r log r) over the hyperedges at `vertex`, with a marker array, r the
-    ///   number of neighbors; one hash.
+    /// - Complexity: O(K log K), K = Σ k over the hyperedges at `vertex`: their members are
+    ///   gathered, sorted and deduplicated, with no array of n; one hash.
     @inlinable
     public func neighbors(of vertex: Vertex) -> [Vertex] {
-        let (n, _) = _indexBounds()
+        _ = _indexBounds()
         let v = vertexIndex(of: vertex)
-        var seen = [Bool](repeating: false, count: n)
-        seen[v] = true
+        let hyperedges = self.hyperedges
         var found: [Int] = []
-        for position in incidentHyperedges(ofIndex: v) {
-            for w in memberIndices(ofHyperedgeAt: position) where !seen[w] {
-                seen[w] = true
-                found.append(w)
-            }
+        for h in incidentHyperedgeIndices(ofIndex: v) {
+            let position = hyperedges.index(hyperedges.startIndex, offsetBy: h)
+            for w in memberIndices(ofHyperedgeAt: position) where w != v { found.append(w) }
         }
         found.sort()
-        return found.map { self.vertex(atIndex: $0) }
+        var result: [Vertex] = []
+        var previous = -1
+        for w in found where w != previous {
+            result.append(self.vertex(atIndex: w))
+            previous = w
+        }
+        return result
     }
 
     /// The greatest hyperedge size (Berge's rank), 0 with no hyperedges. O(m).
@@ -117,7 +120,7 @@ extension Hypergraph {
         offsets.append(0)
         var flat = ContiguousArray<Int>()
         for i in 0 ..< n {
-            for position in incidentHyperedges(ofIndex: i) { flat.append(hyperedgeIndex(of: position)) }
+            for h in incidentHyperedgeIndices(ofIndex: i) { flat.append(h) }
             offsets.append(flat.count)
         }
         return UndirectedIncidenceList(_uncheckedVertices: OrderedSet(uncheckedUniqueElements: _positions()),
@@ -141,14 +144,15 @@ extension Hypergraph {
     @inlinable
     public func cliqueExpansion() -> UndirectedAdjacencyList<Vertex> {
         let (n, _) = _indexBounds()
+        let positions = _positions()
         var stamp = [Int](repeating: -1, count: n)
         var edges: [UndirectedEdge<Int>] = []
         var found: [Int] = []
         for u in 0 ..< n {
             found.removeAll(keepingCapacity: true)
             stamp[u] = u
-            for position in incidentHyperedges(ofIndex: u) {
-                for w in memberIndices(ofHyperedgeAt: position) where w > u && stamp[w] != u {
+            for h in incidentHyperedgeIndices(ofIndex: u) {
+                for w in memberIndices(ofHyperedgeAt: positions[h]) where w > u && stamp[w] != u {
                     stamp[w] = u
                     found.append(w)
                 }
@@ -175,29 +179,27 @@ extension Hypergraph {
         precondition(s >= 1, "s must be at least 1")
         let (_, m) = _indexBounds()
         var edges: [UndirectedEdge<Int>] = []
-        _forEachOverlap(s: s, hyperedgeCount: m) { p, q in edges.append(UndirectedEdge(p, q)) }
+        _forEachOverlap(s: s, hyperedgeCount: m, ordered: true) { p, q in edges.append(UndirectedEdge(p, q)) }
         return UndirectedAdjacencyList(_uncheckedVertices: ContiguousArray(_positions()), sortedSlotEdges: edges)
     }
 
-    /// Calls `body(p, q)` for every pair of hyperedge indices `p < q` sharing at least `s` members,
-    /// in ascending `(p, q)` order: for each `p`, the members' other hyperedges after `p` are
-    /// counted in one array, and the counted ones are sorted.
+    /// Calls `body(p, q)` for every pair of hyperedge indices `p < q` sharing at least `s` members:
+    /// for each `p`, the members' other hyperedges after `p` are counted in one array. With
+    /// `ordered`, the counted ones are sorted, so the pairs come in ascending `(p, q)` order.
     @inlinable
-    package func _forEachOverlap(s: Int, hyperedgeCount m: Int, _ body: (Int, Int) -> Void) {
+    package func _forEachOverlap(s: Int, hyperedgeCount m: Int, ordered: Bool, _ body: (Int, Int) -> Void) {
         var counts = [Int](repeating: 0, count: m)
         var touched: [Int] = []
         var p = 0
         for position in hyperedges.indices {
             touched.removeAll(keepingCapacity: true)
             for v in memberIndices(ofHyperedgeAt: position) {
-                for other in incidentHyperedges(ofIndex: v) {
-                    let q = hyperedgeIndex(of: other)
-                    guard q > p else { continue }
+                for q in incidentHyperedgeIndices(ofIndex: v) where q > p {
                     if counts[q] == 0 { touched.append(q) }
                     counts[q] &+= 1
                 }
             }
-            touched.sort()
+            if ordered { touched.sort() }
             for q in touched {
                 if counts[q] >= s { body(p, q) }
                 counts[q] = 0
@@ -239,7 +241,7 @@ extension Hypergraph {
     package func _unionMembers(_ sets: inout DisjointSet) {
         for position in hyperedges.indices {
             var first = -1
-            for v in memberIndices(ofHyperedgeAt: position) {
+            _forEachMemberIndex(ofHyperedgeAt: position) { v in
                 if first < 0 { first = v } else { sets.union(first, v) }
             }
         }
@@ -252,13 +254,24 @@ extension Hypergraph {
     /// s-components are `dual().sConnectedComponents(s:)`.
     ///
     /// - Precondition: `s >= 1`.
-    /// - Complexity: O(m + Σ_v d(v)² + e log e), no hashing beyond the output positions.
+    /// - Complexity: O(n + m + p α(m)) for `s == 1`, a union over each vertex's hyperedges (two
+    ///   hyperedges share a member exactly when some vertex is in both); O(m + Σ_v d(v)²)
+    ///   otherwise. No hashing beyond the output positions.
     @inlinable
     public func sConnectedComponents(s: Int) -> [[Hyperedges.Index]] {
         precondition(s >= 1, "s must be at least 1")
-        let (_, m) = _indexBounds()
+        let (n, m) = _indexBounds()
         var sets = DisjointSet(count: m)
-        _forEachOverlap(s: s, hyperedgeCount: m) { p, q in sets.union(p, q) }
+        if s == 1 {
+            for i in 0 ..< n {
+                var first = -1
+                for h in incidentHyperedgeIndices(ofIndex: i) {
+                    if first < 0 { first = h } else { sets.union(first, h) }
+                }
+            }
+        } else {
+            _forEachOverlap(s: s, hyperedgeCount: m, ordered: false) { p, q in sets.union(p, q) }
+        }
         let positions = _positions()
         return sets.sets().map { $0.map { positions[$0] } }
     }

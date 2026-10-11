@@ -77,18 +77,15 @@ extension UndirectedIncidenceList {
     @inlinable
     public init(vertices: some Sequence<Vertex>, hyperedges: some Sequence<some Sequence<Vertex>>) {
         var indexer = _VertexIndexer<Vertex>()
-        indexer.set.reserveCapacity(vertices.underestimatedCount)
         for v in vertices { _ = indexer.index(of: v) }
-        var offsets: ContiguousArray<Int> = [0]
-        offsets.reserveCapacity(hyperedges.underestimatedCount &+ 1)
-        var flat = ContiguousArray<Int>()
+        var rows = _SortedRowsBuilder(rowCapacity: hyperedges.underestimatedCount)
         for hyperedge in hyperedges {
-            let start = flat.count
-            for v in hyperedge { flat.append(indexer.index(of: v)) }
-            _sortUniqueTail(&flat, from: start)
-            offsets.append(flat.count)
+            for v in hyperedge { rows.append(indexer.index(of: v)) }
+            rows.endRow()
         }
-        self.init(_uncheckedVertices: indexer.set, plane: _IncidencePlane(vertexCount: indexer.set.count, offsets: offsets, members: flat))
+        let set = indexer.vertices()
+        let (offsets, members) = rows.finish()
+        self.init(_uncheckedVertices: set, plane: _IncidencePlane(vertexCount: set.count, offsets: offsets, members: members))
     }
 
     /// A copy of any hypergraph: its vertices in order, isolated ones included, and its
@@ -103,27 +100,23 @@ extension UndirectedIncidenceList {
             self = same
             return
         }
-        let set = OrderedSet(hypergraph.vertices)
-        var offsets: ContiguousArray<Int> = [0]
-        offsets.reserveCapacity(hypergraph.hyperedgeCount + 1)
-        var flat = ContiguousArray<Int>()
-        var row: [Int] = []
+        // The vertices are distinct (the protocol's law).
+        let set = OrderedSet(uncheckedUniqueElements: hypergraph.vertices)
+        var rows = _SortedRowsBuilder(rowCapacity: hypergraph.hyperedgeCount)
         let indexed = hypergraph.vertexIndexBound == set.count
         for position in hypergraph.hyperedges.indices {
-            row.removeAll(keepingCapacity: true)
             if indexed {
-                for i in hypergraph.memberIndices(ofHyperedgeAt: position) { row.append(i) }
+                for i in hypergraph.memberIndices(ofHyperedgeAt: position) { rows.append(i) }
             } else {
                 for v in hypergraph.members(ofHyperedgeAt: position) {
                     guard let i = set.firstIndex(of: v) else { preconditionFailure("A member of hyperedge \(position) is not a vertex") }
-                    row.append(i)
+                    rows.append(i)
                 }
             }
-            _sortUnique(&row)
-            flat.append(contentsOf: row)
-            offsets.append(flat.count)
+            rows.endRow()
         }
-        self.init(_uncheckedVertices: set, plane: _IncidencePlane(vertexCount: set.count, offsets: offsets, members: flat))
+        let (offsets, members) = rows.finish()
+        self.init(_uncheckedVertices: set, plane: _IncidencePlane(vertexCount: set.count, offsets: offsets, members: members))
     }
 }
 
@@ -415,22 +408,31 @@ extension UndirectedIncidenceList {
         return position
     }
 
-    /// The stored incidence count. O(1).
+    /// `incidentHyperedges(ofIndex:)`: the positions are the indices. O(1), no hashing.
     @inlinable
-    public var _incidenceCount: Int { _plane.incidenceCount }
+    public func incidentHyperedgeIndices(ofIndex index: Int) -> ArraySlice<Int> {
+        _plane.hyperedgeRow(index)
+    }
 
-    /// The stored range. O(1).
+    /// The stored members, run through directly.
     @inlinable
-    public func _incidences(ofHyperedgeIndex index: Int) -> Range<Int> { _plane.range(of: index) }
+    public func _forEachMemberIndex(ofHyperedgeAt position: Int, _ body: (Int) -> Void) {
+        let range = _plane.range(of: position)
+        _plane.members.withUnsafeBufferPointer { members in
+            for q in range { body(members[q]) }
+        }
+    }
 
-    /// The stored row. O(1).
+    /// The storage, lent. O(1).
     @inlinable
-    public func _incidences(ofIndex index: Int) -> ArraySlice<Int> { _plane.row(index) }
-
-    /// Two loads. O(1).
-    @inlinable
-    public func _incidence(_ number: Int) -> (vertexIndex: Int, hyperedgeIndex: Int) {
-        (_plane.members[number], _plane.hyperedgeOfIncidence[number])
+    public func _withIncidenceRows<Result>(
+        _ body: (
+            _ memberOffsets: UnsafeBufferPointer<Int>, _ members: UnsafeBufferPointer<Int>,
+            _ incidences: UnsafeBufferPointer<Int>, _ incidenceRows: UnsafeBufferPointer<Int>,
+            _ hyperedges: UnsafeBufferPointer<Int>, _ hyperedgeRows: UnsafeBufferPointer<Int>
+        ) -> Result
+    ) -> Result {
+        _plane.withIncidenceRows(body)
     }
 }
 

@@ -777,6 +777,28 @@ def b_closure(g, r, forward=True):
     return sorted(reached)
 
 
+def b_traversal(XB, n, r, forward=True):
+    """B-connection by its path-based definition, checked independently of the model on XGI's
+    bipartite digraph (tail -> edge -> head; reversed for F): a node is discovered only along an arc
+    from a discovered node, and a hyperedge node only once every arc into it comes from a
+    discovered node. A hyperedge with no sources has no arc into it, so no path enters it and it
+    never fires; nothing here special-cases the empty tail. (The recursive reading, "y is
+    B-connected when every source of some hyperedge into y is", fires an empty tail vacuously from
+    any start; Gallo et al.'s B-Visit, and the library, follow the path-based one.)"""
+    G = XB if forward else XB.reverse(copy=False)
+    found, stack = {r}, [r]
+    while stack:
+        u = stack.pop()
+        for w in G.successors(u):
+            if w in found:
+                continue
+            if w >= n and not all(x in found for x in G.predecessors(w)):
+                continue
+            found.add(w)
+            stack.append(w)
+    return sorted(x for x in found if x < n)
+
+
 def check_d(g):
     n, m = len(g.vs), len(g.src)
     before = g.hashes
@@ -839,8 +861,8 @@ def check_d(g):
         H = halp_of(g)
         for i in range(n):
             ours_b, ours_f = g._b_visit(i, True), g._b_visit(i, False)
-            assert ours_b == sorted(halp_b_visit(H, i)[0]) == b_closure(g, i, True)
-            assert ours_f == sorted(halp_f_visit(H, i)[0]) == b_closure(g, i, False)
+            assert ours_b == sorted(halp_b_visit(H, i)[0]) == b_closure(g, i, True) == b_traversal(XB, n, i, True)
+            assert ours_f == sorted(halp_f_visit(H, i)[0]) == b_closure(g, i, False) == b_traversal(XB, n, i, False)
             assert ours_f == r._b_visit(i, True)                 # F-visit is B-visit on the reversal
             assert set(ours_b) <= g._reach(i)                    # B-connected implies connected
     for t in range(n):                                           # F-connected to t implies t is reached

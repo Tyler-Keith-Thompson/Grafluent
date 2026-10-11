@@ -118,4 +118,54 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("IncidenceMatrix: weaklyConnectedComponents on OrientedIncidenceMatrix, 512 × 512") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(orientedDense.weaklyConnectedComponents()) }
     }
+
+    // MARK: The incidence-graph views on the matrices (review fix: each read was O(m) and
+    // neighbors boxed an AnySequence; 1 245× the list view at 2 048²)
+
+    @inline(__always)
+    func walk<G: Graph>(_ view: G) -> Int where G.Vertex == Int, G.Edges.Index == Int, G.Vertices == Range<Int> {
+        var sum = 0
+        for x in view.vertices {
+            for e in view.incidentEdges(of: x) { sum &+= e }
+            for w in view.neighbors(of: x) { sum &+= w }
+        }
+        for e in view.edges { sum &+= e.u }
+        return sum
+    }
+    Benchmark("IncidenceMatrix: BASELINE every row and edge of incidenceGraph on an UndirectedIncidenceList copy, 512 × 512") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(walk(denseList.incidenceGraph)) }
+    }
+    Benchmark("IncidenceMatrix: every row and edge of incidenceGraph, 512 × 512") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(walk(dense.incidenceGraph)) }
+    }
+
+    // MARK: Per-vertex and per-hyperedge allocation: the counts must match the list copies'
+    // (mallocCountTotal), with no BitSet per read.
+
+    Benchmark("IncidenceMatrix: BASELINE stronglyConnectedComponents and bConnectedVertices on an IncidenceList copy, 512 × 512") { benchmark in
+        for _ in benchmark.scaledIterations {
+            blackHole(orientedDenseList.stronglyConnectedComponents())
+            blackHole(orientedDenseList.bConnectedVertices(from: 0))
+            blackHole(orientedDenseList.isBHypergraph)
+        }
+    }
+    Benchmark("IncidenceMatrix: stronglyConnectedComponents and bConnectedVertices on OrientedIncidenceMatrix, 512 × 512") { benchmark in
+        for _ in benchmark.scaledIterations {
+            blackHole(orientedDense.stronglyConnectedComponents())
+            blackHole(orientedDense.bConnectedVertices(from: 0))
+            blackHole(orientedDense.isBHypergraph)
+        }
+    }
+    Benchmark("IncidenceMatrix: BASELINE sConnectedComponents(s: 1) and dual() on an UndirectedIncidenceList copy, 512 × 512") { benchmark in
+        for _ in benchmark.scaledIterations {
+            blackHole(denseList.sConnectedComponents(s: 1))
+            blackHole(denseList.dual())
+        }
+    }
+    Benchmark("IncidenceMatrix: sConnectedComponents(s: 1) and dual(), 512 × 512") { benchmark in
+        for _ in benchmark.scaledIterations {
+            blackHole(dense.sConnectedComponents(s: 1))
+            blackHole(dense.dual())
+        }
+    }
 }

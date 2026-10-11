@@ -134,9 +134,12 @@ extension IncidenceMatrix {
 extension IncidenceMatrix: Hypergraph {
     // Vertex = Int, Vertices = Range<Int>, Hyperedges: RandomAccessCollection<BitSet> (Index = Int),
     // Members = BitSet, IncidentHyperedges = BitSet; vertexIndexBound = n, hyperedgeIndexBound = m.
-    // MemberIndices = SetBits: the column's stored words read in place, no allocation (a BitSet
-    // copy per column made the protocol algorithms 3× slower); oriented sourceIndices and
-    // targetIndices likewise
+    // MemberIndices (nested, IncidenceMatrix.MemberIndices): the column's stored words read in
+    // place, no allocation (a BitSet copy per column made the protocol algorithms 3× slower);
+    // IncidentHyperedgeIndices = MemberIndices over the vertex's row; oriented sourceIndices,
+    // targetIndices, outHyperedgeIndices and inHyperedgeIndices likewise, and sourceSize /
+    // targetSize from the cached sizes. _forEachMemberIndex scans the words (oriented: the two
+    // planes ORed), so union–find over the columns allocates nothing per column or per vertex.
 }
 ```
 
@@ -216,10 +219,12 @@ extension OrientedIncidenceMatrix: DirectedHypergraph {
     `IncidenceList` form with a shape in place of the vertices.
   - Decoding throws `DecodingError.dataCorrupted` for a negative vertex count, a member out of
     range, a column (or side) not strictly ascending, `sources` and `targets` of different lengths,
-    and a shape over the limit. The limit is on n × m, not on n as `AdjacencyMatrix`'s is, since
-    both dimensions cost storage: `IncidenceMatrix.maximumDecodedCellCountKey` in `userInfo`
-    (an `Int`), default `defaultMaximumDecodedCellCount` = 2²⁸ cells, 32 MiB per stored
-    orientation. Both matrices read the one key.
+    and storage over the limit. The limit is on the words the decoded matrix would store,
+    n·w(m) + m·w(n) + n + m per plane (two planes for the oriented matrix), computed with
+    overflow checks: a cap on n × m alone let `{"vertexCount":268435456,"hyperedges":[[]]}`
+    (43 bytes) allocate 4.3 GB, and n = 2⁴⁰ with m = 0 through. `IncidenceMatrix.maximumDecodedWordCountKey`
+    in `userInfo` (an `Int`), default `defaultMaximumDecodedWordCount` = 2²⁴ words, 128 MiB.
+    Both matrices read the one key.
 - **`CustomStringConvertible`**, pinned: the shape, then the rows, column 0 leftmost, at most 16
   rows of at most 64 columns, each cut with `…`:
   - unoriented `3×2 [10, 01, 11]`, cells as `1` and `0`;
