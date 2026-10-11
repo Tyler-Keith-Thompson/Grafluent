@@ -155,7 +155,10 @@ struct DiameterTests {
     func balancedTernary() throws {
         // U: [] kary(40,3)
         let n = 40
-        let pairs = (0 ..< n).flatMap { i in [3 * i + 1, 3 * i + 2, 3 * i + 3].filter { $0 < n }.map { (i, $0) } }
+        let pairs: [(Int, Int)] = (0 ..< n).flatMap { (i: Int) -> [(Int, Int)] in
+            let children: [Int] = [3 * i + 1, 3 * i + 2, 3 * i + 3]
+            return children.filter { $0 < n }.map { (i, $0) }
+        }
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         let tree = try #require(Tree(graph))
         #expect(tree.diameter() == 6)

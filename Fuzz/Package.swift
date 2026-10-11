@@ -1,4 +1,4 @@
-// swift-tools-version: 6.2
+// swift-tools-version: 6.3
 import PackageDescription
 
 // libFuzzer targets, in their own package so the library never depends on the fuzzer runtime.
@@ -43,6 +43,10 @@ let package = Package(
         target("FuzzStableGraphs", ["GraphProtocols", "StableGraphs", "Multigraphs", "Traversal", "Connectivity", "ShortestPaths"]),
         target("FuzzLabeledGraphs", ["GraphProtocols", "LabeledGraphs", "CompressedSparseRowModule", "AdjacencyMatrixModule", "AdjacencyListModule", "Multigraphs", "Traversal", "Connectivity", "ShortestPaths"]),
         target("FuzzGenerators", ["GraphProtocols", "NamedGraphs", "RandomGraphs", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "Multigraphs", "StableGraphs", "Trees", "BipartiteGraphs", "DirectedAcyclicGraphModule"]),
+        target("FuzzFunctionalGraphs", ["GraphProtocols", "FunctionalGraphs", "ImplicitGraphs", "Multigraphs", "Traversal", "Connectivity", "ShortestPaths"]),
         target("FuzzDirectedAcyclicGraph", ["GraphProtocols", "DirectedAcyclicGraphModule", "AdjacencyListModule", "Multigraphs", "StableGraphs", "Traversal", "Walks"]),
+        target("FuzzHypergraphs", ["GraphProtocols", "Hypergraphs", "IncidenceMatrixModule", "AdjacencyListModule", "Connectivity"]),
+        target("FuzzIsomorphism", ["GraphProtocols", "IsomorphismModule", "Multigraphs"]),
+        target("FuzzSemirings", ["GraphProtocols", "Semirings", "ShortestPaths", "Multigraphs", "AdjacencyListModule", "DirectedAcyclicGraphModule", "Walks"]),
     ]
 )

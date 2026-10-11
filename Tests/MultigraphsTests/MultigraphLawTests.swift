@@ -144,7 +144,11 @@ struct MultigraphLawTests {
             }
             #expect(degreeSum == 2 * edges.count)
             let forwarded: [Int]? = graph._withIncidentIndexRows { _, _, edgeStorage, edgeRows in
-                (0 ..< vertices.count).flatMap { i in Array(edgeStorage[edgeRows[3 * i] ..< edgeRows[3 * i] + edgeRows[3 * i + 1]]) }
+                var out: [Int] = []
+                for i in 0 ..< vertices.count {
+                    out += Array(edgeStorage[edgeRows[3 * i] ..< edgeRows[3 * i] + edgeRows[3 * i + 1]])
+                }
+                return out
             }
             #expect(forwarded == vertices.indices.flatMap { Array(graph.incidentEdgeIndices(ofIndex: $0)) }, "step \(step)")
             switch step {

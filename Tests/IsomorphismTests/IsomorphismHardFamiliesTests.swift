@@ -214,7 +214,8 @@ struct IsomorphismHardFamiliesTests {
         #expect(monomorphisms < 60 * 59 * 58)
         // Without cancellation: 8! and 60 · 59 · 58.
         #expect(Array(empty.isomorphisms(to: empty)).count == 40320)
-        #expect(path.monomorphisms(to: target).reduce(0) { n, _ in n + 1 } == 60 * 59 * 58)
+        let monomorphismCount: Int = path.monomorphisms(to: target).reduce(0) { n, _ in n + 1 }
+        #expect(monomorphismCount == 60 * 59 * 58)
     }
 
     @Test("The inverse of an isomorphism maps each image back; preimage(safe:) is nil off the target and outside the image")

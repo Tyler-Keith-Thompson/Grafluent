@@ -23,7 +23,7 @@ jobs:
   docs:
     runs-on: ubuntu-latest
     # rules_swift's Linux toolchain is whatever swiftc is on the PATH; docc comes from beside it.
-    container: swift:6.2
+    container: swift:6.3
     env:
       # The image has clang (from the Swift toolchain) but no gcc, which is where rules_cc looks
       # first. swift-numerics has C shims.

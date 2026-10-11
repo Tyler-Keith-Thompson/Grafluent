@@ -503,10 +503,12 @@ struct GreedyEdgeColoringTests {
             var meets = [[Int]](repeating: [], count: m)
             for v in 0 ..< n {
                 let at = (0 ..< m).filter { pairs[$0].0 == v || pairs[$0].1 == v }
-                #expect(Set(at.map { colors[$0] }).count == at.count, "\(pairs)")
+                let distinctColors = Set(at.map { colors[$0] }).count
+                #expect(distinctColors == at.count, "\(pairs)")
                 for e in at { for f in at where f != e { meets[e].append(f) } }
             }
-            #expect(graph.isEdgeColoring { coloring.color(ofEdgeAt: $0) }, "\(pairs)")
+            let proper = graph.isEdgeColoring { coloring.color(ofEdgeAt: $0) }
+            #expect(proper, "\(pairs)")
             let degree = (0 ..< n).map { v in pairs.reduce(0) { $0 + ($1.0 == v ? 1 : 0) + ($1.1 == v ? 1 : 0) } }
             #expect(coloring.colorCount <= max(0, 2 * (degree.max() ?? 0) - 1), "\(pairs)")
             let order = (0 ..< m).sorted { (meets[$0].count, $1) > (meets[$1].count, $0) }

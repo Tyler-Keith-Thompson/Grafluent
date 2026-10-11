@@ -72,8 +72,14 @@ struct CoveringStressTests {
             var pairs: [(Int, Int)] = []
             for c in 0 ..< copies { pairs += shape.map { (6 * c + $0.0, 6 * c + $0.1) } }
             let graph = UndirectedAdjacencyList(vertices: 0 ..< 6 * copies, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-            let right = (0 ..< copies).flatMap { [6 * $0 + 3, 6 * $0 + 4, 6 * $0 + 5] }
-            let left = (0 ..< copies).flatMap { [6 * $0, 6 * $0 + 1, 6 * $0 + 2] }
+            let right: [Int] = (0 ..< copies).flatMap { (c: Int) -> [Int] in
+                let base = 6 * c
+                return [base + 3, base + 4, base + 5]
+            }
+            let left: [Int] = (0 ..< copies).flatMap { (c: Int) -> [Int] in
+                let base = 6 * c
+                return [base, base + 1, base + 2]
+            }
             #expect(graph.minimumVertexCover() == right)
             #expect(graph.maximumIndependentSet() == left)
             let sides = try #require(graph.bipartition())

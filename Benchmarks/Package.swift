@@ -1,4 +1,4 @@
-// swift-tools-version: 6.2
+// swift-tools-version: 6.3
 import PackageDescription
 
 // Benchmarks live in their own package so the library and its tests never depend on the
@@ -77,6 +77,19 @@ let package = Package(
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
         ),
         .executableTarget(
+            name: "SemiringsBenchmarks",
+            dependencies: [
+                "BenchmarkSupport",
+                .product(name: "Benchmark", package: "benchmark"),
+                .product(name: "GraphProtocols", package: "Grafluent"),
+                .product(name: "Semirings", package: "Grafluent"),
+                .product(name: "ShortestPaths", package: "Grafluent"),
+                .product(name: "CompressedSparseRowModule", package: "Grafluent"),
+            ],
+            path: "Benchmarks/SemiringsBenchmarks",
+            plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
+        ),
+        .executableTarget(
             name: "ShortestPathsBenchmarks",
             dependencies: [
                 "BenchmarkSupport",
@@ -126,6 +139,31 @@ let package = Package(
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
         ),
         .executableTarget(
+            name: "PlanarityBenchmarks",
+            dependencies: [
+                "BenchmarkSupport",
+                .product(name: "Benchmark", package: "benchmark"),
+                .product(name: "GraphProtocols", package: "Grafluent"),
+                .product(name: "Planarity", package: "Grafluent"),
+                .product(name: "AdjacencyListModule", package: "Grafluent"),
+            ],
+            path: "Benchmarks/PlanarityBenchmarks",
+            plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
+        ),
+        .executableTarget(
+            name: "IsomorphismBenchmarks",
+            dependencies: [
+                "BenchmarkSupport",
+                .product(name: "Benchmark", package: "benchmark"),
+                .product(name: "GraphProtocols", package: "Grafluent"),
+                .product(name: "IsomorphismModule", package: "Grafluent"),
+                .product(name: "AdjacencyListModule", package: "Grafluent"),
+                .product(name: "RandomGraphs", package: "Grafluent"),
+            ],
+            path: "Benchmarks/IsomorphismBenchmarks",
+            plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
+        ),
+        .executableTarget(
             name: "MatchingBenchmarks",
             dependencies: [
                 "BenchmarkSupport",
@@ -164,6 +202,38 @@ let package = Package(
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
         ),
         .executableTarget(
+            name: "GraphOperationsBenchmarks",
+            dependencies: [
+                "BenchmarkSupport",
+                .product(name: "Benchmark", package: "benchmark"),
+                .product(name: "GraphProtocols", package: "Grafluent"),
+                .product(name: "GraphOperations", package: "Grafluent"),
+                .product(name: "AdjacencyListModule", package: "Grafluent"),
+                .product(name: "CompressedSparseRowModule", package: "Grafluent"),
+                .product(name: "DirectedAcyclicGraphModule", package: "Grafluent"),
+                .product(name: "Traversal", package: "Grafluent"),
+                .product(name: "Connectivity", package: "Grafluent"),
+            ],
+            path: "Benchmarks/GraphOperationsBenchmarks",
+            plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
+        ),
+        .executableTarget(
+            name: "GraphProductsBenchmarks",
+            dependencies: [
+                "BenchmarkSupport",
+                .product(name: "Benchmark", package: "benchmark"),
+                .product(name: "GraphProtocols", package: "Grafluent"),
+                .product(name: "GraphProducts", package: "Grafluent"),
+                .product(name: "AdjacencyListModule", package: "Grafluent"),
+                .product(name: "CompressedSparseRowModule", package: "Grafluent"),
+                .product(name: "NamedGraphs", package: "Grafluent"),
+                .product(name: "Traversal", package: "Grafluent"),
+                .product(name: "Connectivity", package: "Grafluent"),
+            ],
+            path: "Benchmarks/GraphProductsBenchmarks",
+            plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
+        ),
+        .executableTarget(
             name: "LabeledGraphsBenchmarks",
             dependencies: [
                 "BenchmarkSupport",
@@ -199,6 +269,64 @@ let package = Package(
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
         ),
         .executableTarget(
+            name: "FunctionalGraphsBenchmarks",
+            dependencies: [
+                "BenchmarkSupport",
+                .product(name: "Benchmark", package: "benchmark"),
+                .product(name: "GraphProtocols", package: "Grafluent"),
+                .product(name: "FunctionalGraphs", package: "Grafluent"),
+                .product(name: "CompressedSparseRowModule", package: "Grafluent"),
+                .product(name: "Connectivity", package: "Grafluent"),
+                .product(name: "Traversal", package: "Grafluent"),
+            ],
+            path: "Benchmarks/FunctionalGraphsBenchmarks",
+            plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
+        ),
+        .executableTarget(
+            name: "ImplicitGraphsBenchmarks",
+            dependencies: [
+                "BenchmarkSupport",
+                .product(name: "Benchmark", package: "benchmark"),
+                .product(name: "GraphProtocols", package: "Grafluent"),
+                .product(name: "ImplicitGraphs", package: "Grafluent"),
+                .product(name: "CompressedSparseRowModule", package: "Grafluent"),
+                .product(name: "Connectivity", package: "Grafluent"),
+                .product(name: "ShortestPaths", package: "Grafluent"),
+                .product(name: "Traversal", package: "Grafluent"),
+            ],
+            path: "Benchmarks/ImplicitGraphsBenchmarks",
+            plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
+        ),
+        .executableTarget(
+            name: "HypergraphsBenchmarks",
+            dependencies: [
+                "BenchmarkSupport",
+                .product(name: "Benchmark", package: "benchmark"),
+                .product(name: "GraphProtocols", package: "Grafluent"),
+                .product(name: "Hypergraphs", package: "Grafluent"),
+                .product(name: "AdjacencyListModule", package: "Grafluent"),
+                .product(name: "CompressedSparseRowModule", package: "Grafluent"),
+                .product(name: "DisjointSetModule", package: "Grafluent"),
+                .product(name: "Connectivity", package: "Grafluent"),
+                .product(name: "Traversal", package: "Grafluent"),
+            ],
+            path: "Benchmarks/HypergraphsBenchmarks",
+            plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
+        ),
+        .executableTarget(
+            name: "IncidenceMatrixBenchmarks",
+            dependencies: [
+                "BenchmarkSupport",
+                .product(name: "Benchmark", package: "benchmark"),
+                .product(name: "GraphProtocols", package: "Grafluent"),
+                .product(name: "IncidenceMatrixModule", package: "Grafluent"),
+                .product(name: "Hypergraphs", package: "Grafluent"),
+                .product(name: "Multigraphs", package: "Grafluent"),
+            ],
+            path: "Benchmarks/IncidenceMatrixBenchmarks",
+            plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
+        ),
+        .executableTarget(
             name: "StableGraphsBenchmarks",
             dependencies: [
                 "BenchmarkSupport",
@@ -210,6 +338,19 @@ let package = Package(
                 .product(name: "Traversal", package: "Grafluent"),
             ],
             path: "Benchmarks/StableGraphsBenchmarks",
+            plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
+        ),
+        .executableTarget(
+            name: "GraphFormatsBenchmarks",
+            dependencies: [
+                "BenchmarkSupport",
+                .product(name: "Benchmark", package: "benchmark"),
+                .product(name: "GraphProtocols", package: "Grafluent"),
+                .product(name: "GraphFormats", package: "Grafluent"),
+                .product(name: "Multigraphs", package: "Grafluent"),
+                .product(name: "AdjacencyListModule", package: "Grafluent"),
+            ],
+            path: "Benchmarks/GraphFormatsBenchmarks",
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
         ),
         .executableTarget(
@@ -363,6 +504,20 @@ let package = Package(
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
         ),
         .executableTarget(
+            name: "GraphDrawingBenchmarks",
+            dependencies: [
+                .product(name: "Benchmark", package: "benchmark"),
+                .product(name: "GraphProtocols", package: "Grafluent"),
+                .product(name: "GraphDrawing", package: "Grafluent"),
+                .product(name: "RandomGraphs", package: "Grafluent"),
+                .product(name: "AdjacencyListModule", package: "Grafluent"),
+                .product(name: "CompressedSparseRowModule", package: "Grafluent"),
+                .product(name: "Trees", package: "Grafluent"),
+            ],
+            path: "Benchmarks/GraphDrawingBenchmarks",
+            plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
+        ),
+        .executableTarget(
             name: "RandomGraphsBenchmarks",
             dependencies: [
                 .product(name: "Benchmark", package: "benchmark"),
@@ -375,6 +530,18 @@ let package = Package(
                 .product(name: "Trees", package: "Grafluent"),
             ],
             path: "Benchmarks/RandomGraphsBenchmarks",
+            plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
+        ),
+        .executableTarget(
+            name: "SpectralGraphTheoryBenchmarks",
+            dependencies: [
+                "BenchmarkSupport",
+                .product(name: "Benchmark", package: "benchmark"),
+                .product(name: "GraphProtocols", package: "Grafluent"),
+                .product(name: "SpectralGraphTheory", package: "Grafluent"),
+                .product(name: "AdjacencyListModule", package: "Grafluent"),
+            ],
+            path: "Benchmarks/SpectralGraphTheoryBenchmarks",
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
         ),
     ] + representation.map { name in

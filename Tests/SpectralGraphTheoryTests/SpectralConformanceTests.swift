@@ -50,7 +50,10 @@ struct SpectralConformanceTests {
         }
         let edgeList = pairs.sorted { ($0[0], $0[1]) < ($1[0], $1[1]) }.map { UndirectedEdge($0[0], $0[1]) }
         let listed = Array(0 ..< n).shuffled(using: &rng)
-        func conductance(_ e: UndirectedEdge<Int>) -> Double { Double((e.u * 7 + e.v * 7 + e.u * e.v) % 5 + 1) / 4 }
+        func conductance(_ e: UndirectedEdge<Int>) -> Double {
+            let mixed: Int = e.u * 7 + e.v * 7 + e.u * e.v
+            return Double(mixed % 5 + 1) / 4
+        }
         let reference = ReferencePseudograph(vertices: listed, edges: edgeList)
         let pseudograph = Pseudograph(vertices: listed, edges: edgeList)
         let adjacencyList = UndirectedAdjacencyList(vertices: listed, edges: edgeList)

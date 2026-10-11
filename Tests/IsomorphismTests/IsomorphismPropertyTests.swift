@@ -260,20 +260,30 @@ struct IsomorphismPropertyTests {
                 let hashes = g.weisfeilerLehmanSubgraphHashes(iterations: k, vertexColor: { colors[$0] }, edgeColor: { list[$0][2] })
                 let copyHashes = h.weisfeilerLehmanSubgraphHashes(iterations: k, vertexColor: { copyColors[$0] }, edgeColor: { copy[$0][2] })
                 for r in 0 ..< k {
-                    #expect(partition((0 ..< n).map { Array(hashes.hashes(of: $0))[r] }) == partition(rounds[r]), "round \(r + 1): \(context)")
+                    let hashed = partition((0 ..< n).map { Array(hashes.hashes(of: $0))[r] })
+                    let refined = partition(rounds[r])
+                    #expect(hashed == refined, "round \(r + 1): \(context)")
                 }
-                #expect((0 ..< n).allSatisfy { copyHashes.hashes(of: permutation[$0]) == hashes.hashes(of: $0) }, "\(context)")
-                #expect(g.weisfeilerLehmanGraphHash(iterations: k, vertexColor: { colors[$0] }, edgeColor: { list[$0][2] }) == h.weisfeilerLehmanGraphHash(iterations: k, vertexColor: { copyColors[$0] }, edgeColor: { copy[$0][2] }), "\(context)")
+                let carried = (0 ..< n).allSatisfy { copyHashes.hashes(of: permutation[$0]) == hashes.hashes(of: $0) }
+                #expect(carried, "\(context)")
+                let graphHash = g.weisfeilerLehmanGraphHash(iterations: k, vertexColor: { colors[$0] }, edgeColor: { list[$0][2] })
+                let copyGraphHash = h.weisfeilerLehmanGraphHash(iterations: k, vertexColor: { copyColors[$0] }, edgeColor: { copy[$0][2] })
+                #expect(graphHash == copyGraphHash, "\(context)")
             } else {
                 let g = Pseudograph(vertices: 0 ..< n, edges: list.map { UndirectedEdge($0[0], $0[1]) })
                 let h = Pseudograph(vertices: 0 ..< n, edges: copy.map { UndirectedEdge($0[0], $0[1]) })
                 let hashes = g.weisfeilerLehmanSubgraphHashes(iterations: k, vertexColor: { colors[$0] }, edgeColor: { list[$0][2] })
                 let copyHashes = h.weisfeilerLehmanSubgraphHashes(iterations: k, vertexColor: { copyColors[$0] }, edgeColor: { copy[$0][2] })
                 for r in 0 ..< k {
-                    #expect(partition((0 ..< n).map { Array(hashes.hashes(of: $0))[r] }) == partition(rounds[r]), "round \(r + 1): \(context)")
+                    let hashed = partition((0 ..< n).map { Array(hashes.hashes(of: $0))[r] })
+                    let refined = partition(rounds[r])
+                    #expect(hashed == refined, "round \(r + 1): \(context)")
                 }
-                #expect((0 ..< n).allSatisfy { copyHashes.hashes(of: permutation[$0]) == hashes.hashes(of: $0) }, "\(context)")
-                #expect(g.weisfeilerLehmanGraphHash(iterations: k, vertexColor: { colors[$0] }, edgeColor: { list[$0][2] }) == h.weisfeilerLehmanGraphHash(iterations: k, vertexColor: { copyColors[$0] }, edgeColor: { copy[$0][2] }), "\(context)")
+                let carried = (0 ..< n).allSatisfy { copyHashes.hashes(of: permutation[$0]) == hashes.hashes(of: $0) }
+                #expect(carried, "\(context)")
+                let graphHash = g.weisfeilerLehmanGraphHash(iterations: k, vertexColor: { colors[$0] }, edgeColor: { list[$0][2] })
+                let copyGraphHash = h.weisfeilerLehmanGraphHash(iterations: k, vertexColor: { copyColors[$0] }, edgeColor: { copy[$0][2] })
+                #expect(graphHash == copyGraphHash, "\(context)")
                 if !useVertexColors && !useEdgeColors {
                     #expect(g.weisfeilerLehmanGraphHash(iterations: k) == h.weisfeilerLehmanGraphHash(iterations: k), "\(context)")
                 }
