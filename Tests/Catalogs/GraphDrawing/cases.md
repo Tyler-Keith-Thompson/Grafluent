@@ -48,11 +48,11 @@ the phase 2 entry points exist.
 | DR-002 | Drawing | empty drawing: no bounding box | `Drawing<Int>()` | `boundingBox` | nil |
 | DR-003 | Drawing | empty drawing: rescaled stays empty | `Drawing<Int>()` | `rescaled()` | [] |
 | DR-004 | Drawing | positions in vertices order | `Drawing(vertices: [5, 3], positions: [(0, 0), (2, 1)])` | `positions` | [(0.0, 0.0), (2.0, 1.0)] |
-| DR-005 | Drawing | subscript reads by vertex | `Drawing(vertices: [5, 3], positions: [(0, 0), (2, 1)])` | `[3]` | (2.0, 1.0) |
-| DR-006 | Drawing | subscript writes by vertex | `Drawing(vertices: [5, 3], positions: [(0, 0), (2, 1)])` | `[5] = (7, -1); positions` | [(7.0, -1.0), (2.0, 1.0)] |
-| DR-007 | Drawing | subscript on a missing vertex | `Drawing(vertices: [5, 3], positions: [(0, 0), (2, 1)])` | `[4]` | **trap** |
-| DR-008 | Drawing | safe subscript on a missing vertex | `Drawing(vertices: [5, 3], positions: [(0, 0), (2, 1)])` | `[safe: 4]` | nil |
-| DR-009 | Drawing | safe subscript on a vertex | `Drawing(vertices: [5, 3], positions: [(0, 0), (2, 1)])` | `[safe: 5]` | (0.0, 0.0) |
+| DR-005 | Drawing | position(of:) reads by vertex | `Drawing(vertices: [5, 3], positions: [(0, 0), (2, 1)])` | `position(of: 3)` | (2.0, 1.0) |
+| DR-006 | Drawing | setPosition(_:of:) writes by vertex | `Drawing(vertices: [5, 3], positions: [(0, 0), (2, 1)])` | `setPosition((7, -1), of: 5); positions` | [(7.0, -1.0), (2.0, 1.0)] |
+| DR-007 | Drawing | position(of:) on a missing vertex | `Drawing(vertices: [5, 3], positions: [(0, 0), (2, 1)])` | `position(of: 4)` | **trap** |
+| DR-008 | Drawing | position(safe:) on a missing vertex | `Drawing(vertices: [5, 3], positions: [(0, 0), (2, 1)])` | `position(safe: 4)` | nil |
+| DR-009 | Drawing | position(safe:) on a vertex | `Drawing(vertices: [5, 3], positions: [(0, 0), (2, 1)])` | `position(safe: 5)` | (0.0, 0.0) |
 | DR-010 | Drawing | vertices and positions of different lengths | `Drawing(vertices: [5, 3], positions: [(0, 0)])` | `init` | **trap** |
 | DR-011 | Drawing | duplicate vertex | `Drawing(vertices: [5, 5], positions: [(0, 0), (1, 1)])` | `init` | **trap** |
 | DR-012 | Drawing | elements are (vertex, position) pairs in order | `Drawing(vertices: [5, 3], positions: [(0, 0), (2, 1)])` | `Array(self)` | [(5, (0.0, 0.0)), (3, (2.0, 1.0))] |
@@ -247,7 +247,7 @@ the phase 2 entry points exist.
 | DR-201 | Stress | two components: a triangle and an edge | `U: C(0,1,2), 3-4` | `stressMajorizationLayout()` | stress ≈ 0.0794561 (±1%) |
 | DR-202 | Stress | stress never increases between steps | `U: grid(5,5)` | `StressMajorizationLayout: stress after each step()` | non-increasing |
 | DR-203 | Stress | initial drawing is used as given (no randomness) | `U: grid(5,5)` | `two calls` | equal |
-| DR-204 | Stress | edge length 2 doubles the drawing | `U: C(0,1,2,3,4,5)` | `stressMajorizationLayout(edgeLength: { _ in 2 }) vs default` | positions × 2 (±1e-6) |
+| DR-204 | Stress | edge length 2 doubles the drawing | `U: C(0,1,2,3,4,5)` | `stressMajorizationLayout(edgeLength: { _ in 2 }) vs default` | positions × 2 (exact) |
 | DR-205 | Stress | edge length ≤ 0 | `U: 0-1` | `stressMajorizationLayout(edgeLength: { _ in 0 })` | **trap** |
 | DR-206 | Stress | tolerance < 0 | `U: 0-1` | `stressMajorizationLayout(tolerance: -1)` | **trap** |
 | DR-207 | Phase 2 | spectral: path of 5 (Fiedler vector, then the third) | `U: P(0,1,2,3,4)` | `spectralLayout()` | [(0.601500955, 0.511667274), (0.371748034, -0.195439508), (0.0, -0.632455532), (-0.371748034, -0.195439508), (-0.601500955, 0.511667274)] |

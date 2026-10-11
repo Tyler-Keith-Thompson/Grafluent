@@ -75,7 +75,7 @@ MODULES = [
     ("RandomGraphs", "Generators", "Erdős–Rényi, Barabási–Albert, Watts–Strogatz, random geometric, random regular, random bipartite, stochastic block model, random trees and DAGs.", ["GraphProtocols", "AdjacencyListModule", "BipartiteGraphs", "NamedGraphs", "Trees", "DirectedAcyclicGraphModule"]),
 
     # Drawing and formats
-    ("GraphDrawing", "Drawing", "Force-directed, layered (Sugiyama), tree, spectral and circular layouts.", ["GraphProtocols", "Traversal", "Cycles", "SpectralGraphTheory"]),
+    ("GraphDrawing", "Drawing", "Coordinates for drawing graphs: circular, Fruchterman–Reingold (exact or Barnes–Hut), stress majorization, Reingold–Tilford and layered (Sugiyama) layouts.", ["GraphProtocols", "Trees", "Cycles"]),
     ("GraphFormats", "Formats", "DOT, GraphML, GML, GEXF, Matrix Market and edge-list readers and writers.", ["GraphProtocols"]),
 ]
 
@@ -121,6 +121,7 @@ TEST_TARGETS = [
     ("HypergraphsTests", ["GraphProtocols", "Hypergraphs", "AdjacencyListModule", "Traversal", "Connectivity", "ShortestPaths", "SpanningTrees", "BipartiteGraphs", "Cycles", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("IncidenceMatrixTests", ["GraphProtocols", "IncidenceMatrixModule", "Hypergraphs", "Multigraphs", "AdjacencyListModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("SemiringsTests", ["Semirings", "ShortestPaths", "GraphProtocols", "Multigraphs", "AdjacencyListModule", "DirectedAcyclicGraphModule", "Traversal", "Walks", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
+    ("GraphDrawingTests", ["GraphProtocols", "GraphDrawing", "Cycles", "Trees", "RandomGraphs", "Multigraphs", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "StableGraphs", "DirectedAcyclicGraphModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
 ]
 
 # Bazel test sizes above the default "small" (60 s timeout), for suites whose solo run takes more

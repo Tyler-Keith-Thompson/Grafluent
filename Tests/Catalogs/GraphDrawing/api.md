@@ -62,7 +62,7 @@ rendering and stay out.
 
 | Entry point | Why |
 |---|---|
-| `spectralLayout()` | NetworkX `spectral_layout`, Koren 2003. Needs the Laplacian eigenvectors 2 and 3, from `SpectralGraphTheory`, whose eigensolver and catalog do not exist yet (`Sources/SpectralGraphTheory` is a stub, no `Tests/Catalogs/SpectralGraphTheory`). Rows pin unit eigenvectors with a sign rule, on graphs whose λ₂, λ₃, λ₄ are simple. Coordinate: `spectralLayout()`'s x must equal `fiedlerVector()` (DR-210). |
+| `spectralLayout()` | NetworkX `spectral_layout`, Koren 2003. Needs the Laplacian eigenvectors 2 and 3, from `SpectralGraphTheory` (its catalog, `Tests/Catalogs/SpectralGraphTheory`, pins them). Rows pin unit eigenvectors with SpectralGraphTheory's sign rule (the first entry, in index order, whose magnitude is ≥ 10⁻⁴ of the largest entry is positive), on graphs whose λ₂, λ₃, λ₄ are simple. `spectralLayout()` takes x from `fiedlerVector()` (DR-210); y is the next eigenvector under the same sign rule. |
 | `forceAtlas2Layout(…)`, `ForceAtlas2Layout<G>` | NetworkX `forceatlas2_layout`, Gephi. Quality bounds from NetworkX only (DR-213, DR-214); the model does not implement it yet. |
 | `bfsLayout(start:)`, `multipartiteLayout(layer:)` | NetworkX `bfs_layout`, `multipartite_layout`: layers by BFS distance or by a caller's key, rescaled. Cheap, deterministic (DR-211, DR-212). |
 | Network-simplex layering on its own, Coffman–Graham layering (width-bounded) | OGDF `OptimalRanking`, `CoffmanGrahamRanking`. Phase 1 solves the same minimum-span problem inside `sugiyamaLayout`; a public layering entry point waits for a caller. |
@@ -90,8 +90,9 @@ rendering and stay out.
     public init(vertices: some Sequence<Vertex>, positions: some Sequence<SIMD2<Double>>)  // traps on unequal lengths or a repeated vertex
     public var vertices: ContiguousArray<Vertex> { get }
     public var positions: [SIMD2<Double>] { get set }             // index space: positions[i] is vertices[i]'s
-    public subscript(vertex: Vertex) -> SIMD2<Double> { get set }  // traps for a missing vertex
-    public subscript(safe vertex: Vertex) -> SIMD2<Double>? { get } // Principle 6
+    public func position(of vertex: Vertex) -> SIMD2<Double>         // traps for a missing vertex
+    public func position(safe vertex: Vertex) -> SIMD2<Double>?      // Principle 6
+    public mutating func setPosition(_ position: SIMD2<Double>, of vertex: Vertex)  // traps for a missing vertex
     public var boundingBox: (min: SIMD2<Double>, max: SIMD2<Double>)? { get }  // nil when empty
     public func rescaled(scale: Double = 1, center: SIMD2<Double> = .zero) -> Drawing
     public mutating func rescale(scale: Double = 1, center: SIMD2<Double> = .zero)
@@ -111,7 +112,7 @@ extension Graph {   // DirectedGraph through `digraph.undirected`
     // and the system-generator overload, as RandomGraphs
 
     public func stressMajorizationLayout(
-        initial: Drawing<Vertex>? = nil,                           // nil = circularLayout()
+        initial: Drawing<Vertex>? = nil,                           // nil = circularLayout(radius: mean edge length)
         edgeLength: (Edges.Index) -> Double = { _ in 1 },
         tolerance: Double = 1e-5, maxIterations: Int = 1000
     ) -> Drawing<Vertex>
@@ -179,6 +180,7 @@ extension DirectedGraph {
 | `bends(ofEdgeAt:)` | OGDF `GraphAttributes::bends(e)`, "bend points" in the layered-drawing literature | igraph 1.0's "control points" (in Graphviz they are spline control points, which these are not). |
 | `reversedEdges` | Sugiyama literature ("reverse the arcs of a feedback arc set"), igraph's docstring | `feedbackArcSet` here would duplicate a `Cycles` concept (see Implementation notes). |
 | `crossingCount` | OGDF `SugiyamaLayout::numberOfCrossings()`, "crossing number" literature | `numberOfCrossings`: Swift prefers `…Count` (`edgeCount`). |
+| `position(of:)`, `position(safe:)`, `setPosition(_:of:)` | `layer(of:)` here, `score(of:)` in `Centrality`; the library's `safe:` nil variants | A vertex subscript (`drawing[v]`, NetworkX `pos[v]`): ambiguous with the collection's `Int` subscript on a `Drawing<Int>`. A labelled `[vertex:]` subscript: a second read spelling. |
 | `rescaled(scale:center:)` | NetworkX `rescale_layout` (and every layout's `scale=`, `center=`) | normalising inside every layout (NetworkX does): layouts return their natural units, so tree and layered coordinates stay exact integers and halves. |
 | `boundingBox` | OGDF `GraphAttributes::boundingBox()`, Graphviz `bb` | |
 | `step()`, `run()`, `iteration`, `isFinished` | README; d3-force `tick()` is the same idea | `tick()`: d3's word, not graph-library usage. |
@@ -193,10 +195,15 @@ No synonym typealiases (no `springLayout`, no `kamadaKawaiLayout`).
 - A `Drawing` lists vertices in a fixed order with one position each; a layout returns its graph's
   `vertices` order. With `Int` vertices `0..<n` in order the lookup is the index (no dictionary,
   as `_TreeLayout`'s `dense` flag); otherwise one `[Vertex: Int]` built at construction.
-- `subscript(_:)` reads and writes by vertex and traps for a missing one (DR-005 – DR-007);
-  `subscript(safe:)` returns `nil` (DR-008). It is the one mutable spelling, as a `Dictionary`'s,
-  because callers build and edit drawings (initial positions, nudges), unlike read-only results
-  (`CentralityScores.score(of:)`).
+- `position(of:)` reads by vertex and traps for a missing one (DR-005, DR-007); `position(safe:)`
+  returns `nil` (DR-008, DR-009); `setPosition(_:of:)` writes and traps for a missing one (DR-006),
+  because callers build and edit drawings (initial positions, nudges). **Not a subscript**
+  (decided): `Drawing` is a `RandomAccessCollection` indexed by `Int` offset, so a `Drawing<Int>`
+  would have two one-argument `Int` subscripts, the collection's and the vertex's, the ambiguity
+  that keeps swift-collections' `OrderedDictionary` from being a collection. The method pair
+  matches `layer(of:)` and the library's `safe:` convention (`vertexIndex(safe:)`,
+  `outDegree(safe:)`); `setPosition(_:of:)` keeps one read spelling rather than adding a labelled
+  `[vertex:]` subscript as a synonym. `positions[i]` is the in-place spelling by offset.
 - Equality compares vertices and positions in order (DR-013: same pairs in another order are not
   equal), so tests compare whole drawings.
 - `boundingBox` is the componentwise min and max (DR-014), `nil` when empty.
@@ -239,7 +246,11 @@ The pipeline, with the tie rules that make it deterministic:
 2. **Layering**: the minimum total edge span Σ (layer(v) − layer(u)) subject to
    layer(v) ≥ layer(u) + 1 for every arc (parallel arcs count each), each connected component
    shifted so its least layer is 0. This is network simplex's problem (Gansner et al. 1993,
-   Graphviz `dot`). When the optimum is not unique, the implementation's network simplex picks
+   Graphviz `dot`), solved as `dot` does: longest-path ranks, a feasible tree of tight edges grown
+   by merging tight subtrees smallest first, then pivots. The leaving edge is the tree edge with
+   the **most negative cut value** (decided: 731 pivots against about 15,000 for the first negative
+   one on a random DAG with n = 1,000, m = 2,000); the entering edge is the least-slack edge across
+   the cut. When the optimum is not unique, the implementation's network simplex picks
    one; rows pin only the span then (DR-152), and `layers:`
    gives a caller's layering instead (igraph `layers=`; an upward arc is then reversed, an arc
    inside one layer gets no segment and no bends, a negative layer traps).
@@ -283,8 +294,11 @@ The pipeline, with the tie rules that make it deterministic:
 - Target distances d_ij: shortest-path distances with `edgeLength` (hops by default); between
   components, 1 + L̄ · √n, L̄ the mean edge length (the rule `neato` uses for disconnected
   graphs without packing). Weights w_ij = d_ij⁻²: then stress is exactly Kamada–Kawai's energy.
-- Start: `initial`, or `circularLayout()` (NetworkX's start for `kamada_kawai_layout`), so the
-  whole computation is deterministic with no generator.
+- Start: `initial`, or `circularLayout(radius: L̄)` with L̄ the mean edge length (NetworkX's start
+  for `kamada_kawai_layout`, scaled as Graphviz's `neato` scales its start by the edge lengths),
+  so the whole computation is deterministic with no generator, and scaling every length by c
+  scales every iterate by c: with lengths 2 the drawing is exactly twice the unit one (DR-204; with
+  an unscaled start the doubled run converges to the same shape turned, not to 2× the drawing).
 - One step: for each vertex i in `vertices` order (Gauss–Seidel),
   x_i ← Σ_j w_ij (x_j + d_ij (x_i − x_j) / ‖x_i − x_j‖) / Σ_j w_ij, Gansner et al.'s localized
   update. Each update minimizes a majorant of the stress in x_i, so the stress never increases
@@ -305,8 +319,10 @@ The pipeline, with the tie rules that make it deterministic:
 **Pinned exactly:** `Drawing` operations, circular positions (tolerance 10⁻⁹: `cos`/`sin` differ
 in the last bits across libm builds), Reingold–Tilford and its circular form, the whole Sugiyama
 pipeline wherever the optimal layering is unique (layers, reversed edges, crossing counts, x, bends),
-FR's start and draw count, phase 2 spectral coordinates (with a sign rule: the first component
-of magnitude > 10⁻⁹ is positive).
+FR's start and draw count, phase 2 spectral coordinates (x is `fiedlerVector()`; both axes take
+SpectralGraphTheory's relative sign rule: the first entry, in index order, whose magnitude is
+≥ 10⁻⁴ of the largest entry is positive. An absolute threshold would let eigensolver noise choose
+the sign when the leading entry is 0, as at P₅'s middle vertex).
 
 **Pinned as values within a tolerance:** stress majorization's converged stress (±1%). It is
 deterministic, but a Swift implementation that sums in another order (SIMD, blocking) converges to
@@ -372,7 +388,9 @@ matched (it draws from NumPy's generator and moves every vertex by exactly t).
 - Number the vertices through the protocol: `vertexIndexBound` / `vertexIndex(of:)`, or
   `_vertexNumbering()`; read rows with `_withIncidentIndexRows`, `_withSuccessorIndexRows` or
   `neighborIndices(ofIndex:)`. Positions live in one `[SIMD2<Double>]` indexed by vertex index; the
-  `Drawing` is built once at the end.
+  `Drawing` is built once at the end. As built, `GraphDrawing` depends on `GraphProtocols`, `Trees`
+  and `Cycles` only (BFS and Dijkstra for stress are a few lines in index space, so not
+  `Traversal`).
 - FR: the exact repulsion loop is O(n²) per step over contiguous `SIMD2<Double>` arrays; Barnes–Hut
   builds a quadtree per step into reused `~Copyable` buffers (no per-node allocation) and walks it
   per vertex, O(n log n). Attraction walks edge rows once per step.
@@ -465,12 +483,12 @@ Targets for the Swift implementation, measured in the benchmark target against t
 
 ## Open questions (with recommendations)
 
-1. **Feedback arc set in `Cycles`.** *Recommendation:* yes, `feedbackArcSet()` (Eades–Lin–Smyth,
-   with the tie rules above) as a public `Cycles` entry point, with an exact phase 2 variant;
-   `sugiyamaLayout` calls it. The rows here then pin `reversedEdges` through it.
-2. **Network simplex ties.** *Recommendation:* leave ties unpinned (rows pin the span), so the
-   pivoting rule can change for speed. If callers ask for reproducible layered drawings across
-   versions, pin "Gansner's initial feasible tree from longest path, leaving edge by least index".
+1. **Feedback arc set in `Cycles`.** *Decided as recommended:* `feedbackArcSet() -> [Edges.Index]`
+   on `DirectedGraph` (Eades–Lin–Smyth, with the tie rules above, in position order, igraph's
+   `feedback_arc_set`) is public in `Cycles`, with an exact phase 2 variant; `sugiyamaLayout` calls
+   it, and `reversedEdges` is its result.
+2. **Network simplex ties.** *Decided as recommended:* ties are unpinned (rows pin the span), so
+   the pivoting rule can change for speed; phase 1 takes the most negative cut value.
 3. **`Drawing` generic over `Vertex`, not over the graph.** *Recommendation:* over `Vertex`, as the
    README says: callers build drawings without a graph (initial positions) and keep them after the
    graph changes. `LayeredDrawing` is over the graph because it reads edge positions.
@@ -478,6 +496,7 @@ Targets for the Swift implementation, measured in the benchmark target against t
    the definition; document that graphs past ~5,000 vertices want `barnesHutTheta: 1.2`. An
    automatic switch by size (NetworkX's `method="auto"`) hides a cost change behind a vertex
    count.
-5. **Spectral's dependency.** *Recommendation:* the `SpectralGraphTheory` catalog should pin
-   `fiedlerVector()` with the same sign rule (first component of magnitude > 10⁻⁹ positive) so
-   DR-207 – DR-210 hold through it.
+5. **Spectral's dependency.** *Decided:* the `SpectralGraphTheory` catalog pins `fiedlerVector()`
+   with a relative sign rule (the first entry, in index order, whose magnitude is ≥ 10⁻⁴ of the
+   largest entry is positive); `spectralLayout()` takes x from `fiedlerVector()` and applies the same
+   rule to y, so DR-207 – DR-210 hold through it (DR-207 and DR-208 equal SGT-109 and SGT-113).

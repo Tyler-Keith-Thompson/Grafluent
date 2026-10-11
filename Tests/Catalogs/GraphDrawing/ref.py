@@ -15,8 +15,8 @@ api.md:
     the center.
   * reingoldTilfordLayout: Walker's algorithm in Buchheim, Juenger and Leipert's linear form,
     separation 1, y = depth, root at x = 0. reingoldTilfordCircularLayout: igraph's polar map.
-  * sugiyamaLayout: Eades-Lin-Smyth cycle removal, longest-path layering, one dummy per layer an
-    edge crosses, barycenter crossing reduction with the tie rules of api.md, Brandes-Koepf
+  * sugiyamaLayout: Eades-Lin-Smyth cycle removal, minimum-span layering (network simplex's
+    problem, solved here as a linear program), one dummy per layer an edge crosses, barycenter crossing reduction with the tie rules of api.md, Brandes-Koepf
     alignment with longest-path compaction, balanced by the average median.
   * fruchtermanReingoldLayout and stressMajorizationLayout are not pinned point by point; the model
     runs them to check that the quality thresholds the rows pin are reachable, and NetworkX gives
@@ -852,10 +852,11 @@ def hop_distances(g):
     return D
 
 
-def target_distances(g):
-    """Hop distances; pairs in different components get 1 + sqrt(n) (api.md)."""
-    D = hop_distances(g)
-    D[np.isinf(D)] = 1 + math.sqrt(g.n)
+def target_distances(g, length=1.0):
+    """Hop distances times a uniform edge length; pairs in different components get
+    1 + length * sqrt(n), the mean edge length times sqrt(n) plus one (api.md)."""
+    D = hop_distances(g) * length
+    D[np.isinf(D)] = 1 + length * math.sqrt(g.n)
     return D
 
 
@@ -944,12 +945,13 @@ def fruchterman_reingold(g, pos0, iterations=50, k=None, threshold=1e-4):
     return P
 
 
-def stress_majorization(g, pos0=None, tolerance=1e-5, max_iterations=1000):
+def stress_majorization(g, pos0=None, tolerance=1e-5, max_iterations=1000, length=1.0):
     """Localized (Gauss-Seidel) majorization in vertices order, weights d^-2, from the circular
-    layout; stops when the relative stress decrease is below tolerance."""
+    layout of radius the mean edge length (every edge has length `length` here); stops when the
+    relative stress decrease is below tolerance."""
     n = g.n
-    D = target_distances(g)
-    P = np.array(pos0 if pos0 is not None else circular(n), float).reshape(n, 2)
+    D = target_distances(g, length)
+    P = np.array(pos0 if pos0 is not None else circular(n, radius=length), float).reshape(n, 2)
     if n <= 1:
         return P, 0.0, 0
     W = np.zeros_like(D)
@@ -977,7 +979,9 @@ def stress_majorization(g, pos0=None, tolerance=1e-5, max_iterations=1000):
 
 def spectral(g):
     """Eigenvectors 2 and 3 (ascending eigenvalue) of L = D - A (parallel edges add weight,
-    loops ignored), unit length, sign: first component of magnitude > 1e-9 positive."""
+    loops ignored), unit length, sign: the first component, in index order, whose magnitude is at
+    least 1e-4 of the largest is positive (SpectralGraphTheory's rule for fiedlerVector(), so x is
+    fiedlerVector())."""
     n = g.n
     A = np.zeros((n, n))
     for u, v in g.edges:
@@ -989,8 +993,9 @@ def spectral(g):
     cols = []
     for j in (1, 2):
         c = V[:, j].copy()
+        big = max(abs(x) for x in c)
         for x in c:
-            if abs(x) > 1e-9:
+            if abs(x) >= 1e-4 * big:
                 if x < 0:
                     c = -c
                 break
@@ -1042,11 +1047,11 @@ def drawing_rows():
     row(G_, "empty drawing: rescaled stays empty", "`Drawing<Int>()`", "rescaled()", "[]")
     d = [(0.0, 0.0), (2.0, 1.0)]
     row(G_, "positions in vertices order", "`Drawing(vertices: [5, 3], positions: [(0, 0), (2, 1)])`", "positions", pts(d))
-    row(G_, "subscript reads by vertex", "`Drawing(vertices: [5, 3], positions: [(0, 0), (2, 1)])`", "[3]", "(2.0, 1.0)")
-    row(G_, "subscript writes by vertex", "`Drawing(vertices: [5, 3], positions: [(0, 0), (2, 1)])`", "[5] = (7, -1); positions", "[(7.0, -1.0), (2.0, 1.0)]")
-    row(G_, "subscript on a missing vertex", "`Drawing(vertices: [5, 3], positions: [(0, 0), (2, 1)])`", "[4]", "**trap**")
-    row(G_, "safe subscript on a missing vertex", "`Drawing(vertices: [5, 3], positions: [(0, 0), (2, 1)])`", "[safe: 4]", "nil")
-    row(G_, "safe subscript on a vertex", "`Drawing(vertices: [5, 3], positions: [(0, 0), (2, 1)])`", "[safe: 5]", "(0.0, 0.0)")
+    row(G_, "position(of:) reads by vertex", "`Drawing(vertices: [5, 3], positions: [(0, 0), (2, 1)])`", "position(of: 3)", "(2.0, 1.0)")
+    row(G_, "setPosition(_:of:) writes by vertex", "`Drawing(vertices: [5, 3], positions: [(0, 0), (2, 1)])`", "setPosition((7, -1), of: 5); positions", "[(7.0, -1.0), (2.0, 1.0)]")
+    row(G_, "position(of:) on a missing vertex", "`Drawing(vertices: [5, 3], positions: [(0, 0), (2, 1)])`", "position(of: 4)", "**trap**")
+    row(G_, "position(safe:) on a missing vertex", "`Drawing(vertices: [5, 3], positions: [(0, 0), (2, 1)])`", "position(safe: 4)", "nil")
+    row(G_, "position(safe:) on a vertex", "`Drawing(vertices: [5, 3], positions: [(0, 0), (2, 1)])`", "position(safe: 5)", "(0.0, 0.0)")
     row(G_, "vertices and positions of different lengths", "`Drawing(vertices: [5, 3], positions: [(0, 0)])`", "init", "**trap**")
     row(G_, "duplicate vertex", "`Drawing(vertices: [5, 5], positions: [(0, 0), (1, 1)])`", "init", "**trap**")
     row(G_, "elements are (vertex, position) pairs in order", "`Drawing(vertices: [5, 3], positions: [(0, 0), (2, 1)])`", "Array(self)", "[(5, (0.0, 0.0)), (3, (2.0, 1.0))]")
@@ -1359,7 +1364,14 @@ def stress_rows():
         row(G_, case, f"`{spec}`", "stressMajorizationLayout()", exp)
     row(G_, "stress never increases between steps", "`U: grid(5,5)`", "StressMajorizationLayout: stress after each step()", "non-increasing")
     row(G_, "initial drawing is used as given (no randomness)", "`U: grid(5,5)`", "two calls", "equal")
-    row(G_, "edge length 2 doubles the drawing", "`U: C(0,1,2,3,4,5)`", "stressMajorizationLayout(edgeLength: { _ in 2 }) vs default", "positions × 2 (±1e-6)")
+    # The default start is scaled by the mean edge length, and the update is homogeneous, so every
+    # iterate with lengths 2 is exactly twice the unit one.
+    g = parse("U: C(0,1,2,3,4,5)")
+    P1, s1, it1 = stress_majorization(g)
+    P2, s2, it2 = stress_majorization(g, length=2.0)
+    assert np.array_equal(P2, 2 * P1) and it1 == it2
+    CHECKS["stress: edge length 2 doubles the drawing exactly"] += 1
+    row(G_, "edge length 2 doubles the drawing", "`U: C(0,1,2,3,4,5)`", "stressMajorizationLayout(edgeLength: { _ in 2 }) vs default", "positions × 2 (exact)")
     row(G_, "edge length ≤ 0", "`U: 0-1`", "stressMajorizationLayout(edgeLength: { _ in 0 })", "**trap**")
     row(G_, "tolerance < 0", "`U: 0-1`", "stressMajorizationLayout(tolerance: -1)", "**trap**")
 
