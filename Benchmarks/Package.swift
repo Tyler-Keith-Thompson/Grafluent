@@ -164,6 +164,23 @@ let package = Package(
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
         ),
         .executableTarget(
+            name: "LabeledGraphsBenchmarks",
+            dependencies: [
+                "BenchmarkSupport",
+                .product(name: "Benchmark", package: "benchmark"),
+                .product(name: "GraphProtocols", package: "Grafluent"),
+                .product(name: "LabeledGraphs", package: "Grafluent"),
+                .product(name: "CompressedSparseRowModule", package: "Grafluent"),
+                .product(name: "AdjacencyMatrixModule", package: "Grafluent"),
+                .product(name: "AdjacencyListModule", package: "Grafluent"),
+                .product(name: "Traversal", package: "Grafluent"),
+                .product(name: "Connectivity", package: "Grafluent"),
+                .product(name: "ShortestPaths", package: "Grafluent"),
+            ],
+            path: "Benchmarks/LabeledGraphsBenchmarks",
+            plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
+        ),
+        .executableTarget(
             name: "StableGraphsBenchmarks",
             dependencies: [
                 "BenchmarkSupport",

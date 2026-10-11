@@ -3,13 +3,16 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# LabeledGraph: arbitrary vertex labels over an index-based representation.
+# LabeledGraph: Hashable vertex labels over CompressedSparseRow or AdjacencyMatrix, kept in an OrderedSet whose element i names base vertex i, with every index-space member forwarded to the base (BGL's labeled_graph).
 swift_library(
     name = "LabeledGraphs",
     srcs = glob(["**/*.swift"]),
     module_name = "LabeledGraphs",
     deps = [
         "//Sources/GraphProtocols",
+        "//Sources/CompressedSparseRowModule",
+        "//Sources/AdjacencyMatrixModule",
+        "@swiftpkg_swift_collections//:OrderedCollections",
     ],
     visibility = ["//visibility:public"],
 )
@@ -21,6 +24,8 @@ docc_archive(
     catalog = glob(["*.docc/**"], allow_empty = True),
     deps = [
         "//Sources/GraphProtocols:GraphProtocolsDocumentation",
+        "//Sources/CompressedSparseRowModule:CompressedSparseRowModuleDocumentation",
+        "//Sources/AdjacencyMatrixModule:AdjacencyMatrixModuleDocumentation",
     ],
     tags = ["manual"],
     visibility = ["//visibility:public"],

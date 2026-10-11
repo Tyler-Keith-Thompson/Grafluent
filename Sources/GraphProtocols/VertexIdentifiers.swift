@@ -54,6 +54,25 @@ package struct _VertexIdentifiers<G: DirectedGraph> {
         return id
     }
 
+    /// The identifier of `vertex`, trapping with `message` when it is not a vertex: one lookup
+    /// instead of `contains` followed by `identifier(of:)`. On an indexed graph the index is
+    /// checked against `vertex(atIndex:)` with `==`, an array read rather than a second hash, so a
+    /// representation whose `vertexIndex(of:)` does not trap on a non-vertex still traps here.
+    @inlinable
+    package mutating func requiredIdentifier(of vertex: G.Vertex, _ message: @autoclosure () -> String) -> Int {
+        if isIndexed {
+            let index = graph.vertexIndex(of: vertex)
+            precondition(index >= 0 && index < count && graph.vertex(atIndex: index) == vertex, message())
+            return index
+        }
+        if let rows {
+            precondition(graph.contains(vertex), message())
+            return rows.numbers[sparse!.vertexPosition(of: vertex)]
+        }
+        precondition(graph.contains(vertex), message())
+        return identifier(of: vertex)
+    }
+
     /// The number of `vertex` in a numbered graph. - Precondition: `vertex` is a vertex.
     @inlinable
     package func _number(of vertex: G.Vertex, _ rows: _NumberedRows) -> Int {

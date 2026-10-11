@@ -15,9 +15,8 @@ extension DirectedGraph {
     /// - Precondition: `vertex` is a vertex.
     @inlinable
     public func descendants(of vertex: Vertex) -> Set<Vertex> {
-        precondition(contains(vertex), "\(vertex) is not a vertex of the graph")
         var ids = _VertexIdentifiers(self)
-        let start = ids.identifier(of: vertex)
+        let start = ids.requiredIdentifier(of: vertex, "\(vertex) is not a vertex of the graph")
         var visited = [Bool](repeating: false, count: ids.isDense ? ids.count : start + 1)
         visited[start] = true
         var stack = [start]
@@ -41,12 +40,10 @@ extension DirectedGraph {
     /// - Precondition: both are vertices.
     @inlinable
     public func hasPath(from source: Vertex, to target: Vertex) -> Bool {
-        precondition(contains(source), "The source \(source) is not a vertex of the graph")
-        precondition(contains(target), "The target \(target) is not a vertex of the graph")
-        if source == target { return true }
         var ids = _VertexIdentifiers(self)
-        let start = ids.identifier(of: source)
-        let goal = ids.identifier(of: target)
+        let start = ids.requiredIdentifier(of: source, "The source \(source) is not a vertex of the graph")
+        let goal = ids.requiredIdentifier(of: target, "The target \(target) is not a vertex of the graph")
+        if start == goal { return true }
         var visited = [Bool](repeating: false, count: ids.isDense ? ids.count : max(start, goal) + 1)
         visited[start] = true
         var stack = [start]
@@ -80,9 +77,8 @@ extension BidirectionalDirectedGraph {
     /// - Precondition: `vertex` is a vertex.
     @inlinable
     public func ancestors(of vertex: Vertex) -> Set<Vertex> {
-        precondition(contains(vertex), "\(vertex) is not a vertex of the graph")
         var search = IndexSpaceSearch(self)
-        let start = search.ids.identifier(of: vertex)
+        let start = search.ids.requiredIdentifier(of: vertex, "\(vertex) is not a vertex of the graph")
         var reached = Set<Vertex>()
         search.breadthFirstBackward(from: [start]) { v, ids in
             if v != start { reached.insert(ids.vertex(v)) }
@@ -100,12 +96,10 @@ extension BidirectionalDirectedGraph {
     /// - Precondition: both are vertices.
     @inlinable
     public func bidirectionalShortestPath(from source: Vertex, to target: Vertex) -> Path<Vertex, Edges.Index>? {
-        precondition(contains(source), "The source \(source) is not a vertex of the graph")
-        precondition(contains(target), "The target \(target) is not a vertex of the graph")
-        if source == target { return Path(vertex: source) }
         var ids = _VertexIdentifiers(self)
-        let start = ids.identifier(of: source)
-        let goal = ids.identifier(of: target)
+        let start = ids.requiredIdentifier(of: source, "The source \(source) is not a vertex of the graph")
+        let goal = ids.requiredIdentifier(of: target, "The target \(target) is not a vertex of the graph")
+        if start == goal { return Path(vertex: source) }
         // -2: not reached from that side; -1: the side's root.
         let unseen = -2
         var forwardParent = [Int](repeating: unseen, count: ids.count)

@@ -1,0 +1,117 @@
+    @Test("Every label-space row and degree of a non-vertex traps, on both bases")
+    func rowsOfNonVertices() async {
+        await #expect(processExitsWith: .failure) {
+            let graph = LabeledGraph<String, CompressedSparseRow>(edges: [DirectedEdge(from: "a", to: "b")])
+            _ = graph.outEdges(of: "q")
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = LabeledGraph<String, AdjacencyMatrix>(edges: [DirectedEdge(from: "a", to: "b")])
+            _ = graph.outEdges(of: "q")
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = LabeledGraph<String, AdjacencyMatrix>(edges: [DirectedEdge(from: "a", to: "b")])
+            _ = graph.inEdges(of: "q")
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = LabeledGraph<String, AdjacencyMatrix>(edges: [DirectedEdge(from: "a", to: "b")])
+            _ = graph.inDegree(of: "q")
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = LabeledGraph<String, AdjacencyMatrix>(edges: [DirectedEdge(from: "a", to: "b")])
+            _ = graph.degree(of: "q")
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = LabeledGraph<String, AdjacencyMatrix>(edges: [DirectedEdge(from: "a", to: "b")])
+            _ = graph.undirected.incidentEdges(of: "q")
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = LabeledGraph<String, AdjacencyMatrix>(edges: [DirectedEdge(from: "a", to: "b")])
+            _ = graph.undirected.degree(of: "q")
+        }
+        // Without the calls: the same rows of a vertex answer, and the safe spellings answer nil.
+        let graph = LabeledGraph<String, AdjacencyMatrix>(edges: [DirectedEdge(from: "a", to: "b")])
+        #expect(graph.outEdges(of: "a").map { [$0.source, $0.target] } == [[0, 1]])
+        #expect(graph.inDegree(of: "b") == 1 && graph.degree(of: "b") == 1)
+        #expect(graph.undirected.degree(of: "a") == 1)
+        #expect(graph.inEdges(safe: "q") == nil && graph.degree(safe: "q") == nil)
+    }
+
+    @Test("Index-space reads trap outside 0..<vertexCount, and on an empty graph")
+    func indicesOutOfRange() async {
+        await #expect(processExitsWith: .failure) {
+            let graph = LabeledGraph<String, CompressedSparseRow>(vertices: ["a", "b"])
+            _ = graph.successorIndices(ofIndex: 2)
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = LabeledGraph<String, AdjacencyMatrix>(vertices: ["a", "b"])
+            _ = graph.predecessorIndices(ofIndex: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = LabeledGraph<String, CompressedSparseRow>()
+            _ = graph.vertex(atIndex: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = LabeledGraph<String, AdjacencyMatrix>()
+            _ = graph.vertexIndex(of: "a")
+        }
+        // Without the calls: the last index answers.
+        let graph = LabeledGraph<String, CompressedSparseRow>(vertices: ["a", "b"])
+        #expect(Array(graph.successorIndices(ofIndex: 1)) == [] as [Int])
+        #expect(graph.vertex(atIndex: 1) == "b")
+        #expect(LabeledGraph<String, AdjacencyMatrix>().vertexIndex(safe: "a") == nil)
+    }
+
+    @Test("CSR edge positions trap below 0 and at edgeCount, through every position read")
+    func csrPositionsOutOfRange() async {
+        await #expect(processExitsWith: .failure) {
+            let graph = LabeledGraph<String, CompressedSparseRow>(edges: [DirectedEdge(from: "a", to: "b")])
+            _ = graph.target(ofEdgeAt: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = LabeledGraph<String, CompressedSparseRow>(edges: [DirectedEdge(from: "a", to: "b")])
+            _ = graph.target(ofEdgeAt: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = LabeledGraph<String, CompressedSparseRow>(edges: [DirectedEdge(from: "a", to: "b")])
+            _ = graph.edges[1]
+        }
+        // Without the calls: position 0 is the edge.
+        let graph = LabeledGraph<String, CompressedSparseRow>(edges: [DirectedEdge(from: "a", to: "b")])
+        #expect(graph.edges[0] == DirectedEdge(from: "a", to: "b"))
+        #expect(graph.target(ofEdgeAt: 0) == "b")
+    }
+
+    @Test("A matrix cell that holds no edge traps through target(ofEdgeAt:) and edges[p]")
+    func matrixCellsWithoutEdges() async {
+        await #expect(processExitsWith: .failure) {
+            let cell10 = AdjacencyMatrix(vertexCount: 2, edges: [DirectedEdge(from: 1, to: 0)]).edges.startIndex
+            let graph = LabeledGraph<String, AdjacencyMatrix>(edges: [DirectedEdge(from: "a", to: "b")])
+            _ = graph.target(ofEdgeAt: cell10)
+        }
+        await #expect(processExitsWith: .failure) {
+            let cell10 = AdjacencyMatrix(vertexCount: 2, edges: [DirectedEdge(from: 1, to: 0)]).edges.startIndex
+            let graph = LabeledGraph<String, AdjacencyMatrix>(edges: [DirectedEdge(from: "a", to: "b")])
+            _ = graph.edges[cell10]
+        }
+        // Without the calls: the cell (0, 1) is the edge.
+        let cell01 = AdjacencyMatrix(vertexCount: 2, edges: [DirectedEdge(from: 0, to: 1)]).edges.startIndex
+        let graph = LabeledGraph<String, AdjacencyMatrix>(edges: [DirectedEdge(from: "a", to: "b")])
+        #expect(graph.edges[cell01] == DirectedEdge(from: "a", to: "b"))
+        #expect(graph.target(ofEdgeAt: cell01) == "b")
+    }
+
+    @Test("init(_:labels:) traps on a matrix base too, and counts a lazy sequence of labels")
+    func baseInitOnOtherSequences() async {
+        await #expect(processExitsWith: .failure) {
+            _ = LabeledGraph(AdjacencyMatrix(vertexCount: 3), labels: ["x", "y", "x"])
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = LabeledGraph(AdjacencyMatrix(vertexCount: 3), labels: (0 ..< 4).lazy.map { "v\($0)" })
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = LabeledGraph(CompressedSparseRow(vertexCount: 1), labels: [] as [String])
+        }
+        // Without the faults: accepted.
+        let graph = LabeledGraph(AdjacencyMatrix(vertexCount: 3), labels: (0 ..< 3).lazy.map { "v\($0)" })
+        #expect(Array(graph.vertices) == ["v0", "v1", "v2"])
+    }

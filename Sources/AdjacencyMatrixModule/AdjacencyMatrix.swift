@@ -952,12 +952,31 @@ extension AdjacencyMatrix: BidirectionalDirectedGraph {
     }
 
     /// The source of the edge in a cell: its row. O(1).
+    ///
+    /// - Precondition: the cell holds an edge, as for `edges[position]`.
     @inlinable
-    public func source(ofEdgeAt position: Edges.Index) -> Int { position.source }
+    public func source(ofEdgeAt position: Edges.Index) -> Int {
+        _checkEdge(at: position)
+        return position.source
+    }
 
     /// The target of the edge in a cell: its column. O(1).
+    ///
+    /// - Precondition: the cell holds an edge, as for `edges[position]`.
     @inlinable
-    public func target(ofEdgeAt position: Edges.Index) -> Int { position.target }
+    public func target(ofEdgeAt position: Edges.Index) -> Int {
+        _checkEdge(at: position)
+        return position.target
+    }
+
+    @inlinable
+    @inline(__always)
+    internal func _checkEdge(at position: Edges.Index) {
+        precondition(
+            contains(edge: DirectedEdge(from: position.source, to: position.target)),
+            "Invalid index: no edge at \(position.source), \(position.target)"
+        )
+    }
 
     /// The vertices are their own indices.
     @inlinable

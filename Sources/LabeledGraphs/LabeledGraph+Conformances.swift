@@ -1,0 +1,96 @@
+import AdjacencyMatrixModule
+import CompressedSparseRowModule
+import GraphProtocols
+import OrderedCollections
+
+// MARK: - Equatable
+
+extension LabeledGraph: Equatable where Base: DirectedGraph<Int> & Equatable {
+    /// Equal when the label sets are equal and the labeled edge sets are equal, whatever index
+    /// each graph gave each label, as `AdjacencyList` compares regardless of insertion order.
+    ///
+    /// When the labels are equal in order, this is `lhs.base == rhs.base`. Otherwise: the label
+    /// sets are compared (n hashes), the right graph's indices are mapped into the left's, and
+    /// each mapped edge is looked up with the left base's `contains(edge:)`, O(m log d) for
+    /// `CompressedSparseRow` and O(m) for `AdjacencyMatrix`. A base that allows parallel edges is
+    /// compared by edge multiplicity instead, through a dictionary.
+    @inlinable
+    public static func == (lhs: LabeledGraph, rhs: LabeledGraph) -> Bool {
+        if lhs._labels == rhs._labels { return lhs._base == rhs._base }
+        let n = lhs._labels.count
+        guard n == rhs._labels.count, lhs._base.edgeCount == rhs._base.edgeCount else { return false }
+        // `toLeft[i]` is the left index of the right graph's label `i`.
+        var toLeft = [Int](repeating: 0, count: n)
+        for (i, label) in rhs._labels.enumerated() {
+            guard let j = lhs._labels.firstIndex(of: label) else { return false }
+            toLeft[i] = j
+        }
+        if Base.self == CompressedSparseRow.self || Base.self == AdjacencyMatrix.self {
+            // Edge sets: equal counts and containment one way suffice.
+            for edge in rhs._base.edges where !lhs._base.contains(edge: DirectedEdge(from: toLeft[edge.source], to: toLeft[edge.target])) {
+                return false
+            }
+            return true
+        }
+        var multiplicity: [DirectedEdge<Int>: Int] = [:]
+        for edge in lhs._base.edges { multiplicity[edge, default: 0] += 1 }
+        for edge in rhs._base.edges {
+            let mapped = DirectedEdge(from: toLeft[edge.source], to: toLeft[edge.target])
+            guard let count = multiplicity[mapped], count > 0 else { return false }
+            multiplicity[mapped] = count - 1
+        }
+        return true
+    }
+}
+
+// MARK: - Codable
+
+extension LabeledGraph: Codable where Label: Codable, Base: DirectedGraph<Int> & Codable {
+    @usableFromInline
+    internal enum _CodingKeys: String, CodingKey {
+        case labels
+        case base
+    }
+
+    /// Encodes `{"labels": [...], "base": ...}`: the labels in index order, and the base in its own
+    /// form.
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: _CodingKeys.self)
+        try container.encode(_labels.elements, forKey: .labels)
+        try container.encode(_base, forKey: .base)
+    }
+
+    /// Decodes and re-checks the preconditions of `init(_:labels:)`. A broken one is a
+    /// `DecodingError.dataCorrupted` at `labels` (a count mismatch or a repeated label) or at
+    /// `base` (vertices that are not `0..<vertexCount` in index order).
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: _CodingKeys.self)
+        let labels = try container.decode([Label].self, forKey: .labels)
+        let base = try container.decode(Base.self, forKey: .base)
+        switch Self._validated(base, labels: labels) {
+        case .success(let set):
+            self.init(_labels: set, _base: base)
+        case .failure(let failure):
+            let key: _CodingKeys = failure.inBase ? .base : .labels
+            throw DecodingError.dataCorruptedError(forKey: key, in: container, debugDescription: failure.message)
+        }
+    }
+}
+
+// MARK: - Descriptions
+
+extension LabeledGraph: CustomStringConvertible, CustomDebugStringConvertible where Base: DirectedGraph<Int> {
+    /// The labels and the labeled edges, at most 16 of each: `["a", "b"]; ["a"→"b"]`. The same form
+    /// as every other representation, so a labeled graph prints like an `AdjacencyList` of the same
+    /// vertices and edges in the same order.
+    public var description: String {
+        GraphDescription.graph(vertices: vertices, vertexCount: vertexCount, edges: edges, edgeCount: edgeCount)
+    }
+
+    /// The type, the counts, and at most 16 labeled edges.
+    public var debugDescription: String {
+        "LabeledGraph<\(Label.self), \(Base.self)>(vertexCount: \(vertexCount), edgeCount: \(edgeCount), edges: "
+            + GraphDescription.list(edges, count: edgeCount) { GraphDescription.edge($0) }
+            + ")"
+    }
+}

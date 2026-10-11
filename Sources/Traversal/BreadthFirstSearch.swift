@@ -219,8 +219,7 @@ extension DirectedGraph {
         var visited = [Bool](repeating: false, count: ids.isDense ? ids.count : 0)
         var current: [Int] = []
         for source in sources {
-            precondition(contains(source), "The source \(source) is not a vertex of the graph")
-            let id = ids.identifier(of: source)
+            let id = ids.requiredIdentifier(of: source, "The source \(source) is not a vertex of the graph")
             _grow(&visited, to: id + 1, with: false)
             if !visited[id] {
                 visited[id] = true
