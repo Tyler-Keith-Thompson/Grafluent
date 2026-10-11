@@ -14,8 +14,8 @@ as recommended:
   colour;
 - hashes are per process (`Hasher`), so tests compare them within one run and never pin a value;
 - the first mapping is not pinned;
-- phase 2 (`automorphismGroup()`, `canonicalLabeling()`) is pinned in the catalog but not tested
-  yet.
+- phase 2 (`automorphismGroup()`, `canonicalLabeling()`) is tested: the catalog rows in
+  `AutomorphismGroupTests.swift`, canonical labelings in `IsomorphismHardFamiliesTests.swift`.
 
 The suite uses only the public API, and each test is self-contained. Definitions, brute-force
 models and counting formulas are written out inside the test that uses them. The only shared
@@ -71,20 +71,21 @@ the process and pin each round's partition. A trap row runs its call in a child 
 test), then runs the same setup in this process without the call.
 
 The catalog-row files are every file except `IsomorphismConformanceTests.swift`,
-`IsomorphismPropertyTests.swift` and `IsomorphismStressTests.swift`. `swiftgen.py` generated them
+`IsomorphismPropertyTests.swift`, `IsomorphismStressTests.swift` and
+`IsomorphismHardFamiliesTests.swift`. `swiftgen.py` generated them
 from `cases.md`. It sits next to `ref.py` and `cases.md` in
 [`Tests/Catalogs/Isomorphism/`](../Catalogs/Isomorphism/):
 
 ```
-uv run --quiet --no-project --with networkx==3.7 --with igraph==1.0.0 --with rustworkx==0.18.1 python3 Tests/Catalogs/Isomorphism/swiftgen.py
+uv run --quiet --no-project --with networkx==3.7 --with igraph==1.0.0 --with rustworkx==0.18.1 python3 Tests/Catalogs/Isomorphism/swiftgen.py --phase2
 ```
 
 The generator first checks that `ref.py` reproduces `cases.md` byte for byte. That run re-checks
 every row against brute force and against NetworkX, igraph and rustworkx. The generator then
 re-derives each value it writes from `ref.py`'s model and asserts that it matches the catalog cell.
-The precondition file also takes the hand-written exit tests in `extra_traps.swift`. The phase-2
-rows (IS-182 – IS-233) are left out. `swiftgen.py --phase2` adds `AutomorphismGroupTests.swift`
-for when `automorphismGroup()` exists. Those tests pin `order` and `orbits`, check that the
+The precondition file also takes the hand-written exit tests in `extra_traps.swift`. `--phase2`
+writes the phase-2 rows (IS-182 – IS-233) as `AutomorphismGroupTests.swift`; without it that file
+is left alone. Those tests pin `order` and `orbits`, check that the
 product of `basicOrbitLengths` is the order, and check that every generator is an automorphism
 whose orbits are `orbits`.
 
@@ -125,6 +126,16 @@ whose orbits are `orbits`.
   - triangle, path and 4-cycle counts in a random graph, against counting formulas;
   - a 500-vertex digraph;
   - Weisfeiler–Leman on 10⁵ edges.
+- **Hard families** (`IsomorphismHardFamiliesTests.swift`, the same limits, each also asserting
+  under 10 s on a clock). The inputs that defeat a matcher without automorphism pruning: 20
+  hexagons against 19 and two triangles, 20 copies of K3,3 against 19 and a prism (with the
+  order 20! · 12²⁰ of the hexagons' group); Latin-square graphs of Z₁₆ and Z₂ × Z₈; twisted CFI
+  over a random cubic base of 40 (order divisible by 2²¹); non-isomorphic random 3-regular (2 000)
+  and 10-regular (1 000) pairs. Also an iterator copied in the middle of each kind of sequence,
+  cancellation (a cancelled task ends the sequences early), `inverse` and `preimage(safe:)`, and
+  canonical forms of relabelled copies, loops, parallel edges and digraphs. The edge-colour check
+  at a joint-search leaf is not pinned by a test: it fails only when two different colour
+  multisets have equal 64-bit weight sums, and the code documents it as defensive.
 
 ## Planted bugs
 

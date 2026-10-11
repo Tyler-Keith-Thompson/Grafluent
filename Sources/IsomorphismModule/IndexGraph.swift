@@ -97,6 +97,63 @@ struct _IndexGraph {
         inColors = colors
     }
 
+    /// A connected component (weakly, when directed) as a graph of its own, with the original
+    /// numbers of its vertices.
+    struct Component {
+        var graph: _IndexGraph
+        /// By vertex of `graph`: its number in the whole graph, increasing.
+        var vertices: [Int]
+    }
+
+    /// The connected components, each with rows sorted when this graph's are (vertices keep
+    /// their relative order). One component (the graph itself, without copying its rows) when
+    /// connected.
+    func components() -> [Component] {
+        let n = count
+        var label = [Int](repeating: -1, count: n)
+        var stack: [Int] = []
+        var parts = 0
+        for root in 0 ..< n where label[root] < 0 {
+            label[root] = parts
+            stack.append(root)
+            while let v = stack.popLast() {
+                for k in outOffsets[v] ..< outOffsets[v + 1] where label[outTargets[k]] < 0 {
+                    label[outTargets[k]] = parts
+                    stack.append(outTargets[k])
+                }
+                if isDirected {
+                    for k in inOffsets[v] ..< inOffsets[v + 1] where label[inTargets[k]] < 0 {
+                        label[inTargets[k]] = parts
+                        stack.append(inTargets[k])
+                    }
+                }
+            }
+            parts += 1
+        }
+        if parts <= 1 { return n == 0 ? [] : [Component(graph: self, vertices: Array(0 ..< n))] }
+        var vertices = [[Int]](repeating: [], count: parts)
+        var local = [Int](repeating: 0, count: n)
+        for v in 0 ..< n {
+            local[v] = vertices[label[v]].count
+            vertices[label[v]].append(v)
+        }
+        return (0 ..< parts).map { c in
+            let members = vertices[c]
+            var offsets = [0], targets: [Int] = [], colors: [Int] = []
+            for v in members {
+                for k in outOffsets[v] ..< outOffsets[v + 1] {
+                    targets.append(local[outTargets[k]])
+                    if hasEdgeColors { colors.append(outColors[k]) }
+                }
+                offsets.append(targets.count)
+            }
+            let edges = isDirected ? targets.count : targets.count / 2
+            var graph = _IndexGraph(count: members.count, isDirected: isDirected, edgeCount: edges, offsets: offsets, targets: targets, colors: colors, vertexColors: vertexColors.isEmpty ? [] : members.map { vertexColors[$0] })
+            if isDirected { graph.buildInRows() }
+            return Component(graph: graph, vertices: members)
+        }
+    }
+
     /// No self-loops, no parallel edges and no edge colours (rows must be sorted).
     var isSimple: Bool {
         if hasEdgeColors { return false }

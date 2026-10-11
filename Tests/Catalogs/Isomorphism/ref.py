@@ -2,7 +2,7 @@
 """Reference model for IsomorphismModule (Tests/Catalogs/Isomorphism).
 
 Run: uv run --quiet --no-project --with networkx==3.7 --with igraph==1.0.0 --with rustworkx==0.18.1 \
-         python3 Tests/Catalogs/Isomorphism/ref.py [--write] [--stress] [--bench]
+         python3 Tests/Catalogs/Isomorphism/ref.py [--write] [--stress] [--bench] [--export DIR]
 
 The model works in index space, from the definitions in api.md:
 
@@ -27,9 +27,13 @@ Every row is cross-checked against NetworkX 3.7 (GraphMatcher family and vf2pp),
 1.0.0 (VF2, LAD, bliss) and rustworkx 0.18.1 (vf2_mapping), each where it supports the input; the
 known disagreements are listed in KNOWN and in api.md. --write regenerates cases.md; without it the
 run fails if cases.md differs. --stress adds random graphs checked against brute force and the
-three libraries. --bench prints the baseline timings api.md quotes.
+three libraries. --bench prints the baseline timings api.md quotes. --export DIR writes each bench
+pair's edge lists (DIR/<case>.g.deflate, DIR/<case>.h.deflate: raw deflate of the vertex count, then one edge per
+line), the
+inputs IsomorphismBenchmarks reads, so both sides time the same graphs.
 """
 import itertools
+import zlib
 import math
 import os
 import random
@@ -1204,7 +1208,10 @@ elif lib == "ig-vf2": a, b = igg(g), igg(h); f = lambda: a.isomorphic_vf2(b)
 elif lib == "ig-bliss": a, b = igg(g), igg(h); f = lambda: a.isomorphic_bliss(b)
 elif lib == "rx-vf2": a, b = rxg(g), rxg(h); f = lambda: rx.is_isomorphic(a, b)
 elif lib == "ig-bliss-aut": a = igg(g); f = lambda: a.count_automorphisms()
+elif lib == "ig-bliss-canon": a = igg(g); f = lambda: len(a.canonical_permutation())
 t = time.perf_counter(); r = f(); t = time.perf_counter() - t
+for _ in range(4 if t < 0.2 else 0):   # the best of five when a run is short
+    u = time.perf_counter(); f(); t = min(t, time.perf_counter() - u)
 print(f"{{t:.4f}} {{r}}")
 '''
 
@@ -1229,6 +1236,36 @@ def bench_pair(case):
         g = parse_graph(f"U: cfi({cell[3:]})")
         h = parse_graph(f"U: cfi~({cell[3:]})") if case.endswith("t") else relabel(g, rng)
         return g, relabel(h, rng)
+    if case.startswith("lsg"):
+        # Latin-square graphs of Z_n and of Z_2 x Z_(n/2) (strongly regular, equal parameters):
+        # "lsgN" against a relabelled copy, "lsgNt" against the other group's graph.
+        n = int(case[3:].rstrip("t"))
+        half = n // 2
+
+        def lsg(op):
+            return G(False, list(range(n * n)), [(a, b) for a in range(n * n) for b in range(a + 1, n * n)
+                     if a // n == b // n or a % n == b % n or op(a // n, a % n) == op(b // n, b % n)])
+        g = lsg(lambda a, b: (a + b) % n)
+        h = lsg(lambda a, b: ((a // half + b // half) % 2) * half + (a % half + b % half) % half) if case.endswith("t") else g
+        return g, relabel(h, rng)
+    if case.startswith("union"):
+        # 20 hexagons against 19 and two triangles ("unionc6"); 20 copies of K3,3 against 19 and
+        # a prism ("unionk33").
+        k = 20
+
+        def cyc(m, o):
+            return [(o + i, o + (i + 1) % m) for i in range(m)]
+
+        def k33(o):
+            return [(o + i, o + j) for i in range(3) for j in range(3, 6)]
+        if case == "unionc6":
+            a = sum((cyc(6, 6 * i) for i in range(k)), [])
+            b = sum((cyc(6, 6 * i) for i in range(k - 1)), []) + cyc(3, 6 * k - 6) + cyc(3, 6 * k - 3)
+        else:
+            o = 6 * k - 6
+            a = sum((k33(6 * i) for i in range(k)), [])
+            b = sum((k33(6 * i) for i in range(k - 1)), []) + cyc(3, o) + cyc(3, o + 3) + [(o, o + 3), (o + 1, o + 4), (o + 2, o + 5)]
+        return G(False, list(range(6 * k)), a), relabel(G(False, list(range(6 * k)), b), rng)
     if case.startswith("grid"):
         k = int(case[4:])
         g = parse_graph(f"U: grid({k},{k})")
@@ -1236,12 +1273,28 @@ def bench_pair(case):
     raise ValueError(case)
 
 
+BENCH_CASES = ["rrg3-1000", "rrg3-10000", "rrg10-1000", "grid100", "paley101", "paley401", "srg16",
+               "cfi10", "cfi10t", "cfi20", "cfi20t", "cfi40", "cfi40t", "lsg16", "lsg16t", "lsg24", "lsg24t",
+               "unionc6", "unionk33"]
+
+
+def export(directory):
+    os.makedirs(directory, exist_ok=True)
+    for c in BENCH_CASES:
+        for side, x in zip("gh", bench_pair(c)):
+            text = f"{x.n}\n" + "".join(f"{u} {v}\n" for u, v in x.edges)
+            # Raw deflate, what Foundation's NSData.decompressed(using: .zlib) reads.
+            packer = zlib.compressobj(9, zlib.DEFLATED, -15)
+            with open(os.path.join(directory, f"{c}.{side}.deflate"), "wb") as f:
+                f.write(packer.compress(text.encode()) + packer.flush())
+        print("wrote", c)
+
+
 def bench():
+    cases = BENCH_CASES
     path = os.path.join(os.environ.get("TMPDIR", "/tmp"), "iso_bench_driver.py")
     open(path, "w").write(BENCH.format(here=HERE))
-    cases = ["rrg3-1000", "rrg3-10000", "rrg10-1000", "grid100", "paley101", "paley401", "srg16",
-             "cfi10", "cfi10t", "cfi20", "cfi20t", "cfi40t"]
-    libs = ["nx-vf2pp", "ig-vf2", "ig-bliss", "rx-vf2", "ig-bliss-aut"]
+    libs = ["nx-vf2pp", "ig-vf2", "ig-bliss", "rx-vf2", "ig-bliss-aut", "ig-bliss-canon"]
     print("case | " + " | ".join(libs))
     for c in cases:
         row = []
@@ -1259,6 +1312,9 @@ def bench():
 def main():
     if "--bench" in sys.argv:
         bench()
+        return
+    if "--export" in sys.argv:
+        export(sys.argv[sys.argv.index("--export") + 1])
         return
     define()
     number_rows()

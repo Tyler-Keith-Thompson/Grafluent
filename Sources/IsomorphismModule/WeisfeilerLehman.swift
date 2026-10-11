@@ -72,7 +72,9 @@ extension WeisfeilerLehmanSubgraphHashes where G: DirectedGraph {
 ///
 /// A multiset enters a `Hasher` as two sums of keyed 64-bit mixes of its elements (the key drawn
 /// from `Hasher`, so per process like every value here): O(1) per element, where sorting each row
-/// cost most of the time.
+/// cost most of the time. Two additive lanes are not collision-resistant: someone who knows the
+/// key can build two multisets with equal sums, and under `SWIFT_DETERMINISTIC_HASHING` the key is
+/// a fixed constant. The hash is an invariant for telling graphs apart, not a security boundary.
 @usableFromInline
 func _weisfeilerLehman(_ graph: _IndexGraph, iterations: Int, keepRounds: Bool) -> (hash: Int, rounds: [Int]) {
     precondition(iterations >= 0, "iterations must be at least 0")
@@ -174,7 +176,7 @@ extension Graph {
     /// multiset of its neighbours' colours (a self-loop counts its vertex twice, each parallel edge
     /// once). The hash covers the vertex count and the colour histogram of rounds 0 … `iterations`.
     /// Hash values come from `Hasher`: equal for equal inputs within one process, not across
-    /// processes. O(iterations · (n + m) log Δ).
+    /// processes. O(iterations · (n + m)).
     ///
     /// - Precondition: `iterations >= 0`.
     @inlinable
@@ -243,7 +245,7 @@ extension DirectedGraph {
     /// A hash of the digraph by Weisfeiler–Leman colour refinement: as on `Graph`, with a
     /// vertex's out-neighbours and in-neighbours kept apart. Isomorphic digraphs hash equal.
     /// Hash values come from `Hasher`: equal for equal inputs within one process.
-    /// O(iterations · (n + m) log Δ).
+    /// O(iterations · (n + m)).
     ///
     /// - Precondition: `iterations >= 0`.
     @inlinable

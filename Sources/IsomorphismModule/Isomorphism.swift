@@ -5,6 +5,10 @@ import GraphProtocols
 /// subgraph) or a monomorphism (onto a subgraph), as returned by `isomorphism(to:)`,
 /// `subgraphIsomorphism(to:)` and `monomorphism(to:)` and their sequences.
 ///
+/// Boost, LEMON and NetworkX call the result of a subgraph search a "mapping" (Boost's
+/// `vf2_subgraph_mono` callback receives a correspondence map, LEMON's `Vf2` fills a `mapping`,
+/// NetworkX's matchers return `mapping` dictionaries); this one type serves all three problems.
+///
 /// It holds both graphs and the image of each pattern vertex. Two mappings are equal when their
 /// images are; the graphs are not compared. Members exist when both graphs are `Graph`s or both
 /// are `DirectedGraph`s.
@@ -93,6 +97,27 @@ extension Isomorphism where Pattern: Graph, Target: Graph {
         return pattern._vertex(number: u, _numbers(patternNumbers, Pattern.Vertex.self)?.listed)
     }
 
+    /// The pattern vertex mapped to `vertex`, or nil when `vertex` is outside the image or is not
+    /// a vertex of the target. O(n).
+    @inlinable
+    public func preimage(safe vertex: Target.Vertex) -> Pattern.Vertex? {
+        guard target.contains(vertex) else { return nil }
+        return preimage(of: vertex)
+    }
+
+    /// The inverse mapping, from the target onto the pattern: an isomorphism when this one is.
+    /// O(n); its `image(of:)` is the O(1) form of `preimage(of:)`.
+    ///
+    /// - Precondition: the mapping is a bijection (an isomorphism, or a subgraph mapping onto the
+    ///   whole target).
+    @inlinable
+    public var inverse: Isomorphism<Target, Pattern> {
+        precondition(imageIndices.count == target.vertexCount, "Only a bijection has an inverse")
+        var inverted = [Int](repeating: 0, count: imageIndices.count)
+        for (u, x) in imageIndices.enumerated() { inverted[x] = u }
+        return Isomorphism<Target, Pattern>(pattern: target, target: pattern, patternNumbers: targetNumbers, targetNumbers: patternNumbers, imageIndices: inverted)
+    }
+
     /// The images of the pattern's vertices, in the pattern's `vertices` order.
     @inlinable
     public var images: LazyMapCollection<[Int], Target.Vertex> {
@@ -143,6 +168,27 @@ extension Isomorphism where Pattern: DirectedGraph, Target: DirectedGraph {
         }
         guard let u = imageIndices.firstIndex(of: t) else { return nil }
         return pattern._vertex(number: u, _numbers(patternNumbers, Pattern.Vertex.self)?.listed)
+    }
+
+    /// The pattern vertex mapped to `vertex`, or nil when `vertex` is outside the image or is not
+    /// a vertex of the target. O(n).
+    @inlinable
+    public func preimage(safe vertex: Target.Vertex) -> Pattern.Vertex? {
+        guard target.contains(vertex) else { return nil }
+        return preimage(of: vertex)
+    }
+
+    /// The inverse mapping, from the target onto the pattern: an isomorphism when this one is.
+    /// O(n); its `image(of:)` is the O(1) form of `preimage(of:)`.
+    ///
+    /// - Precondition: the mapping is a bijection (an isomorphism, or a subgraph mapping onto the
+    ///   whole target).
+    @inlinable
+    public var inverse: Isomorphism<Target, Pattern> {
+        precondition(imageIndices.count == target.vertexCount, "Only a bijection has an inverse")
+        var inverted = [Int](repeating: 0, count: imageIndices.count)
+        for (u, x) in imageIndices.enumerated() { inverted[x] = u }
+        return Isomorphism<Target, Pattern>(pattern: target, target: pattern, patternNumbers: targetNumbers, targetNumbers: patternNumbers, imageIndices: inverted)
     }
 
     /// The images of the pattern's vertices, in the pattern's `vertices` order.
@@ -230,14 +276,15 @@ enum _MatchingKind {
     case isomorphism, subgraphIsomorphism, monomorphism
 }
 
-/// One matching problem in index space, immutable: the searches start from it.
+/// One matching problem in index space, immutable: the searches start from it and share what it
+/// holds (the graphs' rows, the refinement's union graph, the subgraph search's bit matrix).
 @usableFromInline
 final class _MatchingProblem {
     let kind: _MatchingKind
-    let pattern: _IndexGraph
-    let target: _IndexGraph
     /// Set when a count rules every mapping out.
     let impossible: Bool
+    let isomorphism: _IsomorphismData?
+    let subgraph: _SubgraphData?
 
     @usableFromInline
     init(_ kind: _MatchingKind, _ pattern: _IndexGraph, _ target: _IndexGraph) {
@@ -257,21 +304,27 @@ final class _MatchingProblem {
                 impossible = balance.contains { $0 > 0 }
             }
         }
-        if !impossible {
-            pattern.sortRows()
-            target.sortRows()
-        }
-        self.pattern = pattern
-        self.target = target
         self.impossible = impossible
+        if impossible {
+            isomorphism = nil
+            subgraph = nil
+            return
+        }
+        pattern.sortRows()
+        target.sortRows()
+        switch kind {
+        case .isomorphism:
+            isomorphism = _IsomorphismData(pattern, target)
+            subgraph = nil
+        case .subgraphIsomorphism, .monomorphism:
+            isomorphism = nil
+            subgraph = _SubgraphData(pattern: pattern, target: target, induced: kind == .subgraphIsomorphism)
+        }
     }
 
     func makeSearch() -> _MatchingSearch {
-        if impossible { return _MatchingSearch() }
-        switch kind {
-        case .isomorphism: return _RefinementSearch(pattern, target)
-        case .subgraphIsomorphism: return _SubgraphSearch(pattern: pattern, target: target, induced: true)
-        case .monomorphism: return _SubgraphSearch(pattern: pattern, target: target, induced: false)
-        }
+        if let isomorphism { return _IsomorphismSearch(isomorphism) }
+        if let subgraph { return _SubgraphSearch(subgraph) }
+        return _MatchingSearch()
     }
 }

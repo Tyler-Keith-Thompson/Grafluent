@@ -152,17 +152,10 @@ struct _MatchingOrder {
     }
 }
 
-/// Induced subgraph isomorphism or monomorphism by VF2++ (Jüttner & Madarasi 2018), a
-/// depth-first search on an explicit stack over VF2's state (Cordella et al. 2004).
-///
-/// Depth d maps `order[d]`. Its candidates are the neighbours of its parent's image (or every
-/// target vertex, for the first vertex of a component). A candidate x for u must be free, of u's
-/// colour and at least u's degree in each direction; for every mapped neighbour w of u the edges
-/// between x and w's image must equal (induced) or contain (monomorphism) the edges between u and
-/// w, as multisets of colours, and the same for self-loops; induced, x must have no other mapped
-/// neighbours. The cutting rule: for each colour, x has at least as many free neighbours as u, in
-/// each direction.
-final class _SubgraphSearch: _MatchingSearch {
+/// One subgraph problem, immutable and shared by its searches and their copies: both graphs'
+/// rows, the matching order, and the target's adjacency as a bit matrix (simple graphs with at
+/// most 4,096 target vertices).
+final class _SubgraphData {
     let p: _MatchRows
     let t: _MatchRows
     let induced: Bool
@@ -170,19 +163,9 @@ final class _SubgraphSearch: _MatchingSearch {
     let parent: [Int]
     let parentInward: [Bool]
     let simple: Bool
-    /// Target adjacency (out-arcs) as a bit matrix, when the target has at most 4,096 vertices.
     let bits: UnsafeMutablePointer<UInt64>?
     let words: Int
     let colorClasses: Int
-    // Search state.
-    let core1: UnsafeMutablePointer<Int>
-    let core2: UnsafeMutablePointer<Int>
-    let cursor: UnsafeMutablePointer<Int>
-    let end: UnsafeMutablePointer<Int>
-    let balance: UnsafeMutablePointer<Int>
-    var depth = 0
-    var started = false
-    var finished = false
 
     init(pattern: _IndexGraph, target: _IndexGraph, induced: Bool) {
         p = _MatchRows(pattern)
@@ -217,56 +200,88 @@ final class _SubgraphSearch: _MatchingSearch {
             words = 0
             bits = nil
         }
-        let np = max(pattern.count, 1)
+    }
+
+    deinit {
+        bits?.deallocate()
+    }
+}
+
+/// Induced subgraph isomorphism or monomorphism by VF2++ (Jüttner & Madarasi 2018), a
+/// depth-first search on an explicit stack over VF2's state (Cordella et al. 2004).
+///
+/// Depth d maps `order[d]`. Its candidates are the neighbours of its parent's image (or every
+/// target vertex, for the first vertex of a component). A candidate x for u must be free, of u's
+/// colour and at least u's degree in each direction; for every mapped neighbour w of u the edges
+/// between x and w's image must equal (induced) or contain (monomorphism) the edges between u and
+/// w, as multisets of colours, and the same for self-loops; induced, x must have no other mapped
+/// neighbours. The cutting rule: for each colour, x has at least as many free neighbours as u, in
+/// each direction. A cancelled task ends the sequence (checked every 4,096 steps).
+final class _SubgraphSearch: _MatchingSearch {
+    let data: _SubgraphData
+    let p: _MatchRows
+    let t: _MatchRows
+    let induced: Bool
+    let order: [Int]
+    let parent: [Int]
+    let parentInward: [Bool]
+    let simple: Bool
+    let bits: UnsafeMutablePointer<UInt64>?
+    let words: Int
+    let colorClasses: Int
+    // Search state.
+    let core1: UnsafeMutablePointer<Int>
+    let core2: UnsafeMutablePointer<Int>
+    let cursor: UnsafeMutablePointer<Int>
+    let end: UnsafeMutablePointer<Int>
+    let balance: UnsafeMutablePointer<Int>
+    var depth = 0
+    var started = false
+    var finished = false
+    var steps = 0
+
+    init(_ data: _SubgraphData) {
+        self.data = data
+        p = data.p
+        t = data.t
+        induced = data.induced
+        order = data.order
+        parent = data.parent
+        parentInward = data.parentInward
+        simple = data.simple
+        bits = data.bits
+        words = data.words
+        colorClasses = data.colorClasses
+        let np = max(p.count, 1), nt = max(t.count, 1)
         core1 = .allocate(capacity: np)
         core1.initialize(repeating: -1, count: np)
-        core2 = .allocate(capacity: max(nt, 1))
-        core2.initialize(repeating: -1, count: max(nt, 1))
+        core2 = .allocate(capacity: nt)
+        core2.initialize(repeating: -1, count: nt)
         cursor = .allocate(capacity: np)
+        cursor.initialize(repeating: 0, count: np)
         end = .allocate(capacity: np)
-        balance = .allocate(capacity: classes)
-        balance.initialize(repeating: 0, count: classes)
+        end.initialize(repeating: 0, count: np)
+        balance = .allocate(capacity: colorClasses)
+        balance.initialize(repeating: 0, count: colorClasses)
         super.init()
     }
 
-    init(copying other: _SubgraphSearch) {
-        p = other.p
-        t = other.t
-        induced = other.induced
-        order = other.order
-        parent = other.parent
-        parentInward = other.parentInward
-        simple = other.simple
-        words = other.words
-        colorClasses = other.colorClasses
-        if let b = other.bits {
-            let copy = UnsafeMutablePointer<UInt64>.allocate(capacity: t.count * words)
-            copy.initialize(from: b, count: t.count * words)
-            bits = copy
-        } else {
-            bits = nil
-        }
+    convenience init(copying other: _SubgraphSearch) {
+        self.init(other.data)
         let np = max(p.count, 1), nt = max(t.count, 1)
-        core1 = .allocate(capacity: np)
-        core1.initialize(from: other.core1, count: np)
-        core2 = .allocate(capacity: nt)
-        core2.initialize(from: other.core2, count: nt)
-        cursor = .allocate(capacity: np)
-        cursor.initialize(from: other.cursor, count: np)
-        end = .allocate(capacity: np)
-        end.initialize(from: other.end, count: np)
-        balance = .allocate(capacity: colorClasses)
-        balance.initialize(repeating: 0, count: colorClasses)
+        core1.update(from: other.core1, count: np)
+        core2.update(from: other.core2, count: nt)
+        cursor.update(from: other.cursor, count: np)
+        end.update(from: other.end, count: np)
         depth = other.depth
         started = other.started
         finished = other.finished
-        super.init()
+        steps = other.steps
     }
 
     override func copy() -> _MatchingSearch { _SubgraphSearch(copying: self) }
 
     deinit {
-        bits?.deallocate()
         core1.deallocate()
         core2.deallocate()
         cursor.deallocate()
@@ -291,6 +306,11 @@ final class _SubgraphSearch: _MatchingSearch {
             unmap(order[depth])
         }
         while true {
+            steps &+= 1
+            if steps & 4095 == 0 && Task.isCancelled {
+                finished = true
+                return nil
+            }
             let d = depth
             let u = order[d]
             var found = -1

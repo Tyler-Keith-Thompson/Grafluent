@@ -7,12 +7,12 @@ struct _RefinementRelation {
     let weights: UnsafeMutablePointer<UInt64>?
 }
 
-/// The graph the refinement runs on, immutable and shared by copies of a search: for isomorphism,
-/// the disjoint union of the two graphs (G on `0..<half`, H on `half..<count`); one relation for
-/// an undirected graph, two for a directed one (arcs into the splitter, then arcs out of it).
-///
-/// Phase 2 (automorphism group, canonical labeling) runs the same engine on one graph:
-/// `half == count` and `balanced == false`.
+/// The graph the refinement runs on, immutable and shared by copies of a search. For isomorphism
+/// it is the disjoint union of the two graphs (G on `0..<half`, H on `half..<count`); for the
+/// automorphism group and canonical labeling it is one graph (`half == count`, `balanced == false`).
+/// One relation for an undirected graph, two for a directed one (arcs into the splitter, then arcs
+/// out of it). Edge colours become 64-bit weights, so that a count is a sum over a multiset of
+/// colours.
 final class _RefinementGraph {
     let count: Int
     let half: Int
@@ -21,40 +21,48 @@ final class _RefinementGraph {
     private var allocations: [UnsafeMutableRawPointer] = []
 
     /// The disjoint union of `g` and `h` (equal vertex counts), each row of `h` shifted by `half`.
-    /// Edge colours become 64-bit weights, so that a count is a sum over a multiset of colours.
-    init(union g: _IndexGraph, _ h: _IndexGraph) {
-        let n = g.count
-        count = 2 * n
+    convenience init(union g: _IndexGraph, _ h: _IndexGraph) {
+        self.init(parts: [g, h], balanced: true)
+    }
+
+    /// One graph.
+    convenience init(single g: _IndexGraph) {
+        self.init(parts: [g], balanced: false)
+    }
+
+    private init(parts: [_IndexGraph], balanced: Bool) {
+        let n = parts[0].count
+        count = n * parts.count
         half = n
-        balanced = true
-        var relations: [_RefinementRelation] = []
+        self.balanced = balanced
         var allocations: [UnsafeMutableRawPointer] = []
-        func relation(_ go: [Int], _ gt: [Int], _ gc: [Int], _ ho: [Int], _ ht: [Int], _ hc: [Int]) -> _RefinementRelation {
-            let m = gt.count + ht.count
-            let offsets = UnsafeMutablePointer<Int>.allocate(capacity: 2 * n + 1)
+        func relation(_ rows: [(offsets: [Int], targets: [Int], colors: [Int])]) -> _RefinementRelation {
+            let m = rows.reduce(0) { $0 + $1.targets.count }
+            let offsets = UnsafeMutablePointer<Int>.allocate(capacity: n * rows.count + 1)
             let targets = UnsafeMutablePointer<Int>.allocate(capacity: max(m, 1))
             allocations.append(UnsafeMutableRawPointer(offsets))
             allocations.append(UnsafeMutableRawPointer(targets))
-            for v in 0 ... n { offsets[v] = go[v] }
-            for v in stride(from: 1, through: n, by: 1) { offsets[n + v] = gt.count + ho[v] }
-            for k in 0 ..< gt.count { targets[k] = gt[k] }
-            for k in 0 ..< ht.count { targets[gt.count + k] = ht[k] + n }
-            var weights: UnsafeMutablePointer<UInt64>? = nil
-            if !gc.isEmpty || !hc.isEmpty {
-                let w = UnsafeMutablePointer<UInt64>.allocate(capacity: max(m, 1))
-                allocations.append(UnsafeMutableRawPointer(w))
-                for k in 0 ..< gc.count { w[k] = _colorWeight(gc[k]) }
-                for k in 0 ..< hc.count { w[gt.count + k] = _colorWeight(hc[k]) }
-                weights = w
+            let colored = rows.contains { !$0.colors.isEmpty }
+            let weights: UnsafeMutablePointer<UInt64>? = colored ? .allocate(capacity: max(m, 1)) : nil
+            if let weights { allocations.append(UnsafeMutableRawPointer(weights)) }
+            offsets[0] = 0
+            var base = 0
+            for (part, row) in rows.enumerated() {
+                let shift = part * n
+                for v in 0 ..< n { offsets[shift + v + 1] = base + row.offsets[v + 1] }
+                for k in 0 ..< row.targets.count { targets[base + k] = row.targets[k] + shift }
+                if let weights {
+                    for k in 0 ..< row.colors.count { weights[base + k] = _colorWeight(row.colors[k]) }
+                }
+                base += row.targets.count
             }
             return _RefinementRelation(offsets: offsets, targets: targets, weights: weights)
         }
-        if g.isDirected {
-            relations.append(relation(g.inOffsets, g.inTargets, g.inColors, h.inOffsets, h.inTargets, h.inColors))
-            relations.append(relation(g.outOffsets, g.outTargets, g.outColors, h.outOffsets, h.outTargets, h.outColors))
-        } else {
-            relations.append(relation(g.outOffsets, g.outTargets, g.outColors, h.outOffsets, h.outTargets, h.outColors))
+        var relations: [_RefinementRelation] = []
+        if parts[0].isDirected {
+            relations.append(relation(parts.map { ($0.inOffsets, $0.inTargets, $0.inColors) }))
         }
+        relations.append(relation(parts.map { ($0.outOffsets, $0.outTargets, $0.outColors) }))
         self.relations = relations
         self.allocations = allocations
     }
@@ -73,6 +81,7 @@ func _colorWeight(_ id: Int) -> UInt64 {
     return (z ^ (z >> 31)) | 1
 }
 
+
 /// An ordered partition of `0..<count` refined to the coarsest equitable partition below it, with
 /// an undo trail (McKay 1981; McKay & Piperno 2014; bliss's sparse refinement, Junttila & Kaski
 /// 2007).
@@ -84,11 +93,20 @@ func _colorWeight(_ id: Int) -> UInt64 {
 /// Splitters wait in a queue; when a cell that is not queued splits, every fragment but a largest
 /// is queued (Hopcroft's rule, sound for counting refinement by McKay's lemma).
 ///
+/// The cells longer than `unit` (2 in balanced mode, where a cell of two is a matched pair, else 1)
+/// are kept in a list in position order, so that choosing a target cell does not scan the
+/// singletons. Removing a cell from the list keeps its own links, and the trail undoes every change
+/// in reverse order, so a removed cell goes back between the same neighbours (dancing links).
+///
 /// In balanced mode (isomorphism, on the union of G and H) every cell must hold as many vertices
 /// of G as of H; a split that breaks this fails the refinement, which is the search's pruning.
+/// Otherwise (one graph) the refinement is label-invariant: touched cells split in position order,
+/// and `trace` hashes the cell structure each step produces (the node invariant of nauty and bliss).
 final class _PartitionRefinement {
     let graph: _RefinementGraph
     let count: Int
+    let unit: Int
+    let invariant: Bool
     let elements: UnsafeMutablePointer<Int>
     let position: UnsafeMutablePointer<Int>
     let cellOf: UnsafeMutablePointer<Int>
@@ -105,15 +123,39 @@ final class _PartitionRefinement {
     let counts: UnsafeMutablePointer<UInt64>
     /// The starts of the cells created, in order; at most `count - 1` at a time.
     let trail: UnsafeMutablePointer<Int>
+    /// The list of cells longer than `unit`, by cell start; `count` is the head.
+    let nextCell: UnsafeMutablePointer<Int>
+    let previousCell: UnsafeMutablePointer<Int>
+    let listed: UnsafeMutablePointer<Bool>
     var trailCount = 0
     var cellCount = 0
     var queueHead = 0
     var queueCount = 0
+    /// A hash of the splits since it was last reset (single-graph mode only): updated at each
+    /// event (a splitter taken from the queue, a cell split, an individualization, the end).
+    var trace: UInt64 = 0
+    /// When set, the value of `trace` after each event is appended to `recorded`.
+    var recording = false
+    var recorded: [UInt64] = []
+    /// When set, the events are compared with `firstReference` (while `equalsFirst`) and
+    /// `bestReference` (while `comparedToBest == 0`) as they happen, and the refinement stops
+    /// (`refine()` returns false) once it can no longer equal the first and is not greater than the
+    /// best (any more than the first, when `!canonical`).
+    var checking = false
+    var canonical = false
+    var equalsFirst = false
+    var comparedToBest = 0
+    var firstReference: [UInt64] = []
+    var bestReference: [UInt64] = []
+    var eventIndex = 0
+    var diverged = false
 
     init(_ graph: _RefinementGraph) {
         self.graph = graph
         let n = max(graph.count, 1)
         count = graph.count
+        unit = graph.balanced ? 2 : 1
+        invariant = !graph.balanced
         elements = .allocate(capacity: n)
         position = .allocate(capacity: n)
         cellOf = .allocate(capacity: n)
@@ -128,24 +170,12 @@ final class _PartitionRefinement {
         splitter = .allocate(capacity: n)
         counts = .allocate(capacity: n)
         trail = .allocate(capacity: n)
-    }
-
-    /// A copy with the same partition, trail and queue, sharing the graph.
-    convenience init(copying other: _PartitionRefinement) {
-        self.init(other.graph)
-        let n = count
-        elements.update(from: other.elements, count: n)
-        position.update(from: other.position, count: n)
-        cellOf.update(from: other.cellOf, count: n)
-        cellLength.update(from: other.cellLength, count: n)
-        sideCount.update(from: other.sideCount, count: n)
-        inQueue.update(from: other.inQueue, count: n)
-        queue.update(from: other.queue, count: n)
-        trail.update(from: other.trail, count: n)
-        trailCount = other.trailCount
-        cellCount = other.cellCount
-        queueHead = other.queueHead
-        queueCount = other.queueCount
+        nextCell = .allocate(capacity: n + 1)
+        previousCell = .allocate(capacity: n + 1)
+        listed = .allocate(capacity: n)
+        listed.initialize(repeating: false, count: n)
+        nextCell[count] = count
+        previousCell[count] = count
     }
 
     deinit {
@@ -161,7 +191,120 @@ final class _PartitionRefinement {
         splitter.deallocate()
         counts.deallocate()
         trail.deallocate()
+        nextCell.deallocate()
+        previousCell.deallocate()
+        listed.deallocate()
     }
+
+    /// Whether every cell is a unit (a matched pair, or a single vertex).
+    @inline(__always)
+    var isDiscrete: Bool { nextCell[count] == count }
+
+    @inline(__always)
+    func mix(_ x: Int) {
+        var z = (trace ^ UInt64(bitPattern: Int64(x))) &* 0x9E37_79B9_7F4A_7C15
+        z ^= z >> 32
+        trace = z
+        if recording { recorded.append(z) }
+        if checking { check(z) }
+    }
+
+    /// Compares event `eventIndex` with the references.
+    private func check(_ z: UInt64) {
+        let i = eventIndex
+        eventIndex += 1
+        if equalsFirst && (i >= firstReference.count || firstReference[i] != z) { equalsFirst = false }
+        if comparedToBest == 0 {
+            if i >= bestReference.count {
+                comparedToBest = 1
+            } else if bestReference[i] != z {
+                comparedToBest = z < bestReference[i] ? -1 : 1
+            }
+        }
+        if !equalsFirst && (!canonical || comparedToBest < 0) { diverged = true }
+    }
+
+    /// Sets up the comparison of the next refinement's events: `first` and `best` are the events of
+    /// the reference nodes at the same depth (nil: none), `equalsFirst` and `comparedToBest` the
+    /// parent's standing.
+    func startChecking(first: [UInt64]?, best: [UInt64]?, equalsFirst: Bool, comparedToBest: Int, canonical: Bool) {
+        checking = true
+        self.canonical = canonical
+        eventIndex = 0
+        diverged = false
+        self.equalsFirst = equalsFirst && first != nil
+        firstReference = first ?? []
+        self.comparedToBest = comparedToBest
+        bestReference = best ?? []
+        if comparedToBest == 0 && best == nil { self.comparedToBest = 1 }
+        if !canonical { self.comparedToBest = -1 }
+    }
+
+    // MARK: the list of cells longer than `unit`
+
+    @inline(__always)
+    private func link(_ c: Int, after a: Int) {
+        let b = nextCell[a]
+        nextCell[c] = b
+        previousCell[c] = a
+        nextCell[a] = c
+        previousCell[b] = c
+        listed[c] = true
+    }
+
+    /// Takes `c` out of the list, keeping its own links for `relink`.
+    @inline(__always)
+    private func unlink(_ c: Int) {
+        nextCell[previousCell[c]] = nextCell[c]
+        previousCell[nextCell[c]] = previousCell[c]
+        listed[c] = false
+    }
+
+    @inline(__always)
+    private func relink(_ c: Int) {
+        nextCell[previousCell[c]] = c
+        previousCell[nextCell[c]] = c
+        listed[c] = true
+    }
+
+    /// The list's part of one split: cell `x`, covering `x..<end`, gives `f..<end` to a new cell.
+    @inline(__always)
+    private func listSplit(_ x: Int, _ f: Int, _ end: Int) {
+        if end - f > unit { link(f, after: x) }
+        if f - x <= unit && listed[x] { unlink(x) }
+    }
+
+    /// The first smallest cell longer than `unit`, or -1 when the partition is discrete.
+    func firstSmallestCell() -> Int {
+        var best = -1, bestLength = Int.max
+        var c = nextCell[count]
+        while c != count {
+            let length = cellLength[c]
+            if length < bestLength {
+                best = c
+                bestLength = length
+                if length == unit + 1 { break }
+            }
+            c = nextCell[c]
+        }
+        return best
+    }
+
+    /// The first largest cell longer than `unit`, or -1 when the partition is discrete.
+    func firstLargestCell() -> Int {
+        var best = -1, bestLength = 0
+        var c = nextCell[count]
+        while c != count {
+            if cellLength[c] > bestLength {
+                best = c
+                bestLength = cellLength[c]
+            }
+            c = nextCell[c]
+        }
+        return best
+    }
+
+    // MARK: refinement
 
     /// The partition into colour classes (ids `0..<colorCount`, in id order), every cell queued.
     /// Returns false when a class is unbalanced. `colors` empty means one class.
@@ -170,15 +313,19 @@ final class _PartitionRefinement {
         trailCount = 0
         queueHead = 0
         queueCount = 0
+        nextCell[n] = n
+        previousCell[n] = n
         guard n > 0 else {
             cellCount = 0
             return true
         }
+        for v in 0 ..< n { listed[v] = false }
         if colors.isEmpty {
             for v in 0 ..< n { elements[v] = v; position[v] = v; cellOf[v] = 0 }
             cellLength[0] = n
             sideCount[0] = graph.half < n ? graph.half : n
             cellCount = 1
+            if n > unit { link(0, after: n) }
             enqueue(0)
             return !graph.balanced || 2 * sideCount[0] == n
         }
@@ -196,6 +343,7 @@ final class _PartitionRefinement {
         }
         cellCount = 0
         var ok = true
+        var last = n
         for c in 0 ..< classes where starts[c + 1] > starts[c] {
             let s = starts[c], length = starts[c + 1] - s
             var side = 0
@@ -203,6 +351,10 @@ final class _PartitionRefinement {
             cellLength[s] = length
             sideCount[s] = side
             cellCount += 1
+            if length > unit {
+                link(s, after: last)
+                last = s
+            }
             if graph.balanced && 2 * side != length { ok = false }
             enqueue(s)
         }
@@ -246,14 +398,15 @@ final class _PartitionRefinement {
         sideCount[s] = side
         cellLength[c] = length - 2
         sideCount[c] -= side
+        listSplit(c, s, end)
         trail[trailCount] = s
         trailCount += 1
         cellCount += 1
         enqueue(s)
     }
 
-    /// Gives `u` (in a cell of length at least 2) a cell of its own, queued. Phase 2's
-    /// individualization on a single graph.
+    /// Gives `u` (in a cell of length at least 2) a cell of its own at the cell's end, queued: the
+    /// individualization on one graph.
     func individualize(_ u: Int) {
         let c = cellOf[u]
         let length = cellLength[c]
@@ -265,9 +418,14 @@ final class _PartitionRefinement {
         sideCount[s] = side
         cellLength[c] = length - 1
         sideCount[c] -= side
+        listSplit(c, s, s + 1)
         trail[trailCount] = s
         trailCount += 1
         cellCount += 1
+        if invariant {
+            mix(c)
+            mix(length)
+        }
         enqueue(s)
     }
 
@@ -290,7 +448,10 @@ final class _PartitionRefinement {
             let previous = cellOf[elements[s - 1]]
             let length = cellLength[s]
             for p in s ..< s + length { cellOf[elements[p]] = previous }
-            cellLength[previous] += length
+            let merged = cellLength[previous] + length
+            if merged > unit && !listed[previous] { relink(previous) }
+            if listed[s] { unlink(s) }
+            cellLength[previous] = merged
             sideCount[previous] += sideCount[s]
             cellCount -= 1
         }
@@ -300,6 +461,10 @@ final class _PartitionRefinement {
     /// becomes unbalanced; the splits made stay on the trail for `undo(to:)`.
     func refine() -> Bool {
         let relations = graph.relations
+        if diverged {
+            abandonQueue()
+            return false
+        }
         while queueCount > 0 {
             let s = queue[queueHead]
             queueHead += 1
@@ -307,16 +472,30 @@ final class _PartitionRefinement {
             queueCount -= 1
             inQueue[s] = false
             let length = cellLength[s]
+            if invariant {
+                mix(s)
+                mix(length)
+            }
             // A copy: splitting may permute the splitter's own cell.
             splitter.update(from: elements + s, count: length)
             for relation in relations {
                 let ok = relation.weights == nil
                     ? split(length, relation.offsets, relation.targets)
                     : split(length, relation.offsets, relation.targets, relation.weights!)
-                if !ok {
+                if !ok || diverged {
                     abandonQueue()
                     return false
                 }
+            }
+        }
+        if invariant {
+            mix(cellCount)
+            if checking {
+                // A sequence that stops early is less than one that goes on.
+                if equalsFirst && eventIndex != firstReference.count { equalsFirst = false }
+                if comparedToBest == 0 && eventIndex < bestReference.count { comparedToBest = -1 }
+                if !equalsFirst && (!canonical || comparedToBest < 0) { diverged = true }
+                if diverged { return false }
             }
         }
         return true
@@ -399,6 +578,11 @@ final class _PartitionRefinement {
     }
 
     private func splitTouched(_ touched: Int) -> Bool {
+        if invariant && touched > 1 {
+            // Position order, so that the splits do not depend on the vertex numbering.
+            var region = UnsafeMutableBufferPointer(start: touchedCells, count: touched)
+            region.sort()
+        }
         var ok = true
         for t in 0 ..< touched {
             let c = touchedCells[t]
@@ -430,9 +614,15 @@ final class _PartitionRefinement {
             keptEnd = first + 1
             while keptEnd < end && counts[elements[keptEnd]] == low { keptEnd += 1 }
         }
+        if invariant {
+            mix(c)
+            mix(keptEnd - c)
+            if marked == length { mix(Int(truncatingIfNeeded: low)) }
+        }
         var keptSide = sideCount[c]
         var largest = c, largestLength = keptEnd - c
         var balanced = true
+        var previous = c
         var groupStart = keptEnd
         while groupStart < end {
             let key = counts[elements[groupStart]]
@@ -448,9 +638,15 @@ final class _PartitionRefinement {
             cellLength[groupStart] = groupLength
             sideCount[groupStart] = side
             keptSide -= side
+            listSplit(previous, groupStart, end)
+            previous = groupStart
             trail[trailCount] = groupStart
             trailCount += 1
             cellCount += 1
+            if invariant {
+                mix(groupLength)
+                mix(Int(truncatingIfNeeded: key))
+            }
             if 2 * side != groupLength { balanced = false }
             if wasQueued {
                 enqueue(groupStart)

@@ -34,7 +34,9 @@ extension Graph {
     /// Each mapping reads from this graph to `other`: `images` lists the image of each vertex in
     /// `vertices` order. The order of the sequence is fixed for given inputs but not specified.
     ///
-    /// Found by individualization–refinement: VF2++'s order over the classes of joint colour refinement, refined again after each assignment. Set-up O((n + m) log n); the search is exponential in the worst case.
+    /// Found by individualization–refinement. The first mapping comes from a search on both graphs at once, refined jointly after each assignment (most pairs are decided by the first refinement or a few assignments); when that search outgrows a small budget, the graphs are split into connected components and get canonical labelings by the engine of `automorphismGroup()` (automorphism pruning, as nauty and bliss), and the pair is isomorphic exactly when the certificates agree. The rest of the sequence is the first mapping composed with each automorphism of this graph, O(n) per mapping after the group is found. Set-up O((n + m) log n); the search is exponential in the worst case.
+    ///
+    /// A cancelled task ends the sequence (nil from `next()`; checked every few hundred search nodes), so `isIsomorphic(to:)` and `isomorphism(to:)` return false and nil. Wrap a call in a task with a deadline to bound it.
     @inlinable
     public func isomorphisms<Other: Graph>(to other: Other) -> Isomorphisms<Self, Other> {
         _matchings(to: other, .isomorphism, vertexColors: ([], []), edgeColors: ([], []))
@@ -75,6 +77,13 @@ extension Graph {
     }
 
     /// Whether `isomorphisms(to:)` is not empty.
+    ///
+    /// Families that remain hard (exponential for every individualization–refinement solver,
+    /// this one included): Miyazaki graphs and other rigid graphs built from CFI gadgets, where
+    /// refinement does not tell vertices apart and no automorphism prunes the search; and very large
+    /// automorphism groups on dense graphs, where each search node costs a dense refinement.
+    /// Strongly regular pairs, twisted CFI pairs and disjoint unions of equal components are
+    /// handled by the automorphism pruning (milliseconds at a few hundred vertices).
     @inlinable
     public func isIsomorphic<Other: Graph>(to other: Other) -> Bool {
         isomorphism(to: other) != nil
@@ -98,7 +107,7 @@ extension Graph {
     /// Each mapping reads from this graph to `other`: `images` lists the image of each vertex in
     /// `vertices` order. The order of the sequence is fixed for given inputs but not specified.
     ///
-    /// Found by VF2++ (Jüttner & Madarasi 2018). Set-up O(n + m); the search is exponential in the pattern's size in the worst case (the problem is NP-complete).
+    /// Found by VF2++ (Jüttner & Madarasi 2018). Set-up O(n + m); the search is exponential in the pattern's size in the worst case (the problem is NP-complete). A cancelled task ends the sequence (checked every 4,096 search steps).
     @inlinable
     public func subgraphIsomorphisms<Other: Graph>(to other: Other) -> Isomorphisms<Self, Other> {
         _matchings(to: other, .subgraphIsomorphism, vertexColors: ([], []), edgeColors: ([], []))
@@ -162,7 +171,7 @@ extension Graph {
     /// Each mapping reads from this graph to `other`: `images` lists the image of each vertex in
     /// `vertices` order. The order of the sequence is fixed for given inputs but not specified.
     ///
-    /// Found by VF2++ (Jüttner & Madarasi 2018). Set-up O(n + m); the search is exponential in the pattern's size in the worst case (the problem is NP-complete).
+    /// Found by VF2++ (Jüttner & Madarasi 2018). Set-up O(n + m); the search is exponential in the pattern's size in the worst case (the problem is NP-complete). A cancelled task ends the sequence (checked every 4,096 search steps).
     @inlinable
     public func monomorphisms<Other: Graph>(to other: Other) -> Isomorphisms<Self, Other> {
         _matchings(to: other, .monomorphism, vertexColors: ([], []), edgeColors: ([], []))
