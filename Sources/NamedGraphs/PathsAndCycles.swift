@@ -63,7 +63,7 @@ extension _GraphConstruction {
     /// - Precondition: `vertexCount ≥ 0`.
     @inlinable
     public static func path(vertexCount n: Int) -> Self {
-        Self(_vertexCount: n, sortedEdges: _pathPairs(n).lazy.map(_undirected))
+        Self(_vertexCount: n, sortedEdges: _pathPairs(n).lazy.map(_undirected), _ConstructionToken())
     }
 
     /// The cycle Cₙ on `0..<vertexCount`: edges i–(i + 1 mod n), sorted, so the closing edge
@@ -73,7 +73,7 @@ extension _GraphConstruction {
     ///   NetworkX returns those, and we trap.
     @inlinable
     public static func cycle(vertexCount n: Int) -> Self {
-        Self(_vertexCount: n, sortedEdges: _cyclePairs(n, directed: false).lazy.map(_undirected))
+        Self(_vertexCount: n, sortedEdges: _cyclePairs(n, directed: false).lazy.map(_undirected), _ConstructionToken())
     }
 
     /// The star on `vertexCount` vertices: hub 0 and leaves `1..<n`, edges 0–i. Counts every
@@ -83,7 +83,7 @@ extension _GraphConstruction {
     /// - Precondition: `vertexCount ≥ 1`, for the hub.
     @inlinable
     public static func star(vertexCount n: Int) -> Self {
-        Self(_vertexCount: n, sortedEdges: _starPairs(n).lazy.map(_undirected))
+        Self(_vertexCount: n, sortedEdges: _starPairs(n).lazy.map(_undirected), _ConstructionToken())
     }
 
     /// The wheel on `vertexCount` vertices: hub 0, the spokes 0–i, and the rim cycle
@@ -92,7 +92,7 @@ extension _GraphConstruction {
     /// - Precondition: `vertexCount ≥ 4`, so the rim is a cycle.
     @inlinable
     public static func wheel(vertexCount n: Int) -> Self {
-        Self(_vertexCount: n, sortedEdges: _wheelPairs(n, directed: false).lazy.map(_undirected))
+        Self(_vertexCount: n, sortedEdges: _wheelPairs(n, directed: false).lazy.map(_undirected), _ConstructionToken())
     }
 }
 
@@ -103,7 +103,7 @@ extension _DirectedGraphConstruction {
     /// - Precondition: `vertexCount ≥ 0`.
     @inlinable
     public static func path(vertexCount n: Int) -> Self {
-        Self(_vertexCount: n, sortedEdges: _pathPairs(n))
+        Self(_vertexCount: n, sortedEdges: _pathPairs(n), _ConstructionToken())
     }
 
     /// The directed cycle on `0..<vertexCount`: arcs i → (i + 1 mod n), in row-major order. O(n).
@@ -111,7 +111,7 @@ extension _DirectedGraphConstruction {
     /// - Precondition: `vertexCount ≥ 3`, as for the undirected cycle.
     @inlinable
     public static func cycle(vertexCount n: Int) -> Self {
-        Self(_vertexCount: n, sortedEdges: _cyclePairs(n, directed: true))
+        Self(_vertexCount: n, sortedEdges: _cyclePairs(n, directed: true), _ConstructionToken())
     }
 
     /// The out-star: arcs from hub 0 to each leaf in `1..<n`. O(n).
@@ -119,7 +119,7 @@ extension _DirectedGraphConstruction {
     /// - Precondition: `vertexCount ≥ 1`.
     @inlinable
     public static func star(vertexCount n: Int) -> Self {
-        Self(_vertexCount: n, sortedEdges: _starPairs(n))
+        Self(_vertexCount: n, sortedEdges: _starPairs(n), _ConstructionToken())
     }
 
     /// The directed wheel: the out-star from hub 0 and the rim cycle 1 → 2 → … → n − 1 → 1, in
@@ -128,7 +128,7 @@ extension _DirectedGraphConstruction {
     /// - Precondition: `vertexCount ≥ 4`.
     @inlinable
     public static func wheel(vertexCount n: Int) -> Self {
-        Self(_vertexCount: n, sortedEdges: _wheelPairs(n, directed: true))
+        Self(_vertexCount: n, sortedEdges: _wheelPairs(n, directed: true), _ConstructionToken())
     }
 }
 

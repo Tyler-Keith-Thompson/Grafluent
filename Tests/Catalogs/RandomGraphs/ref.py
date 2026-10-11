@@ -274,8 +274,15 @@ def ba_set_order_is_ascending(n, m, seed):
     return True
 
 
-def watts_strogatz(n, k, p, rng):
-    """NetworkX watts_strogatz_graph, draw for draw."""
+def both_arcs(r):
+    """The directed form of a symmetric family: both arcs of every edge (as complete and grid)."""
+    return R(r.n, r.edges + [(v, u) for u, v in r.edges], True, positions=r.positions)
+
+
+def watts_strogatz(n, k, p, rng, directed=False):
+    """NetworkX watts_strogatz_graph, draw for draw; directed, both arcs of every edge."""
+    if directed:
+        return both_arcs(watts_strogatz(n, k, p, rng))
     _count(n)
     require(isinstance(k, int) and k >= 0 and k % 2 == 0, f"nearestNeighborCount {k} is not even")
     require(k <= n, f"nearestNeighborCount {k} > vertexCount {n}")
@@ -307,9 +314,12 @@ def watts_strogatz(n, k, p, rng):
     return R(n, [(u, v) for u in range(n) for v in adj[u] if u < v], False)
 
 
-def random_geometric(n, radius, rng, dimension=2):
+def random_geometric(n, radius, rng, dimension=2, directed=False):
     """NetworkX random_geometric_graph (Euclidean): positions vertex by vertex, coordinate by
-    coordinate; u–v when sum of (a - b)^2 <= radius^2, summed in coordinate order."""
+    coordinate; u–v when sum of (a - b)^2 <= radius^2, summed in coordinate order. Directed: both
+    arcs of every edge."""
+    if directed:
+        return both_arcs(random_geometric(n, radius, rng, dimension))
     _count(n)
     require(isinstance(radius, float) and not math.isnan(radius) and radius >= 0.0, f"radius {radius} is negative or NaN")
     require(dimension >= 1, f"dimension {dimension} < 1")
@@ -324,6 +334,100 @@ def random_geometric(n, radius, rng, dimension=2):
             if s <= r2:
                 edges.append((u, v))
     return R(n, edges, False, positions=pos)
+
+
+def random_regular(n, d, rng, directed=False):
+    """NetworkX random_regular_graph(d, n): the stubs 0..<n repeated d times, shuffled by CPython's
+    shuffle (i from the last index down to 1, swapped with below(i + 1)) and paired in order; a
+    self-loop or repeat keeps both stubs, by vertex in first-kept order, for the next round; a
+    round whose kept vertices cannot form a new edge restarts the attempt. Directed: both arcs."""
+    if directed:
+        return both_arcs(random_regular(n, d, rng))
+    _count(n)
+    require(isinstance(d, int) and 0 <= d < n, f"degree {d} is not in 0..<{n}")
+    require(n * d % 2 == 0, f"vertexCount × degree {n * d} is odd")
+    if d == 0:
+        return R(n, [], False)
+
+    def shuffle(x):
+        for i in reversed(range(1, len(x))):
+            j = rng.below(i + 1)
+            x[i], x[j] = x[j], x[i]
+
+    while True:
+        edges = set()
+        order = []
+        stubs = list(range(n)) * d
+        failed = False
+        while stubs:
+            kept = {}
+            shuffle(stubs)
+            for k in range(0, len(stubs) - 1, 2):
+                u, v = min(stubs[k], stubs[k + 1]), max(stubs[k], stubs[k + 1])
+                if u != v and (u, v) not in edges:
+                    edges.add((u, v))
+                    order.append((u, v))
+                else:
+                    kept[u] = kept.get(u, 0) + 1
+                    kept[v] = kept.get(v, 0) + 1
+            keys = list(kept)
+            suitable = not keys
+            # NetworkX's _suitable, quirk included: swapping s1 and s2 rebinds s1 for the rest of
+            # the inner loop, so after the first larger s1 it walks on from the smaller vertex.
+            for x in keys:
+                s1 = x
+                for y in keys:
+                    if s1 == y:
+                        break
+                    a, b = min(s1, y), max(s1, y)
+                    s1 = a
+                    if (a, b) not in edges:
+                        suitable = True
+                        break
+                if suitable:
+                    break
+            if not suitable:
+                failed = True
+                break
+            stubs = [v for v in keys for _ in range(kept[v])]
+        if not failed:
+            return R(n, order, False)
+
+
+def random_bipartite(a, b, p, rng, directed=False):
+    """NetworkX bipartite.random_graph(a, b, p, directed=): left 0..<a, right a..<a + b; one
+    Batagelj–Brandes sweep over the pairs (v, w), v then w, left → right; directed, a second sweep
+    right → left. p = 1: every left–right pair (both arcs when directed), no draws."""
+    require(isinstance(a, int) and a >= 0, f"leftCount {a} is negative")
+    require(isinstance(b, int) and b >= 0, f"rightCount {b} is negative")
+    _probability(p, "edgeProbability")
+    pairs = [(v, a + w) for v in range(a) for w in range(b)]
+    if p >= 1.0:
+        return R(a + b, pairs + ([(y, x) for x, y in pairs] if directed else []), directed)
+    if p <= 0.0:
+        return R(a + b, [], directed)
+    lp = math.log(1.0 - p)
+    if lp == 0.0:
+        return R(a + b, [], directed)
+    edges = []
+
+    def sweep(emit):
+        v, w = 0, -1
+        while v < a:
+            skip = math.log(1.0 - rng.uniform01()) / lp
+            if not skip < a * b:
+                return
+            w = w + 1 + int(skip)
+            while w >= b and v < a:
+                w -= b
+                v += 1
+            if v < a:
+                emit(v, a + w)
+
+    sweep(lambda v, w: edges.append((v, w)))
+    if directed:
+        sweep(lambda v, w: edges.append((w, v)))
+    return R(a + b, edges, directed)
 
 
 def sbm(sizes, P, rng, directed=False):
@@ -454,6 +558,15 @@ def nx_same(kind, args, seed, result):
     elif kind == "ws":
         n, k, p = args
         H = nx.watts_strogatz_graph(n, k, p, seed=r)
+    elif kind == "reg":
+        n, d = args
+        H = nx.random_regular_graph(d, n, seed=r)
+    elif kind == "bip":
+        a, b, p = args
+        if result.directed and p >= 1.0:  # NetworkX returns the undirected K(a, b) there
+            H = nx.complete_bipartite_graph(a, b)
+        else:
+            H = nx.bipartite.random_graph(a, b, p, seed=r, directed=result.directed)
     elif kind == "rgg":
         n, radius, dim = args
         H = nx.random_geometric_graph(n, radius, dim=dim, seed=r)
@@ -472,6 +585,8 @@ def nx_same(kind, args, seed, result):
         H = nx.random_labeled_tree(n, seed=r)
     else:
         raise AssertionError(kind)
+    if result.directed and not H.is_directed():  # both arcs of every edge
+        H = H.to_directed()
     return nx_key(H) == result.key()
 
 
@@ -546,7 +661,7 @@ def z_text(total, S, mean, var):
     return f"Σ {total} over seeds 0..<{S} (mean {obs:.4f}; expected {mean:.4f}; |z| {abs(z):.2f} ≤ 4)"
 
 
-CHI2_999 = {5: 20.515, 7: 24.322, 14: 36.123, 15: 37.697, 19: 43.820}
+CHI2_999 = {2: 13.816, 5: 20.515, 7: 24.322, 14: 36.123, 15: 37.697, 19: 43.820}
 
 
 def chi_text(counts, probs, S):
@@ -831,6 +946,89 @@ def build_rows():
     N = 60 * 59 // 2
     stat_row("RandomDAG", "law: E[m] = p·C(n, 2); topologicalOrder == 0..<n", "G(60, 0.1)", z_text(tot, S, N * 0.1, N * 0.1 * 0.9))
 
+    # ---- rows added after the review, numbered after the first 108 so those keep their IDs
+    # Directed forms of the symmetric families: both arcs of every edge.
+    exact_row("WattsStrogatz", "directed: both arcs of every edge, the undirected draws",
+              f"{CSR}.wattsStrogatz(vertexCount: 8, nearestNeighborCount: 2, rewiringProbability: 0.5, using: &Xoshiro256StarStar(seed: SEED))",
+              "ws", (8, 2, 0.5), 0, lambda rng: watts_strogatz(8, 2, 0.5, rng, True))
+    exact_row("RandomGeometric", "directed: both arcs of every edge, the undirected draws",
+              f"{CSR}.randomGeometric(vertexCount: 6, radius: 0.5, dimension: 2, using: &Xoshiro256StarStar(seed: SEED))",
+              "rgg", (6, 0.5, 2), 0, lambda rng: random_geometric(6, 0.5, rng, 2, True), show_positions=True)
+    # The grid's paths: cells, all pairs when 3^d > n, and r = 0 sized as a tiny radius.
+    exact_row("RandomGeometric", "n 30, radius 0.15, dimension 2: the grid of 5 × 5 cells",
+              f"{UL}.randomGeometric(vertexCount: 30, radius: 0.15, dimension: 2, using: &Xoshiro256StarStar(seed: SEED))",
+              "rgg", (30, 0.15, 2), 0, lambda rng: random_geometric(30, 0.15, rng, 2))
+    exact_row("RandomGeometric", "n 12, radius 0.6, dimension 3: 3^d > n, every pair checked",
+              f"{UL}.randomGeometric(vertexCount: 12, radius: 0.6, dimension: 3, using: &Xoshiro256StarStar(seed: SEED))",
+              "rgg", (12, 0.6, 3), 0, lambda rng: random_geometric(12, 0.6, rng, 3))
+    exact_row("RandomGeometric", "radius 0: only coincident points, on the grid sized as for a tiny radius",
+              f"{UL}.randomGeometric(vertexCount: 2000, radius: 0.0, dimension: 2, using: &Xoshiro256StarStar(seed: SEED))",
+              "rgg", (2000, 0.0, 2), 0, lambda rng: random_geometric(2000, 0.0, rng, 2))
+
+    # ---- random regular graphs
+    for n, d, seeds in ((8, 3, (0, 1)), (10, 4, (0,)), (4, 2, (42,)), (7, 6, (0,)), (6, 0, (0,))):
+        note = {0: "d = 0: no edges, no draws", n - 1: "d = n − 1: the complete graph, after any retries"}.get(d, "")
+        for s in seeds:
+            exact_row("RandomRegular", f"n {n}, d {d}" + (f": {note}" if note else ""),
+                      f"{UL}.randomRegular(vertexCount: {n}, degree: {d}, using: &Xoshiro256StarStar(seed: SEED))",
+                      "reg", (n, d), s, lambda rng, n=n, d=d: random_regular(n, d, rng))
+    exact_row("RandomRegular", "directed: both arcs of every edge, the undirected draws",
+              f"{CSR}.randomRegular(vertexCount: 6, degree: 2, using: &Xoshiro256StarStar(seed: SEED))",
+              "reg", (6, 2), 0, lambda rng: random_regular(6, 2, rng, True))
+    for case, fn in (("d = n", lambda rng: random_regular(5, 5, rng)),
+                     ("negative d", lambda rng: random_regular(5, -1, rng)),
+                     ("n·d odd", lambda rng: random_regular(5, 3, rng)),
+                     ("negative vertex count", lambda rng: random_regular(-1, 0, rng))):
+        trap_row("RandomRegular", case, f"{UL}.randomRegular(…)", fn)
+    S = 50
+    for s in range(S):
+        r = random_regular(100, 3, Xoshiro256StarStar(s))
+        d = [0] * 100
+        for u, v in r.edges:
+            d[u] += 1
+            d[v] += 1
+        assert len(r.edges) == 150 and d == [3] * 100
+    stat_row("RandomRegular", "laws: nd/2 edges, every vertex of degree d, simple", "n 100, d 3, seeds 0..<50",
+             "hold for every seed (igraph is_simple)")
+    counts = {}
+    S2 = 3000
+    for s in range(S2):
+        e = tuple(random_regular(4, 2, Xoshiro256StarStar(s)).edges)
+        counts[e] = counts.get(e, 0) + 1
+    # The procedure commutes with relabeling (the shuffle is uniform), so it is uniform over each
+    # isomorphism class; every 2-regular graph on 4 vertices is a 4-cycle.
+    probs = {((0, 1), (0, 2), (1, 3), (2, 3)): 1 / 3, ((0, 1), (0, 3), (1, 2), (2, 3)): 1 / 3,
+             ((0, 2), (0, 3), (1, 2), (1, 3)): 1 / 3}
+    stat_row("RandomRegular", "law: uniform over the 3 labeled 4-cycles (one isomorphism class)", "n 4, d 2",
+             chi_text(counts, probs, S2))
+
+    # ---- random bipartite graphs
+    for a, b, p, seeds in ((4, 5, 0.4, (0, 1)), (3, 3, 0.5, (42,)), (0, 4, 0.5, (0,)), (3, 0, 0.5, (0,))):
+        for s in seeds:
+            exact_row("RandomBipartite", f"G({a}, {b}, {p}): left 0..<{a}, right {a}..<{a + b}",
+                      f"{UL}.randomBipartite(leftCount: {a}, rightCount: {b}, edgeProbability: {p}, using: &Xoshiro256StarStar(seed: SEED))",
+                      "bip", (a, b, p), s, lambda rng, a=a, b=b, p=p: random_bipartite(a, b, p, rng))
+    exact_row("RandomBipartite", "p = 0: no edges, no draws",
+              f"{UL}.randomBipartite(leftCount: 2, rightCount: 3, edgeProbability: 0.0, using: &…)",
+              "bip", (2, 3, 0.0), 0, lambda rng: random_bipartite(2, 3, 0.0, rng))
+    exact_row("RandomBipartite", "p = 1: complete bipartite, no draws",
+              f"{UL}.randomBipartite(leftCount: 2, rightCount: 3, edgeProbability: 1.0, using: &…)",
+              "bip", (2, 3, 1.0), 0, lambda rng: random_bipartite(2, 3, 1.0, rng))
+    for s in (0, 1):
+        exact_row("RandomBipartite", "directed: a left → right sweep, then a right → left sweep",
+                  f"{CSR}.randomBipartite(leftCount: 3, rightCount: 4, edgeProbability: 0.3, using: &Xoshiro256StarStar(seed: SEED))",
+                  "bip", (3, 4, 0.3), s, lambda rng: random_bipartite(3, 4, 0.3, rng, True))
+    for case, fn in (("negative left count", lambda rng: random_bipartite(-1, 3, 0.5, rng)),
+                     ("negative right count", lambda rng: random_bipartite(3, -1, 0.5, rng)),
+                     ("p > 1", lambda rng: random_bipartite(3, 3, 1.5, rng)),
+                     ("p NaN", lambda rng: random_bipartite(3, 3, float("nan"), rng))):
+        trap_row("RandomBipartite", case, f"{UL}.randomBipartite(…)", fn)
+    S = 200
+    tot = sum(len(random_bipartite(30, 20, 0.1, Xoshiro256StarStar(s)).edges) for s in range(S))
+    stat_row("RandomBipartite", "law: E[m] = a·b·p", "G(30, 20, 0.1) undirected", z_text(tot, S, 600 * 0.1, 600 * 0.1 * 0.9))
+    tot = sum(len(random_bipartite(30, 20, 0.1, Xoshiro256StarStar(s), True).edges) for s in range(S))
+    stat_row("RandomBipartite", "law: E[m] = 2·a·b·p", "G(30, 20, 0.1) directed", z_text(tot, S, 1200 * 0.1, 1200 * 0.1 * 0.9))
+
 
 HEADER = [
     "# RandomGraphs: case catalog",
@@ -897,6 +1095,11 @@ def stress():
             # our port of NetworkX's order reproduces NetworkX exactly
             r = barabasi_albert(30, 3, Xoshiro256StarStar(s), networkx_order=True)
             assert nx_key(nx.barabasi_albert_graph(30, 3, seed=StreamRandom(s))) == r.key(); checked += 1
+            for n, d in ((10, 3), (13, 4), (30, 2)):
+                assert nx_same("reg", (n, d), s, random_regular(n, d, Xoshiro256StarStar(s))); checked += 1
+            for a, b, p in ((5, 7, 0.3), (12, 3, 0.6)):
+                for d in (False, True):
+                    assert nx_same("bip", (a, b, p), s, random_bipartite(a, b, p, Xoshiro256StarStar(s), d)); checked += 1
             for sizes, P, d in (([4, 3], [[0.5, 0.2], [0.2, 0.7]], False), ([5, 2, 3], [[0.3, 0.1, 0.0], [0.4, 1.0, 0.2], [0.0, 0.2, 0.6]], True)):
                 res = nx_same("sbm", (sizes, P, d), s, sbm(sizes, P, Xoshiro256StarStar(s), d))
                 assert res in (True, None); checked += res is True

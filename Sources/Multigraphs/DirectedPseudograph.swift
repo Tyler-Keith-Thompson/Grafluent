@@ -19,7 +19,7 @@ public struct DirectedPseudograph<Vertex: Hashable> {
 
     /// The slot of each vertex.
     @usableFromInline
-    internal var _slots: [Vertex: Int]
+    internal var _slots: _VertexSlots<Vertex>
 
     /// For each slot, a row of the slots of its out-neighbors.
     @usableFromInline
@@ -50,7 +50,7 @@ public struct DirectedPseudograph<Vertex: Hashable> {
     @inlinable
     public init() {
         _vertices = []
-        _slots = [:]
+        _slots = _VertexSlots()
         _out = _RowPool()
         _outEdges = _RowPool()
         _in = _RowPool()
@@ -137,7 +137,7 @@ extension DirectedPseudograph {
     @inlinable
     public func contains(edge: DirectedEdge<Vertex>) -> Bool {
         guard let key = _key(edge.source, edge.target) else { return false }
-        return _parallel.classes[key] != nil
+        return _parallel.classes.contains(key)
     }
 
     /// The positions of every copy from `source` to `target`, oldest first. Empty when there is
@@ -374,7 +374,7 @@ extension DirectedPseudograph {
     /// looked it up), from both rows and from the edge array, moving each row's last entry and the
     /// last edge into the holes and recording where they went.
     @inlinable
-    internal mutating func _detach(_ position: Int, classIndex: [_SlotPair: Int].Index? = nil) {
+    internal mutating func _detach(_ position: Int, classIndex: Int? = nil) {
         let record = _records[position]
         if let classIndex { _parallel.unlink(position, at: classIndex) } else { _parallel.unlink(position, key: record.pair) }
         _ = _out.swapRemove(at: record.out, fromRow: record.source)

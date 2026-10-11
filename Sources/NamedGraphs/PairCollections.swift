@@ -188,3 +188,92 @@ extension _CrossPairs: Sendable {}
 package func _undirected(_ pair: DirectedEdge<Int>) -> UndirectedEdge<Int> {
     UndirectedEdge(pair.source, pair.target)
 }
+
+/// Both arcs of every edge in `pairs` (each `(u, v)` with u < v, in lexicographic order), in
+/// row-major order. A counting placement, not a sort: row v takes its smaller neighbors first, in
+/// one pass over the pairs (which meets them ascending), then its larger ones in a second. O(n + m).
+@usableFromInline
+func _bothArcs(vertexCount n: Int, _ pairs: [DirectedEdge<Int>]) -> [DirectedEdge<Int>] {
+    let m = pairs.count
+    precondition(m <= Int.max / 2, "edge count overflows Int")
+    var fill = [Int](repeating: 0, count: n + 1)
+    for pair in pairs {
+        fill[pair.source + 1] += 1
+        fill[pair.target + 1] += 1
+    }
+    for v in 0 ..< n { fill[v + 1] += fill[v] }
+    return [DirectedEdge<Int>](unsafeUninitializedCapacity: 2 * m) { arcs, initializedCount in
+        for pair in pairs {
+            arcs.initializeElement(at: fill[pair.target], to: DirectedEdge(from: pair.target, to: pair.source))
+            fill[pair.target] += 1
+        }
+        for pair in pairs {
+            arcs.initializeElement(at: fill[pair.source], to: DirectedEdge(from: pair.source, to: pair.target))
+            fill[pair.source] += 1
+        }
+        initializedCount = 2 * m
+    }
+}
+
+/// Every pair (u, v) with u and v in different parts and u < v, in lexicographic order: the edges
+/// of a complete multipartite graph whose parts are consecutive ranges of `0..<n`, ending at
+/// `ends` (empty parts dropped). A vertex's pairs start at the end of its own part. Computed as
+/// read, so no edge list is allocated; `count` is stored.
+@frozen
+@usableFromInline
+package struct _MultipartitePairs: Collection {
+    /// The end of each non-empty part, ascending; the last is n.
+    @usableFromInline let ends: [Int]
+    @usableFromInline let n: Int
+    @usableFromInline package let count: Int
+
+    @inlinable
+    package init(ends: [Int], count: Int) {
+        self.ends = ends
+        n = ends.last ?? 0
+        self.count = count
+    }
+
+    /// The pair (u, v), with u in part `part`.
+    @frozen
+    @usableFromInline
+    package struct Index: Comparable {
+        @usableFromInline var u: Int
+        @usableFromInline var v: Int
+        @usableFromInline var part: Int
+
+        @inlinable
+        init(u: Int, v: Int, part: Int) {
+            self.u = u
+            self.v = v
+            self.part = part
+        }
+
+        @inlinable
+        package static func == (a: Index, b: Index) -> Bool { a.u == b.u && a.v == b.v }
+
+        @inlinable
+        package static func < (a: Index, b: Index) -> Bool { (a.u, a.v) < (b.u, b.v) }
+    }
+
+    @inlinable package var startIndex: Index { ends.count < 2 ? endIndex : Index(u: 0, v: ends[0], part: 0) }
+    @inlinable package var endIndex: Index { Index(u: n, v: n, part: ends.count) }
+
+    @inlinable
+    package subscript(position: Index) -> DirectedEdge<Int> {
+        DirectedEdge(from: position.u, to: position.v)
+    }
+
+    @inlinable
+    package func index(after i: Index) -> Index {
+        if i.v &+ 1 < n { return Index(u: i.u, v: i.v &+ 1, part: i.part) }
+        let u = i.u &+ 1
+        let part = u == ends[i.part] ? i.part &+ 1 : i.part
+        // The last part's vertices have no larger neighbor in another part.
+        guard part < ends.count &- 1 else { return endIndex }
+        return Index(u: u, v: ends[part], part: part)
+    }
+}
+
+extension _MultipartitePairs: Sendable {}
+extension _MultipartitePairs.Index: Sendable {}

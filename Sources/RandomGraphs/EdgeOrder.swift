@@ -50,3 +50,13 @@ func _sortedRowMajor(_ n: Int, _ pairs: [DirectedEdge<Int>]) -> [DirectedEdge<In
     }
     return _sortedBySource(n, byTarget, [])
 }
+
+/// Both arcs of every pair, in row-major order, for the directed form of a symmetric family: from
+/// pairs u < v in lexicographic order, row x is its smaller neighbors (pairs (w, x), w ascending)
+/// then its larger ones (pairs (x, w), w ascending), so one stable pass by source sorts the
+/// reversed arcs followed by the pairs. O(n + m).
+@usableFromInline
+func _bothArcs(_ n: Int, _ pairs: [DirectedEdge<Int>]) -> [DirectedEdge<Int>] {
+    precondition(pairs.count <= Int.max / 2, "edge count overflows Int")
+    return _sortedBySource(n, pairs.map { DirectedEdge(from: $0.target, to: $0.source) }, pairs)
+}

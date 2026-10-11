@@ -2,7 +2,8 @@
 
 `NamedGraphs` builds the named families as static factories on the representation types:
 `complete`, `completeBipartite`, `path`, `cycle`, `star`, `wheel`, `grid`, `hypercube`, `petersen`
-and `empty`. The tests come from the proposed API (`api.md` in
+and `empty`, and from phase 1 `ladder`, `circularLadder`, `barbell`, `lollipop`,
+`completeMultipartite`, `turan` and `balancedTree`. The tests come from the proposed API (`api.md` in
 [`Tests/Catalogs/NamedGraphs/`](../Catalogs/NamedGraphs/)), with its open questions decided as
 recommended:
 
@@ -12,7 +13,8 @@ recommended:
   bits, Petersen as NetworkX numbers it);
 - `empty(vertexCount:)` is kept beside `init(vertexCount:)`;
 - `cycle` traps below 3 vertices and `wheel` below 4;
-- more `Tree` and `BipartiteGraph` shapes, and the generalized Petersen graph, are deferred.
+- more `BipartiteGraph` shapes, and the phase-2 families in api.md (the generalized Petersen graph
+  among them), are deferred; `Tree.balancedTree` is the one added `Tree` shape.
 
 The suite uses only the public API, and each test is self-contained. Nothing is shared but the tags
 in `GrafluentTestSupport`. The suite never names the underscored protocols. It calls the factories
@@ -24,9 +26,14 @@ on the concrete types.
 extension _GraphConstruction, _DirectedGraphConstruction {   // 3 undirected and 6 directed conformers
     static func complete(vertexCount:), completeBipartite(leftCount:rightCount:), path(vertexCount:),
         cycle(vertexCount:), star(vertexCount:), wheel(vertexCount:), grid(dimensions:periodic:),
-        hypercube(dimension:), petersen(), empty(vertexCount:)
+        hypercube(dimension:), petersen(), empty(vertexCount:),
+        ladder(rungCount:), circularLadder(rungCount:), barbell(cliqueVertexCount:pathVertexCount:),
+        lollipop(cliqueVertexCount:pathVertexCount:), completeMultipartite(partSizes:),
+        turan(vertexCount:partCount:), balancedTree(branchingFactor:height:)
 }
-extension Tree where Vertex == Int { static func path(vertexCount:), star(vertexCount:) }
+extension Tree where Vertex == Int {
+    static func path(vertexCount:), star(vertexCount:), balancedTree(branchingFactor:height:)
+}
 extension BipartiteGraph where Vertex == Int { static func completeBipartite(leftCount:rightCount:) }
 ```
 
@@ -39,8 +46,9 @@ The undirected conformers are `UndirectedAdjacencyList<Int>`, `Pseudograph<Int>`
 
 Every catalog row runs its family on all nine conformers. The undirected form runs on the three
 undirected types. The directed form runs on the six directed types, with one arc per edge along
-the natural orientation (path, cycle, star, wheel, complete bipartite) or both arcs (complete,
-grid, hypercube, Petersen). The catalog shows one form. `swiftgen.py` takes the other from
+the natural orientation (path, cycle, star, wheel, complete bipartite; complete multipartite and
+Turán from earlier part to later part; the balanced tree from parent to child) or both arcs
+(complete, grid, hypercube, Petersen, the ladders, barbell, lollipop). The catalog shows one form. `swiftgen.py` takes the other from
 `ref.py`'s model, which checks both against NetworkX 3.7 and igraph 1.0. Each run checks:
 
 - the vertex and edge counts, `vertices` as `0..<n` in order, and `vertexIndex(of:)` as the identity;
@@ -87,6 +95,12 @@ against its definition in api.md, which the test writes out:
 - hypercubes up to Q9;
 - Petersen as a strongly regular (10, 3, 0, 1) graph in NetworkX's numbering;
 - empty graphs;
+- ladders and circular ladders up to 30 rungs, against the rails-and-rungs definition;
+- barbells and lollipops with cliques of 2 to 9 and paths of 0 to 8, with connectivity;
+- complete multipartite graphs of up to 5 parts of up to 5, adjacency exactly across parts, and two
+  parts equal to `completeBipartite` on both kinds;
+- Turán graphs up to 25 vertices, their part sizes and Turán's edge bound;
+- balanced trees with r ≤ 4 and h ≤ 5, the parent rule and every degree, and `Tree.balancedTree`;
 - equality with the same graph built edge by edge, and mutation after a build.
 
 Every property builds all nine conformers and requires the same edges in the same order.

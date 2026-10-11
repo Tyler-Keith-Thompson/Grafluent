@@ -19,7 +19,7 @@ extension _GraphConstruction {
     /// `petersen_graph`, igraph `Famous("Petersen")` up to numbering). O(1).
     @inlinable
     public static func petersen() -> Self {
-        Self(_vertexCount: 10, sortedEdges: _petersenPairs.lazy.map(_undirected))
+        Self(_vertexCount: 10, sortedEdges: _petersenPairs.lazy.map(_undirected), _ConstructionToken())
     }
 }
 
@@ -27,6 +27,6 @@ extension _DirectedGraphConstruction {
     /// The Petersen graph with both arcs for every edge, 30 arcs in row-major order. O(1).
     @inlinable
     public static func petersen() -> Self {
-        Self(_vertexCount: 10, sortedEdges: _petersenArcs)
+        Self(_vertexCount: 10, sortedEdges: _petersenArcs, _ConstructionToken())
     }
 }

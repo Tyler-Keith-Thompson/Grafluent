@@ -130,7 +130,7 @@ extension _GraphConstruction {
         blockSizes: [Int], edgeProbabilities: [[Double]], using generator: inout some RandomNumberGenerator
     ) -> Self {
         let (n, pairs) = _blockModelPairs(blockSizes, edgeProbabilities, directed: false, &generator)
-        return Self(_vertexCount: n, sortedEdges: pairs.lazy.map(_undirected))
+        return Self(_vertexCount: n, sortedEdges: pairs.lazy.map(_undirected), _ConstructionToken())
     }
 
     /// `stochasticBlockModel(blockSizes:edgeProbabilities:using:)` with the system's random number
@@ -155,7 +155,7 @@ extension _DirectedGraphConstruction {
         blockSizes: [Int], edgeProbabilities: [[Double]], using generator: inout some RandomNumberGenerator
     ) -> Self {
         let (n, pairs) = _blockModelPairs(blockSizes, edgeProbabilities, directed: true, &generator)
-        return Self(_vertexCount: n, sortedEdges: pairs)
+        return Self(_vertexCount: n, sortedEdges: pairs, _ConstructionToken())
     }
 
     /// `stochasticBlockModel(blockSizes:edgeProbabilities:using:)` with the system's random number

@@ -13,7 +13,7 @@ extension _GraphConstruction {
     public static func complete(vertexCount n: Int) -> Self {
         _checkCount(n)
         precondition(_unorderedPairCount(n) != nil, "edge count overflows Int")
-        return Self(_vertexCount: n, sortedEdges: _AscendingPairs(n).lazy.map(_undirected))
+        return Self(_vertexCount: n, sortedEdges: _AscendingPairs(n).lazy.map(_undirected), _ConstructionToken())
     }
 
     /// The complete bipartite graph K_{a,b}: left side `0..<leftCount`, right side
@@ -25,7 +25,7 @@ extension _GraphConstruction {
     @inlinable
     public static func completeBipartite(leftCount a: Int, rightCount b: Int) -> Self {
         _checkCompleteBipartite(a, b)
-        return Self(_vertexCount: a + b, sortedEdges: _CrossPairs(a, b).lazy.map(_undirected))
+        return Self(_vertexCount: a + b, sortedEdges: _CrossPairs(a, b).lazy.map(_undirected), _ConstructionToken())
     }
 }
 
@@ -39,7 +39,7 @@ extension _DirectedGraphConstruction {
     public static func complete(vertexCount n: Int) -> Self {
         _checkCount(n)
         precondition(_orderedPairCount(n) != nil, "edge count overflows Int")
-        return Self(_vertexCount: n, sortedEdges: _DistinctPairs(n))
+        return Self(_vertexCount: n, sortedEdges: _DistinctPairs(n), _ConstructionToken())
     }
 
     /// K_{a,b} oriented from the left side `0..<leftCount` to the right side
@@ -50,7 +50,7 @@ extension _DirectedGraphConstruction {
     @inlinable
     public static func completeBipartite(leftCount a: Int, rightCount b: Int) -> Self {
         _checkCompleteBipartite(a, b)
-        return Self(_vertexCount: a + b, sortedEdges: _CrossPairs(a, b))
+        return Self(_vertexCount: a + b, sortedEdges: _CrossPairs(a, b), _ConstructionToken())
     }
 }
 

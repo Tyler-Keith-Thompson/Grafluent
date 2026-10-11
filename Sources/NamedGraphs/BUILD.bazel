@@ -3,7 +3,7 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Complete, complete bipartite, path, cycle, star, wheel, grid, hypercube and Petersen graphs.
+# Complete, complete bipartite and multipartite, Turán, path, cycle, star, wheel, ladder, circular ladder, barbell, lollipop, grid, hypercube, balanced tree and Petersen graphs.
 swift_library(
     name = "NamedGraphs",
     srcs = glob(["**/*.swift"]),

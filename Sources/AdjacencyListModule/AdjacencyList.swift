@@ -5,13 +5,15 @@ import GraphProtocols
 /// The vertex set is any set of `Hashable` values. The edge set is a set of ordered pairs of
 /// vertices: self-loops are allowed, parallel edges are not.
 ///
-/// Vertices are kept in dense slots, with a dictionary from vertex to slot. Edges are kept in an
+/// Vertices are kept in dense slots, with a dictionary from vertex to slot (none while the vertices
+/// are the `Int`s `0..<n` in order, each its own slot). Edges are kept in an
 /// array, so an edge's position in `edges` is an `Int` in `0..<edgeCount`, and a weight can live
 /// in an array beside the graph. Each slot has a row of the slots of its out-neighbors, a parallel
 /// row of those edges' positions, and a row of its in-neighbors; the rows of each kind share one
 /// array, so the graph makes a constant number of allocations however many vertices it has
-/// (amortized, like `Array`), and copying it copies a constant number of buffers. A dictionary from
-/// slot pair to position answers `contains(edge:)` in O(1).
+/// (amortized, like `Array`), and copying it copies a constant number of buffers. A hash table from
+/// slot pair to position (open addressing with a multiplicative hash, not `Dictionary`'s SipHash)
+/// answers `contains(edge:)` in O(1) expected.
 ///
 /// Removing an edge is O(1): the last edge moves into its position, and the last entry of each row
 /// into the hole. Removing a vertex costs O(degree) and moves the last slot into its place. So
@@ -24,7 +26,7 @@ public struct AdjacencyList<Vertex: Hashable> {
 
     /// The slot of each vertex.
     @usableFromInline
-    internal var _slots: [Vertex: Int]
+    internal var _slots: _VertexSlots<Vertex>
 
     /// For each slot, a row of the slots of its out-neighbors.
     @usableFromInline
@@ -49,19 +51,19 @@ public struct AdjacencyList<Vertex: Hashable> {
 
     /// The position of each edge, keyed by its pair of slots.
     @usableFromInline
-    internal var _edges: [_SlotPair: Int]
+    internal var _edges: _SlotPairTable<Int>
 
     /// The empty graph.
     @inlinable
     public init() {
         _vertices = []
-        _slots = [:]
+        _slots = _VertexSlots()
         _out = _RowPool()
         _outEdges = _RowPool()
         _in = _RowPool()
         _inEdges = _RowPool()
         _records = []
-        _edges = [:]
+        _edges = _SlotPairTable()
     }
 }
 
@@ -84,20 +86,6 @@ package struct _ArcRecord {
 
     @inlinable
     package var pair: _SlotPair { _SlotPair(source, target) }
-}
-
-/// An edge as a pair of slots.
-@frozen
-@usableFromInline
-package struct _SlotPair: Hashable {
-    @usableFromInline package var source: Int
-    @usableFromInline package var target: Int
-
-    @inlinable
-    package init(_ source: Int, _ target: Int) {
-        self.source = source
-        self.target = target
-    }
 }
 
 // MARK: - Construction
@@ -183,7 +171,7 @@ extension AdjacencyList {
     @inlinable
     public func contains(edge: DirectedEdge<Vertex>) -> Bool {
         guard let source = _slots[edge.source], let target = _slots[edge.target] else { return false }
-        return _edges[_SlotPair(source, target)] != nil
+        return _edges.contains(_SlotPair(source, target))
     }
 
     /// The vertices that `vertex` has an edge to. A self-loop puts `vertex` in its own
@@ -275,14 +263,14 @@ extension AdjacencyList {
     internal mutating func _insertEdge(slots source: Int, _ target: Int) -> Int {
         let pair = _SlotPair(source, target)
         // Checked before inserting, so inserting an existing edge never copies shared storage.
-        if let existing = _edges[pair] { return existing }
+        if let existing = _edges.index(forKey: pair) { return _edges.value(at: existing) }
         let position = _records.count
         let out = _out.append(target, toRow: source)
         _outEdges.append(position, toRow: source)
         let into = _in.append(source, toRow: target)
         _inEdges.append(position, toRow: target)
         _records.append(_ArcRecord(source: source, target: target, out: out, in: into))
-        _edges[pair] = position
+        _edges.insert(pair, position)
         return position
     }
 
@@ -332,7 +320,7 @@ extension AdjacencyList {
                     record.target = slot
                 }
                 _records[position] = record
-                _edges[record.pair] = position
+                _edges.insert(record.pair, position)
             }
             _vertices.swapAt(slot, last)
             _slots[moved] = slot
@@ -380,7 +368,7 @@ extension AdjacencyList {
             _records[position] = moved
             _outEdges[row: moved.source, moved.out] = position
             _inEdges[row: moved.target, moved.in] = position
-            _edges[moved.pair] = position
+            _edges.updateValue(position, forKey: moved.pair)
         }
         _records.removeLast()
     }
@@ -524,14 +512,14 @@ extension AdjacencyList: Equatable {
         guard lhs.vertexCount == rhs.vertexCount, lhs.edgeCount == rhs.edgeCount else { return false }
         // Same slots (a copy, or the same insertions): compare slot pairs without hashing vertices.
         if lhs._vertices == rhs._vertices {
-            for pair in lhs._edges.keys where rhs._edges[pair] == nil { return false }
+            for record in lhs._records where !rhs._edges.contains(record.pair) { return false }
             return true
         }
         for v in lhs._vertices where rhs._slots[v] == nil { return false }
-        for pair in lhs._edges.keys {
-            guard let source = rhs._slots[lhs._vertices[pair.source]],
-                  let target = rhs._slots[lhs._vertices[pair.target]],
-                  rhs._edges[_SlotPair(source, target)] != nil
+        for record in lhs._records {
+            guard let source = rhs._slots[lhs._vertices[record.source]],
+                  let target = rhs._slots[lhs._vertices[record.target]],
+                  rhs._edges.contains(_SlotPair(source, target))
             else { return false }
         }
         return true

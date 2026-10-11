@@ -40,14 +40,14 @@ extension _ParallelClass: Sendable {}
 @usableFromInline
 internal struct _ParallelClasses {
     @usableFromInline var links: ContiguousArray<_ParallelLinks>
-    @usableFromInline var classes: [_SlotPair: Int]
+    @usableFromInline var classes: _SlotPairTable<Int>
     @usableFromInline var multi: ContiguousArray<_ParallelClass>
     @usableFromInline var freeMulti: Int
 
     @inlinable
     init() {
         links = []
-        classes = [:]
+        classes = _SlotPairTable()
         multi = []
         freeMulti = -1
     }
@@ -59,8 +59,8 @@ internal struct _ParallelClasses {
     func count(ofValue value: Int) -> Int { value >= 0 ? 1 : multi[~value].count }
 
     @inlinable
-    func last(at index: [_SlotPair: Int].Index) -> Int {
-        let value = classes.values[index]
+    func last(at index: Int) -> Int {
+        let value = classes.value(at: index)
         return value >= 0 ? value : multi[~value].last
     }
 
@@ -79,7 +79,11 @@ internal struct _ParallelClasses {
     @inlinable
     mutating func append(_ position: Int, key: _SlotPair) {
         links.append(_ParallelLinks(previous: -1, next: -1))
-        Self._append(position, to: &classes[key, default: Int.min], links: &links, multi: &multi, freeMulti: &freeMulti)
+        let (inserted, index) = classes.insert(key, position)
+        if inserted { return }
+        var value = classes.value(at: index)
+        Self._append(position, to: &value, links: &links, multi: &multi, freeMulti: &freeMulti)
+        classes.setValue(value, at: index)
     }
 
     @inlinable
@@ -87,9 +91,7 @@ internal struct _ParallelClasses {
         _ position: Int, to value: inout Int, links: inout ContiguousArray<_ParallelLinks>,
         multi: inout ContiguousArray<_ParallelClass>, freeMulti: inout Int
     ) {
-        if value == Int.min {
-            value = position
-        } else if value >= 0 {
+        if value >= 0 {
             links[value] = _ParallelLinks(previous: -1, next: position)
             links[position].previous = value
             let parallel = _ParallelClass(first: value, last: position, count: 2)
@@ -114,32 +116,13 @@ internal struct _ParallelClasses {
 
     @inlinable
     mutating func unlink(_ position: Int, key: _SlotPair) {
-        Self._unlink(position, from: &classes[key], links: &links, multi: &multi, freeMulti: &freeMulti)
-    }
-
-    /// One hash: the dictionary's `_modify` accessor removes the entry when the value is set to nil.
-    @inlinable
-    static func _unlink(
-        _ position: Int, from value: inout Int?, links: inout ContiguousArray<_ParallelLinks>,
-        multi: inout ContiguousArray<_ParallelClass>, freeMulti: inout Int
-    ) {
-        guard let v = value else { preconditionFailure("Edge missing from its parallel class") }
-        if v >= 0 { value = nil; return }
-        let c = ~v
-        let link = links[position]
-        if link.previous != -1 { links[link.previous].next = link.next } else { multi[c].first = link.next }
-        if link.next != -1 { links[link.next].previous = link.previous } else { multi[c].last = link.previous }
-        multi[c].count -= 1
-        if multi[c].count == 1 {
-            value = multi[c].first
-            multi[c] = _ParallelClass(first: -1, last: -1, count: freeMulti)
-            freeMulti = c
-        }
+        guard let index = classes.index(forKey: key) else { preconditionFailure("Edge missing from its parallel class") }
+        unlink(position, at: index)
     }
 
     @inlinable
-    mutating func unlink(_ position: Int, at index: [_SlotPair: Int].Index) {
-        let value = classes.values[index]
+    mutating func unlink(_ position: Int, at index: Int) {
+        let value = classes.value(at: index)
         if value >= 0 {
             classes.remove(at: index)
             return
@@ -150,7 +133,7 @@ internal struct _ParallelClasses {
         if link.next != -1 { links[link.next].previous = link.previous } else { multi[c].last = link.previous }
         multi[c].count -= 1
         if multi[c].count == 1 {
-            classes.values[index] = multi[c].first
+            classes.setValue(multi[c].first, at: index)
             multi[c] = _ParallelClass(first: -1, last: -1, count: freeMulti)
             freeMulti = c
         }
@@ -158,16 +141,12 @@ internal struct _ParallelClasses {
 
     @inlinable
     mutating func move(from source: Int, to target: Int, key: _SlotPair) {
-        Self._move(from: source, to: target, in: &classes[key], links: &links, multi: &multi)
-    }
-
-    @inlinable
-    static func _move(
-        from source: Int, to target: Int, in value: inout Int?, links: inout ContiguousArray<_ParallelLinks>,
-        multi: inout ContiguousArray<_ParallelClass>
-    ) {
-        guard let v = value else { preconditionFailure("Edge missing from its parallel class") }
-        if v >= 0 { value = target; return }
+        guard let index = classes.index(forKey: key) else { preconditionFailure("Edge missing from its parallel class") }
+        let v = classes.value(at: index)
+        if v >= 0 {
+            classes.setValue(target, at: index)
+            return
+        }
         let c = ~v
         let link = links[source]
         links[target] = link
@@ -182,7 +161,7 @@ internal struct _ParallelClasses {
 
     @inlinable
     mutating func rename(_ old: _SlotPair, to new: _SlotPair) {
-        if let moved = classes.removeValue(forKey: old) { classes[new] = moved }
+        if let moved = classes.removeValue(forKey: old) { classes.insert(new, moved) }
     }
 
     @inlinable
@@ -221,7 +200,7 @@ extension _ParallelClasses {
     @inlinable
     func outOfOrderClasses() -> [Int] {
         var groups: [[Int]] = []
-        for value in classes.values where value < 0 {
+        for (_, value) in classes where value < 0 {
             let parallel = multi[~value]
             var order: [Int] = []
             order.reserveCapacity(parallel.count)

@@ -109,3 +109,48 @@ Conventions:
 | NG-088 | Representations | DirectedMultigraph<Int>: same arcs, edges in row-major order | `DirectedMultigraph<Int>.cycle(vertexCount: 4)` | n 4; m 4; out [1, 1, 1, 1]; in [1, 1, 1, 1]; E [0→1, 1→2, 2→3, 3→0] |
 | NG-089 | Representations | Pseudograph<Int>: same edges, sorted | `Pseudograph<Int>.wheel(vertexCount: 4)` | n 4; m 6; deg [3, 3, 3, 3]; E [0–1, 0–2, 0–3, 1–2, 1–3, 2–3] |
 | NG-090 | Representations | Multigraph<Int>: same edges, sorted | `Multigraph<Int>.wheel(vertexCount: 4)` | n 4; m 6; deg [3, 3, 3, 3]; E [0–1, 0–2, 0–3, 1–2, 1–3, 2–3] |
+| NG-091 | Ladder | L0 is the null graph | `UndirectedAdjacencyList<Int>.ladder(rungCount: 0)` | n 0; m 0; deg []; E [] |
+| NG-092 | Ladder | L1 is K2 | `UndirectedAdjacencyList<Int>.ladder(rungCount: 1)` | n 2; m 1; deg [1, 1]; E [0–1] |
+| NG-093 | Ladder | L4: rails 0..<4 and 4..<8, rungs i–i+4 | `UndirectedAdjacencyList<Int>.ladder(rungCount: 4)` | n 8; m 10; deg [2, 3, 3, 2, 2, 3, 3, 2]; E [0–1, 0–4, 1–2, 1–5, 2–3, 2–6, 3–7, 4–5, 5–6, 6–7] |
+| NG-094 | Ladder | L3 directed: both arcs | `CompressedSparseRow.ladder(rungCount: 3)` | n 6; m 14; out [2, 3, 2, 2, 3, 2]; in [2, 3, 2, 2, 3, 2]; E [0→1, 0→3, 1→0, 1→2, 1→4, 2→1, 2→5, 3→0, 3→4, 4→1, 4→3, 4→5, 5→2, 5→4] |
+| NG-095 | Ladder | negative count | `UndirectedAdjacencyList<Int>.ladder(rungCount: -1)` | **trap**: rungCount -1 is negative |
+| NG-096 | CircularLadder | CL3: each rail closed by its first and last vertex | `UndirectedAdjacencyList<Int>.circularLadder(rungCount: 3)` | n 6; m 9; deg [3, 3, 3, 3, 3, 3]; E [0–1, 0–2, 0–3, 1–2, 1–4, 2–5, 3–4, 3–5, 4–5] |
+| NG-097 | CircularLadder | CL4: each rail closed by its first and last vertex | `UndirectedAdjacencyList<Int>.circularLadder(rungCount: 4)` | n 8; m 12; deg [3, 3, 3, 3, 3, 3, 3, 3]; E [0–1, 0–3, 0–4, 1–2, 1–5, 2–3, 2–6, 3–7, 4–5, 4–7, 5–6, 6–7] |
+| NG-098 | CircularLadder | CL3 directed: both arcs | `CompressedSparseRow.circularLadder(rungCount: 3)` | n 6; m 18; out [3, 3, 3, 3, 3, 3]; in [3, 3, 3, 3, 3, 3]; E [0→1, 0→2, 0→3, 1→0, 1→2, 1→4, 2→0, 2→1, 2→5, 3→0, 3→4, 3→5, 4→1, 4→3, 4→5, 5→2, 5→3, 5→4] |
+| NG-099 | CircularLadder | CL2: the rails are not cycles (NetworkX returns C4) | `UndirectedAdjacencyList<Int>.circularLadder(rungCount: 2)` | **trap**: a circular ladder needs at least 3 rungs, not 2 |
+| NG-100 | Barbell | two K2 joined by a path of 0 | `UndirectedAdjacencyList<Int>.barbell(cliqueVertexCount: 2, pathVertexCount: 0)` | n 4; m 3; deg [1, 2, 2, 1]; E [0–1, 1–2, 2–3] |
+| NG-101 | Barbell | two K3 joined by a path of 2 | `UndirectedAdjacencyList<Int>.barbell(cliqueVertexCount: 3, pathVertexCount: 2)` | n 8; m 9; deg [2, 2, 3, 2, 2, 3, 2, 2]; E [0–1, 0–2, 1–2, 2–3, 3–4, 4–5, 5–6, 5–7, 6–7] |
+| NG-102 | Barbell | two K4 joined by a path of 0 | `UndirectedAdjacencyList<Int>.barbell(cliqueVertexCount: 4, pathVertexCount: 0)` | n 8; m 13; deg [3, 3, 3, 4, 4, 3, 3, 3]; E [0–1, 0–2, 0–3, 1–2, 1–3, 2–3, 3–4, 4–5, 4–6, 4–7, 5–6, 5–7, 6–7] |
+| NG-103 | Barbell | directed: both arcs | `CompressedSparseRow.barbell(cliqueVertexCount: 3, pathVertexCount: 1)` | n 7; m 16; out [2, 2, 3, 2, 3, 2, 2]; in [2, 2, 3, 2, 3, 2, 2]; E [0→1, 0→2, 1→0, 1→2, 2→0, 2→1, 2→3, 3→2, 3→4, 4→3, 4→5, 4→6, 5→4, 5→6, 6→4, 6→5] |
+| NG-104 | Barbell | clique of 1 | `UndirectedAdjacencyList<Int>.barbell(cliqueVertexCount: 1, pathVertexCount: 2)` | **trap**: a barbell needs a clique of at least 2 vertices, not 1 |
+| NG-105 | Barbell | negative path | `UndirectedAdjacencyList<Int>.barbell(cliqueVertexCount: 3, pathVertexCount: -1)` | **trap**: pathVertexCount -1 is negative |
+| NG-106 | Lollipop | K2 with a path of 0 at 1 | `UndirectedAdjacencyList<Int>.lollipop(cliqueVertexCount: 2, pathVertexCount: 0)` | n 2; m 1; deg [1, 1]; E [0–1] |
+| NG-107 | Lollipop | K3 with a path of 2 at 2 | `UndirectedAdjacencyList<Int>.lollipop(cliqueVertexCount: 3, pathVertexCount: 2)` | n 5; m 5; deg [2, 2, 3, 2, 1]; E [0–1, 0–2, 1–2, 2–3, 3–4] |
+| NG-108 | Lollipop | K4 with a path of 1 at 3 | `UndirectedAdjacencyList<Int>.lollipop(cliqueVertexCount: 4, pathVertexCount: 1)` | n 5; m 7; deg [3, 3, 3, 4, 1]; E [0–1, 0–2, 0–3, 1–2, 1–3, 2–3, 3–4] |
+| NG-109 | Lollipop | directed: both arcs | `CompressedSparseRow.lollipop(cliqueVertexCount: 3, pathVertexCount: 2)` | n 5; m 10; out [2, 2, 3, 2, 1]; in [2, 2, 3, 2, 1]; E [0→1, 0→2, 1→0, 1→2, 2→0, 2→1, 2→3, 3→2, 3→4, 4→3] |
+| NG-110 | Lollipop | clique of 1 | `UndirectedAdjacencyList<Int>.lollipop(cliqueVertexCount: 1, pathVertexCount: 2)` | **trap**: a lollipop needs a clique of at least 2 vertices, not 1 |
+| NG-111 | Lollipop | negative path | `UndirectedAdjacencyList<Int>.lollipop(cliqueVertexCount: 3, pathVertexCount: -1)` | **trap**: pathVertexCount -1 is negative |
+| NG-112 | CompleteMultipartite | parts [] | `UndirectedAdjacencyList<Int>.completeMultipartite(partSizes: [])` | n 0; m 0; deg []; E [] |
+| NG-113 | CompleteMultipartite | parts [2, 0, 1] | `UndirectedAdjacencyList<Int>.completeMultipartite(partSizes: [2, 0, 1])` | n 3; m 2; deg [1, 1, 2]; E [0–2, 1–2] |
+| NG-114 | CompleteMultipartite | parts [1, 2, 3] | `UndirectedAdjacencyList<Int>.completeMultipartite(partSizes: [1, 2, 3])` | n 6; m 11; deg [5, 4, 4, 3, 3, 3]; E [0–1, 0–2, 0–3, 0–4, 0–5, 1–3, 1–4, 1–5, 2–3, 2–4, 2–5] |
+| NG-115 | CompleteMultipartite | parts [1, 1, 1, 1] | `UndirectedAdjacencyList<Int>.completeMultipartite(partSizes: [1, 1, 1, 1])` | n 4; m 6; deg [3, 3, 3, 3]; E [0–1, 0–2, 0–3, 1–2, 1–3, 2–3] |
+| NG-116 | CompleteMultipartite | directed: earlier part → later part | `CompressedSparseRow.completeMultipartite(partSizes: [1, 2, 3])` | n 6; m 11; out [5, 3, 3, 0, 0, 0]; in [0, 1, 1, 3, 3, 3]; E [0→1, 0→2, 0→3, 0→4, 0→5, 1→3, 1→4, 1→5, 2→3, 2→4, 2→5] |
+| NG-117 | CompleteMultipartite | negative part size | `UndirectedAdjacencyList<Int>.completeMultipartite(partSizes: [2, -1])` | **trap**: part size -1 is negative |
+| NG-118 | CompleteMultipartite | edge count overflows Int | `UndirectedAdjacencyList<Int>.completeMultipartite(partSizes: [1 << 32, 1 << 32])` | **trap**: edge count overflows Int |
+| NG-119 | Turan | T(5, 2): parts [2, 3], smaller first | `UndirectedAdjacencyList<Int>.turan(vertexCount: 5, partCount: 2)` | n 5; m 6; deg [3, 3, 2, 2, 2]; E [0–2, 0–3, 0–4, 1–2, 1–3, 1–4] |
+| NG-120 | Turan | T(7, 3): parts [2, 2, 3] | `UndirectedAdjacencyList<Int>.turan(vertexCount: 7, partCount: 3)` | n 7; m 16; deg [5, 5, 5, 5, 4, 4, 4]; E [0–2, 0–3, 0–4, 0–5, 0–6, 1–2, 1–3, 1–4, 1–5, 1–6, 2–4, 2–5, 2–6, 3–4, 3–5, 3–6] |
+| NG-121 | Turan | T(4, 4) is K4 | `UndirectedAdjacencyList<Int>.turan(vertexCount: 4, partCount: 4)` | n 4; m 6; deg [3, 3, 3, 3]; E [0–1, 0–2, 0–3, 1–2, 1–3, 2–3] |
+| NG-122 | Turan | T(4, 1): one part, no edges | `UndirectedAdjacencyList<Int>.turan(vertexCount: 4, partCount: 1)` | n 4; m 0; deg [0, 0, 0, 0]; E [] |
+| NG-123 | Turan | directed: earlier part → later part | `CompressedSparseRow.turan(vertexCount: 5, partCount: 2)` | n 5; m 6; out [3, 3, 0, 0, 0]; in [0, 0, 2, 2, 2]; E [0→2, 0→3, 0→4, 1→2, 1→3, 1→4] |
+| NG-124 | Turan | no parts | `UndirectedAdjacencyList<Int>.turan(vertexCount: 5, partCount: 0)` | **trap**: a Turán graph needs 1 ≤ partCount ≤ vertexCount, not 0 and 5 |
+| NG-125 | Turan | more parts than vertices | `UndirectedAdjacencyList<Int>.turan(vertexCount: 5, partCount: 6)` | **trap**: a Turán graph needs 1 ≤ partCount ≤ vertexCount, not 6 and 5 |
+| NG-126 | BalancedTree | r = 2, h = 2: children of p are 2p + 1, 2p + 2 | `UndirectedAdjacencyList<Int>.balancedTree(branchingFactor: 2, height: 2)` | n 7; m 6; deg [2, 3, 3, 1, 1, 1, 1]; E [0–1, 0–2, 1–3, 1–4, 2–5, 2–6] |
+| NG-127 | BalancedTree | r = 3, h = 2 | `UndirectedAdjacencyList<Int>.balancedTree(branchingFactor: 3, height: 2)` | n 13; m 12; deg [3, 4, 4, 4, 1, 1, 1, 1, 1, 1, 1, 1, 1]; E [0–1, 0–2, 0–3, 1–4, 1–5, 1–6, 2–7, 2–8, 2–9, 3–10, 3–11, 3–12] |
+| NG-128 | BalancedTree | r = 1, h = 3 is the path P4 | `UndirectedAdjacencyList<Int>.balancedTree(branchingFactor: 1, height: 3)` | n 4; m 3; deg [1, 2, 2, 1]; E [0–1, 1–2, 2–3] |
+| NG-129 | BalancedTree | r = 0, h = 3 is the root alone | `UndirectedAdjacencyList<Int>.balancedTree(branchingFactor: 0, height: 3)` | n 1; m 0; deg [0]; E [] |
+| NG-130 | BalancedTree | r = 2, h = 0 is the root alone | `UndirectedAdjacencyList<Int>.balancedTree(branchingFactor: 2, height: 0)` | n 1; m 0; deg [0]; E [] |
+| NG-131 | BalancedTree | directed: parent → child | `CompressedSparseRow.balancedTree(branchingFactor: 2, height: 2)` | n 7; m 6; out [2, 2, 2, 0, 0, 0, 0]; in [0, 1, 1, 1, 1, 1, 1]; E [0→1, 0→2, 1→3, 1→4, 2→5, 2→6] |
+| NG-132 | BalancedTree | Tree.balancedTree | `Tree<Int>.balancedTree(branchingFactor: 2, height: 3)` | n 15; m 14; deg [2, 3, 3, 3, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1]; E [0–1, 0–2, 1–3, 1–4, 2–5, 2–6, 3–7, 3–8, 4–9, 4–10, 5–11, 5–12, 6–13, 6–14] |
+| NG-133 | BalancedTree | negative height | `UndirectedAdjacencyList<Int>.balancedTree(branchingFactor: 2, height: -1)` | **trap**: height -1 is negative |
+| NG-134 | BalancedTree | negative branching factor | `UndirectedAdjacencyList<Int>.balancedTree(branchingFactor: -1, height: 2)` | **trap**: branchingFactor -1 is negative |
+| NG-135 | BalancedTree | vertex count overflows Int | `UndirectedAdjacencyList<Int>.balancedTree(branchingFactor: 2, height: 63)` | **trap**: vertex count overflows Int |

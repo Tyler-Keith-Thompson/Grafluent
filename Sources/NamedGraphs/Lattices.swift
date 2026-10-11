@@ -112,7 +112,7 @@ extension _GraphConstruction {
     @inlinable
     public static func grid(dimensions: [Int], periodic: Bool = false) -> Self {
         let (n, pairs) = _gridPairs(dimensions, periodic: periodic, directed: false)
-        return Self(_vertexCount: n, sortedEdges: pairs.lazy.map(_undirected))
+        return Self(_vertexCount: n, sortedEdges: pairs.lazy.map(_undirected), _ConstructionToken())
     }
 
     /// The hypercube Q_d on `0..<2^d`: bit k of a vertex is its coordinate k, and u–v when they
@@ -123,7 +123,7 @@ extension _GraphConstruction {
     @inlinable
     public static func hypercube(dimension d: Int) -> Self {
         let (n, pairs) = _hypercubePairs(d, directed: false)
-        return Self(_vertexCount: n, sortedEdges: pairs.lazy.map(_undirected))
+        return Self(_vertexCount: n, sortedEdges: pairs.lazy.map(_undirected), _ConstructionToken())
     }
 }
 
@@ -135,7 +135,7 @@ extension _DirectedGraphConstruction {
     @inlinable
     public static func grid(dimensions: [Int], periodic: Bool = false) -> Self {
         let (n, pairs) = _gridPairs(dimensions, periodic: periodic, directed: true)
-        return Self(_vertexCount: n, sortedEdges: pairs)
+        return Self(_vertexCount: n, sortedEdges: pairs, _ConstructionToken())
     }
 
     /// The hypercube with both arcs for every edge, in row-major order. O(n + m).
@@ -144,6 +144,6 @@ extension _DirectedGraphConstruction {
     @inlinable
     public static func hypercube(dimension d: Int) -> Self {
         let (n, pairs) = _hypercubePairs(d, directed: true)
-        return Self(_vertexCount: n, sortedEdges: pairs)
+        return Self(_vertexCount: n, sortedEdges: pairs, _ConstructionToken())
     }
 }

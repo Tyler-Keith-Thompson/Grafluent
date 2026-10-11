@@ -3,32 +3,69 @@ import GraphProtocols
 /// The storage every tree type shares: vertices by number (`vertices` order), each edge's two
 /// ends, incidence rows in position order, and a rooting (a root per tree, each vertex's parent,
 /// parent edge, depth, and the preorder with each subtree's size, so a subtree is an interval of
-/// it). About eighteen `Int`s per vertex (plus the vertex table when the vertices are not the
-/// `Int`s `0..<n`), in a constant number of arrays. A vertex's rooting is one 56-byte record, so
-/// building or reading it touches one or two cache lines rather than seven arrays.
+/// it). About fourteen `Int`s per vertex (plus the vertex table when the vertices are not the
+/// `Int`s `0..<n`), in a constant number of arrays. A vertex's rooting is one 28-byte record of
+/// `Int32`s, read and written as `Int`s, so building or reading it touches one cache line rather
+/// than seven arrays, and a tree of 10⁵ vertices writes 2.8 MB of records rather than 5.6 (fresh
+/// pages are most of a build's cost). A tree therefore has fewer than 2³¹ vertices.
 @frozen
 @usableFromInline
 package struct _TreeNode: Sendable {
+    @usableFromInline package var _parent: Int32
+    @usableFromInline package var _parentEdge: Int32
+    @usableFromInline package var _parentOffset: Int32
+    @usableFromInline package var _depth: Int32
+    @usableFromInline package var _preorderPosition: Int32
+    @usableFromInline package var _size: Int32
+    @usableFromInline package var _component: Int32
+
     /// −1 at a root.
-    @usableFromInline package var parent: Int
-    @usableFromInline package var parentEdge: Int
+    @inlinable package var parent: Int {
+        @inline(__always) get { Int(_parent) }
+        @inline(__always) set { _parent = Int32(truncatingIfNeeded: newValue) }
+    }
+    @inlinable package var parentEdge: Int {
+        @inline(__always) get { Int(_parentEdge) }
+        @inline(__always) set { _parentEdge = Int32(truncatingIfNeeded: newValue) }
+    }
     /// The offset of the parent edge in the vertex's row; −1 at a root.
-    @usableFromInline package var parentOffset: Int
-    @usableFromInline package var depth: Int
-    @usableFromInline package var preorderPosition: Int
-    @usableFromInline package var size: Int
+    @inlinable package var parentOffset: Int {
+        @inline(__always) get { Int(_parentOffset) }
+        @inline(__always) set { _parentOffset = Int32(truncatingIfNeeded: newValue) }
+    }
+    @inlinable package var depth: Int {
+        @inline(__always) get { Int(_depth) }
+        @inline(__always) set { _depth = Int32(truncatingIfNeeded: newValue) }
+    }
+    @inlinable package var preorderPosition: Int {
+        @inline(__always) get { Int(_preorderPosition) }
+        @inline(__always) set { _preorderPosition = Int32(truncatingIfNeeded: newValue) }
+    }
+    @inlinable package var size: Int {
+        @inline(__always) get { Int(_size) }
+        @inline(__always) set { _size = Int32(truncatingIfNeeded: newValue) }
+    }
     /// The vertex's tree, as an offset in `roots`.
-    @usableFromInline package var component: Int
+    @inlinable package var component: Int {
+        @inline(__always) get { Int(_component) }
+        @inline(__always) set { _component = Int32(truncatingIfNeeded: newValue) }
+    }
 
     @inlinable
     init() {
-        parent = -1
-        parentEdge = -1
-        parentOffset = -1
-        depth = -1
-        preorderPosition = 0
-        size = 1
-        component = -1
+        self.init(parent: -1, parentEdge: -1, parentOffset: -1, depth: -1, preorderPosition: 0, size: 1, component: -1)
+    }
+
+    /// Every value fits in `Int32`: the layout holds fewer than 2³¹ vertices.
+    @inlinable @inline(__always)
+    init(parent: Int, parentEdge: Int, parentOffset: Int, depth: Int, preorderPosition: Int, size: Int, component: Int) {
+        _parent = Int32(truncatingIfNeeded: parent)
+        _parentEdge = Int32(truncatingIfNeeded: parentEdge)
+        _parentOffset = Int32(truncatingIfNeeded: parentOffset)
+        _depth = Int32(truncatingIfNeeded: depth)
+        _preorderPosition = Int32(truncatingIfNeeded: preorderPosition)
+        _size = Int32(truncatingIfNeeded: size)
+        _component = Int32(truncatingIfNeeded: component)
     }
 }
 
@@ -259,35 +296,54 @@ extension _TreeLayout {
         vertices: ContiguousArray<Vertex>, slots: [Vertex: Int], dense: Bool, ends: [Int], root: Int?, oriented: Bool = false
     ) -> Self? {
         let n = vertices.count, m = ends.count / 2
+        precondition(ends.count == 2 * m, "An edge has two ends")
         if let root {
             guard m == n - 1, root >= 0, root < n else { return nil }
         } else {
             guard m <= max(n - 1, 0) else { return nil }
         }
-        var degree = [Int](repeating: 0, count: n + 1)
-        for x in ends {
-            guard UInt(bitPattern: x) < UInt(bitPattern: n) else { return nil }
-            degree[x + 1] += 1
+        var rowOffsets = [Int](repeating: 0, count: n + 1)
+        let inRange = rowOffsets.withUnsafeMutableBufferPointer { degree in
+            ends.withUnsafeBufferPointer { ends in
+                for x in ends {
+                    guard UInt(bitPattern: x) < UInt(bitPattern: n) else { return false }
+                    degree[x &+ 1] &+= 1
+                }
+                for v in 0 ..< n { degree[v &+ 1] &+= degree[v] }
+                return true
+            }
         }
-        for v in 0 ..< n { degree[v + 1] += degree[v] }
-        let rowOffsets = degree
-        var fill = degree
-        var rowNeighbors = [Int](repeating: 0, count: 2 * m)
-        var rowEdges = [Int](repeating: 0, count: 2 * m)
-        // Each slot's twin: the offset of the edge's other end in its row.
-        var twin = [Int](repeating: 0, count: 2 * m)
-        for e in 0 ..< m {
-            let a = ends[2 * e], b = ends[2 * e + 1]
-            let sa = fill[a]
-            fill[a] += 1
-            let sb = fill[b]
-            fill[b] += 1
-            rowNeighbors[sa] = b
-            rowEdges[sa] = e
-            rowNeighbors[sb] = a
-            rowEdges[sb] = e
-            twin[sa] = sb - rowOffsets[b]
-            twin[sb] = sa - rowOffsets[a]
+        guard inRange else { return nil }
+        var fill = rowOffsets
+        // Each slot's neighbor and edge, and its twin: the offset of the edge's other end in its
+        // row. Every slot is written once, since the degrees count every end.
+        var rowNeighbors = [Int](unsafeUninitializedCapacity: 2 * m) { _, count in count = 2 * m }
+        var rowEdges = [Int](unsafeUninitializedCapacity: 2 * m) { _, count in count = 2 * m }
+        var twin = [Int](unsafeUninitializedCapacity: 2 * m) { _, count in count = 2 * m }
+        fill.withUnsafeMutableBufferPointer { fill in
+            rowOffsets.withUnsafeBufferPointer { rowOffsets in
+                ends.withUnsafeBufferPointer { ends in
+                    rowNeighbors.withUnsafeMutableBufferPointer { rowNeighbors in
+                        rowEdges.withUnsafeMutableBufferPointer { rowEdges in
+                            twin.withUnsafeMutableBufferPointer { twin in
+                                for e in 0 ..< m {
+                                    let a = ends[2 &* e], b = ends[2 &* e &+ 1]
+                                    let sa = fill[a]
+                                    fill[a] = sa &+ 1
+                                    let sb = fill[b]
+                                    fill[b] = sb &+ 1
+                                    rowNeighbors[sa] = b
+                                    rowEdges[sa] = e
+                                    rowNeighbors[sb] = a
+                                    rowEdges[sb] = e
+                                    twin[sa] = sb &- rowOffsets[b]
+                                    twin[sb] = sa &- rowOffsets[a]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
         var layout = Self(vertices: vertices, slots: slots, dense: dense, ends: ends, rowOffsets: rowOffsets, rowNeighbors: rowNeighbors, rowEdges: rowEdges, twin: twin)
         guard layout.root(at: root, oriented: oriented) else { return nil }
@@ -302,63 +358,99 @@ extension _TreeLayout {
     }
 
     /// Roots the rows (see `build`); false on a cycle, an unreached vertex or a misoriented edge.
-    /// One iterative depth-first walk writes each vertex's record when it is reached (its
-    /// preorder position then) and adds its subtree's size to its parent's when it is left.
+    /// One iterative depth-first walk writes each vertex's record, whole, when it is reached (its
+    /// preorder position then) and adds its subtree's size to its parent's when it is left. The
+    /// records start uninitialized: a byte per vertex marks it reached, so no record is written
+    /// twice. The walk's stack is one `Int` array of (vertex, next row offset) pairs, and it never
+    /// copies a record.
     @inlinable
     mutating func root(at root: Int?, oriented: Bool = false) -> Bool {
         let n = vertices.count
-        var nodes = [_TreeNode](repeating: _TreeNode(), count: n)
-        var preorder: [Int] = []
-        preorder.reserveCapacity(n)
+        precondition(n < 1 << 31, "A tree has fewer than 2³¹ vertices")
         var roots: [Int] = []
         var height = 0
-        var stack: [(v: Int, k: Int, end: Int)] = []
-        var next = 0
-        while true {
-            let r: Int
-            if let root {
-                guard roots.isEmpty else { break }
-                r = root
-            } else {
-                while next < n, nodes[next].depth >= 0 { next += 1 }
-                guard next < n else { break }
-                r = next
-            }
-            let tree = roots.count
-            roots.append(r)
-            nodes[r].depth = 0
-            nodes[r].component = tree
-            nodes[r].preorderPosition = preorder.count
-            preorder.append(r)
-            stack.append((r, rowOffsets[r], rowOffsets[r + 1]))
-            while let (v, k, end) = stack.last {
-                guard k < end else {
-                    stack.removeLast()
-                    let p = nodes[v].parent
-                    if p >= 0 { nodes[p].size += nodes[v].size }
-                    continue
+        var complete = true
+        var reached = [Bool](repeating: false, count: n)
+        // (vertex, next row offset) pairs; grown as the walk deepens, so a shallow tree touches
+        // little memory.
+        var stack: [Int] = []
+        stack.reserveCapacity(64)
+        var preorder = [Int](unsafeUninitializedCapacity: n) { _, count in count = n }
+        // Every record is written before it is read, and all n are written unless the walk fails,
+        // when the array is dropped: `_TreeNode` is a plain record of `Int`s.
+        let nodes = [_TreeNode](unsafeUninitializedCapacity: n) { nodes, initialized in
+            initialized = n
+            complete = reached.withUnsafeMutableBufferPointer { reached in
+                preorder.withUnsafeMutableBufferPointer { preorder in
+                    rowOffsets.withUnsafeBufferPointer { rowOffsets in
+                        rowNeighbors.withUnsafeBufferPointer { rowNeighbors in
+                            rowEdges.withUnsafeBufferPointer { rowEdges in
+                                twin.withUnsafeBufferPointer { twin in
+                                    ends.withUnsafeBufferPointer { ends in
+                                        var count = 0
+                                        var next = 0
+                                        while true {
+                                            let r: Int
+                                            if let root {
+                                                guard roots.isEmpty else { break }
+                                                r = root
+                                            } else {
+                                                while next < n, reached[next] { next &+= 1 }
+                                                guard next < n else { break }
+                                                r = next
+                                            }
+                                            let tree = roots.count
+                                            roots.append(r)
+                                            reached[r] = true
+                                            nodes.initializeElement(at: r, to: _TreeNode(
+                                                parent: -1, parentEdge: -1, parentOffset: -1, depth: 0,
+                                                preorderPosition: count, size: 1, component: tree
+                                            ))
+                                            preorder[count] = r
+                                            count &+= 1
+                                            stack.append(r)
+                                            stack.append(rowOffsets[r])
+                                            while stack.count > 0 {
+                                                let top = stack.count &- 2
+                                                let v = stack[top]
+                                                let k = stack[top &+ 1]
+                                                guard k < rowOffsets[v &+ 1] else {
+                                                    stack.removeLast(2)
+                                                    let p = nodes[v].parent
+                                                    if p >= 0 { nodes[p].size &+= nodes[v].size }
+                                                    continue
+                                                }
+                                                stack[top &+ 1] = k &+ 1
+                                                let e = rowEdges[k]
+                                                if e == nodes[v].parentEdge { continue }
+                                                let w = rowNeighbors[k]
+                                                // Reaching a vertex already reached, by any edge but the one
+                                                // we came by: a cycle.
+                                                guard !reached[w] else { return false }
+                                                if oriented, ends[2 &* e] != v { return false }
+                                                reached[w] = true
+                                                let depth = nodes[v].depth &+ 1
+                                                if depth > height { height = depth }
+                                                nodes.initializeElement(at: w, to: _TreeNode(
+                                                    parent: v, parentEdge: e, parentOffset: twin[k], depth: depth,
+                                                    preorderPosition: count, size: 1, component: tree
+                                                ))
+                                                preorder[count] = w
+                                                count &+= 1
+                                                stack.append(w)
+                                                stack.append(rowOffsets[w])
+                                            }
+                                        }
+                                        return count == n
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
-                stack[stack.count - 1].k = k + 1
-                let e = rowEdges[k]
-                let node = nodes[v]
-                if e == node.parentEdge { continue }
-                let w = rowNeighbors[k]
-                // Reaching a vertex already reached, by any edge but the one we came by: a cycle.
-                guard nodes[w].depth < 0 else { return false }
-                if oriented, ends[2 * e] != v { return false }
-                let depth = node.depth + 1
-                if depth > height { height = depth }
-                nodes[w].parent = v
-                nodes[w].parentEdge = e
-                nodes[w].parentOffset = twin[k]
-                nodes[w].depth = depth
-                nodes[w].component = tree
-                nodes[w].preorderPosition = preorder.count
-                preorder.append(w)
-                stack.append((w, rowOffsets[w], rowOffsets[w + 1]))
             }
         }
-        guard preorder.count == n else { return false }
+        guard complete else { return false }
         self.nodes = nodes
         self.preorder = preorder
         self.roots = roots

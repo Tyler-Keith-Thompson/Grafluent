@@ -8,6 +8,7 @@
 
 import AdjacencyListModule
 import AdjacencyMatrixModule
+import BipartiteGraphs
 import CompressedSparseRowModule
 import DirectedAcyclicGraphModule
 import GrafluentTestSupport
@@ -324,6 +325,59 @@ struct RandomGraphPropertyTests {
                 #expect(tree == Tree<Int>(pruferSequence: code), "\(n), \(seed)")
             }
             #expect((0 ..< n).allSatisfy { v in tree.degree(of: v) == (n == 1 ? 0 : 1 + code.filter { $0 == v }.count) }, "\(n), \(seed)")
+        }
+    }
+
+    @Test("Random regular: nd/2 edges, every degree d, simple and sorted, the same edges and draws on every conformer; directed, both arcs")
+    func randomRegular() async {
+        await propertyCheck(count: 120, input: Gen.int(in: 1 ... 24), Gen.int(in: 0 ... 6), Gen.int(in: 0 ... 1_000_000)) { n, degree, seed in
+            let d = min(degree, n - 1) - (n * min(degree, n - 1)) % 2
+            guard d >= 0 else { return }
+            var generator = Xoshiro256StarStar(seed: UInt64(seed))
+            let graph = UndirectedAdjacencyList<Int>.randomRegular(vertexCount: n, degree: d, using: &generator)
+            let ends = graph.edges.map { [$0.u, $0.v] }
+            #expect(graph.vertexCount == n && graph.edgeCount == n * d / 2, "\(n), \(d), \(seed)")
+            #expect((0 ..< n).allSatisfy { graph.degree(of: $0) == d }, "\(n), \(d), \(seed)")
+            #expect(ends.allSatisfy { $0[0] < $0[1] }, "\(n), \(d), \(seed)")
+            #expect(zip(ends, ends.dropFirst()).allSatisfy { $0.lexicographicallyPrecedes($1) }, "\(n), \(d), \(seed)")
+            var g1 = Xoshiro256StarStar(seed: UInt64(seed))
+            let multigraph = Multigraph<Int>.randomRegular(vertexCount: n, degree: d, using: &g1)
+            #expect(multigraph.edges.map { [$0.u, $0.v] } == ends && g1 == generator, "\(n), \(d), \(seed)")
+            var g2 = Xoshiro256StarStar(seed: UInt64(seed))
+            let csr = CompressedSparseRow.randomRegular(vertexCount: n, degree: d, using: &g2)
+            let arcs = (ends + ends.map { [$0[1], $0[0]] }).sorted { $0.lexicographicallyPrecedes($1) }
+            #expect(csr.edges.map { [$0.source, $0.target] } == arcs && g2 == generator, "\(n), \(d), \(seed)")
+            var g3 = Xoshiro256StarStar(seed: UInt64(seed))
+            let stable = StableDirectedGraph<Int>.randomRegular(vertexCount: n, degree: d, using: &g3)
+            #expect(stable.edges.map { [$0.source, $0.target] } == arcs && g3 == generator, "\(n), \(d), \(seed)")
+        }
+    }
+
+    @Test("Random bipartite: every edge joins the sides, sorted, the same edges and draws on every conformer and on BipartiteGraph; directed, the forward sweep first")
+    func randomBipartite() async {
+        await propertyCheck(count: 150, input: Gen.int(in: 0 ... 12), Gen.int(in: 0 ... 12), Gen.int(in: 0 ... 10), Gen.int(in: 0 ... 1_000_000)) { a, b, tenths, seed in
+            let p = Double(tenths) / 10
+            var generator = Xoshiro256StarStar(seed: UInt64(seed))
+            let graph = UndirectedAdjacencyList<Int>.randomBipartite(leftCount: a, rightCount: b, edgeProbability: p, using: &generator)
+            let ends = graph.edges.map { [$0.u, $0.v] }
+            #expect(graph.vertexCount == a + b && ends.allSatisfy { $0[0] < a && $0[1] >= a }, "\(a), \(b), \(p), \(seed)")
+            #expect(zip(ends, ends.dropFirst()).allSatisfy { $0.lexicographicallyPrecedes($1) }, "\(a), \(b), \(p), \(seed)")
+            if p == 1 { #expect(ends.count == a * b && generator == Xoshiro256StarStar(seed: UInt64(seed))) }
+            if p == 0 { #expect(ends.isEmpty && generator == Xoshiro256StarStar(seed: UInt64(seed))) }
+            var g1 = Xoshiro256StarStar(seed: UInt64(seed))
+            let bipartite = BipartiteGraph<Int>.randomBipartite(leftCount: a, rightCount: b, edgeProbability: p, using: &g1)
+            #expect(bipartite.edges.map { [$0.u, $0.v] } == ends && g1 == generator, "\(a), \(b), \(p), \(seed)")
+            #expect(Array(bipartite.left) == Array(0 ..< a) && Array(bipartite.right) == Array(a ..< a + b), "\(a), \(b), \(p), \(seed)")
+            // Directed: the first sweep draws exactly what the undirected one does.
+            var g2 = Xoshiro256StarStar(seed: UInt64(seed))
+            let csr = CompressedSparseRow.randomBipartite(leftCount: a, rightCount: b, edgeProbability: p, using: &g2)
+            let arcs = csr.edges.map { [$0.source, $0.target] }
+            #expect(arcs.filter { $0[0] < a } == ends, "\(a), \(b), \(p), \(seed)")
+            #expect(arcs.allSatisfy { ($0[0] < a) != ($0[1] < a) }, "\(a), \(b), \(p), \(seed)")
+            #expect(zip(arcs, arcs.dropFirst()).allSatisfy { $0.lexicographicallyPrecedes($1) }, "\(a), \(b), \(p), \(seed)")
+            var g3 = Xoshiro256StarStar(seed: UInt64(seed))
+            let list = AdjacencyList<Int>.randomBipartite(leftCount: a, rightCount: b, edgeProbability: p, using: &g3)
+            #expect(list.edges.map { [$0.source, $0.target] } == arcs && g3 == g2, "\(a), \(b), \(p), \(seed)")
         }
     }
 

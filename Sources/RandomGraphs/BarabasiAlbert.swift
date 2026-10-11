@@ -62,8 +62,10 @@ extension _GraphConstruction {
     /// > Albert-László Barabási and Réka Albert. Emergence of scaling in random networks.
     /// > *Science* 286(5439), 509–512 (1999). doi:10.1126/science.286.5439.509
     ///
-    /// The degree-proportional draw reads a list holding each vertex once per edge end, which is
-    /// Batagelj and Brandes' algorithm BA (Phys. Rev. E 71, 036113, 2005). m(n − m) edges, sorted.
+    /// The degree-proportional draw reads the repeated-endpoints list of Batagelj–Brandes'
+    /// algorithm BA (Phys. Rev. E 71, 036113, 2005), sampled as NetworkX does: the list holds each
+    /// vertex once per edge end, and a new vertex draws uniform entries until it has m distinct
+    /// targets. m(n − m) edges, sorted.
     /// O(n·m) expected. The draws are NetworkX's `barabasi_albert_graph(n, m)` on the same
     /// stream, except that each vertex's targets are appended to the list in ascending order
     /// where NetworkX appends them in its set's order.
@@ -73,7 +75,7 @@ extension _GraphConstruction {
     public static func barabasiAlbert(
         vertexCount n: Int, edgesPerVertex m: Int, using generator: inout some RandomNumberGenerator
     ) -> Self {
-        Self(_vertexCount: n, sortedEdges: _barabasiAlbertPairs(n, m, directed: false, &generator).lazy.map(_undirected))
+        Self(_vertexCount: n, sortedEdges: _barabasiAlbertPairs(n, m, directed: false, &generator).lazy.map(_undirected), _ConstructionToken())
     }
 
     /// `barabasiAlbert(vertexCount:edgesPerVertex:using:)` with the system's random number
@@ -96,7 +98,7 @@ extension _DirectedGraphConstruction {
     public static func barabasiAlbert(
         vertexCount n: Int, edgesPerVertex m: Int, using generator: inout some RandomNumberGenerator
     ) -> Self {
-        Self(_vertexCount: n, sortedEdges: _barabasiAlbertPairs(n, m, directed: true, &generator))
+        Self(_vertexCount: n, sortedEdges: _barabasiAlbertPairs(n, m, directed: true, &generator), _ConstructionToken())
     }
 
     /// `barabasiAlbert(vertexCount:edgesPerVertex:using:)` with the system's random number

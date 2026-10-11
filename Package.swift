@@ -112,7 +112,7 @@ let targets: [Target] = [
     .target(name: "SpectralGraphTheory", dependencies: ["GraphProtocols"], exclude: bazelFiles),
     // Generators
     .target(name: "NamedGraphs", dependencies: ["GraphProtocols", "Trees", "BipartiteGraphs"], exclude: bazelFiles),
-    .target(name: "RandomGraphs", dependencies: ["GraphProtocols", "NamedGraphs", "Trees", "DirectedAcyclicGraphModule"], exclude: bazelFiles),
+    .target(name: "RandomGraphs", dependencies: ["GraphProtocols", "AdjacencyListModule", "BipartiteGraphs", "NamedGraphs", "Trees", "DirectedAcyclicGraphModule"], exclude: bazelFiles),
     // Drawing
     .target(name: "GraphDrawing", dependencies: ["GraphProtocols", "Traversal", "Cycles", "SpectralGraphTheory"], exclude: bazelFiles),
     // Formats
@@ -155,7 +155,7 @@ let targets: [Target] = [
     .testTarget(name: "LabeledGraphsTests", dependencies: ["GraphProtocols", "LabeledGraphs", "CompressedSparseRowModule", "AdjacencyMatrixModule", "AdjacencyListModule", "Multigraphs", "StableGraphs", "Traversal", "Connectivity", "ShortestPaths", "SpanningTrees", "Centrality", "Flows", "Distances", "GrafluentTestSupport", .product(name: "PropertyBased", package: "swift-property-based"), .product(name: "OrderedCollections", package: "swift-collections")], exclude: ["BUILD.bazel", "README.md"]),
     .testTarget(name: "DirectedAcyclicGraphTests", dependencies: ["GraphProtocols", "DirectedAcyclicGraphModule", "AdjacencyListModule", "Multigraphs", "StableGraphs", "Traversal", "Connectivity", "ShortestPaths", "Walks", "GrafluentTestSupport", .product(name: "PropertyBased", package: "swift-property-based")], exclude: ["BUILD.bazel", "README.md"]),
     .testTarget(name: "NamedGraphsTests", dependencies: ["GraphProtocols", "NamedGraphs", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "Multigraphs", "StableGraphs", "Trees", "BipartiteGraphs", "GrafluentTestSupport", .product(name: "PropertyBased", package: "swift-property-based")], exclude: ["BUILD.bazel", "README.md"]),
-    .testTarget(name: "RandomGraphsTests", dependencies: ["GraphProtocols", "RandomGraphs", "NamedGraphs", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "Multigraphs", "StableGraphs", "Trees", "DirectedAcyclicGraphModule", "GrafluentTestSupport", .product(name: "PropertyBased", package: "swift-property-based")], exclude: ["BUILD.bazel", "README.md"]),
+    .testTarget(name: "RandomGraphsTests", dependencies: ["GraphProtocols", "RandomGraphs", "NamedGraphs", "BipartiteGraphs", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "Multigraphs", "StableGraphs", "Trees", "DirectedAcyclicGraphModule", "GrafluentTestSupport", .product(name: "PropertyBased", package: "swift-property-based")], exclude: ["BUILD.bazel", "README.md"]),
     .testTarget(name: "GraphProtocolsTests", dependencies: ["GraphProtocols", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "EdgeListModule", "GrafluentTestSupport", .product(name: "BitCollections", package: "swift-collections")], exclude: ["BUILD.bazel", "README.md"]),
 ]
 

@@ -8,9 +8,10 @@ vectors and NetworkX on the same stream as it builds the rows). Then it re-runs 
 port of the procedures, asserts that each value is the row's cell, and writes one @Test per row.
 
 * Exact rows run their family on every conformer api.md lists, each with a fresh generator: the
-  undirected form on UndirectedAdjacencyList, Pseudograph and Multigraph; the directed form (G(n, p),
-  G(n, m), Barabási–Albert and the SBM) on CompressedSparseRow, AdjacencyMatrix, AdjacencyList,
-  DirectedPseudograph, DirectedMultigraph and StableDirectedGraph; random DAGs on
+  undirected form on UndirectedAdjacencyList, Pseudograph and Multigraph; the directed form (every
+  family's: both arcs of every edge for Watts–Strogatz, random geometric and random regular graphs)
+  on CompressedSparseRow, AdjacencyMatrix, AdjacencyList, DirectedPseudograph, DirectedMultigraph
+  and StableDirectedGraph; random bipartite graphs also on BipartiteGraph; random DAGs on
   DirectedAcyclicGraph over AdjacencyList, StableDirectedGraph and DirectedPseudograph. The form the
   catalog does not show comes from the same model. Each checks the vertices, the edges in order,
   the degrees, the positions of a geometric graph, the Prüfer code of a tree, and the number of
@@ -62,7 +63,7 @@ for line in TEXT.splitlines():
         parts = [p.strip() for p in line.strip().strip("|").split(" | ")]
         CELLS[int(parts[0][3:])] = parts
 N = len(CELLS)
-assert N == 108
+assert N == 141
 
 
 def group(n): return CELLS[n][1]
@@ -107,6 +108,10 @@ def swift_call(kind, args, typ):
         return "%s.stochasticBlockModel(blockSizes: %r, edgeProbabilities: %r, using: &generator)" % (typ, args[0], args[1])
     if kind == "tree":
         return "Tree<Int>.random(vertexCount: %d, using: &generator)" % args[0]
+    if kind == "reg":
+        return "%s.randomRegular(vertexCount: %d, degree: %d, using: &generator)" % (typ, *args)
+    if kind == "bip":
+        return "%s.randomBipartite(leftCount: %d, rightCount: %d, edgeProbability: %r, using: &generator)" % (typ, *args)
     raise AssertionError(kind)
 
 
@@ -123,9 +128,13 @@ def model(kind, args, seed, directed):
         elif kind == "sbm":
             r = ref.sbm(args[0], args[1], rng, directed)
         elif kind == "ws":
-            r = ref.watts_strogatz(*args, rng)
+            r = ref.watts_strogatz(*args, rng, directed)
         elif kind == "rgg":
-            r = ref.random_geometric(args[0], args[1], rng, args[2])
+            r = ref.random_geometric(args[0], args[1], rng, args[2], directed)
+        elif kind == "reg":
+            r = ref.random_regular(*args, rng, directed)
+        elif kind == "bip":
+            r = ref.random_bipartite(*args, rng, directed)
         elif kind == "tree":
             r = ref.random_tree(args[0], rng)
         elif kind == "dag_gnp":
@@ -180,18 +189,27 @@ def undirected_check(r, draws, seed, ind, positions=False):
     return L
 
 
-def directed_check(r, draws, seed, ind, dag=False):
+def directed_check(r, draws, seed, ind, dag=False, positions=False):
     n, m = r.n, len(r.edges)
     out, inn = degrees(r)
-    L = [ind + "func check%s(_ graph: some DirectedGraph<Int>, _ generator: Xoshiro256StarStar, _ type: String) {" % ("DAG" if dag else "Directed")]
+    sig = "_ graph: some DirectedGraph<Int>, " + ("_ positions: [Double], " if positions else "") + "_ generator: Xoshiro256StarStar, _ type: String"
+    L = [ind + "func check%s(%s) {" % ("DAG" if dag else "Directed", sig)]
     i = ind + "    "
     L.append(i + "#expect(graph.vertexCount == %d && graph.edgeCount == %d && graph.edges.count == %d, \"\\(type)\")" % (n, m, m))
     L.append(i + "#expect(Array(graph.vertices) == Array(0 ..< %d), \"\\(type)\")" % n)
     L.append(i + "#expect(graph.edges.map { [$0.source, $0.target] } == %s, \"\\(type)\")" % pairs(r.edges))
-    L.append(i + "#expect((0 ..< %d).map { graph.outDegree(of: $0) } == %s, \"\\(type)\")" % (n, ints(out)))
-    L.append(i + "var inDegrees = [Int](repeating: 0, count: %d)" % n)
-    L.append(i + "for edge in graph.edges { inDegrees[edge.target] += 1 }")
-    L.append(i + "#expect(inDegrees == %s, \"\\(type)\")" % ints(inn))
+    # The geometric rows (added with positions) write a large empty graph's degrees as a rule.
+    if n <= 64 or not positions:
+        L.append(i + "#expect((0 ..< %d).map { graph.outDegree(of: $0) } == %s, \"\\(type)\")" % (n, ints(out)))
+        L.append(i + "var inDegrees = [Int](repeating: 0, count: %d)" % n)
+        L.append(i + "for edge in graph.edges { inDegrees[edge.target] += 1 }")
+        L.append(i + "#expect(inDegrees == %s, \"\\(type)\")" % ints(inn))
+    else:
+        assert m == 0
+        L.append(i + "#expect((0 ..< %d).allSatisfy { graph.outDegree(of: $0) == 0 }, \"\\(type)\")" % n)
+    if positions:
+        flat = [x for p in r.positions for x in p]
+        L.append(i + "#expect(positions == %s, \"\\(type)\")" % doubles(flat))
     L += draws_lines(seed, draws, i)
     L.append(ind + "}")
     return L
@@ -258,12 +276,7 @@ def exact_test(n):
                    "#expect(graph.edges.map { [$0.u, $0.v] } == %s)" % pairs(r.edges))
         L.append("    }")
         return L
-    forms = []
-    if kind in ("gnp", "gnm", "ba", "sbm"):
-        forms = [False, True]
-    else:
-        forms = [False]
-    for directed in forms:
+    for directed in [False, True]:
         r, draws = model(kind, base, seed, directed)
         if isinstance(r, ref.Trap):
             assert directed != directed_row
@@ -282,18 +295,31 @@ def exact_test(n):
                 assert cell(n).startswith(text + "; draws %d" % draws), (n, text)
         else:
             L.append("        // The %s form, from the same model." % ("directed" if directed else "undirected"))
+        rgg = kind == "rgg"
         if directed:
-            L += directed_check(r, draws, seed, "        ")
+            L += directed_check(r, draws, seed, "        ", positions=rgg)
             for t in DIRECTED:
-                L += block(seed, "let graph = " + swift_call(kind, base, t), "checkDirected(graph, generator, \"%s\")" % t)
+                if rgg:
+                    L += block(seed, "let (graph, positions) = " + swift_call(kind, base, t), "checkDirected(graph, positions, generator, \"%s\")" % t)
+                else:
+                    L += block(seed, "let graph = " + swift_call(kind, base, t), "checkDirected(graph, generator, \"%s\")" % t)
         else:
-            rgg = kind == "rgg"
             L += undirected_check(r, draws, seed, "        ", positions=rgg)
             for t in UNDIRECTED:
                 if rgg:
                     L += block(seed, "let (graph, positions) = " + swift_call(kind, base, t), "check(graph, positions, generator, \"%s\")" % t)
                 else:
                     L += block(seed, "let graph = " + swift_call(kind, base, t), "check(graph, generator, \"%s\")" % t)
+            if kind == "bip":
+                a, b = base[0], base[1]
+                L.append("        // With its sides: left 0..<%d, right %d..<%d, the same edges and draws." % (a, a, a + b))
+                L += ["        do {",
+                      "            var generator = Xoshiro256StarStar(seed: %d)" % seed,
+                      "            let bipartite = " + swift_call(kind, base, "BipartiteGraph<Int>"),
+                      "            #expect(Array(bipartite.left) == Array(0 ..< %d) && Array(bipartite.right) == Array(%d ..< %d))" % (a, a, a + b),
+                      "            #expect((0 ..< %d).allSatisfy { bipartite.side(of: $0) == ($0 < %d ? .left : .right) })" % (a + b, a),
+                      "            check(bipartite, generator, \"BipartiteGraph<Int>\")",
+                      "        }"]
     if n == 94:
         L.append("        // K5,5: the same graph as NamedGraphs' completeBipartite.")
         for t in UNDIRECTED:
@@ -322,18 +348,27 @@ TRAPS = {
     55: (on(UNDIRECTED + DIRECTED, "ba", (5, 0)), ("ba", (5, 1))),
     56: (on(UNDIRECTED + DIRECTED, "ba", (5, 5)), ("ba", (5, 4))),
     57: (on(UNDIRECTED + DIRECTED, "ba", (1, 1)), ("ba", (2, 1))),
-    69: (on(UNDIRECTED, "ws", (10, 3, 0.1)), ("ws", (10, 2, 0.1))),
-    70: (on(UNDIRECTED, "ws", (4, 6, 0.1)), ("ws", (4, 4, 0.1))),
-    71: (on(UNDIRECTED, "ws", (10, 4, 1.5)), ("ws", (10, 4, 1.0))),
-    80: (on(UNDIRECTED, "rgg", (5, -0.1, 2)), ("rgg", (5, 0.0, 2))),
-    81: ([(t, c.replace("nan", ".nan")) for t, c in on(UNDIRECTED, "rgg", (5, float("nan"), 2))], ("rgg", (5, 0.1, 2))),
-    82: (on(UNDIRECTED, "rgg", (5, 0.1, 0)), ("rgg", (5, 0.1, 1))),
+    69: (on(UNDIRECTED + DIRECTED, "ws", (10, 3, 0.1)), ("ws", (10, 2, 0.1))),
+    70: (on(UNDIRECTED + DIRECTED, "ws", (4, 6, 0.1)), ("ws", (4, 4, 0.1))),
+    71: (on(UNDIRECTED + DIRECTED, "ws", (10, 4, 1.5)), ("ws", (10, 4, 1.0))),
+    80: (on(UNDIRECTED + DIRECTED, "rgg", (5, -0.1, 2)), ("rgg", (5, 0.0, 2))),
+    81: ([(t, c.replace("nan", ".nan")) for t, c in on(UNDIRECTED + DIRECTED, "rgg", (5, float("nan"), 2))], ("rgg", (5, 0.1, 2))),
+    82: (on(UNDIRECTED + DIRECTED, "rgg", (5, 0.1, 0)), ("rgg", (5, 0.1, 1))),
     89: (on(UNDIRECTED, "sbm", ([2, 2], [[0.5, 0.1], [0.2, 0.5]])), ("sbm", ([2, 2], [[0.5, 0.1], [0.1, 0.5]]))),
     90: (on(UNDIRECTED + DIRECTED, "sbm", ([2, 2], [[0.5, 0.1]])), ("sbm", ([2, 2], [[0.5, 0.1], [0.1, 0.5]]))),
     91: (on(UNDIRECTED + DIRECTED, "sbm", ([2], [[1.5]])), ("sbm", ([2], [[1.0]]))),
     92: (on(UNDIRECTED + DIRECTED, "sbm", ([2, -1], [[0.5, 0.1], [0.1, 0.5]])), ("sbm", ([2, 0], [[0.5, 0.1], [0.1, 0.5]]))),
     101: ([("Tree<Int>", swift_call("tree", (0,), "")), ("Tree<Int>", swift_call("tree", (-1,), ""))], ("tree", (1,))),
     107: (on(DAGS, "gnm", (4, 7)), ("dag_gnm", (4, 6))),
+    121: (on(UNDIRECTED + DIRECTED, "reg", (5, 5)), ("reg", (5, 4))),
+    122: (on(UNDIRECTED + DIRECTED, "reg", (5, -1)), ("reg", (5, 0))),
+    123: (on(UNDIRECTED + DIRECTED, "reg", (5, 3)), ("reg", (5, 2))),
+    124: (on(UNDIRECTED + DIRECTED, "reg", (-1, 0)), ("reg", (1, 0))),
+    136: (on(UNDIRECTED + DIRECTED + ["BipartiteGraph<Int>"], "bip", (-1, 3, 0.5)), ("bip", (0, 3, 0.5))),
+    137: (on(UNDIRECTED + DIRECTED + ["BipartiteGraph<Int>"], "bip", (3, -1, 0.5)), ("bip", (3, 0, 0.5))),
+    138: (on(UNDIRECTED + DIRECTED + ["BipartiteGraph<Int>"], "bip", (3, 3, 1.5)), ("bip", (3, 3, 1.0))),
+    139: ([(t, c.replace("nan", ".nan")) for t, c in on(UNDIRECTED + DIRECTED + ["BipartiteGraph<Int>"], "bip", (3, 3, float("nan")))],
+          ("bip", (3, 3, 0.5))),
 }
 
 
@@ -342,7 +377,8 @@ def ref_trap(kind, args, directed):
     f = {"gnp": lambda: ref.gnp(args[0], args[1], rng, directed), "gnm": lambda: ref.gnm(args[0], args[1], rng, directed),
          "ba": lambda: ref.barabasi_albert(args[0], args[1], rng, directed), "ws": lambda: ref.watts_strogatz(*args, rng),
          "rgg": lambda: ref.random_geometric(args[0], args[1], rng, args[2]),
-         "sbm": lambda: ref.sbm(args[0], args[1], rng, directed), "tree": lambda: ref.random_tree(args[0], rng)}[kind]
+         "sbm": lambda: ref.sbm(args[0], args[1], rng, directed), "tree": lambda: ref.random_tree(args[0], rng),
+         "reg": lambda: ref.random_regular(*args, rng, directed), "bip": lambda: ref.random_bipartite(*args, rng, directed)}[kind]
     try:
         f()
     except ref.Trap as t:
@@ -385,6 +421,12 @@ def trap_test(n):
         elif ".randomGeometric(" in c:
             m = re.search(r"vertexCount: (-?\d+), radius: (\S+?), dimension: (-?\d+),", c)
             msg = ref_trap("rgg", (int(m.group(1)), float(m.group(2).replace(".nan", "nan")), int(m.group(3))), False)
+        elif ".randomRegular(" in c:
+            m = re.search(r"vertexCount: (-?\d+), degree: (-?\d+),", c)
+            msg = ref_trap("reg", (int(m.group(1)), int(m.group(2))), directed)
+        elif ".randomBipartite(" in c:
+            m = re.search(r"leftCount: (-?\d+), rightCount: (-?\d+), edgeProbability: (\S+?),", c)
+            msg = ref_trap("bip", (int(m.group(1)), int(m.group(2)), float(m.group(3).replace(".nan", "nan"))), directed)
         elif ".stochasticBlockModel(" in c:
             m = re.search(r"blockSizes: (\[.*?\]), edgeProbabilities: (\[\[.*?\]\]),", c)
             msg = ref_trap("sbm", (eval(m.group(1)), eval(m.group(2))), directed)
@@ -530,8 +572,16 @@ def stat_test(n):
             L.append(i + "    // The law: within 5 % of (n − 1)p(1 − p).")
             L.append(i + "    #expect(abs(variance - 99 * 0.05 * 0.95) / (99 * 0.05 * 0.95) < 0.05, \"%s\")" % t)
             L.append(i + "}")
-    elif n in (29, 44, 45, 46, 102):
-        if n == 29:
+    elif n in (29, 44, 45, 46, 102, 126):
+        if n == 126:
+            S, counts = 3000, {}
+            for s in range(S):
+                e = tuple(ref.random_regular(4, 2, ref.Xoshiro256StarStar(s)).edges)
+                counts[e] = counts.get(e, 0) + 1
+            probs = {((0, 1), (0, 2), (1, 3), (2, 3)): 1 / 3, ((0, 1), (0, 3), (1, 2), (2, 3)): 1 / 3,
+                     ((0, 2), (0, 3), (1, 2), (1, 3)): 1 / 3}
+            types, make, directed = UNDIRECTED, "randomRegular(vertexCount: 4, degree: 2, using: &generator)", False
+        elif n == 29:
             S, probs, label = 4000, {}, "G(3, 0.3)"
             allp = [(0, 1), (0, 2), (1, 2)]
             for k in range(4):
@@ -711,6 +761,55 @@ def stat_test(n):
         L.append(i + "    }")
         L.append(i + "}")
         L.append(i + "#expect(abs((Double(%d) / %d - mean) / (variance / %d).squareRoot()) <= 4)" % (tot, S, S))
+    elif n == 125:
+        S, nn, d = 50, 100, 3
+        for s in range(S):
+            r = ref.random_regular(nn, d, ref.Xoshiro256StarStar(s))
+            assert len(r.edges) == nn * d // 2 and degrees(r) == [d] * nn
+        for t in UNDIRECTED:
+            L.append(i + "do {")
+            L.append(i + "    " + seeds_loop(S) + " {")
+            L.append(i + "        var generator = Xoshiro256StarStar(seed: seed)")
+            L.append(i + "        let graph = %s.randomRegular(vertexCount: %d, degree: %d, using: &generator)" % (t, nn, d))
+            L.append(i + "        #expect(graph.edgeCount == %d, \"%s seed \\(seed)\")" % (nn * d // 2, t))
+            L.append(i + "        #expect((0 ..< %d).allSatisfy { graph.degree(of: $0) == %d }, \"%s seed \\(seed)\")" % (nn, d, t))
+            L.append(i + "        #expect(graph.edges.allSatisfy { $0.u < $0.v }, \"%s seed \\(seed)\")" % t)
+            L.append(i + "        #expect(Set(graph.edges.map { [$0.u, $0.v] }).count == %d, \"%s seed \\(seed)\")" % (nn * d // 2, t))
+            L.append(i + "    }")
+            L.append(i + "}")
+        L.append(i + "// Directed: both arcs of every edge, so in- and out-degree d everywhere.")
+        for t in DIRECTED:
+            L.append(i + "do {")
+            L.append(i + "    " + seeds_loop(S) + " {")
+            L.append(i + "        var generator = Xoshiro256StarStar(seed: seed)")
+            L.append(i + "        let graph = %s.randomRegular(vertexCount: %d, degree: %d, using: &generator)" % (t, nn, d))
+            L.append(i + "        #expect(graph.edgeCount == %d, \"%s seed \\(seed)\")" % (nn * d, t))
+            L.append(i + "        #expect((0 ..< %d).allSatisfy { graph.outDegree(of: $0) == %d }, \"%s seed \\(seed)\")" % (nn, d, t))
+            L.append(i + "        #expect(graph.edges.allSatisfy { graph.contains(edge: DirectedEdge(from: $0.target, to: $0.source)) }, \"%s seed \\(seed)\")" % t)
+            L.append(i + "    }")
+            L.append(i + "}")
+    elif n in (140, 141):
+        directed = n == 141
+        S, a, b, p = 200, 30, 20, 0.1
+        tot = sum(len(ref.random_bipartite(a, b, p, ref.Xoshiro256StarStar(s), directed).edges) for s in range(S))
+        assert c.startswith("Σ %d over seeds 0..<%d" % (tot, S)), n
+        pairs_ = a * b * (2 if directed else 1)
+        for t in (DIRECTED if directed else UNDIRECTED):
+            L.append(i + "do {")
+            L.append(i + "    var total = 0")
+            L.append(i + "    " + seeds_loop(S) + " {")
+            L.append(i + "        var generator = Xoshiro256StarStar(seed: seed)")
+            L.append(i + "        let graph = %s.randomBipartite(leftCount: %d, rightCount: %d, edgeProbability: %r, using: &generator)" % (t, a, b, p))
+            L.append(i + "        #expect(graph.edges.allSatisfy { (%s < %d) != (%s < %d) }, \"%s seed \\(seed)\")"
+                     % ((("$0.source", a, "$0.target", a) if directed else ("$0.u", a, "$0.v", a)) + (t,)))
+            L.append(i + "        total += graph.edgeCount")
+            L.append(i + "    }")
+            L.append(i + "    #expect(total == %d, \"%s\")" % (tot, t))
+            L.append(i + "}")
+        L.append(i + "// The law: |z| ≤ 4 against E[m] = %d·%r per seed." % (pairs_, p))
+        L.append(i + "let mean = Double(%d) / %d" % (tot, S))
+        L.append(i + "let z = (mean - %d * %r) / (%d * %r * (1 - %r) / %d).squareRoot()" % (pairs_, p, pairs_, p, p, S))
+        L.append(i + "#expect(abs(z) <= 4)")
     elif n == 103:
         S, nn = 50, 200
         L.append(i + seeds_loop(S) + " {")
@@ -763,7 +862,7 @@ def ids(*groups, stats=None):
 
 
 STAT_GROUPS = ("ErdosRenyiGnp", "ErdosRenyiGnm", "BarabasiAlbert", "WattsStrogatz", "RandomGeometric",
-               "StochasticBlockModel", "RandomTree", "RandomDAG")
+               "StochasticBlockModel", "RandomTree", "RandomDAG", "RandomRegular", "RandomBipartite")
 FILES = [
     ("GeneratorTests.swift", "RandomGraphs generator", ids("Generator"),
      "The generator (catalog RG-001 – RG-008): xoshiro256** from a given state reproduces rand_xoshiro's\n"
@@ -774,16 +873,21 @@ FILES = [
      "// NetworkX's rejection loop, draw for draw, on every conformer, with the number of draws."),
     ("PreferentialAttachmentTests.swift", "RandomGraphs Barabási–Albert and Watts–Strogatz exact outputs",
      ids("BarabasiAlbert", "WattsStrogatz", stats=False),
-     "Barabási–Albert and Watts–Strogatz for fixed seeds (catalog RG-047 – RG-068): the repeated-nodes\n"
-     "// list with targets appended in ascending order, and NetworkX's ring rewiring."),
+     "Barabási–Albert and Watts–Strogatz for fixed seeds (catalog RG-047 – RG-068, RG-109): the\n"
+     "// repeated-nodes list with targets appended in ascending order, and NetworkX's ring rewiring."),
     ("GeometricBlockModelTests.swift", "RandomGraphs random geometric graphs and block models exact outputs",
      ids("RandomGeometric", "StochasticBlockModel", stats=False),
-     "Random geometric graphs and stochastic block models for fixed seeds (catalog RG-074 – RG-094):\n"
-     "// positions vertex by vertex, edges by squared distance; block pairs skipped geometrically."),
+     "Random geometric graphs and stochastic block models for fixed seeds (catalog RG-074 – RG-094,\n"
+     "// RG-110 – RG-113): positions vertex by vertex, edges by squared distance; block pairs skipped\n"
+     "// geometrically."),
     ("RandomTreeDAGTests.swift", "RandomGraphs random trees and DAGs exact outputs", ids("RandomTree", "RandomDAG", stats=False),
      "Random trees and random DAGs for fixed seeds (catalog RG-095 – RG-106): a Prüfer code of n − 2\n"
      "// draws, decoded by Tree(pruferSequence:); G(n, p) and G(n, m) oriented upward, with 0..<n as the\n"
      "// topological order."),
+    ("RegularBipartiteTests.swift", "RandomGraphs random regular and random bipartite exact outputs",
+     ids("RandomRegular", "RandomBipartite", stats=False),
+     "Random regular and random bipartite graphs for fixed seeds (catalog RG-114 – RG-135): NetworkX's\n"
+     "// stub pairing with its repair rounds, and Batagelj–Brandes skipping over the left–right pairs."),
     ("StatisticalLawTests.swift", "RandomGraphs statistical laws", ids(*STAT_GROUPS, stats=True),
      "Statistical laws (catalog rows with seeds 0..<S): the exact aggregate of the pinned procedure over\n"
      "// the seeds on every conformer of the row's kind, then the law with api.md's tolerance."),
@@ -794,7 +898,7 @@ FILES = [
 IMPORTS = {"AdjacencyListModule": ("AdjacencyList<", "UndirectedAdjacencyList<"), "AdjacencyMatrixModule": ("AdjacencyMatrix",),
            "CompressedSparseRowModule": ("CompressedSparseRow",), "Multigraphs": ("Pseudograph<", "Multigraph<"),
            "StableGraphs": ("StableDirectedGraph",), "Trees": ("Tree<",), "DirectedAcyclicGraphModule": ("DirectedAcyclicGraph<",),
-           "NamedGraphs": (".completeBipartite(",)}
+           "NamedGraphs": (".completeBipartite(",), "BipartiteGraphs": ("BipartiteGraph<",)}
 
 
 def write(fname, suite, rws, comment):

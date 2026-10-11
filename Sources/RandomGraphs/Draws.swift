@@ -5,6 +5,11 @@ import Glibc
 #elseif canImport(Musl)
 import Musl
 #endif
+// A swift.org toolchain reading a newer macOS SDK (the fuzz build) gets a Darwin without libm's
+// functions; the SDK's math module has them.
+#if canImport(math_h)
+import math_h
+#endif
 
 // The pinned stream. Every procedure draws only through these two functions, so its output is a
 // function of the generator's `next()` sequence alone. They read the bits CPython's `random()` and

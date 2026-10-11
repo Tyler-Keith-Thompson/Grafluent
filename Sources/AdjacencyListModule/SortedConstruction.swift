@@ -150,8 +150,7 @@ extension AdjacencyList where Vertex == Int {
         let rows = _SortedArcRows(vertexCount: n, sortedEdges: edges)
         self.init()
         _vertices = ContiguousArray(0 ..< n)
-        _slots.reserveCapacity(n)
-        for v in 0 ..< n { _slots[v] = v }
+        _slots = _VertexSlots(identityCount: n)
         _out = rows.out
         _outEdges = rows.outEdges
         _in = rows.in
@@ -159,7 +158,7 @@ extension AdjacencyList where Vertex == Int {
         _records = rows.records
         _edges.reserveCapacity(rows.records.count)
         for (position, record) in rows.records.enumerated() {
-            _edges[_SlotPair(record.source, record.target)] = position
+            _edges.insert(_SlotPair(record.source, record.target), position)
         }
     }
 }
@@ -167,7 +166,8 @@ extension AdjacencyList where Vertex == Int {
 extension AdjacencyList: _DirectedGraphConstruction where Vertex == Int {
     /// See `_DirectedGraphConstruction`. O(n + m) expected.
     @inlinable
-    public init(_vertexCount: Int, sortedEdges: some Collection<DirectedEdge<Int>>) {
+    public init(_vertexCount: Int, sortedEdges: some Collection<DirectedEdge<Int>>, _: _ConstructionToken) {
+        assert(_isSortedSimple(vertexCount: _vertexCount, sortedEdges), "unsorted, repeated or out-of-range edges")
         self.init(_uncheckedVertexCount: _vertexCount, sortedEdges: sortedEdges)
     }
 }
@@ -180,14 +180,13 @@ extension UndirectedAdjacencyList where Vertex == Int {
         let rows = _SortedEdgeRows(vertexCount: n, sortedEdges: edges)
         self.init()
         _vertices = ContiguousArray(0 ..< n)
-        _slots.reserveCapacity(n)
-        for v in 0 ..< n { _slots[v] = v }
+        _slots = _VertexSlots(identityCount: n)
         _neighbors = rows.neighbors
         _incident = rows.incident
         _records = rows.records
         _positions.reserveCapacity(rows.records.count)
         for (position, record) in rows.records.enumerated() {
-            _positions[_SlotPair(record.u, record.v)] = position
+            _positions.insert(_SlotPair(record.u, record.v), position)
         }
     }
 }
@@ -195,7 +194,8 @@ extension UndirectedAdjacencyList where Vertex == Int {
 extension UndirectedAdjacencyList: _GraphConstruction where Vertex == Int {
     /// See `_GraphConstruction`. O(n + m) expected.
     @inlinable
-    public init(_vertexCount: Int, sortedEdges: some Collection<UndirectedEdge<Int>>) {
+    public init(_vertexCount: Int, sortedEdges: some Collection<UndirectedEdge<Int>>, _: _ConstructionToken) {
+        assert(_isSortedSimple(vertexCount: _vertexCount, sortedEdges), "unsorted, repeated or out-of-range edges")
         self.init(_uncheckedVertexCount: _vertexCount, sortedEdges: sortedEdges)
     }
 }

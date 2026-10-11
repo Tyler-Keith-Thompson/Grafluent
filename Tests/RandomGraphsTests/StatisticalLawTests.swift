@@ -729,4 +729,246 @@ struct StatisticalLawTests {
         let z = (mean - 1770 * 0.1) / (1770 * 0.1 * (1 - 0.1) / 200).squareRoot()
         #expect(abs(z) <= 4)
     }
+
+    @Test("RG-125 laws: nd/2 edges, every vertex of degree d, simple")
+    func rg125() {
+        // n 100, d 3, seeds 0..<50 → hold for every seed (igraph is_simple)
+        do {
+            for seed in 0 ..< UInt64(50) {
+                var generator = Xoshiro256StarStar(seed: seed)
+                let graph = UndirectedAdjacencyList<Int>.randomRegular(vertexCount: 100, degree: 3, using: &generator)
+                #expect(graph.edgeCount == 150, "UndirectedAdjacencyList<Int> seed \(seed)")
+                #expect((0 ..< 100).allSatisfy { graph.degree(of: $0) == 3 }, "UndirectedAdjacencyList<Int> seed \(seed)")
+                #expect(graph.edges.allSatisfy { $0.u < $0.v }, "UndirectedAdjacencyList<Int> seed \(seed)")
+                #expect(Set(graph.edges.map { [$0.u, $0.v] }).count == 150, "UndirectedAdjacencyList<Int> seed \(seed)")
+            }
+        }
+        do {
+            for seed in 0 ..< UInt64(50) {
+                var generator = Xoshiro256StarStar(seed: seed)
+                let graph = Pseudograph<Int>.randomRegular(vertexCount: 100, degree: 3, using: &generator)
+                #expect(graph.edgeCount == 150, "Pseudograph<Int> seed \(seed)")
+                #expect((0 ..< 100).allSatisfy { graph.degree(of: $0) == 3 }, "Pseudograph<Int> seed \(seed)")
+                #expect(graph.edges.allSatisfy { $0.u < $0.v }, "Pseudograph<Int> seed \(seed)")
+                #expect(Set(graph.edges.map { [$0.u, $0.v] }).count == 150, "Pseudograph<Int> seed \(seed)")
+            }
+        }
+        do {
+            for seed in 0 ..< UInt64(50) {
+                var generator = Xoshiro256StarStar(seed: seed)
+                let graph = Multigraph<Int>.randomRegular(vertexCount: 100, degree: 3, using: &generator)
+                #expect(graph.edgeCount == 150, "Multigraph<Int> seed \(seed)")
+                #expect((0 ..< 100).allSatisfy { graph.degree(of: $0) == 3 }, "Multigraph<Int> seed \(seed)")
+                #expect(graph.edges.allSatisfy { $0.u < $0.v }, "Multigraph<Int> seed \(seed)")
+                #expect(Set(graph.edges.map { [$0.u, $0.v] }).count == 150, "Multigraph<Int> seed \(seed)")
+            }
+        }
+        // Directed: both arcs of every edge, so in- and out-degree d everywhere.
+        do {
+            for seed in 0 ..< UInt64(50) {
+                var generator = Xoshiro256StarStar(seed: seed)
+                let graph = CompressedSparseRow.randomRegular(vertexCount: 100, degree: 3, using: &generator)
+                #expect(graph.edgeCount == 300, "CompressedSparseRow seed \(seed)")
+                #expect((0 ..< 100).allSatisfy { graph.outDegree(of: $0) == 3 }, "CompressedSparseRow seed \(seed)")
+                #expect(graph.edges.allSatisfy { graph.contains(edge: DirectedEdge(from: $0.target, to: $0.source)) }, "CompressedSparseRow seed \(seed)")
+            }
+        }
+        do {
+            for seed in 0 ..< UInt64(50) {
+                var generator = Xoshiro256StarStar(seed: seed)
+                let graph = AdjacencyMatrix.randomRegular(vertexCount: 100, degree: 3, using: &generator)
+                #expect(graph.edgeCount == 300, "AdjacencyMatrix seed \(seed)")
+                #expect((0 ..< 100).allSatisfy { graph.outDegree(of: $0) == 3 }, "AdjacencyMatrix seed \(seed)")
+                #expect(graph.edges.allSatisfy { graph.contains(edge: DirectedEdge(from: $0.target, to: $0.source)) }, "AdjacencyMatrix seed \(seed)")
+            }
+        }
+        do {
+            for seed in 0 ..< UInt64(50) {
+                var generator = Xoshiro256StarStar(seed: seed)
+                let graph = AdjacencyList<Int>.randomRegular(vertexCount: 100, degree: 3, using: &generator)
+                #expect(graph.edgeCount == 300, "AdjacencyList<Int> seed \(seed)")
+                #expect((0 ..< 100).allSatisfy { graph.outDegree(of: $0) == 3 }, "AdjacencyList<Int> seed \(seed)")
+                #expect(graph.edges.allSatisfy { graph.contains(edge: DirectedEdge(from: $0.target, to: $0.source)) }, "AdjacencyList<Int> seed \(seed)")
+            }
+        }
+        do {
+            for seed in 0 ..< UInt64(50) {
+                var generator = Xoshiro256StarStar(seed: seed)
+                let graph = DirectedPseudograph<Int>.randomRegular(vertexCount: 100, degree: 3, using: &generator)
+                #expect(graph.edgeCount == 300, "DirectedPseudograph<Int> seed \(seed)")
+                #expect((0 ..< 100).allSatisfy { graph.outDegree(of: $0) == 3 }, "DirectedPseudograph<Int> seed \(seed)")
+                #expect(graph.edges.allSatisfy { graph.contains(edge: DirectedEdge(from: $0.target, to: $0.source)) }, "DirectedPseudograph<Int> seed \(seed)")
+            }
+        }
+        do {
+            for seed in 0 ..< UInt64(50) {
+                var generator = Xoshiro256StarStar(seed: seed)
+                let graph = DirectedMultigraph<Int>.randomRegular(vertexCount: 100, degree: 3, using: &generator)
+                #expect(graph.edgeCount == 300, "DirectedMultigraph<Int> seed \(seed)")
+                #expect((0 ..< 100).allSatisfy { graph.outDegree(of: $0) == 3 }, "DirectedMultigraph<Int> seed \(seed)")
+                #expect(graph.edges.allSatisfy { graph.contains(edge: DirectedEdge(from: $0.target, to: $0.source)) }, "DirectedMultigraph<Int> seed \(seed)")
+            }
+        }
+        do {
+            for seed in 0 ..< UInt64(50) {
+                var generator = Xoshiro256StarStar(seed: seed)
+                let graph = StableDirectedGraph<Int>.randomRegular(vertexCount: 100, degree: 3, using: &generator)
+                #expect(graph.edgeCount == 300, "StableDirectedGraph<Int> seed \(seed)")
+                #expect((0 ..< 100).allSatisfy { graph.outDegree(of: $0) == 3 }, "StableDirectedGraph<Int> seed \(seed)")
+                #expect(graph.edges.allSatisfy { graph.contains(edge: DirectedEdge(from: $0.target, to: $0.source)) }, "StableDirectedGraph<Int> seed \(seed)")
+            }
+        }
+    }
+
+    @Test("RG-126 law: uniform over the 3 labeled 4-cycles (one isomorphism class)")
+    func rg126() {
+        // n 4, d 2 → 3 outcomes over seeds 0..<3000; χ² 0.94 ≤ 13.816 (df 2, 0.999)
+        // Every outcome's count over the seeds, from the model.
+        let expected: [[[Int]]: Int] = [[[0, 1], [0, 2], [1, 3], [2, 3]]: 986, [[0, 1], [0, 3], [1, 2], [2, 3]]: 989, [[0, 2], [0, 3], [1, 2], [1, 3]]: 1025]
+        do {
+            var counts: [[[Int]]: Int] = [:]
+            for seed in 0 ..< UInt64(3000) {
+                var generator = Xoshiro256StarStar(seed: seed)
+                let graph = UndirectedAdjacencyList<Int>.randomRegular(vertexCount: 4, degree: 2, using: &generator)
+                let key = graph.edges.map { [$0.u, $0.v] }
+                counts[key, default: 0] += 1
+            }
+            #expect(counts == expected, "UndirectedAdjacencyList<Int>")
+        }
+        do {
+            var counts: [[[Int]]: Int] = [:]
+            for seed in 0 ..< UInt64(3000) {
+                var generator = Xoshiro256StarStar(seed: seed)
+                let graph = Pseudograph<Int>.randomRegular(vertexCount: 4, degree: 2, using: &generator)
+                let key = graph.edges.map { [$0.u, $0.v] }
+                counts[key, default: 0] += 1
+            }
+            #expect(counts == expected, "Pseudograph<Int>")
+        }
+        do {
+            var counts: [[[Int]]: Int] = [:]
+            for seed in 0 ..< UInt64(3000) {
+                var generator = Xoshiro256StarStar(seed: seed)
+                let graph = Multigraph<Int>.randomRegular(vertexCount: 4, degree: 2, using: &generator)
+                let key = graph.edges.map { [$0.u, $0.v] }
+                counts[key, default: 0] += 1
+            }
+            #expect(counts == expected, "Multigraph<Int>")
+        }
+        // The law: χ² over the 3 outcomes, each with its probability, below the 0.999 quantile.
+        let probabilities: [[[Int]]: Double] = [[[0, 1], [0, 2], [1, 3], [2, 3]]: 0.3333333333333333, [[0, 1], [0, 3], [1, 2], [2, 3]]: 0.3333333333333333, [[0, 2], [0, 3], [1, 2], [1, 3]]: 0.3333333333333333]
+        let chiSquare = probabilities.reduce(0.0) { sum, outcome in
+            let observed = Double(expected[outcome.key] ?? 0), predicted = 3000 * outcome.value
+            return sum + (observed - predicted) * (observed - predicted) / predicted
+        }
+        #expect(abs(chiSquare - 0.94) <= 0.005 && chiSquare <= 13.816, "\(chiSquare)")
+    }
+
+    @Test("RG-140 law: E[m] = a·b·p")
+    func rg140() {
+        // G(30, 20, 0.1) undirected → Σ 12103 over seeds 0..<200 (mean 60.5150; expected 60.0000; |z| 0.99 ≤ 4)
+        do {
+            var total = 0
+            for seed in 0 ..< UInt64(200) {
+                var generator = Xoshiro256StarStar(seed: seed)
+                let graph = UndirectedAdjacencyList<Int>.randomBipartite(leftCount: 30, rightCount: 20, edgeProbability: 0.1, using: &generator)
+                #expect(graph.edges.allSatisfy { ($0.u < 30) != ($0.v < 30) }, "UndirectedAdjacencyList<Int> seed \(seed)")
+                total += graph.edgeCount
+            }
+            #expect(total == 12103, "UndirectedAdjacencyList<Int>")
+        }
+        do {
+            var total = 0
+            for seed in 0 ..< UInt64(200) {
+                var generator = Xoshiro256StarStar(seed: seed)
+                let graph = Pseudograph<Int>.randomBipartite(leftCount: 30, rightCount: 20, edgeProbability: 0.1, using: &generator)
+                #expect(graph.edges.allSatisfy { ($0.u < 30) != ($0.v < 30) }, "Pseudograph<Int> seed \(seed)")
+                total += graph.edgeCount
+            }
+            #expect(total == 12103, "Pseudograph<Int>")
+        }
+        do {
+            var total = 0
+            for seed in 0 ..< UInt64(200) {
+                var generator = Xoshiro256StarStar(seed: seed)
+                let graph = Multigraph<Int>.randomBipartite(leftCount: 30, rightCount: 20, edgeProbability: 0.1, using: &generator)
+                #expect(graph.edges.allSatisfy { ($0.u < 30) != ($0.v < 30) }, "Multigraph<Int> seed \(seed)")
+                total += graph.edgeCount
+            }
+            #expect(total == 12103, "Multigraph<Int>")
+        }
+        // The law: |z| ≤ 4 against E[m] = 600·0.1 per seed.
+        let mean = Double(12103) / 200
+        let z = (mean - 600 * 0.1) / (600 * 0.1 * (1 - 0.1) / 200).squareRoot()
+        #expect(abs(z) <= 4)
+    }
+
+    @Test("RG-141 law: E[m] = 2·a·b·p")
+    func rg141() {
+        // G(30, 20, 0.1) directed → Σ 24056 over seeds 0..<200 (mean 120.2800; expected 120.0000; |z| 0.38 ≤ 4)
+        do {
+            var total = 0
+            for seed in 0 ..< UInt64(200) {
+                var generator = Xoshiro256StarStar(seed: seed)
+                let graph = CompressedSparseRow.randomBipartite(leftCount: 30, rightCount: 20, edgeProbability: 0.1, using: &generator)
+                #expect(graph.edges.allSatisfy { ($0.source < 30) != ($0.target < 30) }, "CompressedSparseRow seed \(seed)")
+                total += graph.edgeCount
+            }
+            #expect(total == 24056, "CompressedSparseRow")
+        }
+        do {
+            var total = 0
+            for seed in 0 ..< UInt64(200) {
+                var generator = Xoshiro256StarStar(seed: seed)
+                let graph = AdjacencyMatrix.randomBipartite(leftCount: 30, rightCount: 20, edgeProbability: 0.1, using: &generator)
+                #expect(graph.edges.allSatisfy { ($0.source < 30) != ($0.target < 30) }, "AdjacencyMatrix seed \(seed)")
+                total += graph.edgeCount
+            }
+            #expect(total == 24056, "AdjacencyMatrix")
+        }
+        do {
+            var total = 0
+            for seed in 0 ..< UInt64(200) {
+                var generator = Xoshiro256StarStar(seed: seed)
+                let graph = AdjacencyList<Int>.randomBipartite(leftCount: 30, rightCount: 20, edgeProbability: 0.1, using: &generator)
+                #expect(graph.edges.allSatisfy { ($0.source < 30) != ($0.target < 30) }, "AdjacencyList<Int> seed \(seed)")
+                total += graph.edgeCount
+            }
+            #expect(total == 24056, "AdjacencyList<Int>")
+        }
+        do {
+            var total = 0
+            for seed in 0 ..< UInt64(200) {
+                var generator = Xoshiro256StarStar(seed: seed)
+                let graph = DirectedPseudograph<Int>.randomBipartite(leftCount: 30, rightCount: 20, edgeProbability: 0.1, using: &generator)
+                #expect(graph.edges.allSatisfy { ($0.source < 30) != ($0.target < 30) }, "DirectedPseudograph<Int> seed \(seed)")
+                total += graph.edgeCount
+            }
+            #expect(total == 24056, "DirectedPseudograph<Int>")
+        }
+        do {
+            var total = 0
+            for seed in 0 ..< UInt64(200) {
+                var generator = Xoshiro256StarStar(seed: seed)
+                let graph = DirectedMultigraph<Int>.randomBipartite(leftCount: 30, rightCount: 20, edgeProbability: 0.1, using: &generator)
+                #expect(graph.edges.allSatisfy { ($0.source < 30) != ($0.target < 30) }, "DirectedMultigraph<Int> seed \(seed)")
+                total += graph.edgeCount
+            }
+            #expect(total == 24056, "DirectedMultigraph<Int>")
+        }
+        do {
+            var total = 0
+            for seed in 0 ..< UInt64(200) {
+                var generator = Xoshiro256StarStar(seed: seed)
+                let graph = StableDirectedGraph<Int>.randomBipartite(leftCount: 30, rightCount: 20, edgeProbability: 0.1, using: &generator)
+                #expect(graph.edges.allSatisfy { ($0.source < 30) != ($0.target < 30) }, "StableDirectedGraph<Int> seed \(seed)")
+                total += graph.edgeCount
+            }
+            #expect(total == 24056, "StableDirectedGraph<Int>")
+        }
+        // The law: |z| ≤ 4 against E[m] = 1200·0.1 per seed.
+        let mean = Double(24056) / 200
+        let z = (mean - 1200 * 0.1) / (1200 * 0.1 * (1 - 0.1) / 200).squareRoot()
+        #expect(abs(z) <= 4)
+    }
 }

@@ -33,10 +33,17 @@ func _gnpSweep<G: RandomNumberGenerator>(
 @inlinable
 func _gnpPairs<G: RandomNumberGenerator>(_ n: Int, _ p: Double, directed: Bool, _ g: inout G) -> [DirectedEdge<Int>] {
     guard p > 0 else { return [] }
+    // `log(1 − p)`, as NetworkX computes it, and not `log1p(−p)`: for tiny p, 1 − p rounds to a
+    // neighbor of 1, so `lp` is off from the true log(1 − p) ≈ −p by up to about 1.1e-16 / p
+    // relative (for p = 1e-12, about 1e-4), and the skips are drawn for a slightly different p.
+    // `log1p` would be accurate, but would move edges against NetworkX on the same stream, which
+    // the catalog pins; the bias is below what any sample of the graph can detect.
     let lp = _log(1 - p)
     // p below about 1.1e-16: 1 − p is 1, so no pair can be drawn (NetworkX divides by zero).
     guard lp != 0 else { return [] }
-    let expected = Double(n) * Double(n - 1) / (directed ? 1 : 2) * p
+    // One sweep covers the n(n − 1)/2 pairs w < v, directed or not: the directed form makes two
+    // sweeps, each into its own array.
+    let expected = Double(n) * Double(n - 1) / 2 * p
     var first: [DirectedEdge<Int>] = []
     first.reserveCapacity(Int(Swift.min(expected * 1.05 + 16, Double(Int.max / 64))))
     // The undirected sweep emits (w, v) with w < v ordered by v, then w: sorted by the larger end,
@@ -65,13 +72,12 @@ func _gnmPairs<G: RandomNumberGenerator>(_ n: Int, _ m: Int, directed: Bool, _ g
     var chosen = _PairSet(capacity: k)
     var drawn: [DirectedEdge<Int>] = []
     drawn.reserveCapacity(k)
-    let width = UInt64(UInt(bitPattern: n))
     while drawn.count < k {
         let u = _below(n, &g)
         let v = _below(n, &g)
         if u == v { continue }
         let (a, b) = directed || u < v ? (u, v) : (v, u)
-        if chosen.insert(UInt64(a) &* width &+ UInt64(b) &+ 1) {
+        if chosen.insert(a, b) {
             drawn.append(DirectedEdge(from: a, to: b))
         }
     }
@@ -79,7 +85,7 @@ func _gnmPairs<G: RandomNumberGenerator>(_ n: Int, _ m: Int, directed: Bool, _ g
     var pairs: [DirectedEdge<Int>] = []
     pairs.reserveCapacity(m)
     for u in 0 ..< n {
-        for v in (directed ? 0 : u + 1) ..< n where v != u && !chosen.contains(UInt64(u) &* width &+ UInt64(v) &+ 1) {
+        for v in (directed ? 0 : u + 1) ..< n where v != u && !chosen.contains(u, v) {
             pairs.append(DirectedEdge(from: u, to: v))
         }
     }
@@ -106,7 +112,7 @@ extension _GraphConstruction {
         _checkCount(n)
         _checkProbability(p, "edgeProbability")
         if p >= 1 { return complete(vertexCount: n) }
-        return Self(_vertexCount: n, sortedEdges: _gnpPairs(n, p, directed: false, &generator).lazy.map(_undirected))
+        return Self(_vertexCount: n, sortedEdges: _gnpPairs(n, p, directed: false, &generator).lazy.map(_undirected), _ConstructionToken())
     }
 
     /// `erdosRenyi(vertexCount:edgeProbability:using:)` with the system's random number generator.
@@ -132,7 +138,7 @@ extension _GraphConstruction {
     public static func erdosRenyi(
         vertexCount n: Int, edgeCount m: Int, using generator: inout some RandomNumberGenerator
     ) -> Self {
-        Self(_vertexCount: n, sortedEdges: _gnmPairs(n, m, directed: false, &generator).lazy.map(_undirected))
+        Self(_vertexCount: n, sortedEdges: _gnmPairs(n, m, directed: false, &generator).lazy.map(_undirected), _ConstructionToken())
     }
 
     /// `erdosRenyi(vertexCount:edgeCount:using:)` with the system's random number generator.
@@ -157,7 +163,7 @@ extension _DirectedGraphConstruction {
         _checkCount(n)
         _checkProbability(p, "edgeProbability")
         if p >= 1 { return complete(vertexCount: n) }
-        return Self(_vertexCount: n, sortedEdges: _gnpPairs(n, p, directed: true, &generator))
+        return Self(_vertexCount: n, sortedEdges: _gnpPairs(n, p, directed: true, &generator), _ConstructionToken())
     }
 
     /// `erdosRenyi(vertexCount:edgeProbability:using:)` with the system's random number generator.
@@ -175,7 +181,7 @@ extension _DirectedGraphConstruction {
     public static func erdosRenyi(
         vertexCount n: Int, edgeCount m: Int, using generator: inout some RandomNumberGenerator
     ) -> Self {
-        Self(_vertexCount: n, sortedEdges: _gnmPairs(n, m, directed: true, &generator))
+        Self(_vertexCount: n, sortedEdges: _gnmPairs(n, m, directed: true, &generator), _ConstructionToken())
     }
 
     /// `erdosRenyi(vertexCount:edgeCount:using:)` with the system's random number generator.
@@ -206,9 +212,9 @@ extension DirectedAcyclicGraph where Base: _DirectedGraphConstruction {
         _checkProbability(p, "edgeProbability")
         if p >= 1 {
             precondition(_unorderedPairCount(n) != nil, "edge count overflows Int")
-            return Self(_vertexOrderedBase: Base(_vertexCount: n, sortedEdges: _AscendingPairs(n)))
+            return Self(_vertexOrderedBase: Base(_vertexCount: n, sortedEdges: _AscendingPairs(n), _ConstructionToken()))
         }
-        return Self(_vertexOrderedBase: Base(_vertexCount: n, sortedEdges: _gnpPairs(n, p, directed: false, &generator)))
+        return Self(_vertexOrderedBase: Base(_vertexCount: n, sortedEdges: _gnpPairs(n, p, directed: false, &generator), _ConstructionToken()))
     }
 
     /// `erdosRenyi(vertexCount:edgeProbability:using:)` with the system's random number generator.
@@ -226,7 +232,7 @@ extension DirectedAcyclicGraph where Base: _DirectedGraphConstruction {
     public static func erdosRenyi(
         vertexCount n: Int, edgeCount m: Int, using generator: inout some RandomNumberGenerator
     ) -> Self {
-        Self(_vertexOrderedBase: Base(_vertexCount: n, sortedEdges: _gnmPairs(n, m, directed: false, &generator)))
+        Self(_vertexOrderedBase: Base(_vertexCount: n, sortedEdges: _gnmPairs(n, m, directed: false, &generator), _ConstructionToken()))
     }
 
     /// `erdosRenyi(vertexCount:edgeCount:using:)` with the system's random number generator.

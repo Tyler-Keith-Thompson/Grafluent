@@ -3,8 +3,9 @@
 `RandomGraphs` builds the random families as static factories on the representation types, through
 `NamedGraphs`' two underscored protocols:
 
-- `erdosRenyi` (G(n, p) and G(n, m)), `barabasiAlbert`, `wattsStrogatz`, `randomGeometric` and
-  `stochasticBlockModel` on the protocols;
+- `erdosRenyi` (G(n, p) and G(n, m)), `barabasiAlbert`, `wattsStrogatz`, `randomGeometric`,
+  `stochasticBlockModel`, `randomRegular` and `randomBipartite` on the protocols;
+- `BipartiteGraph.randomBipartite`;
 - `Tree.random(vertexCount:)`;
 - `DirectedAcyclicGraph.erdosRenyi`;
 - a public seedable generator, `Xoshiro256StarStar`.
@@ -19,9 +20,10 @@ recommended:
   (CPython's rejection on the top bit-length-of-n bits), each NetworkX's procedure draw for draw,
   except that Barabási–Albert and the SBM use ascending order where NetworkX uses set order;
 - Barabási–Albert's directed form points new → old, as igraph's does;
-- Watts–Strogatz and random geometric graphs have no directed form;
+- Watts–Strogatz, random geometric and random regular graphs give both arcs of every edge in their
+  directed form, as the symmetric named families do;
 - `randomGeometric` returns `(graph:, positions:)`, with the positions as a flat `[Double]`;
-- the further families are deferred.
+- the further families (the configuration model, `powerlawCluster`, …) are deferred to phase 2.
 
 The suite uses only the public API, and each test is self-contained. Nothing is shared but the tags
 in `GrafluentTestSupport`. `RandomGraphsTests` depends on `NamedGraphs` for one row, RG-094, whose
@@ -37,12 +39,15 @@ extension _GraphConstruction {     // UndirectedAdjacencyList, Pseudograph, Mult
         barabasiAlbert(vertexCount:edgesPerVertex:using:),
         wattsStrogatz(vertexCount:nearestNeighborCount:rewiringProbability:using:),
         randomGeometric(vertexCount:radius:dimension:using:) -> (graph:, positions:),
-        stochasticBlockModel(blockSizes:edgeProbabilities:using:)
+        stochasticBlockModel(blockSizes:edgeProbabilities:using:),
+        randomRegular(vertexCount:degree:using:),
+        randomBipartite(leftCount:rightCount:edgeProbability:using:)
 }
 extension _DirectedGraphConstruction {   // CSR, AdjacencyMatrix, AdjacencyList, DirectedPseudograph,
                                          // DirectedMultigraph, StableDirectedGraph
-    static func erdosRenyi(…), erdosRenyi(…), barabasiAlbert(…), stochasticBlockModel(…)
+    // every factory above, with the same labels
 }
+extension BipartiteGraph where Vertex == Int { static func randomBipartite(leftCount:rightCount:edgeProbability:using:) }
 extension Tree where Vertex == Int { static func random(vertexCount:using:) }
 extension DirectedAcyclicGraph { static func erdosRenyi(vertexCount:edgeProbability:using:),
                                              erdosRenyi(vertexCount:edgeCount:using:) }
@@ -54,7 +59,9 @@ extension DirectedAcyclicGraph { static func erdosRenyi(vertexCount:edgeProbabil
 **Exact rows** run their family on every conformer, each with a fresh generator:
 
 - the undirected form on the three undirected types;
-- the directed form of G(n, p), G(n, m), Barabási–Albert and the SBM on the six directed types;
+- the directed form on the six directed types (both arcs of every edge for Watts–Strogatz, random
+  geometric and random regular graphs);
+- random bipartite rows also on `BipartiteGraph<Int>`, with its sides;
 - random DAGs on `DirectedAcyclicGraph` over `AdjacencyList<Int>`, `StableDirectedGraph<Int>` and
   `DirectedPseudograph<Int>`.
 
@@ -81,7 +88,8 @@ run on the DAG. The m > N rows run on the conformers whose N the m exceeds. A va
 call then runs in this process. RG-002 runs `Xoshiro256StarStar(state: (0, 0, 0, 0))`, then a state
 with one nonzero word.
 
-The catalog-row files are every file except `RandomGraphPropertyTests.swift`. `swiftgen.py`
+The catalog-row files are every file except `RandomGraphPropertyTests.swift` and
+`RandomGraphScenarioTests.swift`. `swiftgen.py`
 generated them from `cases.md`; it sits next to `ref.py` and `cases.md` in
 [`Tests/Catalogs/RandomGraphs/`](../Catalogs/RandomGraphs/):
 
@@ -93,7 +101,18 @@ It first checks that `ref.py` reproduces `cases.md` byte for byte. `ref.py` chec
 published vectors, and NetworkX on the same stream, as it builds the rows. `swiftgen.py` then
 re-runs every row on the model, asserts that each value is the row's cell, and writes the test.
 
-## Hand-written file
+## Hand-written files
+
+**Scenarios** (`RandomGraphScenarioTests.swift`):
+
+- the geometric cell grid against a check of every pair written in the test, at n ≈ 2000 with
+  irregular radii, at radius 0 (which used to fall back to every pair), and where 3^d > n makes the
+  factory check every pair itself; both forms, the directed one as both arcs;
+- radius 0 at n = 5·10⁴ through the grid, and a radius past 1/2;
+- random DAGs built in bulk on all three bases, the same edges inserted one by one, then 400 random
+  insertions and removals of edges and vertices against a model with its own cycle check: rejected
+  exactly when an edge closes a cycle, the same vertices and edges, and a topological
+  `topologicalOrder` after every step.
 
 **Properties** (swift-property-based, with shrinking):
 
@@ -112,6 +131,10 @@ re-runs every row on the model, asserts that each value is the row's cell, and w
 - the SBM: no edge in a block pair of probability 0 and every pair in one of probability 1, both
   kinds;
 - `Tree.random`: a connected tree whose `pruferSequence` is the stream's n − 2 `below(n)` draws;
+- random regular graphs: nd/2 edges, every degree d, sorted, the same edges and draws on every
+  conformer, both arcs when directed;
+- random bipartite graphs: every edge across the sides, the same edges and draws on the conformers
+  and on `BipartiteGraph`, the directed forward sweep equal to the undirected draw;
 - every overload without `using:`.
 
 ## Planted bugs

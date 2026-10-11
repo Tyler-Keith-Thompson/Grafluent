@@ -3,6 +3,7 @@ import Benchmark
 import CompressedSparseRowModule
 import GraphProtocols
 import NamedGraphs
+import Trees
 
 /// The floor for a CSR build of the complete digraph: `offsets` and `targets` written once by hand.
 func handWrittenCompleteRows(_ n: Int) -> (offsets: [Int], targets: [Int]) {
@@ -73,5 +74,51 @@ let benchmarks: @Sendable () -> Void = {
     }
     Benchmark("NamedGraphs: UndirectedAdjacencyList.path, n = 10⁶") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(UndirectedAdjacencyList<Int>.path(vertexCount: 1_000_000)) }
+    }
+
+    // The families added in phase 1: one Θ(n) and one Θ(n²) shape of each, on CSR (both arcs where
+    // the directed form has them, so `_bothArcs` is in the measurement) and the adjacency list.
+    Benchmark("NamedGraphs: CompressedSparseRow.ladder, 10⁶ rungs (6·10⁶ arcs)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.ladder(rungCount: 1_000_000)) }
+    }
+    Benchmark("NamedGraphs: UndirectedAdjacencyList.ladder, 10⁶ rungs") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(UndirectedAdjacencyList<Int>.ladder(rungCount: 1_000_000)) }
+    }
+    Benchmark("NamedGraphs: CompressedSparseRow.circularLadder, 10⁶ rungs") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.circularLadder(rungCount: 1_000_000)) }
+    }
+    Benchmark("NamedGraphs: CompressedSparseRow.barbell, cliques of 1000, path of 10⁵") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.barbell(cliqueVertexCount: 1000, pathVertexCount: 100_000)) }
+    }
+    Benchmark("NamedGraphs: UndirectedAdjacencyList.barbell, cliques of 1000, path of 10⁵") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(UndirectedAdjacencyList<Int>.barbell(cliqueVertexCount: 1000, pathVertexCount: 100_000)) }
+    }
+    Benchmark("NamedGraphs: CompressedSparseRow.lollipop, clique of 1000, path of 10⁶") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.lollipop(cliqueVertexCount: 1000, pathVertexCount: 1_000_000)) }
+    }
+    Benchmark("NamedGraphs: CompressedSparseRow.turan, n = 2000, r = 4 (1.5·10⁶ arcs)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.turan(vertexCount: 2000, partCount: 4)) }
+    }
+    Benchmark("NamedGraphs: UndirectedAdjacencyList.turan, n = 2000, r = 4") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(UndirectedAdjacencyList<Int>.turan(vertexCount: 2000, partCount: 4)) }
+    }
+    Benchmark("NamedGraphs: CompressedSparseRow.completeMultipartite, 200 parts of 10") { benchmark in
+        let sizes = [Int](repeating: 10, count: 200)
+        for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.completeMultipartite(partSizes: sizes)) }
+    }
+    Benchmark("NamedGraphs: CompressedSparseRow.balancedTree, r = 2, h = 19 (2²⁰ − 1 vertices)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.balancedTree(branchingFactor: 2, height: 19)) }
+    }
+    Benchmark("NamedGraphs: UndirectedAdjacencyList.balancedTree, r = 2, h = 19") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(UndirectedAdjacencyList<Int>.balancedTree(branchingFactor: 2, height: 19)) }
+    }
+    Benchmark("NamedGraphs: Tree.balancedTree, r = 2, h = 19") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(Tree<Int>.balancedTree(branchingFactor: 2, height: 19)) }
+    }
+    Benchmark("NamedGraphs: Tree.path, n = 10⁵") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(Tree<Int>.path(vertexCount: 100_000)) }
+    }
+    Benchmark("NamedGraphs: AdjacencyList.complete, n = 2000 (4·10⁶ arcs)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(AdjacencyList<Int>.complete(vertexCount: 2000)) }
     }
 }

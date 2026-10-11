@@ -160,6 +160,88 @@ def empty(n, directed=False):
     return G(n, [], directed)
 
 
+def ladder(n, directed=False, circular=False):
+    if circular:
+        require(n >= 3, f"a circular ladder needs at least 3 rungs, not {n}")
+    else:
+        _count(n, "rungCount")
+    rails = [(i, i + 1) for r in (0, n) for i in range(r, r + n - 1)]
+    if circular:
+        rails += [(0, n - 1), (n, 2 * n - 1)]
+    g = _undirected(2 * n, rails + [(i, i + n) for i in range(n)])
+    return _both_arcs(g) if directed else g
+
+
+def circular_ladder(n, directed=False):
+    return ladder(n, directed, circular=True)
+
+
+def _clique_path(k, p, two, directed):
+    require(k >= 2, f"{'a barbell' if two else 'a lollipop'} needs a clique of at least 2 vertices, not {k}")
+    _count(p, "pathVertexCount")
+    n = (2 if two else 1) * k + p
+    require(n <= INT_MAX, "vertex count overflows Int")
+    pairs = list(itertools.combinations(range(k), 2))
+    pairs += [(i, i + 1) for i in range(k - 1, k + p - (0 if two else 1))]
+    if two:
+        pairs += list(itertools.combinations(range(k + p, n), 2))
+    require(len(pairs) * (2 if directed else 1) <= INT_MAX, "edge count overflows Int")
+    g = _undirected(n, pairs)
+    return _both_arcs(g) if directed else g
+
+
+def barbell(k, p, directed=False):
+    return _clique_path(k, p, True, directed)
+
+
+def lollipop(k, p, directed=False):
+    return _clique_path(k, p, False, directed)
+
+
+def complete_multipartite(sizes, directed=False):
+    n = m = 0
+    parts = []
+    for s in sizes:
+        _count(s, "part size")
+        m += s * n
+        require(m <= INT_MAX, "edge count overflows Int")
+        parts.append(range(n, n + s))
+        n += s
+    pairs = [(u, v) for i, a in enumerate(parts) for b in parts[i + 1:] for u in a for v in b]
+    return G(n, sorted(pairs), directed)  # directed: earlier part -> later part, u < v
+
+
+def turan_sizes(n, r):
+    require(1 <= r <= n, f"a Turán graph needs 1 ≤ partCount ≤ vertexCount, not {r} and {n}")
+    return [n // r] * (r - n % r) + [n // r + 1] * (n % r)
+
+
+def turan(n, r, directed=False):
+    return complete_multipartite(turan_sizes(n, r), directed)
+
+
+def balanced_tree_count(r, h):
+    _count(r, "branchingFactor")
+    _count(h, "height")
+    n, level = 1, 1
+    for _ in range(h):
+        if level == 0:
+            break
+        level *= r
+        n += level
+        require(n <= INT_MAX, "vertex count overflows Int")
+    return n
+
+
+def balanced_tree(r, h, directed=False):
+    n = balanced_tree_count(r, h)
+    return G(n, [((c - 1) // r, c) for c in range(1, n)], directed)  # directed: parent -> child
+
+
+def tree_balanced(r, h):
+    return balanced_tree(r, h)
+
+
 def tree_path(n):
     require(n >= 1, "a Tree has at least one vertex")
     return path(n)
@@ -228,10 +310,14 @@ def nx_oracle(family, args, directed):
                 v = v * d + x
             return v
         return nx_relabeled(H, key)
+    if family == "balancedTree":
+        return nx_relabeled(nx.balanced_tree(args[0], args[1], create_using=D), ident)
     if directed:
-        if family in ("hypercube", "petersen"):
+        if family in ("hypercube", "petersen", "ladder", "circularLadder", "barbell", "lollipop"):
             und = nx_oracle(family, args, False)
             return None if und is None else (und[0], und[1] | {(v, u) for u, v in und[1]})
+        if family in ("completeMultipartite", "turan"):
+            return nx_oracle(family, args, False)  # one arc per edge, from the earlier part: u -> v, u < v
         return None  # NetworkX has no directed complete bipartite or wheel
     if family == "completeBipartite":
         return nx_relabeled(nx.complete_bipartite_graph(*args), ident)
@@ -244,6 +330,18 @@ def nx_oracle(family, args, directed):
                             lambda t: sum(b << i for i, b in enumerate(t)) if isinstance(t, tuple) else t)
     if family == "petersen":
         return nx_relabeled(nx.petersen_graph(), ident)
+    if family == "ladder":
+        return nx_relabeled(nx.ladder_graph(args[0]), ident)
+    if family == "circularLadder":
+        return nx_relabeled(nx.circular_ladder_graph(args[0]), ident)
+    if family == "barbell":
+        return nx_relabeled(nx.barbell_graph(*args), ident)
+    if family == "lollipop":
+        return nx_relabeled(nx.lollipop_graph(*args), ident)
+    if family == "completeMultipartite":
+        return nx_relabeled(nx.complete_multipartite_graph(*args[0]), ident)
+    if family == "turan":
+        return nx_relabeled(nx.turan_graph(*args), ident)
     raise AssertionError(family)
 
 
@@ -273,6 +371,11 @@ def ig_oracle(family, args, directed):
         return H.vcount(), H, False
     elif family == "empty":
         H = ig.Graph(n=args[0], directed=directed)
+    elif family == "ladder" and not directed and args[0] >= 1:
+        H = ig.Graph.Lattice([args[0], 2], circular=False)  # rails as the grid 2 × n, row-major
+    elif family == "balancedTree":
+        H = ig.Graph.Tree(balanced_tree_count(*args), args[0] if args[0] > 0 else 1,
+                          mode="out" if directed else "undirected")
     else:
         return None
     E = H.get_edgelist()
@@ -306,6 +409,21 @@ def check(family, args, directed, g):
         assert g.n == args[0] and len(g.edges) == m_expected[family](args[0])
     if family == "completeBipartite":
         assert g.n == args[0] + args[1] and len(g.edges) == args[0] * args[1]
+    if family in ("ladder", "circularLadder"):
+        k = args[0]
+        assert g.n == 2 * k and len(g.edges) == (3 * k if family == "circularLadder" else max(3 * k - 2, 0)) * (2 if directed else 1)
+    if family in ("barbell", "lollipop"):
+        k, p = args
+        two = family == "barbell"
+        assert g.n == (2 if two else 1) * k + p
+        assert len(g.edges) == ((2 if two else 1) * (k * (k - 1) // 2) + p + (1 if two else 0)) * (2 if directed else 1)
+    if family in ("completeMultipartite", "turan"):
+        sizes = args[0] if family == "completeMultipartite" else turan_sizes(*args)
+        assert g.n == sum(sizes) and len(g.edges) == (sum(sizes) ** 2 - sum(x * x for x in sizes)) // 2
+        assert all(u < v for u, v in g.edges)
+    if family == "balancedTree":
+        r, h = args
+        assert g.n == (h + 1 if r == 1 else (r ** (h + 1) - 1) // (r - 1) if r > 1 else 1) and len(g.edges) == g.n - 1
     if family == "hypercube":
         d = args[0]
         assert g.n == 1 << d and len(g.edges) == (d << d >> 1) * (2 if directed else 1)
@@ -476,6 +594,12 @@ def build_rows():
         args=(3,), directed=True)
     row("Empty", "negative count", f"{U}.empty(vertexCount: -1)", lambda: empty(-1))
     # representation parity: one family on every conformer gives the same edge list
+    representation_rows(U, C)
+    # the families added after the first catalog
+    more_rows(U, C)
+
+
+def representation_rows(U, C):
     for rep in ("AdjacencyList<Int>", "AdjacencyMatrix", "StableDirectedGraph<Int>", "DirectedPseudograph<Int>",
                 "DirectedMultigraph<Int>"):
         row("Representations", f"{rep}: same arcs, edges in row-major order", f"{rep}.cycle(vertexCount: 4)",
@@ -483,6 +607,75 @@ def build_rows():
     for rep in ("Pseudograph<Int>", "Multigraph<Int>"):
         row("Representations", f"{rep}: same edges, sorted", f"{rep}.wheel(vertexCount: 4)", lambda: wheel(4),
             family="wheel", args=(4,))
+
+
+def more_rows(U, C):
+    # ladder
+    for n, what in ((0, "L0 is the null graph"), (1, "L1 is K2"), (4, "L4: rails 0..<4 and 4..<8, rungs i–i+4")):
+        row("Ladder", what, f"{U}.ladder(rungCount: {n})",
+            lambda n=n: ladder(n), family="ladder", args=(n,))
+    row("Ladder", "L3 directed: both arcs", f"{C}.ladder(rungCount: 3)", lambda: ladder(3, True),
+        family="ladder", args=(3,), directed=True)
+    row("Ladder", "negative count", f"{U}.ladder(rungCount: -1)", lambda: ladder(-1))
+    # circular ladder
+    for n in (3, 4):
+        row("CircularLadder", f"CL{n}: each rail closed by its first and last vertex",
+            f"{U}.circularLadder(rungCount: {n})", lambda n=n: circular_ladder(n), family="circularLadder", args=(n,))
+    row("CircularLadder", "CL3 directed: both arcs", f"{C}.circularLadder(rungCount: 3)",
+        lambda: circular_ladder(3, True), family="circularLadder", args=(3,), directed=True)
+    row("CircularLadder", "CL2: the rails are not cycles (NetworkX returns C4)", f"{U}.circularLadder(rungCount: 2)",
+        lambda: circular_ladder(2))
+    # barbell
+    for k, p in ((2, 0), (3, 2), (4, 0)):
+        row("Barbell", f"two K{k} joined by a path of {p}", f"{U}.barbell(cliqueVertexCount: {k}, pathVertexCount: {p})",
+            lambda k=k, p=p: barbell(k, p), family="barbell", args=(k, p))
+    row("Barbell", "directed: both arcs", f"{C}.barbell(cliqueVertexCount: 3, pathVertexCount: 1)",
+        lambda: barbell(3, 1, True), family="barbell", args=(3, 1), directed=True)
+    row("Barbell", "clique of 1", f"{U}.barbell(cliqueVertexCount: 1, pathVertexCount: 2)", lambda: barbell(1, 2))
+    row("Barbell", "negative path", f"{U}.barbell(cliqueVertexCount: 3, pathVertexCount: -1)", lambda: barbell(3, -1))
+    # lollipop
+    for k, p in ((2, 0), (3, 2), (4, 1)):
+        row("Lollipop", f"K{k} with a path of {p} at {k - 1}", f"{U}.lollipop(cliqueVertexCount: {k}, pathVertexCount: {p})",
+            lambda k=k, p=p: lollipop(k, p), family="lollipop", args=(k, p))
+    row("Lollipop", "directed: both arcs", f"{C}.lollipop(cliqueVertexCount: 3, pathVertexCount: 2)",
+        lambda: lollipop(3, 2, True), family="lollipop", args=(3, 2), directed=True)
+    row("Lollipop", "clique of 1", f"{U}.lollipop(cliqueVertexCount: 1, pathVertexCount: 2)", lambda: lollipop(1, 2))
+    row("Lollipop", "negative path", f"{U}.lollipop(cliqueVertexCount: 3, pathVertexCount: -1)", lambda: lollipop(3, -1))
+    # complete multipartite
+    for sizes in ([], [2, 0, 1], [1, 2, 3], [1, 1, 1, 1]):
+        row("CompleteMultipartite", f"parts {sizes}", f"{U}.completeMultipartite(partSizes: {sizes})",
+            lambda sizes=sizes: complete_multipartite(sizes), family="completeMultipartite", args=(sizes,))
+    row("CompleteMultipartite", "directed: earlier part → later part", f"{C}.completeMultipartite(partSizes: [1, 2, 3])",
+        lambda: complete_multipartite([1, 2, 3], True), family="completeMultipartite", args=([1, 2, 3],), directed=True)
+    row("CompleteMultipartite", "negative part size", f"{U}.completeMultipartite(partSizes: [2, -1])",
+        lambda: complete_multipartite([2, -1]))
+    row("CompleteMultipartite", "edge count overflows Int", f"{U}.completeMultipartite(partSizes: [1 << 32, 1 << 32])",
+        lambda: complete_multipartite([1 << 32, 1 << 32]))
+    # Turán
+    for n, r, what in ((5, 2, ": parts [2, 3], smaller first"), (7, 3, ": parts [2, 2, 3]"), (4, 4, " is K4"),
+                       (4, 1, ": one part, no edges")):
+        row("Turan", f"T({n}, {r}){what}", f"{U}.turan(vertexCount: {n}, partCount: {r})",
+            lambda n=n, r=r: turan(n, r), family="turan", args=(n, r))
+    row("Turan", "directed: earlier part → later part", f"{C}.turan(vertexCount: 5, partCount: 2)",
+        lambda: turan(5, 2, True), family="turan", args=(5, 2), directed=True)
+    row("Turan", "no parts", f"{U}.turan(vertexCount: 5, partCount: 0)", lambda: turan(5, 0))
+    row("Turan", "more parts than vertices", f"{U}.turan(vertexCount: 5, partCount: 6)", lambda: turan(5, 6))
+    # balanced tree
+    for r, h, what in ((2, 2, ": children of p are 2p + 1, 2p + 2"), (3, 2, ""), (1, 3, " is the path P4"),
+                       (0, 3, " is the root alone"), (2, 0, " is the root alone")):
+        row("BalancedTree", f"r = {r}, h = {h}{what}",
+            f"{U}.balancedTree(branchingFactor: {r}, height: {h})", lambda r=r, h=h: balanced_tree(r, h),
+            family="balancedTree", args=(r, h))
+    row("BalancedTree", "directed: parent → child", f"{C}.balancedTree(branchingFactor: 2, height: 2)",
+        lambda: balanced_tree(2, 2, True), family="balancedTree", args=(2, 2), directed=True)
+    row("BalancedTree", "Tree.balancedTree", "Tree<Int>.balancedTree(branchingFactor: 2, height: 3)",
+        lambda: tree_balanced(2, 3), family="balancedTree", args=(2, 3))
+    row("BalancedTree", "negative height", f"{U}.balancedTree(branchingFactor: 2, height: -1)",
+        lambda: balanced_tree(2, -1))
+    row("BalancedTree", "negative branching factor", f"{U}.balancedTree(branchingFactor: -1, height: 2)",
+        lambda: balanced_tree(-1, 2))
+    row("BalancedTree", "vertex count overflows Int", f"{U}.balancedTree(branchingFactor: 2, height: 63)",
+        lambda: balanced_tree(2, 63))
 
 
 # ---------------------------------------------------------------- catalog
@@ -541,6 +734,23 @@ def stress():
                                     ([a, b, c] for a in range(1, 5) for b in range(1, 5) for c in range(1, 5))):
             for per in (False, True):
                 check("grid", (dims, per), directed, grid(dims, per, directed)); count += 1
+        for n in range(0, 12):
+            check("ladder", (n,), directed, ladder(n, directed)); count += 1
+            if n >= 3:
+                check("circularLadder", (n,), directed, circular_ladder(n, directed)); count += 1
+            for p in range(0, 5):
+                if n >= 2:
+                    check("barbell", (n, p), directed, barbell(n, p, directed)); count += 1
+                    check("lollipop", (n, p), directed, lollipop(n, p, directed)); count += 1
+            for r in range(1, n + 1):
+                check("turan", (n, r), directed, turan(n, r, directed)); count += 1
+        for sizes in itertools.chain(([a] for a in range(0, 5)), itertools.product(range(0, 4), repeat=2),
+                                     itertools.product(range(0, 4), repeat=3)):
+            sizes = list(sizes)
+            check("completeMultipartite", (sizes,), directed, complete_multipartite(sizes, directed)); count += 1
+        for r in range(0, 5):
+            for h in range(0, 5):
+                check("balancedTree", (r, h), directed, balanced_tree(r, h, directed)); count += 1
     return count
 
 

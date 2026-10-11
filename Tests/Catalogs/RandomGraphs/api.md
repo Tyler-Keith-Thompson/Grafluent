@@ -8,12 +8,14 @@ protocols as `NamedGraphs` (`_DirectedGraphConstruction`, `_GraphConstruction`; 
 k = n, and the lazy pair collections), `Trees` and `DirectedAcyclicGraphModule`.
 `Xoshiro256StarStar` lives here: `NamedGraphs` draws nothing.
 
-`cases.md` (RG-001 – RG-108, 108 rows) pins the values: 8 generator rows (one a trap), 59 exact
-outputs for fixed seeds (55 of them reproduced by NetworkX), 23 traps, 16 statistical laws and 2
-further edge cases. `ref.py` ports the generator and
+`cases.md` (RG-001 – RG-141, 141 rows) pins the values: 8 generator rows (one a trap), 80 exact
+outputs for fixed seeds (76 of them reproduced by NetworkX), 31 traps, 20 statistical laws and 2
+further edge cases. RG-109 – RG-141 came with the review (the directed forms of Watts–Strogatz and
+random geometric graphs, the geometric grid's paths, random regular and random bipartite graphs)
+and are numbered after the first 108 so that those keep their IDs. `ref.py` ports the generator and
 every procedure draw for draw. Because the procedures draw exactly what CPython's `random.Random`
 draws, NetworkX 3.7 can run its own generators on our stream, and every exact row marked
-`= NetworkX` is checked edge for edge against it. `--stress` repeats that over 15 300 graphs.
+`= NetworkX` is checked edge for edge against it. `--stress` repeats that over 16 000 graphs.
 
 To run it:
 `uv run --quiet --no-project --with networkx==3.7 --with igraph==1.0.0 python3 Tests/Catalogs/RandomGraphs/ref.py [--write] [--stress]`.
@@ -76,8 +78,13 @@ func below(_ n: Int, _ g: inout some RandomNumberGenerator) -> Int {
   libm's. A skip is `Int(log(1 − u) / log(1 − p))`, so a last-ulp difference between Darwin's and
   glibc's `log` could move one edge when the quotient lands within an ulp of an integer. The exact
   rows are checked on Darwin by `ref.py` (Python's `math.log` is the same libm); Linux CI runs the
-  same rows and would show it. Barabási–Albert, Watts–Strogatz, G(n, m), random geometric graphs and
-  random trees use no transcendental function and are exact everywhere.
+  same rows and would show it. Barabási–Albert, Watts–Strogatz, G(n, m), random geometric graphs,
+  random regular graphs and random trees use no transcendental function and are exact everywhere;
+  random bipartite graphs skip with `log` as G(n, p) does.
+- **`log(1 − p)`, not `log1p(−p)`.** For tiny p, 1 − p rounds to a neighbour of 1, so `lp` is off
+  from the true log(1 − p) ≈ −p by up to about 1.1·10⁻¹⁶ / p relative (about 10⁻⁴ at p = 10⁻¹²): the
+  skips are drawn for a slightly different p. `log1p` would be exact but would move edges against
+  NetworkX on the same stream, which the rows pin, and the bias is below what any sample can detect.
 
 ## API
 
@@ -97,10 +104,18 @@ extension _GraphConstruction {
         -> (graph: Self, positions: [Double])      // positions[v * dimension + i]
     public static func stochasticBlockModel(blockSizes: [Int], edgeProbabilities: [[Double]],
                                             using g: inout some RandomNumberGenerator) -> Self
+    public static func randomRegular(vertexCount n: Int, degree d: Int,
+                                     using g: inout some RandomNumberGenerator) -> Self
+    public static func randomBipartite(leftCount a: Int, rightCount b: Int, edgeProbability p: Double,
+                                       using g: inout some RandomNumberGenerator) -> Self
 }
 extension _DirectedGraphConstruction {
-    // erdosRenyi(vertexCount:edgeProbability:using:), erdosRenyi(vertexCount:edgeCount:using:),
-    // barabasiAlbert(vertexCount:edgesPerVertex:using:), stochasticBlockModel(blockSizes:edgeProbabilities:using:)
+    // every factory above, with the same labels: erdosRenyi (both), barabasiAlbert,
+    // stochasticBlockModel and randomBipartite with their own directed procedures; wattsStrogatz,
+    // randomGeometric and randomRegular as both arcs of every edge
+}
+extension BipartiteGraph where Vertex == Int {
+    public static func randomBipartite(leftCount:rightCount:edgeProbability:using:) -> BipartiteGraph
 }
 extension Tree where Vertex == Int {
     public static func random(vertexCount n: Int, using g: inout some RandomNumberGenerator) -> Tree
@@ -127,8 +142,10 @@ keeps `Tree(pruferSequence:)`'s edge order (RG-095 – RG-100).
 | `erdosRenyi(vertexCount:edgeCount:)` | k = m when 2m ≤ N, else N − m (N = number of pairs). Repeat: u = below(n), v = below(n); skip u == v or a pair already chosen (undirected: either orientation); keep, until k pairs. If k = N − m, output every other pair | `gnm_random_graph(n, m, directed=)` when 2m ≤ N | O(n + m) expected for 2m ≤ N, O(n²) for the complement branch (whose output is Θ(n²) anyway); membership in a hash set of pair codes, or a bitset when n² / 8 bytes is at most ~8 bytes per edge | RG-030 – RG-046 |
 | `barabasiAlbert(vertexCount:edgesPerVertex:)` | Star on 0…m (hub 0). `repeated = [0] × m + [1, …, m]`. For each new vertex s in m+1..<n: draw `repeated[below(repeated.count)]` until m distinct targets; edges s–t; append the targets **in ascending order**, then s m times | `barabasi_albert_graph(n, m)` for m = 1, and whenever CPython's set iteration is ascending (NetworkX appends in set order; ours is pinned to ascending so it does not depend on CPython's hash table) | O(n·m) expected (repeated-nodes list; Batagelj–Brandes 2005, algorithm BA) | RG-047 – RG-059 |
 | `wattsStrogatz(vertexCount:nearestNeighborCount:rewiringProbability:)` | k = n: complete, no draws. Ring: u – (u+j) mod n for j in 1…k/2. For j in 1…k/2, for u in 0..<n: if uniform01() < p: w = below(n); while w == u or u–w exists { w = below(n); if degree(u) ≥ n − 1 { skip this rewiring } }; otherwise replace u–(u+j) by u–w | `watts_strogatz_graph(n, k, p)`, exactly | O(n·k) expected; membership in per-vertex sorted rows or a hash set | RG-060 – RG-073 |
-| `randomGeometric(vertexCount:radius:dimension:)` | positions vertex by vertex, coordinate by coordinate, each `uniform01()`. u–v when Σᵢ (aᵢ − bᵢ)·(aᵢ − bᵢ), summed in coordinate order, ≤ r·r. Found with a cell grid of side ≥ r (Bentley, Stanat and Williams, IPL 6(6), 1977), checking the 3^d neighbouring cells; the cell count is capped at n so memory stays O(n) for tiny r | `random_geometric_graph(n, r, dim=)` without scipy, exactly, positions included | O(n + m) expected for uniform points, plus 3^d per cell | RG-074 – RG-083 |
+| `randomGeometric(vertexCount:radius:dimension:)` | positions vertex by vertex, coordinate by coordinate, each `uniform01()`. u–v when Σᵢ (aᵢ − bᵢ)·(aᵢ − bᵢ), summed in coordinate order, ≤ r·r. Found with a cell grid of c cells per side, c·(r + 2⁻⁵⁰) ≤ 1 − 2⁻²⁰ (Bentley, Stanat and Williams, IPL 6(6), 1977), checking the 3^d neighbouring cells; c^d is capped at n so memory stays O(n) for tiny r, and r = 0 is sized the same way. The margin covers the test's rounding (relative, 2⁻²⁰) and the rounding of x·c (absolute, c·2⁻⁵⁰, which matters only past c = 2³⁰). Every pair is checked instead when r ≥ 1/2 or 3^d > n (each point would visit more cells than there are points; c^d ≤ n then leaves c ≤ 2 anyway) | `random_geometric_graph(n, r, dim=)` without scipy, exactly, positions included | O(n + m) expected for uniform points, plus 3^d per cell; O(n²·d) when every pair is checked | RG-074 – RG-083, RG-110 – RG-113 |
 | `stochasticBlockModel(blockSizes:edgeProbabilities:)` | Blocks are consecutive vertex ranges. Block pairs (i, j): undirected i ≤ j in `combinations_with_replacement` order, directed every (i, j) row-major. Pairs within a pair-block: undirected `combinations` of block i, directed `permutations`, between blocks the `product`, all in ascending order. p = 1: every pair, no draws; 0 < p < 1: repeat `u = uniform01()` (u = 0 ends the block pair), `skip = floor(log(u) / log(1 − p))`, pass `skip` pairs and keep the next; stop past the end | `stochastic_block_model(sizes, p, directed=)` (its default `sparse=True`) when CPython's set of each block iterates in ascending order | O(n + m + B²) expected, by indexing the pair-block arithmetically. NetworkX passes skipped pairs one by one through `islice`, so its "sparse" mode is O(pairs): 26.8 s for 100 000 vertices | RG-084 – RG-094 |
+| `randomRegular(vertexCount:degree:)` | d = 0: empty, no draws. Otherwise repeat attempts: stubs = `0..<n` repeated d times; while stubs remain: shuffle them (CPython's `shuffle`: for i from the last index down to 1, swap i with `below(i + 1)`), pair them off in order, add each pair u < v that is neither a self-loop nor an edge, and keep both stubs of every other pair, grouped by vertex in the order each vertex was first kept; if NetworkX's `_suitable` finds no non-adjacent pair among the kept vertices, start a new attempt (ported with its quirk: its swap of s1 and s2 rebinds s1 for the rest of the inner loop, so it checks a subset of the pairs). Steger and Wormald's pairing with repair (Combin. Probab. Comput. 8(4), 1999), asymptotically uniform for d = o(n^(1/28)) (Kim and Vu, STOC 2003) | `random_regular_graph(d, n)`, exactly | O(nd) expected for small d; attempts fail more often as d grows. Membership in the pair table | RG-114 – RG-126 |
+| `randomBipartite(leftCount:rightCount:edgeProbability:)` | left `0..<a`, right `a..<a + b`. p ≤ 0: empty; p ≥ 1: K(a, b); no draws. Otherwise `lp = log(1 − p)`; v = 0, w = −1; while v < a: `w += 1 + Int(log(1 − uniform01()) / lp)`; while w ≥ b and v < a: w −= b, v += 1; if v < a: edge v–(a + w). Directed: a second sweep emits a + w → v | `bipartite.random_graph(a, b, p, directed=)`, exactly (directed p = 1: NetworkX returns the undirected K(a, b); ours has both arcs) | O(a + b + m) expected; one `log` per edge plus one | RG-127 – RG-141 |
 | `Tree.random(vertexCount:)` | n = 1: one vertex, no draws. Otherwise a Prüfer code of n − 2 draws `below(n)`, decoded by `Tree(pruferSequence:)` (O(n), already in `Trees`) | `random_labeled_tree(n)`, exactly | O(n) | RG-095 – RG-103 |
 | `DirectedAcyclicGraph.erdosRenyi(…)` | the undirected procedure, each edge u–v (u < v) oriented u → v: the Barak–Erdős model (SIAM J. Algebraic Discrete Methods 5(4), 1984). The sorted pairs build the base in bulk, and `package DirectedAcyclicGraph(_vertexOrderedBase:)` (in `DirectedAcyclicGraphModule`) takes its `vertices` order, 0..<n, as the topological order: O(n), no hashing, no Kahn pass and no per-edge insertion. Bases: the three `MutableDirectedGraph`s, `AdjacencyList<Int>`, `StableDirectedGraph<Int>` and `DirectedPseudograph<Int>`, which all conform to `_DirectedGraphConstruction` | `fast_gnp_random_graph(n, p)` / `gnm_random_graph(n, m)` oriented upward (NetworkX's documented recipe for a random DAG) | as the undirected forms | RG-104 – RG-108 |
 
@@ -147,7 +164,8 @@ with no draws (RG-020). NetworkX divides by zero there.
 | Barabási–Albert | the same draws, each edge new vertex → older vertex (RG-054) | igraph `Barabasi(directed=True)` |
 | Stochastic block model | ordered pairs, `edgeProbabilities` need not be symmetric (RG-087) | NetworkX `directed=True`, igraph `SBM(directed=True)` |
 | Random DAG | upward orientation of the undirected form | Barak–Erdős |
-| Watts–Strogatz, random geometric | **none**: neither library has one, and the relation is symmetric. On a directed conformer, use `CompressedSparseRow(UndirectedAdjacencyList<Int>.wattsStrogatz(…).directed)` | |
+| Random bipartite | left → right and right → left arcs, each independently (RG-134, RG-135) | NetworkX `bipartite.random_graph(directed=True)`, igraph `Random_Bipartite(directed=True, neimode="all")` |
+| Watts–Strogatz, random geometric, random regular | both arcs of every edge, as the directed `complete`, `grid` and `hypercube` in `NamedGraphs` have them: the undirected draws and pairs, then one stable counting pass by source, so CSR builds in one pass (RG-109, RG-110, RG-120). Neither library has a separate directed model of these symmetric families; this is NetworkX's `to_directed()` of the undirected graph | |
 
 ### Traps
 
@@ -158,6 +176,8 @@ with no draws (RG-020). NetworkX divides by zero there.
 | `edgeCount` outside 0…N (NetworkX silently returns the complete graph; igraph and JGraphT reject it) | RG-040 – RG-043, RG-107 |
 | `edgesPerVertex` outside 1..<n | RG-055 – RG-057 |
 | Odd `nearestNeighborCount` (NetworkX floors it without saying so), or greater than n | RG-069, RG-070 |
+| `degree` outside 0..<n, or n·d odd (NetworkX's two errors) | RG-121 – RG-124 |
+| Negative `leftCount` or `rightCount`, a probability outside 0…1 | RG-136 – RG-139 |
 | Negative or NaN `radius`, `dimension` < 1 | RG-080 – RG-082 |
 | SBM: matrix not square, not symmetric for an undirected conformer (exact equality, where NetworkX allows 1e-8), a negative block size | RG-089 – RG-092 |
 | `Tree.random(vertexCount: 0)` | RG-101 |
@@ -181,6 +201,9 @@ Swift suite asserts exactly, and the law it satisfies, which `ref.py` asserts:
 - Random trees: n − 1 edges, connected, degree(v) = 1 + occurrences of v in the code; uniform over the
   4² labeled trees on 4 vertices (Cayley).
 - Random DAG: acyclic with `topologicalOrder == 0..<n`; E[m] = p·C(n, 2).
+- Random regular: nd/2 edges, simple, every degree d; uniform within an isomorphism class, since the
+  uniform shuffle makes the procedure commute with relabeling (χ² over the three labeled 4-cycles).
+- Random bipartite: every edge joins the sides; E[m] = a·b·p, and 2·a·b·p directed.
 
 ## Performance targets
 
@@ -195,6 +218,9 @@ Reference timings on this machine (NetworkX 3.7 and python-igraph 1.0, best of 3
 | Random geometric, n = 10⁵, mean degree 10 | (O(n²) without scipy: 21.6 s at n = 10⁴) | 76 ms | — | ≤ 60 ms |
 | SBM, 4 × 25 000, mean degree ≈ 5.5 | 26 800 ms | 43 ms | ≤ 15 ms (directed) | ≤ 40 ms |
 | `Tree.random`, n = 10⁵ | 212 ms | 9.2 ms (`Tree_Game(method="prufer")`) | — | `Tree`: ≤ 5 ms |
+| Random regular, n = 10⁵, d = 3 | 2 388 ms | 34 ms (`K_Regular`) | — | ≤ 30 ms |
+| Random regular, n = 10⁵, d = 10, directed (both arcs) | 6 768 ms (undirected) | 448 ms (`K_Regular(directed=True)`) | ≤ 60 ms | — |
+| Random bipartite, 5·10⁴ + 5·10⁴, p = 2·10⁻⁴ (m ≈ 5·10⁵) | 2 610 ms | 63 ms (`Random_Bipartite`) | ≤ 30 ms (directed; NetworkX 3 665, igraph 126) | ≤ 50 ms |
 
 The CSR targets assume the generation cost (one `log` per edge for the skipping families, about two
 `below` per edge for BA and G(n, m)) plus a single pass to write the rows. The adjacency-list targets are
@@ -211,6 +237,8 @@ of the per-file `LCG`s.
 | `wattsStrogatz(vertexCount:nearestNeighborCount:rewiringProbability:)` | k as NetworkX counts it: neighbours on both sides together | `watts_strogatz_graph(n, k, p)` | `Watts_Strogatz(dim, size, nei, p)` (nei per side) | `WattsStrogatzGraphGenerator` | `WattsStrogatzGraphDistribution` |
 | `randomGeometric(vertexCount:radius:dimension:)` | | `random_geometric_graph` | `GRG` | — | `RandomGraph[SpatialGraphDistribution[…]]` |
 | `stochasticBlockModel(blockSizes:edgeProbabilities:)` | | `stochastic_block_model(sizes, p)` | `SBM(pref_matrix, block_sizes)` | — | — |
+| `randomRegular(vertexCount:degree:)` | the family's name with the repository's `random` prefix, as `randomGeometric`; `degree` is the one degree every vertex has | `random_regular_graph(d, n)` | `K_Regular(n, k)` | `RandomRegularGraphGenerator` | `RandomGraph[DegreeGraphDistribution[…]]` |
+| `randomBipartite(leftCount:rightCount:edgeProbability:)` | the labels of `completeBipartite` and of G(n, p); on the conformers and on `BipartiteGraph`, as `completeBipartite` is | `bipartite.random_graph(n, m, p)` | `Random_Bipartite(n1, n2, p)` | `GnpRandomBipartiteGraphGenerator` | — |
 | `Tree.random(vertexCount:)` | Swift's `random(…using:)` idiom on the type | `random_labeled_tree` | `Tree_Game` | — | `RandomTree` |
 | `Xoshiro256StarStar` | the algorithm's name, spelled as Rust's `rand_xoshiro` spells it | — | — | — | — |
 
@@ -238,8 +266,10 @@ of the per-file `LCG`s.
    - The random DAG keeps the fixed order rather than a random permutation. The fixed order is the
      Barak–Erdős model and NetworkX's recipe, and it gives the wrapper its topological order for free. A
      caller who wants hidden labels relabels.
-5. **Directed variants.** *Recommended: as in the table above.* Barabási–Albert's directed form follows
-   igraph. Watts–Strogatz and random geometric graphs have none.
+5. **Directed variants.** *Decided as in the table above.* Barabási–Albert's directed form follows
+   igraph. Watts–Strogatz, random geometric and random regular graphs give both arcs of every edge,
+   as the symmetric named families do, so CSR gets them without a detour through an undirected
+   representation.
 6. **`edgesPerVertex`** is the least settled label. NetworkX and igraph call it `m` and describe it as
    "number of edges to attach from a new node", JGraphT as "how many edges to add from each new vertex".
    *Recommended: `edgesPerVertex`*, documented as counting the edges each new vertex brings. The
@@ -249,6 +279,14 @@ of the per-file `LCG`s.
    node attribute and igraph as `x`/`y` attributes. A flat `[Double]` avoids one allocation per vertex.
    `positions:` taken as an argument (NetworkX's `pos=`) can come later, as a non-random
    `geometric(positions:dimension:radius:)` in `NamedGraphs`.
-8. **More families** (random regular, configuration model, `newman_watts_strogatz`, random bipartite
-   `BipartiteGraph.random(…)`, a random `Arborescence`). *Recommended: defer.* The protocols make each one
-   a single function.
+8. **More families.** Phase 1, after the review: `randomRegular` and `randomBipartite` (on the
+   conformers and on `BipartiteGraph`). **Phase 2**, deferred:
+   - the configuration model (NetworkX `configuration_model`): it makes self-loops and parallel
+     edges, so it needs a multigraph bulk-construction hook (a package initializer on
+     `Pseudograph`/`DirectedPseudograph` taking sorted edges with repeats and loops) beside the simple
+     `_GraphConstruction`, whose contract forbids both. Not small enough to add with phase 1;
+   - `powerlawCluster` (Holme–Kim, NetworkX `powerlaw_cluster_graph`);
+   - `Xoshiro256StarStar.jump()` and `longJump()` (Vigna's 2¹²⁸ and 2¹⁹² jumps), for independent
+     parallel streams;
+   - `newmanWattsStrogatz`, G(a, b, m) bipartite (`bipartite.gnmk_random_graph`), and a random
+     `Arborescence`.

@@ -32,7 +32,7 @@ for line in TEXT.splitlines():
         parts = [p.strip() for p in line.strip().strip("|").split(" | ")]
         CELLS[int(parts[0][3:])] = parts
 N = len(CELLS)
-assert N == 90
+assert N == 135
 
 
 def group(n): return CELLS[n][1]
@@ -56,11 +56,21 @@ FAMILIES = {
     "hypercube": lambda d, dimension: ref.hypercube(dimension, d),
     "petersen": lambda d: ref.petersen(d),
     "empty": lambda d, vertexCount: ref.empty(vertexCount, d),
+    "ladder": lambda d, rungCount: ref.ladder(rungCount, d),
+    "circularLadder": lambda d, rungCount: ref.circular_ladder(rungCount, d),
+    "barbell": lambda d, cliqueVertexCount, pathVertexCount: ref.barbell(cliqueVertexCount, pathVertexCount, d),
+    "lollipop": lambda d, cliqueVertexCount, pathVertexCount: ref.lollipop(cliqueVertexCount, pathVertexCount, d),
+    "completeMultipartite": lambda d, partSizes: ref.complete_multipartite(partSizes, d),
+    "turan": lambda d, vertexCount, partCount: ref.turan(vertexCount, partCount, d),
+    "balancedTree": lambda d, branchingFactor, height: ref.balanced_tree(branchingFactor, height, d),
 }
 ORIENTATION = {
     "complete": "both arcs", "completeBipartite": "left → right", "path": "i → i + 1",
     "cycle": "i → (i + 1) mod n", "star": "hub → leaf", "wheel": "hub → rim, rim i → i + 1 and n − 1 → 1",
     "grid": "both arcs", "hypercube": "both arcs", "petersen": "both arcs", "empty": "no arcs",
+    "ladder": "both arcs", "circularLadder": "both arcs", "barbell": "both arcs", "lollipop": "both arcs",
+    "completeMultipartite": "earlier part → later part", "turan": "earlier part → later part",
+    "balancedTree": "parent → child",
 }
 
 
@@ -241,7 +251,7 @@ def family_row(n):
 def structure_row(n):
     typ, fam, args, kwargs = parse(call(n))
     if typ == "Tree<Int>":
-        g = (ref.tree_path if fam == "path" else ref.tree_star)(kwargs["vertexCount"])
+        g = TREE[fam](**kwargs)
         assert ref.summary(g) == cell(n), n
     else:
         g = ref.bipartite_complete(kwargs["leftCount"], kwargs["rightCount"])
@@ -290,8 +300,33 @@ TRAPS = {
     75: (every("hypercube", "dimension: -1"), "UndirectedAdjacencyList<Int>.hypercube(dimension: 0)", (1, 0)),
     76: (every("hypercube", "dimension: 63"), "UndirectedAdjacencyList<Int>.hypercube(dimension: 4)", (16, 32)),
     83: (every("empty", "vertexCount: -1"), "UndirectedAdjacencyList<Int>.empty(vertexCount: 0)", (0, 0)),
+    95: (every("ladder", "rungCount: -1"), "UndirectedAdjacencyList<Int>.ladder(rungCount: 0)", (0, 0)),
+    99: (every("circularLadder", "rungCount: 2") + every("circularLadder", "rungCount: 0", "U"),
+         "UndirectedAdjacencyList<Int>.circularLadder(rungCount: 3)", (6, 9)),
+    104: (every("barbell", "cliqueVertexCount: 1, pathVertexCount: 2"),
+          "UndirectedAdjacencyList<Int>.barbell(cliqueVertexCount: 2, pathVertexCount: 2)", (6, 5)),
+    105: (every("barbell", "cliqueVertexCount: 3, pathVertexCount: -1"),
+          "UndirectedAdjacencyList<Int>.barbell(cliqueVertexCount: 3, pathVertexCount: 0)", (6, 7)),
+    110: (every("lollipop", "cliqueVertexCount: 1, pathVertexCount: 2"),
+          "UndirectedAdjacencyList<Int>.lollipop(cliqueVertexCount: 2, pathVertexCount: 2)", (4, 3)),
+    111: (every("lollipop", "cliqueVertexCount: 3, pathVertexCount: -1"),
+          "UndirectedAdjacencyList<Int>.lollipop(cliqueVertexCount: 3, pathVertexCount: 0)", (3, 3)),
+    117: (every("completeMultipartite", "partSizes: [2, -1]"),
+          "UndirectedAdjacencyList<Int>.completeMultipartite(partSizes: [2, 0])", (2, 0)),
+    118: (every("completeMultipartite", "partSizes: [1 << 32, 1 << 32]"),
+          "UndirectedAdjacencyList<Int>.completeMultipartite(partSizes: [1 << 4, 1 << 4])", (32, 256)),
+    124: (every("turan", "vertexCount: 5, partCount: 0"), "UndirectedAdjacencyList<Int>.turan(vertexCount: 5, partCount: 1)", (5, 0)),
+    125: (every("turan", "vertexCount: 5, partCount: 6") + every("turan", "vertexCount: 0, partCount: 0", "U"),
+          "UndirectedAdjacencyList<Int>.turan(vertexCount: 5, partCount: 5)", (5, 10)),
+    133: (every("balancedTree", "branchingFactor: 2, height: -1") + ["Tree<Int>.balancedTree(branchingFactor: 2, height: -1)"],
+          "UndirectedAdjacencyList<Int>.balancedTree(branchingFactor: 2, height: 0)", (1, 0)),
+    134: (every("balancedTree", "branchingFactor: -1, height: 2") + ["Tree<Int>.balancedTree(branchingFactor: -1, height: 2)"],
+          "UndirectedAdjacencyList<Int>.balancedTree(branchingFactor: 0, height: 2)", (1, 0)),
+    135: (every("balancedTree", "branchingFactor: 2, height: 63") + ["Tree<Int>.balancedTree(branchingFactor: 2, height: 63)"],
+          "UndirectedAdjacencyList<Int>.balancedTree(branchingFactor: 1, height: 63)", (64, 63)),
 }
-TREE_TRAP = {"path": ref.tree_path, "star": ref.tree_star}
+TREE = {"path": lambda vertexCount: ref.tree_path(vertexCount), "star": lambda vertexCount: ref.tree_star(vertexCount),
+        "balancedTree": lambda branchingFactor, height: ref.tree_balanced(branchingFactor, height)}
 
 
 def trap_test(n):
@@ -300,7 +335,7 @@ def trap_test(n):
     for c in calls:
         typ, fam, args, kwargs = parse(c)
         if typ == "Tree<Int>":
-            fn = lambda: TREE_TRAP[fam](kwargs["vertexCount"])
+            fn = lambda: TREE[fam](**kwargs)
         elif typ.startswith("BipartiteGraph"):
             fn = lambda: ref.bipartite_complete(kwargs["leftCount"], kwargs["rightCount"])
         else:
@@ -312,7 +347,7 @@ def trap_test(n):
             if c == call(n):
                 assert cell(n) == "**trap**: %s" % t, (n, t)
     typ, fam, args, kwargs = parse(valid)
-    g = (TREE_TRAP[fam](kwargs["vertexCount"]) if typ == "Tree<Int>" else FAMILIES[fam](typ in DIRECTED, **kwargs))
+    g = (TREE[fam](**kwargs) if typ == "Tree<Int>" else FAMILIES[fam](typ in DIRECTED, **kwargs))
     assert (g.n, len(g.edges)) == (vn, vm), (n, g.n, len(g.edges))
     L = header(n, True)
     for c in calls:
@@ -358,6 +393,16 @@ FILES = [
     ("RepresentationTests.swift", "NamedGraphs on every conformer", ids("Representations"),
      "Representations (catalog NG-084 – NG-090): one family on every conformer reads the same vertices\n"
      "// and the same edges in the same order."),
+    ("LadderBarbellLollipopTests.swift", "NamedGraphs ladders, barbells and lollipops",
+     ids("Ladder", "CircularLadder", "Barbell", "Lollipop"),
+     "Ladders, circular ladders, barbells and lollipops (catalog NG-091 – NG-109), numbered as NetworkX\n"
+     "// numbers them: rails 0..<n and n..<2n with rungs i – (i + n); cliques joined by a path. Both arcs\n"
+     "// when directed."),
+    ("MultipartiteBalancedTreeTests.swift", "NamedGraphs complete multipartite, Turán and balanced tree graphs",
+     ids("CompleteMultipartite", "Turan", "BalancedTree"),
+     "Complete multipartite and Turán graphs and balanced trees (catalog NG-112 – NG-135): parts as\n"
+     "// consecutive ranges, earlier part → later part when directed; the balanced tree in breadth-first\n"
+     "// order, parent → child when directed, and as a Tree."),
     ("NamedGraphPreconditionTests.swift", "NamedGraphs preconditions", [n for n in range(1, N + 1) if is_trap(n)],
      "Preconditions (catalog trap rows): each trapping call runs in a child process (exit test), on every\n"
      "// conformer the rule covers. A valid neighbour of the call then runs in this process."),

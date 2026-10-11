@@ -13,7 +13,6 @@ func _wattsStrogatzPairs<G: RandomNumberGenerator>(_ n: Int, _ k: Int, _ p: Doub
     _checkProbability(p, "rewiringProbability")
     if k == n { return nil }
     let half = k / 2
-    let width = UInt64(UInt(bitPattern: n))
     // k < n, so the ring's k/2 · n edges are distinct and every vertex has degree k.
     var edges = _PairSet(capacity: half * n)
     var far = [Int](repeating: 0, count: half * n)
@@ -21,7 +20,7 @@ func _wattsStrogatzPairs<G: RandomNumberGenerator>(_ n: Int, _ k: Int, _ p: Doub
     for j in 1 ..< half + 1 {
         for u in 0 ..< n {
             let v = (u + j) % n
-            _ = edges.insert(UInt64(Swift.min(u, v)) &* width &+ UInt64(Swift.max(u, v)) &+ 1)
+            _ = edges.insert(Swift.min(u, v), Swift.max(u, v))
             far[(j - 1) * n + u] = v
         }
     }
@@ -30,7 +29,7 @@ func _wattsStrogatzPairs<G: RandomNumberGenerator>(_ n: Int, _ k: Int, _ p: Doub
             guard _uniform01(&g) < p else { continue }
             var w = _below(n, &g)
             var rewire = true
-            while w == u || edges.contains(UInt64(Swift.min(u, w)) &* width &+ UInt64(Swift.max(u, w)) &+ 1) {
+            while w == u || edges.contains(Swift.min(u, w), Swift.max(u, w)) {
                 w = _below(n, &g)
                 // NetworkX checks for a full vertex only after a redraw.
                 if degree[u] >= n - 1 {
@@ -40,8 +39,8 @@ func _wattsStrogatzPairs<G: RandomNumberGenerator>(_ n: Int, _ k: Int, _ p: Doub
             }
             guard rewire else { continue }
             let v = (u + j) % n
-            edges.remove(UInt64(Swift.min(u, v)) &* width &+ UInt64(Swift.max(u, v)) &+ 1)
-            _ = edges.insert(UInt64(Swift.min(u, w)) &* width &+ UInt64(Swift.max(u, w)) &+ 1)
+            edges.remove(Swift.min(u, v), Swift.max(u, v))
+            _ = edges.insert(Swift.min(u, w), Swift.max(u, w))
             degree[v] -= 1
             degree[w] += 1
             far[(j - 1) * n + u] = w
@@ -67,8 +66,8 @@ extension _GraphConstruction {
     ///
     /// nk/2 edges for every p, sorted; `nearestNeighborCount` counts both sides, as NetworkX's k
     /// does. k = n gives the complete graph and k = 0 no edges, with no draws. The draws are
-    /// NetworkX's `watts_strogatz_graph(n, k, p)` on the same stream. O(n·k) expected. There is no
-    /// directed form: on a directed representation, build this and take `.directed`.
+    /// NetworkX's `watts_strogatz_graph(n, k, p)` on the same stream. O(n·k) expected. The
+    /// directed conformers get the same graph with both arcs for every edge.
     ///
     /// - Precondition: `nearestNeighborCount` even and in `0...vertexCount` (NetworkX floors an odd
     ///   k without saying so), and `rewiringProbability` in 0...1.
@@ -78,7 +77,33 @@ extension _GraphConstruction {
         using generator: inout some RandomNumberGenerator
     ) -> Self {
         guard let pairs = _wattsStrogatzPairs(n, k, p, &generator) else { return complete(vertexCount: n) }
-        return Self(_vertexCount: n, sortedEdges: pairs.lazy.map(_undirected))
+        return Self(_vertexCount: n, sortedEdges: pairs.lazy.map(_undirected), _ConstructionToken())
+    }
+
+    /// `wattsStrogatz(vertexCount:nearestNeighborCount:rewiringProbability:using:)` with the
+    /// system's random number generator.
+    @inlinable
+    public static func wattsStrogatz(vertexCount n: Int, nearestNeighborCount k: Int, rewiringProbability p: Double) -> Self {
+        var generator = SystemRandomNumberGenerator()
+        return wattsStrogatz(vertexCount: n, nearestNeighborCount: k, rewiringProbability: p, using: &generator)
+    }
+}
+
+extension _DirectedGraphConstruction {
+    /// The Watts–Strogatz graph with both arcs for every edge, as the directed `complete` and
+    /// `grid` have them: the undirected form's draws and edges, then u → v and v → u in row-major
+    /// order. Rewiring is defined on undirected edges, so neither NetworkX nor igraph has a
+    /// separate directed model; this is `wattsStrogatz(…)` as a `DiGraph`. k = n gives the complete
+    /// directed graph with no draws. O(n·k) expected.
+    ///
+    /// - Precondition: as for the undirected form.
+    @inlinable
+    public static func wattsStrogatz(
+        vertexCount n: Int, nearestNeighborCount k: Int, rewiringProbability p: Double,
+        using generator: inout some RandomNumberGenerator
+    ) -> Self {
+        guard let pairs = _wattsStrogatzPairs(n, k, p, &generator) else { return complete(vertexCount: n) }
+        return Self(_vertexCount: n, sortedEdges: _bothArcs(n, pairs), _ConstructionToken())
     }
 
     /// `wattsStrogatz(vertexCount:nearestNeighborCount:rewiringProbability:using:)` with the

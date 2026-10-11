@@ -76,7 +76,7 @@ extension Arborescence {
 public struct LowestCommonAncestors<Vertex: Hashable> {
     @usableFromInline let _layout: _TreeLayout<Vertex>
     /// Each vertex's preorder position and depth, dense, so a query reads 4-byte entries rather
-    /// than two 56-byte node records.
+    /// than two 28-byte node records.
     @usableFromInline let _position: [Int32]
     @usableFromInline let _depth: [Int32]
     /// `_minima[i]`: the preorder position of the parent of the vertex at position i (i ≥ 1).

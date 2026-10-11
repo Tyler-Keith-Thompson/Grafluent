@@ -3,13 +3,15 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Erdős–Rényi, Barabási–Albert, Watts–Strogatz, random geometric, stochastic block model, random trees and DAGs.
+# Erdős–Rényi, Barabási–Albert, Watts–Strogatz, random geometric, random regular, random bipartite, stochastic block model, random trees and DAGs.
 swift_library(
     name = "RandomGraphs",
     srcs = glob(["**/*.swift"]),
     module_name = "RandomGraphs",
     deps = [
         "//Sources/GraphProtocols",
+        "//Sources/AdjacencyListModule",
+        "//Sources/BipartiteGraphs",
         "//Sources/NamedGraphs",
         "//Sources/Trees",
         "//Sources/DirectedAcyclicGraphModule",
@@ -24,6 +26,8 @@ docc_archive(
     catalog = glob(["*.docc/**"], allow_empty = True),
     deps = [
         "//Sources/GraphProtocols:GraphProtocolsDocumentation",
+        "//Sources/AdjacencyListModule:AdjacencyListModuleDocumentation",
+        "//Sources/BipartiteGraphs:BipartiteGraphsDocumentation",
         "//Sources/NamedGraphs:NamedGraphsDocumentation",
         "//Sources/Trees:TreesDocumentation",
         "//Sources/DirectedAcyclicGraphModule:DirectedAcyclicGraphModuleDocumentation",

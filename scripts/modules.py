@@ -71,8 +71,8 @@ MODULES = [
     ("SpectralGraphTheory", "Algorithms", "Adjacency and Laplacian matrices, Fiedler vector, spectral clustering.", ["GraphProtocols"]),
 
     # Generators
-    ("NamedGraphs", "Generators", "Complete, complete bipartite, path, cycle, star, wheel, grid, hypercube and Petersen graphs.", ["GraphProtocols", "Trees", "BipartiteGraphs"]),
-    ("RandomGraphs", "Generators", "Erdős–Rényi, Barabási–Albert, Watts–Strogatz, random geometric, stochastic block model, random trees and DAGs.", ["GraphProtocols", "NamedGraphs", "Trees", "DirectedAcyclicGraphModule"]),
+    ("NamedGraphs", "Generators", "Complete, complete bipartite and multipartite, Turán, path, cycle, star, wheel, ladder, circular ladder, barbell, lollipop, grid, hypercube, balanced tree and Petersen graphs.", ["GraphProtocols", "Trees", "BipartiteGraphs"]),
+    ("RandomGraphs", "Generators", "Erdős–Rényi, Barabási–Albert, Watts–Strogatz, random geometric, random regular, random bipartite, stochastic block model, random trees and DAGs.", ["GraphProtocols", "AdjacencyListModule", "BipartiteGraphs", "NamedGraphs", "Trees", "DirectedAcyclicGraphModule"]),
 
     # Drawing and formats
     ("GraphDrawing", "Drawing", "Force-directed, layered (Sugiyama), tree, spectral and circular layouts.", ["GraphProtocols", "Traversal", "Cycles", "SpectralGraphTheory"]),
@@ -113,7 +113,7 @@ TEST_TARGETS = [
     ("LabeledGraphsTests", ["GraphProtocols", "LabeledGraphs", "CompressedSparseRowModule", "AdjacencyMatrixModule", "AdjacencyListModule", "Multigraphs", "StableGraphs", "Traversal", "Connectivity", "ShortestPaths", "SpanningTrees", "Centrality", "Flows", "Distances", "GrafluentTestSupport", "swift-property-based/PropertyBased", "swift-collections/OrderedCollections"]),
     ("DirectedAcyclicGraphTests", ["GraphProtocols", "DirectedAcyclicGraphModule", "AdjacencyListModule", "Multigraphs", "StableGraphs", "Traversal", "Connectivity", "ShortestPaths", "Walks", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("NamedGraphsTests", ["GraphProtocols", "NamedGraphs", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "Multigraphs", "StableGraphs", "Trees", "BipartiteGraphs", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
-    ("RandomGraphsTests", ["GraphProtocols", "RandomGraphs", "NamedGraphs", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "Multigraphs", "StableGraphs", "Trees", "DirectedAcyclicGraphModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
+    ("RandomGraphsTests", ["GraphProtocols", "RandomGraphs", "NamedGraphs", "BipartiteGraphs", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "Multigraphs", "StableGraphs", "Trees", "DirectedAcyclicGraphModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("GraphProtocolsTests", ["GraphProtocols", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "EdgeListModule", "GrafluentTestSupport", "swift-collections/BitCollections"]),
 ]
 

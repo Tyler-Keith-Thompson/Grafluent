@@ -7,13 +7,14 @@ import GraphProtocols
 /// vertices: self-loops are allowed, parallel edges are not, and `{u, v}` is the same edge as
 /// `{v, u}`.
 ///
-/// Vertices are kept in dense slots, with a dictionary from vertex to slot. Edges are kept in an
+/// Vertices are kept in dense slots, with a dictionary from vertex to slot (none while the vertices
+/// are the `Int`s `0..<n` in order, each its own slot). Edges are kept in an
 /// array, so an edge's position in `edges` is an `Int` in `0..<edgeCount`. Each slot has a row of
 /// the slots of its neighbors and a parallel row of the positions of its incident edges; each edge
 /// is in both its endpoints' rows, and a self-loop twice in its vertex's row (as Boost stores it).
 /// The rows share one array per kind, so the graph makes a constant number of allocations however
-/// many vertices it has. A dictionary from unordered slot pair to position answers
-/// `contains(edge:)` in O(1).
+/// many vertices it has. A hash table from unordered slot pair to position (open addressing with a
+/// multiplicative hash, not `Dictionary`'s SipHash) answers `contains(edge:)` in O(1) expected.
 ///
 /// Removing an edge is O(1): the last edge moves into its position, and the last entry of each
 /// row into the hole. Removing a vertex costs O(degree) and moves the last slot into its place. So
@@ -27,7 +28,7 @@ public struct UndirectedAdjacencyList<Vertex: Hashable> {
 
     /// The slot of each vertex.
     @usableFromInline
-    internal var _slots: [Vertex: Int]
+    internal var _slots: _VertexSlots<Vertex>
 
     /// For each slot, a row of the slots of its neighbors: the far end of each edge end there.
     @usableFromInline
@@ -43,17 +44,17 @@ public struct UndirectedAdjacencyList<Vertex: Hashable> {
 
     /// The position of each edge, keyed by its slots in ascending order.
     @usableFromInline
-    internal var _positions: [_SlotPair: Int]
+    internal var _positions: _SlotPairTable<Int>
 
     /// The empty graph.
     @inlinable
     public init() {
         _vertices = []
-        _slots = [:]
+        _slots = _VertexSlots()
         _neighbors = _RowPool()
         _incident = _RowPool()
         _records = []
-        _positions = [:]
+        _positions = _SlotPairTable()
     }
 }
 
@@ -179,7 +180,7 @@ extension UndirectedAdjacencyList {
     @inlinable
     public func contains(edge: UndirectedEdge<Vertex>) -> Bool {
         guard let u = _slots[edge.u], let v = _slots[edge.v] else { return false }
-        return _positions[u <= v ? _SlotPair(u, v) : _SlotPair(v, u)] != nil
+        return _positions.contains(u <= v ? _SlotPair(u, v) : _SlotPair(v, u))
     }
 
     /// The far end of every edge end at `vertex`, in the order of `incidentEdges(of:)`: a
@@ -268,7 +269,7 @@ extension UndirectedAdjacencyList {
         let vOffset = _neighbors.append(u, toRow: v)
         _incident.append(position, toRow: v)
         _records.append(_EdgeRecord(u: u, v: v, uOffset: uOffset, vOffset: vOffset))
-        _positions[key] = position
+        _positions.insert(key, position)
         return (true, UndirectedEdge(_vertices[u], _vertices[v]))
     }
 
@@ -307,7 +308,7 @@ extension UndirectedAdjacencyList {
                 if record.u == last { record.u = slot }
                 if record.v == last { record.v = slot }
                 _records[position] = record
-                _positions[record.key] = position
+                _positions.insert(record.key, position)
             }
             _vertices.swapAt(slot, last)
             _slots[moved] = slot
@@ -355,7 +356,7 @@ extension UndirectedAdjacencyList {
             _records[position] = moved
             _incident[row: moved.u, moved.uOffset] = position
             _incident[row: moved.v, moved.vOffset] = position
-            _positions[moved.key] = position
+            _positions.updateValue(position, forKey: moved.key)
         }
         _records.removeLast()
     }
@@ -481,14 +482,14 @@ extension UndirectedAdjacencyList: Equatable {
                 rhs._records.withUnsafeBufferPointer { r in l.baseAddress == r.baseAddress }
             }
             if sameRecords { return true }
-            for key in lhs._positions.keys where rhs._positions[key] == nil { return false }
+            for record in lhs._records where !rhs._positions.contains(record.key) { return false }
             return true
         }
         for v in lhs._vertices where rhs._slots[v] == nil { return false }
-        for key in lhs._positions.keys {
-            guard let u = rhs._slots[lhs._vertices[key.source]],
-                  let v = rhs._slots[lhs._vertices[key.target]],
-                  rhs._positions[u <= v ? _SlotPair(u, v) : _SlotPair(v, u)] != nil
+        for record in lhs._records {
+            guard let u = rhs._slots[lhs._vertices[record.u]],
+                  let v = rhs._slots[lhs._vertices[record.v]],
+                  rhs._positions.contains(u <= v ? _SlotPair(u, v) : _SlotPair(v, u))
             else { return false }
         }
         return true
@@ -686,7 +687,7 @@ extension UndirectedAdjacencyList {
         let vOffset = _neighbors.append(u, toRow: v)
         _incident.append(position, toRow: v)
         _records.append(_EdgeRecord(u: u, v: v, uOffset: uOffset, vOffset: vOffset))
-        _positions[key] = position
+        _positions.insert(key, position)
         return (true, UndirectedEdge(_vertices[u], _vertices[v]))
     }
 

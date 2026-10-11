@@ -20,7 +20,7 @@ public struct Pseudograph<Vertex: Hashable> {
 
     /// The slot of each vertex.
     @usableFromInline
-    internal var _slots: [Vertex: Int]
+    internal var _slots: _VertexSlots<Vertex>
 
     /// For each slot, a row of the slots of its neighbors: the far end of each edge end there.
     @usableFromInline
@@ -42,7 +42,7 @@ public struct Pseudograph<Vertex: Hashable> {
     @inlinable
     public init() {
         _vertices = []
-        _slots = [:]
+        _slots = _VertexSlots()
         _neighbors = _RowPool()
         _incident = _RowPool()
         _records = []
@@ -126,7 +126,7 @@ extension Pseudograph {
     @inlinable
     public func contains(edge: UndirectedEdge<Vertex>) -> Bool {
         guard let key = _key(edge.u, edge.v) else { return false }
-        return _parallel.classes[key] != nil
+        return _parallel.classes.contains(key)
     }
 
     /// The positions of every copy joining `u` and `v`, in either orientation, oldest first; for
@@ -347,7 +347,7 @@ extension Pseudograph {
     /// looked it up), from both rows and from the edge array, moving each row's last entry and the
     /// last edge into the holes and recording where they went.
     @inlinable
-    internal mutating func _detach(_ position: Int, classIndex: [_SlotPair: Int].Index? = nil) {
+    internal mutating func _detach(_ position: Int, classIndex: Int? = nil) {
         let record = _records[position]
         if let classIndex { _parallel.unlink(position, at: classIndex) } else { _parallel.unlink(position, key: record.key) }
         // A self-loop's two ends share a row: the later one goes first, so the earlier one is not

@@ -329,4 +329,194 @@ struct NamedGraphPropertyTests {
                     == AdjacencyMatrix.complete(vertexCount: n).edges.map { [$0.source, $0.target] }, "n \(n)")
         }
     }
+
+    @Test("ladder and circularLadder: rails 0..<n and n..<2n, rungs i – (i + n), sorted; the circular ladder 3-regular; both arcs")
+    func ladders() async {
+        await propertyCheck(count: 60, input: Gen.int(in: 0 ... 30)) { n in
+            // The definition: two paths (or, closed, two cycles) and the rungs, as a set, then sorted.
+            func definition(circular: Bool) -> [[Int]] {
+                var pairs: Set<[Int]> = []
+                for rail in [0, n] {
+                    for i in rail ..< rail + max(n - 1, 0) { pairs.insert([i, i + 1]) }
+                    if circular { pairs.insert([rail, rail + n - 1]) }
+                }
+                for i in 0 ..< n { pairs.insert([i, i + n]) }
+                return pairs.sorted { $0.lexicographicallyPrecedes($1) }
+            }
+            for circular in n >= 3 ? [false, true] : [false] {
+                let pairs = definition(circular: circular)
+                let arcs = (pairs + pairs.map { [$0[1], $0[0]] }).sorted { $0.lexicographicallyPrecedes($1) }
+                let undirected: [any Graph<Int>] = circular
+                    ? [UndirectedAdjacencyList<Int>.circularLadder(rungCount: n), Pseudograph<Int>.circularLadder(rungCount: n),
+                       Multigraph<Int>.circularLadder(rungCount: n)]
+                    : [UndirectedAdjacencyList<Int>.ladder(rungCount: n), Pseudograph<Int>.ladder(rungCount: n),
+                       Multigraph<Int>.ladder(rungCount: n)]
+                for graph in undirected {
+                    #expect(graph.vertexCount == 2 * n && graph.edgeCount == (circular ? 3 * n : max(3 * n - 2, 0)), "\(n) \(circular)")
+                    #expect(graph.edges.map { [$0.u, $0.v] } == pairs, "\(n) \(circular)")
+                    if circular { #expect((0 ..< 2 * n).allSatisfy { graph.degree(of: $0) == 3 }, "\(n)") }
+                }
+                let directed: [any DirectedGraph<Int>] = circular
+                    ? [CompressedSparseRow.circularLadder(rungCount: n), AdjacencyMatrix.circularLadder(rungCount: n),
+                       AdjacencyList<Int>.circularLadder(rungCount: n), DirectedPseudograph<Int>.circularLadder(rungCount: n),
+                       DirectedMultigraph<Int>.circularLadder(rungCount: n), StableDirectedGraph<Int>.circularLadder(rungCount: n)]
+                    : [CompressedSparseRow.ladder(rungCount: n), AdjacencyMatrix.ladder(rungCount: n),
+                       AdjacencyList<Int>.ladder(rungCount: n), DirectedPseudograph<Int>.ladder(rungCount: n),
+                       DirectedMultigraph<Int>.ladder(rungCount: n), StableDirectedGraph<Int>.ladder(rungCount: n)]
+                for graph in directed {
+                    #expect(graph.vertexCount == 2 * n && graph.edges.map { [$0.source, $0.target] } == arcs, "\(n) \(circular)")
+                }
+            }
+        }
+    }
+
+    @Test("barbell and lollipop: cliques on 0..<k (and k + p..<2k + p), the path from k − 1, sorted, connected; both arcs")
+    func barbellAndLollipop() async {
+        await propertyCheck(count: 80, input: Gen.int(in: 2 ... 9), Gen.int(in: 0 ... 8)) { k, p in
+            func isConnected(_ graph: some Graph<Int>) -> Bool {
+                var seen: Set<Int> = [0], stack = [0]
+                while let v = stack.popLast() {
+                    for w in graph.neighbors(of: v) where seen.insert(w).inserted { stack.append(w) }
+                }
+                return seen.count == graph.vertexCount
+            }
+            for twoCliques in [false, true] {
+                let n = (twoCliques ? 2 * k : k) + p
+                // Every pair inside a clique, and the path's consecutive pairs.
+                let cliques = twoCliques ? [0 ..< k, k + p ..< n] : [0 ..< k]
+                var pairs: Set<[Int]> = []
+                for clique in cliques { for u in clique { for v in clique where u < v { pairs.insert([u, v]) } } }
+                for i in k - 1 ..< (twoCliques ? k + p : k + p - 1) { pairs.insert([i, i + 1]) }
+                let sorted = pairs.sorted { $0.lexicographicallyPrecedes($1) }
+                let arcs = (sorted + sorted.map { [$0[1], $0[0]] }).sorted { $0.lexicographicallyPrecedes($1) }
+                let m = (twoCliques ? 2 : 1) * k * (k - 1) / 2 + p + (twoCliques ? 1 : 0)
+                let undirected: [any Graph<Int>] = twoCliques
+                    ? [UndirectedAdjacencyList<Int>.barbell(cliqueVertexCount: k, pathVertexCount: p),
+                       Pseudograph<Int>.barbell(cliqueVertexCount: k, pathVertexCount: p),
+                       Multigraph<Int>.barbell(cliqueVertexCount: k, pathVertexCount: p)]
+                    : [UndirectedAdjacencyList<Int>.lollipop(cliqueVertexCount: k, pathVertexCount: p),
+                       Pseudograph<Int>.lollipop(cliqueVertexCount: k, pathVertexCount: p),
+                       Multigraph<Int>.lollipop(cliqueVertexCount: k, pathVertexCount: p)]
+                for graph in undirected {
+                    #expect(graph.vertexCount == n && graph.edgeCount == m && isConnected(graph), "\(k), \(p), \(twoCliques)")
+                    #expect(graph.edges.map { [$0.u, $0.v] } == sorted, "\(k), \(p), \(twoCliques)")
+                }
+                let directed: [any DirectedGraph<Int>] = twoCliques
+                    ? [CompressedSparseRow.barbell(cliqueVertexCount: k, pathVertexCount: p),
+                       AdjacencyMatrix.barbell(cliqueVertexCount: k, pathVertexCount: p),
+                       AdjacencyList<Int>.barbell(cliqueVertexCount: k, pathVertexCount: p),
+                       DirectedPseudograph<Int>.barbell(cliqueVertexCount: k, pathVertexCount: p),
+                       DirectedMultigraph<Int>.barbell(cliqueVertexCount: k, pathVertexCount: p),
+                       StableDirectedGraph<Int>.barbell(cliqueVertexCount: k, pathVertexCount: p)]
+                    : [CompressedSparseRow.lollipop(cliqueVertexCount: k, pathVertexCount: p),
+                       AdjacencyMatrix.lollipop(cliqueVertexCount: k, pathVertexCount: p),
+                       AdjacencyList<Int>.lollipop(cliqueVertexCount: k, pathVertexCount: p),
+                       DirectedPseudograph<Int>.lollipop(cliqueVertexCount: k, pathVertexCount: p),
+                       DirectedMultigraph<Int>.lollipop(cliqueVertexCount: k, pathVertexCount: p),
+                       StableDirectedGraph<Int>.lollipop(cliqueVertexCount: k, pathVertexCount: p)]
+                for graph in directed {
+                    #expect(graph.vertexCount == n && graph.edges.map { [$0.source, $0.target] } == arcs, "\(k), \(p), \(twoCliques)")
+                }
+            }
+        }
+    }
+
+    @Test("completeMultipartite: adjacent exactly across parts, sorted; earlier part → later part; two parts are completeBipartite")
+    func completeMultipartite() async {
+        await propertyCheck(count: 120, input: Gen.int(in: 0 ... 5).array(of: 0 ... 5)) { sizes in
+            // The part of each vertex, parts laid out consecutively.
+            var part: [Int] = []
+            for (i, size) in sizes.enumerated() { part += Array(repeating: i, count: size) }
+            let n = part.count
+            var pairs: [[Int]] = []
+            for u in 0 ..< n { for v in u + 1 ..< max(n, u + 1) where part[u] != part[v] { pairs.append([u, v]) } }
+            let undirected: [any Graph<Int>] = [UndirectedAdjacencyList<Int>.completeMultipartite(partSizes: sizes),
+                                                Pseudograph<Int>.completeMultipartite(partSizes: sizes),
+                                                Multigraph<Int>.completeMultipartite(partSizes: sizes)]
+            for graph in undirected {
+                #expect(graph.vertexCount == n && graph.edges.map { [$0.u, $0.v] } == pairs, "\(sizes)")
+                #expect((0 ..< n).allSatisfy { graph.degree(of: $0) == n - sizes[part[$0]] }, "\(sizes)")
+            }
+            let directed: [any DirectedGraph<Int>] = [CompressedSparseRow.completeMultipartite(partSizes: sizes),
+                                                      AdjacencyMatrix.completeMultipartite(partSizes: sizes),
+                                                      AdjacencyList<Int>.completeMultipartite(partSizes: sizes),
+                                                      DirectedPseudograph<Int>.completeMultipartite(partSizes: sizes),
+                                                      DirectedMultigraph<Int>.completeMultipartite(partSizes: sizes),
+                                                      StableDirectedGraph<Int>.completeMultipartite(partSizes: sizes)]
+            for graph in directed {
+                #expect(graph.vertexCount == n && graph.edges.map { [$0.source, $0.target] } == pairs, "\(sizes)")
+            }
+            if sizes.count == 2 {
+                let (a, b) = (sizes[0], sizes[1])
+                #expect(UndirectedAdjacencyList<Int>.completeMultipartite(partSizes: sizes)
+                    == UndirectedAdjacencyList<Int>.completeBipartite(leftCount: a, rightCount: b), "\(sizes)")
+                #expect(CompressedSparseRow.completeMultipartite(partSizes: sizes)
+                    == CompressedSparseRow.completeBipartite(leftCount: a, rightCount: b), "\(sizes)")
+            }
+        }
+    }
+
+    @Test("turan: r parts differing by at most one, smaller first; edges within r/8 of Turán's bound (1 − 1/r)n²/2; earlier part → later part")
+    func turan() async {
+        await propertyCheck(count: 80, input: Gen.int(in: 1 ... 25), Gen.int(in: 1 ... 25)) { n, r in
+            guard r <= n else { return }
+            let small = n / r, large = n % r
+            let sizes = Array(repeating: small, count: r - large) + Array(repeating: small + 1, count: large)
+            let m = (n * n - sizes.reduce(0) { $0 + $1 * $1 }) / 2
+            // Turán's bound: (1 − 1/r)n²/2 − r/8 ≤ m ≤ (1 − 1/r)n²/2, times 8r.
+            #expect(4 * (r - 1) * n * n - r * r <= 8 * r * m && 8 * r * m <= 4 * (r - 1) * n * n, "\(n), \(r)")
+            let undirected: [any Graph<Int>] = [UndirectedAdjacencyList<Int>.turan(vertexCount: n, partCount: r),
+                                                Pseudograph<Int>.turan(vertexCount: n, partCount: r),
+                                                Multigraph<Int>.turan(vertexCount: n, partCount: r)]
+            let expected = UndirectedAdjacencyList<Int>.completeMultipartite(partSizes: sizes)
+            for graph in undirected {
+                #expect(graph.vertexCount == n && graph.edgeCount == m, "\(n), \(r)")
+                #expect(graph.edges.map { [$0.u, $0.v] } == expected.edges.map { [$0.u, $0.v] }, "\(n), \(r)")
+            }
+            let directed: [any DirectedGraph<Int>] = [CompressedSparseRow.turan(vertexCount: n, partCount: r),
+                                                      AdjacencyMatrix.turan(vertexCount: n, partCount: r),
+                                                      AdjacencyList<Int>.turan(vertexCount: n, partCount: r),
+                                                      DirectedPseudograph<Int>.turan(vertexCount: n, partCount: r),
+                                                      DirectedMultigraph<Int>.turan(vertexCount: n, partCount: r),
+                                                      StableDirectedGraph<Int>.turan(vertexCount: n, partCount: r)]
+            for graph in directed {
+                #expect(graph.edgeCount == m && graph.edges.allSatisfy { $0.source < $0.target }, "\(n), \(r)")
+            }
+        }
+    }
+
+    @Test("balancedTree: breadth-first, the children of p are r·p + 1 … r·p + r; a tree; parent → child; Tree.balancedTree")
+    func balancedTree() async {
+        await propertyCheck(count: 60, input: Gen.int(in: 0 ... 4), Gen.int(in: 0 ... 5)) { r, h in
+            // Level by level: 1, r, r², … until a level is empty or h levels are added.
+            var n = 1, level = 1
+            for _ in 0 ..< h where level > 0 {
+                level *= r
+                n += level
+            }
+            let pairs = (1 ..< n).map { [($0 - 1) / r, $0] }
+            let undirected: [any Graph<Int>] = [UndirectedAdjacencyList<Int>.balancedTree(branchingFactor: r, height: h),
+                                                Pseudograph<Int>.balancedTree(branchingFactor: r, height: h),
+                                                Multigraph<Int>.balancedTree(branchingFactor: r, height: h)]
+            for graph in undirected {
+                #expect(graph.vertexCount == n && graph.edges.map { [$0.u, $0.v] } == pairs, "\(r), \(h)")
+                // The root has r children, inner vertices r and a parent, leaves only a parent.
+                #expect((0 ..< n).allSatisfy { v in
+                    graph.degree(of: v) == (v == 0 ? 0 : 1) + (r * v + 1 < n ? r : 0)
+                }, "\(r), \(h)")
+            }
+            let tree = Tree<Int>.balancedTree(branchingFactor: r, height: h)
+            #expect(tree.vertexCount == n && tree.edgeCount == n - 1, "\(r), \(h)")
+            #expect(Set(tree.edges.map { [min($0.u, $0.v), max($0.u, $0.v)] }) == Set(pairs), "\(r), \(h)")
+            let directed: [any DirectedGraph<Int>] = [CompressedSparseRow.balancedTree(branchingFactor: r, height: h),
+                                                      AdjacencyMatrix.balancedTree(branchingFactor: r, height: h),
+                                                      AdjacencyList<Int>.balancedTree(branchingFactor: r, height: h),
+                                                      DirectedPseudograph<Int>.balancedTree(branchingFactor: r, height: h),
+                                                      DirectedMultigraph<Int>.balancedTree(branchingFactor: r, height: h),
+                                                      StableDirectedGraph<Int>.balancedTree(branchingFactor: r, height: h)]
+            for graph in directed {
+                #expect(graph.vertexCount == n && graph.edges.map { [$0.source, $0.target] } == pairs, "\(r), \(h)")
+            }
+        }
+    }
 }

@@ -29,7 +29,8 @@ extension AdjacencyMatrix {
 extension AdjacencyMatrix: _DirectedGraphConstruction {
     /// See `_DirectedGraphConstruction`. O(n²/64 + m).
     @inlinable
-    public init(_vertexCount: Int, sortedEdges: some Collection<DirectedEdge<Int>>) {
+    public init(_vertexCount: Int, sortedEdges: some Collection<DirectedEdge<Int>>, _: _ConstructionToken) {
+        assert(_isSortedSimple(vertexCount: _vertexCount, sortedEdges), "unsorted, repeated or out-of-range edges")
         self.init(_uncheckedVertexCount: _vertexCount, sortedEdges: sortedEdges)
     }
 }

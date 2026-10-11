@@ -12,7 +12,7 @@ extension _ParallelClasses {
         self.init()
         links = ContiguousArray(repeating: _ParallelLinks(previous: -1, next: -1), count: count)
         classes.reserveCapacity(count)
-        for position in 0 ..< count { classes[key(position)] = position }
+        for position in 0 ..< count { classes.insert(key(position), position) }
     }
 }
 
@@ -24,8 +24,7 @@ extension DirectedPseudograph where Vertex == Int {
         let rows = _SortedArcRows(vertexCount: n, sortedEdges: edges)
         self.init()
         _vertices = ContiguousArray(0 ..< n)
-        _slots.reserveCapacity(n)
-        for v in 0 ..< n { _slots[v] = v }
+        _slots = _VertexSlots(identityCount: n)
         _out = rows.out
         _outEdges = rows.outEdges
         _in = rows.in
@@ -39,7 +38,8 @@ extension DirectedPseudograph where Vertex == Int {
 extension DirectedPseudograph: _DirectedGraphConstruction where Vertex == Int {
     /// See `_DirectedGraphConstruction`. O(n + m) expected.
     @inlinable
-    public init(_vertexCount: Int, sortedEdges: some Collection<DirectedEdge<Int>>) {
+    public init(_vertexCount: Int, sortedEdges: some Collection<DirectedEdge<Int>>, _: _ConstructionToken) {
+        assert(_isSortedSimple(vertexCount: _vertexCount, sortedEdges), "unsorted, repeated or out-of-range edges")
         self.init(_uncheckedVertexCount: _vertexCount, sortedEdges: sortedEdges)
     }
 }
@@ -47,7 +47,8 @@ extension DirectedPseudograph: _DirectedGraphConstruction where Vertex == Int {
 extension DirectedMultigraph: _DirectedGraphConstruction where Vertex == Int {
     /// See `_DirectedGraphConstruction`: `DirectedPseudograph`'s, since the input has no self-loop.
     @inlinable
-    public init(_vertexCount: Int, sortedEdges: some Collection<DirectedEdge<Int>>) {
+    public init(_vertexCount: Int, sortedEdges: some Collection<DirectedEdge<Int>>, _: _ConstructionToken) {
+        assert(_isSortedSimple(vertexCount: _vertexCount, sortedEdges), "unsorted, repeated or out-of-range edges")
         self.init()
         _base = DirectedPseudograph(_uncheckedVertexCount: _vertexCount, sortedEdges: sortedEdges)
     }
@@ -61,8 +62,7 @@ extension Pseudograph where Vertex == Int {
         let rows = _SortedEdgeRows(vertexCount: n, sortedEdges: edges)
         self.init()
         _vertices = ContiguousArray(0 ..< n)
-        _slots.reserveCapacity(n)
-        for v in 0 ..< n { _slots[v] = v }
+        _slots = _VertexSlots(identityCount: n)
         _neighbors = rows.neighbors
         _incident = rows.incident
         _records = rows.records
@@ -74,7 +74,8 @@ extension Pseudograph where Vertex == Int {
 extension Pseudograph: _GraphConstruction where Vertex == Int {
     /// See `_GraphConstruction`. O(n + m) expected.
     @inlinable
-    public init(_vertexCount: Int, sortedEdges: some Collection<UndirectedEdge<Int>>) {
+    public init(_vertexCount: Int, sortedEdges: some Collection<UndirectedEdge<Int>>, _: _ConstructionToken) {
+        assert(_isSortedSimple(vertexCount: _vertexCount, sortedEdges), "unsorted, repeated or out-of-range edges")
         self.init(_uncheckedVertexCount: _vertexCount, sortedEdges: sortedEdges)
     }
 }
@@ -82,7 +83,8 @@ extension Pseudograph: _GraphConstruction where Vertex == Int {
 extension Multigraph: _GraphConstruction where Vertex == Int {
     /// See `_GraphConstruction`: `Pseudograph`'s, since the input has no self-loop.
     @inlinable
-    public init(_vertexCount: Int, sortedEdges: some Collection<UndirectedEdge<Int>>) {
+    public init(_vertexCount: Int, sortedEdges: some Collection<UndirectedEdge<Int>>, _: _ConstructionToken) {
+        assert(_isSortedSimple(vertexCount: _vertexCount, sortedEdges), "unsorted, repeated or out-of-range edges")
         self.init()
         _base = Pseudograph(_uncheckedVertexCount: _vertexCount, sortedEdges: sortedEdges)
     }

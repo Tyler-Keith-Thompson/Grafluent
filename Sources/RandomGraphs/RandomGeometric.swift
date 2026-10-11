@@ -5,6 +5,11 @@ import Glibc
 #elseif canImport(Musl)
 import Musl
 #endif
+// A swift.org toolchain reading a newer macOS SDK (the fuzz build) gets a Darwin without libm's
+// functions; the SDK's math module has them.
+#if canImport(math_h)
+import math_h
+#endif
 import GraphProtocols
 import NamedGraphs
 
@@ -12,8 +17,13 @@ import NamedGraphs
 /// most r², sorted. Points in [0, 1)^d are bucketed into a grid of c^d cells of side 1/c ≥ r, so a
 /// close pair lies in neighboring cells (Bentley, Stanat and Williams, "The complexity of finding
 /// fixed-radius near neighbors", Information Processing Letters 6(6), 1977), and each point checks
-/// the 3^d cells around its own. c^d is capped at n, so memory stays O(n) for a tiny radius; when
-/// that leaves one cell per side, or 3^d exceeds n, every pair is checked instead.
+/// the 3^d cells around its own. c^d is capped at n, so memory stays O(n) for a tiny radius, and
+/// r = 0 (only coincident points are joined) is sized the same way.
+///
+/// Every pair is checked instead, in O(n²·d), when the grid would have one cell per side (r ≥ 1/2,
+/// where most pairs are edges anyway) or when 3^d > n: then each point would visit more
+/// neighboring cells than there are points, and c^d ≤ n leaves c ≤ 2 in any case. A caller with a
+/// large n in high dimension pays O(n·3^d), which for 3^d close to n is no better than all pairs.
 ///
 /// The points are visited cell by cell, with their coordinates copied into cell order, so the
 /// distance checks read memory in order. Each pair of neighboring cells is visited once, so each
@@ -21,11 +31,15 @@ import NamedGraphs
 @usableFromInline
 func _geometricPairs(_ positions: [Double], vertexCount n: Int, dimension d: Int, radius r: Double) -> [DirectedEdge<Int>] {
     let r2 = r * r
-    // Cells per side: at most 1/r, a little less so that rounding in x·c cannot put two points
-    // within r more than one cell apart; c^d at most n.
     var c = 1
-    if r > 0, r < 0.5 {
-        c = Int(Swift.min(1 / r, Double(n)) * (1 - 0x1p-30))
+    if r < 0.5 {
+        // Cells per side: c·(r + 2⁻⁵⁰) ≤ 1 − 2⁻²⁰. A pair the test accepts is within r·(1 + 2⁻⁵¹)
+        // or so (r² and the sum each round once per term), and x·c rounds by at most c·2⁻⁵³ per
+        // point, so two accepted points' scaled coordinates differ by less than 1 and their cells
+        // by at most one: the 2⁻²⁰ covers the relative error, the c·2⁻⁵⁰ the absolute one, which
+        // matters only for c beyond 2³⁰. r = 0 gives c = n, capped below.
+        let fit = (1 - 0x1p-20) / (r + 0x1p-50)
+        c = fit >= Double(n) ? n : Int(fit)
         let root = Int(pow(Double(n), 1 / Double(d)))
         c = Swift.max(1, Swift.min(c, root + 1))
         while c > 1, !_powerAtMost(c, d, n) { c -= 1 }
@@ -185,6 +199,20 @@ func _powerAtMost(_ base: Int, _ exponent: Int, _ limit: Int) -> Bool {
     return power <= limit
 }
 
+/// The positions, vertex by vertex and coordinate by coordinate, and the sorted pairs within r.
+@inlinable
+func _randomGeometric<G: RandomNumberGenerator>(
+    _ n: Int, _ r: Double, _ dimension: Int, _ g: inout G
+) -> (positions: [Double], pairs: [DirectedEdge<Int>]) {
+    _checkCount(n)
+    precondition(r >= 0, "radius \(r) is negative or NaN")
+    precondition(dimension >= 1, "dimension \(dimension) < 1")
+    precondition(_productFits(n, dimension), "vertexCount × dimension overflows Int")
+    var positions = [Double](repeating: 0, count: n * dimension)
+    for k in 0 ..< n * dimension { positions[k] = _uniform01(&g) }
+    return (positions, _geometricPairs(positions, vertexCount: n, dimension: dimension, radius: r))
+}
+
 extension _GraphConstruction {
     /// A random geometric graph: n points uniform in the unit cube [0, 1)^dimension, and an edge
     /// u–v when their Euclidean distance is at most `radius` (Gilbert's random plane network;
@@ -194,21 +222,41 @@ extension _GraphConstruction {
     /// distance, summed in coordinate order, against r², as NetworkX computes it, so the draws and
     /// edges are NetworkX's on the same stream. Edges sorted. Close pairs are found through a grid
     /// of cells of side at least r, so the cost is O(n + m) expected for uniform points, plus 3^d
-    /// per point.
+    /// per point, r = 0 included. Every pair is checked instead, O(n²·d), when r ≥ 1/2 (most pairs
+    /// are then edges) or when 3^d > n (each point would visit more cells than there are points).
     ///
     /// - Precondition: `vertexCount ≥ 0`, `radius ≥ 0` (not NaN), `dimension ≥ 1`.
     @inlinable
     public static func randomGeometric(
         vertexCount n: Int, radius r: Double, dimension: Int = 2, using generator: inout some RandomNumberGenerator
     ) -> (graph: Self, positions: [Double]) {
-        _checkCount(n)
-        precondition(r >= 0, "radius \(r) is negative or NaN")
-        precondition(dimension >= 1, "dimension \(dimension) < 1")
-        precondition(_productFits(n, dimension), "vertexCount × dimension overflows Int")
-        var positions = [Double](repeating: 0, count: n * dimension)
-        for k in 0 ..< n * dimension { positions[k] = _uniform01(&generator) }
-        let pairs = _geometricPairs(positions, vertexCount: n, dimension: dimension, radius: r)
-        return (Self(_vertexCount: n, sortedEdges: pairs.lazy.map(_undirected)), positions)
+        let (positions, pairs) = _randomGeometric(n, r, dimension, &generator)
+        return (Self(_vertexCount: n, sortedEdges: pairs.lazy.map(_undirected), _ConstructionToken()), positions)
+    }
+
+    /// `randomGeometric(vertexCount:radius:dimension:using:)` with the system's random number
+    /// generator.
+    @inlinable
+    public static func randomGeometric(vertexCount n: Int, radius r: Double, dimension: Int = 2) -> (graph: Self, positions: [Double]) {
+        var generator = SystemRandomNumberGenerator()
+        return randomGeometric(vertexCount: n, radius: r, dimension: dimension, using: &generator)
+    }
+}
+
+extension _DirectedGraphConstruction {
+    /// The random geometric graph with both arcs for every edge, as the directed `complete` and
+    /// `grid` have them: the undirected form's draws, positions and pairs, then u → v and v → u in
+    /// row-major order. The relation is symmetric, so neither NetworkX nor igraph has a separate
+    /// directed model; this is `randomGeometric(…)` as a `DiGraph`. O(n + m) expected, as the
+    /// undirected form.
+    ///
+    /// - Precondition: `vertexCount ≥ 0`, `radius ≥ 0` (not NaN), `dimension ≥ 1`.
+    @inlinable
+    public static func randomGeometric(
+        vertexCount n: Int, radius r: Double, dimension: Int = 2, using generator: inout some RandomNumberGenerator
+    ) -> (graph: Self, positions: [Double]) {
+        let (positions, pairs) = _randomGeometric(n, r, dimension, &generator)
+        return (Self(_vertexCount: n, sortedEdges: _bothArcs(n, pairs), _ConstructionToken()), positions)
     }
 
     /// `randomGeometric(vertexCount:radius:dimension:using:)` with the system's random number

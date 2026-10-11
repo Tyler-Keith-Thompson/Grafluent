@@ -8,7 +8,7 @@ extension _GraphConstruction {
     @inlinable
     public static func empty(vertexCount n: Int) -> Self {
         _checkCount(n)
-        return Self(_vertexCount: n, sortedEdges: EmptyCollection())
+        return Self(_vertexCount: n, sortedEdges: EmptyCollection(), _ConstructionToken())
     }
 }
 
@@ -19,6 +19,6 @@ extension _DirectedGraphConstruction {
     @inlinable
     public static func empty(vertexCount n: Int) -> Self {
         _checkCount(n)
-        return Self(_vertexCount: n, sortedEdges: EmptyCollection())
+        return Self(_vertexCount: n, sortedEdges: EmptyCollection(), _ConstructionToken())
     }
 }

@@ -16,6 +16,7 @@ swift_library(
         "//Sources/GraphProtocols",
         "//Sources/RandomGraphs",
         "//Sources/NamedGraphs",
+        "//Sources/BipartiteGraphs",
         "//Sources/AdjacencyListModule",
         "//Sources/AdjacencyMatrixModule",
         "//Sources/CompressedSparseRowModule",
