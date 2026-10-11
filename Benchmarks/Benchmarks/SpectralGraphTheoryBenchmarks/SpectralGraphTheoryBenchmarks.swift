@@ -1,0 +1,139 @@
+import AdjacencyListModule
+import Benchmark
+import BenchmarkSupport
+import GraphProtocols
+import SpectralGraphTheory
+
+// The inputs of api.md's Performance table (ref.py --bench): square grids, random 3-regular graphs
+// (three random perfect matchings, redrawn until simple), and the giant component of G(n, p) with
+// mean degree 10. The SciPy and NumPy baselines are quoted in each benchmark's name.
+
+/// The r × c grid, vertex i·c + j, each vertex's right then down edge.
+func grid(_ side: Int) -> UndirectedAdjacencyList<Int> {
+    var edges: [UndirectedEdge<Int>] = []
+    edges.reserveCapacity(2 * side * side)
+    for i in 0 ..< side {
+        for j in 0 ..< side {
+            let v = i * side + j
+            if j + 1 < side { edges.append(UndirectedEdge(v, v + 1)) }
+            if i + 1 < side { edges.append(UndirectedEdge(v, v + side)) }
+        }
+    }
+    return UndirectedAdjacencyList(vertices: 0 ..< side * side, edges: edges)
+}
+
+/// A simple 3-regular graph: three random perfect matchings, each redrawn while it repeats a pair.
+func randomRegular(_ n: Int, seed: UInt) -> UndirectedAdjacencyList<Int> {
+    var rng = SeededRandomNumberGenerator(seed: seed)
+    var seen = Set<UndirectedEdge<Int>>()
+    var edges: [UndirectedEdge<Int>] = []
+    for _ in 0 ..< 3 {
+        while true {
+            let perm = Array(0 ..< n).shuffled(using: &rng)
+            let matching = stride(from: 0, to: n, by: 2).map { UndirectedEdge(min(perm[$0], perm[$0 + 1]), max(perm[$0], perm[$0 + 1])) }
+            if matching.allSatisfy({ !seen.contains($0) }) {
+                seen.formUnion(matching)
+                edges += matching
+                break
+            }
+        }
+    }
+    return UndirectedAdjacencyList(vertices: 0 ..< n, edges: edges)
+}
+
+/// The largest component of G(n, m = 5n), duplicates and loops dropped, renumbered in order.
+func giantComponent(_ n: Int, seed: UInt) -> UndirectedAdjacencyList<Int> {
+    var seen = Set<UndirectedEdge<Int>>()
+    let pairs = Inputs.randomEdges(vertexCount: n, edgeCount: 5 * n, seed: seed)
+        .map { UndirectedEdge(min($0.source, $0.target), max($0.source, $0.target)) }
+        .filter { !$0.isSelfLoop && seen.insert($0).inserted }
+    var adjacency = [[Int]](repeating: [], count: n)
+    for e in pairs {
+        adjacency[e.u].append(e.v)
+        adjacency[e.v].append(e.u)
+    }
+    var component = [Int](repeating: -1, count: n)
+    var sizes: [Int] = []
+    for s in 0 ..< n where component[s] < 0 {
+        var stack = [s]
+        component[s] = sizes.count
+        var size = 0
+        while let v = stack.popLast() {
+            size += 1
+            for w in adjacency[v] where component[w] < 0 {
+                component[w] = sizes.count
+                stack.append(w)
+            }
+        }
+        sizes.append(size)
+    }
+    let giant = sizes.indices.max { sizes[$0] < sizes[$1] }!
+    var number = [Int](repeating: -1, count: n)
+    var count = 0
+    for v in 0 ..< n where component[v] == giant {
+        number[v] = count
+        count += 1
+    }
+    let edges = pairs.filter { component[$0.u] == giant }.map { UndirectedEdge(number[$0.u], number[$0.v]) }
+    return UndirectedAdjacencyList(vertices: 0 ..< count, edges: edges)
+}
+
+let benchmarks: @Sendable () -> Void = {
+    Benchmark.defaultConfiguration.metrics = [.wallClock, .mallocCountTotal]
+    Benchmark.defaultConfiguration.maxDuration = .seconds(3)
+
+    // (name, graph, csgraph.laplacian, shifted eigsh λ₂, eigsh ρ) from api.md's table.
+    let inputs: [(String, UndirectedAdjacencyList<Int>, String, String, String)] = [
+        ("grid 100×100", grid(100), "0.5 ms", "62.4 ms", "51.3 ms"),
+        ("grid 300×300", grid(300), "3.3 ms", "2879.5 ms", "1729.1 ms"),
+        ("random 3-regular 10⁴", randomRegular(10_000, seed: 1), "0.4 ms", "131.9 ms", "10.5 ms"),
+        ("random 3-regular 10⁵", randomRegular(100_000, seed: 2), "3.0 ms", "3913.4 ms", "84.9 ms"),
+        ("G(n, p) 10⁴ giant component", giantComponent(10_000, seed: 3), "0.9 ms", "30.4 ms", "5.8 ms"),
+        ("G(n, p) 10⁵ giant component", giantComponent(100_000, seed: 4), "12.3 ms", "782.7 ms", "47.7 ms"),
+    ]
+    for (name, graph, laplacian, lambda, radius) in inputs {
+        Benchmark("SpectralGraphTheory: laplacianMatrix(), \(name) (csgraph.laplacian \(laplacian))") { benchmark in
+            for _ in benchmark.scaledIterations { blackHole(graph.laplacianMatrix()) }
+        }
+        Benchmark("SpectralGraphTheory: algebraicConnectivity(), \(name) (shifted eigsh \(lambda))") { benchmark in
+            for _ in benchmark.scaledIterations { blackHole(graph.algebraicConnectivity()) }
+        }
+        Benchmark("SpectralGraphTheory: spectralRadius(), \(name) (eigsh LA \(radius))") { benchmark in
+            for _ in benchmark.scaledIterations { blackHole(graph.spectralRadius()) }
+        }
+    }
+    let grid300 = inputs[1].1
+    Benchmark("SpectralGraphTheory: fiedlerVector(), grid 300×300") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(grid300.fiedlerVector()) }
+    }
+    Benchmark("SpectralGraphTheory: normalizedLaplacianMatrix(weight:), G(n, p) 10⁵ giant component") { benchmark in
+        let graph = inputs[5].1
+        for _ in benchmark.scaledIterations { blackHole(graph.normalizedLaplacianMatrix(weight: { $0 % 7 + 1 })) }
+    }
+    // numpy.linalg.eigvalsh on the same kind of Laplacian, measured alongside: 81 ms (n = 1000),
+    // 670 ms (n = 2000).
+    for (n, numpy) in [(1_000, "81 ms"), (2_000, "670 ms")] {
+        let graph = giantComponent(n, seed: 5)
+        Benchmark("SpectralGraphTheory: laplacianSpectrum(), G(n, p) \(n) (numpy eigvalsh \(numpy))") { benchmark in
+            for _ in benchmark.scaledIterations { blackHole(graph.laplacianSpectrum()) }
+        }
+    }
+    // scipy.sparse.linalg.cg, Jacobi preconditioned, on the grounded Laplacian: 51 ms.
+    let giant = inputs[5].1
+    Benchmark("SpectralGraphTheory: resistanceDistance(from:to:), G(n, p) 10⁵ giant component (scipy cg 51 ms)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(giant.resistanceDistance(from: 0, to: giant.vertexCount - 1)) }
+    }
+    Benchmark("SpectralGraphTheory: numberOfSpanningTrees(), G(n, p) 1000") { benchmark in
+        let graph = giantComponent(1_000, seed: 5)
+        for _ in benchmark.scaledIterations { blackHole(graph.numberOfSpanningTrees()) }
+    }
+    // api.md: finishes with the correct λ₂ = 2 − 2cos(π/1000) ≈ 9.8696e-6 in under 120 s.
+    Benchmark("SpectralGraphTheory: algebraicConnectivity(), grid 1000×1000 (target < 120 s; no SciPy method finished)", configuration: .init(maxDuration: .seconds(1), maxIterations: 1)) { benchmark in
+        let graph = grid(1_000)
+        benchmark.startMeasurement()
+        let value = graph.algebraicConnectivity()
+        benchmark.stopMeasurement()
+        precondition(abs(value - 9.869_596_28e-6) <= 1e-4 * 9.87e-6, "λ₂ = \(value)")
+        blackHole(value)
+    }
+}

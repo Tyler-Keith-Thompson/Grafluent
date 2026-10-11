@@ -3,13 +3,14 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Adjacency and Laplacian matrices, Fiedler vector, spectral clustering.
+# Adjacency, Laplacian, normalized, random-walk and signless Laplacian matrices as a SparseMatrix; dense spectra; algebraic connectivity, Fiedler vector, spectral ordering and spectral radius by thick-restart Lanczos; spanning-tree counts, resistance distance, effective graph resistance and the Kemeny constant.
 swift_library(
     name = "SpectralGraphTheory",
     srcs = glob(["**/*.swift"]),
     module_name = "SpectralGraphTheory",
     deps = [
         "//Sources/GraphProtocols",
+        "//Sources/CompressedSparseRowModule",
     ],
     visibility = ["//visibility:public"],
 )
@@ -21,6 +22,7 @@ docc_archive(
     catalog = glob(["*.docc/**"], allow_empty = True),
     deps = [
         "//Sources/GraphProtocols:GraphProtocolsDocumentation",
+        "//Sources/CompressedSparseRowModule:CompressedSparseRowModuleDocumentation",
     ],
     tags = ["manual"],
     visibility = ["//visibility:public"],

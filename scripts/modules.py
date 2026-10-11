@@ -68,7 +68,7 @@ MODULES = [
     ("Planarity", "Algorithms", "Boyer–Myrvold planarity testing and planar embeddings.", ["GraphProtocols", "Traversal"]),
     ("TreeAlgorithms", "Algorithms", "Lowest common ancestor, Euler tour, heavy–light decomposition, center, centroid, diameter.", ["GraphProtocols", "Trees", "Walks"]),
     ("Distances", "Algorithms", "Eccentricity, radius, diameter, center, periphery, centroid, Wiener index, average shortest path length, density.", ["GraphProtocols", "Walks", "PriorityQueueModule"]),
-    ("SpectralGraphTheory", "Algorithms", "Adjacency and Laplacian matrices, Fiedler vector, spectral clustering.", ["GraphProtocols"]),
+    ("SpectralGraphTheory", "Algorithms", "Adjacency, Laplacian, normalized, random-walk and signless Laplacian matrices as a SparseMatrix; dense spectra; algebraic connectivity, Fiedler vector, spectral ordering and spectral radius by thick-restart Lanczos; spanning-tree counts, resistance distance, effective graph resistance and the Kemeny constant.", ["GraphProtocols", "CompressedSparseRowModule"]),
 
     # Generators
     ("NamedGraphs", "Generators", "Complete, complete bipartite and multipartite, Turán, path, cycle, star, wheel, ladder, circular ladder, barbell, lollipop, grid, hypercube, balanced tree and Petersen graphs.", ["GraphProtocols", "Trees", "BipartiteGraphs"]),
@@ -122,6 +122,7 @@ TEST_TARGETS = [
     ("IncidenceMatrixTests", ["GraphProtocols", "IncidenceMatrixModule", "Hypergraphs", "Multigraphs", "AdjacencyListModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("SemiringsTests", ["Semirings", "ShortestPaths", "GraphProtocols", "Multigraphs", "AdjacencyListModule", "DirectedAcyclicGraphModule", "Traversal", "Walks", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("GraphDrawingTests", ["GraphProtocols", "GraphDrawing", "Cycles", "Trees", "RandomGraphs", "Multigraphs", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "StableGraphs", "DirectedAcyclicGraphModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
+    ("SpectralGraphTheoryTests", ["GraphProtocols", "SpectralGraphTheory", "CompressedSparseRowModule", "AdjacencyListModule", "AdjacencyMatrixModule", "Multigraphs", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
 ]
 
 # Bazel test sizes above the default "small" (60 s timeout), for suites whose solo run takes more
