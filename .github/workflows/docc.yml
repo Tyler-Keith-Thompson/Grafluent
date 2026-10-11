@@ -21,7 +21,7 @@ permissions:
 
 jobs:
   docs:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     # rules_swift's Linux toolchain is whatever swiftc is on the PATH; docc comes from beside it.
     container: swift:6.3
     env:
@@ -29,7 +29,7 @@ jobs:
       # first. swift-numerics has C shims.
       CC: clang
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install Bazel
         run: |
           # The image has neither curl nor python3; the umbrella's extension index needs python3.
@@ -60,7 +60,7 @@ jobs:
           cp -RL bazel-bin/docs ./docs
           chmod -R u+w ./docs
       - name: Deploy
-        uses: peaceiris/actions-gh-pages@v4
+        uses: peaceiris/actions-gh-pages@v4.1.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs
