@@ -380,3 +380,19 @@ extension StableDirectedGraph {
         for k in maps.indices { maps[k].box = maps[k].box.witnesses.empty(maps[k].box) }
     }
 }
+
+/// The attached-map members of `StableDirectedGraph`, so a wrapper over it (such as
+/// `DirectedAcyclicGraph`) can forward them with a protocol constraint. A same-type constraint on
+/// the base would need a generic parameter that Swift 6.2 rejects in a subscript.
+public protocol _AttachedPositionMaps<Vertex> {
+    associatedtype Vertex: Hashable
+    mutating func addEdgeMap<Value: Sendable>(of type: Value.Type) -> EdgeMap<Value>
+    mutating func addVertexMap<Value: Sendable>(of type: Value.Type) -> VertexMap<Value>
+    mutating func removeEdgeMap<Value>(_ map: EdgeMap<Value>)
+    mutating func removeVertexMap<Value>(_ map: VertexMap<Value>)
+    subscript<Value>(_ map: EdgeMap<Value>, ofEdgeAt position: Int) -> Value? { get set }
+    subscript<Value>(_ map: VertexMap<Value>, ofVertexAt position: Int) -> Value? { get set }
+    subscript<Value>(_ map: VertexMap<Value>, of vertex: Vertex) -> Value? { get set }
+}
+
+extension StableDirectedGraph: _AttachedPositionMaps {}
