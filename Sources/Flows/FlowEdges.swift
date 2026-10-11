@@ -95,6 +95,24 @@ extension DirectedGraph {
         }
         let vertices = _FlowVertices(listed: Array(self.vertices))
         let listed = vertices.listed!
+        if let sparse = _sparselyIndexed() {
+            // Positions number the edges through an array, not a dictionary.
+            let rows = sparse._numberedRows(outward: true, edges: true)
+            var edgeNumbers = [Int](repeating: -1, count: sparse.edgePositionBound)
+            var k = 0
+            for position in edges.indices {
+                edgeNumbers[unsafeBitCast(position, to: Int.self)] = k
+                k += 1
+            }
+            for v in 0 ..< rows.count {
+                for slot in rows.offsets[v] ..< rows.offsets[v + 1] {
+                    let e = edgeNumbers[rows.edges[slot]]
+                    tail[e] = Int32(truncatingIfNeeded: v)
+                    head[e] = Int32(truncatingIfNeeded: rows.neighbors[slot])
+                }
+            }
+            return (_FlowEdges(vertexCount: listed.count, tail: tail, head: head, directed: true), vertices)
+        }
         precondition(listed.count < Int(Int32.max), "Flows need fewer than 2³¹ vertices")
         let indexed = edgeIndexBound != nil
         let numbers = indexed ? [:] : _flowEdgeNumbers()

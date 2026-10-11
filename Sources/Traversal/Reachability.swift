@@ -11,7 +11,7 @@ extension DirectedGraph {
         precondition(contains(vertex), "\(vertex) is not a vertex of the graph")
         var ids = _VertexIdentifiers(self)
         let start = ids.identifier(of: vertex)
-        var visited = [Bool](repeating: false, count: ids.isIndexed ? ids.count : start + 1)
+        var visited = [Bool](repeating: false, count: ids.isDense ? ids.count : start + 1)
         visited[start] = true
         var stack = [start]
         var reached = Set<Vertex>()
@@ -40,7 +40,7 @@ extension DirectedGraph {
         var ids = _VertexIdentifiers(self)
         let start = ids.identifier(of: source)
         let goal = ids.identifier(of: target)
-        var visited = [Bool](repeating: false, count: ids.isIndexed ? ids.count : max(start, goal) + 1)
+        var visited = [Bool](repeating: false, count: ids.isDense ? ids.count : max(start, goal) + 1)
         visited[start] = true
         var stack = [start]
         while let u = stack.popLast() {
@@ -121,6 +121,12 @@ extension BidirectionalDirectedGraph {
                         for (w, e) in zip(successorIndices(ofIndex: v), outEdges(ofIndex: v)) { neighbors.append((w, e)) }
                     } else {
                         for (w, e) in zip(predecessorIndices(ofIndex: v), inEdges(ofIndex: v)) { neighbors.append((w, e)) }
+                    }
+                } else if let rows = ids.rows {
+                    // Numbered: `Edges.Index` is `Int` for a sparsely indexed graph.
+                    let numbered = forward ? rows : ids.numberedPredecessorRows()
+                    for k in numbered.offsets[v] ..< numbered.offsets[v + 1] {
+                        neighbors.append((numbered.neighbors[k], unsafeBitCast(numbered.edges[k], to: Edges.Index.self)))
                     }
                 } else if forward {
                     for e in outEdges(of: ids.vertex(v)) { neighbors.append((ids.identifier(of: self.target(ofEdgeAt: e)), e)) }

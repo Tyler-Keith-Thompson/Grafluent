@@ -32,7 +32,7 @@ extension DirectedGraph {
         var ids = _VertexIdentifiers(self)
         var inDegree: [Int] = []
         var all: [Int] = []
-        if ids.isIndexed { all = Array(0 ..< ids.count) } else { for v in vertices { all.append(ids.identifier(of: v)) } }
+        if ids.isDense { all = Array(0 ..< ids.count) } else { for v in vertices { all.append(ids.identifier(of: v)) } }
         _grow(&inDegree, to: ids.count, with: 0)
         for u in all {
             ids.forEachSuccessor(of: u) { inDegree[$0] += 1 }
@@ -63,7 +63,7 @@ extension DirectedGraph {
     public func lexicographicalTopologicalSort(by areInIncreasingOrder: (Vertex, Vertex) -> Bool) -> [Vertex]? {
         var ids = _VertexIdentifiers(self)
         var all: [Int] = []
-        if ids.isIndexed { all = Array(0 ..< ids.count) } else { for v in vertices { all.append(ids.identifier(of: v)) } }
+        if ids.isDense { all = Array(0 ..< ids.count) } else { for v in vertices { all.append(ids.identifier(of: v)) } }
         var inDegree = [Int](repeating: 0, count: ids.count)
         for u in all {
             ids.forEachSuccessor(of: u) { inDegree[$0] += 1 }

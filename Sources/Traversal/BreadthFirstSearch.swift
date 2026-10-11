@@ -72,6 +72,8 @@ public struct BreadthFirstSearch<G: DirectedGraph>: Sequence {
         @usableFromInline var currentVertex: G.Vertex?
         @usableFromInline var indexedNeighbors: G.SuccessorIndices.Iterator?
         @usableFromInline var unindexedNeighbors: G.Successors.Iterator?
+        /// Numbered: the rest of the current row, as offsets into `ids.rows`.
+        @usableFromInline var numberedNeighbors: Range<Int> = 0 ..< 0
         /// A vertex reached by the tree edge just reported, to be discovered next.
         @usableFromInline var pendingDiscovery: Int?
         /// The vertex of the last event, when that event was its discovery: the one `prune()` acts on.
@@ -82,7 +84,7 @@ public struct BreadthFirstSearch<G: DirectedGraph>: Sequence {
             self.ids = _VertexIdentifiers(graph)
             self.sources = sources
             self.depthLimit = depthLimit
-            if ids.isIndexed {
+            if ids.isDense {
                 depth = [Int](repeating: -1, count: ids.count)
                 pruned = [Bool](repeating: false, count: ids.count)
             }
@@ -90,7 +92,7 @@ public struct BreadthFirstSearch<G: DirectedGraph>: Sequence {
 
         @inlinable
         mutating func _discover(_ id: Int, depth d: Int) {
-            if !ids.isIndexed {
+            if !ids.isDense {
                 _grow(&depth, to: id + 1, with: -1)
                 _grow(&pruned, to: id + 1, with: false)
             }
@@ -123,9 +125,14 @@ public struct BreadthFirstSearch<G: DirectedGraph>: Sequence {
             }
             while true {
                 if let u = current {
-                    let next: Int? = ids.isIndexed
-                        ? indexedNeighbors!.next()
-                        : unindexedNeighbors!.next().map { ids.identifier(of: $0) }
+                    let next: Int?
+                    if ids.isIndexed {
+                        next = indexedNeighbors!.next()
+                    } else if let rows = ids.rows {
+                        next = numberedNeighbors.popFirst().map { rows.neighbors[$0] }
+                    } else {
+                        next = unindexedNeighbors!.next().map { ids.identifier(of: $0) }
+                    }
                     guard let w = next else {
                         current = nil
                         indexedNeighbors = nil
@@ -148,6 +155,8 @@ public struct BreadthFirstSearch<G: DirectedGraph>: Sequence {
                 currentVertex = ids.vertex(u)
                 if ids.isIndexed {
                     indexedNeighbors = ids.graph.successorIndices(ofIndex: u).makeIterator()
+                } else if let rows = ids.rows {
+                    numberedNeighbors = rows.offsets[u] ..< rows.offsets[u + 1]
                 } else {
                     unindexedNeighbors = ids.graph.successors(of: ids.vertices[u]).makeIterator()
                 }
@@ -207,7 +216,7 @@ extension DirectedGraph {
     public func breadthFirstLayers(from sources: some Sequence<Vertex>) -> [[Vertex]] {
         // A dedicated loop, a level at a time: no events, one visited flag per vertex.
         var ids = _VertexIdentifiers(self)
-        var visited = [Bool](repeating: false, count: ids.isIndexed ? ids.count : 0)
+        var visited = [Bool](repeating: false, count: ids.isDense ? ids.count : 0)
         var current: [Int] = []
         for source in sources {
             precondition(contains(source), "The source \(source) is not a vertex of the graph")

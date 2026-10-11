@@ -9,7 +9,9 @@ once rather than once per mutant:
     mode "expr":  old  ->  (__mutant(k) ? (new) : (old))   an expression
     mode "stmt":  old  ->  if __mutant(k) { new } else { old }   whole statements
 
-`old` must occur once in the file, or `nth` picks the occurrence.
+`old` must occur once in the file, or `nth` picks the occurrence. `module` puts a mutant in another
+module's file (Sources/<module>/<file>), for code the spec's module wires into; the spec's TESTS
+then name the suites that reach it, run in order.
 The environment variable GRAFLUENT_MUTANT picks the live mutant. Each mutant then runs the test
 bundles named by the spec, several at once, and a run stops at its first failing test. A mutant is
 caught when a test fails, the process crashes, or it runs past the time limit; it survived when
@@ -108,6 +110,9 @@ class Mutant:
     mode: str = "expr"
     # Which occurrence of `old` to mutate when it occurs more than once (0 is the first).
     nth: int | None = None
+    # The module whose Sources/<module>/<file> is mutated, when not the spec's own (a shared file
+    # the spec's module wires into); the spec's TESTS must include a suite that reaches it.
+    module: str | None = None
 
 
 def load_spec(module):
@@ -162,7 +167,10 @@ def inputs_key(bundles):
 
 
 def definition(m):
-    return json.dumps(dataclasses.asdict(m), sort_keys=True)
+    fields = dataclasses.asdict(m)
+    if fields["module"] is None:  # so specs without other modules keep their stored keys
+        del fields["module"]
+    return json.dumps(fields, sort_keys=True)
 
 
 def mutant_keys(mutants, inputs):
@@ -170,7 +178,7 @@ def mutant_keys(mutants, inputs):
     file (whose replacements can move the text its `old` matches)."""
     keys = {}
     for k, m in enumerate(mutants):
-        earlier = [definition(e) for e in mutants[:k + 1] if e.file == m.file]
+        earlier = [definition(e) for e in mutants[:k + 1] if (e.module, e.file) == (m.module, m.file)]
         keys[m.name] = hashlib.sha256((inputs + "\0" + "\0".join(earlier)).encode()).hexdigest()
     return keys
 
@@ -207,12 +215,12 @@ def write_if_changed(path, data):
         f.write(data)
 
 
-def sync_workspace(module):
+def sync_workspace(modules):
     os.makedirs(WORK, exist_ok=True)
     # -c compares checksums so a file rewritten with the same contents keeps its mtime and does
-    # not rebuild; --delete drops files gone from the checkout. The module under test gets the
+    # not rebuild; --delete drops files gone from the checkout. The mutated modules get the
     # schemata (apply_schemata), written only where they changed.
-    excluded = ["--exclude", f"/Sources/{module}/"]
+    excluded = [a for module in modules for a in ("--exclude", f"/Sources/{module}/")]
     for item in ["Package.swift", "Sources", "Tests"]:
         subprocess.run(["rsync", "-a", "-c", "--delete", *excluded, os.path.join(ROOT, item), WORK], check=True)
 
@@ -236,13 +244,28 @@ def sync_coverage_workspace(module, bundles):
     write_if_changed(os.path.join(COVERAGE_WORK, "Package.swift"), manifest)
 
 
+def mutated_modules(module, mutants):
+    """The spec's module first, then every other module a mutant names."""
+    return [module] + sorted({m.module for m in mutants if m.module and m.module != module})
+
+
 def apply_schemata(module, mutants):
-    """Writes the module with every mutant behind its switch, and returns each mutant's span in
-    the written files as {k: (file, first line, last line)}, 1-based."""
+    """Writes each mutated module with every mutant behind its switch, and returns each mutant's
+    span in the written files as {k: (file, first line, last line)}, 1-based; a file of another
+    module than the spec's is named `<module>/<file>`, which coverage never reports."""
+    spans = {}
+    for mod in mutated_modules(module, mutants):
+        own = [(k, m) for k, m in enumerate(mutants) if (m.module or module) == mod]
+        for k, (file, first, last) in _apply_module(mod, own).items():
+            spans[k] = (file if mod == module else f"{mod}/{file}", first, last)
+    return spans
+
+
+def _apply_module(module, numbered):
     source = os.path.join(ROOT, "Sources", module)
     target = os.path.join(WORK, "Sources", module)
     by_file = {}
-    for k, m in enumerate(mutants):
+    for k, m in numbered:
         by_file.setdefault(m.file, []).append((k, m))
     spans = {}
     written = {"_MutantSwitch.swift"}
@@ -512,7 +535,7 @@ def main():
 
     if stale:
         atexit.register(reap)
-        sync_workspace(args.module)
+        sync_workspace(mutated_modules(args.module, mutants))
         spans = apply_schemata(args.module, mutants)
         # The coverage build, when selection needs a new pass, goes alongside the schemata build.
         coverage_key = hashlib.sha256((inputs + "\0" + "\0".join(map(definition, mutants))).encode()).hexdigest()

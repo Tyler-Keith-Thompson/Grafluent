@@ -96,6 +96,9 @@ public struct DepthFirstSearch<G: DirectedGraph>: Sequence {
         @usableFromInline var stack: [Int] = []
         @usableFromInline var indexedNeighbors: [G.SuccessorIndices.Iterator?] = []
         @usableFromInline var unindexedNeighbors: [G.Successors.Iterator?] = []
+        /// Numbered: the rest of each row on the path, as offsets into `ids.rows` (empty when not
+        /// to be explored).
+        @usableFromInline var numberedNeighbors: [Range<Int>] = []
         @usableFromInline var pendingDiscovery: Int?
         /// The vertex of the last event, when that event was its discovery: the one `prune()` acts on.
         @usableFromInline var justDiscovered: Int?
@@ -106,7 +109,7 @@ public struct DepthFirstSearch<G: DirectedGraph>: Sequence {
             self.roots = roots
             self.vertexIterator = graph.vertices.makeIterator()
             self.depthLimit = depthLimit
-            if ids.isIndexed {
+            if ids.isDense {
                 discovered = [Int](repeating: -1, count: ids.count)
                 finished = [Bool](repeating: false, count: ids.count)
                 pruned = [Bool](repeating: false, count: ids.count)
@@ -121,7 +124,7 @@ public struct DepthFirstSearch<G: DirectedGraph>: Sequence {
         /// Marks `id` discovered and pushes it.
         @inlinable
         mutating func _push(_ id: Int) {
-            if !ids.isIndexed {
+            if !ids.isDense {
                 _grow(&discovered, to: id + 1, with: -1)
                 _grow(&finished, to: id + 1, with: false)
                 _grow(&pruned, to: id + 1, with: false)
@@ -132,6 +135,8 @@ public struct DepthFirstSearch<G: DirectedGraph>: Sequence {
             stack.append(id)
             if ids.isIndexed {
                 indexedNeighbors.append(explore ? ids.graph.successorIndices(ofIndex: id).makeIterator() : nil)
+            } else if let rows = ids.rows {
+                numberedNeighbors.append(explore ? rows.offsets[id] ..< rows.offsets[id + 1] : 0 ..< 0)
             } else {
                 unindexedNeighbors.append(explore ? ids.graph.successors(of: ids.vertices[id]).makeIterator() : nil)
             }
@@ -142,6 +147,15 @@ public struct DepthFirstSearch<G: DirectedGraph>: Sequence {
             if let roots {
                 while nextRoot < roots.count {
                     let id = ids.identifier(of: roots[nextRoot])
+                    nextRoot += 1
+                    if !_isDiscovered(id) { return id }
+                }
+                return nil
+            }
+            if ids.rows != nil {
+                // Numbered: every vertex in `vertices` order is `0..<count`.
+                while nextRoot < ids.count {
+                    let id = nextRoot
                     nextRoot += 1
                     if !_isDiscovered(id) { return id }
                 }
@@ -175,6 +189,8 @@ public struct DepthFirstSearch<G: DirectedGraph>: Sequence {
                 next = nil
             } else if ids.isIndexed {
                 next = indexedNeighbors[top]?.next()
+            } else if let rows = ids.rows {
+                next = numberedNeighbors[top].popFirst().map { rows.neighbors[$0] }
             } else {
                 next = unindexedNeighbors[top]?.next().map { ids.identifier(of: $0) }
             }
@@ -189,7 +205,13 @@ public struct DepthFirstSearch<G: DirectedGraph>: Sequence {
                 return discovered[w] > discovered[u] ? .forwardEdge(edge) : .crossEdge(edge)
             }
             stack.removeLast()
-            if ids.isIndexed { indexedNeighbors.removeLast() } else { unindexedNeighbors.removeLast() }
+            if ids.isIndexed {
+                indexedNeighbors.removeLast()
+            } else if ids.rows != nil {
+                numberedNeighbors.removeLast()
+            } else {
+                unindexedNeighbors.removeLast()
+            }
             finished[u] = true
             return .finish(ids.vertex(u))
         }

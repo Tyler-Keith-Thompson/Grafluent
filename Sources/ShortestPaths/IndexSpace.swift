@@ -40,6 +40,35 @@ struct _RowArcs<Index>: IteratorProtocol {
     }
 }
 
+/// A row of a numbered graph's rows (`_NumberedRows`): targets by number, edges by position.
+@frozen
+@usableFromInline
+struct _NumberedArcs<Index>: IteratorProtocol {
+    @usableFromInline var k: Int
+    @usableFromInline let end: Int
+    @usableFromInline let targets: UnsafePointer<Int>
+    @usableFromInline let edges: UnsafePointer<Int>
+
+    @inlinable
+    @inline(__always)
+    init(row: Int, offsets: UnsafeBufferPointer<Int>, targets: UnsafeBufferPointer<Int>, edges: UnsafeBufferPointer<Int>) {
+        k = offsets[row]
+        end = offsets[row + 1]
+        // Placeholders when there are no edges at all; never read.
+        self.targets = targets.baseAddress ?? UnsafePointer(bitPattern: MemoryLayout<Int>.alignment)!
+        self.edges = edges.baseAddress ?? UnsafePointer(bitPattern: MemoryLayout<Int>.alignment)!
+    }
+
+    @inlinable
+    @inline(__always)
+    mutating func next() -> (Int, Index)? {
+        guard k < end else { return nil }
+        defer { k += 1 }
+        // `Index` is `Int` for a sparsely indexed graph.
+        return (targets[k], unsafeBitCast(edges[k], to: Index.self))
+    }
+}
+
 /// The out-edges of a graph without vertex indices, through a dictionary built once.
 @frozen
 @usableFromInline
@@ -68,7 +97,7 @@ extension DirectedGraph {
     @inlinable
     func _numberedVertices() -> _VertexIdentifiers<Self> {
         var ids = _VertexIdentifiers(self)
-        if !ids.isIndexed {
+        if !ids.isDense {
             for v in vertices { _ = ids.identifier(of: v) }
         }
         return ids
@@ -88,6 +117,15 @@ extension DirectedGraph {
             }
             return algorithm.run(count: n, { zip(successorIndices(ofIndex: $0), outEdges(ofIndex: $0)).makeIterator() }, weight)
         }
+        if let rows = ids.rows {
+            return rows.offsets.withUnsafeBufferPointer { offsets in
+                rows.neighbors.withUnsafeBufferPointer { targets in
+                    rows.edges.withUnsafeBufferPointer { edges in
+                        algorithm.run(count: n, { _NumberedArcs<Edges.Index>(row: $0, offsets: offsets, targets: targets, edges: edges) }, weight)
+                    }
+                }
+            }
+        }
         let identifiers = ids.identifiers, vertices = ids.vertices
         return algorithm.run(count: n, { _LookupArcs(graph: self, identifiers: identifiers, vertex: vertices[$0]) }, weight)
     }
@@ -99,7 +137,7 @@ extension DirectedGraph {
             precondition(contains(vertex), "\(vertex) is not a vertex of the graph")
             return vertexIndex(of: vertex)
         }
-        guard let id = ids.identifiers[vertex] else { preconditionFailure("\(vertex) is not a vertex of the graph") }
+        guard let id = ids.existingIdentifier(of: vertex) else { preconditionFailure("\(vertex) is not a vertex of the graph") }
         return id
     }
 }

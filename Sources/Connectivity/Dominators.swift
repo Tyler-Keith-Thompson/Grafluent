@@ -389,8 +389,15 @@ extension DirectedGraph {
             }
             return (r, _lengauerTarjan(count: n, root: r) { successorIndices(ofIndex: $0).makeIterator() })
         }
+        if let rows = vertices.rows {
+            return rows.offsets.withUnsafeBufferPointer { offsets in
+                rows.neighbors.withUnsafeBufferPointer { targets in
+                    (r, _lengauerTarjan(count: vertices.count, root: r) { _RowCursor(row: $0, offsets: offsets, targets: targets) })
+                }
+            }
+        }
         return (r, _lengauerTarjan(count: vertices.count, root: r) { u in
-            successors(of: vertices.vertices[u]).lazy.map { vertices.numbers[$0]! }.makeIterator()
+            successors(of: vertices.vertices[u]).lazy.map { vertices.number(of: $0) }.makeIterator()
         })
     }
 
@@ -432,7 +439,7 @@ extension BidirectionalDirectedGraph {
         let result = vertices.isIndexed
             ? _lengauerTarjan(count: vertices.count, root: x) { predecessorIndices(ofIndex: $0).makeIterator() }
             : _lengauerTarjan(count: vertices.count, root: x) { u in
-                predecessors(of: vertices.vertices[u]).lazy.map { vertices.numbers[$0]! }.makeIterator()
+                predecessors(of: vertices.vertices[u]).lazy.map { vertices.number(of: $0) }.makeIterator()
             }
         return DominatorTree(vertices: vertices, root: x, result)
     }

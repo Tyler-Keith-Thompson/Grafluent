@@ -14,6 +14,9 @@ extension DirectedGraph {
             let found: Edges.Index?
             if ids.isIndexed {
                 found = zip(successorIndices(ofIndex: u), outEdges(ofIndex: u)).first { $0.0 == w }?.1
+            } else if let rows = ids.rows {
+                found = (rows.offsets[u] ..< rows.offsets[u + 1]).first { rows.neighbors[$0] == w }
+                    .map { unsafeBitCast(rows.edges[$0], to: Edges.Index.self) }
             } else {
                 let target = ids.vertex(w)
                 found = outEdges(of: ids.vertex(u)).first { self.target(ofEdgeAt: $0) == target }

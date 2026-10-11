@@ -18,6 +18,7 @@
 @_exported import Trees
 @_exported import BipartiteGraphs
 @_exported import Multigraphs
+@_exported import StableGraphs
 @_exported import Hypergraphs
 @_exported import FunctionalGraphs
 @_exported import GraphOperations

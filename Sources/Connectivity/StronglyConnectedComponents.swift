@@ -98,8 +98,15 @@ extension DirectedGraph {
             }
             return _tarjan(count: n, stopAfterFirst: stopAfterFirst) { successorIndices(ofIndex: $0).makeIterator() }
         }
+        if let rows = vertices.rows {
+            return rows.offsets.withUnsafeBufferPointer { offsets in
+                rows.neighbors.withUnsafeBufferPointer { targets in
+                    _tarjan(count: vertices.count, stopAfterFirst: stopAfterFirst) { _RowCursor(row: $0, offsets: offsets, targets: targets) }
+                }
+            }
+        }
         return _tarjan(count: vertices.count, stopAfterFirst: stopAfterFirst) { u in
-            successors(of: vertices.vertices[u]).lazy.map { vertices.numbers[$0]! }.makeIterator()
+            successors(of: vertices.vertices[u]).lazy.map { vertices.number(of: $0) }.makeIterator()
         }
     }
 
@@ -154,8 +161,10 @@ extension DirectedGraph {
                 }
                 if vertices.isIndexed {
                     for w in successorIndices(ofIndex: u) { visit(w) }
+                } else if let rows = vertices.rows {
+                    for k in rows.offsets[u] ..< rows.offsets[u + 1] { visit(rows.neighbors[k]) }
                 } else {
-                    for w in successors(of: vertices.vertices[u]) { visit(vertices.numbers[w]!) }
+                    for w in successors(of: vertices.vertices[u]) { visit(vertices.number(of: w)) }
                 }
             }
             if targets.count - rowStart > 1 { targets[rowStart...].sort() }
@@ -183,8 +192,13 @@ extension DirectedGraph {
                     leaks[c] = true
                     break
                 }
+            } else if let rows = vertices.rows {
+                for k in rows.offsets[u] ..< rows.offsets[u + 1] where labels[rows.neighbors[k]] != c {
+                    leaks[c] = true
+                    break
+                }
             } else {
-                for w in successors(of: vertices.vertices[u]) where labels[vertices.numbers[w]!] != c {
+                for w in successors(of: vertices.vertices[u]) where labels[vertices.number(of: w)] != c {
                     leaks[c] = true
                     break
                 }

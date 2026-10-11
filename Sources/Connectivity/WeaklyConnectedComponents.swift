@@ -40,10 +40,20 @@ extension DirectedGraph {
                         u += 1
                     }
                 }
+            } else if let rows = vertices.rows {
+                rows.offsets.withUnsafeBufferPointer { offsets in
+                    rows.neighbors.withUnsafeBufferPointer { targets in
+                        var u = 0
+                        while u < n, joins < limit {
+                            for k in offsets[u] ..< offsets[u + 1] { union(u, targets[k]) }
+                            u += 1
+                        }
+                    }
+                }
             } else {
                 var u = 0
                 while u < n, joins < limit {
-                    for w in successors(of: vertices.vertices[u]) { union(u, vertices.numbers[w]!) }
+                    for w in successors(of: vertices.vertices[u]) { union(u, vertices.number(of: w)) }
                     u += 1
                 }
             }

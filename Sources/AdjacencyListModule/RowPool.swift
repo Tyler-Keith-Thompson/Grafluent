@@ -132,6 +132,30 @@ package struct _RowPool {
         return moved
     }
 
+    /// Removes the entry at `offset` in `row`, shifting the later entries down one, so the row
+    /// keeps its order. O(count of the row).
+    @inlinable
+    package mutating func remove(at offset: Int, fromRow row: Int) {
+        let block = rows[row]
+        storage.withUnsafeMutableBufferPointer { storage in
+            var k = block.start + offset
+            let end = block.start + block.count - 1
+            while k < end {
+                storage[k] = storage[k + 1]
+                k += 1
+            }
+        }
+        rows[row].count = block.count - 1
+    }
+
+    /// Empties `row` and gives up its block, keeping the row.
+    @inlinable
+    package mutating func clearRow(_ row: Int) {
+        garbage += rows[row].capacity
+        rows[row] = _Row(start: storage.count, count: 0, capacity: 0)
+        if garbage > storage.count / 2 { _pack() }
+    }
+
     /// Removes `row`, moving the last row into its place.
     @inlinable
     package mutating func swapRemoveRow(_ row: Int) {

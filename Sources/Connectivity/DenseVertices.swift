@@ -2,7 +2,10 @@ import GraphProtocols
 
 /// The vertices of a graph numbered `0..<count` in `vertices` order: the graph's own vertex
 /// indices when it has them (which are in `vertices` order by the `DirectedGraph` laws), otherwise
-/// numbers assigned by one pass over `vertices`. Results keep it to answer per-vertex queries.
+/// numbers assigned by one pass over `vertices`. A `SparselyIndexedDirectedGraph` with holes is
+/// numbered from its positions with arrays, and its successor rows are built once in that
+/// numbering, so nothing is hashed per vertex or per edge. Results keep it to answer per-vertex
+/// queries.
 @frozen
 @usableFromInline
 package struct _DenseVertices<G: DirectedGraph> {
@@ -11,6 +14,8 @@ package struct _DenseVertices<G: DirectedGraph> {
     /// Without indices: each vertex's number, and the vertices by number.
     @usableFromInline let numbers: [G.Vertex: Int]
     @usableFromInline let vertices: [G.Vertex]
+    /// A sparsely indexed graph with holes: its successor rows by number.
+    @usableFromInline package let rows: _NumberedRows?
 
     @inlinable
     package init(_ graph: G) {
@@ -19,7 +24,14 @@ package struct _DenseVertices<G: DirectedGraph> {
             isIndexed = true
             numbers = [:]
             vertices = []
+            rows = nil
+        } else if let sparse = graph._sparselyIndexed() {
+            isIndexed = false
+            numbers = [:]
+            vertices = Array(graph.vertices)
+            rows = sparse._numberedRows(outward: true, edges: false)
         } else {
+            rows = nil
             isIndexed = false
             let vertices = Array(graph.vertices)
             var numbers: [G.Vertex: Int] = [:]
@@ -37,6 +49,10 @@ package struct _DenseVertices<G: DirectedGraph> {
     @inlinable
     package func number(of vertex: G.Vertex) -> Int {
         if isIndexed { return graph.vertexIndex(of: vertex) }
+        if let rows, let sparse = graph._sparselyIndexed() {
+            precondition(graph.contains(vertex), "\(vertex) is not a vertex of the graph")
+            return rows.numbers[sparse.vertexPosition(of: vertex)]
+        }
         guard let number = numbers[vertex] else { preconditionFailure("\(vertex) is not a vertex of the graph") }
         return number
     }

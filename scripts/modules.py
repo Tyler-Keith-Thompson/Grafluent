@@ -42,6 +42,7 @@ MODULES = [
     ("Trees", "Structures", "Tree, RootedTree, Forest and Arborescence.", ["GraphProtocols", "Walks"]),
     ("BipartiteGraphs", "Structures", "BipartiteGraph, bipartiteness, bipartitions and odd-cycle witnesses.", ["GraphProtocols", "Walks", "AdjacencyListModule"]),
     ("Multigraphs", "Structures", "Pseudograph, Multigraph, DirectedPseudograph and DirectedMultigraph: parallel edges, with and without self-loops.", ["GraphProtocols", "AdjacencyListModule"]),
+    ("StableGraphs", "Structures", "StableDirectedGraph: a directed pseudograph whose vertex and edge positions survive removals (petgraph's StableDiGraph).", ["GraphProtocols", "AdjacencyListModule"]),
     ("Hypergraphs", "Structures", "Hypergraph and Hyperedge.", []),
     ("FunctionalGraphs", "Structures", "FunctionalGraph: every vertex has outdegree 1; Floyd's and Brent's cycle detection.", ["GraphProtocols", "Walks"]),
 
@@ -108,6 +109,7 @@ TEST_TARGETS = [
     ("ToursTests", ["GraphProtocols", "Tours", "Walks", "Multigraphs", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("CentralityTests", ["GraphProtocols", "Centrality", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("ConnectivityTests", ["GraphProtocols", "Connectivity", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
+    ("StableGraphsTests", ["GraphProtocols", "StableGraphs", "Multigraphs", "Traversal", "Connectivity", "ShortestPaths", "AdjacencyListModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("GraphProtocolsTests", ["GraphProtocols", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "EdgeListModule", "GrafluentTestSupport", "swift-collections/BitCollections"]),
 ]
 

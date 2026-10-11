@@ -62,7 +62,7 @@ package struct IndexSpaceSearch<G: DirectedGraph> {
     @inlinable
     package init(_ graph: G) {
         ids = _VertexIdentifiers(graph)
-        let n = ids.isIndexed ? ids.count : 0
+        let n = ids.isDense ? ids.count : 0
         discovery = [Int](repeating: -1, count: n)
         finished = [Bool](repeating: false, count: n)
         parent = [Int](repeating: -1, count: n)
@@ -107,6 +107,13 @@ package struct IndexSpaceSearch<G: DirectedGraph> {
                 _breadthFirst(sources, depthLimit, visit, offsets, targets)
             }) {
                 return completed
+            }
+        } else if let rows = ids.rows {
+            // A numbered graph's rows, copied once.
+            return rows.offsets.withUnsafeBufferPointer { offsets in
+                rows.neighbors.withUnsafeBufferPointer { targets in
+                    _breadthFirst(sources, depthLimit, visit, offsets, targets)
+                }
             }
         }
         return _breadthFirst(sources, depthLimit, visit, nil, nil)
@@ -192,6 +199,13 @@ package struct IndexSpaceSearch<G: DirectedGraph> {
             }
             return _depthFirst(roots, depthLimit, visit, { $0.graph.successorIndices(ofIndex: $1).makeIterator() }, { _, w in w })
         }
+        if let rows = ids.rows {
+            return rows.offsets.withUnsafeBufferPointer { offsets in
+                rows.neighbors.withUnsafeBufferPointer { targets in
+                    _depthFirst(roots, depthLimit, visit, { _RowCursor(row: $1, offsets: offsets, targets: targets) }, { _, w in w })
+                }
+            }
+        }
         return _depthFirst(roots, depthLimit, visit, { $0.graph.successors(of: $0.vertices[$1]).makeIterator() }, { $0.identifier(of: $1) })
     }
 
@@ -207,8 +221,8 @@ package struct IndexSpaceSearch<G: DirectedGraph> {
         var stack: [Int] = []
         var iterators: [Neighbors?] = []
         // Every vertex in `vertices` order: with indices that is index order, so no lookups.
-        var rootVertices = roots == nil && !ids.isIndexed ? ids.graph.vertices.makeIterator() : nil
-        let rootCount = roots?.count ?? (ids.isIndexed ? ids.count : 0)
+        var rootVertices = roots == nil && !ids.isDense ? ids.graph.vertices.makeIterator() : nil
+        let rootCount = roots?.count ?? (ids.isDense ? ids.count : 0)
         var nextRoot = 0
         while true {
             // The next root not yet reached.
