@@ -153,7 +153,8 @@ public struct StrongProduct<First, Second> {
                     if let p = cartesian.next() { return Position(p) }
                     inCartesian = false
                 }
-                return tensor.next().map(Position.init)
+                if let t = tensor.next() { return Position(t) }
+                return nil
             }
         }
     }
