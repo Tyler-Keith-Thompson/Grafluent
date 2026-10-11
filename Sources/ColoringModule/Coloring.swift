@@ -65,8 +65,7 @@ public struct Coloring<G: Graph> {
             guard let v = _numbers[vertex] else { preconditionFailure("\(vertex) is not a vertex of the graph") }
             return _colors[v]
         }
-        precondition(_graph.contains(vertex), "\(vertex) is not a vertex of the graph")
-        return _colors[_graph.vertexIndex(of: vertex)]
+        return _colors[_graph._requiredVertexIndex(of: vertex, "\(vertex) is not a vertex of the graph")]
     }
 
     /// The colour of the vertex at `index`: its vertex index, or its position in `vertices` when

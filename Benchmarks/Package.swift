@@ -176,6 +176,7 @@ let package = Package(
                 .product(name: "Traversal", package: "Grafluent"),
                 .product(name: "Connectivity", package: "Grafluent"),
                 .product(name: "ShortestPaths", package: "Grafluent"),
+                .product(name: "SpanningTrees", package: "Grafluent"),
             ],
             path: "Benchmarks/LabeledGraphsBenchmarks",
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]

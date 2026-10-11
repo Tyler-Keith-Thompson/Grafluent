@@ -79,8 +79,7 @@ public struct Partition<G: DirectedGraph>: RandomAccessCollection {
             guard let v = _numbers[vertex] else { preconditionFailure("\(vertex) is not a vertex of the graph") }
             return _labels[v]
         }
-        precondition(_graph.contains(vertex), "\(vertex) is not a vertex of the graph")
-        return _labels[_graph.vertexIndex(of: vertex)]
+        return _labels[_graph._requiredVertexIndex(of: vertex, "\(vertex) is not a vertex of the graph")]
     }
 
     /// The position of the community containing the vertex at `index`: its vertex index, or its

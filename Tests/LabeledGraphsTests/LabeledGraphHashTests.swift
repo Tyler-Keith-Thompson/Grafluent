@@ -6,11 +6,15 @@
 // OrderedSet scans linearly up to 15 elements and hashes only from 16. See README.md.
 
 import AdjacencyMatrixModule
+import Centrality
 import CompressedSparseRowModule
 import Connectivity
+import Distances
+import Flows
 import GraphProtocols
 import LabeledGraphs
 import ShortestPaths
+import SpanningTrees
 import Testing
 import Traversal
 
@@ -161,10 +165,11 @@ struct LabeledGraphHashTests {
             #expect(hashes { _ = graph.weaklyConnectedComponents() } == 0)
             #expect(hashes { _ = graph.stronglyConnectedComponents() } == 0)
         }
-        // The whole-graph depth-first search numbers its roots through vertexIndex(of:): per vertex,
-        // never per edge.
-        #expect(hashes { _ = Array(sparse.depthFirstSearch()) } == hashes { _ = Array(full.depthFirstSearch()) })
-        #expect(hashes { _ = Array(full.depthFirstSearch()) } <= 2 * n)
+        // The whole-graph depth-first search takes its roots in index order: no lookup at all.
+        #expect(hashes { _ = Array(sparse.depthFirstSearch()) } == 0)
+        #expect(hashes { _ = Array(full.depthFirstSearch()) } == 0)
+        #expect(hashes { _ = Array(matrix.depthFirstSearch()) } == 0)
+        #expect(hashes { full.depthFirstSearch().forEach { _ in } } == 0)
         #expect(hashes { _ = matrix.topologicalSort() } == 0)
         #expect(hashes { _ = matrix.stronglyConnectedComponents() } == 0)
         // One source: a constant number of lookups, the same on the sparse and the dense graph.
@@ -226,5 +231,181 @@ struct LabeledGraphHashTests {
         tally.hashes = 0
         #expect(shuffled == built && built == shuffled)
         #expect(tally.hashes <= 8 * n)
+    }
+
+    @Test("Spanning trees over the matrix's undirected view hash no label per edge, and match the bare matrix's")
+    func spanningTreesHashNoLabel() {
+        final class Tally {
+            var hashes = 0
+        }
+        struct Counted: Hashable {
+            let name: Int
+            let tally: Tally
+            static func == (lhs: Counted, rhs: Counted) -> Bool { lhs.name == rhs.name }
+            func hash(into hasher: inout Hasher) {
+                tally.hashes += 1
+                hasher.combine(name)
+            }
+        }
+        let tally = Tally()
+        let n = 64
+        func label(_ k: Int) -> Counted { Counted(name: k, tally: tally) }
+        // Each vertex to the next eight, both ways on every fifth, and two self-loops: parallel
+        // edges and loops in the view. The matrix has no edge indices, so the edges are ranked by
+        // their offset in `edges`.
+        var edges: [DirectedEdge<Counted>] = []
+        for i in 0 ..< n {
+            for j in i + 1 ..< min(n, i + 9) {
+                edges.append(DirectedEdge(from: label(i), to: label(j)))
+                if (i + j) % 5 == 0 { edges.append(DirectedEdge(from: label(j), to: label(i))) }
+            }
+        }
+        edges += [DirectedEdge(from: label(3), to: label(3)), DirectedEdge(from: label(40), to: label(40))]
+        let graph = LabeledGraph<Counted, AdjacencyMatrix>(vertices: (0 ..< n).map(label), edges: edges)
+        let view = graph.undirected
+        let bare = graph.base.undirected
+        #expect(view.edgeIndexBound == nil && view.vertexIndexBound == n)
+        func weight(_ cell: AdjacencyMatrix.Edges.Index) -> Int { (cell.source &* 7 &+ cell.target &* 13) % 10 }
+        func hashes(_ body: () -> Void) -> Int {
+            tally.hashes = 0
+            body()
+            return tally.hashes
+        }
+        #expect(hashes { _ = view.minimumSpanningTree() } == 0)
+        #expect(hashes { _ = view.minimumSpanningTree(weight: weight) } == 0)
+        #expect(hashes { _ = view.kruskalMinimumSpanningTree(weight: weight) } == 0)
+        #expect(hashes { _ = view.maximumSpanningTree(weight: weight) } == 0)
+        #expect(hashes { _ = view.boruvkaMinimumSpanningTree(weight: weight) } == 0)
+        #expect(hashes { _ = view.primMinimumSpanningTree(weight: weight) } == 0)
+        // A root is looked up once.
+        #expect(hashes { _ = view.primMinimumSpanningTree(from: label(7), weight: weight) } == 1)
+        // The same forests, at the same positions, as the bare matrix's view.
+        #expect(view.minimumSpanningTree().edges == bare.minimumSpanningTree().edges)
+        #expect(view.minimumSpanningTree().edges.count == n - 1)
+        let kruskal = view.kruskalMinimumSpanningTree(weight: weight)
+        #expect(kruskal.edges == bare.kruskalMinimumSpanningTree(weight: weight).edges)
+        #expect(kruskal.weight == bare.kruskalMinimumSpanningTree(weight: weight).weight)
+        #expect(view.maximumSpanningTree(weight: weight).edges == bare.maximumSpanningTree(weight: weight).edges)
+        let boruvka = view.boruvkaMinimumSpanningTree(weight: weight)
+        #expect(boruvka.edges == bare.boruvkaMinimumSpanningTree(weight: weight).edges)
+        #expect(boruvka.weight == kruskal.weight)
+        #expect(view.primMinimumSpanningTree(from: label(7), weight: weight).edges == bare.primMinimumSpanningTree(from: 7, weight: weight).edges)
+    }
+
+    @Test("Degree centrality reads degrees by index: no hash, on both bases and the undirected view")
+    func degreeCentralityHashesNothing() {
+        final class Tally {
+            var hashes = 0
+        }
+        struct Counted: Hashable {
+            let name: Int
+            let tally: Tally
+            static func == (lhs: Counted, rhs: Counted) -> Bool { lhs.name == rhs.name }
+            func hash(into hasher: inout Hasher) {
+                tally.hashes += 1
+                hasher.combine(name)
+            }
+        }
+        let tally = Tally()
+        let n = 40
+        func label(_ k: Int) -> Counted { Counted(name: k, tally: tally) }
+        let edges = (0 ..< n).flatMap { i in [DirectedEdge(from: label(i), to: label((i + 1) % n)), DirectedEdge(from: label(i), to: label((i * 7) % n))] }
+        let csr = LabeledGraph<Counted, CompressedSparseRow>(vertices: (0 ..< n).map(label), edges: edges)
+        let matrix = LabeledGraph<Counted, AdjacencyMatrix>(vertices: (0 ..< n).map(label), edges: edges)
+        func hashes(_ body: () -> Void) -> Int {
+            tally.hashes = 0
+            body()
+            return tally.hashes
+        }
+        #expect(hashes { _ = csr.degreeCentrality() } == 0)
+        #expect(hashes { _ = csr.outDegreeCentrality() } == 0)
+        #expect(hashes { _ = csr.inDegreeCentrality() } == 0)
+        #expect(hashes { _ = matrix.degreeCentrality() } == 0)
+        #expect(hashes { _ = matrix.outDegreeCentrality() } == 0)
+        #expect(hashes { _ = matrix.undirected.degreeCentrality() } == 0)
+        // The base's scores, in index order.
+        #expect(csr.degreeCentrality().scores == csr.base.degreeCentrality().scores)
+        #expect(csr.outDegreeCentrality().scores == csr.base.outDegreeCentrality().scores)
+        #expect(matrix.degreeCentrality().scores == matrix.base.degreeCentrality().scores)
+        #expect(matrix.undirected.degreeCentrality().scores == matrix.base.undirected.degreeCentrality().scores)
+        // A score by label: one lookup.
+        let scores = csr.degreeCentrality()
+        #expect(hashes { _ = scores.score(of: label(3)) } == 1)
+        #expect(scores.score(of: label(3)) == scores.score(ofIndex: 3))
+    }
+
+    @Test("An algorithm's vertex arguments are looked up once each, not checked with contains first")
+    func vertexArgumentsHashOnce() {
+        final class Tally {
+            var hashes = 0
+        }
+        struct Counted: Hashable {
+            let name: Int
+            let tally: Tally
+            static func == (lhs: Counted, rhs: Counted) -> Bool { lhs.name == rhs.name }
+            func hash(into hasher: inout Hasher) {
+                tally.hashes += 1
+                hasher.combine(name)
+            }
+        }
+        let tally = Tally()
+        let n = 32
+        func label(_ k: Int) -> Counted { Counted(name: k, tally: tally) }
+        let edges = (0 ..< n).flatMap { i in [DirectedEdge(from: label(i), to: label((i + 1) % n)), DirectedEdge(from: label(i), to: label((i + 5) % n))] }
+        let csr = LabeledGraph<Counted, CompressedSparseRow>(vertices: (0 ..< n).map(label), edges: edges)
+        let matrix = LabeledGraph<Counted, AdjacencyMatrix>(vertices: (0 ..< n).map(label), edges: edges)
+        func hashes(_ body: () -> Void) -> Int {
+            tally.hashes = 0
+            body()
+            return tally.hashes
+        }
+        // ShortestPaths: a tree query by label, and a single-pair search (two endpoints).
+        let tree = csr.dijkstraShortestPaths(from: label(0)) { _ in 1 }
+        #expect(hashes { _ = tree.distance(to: label(9)) } == 1)
+        #expect(hashes { _ = tree.hasPath(to: label(9)) } == 1)
+        #expect(hashes { _ = csr.dijkstraShortestPath(from: label(0), to: label(9)) { _ in 1 } } == 2)
+        #expect(hashes { _ = matrix.dijkstraShortestPath(from: label(0), to: label(9)) { _ in 1 } } == 2)
+        // Flows: a source and a target.
+        #expect(hashes { _ = csr.edgeConnectivity(from: label(0), to: label(9)) } == 2)
+        #expect(hashes { _ = matrix.edgeConnectivity(from: label(0), to: label(9)) } == 2)
+        // Distances: one vertex.
+        #expect(hashes { _ = csr.eccentricity(of: label(4)) } == 1)
+        #expect(hashes { _ = matrix.eccentricity(of: label(4)) } == 1)
+        // The answers are the base's.
+        #expect(tree.distance(to: label(9)) == csr.base.dijkstraShortestPaths(from: 0) { _ in 1 }.distance(to: 9))
+        #expect(csr.edgeConnectivity(from: label(0), to: label(9)) == csr.base.edgeConnectivity(from: 0, to: 9))
+        #expect(matrix.eccentricity(of: label(4)) == matrix.base.eccentricity(of: 4))
+    }
+
+    @Test("Hashing a labeled graph hashes each label once and no label per edge")
+    func hashValueHashesEachLabelOnce() {
+        final class Tally {
+            var hashes = 0
+        }
+        struct Counted: Hashable {
+            let name: Int
+            let tally: Tally
+            static func == (lhs: Counted, rhs: Counted) -> Bool { lhs.name == rhs.name }
+            func hash(into hasher: inout Hasher) {
+                tally.hashes += 1
+                hasher.combine(name)
+            }
+        }
+        let tally = Tally()
+        let n = 48
+        func label(_ k: Int) -> Counted { Counted(name: k, tally: tally) }
+        let edges = (0 ..< n).flatMap { i in (1 ... 6).map { DirectedEdge(from: label(i), to: label((i + $0) % n)) } }
+        let csr = LabeledGraph<Counted, CompressedSparseRow>(edges: edges)
+        let matrix = LabeledGraph<Counted, AdjacencyMatrix>(edges: edges)
+        #expect(csr.edgeCount == 6 * n)
+        tally.hashes = 0
+        _ = csr.hashValue
+        #expect(tally.hashes == n)
+        tally.hashes = 0
+        _ = matrix.hashValue
+        #expect(tally.hashes == n)
+        // The same labeled graph with another index assignment hashes alike.
+        let reversed = LabeledGraph<Counted, CompressedSparseRow>(vertices: (0 ..< n).reversed().map(label), edges: edges)
+        #expect(reversed == csr && reversed.hashValue == csr.hashValue)
     }
 }

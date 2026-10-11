@@ -24,9 +24,11 @@ func _pathNumbers(_ u: Int, _ v: Int, _ parentSlot: [Int], _ rows: _DistanceRows
 extension DirectedGraph {
     @inlinable
     func _number(of vertex: Vertex, _ listed: [Vertex]?) -> Int {
-        precondition(contains(vertex), "The vertex is not in the graph")
-        if let listed { return listed.firstIndex(of: vertex)! }
-        return vertexIndex(of: vertex)
+        if let listed {
+            guard let number = listed.firstIndex(of: vertex) else { preconditionFailure("The vertex is not in the graph") }
+            return number
+        }
+        return _requiredVertexIndex(of: vertex, "The vertex is not in the graph")
     }
 
     @inlinable

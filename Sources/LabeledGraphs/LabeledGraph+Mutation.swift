@@ -37,7 +37,8 @@ extension LabeledGraph where Base == AdjacencyMatrix {
     /// Inserts `edge`, first inserting each endpoint that is not yet a vertex, source first (so a
     /// new source gets the lower index), as NetworkX's `add_edge` does.
     ///
-    /// - Returns: Whether the edge was new, and the edge as stored, with the graph's labels.
+    /// - Returns: Whether the edge was new, and the edge as stored, with the labels stored in the
+    ///   graph (an existing label, not the equal one in `edge`).
     /// - Complexity: Two hashes, plus `insert(_:)` for each new endpoint; O(1) for the edge.
     @inlinable
     @discardableResult
@@ -64,8 +65,9 @@ extension LabeledGraph where Base == AdjacencyMatrix {
 
     /// Removes `edge`, keeping both endpoints.
     ///
-    /// - Returns: The removed edge, with the graph's labels, or `nil` when it was not an edge,
-    ///   including when an endpoint is not a vertex (the matrix's `remove(edge:)` contract).
+    /// - Returns: The removed edge, with the labels stored in the graph (which may be told apart
+    ///   from the equal ones in `edge`), or `nil` when it was not an edge, including when an
+    ///   endpoint is not a vertex (the matrix's `remove(edge:)` contract).
     /// - Complexity: Two hashes; O(1) for the edge.
     @inlinable
     @discardableResult
@@ -75,6 +77,40 @@ extension LabeledGraph where Base == AdjacencyMatrix {
               _base.remove(edge: DirectedEdge(from: source, to: target)) != nil
         else { return nil }
         return DirectedEdge(from: _labels[source], to: _labels[target])
+    }
+
+    /// Removes every edge leaving `label`, keeping the vertex: the matrix's `removeEdges(from:)`.
+    ///
+    /// - Returns: The number of edges removed.
+    /// - Precondition: `label` is a vertex.
+    /// - Complexity: One hash, then O(n / 64) for the row.
+    @inlinable
+    @discardableResult
+    public mutating func removeEdges(from label: Label) -> Int {
+        _base.removeEdges(from: _index(of: label))
+    }
+
+    /// Removes every edge entering `label`, keeping the vertex: the matrix's `removeEdges(to:)`.
+    ///
+    /// - Returns: The number of edges removed.
+    /// - Precondition: `label` is a vertex.
+    /// - Complexity: One hash, then O(n) for the column.
+    @inlinable
+    @discardableResult
+    public mutating func removeEdges(to label: Label) -> Int {
+        _base.removeEdges(to: _index(of: label))
+    }
+
+    /// Removes every edge leaving or entering `label`, keeping the vertex (Boost.Graph's
+    /// `clear_vertex`): the matrix's `removeEdges(incidentTo:)`.
+    ///
+    /// - Returns: The number of edges removed. A self-loop counts once.
+    /// - Precondition: `label` is a vertex.
+    /// - Complexity: One hash, then O(n) for the row and the column.
+    @inlinable
+    @discardableResult
+    public mutating func removeEdges(incidentTo label: Label) -> Int {
+        _base.removeEdges(incidentTo: _index(of: label))
     }
 
     /// Removes every edge, keeping every label and its index.

@@ -220,9 +220,26 @@ public struct DirectedView<Base: Graph>: BidirectionalDirectedGraph {
     /// Twice the base's degree: every edge end is an arc out and an arc in.
     @inlinable public func degree(of vertex: Vertex) -> Int { 2 * base.degree(of: vertex) }
 
+    @inlinable public func outDegree(ofIndex index: Int) -> Int { base.degree(ofIndex: index) }
+    @inlinable public func inDegree(ofIndex index: Int) -> Int { base.degree(ofIndex: index) }
+
     @inlinable public var vertexIndexBound: Int? { base.vertexIndexBound }
     @inlinable public func vertexIndex(of vertex: Vertex) -> Int { base.vertexIndex(of: vertex) }
     @inlinable public func vertex(atIndex index: Int) -> Vertex { base.vertex(atIndex: index) }
+
+    /// The base's `endpointIndices(ofEdgeAt:)`, `u` first unless the arc is reversed.
+    @inlinable
+    public func sourceIndex(ofEdgeAt position: Edges.Index) -> Int {
+        let ends = base.endpointIndices(ofEdgeAt: position.position)
+        return position.reversed ? ends.v : ends.u
+    }
+
+    /// The base's `endpointIndices(ofEdgeAt:)`, `v` first unless the arc is reversed.
+    @inlinable
+    public func targetIndex(ofEdgeAt position: Edges.Index) -> Int {
+        let ends = base.endpointIndices(ofEdgeAt: position.position)
+        return position.reversed ? ends.u : ends.v
+    }
 
     /// The base's `neighborIndices(ofIndex:)`.
     @inlinable
@@ -320,6 +337,9 @@ public struct UndirectedView<Base: BidirectionalDirectedGraph>: Graph {
     /// The base's `degree(of:)`, out-degree plus in-degree.
     @inlinable public func degree(of vertex: Vertex) -> Int { base.degree(of: vertex) }
 
+    /// The base's out-degree plus in-degree, by index.
+    @inlinable public func degree(ofIndex index: Int) -> Int { base.outDegree(ofIndex: index) + base.inDegree(ofIndex: index) }
+
     @inlinable public var vertexIndexBound: Int? { base.vertexIndexBound }
     @inlinable public func vertexIndex(of vertex: Vertex) -> Int { base.vertexIndex(of: vertex) }
     @inlinable public func vertex(atIndex index: Int) -> Vertex { base.vertex(atIndex: index) }
@@ -327,6 +347,13 @@ public struct UndirectedView<Base: BidirectionalDirectedGraph>: Graph {
     /// The base's edge indices: the view keeps the base's positions.
     @inlinable public var edgeIndexBound: Int? { base.edgeIndexBound }
     @inlinable public func edgeIndex(of position: Base.Edges.Index) -> Int { base.edgeIndex(of: position) }
+
+    /// The base's `sourceIndex(ofEdgeAt:)` and `targetIndex(ofEdgeAt:)`: the arc's ends, as
+    /// `edges[position]` lists them.
+    @inlinable
+    public func endpointIndices(ofEdgeAt position: Base.Edges.Index) -> (u: Int, v: Int) {
+        (base.sourceIndex(ofEdgeAt: position), base.targetIndex(ofEdgeAt: position))
+    }
 
     /// The base's out-edges, then its in-edges, without looking the vertex up for the first.
     @inlinable

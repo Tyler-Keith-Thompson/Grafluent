@@ -8,7 +8,6 @@ import OrderedCollections
 extension LabeledGraph: DirectedGraph where Base: DirectedGraph<Int> {
     public typealias Vertex = Label
     public typealias Vertices = OrderedSet<Label>
-    public typealias Successors = LazyMapSequence<Base.SuccessorIndices, Label>
     public typealias OutEdges = Base.OutEdges
     public typealias SuccessorIndices = Base.SuccessorIndices
 
@@ -92,8 +91,8 @@ extension LabeledGraph: DirectedGraph where Base: DirectedGraph<Int> {
     }
 
     /// The labels of `label`'s successors, in the base's row order (ascending index for both
-    /// `CompressedSparseRow` and `AdjacencyMatrix`). One hash, then a lazy map of the base's row
-    /// through an array read.
+    /// `CompressedSparseRow` and `AdjacencyMatrix`). One hash, then the base's row read through
+    /// an array read per successor. Nothing is allocated: the result holds the row and the labels.
     ///
     /// - Precondition: `label` is a vertex.
     @inlinable
@@ -103,8 +102,49 @@ extension LabeledGraph: DirectedGraph where Base: DirectedGraph<Int> {
 
     @inlinable
     internal func _successors(ofIndex index: Int) -> Successors {
-        let labels = _labels
-        return _base.successorIndices(ofIndex: index).lazy.map { labels[$0] }
+        Successors(base: _base.successorIndices(ofIndex: index), labels: _labels)
+    }
+
+    /// The labels of a vertex's successors: the base's `successorIndices(ofIndex:)` row, each
+    /// index read as its label. A collection when the base's row is one.
+    @frozen
+    public struct Successors: Sequence {
+        public typealias Element = Label
+
+        @usableFromInline let base: Base.SuccessorIndices
+        @usableFromInline let labels: OrderedSet<Label>
+
+        @inlinable
+        init(base: Base.SuccessorIndices, labels: OrderedSet<Label>) {
+            self.base = base
+            self.labels = labels
+        }
+
+        @inlinable public var underestimatedCount: Int { base.underestimatedCount }
+
+        @inlinable
+        public func makeIterator() -> Iterator {
+            Iterator(base: base.makeIterator(), labels: labels)
+        }
+
+        /// The base row's iterator, labeling each index.
+        @frozen
+        public struct Iterator: IteratorProtocol {
+            @usableFromInline var base: Base.SuccessorIndices.Iterator
+            @usableFromInline let labels: OrderedSet<Label>
+
+            @inlinable
+            init(base: Base.SuccessorIndices.Iterator, labels: OrderedSet<Label>) {
+                self.base = base
+                self.labels = labels
+            }
+
+            @inlinable
+            public mutating func next() -> Label? {
+                guard let index = base.next() else { return nil }
+                return labels[index]
+            }
+        }
     }
 
     /// The base's out-edge positions of `label`. One hash.
@@ -142,6 +182,24 @@ extension LabeledGraph: DirectedGraph where Base: DirectedGraph<Int> {
     @inline(__always)
     public func target(ofEdgeAt position: Base.Edges.Index) -> Label {
         _labels[_base.target(ofEdgeAt: position)]
+    }
+
+    /// The base's source of the edge, which is its index: no hashing.
+    ///
+    /// - Precondition: `position` is the position of an edge (the base checks).
+    @inlinable
+    @inline(__always)
+    public func sourceIndex(ofEdgeAt position: Base.Edges.Index) -> Int {
+        _base.source(ofEdgeAt: position)
+    }
+
+    /// The base's target of the edge, which is its index: no hashing.
+    ///
+    /// - Precondition: `position` is the position of an edge (the base checks).
+    @inlinable
+    @inline(__always)
+    public func targetIndex(ofEdgeAt position: Base.Edges.Index) -> Int {
+        _base.target(ofEdgeAt: position)
     }
 
     /// The number of labels, which is the base's vertex count. O(1).
@@ -214,6 +272,15 @@ extension LabeledGraph: DirectedGraph where Base: DirectedGraph<Int> {
         _base.outEdges(ofIndex: index)
     }
 
+    /// The base's out-degree of vertex `index`. No hashing.
+    ///
+    /// - Precondition: `index` is in `0..<vertexCount`.
+    @inlinable
+    @inline(__always)
+    public func outDegree(ofIndex index: Int) -> Int {
+        _base.outDegree(ofIndex: index)
+    }
+
     /// The base's edge index bound: `edgeCount` for `CompressedSparseRow`, `nil` for
     /// `AdjacencyMatrix`.
     @inlinable
@@ -277,18 +344,41 @@ extension LabeledGraph.Edges: RandomAccessCollection where Base: DirectedGraph<I
     public func distance(from start: Index, to end: Index) -> Int { base.distance(from: start, to: end) }
 }
 
+extension LabeledGraph.Successors: Collection where Base: DirectedGraph<Int>, Base.SuccessorIndices: Collection {
+    public typealias Index = Base.SuccessorIndices.Index
+
+    @inlinable public var startIndex: Index { base.startIndex }
+    @inlinable public var endIndex: Index { base.endIndex }
+    @inlinable public var count: Int { base.count }
+    @inlinable public var isEmpty: Bool { base.isEmpty }
+    @inlinable public func index(after i: Index) -> Index { base.index(after: i) }
+    @inlinable public subscript(position: Index) -> Label { labels[base[position]] }
+}
+
+extension LabeledGraph.Successors: BidirectionalCollection where Base: DirectedGraph<Int>, Base.SuccessorIndices: BidirectionalCollection {
+    @inlinable public func index(before i: Index) -> Index { base.index(before: i) }
+}
+
+extension LabeledGraph.Successors: RandomAccessCollection where Base: DirectedGraph<Int>, Base.SuccessorIndices: RandomAccessCollection {
+    @inlinable public func index(_ i: Index, offsetBy distance: Int) -> Index { base.index(i, offsetBy: distance) }
+    @inlinable public func distance(from start: Index, to end: Index) -> Int { base.distance(from: start, to: end) }
+}
+
+extension LabeledGraph.Successors: Sendable where Label: Sendable, Base.SuccessorIndices: Sendable {}
+extension LabeledGraph.Successors.Iterator: Sendable where Label: Sendable, Base.SuccessorIndices.Iterator: Sendable {}
+
 extension LabeledGraph.Edges: Sendable where Label: Sendable, Base.Edges: Sendable {}
 extension LabeledGraph.Edges.Iterator: Sendable where Label: Sendable, Base.Edges.Iterator: Sendable {}
 
 // MARK: - BidirectionalDirectedGraph
 
 extension LabeledGraph: BidirectionalDirectedGraph where Base: BidirectionalDirectedGraph<Int> {
-    public typealias Predecessors = LazyMapSequence<Base.PredecessorIndices, Label>
     public typealias InEdges = Base.InEdges
     public typealias PredecessorIndices = Base.PredecessorIndices
 
     /// The labels of `label`'s predecessors, in the base's column order (ascending index for
-    /// `AdjacencyMatrix`). One hash, then a lazy map of the base's row.
+    /// `AdjacencyMatrix`). One hash, then the base's row read through an array read per
+    /// predecessor, with nothing allocated.
     ///
     /// - Precondition: `label` is a vertex.
     @inlinable
@@ -298,8 +388,49 @@ extension LabeledGraph: BidirectionalDirectedGraph where Base: BidirectionalDire
 
     @inlinable
     internal func _predecessors(ofIndex index: Int) -> Predecessors {
-        let labels = _labels
-        return _base.predecessorIndices(ofIndex: index).lazy.map { labels[$0] }
+        Predecessors(base: _base.predecessorIndices(ofIndex: index), labels: _labels)
+    }
+
+    /// The labels of a vertex's predecessors: the base's `predecessorIndices(ofIndex:)` row, each
+    /// index read as its label. A collection when the base's row is one.
+    @frozen
+    public struct Predecessors: Sequence {
+        public typealias Element = Label
+
+        @usableFromInline let base: Base.PredecessorIndices
+        @usableFromInline let labels: OrderedSet<Label>
+
+        @inlinable
+        init(base: Base.PredecessorIndices, labels: OrderedSet<Label>) {
+            self.base = base
+            self.labels = labels
+        }
+
+        @inlinable public var underestimatedCount: Int { base.underestimatedCount }
+
+        @inlinable
+        public func makeIterator() -> Iterator {
+            Iterator(base: base.makeIterator(), labels: labels)
+        }
+
+        /// The base row's iterator, labeling each index.
+        @frozen
+        public struct Iterator: IteratorProtocol {
+            @usableFromInline var base: Base.PredecessorIndices.Iterator
+            @usableFromInline let labels: OrderedSet<Label>
+
+            @inlinable
+            init(base: Base.PredecessorIndices.Iterator, labels: OrderedSet<Label>) {
+                self.base = base
+                self.labels = labels
+            }
+
+            @inlinable
+            public mutating func next() -> Label? {
+                guard let index = base.next() else { return nil }
+                return labels[index]
+            }
+        }
     }
 
     /// The base's in-edge positions of `label`. One hash.
@@ -343,7 +474,39 @@ extension LabeledGraph: BidirectionalDirectedGraph where Base: BidirectionalDire
     public func inEdges(ofIndex index: Int) -> Base.InEdges {
         _base.inEdges(ofIndex: index)
     }
+
+    /// The base's in-degree of vertex `index`. No hashing.
+    ///
+    /// - Precondition: `index` is in `0..<vertexCount`.
+    @inlinable
+    @inline(__always)
+    public func inDegree(ofIndex index: Int) -> Int {
+        _base.inDegree(ofIndex: index)
+    }
 }
+
+extension LabeledGraph.Predecessors: Collection where Base: BidirectionalDirectedGraph<Int>, Base.PredecessorIndices: Collection {
+    public typealias Index = Base.PredecessorIndices.Index
+
+    @inlinable public var startIndex: Index { base.startIndex }
+    @inlinable public var endIndex: Index { base.endIndex }
+    @inlinable public var count: Int { base.count }
+    @inlinable public var isEmpty: Bool { base.isEmpty }
+    @inlinable public func index(after i: Index) -> Index { base.index(after: i) }
+    @inlinable public subscript(position: Index) -> Label { labels[base[position]] }
+}
+
+extension LabeledGraph.Predecessors: BidirectionalCollection where Base: BidirectionalDirectedGraph<Int>, Base.PredecessorIndices: BidirectionalCollection {
+    @inlinable public func index(before i: Index) -> Index { base.index(before: i) }
+}
+
+extension LabeledGraph.Predecessors: RandomAccessCollection where Base: BidirectionalDirectedGraph<Int>, Base.PredecessorIndices: RandomAccessCollection {
+    @inlinable public func index(_ i: Index, offsetBy distance: Int) -> Index { base.index(i, offsetBy: distance) }
+    @inlinable public func distance(from start: Index, to end: Index) -> Int { base.distance(from: start, to: end) }
+}
+
+extension LabeledGraph.Predecessors: Sendable where Label: Sendable, Base.PredecessorIndices: Sendable {}
+extension LabeledGraph.Predecessors.Iterator: Sendable where Label: Sendable, Base.PredecessorIndices.Iterator: Sendable {}
 
 extension LabeledGraph where Base: BidirectionalDirectedGraph<Int> {
     /// `predecessors(of:)`, or `nil` when `label` is not a vertex. One hash.

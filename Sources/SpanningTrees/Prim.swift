@@ -31,7 +31,6 @@ extension Graph {
     public func primMinimumSpanningTree<W: Comparable & AdditiveArithmetic>(
         from root: Vertex, weight: (Edges.Index) -> W
     ) -> SpanningForest<Self, W> {
-        precondition(contains(root), "\(root) is not a vertex of the graph")
         let (edges, total) = _prim(root: root, weight, ranked: false, key: { w, _ in w })
         return SpanningForest(edges: edges.map(\.position), weight: total)
     }
@@ -58,7 +57,7 @@ extension Graph {
         root: Vertex?, _ weight: (Edges.Index) -> W, ranked: Bool, key: (W, Int) -> Key
     ) -> (edges: [(position: Edges.Index, weight: W, rank: Int)], total: W) {
         if let n = vertexIndexBound {
-            let roots = root.map { vertexIndex(of: $0) }
+            let roots = root.map { _requiredVertexIndex(of: $0, "\($0) is not a vertex of the graph") }
             if edgeIndexBound != nil {
                 return _prim(count: n, root: roots, weight, ranked, key, { edgeIndex(of: $0) }) { u in
                     zip(neighborIndices(ofIndex: u), incidentEdges(ofIndex: u)).makeIterator()
@@ -72,7 +71,10 @@ extension Graph {
         let listed = Array(vertices)
         let ids = _numberedVertices()
         let ranks = ranked ? Dictionary(uniqueKeysWithValues: edges.indices.enumerated().map { ($1, $0) }) : [:]
-        return _prim(count: listed.count, root: root.map { ids[$0]! }, weight, ranked, key, { ranks[$0]! }) { u in
+        return _prim(count: listed.count, root: root.map { root in
+            guard let id = ids[root] else { preconditionFailure("\(root) is not a vertex of the graph") }
+            return id
+        }, weight, ranked, key, { ranks[$0]! }) { u in
             let vertex = listed[u]
             return incidentEdges(of: vertex).lazy.map { (ids[oppositeVertex(to: vertex, acrossEdgeAt: $0)]!, $0) }.makeIterator()
         }

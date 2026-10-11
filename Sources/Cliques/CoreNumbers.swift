@@ -35,8 +35,7 @@ public struct CoreNumbers<G: Graph> {
             guard let v = _numbers[vertex] else { preconditionFailure("The vertex is not in the graph") }
             return v
         }
-        precondition(_graph.contains(vertex), "The vertex is not in the graph")
-        return _graph.vertexIndex(of: vertex)
+        return _graph._requiredVertexIndex(of: vertex, "The vertex is not in the graph")
     }
 
     /// The core number of `vertex`. O(1) after looking it up.

@@ -27,24 +27,35 @@ OUT = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else os.path.join(HERE, 
 # ---------------------------------------------------------------------------------------------
 # Catalog check, and the structured arguments of every row
 # ---------------------------------------------------------------------------------------------
-MAKE, SPEC, CALLS, LOG = {}, {}, {}, []
-_case, _labeled = ref.case, ref.labeled
+MAKE, SPEC, CALLS, PAIRS = {}, {}, {}, {}
+_case, _labeled, _builder = ref.case, ref.labeled, ref.builder
 
 
 def _rec_labeled(kind, vs, es):
     mk, t = _labeled(kind, vs, es)
     mk.spec = (kind, vs.split() if vs else [], ref.E(es))
-    LOG.append(mk.spec)
+    # The two graphs of an Equality or Hashing row are built just before the row is appended.
+    PAIRS.setdefault(len(ref.ROWS) + 1, []).append(mk.spec)
+    return mk, t
+
+
+def _rec_builder(kind, statements):
+    mk, t = _builder(kind, statements)
+    toks = statements.split()
+    mk.spec = (kind, [x for x in toks if ">" not in x], [tuple(x.split(">")) for x in toks if ">" in x])
+    mk.statements = toks
     return mk, t
 
 
 def _rec_case(group, title, make, input_text, calls=(), show_state=True):
     n = len(ref.ROWS) + 1
     MAKE[n], SPEC[n], CALLS[n] = make, getattr(make, "spec", None), list(calls)
+    BUILDER[n] = getattr(make, "statements", None)
     _case(group, title, make, input_text, calls, show_state)
 
 
-ref.labeled, ref.case = _rec_labeled, _rec_case
+ref.labeled, ref.case, ref.builder = _rec_labeled, _rec_case, _rec_builder
+BUILDER = {}
 ref.define()
 TEXT = ref.render()
 with open(os.path.join(HERE, "cases.md")) as f:
@@ -55,10 +66,11 @@ for line in TEXT.splitlines():
         parts = [p.strip().replace("\\|", "|") for p in line.strip().strip("|").split(" | ")]
         CELLS[int(parts[0][3:])] = parts
 N = len(CELLS)
-assert N == 86
-EQ_ROWS = [n for n in range(1, N + 1) if CELLS[n][1] == "Equality"]
-assert EQ_ROWS == list(range(82, 87)) and sorted(MAKE) == list(range(1, 82))
-EQ_SPEC = {n: (LOG[-10 + 2 * k], LOG[-9 + 2 * k]) for k, n in enumerate(EQ_ROWS)}
+assert N == 96
+EQ_ROWS = [n for n in range(1, N + 1) if CELLS[n][1] in ("Equality", "Hashing")]
+assert EQ_ROWS == list(range(89, 97)) and sorted(MAKE) == list(range(1, 89))
+EQ_SPEC = {n: tuple(PAIRS[n]) for n in EQ_ROWS}
+assert all(len(p) == 2 for p in EQ_SPEC.values())
 
 
 def title(n): return CELLS[n][2]
@@ -71,7 +83,8 @@ def is_trap(n): return "**trap**" in cell(n)
 # Swift literals
 # ---------------------------------------------------------------------------------------------
 BASE = {"CSR": "CompressedSparseRow", "M": "AdjacencyMatrix", "U": "AdjacencyMatrix"}
-MUTATING = {"insert", "insert(edge:)", "insert(safe:)", "remove(edge:)", "removeAllEdges", "removeAll"}
+MUTATING = {"insert", "insert(edge:)", "insert(safe:)", "remove(edge:)", "removeAllEdges", "removeAll",
+            "removeEdges(from:)", "removeEdges(to:)", "removeEdges(incidentTo:)", "transposed"}
 
 
 def s(x): return json.dumps(x, ensure_ascii=False)
@@ -123,6 +136,14 @@ def cells_of(calls):
 def construct(kind, V, E, mutable, var="graph"):
     return "%s %s = LabeledGraph<String, %s>(vertices: %s, edges: %s)" % (
         "var" if mutable else "let", var, BASE[kind], strs(V), dedges(E))
+
+
+def construct_builder(kind, statements, ind):
+    """The result-builder spelling: one statement per line, a bare label or a DirectedEdge."""
+    lines = [ind + "let graph = LabeledGraph<String, %s> {" % BASE[kind]]
+    for t in statements:
+        lines.append(ind + "    " + (dedge(*t.split(">")) if ">" in t else s(t)))
+    return lines + [ind + "}"]
 
 
 # ---------------------------------------------------------------------------------------------
@@ -304,6 +325,10 @@ def call_lines(g, kind, call, ind="        "):
         return r, ex("graph.remove(edge: %s) == %s" % (dedge(*a), "nil" if r is None else dedge(*r)))
     if name in ("removeAllEdges", "removeAll"):
         return r, [ind + "graph.%s()" % name]
+    if name in ("removeEdges(from:)", "removeEdges(to:)", "removeEdges(incidentTo:)"):
+        return r, ex("graph.%s %s) == %d" % (name[:-2] + ":", s(a[0]), r))
+    if name == "transposed":
+        return r, [ind + "graph = graph.transposed()"]
     if name == "hashes":
         return r, [ind + "// hashes() is %d here: see the counted copy below." % r]
     raise ValueError(call)
@@ -359,15 +384,14 @@ def counted_lines(n, kind, g0, calls, ind="        "):
         if name == "hashes":
             r = ref.run_call(G_SHADOW[n], c)
             if any(x[0] == "descendants" for x in calls):
-                lines += ["// descendants(of:) looks its source up twice (contains(_:) for its precondition, then",
-                          "// vertexIndex(of:)) and hashes each vertex it reaches into its Set result, which a fresh",
-                          "// Set built in the same order hashes the same number of times. Nothing is hashed per",
-                          "// edge. (The catalog's model counts the lookup the algorithm needs, %d.)" % r,
+                lines += ["// descendants(of:) looks its source up once (vertexIndex(of:), which also checks it is a",
+                          "// vertex) and hashes each vertex it reaches into its Set result, which a fresh Set built",
+                          "// in the same order hashes the same number of times. Nothing is hashed per edge.",
                           "let hashes%d = tally.hashes" % k,
                           "tally.hashes = 0",
                           "var rebuilt = Set<Counted>()",
                           "for name in %s { rebuilt.insert(label(name)) }" % strs(DESC_ORDER[n]),
-                          "#expect(hashes%d == 2 + tally.hashes)" % k]
+                          "#expect(hashes%d == %d + tally.hashes)" % (k, r)]
             else:
                 lines.append("#expect(tally.hashes == %d)" % r)
                 if r == 0:
@@ -393,6 +417,10 @@ def counted_lines(n, kind, g0, calls, ind="        "):
         elif name == "descendants":
             lines.append("let %s = counted.descendants(of: label(%s))" % (x, s(a[0])))
             later.append("#expect(Set(%s.map(\\.name)) == Set(%s))" % (x, strs(sorted(r))))
+        elif name == "transposed":
+            lines.append("let %s = counted.transposed()" % x)
+            later.append("#expect(%s.base == counted.base.transposed())" % x)
+            later.append("#expect(%s.vertices == counted.vertices)" % x)
         elif name == "topologicalSort":
             lines.append("let %s = counted.topologicalSort()" % x)
             later.append("// The padding is isolated; without it the order is the catalog's.")
@@ -475,7 +503,9 @@ def row_test(n):
     lines.append("        // %s" % inp(n))
     for p in cells_of(calls):
         lines.append("        " + cell_decl(p))
-    if spec:
+    if BUILDER[n]:
+        lines += construct_builder(kind, BUILDER[n], "        ")
+    elif spec:
         if n == 15:
             lines.append("        let graph = LabeledGraph<String, CompressedSparseRow>(DirectedPseudograph<String>(vertices: %s, edges: %s))" % (strs(V), dedges(E)))
         else:
@@ -586,10 +616,22 @@ def equality_test(n):
     (ka, Va, Ea), (kb, Vb, Eb) = EQ_SPEC[n]
     ga, gb = ref.build(ka, Va, Ea), ref.build(kb, Vb, Eb)
     eq = ga == gb
-    assert cell(n) == ref.fmt(eq), n
     lines = header(n, [".conformance"]) + ["    func lg%03d() {" % n, "        // %s → %s" % (inp(n), cell(n))]
     lines.append("        " + construct(ka, Va, Ea, False, var="lhs"))
     lines.append("        " + construct(kb, Vb, Eb, False, var="rhs"))
+    if CELLS[n][1] == "Hashing":
+        assert cell(n) == str(len({ga.canonical(), gb.canonical()})), n
+        lines.append("        #expect(Set([lhs, rhs]).count == %s)" % cell(n))
+        if eq:
+            lines += ["        #expect(lhs == rhs)", "        #expect(lhs.hashValue == rhs.hashValue)"]
+            if ga.labels != gb.labels:
+                lines.append("        // Equal values with different index assignments.")
+                lines.append("        #expect(Array(lhs.vertices) == %s && Array(rhs.vertices) == %s)" % (strs(ga.labels), strs(gb.labels)))
+        else:
+            lines.append("        #expect(lhs != rhs)")
+        lines += ["        #expect(lhs.hashValue == lhs.hashValue)", "    }"]
+        return lines
+    assert cell(n) == ref.fmt(eq), n
     if eq:
         lines += ["        #expect(lhs == rhs)", "        #expect(rhs == lhs)"]
         if ga.labels != gb.labels:
@@ -617,10 +659,11 @@ def ids(*groups):
 
 TRAPS = [n for n in range(1, N + 1) if is_trap(n)]
 FILES = [
-    ("LabeledGraphConstructionTests.swift", "LabeledGraphs construction", ids("Construction", "Base init"),
-     "Construction (catalog LG-001 – LG-017, LG-024): listed labels first (a repeat once), then new\n"
-     "// endpoints in first-appearance order; parallel edges collapse; positions are the base's; every\n"
-     "// initializer that fits gives the same state; `init(_:labels:)` names base vertex i by labels[i]."),
+    ("LabeledGraphConstructionTests.swift", "LabeledGraphs construction", ids("Construction", "Base init", "Builder", "Transpose"),
+     "Construction (catalog LG-001 – LG-017, LG-024, LG-085 – LG-088): listed labels first (a repeat\n"
+     "// once), then new endpoints in first-appearance order; parallel edges collapse; positions are the\n"
+     "// base's; every initializer that fits gives the same state; `init(_:labels:)` names base vertex i\n"
+     "// by labels[i]; the result builder lists its bare labels first; `transposed()` keeps the labels."),
     ("LabeledGraphReadTests.swift", "LabeledGraphs reads", ids("Reads"),
      "Reads (catalog LG-025 – LG-053): rows in the base's (ascending index) order, membership, the index\n"
      "// conversions both ways, the index-space rows forwarded from the base, positions, and the `safe:`\n"
@@ -633,12 +676,12 @@ FILES = [
      "The undirected view (catalog LG-062 – LG-068): `labeled.undirected`, neighbours as successors then\n"
      "// predecessors, opposite arcs parallel, a loop twice, label-space reads hashing twice."),
     ("LabeledGraphMutationTests.swift", "LabeledGraphs mutation", ids("Mutation"),
-     "Mutation over AdjacencyMatrix (catalog LG-069 – LG-081): a new label appends base vertex n;\n"
+     "Mutation over AdjacencyMatrix (catalog LG-069 – LG-084): a new label appends base vertex n;\n"
      "// `insert(edge:)` inserts missing endpoints, source first; `insert(safe:)` and `remove(edge:)`\n"
-     "// change nothing for a non-vertex; the two resets."),
+     "// change nothing for a non-vertex; the two resets; `removeEdges` by row, column or both."),
     ("LabeledGraphEqualityTests.swift", "LabeledGraphs equality", EQ_ROWS,
-     "Equality (catalog LG-082 – LG-086): equal label sets and equal labeled edge sets, whatever the\n"
-     "// index assignment."),
+     "Equality and hashing (catalog LG-089 – LG-096): equal label sets and equal labeled edge sets,\n"
+     "// whatever the index assignment, and equal values hash alike."),
     ("LabeledGraphPreconditionTests.swift", "LabeledGraphs preconditions", TRAPS,
      "Preconditions (catalog trap rows): each trapping call runs in a child process (exit test). The\n"
      "// same setup then runs in this process without the call, so the trap is the call's and not the\n"

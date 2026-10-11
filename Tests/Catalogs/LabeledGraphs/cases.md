@@ -15,8 +15,9 @@ Conventions:
   each label's index (`vertexIndex(of:)`, the base vertex it names); `E [p:s→t, …]` is `edges` with the
   base's positions (`Int` for CSR, `(source, target)` for the matrix); `bounds a/b` is `vertexIndexBound` /
   `edgeIndexBound`.
-* `hashes()` is the number of label hashes so far (OrderedSet lookups). It is a benchmark counter, not
-  API: the Swift suite checks it with a `Label` whose `hash(into:)` counts, in a benchmark target.
+* `hashes()` is the number of label lookups so far (OrderedSet lookups; a `Set` an algorithm returns
+  hashes its elements on top of these). It is a benchmark counter, not API: the Swift suite checks it
+  with a `Label` whose `hash(into:)` counts.
 * `**trap**` rows are preconditions, run as exit tests (`#expect(processExitsWith:)`); results before
   the trap are listed.
 
@@ -77,7 +78,7 @@ Conventions:
 | LG-053 | Reads | M: a self-loop counts in both rows | M V []; E [a→a, a→b] / successors(a) / predecessors(a) / degree(a) | [a, b]; [a]; 3 ⇒ V [a#0, b#1]; E [(0,0):a→a, (0,1):a→b]; bounds 2/nil |
 | LG-054 | Boundary | index-space reads do not hash | CSR V []; E [a→b, b→c, c→d, d→e] / successorIndices(ofIndex: 0) / vertex(atIndex: 4) / edges[3] / hashes() | [1]; e; d→e; 0 ⇒ V [a#0, b#1, c#2, d#3, e#4]; E [0:a→b, 1:b→c, 2:c→d, 3:d→e]; bounds 5/4 |
 | LG-055 | Boundary | a label-space read hashes once, not per successor | CSR V []; E [a→b, b→c, c→d, d→e] / successors(a) / hashes() | [b]; 1 ⇒ V [a#0, b#1, c#2, d#3, e#4]; E [0:a→b, 1:b→c, 2:c→d, 3:d→e]; bounds 5/4 |
-| LG-056 | Boundary | descendants hashes only its source | CSR V []; E [a→b, b→c, c→d, d→e] / descendants(a) / hashes() | {b, c, d, e}; 1 ⇒ V [a#0, b#1, c#2, d#3, e#4]; E [0:a→b, 1:b→c, 2:c→d, 3:d→e]; bounds 5/4 |
+| LG-056 | Boundary | descendants: one lookup, plus one hash per vertex inserted into the returned Set | CSR V []; E [a→b, b→c, c→d, d→e] / descendants(a) / hashes() | {b, c, d, e}; 1 ⇒ V [a#0, b#1, c#2, d#3, e#4]; E [0:a→b, 1:b→c, 2:c→d, 3:d→e]; bounds 5/4 |
 | LG-057 | Boundary | topologicalSort hashes nothing | CSR V []; E [a→b, b→c, c→d, d→e] / topologicalSort() / hashes() | [a, b, c, d, e]; 0 ⇒ V [a#0, b#1, c#2, d#3, e#4]; E [0:a→b, 1:b→c, 2:c→d, 3:d→e]; bounds 5/4 |
 | LG-058 | Boundary | topologicalSort is the base's, mapped through labels | CSR V []; E [b→a, c→a, c→b] / topologicalSort() | [c, b, a] ⇒ V [b#0, a#1, c#2]; E [0:b→a, 1:c→b, 2:c→a]; bounds 3/3 |
 | LG-059 | Boundary | topologicalSort of a cyclic graph | CSR V []; E [a→b, b→a, c→a] / topologicalSort() / descendants(c) | nil; {a, b} ⇒ V [a#0, b#1, c#2]; E [0:a→b, 1:b→a, 2:c→a]; bounds 3/3 |
@@ -103,8 +104,18 @@ Conventions:
 | LG-079 | Mutation | removeAllEdges keeps labels | M V [a, b]; E [a→b] / removeAllEdges() | () ⇒ V [a#0, b#1]; E []; bounds 2/nil |
 | LG-080 | Mutation | removeAll clears labels and base | M V [a, b]; E [a→b] / removeAll() / insert(b) | (); (true, b) ⇒ V [b#0]; E []; bounds 1/nil |
 | LG-081 | Mutation | labels after growth keep their indices | M V [a, b]; E [a→b] / insert(edge: c→a) / insert(d) / vertexIndex(d) / successorIndices(ofIndex: 2) | (true, c→a); (true, d); 3; [0] ⇒ V [a#0, b#1, c#2, d#3]; E [(0,1):a→b, (2,0):c→a]; bounds 4/nil |
-| LG-082 | Equality | same labels, same order | CSR V []; E [a→b] == CSR V [a, b]; E [a→b] | true |
-| LG-083 | Equality | same labeled graph, different index assignment | CSR V [b, a]; E [a→b] == CSR V [a, b]; E [a→b] | true |
-| LG-084 | Equality | different label sets | CSR V [a, b]; E [] == CSR V [a, c]; E [] | false |
-| LG-085 | Equality | different edges | CSR V []; E [a→b] == CSR V []; E [b→a] | false |
-| LG-086 | Equality | matrix, different index assignment | M V [c]; E [a→c, c→a] == M V [a]; E [c→a, a→c] | true |
+| LG-082 | Mutation | removeEdges(from:) clears a row, keeping the vertex | M V [a, b, c]; E [a→b, a→c, b→a, a→a, c→b] / removeEdges(from: a) / removeEdges(from: a) | 3; 0 ⇒ V [a#0, b#1, c#2]; E [(1,0):b→a, (2,1):c→b]; bounds 3/nil |
+| LG-083 | Mutation | removeEdges(to:) clears a column, keeping the vertex | M V [a, b, c]; E [a→b, a→c, b→a, a→a, c→b] / removeEdges(to: a) | 2 ⇒ V [a#0, b#1, c#2]; E [(0,1):a→b, (0,2):a→c, (2,1):c→b]; bounds 3/nil |
+| LG-084 | Mutation | removeEdges(incidentTo:) clears both, a self-loop counted once | M V [a, b, c]; E [a→b, a→c, b→a, a→a, c→b] / removeEdges(incidentTo: a) / removeEdges(incidentTo: c) | 4; 1 ⇒ V [a#0, b#1, c#2]; E []; bounds 3/nil |
+| LG-085 | Builder | CSR: bare labels first, wherever written, then endpoints by first appearance | CSR { c→a; z; b→c; a→c; y } | V [z#0, y#1, c#2, a#3, b#4]; E [0:c→a, 1:a→c, 2:b→c]; bounds 5/3 |
+| LG-086 | Builder | M: bare labels first, wherever written, then endpoints by first appearance | M { c→a; z; b→c; a→c; y } | V [z#0, y#1, c#2, a#3, b#4]; E [(2,3):c→a, (3,2):a→c, (4,2):b→c]; bounds 5/nil |
+| LG-087 | Transpose | CSR: every edge reversed, the same labels at the same indices, no hash | CSR V [s]; E [a→b, a→c, b→c, c→a] / transposed() / hashes() | (); 0 ⇒ V [s#0, a#1, b#2, c#3]; E [0:a→c, 1:b→a, 2:c→a, 3:c→b]; bounds 4/4 |
+| LG-088 | Transpose | CSR: a self-loop stays, opposite arcs swap rows | CSR V []; E [a→a, a→b, b→a] / transposed() / successors(a) / successors(b) / transposed() | (); [a, b]; [a]; () ⇒ V [a#0, b#1]; E [0:a→a, 1:a→b, 2:b→a]; bounds 2/3 |
+| LG-089 | Equality | same labels, same order | CSR V []; E [a→b] == CSR V [a, b]; E [a→b] | true |
+| LG-090 | Equality | same labeled graph, different index assignment | CSR V [b, a]; E [a→b] == CSR V [a, b]; E [a→b] | true |
+| LG-091 | Equality | different label sets | CSR V [a, b]; E [] == CSR V [a, c]; E [] | false |
+| LG-092 | Equality | different edges | CSR V []; E [a→b] == CSR V []; E [b→a] | false |
+| LG-093 | Equality | matrix, different index assignment | M V [c]; E [a→c, c→a] == M V [a]; E [c→a, a→c] | true |
+| LG-094 | Hashing | same labeled graph, different index assignment | Set([CSR V [c, b, a]; E [a→b, b→c], CSR V [b]; E [b→c, a→b]]).count | 1 |
+| LG-095 | Hashing | matrix, opposite arcs, different index assignment | Set([M V [b]; E [a→b, b→a, a→a], M V [a]; E [b→a, a→b, a→a]]).count | 1 |
+| LG-096 | Hashing | different edges | Set([CSR V [a, b]; E [a→b], CSR V [a, b]; E [b→a]]).count | 2 |

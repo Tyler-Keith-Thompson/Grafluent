@@ -115,3 +115,65 @@
         let graph = LabeledGraph(AdjacencyMatrix(vertexCount: 3), labels: (0 ..< 3).lazy.map { "v\($0)" })
         #expect(Array(graph.vertices) == ["v0", "v1", "v2"])
     }
+
+    @Test("Searches from or to a label that is not a vertex trap (bidirectional ones over the matrix)")
+    func searchesFromNonVertices() async {
+        await #expect(processExitsWith: .failure) {
+            let graph = LabeledGraph<String, CompressedSparseRow>(edges: [DirectedEdge(from: "a", to: "b")])
+            _ = graph.hasPath(from: "q", to: "b")
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = LabeledGraph<String, AdjacencyMatrix>(edges: [DirectedEdge(from: "a", to: "b")])
+            _ = graph.hasPath(from: "a", to: "q")
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = LabeledGraph<String, AdjacencyMatrix>(edges: [DirectedEdge(from: "a", to: "b")])
+            _ = graph.ancestors(of: "q")
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = LabeledGraph<String, AdjacencyMatrix>(edges: [DirectedEdge(from: "a", to: "b")])
+            _ = graph.bidirectionalShortestPath(from: "a", to: "q")
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = LabeledGraph<String, AdjacencyMatrix>(edges: [DirectedEdge(from: "a", to: "b")])
+            _ = graph.bidirectionalShortestPath(from: "q", to: "a")
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = LabeledGraph<String, CompressedSparseRow>(edges: [DirectedEdge(from: "a", to: "b")])
+            _ = graph.breadthFirstLayers(from: "q")
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = LabeledGraph<String, AdjacencyMatrix>(edges: [DirectedEdge(from: "a", to: "b")])
+            _ = graph.breadthFirstLayers(from: ["a", "q"])
+        }
+        // Without the non-vertices: the same searches answer.
+        let csr = LabeledGraph<String, CompressedSparseRow>(edges: [DirectedEdge(from: "a", to: "b")])
+        let matrix = LabeledGraph<String, AdjacencyMatrix>(edges: [DirectedEdge(from: "a", to: "b")])
+        #expect(csr.hasPath(from: "a", to: "b") && !matrix.hasPath(from: "b", to: "a"))
+        #expect(matrix.ancestors(of: "b") == ["a"])
+        #expect(matrix.bidirectionalShortestPath(from: "a", to: "b") != nil)
+        #expect(matrix.bidirectionalShortestPath(from: "b", to: "a") == nil)
+        #expect(csr.breadthFirstLayers(from: "a") == [["a"], ["b"]])
+        #expect(matrix.breadthFirstLayers(from: ["a", "b"]) == [["a", "b"]])
+    }
+
+    @Test("Bulk edge removal by label traps on a label that is not a vertex")
+    func removeEdgesOfNonVertices() async {
+        await #expect(processExitsWith: .failure) {
+            var graph = LabeledGraph<String, AdjacencyMatrix>(edges: [DirectedEdge(from: "a", to: "b")])
+            graph.removeEdges(from: "q")
+        }
+        await #expect(processExitsWith: .failure) {
+            var graph = LabeledGraph<String, AdjacencyMatrix>(edges: [DirectedEdge(from: "a", to: "b")])
+            graph.removeEdges(to: "q")
+        }
+        await #expect(processExitsWith: .failure) {
+            var graph = LabeledGraph<String, AdjacencyMatrix>(edges: [DirectedEdge(from: "a", to: "b")])
+            graph.removeEdges(incidentTo: "q")
+        }
+        // Without the non-vertex: a vertex's edges go, its label stays.
+        var graph = LabeledGraph<String, AdjacencyMatrix>(edges: [DirectedEdge(from: "a", to: "b")])
+        #expect(graph.removeEdges(incidentTo: "b") == 1)
+        #expect(Array(graph.vertices) == ["a", "b"] && graph.edgeCount == 0)
+    }
+

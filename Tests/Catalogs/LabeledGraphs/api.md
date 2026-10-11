@@ -16,7 +16,8 @@ the CSR and matrix bases, and counts every label hash. Each state is checked aga
   `relabel_nodes` round trip, which must give back the base and the labeled graph;
 - the protocol laws;
 - the boundary laws. Index-space and whole-graph reads hash nothing. A label-space read hashes
-  once. `descendants(of:)` hashes once. `topologicalSort()` hashes nothing and equals the base's
+  once. `descendants(of:)` makes one lookup, plus one hash per vertex inserted into the returned
+  `Set`. `topologicalSort()` hashes nothing and equals the base's
   result mapped through the labels.
 
 `--stress` runs 400 seeded mutation sequences of 50 steps on the matrix base and 200 random builds
@@ -208,7 +209,9 @@ change when deleting an item"). The base's attached maps already make the same m
   2. map the other graph's indices into this one's, n hashes;
   3. check every mapped edge with the base's `contains(edge:)`: O(m log d) for CSR, O(m) for the
      matrix.
-- **`Hashable`** only if a later need appears. It would need an order-independent hash.
+- **`Hashable`** (added after the critical review): an order-independent hash, consistent with
+  `==`. It combines the counts, the sum of the labels' hash values, and the sum over the edges of a
+  hash of the two ends' hash values, so each label is hashed once and no label per edge.
 - **`Sendable`** where `Label` and `Base` are.
 - **`Codable`** where both are, as `{labels, base}`. Decoding re-checks the init preconditions
   as `DecodingError.dataCorrupted`.
@@ -222,9 +225,10 @@ counters below are not public API):
 | Measure | Target |
 |---|---|
 | Label hashes in an index-space algorithm (`topologicalSort`, components, Dijkstra through `_DenseVertices`/`_VertexIdentifiers`) | **0 per edge**. Inputs hash once each; results are array reads (`_labels[i]`), except where the algorithm's own result type is a `Set`/`Dictionary` of vertices, which hashes once per output vertex, as on any `Hashable` graph |
-| Wall time, BFS / weak components / Dijkstra on CSR (10⁵ vertices, 10⁶ edges), String labels | ≤ 1.05× the same call on the bare `CompressedSparseRow`, plus the output mapping |
+| Wall time, `breadthFirstLayers` / weak and strong components / Dijkstra on CSR (10⁵ vertices, 10⁶ edges), String labels | ≤ 1.05× the same call on the bare `CompressedSparseRow`, plus the output mapping |
 | Same on `AdjacencyMatrix` (4 096 vertices, 10⁶ edges) | ≤ 1.05× |
-| `successors(of:)` | one hash, then the base's row |
+| The lazy `breadthFirstSearch(from:)` sequence | 1.7–1.8× the bare base: every event carries two labels (a tree edge's ends), each an array read and a retain, where the bare base's events carry two `Int`s |
+| `successors(of:)` | one hash, then the base's row; the result holds the row and the labels, with nothing allocated |
 | Building from labeled edges | ≤ 1.3× `AdjacencyList<Label>(edges:)` for the hashing, plus the base's own build |
 
 **How the index-space helpers see through.** `vertexIndexBound` is always non-nil, so both

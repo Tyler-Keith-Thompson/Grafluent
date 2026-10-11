@@ -76,8 +76,7 @@ public struct Matching<G: Graph, Weight: Comparable & AdditiveArithmetic> {
             guard let v = _numbers[vertex] else { preconditionFailure("\(vertex) is not a vertex of the graph") }
             return v
         }
-        precondition(_graph.contains(vertex), "\(vertex) is not a vertex of the graph")
-        return _graph.vertexIndex(of: vertex)
+        return _graph._requiredVertexIndex(of: vertex, "\(vertex) is not a vertex of the graph")
     }
 
     /// The vertex matched to `vertex`, or nil when it is free. O(1) after the graph's

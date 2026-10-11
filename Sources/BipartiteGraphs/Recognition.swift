@@ -186,8 +186,7 @@ public struct Bipartition<G: Graph> {
             guard let v = _numbers[vertex] else { preconditionFailure("\(vertex) is not a vertex of the graph") }
             return _sides[v]
         }
-        precondition(_graph.contains(vertex), "\(vertex) is not a vertex of the graph")
-        return _sides[_graph.vertexIndex(of: vertex)]
+        return _sides[_graph._requiredVertexIndex(of: vertex, "\(vertex) is not a vertex of the graph")]
     }
 
     /// The side of the vertex at `index`: its vertex index, or its position in `vertices` when the

@@ -187,7 +187,7 @@ struct LabeledGraphBoundaryTests {
         #expect(r1 == ["b"])
     }
 
-    @Test("LG-056 descendants hashes only its source")
+    @Test("LG-056 descendants: one lookup, plus one hash per vertex inserted into the returned Set")
     func lg056() {
         // CSR V []; E [a→b, b→c, c→d, d→e] / descendants(a) / hashes()
         let graph = LabeledGraph<String, CompressedSparseRow>(vertices: [] as [String], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "c"), DirectedEdge(from: "c", to: "d"), DirectedEdge(from: "d", to: "e")])

@@ -21,17 +21,20 @@ the seeded generator and the tags in `GrafluentTestSupport`.
 
 ```swift
 struct LabeledGraph<Label: Hashable, Base>: DirectedGraph (Base: DirectedGraph<Int>),
-        BidirectionalDirectedGraph (Base: BidirectionalDirectedGraph<Int>), Equatable, Codable, Sendable,
-        CustomStringConvertible
+        BidirectionalDirectedGraph (Base: BidirectionalDirectedGraph<Int>), Equatable, Hashable, Codable,
+        Sendable, CustomStringConvertible
     init(_ base: Base, labels:)                                     // any dense DirectedGraph<Int> base
-    init(), init(vertices:), init(edges:), init(vertices:edges:), init(_ graph:)   // Base == CSR / AdjacencyMatrix
+    init(), init(vertices:), init(edges:), init(vertices:edges:), init(_ graph:),
+        init(@DirectedGraphBuilder _:)                              // Base == CSR / AdjacencyMatrix
+    transposed()                                                    // Base == CSR
     var base: Base; var vertices: OrderedSet<Label>; var edges: Edges   // Edges.Index == Base.Edges.Index
     successors(of:), outEdges(of:), outDegree(of:), predecessors(of:), inEdges(of:), inDegree(of:), degree(of:)
     successors(safe:), outEdges(safe:), outDegree(safe:), predecessors(safe:), inEdges(safe:), inDegree(safe:),
         degree(safe:), vertexIndex(safe:)
     vertexIndex(of:), vertex(atIndex:), successorIndices(ofIndex:), predecessorIndices(ofIndex:), …  // the base's
-    insert(_:), insert(edge:), insert(safe:), remove(edge:), removeAllEdges(keepingCapacity:),
-        removeAll(keepingCapacity:), reserveCapacity(vertexCount:)  // Base == AdjacencyMatrix
+    insert(_:), insert(edge:), insert(safe:), remove(edge:), removeEdges(from:), removeEdges(to:),
+        removeEdges(incidentTo:), removeAllEdges(keepingCapacity:), removeAll(keepingCapacity:),
+        reserveCapacity(vertexCount:)                               // Base == AdjacencyMatrix
 ```
 
 ## Conventions
@@ -45,8 +48,11 @@ struct LabeledGraph<Label: Hashable, Base>: DirectedGraph (Base: DirectedGraph<I
 | Non-vertices | Label-space members trap; `safe:` spellings and `contains(edge:)` answer nil or false; `remove(edge:)` returns nil | LG-029 – LG-032, LG-076, LG-078 |
 | Hashing | Index-space and whole-graph reads hash no label; a label-space read hashes once; algorithms hash at their inputs only | LG-054 – LG-057, LG-066 |
 | Undirected | `labeled.undirected`: neighbours are successors then predecessors; label-space reads hash twice | LG-062 – LG-068 |
-| Mutation | A new label appends base vertex n; `insert(edge:)` inserts a missing source, then a missing target | LG-069 – LG-081 |
-| Equality | Equal label sets and equal labeled edge sets, whatever the index assignment | LG-082 – LG-086 |
+| Mutation | A new label appends base vertex n; `insert(edge:)` inserts a missing source, then a missing target; `removeEdges` clears a row, a column or both, a self-loop counted once | LG-069 – LG-084 |
+| Builder | `init(vertices:edges:)` with the bare labels listed first, wherever they are written | LG-085, LG-086 |
+| Transpose | `transposed()` over CSR: every edge reversed, the same labels at the same indices, no hash | LG-087, LG-088 |
+| Equality | Equal label sets and equal labeled edge sets, whatever the index assignment | LG-089 – LG-093 |
+| Hashing | Equal values hash alike, whatever the index assignment | LG-094 – LG-096 |
 
 ## How values are pinned
 
@@ -68,11 +74,10 @@ names a cell, and `Edges.Index` has no public initializer.
 
 The rows that read `hashes()` (the reference model's label-hash counter) run a second time on a
 label type, local to the test, whose `hash(into:)` and `==` count. They append 16 isolated labels,
-because an `OrderedSet` scans linearly up to 15 elements and hashes only from 16. LG-056 differs
-from the catalog's count: Traversal's `descendants(of:)` looks its source up twice (`contains(_:)`
-for its precondition, then `vertexIndex(of:)`) and hashes each reached vertex into its `Set`
-result. The test pins exactly that: two lookups plus the hashes of the same `Set` built in the same
-order, and nothing per edge.
+because an `OrderedSet` scans linearly up to 15 elements and hashes only from 16. In LG-056,
+Traversal's `descendants(of:)` makes one lookup (the catalog's count) and then hashes each reached
+vertex into its `Set` result. The test pins exactly that: one lookup plus the hashes of the same
+`Set` built in the same order, and nothing per edge.
 
 The catalog-row files are every file except `LabeledGraphConformanceTests.swift`,
 `LabeledGraphHashTests.swift`, `LabeledGraphPropertyTests.swift` and
@@ -129,7 +134,7 @@ equivalent, because `OrderedSet`'s subscript traps anyway.
 | `contains(_:)` or `vertexIndex(safe:)` scanning linearly | hash law, LG-056 |
 | CSR build numbering the target before the source | LG-025 and most CSR rows |
 | `insert(edge:)` inserting the target first | LG-073, properties |
-| Equality ignoring edges, or the fast path skipping the base | LG-085, properties |
+| Equality ignoring edges, or the fast path skipping the base | LG-092, properties |
 | `init(_:labels:)` without the repeat or count check | LG-019, LG-020, Codable |
 | `insert(safe:)` inserting missing endpoints | LG-076, properties |
 | `removeAll()` keeping the labels | LG-080, copy-on-write, resets |

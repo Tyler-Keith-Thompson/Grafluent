@@ -133,10 +133,7 @@ extension DirectedGraph {
     /// The index of `vertex`, trapping when it is not a vertex.
     @inlinable
     func _index(of vertex: Vertex, _ ids: _VertexIdentifiers<Self>) -> Int {
-        if ids.isIndexed {
-            precondition(contains(vertex), "\(vertex) is not a vertex of the graph")
-            return vertexIndex(of: vertex)
-        }
+        if ids.isIndexed { return _requiredVertexIndex(of: vertex, "\(vertex) is not a vertex of the graph") }
         guard let id = ids.existingIdentifier(of: vertex) else { preconditionFailure("\(vertex) is not a vertex of the graph") }
         return id
     }

@@ -325,11 +325,14 @@ extension Graph {
                 precondition(valid.contains(position), "\(position) is not a position of the graph's edges")
                 guard used.insert(position).inserted else { return nil }
             }
-            let edge = self.edges[position]
-            guard edge.u != edge.v else { return nil }
-            let u = listed == nil ? vertexIndex(of: edge.u) : numbers[edge.u]!
-            let v = listed == nil ? vertexIndex(of: edge.v) : numbers[edge.v]!
-            guard !covered[u], !covered[v] else { return nil }
+            let u: Int, v: Int
+            if listed == nil {
+                (u, v) = endpointIndices(ofEdgeAt: position)
+            } else {
+                let edge = self.edges[position]
+                (u, v) = (numbers[edge.u]!, numbers[edge.v]!)
+            }
+            guard u != v, !covered[u], !covered[v] else { return nil }
             covered[u] = true
             covered[v] = true
         }

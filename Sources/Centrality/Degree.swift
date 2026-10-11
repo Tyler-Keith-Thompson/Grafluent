@@ -8,7 +8,11 @@ extension Graph {
     public func degreeCentrality() -> CentralityScores<DirectedView<Self>> {
         let n = vertexCount
         let scale = n <= 1 ? 1 : 1 / Double(n - 1)
-        let scores = vertices.map { n == 1 ? 1 : Double(degree(of: $0)) * scale }
+        // With vertex indices, `vertices` is in index order: read the degrees by index, with no
+        // lookup (a `LabeledGraph`'s `degree(of:)` hashes its label).
+        let scores = vertexIndexBound != nil
+            ? (0 ..< n).map { n == 1 ? 1 : Double(degree(ofIndex: $0)) * scale }
+            : vertices.map { n == 1 ? 1 : Double(degree(of: $0)) * scale }
         return CentralityScores(directed, numbers: _centralityNumbers(), scores: scores)
     }
 }
@@ -34,7 +38,14 @@ extension DirectedGraph {
     func _degreeCentrality(incoming: Bool, outgoing: Bool) -> CentralityScores<Self> {
         let numbers = _centralityNumbers()
         let n = vertexCount
-        var counts = outgoing ? vertices.map { outDegree(of: $0) } : [Int](repeating: 0, count: n)
+        var counts: [Int]
+        if !outgoing {
+            counts = [Int](repeating: 0, count: n)
+        } else if vertexIndexBound != nil {
+            counts = (0 ..< n).map { outDegree(ofIndex: $0) }
+        } else {
+            counts = vertices.map { outDegree(of: $0) }
+        }
         if incoming {
             if let numbers {
                 for position in edges.indices { counts[numbers[target(ofEdgeAt: position)]!] += 1 }

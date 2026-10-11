@@ -434,3 +434,48 @@ struct ClosureSearchTests {
         #expect(Array(path.reversed()) == ["b", "c", "d"])
     }
 }
+
+@Suite("Vertex lookups against a lenient vertexIndex(of:)", .tags(.precondition))
+struct LenientVertexIndexTests {
+    /// A representation whose `vertexIndex(of:)` answers 0 for a non-vertex instead of trapping
+    /// (outside the protocol's precondition). The searches look each vertex argument up once and
+    /// check the index against `vertex(atIndex:)`, so they still trap on a non-vertex.
+    struct LenientIndexGraph: DirectedGraph {
+        let names: [String]
+        let arcs: [DirectedEdge<String>]
+        var vertices: [String] { names }
+        var edges: [DirectedEdge<String>] { arcs }
+        func successors(of vertex: String) -> [String] { arcs.filter { $0.source == vertex }.map(\.target) }
+        func outEdges(of vertex: String) -> [Int] { arcs.indices.filter { arcs[$0].source == vertex } }
+        var vertexIndexBound: Int? { names.count }
+        func vertexIndex(of vertex: String) -> Int { names.firstIndex(of: vertex) ?? 0 }
+        func vertex(atIndex index: Int) -> String { names[index] }
+    }
+
+    @Test("A non-vertex traps in breadthFirstLayers, descendants and hasPath though vertexIndex(of:) answers 0")
+    func lenientIndexTraps() async {
+        await #expect(processExitsWith: .failure) {
+            let graph = LenientIndexGraph(names: ["a", "b"], arcs: [DirectedEdge(from: "a", to: "b")])
+            _ = graph.breadthFirstLayers(from: ["q"])
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = LenientIndexGraph(names: ["a", "b"], arcs: [DirectedEdge(from: "a", to: "b")])
+            _ = graph.descendants(of: "q")
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = LenientIndexGraph(names: ["a", "b"], arcs: [DirectedEdge(from: "a", to: "b")])
+            _ = graph.hasPath(from: "q", to: "b")
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = LenientIndexGraph(names: ["a", "b"], arcs: [DirectedEdge(from: "a", to: "b")])
+            _ = graph.hasPath(from: "a", to: "q")
+        }
+        // Without the non-vertex: the same calls answer, and "q" would have read as "a".
+        let graph = LenientIndexGraph(names: ["a", "b"], arcs: [DirectedEdge(from: "a", to: "b")])
+        #expect(graph.vertexIndex(of: "q") == 0)
+        #expect(graph.breadthFirstLayers(from: ["a"]) == [["a"], ["b"]])
+        #expect(graph.descendants(of: "a") == ["b"])
+        #expect(graph.hasPath(from: "a", to: "b"))
+        #expect(!graph.hasPath(from: "b", to: "a"))
+    }
+}

@@ -54,13 +54,17 @@ package struct _VertexIdentifiers<G: DirectedGraph> {
         return id
     }
 
-    /// The identifier of `vertex`, trapping with `message` when it is not a vertex: one lookup
-    /// instead of `contains` followed by `identifier(of:)`. On an indexed graph the index is
-    /// checked against `vertex(atIndex:)` with `==`, an array read rather than a second hash, so a
-    /// representation whose `vertexIndex(of:)` does not trap on a non-vertex still traps here.
+    /// The identifier of `vertex`, trapping when it is not a vertex: one lookup instead of
+    /// `contains` followed by `identifier(of:)`. On an indexed graph this is
+    /// `_requiredVertexIndex(of:_:)`: the graph's own `vertexIndex(of:)` usually traps first, with
+    /// its own message; `message` is for a representation whose `vertexIndex(of:)` returns an
+    /// index for a non-vertex, caught by checking that index against `vertex(atIndex:)` with `==`
+    /// (an array read, not a second hash). Otherwise the trap is `message`.
     @inlinable
     package mutating func requiredIdentifier(of vertex: G.Vertex, _ message: @autoclosure () -> String) -> Int {
         if isIndexed {
+            // `_requiredVertexIndex(of:_:)`, written out: calling it made `breadthFirstLayers`,
+            // which inlines this, too large to inline its per-edge closure (1.3× on CSR).
             let index = graph.vertexIndex(of: vertex)
             precondition(index >= 0 && index < count && graph.vertex(atIndex: index) == vertex, message())
             return index
@@ -102,8 +106,18 @@ package struct _VertexIdentifiers<G: DirectedGraph> {
         } else if let rows {
             for k in rows.offsets[id] ..< rows.offsets[id + 1] { body(rows.neighbors[k]) }
         } else {
-            for w in graph.successors(of: vertices[id]) { body(identifier(of: w)) }
+            _forEachUnindexedSuccessor(of: id, body)
         }
+    }
+
+    /// The label-space fallback of `forEachSuccessor(of:_:)`, kept out of line: inlined, a
+    /// representation's `Successors` iterator made the callers (`breadthFirstLayers`) too large to
+    /// inline their per-edge closure, 1.2× on a labeled CSR. A graph without vertex indices hashes
+    /// each successor here anyway, so the call costs it nothing measurable.
+    @inlinable
+    @inline(never)
+    package mutating func _forEachUnindexedSuccessor(of id: Int, _ body: (Int) -> Void) {
+        for w in graph.successors(of: vertices[id]) { body(identifier(of: w)) }
     }
 }
 
@@ -129,8 +143,15 @@ extension _VertexIdentifiers where G: BidirectionalDirectedGraph {
             let rows = numberedPredecessorRows()
             for k in rows.offsets[id] ..< rows.offsets[id + 1] { body(rows.neighbors[k]) }
         } else {
-            for u in graph.predecessors(of: vertices[id]) { body(identifier(of: u)) }
+            _forEachUnindexedPredecessor(of: id, body)
         }
+    }
+
+    /// The label-space fallback of `forEachPredecessor(of:_:)`, out of line as for successors.
+    @inlinable
+    @inline(never)
+    package mutating func _forEachUnindexedPredecessor(of id: Int, _ body: (Int) -> Void) {
+        for u in graph.predecessors(of: vertices[id]) { body(identifier(of: u)) }
     }
 }
 

@@ -45,8 +45,7 @@ public struct Eccentricities<G: DirectedGraph, Distance: Comparable & AdditiveAr
             guard let v = _numbers[vertex] else { preconditionFailure("The vertex is not in the graph") }
             return _values[v]
         }
-        precondition(_graph.contains(vertex), "The vertex is not in the graph")
-        return _values[_graph.vertexIndex(of: vertex)]
+        return _values[_graph._requiredVertexIndex(of: vertex, "The vertex is not in the graph")]
     }
 
     /// The eccentricity of the vertex at `index` (its vertex index, or its position in `vertices`

@@ -43,6 +43,37 @@ extension LabeledGraph: Equatable where Base: DirectedGraph<Int> & Equatable {
     }
 }
 
+// MARK: - Hashable
+
+extension LabeledGraph: Hashable where Base: DirectedGraph<Int> & Hashable {
+    /// A hash of the label set and the labeled edges that ignores the index assignment, so that
+    /// graphs equal under `==` hash alike: the counts, the sum of the labels' hash values, and the
+    /// sum over the edges (every copy, for a base with parallel edges) of a hash of the two ends'
+    /// hash values. O(n + m): each label is hashed once, and no label per edge.
+    @inlinable
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(_labels.count)
+        hasher.combine(_base.edgeCount)
+        var labelHashes: [Int] = []
+        labelHashes.reserveCapacity(_labels.count)
+        var labelSum: UInt = 0
+        for label in _labels {
+            let h = label.hashValue
+            labelHashes.append(h)
+            labelSum &+= UInt(bitPattern: h)
+        }
+        var edgeSum: UInt = 0
+        for edge in _base.edges {
+            var edgeHasher = Hasher()
+            edgeHasher.combine(labelHashes[edge.source])
+            edgeHasher.combine(labelHashes[edge.target])
+            edgeSum &+= UInt(bitPattern: edgeHasher.finalize())
+        }
+        hasher.combine(labelSum)
+        hasher.combine(edgeSum)
+    }
+}
+
 // MARK: - Codable
 
 extension LabeledGraph: Codable where Label: Codable, Base: DirectedGraph<Int> & Codable {

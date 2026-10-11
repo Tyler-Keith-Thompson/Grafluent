@@ -37,7 +37,8 @@
 /// - With vertex indices, `vertices` is in index order: `vertex(atIndex: i)` is the `i`th vertex.
 /// - With vertex indices, `neighborIndices(ofIndex: vertexIndex(of: v))` is `neighbors(of: v)`
 ///   mapped through `vertexIndex(of:)`, in the same order.
-/// - With vertex indices, `incidentEdges(ofIndex: vertexIndex(of: v))` is `incidentEdges(of: v)`.
+/// - With vertex indices, `incidentEdges(ofIndex: vertexIndex(of: v))` is `incidentEdges(of: v)`,
+///   and `endpointIndices(ofEdgeAt: e)` is `edges[e]`'s ends mapped through `vertexIndex(of:)`.
 /// - With edge indices, `edgeIndexBound == edgeCount`, `edgeIndex(of:)` is one-to-one onto
 ///   `0..<edgeIndexBound`, and, with vertex indices too,
 ///   `incidentEdgeIndices(ofIndex: vertexIndex(of: v))` is `incidentEdges(of: v)` mapped through
@@ -149,6 +150,20 @@ public protocol Graph<Vertex> {
     /// - Precondition: `vertexIndexBound` is not `nil`, and `index` is in `0..<vertexIndexBound`.
     func incidentEdges(ofIndex index: Int) -> IncidentEdges
 
+    /// `degree(of: vertex(atIndex: index))`, without the lookup a representation may need to find
+    /// the vertex. Default: exactly that.
+    ///
+    /// - Precondition: `vertexIndexBound` is not `nil`, and `index` is in `0..<vertexIndexBound`.
+    func degree(ofIndex index: Int) -> Int
+
+    /// The indices of `edges[position].u` and `.v`, in that order, for a representation or a view
+    /// that knows them without the lookup (the undirected view of a `LabeledGraph` reads its
+    /// base's `Int` endpoints, where `vertexIndex(of:)` would hash two labels). Default: both
+    /// endpoints through `vertexIndex(of:)`.
+    ///
+    /// - Precondition: `vertexIndexBound` is not `nil`, and `position` is a position in `edges`.
+    func endpointIndices(ofEdgeAt position: Edges.Index) -> (u: Int, v: Int)
+
     /// For representations that store incidence as rows in index space, with vertex and edge
     /// indices (`UndirectedAdjacencyList`): calls `body` with the neighbor storage and its row
     /// table, and the edge-index storage and its row table, and returns its result. A row table
@@ -219,6 +234,17 @@ extension Graph {
     @inlinable
     public func incidentEdges(ofIndex index: Int) -> IncidentEdges {
         incidentEdges(of: vertex(atIndex: index))
+    }
+
+    @inlinable
+    public func degree(ofIndex index: Int) -> Int {
+        degree(of: vertex(atIndex: index))
+    }
+
+    @inlinable
+    public func endpointIndices(ofEdgeAt position: Edges.Index) -> (u: Int, v: Int) {
+        let edge = edges[position]
+        return (vertexIndex(of: edge.u), vertexIndex(of: edge.v))
     }
 
     @inlinable

@@ -374,6 +374,14 @@ class Labeled:
         self.base.cells.discard((i, j))
         return (a, b)
 
+    def remove_edges_where(self, l, ends):
+        self._mutable()
+        i = self._need(l)
+        gone = [c for c in self.base.cells if any(c[k] == i for k in ends)]
+        for c in gone:
+            self.base.cells.discard(c)
+        return len(gone)  # a self-loop is one cell, so it counts once
+
     def remove_all_edges(self):
         self._mutable()
         self.base.cells.clear()
@@ -383,6 +391,16 @@ class Labeled:
         self.base.cells.clear()
         self.base.n = 0
         self.labels, self.index = [], {}
+
+    # transposed() over CSR: the base's transpose, the same labels at the same indices, no hashing
+    def transposed(self):
+        require(isinstance(self.base, CSR), "transposed() is offered for CompressedSparseRow")
+        self.base = CSR(self.base.n, [(t, s) for s, t in self.base.arcs])
+
+    # Hashable: a function of the label set and the labeled edge multiset only
+    def canonical(self):
+        from collections import Counter
+        return frozenset(self.labels), frozenset(Counter(e for _, e in self.edges()).items())
 
     # equality: labeled vertex sets and labeled edge sets, index assignment ignored
     def __eq__(self, other):
@@ -521,7 +539,7 @@ def _check(g):
         for l in L:
             before = g.hashes
             d = g.descendants(l)
-            assert g.hashes == before + 1, "descendants hashes only its source"
+            assert g.hashes == before + 1, "descendants looks its source up once (the Set it returns hashes the rest)"
             assert d == nx.descendants(s, l)
     if b.rows() is not None:
         offsets, targets = b.rows()
@@ -609,6 +627,10 @@ def run_call(g, call):
         "insert(edge:)": lambda a, b: g.insert_edge(a, b),
         "insert(safe:)": lambda a, b: g.insert_safe(a, b),
         "remove(edge:)": lambda a, b: g.remove_edge(a, b),
+        "removeEdges(from:)": lambda l: g.remove_edges_where(l, (0,)),
+        "removeEdges(to:)": lambda l: g.remove_edges_where(l, (1,)),
+        "removeEdges(incidentTo:)": lambda l: g.remove_edges_where(l, (0, 1)),
+        "transposed": lambda: (g.transposed(), VOID)[1],
         "removeAllEdges": lambda: (g.remove_all_edges(), VOID)[1],
         "removeAll": lambda: (g.remove_all(), VOID)[1],
         "hashes": lambda: g.hashes,
@@ -661,6 +683,16 @@ def case(group, title, make, input_text, calls=(), show_state=True):
 def E(s):
     """'a>b c>d' -> [('a','b'), ('c','d')]"""
     return [tuple(x.split(">")) for x in s.split()] if s else []
+
+
+def builder(kind, statements):
+    """`LabeledGraph<String, Base> { ... }`: each statement a bare label (a vertex) or `x>y` (an
+    edge), in written order. The builder gathers the vertices and the edges apart, so this is
+    `init(vertices:edges:)` with every bare label listed first, wherever it was written."""
+    toks = statements.split()
+    vs = [t for t in toks if ">" not in t]
+    es = [tuple(t.split(">")) for t in toks if ">" in t]
+    return (lambda: build(kind, vs, es)), f"{kind} {{ {'; '.join(t.replace('>', '→') for t in toks)} }}"
 
 
 def labeled(kind, vs, es):
@@ -759,7 +791,8 @@ def define():
          [("successorIndices(ofIndex:)", 0), ("vertex(atIndex:)", 4), ("edges[p]", 3), ("hashes",)])
     case("Boundary", "a label-space read hashes once, not per successor", mk, t,
          [("successors", "a"), ("hashes",)])
-    case("Boundary", "descendants hashes only its source", mk, t, [("descendants", "a"), ("hashes",)])
+    case("Boundary", "descendants: one lookup, plus one hash per vertex inserted into the returned Set", mk, t,
+         [("descendants", "a"), ("hashes",)])
     case("Boundary", "topologicalSort hashes nothing", mk, t, [("topologicalSort",), ("hashes",)])
     mk, t = labeled("CSR", "", "b>a c>a c>b")
     case("Boundary", "topologicalSort is the base's, mapped through labels", mk, t, [("topologicalSort",)])
@@ -803,6 +836,27 @@ def define():
     case("Mutation", "labels after growth keep their indices", mk, t,
          [("insert(edge:)", "c", "a"), ("insert", "d"), ("vertexIndex", "d"), ("successorIndices(ofIndex:)", 2)])
 
+    # ---- bulk edge removal over AdjacencyMatrix (one hash, then the matrix's row or column)
+    mk, t = labeled("M", "a b c", "a>b a>c b>a a>a c>b")
+    case("Mutation", "removeEdges(from:) clears a row, keeping the vertex", mk, t,
+         [("removeEdges(from:)", "a"), ("removeEdges(from:)", "a")])
+    case("Mutation", "removeEdges(to:) clears a column, keeping the vertex", mk, t, [("removeEdges(to:)", "a")])
+    case("Mutation", "removeEdges(incidentTo:) clears both, a self-loop counted once", mk, t,
+         [("removeEdges(incidentTo:)", "a"), ("removeEdges(incidentTo:)", "c")])
+
+    # ---- the result builder: init(vertices:edges:) with the bare labels listed first
+    for kind in ("CSR", "M"):
+        mk, t = builder(kind, "c>a z b>c a>c y")
+        case("Builder", f"{kind}: bare labels first, wherever written, then endpoints by first appearance", mk, t)
+
+    # ---- transposed() over CSR: the base's transpose under the same labels, no hashing
+    mk, t = labeled("CSR", "s", "a>b a>c b>c c>a")
+    case("Transpose", "CSR: every edge reversed, the same labels at the same indices, no hash", mk, t,
+         [("transposed",), ("hashes",)])
+    mk, t = labeled("CSR", "", "a>a a>b b>a")
+    case("Transpose", "CSR: a self-loop stays, opposite arcs swap rows", mk, t,
+         [("transposed",), ("successors", "a"), ("successors", "b"), ("transposed",)])
+
     # ---- equality
     def eq_case(title, a, b):
         rid = f"LG-{len(ROWS) + 1:03d}"
@@ -815,6 +869,18 @@ def define():
     eq_case("different label sets", labeled("CSR", "a b", ""), labeled("CSR", "a c", ""))
     eq_case("different edges", labeled("CSR", "", "a>b"), labeled("CSR", "", "b>a"))
     eq_case("matrix, different index assignment", labeled("M", "c", "a>c c>a"), labeled("M", "a", "c>a a>c"))
+
+    # ---- hashing: equal graphs hash alike whatever their index assignment (Set of the two)
+    def hash_case(title, a, b):
+        rid = f"LG-{len(ROWS) + 1:03d}"
+        ga, ta = a
+        gb, tb = b
+        x, y = ga(), gb()
+        assert (x == y) == (x.canonical() == y.canonical())
+        ROWS.append((rid, "Hashing", title, f"Set([{ta}, {tb}]).count", str(len({x.canonical(), y.canonical()}))))
+    hash_case("same labeled graph, different index assignment", labeled("CSR", "c b a", "a>b b>c"), labeled("CSR", "b", "b>c a>b"))
+    hash_case("matrix, opposite arcs, different index assignment", labeled("M", "b", "a>b b>a a>a"), labeled("M", "a", "b>a a>b a>a"))
+    hash_case("different edges", labeled("CSR", "a b", "a>b"), labeled("CSR", "a b", "b>a"))
 
 
 def render():
@@ -836,8 +902,9 @@ def render():
         "  each label's index (`vertexIndex(of:)`, the base vertex it names); `E [p:s→t, …]` is `edges` with the",
         "  base's positions (`Int` for CSR, `(source, target)` for the matrix); `bounds a/b` is `vertexIndexBound` /",
         "  `edgeIndexBound`.",
-        "* `hashes()` is the number of label hashes so far (OrderedSet lookups). It is a benchmark counter, not",
-        "  API: the Swift suite checks it with a `Label` whose `hash(into:)` counts, in a benchmark target.",
+        "* `hashes()` is the number of label lookups so far (OrderedSet lookups; a `Set` an algorithm returns",
+        "  hashes its elements on top of these). It is a benchmark counter, not API: the Swift suite checks it",
+        "  with a `Label` whose `hash(into:)` counts.",
         "* `**trap**` rows are preconditions, run as exit tests (`#expect(processExitsWith:)`); results before",
         "  the trap are listed.",
         "",

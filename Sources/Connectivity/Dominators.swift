@@ -378,7 +378,6 @@ extension DirectedGraph {
     @inlinable
     @inline(__always)
     func _dominators(_ vertices: _DenseVertices<Self>, root: Vertex) -> (root: Int, result: _Dominators) {
-        precondition(contains(root), "The root \(root) is not a vertex of the graph")
         let r = vertices.number(of: root)
         if vertices.isIndexed {
             let n = vertices.count
@@ -433,7 +432,6 @@ extension BidirectionalDirectedGraph {
     /// - Precondition: `exit` is a vertex.
     @inlinable
     public func postDominatorTree(exit: Vertex) -> DominatorTree<Self> {
-        precondition(contains(exit), "The exit \(exit) is not a vertex of the graph")
         let vertices = _DenseVertices(self)
         let x = vertices.number(of: exit)
         let result: _Dominators

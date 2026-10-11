@@ -152,8 +152,9 @@ public struct DepthFirstSearch<G: DirectedGraph>: Sequence {
                 }
                 return nil
             }
-            if ids.rows != nil {
-                // Numbered: every vertex in `vertices` order is `0..<count`.
+            if ids.isDense {
+                // Indexed or numbered: every vertex in `vertices` order is `0..<count`, so no
+                // vertex is looked up.
                 while nextRoot < ids.count {
                     let id = nextRoot
                     nextRoot += 1

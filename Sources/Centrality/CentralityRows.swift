@@ -104,15 +104,14 @@ func _vertexNumbers<V: Hashable>(_ listed: [V]) -> [V: Int] {
     return numbers
 }
 
-/// The number of `vertex`: from `numbers`, or its vertex index.
+/// The number of `vertex`: from `numbers`, or its vertex index (`required`, one lookup).
 @inlinable
-func _number<V>(of vertex: V, _ numbers: [V: Int]?, contains: (V) -> Bool, index: (V) -> Int) -> Int {
+func _number<V>(of vertex: V, _ numbers: [V: Int]?, required: (V) -> Int) -> Int {
     if let numbers {
         guard let v = numbers[vertex] else { preconditionFailure("The vertex is not in the graph") }
         return v
     }
-    precondition(contains(vertex), "The vertex is not in the graph")
-    return index(vertex)
+    return required(vertex)
 }
 
 extension Graph {
@@ -127,7 +126,7 @@ extension Graph {
 
     @inlinable
     func _centralityNumber(of vertex: Vertex, _ numbers: [Vertex: Int]?) -> Int {
-        _number(of: vertex, numbers, contains: contains, index: vertexIndex(of:))
+        _number(of: vertex, numbers) { _requiredVertexIndex(of: $0, "The vertex is not in the graph") }
     }
 
     @inlinable
@@ -211,7 +210,7 @@ extension DirectedGraph {
 
     @inlinable
     func _centralityNumber(of vertex: Vertex, _ numbers: [Vertex: Int]?) -> Int {
-        _number(of: vertex, numbers, contains: contains, index: vertexIndex(of:))
+        _number(of: vertex, numbers) { _requiredVertexIndex(of: $0, "The vertex is not in the graph") }
     }
 
     @inlinable
@@ -245,8 +244,7 @@ public struct CentralityScores<G: DirectedGraph> {
             guard let v = _numbers[vertex] else { preconditionFailure("The vertex is not in the graph") }
             return _scores[v]
         }
-        precondition(_graph.contains(vertex), "The vertex is not in the graph")
-        return _scores[_graph.vertexIndex(of: vertex)]
+        return _scores[_graph._requiredVertexIndex(of: vertex, "The vertex is not in the graph")]
     }
 
     /// The score of the vertex at `index` (its vertex index, or its position in `vertices` when the

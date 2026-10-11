@@ -88,8 +88,7 @@ public struct ClusteringCoefficients<G: Graph> {
             guard let v = _numbers[vertex] else { preconditionFailure("The vertex is not in the graph") }
             return v
         }
-        precondition(_graph.contains(vertex), "The vertex is not in the graph")
-        return _graph.vertexIndex(of: vertex)
+        return _graph._requiredVertexIndex(of: vertex, "The vertex is not in the graph")
     }
 
     /// The local clustering coefficient of `vertex`: 2T / (d(d − 1)) for its T triangles and d
@@ -189,9 +188,8 @@ extension Graph {
     /// The distinct neighbors of `vertex` other than itself, as vertex numbers or vertices.
     @inlinable
     func _localTriangles(of vertex: Vertex) -> (triangles: Int, degree: Int) {
-        precondition(contains(vertex), "The vertex is not in the graph")
         if vertexIndexBound != nil {
-            let v = vertexIndex(of: vertex)
+            let v = _requiredVertexIndex(of: vertex, "The vertex is not in the graph")
             var around = Set<Int>()
             for w in neighborIndices(ofIndex: v) where w != v { around.insert(w) }
             var corners = 0
@@ -202,6 +200,7 @@ extension Graph {
             }
             return (corners / 2, around.count)
         }
+        precondition(contains(vertex), "The vertex is not in the graph")
         var around = Set<Vertex>()
         for w in neighbors(of: vertex) where w != vertex { around.insert(w) }
         var corners = 0

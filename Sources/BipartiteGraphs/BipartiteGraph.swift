@@ -86,9 +86,17 @@ public struct BipartiteGraph<Vertex: Hashable> {
         self.init()
         reserveCapacity(vertexCount: graph.vertexCount, edgeCount: graph.edgeCount)
         for (k, v) in graph.vertices.enumerated() { insert(v, on: sides[k] == 0 ? .left : .right) }
-        // Numbered as `vertices`, so the slots are the vertex numbers.
-        for edge in graph.edges {
-            let u = _graph.vertexIndex(of: edge.u), v = _graph.vertexIndex(of: edge.v)
+        // Numbered as `vertices`, so the slots are the vertex numbers: with vertex indices, which
+        // follow `vertices` order, the graph's own ends without a lookup.
+        let indexed = graph.vertexIndexBound != nil
+        for position in graph.edges.indices {
+            let u: Int, v: Int
+            if indexed {
+                (u, v) = graph.endpointIndices(ofEdgeAt: position)
+            } else {
+                let edge = graph.edges[position]
+                (u, v) = (_graph.vertexIndex(of: edge.u), _graph.vertexIndex(of: edge.v))
+            }
             if _side[u] == .left { _graph._insertEdge(slots: u, v) } else { _graph._insertEdge(slots: v, u) }
         }
     }

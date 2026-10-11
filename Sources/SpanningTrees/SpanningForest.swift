@@ -72,8 +72,9 @@ extension Graph {
     /// and edge indices the edges come from the index-space rows, each taken at its lower end
     /// and stored at its edge index, which by the edge-order law is its rank; the algorithm
     /// itself hashes nothing (a view's rows may: `UndirectedView` looks each row's vertex up in
-    /// its base). Otherwise from `edges`, in order, looking each endpoint up once: by
-    /// `vertexIndex(of:)` with vertex indices, else in a dictionary.
+    /// its base). Otherwise from `edges`, in order: with vertex indices, the ends from
+    /// `endpointIndices(ofEdgeAt:)` (no lookup on the undirected view of a `LabeledGraph`, whose
+    /// base's ends are its indices); else each looked up once in a dictionary.
     @inlinable
     func _rankedEdges<W: Comparable & AdditiveArithmetic>(_ weight: (Edges.Index) -> W) -> _RankedEdges<Edges.Index, W> {
         let m = edgeCount
@@ -97,12 +98,24 @@ extension Graph {
             }
             return _RankedEdges(u: us, v: vs, position: positions, keyed: keyed, vertexCount: n)
         }
-        let indexed = vertexIndexBound != nil
-        let ids = indexed ? [:] : _numberedVertices()
+        if vertexIndexBound != nil {
+            for (rank, position) in edges.indices.enumerated() {
+                let (u, v) = endpointIndices(ofEdgeAt: position)
+                if u == v { continue }
+                let w = weight(position)
+                precondition(w == w, "An edge weight is NaN")
+                us[rank] = u
+                vs[rank] = v
+                positions[rank] = position
+                keyed.append((w, rank))
+            }
+            return _RankedEdges(u: us, v: vs, position: positions, keyed: keyed, vertexCount: vertexIndexBound!)
+        }
+        let ids = _numberedVertices()
         for (rank, position) in edges.indices.enumerated() {
             let edge = edges[position]
-            let u = indexed ? vertexIndex(of: edge.u) : ids[edge.u]!
-            let v = indexed ? vertexIndex(of: edge.v) : ids[edge.v]!
+            let u = ids[edge.u]!
+            let v = ids[edge.v]!
             if u == v { continue }
             let w = weight(position)
             precondition(w == w, "An edge weight is NaN")
@@ -111,7 +124,7 @@ extension Graph {
             positions[rank] = position
             keyed.append((w, rank))
         }
-        return _RankedEdges(u: us, v: vs, position: positions, keyed: keyed, vertexCount: vertexIndexBound ?? ids.count)
+        return _RankedEdges(u: us, v: vs, position: positions, keyed: keyed, vertexCount: ids.count)
     }
 
     /// Each vertex's offset in `vertices`, for a graph without vertex indices.

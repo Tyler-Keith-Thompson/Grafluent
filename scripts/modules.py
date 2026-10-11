@@ -110,7 +110,7 @@ TEST_TARGETS = [
     ("CentralityTests", ["GraphProtocols", "Centrality", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("ConnectivityTests", ["GraphProtocols", "Connectivity", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("StableGraphsTests", ["GraphProtocols", "StableGraphs", "Multigraphs", "Traversal", "Connectivity", "ShortestPaths", "AdjacencyListModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
-    ("LabeledGraphsTests", ["GraphProtocols", "LabeledGraphs", "CompressedSparseRowModule", "AdjacencyMatrixModule", "AdjacencyListModule", "Multigraphs", "StableGraphs", "Traversal", "Connectivity", "ShortestPaths", "GrafluentTestSupport", "swift-property-based/PropertyBased", "swift-collections/OrderedCollections"]),
+    ("LabeledGraphsTests", ["GraphProtocols", "LabeledGraphs", "CompressedSparseRowModule", "AdjacencyMatrixModule", "AdjacencyListModule", "Multigraphs", "StableGraphs", "Traversal", "Connectivity", "ShortestPaths", "SpanningTrees", "Centrality", "Flows", "Distances", "GrafluentTestSupport", "swift-property-based/PropertyBased", "swift-collections/OrderedCollections"]),
     ("GraphProtocolsTests", ["GraphProtocols", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "EdgeListModule", "GrafluentTestSupport", "swift-collections/BitCollections"]),
 ]
 

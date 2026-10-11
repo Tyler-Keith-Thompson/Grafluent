@@ -36,8 +36,7 @@ extension Graph {
         var numbers: [Int] = []
         if vertexIndexBound != nil {
             for root in roots {
-                precondition(contains(root), "A root is not a vertex of the graph")
-                numbers.append(vertexIndex(of: root))
+                numbers.append(_requiredVertexIndex(of: root, "A root is not a vertex of the graph"))
             }
         } else {
             var byVertex: [Vertex: Int] = [:]

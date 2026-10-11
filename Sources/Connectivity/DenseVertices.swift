@@ -54,7 +54,7 @@ package struct _DenseVertices<G: DirectedGraph> {
     /// The number of `vertex`. - Precondition: `vertex` is a vertex of the graph.
     @inlinable
     package func number(of vertex: G.Vertex) -> Int {
-        if isIndexed { return graph.vertexIndex(of: vertex) }
+        if isIndexed { return graph._requiredVertexIndex(of: vertex, "\(vertex) is not a vertex of the graph") }
         if let rows, let sparse {
             precondition(graph.contains(vertex), "\(vertex) is not a vertex of the graph")
             return rows.numbers[sparse.vertexPosition(of: vertex)]

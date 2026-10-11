@@ -93,8 +93,7 @@ extension Graph {
             }
         } else {
             for v in vertices {
-                precondition(contains(v), "\(v) is not a vertex of the graph")
-                flags[vertexIndex(of: v)] = true
+                flags[_requiredVertexIndex(of: v, "\(v) is not a vertex of the graph")] = true
             }
         }
         return flags

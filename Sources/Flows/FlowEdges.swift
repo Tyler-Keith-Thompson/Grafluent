@@ -157,8 +157,7 @@ extension DirectedGraph {
             guard let v = vertices.numbers[vertex] else { preconditionFailure("\(vertex) is not a vertex of the graph") }
             return v
         }
-        precondition(contains(vertex), "\(vertex) is not a vertex of the graph")
-        return vertexIndex(of: vertex)
+        return _requiredVertexIndex(of: vertex, "\(vertex) is not a vertex of the graph")
     }
 
     /// Every vertex by number.
@@ -226,8 +225,7 @@ extension Graph {
             guard let v = vertices.numbers[vertex] else { preconditionFailure("\(vertex) is not a vertex of the graph") }
             return v
         }
-        precondition(contains(vertex), "\(vertex) is not a vertex of the graph")
-        return vertexIndex(of: vertex)
+        return _requiredVertexIndex(of: vertex, "\(vertex) is not a vertex of the graph")
     }
 
     /// Every vertex by number.

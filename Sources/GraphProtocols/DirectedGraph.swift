@@ -36,7 +36,9 @@
 ///   so an algorithm that visits vertices in `vertices` order can walk `0..<vertexIndexBound`.
 /// - With vertex indices, `successorIndices(ofIndex: vertexIndex(of: v))` is
 ///   `successors(of: v)` mapped through `vertexIndex(of:)`, in the same order, and
-///   `outEdges(ofIndex: vertexIndex(of: v))` is `outEdges(of: v)`.
+///   `outEdges(ofIndex: vertexIndex(of: v))` is `outEdges(of: v)`; for every position `e`,
+///   `sourceIndex(ofEdgeAt: e)` and `targetIndex(ofEdgeAt: e)` are the indices of
+///   `source(ofEdgeAt: e)` and `target(ofEdgeAt: e)`.
 /// - With edge indices, `edgeIndexBound == edgeCount` and `edgeIndex(of:)` is one-to-one onto
 ///   `0..<edgeIndexBound`, and `edges` is in index order: the `k`th position of `edges` has
 ///   `edgeIndex` `k` (so `undirected`, which forwards both, keeps `Graph`'s law of the same name).
@@ -127,6 +129,25 @@ public protocol DirectedGraph<Vertex> {
     /// - Precondition: `vertexIndexBound` is not `nil`, and `index` is in `0..<vertexIndexBound`.
     func outEdges(ofIndex index: Int) -> OutEdges
 
+    /// `outDegree(of: vertex(atIndex: index))`, without the lookup a representation may need to
+    /// find the vertex. Default: exactly that.
+    ///
+    /// - Precondition: `vertexIndexBound` is not `nil`, and `index` is in `0..<vertexIndexBound`.
+    func outDegree(ofIndex index: Int) -> Int
+
+    /// `vertexIndex(of: source(ofEdgeAt: position))`, for a representation or a view that knows
+    /// the index without the lookup (a `LabeledGraph` reads its base's `Int` endpoint, where
+    /// `vertexIndex(of:)` would hash the label). Default: exactly that.
+    ///
+    /// - Precondition: `vertexIndexBound` is not `nil`, and `position` is a position in `edges`.
+    func sourceIndex(ofEdgeAt position: Edges.Index) -> Int
+
+    /// `vertexIndex(of: target(ofEdgeAt: position))`, without the lookup where the representation
+    /// can avoid it. Default: exactly that.
+    ///
+    /// - Precondition: `vertexIndexBound` is not `nil`, and `position` is a position in `edges`.
+    func targetIndex(ofEdgeAt position: Edges.Index) -> Int
+
     /// The number of dense edge indices, `edgeCount`, or `nil` when the representation has none.
     /// Default: `nil`.
     var edgeIndexBound: Int? { get }
@@ -182,6 +203,12 @@ public protocol BidirectionalDirectedGraph<Vertex>: DirectedGraph {
 
     /// `outDegree(of:) + inDegree(of:)`; a self-loop counts twice. Default: that sum.
     func degree(of vertex: Vertex) -> Int
+
+    /// `inDegree(of: vertex(atIndex: index))`, without the lookup a representation may need to
+    /// find the vertex. Default: exactly that.
+    ///
+    /// - Precondition: `vertexIndexBound` is not `nil`, and `index` is in `0..<vertexIndexBound`.
+    func inDegree(ofIndex index: Int) -> Int
 
     /// The indices of `predecessors(of: vertex(atIndex: index))`, in the same order. Default:
     /// `predecessors` mapped through `vertexIndex(of:)`.
@@ -242,6 +269,21 @@ extension DirectedGraph {
     }
 
     @inlinable
+    public func outDegree(ofIndex index: Int) -> Int {
+        outDegree(of: vertex(atIndex: index))
+    }
+
+    @inlinable
+    public func sourceIndex(ofEdgeAt position: Edges.Index) -> Int {
+        vertexIndex(of: source(ofEdgeAt: position))
+    }
+
+    @inlinable
+    public func targetIndex(ofEdgeAt position: Edges.Index) -> Int {
+        vertexIndex(of: target(ofEdgeAt: position))
+    }
+
+    @inlinable
     public var edgeIndexBound: Int? { nil }
 
     @inlinable
@@ -292,6 +334,11 @@ extension BidirectionalDirectedGraph {
     @inlinable
     public func inEdges(ofIndex index: Int) -> InEdges {
         inEdges(of: vertex(atIndex: index))
+    }
+
+    @inlinable
+    public func inDegree(ofIndex index: Int) -> Int {
+        inDegree(of: vertex(atIndex: index))
     }
 
     @inlinable

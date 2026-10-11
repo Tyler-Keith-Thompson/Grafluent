@@ -7,6 +7,7 @@ import Connectivity
 import GraphProtocols
 import LabeledGraphs
 import ShortestPaths
+import SpanningTrees
 import Traversal
 
 /// Label hashes so far: every `CountingLabel.hash(into:)` call.
@@ -80,6 +81,9 @@ let benchmarks: @Sendable () -> Void = {
         ("matrix stronglyConnectedComponents", hashes { blackHole(countedMatrix.stronglyConnectedComponents().count) }),
         ("matrix weaklyConnectedComponents", hashes { blackHole(countedMatrix.weaklyConnectedComponents().count) }),
         ("matrix dijkstraShortestPaths", hashes { blackHole(countedMatrix.dijkstraShortestPaths(from: source, weight: cellWeight)) }),
+        ("matrix.undirected kruskalMinimumSpanningTree", hashes { blackHole(countedMatrix.undirected.kruskalMinimumSpanningTree(weight: cellWeight)) }),
+        ("matrix.undirected boruvkaMinimumSpanningTree", hashes { blackHole(countedMatrix.undirected.boruvkaMinimumSpanningTree(weight: cellWeight)) }),
+        ("matrix.undirected minimumSpanningTree", hashes { blackHole(countedMatrix.undirected.minimumSpanningTree()) }),
     ] {
         precondition(count <= 4, "\(name) hashed \(count) labels")
     }
@@ -115,6 +119,21 @@ let benchmarks: @Sendable () -> Void = {
         for _ in benchmark.scaledIterations { blackHole(labeled.dijkstraShortestPaths(from: "v0") { weights[$0] }) }
     }
 
+    Benchmark("LabeledGraphs: BASELINE breadthFirstSearch events on CompressedSparseRow") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var count = 0
+            for _ in csr.breadthFirstSearch(from: 0) { count &+= 1 }
+            blackHole(count)
+        }
+    }
+    Benchmark("LabeledGraphs: breadthFirstSearch events on LabeledGraph<String, CompressedSparseRow>") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var count = 0
+            for _ in labeled.breadthFirstSearch(from: "v0") { count &+= 1 }
+            blackHole(count)
+        }
+    }
+
     Benchmark("LabeledGraphs: BASELINE breadthFirstLayers on AdjacencyMatrix") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(matrix.breadthFirstLayers(from: 0)) }
     }
@@ -141,6 +160,51 @@ let benchmarks: @Sendable () -> Void = {
     }
     Benchmark("LabeledGraphs: dijkstraShortestPaths on LabeledGraph<String, AdjacencyMatrix>") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(labeledMatrix.dijkstraShortestPaths(from: "v0", weight: cellWeight)) }
+    }
+
+    // MARK: Spanning trees over the undirected view (no edge indices on the matrix)
+
+    Benchmark("LabeledGraphs: BASELINE kruskalMinimumSpanningTree on AdjacencyMatrix.undirected") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(matrix.undirected.kruskalMinimumSpanningTree(weight: cellWeight)) }
+    }
+    Benchmark("LabeledGraphs: kruskalMinimumSpanningTree on LabeledGraph<String, AdjacencyMatrix>.undirected") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(labeledMatrix.undirected.kruskalMinimumSpanningTree(weight: cellWeight)) }
+    }
+    Benchmark("LabeledGraphs: BASELINE boruvkaMinimumSpanningTree on AdjacencyMatrix.undirected") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(matrix.undirected.boruvkaMinimumSpanningTree(weight: cellWeight)) }
+    }
+    Benchmark("LabeledGraphs: boruvkaMinimumSpanningTree on LabeledGraph<String, AdjacencyMatrix>.undirected") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(labeledMatrix.undirected.boruvkaMinimumSpanningTree(weight: cellWeight)) }
+    }
+
+    // MARK: Label-space neighbor reads
+
+    Benchmark("LabeledGraphs: BASELINE vertexIndex(of:) then successorIndices(ofIndex:) mapped by vertex(atIndex:), every vertex of LabeledGraph<String, CompressedSparseRow>") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var total = 0
+            for v in labeled.vertices {
+                for w in labeled.successorIndices(ofIndex: labeled.vertexIndex(of: v)) { total &+= labeled.vertex(atIndex: w).utf8.count }
+            }
+            blackHole(total)
+        }
+    }
+    Benchmark("LabeledGraphs: successors(of:), every vertex of LabeledGraph<String, CompressedSparseRow> (must not allocate)", configuration: .init(metrics: [.wallClock, .mallocCountTotal])) { benchmark in
+        for _ in benchmark.scaledIterations {
+            var total = 0
+            for v in labeled.vertices {
+                for w in labeled.successors(of: v) { total &+= w.utf8.count }
+            }
+            blackHole(total)
+        }
+    }
+
+    Benchmark("LabeledGraphs: successors(of:) held for every vertex of LabeledGraph<String, CompressedSparseRow>, one allocation for the array (must not allocate per call)", configuration: .init(metrics: [.wallClock, .mallocCountTotal])) { benchmark in
+        for _ in benchmark.scaledIterations {
+            var held: [LabeledGraph<String, CompressedSparseRow>.Successors] = []
+            held.reserveCapacity(n)
+            for v in labeled.vertices { held.append(labeled.successors(of: v)) }
+            blackHole(held)
+        }
     }
 
     // MARK: Construction from labels

@@ -5,6 +5,7 @@
 // `{labels, base}` with its corrupt payloads, the collections, copy-on-write, the resets and
 // capacity, and Sendable. See README.md.
 
+import AdjacencyListModule
 import AdjacencyMatrixModule
 import CompressedSparseRowModule
 import Connectivity
@@ -12,6 +13,7 @@ import Foundation
 import GrafluentTestSupport
 import GraphProtocols
 import LabeledGraphs
+import Multigraphs
 import ShortestPaths
 import Testing
 import Traversal
@@ -176,6 +178,80 @@ struct LabeledGraphConformanceTests {
         let good = Data(#"{"labels": ["a", "b"], "base": \#(base)}"#.utf8)
         let decoded = try JSONDecoder().decode(LabeledGraph<String, CompressedSparseRow>.self, from: good)
         #expect(Array(decoded.edges) == [DirectedEdge(from: "a", to: "b")])
+    }
+
+    @Test("Decoding errors name the part at fault in codingPath: the base, or the labels")
+    func codableCodingPaths() throws {
+        // A base whose vertices are not 0..<n: the base is at fault, whatever the labels.
+        let unordered = String(decoding: try JSONEncoder().encode(AdjacencyList<Int>(vertices: [5, 6])), as: UTF8.self)
+        do {
+            let decoded = try JSONDecoder().decode(LabeledGraph<String, AdjacencyList<Int>>.self, from: Data(#"{"labels": ["a", "b"], "base": \#(unordered)}"#.utf8))
+            Issue.record("decoded \(decoded)")
+        } catch DecodingError.dataCorrupted(let context) {
+            #expect(context.codingPath.map(\.stringValue) == ["base"])
+        } catch {
+            Issue.record("unexpected error \(error)")
+        }
+        // A base that is fine with the wrong labels: the labels are at fault.
+        let dense = String(decoding: try JSONEncoder().encode(AdjacencyList<Int>(vertices: [0, 1])), as: UTF8.self)
+        do {
+            let decoded = try JSONDecoder().decode(LabeledGraph<String, AdjacencyList<Int>>.self, from: Data(#"{"labels": ["a", "a"], "base": \#(dense)}"#.utf8))
+            Issue.record("decoded \(decoded)")
+        } catch DecodingError.dataCorrupted(let context) {
+            #expect(context.codingPath.map(\.stringValue) == ["labels"])
+        } catch {
+            Issue.record("unexpected error \(error)")
+        }
+        // The base's own decoding error passes through, at its own path inside "base".
+        do {
+            let decoded = try JSONDecoder().decode(LabeledGraph<String, AdjacencyList<Int>>.self, from: Data(#"{"labels": ["a"], "base": {"vertices": [0], "edges": [0]}}"#.utf8))
+            Issue.record("decoded \(decoded)")
+        } catch DecodingError.dataCorrupted(let context) {
+            #expect(context.codingPath.first?.stringValue == "base")
+        } catch {
+            Issue.record("unexpected error \(error)")
+        }
+        let accepted = try JSONDecoder().decode(LabeledGraph<String, AdjacencyList<Int>>.self, from: Data(#"{"labels": ["a", "b"], "base": \#(dense)}"#.utf8))
+        #expect(Array(accepted.vertices) == ["a", "b"] && accepted.edgeCount == 0)
+    }
+
+    @Test("Over a base with parallel edges, equality and hashing count each labeled edge's copies")
+    func parallelEdgeBaseEquality() {
+        // a→b twice and b→c once, numbered a, b, c on the left and c, a, b on the right.
+        let lhs = LabeledGraph(DirectedPseudograph<Int>(vertices: [0, 1, 2], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)]), labels: ["a", "b", "c"])
+        let rhs = LabeledGraph(DirectedPseudograph<Int>(vertices: [0, 1, 2], edges: [DirectedEdge(from: 2, to: 0), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 1, to: 2)]), labels: ["c", "a", "b"])
+        #expect(lhs == rhs && rhs == lhs)
+        #expect(lhs.hashValue == rhs.hashValue)
+        #expect(Set([lhs, rhs]).count == 1)
+        // The same edge set and edge count, other multiplicities: a→b once, b→c twice.
+        let other = LabeledGraph(DirectedPseudograph<Int>(vertices: [0, 1, 2], edges: [DirectedEdge(from: 2, to: 0), DirectedEdge(from: 2, to: 0), DirectedEdge(from: 1, to: 2)]), labels: ["c", "a", "b"])
+        #expect(Set(other.edges) == Set(lhs.edges) && other.edgeCount == lhs.edgeCount)
+        #expect(lhs != other && other != lhs)
+        // An edge the left graph lacks.
+        let missing = LabeledGraph(DirectedPseudograph<Int>(vertices: [0, 1, 2], edges: [DirectedEdge(from: 2, to: 0), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 0, to: 1)]), labels: ["c", "a", "b"])
+        #expect(lhs != missing && missing != lhs)
+    }
+
+    @Test("Mutation returns the labels stored in the graph, not the equal ones passed in")
+    func storedLabelInstances() {
+        // Equal by id, told apart by tag.
+        struct Tagged: Hashable {
+            let id: Int
+            let tag: String
+            static func == (lhs: Tagged, rhs: Tagged) -> Bool { lhs.id == rhs.id }
+            func hash(into hasher: inout Hasher) { hasher.combine(id) }
+        }
+        var graph = LabeledGraph<Tagged, AdjacencyMatrix>(vertices: [Tagged(id: 1, tag: "stored"), Tagged(id: 2, tag: "stored")])
+        let inserted = graph.insert(edge: DirectedEdge(from: Tagged(id: 1, tag: "probe"), to: Tagged(id: 2, tag: "probe")))
+        #expect(inserted.inserted)
+        #expect(inserted.memberAfterInsert.source.tag == "stored" && inserted.memberAfterInsert.target.tag == "stored")
+        let again = graph.insert(safe: DirectedEdge(from: Tagged(id: 1, tag: "probe"), to: Tagged(id: 2, tag: "probe")))
+        #expect(again?.inserted == false && again?.memberAfterInsert.source.tag == "stored")
+        #expect(graph.insert(Tagged(id: 2, tag: "probe")).memberAfterInsert.tag == "stored")
+        let removed = graph.remove(edge: DirectedEdge(from: Tagged(id: 1, tag: "probe"), to: Tagged(id: 2, tag: "probe")))
+        #expect(removed?.source.tag == "stored" && removed?.target.tag == "stored")
+        #expect(graph.edgeCount == 0)
+        #expect(graph.vertices.map(\.tag) == ["stored", "stored"])
     }
 
     @Test("Edges: RandomAccessCollection over CSR, BidirectionalCollection over the matrix, positions the base's")

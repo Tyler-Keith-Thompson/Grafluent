@@ -34,8 +34,7 @@ extension Graph {
     @inlinable
     func _tourNumber(of vertex: Vertex, _ numbering: _TourNumbering<Vertex>, _ message: @autoclosure () -> String) -> Int {
         if numbering.isIndexed {
-            precondition(contains(vertex), message())
-            return vertexIndex(of: vertex)
+            return _requiredVertexIndex(of: vertex, message())
         }
         guard let v = numbering.numbers[vertex] else { preconditionFailure(message()) }
         return v
@@ -147,8 +146,7 @@ extension DirectedGraph {
     @inlinable
     func _tourNumber(of vertex: Vertex, _ rows: _DirectedTourRows<Self>, _ message: @autoclosure () -> String) -> Int {
         if rows.isIndexed {
-            precondition(contains(vertex), message())
-            return vertexIndex(of: vertex)
+            return _requiredVertexIndex(of: vertex, message())
         }
         guard let v = rows.numbers[vertex] else { preconditionFailure(message()) }
         return v

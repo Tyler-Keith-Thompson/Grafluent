@@ -41,6 +41,22 @@ extension LabeledGraph where Base == CompressedSparseRow {
         self.init(_labels: labels, _base: CompressedSparseRow(vertexCount: labels.count, edges: numbered))
     }
 
+    /// A graph of the vertices and edges `content` lists, as `init(vertices:edges:)` takes them: a
+    /// bare label is a vertex, a `DirectedEdge` an edge.
+    @inlinable
+    public init(@DirectedGraphBuilder<Label> _ content: () -> DirectedGraphBuilder<Label>.Content) {
+        let content = content()
+        self.init(vertices: content.vertices, edges: content.edges)
+    }
+
+    /// The graph with every edge reversed, with the same labels at the same indices: the base's
+    /// `transposed()`, O(n + m), with no hashing (the labels are shared, not copied). Positions are
+    /// the transpose's own, row-major in its rows.
+    @inlinable
+    public func transposed() -> LabeledGraph {
+        LabeledGraph(_labels: _labels, _base: _base.transposed())
+    }
+
     /// The compressed sparse row form of `graph`, with its vertices indexed in `graph.vertices`
     /// order and parallel edges collapsed: `init(vertices: graph.vertices, edges: graph.edges)`.
     /// When `graph` has vertex indices, its edges are read in index space, so only the vertices are
@@ -83,6 +99,14 @@ extension LabeledGraph where Base == AdjacencyMatrix {
     public init(vertices: some Sequence<Label>, edges: some Sequence<DirectedEdge<Label>>) {
         let (labels, numbered) = Self._numbered(vertices: vertices, edges: edges)
         self.init(_labels: labels, _base: AdjacencyMatrix(vertexCount: labels.count, edges: numbered))
+    }
+
+    /// A graph of the vertices and edges `content` lists, as `init(vertices:edges:)` takes them: a
+    /// bare label is a vertex, a `DirectedEdge` an edge.
+    @inlinable
+    public init(@DirectedGraphBuilder<Label> _ content: () -> DirectedGraphBuilder<Label>.Content) {
+        let content = content()
+        self.init(vertices: content.vertices, edges: content.edges)
     }
 
     /// The matrix form of `graph`, with its vertices indexed in `graph.vertices` order and
