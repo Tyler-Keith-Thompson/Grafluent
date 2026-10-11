@@ -79,6 +79,7 @@ SECTIONS = {
     "Cliques": "cliques", "Centrality": "centrality", "CommunityDetection": "communities",
     "BipartiteGraphs": "bipartite", "MatchingModule": "matching", "Covering": "covering",
     "ColoringModule": "coloring", "Flows": "flows", "Tours": "tours",
+    "DirectedAcyclicGraphModule": "dag",
 }
 ALL_SECTIONS = sorted(set(SECTIONS.values()))
 
@@ -259,6 +260,40 @@ def compare(case, mine, ref, sections):
         problems += differential_flows.compare_flows(case, mine["flows"])
     if "tours" in sections:
         problems += differential_tours.compare_tours(case, mine["tours"])
+    if "dag" in sections and case["directed"]:
+        problems += compare_dag(case, mine["dag"])
+    return problems
+
+
+def compare_dag(case, mine):
+    """DirectedAcyclicGraph: the case's edges inserted one at a time; NetworkX rejects an edge
+    exactly when it is a self-loop or its target already reaches its source. Then the order must
+    be topological, and the closure, the reduction (as edge sets), the longest path (exactly,
+    given our order as topo_order: no removals, no parallel edges) and has_path must match."""
+    problems = []
+    H = nx.DiGraph()
+    H.add_nodes_from(range(case["n"]))
+    accepted = []
+    for u, v, _ in case["edges"]:
+        ok = u != v and not nx.has_path(H, v, u)
+        accepted.append(ok)
+        if ok: H.add_edge(u, v)
+    if mine["accepted"] != accepted:
+        return [f"dag: accepted {mine['accepted']}, NetworkX {accepted}"]
+    order = mine["order"]
+    place = {v: i for i, v in enumerate(order)}
+    if sorted(order) != list(range(case["n"])) or any(place[u] >= place[v] for u, v in H.edges()):
+        problems.append(f"dag: order {order} is not a topological order")
+    if not mine["positionsAgree"]:
+        problems.append("dag: topologicalPosition(of:) disagrees with topologicalOrder")
+    if sorted(map(tuple, mine["closure"])) != sorted(nx.transitive_closure_dag(H).edges()):
+        problems.append("dag: transitiveClosure differs from NetworkX's transitive_closure_dag")
+    if sorted(map(tuple, mine["reduction"])) != sorted(nx.transitive_reduction(H).edges()):
+        problems.append("dag: transitiveReduction differs from NetworkX's transitive_reduction")
+    if case["n"] and mine["longestPath"] != nx.dag_longest_path(H, topo_order=order):
+        problems.append(f"dag: longestPath {mine['longestPath']}, NetworkX {nx.dag_longest_path(H, topo_order=order)}")
+    if case["n"] and mine["hasPath"] != nx.has_path(H, case["sources"][0], case["target"]):
+        problems.append(f"dag: hasPath {mine['hasPath']}, NetworkX the opposite")
     return problems
 
 

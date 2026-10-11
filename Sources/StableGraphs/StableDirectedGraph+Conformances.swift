@@ -508,3 +508,53 @@ extension StableDirectedGraph: CustomStringConvertible, CustomDebugStringConvert
         Mirror(self, children: ["vertices": Array(vertices), "edges": Array(edges)], displayStyle: .struct)
     }
 }
+
+// MARK: - MutableDirectedGraph
+
+extension StableDirectedGraph: MutableDirectedGraph {
+    /// The position of `vertex`, or `nil`. One hash.
+    @inlinable public func _key(of vertex: Vertex) -> Int? { _slots[vertex] }
+    @inlinable public func _vertex(atKey key: Int) -> Vertex { _vertex(atSlot: key) }
+    @inlinable public func _successors(ofKey key: Int) -> Neighbors { Neighbors(pages: _vertexPages, base: _vertexBase, row: _outRow(key)) }
+    @inlinable public func _predecessors(ofKey key: Int) -> Neighbors { Neighbors(pages: _vertexPages, base: _vertexBase, row: _inRow(key)) }
+
+    /// The stored row's live far ends, which are positions; valid with holes, unlike
+    /// `successorIndices(ofIndex:)`'s contract.
+    @inlinable
+    public func _successorKeys(ofKey key: Int) -> SuccessorIndices {
+        let k = _vk(key), l = key & _PositionPage.mask
+        return _outPages.withUnsafeBufferPointer { _LiveRow.Ends(ends: $0[k].endSlice(l), count: $0[k].degree(l)) }
+    }
+
+    /// The stored row's live far ends, which are positions.
+    @inlinable
+    public func _predecessorKeys(ofKey key: Int) -> PredecessorIndices {
+        let k = _vk(key), l = key & _PositionPage.mask
+        return _inPages.withUnsafeBufferPointer { _LiveRow.Ends(ends: $0[k].endSlice(l), count: $0[k].degree(l)) }
+    }
+
+    @inlinable public func _outEdges(ofKey key: Int) -> OutEdges { _outEdges(slot: key) }
+    @inlinable public func _inEdges(ofKey key: Int) -> InEdges { _inEdges(slot: key) }
+    @inlinable public func _outDegree(ofKey key: Int) -> Int { _outDegree(key) }
+    @inlinable public func _inDegree(ofKey key: Int) -> Int { _inDegree(key) }
+    @inlinable public func _sourceKey(ofEdgeAt position: Int) -> Int { _liveRecord(position).source }
+    @inlinable public func _targetKey(ofEdgeAt position: Int) -> Int { _liveRecord(position).target }
+    @inlinable public mutating func _insertVertex(_ vertex: Vertex) -> Int { _appendSlot(for: vertex) }
+
+    /// Always a new copy, at position `edges.endIndex`.
+    @inlinable
+    public mutating func _insertEdge(fromKey source: Int, toKey target: Int) -> Int {
+        _insertEdge(slots: source, target)
+    }
+
+    /// Removes the vertex at position `key`, leaving a hole: nothing moves, so always `nil`.
+    @inlinable
+    public mutating func _removeVertex(atKey key: Int) -> Int? {
+        remove(_vertex(atSlot: key))
+        return nil
+    }
+
+    /// `remove(edgeAt:)`: a hole; traps at a position with no live edge.
+    @inlinable
+    public mutating func _removeEdge(at position: Int) -> DirectedEdge<Vertex> { remove(edgeAt: position) }
+}

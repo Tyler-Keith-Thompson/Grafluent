@@ -38,7 +38,7 @@ MODULES = [
     ("LabeledGraphs", "Representations", "LabeledGraph: Hashable vertex labels over CompressedSparseRow or AdjacencyMatrix, kept in an OrderedSet whose element i names base vertex i, with every index-space member forwarded to the base (BGL's labeled_graph).", ["GraphProtocols", "CompressedSparseRowModule", "AdjacencyMatrixModule", "swift-collections/OrderedCollections"]),
 
     # Graph classes with invariants
-    ("DirectedAcyclicGraphModule", "Structures", "DirectedAcyclicGraph: acyclicity enforced on insertion by incremental cycle detection.", ["GraphProtocols", "Walks"]),
+    ("DirectedAcyclicGraphModule", "Structures", "DirectedAcyclicGraph: a wrapper over any MutableDirectedGraph that rejects an edge closing a cycle and keeps a topological order by Pearce–Kelly, with every read member forwarded to the base.", ["GraphProtocols", "Walks"]),
     ("Trees", "Structures", "Tree, RootedTree, Forest and Arborescence.", ["GraphProtocols", "Walks"]),
     ("BipartiteGraphs", "Structures", "BipartiteGraph, bipartiteness, bipartitions and odd-cycle witnesses.", ["GraphProtocols", "Walks", "AdjacencyListModule"]),
     ("Multigraphs", "Structures", "Pseudograph, Multigraph, DirectedPseudograph and DirectedMultigraph: parallel edges, with and without self-loops.", ["GraphProtocols", "AdjacencyListModule"]),
@@ -111,6 +111,7 @@ TEST_TARGETS = [
     ("ConnectivityTests", ["GraphProtocols", "Connectivity", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("StableGraphsTests", ["GraphProtocols", "StableGraphs", "Multigraphs", "Traversal", "Connectivity", "ShortestPaths", "AdjacencyListModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("LabeledGraphsTests", ["GraphProtocols", "LabeledGraphs", "CompressedSparseRowModule", "AdjacencyMatrixModule", "AdjacencyListModule", "Multigraphs", "StableGraphs", "Traversal", "Connectivity", "ShortestPaths", "SpanningTrees", "Centrality", "Flows", "Distances", "GrafluentTestSupport", "swift-property-based/PropertyBased", "swift-collections/OrderedCollections"]),
+    ("DirectedAcyclicGraphTests", ["GraphProtocols", "DirectedAcyclicGraphModule", "AdjacencyListModule", "Multigraphs", "StableGraphs", "Traversal", "Connectivity", "Walks", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("GraphProtocolsTests", ["GraphProtocols", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "EdgeListModule", "GrafluentTestSupport", "swift-collections/BitCollections"]),
 ]
 
@@ -122,7 +123,7 @@ TEST_SIZES = {name: "medium" for name in ["ColoringModuleTests", "DistancesTests
 
 # The library modules the differential harness (Differential/, scripts/differential.py) links.
 # Both its Package.swift and its BUILD.bazel are written from this list.
-DIFFERENTIAL_DEPENDENCIES = ["GraphProtocols", "AdjacencyListModule", "ShortestPaths", "SpanningTrees", "Connectivity", "Walks", "Cycles", "Trees", "TreeAlgorithms", "Distances", "Cliques", "Centrality", "CommunityDetection", "BipartiteGraphs", "MatchingModule", "Covering", "ColoringModule", "Multigraphs", "Flows", "Tours", "CompressedSparseRowModule"]
+DIFFERENTIAL_DEPENDENCIES = ["GraphProtocols", "AdjacencyListModule", "ShortestPaths", "SpanningTrees", "Connectivity", "Walks", "Cycles", "Trees", "TreeAlgorithms", "Distances", "Cliques", "Centrality", "CommunityDetection", "BipartiteGraphs", "MatchingModule", "Covering", "ColoringModule", "Multigraphs", "Flows", "Tours", "CompressedSparseRowModule", "DirectedAcyclicGraphModule"]
 
 PLATFORMS = '[.macOS(.v15), .iOS(.v18), .tvOS(.v18), .watchOS(.v11), .visionOS(.v2)]'
 

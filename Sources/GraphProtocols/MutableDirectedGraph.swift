@@ -1,0 +1,114 @@
+/// A bidirectional directed graph that generic code can mutate: Boost's `MutableGraph` concept
+/// (`add_vertex`, `add_edge`, `remove_edge`, `remove_vertex`, `clear_vertex`), for a directed
+/// representation. It exists so that a wrapper which adds a rule, such as `DirectedAcyclicGraph`,
+/// can own any of the mutable representations as its base and still run at the base's speed.
+///
+/// **Keys.** Each vertex has a key: its index in `vertices` (`Vertices.Index == Int`). On a dense
+/// representation (`AdjacencyList`, `DirectedPseudograph`) the key is the vertex's slot, which is
+/// also its `vertexIndex(of:)`; on `StableDirectedGraph` it is the vertex's position, which never
+/// changes while the vertex exists and may leave holes. The underscored members read and write the
+/// graph by key, with no hashing, so a wrapper hashes a vertex once and then works on keys.
+///
+/// **Laws.** In addition to `BidirectionalDirectedGraph`'s:
+/// - `_key(of: v)` is `vertices.firstIndex(of: v)`, and `_vertex(atKey:)` is its inverse.
+/// - For a vertex with key `k`: `_successors(ofKey: k)`, `_predecessors(ofKey: k)`,
+///   `_outEdges(ofKey: k)`, `_inEdges(ofKey: k)`, `_outDegree(ofKey: k)` and `_inDegree(ofKey: k)`
+///   are the members of the same name without the label, for that vertex.
+///   `_successorKeys(ofKey: k)` and `_predecessorKeys(ofKey: k)` are the far ends' keys, in the
+///   same order; `_sourceKey(ofEdgeAt:)` and `_targetKey(ofEdgeAt:)` are the endpoints' keys.
+/// - `_insertVertex(_:)` appends a vertex, which must not already be one, and returns its key:
+///   `vertices.endIndex` before the call. Keys of other vertices do not change.
+/// - `_insertEdge(fromKey:toKey:)` inserts the edge and returns its position. On a simple graph
+///   (`AdjacencyList`), an edge already present is not inserted again and its position is
+///   returned. Inserting an edge changes no key.
+/// - `_removeVertex(atKey: k)` removes the vertex and every edge at it. If the representation fills
+///   the hole by moving another vertex in (a swap-remove), it returns that vertex's old key, and
+///   the vertex's key is now `k`; otherwise it returns `nil` and no other key changes.
+/// - `_removeEdge(at:)` removes the edge at a live position and returns it, trapping on any other
+///   position. Removing an edge changes no key.
+///
+/// The hooks are underscored because they are for wrappers inside the library: callers use the
+/// representations' own `insert` and `remove` members, which take vertices.
+public protocol MutableDirectedGraph<Vertex>: BidirectionalDirectedGraph where Vertices.Index == Int {
+    /// The empty graph.
+    init()
+
+    /// Inserts `vertex` with no edges, if it is not already a vertex.
+    ///
+    /// - Returns: Whether it was inserted, and the vertex now in the graph that is equal to
+    ///   `vertex` (the existing one, if there was one).
+    @discardableResult
+    mutating func insert(_ vertex: Vertex) -> (inserted: Bool, memberAfterInsert: Vertex)
+
+    /// Removes one copy of `edge` (the newest, on a representation with parallel edges). Never
+    /// inserts or removes a vertex.
+    ///
+    /// - Returns: The removed edge, or `nil` if no copy of `edge` was an edge.
+    @discardableResult
+    mutating func remove(edge: DirectedEdge<Vertex>) -> DirectedEdge<Vertex>?
+
+    /// Removes every vertex and edge.
+    mutating func removeAll(keepingCapacity: Bool)
+
+    /// Removes every edge, keeping every vertex and its key.
+    mutating func removeAllEdges(keepingCapacity: Bool)
+
+    /// Reserves space for at least `vertexCount` vertices and `edgeCount` edges.
+    mutating func reserveCapacity(vertexCount: Int, edgeCount: Int)
+
+    /// The key of `vertex`, or `nil` when it is not a vertex. One hash.
+    func _key(of vertex: Vertex) -> Int?
+
+    /// The vertex with key `key`. O(1).
+    ///
+    /// - Precondition: `key` is the key of a vertex.
+    func _vertex(atKey key: Int) -> Vertex
+
+    /// `successors(of: _vertex(atKey: key))`, without the hash.
+    func _successors(ofKey key: Int) -> Successors
+
+    /// `predecessors(of: _vertex(atKey: key))`, without the hash.
+    func _predecessors(ofKey key: Int) -> Predecessors
+
+    /// The keys of `successors(of: _vertex(atKey: key))`, in the same order: the stored row.
+    func _successorKeys(ofKey key: Int) -> SuccessorIndices
+
+    /// The keys of `predecessors(of: _vertex(atKey: key))`, in the same order: the stored row.
+    func _predecessorKeys(ofKey key: Int) -> PredecessorIndices
+
+    /// `outEdges(of: _vertex(atKey: key))`, without the hash.
+    func _outEdges(ofKey key: Int) -> OutEdges
+
+    /// `inEdges(of: _vertex(atKey: key))`, without the hash.
+    func _inEdges(ofKey key: Int) -> InEdges
+
+    /// `outDegree(of: _vertex(atKey: key))`, without the hash. O(1).
+    func _outDegree(ofKey key: Int) -> Int
+
+    /// `inDegree(of: _vertex(atKey: key))`, without the hash. O(1).
+    func _inDegree(ofKey key: Int) -> Int
+
+    /// The key of `source(ofEdgeAt: position)`. O(1).
+    func _sourceKey(ofEdgeAt position: Edges.Index) -> Int
+
+    /// The key of `target(ofEdgeAt: position)`. O(1).
+    func _targetKey(ofEdgeAt position: Edges.Index) -> Int
+
+    /// Appends `vertex` and returns its key. O(1) amortized.
+    ///
+    /// - Precondition: `vertex` is not a vertex.
+    mutating func _insertVertex(_ vertex: Vertex) -> Int
+
+    /// Inserts an edge from the vertex with key `source` to the one with key `target` and returns
+    /// its position; on a simple graph, an existing edge's position, with nothing inserted.
+    mutating func _insertEdge(fromKey source: Int, toKey target: Int) -> Edges.Index
+
+    /// Removes the vertex with key `key` and every edge at it; returns the old key of the vertex
+    /// moved into `key`, if the representation moved one.
+    mutating func _removeVertex(atKey key: Int) -> Int?
+
+    /// Removes the edge at `position` and returns it.
+    ///
+    /// - Precondition: `position` is the position of an edge.
+    mutating func _removeEdge(at position: Edges.Index) -> DirectedEdge<Vertex>
+}

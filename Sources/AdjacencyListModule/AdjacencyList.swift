@@ -264,9 +264,18 @@ extension AdjacencyList {
         let source = _slots[edge.source] ?? _appendSlot(for: edge.source)
         let target = _slots[edge.target] ?? _appendSlot(for: edge.target)
         let member = DirectedEdge(from: _vertices[source], to: _vertices[target])
+        let count = _records.count
+        return (_insertEdge(slots: source, target) == count, member)
+    }
+
+    /// Inserts the edge from slot `source` to slot `target` unless it is already an edge, and
+    /// returns its position: the new one, `edgeCount` before the call, or the existing one.
+    @inlinable
+    @discardableResult
+    internal mutating func _insertEdge(slots source: Int, _ target: Int) -> Int {
         let pair = _SlotPair(source, target)
         // Checked before inserting, so inserting an existing edge never copies shared storage.
-        if _edges[pair] != nil { return (false, member) }
+        if let existing = _edges[pair] { return existing }
         let position = _records.count
         let out = _out.append(target, toRow: source)
         _outEdges.append(position, toRow: source)
@@ -274,7 +283,7 @@ extension AdjacencyList {
         _inEdges.append(position, toRow: target)
         _records.append(_ArcRecord(source: source, target: target, out: out, in: into))
         _edges[pair] = position
-        return (true, member)
+        return position
     }
 
     /// Removes `vertex` and every edge incident to it. O(degree), plus the degree of the vertex
@@ -714,5 +723,48 @@ extension AdjacencyList {
         reserveCapacity(vertexCount: graph.vertexCount, edgeCount: graph.edgeCount)
         for v in graph.vertices { insert(v) }
         for edge in graph.edges { insert(edge: edge) }
+    }
+}
+
+// MARK: - MutableDirectedGraph
+
+extension AdjacencyList: MutableDirectedGraph {
+    /// The slot of `vertex`, or `nil`. One hash.
+    @inlinable public func _key(of vertex: Vertex) -> Int? { _slots[vertex] }
+    @inlinable public func _vertex(atKey key: Int) -> Vertex { _vertices[key] }
+    @inlinable public func _successors(ofKey key: Int) -> Neighbors { Neighbors(vertices: _vertices, slots: _out[row: key]) }
+    @inlinable public func _predecessors(ofKey key: Int) -> Neighbors { Neighbors(vertices: _vertices, slots: _in[row: key]) }
+    @inlinable public func _successorKeys(ofKey key: Int) -> ArraySlice<Int> { _out[row: key] }
+    @inlinable public func _predecessorKeys(ofKey key: Int) -> ArraySlice<Int> { _in[row: key] }
+    @inlinable public func _outEdges(ofKey key: Int) -> ArraySlice<Int> { _outEdges[row: key] }
+    @inlinable public func _inEdges(ofKey key: Int) -> ArraySlice<Int> { _inEdges[row: key] }
+    @inlinable public func _outDegree(ofKey key: Int) -> Int { _out.count(ofRow: key) }
+    @inlinable public func _inDegree(ofKey key: Int) -> Int { _in.count(ofRow: key) }
+    @inlinable public func _sourceKey(ofEdgeAt position: Int) -> Int { _records[position].source }
+    @inlinable public func _targetKey(ofEdgeAt position: Int) -> Int { _records[position].target }
+    @inlinable public mutating func _insertVertex(_ vertex: Vertex) -> Int { _appendSlot(for: vertex) }
+
+    /// The existing edge's position when the edge is already present: the graph is simple.
+    @inlinable
+    public mutating func _insertEdge(fromKey source: Int, toKey target: Int) -> Int {
+        _insertEdge(slots: source, target)
+    }
+
+    /// Removes the vertex in slot `key`; the last slot moves into it, so its old key is returned
+    /// unless `key` was the last.
+    @inlinable
+    public mutating func _removeVertex(atKey key: Int) -> Int? {
+        let last = _vertices.count - 1
+        remove(_vertices[key])
+        return key == last ? nil : last
+    }
+
+    /// Removes the edge at `position`; the last edge moves into it. O(1).
+    @inlinable
+    public mutating func _removeEdge(at position: Int) -> DirectedEdge<Vertex> {
+        precondition(UInt(bitPattern: position) < UInt(bitPattern: _records.count), "Edge position out of range")
+        let record = _records[position]
+        _detach(position)
+        return DirectedEdge(from: _vertices[record.source], to: _vertices[record.target])
     }
 }

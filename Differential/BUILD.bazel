@@ -31,6 +31,7 @@ swift_binary(
         "//Sources/Flows",
         "//Sources/Tours",
         "//Sources/CompressedSparseRowModule",
+        "//Sources/DirectedAcyclicGraphModule",
     ],
     tags = ["manual"],
 )

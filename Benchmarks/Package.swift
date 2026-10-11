@@ -182,6 +182,22 @@ let package = Package(
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
         ),
         .executableTarget(
+            name: "DirectedAcyclicGraphBenchmarks",
+            dependencies: [
+                "BenchmarkSupport",
+                .product(name: "Benchmark", package: "benchmark"),
+                .product(name: "GraphProtocols", package: "Grafluent"),
+                .product(name: "DirectedAcyclicGraphModule", package: "Grafluent"),
+                .product(name: "AdjacencyListModule", package: "Grafluent"),
+                .product(name: "Multigraphs", package: "Grafluent"),
+                .product(name: "StableGraphs", package: "Grafluent"),
+                .product(name: "Connectivity", package: "Grafluent"),
+                .product(name: "Traversal", package: "Grafluent"),
+            ],
+            path: "Benchmarks/DirectedAcyclicGraphBenchmarks",
+            plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
+        ),
+        .executableTarget(
             name: "StableGraphsBenchmarks",
             dependencies: [
                 "BenchmarkSupport",

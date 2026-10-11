@@ -710,3 +710,41 @@ extension DirectedPseudograph: BidirectionalDirectedGraph {
     @inlinable
     public func edgeIndex(of position: Int) -> Int { position }
 }
+
+// MARK: - MutableDirectedGraph
+
+extension DirectedPseudograph: MutableDirectedGraph {
+    /// The slot of `vertex`, or `nil`. One hash.
+    @inlinable public func _key(of vertex: Vertex) -> Int? { _slots[vertex] }
+    @inlinable public func _vertex(atKey key: Int) -> Vertex { _vertices[key] }
+    @inlinable public func _successors(ofKey key: Int) -> Neighbors { Neighbors(vertices: _vertices, slots: _out[row: key]) }
+    @inlinable public func _predecessors(ofKey key: Int) -> Neighbors { Neighbors(vertices: _vertices, slots: _in[row: key]) }
+    @inlinable public func _successorKeys(ofKey key: Int) -> ArraySlice<Int> { _out[row: key] }
+    @inlinable public func _predecessorKeys(ofKey key: Int) -> ArraySlice<Int> { _in[row: key] }
+    @inlinable public func _outEdges(ofKey key: Int) -> ArraySlice<Int> { _outEdges[row: key] }
+    @inlinable public func _inEdges(ofKey key: Int) -> ArraySlice<Int> { _inEdges[row: key] }
+    @inlinable public func _outDegree(ofKey key: Int) -> Int { _out.count(ofRow: key) }
+    @inlinable public func _inDegree(ofKey key: Int) -> Int { _in.count(ofRow: key) }
+    @inlinable public func _sourceKey(ofEdgeAt position: Int) -> Int { _records[position].source }
+    @inlinable public func _targetKey(ofEdgeAt position: Int) -> Int { _records[position].target }
+    @inlinable public mutating func _insertVertex(_ vertex: Vertex) -> Int { _appendSlot(for: vertex) }
+
+    /// Always a new copy, at position `edgeCount`.
+    @inlinable
+    public mutating func _insertEdge(fromKey source: Int, toKey target: Int) -> Int {
+        _insertEdge(slots: source, target)
+    }
+
+    /// Removes the vertex in slot `key`; the last slot moves into it, so its old key is returned
+    /// unless `key` was the last.
+    @inlinable
+    public mutating func _removeVertex(atKey key: Int) -> Int? {
+        let last = _vertices.count - 1
+        remove(_vertices[key])
+        return key == last ? nil : last
+    }
+
+    /// `remove(edgeAt:)`: the last edge moves into `position`. O(1).
+    @inlinable
+    public mutating func _removeEdge(at position: Int) -> DirectedEdge<Vertex> { remove(edgeAt: position) }
+}

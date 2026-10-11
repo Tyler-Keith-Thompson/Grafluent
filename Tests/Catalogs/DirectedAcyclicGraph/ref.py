@@ -216,40 +216,29 @@ class DAG:
         return (True, v)
 
     def insert_edge(self, u, v, safe=False):
+        """The new edge's position (the existing one's on a simple base), or None: the edge would close
+        a cycle (a self-loop included, checked first so that nothing is inserted), or, with safe=True,
+        an endpoint is missing. A rejected edge changes nothing."""
         if safe and (self.b.key(u) is None or self.b.key(v) is None): return None
-        if u == v:
-            return ("cycle", [u], [])           # checked first: nothing is inserted
+        if u == v: return None
         self.insert_vertex(u); self.insert_vertex(v)
         ku, kv = self.b.key(u), self.b.key(v)
-        if self.ord[ku] > self.ord[kv]:
-            found = self._pearce_kelly(ku, kv)
-            if found is not None:
-                ks, ps = found
-                return ("cycle", [self.b.vertex(k) for k in ks], ps)
+        if self.ord[ku] > self.ord[kv] and self._pearce_kelly(ku, kv) is not None: return None
         p, _ = self.b.add_edge(ku, kv)
-        return ("inserted", p)
+        return p
 
     def _pearce_kelly(self, ku, kv):
+        """Reorders for an edge ku -> kv placed backward and returns None, or returns True, changing
+        nothing, when kv reaches ku (the edge would close a cycle)."""
         ub, lb = self.ord[ku], self.ord[kv]
-        # forward: depth-first from kv in outEdges order through keys placed before ku
-        F, parent = {kv}, {}
-        stack = [(kv, iter(self.b.out_row(kv)))]
+        # forward: depth-first from kv through keys placed before ku
+        F, stack = {kv}, [kv]
         while stack:
-            w, it = stack[-1]
-            nxt = next(it, None)
-            if nxt is None:
-                stack.pop(); continue
-            t, p = nxt
-            WORK["fwd"] += 1
-            if t == ku:
-                ks, ps = [ku], [p]
-                x = w
-                while x != kv:
-                    ks.append(x); px, pp = parent[x]; ps.append(pp); x = px
-                ks.append(kv)
-                return ks[::-1], ps[::-1]
-            if self.ord[t] < ub and t not in F:
-                F.add(t); parent[t] = (w, p); stack.append((t, iter(self.b.out_row(t))))
+            w = stack.pop()
+            for t, _ in self.b.out_row(w):
+                WORK["fwd"] += 1
+                if t == ku: return True
+                if self.ord[t] < ub and t not in F: F.add(t); stack.append(t)
         # backward: from ku through keys placed after kv
         B, stack = {ku}, [ku]
         while stack:
@@ -403,9 +392,38 @@ def check_laws(g):
         assert g.ord[s] < g.ord[t], "every edge goes forward"
 
 
-def check_witness(g, u, v, res):
-    """res = ('cycle', vertices, positions): a path of g from v to u."""
-    _, vs, ps = res
+def shortest_paths(g, a, b):
+    """Every shortest path of g from a to b by edge count, as (vertices, positions), out-edges in
+    outEdges(of:) order: the paths Traversal's bidirectionalShortestPath(from: a, to: b) may return."""
+    ka, kb = g._need_vertex(a), g._need_vertex(b)
+    dist, frontier = {ka: 0}, [ka]
+    while frontier and kb not in dist:
+        nxt = []
+        for w in frontier:
+            for t, _ in g.b.out_row(w):
+                if t not in dist: dist[t] = dist[w] + 1; nxt.append(t)
+        frontier = nxt
+    if kb not in dist: return []
+    out = []
+
+    def walk(k, ks, ps):
+        if k == kb: out.append(([g.b.vertex(x) for x in ks], ps)); return
+        for t, p in g.b.out_row(k):
+            if dist.get(t) == dist[k] + 1 and dist[t] <= dist[kb]: walk(t, ks + [t], ps + [p])
+
+    walk(ka, [ka], [])
+    return out
+
+
+def witness(g, u, v):
+    """The witness for a rejected u -> v: bidirectionalShortestPath(from: v, to: u)."""
+    paths = shortest_paths(g, v, u)
+    for vs, ps in paths: check_witness(g, u, v, vs, ps)
+    return ("paths", paths)
+
+
+def check_witness(g, u, v, vs, ps):
+    """A path of g from v to u: with the edge u -> v it closes a cycle."""
     if u == v:
         assert vs == [u] and ps == []; return
     assert vs[0] == v and vs[-1] == u and len(vs) == len(ps) + 1 and len(set(vs)) == len(vs)
@@ -473,8 +491,7 @@ def show_result(r):
     if isinstance(r, bool): return "true" if r else "false"
     if isinstance(r, int): return str(r)
     if isinstance(r, str): return r
-    if isinstance(r, tuple) and r and r[0] == "inserted": return f".inserted({r[1]})"
-    if isinstance(r, tuple) and r and r[0] == "cycle": return f".cycle({show_path(r[1], r[2])})"
+    if isinstance(r, tuple) and r and r[0] == "paths": return " or ".join(show_path(vs, ps) for vs, ps in r[1]) or "nil"
     if isinstance(r, tuple) and r and r[0] == "path": return show_path(r[1], r[2])
     if isinstance(r, tuple) and r and r[0] == "graph": return "{" + show_state(r[1]) + "}"
     if isinstance(r, tuple) and len(r) == 2 and isinstance(r[0], bool): return f"({show_result(r[0])}, {fmt(r[1])})"
@@ -503,6 +520,7 @@ def show_op(op):
     if k == "positionSafe": return f"topologicalPosition(safe: {fmt(op[1])})"
     if k == "order": return "topologicalOrder"
     if k == "hasPath": return f"hasPath(from: {fmt(op[1])}, to: {fmt(op[2])})"
+    if k == "witness": return f"bidirectionalShortestPath(from: {fmt(op[1])}, to: {fmt(op[2])})"
     if k == "closure": return "transitiveClosure()"
     if k == "reduction": return "transitiveReduction()"
     if k == "longest": return "longestPath()"
@@ -527,6 +545,7 @@ def apply(g, op):
     if k == "orderAt":
         o = g.topological_order(); need(0 <= op[1] < len(o), "index out of range"); return fmt(o[op[1]])
     if k == "hasPath": return g.has_path(op[1], op[2])
+    if k == "witness": return witness(g, op[2], op[1])
     if k == "closure": return ("graph", g.transitive_closure())
     if k == "reduction": return ("graph", g.transitive_reduction())
     if k == "longest":
@@ -548,7 +567,8 @@ def run(kind, V, E, ops):
             return res, True, g
         check_laws(g)
         if isinstance(r, tuple) and r and r[0] == "graph": check_laws(r[1])
-        if op[0] in ("edge", "safe") and r and r[0] == "cycle": check_witness(g, op[1], op[2], r)
+        if op[0] in ("edge", "safe") and r is None and g.b.key(op[1]) is not None and g.b.key(op[2]) is not None:
+            assert g.has_path(op[2], op[1]) and witness(g, op[1], op[2])[1], "a rejected edge has a witness"
         res.append(show_result(r))
     return res, False, g
 
@@ -615,25 +635,27 @@ def define():
     case(P, "reverse a chain one edge at a time", "DP", [0, 1, 2, 3], [], [("edge", 3, 2), ("edge", 2, 1), ("edge", 1, 0)])
     case(P, "interleaved sets: B then F take the pooled slots; 6 and 7 stay", "DP", list(range(8)), [(0, 2), (2, 4), (1, 3), (3, 5)], [("edge", 5, 0)])
     case(P, "order independent of row order (same sets)", "DP", [0, 1, 2, 3], [(1, 3), (1, 2)], [("edge", 3, 0)])
-    case(P, "incremental build, then the edge closing a five-cycle", "AL", [], [], [("edge", 2, 3), ("edge", 0, 1), ("edge", 3, 0), ("edge", 1, 4), ("edge", 4, 2)])
+    case(P, "incremental build, then the edge closing a five-cycle", "AL", [], [], [("edge", 2, 3), ("edge", 0, 1), ("edge", 3, 0), ("edge", 1, 4), ("edge", 4, 2), ("witness", 2, 4)])
 
     Y = "Cycle witness"
-    case(Y, "self-loop: [u] with no edges; nothing inserted", "DP", [0], [], [("edge", 0, 0)])
+    case(Y, "self-loop: nil, nothing inserted; the witness is the trivial path", "DP", [0], [], [("edge", 0, 0), ("witness", 0, 0)])
     case(Y, "self-loop on a non-vertex inserts nothing", "AL", [0], [], [("edge", 9, 9)])
-    case(Y, "two-cycle: the existing edge", "DP", [0, 1], [(0, 1)], [("edge", 1, 0)])
-    case(Y, "long cycle: the path from target to source", "DP", [], chain(5), [("edge", 4, 0)])
-    case(Y, "two paths: the first depth-first path in outEdges order", "DP", [0, 1, 2, 3], [(0, 2), (0, 1), (1, 3), (2, 3)], [("edge", 3, 0)])
-    case(Y, "dead branch explored first is not in the path", "DP", [0, 1, 2, 3], [(0, 1), (1, 2), (0, 3)], [("edge", 3, 0)])
-    case(Y, "parallel copies: the first copy in outEdges order", "DP", [0, 1], [(0, 1), (0, 1)], [("edge", 1, 0)])
-    case(Y, "witness positions after a swap-remove", "DP", [0, 1, 2], [(0, 1), (1, 2), (0, 2)], [("removeAt", 0), ("edge", 2, 0)])
-    case(Y, "Stable positions in the witness", "SG", [0, 1, 2], [(0, 1), (0, 1), (1, 2)], [("removeAt", 0), ("edge", 2, 0)])
+    case(Y, "two-cycle: the existing edge", "DP", [0, 1], [(0, 1)], [("edge", 1, 0), ("witness", 0, 1)])
+    case(Y, "long cycle: the path from target to source", "DP", [], chain(5), [("edge", 4, 0), ("witness", 0, 4)])
+    case(Y, "two shortest paths: either", "DP", [0, 1, 2, 3], [(0, 2), (0, 1), (1, 3), (2, 3)], [("edge", 3, 0), ("witness", 0, 3)])
+    case(Y, "a dead branch and a long way round: the shortest path", "DP", [0, 1, 2, 3], [(0, 1), (1, 2), (2, 3), (0, 3)], [("edge", 3, 0), ("witness", 0, 3)])
+    case(Y, "parallel copies: either copy", "DP", [0, 1], [(0, 1), (0, 1)], [("edge", 1, 0), ("witness", 0, 1)])
+    case(Y, "witness positions after a swap-remove", "DP", [0, 1, 2], [(0, 1), (1, 2), (0, 2)], [("removeAt", 0), ("edge", 2, 0), ("witness", 0, 2)])
+    case(Y, "Stable positions in the witness", "SG", [0, 1, 2], [(0, 1), (0, 1), (1, 2)], [("removeAt", 0), ("edge", 2, 0), ("witness", 0, 2)])
     case(Y, "rejected edge changes nothing; later insert works", "AL", [0, 1, 2], [(0, 1), (1, 2)], [("edge", 2, 0), ("edge", 0, 2)])
+    case(Y, "rejection found through vertices placed between the endpoints only", "DP", [0, 1, 2, 3], [(1, 2), (0, 3), (2, 3)], [("edge", 2, 1), ("witness", 1, 2), ("edge", 3, 0), ("witness", 0, 3)])
 
     S = "insert(safe:)"
     case(S, "both endpoints present: as insert(edge:)", "DP", [0, 1], [], [("safe", 1, 0)])
     case(S, "missing endpoint: nil, nothing inserted", "DP", [0], [], [("safe", 0, 1), ("safe", 2, 0)])
-    case(S, "cycle reported through safe:", "AL", [0, 1], [(0, 1)], [("safe", 1, 0)])
-    case(S, "self-loop on a vertex: cycle; on a non-vertex: nil", "SG", [0], [], [("safe", 0, 0), ("safe", 3, 3)])
+    case(S, "cycle: nil, nothing changes", "AL", [0, 1], [(0, 1)], [("safe", 1, 0), ("witness", 0, 1)])
+    case(S, "self-loop on a vertex and on a non-vertex: nil", "SG", [0], [], [("safe", 0, 0), ("safe", 3, 3)])
+    case(S, "existing edge on AdjacencyList: its position", "AL", [0, 1], [(0, 1)], [("safe", 0, 1)])
 
     R = "Removal"
     case(R, "remove(edge:) keeps the order", "DP", [0, 1, 2], [(1, 0), (0, 2)], [("removeEdge", 1, 0)])
@@ -669,6 +691,7 @@ def define():
     case(A, "transitiveClosure: copies kept, none added", "DP", [], [(0, 1), (0, 1)], [("closure",)])
     case(A, "transitiveClosure: diamond plus tail", "AL", [], [(0, 1), (0, 2), (1, 3), (2, 3), (3, 4)], [("closure",)])
     case(A, "transitiveClosure: empty", "SG", [], [], [("closure",)])
+    case(A, "transitiveClosure: missing edges appended in topological order, not vertices order", "DP", [0, 1, 2, 3], [(0, 3), (3, 2), (2, 1)], [("closure",)])
     case(A, "transitiveReduction: drops the shortcut", "DP", [0, 1, 2], [(0, 1), (1, 2), (0, 2)], [("reduction",)])
     case(A, "transitiveReduction: copies collapse to the first", "DP", [], [(0, 1), (1, 2), (0, 1)], [("reduction",)])
     case(A, "transitiveReduction: closure of a chain reduces to the chain", "AL", [], [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)], [("reduction",)])
@@ -718,9 +741,10 @@ Conventions:
 * Bulk construction orders by Kahn's algorithm (FIFO, roots in `vertices` order): Traversal's
   `topologicalGenerations()` flattened. Later inserts maintain the order by Pearce–Kelly, a deterministic
   function of the order and the reachability sets, so it does not depend on row order.
-* `insert(edge:)` returns `.inserted(p)` with the edge's position, or `.cycle(path)` where `path` is a
-  `Path` from `edge.target` to `edge.source` (`[vertices] via [edge positions]`): the first path a depth-first
-  search from the target finds, out-edges in `outEdges(of:)` order. A rejected edge changes nothing.
+* `insert(edge:)` returns the edge's position `p`, or `nil` when the edge would close a cycle (a self-loop
+  included); `insert(safe:)` also returns `nil` when an endpoint is missing. A rejected edge changes nothing.
+  The witness for a rejected u→v is Traversal's `bidirectionalShortestPath(from: v, to: u)`, a `Path`
+  (`[vertices] via [edge positions]`); where several shortest paths tie, the cell lists each (`… or …`).
 * `transitiveClosure()` / `transitiveReduction()` results are shown in braces with their own state.
 * `longestPath()` is a `Path` (`[vertices] via [positions]`), `nil` for the empty graph.
 * `**trap**` rows are preconditions, run as exit tests; results before the trap are listed.
@@ -768,12 +792,12 @@ def stress():
                 r = apply(g, op)
                 check_laws(g)
                 if op[0] in ("edge", "safe"):
-                    if r is None:
-                        assert op[0] == "safe" and (u not in spec.G or v not in spec.G)
+                    if op[0] == "safe" and (u not in spec.G or v not in spec.G):
+                        assert r is None, (seed, op, r)
                     else:
                         ok = spec.insert_edge(u, v)
-                        assert ok == (r[0] == "inserted"), (seed, op, r)
-                        if not ok: check_witness(g, u, v, r)
+                        assert ok == (r is not None), (seed, op, r)
+                        if not ok and u in spec.G: assert witness(g, u, v)[1], (seed, op)
                         for w in (u, v):
                             if u != v and w not in rnode: rnode[w] = rg.add_node(w)
                         if u == v:
@@ -842,7 +866,7 @@ def work_counts():
             u, v = rng.randrange(n), rng.randrange(n)
             if hidden and rank[u] > rank[v]: u, v = v, u   # edges of a DAG with a hidden order (PK's model)
             r = g.insert_edge(u, v)
-            rej += r[0] == "cycle"
+            rej += r is None
         check_laws(g)
         pk = WORK["fwd"] + WORK["bwd"] + WORK["delta"]; mnr = WORK["fwd"] + WORK["region"]
         out.append(("hidden-order DAG" if hidden else "random pairs", n, m, rej, WORK["reorders"], round(pk), mnr))

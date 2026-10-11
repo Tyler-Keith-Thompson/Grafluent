@@ -48,7 +48,9 @@
 /// graph generically (a view, a relabeling) must implement every requirement by forwarding to its
 /// base: a default chosen for the wrapper would ignore the base's faster member.
 ///
-/// The protocol has no mutation; mutation belongs to concrete types. It does not refine
+/// The protocol has no mutation: mutation belongs to concrete types, and the refinement
+/// `MutableDirectedGraph` (Boost's `MutableGraph`) gives wrappers the few hooks they need to
+/// mutate a base generically. It does not refine
 /// `Sendable`; representations are `Sendable` when their vertices are, and algorithms that cross
 /// isolation ask for `DirectedGraph & Sendable`.
 public protocol DirectedGraph<Vertex> {

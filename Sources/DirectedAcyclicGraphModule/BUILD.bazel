@@ -3,7 +3,7 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# DirectedAcyclicGraph: acyclicity enforced on insertion by incremental cycle detection.
+# DirectedAcyclicGraph: a wrapper over any MutableDirectedGraph that rejects an edge closing a cycle and keeps a topological order by Pearce–Kelly, with every read member forwarded to the base.
 swift_library(
     name = "DirectedAcyclicGraphModule",
     srcs = glob(["**/*.swift"]),

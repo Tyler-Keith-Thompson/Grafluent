@@ -1,8 +1,8 @@
 # DirectedAcyclicGraphModule: proposed API (phase 1)
 
 `DirectedAcyclicGraph<Base>` wraps a mutable directed representation and keeps it acyclic: an
-edge that would close a cycle is rejected, and the call returns the path that edge would close
-(README Principle 4, Structures row). The wrapper keeps a topological order of its vertices
+edge that would close a cycle is rejected, and the call returns `nil` (README Principle 4,
+Structures row). The path the edge would close comes from Traversal's existing path query. The wrapper keeps a topological order of its vertices
 current under insertions and removals, maintained by Pearce–Kelly, the algorithm JGraphT's
 `DirectedAcyclicGraph` and petgraph's `acyclic::Acyclic` both use. It follows the rule-adding
 wrapper pattern of README open question 9, as `DirectedMultigraph` over `DirectedPseudograph`
@@ -14,7 +14,8 @@ of the three phase-1 bases (`AdjacencyList`, `DirectedPseudograph` and `StableDi
 slots, rows and swap-remove moves as their sources have them). It checks every state against:
 
 - the laws: the order is a permutation of the vertices, and every edge goes forward;
-- each witness, which must be a path of the graph from the edge's target to its source.
+- each witness (`bidirectionalShortestPath(from: v, to: u)` for a rejected u→v), which must be a
+  shortest path of the graph from the edge's target to its source.
 
 `--stress` runs 450 seeded sequences of 60 steps (150 on each base) and checks them against:
 
@@ -38,7 +39,7 @@ To run it:
 | Module | **`DirectedAcyclicGraphModule`** (exists as a stub) | README package layout |
 | The order | **`topologicalOrder`**, a `RandomAccessCollection` of vertices (README) | "topological order" (CLRS); JGraphT `iterator()`, petgraph `nodes_iter()` |
 | Place in the order | **`topologicalPosition(of:)`**, `topologicalPosition(safe:)` | petgraph `get_position` (`TopologicalPosition`); `at_position` is the collection's subscript |
-| Insertion result | **`EdgeInsertion`** with `.inserted(position)` / `.cycle(path)`: see open question 3 | Swift's `Set.insert` (`inserted`); petgraph `AcyclicEdgeError::Cycle` |
+| Insertion result | **`Edges.Index?`**: the position, or `nil` on a cycle (decided: no `EdgeInsertion` type, an invented name; open question 3) | JGraphT `addEdge` (returns the edge, rejects a cycle); petgraph `try_add_edge` |
 | Base access | **`base`** (read-only) | README open question 9; petgraph `inner()` |
 | Algorithms | `transitiveClosure()`, `transitiveReduction()`, `longestPath()`, `hasPath(from:to:)` | NetworkX `transitive_closure_dag`, `transitive_reduction`, `dag_longest_path`, `has_path` |
 
@@ -54,30 +55,35 @@ public struct DirectedAcyclicGraph<Base: MutableDirectedGraph> {
 ```
 
 A key is the base's vertex index (its slot) on a dense base, and the vertex position on
-`StableDirectedGraph`. There, `_place` is indexed by position (paged as `_PositionNumbers` is, so
-memory follows the live vertices). Pearce–Kelly's scratch (the two visited sets, the slot pool and
+`StableDirectedGraph`. As implemented, the places live in a `_KeyTable` paged as `_PositionNumbers`
+is (a page table plus 1024-entry blocks, freed and reused once empty), so memory follows the live
+vertices on every base. Pearce–Kelly's scratch (the two visited sets, the slot pool and
 the stack) is kept in the value and reused between inserts. A visit stamp replaces the clearing
 of the sets, so a fast-path insert allocates nothing and a reorder allocates only to grow.
 
 ## Base protocol (open question 1)
 
 ```swift
-/// A directed graph a wrapper can mutate generically (BGL's `MutableGraph` concept: add_vertex,
-/// add_edge, remove_edge, remove_vertex). In GraphProtocols; the hooks are underscored.
-public protocol MutableDirectedGraph<Vertex>: BidirectionalDirectedGraph {
+/// Boost's `MutableGraph` concept, directed. In GraphProtocols; the hooks are underscored. A key
+/// is a vertex's index in `vertices`: its slot on a dense base, its position on a stable one.
+public protocol MutableDirectedGraph<Vertex>: BidirectionalDirectedGraph where Vertices.Index == Int {
     init()
     mutating func insert(_ vertex: Vertex) -> (inserted: Bool, memberAfterInsert: Vertex)
-    var _keyBound: Int { get }                          // vertexIndexBound, or vertexPositionBound
-    func _key(of vertex: Vertex) -> Int?                // one hash
-    func _vertex(atKey key: Int) -> Vertex
-    func _successorKeys(ofKey key: Int) -> SuccessorIndices   // the stored row, no hash
-    func _predecessorKeys(ofKey key: Int) -> PredecessorIndices
-    func _outEdges(ofKey key: Int) -> OutEdges
-    mutating func _insertEdge(fromKey: Int, toKey: Int) -> Edges.Index   // existing position on a simple base
-    mutating func _removeVertex(atKey key: Int) -> (movedFrom: Int, to: Int)?  // the swap-remove move, if any
-    mutating func _removeEdge(at position: Edges.Index)
+    mutating func remove(edge: DirectedEdge<Vertex>) -> DirectedEdge<Vertex>?
     mutating func removeAll(keepingCapacity: Bool)
     mutating func removeAllEdges(keepingCapacity: Bool)
+    mutating func reserveCapacity(vertexCount: Int, edgeCount: Int)
+    func _key(of vertex: Vertex) -> Int?                         // one hash
+    func _vertex(atKey key: Int) -> Vertex
+    func _successors(ofKey key: Int) -> Successors               // and _predecessors
+    func _successorKeys(ofKey key: Int) -> SuccessorIndices      // the stored row; and _predecessorKeys
+    func _outEdges(ofKey key: Int) -> OutEdges                   // and _inEdges
+    func _outDegree(ofKey key: Int) -> Int                       // and _inDegree
+    func _sourceKey(ofEdgeAt position: Edges.Index) -> Int       // and _targetKey
+    mutating func _insertVertex(_ vertex: Vertex) -> Int         // appends; returns the key
+    mutating func _insertEdge(fromKey: Int, toKey: Int) -> Edges.Index   // existing position on a simple base
+    mutating func _removeVertex(atKey key: Int) -> Int?          // the old key of the vertex moved in, if any
+    mutating func _removeEdge(at position: Edges.Index) -> DirectedEdge<Vertex>
 }
 ```
 
@@ -109,7 +115,7 @@ extension DirectedAcyclicGraph {
 
 - **Failable, like `DirectedMultigraph`'s:** `nil` when the edges have a cycle, a self-loop
   included (DAG-009, DAG-010). The witness is Traversal's `base.findCycle()`, so the initializer
-  does not duplicate it.
+  does not duplicate it; the order is Kahn's, computed in key space.
 - **The base is built as the base builds itself:** listed vertices first, then new endpoints in
   first-appearance order. Copies collapse on `AdjacencyList` (DAG-007) and are kept on the
   others (DAG-006).
@@ -139,7 +145,7 @@ extension DirectedAcyclicGraph {
 }
 public struct TopologicalOrder: RandomAccessCollection {              // nested in DirectedAcyclicGraph
     // Index = Int, 0..<n; subscript O(1) (petgraph's at_position); traps out of range (DAG-061)
-    // firstIndex(of:) / contains O(1) expected via _place (the _customIndexOfEquatableElement hook)
+    // firstIndex(of:) / contains via the table (the _customIndexOfEquatableElement hook): O(1), or O(log n) behind a removal
 }
 ```
 
@@ -159,14 +165,10 @@ public struct TopologicalOrder: RandomAccessCollection {              // nested 
 
 ```swift
 extension DirectedAcyclicGraph {
-    @frozen public enum EdgeInsertion {
-        case inserted(Edges.Index)               // the edge's position (the existing one on a simple base)
-        case cycle(Path<Vertex, Edges.Index>)    // from edge.target to edge.source; with the edge, the cycle
-    }
     @discardableResult
     public mutating func insert(_ vertex: Vertex) -> (inserted: Bool, memberAfterInsert: Vertex)   // O(1) amortized; last in the order
-    public mutating func insert(edge: DirectedEdge<Vertex>) -> EdgeInsertion        // not @discardableResult
-    public mutating func insert(safe edge: DirectedEdge<Vertex>) -> EdgeInsertion?   // nil: an endpoint is missing
+    @discardableResult public mutating func insert(edge: DirectedEdge<Vertex>) -> Edges.Index?   // nil: a cycle
+    @discardableResult public mutating func insert(safe edge: DirectedEdge<Vertex>) -> Edges.Index?   // nil: a cycle or a missing endpoint
     @discardableResult public mutating func remove(_ vertex: Vertex) -> Vertex?     // base cost + O(n − position)
     @discardableResult public mutating func remove(edge: DirectedEdge<Vertex>) -> DirectedEdge<Vertex>?  // base cost
     @discardableResult public mutating func remove(edgeAt position: Edges.Index) -> DirectedEdge<Vertex> // base cost; Base: has it
@@ -178,16 +180,16 @@ extension DirectedAcyclicGraph {
 
 **`insert(edge:)`**, for an edge u→v, follows Pearce–Kelly:
 
-1. **Self-loop:** `.cycle([u] via [])` before anything is inserted, even when u is not a vertex
-   (DAG-030, DAG-031, DAG-043).
+1. **Self-loop:** `nil` before anything is inserted, even when u is not a vertex (DAG-030,
+   DAG-031, DAG-044).
 2. **Missing endpoints** are inserted, source first, each placed last in the order (DAG-014).
 3. **Fast path:** if u is placed before v, the base inserts the edge. Cost: two array reads plus
    the base's insert (DAG-013, DAG-015, DAG-017).
 4. **Forward search:** otherwise, search depth-first from v in `outEdges` order, only through
-   vertices placed before u. If the search meets u, the result is `.cycle`, and nothing changes
-   (DAG-032 – DAG-039). The witness is the search's stack: the first path a depth-first search
-   finds, which is defined because rows have a defined order (DAG-034, DAG-035). Among parallel
-   copies it takes the first copy in `outEdges` order (DAG-036).
+   vertices placed before u. If the search meets u, the result is `nil`, and nothing changes
+   (DAG-032 – DAG-040). The witness is a separate call, Traversal's
+   `bidirectionalShortestPath(from: v, to: u)`, a shortest path; where several tie, the cell
+   lists each (DAG-034, DAG-036). It searches again, on failure only.
 5. **Backward search** from u through vertices placed after v. Then the backward set B, by old
    place, and then the forward set F, by old place, take the pooled places in increasing order.
    Nothing outside B ∪ F moves (DAG-021 – DAG-028). Both sets are defined by reachability and the
@@ -198,8 +200,13 @@ extension DirectedAcyclicGraph {
 
 - **`remove(edge:)`** and `remove(edgeAt:)` leave the order untouched.
 - **`remove(_:)`** closes the vertex's gap in the order by shifting the tail of `_order` down one
-  place and updating `_place` for each shifted key. That costs O(n − position), as
-  `Array.remove(at:)` does. petgraph's `remove_node` also documents O(v) for this.
+  place, one memmove, O(n − position), as `Array.remove(at:)` costs. **As implemented**, the
+  table holds labels, increasing along the order, not places: updating the place of every
+  shifted key made removing 10% of 10⁵ vertices cost 1.24 s against the base's 72 ms, and leaving
+  the labels makes it 159 ms. A label is its place until a vertex before it is removed;
+  `topologicalPosition(of:)` is O(1) then and a binary search over `_order` otherwise, and the
+  labels are renumbered once they span 2n + 1024 (amortized O(1) per removal). petgraph's
+  `get_position` likewise returns a gapped label (its `remove_node` is O(v)).
 - **Swap-remove on dense bases:** the base reports the move (the last slot into the hole). The
   wrapper re-keys the moved vertex in O(1) and its place stays the same (DAG-050, DAG-051).
 - **`StableDirectedGraph`** never moves a vertex (DAG-052).
@@ -215,7 +222,7 @@ extension DirectedAcyclicGraph {
 Removal of an absent vertex or edge returns `nil` and does not trap (DAG-045, DAG-053).
 
 Phase 2 adds `changeTarget(ofEdgeAt:to:)` and `changeSource(ofEdgeAt:to:)` on a stable base. Each
-returns `.cycle` when it fails and costs the same as an insert.
+returns `false` when it fails and costs the same as an insert.
 
 ### Algorithms (phase 1)
 
@@ -269,16 +276,16 @@ extension DirectedAcyclicGraph {
 |---|---|---|---|---|
 | Algorithm | Pearce–Kelly | Pearce–Kelly (JEA 2007) | Pearce–Kelly | a reachability search per insert, no order kept |
 | Base | generic `MutableDirectedGraph` (three in phase 1) | its own storage (`AbstractBaseGraph`) | generic `G` (`Graph`, `StableGraph`) | its own storage |
-| On a cycle | returns `.cycle(Path)`, the path the edge would close | throws `GraphCycleProhibitedException`, no witness | `Err(AcyclicEdgeError::Cycle(Cycle<N>))`, one node | raises `DAGWouldCycle`, no witness |
-| Self-loop | rejected, as `.cycle([u] via [])` | rejected | `AcyclicEdgeError::SelfLoop` | **accepted when the source has no in-edges or the target no out-edges**: 990 of 1243 tried in `--stress` |
+| On a cycle | returns `nil`; `bidirectionalShortestPath(from: v, to: u)` gives the path | throws `GraphCycleProhibitedException`, no witness | `Err(AcyclicEdgeError::Cycle(Cycle<N>))`, one node | raises `DAGWouldCycle`, no witness |
+| Self-loop | rejected (`nil`) | rejected | `AcyclicEdgeError::SelfLoop` | **accepted when the source has no in-edges or the target no out-edges**: 990 of 1243 tried in `--stress` |
 | Missing endpoint | `insert(edge:)` inserts it; `insert(safe:)` returns `nil` | `IllegalArgumentException` | `AcyclicEdgeError::InvalidEdge` | panics on an invalid index |
 | Order exposed | `topologicalOrder` (random access), `topologicalPosition(of:)` | `iterator()` only | `nodes_iter()`, `range(..)`, `get_position`, `at_position` | none (`topological_sort` recomputes it) |
 | Check without inserting | `!hasPath(from: target, to: source)`, pruned by the order | — | `is_valid_edge` | — |
 | Vertex removal | O(n − position) shift, re-keys the swap move | yes | O(v) | yes |
 | Ancestors and descendants | Traversal's | `getAncestors`, `getDescendants` | via `G` | `ancestors`, `descendants` |
 
-petgraph's witness is a single node. The full path costs nothing extra, since the forward
-search's stack already holds it, so Grafluent returns the path, consistent with `findCycle()`.
+petgraph's witness is a single node. Grafluent's is a full shortest path, from Traversal's
+existing query, at the cost of a second search on failure only.
 
 ## Performance targets
 
@@ -322,17 +329,11 @@ Benchmarks against petgraph `Acyclic<StableDiGraph>::try_add_edge` (Rust, releas
    - **Precedent:** JGraphT, petgraph and Abseil's `GraphCycles` all use PK.
    - **Removals keep the order** (it stays topological), and the gap is closed. Over swap-remove
      bases the moved vertex is re-keyed and keeps its place.
-3. **Insertion result.** Swift's `Result` cannot carry the witness: `Failure: Error` and `Error`
-   refines `Sendable`, and vertices need not be `Sendable` (README). An optional result for
-   "failed" reads backwards, and splitting the check (`insert -> Index?` plus a separate
-   `findCycle`-style query) searches twice. **Recommendation: the nested
-   `EdgeInsertion { case inserted(Edges.Index), case cycle(Path<Vertex, Edges.Index>) }`, not
-   `@discardableResult`**, so a caller cannot drop a rejection silently. The witness is a `Path`,
-   not a `Cycle`, because the closing edge has no position. `Path` plus the edge is the cycle,
-   and `Path` is the existing Walks type. The case names follow `Set.insert`'s `inserted` and
-   petgraph's `Cycle`. The type name is the one name here that no library has. The fallback,
-   if it is rejected, is the split `insert(edge:) -> Edges.Index?` with
-   `path(from: edge.target, to: edge.source)`, which costs a second search on failure only.
+3. **Insertion result.** **Decided (coordinator): `insert(edge:) -> Edges.Index?`**, `nil` when the
+   edge would close a cycle; no `EdgeInsertion` type, because no library has that name. The
+   witness for a rejected u→v is Traversal's `bidirectionalShortestPath(from: v, to: u)`, which
+   costs a second search on failure only. Both inserts are `@discardableResult`, as every base's
+   `insert(edge:)` is.
 4. **DAG algorithms.**
    - **Phase 1:** `topologicalOrder` and `topologicalPosition`, order-pruned `hasPath`,
      `transitiveClosure()`, `transitiveReduction()`, and unweighted `longestPath()`.
@@ -346,8 +347,8 @@ Benchmarks against petgraph `Acyclic<StableDiGraph>::try_add_edge` (Rust, releas
      `init?(condensation.graph)` costs O(n + m), so the GraphOperations row "always a
      `DirectedAcyclicGraph`" is met by conversion. The CSR result stays as Connectivity built it.
 5. **`safe:`.** As on `StableDirectedGraph`. `insert(safe:)` returns `nil` and changes nothing
-   when an endpoint is missing, and otherwise returns the `EdgeInsertion`. A self-loop on an
-   existing vertex is `.cycle` and on a missing one `nil` (DAG-040 – DAG-043).
+   when an endpoint is missing or the edge would close a cycle, a self-loop included
+   (DAG-041 – DAG-045).
    `topologicalPosition(safe:)` and the six row lookups return `nil` for a non-vertex. Removal
    of an absent element returns `nil` or 0 and never traps.
 6. **How algorithms see the DAG.** Forward every `DirectedGraph`, `BidirectionalDirectedGraph`
@@ -356,12 +357,12 @@ Benchmarks against petgraph `Acyclic<StableDiGraph>::try_add_edge` (Rust, releas
    doc comment requires exactly this of a wrapper. Positions are the base's, so attached maps
    and side arrays keyed by position stay valid through the wrapper.
 
-## Package changes (out of scope here)
+## Package changes (done)
 
-- `DirectedAcyclicGraphModule` gains dependencies on `Traversal` (bulk order, `findCycle`),
-  `AdjacencyListModule`, `Multigraphs` and `StableGraphs`, for the conformances, which can live
-  in this module because the protocol does not.
-- `MutableDirectedGraph` goes in GraphProtocols.
-- `scripts/modules.py` generates the BUILD file, so the dependencies change there.
-- The Structures row should drop its "Uses incremental cycle detection (an online topological
-  ordering such as Pearce–Kelly)" hedge.
+- `DirectedAcyclicGraphModule` depends on `GraphProtocols` and `Walks` only. The conformances to
+  `MutableDirectedGraph` need the bases' internals, so they live in `AdjacencyListModule`,
+  `Multigraphs` and `StableGraphs`, beside their other conformances; the bulk order is Kahn's in
+  key space, so `Traversal` is not needed.
+- `MutableDirectedGraph` is in GraphProtocols.
+- `scripts/modules.py` generates the BUILD files.
+- The README Structures row no longer hedges ("such as Pearce–Kelly").

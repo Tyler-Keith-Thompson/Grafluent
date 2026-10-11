@@ -4,7 +4,7 @@
 //
 // The arguments, if any, name the sections to answer (scripts/differential.py's --module):
 // shortestpaths, spanningtrees, connectivity, cycles, trees, distances, cliques, centrality,
-// communities, bipartite, matching, covering, coloring, flows, tours. With none, every section is
+// communities, bipartite, matching, covering, coloring, flows, tours, dag. With none, every section is
 // answered. A section not asked for is left at its default and not computed. `flows-catalog` or
 // `tours-catalog` as the only argument answers catalog requests instead (Flows.swift, Tours.swift).
 
@@ -65,6 +65,7 @@ struct Result: Encodable {
     var coloring = ColoringAnswers()
     var flows: FlowAnswers?
     var tours: ToursAnswers?
+    var dag: DirectedAcyclicGraphAnswers?
 }
 
 /// Cliques on the simple graph: maximal cliques (each sorted), the clique number and the
@@ -705,6 +706,7 @@ for c in cases {
         if wants("coloring") { results[results.count - 1].coloring = coloringAnswers(graph.undirected) }
         if wants("flows"), let f = c.flow { results[results.count - 1].flows = flowAnswers(directed: true, n: c.n, f) }
         if wants("tours"), let t = c.tours { results[results.count - 1].tours = toursAnswers(directed: true, n: c.n, edges: c.edges, sources: c.sources, target: c.target, t) }
+        if wants("dag") { results[results.count - 1].dag = directedAcyclicGraphAnswers(n: c.n, edges: c.edges, source: c.sources[0], target: c.target) }
     } else {
         let graph = UndirectedAdjacencyList(vertices: 0 ..< c.n, edges: c.edges.map { UndirectedEdge($0[0], $0[1]) })
         var byEdge: [UndirectedEdge<Int>: Int] = [:]
