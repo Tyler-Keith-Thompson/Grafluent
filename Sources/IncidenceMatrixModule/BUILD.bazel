@@ -3,13 +3,14 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# IncidenceMatrix.
+# IncidenceMatrix and OrientedIncidenceMatrix: a hypergraph's incidence as bit planes, conforming to Hypergraph and DirectedHypergraph.
 swift_library(
     name = "IncidenceMatrixModule",
     srcs = glob(["**/*.swift"]),
     module_name = "IncidenceMatrixModule",
     deps = [
         "//Sources/GraphProtocols",
+        "@swiftpkg_swift_collections//:BitCollections",
     ],
     visibility = ["//visibility:public"],
 )

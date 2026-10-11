@@ -129,6 +129,15 @@ public protocol Hypergraph<Vertex> {
     func memberIndices(ofHyperedgeAt position: Hyperedges.Index) -> MemberIndices
     func incidentHyperedges(ofIndex index: Int) -> IncidentHyperedges
     func degree(ofIndex index: Int) -> Int
+
+    // The incidence numbering the incidence-graph view uses as edge positions (underscored, as
+    // `_withIncidentIndexRows` is): incidences numbered hyperedge by hyperedge in index order,
+    // members in index order. Defaults compute it in O(m) and up per call; the incidence lists
+    // answer each in O(1) from their storage, and the matrices store the count.
+    var _incidenceCount: Int { get }
+    func _incidences(ofHyperedgeIndex index: Int) -> Range<Int>
+    func _incidences(ofIndex index: Int) -> ArraySlice<Int>
+    func _incidence(_ number: Int) -> (vertexIndex: Int, hyperedgeIndex: Int)
 }
 
 /// A directed hypergraph: each hyperedge is a pair of vertex sets, its sources and its targets
@@ -168,6 +177,13 @@ public protocol DirectedHypergraph<Vertex> {
     func inHyperedges(ofIndex index: Int) -> IncidentHyperedges
     func outDegree(ofIndex index: Int) -> Int
     func inDegree(ofIndex index: Int) -> Int
+
+    // The same numbering per side (`targets: false` the source incidences, `true` the target
+    // incidences, each from 0).
+    func _incidenceCount(targets: Bool) -> Int
+    func _incidences(ofHyperedgeIndex index: Int, targets: Bool) -> Range<Int>
+    func _incidences(ofIndex index: Int, targets: Bool) -> ArraySlice<Int>
+    func _incidence(_ number: Int, targets: Bool) -> (vertexIndex: Int, hyperedgeIndex: Int)
 }
 ```
 
@@ -213,23 +229,27 @@ the backward one.
 @frozen
 public struct UndirectedIncidenceList<Vertex: Hashable> {
     @usableFromInline var _vertices: OrderedSet<Vertex>        // element i is vertex index i
-    @usableFromInline var _rows: _IncidenceRows                // hyperedges and their transpose
+    @usableFromInline var _plane: _IncidencePlane              // hyperedges and their transpose
 }
 
-/// Package type: one plane of incidences.
-@usableFromInline struct _IncidenceRows {
-    var _memberOffsets: ContiguousArray<Int>    // hyperedgeCount + 1
-    var _members: ContiguousArray<Int>          // p vertex indices; each row ascending
-    var _hyperedgeOfIncidence: ContiguousArray<Int>   // q -> hyperedge, parallel to _members
-    var _incidences: _RowPool                   // row i: incidence numbers q, ascending
+/// Package type: one plane of incidences. (Not `_IncidenceRows`, which `GraphProtocols` already
+/// names for the graphs' stored rows.)
+@usableFromInline package struct _IncidencePlane {
+    var memberOffsets: ContiguousArray<Int>    // hyperedgeCount + 1
+    var members: ContiguousArray<Int>          // p vertex indices; each row ascending
+    var hyperedgeOfIncidence: ContiguousArray<Int>   // q -> hyperedge, parallel to members
+    var incidences: _RowPool                   // row i: incidence numbers q, ascending
+    var positions: _RowPool                    // row i: hyperedge positions, parallel to incidences
 }
 ```
 
 - **Incidence numbers.** p = Σ|e|. The q-th entry of `_members` is incidence q. Hyperedge `p` is
   `_members[_memberOffsets[p] ..< _memberOffsets[p + 1]]`, compressed sparse rows, so
   `memberIndices` is an `ArraySlice<Int>`. Vertex `i`'s row holds the incidence numbers of its
-  memberships, and `incidentHyperedges(ofIndex:)` maps them through `_hyperedgeOfIncidence`: a load
-  each, no hashing. The incidence-graph view uses q as its edge position.
+  memberships, and `incidentHyperedges(ofIndex:)` is the parallel `positions` row, an `ArraySlice<Int>`.
+  (Mapping each incidence number through `hyperedgeOfIncidence` instead, as first designed, cost
+  a dependent random load per entry and made traversals of the views 2–10× slower than an
+  adjacency-list copy; the second row costs 8 bytes per incidence.) The incidence-graph view uses q as its edge position.
 - **Rows.** `_RowPool` is `AdjacencyListModule`'s package type. Appending a hyperedge is amortized
   O(k), and the rows stay ascending because positions only increase.
 - **Index assignment.** Listed vertices first, then new members by first appearance (HG-003,
@@ -242,8 +262,8 @@ public struct UndirectedIncidenceList<Vertex: Hashable> {
 @frozen
 public struct IncidenceList<Vertex: Hashable> {
     @usableFromInline var _vertices: OrderedSet<Vertex>
-    @usableFromInline var _sources: _IncidenceRows   // hyperedge p's sources; vertex i's out-hyperedges
-    @usableFromInline var _targets: _IncidenceRows   // hyperedge p's targets; vertex i's in-hyperedges
+    @usableFromInline var _sources: _IncidencePlane   // hyperedge p's sources; vertex i's out-hyperedges
+    @usableFromInline var _targets: _IncidencePlane   // hyperedge p's targets; vertex i's in-hyperedges
 }
 ```
 
@@ -286,6 +306,8 @@ extension IncidenceList {
         where S.Element == Vertex, T.Element == Vertex
     public init(_ hypergraph: some DirectedHypergraph<Vertex>)
     public init(_ graph: some DirectedGraph<Vertex>)      // each edge as ({source}, {target}), in edges order
+    public init<H: DirectedHypergraph & DirectedGraph>(_ hypergraph: H) where H.Vertex == Vertex
+        // a type that is both reads as a hypergraph, so the call is not ambiguous
     @discardableResult public mutating func insert(_ vertex: Vertex) -> (inserted: Bool, memberAfterInsert: Vertex)
     @discardableResult public mutating func insert(sources: some Sequence<Vertex>, targets: some Sequence<Vertex>) -> Int
     @discardableResult public mutating func insert(safe sources: some Sequence<Vertex>, targets: some Sequence<Vertex>) -> Int?
@@ -328,7 +350,7 @@ HG-031, DH-015).
 | `degreeHistogram()`, `hyperedgeSizeHistogram()` | `[Int]`: element d (k) counts the vertices of degree d (hyperedges of size k); `[]` when there are none (NetworkX's shape) | O(n), O(m) | HG-051 – HG-054 |
 | `dual()` | `UndirectedIncidenceList<Hyperedges.Index>`: vertices are the positions in order; hyperedge `i` is vertex `i`'s incidence row. `dual().dual()` is the original relabeled to indices | O(n + m + p) expected (m hashes) | HG-055 – HG-058 |
 | `incidenceGraph` | `IncidenceGraphView<Self>`, a lazy `Graph` (Views) | O(1) | HG-059 – HG-061 |
-| `cliqueExpansion()` | `UndirectedAdjacencyList<Vertex>` with **every vertex, isolated ones too, in vertex-index order**; each pair sharing a hyperedge once, no self-loops, edges ascending by (index of u, index of v) | O(n + Σ k²) | HG-062 – HG-064 |
+| `cliqueExpansion()` | `UndirectedAdjacencyList<Vertex>` with **every vertex, isolated ones too, in vertex-index order**; each pair sharing a hyperedge once, no self-loops, edges ascending by (index of u, index of v) | O(n + Σ k² + e log d). Building the result hashes each vertex once, n hashes whatever the edge count (none for the `Int`s `0..<n` in order), through a package bulk initializer of `UndirectedAdjacencyList`; through the public `init(vertices:edges:)` it would hash both ends of every edge, growing with the output | HG-062 – HG-064 |
 | `lineGraph(s:)` | `UndirectedAdjacencyList<Hyperedges.Index>` with **every position `0..<m`** as a vertex, an empty or unmatched hyperedge isolated; p–q (p < q) when they share at least s members; edges ascending by (p, q) | O(m + Σ_v d(v)²) | HG-065 – HG-068 |
 | `connectedComponents()`, `isConnected` | `[[Vertex]]` by least vertex index, each ascending; an isolated vertex alone; an empty hyperedge joins nothing. `isConnected` is **false for no vertices** (the repo's rule; XGI raises) | O(n + p α(n)) union–find | HG-069 – HG-073 |
 | `sConnectedComponents(s:)` | `[[Hyperedges.Index]]`: the components of `lineGraph(s:)`, singletons included, by least position. The vertex form is `dual().sConnectedComponents(s:)` | O(m + Σ_v d(v)²) without building the graph | HG-074 – HG-077 |
@@ -349,7 +371,7 @@ HG-031, DH-015).
 | `fConnectedVertices(to: t)` | `[Vertex]`, ascending, `t` included: every `s` such that `t` is F-connected to `s`. Gallo: "the F-Visit must start from the destination of the F-paths to retain a linear time complexity"; it is B-Visit on the symmetric image, and `reversed.bConnectedVertices(from: t)` gives the same set | O(n + m + p) | DH-035, DH-037 |
 | `isFConnected(from:to:)` | `Bool`: an F-path, whose symmetric image is a B-path from `to` to `from`. Every target of a hyperedge it uses must lead on to `to` (DH-036) | F-Visit from `to` | DH-036 |
 | `isBHypergraph`, `isFHypergraph`, `isBFHypergraph` | `Bool`: every hyperedge has exactly one target (B-arc) / exactly one source (F-arc) / one or the other. Vacuously true with no hyperedges | O(m) | DH-038 – DH-040 |
-| `cliqueExpansion()` | `AdjacencyList<Vertex>` with every vertex in index order; an arc u→v for each hyperedge with u a source and v a target, u ≠ v, each pair once, ascending by (index of u, index of v). SimpleDirectedHypergraphs.jl's `TwoSectionView` | O(n + Σ \|S\|·\|T\|) | DH-041, DH-042 |
+| `cliqueExpansion()` | `AdjacencyList<Vertex>` with every vertex in index order; an arc u→v for each hyperedge with u a source and v a target, u ≠ v, each pair once, ascending by (index of u, index of v). SimpleDirectedHypergraphs.jl's `TwoSectionView` | O(n + Σ \|S\|·\|T\| + e log d); n vertex hashes building the result, as undirected | DH-041, DH-042 |
 | `outDegreeHistogram()`, `inDegreeHistogram()`, `sourceSizeHistogram()`, `targetSizeHistogram()` | `[Int]`, NetworkX's shape; `[]` when there are no vertices (hyperedges) | O(n), O(m) | DH-043 – DH-045 |
 
 **Definitions (verified against the paper).** G. Gallo, G. Longo, S. Pallottino, S. Nguyen,
@@ -406,10 +428,11 @@ vertices on the left, hyperedges on the right.
   (DH-026). Our edge order lists all source incidences before all target incidences; XGI's
   `DiGraph` has no edge positions, so `ref.py` compares edge sets.
 - **The LabeledGraph law.** Every index member reads the base's stored rows, so `Traversal`,
-  `Connectivity`, `ShortestPaths` and the rest run on the views with no hashing. `_withIncidentIndexRows`
-  is not forwarded in phase 1, because the vertex side's stored rows are hyperedge positions without
-  the `+ n` shift. An algorithm that needs raw rows copies the view into an adjacency list in
-  O(n + m + p).
+  `Connectivity`, `ShortestPaths` and the rest run on the views with no hashing. The
+  undirected view's `_withIncidentIndexRows` writes its rows out for the call, O(n + m + p), since
+  the vertex side's stored rows lack the `+ n` shift: whole-graph algorithms (components, bridges)
+  then run at an adjacency-list copy's speed. The directed view offers no
+  `_withSuccessorIndexRows`, whose contract needs edge positions in row order.
 - **`BipartiteGraph`.** `BipartiteGraph(h.incidenceGraph, left: 0 ..< h.vertexCount)` builds one
   through the existing failable initializer. The undirected view is always simple.
 - **Reachability.** Plain directed reachability ("connected" in Gallo et al.) is

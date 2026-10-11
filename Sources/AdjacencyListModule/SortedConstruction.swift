@@ -199,3 +199,51 @@ extension UndirectedAdjacencyList: _GraphConstruction where Vertex == Int {
         self.init(_uncheckedVertexCount: _vertexCount, sortedEdges: sortedEdges)
     }
 }
+
+extension AdjacencyList {
+    /// The graph whose vertex at slot `i` is `vertices[i]`, with edges between slots already in
+    /// row-major order, without repeats or self-loops, every endpoint in range: unchecked, and
+    /// `vertices` must be distinct. One slot entry per vertex (n hashes, none while the vertices
+    /// are `0..<n` in order) and one pair entry per edge, which hashes no vertex. O(n + m)
+    /// expected. For results built in index space (`Hypergraphs`' clique expansion).
+    @inlinable
+    package init(_uncheckedVertices vertices: ContiguousArray<Vertex>, sortedSlotEdges edges: some Collection<DirectedEdge<Int>>) {
+        let rows = _SortedArcRows(vertexCount: vertices.count, sortedEdges: edges)
+        self.init()
+        _vertices = vertices
+        _slots.reserveCapacity(vertices.count)
+        for (slot, vertex) in vertices.enumerated() { _slots[vertex] = slot }
+        _out = rows.out
+        _outEdges = rows.outEdges
+        _in = rows.in
+        _inEdges = rows.inEdges
+        _records = rows.records
+        _edges.reserveCapacity(rows.records.count)
+        for (position, record) in rows.records.enumerated() {
+            _edges.insert(_SlotPair(record.source, record.target), position)
+        }
+    }
+}
+
+extension UndirectedAdjacencyList {
+    /// The graph whose vertex at slot `i` is `vertices[i]`, with edges `UndirectedEdge(u, v)`
+    /// between slots, `u < v`, already in lexicographic order, without repeats: unchecked, and
+    /// `vertices` must be distinct. One slot entry per vertex (n hashes, none while the vertices
+    /// are `0..<n` in order) and one pair entry per edge, which hashes no vertex. O(n + m)
+    /// expected. For results built in index space (`Hypergraphs`' clique expansion and line graph).
+    @inlinable
+    package init(_uncheckedVertices vertices: ContiguousArray<Vertex>, sortedSlotEdges edges: some Collection<UndirectedEdge<Int>>) {
+        let rows = _SortedEdgeRows(vertexCount: vertices.count, sortedEdges: edges)
+        self.init()
+        _vertices = vertices
+        _slots.reserveCapacity(vertices.count)
+        for (slot, vertex) in vertices.enumerated() { _slots[vertex] = slot }
+        _neighbors = rows.neighbors
+        _incident = rows.incident
+        _records = rows.records
+        _positions.reserveCapacity(rows.records.count)
+        for (position, record) in rows.records.enumerated() {
+            _positions.insert(_SlotPair(record.u, record.v), position)
+        }
+    }
+}

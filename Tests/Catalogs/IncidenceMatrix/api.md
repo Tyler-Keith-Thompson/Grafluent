@@ -61,6 +61,7 @@ No `isOriented` flag and no `oriented:` parameter. The two matrices have differe
     @usableFromInline var _columns: _BitRows   // hyperedgeCount rows of ⌈capacity(n)/64⌉ words
     @usableFromInline var _degrees: ContiguousArray<Int>   // row popcounts
     @usableFromInline var _sizes: ContiguousArray<Int>     // column popcounts
+    @usableFromInline var _cellCount: Int                  // set cells: the incidence-graph view's edge count in O(1)
 }
 @frozen public struct OrientedIncidenceMatrix {
     @usableFromInline var _sources: IncidenceMatrix   // the source plane
@@ -111,6 +112,8 @@ extension IncidenceMatrix {
     public init(_ hypergraph: some Hypergraph)            // by vertex and hyperedge index
     public init(_ hypergraph: some DirectedHypergraph)    // each column the union of its sides
     public init(_ oriented: OrientedIncidenceMatrix)      // the union of the planes
+    public init<H: Graph & Hypergraph>(_ hypergraph: H)   // a type that is both reads as a hypergraph
+    public init<H: DirectedGraph & DirectedHypergraph>(_ hypergraph: H)
 
     public var vertexCount: Int { get }; public var hyperedgeCount: Int { get }       // O(1)
     public subscript(vertex vertex: Int, hyperedge position: Int) -> Bool { get }     // O(1)
@@ -130,7 +133,10 @@ extension IncidenceMatrix {
 }
 extension IncidenceMatrix: Hypergraph {
     // Vertex = Int, Vertices = Range<Int>, Hyperedges: RandomAccessCollection<BitSet> (Index = Int),
-    // Members = BitSet, IncidentHyperedges = BitSet; vertexIndexBound = n, hyperedgeIndexBound = m
+    // Members = BitSet, IncidentHyperedges = BitSet; vertexIndexBound = n, hyperedgeIndexBound = m.
+    // MemberIndices = SetBits: the column's stored words read in place, no allocation (a BitSet
+    // copy per column made the protocol algorithms 3× slower); oriented sourceIndices and
+    // targetIndices likewise
 }
 ```
 
@@ -155,6 +161,7 @@ extension OrientedIncidenceMatrix {
     public init(_ hypergraph: some DirectedHypergraph)   // by vertex and hyperedge index
     public init(_ graph: some DirectedGraph)  // one column per edge, in edges order
     public init(_ graph: some Graph)          // each edge from edges[p].u to edges[p].v (NetworkX's edgelist tuple order)
+    public init<H: DirectedGraph & DirectedHypergraph>(_ hypergraph: H)   // a type that is both reads as a hypergraph
 
     public var vertexCount: Int { get }; public var hyperedgeCount: Int { get }
     public subscript(vertex vertex: Int, hyperedge position: Int) -> Int { get }   // target − source: −1, 0, +1; O(1)
@@ -200,9 +207,26 @@ extension OrientedIncidenceMatrix: DirectedHypergraph {
   - **Unlike** `UndirectedIncidenceList` and `IncidenceList`, whose equality ignores positions.
     Convert with `UndirectedIncidenceList(matrix)` or `IncidenceList(matrix)` for an order-free
     comparison.
-- **`Sendable`**, **`Codable`** (shape plus set cells, per plane, with `AdjacencyMatrix`'s
-  `maximumDecodedVertexCount` guard), **`CustomStringConvertible`** (rows of bits, as
-  `AdjacencyMatrix.rowsDescription`; the oriented one as rows of `-`, `0`, `+`).
+- **`Sendable`**.
+- **`Codable`**, pinned (shape plus set cells, per plane, each column ascending, so a matrix always
+  encodes the same way):
+  - `IncidenceMatrix` as `{"vertexCount": 3, "hyperedges": [[0, 1], [], [2]]}`: each column, by
+    position, as its members;
+  - `OrientedIncidenceMatrix` as `{"vertexCount": 2, "sources": [[0]], "targets": [[0, 1]]}`, the
+    `IncidenceList` form with a shape in place of the vertices.
+  - Decoding throws `DecodingError.dataCorrupted` for a negative vertex count, a member out of
+    range, a column (or side) not strictly ascending, `sources` and `targets` of different lengths,
+    and a shape over the limit. The limit is on n × m, not on n as `AdjacencyMatrix`'s is, since
+    both dimensions cost storage: `IncidenceMatrix.maximumDecodedCellCountKey` in `userInfo`
+    (an `Int`), default `defaultMaximumDecodedCellCount` = 2²⁸ cells, 32 MiB per stored
+    orientation. Both matrices read the one key.
+- **`CustomStringConvertible`**, pinned: the shape, then the rows, column 0 leftmost, at most 16
+  rows of at most 64 columns, each cut with `…`:
+  - unoriented `3×2 [10, 01, 11]`, cells as `1` and `0`;
+  - oriented `3×2 [-0, +-, 0+]`, entries as `-`, `0` and `+` (a vertex on both sides is `0`);
+  - the empty matrix `0×0 []`.
+  No `CustomDebugStringConvertible` and no `rowsDescription`: the description is already the
+  rows.
 
 ## Performance
 

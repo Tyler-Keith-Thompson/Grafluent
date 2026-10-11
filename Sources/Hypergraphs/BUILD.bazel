@@ -3,11 +3,17 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Hypergraph and Hyperedge.
+# UndirectedIncidenceList and IncidenceList, the hypergraph algorithms, and the incidence-graph views through which graph algorithms reach a hypergraph.
 swift_library(
     name = "Hypergraphs",
     srcs = glob(["**/*.swift"]),
     module_name = "Hypergraphs",
+    deps = [
+        "//Sources/GraphProtocols",
+        "//Sources/AdjacencyListModule",
+        "//Sources/DisjointSetModule",
+        "@swiftpkg_swift_collections//:OrderedCollections",
+    ],
     visibility = ["//visibility:public"],
 )
 
@@ -16,6 +22,11 @@ docc_archive(
     name = "HypergraphsDocumentation",
     module = ":Hypergraphs",
     catalog = glob(["*.docc/**"], allow_empty = True),
+    deps = [
+        "//Sources/GraphProtocols:GraphProtocolsDocumentation",
+        "//Sources/AdjacencyListModule:AdjacencyListModuleDocumentation",
+        "//Sources/DisjointSetModule:DisjointSetModuleDocumentation",
+    ],
     tags = ["manual"],
     visibility = ["//visibility:public"],
 )

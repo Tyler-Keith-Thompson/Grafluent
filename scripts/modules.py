@@ -31,7 +31,7 @@ MODULES = [
     # Representations
     ("AdjacencyListModule", "Representations", "AdjacencyList: a directed graph stored as out- and in-adjacency per vertex.", ["GraphProtocols"]),
     ("AdjacencyMatrixModule", "Representations", "AdjacencyMatrix: a directed graph on vertices 0..<n stored as an n×n bit matrix.", ["GraphProtocols", "swift-collections/BitCollections"]),
-    ("IncidenceMatrixModule", "Representations", "IncidenceMatrix.", ["GraphProtocols"]),
+    ("IncidenceMatrixModule", "Representations", "IncidenceMatrix and OrientedIncidenceMatrix: a hypergraph's incidence as bit planes, conforming to Hypergraph and DirectedHypergraph.", ["GraphProtocols", "swift-collections/BitCollections"]),
     ("CompressedSparseRowModule", "Representations", "CompressedSparseRow: an immutable directed graph on vertices 0..<n in compressed sparse row form.", ["GraphProtocols"]),
     ("EdgeListModule", "Representations", "EdgeList: a directed multigraph as an ordered, mutable list of edges.", ["GraphProtocols"]),
     ("ImplicitGraphs", "Representations", "ImplicitDirectedGraph: out-neighbors computed on demand, never stored.", ["GraphProtocols"]),
@@ -43,7 +43,7 @@ MODULES = [
     ("BipartiteGraphs", "Structures", "BipartiteGraph, bipartiteness, bipartitions and odd-cycle witnesses.", ["GraphProtocols", "Walks", "AdjacencyListModule"]),
     ("Multigraphs", "Structures", "Pseudograph, Multigraph, DirectedPseudograph and DirectedMultigraph: parallel edges, with and without self-loops.", ["GraphProtocols", "AdjacencyListModule"]),
     ("StableGraphs", "Structures", "StableDirectedGraph: a directed pseudograph whose vertex and edge positions survive removals (petgraph's StableDiGraph), in pages freed once dead, with VertexMap and EdgeMap side data (LEMON's NodeMap and ArcMap).", ["GraphProtocols"]),
-    ("Hypergraphs", "Structures", "Hypergraph and Hyperedge.", []),
+    ("Hypergraphs", "Structures", "UndirectedIncidenceList and IncidenceList, the hypergraph algorithms, and the incidence-graph views through which graph algorithms reach a hypergraph.", ["GraphProtocols", "AdjacencyListModule", "DisjointSetModule", "swift-collections/OrderedCollections"]),
     ("FunctionalGraphs", "Structures", "FunctionalGraph: every vertex has outdegree 1; Floyd's and Brent's cycle detection.", ["GraphProtocols", "Walks"]),
 
     # Operations
@@ -118,6 +118,8 @@ TEST_TARGETS = [
     ("FunctionalGraphsTests", ["GraphProtocols", "FunctionalGraphs", "Multigraphs", "LabeledGraphs", "Traversal", "Connectivity", "ShortestPaths", "Walks", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("ImplicitGraphsTests", ["GraphProtocols", "ImplicitGraphs", "Multigraphs", "CompressedSparseRowModule", "LabeledGraphs", "Traversal", "Connectivity", "ShortestPaths", "Walks", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("IsomorphismTests", ["GraphProtocols", "IsomorphismModule", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "Multigraphs", "LabeledGraphs", "RandomGraphs", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
+    ("HypergraphsTests", ["GraphProtocols", "Hypergraphs", "AdjacencyListModule", "Traversal", "Connectivity", "ShortestPaths", "SpanningTrees", "BipartiteGraphs", "Cycles", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
+    ("IncidenceMatrixTests", ["GraphProtocols", "IncidenceMatrixModule", "Hypergraphs", "Multigraphs", "AdjacencyListModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
 ]
 
 # Bazel test sizes above the default "small" (60 s timeout), for suites whose solo run takes more
