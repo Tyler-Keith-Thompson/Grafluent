@@ -332,4 +332,96 @@ struct LabeledGraphConformanceTests {
         let renumbered = LabeledGraph(CompressedSparseRow(vertexCount: 3, edges: [DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 0)]), labels: ["y", "z", "x"])
         #expect(renumbered == graph && renumbered.base != graph.base)
     }
+
+    /// A dense base that lists `order` as its vertices and reports `bound`, its indices reversed
+    /// when `reversedIndex` is set: each field breaks one precondition of `init(_:labels:)`.
+    struct ListedBase: DirectedGraph, Codable {
+        var order: [Int]
+        var bound: Int?
+        var reversedIndex = false
+        var vertices: [Int] { order }
+        var edges: [DirectedEdge<Int>] { [] }
+        func successors(of vertex: Int) -> [Int] { [] }
+        func outEdges(of vertex: Int) -> [Int] { [] }
+        var vertexIndexBound: Int? { bound }
+        func vertexIndex(of vertex: Int) -> Int { reversedIndex ? order.count - 1 - vertex : vertex }
+        func vertex(atIndex index: Int) -> Int { reversedIndex ? order.count - 1 - index : index }
+    }
+
+    @Test("Decoding checks every precondition of init(_:labels:) and names the part at fault")
+    func codableChecksEachPrecondition() throws {
+        // No dense indices: the base.
+        let unbounded = String(decoding: try JSONEncoder().encode(ListedBase(order: [0, 1], bound: nil)), as: UTF8.self)
+        let noBound = #expect(throws: DecodingError.self) {
+            try JSONDecoder().decode(LabeledGraph<String, ListedBase>.self, from: Data(#"{"labels": ["a", "b"], "base": \#(unbounded)}"#.utf8))
+        }
+        if case .dataCorrupted(let context) = noBound { #expect(context.codingPath.map(\.stringValue) == ["base"]) } else { Issue.record("\(String(describing: noBound))") }
+        // Vertices 0, 1 in order, but vertexIndex(of: 0) is 1: the base.
+        let reversed = String(decoding: try JSONEncoder().encode(ListedBase(order: [0, 1], bound: 2, reversedIndex: true)), as: UTF8.self)
+        let badIndex = #expect(throws: DecodingError.self) {
+            try JSONDecoder().decode(LabeledGraph<String, ListedBase>.self, from: Data(#"{"labels": ["a", "b"], "base": \#(reversed)}"#.utf8))
+        }
+        if case .dataCorrupted(let context) = badIndex { #expect(context.codingPath.map(\.stringValue) == ["base"]) } else { Issue.record("\(String(describing: badIndex))") }
+        // One vertex listed under a bound of two: the base, though two labels match the bound.
+        let short = String(decoding: try JSONEncoder().encode(ListedBase(order: [0], bound: 2)), as: UTF8.self)
+        let shortList = #expect(throws: DecodingError.self) {
+            try JSONDecoder().decode(LabeledGraph<String, ListedBase>.self, from: Data(#"{"labels": ["a", "b"], "base": \#(short)}"#.utf8))
+        }
+        if case .dataCorrupted(let context) = shortList { #expect(context.codingPath.map(\.stringValue) == ["base"]) } else { Issue.record("\(String(describing: shortList))") }
+        // A good base with one label too few: the labels.
+        let good = String(decoding: try JSONEncoder().encode(ListedBase(order: [0, 1], bound: 2)), as: UTF8.self)
+        let fewLabels = #expect(throws: DecodingError.self) {
+            try JSONDecoder().decode(LabeledGraph<String, ListedBase>.self, from: Data(#"{"labels": ["a"], "base": \#(good)}"#.utf8))
+        }
+        if case .dataCorrupted(let context) = fewLabels { #expect(context.codingPath.map(\.stringValue) == ["labels"]) } else { Issue.record("\(String(describing: fewLabels))") }
+        let accepted = try JSONDecoder().decode(LabeledGraph<String, ListedBase>.self, from: Data(#"{"labels": ["a", "b"], "base": \#(good)}"#.utf8))
+        #expect(Array(accepted.vertices) == ["a", "b"] && accepted.vertexIndex(of: "b") == 1)
+    }
+
+    @Test("The safe: spellings and the index-space degrees answer for the vertex asked about")
+    func safeSpellingsMatchTheTrappingOnes() {
+        // a→b, a→c, a→d, c→b: no two vertices have the same row, column or degree pattern.
+        let edges = [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "a", to: "c"), DirectedEdge(from: "a", to: "d"), DirectedEdge(from: "c", to: "b")]
+        let matrix = LabeledGraph<String, AdjacencyMatrix>(edges: edges)
+        let csr = LabeledGraph<String, CompressedSparseRow>(edges: edges)
+        #expect(Array(matrix.vertices) == ["a", "b", "c", "d"])
+        for (i, v) in ["a", "b", "c", "d"].enumerated() {
+            #expect(matrix.outEdges(safe: v).map { Array($0) } == Array(matrix.outEdges(of: v)))
+            #expect(matrix.inEdges(safe: v).map { Array($0) } == Array(matrix.inEdges(of: v)))
+            #expect(matrix.degree(safe: v) == matrix.degree(of: v))
+            #expect(csr.outEdges(safe: v).map { Array($0) } == Array(csr.outEdges(of: v)))
+            #expect(matrix.outDegree(ofIndex: i) == matrix.outDegree(of: v) && csr.outDegree(ofIndex: i) == csr.outDegree(of: v))
+            #expect(matrix.inDegree(ofIndex: i) == matrix.inDegree(of: v))
+        }
+        #expect(matrix.degree(safe: "a") == 3 && matrix.degree(safe: "d") == 1)
+        #expect(matrix.outEdges(safe: "a").map { $0.count } == 3 && matrix.inEdges(safe: "b").map { $0.count } == 2)
+        #expect(matrix.outDegree(ofIndex: 0) == 3 && matrix.inDegree(ofIndex: 1) == 2 && csr.outDegree(ofIndex: 3) == 0)
+    }
+
+    @Test("Successors and predecessors read by position as collections")
+    func rowsByPosition() {
+        let edges = [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "a", to: "c"), DirectedEdge(from: "a", to: "d"), DirectedEdge(from: "c", to: "b")]
+        let csr = LabeledGraph<String, CompressedSparseRow>(edges: edges)
+        let row = csr.successors(of: "a")
+        #expect(row.first == "b" && row.last == "d" && row[row.index(after: row.startIndex)] == "c")
+        let matrix = LabeledGraph<String, AdjacencyMatrix>(edges: edges)
+        let column = matrix.predecessors(of: "b")
+        #expect(column.first == "a" && column.last == "c" && column.count == 2)
+        let out = matrix.successors(of: "a")
+        #expect(out.first == "b" && out.last == "d")
+    }
+
+    @Test("Equality over other index assignments: fewer labels or a subset of the edges is not equal")
+    func equalityOtherAssignments() {
+        let abc = LabeledGraph<String, CompressedSparseRow>(vertices: ["a", "b", "c"], edges: [DirectedEdge(from: "a", to: "b")])
+        // Two of the three labels, in another order, with the same edge.
+        let ba = LabeledGraph<String, CompressedSparseRow>(vertices: ["b", "a"], edges: [DirectedEdge(from: "a", to: "b")])
+        #expect(abc != ba && ba != abc)
+        // The same labels in another order, with one edge of the two.
+        let both = LabeledGraph<String, AdjacencyMatrix>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "a")])
+        let one = LabeledGraph<String, AdjacencyMatrix>(vertices: ["b", "a"], edges: [DirectedEdge(from: "a", to: "b")])
+        #expect(both != one && one != both)
+        let reordered = LabeledGraph<String, AdjacencyMatrix>(vertices: ["b", "a"], edges: [DirectedEdge(from: "b", to: "a"), DirectedEdge(from: "a", to: "b")])
+        #expect(both == reordered && reordered == both)
+    }
 }

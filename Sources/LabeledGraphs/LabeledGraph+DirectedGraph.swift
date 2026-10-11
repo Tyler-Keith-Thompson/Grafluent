@@ -246,12 +246,11 @@ extension LabeledGraph: DirectedGraph where Base: DirectedGraph<Int> {
 
     /// The label of base vertex `index`. O(1), an array read.
     ///
-    /// - Precondition: `index` is in `0..<vertexCount`.
+    /// - Precondition: `index` is in `0..<vertexCount` (the labels' subscript checks).
     @inlinable
     @inline(__always)
     public func vertex(atIndex index: Int) -> Label {
-        precondition(index >= 0 && index < _labels.count, "index \(index) out of range 0..<\(_labels.count)")
-        return _labels[index]
+        _labels[index]
     }
 
     /// The base's `successorIndices(ofIndex:)`, of the base's own type. No hashing.

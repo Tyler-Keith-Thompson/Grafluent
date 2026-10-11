@@ -181,8 +181,8 @@ extension LabeledGraph {
         guard let n = graph.vertexIndexBound else {
             return _numbered(vertices: graph.vertices, edges: graph.edges)
         }
+        // A conforming graph's vertices are distinct and number `vertexIndexBound`.
         let labels = OrderedSet(graph.vertices)
-        precondition(labels.count == n, "The graph's vertices are not distinct")
         var numbered: [DirectedEdge<Int>] = []
         numbered.reserveCapacity(graph.edgeCount)
         for v in 0 ..< n {

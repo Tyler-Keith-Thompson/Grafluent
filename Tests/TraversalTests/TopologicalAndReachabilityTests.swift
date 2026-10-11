@@ -478,4 +478,33 @@ struct LenientVertexIndexTests {
         #expect(graph.hasPath(from: "a", to: "b"))
         #expect(!graph.hasPath(from: "b", to: "a"))
     }
+
+    /// A representation without vertex indices whose rows answer empty for a non-vertex instead of
+    /// trapping, so only the searches' own membership check stops a non-vertex.
+    struct LenientRowGraph: DirectedGraph {
+        let names: [String]
+        let arcs: [DirectedEdge<String>]
+        var vertices: [String] { names }
+        var edges: [DirectedEdge<String>] { arcs }
+        func successors(of vertex: String) -> [String] { arcs.filter { $0.source == vertex }.map(\.target) }
+        func outEdges(of vertex: String) -> [Int] { arcs.indices.filter { arcs[$0].source == vertex } }
+        func contains(_ vertex: String) -> Bool { names.contains(vertex) }
+    }
+
+    @Test("Without vertex indices, a non-vertex traps in breadthFirstLayers and descendants though its row is empty")
+    func lenientRowTraps() async {
+        await #expect(processExitsWith: .failure) {
+            let graph = LenientRowGraph(names: ["a", "b"], arcs: [DirectedEdge(from: "a", to: "b")])
+            _ = graph.breadthFirstLayers(from: ["q"])
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = LenientRowGraph(names: ["a", "b"], arcs: [DirectedEdge(from: "a", to: "b")])
+            _ = graph.descendants(of: "q")
+        }
+        // Without the non-vertex: the same calls answer, and "q"'s row is empty.
+        let graph = LenientRowGraph(names: ["a", "b"], arcs: [DirectedEdge(from: "a", to: "b")])
+        #expect(graph.successors(of: "q").isEmpty)
+        #expect(graph.breadthFirstLayers(from: ["a"]) == [["a"], ["b"]])
+        #expect(graph.descendants(of: "a") == ["b"])
+    }
 }

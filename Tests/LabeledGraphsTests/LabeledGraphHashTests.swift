@@ -408,4 +408,51 @@ struct LabeledGraphHashTests {
         let reversed = LabeledGraph<Counted, CompressedSparseRow>(vertices: (0 ..< n).reversed().map(label), edges: edges)
         #expect(reversed == csr && reversed.hashValue == csr.hashValue)
     }
+
+    @Test("init(_:) from a graph with vertex indices hashes only the vertices, not two labels per edge")
+    func indexedSourceHashesOnlyVertices() {
+        final class Tally {
+            var hashes = 0
+        }
+        struct Counted: Hashable {
+            let name: Int
+            let tally: Tally
+            static func == (lhs: Counted, rhs: Counted) -> Bool { lhs.name == rhs.name }
+            func hash(into hasher: inout Hasher) {
+                tally.hashes += 1
+                hasher.combine(name)
+            }
+        }
+        let tally = Tally()
+        let n = 40
+        func label(_ k: Int) -> Counted { Counted(name: k, tally: tally) }
+        let edges = (0 ..< n).flatMap { i in (1 ... 6).map { DirectedEdge(from: label(i), to: label((i * 3 + $0) % n)) } }
+        let matrix = LabeledGraph<Counted, AdjacencyMatrix>(vertices: (0 ..< n).map(label), edges: edges)
+        let csr = LabeledGraph<Counted, CompressedSparseRow>(vertices: (0 ..< n).map(label), edges: edges)
+        #expect(matrix.edgeCount == 6 * n)
+        // Reading the edges by label would hash 2 × 240 times; the vertices alone are 40.
+        tally.hashes = 0
+        let fromMatrix = LabeledGraph<Counted, CompressedSparseRow>(matrix)
+        #expect(tally.hashes <= 2 * n)
+        tally.hashes = 0
+        let fromCSR = LabeledGraph<Counted, AdjacencyMatrix>(csr)
+        #expect(tally.hashes <= 2 * n)
+        #expect(fromMatrix == csr && fromCSR == matrix)
+        #expect(Array(fromMatrix.vertices) == Array(matrix.vertices))
+    }
+
+    @Test("Hash values tell apart a reversed edge, another edge set and other labels")
+    func hashValuesSeparate() {
+        let ab = LabeledGraph<String, CompressedSparseRow>(edges: [DirectedEdge(from: "a", to: "b")])
+        let ba = LabeledGraph<String, CompressedSparseRow>(vertices: ["a", "b"], edges: [DirectedEdge(from: "b", to: "a")])
+        #expect(ab != ba && ab.hashValue != ba.hashValue)
+        let aa = LabeledGraph<String, CompressedSparseRow>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "a")])
+        #expect(ab != aa && ab.hashValue != aa.hashValue)
+        let x = LabeledGraph<String, AdjacencyMatrix>(vertices: ["x"])
+        let y = LabeledGraph<String, AdjacencyMatrix>(vertices: ["y"])
+        #expect(x != y && x.hashValue != y.hashValue)
+        let xy = LabeledGraph<String, AdjacencyMatrix>(vertices: ["y", "x"])
+        let yx = LabeledGraph<String, AdjacencyMatrix>(vertices: ["x", "y"])
+        #expect(xy == yx && xy.hashValue == yx.hashValue)
+    }
 }

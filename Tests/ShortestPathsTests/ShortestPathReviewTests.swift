@@ -211,4 +211,35 @@ struct ShortestPathReviewTests {
             _ = graph.dijkstraShortestPaths(from: [0], cutoff: Double.nan) { _ in 1.0 }
         }
     }
+
+    /// A dense representation whose `vertexIndex(of:)` answers 0 for a non-vertex instead of
+    /// trapping (outside the protocol's precondition).
+    struct LenientIndexGraph: DirectedGraph {
+        let names: [String]
+        let arcs: [DirectedEdge<String>]
+        var vertices: [String] { names }
+        var edges: [DirectedEdge<String>] { arcs }
+        func successors(of vertex: String) -> [String] { arcs.filter { $0.source == vertex }.map(\.target) }
+        func outEdges(of vertex: String) -> [Int] { arcs.indices.filter { arcs[$0].source == vertex } }
+        var vertexIndexBound: Int? { names.count }
+        func vertexIndex(of vertex: String) -> Int { names.firstIndex(of: vertex) ?? 0 }
+        func vertex(atIndex index: Int) -> String { names[index] }
+    }
+
+    @Test("A non-vertex source or target traps in Dijkstra though vertexIndex(of:) answers 0")
+    func lenientIndexTraps() async {
+        await #expect(processExitsWith: .failure) {
+            let graph = LenientIndexGraph(names: ["a", "b"], arcs: [DirectedEdge(from: "a", to: "b")])
+            _ = graph.dijkstraShortestPaths(from: "q") { _ in 1 }
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = LenientIndexGraph(names: ["a", "b"], arcs: [DirectedEdge(from: "a", to: "b")])
+            _ = graph.dijkstraShortestPath(from: "a", to: "q") { _ in 1 }
+        }
+        // Without the non-vertex: the same calls answer, and "q" would have read as "a".
+        let graph = LenientIndexGraph(names: ["a", "b"], arcs: [DirectedEdge(from: "a", to: "b")])
+        #expect(graph.vertexIndex(of: "q") == 0)
+        #expect(graph.dijkstraShortestPaths(from: "a") { _ in 1 }.distance(to: "b") == 1)
+        #expect(graph.dijkstraShortestPath(from: "a", to: "b") { _ in 1 }?.path.vertices == ["a", "b"])
+    }
 }

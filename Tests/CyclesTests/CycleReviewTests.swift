@@ -28,6 +28,19 @@ private struct HalfListedEdgeGraph: Graph {
     func edgeIndex(of position: Int) -> Int { position }
 }
 
+/// A triangle whose `vertexIndex(of:)` answers 0 for a non-vertex instead of trapping (outside the
+/// protocol's precondition).
+private struct LenientIndexTriangle: Graph {
+    let vertices = [0, 1, 2]
+    let edges = [UndirectedEdge(0, 1), UndirectedEdge(1, 2), UndirectedEdge(2, 0)]
+    func incidentEdges(of vertex: Int) -> [Int] { edges.indices.filter { edges[$0].u == vertex || edges[$0].v == vertex } }
+    func neighbors(of vertex: Int) -> [Int] { incidentEdges(of: vertex).map { edges[$0].oppositeVertex(to: vertex) } }
+    func contains(_ vertex: Int) -> Bool { vertices.contains(vertex) }
+    var vertexIndexBound: Int? { 3 }
+    func vertexIndex(of vertex: Int) -> Int { vertices.contains(vertex) ? vertex : 0 }
+    func vertex(atIndex index: Int) -> Int { index }
+}
+
 /// Counts the hashes of every `HashCountingVertex` that shares it.
 private final class HashCounter: @unchecked Sendable {
     var hashes = 0
@@ -260,5 +273,16 @@ struct CycleReviewTests {
         #expect(tree.isAcyclic)
         #expect(!cyclic.isAcyclic)
         #expect(counter.hashes == 0, "isAcyclic hashed \(counter.hashes) times")
+    }
+
+    @Test("A root that is not a vertex traps in findCycle(from:) though vertexIndex(of:) answers 0")
+    func lenientIndexRootTraps() async {
+        await #expect(processExitsWith: .failure) {
+            _ = LenientIndexTriangle().findCycle(from: [7])
+        }
+        // Without the non-vertex: the same call answers, and 7 would have read as vertex 0.
+        let graph = LenientIndexTriangle()
+        #expect(graph.vertexIndex(of: 7) == 0)
+        #expect(graph.findCycle(from: [0])?.vertices.count == 3)
     }
 }

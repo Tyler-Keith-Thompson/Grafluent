@@ -1,11 +1,28 @@
-# Planted bugs for LabeledGraphs and the code it wires into GraphProtocols (requiredIdentifier) and
-# AdjacencyMatrixModule (the cell check of source/target(ofEdgeAt:)); run with
-# `just mutate LabeledGraphs`. See scripts/mutate.py. The shared files' mutants (module=...) run
-# LabeledGraphsTests first, then those modules' own suites.
+# Planted bugs for LabeledGraphs and the code it wires into GraphProtocols (requiredIdentifier,
+# _requiredVertexIndex) and AdjacencyMatrixModule (the cell check of source/target(ofEdgeAt:)); run
+# with `just mutate LabeledGraphs`. See scripts/mutate.py. The shared files' mutants (module=...)
+# run LabeledGraphsTests first, then the other suites listed, which hold those modules' lenient
+# conformer tests.
 #
 # Known equivalent mutants (they survive by design):
+#   rows              no CSR rows handed to the algorithms: they read successorIndices(ofIndex:)
+#                     instead, the same neighbors in the same order; time only.
+#   eqmultipath       comparing CSR and matrix bases by multiplicity: a set's multiplicities are
+#                     all 1, so the answer is the same; time and memory only.
+#   hashcounts        not mixing in the edge count: the edge sum still covers the edges; hash
+#                     quality only, never equality.
+#   requiredlow       an index outside 0..<n from a lenient vertexIndex(of:) without the bound
+#   requiredhigh      check: it then reaches vertex(atIndex:), whose own precondition traps (an
+#   requiredindexdirected    array read in every representation and test conformer), so the
+#   requiredindexundirected  call still traps; only the message differs.
+#   requiredrows      a numbered graph without the membership check: StableDirectedGraph's
+#                     vertexPosition(of:) traps on a non-vertex itself.
+#
+# Removed as dead code after planting: the precondition of vertex(atIndex:) (the labels' subscript
+# traps out of range anyway) and `_numbered(_:)`'s distinct-vertices check (a conforming graph's
+# vertices are distinct and number vertexIndexBound).
 
-TESTS = ["LabeledGraphsTests", "TraversalTests", "AdjacencyMatrixTests"]
+TESTS = ["LabeledGraphsTests", "TraversalTests", "AdjacencyMatrixTests", "ShortestPathsTests", "CyclesTests"]
 
 L = "LabeledGraph.swift"
 C = "LabeledGraph+Conformances.swift"
@@ -39,11 +56,17 @@ MUTANTS = [
     Mutant("numbervertices", L, "OrderedSet(vertices)", "OrderedSet<Label>()"),
     Mutant("numberunindexed", L, "graph.vertexIndexBound", "Optional<Int>.none"),
     Mutant("numberindexedswap", L, "numbered.append(DirectedEdge(from: v, to: w))", "numbered.append(DirectedEdge(from: w, to: v))", mode="stmt"),
-    Mutant("numberdistinct", L, 'precondition(labels.count == n, "The graph\'s vertices are not distinct")', "", mode="stmt"),
 
     # The CSR and matrix builds.
     Mutant("csrvertices", B, "CompressedSparseRow(vertexCount: labels.count)", "CompressedSparseRow(vertexCount: labels.count, edges: (0 ..< labels.count).map { DirectedEdge(from: $0, to: $0) })"),
     Mutant("matrixvertices", B, "AdjacencyMatrix(vertexCount: labels.count)", "AdjacencyMatrix(vertexCount: labels.count, edges: (0 ..< labels.count).map { DirectedEdge(from: $0, to: $0) })"),
+
+    # The builder and the transpose.
+    Mutant("buildermatrix", B, "content.vertices", "content.vertices.reversed()", nth=1),
+    Mutant("buildercsr", B, "content.vertices", "content.vertices.reversed()", nth=0),
+    Mutant("builderedgesmatrix", B, "content.edges", "content.edges.dropLast()", nth=1),
+    Mutant("builderedgescsr", B, "content.edges", "content.edges.dropLast()", nth=0),
+    Mutant("transposed", B, "_base.transposed()", "_base"),
 
     # Label/index forwarding.
     Mutant("edgesubscript", D, "DirectedEdge(from: labels[edge.source], to: labels[edge.target])", "DirectedEdge(from: labels[edge.target], to: labels[edge.source])", nth=0),
@@ -51,19 +74,24 @@ MUTANTS = [
     Mutant("edgescontains", D, "return base.contains(DirectedEdge(from: source, to: target))", "return base.contains(DirectedEdge(from: target, to: source))", mode="stmt"),
     Mutant("successorindices", D, "_base.successorIndices(ofIndex: index)", "_base.successorIndices(ofIndex: _labels.count - 1 - index)", nth=1),
     Mutant("predecessorindices", D, "_base.predecessorIndices(ofIndex: index)", "_base.predecessorIndices(ofIndex: _labels.count - 1 - index)", nth=1),
-    Mutant("successormap", D, "_base.successorIndices(ofIndex: index).lazy.map { labels[$0] }", "_base.successorIndices(ofIndex: index).lazy.map { labels[labels.count - 1 - $0] }"),
-    Mutant("predecessormap", D, "_base.predecessorIndices(ofIndex: index).lazy.map { labels[$0] }", "_base.predecessorIndices(ofIndex: index).lazy.map { labels[labels.count - 1 - $0] }"),
+    Mutant("predecessornext", D, "return labels[index]", "return labels[labels.count - 1 - index]", mode="stmt", nth=1),
+    Mutant("successornext", D, "return labels[index]", "return labels[labels.count - 1 - index]", mode="stmt", nth=0),
+    Mutant("predecessorsubscript", D, "labels[base[position]]", "labels[labels.count - 1 - base[position]]", nth=1),
+    Mutant("successorsubscript", D, "labels[base[position]]", "labels[labels.count - 1 - base[position]]", nth=0),
     Mutant("outedges", D, "_base.outEdges(ofIndex: _index(of: label))", "_base.outEdges(ofIndex: _labels.count - 1 - _index(of: label))"),
     Mutant("outdegree", D, "_base.outDegree(of: _index(of: label))", "_base.outDegree(of: _labels.count - 1 - _index(of: label))"),
     Mutant("inedges", D, "_base.inEdges(ofIndex: _index(of: label))", "_base.inEdges(ofIndex: _labels.count - 1 - _index(of: label))"),
     Mutant("indegree", D, "_base.inDegree(of: _index(of: label))", "_base.inDegree(of: _labels.count - 1 - _index(of: label))"),
     Mutant("degree", D, "_base.degree(of: _index(of: label))", "_base.degree(of: _labels.count - 1 - _index(of: label))"),
+    Mutant("sourceindex", D, "_base.source(ofEdgeAt: position)", "_base.target(ofEdgeAt: position)", nth=1),
+    Mutant("targetindex", D, "_base.target(ofEdgeAt: position)", "_base.source(ofEdgeAt: position)", nth=2),
+    Mutant("outdegreeindex", D, "_base.outDegree(ofIndex: index)", "_base.outDegree(ofIndex: _labels.count - 1 - index)"),
+    Mutant("indegreeindex", D, "_base.inDegree(ofIndex: index)", "_base.inDegree(ofIndex: _labels.count - 1 - index)"),
     Mutant("targetat", D, "_labels[_base.target(ofEdgeAt: position)]", "_labels[_base.source(ofEdgeAt: position)]"),
     Mutant("sourceat", D, "_labels[_base.source(ofEdgeAt: position)]", "_labels[_base.target(ofEdgeAt: position)]", nth=0),
     Mutant("containslabel", D, "_labels.contains(label)", "true"),
     Mutant("containsedge", D, "return _base.contains(edge: DirectedEdge(from: source, to: target))", "return _base.contains(edge: DirectedEdge(from: target, to: source))", mode="stmt"),
     Mutant("indexbound", D, "_base.vertexIndexBound", "Optional<Int>.none"),
-    Mutant("vertexatindex", D, "index >= 0 && index < _labels.count", "true"),
     Mutant("outedgesindex", D, "_base.outEdges(ofIndex: index)", "_base.outEdges(ofIndex: _labels.count - 1 - index)", nth=0),
     Mutant("inedgesindex", D, "_base.inEdges(ofIndex: index)", "_base.inEdges(ofIndex: _labels.count - 1 - index)", nth=0),
     Mutant("rows", D, "_base._withSuccessorIndexRows(body)", "nil"),
@@ -96,6 +124,9 @@ MUTANTS = [
     Mutant("safetarget", U, "_labels.firstIndex(of: edge.target)", "Optional(_labels.firstIndex(of: edge.target) ?? 0)", nth=0),
     Mutant("removeresult", U, "_base.remove(edge: DirectedEdge(from: source, to: target)) != nil", "true"),
     Mutant("removeswap", U, "_base.remove(edge: DirectedEdge(from: source, to: target))", "_base.remove(edge: DirectedEdge(from: target, to: source))"),
+    Mutant("removeedgesto", U, "_base.removeEdges(to: _index(of: label))", "_base.removeEdges(from: _index(of: label))"),
+    Mutant("removeedgesfrom", U, "_base.removeEdges(from: _index(of: label))", "_base.removeEdges(to: _index(of: label))", nth=0),
+    Mutant("removeedgesincident", U, "_base.removeEdges(incidentTo: _index(of: label))", "_base.removeEdges(from: _index(of: label))"),
     Mutant("removealllabels", U, "        _labels.removeAll(keepingCapacity: keepingCapacity)", "", mode="stmt"),
     Mutant("removeallbase", U, "        _base.removeAll(keepingCapacity: keepingCapacity)", "", mode="stmt"),
     Mutant("removealledges", U, "        _base.removeAllEdges(keepingCapacity: keepingCapacity)", "", mode="stmt"),
@@ -115,6 +146,12 @@ MUTANTS = [
     Mutant("eqmultizero", C, "count > 0", "true"),
     Mutant("eqmultidecrement", C, "            multiplicity[mapped] = count - 1", "", mode="stmt"),
 
+    # Hashable.
+    Mutant("hashedgeends", C, "edgeHasher.combine(labelHashes[edge.target])", "edgeHasher.combine(labelHashes[edge.source])"),
+    Mutant("hashedges", C, "        hasher.combine(edgeSum)", "", mode="stmt"),
+    Mutant("hashlabels", C, "        hasher.combine(labelSum)", "", mode="stmt"),
+    Mutant("hashcounts", C, "        hasher.combine(_base.edgeCount)", "", mode="stmt"),
+
     # Codable.
     Mutant("decodekey", C, "failure.inBase ? .base : .labels", ".labels"),
     Mutant("decodekeybase", C, "failure.inBase ? .base : .labels", ".base"),
@@ -126,6 +163,12 @@ MUTANTS = [
     Mutant("requiredsame", "VertexIdentifiers.swift", "index >= 0 && index < count && graph.vertex(atIndex: index) == vertex", "index >= 0 && index < count", module="GraphProtocols"),
     Mutant("requiredsparse", "VertexIdentifiers.swift", "precondition(graph.contains(vertex), message())", "", mode="stmt", nth=1, module="GraphProtocols"),
     Mutant("requiredrows", "VertexIdentifiers.swift", "precondition(graph.contains(vertex), message())", "", mode="stmt", nth=0, module="GraphProtocols"),
+
+    # GraphProtocols: _requiredVertexIndex, for Graph and for DirectedGraph.
+    Mutant("requiredindexdirected", "VertexNumbering.swift", "UInt(bitPattern: index) < UInt(bitPattern: vertexIndexBound ?? 0)", "true", nth=1, module="GraphProtocols"),
+    Mutant("requiredindexundirected", "VertexNumbering.swift", "UInt(bitPattern: index) < UInt(bitPattern: vertexIndexBound ?? 0)", "true", nth=0, module="GraphProtocols"),
+    Mutant("requiredvertexdirected", "VertexNumbering.swift", "self.vertex(atIndex: index) == vertex", "true", nth=1, module="GraphProtocols"),
+    Mutant("requiredvertexundirected", "VertexNumbering.swift", "self.vertex(atIndex: index) == vertex", "true", nth=0, module="GraphProtocols"),
 
     # AdjacencyMatrixModule: source/target(ofEdgeAt:) trap on an empty cell.
     Mutant("celltarget", "AdjacencyMatrix.swift", "        _checkEdge(at: position)", "", mode="stmt", nth=1, module="AdjacencyMatrixModule"),
