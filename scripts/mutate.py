@@ -79,11 +79,11 @@ BASE = os.environ.get("GRAFLUENT_MUTATION_DIR") or os.path.join(
 # One scratch copy per module, so runs on different modules proceed in parallel; runs on the same
 # module take turns on that copy's lock. The module is the first positional argument.
 _MODULE_ARG = next((a for a in sys.argv[1:] if not a.startswith("-")), "default")
-WORK = os.path.join(BASE, "work", _MODULE_ARG)
+WORK = os.path.join(BASE, "modules", _MODULE_ARG, "work")
 RESULTS = os.path.join(BASE, "results")
 # A second copy for the coverage pass, the same sources with the module instrumented, so the
 # mutant runs use an uninstrumented build.
-COVERAGE_WORK = os.path.join(BASE, "coverage", _MODULE_ARG)
+COVERAGE_WORK = os.path.join(BASE, "modules", _MODULE_ARG, "coverage")
 SWIFT = ["env", "-u", "TOOLCHAINS", "xcrun", "--toolchain", "default", "swift"]
 # Bump when the schemata, the runner or the stored format change meaning: every stored result
 # is then stale.
