@@ -12,6 +12,8 @@ swift_library(
     alwayslink = True,
     srcs = glob(["**/*.swift"]),
     module_name = "NamedGraphsTests",
+    # Read by //:package_swift_test, which checks Package.swift against the Bazel graph.
+    visibility = ["//:__pkg__"],
     deps = [
         "//Sources/GraphProtocols",
         "//Sources/NamedGraphs",

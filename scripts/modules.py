@@ -318,6 +318,8 @@ def test_build_bazel(name, deps):
         "    alwayslink = True,\n"
         '    srcs = glob(["**/*.swift"]),\n'
         f'    module_name = "{name}",\n'
+        "    # Read by //:package_swift_test, which checks Package.swift against the Bazel graph.\n"
+        '    visibility = ["//:__pkg__"],\n'
         f"    deps = [\n{dl}    ],\n"
         ")\n\n"
         "# `bazel test` / `just test`: a standalone executable, fast to start and run in Bazel's sandbox.\n"

@@ -2,6 +2,7 @@
 
 load("@rules_xcodeproj//xcodeproj:defs.bzl", "xcodeproj", "xcschemes")
 load("//tools:docc.bzl", "docc_site")
+load("//tools:swiftpm.bzl", "swiftpm_manifest_test")
 
 # Test bundles are derived from the directory layout rather than listed: a directory under
 # `Tests/` with a BUILD.bazel holding a swift_test is a test bundle. Listing them by hand means a
@@ -55,4 +56,19 @@ docc_site(
     ],
     landing_page_name = "Grafluent",
     tags = ["manual"],
+)
+
+# Package.swift must name the same targets with the same dependencies as the Bazel graph, so a
+# commit cannot carry regenerated BUILD.bazel files without the manifest (see tools/swiftpm.bzl).
+# Every library under Sources/ and every test library under Tests/, derived from the layout.
+swiftpm_manifest_test(
+    name = "package_swift_test",
+    manifest = "Package.swift",
+    modules = [
+        "//" + package
+        for package in sorted(subpackages(include = ["Sources/*"]))
+    ] + ["//Tests/GrafluentTestSupport"] + [
+        "//" + package + ":" + package.removeprefix("Tests/") + "Library"
+        for package in TEST_PACKAGES
+    ],
 )

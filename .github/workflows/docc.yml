@@ -54,6 +54,9 @@ jobs:
               echo "build --remote_cache_compression"
             } >> user.bazelrc
           fi
+      - name: Check Package.swift against the Bazel graph
+        # SwiftPM users build from Package.swift, which nothing else here exercises.
+        run: bazel test //:package_swift_test --test_output=errors
       - name: Generate the combined documentation
         run: |
           bazel build //:docs
