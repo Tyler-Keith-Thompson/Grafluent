@@ -1,0 +1,563 @@
+#!/usr/bin/env python3
+"""Reference model for the NamedGraphs factories (Tests/Catalogs/NamedGraphs).
+
+Run: uv run --quiet --no-project --with networkx==3.7 --with igraph==1.0.0 python3 Tests/Catalogs/NamedGraphs/ref.py [--write] [--stress]
+
+The model builds each family exactly as api.md pins it: vertices 0..<n, undirected edges as
+(u, v) with u < v sorted lexicographically, directed edges sorted row-major. Every row is checked
+against
+  * NetworkX 3.7: the same edge set after relabeling NetworkX's nodes by the documented numbering
+    (complete_graph, complete_bipartite_graph, path_graph, cycle_graph, star_graph, wheel_graph,
+    grid_2d_graph, grid_graph, hypercube_graph, petersen_graph, empty_graph), and the DiGraph
+    variants NetworkX supports (complete, path, cycle, star, grid_2d);
+  * igraph 1.0: the same edge set where igraph's numbering is ours (Full, Full_Bipartite, Ring,
+    Star, Lattice with reversed dimensions, Hypercube) and isomorphism where it is not
+    (Famous("Petersen"));
+  * the family's laws: vertex and edge counts, degree sequence, and (for the directed form) the
+    orientation rule of api.md.
+--write regenerates cases.md; without it the run fails if cases.md differs. --stress checks every
+family over a range of sizes against NetworkX and igraph.
+"""
+import itertools
+import os
+import sys
+
+import igraph as ig
+import networkx as nx
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+INT_MAX = (1 << 63) - 1
+
+
+class Trap(Exception):
+    pass
+
+
+def require(cond, msg):
+    if not cond:
+        raise Trap(msg)
+
+
+# ---------------------------------------------------------------- the model
+
+class G:
+    """A generated graph: n vertices 0..<n, sorted edges, directed or not."""
+
+    def __init__(self, n, edges, directed):
+        self.n = n
+        self.edges = edges
+        self.directed = directed
+        if directed:
+            assert edges == sorted(set(edges)), "directed edges must be sorted row-major, no repeats"
+        else:
+            assert all(u < v for u, v in edges), "undirected edges are (u, v) with u < v"
+            assert edges == sorted(set(edges)), "undirected edges must be sorted, no repeats"
+        assert all(0 <= u < n and 0 <= v < n for u, v in edges)
+
+
+def _undirected(n, pairs):
+    return G(n, sorted({(min(u, v), max(u, v)) for u, v in pairs}), False)
+
+
+def _both_arcs(g):
+    """The symmetric digraph of an undirected graph (complete, grid, hypercube, Petersen)."""
+    return G(g.n, sorted({(u, v) for u, v in g.edges} | {(v, u) for u, v in g.edges}), True)
+
+
+def _count(n, name="vertexCount"):
+    require(isinstance(n, int) and n >= 0, f"{name} {n} is negative")
+
+
+def complete(n, directed=False):
+    _count(n)
+    require(n * (n - 1) <= INT_MAX, "edge count overflows Int")
+    g = _undirected(n, itertools.combinations(range(n), 2))
+    return _both_arcs(g) if directed else g
+
+
+def complete_bipartite(a, b, directed=False):
+    _count(a, "leftCount")
+    _count(b, "rightCount")
+    require(a + b <= INT_MAX and a * b <= INT_MAX, "count overflows Int")
+    pairs = [(u, a + v) for u in range(a) for v in range(b)]
+    return G(a + b, sorted(pairs), directed)  # directed: left -> right
+
+
+def path(n, directed=False):
+    _count(n)
+    pairs = [(i, i + 1) for i in range(n - 1)]
+    return G(n, pairs, directed)  # directed: i -> i + 1
+
+
+def cycle(n, directed=False):
+    require(n >= 3, f"a cycle needs at least 3 vertices, not {n}")
+    if directed:
+        return G(n, sorted([(i, (i + 1) % n) for i in range(n)]), True)
+    return _undirected(n, [(i, (i + 1) % n) for i in range(n)])
+
+
+def star(n, directed=False):
+    require(n >= 1, f"a star needs its hub: vertexCount {n} < 1")
+    return G(n, [(0, i) for i in range(1, n)], directed)  # directed: hub -> leaf
+
+
+def wheel(n, directed=False):
+    require(n >= 4, f"a wheel needs a hub and a rim of at least 3: vertexCount {n} < 4")
+    spokes = [(0, i) for i in range(1, n)]
+    rim = [(i, i + 1) for i in range(1, n - 1)] + [(n - 1, 1)]
+    if directed:  # hub -> rim, rim i -> i + 1 and n - 1 -> 1
+        return G(n, sorted(spokes + rim), True)
+    return _undirected(n, spokes + rim)
+
+
+def grid(dims, periodic=False, directed=False):
+    require(len(dims) >= 1, "grid needs at least one dimension")
+    for d in dims:
+        require(d >= 0, f"dimension {d} is negative")
+    n = 1
+    for d in dims:
+        n *= d
+        require(n <= INT_MAX, "vertex count overflows Int")
+    strides = []
+    s = 1
+    for d in reversed(dims):
+        strides.append(s)
+        s *= d
+    strides.reverse()  # dims[0] slowest, the last dimension fastest (row-major)
+    pairs = []
+    for v in range(n):
+        for i, d in enumerate(dims):
+            x = (v // strides[i]) % d
+            if x + 1 < d:
+                pairs.append((v, v + strides[i]))
+            if periodic and d >= 3 and x == 0:
+                pairs.append((v, v + (d - 1) * strides[i]))
+    g = _undirected(n, pairs)
+    return _both_arcs(g) if directed else g
+
+
+def hypercube(d, directed=False):
+    require(d >= 0, f"dimension {d} is negative")
+    require(d <= 62, f"2^{d} vertices overflow Int")
+    n = 1 << d
+    g = _undirected(n, [(v, v ^ (1 << k)) for v in range(n) for k in range(d) if not v >> k & 1])
+    return _both_arcs(g) if directed else g
+
+
+PETERSEN_ADJ = {0: [1, 4, 5], 1: [0, 2, 6], 2: [1, 3, 7], 3: [2, 4, 8], 4: [3, 0, 9],
+                5: [0, 7, 8], 6: [1, 8, 9], 7: [2, 5, 9], 8: [3, 5, 6], 9: [4, 6, 7]}
+
+
+def petersen(directed=False):
+    g = _undirected(10, [(u, v) for u, vs in PETERSEN_ADJ.items() for v in vs])
+    return _both_arcs(g) if directed else g
+
+
+def empty(n, directed=False):
+    _count(n)
+    return G(n, [], directed)
+
+
+def tree_path(n):
+    require(n >= 1, "a Tree has at least one vertex")
+    return path(n)
+
+
+def tree_star(n):
+    require(n >= 1, "a Tree has at least one vertex")
+    return star(n)
+
+
+def bipartite_complete(a, b):
+    g = complete_bipartite(a, b)
+    g.left = list(range(a))
+    g.right = list(range(a, a + b))
+    return g
+
+
+# ---------------------------------------------------------------- oracles
+
+def nx_relabeled(H, key):
+    """H's edges with nodes renamed by key, as a set of pairs (sorted pairs when undirected)."""
+    if H.is_directed():
+        return H.number_of_nodes(), {(key(u), key(v)) for u, v in H.edges()}
+    return H.number_of_nodes(), {(min(key(u), key(v)), max(key(u), key(v))) for u, v in H.edges()}
+
+
+def ident(x):
+    return x
+
+
+def nx_oracle(family, args, directed):
+    """(n, edge set) from NetworkX under our numbering, or None when NetworkX has no such graph."""
+    D = nx.DiGraph if directed else nx.Graph
+    if family == "complete":
+        return nx_relabeled(nx.complete_graph(args[0], create_using=D), ident)
+    if family == "path":
+        return nx_relabeled(nx.path_graph(args[0], create_using=D), ident)
+    if family == "cycle":
+        return nx_relabeled(nx.cycle_graph(args[0], create_using=D), ident)
+    if family == "star":
+        n = args[0]
+        if n == 1:
+            return nx_relabeled(nx.empty_graph(1, create_using=D), ident)
+        return nx_relabeled(nx.star_graph(n - 1, create_using=D), ident)  # NetworkX: n - 1 leaves
+    if family == "empty":
+        return nx_relabeled(nx.empty_graph(args[0], create_using=D), ident)
+    if family == "grid":
+        dims, periodic = args
+        if directed:
+            if len(dims) != 2:
+                return None
+            H = nx.grid_2d_graph(dims[0], dims[1], periodic=periodic, create_using=nx.DiGraph)
+            return nx_relabeled(H, lambda t: t[0] * dims[1] + t[1])
+        if periodic and any(d < 3 for d in dims):
+            # NetworkX's grid_graph wraps a dimension of 1 into a self-loop; grid_2d_graph does not.
+            if len(dims) != 2:
+                return None
+            H = nx.grid_2d_graph(dims[0], dims[1], periodic=True)
+            return nx_relabeled(H, lambda t: t[0] * dims[1] + t[1])
+        H = nx.grid_graph(dim=list(dims), periodic=periodic)
+
+        def key(t):
+            t = t if isinstance(t, tuple) else (t,)
+            v = 0
+            for x, d in zip(reversed(t), dims):  # NetworkX's tuple lists the last dimension first
+                v = v * d + x
+            return v
+        return nx_relabeled(H, key)
+    if directed:
+        if family in ("hypercube", "petersen"):
+            und = nx_oracle(family, args, False)
+            return None if und is None else (und[0], und[1] | {(v, u) for u, v in und[1]})
+        return None  # NetworkX has no directed complete bipartite or wheel
+    if family == "completeBipartite":
+        return nx_relabeled(nx.complete_bipartite_graph(*args), ident)
+    if family == "wheel":
+        return nx_relabeled(nx.wheel_graph(args[0]), ident)
+    if family == "hypercube":
+        if args[0] == 0:
+            return None  # NetworkX's hypercube_graph(0) is the null graph; Q0 is K1 (igraph agrees)
+        return nx_relabeled(nx.hypercube_graph(args[0]),
+                            lambda t: sum(b << i for i, b in enumerate(t)) if isinstance(t, tuple) else t)
+    if family == "petersen":
+        return nx_relabeled(nx.petersen_graph(), ident)
+    raise AssertionError(family)
+
+
+def ig_oracle(family, args, directed):
+    """(n, edge set, exact) from igraph: exact numbering when the flag is set, else isomorphism only."""
+    if family == "complete":
+        H = ig.Graph.Full(args[0], directed=directed)
+    elif family == "completeBipartite":
+        H = ig.Graph.Full_Bipartite(args[0], args[1], directed=directed, mode="out")
+    elif family == "path":
+        H = ig.Graph.Ring(args[0], directed=directed, circular=False)
+    elif family == "cycle":
+        H = ig.Graph.Ring(args[0], directed=directed, circular=True)
+    elif family == "star":
+        if args[0] == 1:
+            return None  # igraph 1.0's Star(1) has no vertices
+        H = ig.Graph.Star(args[0], mode="out" if directed else "undirected", center=0)
+    elif family == "grid":
+        dims, periodic = args
+        if periodic and any(d < 3 for d in dims):
+            return None  # igraph wraps short dimensions into loops and multi-edges
+        H = ig.Graph.Lattice(list(reversed(dims)), circular=periodic, directed=directed, mutual=True)
+    elif family == "hypercube" and not directed:
+        H = ig.Graph.Hypercube(args[0])
+    elif family == "petersen" and not directed:
+        H = ig.Graph.Famous("Petersen")
+        return H.vcount(), H, False
+    elif family == "empty":
+        H = ig.Graph(n=args[0], directed=directed)
+    else:
+        return None
+    E = H.get_edgelist()
+    if directed:
+        return H.vcount(), set(E), True
+    return H.vcount(), {(min(u, v), max(u, v)) for u, v in E}, True
+
+
+def check(family, args, directed, g):
+    o = nx_oracle(family, args, directed)
+    if o is not None:
+        assert o == (g.n, set(g.edges)), f"NetworkX disagrees on {family}{args} directed={directed}"
+    o = ig_oracle(family, args, directed)
+    if o is not None:
+        n, H, exact = o
+        if exact:
+            assert (n, H) == (g.n, set(g.edges)), f"igraph disagrees on {family}{args} directed={directed}"
+        else:
+            mine = ig.Graph(n=g.n, edges=g.edges)
+            assert mine.isomorphic(H), f"igraph: {family} not isomorphic"
+    # laws
+    m_expected = {
+        "complete": lambda n: n * (n - 1) // (1 if directed else 2),
+        "path": lambda n: max(n - 1, 0),
+        "cycle": lambda n: n,
+        "star": lambda n: n - 1,
+        "wheel": lambda n: 2 * (n - 1),
+        "empty": lambda n: 0,
+    }
+    if family in m_expected:
+        assert g.n == args[0] and len(g.edges) == m_expected[family](args[0])
+    if family == "completeBipartite":
+        assert g.n == args[0] + args[1] and len(g.edges) == args[0] * args[1]
+    if family == "hypercube":
+        d = args[0]
+        assert g.n == 1 << d and len(g.edges) == (d << d >> 1) * (2 if directed else 1)
+    if family == "petersen":
+        assert g.n == 10 and len(g.edges) == (30 if directed else 15)
+        assert nx.is_isomorphic(nx.Graph(list(set((min(u, v), max(u, v)) for u, v in g.edges))), nx.petersen_graph())
+
+
+# ---------------------------------------------------------------- rendering
+
+def fmt_edges(g):
+    sep = "→" if g.directed else "–"
+    return "[" + ", ".join(f"{u}{sep}{v}" for u, v in g.edges) + "]"
+
+
+def degrees(g):
+    if g.directed:
+        out = [0] * g.n
+        inn = [0] * g.n
+        for u, v in g.edges:
+            out[u] += 1
+            inn[v] += 1
+        return out, inn
+    d = [0] * g.n
+    for u, v in g.edges:
+        d[u] += 1
+        d[v] += 1
+    return d
+
+
+def summary(g, full=True):
+    s = f"n {g.n}; m {len(g.edges)}"
+    if g.directed:
+        out, inn = degrees(g)
+        s += f"; out {out}; in {inn}" if g.n <= 16 else ""
+    else:
+        d = degrees(g)
+        s += f"; deg {d}" if g.n <= 16 else f"; deg {min(d) if d else '-'}…{max(d) if d else '-'}"
+    if full:
+        s += f"; E {fmt_edges(g)}"
+    return s
+
+
+ROWS = []
+
+
+def row(group, case, call, fn, *, family=None, args=None, directed=False, full=True, extra=None):
+    try:
+        g = fn()
+    except Trap as t:
+        ROWS.append((group, case, call, f"**trap**: {t}"))
+        return
+    if family is not None:
+        check(family, args, directed, g)
+    text = summary(g, full)
+    if extra:
+        text += "; " + extra(g)
+    ROWS.append((group, case, call, text))
+
+
+def build_rows():
+    U = "UndirectedAdjacencyList<Int>"
+    C = "CompressedSparseRow"
+    # complete
+    for n in (0, 1, 2, 3, 5):
+        row("Complete", f"K{n}", f"{U}.complete(vertexCount: {n})", lambda n=n: complete(n),
+            family="complete", args=(n,))
+    for n in (0, 1, 3):
+        row("Complete", f"K{n} directed: both arcs, row-major", f"{C}.complete(vertexCount: {n})",
+            lambda n=n: complete(n, True), family="complete", args=(n,), directed=True)
+    row("Complete", "K60 counts only", f"{U}.complete(vertexCount: 60)", lambda: complete(60),
+        family="complete", args=(60,), full=False)
+    row("Complete", "negative count", f"{U}.complete(vertexCount: -1)", lambda: complete(-1))
+    row("Complete", "n(n − 1) overflows Int", f"{C}.complete(vertexCount: 1 << 32)", lambda: complete(1 << 32, True))
+    # complete bipartite
+    for a, b in ((0, 0), (0, 3), (1, 1), (2, 3), (3, 2)):
+        row("CompleteBipartite", f"K{a},{b}: left 0..<{a}, right {a}..<{a + b}",
+            f"{U}.completeBipartite(leftCount: {a}, rightCount: {b})",
+            lambda a=a, b=b: complete_bipartite(a, b), family="completeBipartite", args=(a, b))
+    row("CompleteBipartite", "K2,3 directed: left → right", f"{C}.completeBipartite(leftCount: 2, rightCount: 3)",
+        lambda: complete_bipartite(2, 3, True), family="completeBipartite", args=(2, 3), directed=True)
+    row("CompleteBipartite", "BipartiteGraph sides", "BipartiteGraph<Int>.completeBipartite(leftCount: 2, rightCount: 2)",
+        lambda: bipartite_complete(2, 2), family="completeBipartite", args=(2, 2),
+        extra=lambda g: f"left {g.left}; right {g.right}")
+    row("CompleteBipartite", "BipartiteGraph with an empty side", "BipartiteGraph<Int>.completeBipartite(leftCount: 0, rightCount: 2)",
+        lambda: bipartite_complete(0, 2), family="completeBipartite", args=(0, 2),
+        extra=lambda g: f"left {g.left}; right {g.right}")
+    row("CompleteBipartite", "negative side", f"{U}.completeBipartite(leftCount: 2, rightCount: -1)",
+        lambda: complete_bipartite(2, -1))
+    # path
+    for n in (0, 1, 2, 5):
+        row("Path", f"P{n}", f"{U}.path(vertexCount: {n})", lambda n=n: path(n), family="path", args=(n,))
+    row("Path", "P4 directed: i → i + 1", f"{C}.path(vertexCount: 4)", lambda: path(4, True),
+        family="path", args=(4,), directed=True)
+    row("Path", "Tree.path", "Tree<Int>.path(vertexCount: 4)", lambda: tree_path(4), family="path", args=(4,))
+    row("Path", "Tree.path(1) is one vertex", "Tree<Int>.path(vertexCount: 1)", lambda: tree_path(1),
+        family="path", args=(1,))
+    row("Path", "Tree.path(0): a tree is never empty", "Tree<Int>.path(vertexCount: 0)", lambda: tree_path(0))
+    row("Path", "negative count", f"{U}.path(vertexCount: -2)", lambda: path(-2))
+    # cycle
+    for n in (3, 4, 6):
+        row("Cycle", f"C{n}: closing edge stored as 0–{n - 1}", f"{U}.cycle(vertexCount: {n})",
+            lambda n=n: cycle(n), family="cycle", args=(n,))
+    row("Cycle", "C4 directed: i → i + 1 mod n, row-major", f"{C}.cycle(vertexCount: 4)",
+        lambda: cycle(4, True), family="cycle", args=(4,), directed=True)
+    for n in (0, 1, 2):
+        row("Cycle", f"C{n} is not a simple cycle", f"{U}.cycle(vertexCount: {n})", lambda n=n: cycle(n))
+    row("Cycle", "C2 directed is trapped too (one rule for every type)", f"{C}.cycle(vertexCount: 2)",
+        lambda: cycle(2, True))
+    # star
+    for n in (1, 2, 5):
+        row("Star", f"star of {n} vertices: hub 0", f"{U}.star(vertexCount: {n})", lambda n=n: star(n),
+            family="star", args=(n,))
+    row("Star", "directed: hub → leaf", f"{C}.star(vertexCount: 4)", lambda: star(4, True),
+        family="star", args=(4,), directed=True)
+    row("Star", "Tree.star", "Tree<Int>.star(vertexCount: 4)", lambda: tree_star(4), family="star", args=(4,))
+    row("Star", "no hub", f"{U}.star(vertexCount: 0)", lambda: star(0))
+    row("Star", "NetworkX's star_graph(4) has 5 vertices; ours counts vertices", f"{U}.star(vertexCount: 5)",
+        lambda: star(5), family="star", args=(5,), full=False)
+    # wheel
+    for n in (4, 5, 7):
+        row("Wheel", f"W{n}: hub 0, rim 1..<{n}", f"{U}.wheel(vertexCount: {n})", lambda n=n: wheel(n),
+            family="wheel", args=(n,))
+    row("Wheel", "W4 is K4", f"{U}.wheel(vertexCount: 4) == {U}.complete(vertexCount: 4)",
+        lambda: wheel(4), extra=lambda g: f"equal {str(g.edges == complete(4).edges).lower()}", full=False)
+    row("Wheel", "directed: hub → rim, rim cycle 1 → 2 → … → n − 1 → 1", f"{C}.wheel(vertexCount: 5)",
+        lambda: wheel(5, True))
+    for n in (0, 3):
+        row("Wheel", f"W{n}: rim shorter than 3", f"{U}.wheel(vertexCount: {n})", lambda n=n: wheel(n))
+    # grid
+    for dims, per in (([3], False), ([2, 3], False), ([3, 3], False), ([2, 2, 2], False), ([0, 4], False),
+                      ([1, 1], False), ([3], True), ([3, 4], True), ([2, 3], True), ([1, 3], True),
+                      ([3, 3, 3], True)):
+        row("Grid", f"{'×'.join(map(str, dims))}{' periodic' if per else ''}",
+            f"{U}.grid(dimensions: {dims}{', periodic: true' if per else ''})",
+            lambda dims=dims, per=per: grid(dims, per), family="grid", args=(dims, per),
+            full=(len(dims) < 3 or not per))
+    row("Grid", "2×3 directed: both arcs", f"{C}.grid(dimensions: [2, 3])", lambda: grid([2, 3], directed=True),
+        family="grid", args=([2, 3], False), directed=True)
+    row("Grid", "3×3 periodic directed", f"{C}.grid(dimensions: [3, 3], periodic: true)",
+        lambda: grid([3, 3], True, True), family="grid", args=([3, 3], True), directed=True, full=False)
+    row("Grid", "100×100 counts", f"{U}.grid(dimensions: [100, 100])", lambda: grid([100, 100]),
+        family="grid", args=([100, 100], False), full=False)
+    row("Grid", "no dimensions", f"{U}.grid(dimensions: [])", lambda: grid([]))
+    row("Grid", "negative dimension", f"{U}.grid(dimensions: [3, -1])", lambda: grid([3, -1]))
+    row("Grid", "vertex count overflows Int", f"{U}.grid(dimensions: [1 << 32, 1 << 32])",
+        lambda: grid([1 << 32, 1 << 32]))
+    # hypercube
+    for d in (0, 1, 2, 3):
+        row("Hypercube", f"Q{d}: u – u ^ (1 << k)", f"{U}.hypercube(dimension: {d})", lambda d=d: hypercube(d),
+            family="hypercube", args=(d,))
+    row("Hypercube", "Q2 directed: both arcs", f"{C}.hypercube(dimension: 2)", lambda: hypercube(2, True),
+        family="hypercube", args=(2,), directed=True)
+    row("Hypercube", "Q10 counts", f"{U}.hypercube(dimension: 10)", lambda: hypercube(10),
+        family="hypercube", args=(10,), full=False)
+    row("Hypercube", "negative dimension", f"{U}.hypercube(dimension: -1)", lambda: hypercube(-1))
+    row("Hypercube", "2^63 vertices overflow Int", f"{U}.hypercube(dimension: 63)", lambda: hypercube(63))
+    # petersen
+    row("Petersen", "NetworkX's numbering: outer 0–4, spokes i–i+5, inner pentagram",
+        f"{U}.petersen()", lambda: petersen(), family="petersen", args=())
+    row("Petersen", "directed: both arcs", f"{C}.petersen()", lambda: petersen(True), family="petersen",
+        args=(), directed=True, full=False)
+    # empty
+    for n in (0, 1, 4):
+        row("Empty", f"empty graph on {n}", f"{U}.empty(vertexCount: {n})", lambda n=n: empty(n),
+            family="empty", args=(n,))
+    row("Empty", "directed", f"{C}.empty(vertexCount: 3)", lambda: empty(3, True), family="empty",
+        args=(3,), directed=True)
+    row("Empty", "negative count", f"{U}.empty(vertexCount: -1)", lambda: empty(-1))
+    # representation parity: one family on every conformer gives the same edge list
+    for rep in ("AdjacencyList<Int>", "AdjacencyMatrix", "StableDirectedGraph<Int>", "DirectedPseudograph<Int>",
+                "DirectedMultigraph<Int>"):
+        row("Representations", f"{rep}: same arcs, edges in row-major order", f"{rep}.cycle(vertexCount: 4)",
+            lambda: cycle(4, True), family="cycle", args=(4,), directed=True)
+    for rep in ("Pseudograph<Int>", "Multigraph<Int>"):
+        row("Representations", f"{rep}: same edges, sorted", f"{rep}.wheel(vertexCount: 4)", lambda: wheel(4),
+            family="wheel", args=(4,))
+
+
+# ---------------------------------------------------------------- catalog
+
+HEADER = [
+    "# NamedGraphs: case catalog",
+    "",
+    "Generated and checked by `ref.py` (`uv run --quiet --no-project --with networkx==3.7 --with igraph==1.0.0",
+    "python3 Tests/Catalogs/NamedGraphs/ref.py`; `--write` regenerates this file, `--stress` adds the size",
+    "sweeps). Every non-trap row is checked against NetworkX 3.7 under the numbering of `api.md` (exact edge",
+    "set), against igraph 1.0 (exact where igraph numbers the same way, isomorphism for Petersen), and against",
+    "the family's count and degree laws.",
+    "",
+    "Conventions:",
+    "",
+    "* `U` rows use `UndirectedAdjacencyList<Int>`, `C` rows `CompressedSparseRow`; the Representations group",
+    "  repeats one family on the other conformers. Every factory gives the same vertices and edges on every",
+    "  conformer of the same kind.",
+    "* `E [u–v, …]` is `edges` in order: undirected edges are `UndirectedEdge(u, v)` with `u < v`, sorted",
+    "  lexicographically; directed edges `u→v` are in row-major order. The order is part of the contract",
+    "  (it is the insertion order on the adjacency lists, and CSR builds from it in one pass).",
+    "* `deg` is the degree of each vertex in order; `out` / `in` the out- and in-degrees.",
+    "* `**trap**` rows are preconditions, run as exit tests (`#expect(processExitsWith:)`).",
+    "",
+    "| ID | Group | Case | Call | Expected |",
+    "|---|---|---|---|---|",
+]
+
+
+def render():
+    lines = list(HEADER)
+    for i, (group, case, call, expected) in enumerate(ROWS, 1):
+        lines.append(f"| NG-{i:03d} | {group} | {case} | `{call}` | {expected} |")
+    return "\n".join(lines) + "\n"
+
+
+def stress():
+    count = 0
+    for directed in (False, True):
+        for n in range(0, 25):
+            for fam, fn in (("complete", complete), ("path", path), ("empty", empty)):
+                check(fam, (n,), directed, fn(n, directed)); count += 1
+            if n >= 3:
+                check("cycle", (n,), directed, cycle(n, directed)); count += 1
+            if n >= 1:
+                check("star", (n,), directed, star(n, directed)); count += 1
+            if n >= 4 and not directed:
+                check("wheel", (n,), False, wheel(n)); count += 1
+        for a in range(0, 7):
+            for b in range(0, 7):
+                check("completeBipartite", (a, b), directed, complete_bipartite(a, b, directed)); count += 1
+        for d in range(0, 9):
+            check("hypercube", (d,), directed, hypercube(d, directed)); count += 1
+        for dims in itertools.chain(([a] for a in range(0, 8)),
+                                    ([a, b] for a in range(0, 7) for b in range(0, 7)),
+                                    ([a, b, c] for a in range(1, 5) for b in range(1, 5) for c in range(1, 5))):
+            for per in (False, True):
+                check("grid", (dims, per), directed, grid(dims, per, directed)); count += 1
+    return count
+
+
+def main():
+    build_rows()
+    text = render()
+    path_ = os.path.join(HERE, "cases.md")
+    if "--write" in sys.argv:
+        open(path_, "w").write(text)
+        print(f"wrote {len(ROWS)} rows to cases.md")
+    else:
+        current = open(path_).read() if os.path.exists(path_) else ""
+        if current != text:
+            print("cases.md differs from the model (run with --write)")
+            sys.exit(1)
+        print(f"cases.md: {len(ROWS)} rows agree with the model, NetworkX and igraph")
+    if "--stress" in sys.argv:
+        print(f"stress: {stress()} family/size/direction combinations agree with NetworkX and igraph")
+
+
+if __name__ == "__main__":
+    main()
