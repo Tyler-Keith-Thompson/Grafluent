@@ -1,0 +1,59 @@
+# ImplicitGraphs: case catalog (phase 1)
+
+Generated and checked by `ref.py` (`uv run --quiet --no-project --with networkx==3.7 python3
+Tests/Catalogs/ImplicitGraphs/ref.py`; `--write` regenerates this file, `--stress` adds random
+closures). Every graph is checked against the DirectedGraph laws and against NetworkX 3.7 on the
+materialized graph (`bfs_layers`, components, shortest path lengths, Dijkstra).
+
+Conventions:
+
+* `IG (n, closure)` is `ImplicitDirectedGraph(vertexCount: n, successors: closure)`. Named closures:
+  * `ring5` = `{ [($0 + 1) % 5] }`;
+  * `diamond` = `{ [[1, 2], [3], [3], []][$0] }`;
+  * `parallel` = `{ [[1, 1, 0], []][$0] }`;
+  * `twoCycles` = `{ [[1], [0, 2], [3], [2], []][$0] }`;
+  * `grid` is a 4 × 3 grid of cells `r * 4 + c`, walls at 5 and 6 (no edges in or out), with
+    neighbors in the order up, left, right, down.
+* Edge positions are written `s.r→t`: source `s`, rank `r` in the source's row, target `t`. They are
+  equal and ordered by `(s, r)`; the target rides along.
+* `calls()` is the number of closure calls since the previous `calls()` (the test counts in its
+  own closure, so this is public behavior, not a benchmark counter).
+* Groups `Generic` and `Closures` are cross-module. `Generic` runs the existing Traversal,
+  Connectivity, Cycles and ShortestPaths algorithms on the implicit graph and compares with
+  NetworkX. Components are compared as sets, since their order is the owning module's rule.
+  `Closures` rows are design input for ShortestPaths D19 (unimplemented) and one existing Traversal
+  entry point. They belong in those suites, and they pin distances and path vertex counts, not
+  tie-breaking. `P(x, y)` is a `Hashable` point, and `knight1` gives each knight move cost 1.
+* `**trap**` rows are preconditions, run as exit tests.
+
+| ID | Group | Case | Input / call | Expected |
+|---|---|---|---|---|
+| IG-001 | Construction | no vertices: the closure is never called | IG (0, { _ in [] }) / vertices / edges / edgeCount / calls() | []; []; 0; 0 |
+| IG-002 | Construction | a ring; nothing is called at construction | IG (5, ring5) / calls() / vertexCount / vertexIndexBound / edgeIndexBound | 0; 5; 5; nil |
+| IG-003 | Construction | negative vertex count | ImplicitDirectedGraph(vertexCount: -1, successors: { _ in [] }) | **trap** (negative vertex count -1) |
+| IG-004 | Reads | successors(of:) calls the closure once and returns its sequence | IG (4, diamond) / successors(of: 0) / calls() / successors(of: 3) / calls() | [1, 2]; 1; []; 1 |
+| IG-005 | Reads | outEdges(of:) positions carry (source, rank, target); one call | IG (4, diamond) / outEdges(of: 0) / calls() / outDegree(of: 0) / calls() | [0.0→1, 0.1→2]; 1; 2; 1 |
+| IG-006 | Reads | source/target(ofEdgeAt:) read the position, no call | IG (4, diamond) / let p = outEdges(of: 0)[1] / calls() / source(ofEdgeAt: p) / target(ofEdgeAt: p) / calls() | 0.1→2; 1; 0; 2; 0 |
+| IG-007 | Reads | edges in row order; one call per vertex; edgeCount the same | IG (4, diamond) / Array(edges) / calls() / edgeCount / calls() | [0.0→1, 0.1→2, 1.0→3, 2.0→3]; 4; 4; 4 |
+| IG-008 | Reads | edges.index(after:) re-reads the row: O(d) per step | IG (4, diamond) / edges.index(after: 0.0→1) / calls() / edges.index(after: 0.1→2) / calls() / edges.index(after: 2.0→3) / calls() | 0.1→2; 1; 1.0→3; 2; endIndex; 2 |
+| IG-009 | Reads | parallel edges and a self-loop are distinct positions | IG (2, parallel) / outEdges(of: 0) / outDegree(of: 0) / contains(edge: 0→1) / contains(edge: 0→0) / contains(edge: 1→0) | [0.0→1, 0.1→1, 0.2→0]; 3; true; true; false |
+| IG-010 | Reads | contains: no call for vertices, one row scan for an edge | IG (4, diamond) / contains(3) / contains(4) / contains(-1) / calls() / contains(edge: 1→3) / contains(edge: 9→3) / calls() | true; false; false; 0; true; false; 1 |
+| IG-011 | Reads | index members are the identity | IG (4, diamond) / vertexIndex(of: 2) / vertex(atIndex: 3) / successorIndices(ofIndex: 0) | 2; 3; [1, 2] |
+| IG-012 | Traps | successors(of:) a non-vertex | IG (4, diamond) / successors(of: 4) | **trap** (4 is not a vertex of the graph) |
+| IG-013 | Traps | outDegree(of:) a negative vertex | IG (4, diamond) / outDegree(of: -1) | **trap** (-1 is not a vertex of the graph) |
+| IG-014 | Traps | the closure returns a non-vertex: trap when it is read | IG (2, { _ in [0, 2] }) / successors(of: 0) | **trap** (successor 2 of 0 is not a vertex (0..<2)) |
+| IG-015 | Traps | a negative successor, read by edgeCount | IG (2, { _ in [-1] }) / edgeCount | **trap** (successor -1 of 0 is not a vertex (0..<2)) |
+| IG-016 | Generic | breadthFirstLayers on the grid: one call per discovered vertex | IG (12, grid) / breadthFirstLayers(from: 0) / calls() / breadthFirstLayers(from: 5) | [[0], [1, 4], [2, 8], [3, 9], [7, 10], [11]]; 10; [[5]] |
+| IG-017 | Generic | shortestPaths(from:) distances | IG (12, grid) / shortestPaths(from: 0).distance(to:) for 0..<12 | [0, 1, 2, 3, 1, nil, nil, 4, 2, 3, 4, 5] |
+| IG-018 | Generic | dijkstraShortestPaths with weight from the position: entering a cell in row r costs r + 1 | IG (12, grid) / dijkstraShortestPaths(from: 0, weight: { $0.target / 4 + 1 }).distance(to:) for 0..<12 | [0, 1, 2, 3, 2, nil, nil, 5, 5, 8, 11, 8] |
+| IG-019 | Generic | weaklyConnectedComponents as sets | IG (5, twoCycles) / weaklyConnectedComponents() | [[0, 1, 2, 3], [4]] |
+| IG-020 | Generic | stronglyConnectedComponents as sets | IG (5, twoCycles) / stronglyConnectedComponents() | [[0, 1], [2, 3], [4]] |
+| IG-021 | Generic | topologicalSort is a valid order on a DAG and nil on a cycle | IG (4, diamond) / topologicalSort() is a topological order / IG(5, twoCycles).topologicalSort() | true; nil |
+| IG-022 | Generic | a ring is one strongly connected component | IG (5, ring5) / stronglyConnectedComponents() / findCycle()!.count | [[0, 1, 2, 3, 4]]; 5 |
+| IG-023 | Closures | Traversal (exists): breadthFirstSearch over an unbounded grid, depth limit 2 | breadthFirstSearch(from: [P(0, 0)], depthLimit: 2, successors: grid4) / discovered vertices | 13 |
+| IG-024 | Closures | D19 Dijkstra: knight from (0, 0) to (7, 7) on an unbounded board | dijkstraShortestPath(from: P(0, 0), successors: knight1, success: { $0 == P(7, 7) }) / (distance, path.count) | (6, 7) |
+| IG-025 | Closures | D19 A*: the same, with the admissible knight bound | aStarShortestPath(from: P(0, 0), successors: knight1, heuristic: knightBound, success: { $0 == P(7, 7) }) / (distance, path.count) | (6, 7) |
+| IG-026 | Closures | D19 Dijkstra: unbounded grid, entering (x, y) costs 1 + (x² + y) mod 3 | dijkstraShortestPath(from: P(0, 0), successors: costly, success: { $0 == P(4, -3) }) / distance | 12 |
+| IG-027 | Closures | D19 A*: the same with Manhattan distance (admissible: every step costs ≥ 1) | aStarShortestPath(from: P(0, 0), successors: costly, heuristic: manhattan(to: P(4, -3)), success: { $0 == P(4, -3) }) / distance | 12 |
+| IG-028 | Closures | D19: the start satisfies success | dijkstraShortestPath(from: 3, successors: { [($0 + 1, 1)] }, success: { $0 == 3 }) / (distance, path.count) | (0, 1) |
+| IG-029 | Closures | D19: a finite space with no goal returns nil | dijkstraShortestPath(from: 0, successors: { $0 < 10 ? [($0 + 1, 1)] : [] }, success: { $0 == 20 }) / (distance, path.count) | nil |
