@@ -5,8 +5,11 @@
 /// holes. `DirectedGraph`'s `vertexIndexBound` and `edgeIndexBound` are the compact kind and keep
 /// their laws; a conformer reports them only while it has no holes.
 ///
-/// Algorithms use this refinement to keep per-vertex and per-edge state in arrays sized by the
-/// bounds while holes exist, instead of hashing every vertex and edge they meet.
+/// Algorithms use this refinement to number the live vertices and edges with arrays while holes
+/// exist, instead of hashing every vertex and edge they meet. The bounds are upper bounds only:
+/// positions are never reused, so a bound counts every position ever handed out, and nothing in
+/// the library allocates by it. Position-keyed state goes through a paged map
+/// (`_PositionNumbers`), O(live elements + pages).
 ///
 /// **Laws.** In addition to `BidirectionalDirectedGraph`'s:
 /// - `containsVertex(atPosition: p)` is true exactly for the positions of live vertices, all in
@@ -46,7 +49,9 @@ public protocol SparselyIndexedDirectedGraph<Vertex>: BidirectionalDirectedGraph
 
     /// The live vertices numbered in `vertices` order and their successor rows (`outward`) or
     /// predecessor rows in that numbering, with each entry's edge position when `edges` (otherwise
-    /// `_NumberedRows.edges` is empty), in O(`vertexPositionBound` + `edgeCount`) with no hashing.
+    /// `_NumberedRows.edges` is empty). `StableDirectedGraph`'s runs in O(`vertexCount` +
+    /// `edgeCount` + pages) with no hashing, its memory and time independent of how many
+    /// positions were ever handed out.
     ///
     /// Not for use outside the library: index-space algorithms call it once per run. A conformer
     /// outside it gets a default built from the public members above.
@@ -54,27 +59,29 @@ public protocol SparselyIndexedDirectedGraph<Vertex>: BidirectionalDirectedGraph
 }
 
 extension SparselyIndexedDirectedGraph {
-    /// The default: live vertices numbered by one pass over `0..<vertexPositionBound`, and each row
-    /// read through `outEdges(of:)` or `inEdges(of:)`, the far end numbered through
-    /// `vertexPosition(of:)`, so one hash per vertex and per edge. O(`vertexPositionBound` +
-    /// `edgeCount`).
+    /// The default: live vertices numbered by one pass over `vertices` (in increasing position, by
+    /// the laws), each position found through `vertexPosition(of:)`, and each row read through
+    /// `outEdges(of:)` or `inEdges(of:)`, the far end numbered through `vertexPosition(of:)`, so
+    /// one hash per vertex and per edge. O(`vertexCount` + `edgeCount`) plus the cost of iterating
+    /// `vertices`; the position map is paged, so its memory does not grow with
+    /// `vertexPositionBound`.
     @inlinable
     public func _numberedRows(outward: Bool, edges withEdges: Bool) -> _NumberedRows {
-        let bound = vertexPositionBound
-        var numbers = [Int](repeating: -1, count: bound)
-        var n = 0
-        for position in 0 ..< bound where containsVertex(atPosition: position) {
-            numbers[position] = n
-            n += 1
+        var builder = _PositionNumbers.Builder()
+        var listed: [Vertex] = []
+        listed.reserveCapacity(vertexCount)
+        for vertex in vertices {
+            builder.append(vertexPosition(of: vertex), number: listed.count)
+            listed.append(vertex)
         }
+        let numbers = builder.build()
         var offsets = [0]
-        offsets.reserveCapacity(n + 1)
+        offsets.reserveCapacity(listed.count + 1)
         var neighbors: [Int] = []
         neighbors.reserveCapacity(edgeCount)
         var edges: [Int] = []
         if withEdges { edges.reserveCapacity(edgeCount) }
-        for position in 0 ..< bound where numbers[position] >= 0 {
-            let vertex = vertex(atPosition: position)
+        for vertex in listed {
             if outward {
                 for edge in outEdges(of: vertex) {
                     neighbors.append(numbers[vertexPosition(of: target(ofEdgeAt: edge))])
@@ -96,8 +103,9 @@ extension SparselyIndexedDirectedGraph {
 /// `SparselyIndexedDirectedGraph._numberedRows(outward:edges:)` returns.
 @frozen
 public struct _NumberedRows {
-    /// Each vertex position's number, or -1 at a hole: `vertexPositionBound` entries.
-    @usableFromInline package let numbers: [Int]
+    /// Each live vertex position's number (-1 at any other position), paged: O(live pages + page
+    /// span) memory, not O(`vertexPositionBound`).
+    @usableFromInline package let numbers: _PositionNumbers
     /// Row offsets: row `v` is `offsets[v] ..< offsets[v + 1]`; `vertexCount + 1` entries.
     @usableFromInline package let offsets: [Int]
     /// Neighbor numbers, by row.
@@ -106,7 +114,7 @@ public struct _NumberedRows {
     @usableFromInline package let edges: [Int]
 
     @inlinable
-    package init(numbers: [Int], offsets: [Int], neighbors: [Int], edges: [Int]) {
+    package init(numbers: _PositionNumbers, offsets: [Int], neighbors: [Int], edges: [Int]) {
         self.numbers = numbers
         self.offsets = offsets
         self.neighbors = neighbors

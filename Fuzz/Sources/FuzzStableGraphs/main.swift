@@ -12,7 +12,14 @@
 // in-memory decoder feeds `init(from:)` the model's own payload, which must decode to the same
 // positions and ends, or the payload with one field made hostile (a huge or negative end, an odd
 // edge list, an endpoint out of range, positions not increasing or past the end, a repeated
-// vertex), which must throw; a huge end may decode only if it neither traps nor exhausts memory.
+// vertex), which must throw; a huge end decodes in O(elements) when the pages from the first listed
+// position to the end number at most 16 per listed element plus 64, and throws otherwise. Heavy
+// churn steps hand out thousands of positions while few stay live, so pages fill and are freed;
+// `changeTarget` / `changeSource` (and their `safe:` spellings) re-point edges in place; up to three
+// attached edge maps and a vertex map, added, filled and removed at random, must never hold a
+// value at a dead position (every removal clears it) and keep the live ones' values, through
+// re-pointing too; a copy taken at a snapshot step, maps included, must not change while the
+// graph does.
 
 import Connectivity
 import FuzzSupport
@@ -87,12 +94,15 @@ enum FuzzStableGraphs {
         mutating func insert(_ v: Int) { if position(of: v) == nil { vertices.append(v) } }
     }
 
-    static func checkAll(_ graph: StableDirectedGraph<Int>, _ model: Model, _ context: String) {
+    /// `vertexEnd` and `edgeEnd` default to the model's; a decoded far end has dead positions
+    /// after the model's, which are checked at the ends only.
+    static func checkAll(_ graph: StableDirectedGraph<Int>, _ model: Model, _ context: String, vertexEnd: Int? = nil, edgeEnd: Int? = nil) {
         let lv = model.liveVertices, le = model.liveEdges
+        let vertexEnd = vertexEnd ?? model.vertices.count, edgeEnd = edgeEnd ?? model.edges.count
         check(graph.vertexCount == lv.count, "vertexCount \(graph.vertexCount), expected \(lv.count) \(context)")
         check(graph.edgeCount == le.count, "edgeCount \(graph.edgeCount), expected \(le.count) \(context)")
-        check(graph.vertices.endIndex == model.vertices.count && graph.vertexPositionBound == model.vertices.count, "vertex end \(context)")
-        check(graph.edges.endIndex == model.edges.count && graph.edgePositionBound == model.edges.count, "edge end \(context)")
+        check(graph.vertices.endIndex == vertexEnd && graph.vertexPositionBound == vertexEnd, "vertex end \(context)")
+        check(graph.edges.endIndex == edgeEnd && graph.edgePositionBound == edgeEnd, "edge end \(context)")
         check(Array(graph.vertices.indices) == lv, "vertex positions \(Array(graph.vertices.indices)), expected \(lv) \(context)")
         check(Array(graph.vertices) == lv.map { model.vertices[$0]! }, "vertices in order \(context)")
         check(Array(graph.vertices.reversed()) == lv.reversed().map { model.vertices[$0]! }, "vertices reversed \(context)")
@@ -103,17 +113,17 @@ enum FuzzStableGraphs {
             check(graph.edges[p] == DirectedEdge(from: e.source, to: e.target), "edge at \(p) \(context)")
             check(graph.source(ofEdgeAt: p) == e.source && graph.target(ofEdgeAt: p) == e.target, "ends at \(p) \(context)")
         }
-        for p in -1 ... model.vertices.count {
+        for p in Array(-1 ... model.vertices.count) + [vertexEnd - 1, vertexEnd, Int.max] {
             let live = p >= 0 && p < model.vertices.count && model.vertices[p] != nil
             check(graph.containsVertex(atPosition: p) == live, "containsVertex(atPosition: \(p)) \(context)")
             check(graph.vertices.indices.contains(p) == live, "vertices.indices.contains(\(p)) \(context)")
         }
-        for p in -1 ... model.edges.count {
+        for p in Array(-1 ... model.edges.count) + [edgeEnd - 1, edgeEnd, Int.max] {
             let live = p >= 0 && p < model.edges.count && model.edges[p] != nil
             check(graph.containsEdge(atPosition: p) == live, "containsEdge(atPosition: \(p)) \(context)")
             check(graph.edges.indices.contains(p) == live, "edges.indices.contains(\(p)) \(context)")
         }
-        let vertexHoles = lv.count != model.vertices.count, edgeHoles = le.count != model.edges.count
+        let vertexHoles = lv.count != vertexEnd, edgeHoles = le.count != edgeEnd
         check(graph.vertexIndexBound == (vertexHoles ? nil : lv.count), "vertexIndexBound \(String(describing: graph.vertexIndexBound)) \(context)")
         check(graph.edgeIndexBound == (edgeHoles ? nil : le.count), "edgeIndexBound \(String(describing: graph.edgeIndexBound)) \(context)")
         for p in lv {
@@ -131,6 +141,22 @@ enum FuzzStableGraphs {
             check(graph.degree(of: v) == out.count + into.count, "degree of \(v) \(context)")
             check(graph.outEdges(of: v).count == out.count && graph.inEdges(of: v).count == into.count, "row counts of \(v) \(context)")
             if vertexHoles == false { check(graph.vertexIndex(of: v) == p, "vertexIndex(of: \(v)) \(context)") }
+        }
+    }
+
+    static func checkMaps(
+        _ graph: StableDirectedGraph<Int>, _ edgeMaps: [(handle: EdgeMap<Int>, values: [Int: Int])], _ tags: VertexMap<Int>?,
+        _ tagValues: [Int: Int], _ model: Model, _ context: String
+    ) {
+        for (m, map) in edgeMaps.enumerated() {
+            for p in 0 ..< model.edges.count {
+                check(graph[map: map.handle, ofEdgeAt: p] == map.values[p], "edge map \(m) at \(p): \(String(describing: graph[map: map.handle, ofEdgeAt: p])), expected \(String(describing: map.values[p])) \(context)")
+            }
+        }
+        if let tags {
+            for p in 0 ..< model.vertices.count {
+                check(graph[map: tags, ofVertexAt: p] == tagValues[p], "vertex map at \(p) \(context)")
+            }
         }
     }
 
@@ -204,12 +230,25 @@ enum FuzzStableGraphs {
         }
         guard let decoded else {
             check(mustThrow == nil, "valid payload \(corruption) did not decode \(context)")
+            if mustThrow == nil {
+                // A far end throws exactly when it spans too many pages.
+                let vertexEnd = values["vertexEnd"] as! Int, edgeEnd = values["edgeEnd"] as! Int
+                func span(_ end: Int, _ first: Int?) -> Int { end >> 10 - Swift.max(first ?? end, 0) >> 10 + 1 }
+                check(span(vertexEnd, model.liveVertices.first) > 16 * model.liveVertices.count + 64
+                    || span(edgeEnd, model.liveEdges.first) > 16 * model.liveEdges.count + 64, "far end within the page bound did not decode \(context)")
+            }
             return
         }
-        var expected = model
-        expected.vertices.append(contentsOf: repeatElement(nil, count: (values["vertexEnd"] as! Int) - model.vertices.count))
-        expected.edges.append(contentsOf: repeatElement(nil, count: (values["edgeEnd"] as! Int) - model.edges.count))
-        checkAll(decoded, expected, "decoded payload \(corruption) \(context)")
+        let vertexEnd = values["vertexEnd"] as! Int, edgeEnd = values["edgeEnd"] as! Int
+        checkAll(decoded, model, "decoded payload \(corruption) \(context)", vertexEnd: vertexEnd, edgeEnd: edgeEnd)
+        // The pages a far end allows: at most 16 per listed element plus 64, from the first one.
+        func span(_ end: Int, _ first: Int?) -> Int { end >> 10 - Swift.max(first ?? end, 0) >> 10 + 1 }
+        check(span(vertexEnd, model.liveVertices.first) <= 16 * model.liveVertices.count + 64, "vertex span accepted \(context)")
+        check(span(edgeEnd, model.liveEdges.first) <= 16 * model.liveEdges.count + 64, "edge span accepted \(context)")
+        // The next fresh positions follow the decoded ends.
+        var next = decoded
+        if vertexEnd < Int.max { check(next.insert(-1).inserted && next.vertexPosition(of: -1) == vertexEnd, "next vertex position \(context)") }
+        if edgeEnd < Int.max, vertexEnd < Int.max { check(next.insert(edge: DirectedEdge(from: -1, to: -1)) == edgeEnd, "next edge position \(context)") }
     }
 
     static func fuzz(_ input: inout FuzzInput) {
@@ -217,10 +256,14 @@ enum FuzzStableGraphs {
         var model = Model()
         var steps = 0
         var log: [String] = []
+        var edgeMaps: [(handle: EdgeMap<Int>, values: [Int: Int])] = []
+        let tags = graph.addVertexMap(of: Int.self)
+        var tagValues: [Int: Int] = [:]
+        var snapshot: (graph: StableDirectedGraph<Int>, model: Model, maps: [(handle: EdgeMap<Int>, values: [Int: Int])])?
         while !input.isEmpty, steps < 96 {
             steps += 1
             let a = input.int(below: 8), b = input.int(below: 8)
-            let op = input.int(below: 18)
+            let op = input.int(below: 24)
             switch op {
             case 0 ..< 2:
                 let result = graph.insert(a)
@@ -282,6 +325,78 @@ enum FuzzStableGraphs {
             case 16:
                 checkDecoding(model, corruption: (a * 8 + b) % 17, "after \(log.suffix(6).joined(separator: "; "))")
                 continue
+            case 18, 19:
+                // Re-point a live edge: the safe: spelling also at dead positions and non-vertices.
+                let live = model.liveEdges
+                let p = live.isEmpty ? a - 1 : live[(a * 8 + b) % live.count]
+                let target = op == 18, safe = (a + b) % 3 == 0
+                let ok = p >= 0 && p < model.edges.count && model.edges[p] != nil && model.position(of: b) != nil
+                if safe {
+                    let changed = target ? graph.changeTarget(ofEdgeAt: p, safe: b) : graph.changeSource(ofEdgeAt: p, safe: b)
+                    check(changed == ok, "change\(target ? "Target" : "Source")(ofEdgeAt: \(p), safe: \(b)) result")
+                } else if ok {
+                    if target { graph.changeTarget(ofEdgeAt: p, to: b) } else { graph.changeSource(ofEdgeAt: p, to: b) }
+                }
+                if ok {
+                    if target { model.edges[p]!.target = b } else { model.edges[p]!.source = b }
+                }
+                log.append("change\(target ? "Target" : "Source")(ofEdgeAt: \(p), \(safe ? "safe" : "to"): \(b))")
+            case 20:
+                // Heavy edge churn: hundreds of edges in, the oldest out, so whole pages die.
+                for round in 0 ..< 300 * (1 + a) {
+                    let u = (b + round) % 8, w = (round / 8 + b) % 8
+                    let p = graph.insert(edge: DirectedEdge(from: u, to: w))
+                    check(p == model.edges.count, "heavy churn insert(edge:) position \(p)")
+                    model.insert(u)
+                    model.insert(w)
+                    model.edges.append((u, w))
+                    if let oldest = model.edges.firstIndex(where: { $0 != nil }), round % 4 != 0 {
+                        check(graph.remove(edgeAt: oldest) == DirectedEdge(from: model.edges[oldest]!.source, to: model.edges[oldest]!.target), "heavy churn remove(edgeAt: \(oldest))")
+                        model.edges[oldest] = nil
+                    }
+                }
+                log.append("heavyChurn(\(a), \(b))")
+            case 21:
+                // Heavy vertex churn: a vertex removed and re-inserted, each time at a fresh position.
+                for round in 0 ..< 200 * (1 + a) {
+                    let v = (b + round) % 8
+                    if let at = model.position(of: v) {
+                        check(graph.remove(v) == v, "heavy vertex churn remove(\(v))")
+                        model.vertices[at] = nil
+                        for e in model.liveEdges where model.edges[e]!.source == v || model.edges[e]!.target == v { model.edges[e] = nil }
+                    }
+                    graph.insert(v)
+                    model.vertices.append(v)
+                    graph[map: tags, ofVertexAt: model.vertices.count - 1] = v
+                    tagValues[model.vertices.count - 1] = v
+                    if round % 3 == 0 {
+                        let w = (v + 1 + round / 8) % 8
+                        model.insert(w)
+                        model.edges.append((v, w))
+                        _ = graph.insert(edge: DirectedEdge(from: v, to: w))
+                    }
+                }
+                log.append("heavyVertexChurn(\(a), \(b))")
+            case 22:
+                // Attached edge maps: add one, remove one, or fill some live positions.
+                switch a % 4 {
+                case 0 where edgeMaps.count < 3:
+                    edgeMaps.append((graph.addEdgeMap(of: Int.self), [:]))
+                case 1 where !edgeMaps.isEmpty:
+                    graph.removeEdgeMap(edgeMaps.remove(at: b % edgeMaps.count).handle)
+                default:
+                    for m in edgeMaps.indices {
+                        for p in model.liveEdges where (p + b + m) % 3 == 0 {
+                            graph[map: edgeMaps[m].handle, ofEdgeAt: p] = p &* 7 &+ m
+                            edgeMaps[m].values[p] = p &* 7 &+ m
+                        }
+                    }
+                }
+                log.append("maps(\(a), \(b))")
+            case 23:
+                // A copy now, maps included, must not change while the graph does.
+                snapshot = (graph, model, edgeMaps)
+                continue
             default:
                 // Rare resets: positions start again at 0.
                 switch b {
@@ -300,6 +415,14 @@ enum FuzzStableGraphs {
             let context = "after \(log.suffix(6).joined(separator: "; "))"
             checkAll(graph, model, context)
             checkPair(graph, model, a, b, context)
+            // Every removal cleared the removed elements' values; the live ones keep theirs.
+            for m in edgeMaps.indices { edgeMaps[m].values = edgeMaps[m].values.filter { p, _ in p < model.edges.count && model.edges[p] != nil } }
+            tagValues = tagValues.filter { p, _ in p < model.vertices.count && model.vertices[p] != nil }
+            checkMaps(graph, edgeMaps, tags, tagValues, model, context)
+            if let snapshot {
+                checkAll(snapshot.graph, snapshot.model, "snapshot, " + context)
+                checkMaps(snapshot.graph, snapshot.maps, nil, [:], snapshot.model, "snapshot, " + context)
+            }
             if steps % 16 == 0 { checkAlgorithms(graph, context) }
         }
         checkAlgorithms(graph, "at the end")

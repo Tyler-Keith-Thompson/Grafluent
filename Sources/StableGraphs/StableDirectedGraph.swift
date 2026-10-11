@@ -1,4 +1,3 @@
-import AdjacencyListModule
 import GraphProtocols
 
 /// A directed graph that allows parallel edges and self-loops, in which a vertex's or an edge's
@@ -8,10 +7,10 @@ import GraphProtocols
 /// `vertices` or `edges`. A new vertex or edge always gets the current `endIndex`, and removing one
 /// leaves a hole instead of moving another element in, so a position names the same element for as
 /// long as it exists and is never handed out again. `vertices.indices.contains(p)` and
-/// `edges.indices.contains(p)` tell, in O(1), whether a position is still live; a side array
-/// indexed by position (weights, labels) is sized `endIndex` and only ever appended to. Only
-/// `removeAll(keepingCapacity:)` and `removeAllEdges(keepingCapacity:)` reset an `endIndex`, which
-/// invalidates every position of that kind, like assigning `StableDirectedGraph()`.
+/// `edges.indices.contains(p)` tell, in O(1), whether a position is still live, and data kept by
+/// position (weights, labels) goes in an attached map, which a removal keeps in step. Only `removeAll(keepingCapacity:)` and `removeAllEdges(keepingCapacity:)` reset an
+/// `endIndex`, which invalidates every position of that kind, like assigning
+/// `StableDirectedGraph()`.
 ///
 /// Unlike petgraph, which reuses vacated indices from a free list, positions are never reused:
 /// every order is position order, which is insertion order. `vertices`, `edges`,
@@ -33,12 +32,26 @@ import GraphProtocols
 /// record keeps its offset in each; removing it marks both entries dead, and a row is compacted
 /// once more than half of it is dead, so removal is O(1) amortized and walking a row is a
 /// contiguous read over at most twice its degree. The bulk initializers lay the rows out in slot
-/// order, so a pass over the whole graph reads memory in order. (Doubly linked lists threaded through the records, as in LEMON's
-/// `ListDigraph`, unlink in O(1) but walked 3.6–5.4× slower in strong and weak components on a
-/// random graph, a cache miss per edge, so rows are arrays.) Memory grows with the total number
-/// of insertions, not the live count: a 32-byte record per edge position and one tombstoned slot
-/// per removed vertex stay until a reset, and a copy that is then mutated copies all of it.
-/// Iterating `vertices` or `edges` costs O(`endIndex`).
+/// order, so a pass over the whole graph reads memory in order. (Doubly linked lists threaded
+/// through the records, as in LEMON's `ListDigraph`, unlink in O(1) but walked 3.6–5.4× slower
+/// in strong and weak components on a random graph, a cache miss per edge, so rows are arrays.)
+///
+/// **Pages.** Slots and records live in fixed-size pages of 1024 positions; a vertex page also
+/// holds its slots' rows. A page whose positions have all been handed out and are all dead is
+/// freed, rows and all, and a run of freed pages at the front of a table is dropped, so under
+/// churn where old elements die, memory follows the live count, not the insertions. What stays
+/// is one page per 1024 positions that still holds a live element (a long-lived element keeps
+/// its page), plus a table entry (128 bytes for vertices, 16 for edges) for each freed page
+/// between the oldest live position and the end. Positions are still never reused. Iterating
+/// `vertices` or `edges`, and numbering the vertices for an algorithm, costs O(live elements +
+/// pages), skipping a freed page whole. A copy shares every page, and the first mutation after a
+/// copy copies the page table and only the pages it touches.
+///
+/// **Attached maps.** `addEdgeMap(of:)` and `addVertexMap(of:)` attach a map from positions to
+/// values (LEMON's `ArcMap` and `NodeMap`, which observe their graph through its
+/// `AlterationNotifier`): the graph stores it, paged like itself, and every removal clears the
+/// removed element's value in every attached map in the same mutation, O(maps) with no
+/// allocation. Values are read and written through `graph[map: handle, ofEdgeAt: position]`.
 ///
 /// **Missing vertices.** The lookups trap on a vertex that is not in the graph, like an `Array`
 /// subscript; `successors(safe:)`, `outDegree(safe:)` and the other `safe:` spellings return `nil`
@@ -50,43 +63,49 @@ import GraphProtocols
 /// one.
 @frozen
 public struct StableDirectedGraph<Vertex: Hashable> {
-    /// The vertex at each position; `nil` at a hole.
+    /// The vertex pages: page `_vertexBase + k` is entry `k`.
     @usableFromInline
-    internal var _vertices: ContiguousArray<Vertex?>
+    internal var _vertexPages: ContiguousArray<_VertexPage<Vertex>>
+
+    /// The out-rows of each vertex page's slots, parallel to `_vertexPages`.
+    @usableFromInline
+    internal var _outPages: ContiguousArray<_RowPage>
+
+    /// The in-rows of each vertex page's slots, parallel to `_vertexPages`.
+    @usableFromInline
+    internal var _inPages: ContiguousArray<_RowPage>
+
+    /// The page number of the first vertex table entry; the pages before it were freed.
+    @usableFromInline
+    internal var _vertexBase: Int
+
+    /// How many entries at the front of the vertex tables are freed pages, not yet dropped.
+    @usableFromInline
+    internal var _vertexFront: Int
 
     /// The position of each live vertex.
     @usableFromInline
     internal var _slots: [Vertex: Int]
 
-    /// For each slot, the slots of its out-edges' targets, parallel to `_outEdges`.
+    /// The edge pages: page `_edgeBase + k` is entry `k`.
     @usableFromInline
-    internal var _out: _RowPool
+    internal var _edgePages: ContiguousArray<_EdgePage>
 
-    /// For each slot, the positions of its out-edges, increasing.
+    /// The page number of the first edge table entry.
     @usableFromInline
-    internal var _outEdges: _RowPool
+    internal var _edgeBase: Int
 
-    /// For each slot, the slots of its in-edges' sources, parallel to `_inEdges`.
+    /// How many entries at the front of the edge table are freed pages, not yet dropped.
     @usableFromInline
-    internal var _in: _RowPool
+    internal var _edgeFront: Int
 
-    /// For each slot, the positions of its in-edges, increasing.
+    /// The next vertex position: `vertices.endIndex`.
     @usableFromInline
-    internal var _inEdges: _RowPool
+    internal var _vertexEnd: Int
 
-    /// For each slot, how many entries of its out-row are dead (-1 in `_out`), awaiting compaction;
-    /// -1 at a vertex hole, so liveness is known without touching a `Vertex?` (in unspecialized
-    /// code, through `SparselyIndexedDirectedGraph`, each such test is a witness call).
+    /// The next edge position: `edges.endIndex`.
     @usableFromInline
-    internal var _outDead: ContiguousArray<Int>
-
-    /// For each slot, how many entries of its in-row are dead.
-    @usableFromInline
-    internal var _inDead: ContiguousArray<Int>
-
-    /// The edge at each position: its endpoints' slots; a hole has source -1.
-    @usableFromInline
-    internal var _records: ContiguousArray<_EdgeRecord>
+    internal var _edgeEnd: Int
 
     /// The number of live vertices.
     @usableFromInline
@@ -96,51 +115,43 @@ public struct StableDirectedGraph<Vertex: Hashable> {
     @usableFromInline
     internal var _edgeCount: Int
 
-    /// The lowest live vertex position, or `_vertices.count` when there is none.
+    /// The lowest live vertex position, or `_vertexEnd` when there is none.
     @usableFromInline
     internal var _firstVertex: Int
 
-    /// The lowest live edge position, or `_records.count` when there is none.
+    /// The lowest live edge position, or `_edgeEnd` when there is none.
     @usableFromInline
     internal var _firstEdge: Int
+
+    /// The attached edge maps (`addEdgeMap(of:)`), each cleared at an edge's position when the
+    /// edge is removed.
+    @usableFromInline
+    internal var _edgeMaps: ContiguousArray<_AttachedMap>
+
+    /// The attached vertex maps (`addVertexMap(of:)`).
+    @usableFromInline
+    internal var _vertexMaps: ContiguousArray<_AttachedMap>
 
     /// The empty graph.
     @inlinable
     public init() {
-        _vertices = []
+        _vertexPages = []
+        _outPages = []
+        _inPages = []
+        _vertexBase = 0
+        _vertexFront = 0
         _slots = [:]
-        _out = _RowPool()
-        _outEdges = _RowPool()
-        _in = _RowPool()
-        _inEdges = _RowPool()
-        _outDead = []
-        _inDead = []
-        _records = []
+        _edgePages = []
+        _edgeBase = 0
+        _edgeFront = 0
+        _vertexEnd = 0
+        _edgeEnd = 0
         _vertexCount = 0
         _edgeCount = 0
         _firstVertex = 0
         _firstEdge = 0
-    }
-}
-
-/// One edge position: its endpoints' slots (source -1 at a hole), and its offsets in the source's
-/// out-row and the target's in-row, kept up to date when a row is compacted.
-@usableFromInline
-internal struct _EdgeRecord {
-    @usableFromInline var source: Int
-    @usableFromInline var target: Int
-    @usableFromInline var out: Int
-    @usableFromInline var `in`: Int
-
-    @inlinable
-    static var hole: _EdgeRecord { _EdgeRecord(source: -1, target: -1, out: -1, in: -1) }
-
-    @inlinable
-    init(source: Int, target: Int, out: Int, in into: Int) {
-        self.source = source
-        self.target = target
-        self.out = out
-        self.in = into
+        _edgeMaps = []
+        _vertexMaps = []
     }
 }
 
@@ -152,7 +163,7 @@ extension StableDirectedGraph {
     @inlinable
     public init(vertices: some Sequence<Vertex>) {
         self.init()
-        _vertices.reserveCapacity(vertices.underestimatedCount)
+        reserveCapacity(vertexCount: vertices.underestimatedCount, edgeCount: 0)
         for v in vertices { insert(v) }
     }
 
@@ -161,7 +172,7 @@ extension StableDirectedGraph {
     @inlinable
     public init(edges: some Sequence<DirectedEdge<Vertex>>) {
         self.init()
-        _records.reserveCapacity(edges.underestimatedCount)
+        reserveCapacity(vertexCount: 0, edgeCount: edges.underestimatedCount)
         for edge in edges { insert(edge: edge) }
         _packRows()
     }
@@ -236,10 +247,11 @@ extension StableDirectedGraph {
         guard let s = _slots[source], let t = _slots[target] else {
             return EdgesConnecting(ends: [], positions: [], other: -1)
         }
-        if _outDegree(s) <= _inDegree(t) {
-            return EdgesConnecting(ends: _out[row: s], positions: _outEdges[row: s], other: t)
+        let sk = _vk(s), sl = s & _PositionPage.mask, tk = _vk(t), tl = t & _PositionPage.mask
+        if _outPages[sk].degree(sl) <= _inPages[tk].degree(tl) {
+            return EdgesConnecting(ends: _outPages[sk].endSlice(sl), positions: _outPages[sk].positionSlice(sl), other: t)
         }
-        return EdgesConnecting(ends: _in[row: t], positions: _inEdges[row: t], other: s)
+        return EdgesConnecting(ends: _inPages[tk].endSlice(tl), positions: _inPages[tk].positionSlice(tl), other: s)
     }
 
     /// The number of copies from `source` to `target`: `edges(from: source, to: target)`'s length
@@ -259,7 +271,7 @@ extension StableDirectedGraph {
     @inlinable
     public func successors(of vertex: Vertex) -> Neighbors {
         let slot = _slot(of: vertex)
-        return Neighbors(vertices: _vertices, row: _LiveRow(ends: _out[row: slot], positions: _outEdges[row: slot], count: _outDegree(slot)))
+        return Neighbors(pages: _vertexPages, base: _vertexBase, row: _outRow(slot))
     }
 
     /// The source of every edge entering `vertex`, in the order of `inEdges(of:)`: a vertex once
@@ -269,7 +281,7 @@ extension StableDirectedGraph {
     @inlinable
     public func predecessors(of vertex: Vertex) -> Neighbors {
         let slot = _slot(of: vertex)
-        return Neighbors(vertices: _vertices, row: _LiveRow(ends: _in[row: slot], positions: _inEdges[row: slot], count: _inDegree(slot)))
+        return Neighbors(pages: _vertexPages, base: _vertexBase, row: _inRow(slot))
     }
 
     /// The positions of the edges leaving `vertex`, in increasing order, so the oldest live edge
@@ -323,14 +335,14 @@ extension StableDirectedGraph {
     @inlinable
     public func successors(safe vertex: Vertex) -> Neighbors? {
         guard let slot = _slots[vertex] else { return nil }
-        return Neighbors(vertices: _vertices, row: _LiveRow(ends: _out[row: slot], positions: _outEdges[row: slot], count: _outDegree(slot)))
+        return Neighbors(pages: _vertexPages, base: _vertexBase, row: _outRow(slot))
     }
 
     /// `predecessors(of: vertex)`, or `nil` when `vertex` is not a vertex. O(1) to make.
     @inlinable
     public func predecessors(safe vertex: Vertex) -> Neighbors? {
         guard let slot = _slots[vertex] else { return nil }
-        return Neighbors(vertices: _vertices, row: _LiveRow(ends: _in[row: slot], positions: _inEdges[row: slot], count: _inDegree(slot)))
+        return Neighbors(pages: _vertexPages, base: _vertexBase, row: _inRow(slot))
     }
 
     /// `outEdges(of: vertex)`, or `nil` when `vertex` is not a vertex. O(1).
@@ -366,7 +378,7 @@ extension StableDirectedGraph {
     /// - Precondition: `position` is a live edge position: `edges.indices.contains(position)`.
     @inlinable
     public func source(ofEdgeAt position: Int) -> Vertex {
-        _vertices[_liveRecord(position).source].unsafelyUnwrapped
+        _vertex(atSlot: _liveRecord(position).source)
     }
 
     /// The target of the edge at `position`. O(1).
@@ -374,7 +386,7 @@ extension StableDirectedGraph {
     /// - Precondition: `position` is a live edge position: `edges.indices.contains(position)`.
     @inlinable
     public func target(ofEdgeAt position: Int) -> Vertex {
-        _vertices[_liveRecord(position).target].unsafelyUnwrapped
+        _vertex(atSlot: _liveRecord(position).target)
     }
 
     @inlinable
@@ -386,57 +398,99 @@ extension StableDirectedGraph {
         return slot
     }
 
+    /// The table index of the page holding vertex slot `slot`.
+    @inlinable
+    @inline(__always)
+    internal func _vk(_ slot: Int) -> Int { (slot &>> _PositionPage.shift) &- _vertexBase }
+
+    /// The table index of the page holding edge position `position`.
+    @inlinable
+    @inline(__always)
+    internal func _ek(_ position: Int) -> Int { (position &>> _PositionPage.shift) &- _edgeBase }
+
+    /// The vertex at live slot `slot`.
+    @inlinable
+    @inline(__always)
+    internal func _vertex(atSlot slot: Int) -> Vertex {
+        _pagedVertex(atSlot: slot, _vertexPages, base: _vertexBase)
+    }
+
     /// The record at `position`, which must be live.
     @inlinable
     @inline(__always)
     internal func _liveRecord(_ position: Int) -> _EdgeRecord {
-        precondition(UInt(bitPattern: position) < UInt(bitPattern: _records.count), "Edge position out of range")
-        let record = _records[position]
-        precondition(record.source >= 0, "No edge at position \(position): it was removed")
+        precondition(UInt(bitPattern: position) < UInt(bitPattern: _edgeEnd), "Edge position out of range")
+        let k = _ek(position), l = position & _PositionPage.mask
+        // A position in a freed or dropped page was removed. (Read through a buffer pointer: an
+        // array subscript would copy the page and retain its records.)
+        let record: _EdgeRecord? = _edgePages.withUnsafeBufferPointer { pages in
+            guard k >= 0, k < pages.count else { return nil }
+            return pages[k].records.withUnsafeBufferPointer { l < $0.count ? $0[l] : nil }
+        }
+        guard let record, record.source >= 0 else { preconditionFailure("No edge at position \(position): it was removed") }
         return record
     }
 
+    /// The record at `position`, which is known to be live.
     @inlinable
-    internal func _outEdges(slot: Int) -> OutEdges {
-        OutEdges(row: _LiveRow(ends: _out[row: slot], positions: _outEdges[row: slot], count: _outDegree(slot)))
+    @inline(__always)
+    internal func _record(_ position: Int) -> _EdgeRecord {
+        let k = _ek(position)
+        return _edgePages.withUnsafeBufferPointer { pages in pages[k].records.withUnsafeBufferPointer { $0[position & _PositionPage.mask] } }
     }
 
     @inlinable
-    internal func _inEdges(slot: Int) -> InEdges {
-        InEdges(row: _LiveRow(ends: _in[row: slot], positions: _inEdges[row: slot], count: _inDegree(slot)))
+    internal func _outRow(_ slot: Int) -> _LiveRow {
+        let k = _vk(slot), l = slot & _PositionPage.mask
+        return _outPages.withUnsafeBufferPointer { pages in
+            _LiveRow(ends: pages[k].endSlice(l), positions: pages[k].positionSlice(l), count: pages[k].degree(l))
+        }
+    }
+
+    @inlinable
+    internal func _inRow(_ slot: Int) -> _LiveRow {
+        let k = _vk(slot), l = slot & _PositionPage.mask
+        return _inPages.withUnsafeBufferPointer { pages in
+            _LiveRow(ends: pages[k].endSlice(l), positions: pages[k].positionSlice(l), count: pages[k].degree(l))
+        }
+    }
+
+    @inlinable
+    internal func _outEdges(slot: Int) -> OutEdges { OutEdges(row: _outRow(slot)) }
+
+    @inlinable
+    internal func _inEdges(slot: Int) -> InEdges { InEdges(row: _inRow(slot)) }
+
+    @inlinable
+    @inline(__always)
+    internal func _outDegree(_ slot: Int) -> Int {
+        let k = _vk(slot)
+        return _outPages.withUnsafeBufferPointer { $0[k].degree(slot & _PositionPage.mask) }
     }
 
     @inlinable
     @inline(__always)
-    internal func _outDegree(_ slot: Int) -> Int { _out.count(ofRow: slot) &- _outDead[slot] }
-
-    @inlinable
-    @inline(__always)
-    internal func _inDegree(_ slot: Int) -> Int { _in.count(ofRow: slot) &- _inDead[slot] }
+    internal func _inDegree(_ slot: Int) -> Int {
+        let k = _vk(slot)
+        return _inPages.withUnsafeBufferPointer { $0[k].degree(slot & _PositionPage.mask) }
+    }
 
     /// The position of the newest copy from slot `source` to slot `target`, or -1, found by
     /// scanning the shorter of the two rows from its end.
     @inlinable
     internal func _newestEdge(from source: Int, to target: Int) -> Int {
-        if _outDegree(source) <= _inDegree(target) {
-            let k = Self._lastOffset(of: target, inRow: source, _out)
-            return k >= 0 ? _outEdges[row: source, k] : -1
-        }
-        let k = Self._lastOffset(of: source, inRow: target, _in)
-        return k >= 0 ? _inEdges[row: target, k] : -1
-    }
-
-    /// The offset of the last `value` in `row` of `ends`, or -1.
-    @inlinable
-    internal static func _lastOffset(of value: Int, inRow row: Int, _ ends: _RowPool) -> Int {
-        let block = ends.rows[row]
-        return ends.storage.withUnsafeBufferPointer { storage in
-            var k = block.count - 1
-            while k >= 0, storage[block.start + k] != value { k -= 1 }
-            return k
+        let sk = _vk(source), sl = source & _PositionPage.mask, tk = _vk(target), tl = target & _PositionPage.mask
+        return _outPages.withUnsafeBufferPointer { outPages in
+            _inPages.withUnsafeBufferPointer { inPages in
+                if outPages[sk].degree(sl) <= inPages[tk].degree(tl) {
+                    let k = outPages[sk].lastOffset(of: target, inRow: sl)
+                    return k >= 0 ? outPages[sk].positions[outPages[sk].rows[sl].start &+ k] : -1
+                }
+                let k = inPages[tk].lastOffset(of: source, inRow: tl)
+                return k >= 0 ? inPages[tk].positions[inPages[tk].rows[tl].start &+ k] : -1
+            }
         }
     }
-
 }
 
 // MARK: - Mutation
@@ -450,7 +504,7 @@ extension StableDirectedGraph {
     @inlinable
     @discardableResult
     public mutating func insert(_ vertex: Vertex) -> (inserted: Bool, memberAfterInsert: Vertex) {
-        if let slot = _slots[vertex] { return (false, _vertices[slot].unsafelyUnwrapped) }
+        if let slot = _slots[vertex] { return (false, _vertex(atSlot: slot)) }
         _appendSlot(for: vertex)
         return (true, vertex)
     }
@@ -484,44 +538,76 @@ extension StableDirectedGraph {
         return _insertEdge(slots: source, target)
     }
 
-    /// Appends an edge from slot `source` to slot `target` at the tails of both lists.
+    /// Appends an edge from slot `source` to slot `target` at the tails of both rows.
     @inlinable
     @discardableResult
     internal mutating func _insertEdge(slots source: Int, _ target: Int) -> Int {
-        let position = _records.count
-        let out = _out.append(target, toRow: source)
-        _outEdges.append(position, toRow: source)
-        let into = _in.append(source, toRow: target)
-        _inEdges.append(position, toRow: target)
-        _records.append(_EdgeRecord(source: source, target: target, out: out, in: into))
+        let position = _edgeEnd
+        precondition(position < Int.max, "Edge positions exhausted")
+        let sk = _vk(source), sl = source & _PositionPage.mask, tk = _vk(target), tl = target & _PositionPage.mask
+        let out = _outPages[sk].append(end: target, position: position, toRow: sl)
+        let into = _inPages[tk].append(end: source, position: position, toRow: tl)
+        if position & _PositionPage.mask == 0 { _appendEdgePage() }
+        let k = _edgePages.count &- 1
+        _edgePages[k].records.append(_EdgeRecord(source: source, target: target, out: out, in: into))
+        _edgePages[k].live &+= 1
+        _edgeEnd = position &+ 1
         _edgeCount &+= 1
         return position
     }
 
+    /// Starts the edge page for position `_edgeEnd`. The first page grows as it fills; later
+    /// ones reserve a whole page, since a graph past one page is likely to fill the next.
+    @inlinable
+    internal mutating func _appendEdgePage() {
+        if _edgePages.isEmpty { _edgeBase = _edgeEnd &>> _PositionPage.shift }
+        var page = _EdgePage()
+        if _edgeEnd >= _PositionPage.size { page.records.reserveCapacity(_PositionPage.size) }
+        _edgePages.append(page)
+    }
+
+    /// Starts the vertex page (and its two row pages) for slot `_vertexEnd`.
+    @inlinable
+    internal mutating func _appendVertexPage() {
+        if _vertexPages.isEmpty { _vertexBase = _vertexEnd &>> _PositionPage.shift }
+        var page = _VertexPage<Vertex>()
+        var out = _RowPage(), into = _RowPage()
+        if _vertexEnd >= _PositionPage.size {
+            let n = _PositionPage.size
+            page.vertices.reserveCapacity(n)
+            out.rows.reserveCapacity(n)
+            into.rows.reserveCapacity(n)
+        }
+        _vertexPages.append(page)
+        _outPages.append(out)
+        _inPages.append(into)
+    }
+
     /// Lays the rows out in slot order after a bulk build, so a pass over every row (an
     /// algorithm, or `_numberedRows`) reads memory in order: rows that grew by moving are
-    /// scattered through their pool. One copy of each pool.
+    /// scattered through their page's pools. One copy of each pool.
     @inlinable
     internal mutating func _packRows() {
-        guard _records.count >= 1024 else { return }
-        _out._pack()
-        _outEdges._pack()
-        _in._pack()
-        _inEdges._pack()
+        guard _edgeEnd >= 1024 else { return }
+        for k in _outPages.indices where !_outPages[k].isFreed {
+            _outPages[k].pack()
+            _inPages[k].pack()
+        }
     }
 
     @inlinable
     @discardableResult
     internal mutating func _appendSlot(for vertex: Vertex) -> Int {
-        let slot = _vertices.count
-        _vertices.append(vertex)
+        let slot = _vertexEnd
+        precondition(slot < Int.max, "Vertex positions exhausted")
+        if slot & _PositionPage.mask == 0 { _appendVertexPage() }
+        let k = _vertexPages.count &- 1
+        _vertexPages[k].vertices.append(vertex)
+        _vertexPages[k].live &+= 1
+        _outPages[k].appendRow(dead: 0)
+        _inPages[k].appendRow(dead: 0)
         _slots[vertex] = slot
-        _out.appendRow()
-        _outEdges.appendRow()
-        _in.appendRow()
-        _inEdges.appendRow()
-        _outDead.append(0)
-        _inDead.append(0)
+        _vertexEnd = slot &+ 1
         _vertexCount &+= 1
         return slot
     }
@@ -535,39 +621,79 @@ extension StableDirectedGraph {
     @discardableResult
     public mutating func remove(_ vertex: Vertex) -> Vertex? {
         guard let slot = _slots.removeValue(forKey: vertex) else { return nil }
-        let removed = _vertices[slot].unsafelyUnwrapped
+        let k = _vk(slot), l = slot & _PositionPage.mask
+        let removed = _vertexPages[k].vertices[l].unsafelyUnwrapped
         // Each edge leaves the far end's row and becomes a hole; the vertex's own rows are
         // dropped whole. A self-loop leaves with the out-row.
-        for k in 0 ..< _out.count(ofRow: slot) {
-            let target = _out[row: slot, k]
+        for j in 0 ..< _outPages[k].rows[l].count {
+            let at = _outPages[k].rows[l].start &+ j
+            let target = _outPages[k].ends[at]
             if target < 0 { continue }
-            let position = _outEdges[row: slot, k]
+            let position = _outPages[k].positions[at]
             if target != slot {
-                Self._kill(_records[position].in, inRow: target, &_in, &_inEdges, &_inDead, &_records, outward: false)
+                _kill(_record(position).in, slot: target, outward: false)
             }
             _hole(position)
         }
-        for k in 0 ..< _in.count(ofRow: slot) {
-            let source = _in[row: slot, k]
+        for j in 0 ..< _inPages[k].rows[l].count {
+            let at = _inPages[k].rows[l].start &+ j
+            let source = _inPages[k].ends[at]
             if source < 0 || source == slot { continue }
-            let position = _inEdges[row: slot, k]
-            Self._kill(_records[position].out, inRow: source, &_out, &_outEdges, &_outDead, &_records, outward: true)
+            let position = _inPages[k].positions[at]
+            _kill(_record(position).out, slot: source, outward: true)
             _hole(position)
         }
-        _out.clearRow(slot)
-        _outEdges.clearRow(slot)
-        _in.clearRow(slot)
-        _inEdges.clearRow(slot)
-        _outDead[slot] = -1
-        _inDead[slot] = 0
-        _vertices[slot] = nil
+        _outPages[k].clearRow(l, dead: -1)
+        _inPages[k].clearRow(l, dead: 0)
+        _vertexPages[k].vertices[l] = nil
+        if !_vertexMaps.isEmpty { Self._clear(slot, in: &_vertexMaps) }
+        _vertexPages[k].live &-= 1
         _vertexCount &-= 1
-        if slot == _firstVertex {
-            var first = slot + 1
-            while first < _vertices.count, _vertices[first] == nil { first += 1 }
-            _firstVertex = first
-        }
+        if _vertexPages[k].live == 0, _vertexPages[k].vertices.count == _PositionPage.size { _freeVertexPage(k) }
+        if slot == _firstVertex { _firstVertex = _nextLiveVertex(after: slot, _vertexPages, base: _vertexBase, end: _vertexEnd) }
         return removed
+    }
+
+    /// Frees the vertex page at table index `k`, rows and all, and drops the freed pages at the
+    /// front of the tables once they are at least half of them (amortized O(1) per page).
+    @inlinable
+    internal mutating func _freeVertexPage(_ k: Int) {
+        _vertexPages[k] = _VertexPage()
+        _outPages[k] = _RowPage()
+        _inPages[k] = _RowPage()
+        guard k == _vertexFront else { return }
+        while _vertexFront < _vertexPages.count, _vertexPages[_vertexFront].vertices.isEmpty { _vertexFront &+= 1 }
+        if _vertexFront == _vertexPages.count {
+            // Every page is freed, so every page is full and `_vertexEnd` starts a page.
+            _vertexPages.removeAll()
+            _outPages.removeAll()
+            _inPages.removeAll()
+            _vertexBase = _vertexEnd &>> _PositionPage.shift
+            _vertexFront = 0
+        } else if _vertexFront &* 2 >= _vertexPages.count {
+            _vertexPages.removeFirst(_vertexFront)
+            _outPages.removeFirst(_vertexFront)
+            _inPages.removeFirst(_vertexFront)
+            _vertexBase &+= _vertexFront
+            _vertexFront = 0
+        }
+    }
+
+    /// Notes edge pages freed at the front of the table, and drops them once they are at least
+    /// half of it.
+    @inlinable
+    internal mutating func _dropFreedEdgePages() {
+        while _edgeFront < _edgePages.count, _edgePages[_edgeFront].records.isEmpty { _edgeFront &+= 1 }
+        if _edgeFront == 0 { return }
+        if _edgeFront == _edgePages.count {
+            _edgePages.removeAll()
+            _edgeBase = _edgeEnd &>> _PositionPage.shift
+            _edgeFront = 0
+        } else if _edgeFront &* 2 >= _edgePages.count {
+            _edgePages.removeFirst(_edgeFront)
+            _edgeBase &+= _edgeFront
+            _edgeFront = 0
+        }
     }
 
     /// Removes the newest copy of `edge` (NetworkX's `remove_edge(u, v)`). Its position becomes a
@@ -584,8 +710,8 @@ extension StableDirectedGraph {
         guard let source = _slots[edge.source], let target = _slots[edge.target] else { return nil }
         let position = _newestEdge(from: source, to: target)
         guard position >= 0 else { return nil }
-        _unlink(position)
-        return DirectedEdge(from: _vertices[source].unsafelyUnwrapped, to: _vertices[target].unsafelyUnwrapped)
+        _unlink(position, _record(position))
+        return DirectedEdge(from: _vertex(atSlot: source), to: _vertex(atSlot: target))
     }
 
     /// Removes the edge at `position`, leaving a hole: no other edge moves, and the position is
@@ -598,8 +724,80 @@ extension StableDirectedGraph {
     @discardableResult
     public mutating func remove(edgeAt position: Int) -> DirectedEdge<Vertex> {
         let record = _liveRecord(position)
-        _unlink(position)
-        return DirectedEdge(from: _vertices[record.source].unsafelyUnwrapped, to: _vertices[record.target].unsafelyUnwrapped)
+        _unlink(position, record)
+        return DirectedEdge(from: _vertex(atSlot: record.source), to: _vertex(atSlot: record.target))
+    }
+
+    /// Re-points the edge at `position` to `newTarget`, keeping its position and its source (LEMON's
+    /// `ListDigraph::changeTarget`). The edge keeps its place among the source's out-edges, joins
+    /// `newTarget`'s in-edges at its place in position order, and data kept by its position (an
+    /// `EdgeMap`) still applies. Changing to the current target changes nothing; self-loops before
+    /// and after are allowed. O(1) amortized to leave the old target's row, plus
+    /// O(`inDegree(of: newTarget)`) to insert into the new one.
+    ///
+    /// - Precondition: `position` is a live edge position and `newTarget` is a vertex.
+    @inlinable
+    public mutating func changeTarget(ofEdgeAt position: Int, to newTarget: Vertex) {
+        let record = _liveRecord(position)
+        _changeTarget(position, record, to: _slot(of: newTarget))
+    }
+
+    /// Re-points the edge at `position` to `newSource`, keeping its position and its target (LEMON's
+    /// `ListDigraph::changeSource`): the mirror of `changeTarget(ofEdgeAt:to:)`. The edge keeps
+    /// its place among the target's in-edges and joins `newSource`'s out-edges in position order.
+    /// O(1) amortized plus O(`outDegree(of: newSource)`).
+    ///
+    /// - Precondition: `position` is a live edge position and `newSource` is a vertex.
+    @inlinable
+    public mutating func changeSource(ofEdgeAt position: Int, to newSource: Vertex) {
+        let record = _liveRecord(position)
+        _changeSource(position, record, to: _slot(of: newSource))
+    }
+
+    /// `changeTarget(ofEdgeAt: position, to: newTarget)`, or `false`, changing nothing, when no edge
+    /// is at `position` or `newTarget` is not a vertex (README Principle 6).
+    ///
+    /// - Returns: Whether the edge now ends at `newTarget`.
+    @inlinable
+    @discardableResult
+    public mutating func changeTarget(ofEdgeAt position: Int, safe newTarget: Vertex) -> Bool {
+        guard let slot = _slots[newTarget], _isLiveEdge(position, _edgePages, base: _edgeBase, end: _edgeEnd) else { return false }
+        _changeTarget(position, _record(position), to: slot)
+        return true
+    }
+
+    /// `changeSource(ofEdgeAt: position, to: newSource)`, or `false`, changing nothing, when no edge
+    /// is at `position` or `newSource` is not a vertex (README Principle 6).
+    ///
+    /// - Returns: Whether the edge now starts at `newSource`.
+    @inlinable
+    @discardableResult
+    public mutating func changeSource(ofEdgeAt position: Int, safe newSource: Vertex) -> Bool {
+        guard let slot = _slots[newSource], _isLiveEdge(position, _edgePages, base: _edgeBase, end: _edgeEnd) else { return false }
+        _changeSource(position, _record(position), to: slot)
+        return true
+    }
+
+    @inlinable
+    internal mutating func _changeTarget(_ position: Int, _ record: _EdgeRecord, to target: Int) {
+        guard target != record.target else { return }
+        let ek = _ek(position), el = position & _PositionPage.mask, sourcePage = _vk(record.source)
+        _kill(record.in, slot: record.target, outward: false)
+        let into = _insertInOrder(end: record.source, position: position, slot: target, outward: false)
+        _outPages[sourcePage].ends[_outPages[sourcePage].rows[record.source & _PositionPage.mask].start &+ record.out] = target
+        _edgePages[ek].records[el].target = target
+        _edgePages[ek].records[el].in = into
+    }
+
+    @inlinable
+    internal mutating func _changeSource(_ position: Int, _ record: _EdgeRecord, to source: Int) {
+        guard source != record.source else { return }
+        let ek = _ek(position), el = position & _PositionPage.mask, targetPage = _vk(record.target)
+        _kill(record.out, slot: record.source, outward: true)
+        let out = _insertInOrder(end: record.target, position: position, slot: source, outward: true)
+        _inPages[targetPage].ends[_inPages[targetPage].rows[record.target & _PositionPage.mask].start &+ record.in] = source
+        _edgePages[ek].records[el].source = source
+        _edgePages[ek].records[el].out = out
     }
 
     /// Removes every copy from `source` to `target`. Copies from `target` to `source` stay, and so
@@ -642,7 +840,8 @@ extension StableDirectedGraph {
     /// `retain_edges` with the predicate inverted, after `Array.removeAll(where:)`. The predicate is
     /// called once per edge, with its position, vertex by vertex in `vertices` order and each
     /// vertex's out-edges in `outEdges(of:)` order, and must not mutate the graph. Each out-row is
-    /// compacted once. O(`vertices.endIndex` + `edgeCount`), plus O(1) amortized per removed edge.
+    /// compacted once. O(`vertexCount` + `edgeCount` + pages), plus O(1) amortized per removed
+    /// edge.
     ///
     /// If the predicate throws, the edges it already chose are removed, the rest are kept, and the
     /// error is rethrown.
@@ -652,12 +851,12 @@ extension StableDirectedGraph {
     @discardableResult
     public mutating func removeAllEdges<E: Error>(where shouldBeRemoved: (_ position: Int) throws(E) -> Bool) throws(E) -> Int {
         var removed = 0
-        var slot = _firstVertex
-        while slot < _outDead.count {
-            if _outDead[slot] >= 0, _outDegree(slot) > 0 {
-                removed &+= try _killAll(inRow: slot, outward: true) { (_, position) throws(E) -> Bool in try shouldBeRemoved(position) }
+        // Removing edges never frees a vertex page, so the table indices stay put.
+        for k in _outPages.indices {
+            let first = (_vertexBase &+ k) &<< _PositionPage.shift
+            for l in 0 ..< _outPages[k].rows.count where _outPages[k].rows[l].dead >= 0 && _outPages[k].degree(l) > 0 {
+                removed &+= try _killAll(inRow: first | l, outward: true) { (_, position) throws(E) -> Bool in try shouldBeRemoved(position) }
             }
-            slot &+= 1
         }
         return removed
     }
@@ -671,19 +870,19 @@ extension StableDirectedGraph {
         inRow slot: Int, outward: Bool, where shouldBeRemoved: (_ end: Int, _ position: Int) throws(E) -> Bool
     ) throws(E) -> Int {
         let (removed, lowest, failure): (Int, Int, E?)
-        if outward {
-            (removed, lowest, failure) = Self._killAll(
-                inRow: slot, &_out, &_outEdges, &_outDead, far: &_in, &_inEdges, &_inDead, &_records, outward: true, where: shouldBeRemoved)
-        } else {
-            (removed, lowest, failure) = Self._killAll(
-                inRow: slot, &_in, &_inEdges, &_inDead, far: &_out, &_outEdges, &_outDead, &_records, outward: false, where: shouldBeRemoved)
+        let k = _vk(slot), l = slot & _PositionPage.mask, vertexBase = _vertexBase, edgeBase = _edgeBase
+        (removed, lowest, failure) = _edgePages.withUnsafeMutableBufferPointer { table in
+            _outPages.withUnsafeMutableBufferPointer { outPages in
+                _inPages.withUnsafeMutableBufferPointer { inPages in
+                    outward
+                        ? Self._killAll(inRow: l, &outPages[k], far: inPages, table, &_edgeMaps, vertexBase: vertexBase, edgeBase: edgeBase, outward: true, where: shouldBeRemoved)
+                        : Self._killAll(inRow: l, &inPages[k], far: outPages, table, &_edgeMaps, vertexBase: vertexBase, edgeBase: edgeBase, outward: false, where: shouldBeRemoved)
+                }
+            }
         }
         _edgeCount &-= removed
-        if lowest == _firstEdge {
-            var first = lowest + 1
-            while first < _records.count, _records[first].source < 0 { first += 1 }
-            _firstEdge = first
-        }
+        if removed > 0 { _dropFreedEdgePages() }
+        if lowest == _firstEdge { _firstEdge = _nextLiveEdge(after: lowest, _edgePages, base: _edgeBase, end: _edgeEnd) }
         if let failure { throw failure }
         return removed
     }
@@ -692,127 +891,126 @@ extension StableDirectedGraph {
     /// position (or -1), and the predicate's error, if it threw.
     @inlinable
     internal static func _killAll<E: Error>(
-        inRow row: Int, _ ends: inout _RowPool, _ positions: inout _RowPool, _ dead: inout ContiguousArray<Int>,
-        far farEnds: inout _RowPool, _ farPositions: inout _RowPool, _ farDead: inout ContiguousArray<Int>,
-        _ records: inout ContiguousArray<_EdgeRecord>, outward: Bool,
+        inRow row: Int, _ walked: inout _RowPage, far: UnsafeMutableBufferPointer<_RowPage>, _ records: UnsafeMutableBufferPointer<_EdgePage>,
+        _ maps: inout ContiguousArray<_AttachedMap>,
+        vertexBase: Int, edgeBase: Int, outward: Bool,
         where shouldBeRemoved: (_ end: Int, _ position: Int) throws(E) -> Bool
     ) -> (removed: Int, lowest: Int, failure: E?) {
-        let count = ends.rows[row].count
+        let count = walked.rows[row].count, start = walked.rows[row].start
         var kept = 0
         var removed = 0
         var lowest = -1
         var failure: E?
         for k in 0 ..< count {
-            let end = ends[row: row, k]
+            let end = walked.ends[start &+ k]
             if end < 0 { continue }
-            let position = positions[row: row, k]
+            let position = walked.positions[start &+ k]
             var remove = false
             if failure == nil {
                 do throws(E) { remove = try shouldBeRemoved(end, position) } catch { failure = error }
             }
+            let page = (position &>> _PositionPage.shift) &- edgeBase, slot = position & _PositionPage.mask
             if remove {
-                let record = records[position]
+                let record = records[page].records[slot]
+                let farPage = (end &>> _PositionPage.shift) &- vertexBase, farRow = end & _PositionPage.mask
                 if outward {
-                    _kill(record.in, inRow: end, &farEnds, &farPositions, &farDead, &records, outward: false)
+                    far[farPage].kill(record.in, inRow: farRow, records, edgeBase: edgeBase, outward: false)
                 } else {
-                    _kill(record.out, inRow: end, &farEnds, &farPositions, &farDead, &records, outward: true)
+                    far[farPage].kill(record.out, inRow: farRow, records, edgeBase: edgeBase, outward: true)
                 }
-                records[position] = .hole
+                // The page may be freed; the caller drops freed pages after the pass.
+                records[page].hole(slot)
+                if !maps.isEmpty { _clear(position, in: &maps) }
                 if lowest < 0 || position < lowest { lowest = position }
                 removed &+= 1
             } else {
                 if kept != k {
-                    ends[row: row, kept] = end
-                    positions[row: row, kept] = position
+                    walked.ends[start &+ kept] = end
+                    walked.positions[start &+ kept] = position
                 }
-                if outward { records[position].out = kept } else { records[position].in = kept }
+                if outward { records[page].records[slot].out = kept } else { records[page].records[slot].in = kept }
                 kept &+= 1
             }
         }
-        ends.rows[row].count = kept
-        positions.rows[row].count = kept
-        dead[row] = 0
+        walked.rows[row].count = kept
+        walked.rows[row].dead = 0
         return (removed, lowest, failure)
     }
 
     /// Removes the live edge at `position` from both rows and leaves a hole.
     @inlinable
-    internal mutating func _unlink(_ position: Int) {
-        let r = _records[position]
-        Self._kill(r.out, inRow: r.source, &_out, &_outEdges, &_outDead, &_records, outward: true)
-        Self._kill(r.in, inRow: r.target, &_in, &_inEdges, &_inDead, &_records, outward: false)
-        _hole(position)
+    internal mutating func _unlink(_ position: Int, _ r: _EdgeRecord) {
+        let base = _edgeBase, sourcePage = _vk(r.source), targetPage = _vk(r.target)
+        let k = _ek(position), l = position & _PositionPage.mask
+        // One uniqueness check per table, then the pages in place.
+        let freed: Bool = _edgePages.withUnsafeMutableBufferPointer { table in
+            _outPages.withUnsafeMutableBufferPointer { pages in
+                pages[sourcePage].kill(r.out, inRow: r.source & _PositionPage.mask, table, edgeBase: base, outward: true)
+            }
+            _inPages.withUnsafeMutableBufferPointer { pages in
+                pages[targetPage].kill(r.in, inRow: r.target & _PositionPage.mask, table, edgeBase: base, outward: false)
+            }
+            return table[k].hole(l)
+        }
+        if freed { _dropFreedEdgePages() }
+        if !_edgeMaps.isEmpty { Self._clear(position, in: &_edgeMaps) }
+        _edgeCount &-= 1
+        if position == _firstEdge { _firstEdge = _nextLiveEdge(after: position, _edgePages, base: _edgeBase, end: _edgeEnd) }
     }
 
-    /// Marks the entry at `offset` of `row` dead (lazy deletion, so removal never shifts a row):
-    /// trailing dead entries are dropped at once, and the row is compacted when more than half of
-    /// it is dead, so a removal costs O(1) amortized and a row is never more than twice its degree.
+    /// Kills the entry at `offset` of slot `slot`'s out-row (`outward`) or in-row.
     @inlinable
-    internal static func _kill(
-        _ offset: Int, inRow row: Int, _ ends: inout _RowPool, _ positions: inout _RowPool, _ dead: inout ContiguousArray<Int>,
-        _ records: inout ContiguousArray<_EdgeRecord>, outward: Bool
-    ) {
-        let endStart = ends.rows[row].start
-        var count = ends.rows[row].count
-        var deadCount = dead[row] &+ 1
-        let compacted: Bool = ends.storage.withUnsafeMutableBufferPointer { ends in
-            ends[endStart &+ offset] = -1
-            while count > 0, ends[endStart &+ count &- 1] < 0 {
-                count &-= 1
-                deadCount &-= 1
+    internal mutating func _kill(_ offset: Int, slot: Int, outward: Bool) {
+        let k = _vk(slot), row = slot & _PositionPage.mask, base = _edgeBase
+        _edgePages.withUnsafeMutableBufferPointer { table in
+            if outward {
+                _outPages.withUnsafeMutableBufferPointer { $0[k].kill(offset, inRow: row, table, edgeBase: base, outward: true) }
+            } else {
+                _inPages.withUnsafeMutableBufferPointer { $0[k].kill(offset, inRow: row, table, edgeBase: base, outward: false) }
             }
-            return deadCount &* 2 > count
         }
-        if compacted {
-            // Keep the live entries in order.
-            let positionStart = positions.rows[row].start
-            ends.storage.withUnsafeMutableBufferPointer { ends in
-                positions.storage.withUnsafeMutableBufferPointer { positions in
-                    records.withUnsafeMutableBufferPointer { records in
-                        var kept = 0
-                        for k in 0 ..< count where ends[endStart &+ k] >= 0 {
-                            let position = positions[positionStart &+ k]
-                            ends[endStart &+ kept] = ends[endStart &+ k]
-                            positions[positionStart &+ kept] = position
-                            if outward { records[position].out = kept } else { records[position].in = kept }
-                            kept &+= 1
-                        }
-                        count = kept
-                    }
-                }
-            }
-            deadCount = 0
-        }
-        ends.rows[row].count = count
-        positions.rows[row].count = count
-        dead[row] = deadCount
     }
 
-    /// Marks the edge at `position` removed, already out of every row.
+    /// Inserts the entry (`end`, `position`) into slot `slot`'s out-row (`outward`) or in-row in
+    /// position order; returns its offset.
+    @inlinable
+    internal mutating func _insertInOrder(end: Int, position: Int, slot: Int, outward: Bool) -> Int {
+        let k = _vk(slot), row = slot & _PositionPage.mask, base = _edgeBase
+        return _edgePages.withUnsafeMutableBufferPointer { table in
+            outward
+                ? _outPages.withUnsafeMutableBufferPointer { $0[k].insertInOrder(end: end, position: position, inRow: row, table, edgeBase: base, outward: true) }
+                : _inPages.withUnsafeMutableBufferPointer { $0[k].insertInOrder(end: end, position: position, inRow: row, table, edgeBase: base, outward: false) }
+        }
+    }
+
+    /// Marks the edge at `position` removed, already out of every row, freeing its page when that
+    /// was the page's last live edge.
     @inlinable
     internal mutating func _hole(_ position: Int) {
-        _records[position] = .hole
+        if _edgePages[_ek(position)].hole(position & _PositionPage.mask) { _dropFreedEdgePages() }
+        if !_edgeMaps.isEmpty { Self._clear(position, in: &_edgeMaps) }
         _edgeCount &-= 1
-        if position == _firstEdge {
-            var first = position + 1
-            while first < _records.count, _records[first].source < 0 { first += 1 }
-            _firstEdge = first
-        }
+        if position == _firstEdge { _firstEdge = _nextLiveEdge(after: position, _edgePages, base: _edgeBase, end: _edgeEnd) }
     }
 
     /// Removes every vertex and edge, and resets both `endIndex`es to 0: every position is
     /// invalidated, like assigning `StableDirectedGraph()` (petgraph's `clear`).
     @inlinable
     public mutating func removeAll(keepingCapacity: Bool = false) {
-        _vertices.removeAll(keepingCapacity: keepingCapacity)
+        // The maps stay attached, emptied.
+        Self._clearAll(&_edgeMaps)
+        Self._clearAll(&_vertexMaps)
+        _vertexPages.removeAll(keepingCapacity: keepingCapacity)
+        _outPages.removeAll(keepingCapacity: keepingCapacity)
+        _inPages.removeAll(keepingCapacity: keepingCapacity)
         _slots.removeAll(keepingCapacity: keepingCapacity)
-        _out.removeAll(keepingCapacity: keepingCapacity)
-        _outEdges.removeAll(keepingCapacity: keepingCapacity)
-        _in.removeAll(keepingCapacity: keepingCapacity)
-        _inEdges.removeAll(keepingCapacity: keepingCapacity)
-        _outDead.removeAll(keepingCapacity: keepingCapacity)
-        _inDead.removeAll(keepingCapacity: keepingCapacity)
-        _records.removeAll(keepingCapacity: keepingCapacity)
+        _edgePages.removeAll(keepingCapacity: keepingCapacity)
+        _vertexBase = 0
+        _edgeBase = 0
+        _vertexFront = 0
+        _edgeFront = 0
+        _vertexEnd = 0
+        _edgeEnd = 0
         _vertexCount = 0
         _edgeCount = 0
         _firstVertex = 0
@@ -823,37 +1021,35 @@ extension StableDirectedGraph {
     /// every edge position is invalidated (petgraph's `clear_edges`).
     @inlinable
     public mutating func removeAllEdges(keepingCapacity: Bool = false) {
-        guard !_records.isEmpty else { return }
-        _records.removeAll(keepingCapacity: keepingCapacity)
-        _out.removeAllEntries(keepingCapacity: keepingCapacity)
-        _outEdges.removeAllEntries(keepingCapacity: keepingCapacity)
-        _in.removeAllEntries(keepingCapacity: keepingCapacity)
-        _inEdges.removeAllEntries(keepingCapacity: keepingCapacity)
-        for slot in _outDead.indices {
-            if _outDead[slot] > 0 { _outDead[slot] = 0 }
-            _inDead[slot] = 0
+        guard _edgeEnd > 0 else { return }
+        Self._clearAll(&_edgeMaps)
+        _edgePages.removeAll(keepingCapacity: keepingCapacity)
+        for k in _outPages.indices where !_outPages[k].isFreed {
+            _outPages[k].removeAllEntries(keepingCapacity: keepingCapacity)
+            _inPages[k].removeAllEntries(keepingCapacity: keepingCapacity)
         }
+        _edgeBase = 0
+        _edgeFront = 0
+        _edgeEnd = 0
         _edgeCount = 0
         _firstEdge = 0
     }
 
-    /// Reserves storage for `vertexCount` vertex positions and `edgeCount` edge positions in all,
-    /// holes included.
+    /// Reserves room for `vertexCount` vertex positions and `edgeCount` edge positions in all,
+    /// holes included: the page tables and the vertex lookup. Pages themselves are allocated as
+    /// positions reach them.
     ///
     /// - Precondition: Neither count is negative.
     @inlinable
     public mutating func reserveCapacity(vertexCount: Int, edgeCount: Int) {
         precondition(vertexCount >= 0, "Negative vertex count")
         precondition(edgeCount >= 0, "Negative edge count")
-        _vertices.reserveCapacity(vertexCount)
         _slots.reserveCapacity(vertexCount)
-        _out.reserveCapacity(rows: vertexCount, entries: edgeCount)
-        _outEdges.reserveCapacity(rows: vertexCount, entries: edgeCount)
-        _in.reserveCapacity(rows: vertexCount, entries: edgeCount)
-        _inEdges.reserveCapacity(rows: vertexCount, entries: edgeCount)
-        _outDead.reserveCapacity(vertexCount)
-        _inDead.reserveCapacity(vertexCount)
-        _records.reserveCapacity(edgeCount)
+        let vertexPages = (vertexCount &>> _PositionPage.shift) &+ 1
+        _vertexPages.reserveCapacity(vertexPages)
+        _outPages.reserveCapacity(vertexPages)
+        _inPages.reserveCapacity(vertexPages)
+        _edgePages.reserveCapacity((edgeCount &>> _PositionPage.shift) &+ 1)
     }
 }
 
@@ -865,21 +1061,20 @@ extension StableDirectedGraph {
     /// `node_bound()`).
     @inlinable
     public var vertices: Vertices {
-        Vertices(vertices: _vertices, slots: _slots, first: _firstVertex, count: _vertexCount)
+        Vertices(pages: _vertexPages, base: _vertexBase, end: _vertexEnd, slots: _slots, first: _firstVertex, count: _vertexCount)
     }
 
     /// The live edges, in position order, which is insertion order. Its indices are the positions,
     /// and `endIndex` is the next position `insert(edge:)` hands out (petgraph's `edge_bound()`).
     @inlinable
     public var edges: Edges {
-        Edges(vertices: _vertices, records: _records, first: _firstEdge, count: _edgeCount)
+        Edges(vertexPages: _vertexPages, vertexBase: _vertexBase, pages: _edgePages, base: _edgeBase, end: _edgeEnd, first: _firstEdge, count: _edgeCount)
     }
 
-    // A view holds the storage it reads, so mutating the graph while a view is alive copies that
-    // storage once; `Array(view)` first avoids it.
+    // A view holds the pages it reads, so mutating the graph while a view is alive copies the
+    // pages the mutation touches; `Array(view)` first avoids it.
 }
 
 // MARK: - Sendable
 
 extension StableDirectedGraph: Sendable where Vertex: Sendable {}
-extension _EdgeRecord: Sendable {}

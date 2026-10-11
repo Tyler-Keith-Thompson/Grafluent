@@ -50,7 +50,7 @@ for line in TEXT.splitlines():
         parts = [p.strip().replace("\\|", "|") for p in line.strip().strip("|").split(" | ")]
         CELLS[int(parts[0][3:])] = parts
 N = len(CELLS)
-assert N == 112 and sorted(ROWS) == list(range(1, N + 1))
+assert N == 134 and sorted(ROWS) == list(range(1, N + 1))
 
 
 def title(n): return CELLS[n][2]
@@ -97,7 +97,9 @@ def construct(V, E, t, var="graph", mutable=True):
     return "%s %s = StableDirectedGraph<%s>(vertices: %s, edges: %s)" % ("var" if mutable else "let", var, t, arr(V, t), edges_lit(E, t))
 
 
+STATEMENTS = {"removeAll", "removeAllEdges", "churn", "vertexChurn", "changeTarget", "changeSource"}
 MUTATING = {"insert", "edge", "remove", "removeEdge", "removeAt", "removeAllBetween", "removeAll", "removeAllEdges",
+            "changeTarget", "changeSource", "changeTargetSafe", "changeSourceSafe", "churn", "vertexChurn",
             "removeFromWhere", "removeWhere", "insertSafe"}
 
 # ---------------------------------------------------------------------------------------------
@@ -223,6 +225,12 @@ def call_text(op):
         "inEdgesSafe": lambda: "graph.inEdges(safe: %s)" % lit(a[0]),
         "descendantsSafe": lambda: "graph.descendants(safe: %s)" % lit(a[0]),
         "ancestorsSafe": lambda: "graph.ancestors(safe: %s)" % lit(a[0]),
+        "changeTarget": lambda: "graph.changeTarget(ofEdgeAt: %d, to: %s)" % (a[0], lit(a[1])),
+        "changeSource": lambda: "graph.changeSource(ofEdgeAt: %d, to: %s)" % (a[0], lit(a[1])),
+        "changeTargetSafe": lambda: "graph.changeTarget(ofEdgeAt: %d, safe: %s)" % (a[0], lit(a[1])),
+        "changeSourceSafe": lambda: "graph.changeSource(ofEdgeAt: %d, safe: %s)" % (a[0], lit(a[1])),
+        "churn": lambda: "for _ in 0 ..< %d { graph.insert(edge: %s); graph.remove(edgeAt: graph.edges.startIndex) }" % (a[0], edge(a[1], a[2])),
+        "vertexChurn": lambda: "for i in %d ..< %d { graph.insert(edge: DirectedEdge(from: i, to: i + 1)); graph.remove(i) }" % (a[0], a[0] + a[1]),
     }[k]()
 
 
@@ -256,8 +264,10 @@ def call_lines(port, spec, op, t, ind="        "):
                    ind + "    #expect(result.memberAfterInsert == %s)" % lit(r[1]), ind + "}"]
     if k in ("removeEdge", "removeAt", "edgeAt"):
         return r, [ind + "#expect(%s == %s)" % (call_text(op), "nil" if r is None else edge(*r))]
-    if k in ("removeAll", "removeAllEdges"):
+    if k in STATEMENTS:
         return r, [ind + call_text(op)]
+    if k in ("changeTargetSafe", "changeSourceSafe"):
+        return r, [ind + "do {", ind + "    let changed = " + call_text(op), ind + "    #expect(%schanged)" % ("" if r else "!"), ind + "}"]
     if k in ("successors", "outEdges", "inEdges", "edgesFromTo"):
         return r, [ind + "#expect(%s == %s)" % (call_text(op), arr(r, "Int" if k in ("outEdges", "inEdges", "edgesFromTo") else t))]
     if k == "remove":
@@ -359,7 +369,7 @@ def trap_test(n):
     lines.append("            " + construct(V, E, t, mutable=mut))
     for op in setup + [last]:
         c = call_text(op)
-        lines.append("            " + (c if op[0] in ("removeAll", "removeAllEdges") else "_ = " + c))
+        lines.append("            " + (c if op[0] in STATEMENTS else "_ = " + c))
     lines.append("        }")
     lines.append("        // Without the call: the setup's results and the state the call would apply to.")
     setup_mut = any(o[0] in MUTATING for o in setup)
@@ -395,7 +405,7 @@ def setup_lines(V, E, ops, t, var="graph"):
     lines = ["        " + construct(V, E, t, var=var, mutable=bool(ops))]
     for op in ops:
         c = call_text(op).replace("graph.", var + ".", 1)
-        lines.append("        " + (c if op[0] in ("removeAll", "removeAllEdges") else "_ = " + c))
+        lines.append("        " + (c if op[0] in STATEMENTS else "_ = " + c))
     return lines
 
 
@@ -596,18 +606,76 @@ def codable_tests():
             "            Issue.record(\"unexpected error \\(error)\")",
             "        }",
             "    }"]
-    # The largest ends the bound allows decode, holes and all.
-    n = 112
-    payload = inp(n)
-    h = ref.decode(json.loads(payload))
-    assert ref.show_state(h) == cell(n)
-    out[n] = header(n, [".conformance"]) + [
-        "    func sg%03d() throws {" % n, "        // %s → %s" % (payload, cell(n)),
-        "        var decoded = try JSONDecoder().decode(StableDirectedGraph<Int>.self, from: Data(%s.utf8))" % swift_string(payload)]
-    out[n] += state_lines(h, "Int", var="decoded")
-    out[n] += ["        #expect(decoded.insert(edge: DirectedEdge(from: -1, to: -1)) == %d)" % h.edge_end(),
-               "        #expect(decoded.vertices.firstIndex(of: -1) == %d)" % h.vertex_end(), "    }"]
+    # Payloads that decode, far ends included: the full state, then the next fresh positions.
+    for n, d in ref.DECODED.items():
+        payload = inp(n)
+        assert json.loads(payload) == d
+        h = ref.decode(d)
+        assert ref.show_state(h) == cell(n)
+        out[n] = header(n, [".conformance"]) + [
+            "    func sg%03d() throws {" % n, "        // %s → %s" % (payload, cell(n)),
+            "        var decoded = try JSONDecoder().decode(StableDirectedGraph<Int>.self, from: Data(%s.utf8))" % swift_string(payload)]
+        out[n] += state_lines(h, "Int", var="decoded")
+        if h.edge_end() < 2 ** 63 - 1:
+            out[n].append("        #expect(decoded.insert(edge: DirectedEdge(from: -1, to: -1)) == %d)" % h.edge_end())
+        else:
+            out[n].append("        // edgeEnd is Int.max: no edge position is left (extra_traps.swift traps on the next insert).")
+            out[n].append("        #expect(decoded.insert(-1).inserted)")
+        out[n] += ["        #expect(decoded.vertices.firstIndex(of: -1) == %d)" % h.vertex_end(), "    }"]
     return out
+
+
+def map_values_lines(var, name, kind, m, value, ind="        "):
+    """Every position below the end: the ones with a value, and the values, so a dead position
+    holding a value fails too."""
+    items = sorted(m.items())
+    at = "ofEdgeAt" if kind == "Edge" else "ofVertexAt"
+    end = "%s.%s.endIndex" % (var, "edges" if kind == "Edge" else "vertices")
+    return [ind + "#expect((0 ..< %s).filter { %s[map: %s, %s: $0] != nil } == %s)" % (end, var, name, at, arr([p for p, _ in items], "Int")),
+            ind + "#expect((0 ..< %s).compactMap { %s[map: %s, %s: $0] } == %s)" % (end, var, name, at, arr([x for _, x in items], value))]
+
+
+def map_test(n):
+    V, E, ops = ref.MAPS[n]
+    t = vty(V, E, [o[1:] for o in ops if o[0] not in ref.MAP_OPS])
+    port, spec = build(V, E)
+    lines = header(n) + ["    func sg%03d() {" % n, "        // %s" % inp(n)]
+    lines.append("        " + construct(V, E, t, mutable=True))
+    maps, snap, shown, types = ref.MapModel(), None, [], {}
+    for op in ops:
+        k = op[0]
+        if k in ref.MAP_OPS:
+            r, snap = ref.map_step(port, maps, snap, op)
+            if r is not None: shown.append(r)
+            if k in ("addEdgeMap", "addVertexMap"):
+                types[op[1]] = op[2]
+                lines.append("        let %s = graph.%s(of: %s.self)" % (op[1], k, op[2]))
+            elif k == "removeMap":
+                lines.append("        graph.removeEdgeMap(%s)" % op[1])
+            elif k in ("eset", "vset"):
+                lines.append("        graph[map: %s, %s: %d] = %s" % (op[1], "ofEdgeAt" if k == "eset" else "ofVertexAt", op[2], opt(op[3])))
+            elif k == "vsetOf":
+                lines.append("        graph[map: %s, of: %s] = %s" % (op[1], lit(op[2]), lit(op[3])))
+            elif k in ("eget", "vget"):
+                lines.append("        #expect(graph[map: %s, %s: %d] == %s)" % (op[1], "ofEdgeAt" if k == "eget" else "ofVertexAt", op[2], "nil" if r == "nil" else lit(json.loads(r) if r.startswith('"') else int(r))))
+            elif k == "vgetOf":
+                lines.append("        #expect(graph[map: %s, of: %s] == %s)" % (op[1], lit(op[2]), "nil" if r == "nil" else lit(json.loads(r) if r.startswith('"') else int(r))))
+            elif k in ("evalues", "vvalues"):
+                lines += map_values_lines("graph", op[1], maps.kind[op[1]], maps.values[op[1]], types[op[1]])
+            elif k == "snapshot":
+                lines.append("        let copy = graph")
+            elif k == "snapshotValues":
+                lines += map_values_lines("copy", op[1], snap[1].kind[op[1]], snap[1].values[op[1]], types[op[1]])
+        else:
+            r, ls = call_lines(port, spec, op, t)
+            maps.settle(port, op)
+            shown.append(ref.show_result(r))
+            lines += ls
+    assert "; ".join(shown) + " ⇒ " + ref.show_state(port) == cell(n), n
+    lines.append("        // Final state.")
+    lines += state_lines(port, t)
+    lines.append("    }")
+    return lines
 
 
 def description_tests():
@@ -680,6 +748,8 @@ def test_for(n):
         return CODABLE[n]
     if n in DESCRIPTIONS:
         return DESCRIPTIONS[n]
+    if n in ref.MAPS:
+        return map_test(n)
     raise ValueError(n)
 
 
@@ -719,13 +789,25 @@ FILES = [
      "Equality and hashing (catalog SG-078 – SG-081): equal vertex sets and equal edge multisets;\n"
      "// positions and holes do not matter."),
     ("StableGraphCodableTests.swift", "StableGraphs Codable", ids("Codable"),
-     "Codable (catalog SG-082 – SG-094, SG-108 – SG-112): `{vertices, vertexPositions, vertexEnd, edges, edgePositions,\n"
+     "Codable (catalog SG-082 – SG-094, SG-108 – SG-116): `{vertices, vertexPositions, vertexEnd, edges, edgePositions,\n"
      "// edgeEnd}`. Encoding is checked byte for byte (with sorted keys); decoding keeps every position\n"
      "// and both ends, so the next insertions get the positions they would have got before encoding.\n"
-     "// Corrupt payloads, ends with more holes than the bound included, throw\n"
+     "// Far ends decode in O(elements); corrupt payloads, a page span past 16 × count + 64 included, throw\n"
      "// `DecodingError.dataCorrupted` with the catalog's key and message."),
     ("StableGraphDescriptionTests.swift", "StableGraphs descriptions", ids("Description"),
      "Descriptions (catalog SG-095, SG-096): the live vertices and edges, holes skipped."),
+    ("StableGraphPagingTests.swift", "StableGraphs paging", ids("Paging"),
+     "Paging (catalog SG-117 – SG-122): churn across freed pages keeps every live position and its\n"
+     "// identity, a position in a freed page reads as removed, and algorithms see only the live vertices."),
+    ("StableGraphEdgeChangeTests.swift", "StableGraphs edge changes", ids("Edge change"),
+     "Edge changes (catalog SG-123 – SG-130): `changeTarget(ofEdgeAt:to:)` and `changeSource(ofEdgeAt:to:)`\n"
+     "// (LEMON's `changeTarget` / `changeSource`) keep the position and the place in the unchanged\n"
+     "// endpoint's row, and join the new endpoint's row in position order; the `safe:` spellings return\n"
+     "// false and change nothing."),
+    ("StableGraphMapTests.swift", "StableGraphs maps", ids("Maps"),
+     "Maps (catalog SG-131 – SG-134): maps attached to the graph (`addEdgeMap(of:)`, `addVertexMap(of:)`),\n"
+     "// values by position or vertex, every removal path clearing the removed element's values, several\n"
+     "// maps, a copy keeping its values, `changeTarget` keeping them, and `removeEdgeMap`."),
     ("StableGraphPreconditionTests.swift", "StableGraphs preconditions", TRAPS,
      "Preconditions (catalog SG-050 – SG-065): each trapping call runs in a child process (exit test).\n"
      "// The same setup then runs in this process one step short of the precondition, so the trap is\n"

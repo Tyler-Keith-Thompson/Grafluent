@@ -85,7 +85,7 @@ let targets: [Target] = [
     .target(name: "Trees", dependencies: ["GraphProtocols", "Walks"], exclude: bazelFiles),
     .target(name: "BipartiteGraphs", dependencies: ["GraphProtocols", "Walks", "AdjacencyListModule"], exclude: bazelFiles),
     .target(name: "Multigraphs", dependencies: ["GraphProtocols", "AdjacencyListModule"], exclude: bazelFiles),
-    .target(name: "StableGraphs", dependencies: ["GraphProtocols", "AdjacencyListModule"], exclude: bazelFiles),
+    .target(name: "StableGraphs", dependencies: ["GraphProtocols"], exclude: bazelFiles),
     .target(name: "Hypergraphs", exclude: bazelFiles),
     .target(name: "FunctionalGraphs", dependencies: ["GraphProtocols", "Walks"], exclude: bazelFiles),
     // Operations

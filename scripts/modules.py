@@ -42,7 +42,7 @@ MODULES = [
     ("Trees", "Structures", "Tree, RootedTree, Forest and Arborescence.", ["GraphProtocols", "Walks"]),
     ("BipartiteGraphs", "Structures", "BipartiteGraph, bipartiteness, bipartitions and odd-cycle witnesses.", ["GraphProtocols", "Walks", "AdjacencyListModule"]),
     ("Multigraphs", "Structures", "Pseudograph, Multigraph, DirectedPseudograph and DirectedMultigraph: parallel edges, with and without self-loops.", ["GraphProtocols", "AdjacencyListModule"]),
-    ("StableGraphs", "Structures", "StableDirectedGraph: a directed pseudograph whose vertex and edge positions survive removals (petgraph's StableDiGraph).", ["GraphProtocols", "AdjacencyListModule"]),
+    ("StableGraphs", "Structures", "StableDirectedGraph: a directed pseudograph whose vertex and edge positions survive removals (petgraph's StableDiGraph), in pages freed once dead, with VertexMap and EdgeMap side data (LEMON's NodeMap and ArcMap).", ["GraphProtocols"]),
     ("Hypergraphs", "Structures", "Hypergraph and Hyperedge.", []),
     ("FunctionalGraphs", "Structures", "FunctionalGraph: every vertex has outdegree 1; Floyd's and Brent's cycle detection.", ["GraphProtocols", "Walks"]),
 

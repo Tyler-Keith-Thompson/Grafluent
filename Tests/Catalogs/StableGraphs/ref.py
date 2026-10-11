@@ -36,27 +36,33 @@ def need(cond, msg):
 # The port of the proposed storage.
 
 class Port:
+    """Per-slot and per-position fields are dicts keyed by live slot or position: a hole, and every
+    position of a freed page, has no key, so a gap of any length costs nothing (decoding a payload
+    whose end is far past its elements is O(elements))."""
+
     def __init__(self):
         self.removeAll()
 
     # storage ------------------------------------------------------------------------------
     def removeAll(self):
-        self.vert = []           # slot -> vertex, or None for a tombstone
-        self.live = []           # slot -> bool
+        self.vert = {}           # live slot -> vertex
         self.slot = {}           # vertex -> slot
-        self.head_out, self.tail_out, self.head_in, self.tail_in = [], [], [], []
-        self.outdeg, self.indeg = [], []
-        self.src, self.dst = [], []          # position -> slot, NIL for a tombstone
-        self.prev_out, self.next_out, self.prev_in, self.next_in = [], [], [], []
+        self.head_out, self.tail_out, self.head_in, self.tail_in = {}, {}, {}, {}
+        self.outdeg, self.indeg = {}, {}
+        self.src, self.dst = {}, {}          # live position -> slot
+        self.prev_out, self.next_out, self.prev_in, self.next_in = {}, {}, {}, {}
+        self.vend = 0
+        self.eend = 0
         self.vcount = 0
         self.ecount = 0
 
     def removeAllEdges(self):
-        for s in range(len(self.vert)):
+        for s in self.vert:
             self.head_out[s] = self.tail_out[s] = self.head_in[s] = self.tail_in[s] = NIL
             self.outdeg[s] = self.indeg[s] = 0
-        self.src, self.dst = [], []
-        self.prev_out, self.next_out, self.prev_in, self.next_in = [], [], [], []
+        self.src, self.dst = {}, {}
+        self.prev_out, self.next_out, self.prev_in, self.next_in = {}, {}, {}, {}
+        self.eend = 0
         self.ecount = 0
 
     def _s(self, v):
@@ -67,55 +73,107 @@ class Port:
     def insert(self, v):
         if v in self.slot:
             return (False, v)
-        s = len(self.vert)
-        self.vert.append(v); self.live.append(True); self.slot[v] = s
+        s = self.vend
+        self.vend += 1
+        self.vert[s] = v; self.slot[v] = s
         for a in (self.head_out, self.tail_out, self.head_in, self.tail_in):
-            a.append(NIL)
-        self.outdeg.append(0); self.indeg.append(0)
+            a[s] = NIL
+        self.outdeg[s] = 0; self.indeg[s] = 0
         self.vcount += 1
         return (True, v)
 
-    def insert_edge(self, u, v):
-        self.insert(u); self.insert(v)
-        a, b = self.slot[u], self.slot[v]
-        p = len(self.src)
-        self.src.append(a); self.dst.append(b)
-        self.prev_out.append(self.tail_out[a]); self.next_out.append(NIL)
-        if self.tail_out[a] == NIL: self.head_out[a] = p
-        else: self.next_out[self.tail_out[a]] = p
-        self.tail_out[a] = p
-        self.prev_in.append(self.tail_in[b]); self.next_in.append(NIL)
-        if self.tail_in[b] == NIL: self.head_in[b] = p
-        else: self.next_in[self.tail_in[b]] = p
-        self.tail_in[b] = p
-        self.outdeg[a] += 1; self.indeg[b] += 1
-        self.ecount += 1
-        return p
+    def _link_out(self, p, a):
+        """Links position p into slot a's out-list at its place in position order."""
+        q = self.tail_out[a]
+        while q != NIL and q > p:
+            q = self.prev_out[q]
+        nxt = self.head_out[a] if q == NIL else self.next_out[q]
+        self.prev_out[p], self.next_out[p] = q, nxt
+        if q == NIL: self.head_out[a] = p
+        else: self.next_out[q] = p
+        if nxt == NIL: self.tail_out[a] = p
+        else: self.prev_out[nxt] = p
+        self.outdeg[a] += 1
 
-    def _unlink(self, p):
-        a, b = self.src[p], self.dst[p]
+    def _link_in(self, p, b):
+        q = self.tail_in[b]
+        while q != NIL and q > p:
+            q = self.prev_in[q]
+        nxt = self.head_in[b] if q == NIL else self.next_in[q]
+        self.prev_in[p], self.next_in[p] = q, nxt
+        if q == NIL: self.head_in[b] = p
+        else: self.next_in[q] = p
+        if nxt == NIL: self.tail_in[b] = p
+        else: self.prev_in[nxt] = p
+        self.indeg[b] += 1
+
+    def _unlink_out(self, p):
+        a = self.src[p]
         po, no = self.prev_out[p], self.next_out[p]
         if po == NIL: self.head_out[a] = no
         else: self.next_out[po] = no
         if no == NIL: self.tail_out[a] = po
         else: self.prev_out[no] = po
+        self.outdeg[a] -= 1
+
+    def _unlink_in(self, p):
+        b = self.dst[p]
         pi, ni = self.prev_in[p], self.next_in[p]
         if pi == NIL: self.head_in[b] = ni
         else: self.next_in[pi] = ni
         if ni == NIL: self.tail_in[b] = pi
         else: self.prev_in[ni] = pi
-        self.outdeg[a] -= 1; self.indeg[b] -= 1
-        self.src[p] = self.dst[p] = NIL
-        self.prev_out[p] = self.next_out[p] = self.prev_in[p] = self.next_in[p] = NIL
+        self.indeg[b] -= 1
+
+    def insert_edge(self, u, v):
+        self.insert(u); self.insert(v)
+        a, b = self.slot[u], self.slot[v]
+        need(self.eend < 2 ** 63 - 1, "edge positions exhausted")
+        p = self.eend
+        self.eend += 1
+        self.src[p] = a; self.dst[p] = b
+        self._link_out(p, a)
+        self._link_in(p, b)
+        self.ecount += 1
+        return p
+
+    def _unlink(self, p):
+        a, b = self.src[p], self.dst[p]
+        self._unlink_out(p)
+        self._unlink_in(p)
+        for d in (self.src, self.dst, self.prev_out, self.next_out, self.prev_in, self.next_in):
+            del d[p]
         self.ecount -= 1
         return (self.vert[a], self.vert[b])
 
     def is_edge(self, p):
-        return 0 <= p < len(self.src) and self.src[p] != NIL
+        return p in self.src
 
     def remove_edgeAt(self, p):
         need(self.is_edge(p), "not an edge position")
         return self._unlink(p)
+
+    def change_target(self, p, v):
+        need(self.is_edge(p), "not an edge position")
+        b = self._s(v)
+        if b != self.dst[p]:
+            self._unlink_in(p); self.dst[p] = b; self._link_in(p, b)
+        return None
+
+    def change_source(self, p, u):
+        need(self.is_edge(p), "not an edge position")
+        a = self._s(u)
+        if a != self.src[p]:
+            self._unlink_out(p); self.src[p] = a; self._link_out(p, a)
+        return None
+
+    def change_target_safe(self, p, v):
+        if not self.is_edge(p) or v not in self.slot: return False
+        self.change_target(p, v); return True
+
+    def change_source_safe(self, p, u):
+        if not self.is_edge(p) or u not in self.slot: return False
+        self.change_source(p, u); return True
 
     def remove_edge(self, u, v):
         if u not in self.slot or v not in self.slot:
@@ -173,19 +231,20 @@ class Port:
             self._unlink(self.head_out[s])
         while self.head_in[s] != NIL:
             self._unlink(self.head_in[s])
-        self.vert[s] = None; self.live[s] = False
+        for d in (self.vert, self.head_out, self.tail_out, self.head_in, self.tail_in, self.outdeg, self.indeg):
+            del d[s]
         self.vcount -= 1
         return v
 
     # queries ------------------------------------------------------------------------------
     def vertices(self):
-        return [(self.vert[s], s) for s in range(len(self.vert)) if self.live[s]]
+        return [(self.vert[s], s) for s in sorted(self.vert)]
 
     def edges(self):
-        return [(p, self.vert[self.src[p]], self.vert[self.dst[p]]) for p in range(len(self.src)) if self.src[p] != NIL]
+        return [(p, self.vert[self.src[p]], self.vert[self.dst[p]]) for p in sorted(self.src)]
 
     def out_edges(self, v):
-        s, r, p = self._s(v), [], None
+        s, r = self._s(v), []
         p = self.head_out[s]
         while p != NIL:
             r.append(p); p = self.next_out[p]
@@ -206,14 +265,14 @@ class Port:
         need(self.is_edge(p), "not an edge position")
         return self.vert[self.dst[p]]
 
-    def vertex_end(self): return len(self.vert)
-    def edge_end(self): return len(self.src)
+    def vertex_end(self): return self.vend
+    def edge_end(self): return self.eend
 
     def vertexIndexBound(self):
-        return self.vcount if self.vcount == len(self.vert) else None
+        return self.vcount if self.vcount == self.vend else None
 
     def edgeIndexBound(self):
-        return self.ecount if self.ecount == len(self.src) else None
+        return self.ecount if self.ecount == self.eend else None
 
 
 # ---------------------------------------------------------------------------------------------
@@ -267,6 +326,24 @@ class Spec:
 
     def insert_safe(self, u, v):
         return self.insert_edge(u, v) if self.has(u) and self.has(v) else None
+
+    def change_target(self, p, v):
+        i = next((i for i, e in enumerate(self.E) if e[0] == p), None)
+        need(i is not None, "not an edge position"); need(self.has(v), "not a vertex")
+        self.E[i] = (p, self.E[i][1], v)
+
+    def change_source(self, p, u):
+        i = next((i for i, e in enumerate(self.E) if e[0] == p), None)
+        need(i is not None, "not an edge position"); need(self.has(u), "not a vertex")
+        self.E[i] = (p, u, self.E[i][2])
+
+    def change_target_safe(self, p, v):
+        if not any(e[0] == p for e in self.E) or not self.has(v): return False
+        self.change_target(p, v); return True
+
+    def change_source_safe(self, p, u):
+        if not any(e[0] == p for e in self.E) or not self.has(u): return False
+        self.change_source(p, u); return True
 
     def remove(self, v):
         if not self.has(v): return None
@@ -374,6 +451,20 @@ def apply(g, op):
     if k == "removeFromWhere": return g.removeAllEdges_from_where(op[1], set(op[2]))
     if k == "removeWhere": return g.removeAllEdges_where(set(op[1]))
     if k == "insertSafe": return g.insert_safe(op[1], op[2])
+    if k == "changeTarget": return g.change_target(op[1], op[2])
+    if k == "changeSource": return g.change_source(op[1], op[2])
+    if k == "changeTargetSafe": return g.change_target_safe(op[1], op[2])
+    if k == "changeSourceSafe": return g.change_source_safe(op[1], op[2])
+    if k == "churn":
+        # n times: a new copy of u→v, then the oldest live edge removed.
+        for _ in range(op[1]):
+            g.insert_edge(op[2], op[3]); g.remove_edgeAt(min(p for p, _, _ in g.edges()))
+        return None
+    if k == "vertexChurn":
+        # For i in start..<start+n: an edge i→i+1, then vertex i removed.
+        for i in range(op[1], op[1] + op[2]):
+            g.insert_edge(i, i + 1); g.remove(i)
+        return None
     if k == "removeAll": g.removeAll(); return None
     if k == "removeAllEdges": g.removeAllEdges(); return None
     # queries that may trap
@@ -452,6 +543,13 @@ def show_op(op):
     if k == "removeFromWhere": return f"removeAllEdges(from: {fmt(op[1])}, where: {predicate(op[2])})"
     if k == "removeWhere": return f"removeAllEdges(where: {predicate(op[1])})"
     if k == "insertSafe": return f"insert(safe: {fmt(op[1])}→{fmt(op[2])})"
+    if k in ("changeTarget", "changeSource", "changeTargetSafe", "changeSourceSafe"):
+        name = "changeTarget" if "Target" in k else "changeSource"
+        return f"{name}(ofEdgeAt: {op[1]}, {'safe' if k.endswith('Safe') else 'to'}: {fmt(op[2])})"
+    if k == "churn":
+        return f"{op[1]} × {{ insert(edge: {fmt(op[2])}→{fmt(op[3])}); remove(edgeAt: edges.startIndex) }}"
+    if k == "vertexChurn":
+        return f"for i in {op[1]}..<{op[1] + op[2]} {{ insert(edge: i→i+1); remove(i) }}"
     if k in SAFE: return f"{SAFE[k]}(safe: {fmt(op[1])})"
     two = {"edge": "insert(edge: {}→{})", "removeEdge": "remove(edge: {}→{})",
            "removeAllBetween": "removeAllEdges(from: {}, to: {})", "containsEdge": "contains(edge: {}→{})",
@@ -527,43 +625,36 @@ def decode(d):
     E, EP, eend = d["edges"], d["edgePositions"], d["edgeEnd"]
     if len(V) != len(VP): return "dataCorrupted(vertexPositions): Count differs from vertices"
     if len(set(V)) != len(V): return "dataCorrupted(vertices): Repeated vertex"
-    if not plausible(vend, len(V)): return "dataCorrupted(vertexEnd): End leaves too many holes"
+    if not plausible(vend, VP[0] if VP else None, len(V)): return "dataCorrupted(vertexEnd): End leaves too many empty pages"
     if any(b <= a for a, b in zip(VP, VP[1:])) or (VP and (VP[0] < 0 or VP[-1] >= vend)) or vend < len(V):
         return "dataCorrupted(vertexPositions): Positions not increasing within vertexEnd"
     if len(E) % 2: return "dataCorrupted(edges): Edge list has odd length"
     if len(E) // 2 != len(EP): return "dataCorrupted(edgePositions): Count differs from edges"
     if any(not (0 <= x < len(V)) for x in E): return "dataCorrupted(edges): Edge endpoint out of range"
-    if not plausible(eend, len(EP)): return "dataCorrupted(edgeEnd): End leaves too many holes"
+    if not plausible(eend, EP[0] if EP else None, len(EP)): return "dataCorrupted(edgeEnd): End leaves too many empty pages"
     if any(b <= a for a, b in zip(EP, EP[1:])) or (EP and (EP[0] < 0 or EP[-1] >= eend)) or eend < len(EP):
         return "dataCorrupted(edgePositions): Positions not increasing within edgeEnd"
     g = Port()
-    vi = 0
-    for s in range(vend):
-        g.insert(("hole", s))
-        if vi < len(VP) and VP[vi] == s:
-            # replace the placeholder with the real vertex at this slot
-            del g.slot[("hole", s)]; g.vert[s] = V[vi]; g.slot[V[vi]] = s; vi += 1
-        else:
-            g.remove(("hole", s))
-    ei = 0
-    for p in range(eend):
-        if ei < len(EP) and EP[ei] == p:
-            g.insert_edge(V[E[2 * ei]], V[E[2 * ei + 1]]); ei += 1
-        else:
-            g.insert_edge(V[0] if V else None, V[0] if V else None) if V else _dead_edge(g)
-            if V: g.remove_edgeAt(p)
+    for v, s in zip(V, VP):
+        g.vend = s             # the positions before it are holes: no key, no storage
+        g.insert(v)
+    g.vend = vend
+    for k, p in enumerate(EP):
+        g.eend = p
+        g.insert_edge(V[E[2 * k]], V[E[2 * k + 1]])
+    g.eend = eend
     return g
 
 
-def plausible(end, count):
-    """At most 16 holes per listed element plus 65,536: decoding allocates every position up to the end."""
-    return end <= count or end - count <= 16 * count + 65_536
+PAGE = 1024
 
 
-def _dead_edge(g):
-    # No live vertex: a dead position still has to exist.
-    g.src.append(NIL); g.dst.append(NIL)
-    for a in (g.prev_out, g.next_out, g.prev_in, g.next_in): a.append(NIL)
+def plausible(end, first, count):
+    """Decoding allocates a page table entry per page of 1024 positions from the first listed
+    position (the end, with none listed) to the end: at most 16 per listed element plus 64."""
+    if end < 0: return True
+    span = end // PAGE - max(first if first is not None else end, 0) // PAGE + 1
+    return span <= 16 * count + 64
 
 
 # ---------------------------------------------------------------------------------------------
@@ -760,19 +851,196 @@ def define_flow_navigation():
 
     K = "Codable"
     for title, d in [
-        ("vertexEnd far past the payload", {"vertices": [], "vertexPositions": [], "vertexEnd": 4611686018427387903, "edges": [], "edgePositions": [], "edgeEnd": 0}),
-        ("edgeEnd far past the payload", {"vertices": [0], "vertexPositions": [0], "vertexEnd": 1, "edges": [], "edgePositions": [], "edgeEnd": 9223372036854775807}),
-        ("vertexEnd one hole past the bound", {"vertices": [0], "vertexPositions": [0], "vertexEnd": 65554, "edges": [], "edgePositions": [], "edgeEnd": 0}),
-        ("edgeEnd one hole past the bound", {"vertices": [0], "vertexPositions": [0], "vertexEnd": 1, "edges": [0, 0], "edgePositions": [0], "edgeEnd": 65554}),
+        ("vertexEnd far past the payload: no vertex, so one page", {"vertices": [], "vertexPositions": [], "vertexEnd": 4611686018427387903, "edges": [], "edgePositions": [], "edgeEnd": 0}),
+        ("edgeEnd at Int.max with no edge: one page", {"vertices": [0], "vertexPositions": [0], "vertexEnd": 1, "edges": [], "edgePositions": [], "edgeEnd": 9223372036854775807}),
+        ("vertexEnd 65554 with one vertex: 65 pages, within the bound", {"vertices": [0], "vertexPositions": [0], "vertexEnd": 65554, "edges": [], "edgePositions": [], "edgeEnd": 0}),
+        ("edgeEnd 65554 with one edge: 65 pages, within the bound", {"vertices": [0], "vertexPositions": [0], "vertexEnd": 1, "edges": [0, 0], "edgePositions": [0], "edgeEnd": 65554}),
+        ("ends at 65553 decode", {"vertices": [0], "vertexPositions": [0], "vertexEnd": 65553, "edges": [0, 0], "edgePositions": [0], "edgeEnd": 65553}),
+    ]:
+        decoded_row(K, title, d)
+    define_paging()
+
+
+DECODED = {}
+
+
+def decoded_row(group, title, d):
+    """A payload that decodes: the state, checked against the laws."""
+    g = decode(d)
+    assert isinstance(g, Port), (title, g)
+    check_laws(g)
+    DECODED[len(ROWS) + 1] = d
+    raw(group, title, json.dumps(d, separators=(",", ":")), show_state(g))
+
+
+def define_paging():
+    """Paged storage (SG-113 on): the page-span bound on decoding, churn across freed pages,
+    re-pointing an edge, and VertexMap / EdgeMap."""
+    K = "Codable"
+    for title, d in [
+        ("vertex page span one past 16 × count + 64", {"vertices": [0], "vertexPositions": [0], "vertexEnd": 81920, "edges": [], "edgePositions": [], "edgeEnd": 0}),
+        ("edge page span one past 16 × count + 64", {"vertices": [0], "vertexPositions": [0], "vertexEnd": 1, "edges": [0, 0], "edgePositions": [0], "edgeEnd": 81920}),
     ]:
         raw(K, title, json.dumps(d, separators=(",", ":")), str(decode(d)))
-    for title, d in [
-        ("ends at the bound decode", {"vertices": [0], "vertexPositions": [0], "vertexEnd": 65553, "edges": [0, 0], "edgePositions": [0], "edgeEnd": 65553}),
-    ]:
-        g = decode(d)
-        assert isinstance(g, Port)
-        check_laws(g)
-        raw(K, title, json.dumps(d, separators=(",", ":")), show_state(g))
+    decoded_row(K, "page spans at the bound decode", {"vertices": [0], "vertexPositions": [0], "vertexEnd": 81919, "edges": [0, 0], "edgePositions": [0], "edgeEnd": 81919})
+    decoded_row(K, "elements far along: the pages before them cost nothing",
+                {"vertices": [7, 8], "vertexPositions": [4611686018427387000, 4611686018427387001], "vertexEnd": 4611686018427387904,
+                 "edges": [0, 1], "edgePositions": [9223372036854775000], "edgeEnd": 9223372036854775001})
+
+    G = "Paging"
+    case(G, "edge churn across freed pages keeps every live position", [0, 1], [(0, 1)],
+         [("churn", 2500, 0, 1), ("edgesIndicesContains", 0), ("edgesIndicesContains", 1500), ("edgesIndicesContains", 2500),
+          ("edge", 1, 0), ("removeAt", 2500)])
+    case(G, "vertex churn across freed pages", [0], [],
+         [("vertexChurn", 0, 2500), ("verticesIndicesContains", 0), ("verticesIndicesContains", 2500), ("contains", 7), ("edge", 2500, 0)])
+    case(G, "source(ofEdgeAt:) at a position in a freed page traps", [0, 1], [(0, 1)], [("churn", 2500, 0, 1), ("source", 5)])
+    case(G, "vertices[p] at a position in a freed page traps", [0], [], [("vertexChurn", 0, 2100), ("vertexAt", 3)])
+    case(G, "removeAll() after churn resets both ends", [0, 1], [(0, 1)], [("churn", 2100, 0, 1), ("vertexChurn", 2, 1100), ("removeAll",), ("edge", 3, 4)])
+    case(G, "algorithms after churn see the live vertices only", [0], [],
+         [("vertexChurn", 0, 2100), ("edge", 2100, 2102), ("edge", 2102, 2101), ("edge", 2101, 2100), ("bfs", 2100), ("descendantsSafe", 2102)])
+
+    C = "Edge change"
+    case(C, "changeTarget keeps the position and the place in the source's row", [0, 1, 2], [(0, 1), (0, 2), (0, 1), (2, 1)],
+         [("changeTarget", 0, 2), ("outEdges", 0), ("inEdges", 2), ("inEdges", 1)])
+    case(C, "changeSource joins the new source's row in position order", [0, 1, 2], [(0, 2), (1, 2), (1, 0), (0, 1)],
+         [("changeSource", 1, 0), ("outEdges", 0), ("outEdges", 1), ("inEdges", 2)])
+    case(C, "self-loops before and after; the same endpoint changes nothing", [0, 1], [(0, 0), (0, 1), (1, 1)],
+         [("changeTarget", 0, 1), ("changeTarget", 1, 0), ("changeTarget", 1, 0), ("changeSource", 2, 0), ("changeSource", 0, 1)])
+    case(C, "back and forth: the edge returns to its old place", [0, 1, 2], [(0, 1), (2, 1), (0, 1), (0, 2)],
+         [("changeTarget", 0, 2), ("changeTarget", 0, 1), ("changeSource", 1, 0), ("changeSource", 1, 2), ("inEdges", 1)])
+    case(C, "changes after removals and with copies", [0, 1, 2], [(0, 1), (0, 1), (1, 2), (0, 1), (2, 0)],
+         [("removeAt", 1), ("changeTarget", 3, 2), ("remove", 1), ("edge", 2, 2), ("changeSource", 3, 2), ("removeEdge", 2, 2)])
+    case(C, "changeTarget(ofEdgeAt:to:) to a non-vertex traps", [0, 1], [(0, 1)], [("changeTarget", 0, 1), ("changeTarget", 0, 9)])
+    case(C, "changeSource(ofEdgeAt:to:) at a hole traps", [0, 1], [(0, 1), (1, 0)], [("removeAt", 0), ("changeSource", 0, 1)])
+    case(C, "safe: variants return false and change nothing", [0, 1, 2], [(0, 1), (1, 2)],
+         [("removeAt", 0), ("changeTargetSafe", 0, 2), ("changeTargetSafe", 1, 9), ("changeSourceSafe", 5, 0), ("changeSourceSafe", -1, 0),
+          ("changeTargetSafe", 1, 0), ("changeSourceSafe", 1, 0)])
+
+    M = "Maps"
+    map_case(M, "attached EdgeMap: set, get, nil removes; removing the edge clears its value", [0, 1, 2], [(0, 1), (1, 2), (2, 0)],
+             [("addEdgeMap", "labels", "String"), ("eset", "labels", 0, "a"), ("eset", "labels", 1, "b"), ("eset", "labels", 2, "c"),
+              ("eget", "labels", 1), ("eset", "labels", 2, None), ("eget", "labels", 2), ("removeAt", 1), ("eget", "labels", 1),
+              ("edge", 0, 2), ("eget", "labels", 3), ("evalues", "labels")])
+    map_case(M, "every edge removal path clears the attached maps", [0, 1, 2, 3],
+             [(0, 1), (0, 1), (1, 2), (2, 3), (3, 0), (0, 2), (1, 1), (2, 2)],
+             [("addEdgeMap", "w", "Int")] + [("eset", "w", p, p * 10) for p in range(8)] +
+             [("removeEdge", 0, 1), ("evalues", "w"), ("removeAllBetween", 2, 3), ("removeFromWhere", 0, [5]),
+              ("removeWhere", [6]), ("remove", 3), ("evalues", "w"), ("removeAllEdges",), ("edge", 1, 2), ("eget", "w", 0),
+              ("evalues", "w")])
+    map_case(M, "attached VertexMap: by position and by vertex; removal and churn clear", [0, 1], [],
+             [("addVertexMap", "names", "String"), ("vsetOf", "names", 0, "zero"), ("vset", "names", 1, "one"), ("vgetOf", "names", 1),
+              ("vget", "names", 0), ("vgetOf", "names", 9), ("vertexChurn", 1, 2000), ("vsetOf", "names", 2001, "last"),
+              ("vvalues", "names"), ("remove", 0), ("vvalues", "names"), ("removeAll",), ("edge", 5, 6), ("vget", "names", 0),
+              ("vvalues", "names")])
+    map_case(M, "several maps, copy-on-write, changeTarget keeps values, removeEdgeMap", [0, 1, 2], [(0, 1), (1, 2)],
+             [("addEdgeMap", "a", "Int"), ("addEdgeMap", "b", "String"), ("eset", "a", 0, 1), ("eset", "b", 0, "x"), ("eset", "a", 1, 2),
+              ("snapshot",), ("changeTarget", 0, 2), ("eget", "a", 0), ("removeAt", 1), ("eset", "b", 0, "y"), ("evalues", "a"),
+              ("evalues", "b"), ("snapshotValues", "a"), ("snapshotValues", "b"), ("removeMap", "a"), ("evalues", "b")])
+
+
+MAPS = {}
+MAP_OPS = {"addEdgeMap", "addVertexMap", "eset", "eget", "vset", "vget", "vsetOf", "vgetOf", "evalues", "vvalues",
+           "snapshot", "snapshotValues", "removeMap"}
+
+
+class MapModel:
+    """Attached maps as the graph keeps them: a dict per map, every removed element's entry
+    cleared in the same call, both kinds emptied by removeAll and edge maps by removeAllEdges."""
+
+    def __init__(self):
+        self.kind, self.values = {}, {}
+
+    def settle(self, g, op):
+        live_e = {p for p, _, _ in g.edges()}
+        live_v = {s for _, s in g.vertices()}
+        for name, kind in self.kind.items():
+            if op[0] == "removeAll" or (op[0] == "removeAllEdges" and kind == "Edge"):
+                self.values[name] = {}
+            live = live_e if kind == "Edge" else live_v
+            self.values[name] = {p: x for p, x in self.values[name].items() if p in live}
+
+    def copy(self):
+        c = MapModel()
+        c.kind = dict(self.kind)
+        c.values = {k: dict(v) for k, v in self.values.items()}
+        return c
+
+
+def map_step(g, maps, snap, op):
+    """One map call: (shown result or None, new snapshot)."""
+    k = op[0]
+    if k in ("addEdgeMap", "addVertexMap"):
+        maps.kind[op[1]] = "Edge" if k == "addEdgeMap" else "Vertex"
+        maps.values[op[1]] = {}
+        return None, snap
+    if k == "removeMap":
+        del maps.kind[op[1]], maps.values[op[1]]
+        return None, snap
+    if k in ("eset", "vset"):
+        live = {p for p, _, _ in g.edges()} if k == "eset" else {s for _, s in g.vertices()}
+        if op[3] is None: maps.values[op[1]].pop(op[2], None)
+        else:
+            need(op[2] in live, "no element to hold a value"); maps.values[op[1]][op[2]] = op[3]
+        return None, snap
+    if k == "vsetOf":
+        d = dict(g.vertices()); need(op[2] in d, "not a vertex")
+        maps.values[op[1]][d[op[2]]] = op[3]
+        return None, snap
+    if k in ("eget", "vget"):
+        r = maps.values[op[1]].get(op[2])
+        return ("nil" if r is None else fmt(r)), snap
+    if k == "vgetOf":
+        d = dict(g.vertices())
+        r = maps.values[op[1]].get(d[op[2]]) if op[2] in d else None
+        return ("nil" if r is None else fmt(r)), snap
+    if k in ("evalues", "vvalues"): return show_map(maps.values[op[1]]), snap
+    if k == "snapshot": return None, (snapshot(g), maps.copy())
+    if k == "snapshotValues": return show_map(snap[1].values[op[1]]), snap
+    raise ValueError(op)
+
+
+def map_run(V, E, ops):
+    port, spec = Port(), Spec()
+    for v in V: port.insert(v); spec.insert(v)
+    for u, v in E: port.insert_edge(u, v); spec.insert_edge(u, v)
+    maps, snap, res = MapModel(), None, []
+    for op in ops:
+        if op[0] in MAP_OPS:
+            r, snap = map_step(port, maps, snap, op)
+            if r is not None: res.append(r)
+            continue
+        a = apply(port, op); b = apply(spec, op)
+        assert a == b, (op, a, b)
+        check_laws(port); same(port, spec)
+        maps.settle(port, op)
+        res.append(show_result(a))
+    return res, port, maps
+
+
+def show_map(m):
+    return "[" + ", ".join(f"{p}: {fmt(x)}" for p, x in sorted(m.items())) + "]"
+
+
+def show_map_op(op):
+    k = op[0]
+    if k in ("addEdgeMap", "addVertexMap"): return f"let {op[1]} = {k}(of: {op[2]}.self)"
+    if k == "removeMap": return f"remove{'Edge'}Map({op[1]})"
+    if k in ("eset", "vset"):
+        return f"[map: {op[1]}, of{'Edge' if k == 'eset' else 'Vertex'}At: {op[2]}] = {'nil' if op[3] is None else fmt(op[3])}"
+    if k == "vsetOf": return f"[map: {op[1]}, of: {fmt(op[2])}] = {fmt(op[3])}"
+    if k in ("eget", "vget"): return f"[map: {op[1]}, of{'Edge' if k == 'eget' else 'Vertex'}At: {op[2]}]"
+    if k == "vgetOf": return f"[map: {op[1]}, of: {fmt(op[2])}]"
+    if k in ("evalues", "vvalues"): return f"values of {op[1]}"
+    if k == "snapshot": return "let copy = graph"
+    if k == "snapshotValues": return f"values of {op[1]} in copy"
+    return show_op(op)
+
+
+def map_case(group, title, V, E, ops):
+    res, port, _ = map_run(V, E, ops)
+    inp = f"V {lst(V)}; E [" + ", ".join(f"{fmt(u)}→{fmt(v)}" for u, v in E) + "] / " + " / ".join(show_map_op(o) for o in ops)
+    MAPS[len(ROWS) + 1] = (V, E, ops)
+    raw(group, title, inp, "; ".join(res) + " ⇒ " + show_state(port))
 
 
 def _built(V, E):

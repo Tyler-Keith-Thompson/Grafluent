@@ -1,6 +1,7 @@
 # StableGraphs test suite
 
-`StableGraphs` has one type, `StableDirectedGraph<Vertex>`, after petgraph's `StableGraph`: a
+`StableGraphs` has one graph type, `StableDirectedGraph<Vertex>`, after petgraph's `StableGraph`, and
+maps attached to it, `EdgeMap` and `VertexMap` (LEMON's `ArcMap` and `NodeMap`). The graph is a
 directed pseudograph whose vertex and edge positions do not change while the vertex or edge exists.
 A removal leaves a hole and moves nothing. The tests were written before the implementation, from
 the proposed API (`api.md` in [`Tests/Catalogs/StableGraphs/`](../Catalogs/StableGraphs/), phase 1),
@@ -28,6 +29,10 @@ struct StableDirectedGraph<Vertex: Hashable>: BidirectionalDirectedGraph, Sparse
     var vertices: Vertices, edges: Edges                     // BidirectionalCollection, Index = position, skip holes
     vertexPositionBound, edgePositionBound, vertexPosition(of:), vertex(atPosition:),
     containsVertex(atPosition:), containsEdge(atPosition:)   // SparselyIndexedDirectedGraph
+    changeTarget(ofEdgeAt:to:), changeSource(ofEdgeAt:to:), changeTarget(ofEdgeAt:safe:), changeSource(ofEdgeAt:safe:)
+    addEdgeMap(of:) -> EdgeMap<Value>, addVertexMap(of:) -> VertexMap<Value>, removeEdgeMap(_:), removeVertexMap(_:)
+    subscript(map:ofEdgeAt:), subscript(map:ofVertexAt:), subscript(map:of:) -> Value? { get set }
+struct EdgeMap<Value>, VertexMap<Value>: Hashable, Sendable  // handles
 ```
 
 ## Conventions
@@ -44,7 +49,10 @@ struct StableDirectedGraph<Vertex: Hashable>: BidirectionalDirectedGraph, Sparse
 | Algorithms with holes | The same results as on `DirectedPseudograph(g)`, whose edge k is the kth live position | SG-069 – SG-072, SG-077 |
 | `init(_:)` | Vertices in order, edges at `0..<edgeCount`; a `StableDirectedGraph` unchanged, holes and ends kept | SG-074, SG-075 |
 | Equality | Equal vertex sets and equal edge multisets; positions and holes ignored | SG-078 – SG-081 |
-| Codable | `{vertices, vertexPositions, vertexEnd, edges, edgePositions, edgeEnd}`, every position and both ends kept | SG-082 – SG-094 |
+| Codable | `{vertices, vertexPositions, vertexEnd, edges, edgePositions, edgeEnd}`, every position and both ends kept; a far end decodes in O(elements) within `16 × count + 64` pages | SG-082 – SG-094, SG-108 – SG-116 |
+| Pages | Positions keep their elements across freed pages; a position in a freed page reads as removed | SG-117 – SG-122 |
+| Re-pointing | `changeTarget` / `changeSource` keep the position and the unchanged end's row place, and join the new end's row in position order | SG-123 – SG-130 |
+| Maps | Attached to the graph; nil when unset; every removal path clears the removed element's values; copies keep theirs; `changeTarget` keeps them | SG-131 – SG-134 |
 
 ## How values are pinned
 
@@ -60,7 +68,8 @@ vertex's `firstIndex(of:)`, `vertices[p]`, rows (`successors`, `outEdges`, `pred
 other initializer that fits (the builder included) against the same state.
 
 The catalog-row files (every file but `StableGraphConformanceTests.swift`,
-`StableGraphPropertyTests.swift`, `StableGraphSparseConformerTests.swift` and `StableGraphStressTests.swift`) were generated from `cases.md`
+`StableGraphPropertyTests.swift`, `StableGraphSparseConformerTests.swift`, `StableGraphStressTests.swift`
+and `StableGraphChurnTests.swift`) were generated from `cases.md`
 by `swiftgen.py`, next to `ref.py` and `cases.md` in
 [`Tests/Catalogs/StableGraphs/`](../Catalogs/StableGraphs/), which says how to run it. It first
 checks that `ref.py` reproduces `cases.md` byte for byte, then re-runs each row one call at a time
@@ -113,20 +122,26 @@ removal (a trap), and `degree(of:)` counting a self-loop once (41).
 | `StableGraphQueryTests.swift` | 12 | SG-041 – SG-049, SG-105 – SG-107: rows and copies in insertion order, membership after removals, degrees, live-or-stale checks; the `safe:` lookups on a vertex, a removed vertex and a non-vertex, `descendants(safe:)` and `ancestors(safe:)` |
 | `StableGraphIndexTests.swift` | 12 | SG-066 – SG-077 without SG-062: dense indices and holes, numbering, BFS, the compacting conversion, `init(_:)` both ways, the undirected view, components, Dijkstra by position and topological sort against the compacted copy |
 | `StableGraphEqualityTests.swift` | 4 | SG-078 – SG-081 |
-| `StableGraphCodableTests.swift` | 18 | SG-082 – SG-094, SG-108 – SG-112: encoding, round trips keeping fresh positions, the empty and all-holes graphs, nine corrupt payloads; ends with more holes than the bound (huge, and one past it) throw, ends at the bound decode |
+| `StableGraphCodableTests.swift` | 22 | SG-082 – SG-094, SG-108 – SG-116: encoding, round trips keeping fresh positions, the empty and all-holes graphs, nine corrupt payloads; far ends (`Int.max`, 2⁶²) decode in O(1) when nothing follows the gap; page spans one past `16 × count + 64` throw, spans at it decode |
+| `StableGraphPagingTests.swift` | 4 | SG-117, SG-118, SG-121, SG-122: edge and vertex churn across freed pages, `removeAll()` after churn, algorithms after churn |
+| `StableGraphEdgeChangeTests.swift` | 6 | SG-123 – SG-127, SG-130: `changeTarget` / `changeSource` with copies, self-loops, the same endpoint, back and forth, after removals; the `safe:` spellings |
+| `StableGraphMapTests.swift` | 4 | SG-131 – SG-134: an attached edge map's get, set and nil; every edge removal path clearing values; a vertex map by position and by vertex through removal, churn and `removeAll`; several maps, a copy keeping its values, `changeTarget` keeping them, `removeEdgeMap` |
+| `StableGraphChurnTests.swift` | 6 | 3·10⁴ random churn steps across pages (seeded, PropertyBased) against a model of the live elements, with algorithms, an `EdgeMap` and Codable checked on the way; a copy unchanged by mutations that touch a few pages; attached maps across pages, on copies, removed from one copy; `removeAllEdges(keepingCapacity:)` keeping vertex holes both ways; a freed page between live ones (equality, Codable, numbering, stepping); every page freed |
 | `StableGraphDescriptionTests.swift` | 2 | SG-095, SG-096 |
-| `StableGraphPreconditionTests.swift` | 23 | Exit tests: SG-050 – SG-065, then `extra_traps.swift`: every neighbourhood and degree of a non-vertex or removed vertex; position lookups at holes, negative and past the end; positions from before a reset; dense index lookups; stepping past either end; a negative edge capacity; the sparse lookups |
+| `StableGraphPreconditionTests.swift` | 29 | Exit tests: SG-050 – SG-065, then `extra_traps.swift`: every neighbourhood and degree of a non-vertex or removed vertex; position lookups at holes, negative and past the end; positions from before a reset; dense index lookups; stepping past either end; a negative edge capacity; the sparse lookups |
 | `StableGraphConformanceTests.swift` | 13 | Algorithms (Traversal; Connectivity's components, condensation, attracting components and dominator trees; ShortestPaths) on eight seeded graphs with many holes and before any removal, against the compacted copy; a DAG with holes; the laws with holes; `SparselyIndexedDirectedGraph` through generic code; the collections skipping holes and as values; rows as random-access collections of positions indexed by offset; Codable through JSON and property lists; Hashable; Sendable; the builder and initializers; resets; copy-on-write; capacity |
 | `StableGraphPropertyTests.swift` | 4 | PropertyBased, shrinking: random sequences against the model; Codable round trips keeping the next fresh positions; equality and hashing ignoring positions and holes; algorithms on random graphs with holes against the compacted copy |
 | `StableGraphStressTests.swift` | 6 | Inside a `Task` with a one-minute limit: a 10⁵-vertex cycle with every other vertex removed and re-connected; 10⁵ copies of one pair churned from both ends; a 10⁵-edge star with every other edge removed by position; a 300 × 300 grid with vertices removed and re-inserted; 10⁵ steps of vertex churn (quadratic before the row pools bounded packing by the row table); the three bulk removals on a 10⁵-edge star |
 | `StableGraphSparseConformerTests.swift` | 2 | A test-local `SparselyIndexedDirectedGraph` outside the library, on the default `_numberedRows`: components, depth- and breadth-first search, descendants, ancestors, dominator and post-dominator trees against the wrapped graph and the compacted copy; post-dominators and `component(of:)` with one vertex hole against the hole-free graph |
 
-112 catalog rows (96 value rows, 16 trap rows), 7 more exit tests and 25 more tests (13
-conformance, 4 property, 6 stress, 2 sparse conformer): 144 tests in all.
+134 catalog rows (114 value rows, 20 trap rows), 9 more exit tests (map handle misuse among them)
+and 32 more tests (14 conformance, 4 property, 6 stress, 6 churn, 2 sparse conformer): 175 tests
+in all. The property tests also re-point edges and fill attached maps, checking after every step
+that no map holds a value at a dead position.
 
 ## Case IDs
 
-Case IDs (SG-001 … SG-112) refer to the catalog (`cases.md`), whose values `ref.py` computes with a
+Case IDs (SG-001 … SG-134) refer to the catalog (`cases.md`), whose values `ref.py` computes with a
 port of the proposed storage, checks against a plain specification and the laws in every state, and,
 with `--stress`, checks against rustworkx 0.18.1 (petgraph's `StableGraph`) and NetworkX 3.7. Each
 test's name starts with its ID; tests without an ID check laws, properties or conformance that the
@@ -143,8 +158,11 @@ catalog does not list.
 | SG-050 – SG-065 | Traps (SG-062 is listed under Conformance) | `StableGraphPreconditionTests.swift` |
 | SG-066 – SG-077 | Conformance | `StableGraphIndexTests.swift` |
 | SG-078 – SG-081 | Equality and hashing | `StableGraphEqualityTests.swift` |
-| SG-082 – SG-094, SG-108 – SG-112 | Codable | `StableGraphCodableTests.swift` |
+| SG-082 – SG-094, SG-108 – SG-116 | Codable | `StableGraphCodableTests.swift` |
 | SG-095, SG-096 | Description | `StableGraphDescriptionTests.swift` |
+| SG-117 – SG-122 | Paging (SG-119, SG-120 are traps) | `StableGraphPagingTests.swift`, `StableGraphPreconditionTests.swift` |
+| SG-123 – SG-130 | Edge change (SG-128, SG-129 are traps) | `StableGraphEdgeChangeTests.swift`, `StableGraphPreconditionTests.swift` |
+| SG-131 – SG-134 | Maps | `StableGraphMapTests.swift` |
 
 ## Readings of what api.md leaves open
 
@@ -163,6 +181,7 @@ catalog does not list.
 | Case | Why |
 |---|---|
 | Complexity (O(1) unlinking, O(1) `indices.contains`, row scans for `contains(edge:)`) and the performance targets | Benchmarks; the stress tests bound costs loosely |
+| That memory follows the live elements (pages freed, tables trimmed) | Not observable through the public API: StableGraphsBenchmarks measures the allocator's bytes after churn and asserts at setup that 10× the churn holds about the same bytes |
 | `_numberedRows(outward:)` and the other underscored hooks | Not public; covered through the algorithms that use them, compared with the compacted copy |
 | The mirror's children | api.md lists `CustomReflectable` but not the children |
 | `StableUnGraph`, compaction with old → new maps, `safe:` lookups | Deferred (open questions 3 and 8; the plan's later items) |

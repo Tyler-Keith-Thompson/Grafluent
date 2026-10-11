@@ -10,8 +10,11 @@ move. FlowNavigation needs three things the swap-remove types cannot give:
 2. Vertices, and each vertex's out- and in-edges, iterating in insertion order across removals.
 3. Lookups that answer "no" for a stale identity.
 
-This module adds one type, after petgraph's `StableGraph`. Its cases are `cases.md`
-(SG-001 – SG-112, 112 rows; SG-097 on are the FlowNavigation additions and the review fixes). `ref.py` holds two models:
+This module adds one graph type, after petgraph's `StableGraph`, and maps attached to it, `EdgeMap` and
+`VertexMap`, after LEMON's `ArcMap` and `NodeMap`. Its cases are `cases.md` (SG-001 – SG-134, 134
+rows; SG-097 – SG-112 are the FlowNavigation additions and the review fixes, SG-108 – SG-112
+re-expected and SG-113 on added with paged storage, `changeTarget` / `changeSource` and the maps).
+`ref.py` holds two models:
 
 - a port of the storage below;
 - a plain specification, in which everything sits at a monotone position.
@@ -65,25 +68,26 @@ never comes back (SG-015, SG-031). Only `removeAll()` and `removeAllEdges()` res
    silently gets whichever edge took the slot (the ABA problem). Monotone positions make
    `edges.indices.contains(p)` false forever after a removal, which is what requirement 3 needs.
    It also lets the planned `safe:` lookups return `nil` with no generation counters.
-3. **Side arrays stay simple.** A weight array indexed by position never has to clear a reused
-   slot. It is sized `edges.endIndex` and appended to on insert.
+3. **Side data stays simple.** A value kept by position never has to be cleared for a reused
+   slot. With paging it goes in an attached `EdgeMap` or `VertexMap`, bounded by the values held
+   (an array sized `edges.endIndex` would grow with every insertion), attached to the graph.
 
-The cost is memory proportional to *total insertions*, not live elements: 1 tombstoned vertex
-slot (about 40 bytes plus the vertex) and 1 edge record (32 bytes) per removed element, until
-`removeAll`, and a copy-on-write copy that is then mutated copies all of it. *Decided, as a
-follow-up:* paged storage, with vertex and edge records in fixed-size pages and a page freed once
-every slot in it is dead, positions still never reused, and `VertexMap` / `EdgeMap` side maps
-after LEMON's `NodeMap` / `ArcMap` (open question 3).
+The cost was memory proportional to *total insertions*, not live elements: a tombstoned vertex
+slot and an edge record per removed element until `removeAll`, and a copy that was then mutated
+copied all of it. *Implemented:* paged storage (below), positions still never reused, and
+attached `EdgeMap` / `VertexMap` maps. Telling callers to rebuild was rejected.
 
 ## Storage
 
 ```
-_vertices:  ContiguousArray<Vertex?> slots (nil = tombstone); _slots: [Vertex: Int]
-rows:       four _RowPools (AdjacencyListModule), per slot: out-targets ∥ out-positions,
-            in-sources ∥ in-positions, positions increasing; -1 marks a dead entry
-_outDead, _inDead: dead entries per row (_outDead -1 at a vertex hole)
-_records:   per edge position: source, target (-1 = tombstone), offset in the out-row, in the in-row
-_vertexCount, _edgeCount, _firstVertex, _firstEdge (live)
+pages of 1024 positions; table entry k is page base + k; a freed page has empty arrays
+_vertexPages: per vertex page, Vertex? per slot (nil = hole) and the live count; _slots: [Vertex: Int]
+_outPages, _inPages: per vertex page, one row table (start, count, capacity, dead per slot; dead
+            -1 at a vertex hole) shared by two arrays: far-end slots (-1 = dead entry) ∥ positions
+_edgePages: per edge page, records (source, target slots, -1 at a hole; offsets in the out- and
+            in-row) and the live count
+_vertexBase/_edgeBase, _vertexFront/_edgeFront (freed pages at the front not yet dropped),
+_vertexEnd/_edgeEnd, _vertexCount/_edgeCount, _firstVertex/_firstEdge
 ```
 
 **Decided by benchmark: array rows, not linked lists** (open question 6). Each slot's out- and
@@ -104,6 +108,128 @@ took 28 ms against `DirectedPseudograph`'s 5.2 ms and strong components 72 again
 There is no pair → copies map: `contains(edge:)` and `edges(from:to:)` scan the shorter row,
 as petgraph's `find_edge` does in O(e′), because every insert would otherwise pay a hash (open
 question 5).
+
+## Paged storage (decided and measured, 2026-10-10)
+
+Positions are split into pages of 1024. A vertex page holds its slots, both directions' rows for
+those slots (row table and storage) and a live count; an edge page holds its records and a live
+count. The decisions:
+
+- **Page size: 1024.** Against 4096, removal and churn times did not change (the cost is in the
+  random row accesses, not the page lookups), and smaller pages free sooner and leave less slack
+  per page. The size is one constant (`_PositionPage` in GraphProtocols), shared by the graph, the
+  maps and `_PositionNumbers`.
+- **What frees a page:** every position in it has been handed out (the page is full) and every
+  one is dead. The tail page, still being filled, is never freed. Freeing empties the page's
+  arrays, rows included. Freed pages at the front of a table are dropped once they are at least
+  half of it (amortized O(1) per page), and the base moves up.
+- **Rows of dead vertices:** emptied at removal (the block becomes garbage that the page's own
+  packing reclaims); the 4-word row descriptor stays until the page is freed.
+- **What still grows with insertions:** a freed page *between* live ones keeps its table entry
+  (128 bytes for a vertex page, 16 for an edge page) until every page before it is freed. Under
+  churn where old elements die first, memory follows the live count. A long-lived element keeps
+  its own page and pins the table behind it, at those entry sizes per 1024 positions (1/2048 of
+  the old 32 bytes per edge position). A hashed page table would remove that too, at a hash per
+  record read and per offset fix-up in row compaction; rejected.
+- **Bounds:** `vertexPositionBound` / `edgePositionBound` stay `endIndex`, upper bounds only.
+  Nothing allocates by them. `_numberedRows` numbers page by page into a paged map
+  (`_PositionNumbers`: a page table of block offsets and one 1024-entry block per live page).
+  Flows numbers edge positions through the same map built from `edges.indices`, equality and
+  encoding map slots through it, and the default `_numberedRows` for an outside conformer walks
+  `vertices` instead of `0..<vertexPositionBound`. An algorithm run on a churned graph costs
+  O(live + pages): on a graph churned 50× (10⁴ live vertices, 5·10⁵ positions handed out), weak
+  components take 0.27 ms against 0.62 ms before paging and 0.19 ms on the compacted copy.
+- **Iteration:** `vertices`, `edges` and their indices skip a freed page in one step; the
+  collections' iterators hold the current page's array, so a step is one read.
+- **Copy-on-write by page.** Every page is a struct of arrays inside a table array, so a copy shares
+  everything, and the first mutation after a copy copies the tables (one entry per page) and the
+  pages it touches. Snapshot then mutate, on the 10⁵-vertex, 5·10⁵-edge benchmark graph: 32 µs,
+  against 0.82 ms (`remove(edgeAt:)`) and 1.0 ms (`insert(edge:)`) before.
+- **Codable bound, revisited.** Decoding allocates nothing for the positions before the first
+  listed element and one table entry per page from there to the end. So a far end is accepted
+  cheaply when nothing follows the gap: `"vertexEnd": 4611686018427387903` with no vertices now
+  decodes in O(1) (SG-108, SG-109). The bound counts pages instead of holes: at most `16 × count +
+  64` pages from the first listed position to the end (SG-113 – SG-116), so at most about 2 KB of
+  vertex table or 256 bytes of edge table per listed element, plus 8 KB. The old "16 × count +
+  65,536 holes" bound, and the trap it guarded against, are gone. An edge end of `Int.max`
+  decodes, and the next `insert(edge:)` traps ("Edge positions exhausted", extra_traps.swift).
+- **A removal touches fewer buffers.** In each page, the ends and the positions share one row
+  table with the dead counts folded in (StableGraphs' own `_RowPage`; the module no longer
+  depends on AdjacencyListModule's `_RowPool`). With pages, each array's header is its own cache
+  line per page. A removal that touched five buffers per row took 31 ms for every other edge,
+  against 20 ms before paging. With three, and each table made unique once per removal through a
+  buffer pointer, it takes 21–24 ms.
+
+## Attached maps: `EdgeMap<Value>` and `VertexMap<Value>`
+
+LEMON's graph maps, `NodeMap` and `ArcMap`, are the model: a LEMON map registers with its graph's
+`AlterationNotifier` and is told of every erase, so it never holds a value for an erased node or
+arc. Here that model takes value form. The graph owns its maps; the caller holds a handle.
+
+```swift
+extension StableDirectedGraph {
+    mutating func addEdgeMap<Value: Sendable>(of type: Value.Type) -> EdgeMap<Value>      // LEMON's ArcMap
+    mutating func addVertexMap<Value: Sendable>(of type: Value.Type) -> VertexMap<Value>  // LEMON's NodeMap
+    mutating func removeEdgeMap<Value>(_ map: EdgeMap<Value>)
+    mutating func removeVertexMap<Value>(_ map: VertexMap<Value>)
+    subscript<Value>(map map: EdgeMap<Value>, ofEdgeAt position: Int) -> Value? { get set }
+    subscript<Value>(map map: VertexMap<Value>, ofVertexAt position: Int) -> Value? { get set }
+    subscript<Value>(map map: VertexMap<Value>, of vertex: Vertex) -> Value? { get set }
+}
+@frozen public struct EdgeMap<Value>: Hashable, Sendable    // a handle: an identity token, no values
+@frozen public struct VertexMap<Value>: Hashable, Sendable
+```
+
+- **Storage.** Each attached map's values sit inside the graph, type-erased in a class box: a
+  typed access is a downcast the handle's token has already made safe, and the graph clears a
+  position through closures made in `addEdgeMap(of:)`, specialized for `Value` there. Values sit
+  in pages of 1024 positions, allocated on the first value set in a page and freed when its last
+  value goes: O(live values + pages). A box shared with a copy is copied before a write, sharing
+  the pages, so values are copied a page at a time. Measured (benchmark graph, every other edge
+  removed by position with two maps attached, a third of the positions holding values; and 10⁶
+  churn steps, each setting one value): an existential struct with `as!` casts took 126 ms and
+  391 ms; a generic class's overridden methods, which run unspecialized through the vtable,
+  154 and 506 ms; the closures 39 and 158 ms, against 22 and 109 ms with no map.
+- **No stale values, no cleanup call.** Every removal clears the removed element's entry in every
+  attached map in the same mutation: `remove(edgeAt:)`, `remove(edge:)`, every
+  `removeAllEdges` overload, `remove(_:)` with its incident edges, and the resets (`removeAll`
+  empties every map, `removeAllEdges` every edge map; the maps stay attached). Clearing is
+  O(maps) per removed element and allocates nothing (a position without a value is not written,
+  so a page shared with a copy is not copied). Setting a value at a dead position, or for a vertex
+  not in the graph, traps; reading one answers `nil`, and setting `nil` is always allowed.
+- **Re-pointing keeps values:** `changeTarget` / `changeSource` keep the position, so they keep the
+  edge's values.
+- **Copies** carry their maps, copy-on-write by page: mutating a copy, values included, never
+  changes another (SG-134).
+- **Handles.** A handle holds the map's identity token (a class instance shared by every copy of
+  the graph that added it) and a hint to where the map sits. It works on that graph and every
+  copy, until `removeEdgeMap` / `removeVertexMap` on that copy. On an unrelated graph, on a copy
+  that later added its own maps, or after removal, the token is not found and the access traps.
+  A token per map rather than one per graph lineage, so two copies that each add a map cannot
+  confuse their handles. Handles are equal when they name the same map.
+- **`Value: Sendable`** is required to attach a map: the graph is `Sendable` when `Vertex` is, and
+  it stores the values.
+- **Equality, hashing and `Codable`** use the topology alone: two graphs with different map
+  contents are equal, and a decoded graph has no maps. Map values have no general encoding (any
+  `Value`), and a handle cannot be restored against a decoded graph; callers encode their values
+  beside the graph if they need them.
+
+Cases: SG-131 – SG-134; misuse traps in extra_traps.swift. The spellings are the coordinator's
+usage guide's: `graph[map: labels, ofEdgeAt: p]`, `graph[map: names, of: vertex]`; the labels keep
+`Vertex == Int` unambiguous.
+
+## Re-pointing an edge: `changeTarget(ofEdgeAt:to:)` and `changeSource(ofEdgeAt:to:)`
+
+After LEMON's `ListDigraph::changeTarget(Arc, Node)` and `changeSource(Arc, Node)`
+(lemon/list_graph.h, 1.3.1). The edge keeps its position, so data kept by position (an `EdgeMap`)
+still applies. It keeps its place in the unchanged endpoint's row and joins the new endpoint's
+row at its place in position order, since rows are in position order, which is insertion order.
+Changing to the current endpoint changes nothing, and self-loops before and after work. The cost
+is O(1) amortized to leave the old row plus O(degree) for the ordered insert; an edge that left a
+row and comes back revives its dead entry there. The trapping spellings trap on a dead position
+or a missing endpoint. The `safe:` spellings (`changeTarget(ofEdgeAt:safe:)`,
+`changeSource(ofEdgeAt:safe:)`, README Principle 6) return `false` and change nothing
+(SG-123 – SG-130).
 
 ## Signatures
 
@@ -160,7 +286,11 @@ question 5).
                                                                        // petgraph's retain_edges, inverted; every out-row once
     public mutating func removeAll(keepingCapacity: Bool = false)      // resets both endIndexes to 0
     public mutating func removeAllEdges(keepingCapacity: Bool = false) // resets edges.endIndex to 0
-    public mutating func reserveCapacity(vertexCount: Int, edgeCount: Int)
+    public mutating func reserveCapacity(vertexCount: Int, edgeCount: Int)    // the page tables and the vertex lookup
+    public mutating func changeTarget(ofEdgeAt position: Int, to newTarget: Vertex)   // LEMON's changeTarget; position kept
+    public mutating func changeSource(ofEdgeAt position: Int, to newSource: Vertex)
+    public mutating func changeTarget(ofEdgeAt position: Int, safe newTarget: Vertex) -> Bool  // false, nothing changed
+    public mutating func changeSource(ofEdgeAt position: Int, safe newSource: Vertex) -> Bool
 
     // Collections (values: unaffected by later changes to the graph)
     @frozen public struct Vertices: BidirectionalCollection { // Element Vertex, Index Int (slot), skips holes
@@ -190,8 +320,8 @@ extension StableDirectedGraph: CustomStringConvertible, CustomDebugStringConvert
 The collection types are `BidirectionalCollection`, not `RandomAccessCollection`: with holes,
 `index(_:offsetBy:)` is a scan. `Vertices.Index` and `Edges.Index` are the positions themselves,
 and `endIndex` is the high-water mark, the next position handed out (petgraph's `node_bound()` /
-`edge_bound()`). So a side array is sized `graph.edges.endIndex`, and `edges.indices.contains(p)`
-is the O(1) live-or-stale check (SG-046, SG-047). These are standard `Collection` spellings, so
+`edge_bound()`). Data kept by position goes in an attached `EdgeMap` or `VertexMap`, and
+`edges.indices.contains(p)` is the O(1) live-or-stale check (SG-046, SG-047). These are standard `Collection` spellings, so
 nothing new is named.
 
 ## Positions, indices, and how algorithms see holes
@@ -233,9 +363,9 @@ public protocol SparselyIndexedDirectedGraph<Vertex>: BidirectionalDirectedGraph
 
 The name follows petgraph's traits: `NodeIndexable` / `EdgeIndexable` allow holes (a bound
 "suitable for the size of a bitmap"), `NodeCompactIndexable` does not; our `vertexIndexBound` is
-the compact kind. `StableDirectedGraph`'s `_numberedRows` builds, with arrays sized by the bound
-and no hashing, the position → number map and flat successor (or predecessor) rows with edge
-positions beside them, in O(bound + m). A conformer outside the library gets a default built
+the compact kind. `StableDirectedGraph`'s `_numberedRows` builds, page by page and with no hashing,
+the position → number map (paged, `_PositionNumbers`) and flat successor (or predecessor) rows
+with edge positions beside them, in O(n + m + pages). A conformer outside the library gets a default built
 from the public members, which hashes once per vertex and per edge (`_NumberedRows`' initializer
 is `package`, so the requirement could not otherwise be met). `DirectedGraph._sparselyIndexed()`
 casts to the refinement once per structure when `vertexIndexBound` is `nil`, and the structure
@@ -263,9 +393,9 @@ with private numberings (Centrality's directed rows, Cycles' directed rows, Tour
 holes exist; each can adopt `_numberedRows` the same way.
 
 `_numberedRows` is called through the existential, so it runs unspecialized: it must not touch a
-`Vertex?` per slot (a witness call each, 4.8 ms for 10⁵ slots). Liveness is read from `_outDead`
-(-1 at a vertex hole) instead, 1.2 ms for the benchmark graph. Weights stay closures over positions (README question 3), so `w[p]` with `w` sized
-`edges.endIndex` is still an array read; `_withSuccessorIndexRows` stays at its `nil` default.
+`Vertex?` per slot (a witness call each, 4.8 ms for 10⁵ slots). Liveness is read from the out-pages'
+dead counts (-1 at a vertex hole) instead, 1.2 ms for the benchmark graph. Weights stay closures
+over positions (README question 3): `w[p]` over an array, or `graph[map: weights, ofEdgeAt: p]`; `_withSuccessorIndexRows` stays at its `nil` default.
 For hot loops, `DirectedPseudograph(g)` still compacts in O(n + m), and edge `k` of the copy is
 the `k`th live position (SG-072).
 
@@ -317,13 +447,10 @@ before encoding (SG-083). Errors are `DecodingError.dataCorrupted` for:
 - a positions/values count mismatch;
 - positions that do not strictly increase or that reach past the end;
 - an endpoint out of range;
-- an implausible end (SG-108 – SG-112): one that leaves more than `16 × count + 65,536` holes,
-  `count` being the vertices (or edges) listed. Decoding allocates every position up to the end,
-  so without a bound `"vertexEnd": 4611686018427387903` with no vertices trapped in the
-  allocation instead of throwing. The bound caps a payload's amplification at about 17 holes per
-  listed element plus a few megabytes; a graph whose positions ran further past its live
-  elements does not round-trip until paged storage makes empty pages free and the bound can
-  count pages instead.
+- an implausible end (SG-113, SG-114): one whose pages, from the first listed position (the end
+  itself when none is listed) to the end, number more than `16 × count + 64`, `count` being the
+  vertices (or edges) listed. Positions before the first listed element cost nothing, so a far
+  end with nothing after the gap decodes in O(1) (SG-108 – SG-112, SG-116; see Paged storage).
 
 ## Accommodating the later plan items
 
@@ -347,10 +474,10 @@ before encoding (SG-083). Errors are `DecodingError.dataCorrupted` for:
   its records' offsets updated, and each removed edge's far entry killed (SG-097 – SG-102). The
   predicate gets positions in row order (rows in `vertices` order for the whole-graph form), uses
   typed throws, and leaves the remaining edges if it throws.
-- **Side arrays → NodeMap/ArcMap or payloads.** Positions that never move are the easiest case:
-  a map over positions only has to grow on insert, and a removal never moves a value. The final
-  phase can wrap a `ContiguousArray<Value?>` sized `endIndex`, or store payloads in the records
-  (petgraph's `StableGraph<N, E>`).
+- **Side arrays → NodeMap/ArcMap (shipped as attached `EdgeMap` / `VertexMap`).** Positions that
+  never move are the easiest case: a map over positions never moves a value. The maps live in the
+  graph, paged like it and cleared by every removal, so a caller's per-edge data (FlowNavigation's
+  edge labels) stays bounded and never stale.
 
 ## Performance targets
 
@@ -378,15 +505,20 @@ the hole-free time (an existential cast and box per lookup) and now takes 2.2× 
 1.5 ms for 10⁵ lookups); `postDominatorTree` took 17× and now runs over numbered predecessor rows
 in 28 ms against 32 ms without holes. `removeAllEdges(where:)` for half of 5·10⁵ edges: 24 ms.
 
+After paged storage (2026-10-10, one run, p50; full list in Benchmarks/README.md): build 81 ms,
+`insert(edge:)` 73 ms, removing 10% of vertices 8.4 ms, every other edge by position 20 ms,
+`remove(edge:)` for half 58 ms, `contains(edge:)` 61 ms, weak components 3.7 ms, strong 11 ms
+against `DirectedPseudograph`'s 11, with 10% vertex holes 3.9 and 6.7 ms; every target above
+still holds.
+
 The numbered rows of the graph with holes take 1.2 ms to build. A churned graph (10⁴ vertices,
 5·10⁴ live edges, 5·10⁵ edges inserted and removed) sums over `edges` in 49 µs against its
 compacted copy's 25 µs (the walk is O(`endIndex`) over the 32-byte records), and finds weak
 components in 0.44 ms. Measured with other builds loading the machine (load average 3–7), so
 compare ratios within the run.
 
-Iteration over `vertices` or `edges` costs O(`endIndex`), not O(live count). The benchmark should
-also report a churned graph: insert, then remove, 10× the live size. That shows the cost of
-holes the docs will quote.
+Before paging, iteration over `vertices` or `edges` cost O(`endIndex`); with pages it costs
+O(live count + pages). See Paged storage for the churn, snapshot and algorithm numbers.
 
 ## Open questions and recommendations
 
@@ -398,9 +530,9 @@ holes the docs will quote.
    module's loops and results. *Decided:* the laws stay, and the `SparselyIndexedDirectedGraph`
    refinement above carries the positions, so index-space helpers number live vertices with
    arrays instead of hashing.
-3. **Compaction.** *Decided:* no `compact()` method. Memory under churn is addressed by paged
-   storage in a follow-up: records in fixed-size pages, a page freed once all its slots are dead,
-   positions never reused, and `VertexMap` / `EdgeMap` side maps after LEMON's `NodeMap` /
+3. **Compaction.** *Decided:* no `compact()` method. Memory under churn is bounded by paged
+   storage (implemented): records in fixed-size pages, a page freed once all its slots are dead,
+   positions never reused, and attached `VertexMap` / `EdgeMap` maps after LEMON's `NodeMap` /
    `ArcMap`. `DirectedPseudograph(g)` still compacts for a hot loop.
 4. **Should `removeAll()` / `removeAllEdges()` reset `endIndex`?** If they reset, a position from
    before the reset can name a new edge (SG-039). If they keep it, the "never comes back" rule

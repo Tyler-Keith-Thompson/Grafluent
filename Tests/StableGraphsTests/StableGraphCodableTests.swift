@@ -1,7 +1,7 @@
-// Codable (catalog SG-082 – SG-094, SG-108 – SG-112): `{vertices, vertexPositions, vertexEnd, edges, edgePositions,
+// Codable (catalog SG-082 – SG-094, SG-108 – SG-116): `{vertices, vertexPositions, vertexEnd, edges, edgePositions,
 // edgeEnd}`. Encoding is checked byte for byte (with sorted keys); decoding keeps every position
 // and both ends, so the next insertions get the positions they would have got before encoding.
-// Corrupt payloads, ends with more holes than the bound included, throw
+// Far ends decode in O(elements); corrupt payloads, a page span past 16 × count + 64 included, throw
 // `DecodingError.dataCorrupted` with the catalog's key and message.
 // Generated from cases.md by swiftgen.py; see README.md.
 
@@ -401,67 +401,128 @@ struct StableGraphCodableTests {
         }
     }
 
-    @Test("SG-108 vertexEnd far past the payload", .tags(.conformance))
-    func sg108() {
-        // {"vertices":[],"vertexPositions":[],"vertexEnd":4611686018427387903,"edges":[],"edgePositions":[],"edgeEnd":0} → dataCorrupted(vertexEnd): End leaves too many holes
-        let payload = Data("{\"vertices\":[],\"vertexPositions\":[],\"vertexEnd\":4611686018427387903,\"edges\":[],\"edgePositions\":[],\"edgeEnd\":0}".utf8)
-        do {
-            let decoded = try JSONDecoder().decode(StableDirectedGraph<Int>.self, from: payload)
-            Issue.record("decoded \(decoded)")
-        } catch let DecodingError.dataCorrupted(context) {
-            #expect(context.debugDescription == "End leaves too many holes")
-            #expect(context.codingPath.last?.stringValue == "vertexEnd")
-        } catch {
-            Issue.record("unexpected error \(error)")
-        }
+    @Test("SG-108 vertexEnd far past the payload: no vertex, so one page", .tags(.conformance))
+    func sg108() throws {
+        // {"vertices":[],"vertexPositions":[],"vertexEnd":4611686018427387903,"edges":[],"edgePositions":[],"edgeEnd":0} → V [] end 4611686018427387903; E [] end 0; bounds nil/0; out -; in -
+        var decoded = try JSONDecoder().decode(StableDirectedGraph<Int>.self, from: Data("{\"vertices\":[],\"vertexPositions\":[],\"vertexEnd\":4611686018427387903,\"edges\":[],\"edgePositions\":[],\"edgeEnd\":0}".utf8))
+        #expect(Array(decoded.vertices) == [] as [Int])
+        #expect(Array(decoded.vertices.indices) == [] as [Int])
+        #expect(decoded.vertices.startIndex == 4611686018427387903)
+        #expect(decoded.vertices.endIndex == 4611686018427387903)
+        #expect(decoded.edges.map { [$0.source, $0.target] } == [] as [[Int]])
+        #expect(Array(decoded.edges.indices) == [] as [Int])
+        #expect(decoded.edges.startIndex == 0)
+        #expect(decoded.edges.endIndex == 0)
+        #expect(decoded.vertexIndexBound == nil)
+        #expect(decoded.edgeIndexBound == 0)
+        #expect(decoded.vertexCount == 0)
+        #expect(decoded.vertices.count == 0)
+        #expect(decoded.edgeCount == 0)
+        #expect(decoded.edges.count == 0)
+        #expect(decoded.edges.indices.map { decoded.edgeIndex(of: $0) } == [] as [Int])
+        #expect(decoded.insert(edge: DirectedEdge(from: -1, to: -1)) == 0)
+        #expect(decoded.vertices.firstIndex(of: -1) == 4611686018427387903)
     }
 
-    @Test("SG-109 edgeEnd far past the payload", .tags(.conformance))
-    func sg109() {
-        // {"vertices":[0],"vertexPositions":[0],"vertexEnd":1,"edges":[],"edgePositions":[],"edgeEnd":9223372036854775807} → dataCorrupted(edgeEnd): End leaves too many holes
-        let payload = Data("{\"vertices\":[0],\"vertexPositions\":[0],\"vertexEnd\":1,\"edges\":[],\"edgePositions\":[],\"edgeEnd\":9223372036854775807}".utf8)
-        do {
-            let decoded = try JSONDecoder().decode(StableDirectedGraph<Int>.self, from: payload)
-            Issue.record("decoded \(decoded)")
-        } catch let DecodingError.dataCorrupted(context) {
-            #expect(context.debugDescription == "End leaves too many holes")
-            #expect(context.codingPath.last?.stringValue == "edgeEnd")
-        } catch {
-            Issue.record("unexpected error \(error)")
-        }
+    @Test("SG-109 edgeEnd at Int.max with no edge: one page", .tags(.conformance))
+    func sg109() throws {
+        // {"vertices":[0],"vertexPositions":[0],"vertexEnd":1,"edges":[],"edgePositions":[],"edgeEnd":9223372036854775807} → V [0#0] end 1; E [] end 9223372036854775807; bounds 1/nil; out -; in -
+        var decoded = try JSONDecoder().decode(StableDirectedGraph<Int>.self, from: Data("{\"vertices\":[0],\"vertexPositions\":[0],\"vertexEnd\":1,\"edges\":[],\"edgePositions\":[],\"edgeEnd\":9223372036854775807}".utf8))
+        #expect(Array(decoded.vertices) == [0])
+        #expect(Array(decoded.vertices.indices) == [0])
+        #expect(decoded.vertices.startIndex == 0)
+        #expect(decoded.vertices.endIndex == 1)
+        #expect(decoded.edges.map { [$0.source, $0.target] } == [] as [[Int]])
+        #expect(Array(decoded.edges.indices) == [] as [Int])
+        #expect(decoded.edges.startIndex == 9223372036854775807)
+        #expect(decoded.edges.endIndex == 9223372036854775807)
+        #expect(decoded.vertexIndexBound == 1)
+        #expect(decoded.edgeIndexBound == nil)
+        #expect(decoded.vertexCount == 1)
+        #expect(decoded.vertices.count == 1)
+        #expect(decoded.edgeCount == 0)
+        #expect(decoded.edges.count == 0)
+        #expect(decoded.vertices.firstIndex(of: 0) == 0)
+        #expect(decoded.vertices[0] == 0)
+        #expect(Array(decoded.successors(of: 0)) == [] as [Int])
+        #expect(Array(decoded.outEdges(of: 0)) == [] as [Int])
+        #expect(Array(decoded.predecessors(of: 0)) == [] as [Int])
+        #expect(Array(decoded.inEdges(of: 0)) == [] as [Int])
+        #expect(decoded.outDegree(of: 0) == 0 && decoded.inDegree(of: 0) == 0 && decoded.degree(of: 0) == 0)
+        #expect(decoded.vertices.map { decoded.vertexIndex(of: $0) } == [0])
+        #expect((0 ..< 1).map { decoded.vertex(atIndex: $0) } == [0])
+        // edgeEnd is Int.max: no edge position is left (extra_traps.swift traps on the next insert).
+        #expect(decoded.insert(-1).inserted)
+        #expect(decoded.vertices.firstIndex(of: -1) == 1)
     }
 
-    @Test("SG-110 vertexEnd one hole past the bound", .tags(.conformance))
-    func sg110() {
-        // {"vertices":[0],"vertexPositions":[0],"vertexEnd":65554,"edges":[],"edgePositions":[],"edgeEnd":0} → dataCorrupted(vertexEnd): End leaves too many holes
-        let payload = Data("{\"vertices\":[0],\"vertexPositions\":[0],\"vertexEnd\":65554,\"edges\":[],\"edgePositions\":[],\"edgeEnd\":0}".utf8)
-        do {
-            let decoded = try JSONDecoder().decode(StableDirectedGraph<Int>.self, from: payload)
-            Issue.record("decoded \(decoded)")
-        } catch let DecodingError.dataCorrupted(context) {
-            #expect(context.debugDescription == "End leaves too many holes")
-            #expect(context.codingPath.last?.stringValue == "vertexEnd")
-        } catch {
-            Issue.record("unexpected error \(error)")
-        }
+    @Test("SG-110 vertexEnd 65554 with one vertex: 65 pages, within the bound", .tags(.conformance))
+    func sg110() throws {
+        // {"vertices":[0],"vertexPositions":[0],"vertexEnd":65554,"edges":[],"edgePositions":[],"edgeEnd":0} → V [0#0] end 65554; E [] end 0; bounds nil/0; out -; in -
+        var decoded = try JSONDecoder().decode(StableDirectedGraph<Int>.self, from: Data("{\"vertices\":[0],\"vertexPositions\":[0],\"vertexEnd\":65554,\"edges\":[],\"edgePositions\":[],\"edgeEnd\":0}".utf8))
+        #expect(Array(decoded.vertices) == [0])
+        #expect(Array(decoded.vertices.indices) == [0])
+        #expect(decoded.vertices.startIndex == 0)
+        #expect(decoded.vertices.endIndex == 65554)
+        #expect(decoded.edges.map { [$0.source, $0.target] } == [] as [[Int]])
+        #expect(Array(decoded.edges.indices) == [] as [Int])
+        #expect(decoded.edges.startIndex == 0)
+        #expect(decoded.edges.endIndex == 0)
+        #expect(decoded.vertexIndexBound == nil)
+        #expect(decoded.edgeIndexBound == 0)
+        #expect(decoded.vertexCount == 1)
+        #expect(decoded.vertices.count == 1)
+        #expect(decoded.edgeCount == 0)
+        #expect(decoded.edges.count == 0)
+        #expect(decoded.vertices.firstIndex(of: 0) == 0)
+        #expect(decoded.vertices[0] == 0)
+        #expect(Array(decoded.successors(of: 0)) == [] as [Int])
+        #expect(Array(decoded.outEdges(of: 0)) == [] as [Int])
+        #expect(Array(decoded.predecessors(of: 0)) == [] as [Int])
+        #expect(Array(decoded.inEdges(of: 0)) == [] as [Int])
+        #expect(decoded.outDegree(of: 0) == 0 && decoded.inDegree(of: 0) == 0 && decoded.degree(of: 0) == 0)
+        #expect(decoded.edges.indices.map { decoded.edgeIndex(of: $0) } == [] as [Int])
+        #expect(decoded.insert(edge: DirectedEdge(from: -1, to: -1)) == 0)
+        #expect(decoded.vertices.firstIndex(of: -1) == 65554)
     }
 
-    @Test("SG-111 edgeEnd one hole past the bound", .tags(.conformance))
-    func sg111() {
-        // {"vertices":[0],"vertexPositions":[0],"vertexEnd":1,"edges":[0,0],"edgePositions":[0],"edgeEnd":65554} → dataCorrupted(edgeEnd): End leaves too many holes
-        let payload = Data("{\"vertices\":[0],\"vertexPositions\":[0],\"vertexEnd\":1,\"edges\":[0,0],\"edgePositions\":[0],\"edgeEnd\":65554}".utf8)
-        do {
-            let decoded = try JSONDecoder().decode(StableDirectedGraph<Int>.self, from: payload)
-            Issue.record("decoded \(decoded)")
-        } catch let DecodingError.dataCorrupted(context) {
-            #expect(context.debugDescription == "End leaves too many holes")
-            #expect(context.codingPath.last?.stringValue == "edgeEnd")
-        } catch {
-            Issue.record("unexpected error \(error)")
-        }
+    @Test("SG-111 edgeEnd 65554 with one edge: 65 pages, within the bound", .tags(.conformance))
+    func sg111() throws {
+        // {"vertices":[0],"vertexPositions":[0],"vertexEnd":1,"edges":[0,0],"edgePositions":[0],"edgeEnd":65554} → V [0#0] end 1; E [0:0→0] end 65554; bounds 1/nil; out 0:[0@0]; in 0:[0@0]
+        var decoded = try JSONDecoder().decode(StableDirectedGraph<Int>.self, from: Data("{\"vertices\":[0],\"vertexPositions\":[0],\"vertexEnd\":1,\"edges\":[0,0],\"edgePositions\":[0],\"edgeEnd\":65554}".utf8))
+        #expect(Array(decoded.vertices) == [0])
+        #expect(Array(decoded.vertices.indices) == [0])
+        #expect(decoded.vertices.startIndex == 0)
+        #expect(decoded.vertices.endIndex == 1)
+        #expect(decoded.edges.map { [$0.source, $0.target] } == [[0, 0]])
+        #expect(Array(decoded.edges.indices) == [0])
+        #expect(decoded.edges.startIndex == 0)
+        #expect(decoded.edges.endIndex == 65554)
+        #expect(decoded.vertexIndexBound == 1)
+        #expect(decoded.edgeIndexBound == nil)
+        #expect(decoded.vertexCount == 1)
+        #expect(decoded.vertices.count == 1)
+        #expect(decoded.edgeCount == 1)
+        #expect(decoded.edges.count == 1)
+        #expect(decoded.edges.indices.map { [decoded.source(ofEdgeAt: $0), decoded.target(ofEdgeAt: $0)] } == [[0, 0]])
+        #expect(decoded.edges.indices.map { decoded.edges[$0] } == [DirectedEdge(from: 0, to: 0)])
+        #expect(decoded.vertices.firstIndex(of: 0) == 0)
+        #expect(decoded.vertices[0] == 0)
+        #expect(Array(decoded.successors(of: 0)) == [0])
+        #expect(Array(decoded.outEdges(of: 0)) == [0])
+        #expect(Array(decoded.predecessors(of: 0)) == [0])
+        #expect(Array(decoded.inEdges(of: 0)) == [0])
+        #expect(decoded.outDegree(of: 0) == 1 && decoded.inDegree(of: 0) == 1 && decoded.degree(of: 0) == 2)
+        #expect(Array(decoded.edges(from: 0, to: 0)) == [0])
+        #expect(decoded.edgeCount(from: 0, to: 0) == 1)
+        #expect(decoded.contains(edge: DirectedEdge(from: 0, to: 0)))
+        #expect(decoded.vertices.map { decoded.vertexIndex(of: $0) } == [0])
+        #expect((0 ..< 1).map { decoded.vertex(atIndex: $0) } == [0])
+        #expect(decoded.insert(edge: DirectedEdge(from: -1, to: -1)) == 65554)
+        #expect(decoded.vertices.firstIndex(of: -1) == 1)
     }
 
-    @Test("SG-112 ends at the bound decode", .tags(.conformance))
+    @Test("SG-112 ends at 65553 decode", .tags(.conformance))
     func sg112() throws {
         // {"vertices":[0],"vertexPositions":[0],"vertexEnd":65553,"edges":[0,0],"edgePositions":[0],"edgeEnd":65553} → V [0#0] end 65553; E [0:0→0] end 65553; bounds nil/nil; out 0:[0@0]; in 0:[0@0]
         var decoded = try JSONDecoder().decode(StableDirectedGraph<Int>.self, from: Data("{\"vertices\":[0],\"vertexPositions\":[0],\"vertexEnd\":65553,\"edges\":[0,0],\"edgePositions\":[0],\"edgeEnd\":65553}".utf8))
@@ -493,5 +554,110 @@ struct StableGraphCodableTests {
         #expect(decoded.contains(edge: DirectedEdge(from: 0, to: 0)))
         #expect(decoded.insert(edge: DirectedEdge(from: -1, to: -1)) == 65553)
         #expect(decoded.vertices.firstIndex(of: -1) == 65553)
+    }
+
+    @Test("SG-113 vertex page span one past 16 × count + 64", .tags(.conformance))
+    func sg113() {
+        // {"vertices":[0],"vertexPositions":[0],"vertexEnd":81920,"edges":[],"edgePositions":[],"edgeEnd":0} → dataCorrupted(vertexEnd): End leaves too many empty pages
+        let payload = Data("{\"vertices\":[0],\"vertexPositions\":[0],\"vertexEnd\":81920,\"edges\":[],\"edgePositions\":[],\"edgeEnd\":0}".utf8)
+        do {
+            let decoded = try JSONDecoder().decode(StableDirectedGraph<Int>.self, from: payload)
+            Issue.record("decoded \(decoded)")
+        } catch let DecodingError.dataCorrupted(context) {
+            #expect(context.debugDescription == "End leaves too many empty pages")
+            #expect(context.codingPath.last?.stringValue == "vertexEnd")
+        } catch {
+            Issue.record("unexpected error \(error)")
+        }
+    }
+
+    @Test("SG-114 edge page span one past 16 × count + 64", .tags(.conformance))
+    func sg114() {
+        // {"vertices":[0],"vertexPositions":[0],"vertexEnd":1,"edges":[0,0],"edgePositions":[0],"edgeEnd":81920} → dataCorrupted(edgeEnd): End leaves too many empty pages
+        let payload = Data("{\"vertices\":[0],\"vertexPositions\":[0],\"vertexEnd\":1,\"edges\":[0,0],\"edgePositions\":[0],\"edgeEnd\":81920}".utf8)
+        do {
+            let decoded = try JSONDecoder().decode(StableDirectedGraph<Int>.self, from: payload)
+            Issue.record("decoded \(decoded)")
+        } catch let DecodingError.dataCorrupted(context) {
+            #expect(context.debugDescription == "End leaves too many empty pages")
+            #expect(context.codingPath.last?.stringValue == "edgeEnd")
+        } catch {
+            Issue.record("unexpected error \(error)")
+        }
+    }
+
+    @Test("SG-115 page spans at the bound decode", .tags(.conformance))
+    func sg115() throws {
+        // {"vertices":[0],"vertexPositions":[0],"vertexEnd":81919,"edges":[0,0],"edgePositions":[0],"edgeEnd":81919} → V [0#0] end 81919; E [0:0→0] end 81919; bounds nil/nil; out 0:[0@0]; in 0:[0@0]
+        var decoded = try JSONDecoder().decode(StableDirectedGraph<Int>.self, from: Data("{\"vertices\":[0],\"vertexPositions\":[0],\"vertexEnd\":81919,\"edges\":[0,0],\"edgePositions\":[0],\"edgeEnd\":81919}".utf8))
+        #expect(Array(decoded.vertices) == [0])
+        #expect(Array(decoded.vertices.indices) == [0])
+        #expect(decoded.vertices.startIndex == 0)
+        #expect(decoded.vertices.endIndex == 81919)
+        #expect(decoded.edges.map { [$0.source, $0.target] } == [[0, 0]])
+        #expect(Array(decoded.edges.indices) == [0])
+        #expect(decoded.edges.startIndex == 0)
+        #expect(decoded.edges.endIndex == 81919)
+        #expect(decoded.vertexIndexBound == nil)
+        #expect(decoded.edgeIndexBound == nil)
+        #expect(decoded.vertexCount == 1)
+        #expect(decoded.vertices.count == 1)
+        #expect(decoded.edgeCount == 1)
+        #expect(decoded.edges.count == 1)
+        #expect(decoded.edges.indices.map { [decoded.source(ofEdgeAt: $0), decoded.target(ofEdgeAt: $0)] } == [[0, 0]])
+        #expect(decoded.edges.indices.map { decoded.edges[$0] } == [DirectedEdge(from: 0, to: 0)])
+        #expect(decoded.vertices.firstIndex(of: 0) == 0)
+        #expect(decoded.vertices[0] == 0)
+        #expect(Array(decoded.successors(of: 0)) == [0])
+        #expect(Array(decoded.outEdges(of: 0)) == [0])
+        #expect(Array(decoded.predecessors(of: 0)) == [0])
+        #expect(Array(decoded.inEdges(of: 0)) == [0])
+        #expect(decoded.outDegree(of: 0) == 1 && decoded.inDegree(of: 0) == 1 && decoded.degree(of: 0) == 2)
+        #expect(Array(decoded.edges(from: 0, to: 0)) == [0])
+        #expect(decoded.edgeCount(from: 0, to: 0) == 1)
+        #expect(decoded.contains(edge: DirectedEdge(from: 0, to: 0)))
+        #expect(decoded.insert(edge: DirectedEdge(from: -1, to: -1)) == 81919)
+        #expect(decoded.vertices.firstIndex(of: -1) == 81919)
+    }
+
+    @Test("SG-116 elements far along: the pages before them cost nothing", .tags(.conformance))
+    func sg116() throws {
+        // {"vertices":[7,8],"vertexPositions":[4611686018427387000,4611686018427387001],"vertexEnd":4611686018427387904,"edges":[0,1],"edgePositions":[9223372036854775000],"edgeEnd":9223372036854775001} → V [7#4611686018427387000, 8#4611686018427387001] end 4611686018427387904; E [9223372036854775000:7→8] end 9223372036854775001; bounds nil/nil; out 7:[8@9223372036854775000]; in 8:[7@9223372036854775000]
+        var decoded = try JSONDecoder().decode(StableDirectedGraph<Int>.self, from: Data("{\"vertices\":[7,8],\"vertexPositions\":[4611686018427387000,4611686018427387001],\"vertexEnd\":4611686018427387904,\"edges\":[0,1],\"edgePositions\":[9223372036854775000],\"edgeEnd\":9223372036854775001}".utf8))
+        #expect(Array(decoded.vertices) == [7, 8])
+        #expect(Array(decoded.vertices.indices) == [4611686018427387000, 4611686018427387001])
+        #expect(decoded.vertices.startIndex == 4611686018427387000)
+        #expect(decoded.vertices.endIndex == 4611686018427387904)
+        #expect(decoded.edges.map { [$0.source, $0.target] } == [[7, 8]])
+        #expect(Array(decoded.edges.indices) == [9223372036854775000])
+        #expect(decoded.edges.startIndex == 9223372036854775000)
+        #expect(decoded.edges.endIndex == 9223372036854775001)
+        #expect(decoded.vertexIndexBound == nil)
+        #expect(decoded.edgeIndexBound == nil)
+        #expect(decoded.vertexCount == 2)
+        #expect(decoded.vertices.count == 2)
+        #expect(decoded.edgeCount == 1)
+        #expect(decoded.edges.count == 1)
+        #expect(decoded.edges.indices.map { [decoded.source(ofEdgeAt: $0), decoded.target(ofEdgeAt: $0)] } == [[7, 8]])
+        #expect(decoded.edges.indices.map { decoded.edges[$0] } == [DirectedEdge(from: 7, to: 8)])
+        #expect(decoded.vertices.firstIndex(of: 7) == 4611686018427387000)
+        #expect(decoded.vertices[4611686018427387000] == 7)
+        #expect(Array(decoded.successors(of: 7)) == [8])
+        #expect(Array(decoded.outEdges(of: 7)) == [9223372036854775000])
+        #expect(Array(decoded.predecessors(of: 7)) == [] as [Int])
+        #expect(Array(decoded.inEdges(of: 7)) == [] as [Int])
+        #expect(decoded.outDegree(of: 7) == 1 && decoded.inDegree(of: 7) == 0 && decoded.degree(of: 7) == 1)
+        #expect(decoded.vertices.firstIndex(of: 8) == 4611686018427387001)
+        #expect(decoded.vertices[4611686018427387001] == 8)
+        #expect(Array(decoded.successors(of: 8)) == [] as [Int])
+        #expect(Array(decoded.outEdges(of: 8)) == [] as [Int])
+        #expect(Array(decoded.predecessors(of: 8)) == [7])
+        #expect(Array(decoded.inEdges(of: 8)) == [9223372036854775000])
+        #expect(decoded.outDegree(of: 8) == 0 && decoded.inDegree(of: 8) == 1 && decoded.degree(of: 8) == 1)
+        #expect(Array(decoded.edges(from: 7, to: 8)) == [9223372036854775000])
+        #expect(decoded.edgeCount(from: 7, to: 8) == 1)
+        #expect(decoded.contains(edge: DirectedEdge(from: 7, to: 8)))
+        #expect(decoded.insert(edge: DirectedEdge(from: -1, to: -1)) == 9223372036854775001)
+        #expect(decoded.vertices.firstIndex(of: -1) == 4611686018427387904)
     }
 }

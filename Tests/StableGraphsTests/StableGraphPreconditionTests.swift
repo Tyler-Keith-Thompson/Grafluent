@@ -4,6 +4,7 @@
 // (extra_traps.swift).
 // Generated from cases.md by swiftgen.py; see README.md.
 
+import Foundation
 import GrafluentTestSupport
 import GraphProtocols
 import StableGraphs
@@ -629,6 +630,185 @@ struct StableGraphPreconditionTests {
         #expect(graph.edges.endIndex == 0)
     }
 
+    @Test("SG-119 source(ofEdgeAt:) at a position in a freed page traps")
+    func sg119() async {
+        // V [0, 1]; E [0→1] / 2500 × { insert(edge: 0→1); remove(edgeAt: edges.startIndex) } / source(ofEdgeAt: 5) → nil; **trap**
+        await #expect(processExitsWith: .failure) {
+            var graph = StableDirectedGraph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])
+            for _ in 0 ..< 2500 { graph.insert(edge: DirectedEdge(from: 0, to: 1)); graph.remove(edgeAt: graph.edges.startIndex) }
+            _ = graph.source(ofEdgeAt: 5)
+        }
+        // Without the call: the setup's results and the state the call would apply to.
+        var graph = StableDirectedGraph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])
+        for _ in 0 ..< 2500 { graph.insert(edge: DirectedEdge(from: 0, to: 1)); graph.remove(edgeAt: graph.edges.startIndex) }
+        #expect(Array(graph.vertices) == [0, 1])
+        #expect(Array(graph.vertices.indices) == [0, 1])
+        #expect(graph.vertices.startIndex == 0)
+        #expect(graph.vertices.endIndex == 2)
+        #expect(graph.edges.map { [$0.source, $0.target] } == [[0, 1]])
+        #expect(Array(graph.edges.indices) == [2500])
+        #expect(graph.edges.startIndex == 2500)
+        #expect(graph.edges.endIndex == 2501)
+        #expect(graph.vertexIndexBound == 2)
+        #expect(graph.edgeIndexBound == nil)
+        #expect(graph.vertexCount == 2)
+        #expect(graph.vertices.count == 2)
+        #expect(graph.edgeCount == 1)
+        #expect(graph.edges.count == 1)
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [[0, 1]])
+        #expect(graph.edges.indices.map { graph.edges[$0] } == [DirectedEdge(from: 0, to: 1)])
+        #expect(graph.vertices.firstIndex(of: 0) == 0)
+        #expect(graph.vertices[0] == 0)
+        #expect(Array(graph.successors(of: 0)) == [1])
+        #expect(Array(graph.outEdges(of: 0)) == [2500])
+        #expect(Array(graph.predecessors(of: 0)) == [] as [Int])
+        #expect(Array(graph.inEdges(of: 0)) == [] as [Int])
+        #expect(graph.outDegree(of: 0) == 1 && graph.inDegree(of: 0) == 0 && graph.degree(of: 0) == 1)
+        #expect(graph.vertices.firstIndex(of: 1) == 1)
+        #expect(graph.vertices[1] == 1)
+        #expect(Array(graph.successors(of: 1)) == [] as [Int])
+        #expect(Array(graph.outEdges(of: 1)) == [] as [Int])
+        #expect(Array(graph.predecessors(of: 1)) == [0])
+        #expect(Array(graph.inEdges(of: 1)) == [2500])
+        #expect(graph.outDegree(of: 1) == 0 && graph.inDegree(of: 1) == 1 && graph.degree(of: 1) == 1)
+        #expect(Array(graph.edges(from: 0, to: 1)) == [2500])
+        #expect(graph.edgeCount(from: 0, to: 1) == 1)
+        #expect(graph.contains(edge: DirectedEdge(from: 0, to: 1)))
+        #expect(graph.vertices.map { graph.vertexIndex(of: $0) } == [0, 1])
+        #expect((0 ..< 2).map { graph.vertex(atIndex: $0) } == [0, 1])
+    }
+
+    @Test("SG-120 vertices[p] at a position in a freed page traps")
+    func sg120() async {
+        // V [0]; E [] / for i in 0..<2100 { insert(edge: i→i+1); remove(i) } / vertices[3] → nil; **trap**
+        await #expect(processExitsWith: .failure) {
+            var graph = StableDirectedGraph<Int>(vertices: [0], edges: [] as [DirectedEdge<Int>])
+            for i in 0 ..< 2100 { graph.insert(edge: DirectedEdge(from: i, to: i + 1)); graph.remove(i) }
+            _ = graph.vertices[3]
+        }
+        // Without the call: the setup's results and the state the call would apply to.
+        var graph = StableDirectedGraph<Int>(vertices: [0], edges: [] as [DirectedEdge<Int>])
+        for i in 0 ..< 2100 { graph.insert(edge: DirectedEdge(from: i, to: i + 1)); graph.remove(i) }
+        #expect(Array(graph.vertices) == [2100])
+        #expect(Array(graph.vertices.indices) == [2100])
+        #expect(graph.vertices.startIndex == 2100)
+        #expect(graph.vertices.endIndex == 2101)
+        #expect(graph.edges.map { [$0.source, $0.target] } == [] as [[Int]])
+        #expect(Array(graph.edges.indices) == [] as [Int])
+        #expect(graph.edges.startIndex == 2100)
+        #expect(graph.edges.endIndex == 2100)
+        #expect(graph.vertexIndexBound == nil)
+        #expect(graph.edgeIndexBound == nil)
+        #expect(graph.vertexCount == 1)
+        #expect(graph.vertices.count == 1)
+        #expect(graph.edgeCount == 0)
+        #expect(graph.edges.count == 0)
+        #expect(graph.vertices.firstIndex(of: 2100) == 2100)
+        #expect(graph.vertices[2100] == 2100)
+        #expect(Array(graph.successors(of: 2100)) == [] as [Int])
+        #expect(Array(graph.outEdges(of: 2100)) == [] as [Int])
+        #expect(Array(graph.predecessors(of: 2100)) == [] as [Int])
+        #expect(Array(graph.inEdges(of: 2100)) == [] as [Int])
+        #expect(graph.outDegree(of: 2100) == 0 && graph.inDegree(of: 2100) == 0 && graph.degree(of: 2100) == 0)
+    }
+
+    @Test("SG-128 changeTarget(ofEdgeAt:to:) to a non-vertex traps")
+    func sg128() async {
+        // V [0, 1]; E [0→1] / changeTarget(ofEdgeAt: 0, to: 1) / changeTarget(ofEdgeAt: 0, to: 9) → nil; **trap**
+        await #expect(processExitsWith: .failure) {
+            var graph = StableDirectedGraph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])
+            graph.changeTarget(ofEdgeAt: 0, to: 1)
+            graph.changeTarget(ofEdgeAt: 0, to: 9)
+        }
+        // Without the call: the setup's results and the state the call would apply to.
+        var graph = StableDirectedGraph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])
+        graph.changeTarget(ofEdgeAt: 0, to: 1)
+        #expect(Array(graph.vertices) == [0, 1])
+        #expect(Array(graph.vertices.indices) == [0, 1])
+        #expect(graph.vertices.startIndex == 0)
+        #expect(graph.vertices.endIndex == 2)
+        #expect(graph.edges.map { [$0.source, $0.target] } == [[0, 1]])
+        #expect(Array(graph.edges.indices) == [0])
+        #expect(graph.edges.startIndex == 0)
+        #expect(graph.edges.endIndex == 1)
+        #expect(graph.vertexIndexBound == 2)
+        #expect(graph.edgeIndexBound == 1)
+        #expect(graph.vertexCount == 2)
+        #expect(graph.vertices.count == 2)
+        #expect(graph.edgeCount == 1)
+        #expect(graph.edges.count == 1)
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [[0, 1]])
+        #expect(graph.edges.indices.map { graph.edges[$0] } == [DirectedEdge(from: 0, to: 1)])
+        #expect(graph.vertices.firstIndex(of: 0) == 0)
+        #expect(graph.vertices[0] == 0)
+        #expect(Array(graph.successors(of: 0)) == [1])
+        #expect(Array(graph.outEdges(of: 0)) == [0])
+        #expect(Array(graph.predecessors(of: 0)) == [] as [Int])
+        #expect(Array(graph.inEdges(of: 0)) == [] as [Int])
+        #expect(graph.outDegree(of: 0) == 1 && graph.inDegree(of: 0) == 0 && graph.degree(of: 0) == 1)
+        #expect(graph.vertices.firstIndex(of: 1) == 1)
+        #expect(graph.vertices[1] == 1)
+        #expect(Array(graph.successors(of: 1)) == [] as [Int])
+        #expect(Array(graph.outEdges(of: 1)) == [] as [Int])
+        #expect(Array(graph.predecessors(of: 1)) == [0])
+        #expect(Array(graph.inEdges(of: 1)) == [0])
+        #expect(graph.outDegree(of: 1) == 0 && graph.inDegree(of: 1) == 1 && graph.degree(of: 1) == 1)
+        #expect(Array(graph.edges(from: 0, to: 1)) == [0])
+        #expect(graph.edgeCount(from: 0, to: 1) == 1)
+        #expect(graph.contains(edge: DirectedEdge(from: 0, to: 1)))
+        #expect(graph.vertices.map { graph.vertexIndex(of: $0) } == [0, 1])
+        #expect((0 ..< 2).map { graph.vertex(atIndex: $0) } == [0, 1])
+        #expect(graph.edges.indices.map { graph.edgeIndex(of: $0) } == [0])
+    }
+
+    @Test("SG-129 changeSource(ofEdgeAt:to:) at a hole traps")
+    func sg129() async {
+        // V [0, 1]; E [0→1, 1→0] / remove(edgeAt: 0) / changeSource(ofEdgeAt: 0, to: 1) → 0→1; **trap**
+        await #expect(processExitsWith: .failure) {
+            var graph = StableDirectedGraph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 0)])
+            _ = graph.remove(edgeAt: 0)
+            graph.changeSource(ofEdgeAt: 0, to: 1)
+        }
+        // Without the call: the setup's results and the state the call would apply to.
+        var graph = StableDirectedGraph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 0)])
+        #expect(graph.remove(edgeAt: 0) == DirectedEdge(from: 0, to: 1))
+        #expect(Array(graph.vertices) == [0, 1])
+        #expect(Array(graph.vertices.indices) == [0, 1])
+        #expect(graph.vertices.startIndex == 0)
+        #expect(graph.vertices.endIndex == 2)
+        #expect(graph.edges.map { [$0.source, $0.target] } == [[1, 0]])
+        #expect(Array(graph.edges.indices) == [1])
+        #expect(graph.edges.startIndex == 1)
+        #expect(graph.edges.endIndex == 2)
+        #expect(graph.vertexIndexBound == 2)
+        #expect(graph.edgeIndexBound == nil)
+        #expect(graph.vertexCount == 2)
+        #expect(graph.vertices.count == 2)
+        #expect(graph.edgeCount == 1)
+        #expect(graph.edges.count == 1)
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [[1, 0]])
+        #expect(graph.edges.indices.map { graph.edges[$0] } == [DirectedEdge(from: 1, to: 0)])
+        #expect(graph.vertices.firstIndex(of: 0) == 0)
+        #expect(graph.vertices[0] == 0)
+        #expect(Array(graph.successors(of: 0)) == [] as [Int])
+        #expect(Array(graph.outEdges(of: 0)) == [] as [Int])
+        #expect(Array(graph.predecessors(of: 0)) == [1])
+        #expect(Array(graph.inEdges(of: 0)) == [1])
+        #expect(graph.outDegree(of: 0) == 0 && graph.inDegree(of: 0) == 1 && graph.degree(of: 0) == 1)
+        #expect(graph.vertices.firstIndex(of: 1) == 1)
+        #expect(graph.vertices[1] == 1)
+        #expect(Array(graph.successors(of: 1)) == [0])
+        #expect(Array(graph.outEdges(of: 1)) == [1])
+        #expect(Array(graph.predecessors(of: 1)) == [] as [Int])
+        #expect(Array(graph.inEdges(of: 1)) == [] as [Int])
+        #expect(graph.outDegree(of: 1) == 1 && graph.inDegree(of: 1) == 0 && graph.degree(of: 1) == 1)
+        #expect(Array(graph.edges(from: 1, to: 0)) == [1])
+        #expect(graph.edgeCount(from: 1, to: 0) == 1)
+        #expect(graph.contains(edge: DirectedEdge(from: 1, to: 0)))
+        #expect(graph.vertices.map { graph.vertexIndex(of: $0) } == [0, 1])
+        #expect((0 ..< 2).map { graph.vertex(atIndex: $0) } == [0, 1])
+    }
+
     @Test("Every neighbourhood and degree of a non-vertex or a removed vertex traps")
     func neighbourhoodsOfAbsentVertices() async {
         await #expect(processExitsWith: .failure) {
@@ -816,5 +996,63 @@ struct StableGraphPreconditionTests {
         var graph = StableDirectedGraph<Int>(vertices: [0, 1])
         _ = graph.remove(0)
         #expect(!graph.containsVertex(atPosition: 0) && !graph.containsVertex(atPosition: 9) && graph.vertex(atPosition: 1) == 1)
+    }
+
+    @Test("insert(edge:) traps once edge positions are exhausted (edgeEnd decoded as Int.max)")
+    func edgePositionsExhausted() async throws {
+        let payload = Data(#"{"vertices":[0],"vertexPositions":[0],"vertexEnd":1,"edges":[],"edgePositions":[],"edgeEnd":9223372036854775807}"#.utf8)
+        await #expect(processExitsWith: .failure) {
+            var graph = try! JSONDecoder().decode(StableDirectedGraph<Int>.self, from: Data(#"{"vertices":[0],"vertexPositions":[0],"vertexEnd":1,"edges":[],"edgePositions":[],"edgeEnd":9223372036854775807}"#.utf8))
+            _ = graph.insert(edge: DirectedEdge(from: 0, to: 0))
+        }
+        // Without the call: the graph decodes, and vertex positions are not exhausted.
+        var graph = try JSONDecoder().decode(StableDirectedGraph<Int>.self, from: payload)
+        #expect(graph.edges.endIndex == Int.max && graph.edgeCount == 0)
+        #expect(graph.insert(1).inserted)
+        #expect(graph.insert(safe: DirectedEdge(from: 0, to: 9)) == nil)
+    }
+
+    @Test("An attached map's handle traps on another graph, after removeEdgeMap, and to set a dead position")
+    func mapHandleMisuse() async {
+        await #expect(processExitsWith: .failure) {
+            var graph = StableDirectedGraph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])
+            let labels = graph.addEdgeMap(of: String.self)
+            let other = StableDirectedGraph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])
+            _ = other[map: labels, ofEdgeAt: 0]
+        }
+        await #expect(processExitsWith: .failure) {
+            var graph = StableDirectedGraph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])
+            let labels = graph.addEdgeMap(of: String.self)
+            graph.removeEdgeMap(labels)
+            _ = graph[map: labels, ofEdgeAt: 0]
+        }
+        await #expect(processExitsWith: .failure) {
+            // Two copies of one graph each add a map: one copy's handle does not name the other's map.
+            let graph = StableDirectedGraph<Int>(vertices: [0, 1])
+            var a = graph, b = graph
+            _ = b.addVertexMap(of: Int.self)
+            let names = a.addVertexMap(of: Int.self)
+            _ = b[map: names, ofVertexAt: 0]
+        }
+        await #expect(processExitsWith: .failure) {
+            var graph = StableDirectedGraph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])
+            let labels = graph.addEdgeMap(of: String.self)
+            graph.remove(edgeAt: 0)
+            graph[map: labels, ofEdgeAt: 0] = "stale"
+        }
+        await #expect(processExitsWith: .failure) {
+            var graph = StableDirectedGraph<Int>(vertices: [0, 1])
+            let names = graph.addVertexMap(of: String.self)
+            graph[map: names, of: 9] = "missing"
+        }
+        // Without the misuse: the handle works on its graph and on copies, and nil is always allowed.
+        var graph = StableDirectedGraph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])
+        let labels = graph.addEdgeMap(of: String.self), names = graph.addVertexMap(of: String.self)
+        graph[map: labels, ofEdgeAt: 0] = "a"
+        var copy = graph
+        copy[map: labels, ofEdgeAt: 0] = "b"
+        graph[map: labels, ofEdgeAt: 5] = nil
+        graph[map: names, of: 9] = nil
+        #expect(graph[map: labels, ofEdgeAt: 0] == "a" && copy[map: labels, ofEdgeAt: 0] == "b" && graph[map: names, of: 9] == nil)
     }
 }

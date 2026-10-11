@@ -1,6 +1,7 @@
 // Properties with shrinking (swift-property-based). Random insert and remove sequences run against
 // a model written out beside the graph: a list of (vertex, position) in insertion order, a list of
-// (position, source, target) in insertion order, and the two end indices. The model follows only
+// (position, source, target) in insertion order, and the two end indices; `changeTarget` and
+// `changeSource` re-point an edge in place, so rows stay filters of the edge list in position order. The model follows only
 // api.md's rules: a new vertex or edge gets the current end index; a removal leaves a hole and moves
 // nothing; removing a vertex removes its edges; `remove(edge:)` takes the newest copy; only
 // `removeAll()` and `removeAllEdges()` reset an end index. Every result and the whole state are
@@ -24,13 +25,16 @@ import Traversal
 struct StableGraphPropertyTests {
     @Test("Random operation sequences agree with the model after every step")
     func againstModel() async {
-        let operations = zip(Gen.int(in: 0 ... 15), Gen.int(in: 0 ... 5), Gen.int(in: 0 ... 5), Gen.int(in: 0 ... 1_000)).array(of: 0 ... 60)
+        let operations = zip(Gen.int(in: 0 ... 19), Gen.int(in: 0 ... 5), Gen.int(in: 0 ... 5), Gen.int(in: 0 ... 1_000)).array(of: 0 ... 60)
         await propertyCheck(count: 300, input: operations) { operations in
             var graph = StableDirectedGraph<Int>()
             var vertices: [(vertex: Int, position: Int)] = []
             var edges: [(position: Int, source: Int, target: Int)] = []
             var vertexEnd = 0, edgeEnd = 0
             var staleEdges = Set<Int>(), staleVertices = Set<Int>()
+            // Attached maps: every removal must clear the removed element's value.
+            let labels = graph.addEdgeMap(of: Int.self), tags = graph.addVertexMap(of: Int.self)
+            var edgeValues: [Int: Int] = [:], vertexValues: [Int: Int] = [:]
             for (step, (kind, a, b, k)) in operations.enumerated() {
                 let context = "step \(step) of \(operations)"
                 let isVertex = vertices.contains { $0.vertex == a }
@@ -85,6 +89,37 @@ struct StableGraphPropertyTests {
                         edgeEnd = 0
                         staleEdges = []
                     }
+                case 16, 17:
+                    // Re-point a live edge (by offset) at vertex b, if b is a vertex: the position
+                    // and the unchanged end's row place stay, the new end's row stays in position order.
+                    if !edges.isEmpty, vertices.contains(where: { $0.vertex == b }) {
+                        let offset = k % edges.count
+                        if kind == 16 {
+                            graph.changeTarget(ofEdgeAt: edges[offset].position, to: b)
+                            edges[offset].target = b
+                        } else {
+                            graph.changeSource(ofEdgeAt: edges[offset].position, to: b)
+                            edges[offset].source = b
+                        }
+                    }
+                case 18:
+                    // The safe: spellings at any position, live or not, to any vertex or non-vertex.
+                    let position = k % (edgeEnd + 2) - 1
+                    let live = edges.firstIndex { $0.position == position }
+                    let ok = live != nil && vertices.contains { $0.vertex == b }
+                    if k % 2 == 0 {
+                        let changed = graph.changeTarget(ofEdgeAt: position, safe: b)
+                        #expect(changed == ok, "\(context)")
+                        if ok, let live { edges[live].target = b }
+                    } else {
+                        let changed = graph.changeSource(ofEdgeAt: position, safe: b)
+                        #expect(changed == ok, "\(context)")
+                        if ok, let live { edges[live].source = b }
+                    }
+                case 19:
+                    // Values for every live edge and vertex in the attached maps.
+                    for e in edges { graph[map: labels, ofEdgeAt: e.position] = e.position &* 3; edgeValues[e.position] = e.position &* 3 }
+                    for (vertex, position) in vertices { graph[map: tags, of: vertex] = -position; vertexValues[position] = -position }
                 default:
                     if k % 16 == 0 {
                         graph.removeAll()
@@ -96,6 +131,12 @@ struct StableGraphPropertyTests {
                         staleVertices = []
                     }
                 }
+                // The maps hold values only at live positions: the removal cleared the rest.
+                edgeValues = edgeValues.filter { p, _ in edges.contains { $0.position == p } }
+                vertexValues = vertexValues.filter { p, _ in vertices.contains { $0.position == p } }
+                #expect((0 ..< edgeEnd).filter { graph[map: labels, ofEdgeAt: $0] != nil } == edgeValues.keys.sorted(), "\(context)")
+                #expect((0 ..< vertexEnd).filter { graph[map: tags, ofVertexAt: $0] != nil } == vertexValues.keys.sorted(), "\(context)")
+                for (p, value) in edgeValues { #expect(graph[map: labels, ofEdgeAt: p] == value, "\(context)") }
                 // The whole state.
                 #expect(Array(graph.vertices) == vertices.map(\.vertex), "\(context)")
                 #expect(Array(graph.vertices.indices) == vertices.map(\.position), "\(context)")

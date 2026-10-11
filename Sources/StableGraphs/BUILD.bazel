@@ -3,14 +3,13 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# StableDirectedGraph: a directed pseudograph whose vertex and edge positions survive removals (petgraph's StableDiGraph).
+# StableDirectedGraph: a directed pseudograph whose vertex and edge positions survive removals (petgraph's StableDiGraph), in pages freed once dead, with VertexMap and EdgeMap side data (LEMON's NodeMap and ArcMap).
 swift_library(
     name = "StableGraphs",
     srcs = glob(["**/*.swift"]),
     module_name = "StableGraphs",
     deps = [
         "//Sources/GraphProtocols",
-        "//Sources/AdjacencyListModule",
     ],
     visibility = ["//visibility:public"],
 )
@@ -22,7 +21,6 @@ docc_archive(
     catalog = glob(["*.docc/**"], allow_empty = True),
     deps = [
         "//Sources/GraphProtocols:GraphProtocolsDocumentation",
-        "//Sources/AdjacencyListModule:AdjacencyListModuleDocumentation",
     ],
     tags = ["manual"],
     visibility = ["//visibility:public"],

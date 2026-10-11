@@ -186,3 +186,61 @@
         _ = graph.remove(0)
         #expect(!graph.containsVertex(atPosition: 0) && !graph.containsVertex(atPosition: 9) && graph.vertex(atPosition: 1) == 1)
     }
+
+    @Test("insert(edge:) traps once edge positions are exhausted (edgeEnd decoded as Int.max)")
+    func edgePositionsExhausted() async throws {
+        let payload = Data(#"{"vertices":[0],"vertexPositions":[0],"vertexEnd":1,"edges":[],"edgePositions":[],"edgeEnd":9223372036854775807}"#.utf8)
+        await #expect(processExitsWith: .failure) {
+            var graph = try! JSONDecoder().decode(StableDirectedGraph<Int>.self, from: Data(#"{"vertices":[0],"vertexPositions":[0],"vertexEnd":1,"edges":[],"edgePositions":[],"edgeEnd":9223372036854775807}"#.utf8))
+            _ = graph.insert(edge: DirectedEdge(from: 0, to: 0))
+        }
+        // Without the call: the graph decodes, and vertex positions are not exhausted.
+        var graph = try JSONDecoder().decode(StableDirectedGraph<Int>.self, from: payload)
+        #expect(graph.edges.endIndex == Int.max && graph.edgeCount == 0)
+        #expect(graph.insert(1).inserted)
+        #expect(graph.insert(safe: DirectedEdge(from: 0, to: 9)) == nil)
+    }
+
+    @Test("An attached map's handle traps on another graph, after removeEdgeMap, and to set a dead position")
+    func mapHandleMisuse() async {
+        await #expect(processExitsWith: .failure) {
+            var graph = StableDirectedGraph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])
+            let labels = graph.addEdgeMap(of: String.self)
+            let other = StableDirectedGraph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])
+            _ = other[map: labels, ofEdgeAt: 0]
+        }
+        await #expect(processExitsWith: .failure) {
+            var graph = StableDirectedGraph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])
+            let labels = graph.addEdgeMap(of: String.self)
+            graph.removeEdgeMap(labels)
+            _ = graph[map: labels, ofEdgeAt: 0]
+        }
+        await #expect(processExitsWith: .failure) {
+            // Two copies of one graph each add a map: one copy's handle does not name the other's map.
+            let graph = StableDirectedGraph<Int>(vertices: [0, 1])
+            var a = graph, b = graph
+            _ = b.addVertexMap(of: Int.self)
+            let names = a.addVertexMap(of: Int.self)
+            _ = b[map: names, ofVertexAt: 0]
+        }
+        await #expect(processExitsWith: .failure) {
+            var graph = StableDirectedGraph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])
+            let labels = graph.addEdgeMap(of: String.self)
+            graph.remove(edgeAt: 0)
+            graph[map: labels, ofEdgeAt: 0] = "stale"
+        }
+        await #expect(processExitsWith: .failure) {
+            var graph = StableDirectedGraph<Int>(vertices: [0, 1])
+            let names = graph.addVertexMap(of: String.self)
+            graph[map: names, of: 9] = "missing"
+        }
+        // Without the misuse: the handle works on its graph and on copies, and nil is always allowed.
+        var graph = StableDirectedGraph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])
+        let labels = graph.addEdgeMap(of: String.self), names = graph.addVertexMap(of: String.self)
+        graph[map: labels, ofEdgeAt: 0] = "a"
+        var copy = graph
+        copy[map: labels, ofEdgeAt: 0] = "b"
+        graph[map: labels, ofEdgeAt: 5] = nil
+        graph[map: names, of: 9] = nil
+        #expect(graph[map: labels, ofEdgeAt: 0] == "a" && copy[map: labels, ofEdgeAt: 0] == "b" && graph[map: names, of: 9] == nil)
+    }

@@ -74,17 +74,18 @@ extension DirectedGraph {
                 return (_FlowEdges(vertexCount: n, tail: tail, head: head, directed: true), vertices)
             }
             let indexed = edgeIndexBound != nil
-            // Edge holes only: a sparsely indexed graph numbers its edge positions through an
-            // array sized by the bound, not a dictionary.
+            // Edge holes only: a sparsely indexed graph numbers its edge positions through a
+            // paged map (O(edges + pages), whatever the bound), not a dictionary.
             let sparse = indexed ? nil : self as? any SparselyIndexedDirectedGraph<Vertex>
-            var positionNumbers: [Int] = []
-            if let sparse {
-                positionNumbers = [Int](repeating: -1, count: sparse.edgePositionBound)
+            var positionNumbers = _PositionNumbers()
+            if sparse != nil {
+                var builder = _PositionNumbers.Builder()
                 var k = 0
                 for position in edges.indices {
-                    positionNumbers[unsafeBitCast(position, to: Int.self)] = k
+                    builder.append(unsafeBitCast(position, to: Int.self), number: k)
                     k += 1
                 }
+                positionNumbers = builder.build()
             }
             let numbers = indexed || sparse != nil ? [:] : _flowEdgeNumbers()
             tail.withUnsafeMutableBufferPointer { tail in
@@ -109,14 +110,15 @@ extension DirectedGraph {
         let vertices = _FlowVertices(listed: Array(self.vertices))
         let listed = vertices.listed!
         if let sparse = _sparselyIndexed() {
-            // Positions number the edges through an array, not a dictionary.
+            // Positions number the edges through a paged map, not a dictionary.
             let rows = sparse._numberedRows(outward: true, edges: true)
-            var edgeNumbers = [Int](repeating: -1, count: sparse.edgePositionBound)
+            var builder = _PositionNumbers.Builder()
             var k = 0
             for position in edges.indices {
-                edgeNumbers[unsafeBitCast(position, to: Int.self)] = k
+                builder.append(unsafeBitCast(position, to: Int.self), number: k)
                 k += 1
             }
+            let edgeNumbers = builder.build()
             for v in 0 ..< rows.count {
                 for slot in rows.offsets[v] ..< rows.offsets[v + 1] {
                     let e = edgeNumbers[rows.edges[slot]]
