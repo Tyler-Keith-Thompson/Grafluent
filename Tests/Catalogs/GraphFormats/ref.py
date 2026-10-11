@@ -50,6 +50,9 @@ import time
 import warnings
 
 warnings.simplefilter("ignore")
+# Integers of any length parse (Python otherwise refuses more than 4,300 digits), so that a huge
+# integer is numberOutOfRange, as api.md says, and not a crash of the model.
+sys.set_int_max_str_digits(0)
 
 import networkx as nx  # noqa: E402
 import numpy as np  # noqa: E402
@@ -205,6 +208,12 @@ FLOAT_DEC = re.compile(r"[+-]?(?:[0-9]+\.[0-9]*|\.[0-9]+|[0-9]+)(?:[eE][+-]?[0-9
 INT_DEC = re.compile(r"[+-]?[0-9]+$")
 
 
+def ascii_lower(s):
+    """Lowercase ASCII letters only: the readers compare keywords by ASCII case, so no non-ASCII
+    letter lowercases into a keyword (as KELVIN SIGN does into k under str.lower)."""
+    return "".join(c.lower() if c.isascii() else c for c in s)
+
+
 def py_double(x):
     """Python repr: the shortest round-trip digits, positional for decimal exponents -4 ..< 16."""
     return repr(x)
@@ -283,7 +292,7 @@ def dot_lex(t):
                 q += 1
             toks.append(("id", ("html", t[p + 1:q]), p))
             p = q + 1
-        elif c.isdigit() or c == "." or c == "-":
+        elif c in "0123456789" or c == "." or c == "-":
             m = DOT_NUMERAL.match(t, p)
             if not m:
                 raise ParseError("syntax", p)
@@ -295,8 +304,8 @@ def dot_lex(t):
         elif dot_is_idchar(c):
             m = DOT_IDENT.match(t, p)
             word = m.group()
-            if word.lower() in DOT_KEYWORDS:
-                toks.append(("kw", word.lower(), p))
+            if ascii_lower(word) in DOT_KEYWORDS:
+                toks.append(("kw", ascii_lower(word), p))
             else:
                 toks.append(("id", ("ident", word), p))
             p = m.end()
@@ -454,7 +463,7 @@ def dot_quote(s):
 
 
 def dot_id(s):
-    if s.isascii() and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", s) and s.lower() not in DOT_KEYWORDS:
+    if s.isascii() and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", s) and ascii_lower(s) not in DOT_KEYWORDS:
         return s
     if DOT_NUMERAL.fullmatch(s):
         return s
@@ -559,7 +568,7 @@ def xml_parse(t):
                 m = XML_NAME.match(t, q + 2)
                 if not m:
                     raise ParseError("syntax", q)
-                if m.group().lower() == "xml":
+                if ascii_lower(m.group()) == "xml":
                     raise ParseError("syntax", q)
                 q = e + 2
             elif t.startswith("<!DOCTYPE", q):
@@ -573,12 +582,13 @@ def xml_parse(t):
         if e < 0:
             raise ParseError("unexpectedEndOfInput", 0)
         decl = t[5:e]
-        m = re.fullmatch(r"\s+version\s*=\s*(['\"])1\.[0-9]+\1"
-                         r"(\s+encoding\s*=\s*(['\"])([A-Za-z][A-Za-z0-9._\-]*)\3)?"
-                         r"(\s+standalone\s*=\s*(['\"])(yes|no)\6)?\s*", decl)
+        # XML's S is space, tab, CR and LF (not every Unicode space, as \s would be).
+        m = re.fullmatch(r"[ \t\r\n]+version[ \t\r\n]*=[ \t\r\n]*(['\"])1\.[0-9]+\1"
+                         r"([ \t\r\n]+encoding[ \t\r\n]*=[ \t\r\n]*(['\"])([A-Za-z][A-Za-z0-9._\-]*)\3)?"
+                         r"([ \t\r\n]+standalone[ \t\r\n]*=[ \t\r\n]*(['\"])(yes|no)\6)?[ \t\r\n]*", decl)
         if not m:
             raise ParseError("syntax", 0)
-        if m.group(4) and m.group(4).lower() not in ("utf-8", "utf8"):
+        if m.group(4) and ascii_lower(m.group(4)) not in ("utf-8", "utf8"):
             raise ParseError("unsupported", 5 + m.start(4))
         p = e + 2
     p = misc(p, True)
@@ -615,7 +625,7 @@ def xml_parse(t):
                 raise ParseError("unexpectedEndOfInput", p)
             if t[q] != ">":
                 raise ParseError("syntax", q)
-            if m.group() != stack[-1].name:
+            if not stack or m.group() != stack[-1].name:  # an end tag with no open element too
                 raise ParseError("mismatchedTag", p)
             el = stack.pop()
             p = q + 1
@@ -731,7 +741,7 @@ def _skip_one_misc(t, p):
     if e < 0:
         raise ParseError("unexpectedEndOfInput", p)
     m = XML_NAME.match(t, p + 2)
-    if not m or m.group().lower() == "xml":
+    if not m or ascii_lower(m.group()) == "xml":
         raise ParseError("syntax", p)
     return e + 2
 
@@ -1263,7 +1273,7 @@ def tokens_of(off, s):
 
 
 def mm_real(tok, off):
-    low = tok.lower()
+    low = ascii_lower(tok)
     if re.fullmatch(r"[+-]?(inf|infinity)", low):
         return -math.inf if low.startswith("-") else math.inf
     if re.fullmatch(r"[+-]?nan", low):
@@ -1293,7 +1303,7 @@ def mm_read(t, g):
     toks = tokens_of(off, head)
     if toks[0][1] != "%%MatrixMarket" or len(toks) != 5:
         raise ParseError("syntax", toks[min(len(toks) - 1, 5)][0] if len(toks) > 5 else off)
-    (o1, obj), (o2, fmt), (o3, field), (o4, sym) = [(o, s.lower()) for o, s in toks[1:]]
+    (o1, obj), (o2, fmt), (o3, field), (o4, sym) = [(o, ascii_lower(s)) for o, s in toks[1:]]
     if obj == "vector":
         raise ParseError("unsupported", o1)
     if obj != "matrix":
@@ -1355,6 +1365,8 @@ def mm_read(t, g):
             w = mm_real(toks[2][1], toks[2][0])
         if sym == "skew-symmetric" and r == c:
             raise ParseError("invalidValue", toks[0][0])
+        if sym == "skew-symmetric" and w == INT_MIN:  # its mirror, -w, is not an Int
+            raise ParseError("numberOutOfRange", toks[2][0])
         seen += 1
         if sym == "general" or not g.directed:
             arcs = [(r, c, w)]
@@ -1537,9 +1549,9 @@ def mermaid_read(t, g):
             raise ParseError("syntax", q)
         return q
 
-    def next_stmt(q):  # past one separator
-        if q < n and t[q] == "\r":
-            q += 1
+    def next_stmt(q):  # past one separator: LF, ;, a lone CR, or CR LF as one
+        if t.startswith("\r\n", q):
+            return q + 2
         return q + 1 if q < n else q
 
     header = False
@@ -2141,6 +2153,14 @@ W("mermaid", "undirected", LABELS_U)
 W("mermaid", "empty", EMPTY_D)
 W("mermaid", "vertices without labels", ISO)
 
+# ---------------------------------------------------------------- added after review (GF-226 on)
+R("dot", "D", "a non-ASCII digit starts an identifier, not a numeral", "digraph { \u0663 -> x }")
+E("graphML", "D", "an end tag with no open element", "</graphml>")
+E("nodeLinkJSON", "D", "an id that is neither a string nor an integer", '{"directed": true, "nodes": [{"id": 1.5}], "edges": []}')
+E("nodeLinkJSON", "D", "neither edges nor links", '{"directed": true, "nodes": []}')
+E("matrixMarket", "DI", "skew-symmetric: a mirrored weight outside Int", MMH + "integer skew-symmetric\n2 2 1\n2 1 -9223372036854775808\n")
+R("mermaid", "D", "a lone CR ends a statement", "flowchart TD\n  A\rB --> C\n")
+
 
 def write_output(c):
     g, kw = c["graph"], c["kw"]
@@ -2467,6 +2487,9 @@ def dot_text(x):
 
 # Library behaviour that differs from ours on purpose (api.md, Library disagreements).
 KNOWN = {
+    # Rows added after review (GF-226 on)
+    "an id that is neither a string nor an integer": "NetworkX takes any hashable JSON value as a node id (1.5 here)",
+    "skew-symmetric: a mirrored weight outside Int": "SciPy negates in int64 and wraps -2^63 to itself",
     # DOT: pydot 4.0.1's grammar, not Graphviz's
     "numerals are IDs": "pydot rejects a negative numeral after an edge operator",
     "attribute lists: ; and , separators, several lists": "pydot rejects ; inside [ ] and a second [ ] list",

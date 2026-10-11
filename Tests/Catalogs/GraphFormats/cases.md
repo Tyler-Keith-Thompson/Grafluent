@@ -1,9 +1,9 @@
-# GraphFormats: case catalog (GF-001 – GF-225, 225 rows)
+# GraphFormats: case catalog (GF-001 – GF-231, 231 rows)
 
 Generated and checked by `ref.py` (`uv run --quiet --no-project --with networkx==3.7 --with
 scipy==1.18.1 --with pydot==4.0.1 python3 Tests/Catalogs/GraphFormats/ref.py`; `--write`
-regenerates this file, `--stress` adds random round trips and mutated inputs). 185 read rows
-(95 of them errors) and 40 write rows. The model implements api.md independently of the
+regenerates this file, `--stress` adds random round trips and mutated inputs). 191 read rows
+(99 of them errors) and 40 write rows. The model implements api.md independently of the
 libraries; each row is then compared with NetworkX 3.7 (GraphML, node-link JSON, edge list,
 adjacency list), SciPy 1.18.1 (Matrix Market) or pydot 4.0.1 (DOT), where the library reads or writes
 the format, and every write row is read back by the model. Rows where a library differs are listed,
@@ -258,3 +258,9 @@ offending character, the column counted in Unicode scalars (api.md, Errors).
 | GF-223 | Mermaid write | undirected | `writeMermaid(to:)` | `U: A, B; A-B, B-B{label="loop"}` | `"flowchart TD\n    A\n    B\n    A --- B\n    B ---\|\"loop\"\| B\n"` |
 | GF-224 | Mermaid write | empty | `writeMermaid(to:)` | `D:` | `"flowchart TD\n"` |
 | GF-225 | Mermaid write | vertices without labels | `writeMermaid(to:)` | `D: a, b, z; a>b` | `"flowchart TD\n    a\n    b\n    z\n    a --> b\n"` |
+| GF-226 | DOT read | a non-ASCII digit starts an identifier, not a numeral | `DirectedPseudograph<String>(dot:)` | `"digraph { ٣ -> x }"` | `D: "٣", x; "٣">x` |
+| GF-227 | GraphML read | an end tag with no open element | `DirectedPseudograph<String>(graphML:)` | `"</graphml>"` | **mismatchedTag** at 1:1 |
+| GF-228 | Node-link JSON read | an id that is neither a string nor an integer | `DirectedPseudograph<String>(nodeLinkJSON:)` | `"{\"directed\": true, \"nodes\": [{\"id\": 1.5}], \"edges\": []}"` | **invalidValue** at 1:37 |
+| GF-229 | Node-link JSON read | neither edges nor links | `DirectedPseudograph<String>(nodeLinkJSON:)` | `"{\"directed\": true, \"nodes\": []}"` | **syntax** at 1:1 |
+| GF-230 | Matrix Market read | skew-symmetric: a mirrored weight outside Int | `DirectedPseudograph<Int>(matrixMarket:)` | `"%%MatrixMarket matrix coordinate integer skew-symmetric\n2 2 1\n2 1 -9223372036854775808\n"` | **numberOutOfRange** at 3:5 |
+| GF-231 | Mermaid read | a lone CR ends a statement | `DirectedPseudograph<String>(mermaid:)` | `"flowchart TD\n  A\rB --> C\n"` | `D: A, B, C; B>C` |

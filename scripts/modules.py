@@ -76,7 +76,7 @@ MODULES = [
 
     # Drawing and formats
     ("GraphDrawing", "Drawing", "Coordinates for drawing graphs: circular, Fruchterman–Reingold (exact or Barnes–Hut), stress majorization, Reingold–Tilford and layered (Sugiyama) layouts.", ["GraphProtocols", "Trees", "Cycles"]),
-    ("GraphFormats", "Formats", "DOT, GraphML, GML, GEXF, Matrix Market and edge-list readers and writers.", ["GraphProtocols"]),
+    ("GraphFormats", "Formats", "Readers and writers for DOT, GraphML, node-link JSON, Matrix Market, edge lists, adjacency lists and Mermaid flowcharts, with their own UTF-8, XML and JSON scanners (no Foundation).", ["GraphProtocols"]),
 ]
 
 # Test targets that exist. SwiftPM rejects a target with no sources, so one is added here when a
@@ -126,6 +126,7 @@ TEST_TARGETS = [
     ("GraphOperationsTests", ["GraphProtocols", "GraphOperations", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "Multigraphs", "StableGraphs", "DirectedAcyclicGraphModule", "Traversal", "Connectivity", "ShortestPaths", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("GraphProductsTests", ["GraphProtocols", "GraphProducts", "AdjacencyListModule", "CompressedSparseRowModule", "Multigraphs", "StableGraphs", "NamedGraphs", "Traversal", "Connectivity", "ShortestPaths", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("PlanarityTests", ["GraphProtocols", "Planarity", "Walks", "Multigraphs", "AdjacencyListModule", "AdjacencyMatrixModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
+    ("GraphFormatsTests", ["GraphProtocols", "GraphFormats", "AdjacencyListModule", "Multigraphs", "StableGraphs", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
 ]
 
 # Bazel test sizes above the default "small" (60 s timeout), for suites whose solo run takes more

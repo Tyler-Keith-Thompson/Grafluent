@@ -1,0 +1,503 @@
+import GraphProtocols
+
+// The readers: a throwing initializer per format on every mutable representation, directed
+// (`MutableDirectedGraph`) and undirected (`MutableGraph`). The target's type fixes the kind; a
+// simple target merges parallel edges as it reads. Attributes are reported through setter
+// closures, in document order; positions are the target's edge positions.
+//
+// `vertex` maps a file's ID to a vertex, once per new ID (`nil`: `ParseError.Kind.invalidVertex`
+// at the ID); two IDs mapped to one vertex are that vertex. The overloads without it exist where
+// `Vertex == String` (all formats but Matrix Market, whose IDs are indices) and where
+// `Vertex == Int` (Matrix Market, node-link JSON, the edge and adjacency lists).
+
+// MARK: - MutableDirectedGraph
+
+extension MutableDirectedGraph {
+    /// Reads DOT (Graphviz): `digraph` only; `node`/`edge` defaults, `strict` merging, every value a
+    /// string. `vertex` maps each new ID once (`nil`: `invalidVertex` at the ID).
+    @inlinable public init(
+        dot input: some Sequence<UInt8>,
+        vertex: (String) -> Vertex?,
+        vertexAttribute: (Vertex, String, AttributeValue) -> Void = { _, _, _ in },
+        edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in },
+        graphAttribute: (String, AttributeValue) -> Void = { _, _ in }
+    ) throws(ParseError) {
+        var target = _DirectedTarget<Self>()
+        try _readInput(input) { (text) throws(ParseError) in
+            try _readDOT(text, into: &target, map: { vertex(_string($0)) }, vertexAttribute: vertexAttribute,
+                         edgeAttribute: edgeAttribute, graphAttribute: graphAttribute)
+        }
+        self = target.graph
+    }
+
+    /// Reads GraphML: one `<graph>` whose `edgedefault` is the target's kind, typed `<key>`s with
+    /// defaults, node, edge and graph `<data>`. No DTD (any `<!DOCTYPE` is `doctypeNotAllowed`), no
+    /// entities but the predefined five and character references.
+    @inlinable public init(
+        graphML input: some Sequence<UInt8>,
+        vertex: (String) -> Vertex?,
+        vertexAttribute: (Vertex, String, AttributeValue) -> Void = { _, _, _ in },
+        edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in },
+        graphAttribute: (String, AttributeValue) -> Void = { _, _ in }
+    ) throws(ParseError) {
+        var target = _DirectedTarget<Self>()
+        try _readInput(input, xmlCharacters: true) { (text) throws(ParseError) in
+            try _readGraphML(text, into: &target, map: { vertex(_string($0)) }, vertexAttribute: vertexAttribute,
+                             edgeAttribute: edgeAttribute, graphAttribute: graphAttribute)
+        }
+        self = target.graph
+    }
+
+    /// Reads NetworkX's node-link JSON: `directed`, `multigraph`, `graph`, `nodes`, and `edges` (or
+    /// `links`). `vertex` maps each node `id` (a string or an integer) once.
+    @inlinable public init(
+        nodeLinkJSON input: some Sequence<UInt8>,
+        vertex: (AttributeValue) -> Vertex?,
+        vertexAttribute: (Vertex, String, AttributeValue) -> Void = { _, _, _ in },
+        edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in },
+        graphAttribute: (String, AttributeValue) -> Void = { _, _ in }
+    ) throws(ParseError) {
+        var target = _DirectedTarget<Self>()
+        try _readInput(input) { (text) throws(ParseError) in
+            try _readNodeLinkJSON(text, into: &target, map: vertex, vertexAttribute: vertexAttribute,
+                                  edgeAttribute: edgeAttribute, graphAttribute: graphAttribute)
+        }
+        self = target.graph
+    }
+
+    /// Reads a Matrix Market coordinate file: vertices `0..<n` (each index mapped once by `vertex`,
+    /// at the size line), an edge per entry, its value under the key `"weight"`.
+    @inlinable public init(
+        matrixMarket input: some Sequence<UInt8>,
+        vertex: (Int) -> Vertex?,
+        edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
+    ) throws(ParseError) {
+        var target = _DirectedTarget<Self>()
+        try _readInput(input) { (text) throws(ParseError) in
+            try _readMatrixMarket(text, into: &target, map: vertex, edgeAttribute: edgeAttribute)
+        }
+        self = target.graph
+    }
+
+    /// Reads an edge list: `u v` and one field per column on each line, `#` comments; each column's
+    /// value typed by its text.
+    @inlinable public init(
+        edgeList input: some Sequence<UInt8>,
+        columns: [String] = [],
+        vertex: (String) -> Vertex?,
+        edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
+    ) throws(ParseError) {
+        var target = _DirectedTarget<Self>()
+        try _readInput(input) { (text) throws(ParseError) in
+            try _readEdgeList(text, columns: columns, into: &target, map: { vertex(_string($0)) }, edgeAttribute: edgeAttribute)
+        }
+        self = target.graph
+    }
+
+    /// Reads an adjacency list: a vertex, then its neighbours, on each line; `#` comments.
+    @inlinable public init(
+        adjacencyList input: some Sequence<UInt8>,
+        vertex: (String) -> Vertex?
+    ) throws(ParseError) {
+        var target = _DirectedTarget<Self>()
+        try _readInput(input) { (text) throws(ParseError) in
+            try _readAdjacencyList(text, into: &target, map: { vertex(_string($0)) })
+        }
+        self = target.graph
+    }
+
+    /// Reads a Mermaid flowchart: vertices with their labels, links with theirs; shapes and styling
+    /// are dropped.
+    @inlinable public init(
+        mermaid input: some Sequence<UInt8>,
+        vertex: (String) -> Vertex?,
+        vertexLabel: (Vertex, String) -> Void = { _, _ in },
+        edgeLabel: (Edges.Index, String) -> Void = { _, _ in }
+    ) throws(ParseError) {
+        var target = _DirectedTarget<Self>()
+        try _readInput(input) { (text) throws(ParseError) in
+            try _readMermaid(text, into: &target, map: { vertex(_string($0)) }, vertexLabel: vertexLabel, edgeLabel: edgeLabel)
+        }
+        self = target.graph
+    }
+}
+
+extension MutableDirectedGraph where Vertex == String {
+    /// Reads DOT, each ID its own vertex.
+    @inlinable public init(
+        dot input: some Sequence<UInt8>,
+        vertexAttribute: (Vertex, String, AttributeValue) -> Void = { _, _, _ in },
+        edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in },
+        graphAttribute: (String, AttributeValue) -> Void = { _, _ in }
+    ) throws(ParseError) {
+        var target = _DirectedTarget<Self>()
+        try _readInput(input) { (text) throws(ParseError) in
+            try _readDOT(text, into: &target, map: _string, vertexAttribute: vertexAttribute,
+                         edgeAttribute: edgeAttribute, graphAttribute: graphAttribute)
+        }
+        self = target.graph
+    }
+
+    /// Reads GraphML, each node `id` its own vertex.
+    @inlinable public init(
+        graphML input: some Sequence<UInt8>,
+        vertexAttribute: (Vertex, String, AttributeValue) -> Void = { _, _, _ in },
+        edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in },
+        graphAttribute: (String, AttributeValue) -> Void = { _, _ in }
+    ) throws(ParseError) {
+        var target = _DirectedTarget<Self>()
+        try _readInput(input, xmlCharacters: true) { (text) throws(ParseError) in
+            try _readGraphML(text, into: &target, map: _string, vertexAttribute: vertexAttribute,
+                             edgeAttribute: edgeAttribute, graphAttribute: graphAttribute)
+        }
+        self = target.graph
+    }
+
+    /// Reads node-link JSON, a string `id` as itself and an integer `id` as its decimal text.
+    @inlinable public init(
+        nodeLinkJSON input: some Sequence<UInt8>,
+        vertexAttribute: (Vertex, String, AttributeValue) -> Void = { _, _, _ in },
+        edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in },
+        graphAttribute: (String, AttributeValue) -> Void = { _, _ in }
+    ) throws(ParseError) {
+        var target = _DirectedTarget<Self>()
+        try _readInput(input) { (text) throws(ParseError) in
+            try _readNodeLinkJSON(text, into: &target, map: _stringNodeID, vertexAttribute: vertexAttribute,
+                                  edgeAttribute: edgeAttribute, graphAttribute: graphAttribute)
+        }
+        self = target.graph
+    }
+
+    /// Reads an edge list, each field its own vertex.
+    @inlinable public init(
+        edgeList input: some Sequence<UInt8>,
+        columns: [String] = [],
+        edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
+    ) throws(ParseError) {
+        var target = _DirectedTarget<Self>()
+        try _readInput(input) { (text) throws(ParseError) in
+            try _readEdgeList(text, columns: columns, into: &target, map: _string, edgeAttribute: edgeAttribute)
+        }
+        self = target.graph
+    }
+
+    /// Reads an adjacency list, each field its own vertex.
+    @inlinable public init(adjacencyList input: some Sequence<UInt8>) throws(ParseError) {
+        var target = _DirectedTarget<Self>()
+        try _readInput(input) { (text) throws(ParseError) in
+            try _readAdjacencyList(text, into: &target, map: _string)
+        }
+        self = target.graph
+    }
+
+    /// Reads a Mermaid flowchart, each vertex ID its own vertex.
+    @inlinable public init(
+        mermaid input: some Sequence<UInt8>,
+        vertexLabel: (Vertex, String) -> Void = { _, _ in },
+        edgeLabel: (Edges.Index, String) -> Void = { _, _ in }
+    ) throws(ParseError) {
+        var target = _DirectedTarget<Self>()
+        try _readInput(input) { (text) throws(ParseError) in
+            try _readMermaid(text, into: &target, map: _string, vertexLabel: vertexLabel, edgeLabel: edgeLabel)
+        }
+        self = target.graph
+    }
+}
+
+extension MutableDirectedGraph where Vertex == Int {
+    /// Reads node-link JSON whose node ids are integers (a string id is `invalidVertex`).
+    @inlinable public init(
+        nodeLinkJSON input: some Sequence<UInt8>,
+        vertexAttribute: (Vertex, String, AttributeValue) -> Void = { _, _, _ in },
+        edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in },
+        graphAttribute: (String, AttributeValue) -> Void = { _, _ in }
+    ) throws(ParseError) {
+        var target = _DirectedTarget<Self>()
+        try _readInput(input) { (text) throws(ParseError) in
+            try _readNodeLinkJSON(text, into: &target, map: _integerNodeID, vertexAttribute: vertexAttribute,
+                                  edgeAttribute: edgeAttribute, graphAttribute: graphAttribute)
+        }
+        self = target.graph
+    }
+
+    /// Reads a Matrix Market file onto the vertices `0..<n`.
+    @inlinable public init(
+        matrixMarket input: some Sequence<UInt8>,
+        edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
+    ) throws(ParseError) {
+        var target = _DirectedTarget<Self>()
+        try _readInput(input) { (text) throws(ParseError) in
+            try _readMatrixMarket(text, into: &target, map: { $0 }, edgeAttribute: edgeAttribute)
+        }
+        self = target.graph
+    }
+
+    /// Reads an edge list whose fields are decimal integers (as `Int(_:)` reads them; anything
+    /// else is `invalidVertex`).
+    @inlinable public init(
+        edgeList input: some Sequence<UInt8>,
+        columns: [String] = [],
+        edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
+    ) throws(ParseError) {
+        var target = _DirectedTarget<Self>()
+        try _readInput(input) { (text) throws(ParseError) in
+            try _readEdgeList(text, columns: columns, into: &target, map: _integerID, edgeAttribute: edgeAttribute)
+        }
+        self = target.graph
+    }
+
+    /// Reads an adjacency list whose fields are decimal integers.
+    @inlinable public init(adjacencyList input: some Sequence<UInt8>) throws(ParseError) {
+        var target = _DirectedTarget<Self>()
+        try _readInput(input) { (text) throws(ParseError) in
+            try _readAdjacencyList(text, into: &target, map: _integerID)
+        }
+        self = target.graph
+    }
+}
+
+// MARK: - MutableGraph
+
+extension MutableGraph {
+    /// Reads DOT (Graphviz): `graph` only; `node`/`edge` defaults, `strict` merging, every value a
+    /// string. `vertex` maps each new ID once (`nil`: `invalidVertex` at the ID).
+    @inlinable public init(
+        dot input: some Sequence<UInt8>,
+        vertex: (String) -> Vertex?,
+        vertexAttribute: (Vertex, String, AttributeValue) -> Void = { _, _, _ in },
+        edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in },
+        graphAttribute: (String, AttributeValue) -> Void = { _, _ in }
+    ) throws(ParseError) {
+        var target = _UndirectedTarget<Self>()
+        try _readInput(input) { (text) throws(ParseError) in
+            try _readDOT(text, into: &target, map: { vertex(_string($0)) }, vertexAttribute: vertexAttribute,
+                         edgeAttribute: edgeAttribute, graphAttribute: graphAttribute)
+        }
+        self = target.graph
+    }
+
+    /// Reads GraphML: one `<graph>` whose `edgedefault` is the target's kind, typed `<key>`s with
+    /// defaults, node, edge and graph `<data>`. No DTD (any `<!DOCTYPE` is `doctypeNotAllowed`), no
+    /// entities but the predefined five and character references.
+    @inlinable public init(
+        graphML input: some Sequence<UInt8>,
+        vertex: (String) -> Vertex?,
+        vertexAttribute: (Vertex, String, AttributeValue) -> Void = { _, _, _ in },
+        edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in },
+        graphAttribute: (String, AttributeValue) -> Void = { _, _ in }
+    ) throws(ParseError) {
+        var target = _UndirectedTarget<Self>()
+        try _readInput(input, xmlCharacters: true) { (text) throws(ParseError) in
+            try _readGraphML(text, into: &target, map: { vertex(_string($0)) }, vertexAttribute: vertexAttribute,
+                             edgeAttribute: edgeAttribute, graphAttribute: graphAttribute)
+        }
+        self = target.graph
+    }
+
+    /// Reads NetworkX's node-link JSON: `directed`, `multigraph`, `graph`, `nodes`, and `edges` (or
+    /// `links`). `vertex` maps each node `id` (a string or an integer) once.
+    @inlinable public init(
+        nodeLinkJSON input: some Sequence<UInt8>,
+        vertex: (AttributeValue) -> Vertex?,
+        vertexAttribute: (Vertex, String, AttributeValue) -> Void = { _, _, _ in },
+        edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in },
+        graphAttribute: (String, AttributeValue) -> Void = { _, _ in }
+    ) throws(ParseError) {
+        var target = _UndirectedTarget<Self>()
+        try _readInput(input) { (text) throws(ParseError) in
+            try _readNodeLinkJSON(text, into: &target, map: vertex, vertexAttribute: vertexAttribute,
+                                  edgeAttribute: edgeAttribute, graphAttribute: graphAttribute)
+        }
+        self = target.graph
+    }
+
+    /// Reads a Matrix Market coordinate file: vertices `0..<n` (each index mapped once by `vertex`,
+    /// at the size line), an edge per entry, its value under the key `"weight"`.
+    @inlinable public init(
+        matrixMarket input: some Sequence<UInt8>,
+        vertex: (Int) -> Vertex?,
+        edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
+    ) throws(ParseError) {
+        var target = _UndirectedTarget<Self>()
+        try _readInput(input) { (text) throws(ParseError) in
+            try _readMatrixMarket(text, into: &target, map: vertex, edgeAttribute: edgeAttribute)
+        }
+        self = target.graph
+    }
+
+    /// Reads an edge list: `u v` and one field per column on each line, `#` comments; each column's
+    /// value typed by its text.
+    @inlinable public init(
+        edgeList input: some Sequence<UInt8>,
+        columns: [String] = [],
+        vertex: (String) -> Vertex?,
+        edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
+    ) throws(ParseError) {
+        var target = _UndirectedTarget<Self>()
+        try _readInput(input) { (text) throws(ParseError) in
+            try _readEdgeList(text, columns: columns, into: &target, map: { vertex(_string($0)) }, edgeAttribute: edgeAttribute)
+        }
+        self = target.graph
+    }
+
+    /// Reads an adjacency list: a vertex, then its neighbours, on each line; `#` comments.
+    @inlinable public init(
+        adjacencyList input: some Sequence<UInt8>,
+        vertex: (String) -> Vertex?
+    ) throws(ParseError) {
+        var target = _UndirectedTarget<Self>()
+        try _readInput(input) { (text) throws(ParseError) in
+            try _readAdjacencyList(text, into: &target, map: { vertex(_string($0)) })
+        }
+        self = target.graph
+    }
+
+    /// Reads a Mermaid flowchart: vertices with their labels, links with theirs; shapes and styling
+    /// are dropped.
+    @inlinable public init(
+        mermaid input: some Sequence<UInt8>,
+        vertex: (String) -> Vertex?,
+        vertexLabel: (Vertex, String) -> Void = { _, _ in },
+        edgeLabel: (Edges.Index, String) -> Void = { _, _ in }
+    ) throws(ParseError) {
+        var target = _UndirectedTarget<Self>()
+        try _readInput(input) { (text) throws(ParseError) in
+            try _readMermaid(text, into: &target, map: { vertex(_string($0)) }, vertexLabel: vertexLabel, edgeLabel: edgeLabel)
+        }
+        self = target.graph
+    }
+}
+
+extension MutableGraph where Vertex == String {
+    /// Reads DOT, each ID its own vertex.
+    @inlinable public init(
+        dot input: some Sequence<UInt8>,
+        vertexAttribute: (Vertex, String, AttributeValue) -> Void = { _, _, _ in },
+        edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in },
+        graphAttribute: (String, AttributeValue) -> Void = { _, _ in }
+    ) throws(ParseError) {
+        var target = _UndirectedTarget<Self>()
+        try _readInput(input) { (text) throws(ParseError) in
+            try _readDOT(text, into: &target, map: _string, vertexAttribute: vertexAttribute,
+                         edgeAttribute: edgeAttribute, graphAttribute: graphAttribute)
+        }
+        self = target.graph
+    }
+
+    /// Reads GraphML, each node `id` its own vertex.
+    @inlinable public init(
+        graphML input: some Sequence<UInt8>,
+        vertexAttribute: (Vertex, String, AttributeValue) -> Void = { _, _, _ in },
+        edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in },
+        graphAttribute: (String, AttributeValue) -> Void = { _, _ in }
+    ) throws(ParseError) {
+        var target = _UndirectedTarget<Self>()
+        try _readInput(input, xmlCharacters: true) { (text) throws(ParseError) in
+            try _readGraphML(text, into: &target, map: _string, vertexAttribute: vertexAttribute,
+                             edgeAttribute: edgeAttribute, graphAttribute: graphAttribute)
+        }
+        self = target.graph
+    }
+
+    /// Reads node-link JSON, a string `id` as itself and an integer `id` as its decimal text.
+    @inlinable public init(
+        nodeLinkJSON input: some Sequence<UInt8>,
+        vertexAttribute: (Vertex, String, AttributeValue) -> Void = { _, _, _ in },
+        edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in },
+        graphAttribute: (String, AttributeValue) -> Void = { _, _ in }
+    ) throws(ParseError) {
+        var target = _UndirectedTarget<Self>()
+        try _readInput(input) { (text) throws(ParseError) in
+            try _readNodeLinkJSON(text, into: &target, map: _stringNodeID, vertexAttribute: vertexAttribute,
+                                  edgeAttribute: edgeAttribute, graphAttribute: graphAttribute)
+        }
+        self = target.graph
+    }
+
+    /// Reads an edge list, each field its own vertex.
+    @inlinable public init(
+        edgeList input: some Sequence<UInt8>,
+        columns: [String] = [],
+        edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
+    ) throws(ParseError) {
+        var target = _UndirectedTarget<Self>()
+        try _readInput(input) { (text) throws(ParseError) in
+            try _readEdgeList(text, columns: columns, into: &target, map: _string, edgeAttribute: edgeAttribute)
+        }
+        self = target.graph
+    }
+
+    /// Reads an adjacency list, each field its own vertex.
+    @inlinable public init(adjacencyList input: some Sequence<UInt8>) throws(ParseError) {
+        var target = _UndirectedTarget<Self>()
+        try _readInput(input) { (text) throws(ParseError) in
+            try _readAdjacencyList(text, into: &target, map: _string)
+        }
+        self = target.graph
+    }
+
+    /// Reads a Mermaid flowchart, each vertex ID its own vertex.
+    @inlinable public init(
+        mermaid input: some Sequence<UInt8>,
+        vertexLabel: (Vertex, String) -> Void = { _, _ in },
+        edgeLabel: (Edges.Index, String) -> Void = { _, _ in }
+    ) throws(ParseError) {
+        var target = _UndirectedTarget<Self>()
+        try _readInput(input) { (text) throws(ParseError) in
+            try _readMermaid(text, into: &target, map: _string, vertexLabel: vertexLabel, edgeLabel: edgeLabel)
+        }
+        self = target.graph
+    }
+}
+
+extension MutableGraph where Vertex == Int {
+    /// Reads node-link JSON whose node ids are integers (a string id is `invalidVertex`).
+    @inlinable public init(
+        nodeLinkJSON input: some Sequence<UInt8>,
+        vertexAttribute: (Vertex, String, AttributeValue) -> Void = { _, _, _ in },
+        edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in },
+        graphAttribute: (String, AttributeValue) -> Void = { _, _ in }
+    ) throws(ParseError) {
+        var target = _UndirectedTarget<Self>()
+        try _readInput(input) { (text) throws(ParseError) in
+            try _readNodeLinkJSON(text, into: &target, map: _integerNodeID, vertexAttribute: vertexAttribute,
+                                  edgeAttribute: edgeAttribute, graphAttribute: graphAttribute)
+        }
+        self = target.graph
+    }
+
+    /// Reads a Matrix Market file onto the vertices `0..<n`.
+    @inlinable public init(
+        matrixMarket input: some Sequence<UInt8>,
+        edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
+    ) throws(ParseError) {
+        var target = _UndirectedTarget<Self>()
+        try _readInput(input) { (text) throws(ParseError) in
+            try _readMatrixMarket(text, into: &target, map: { $0 }, edgeAttribute: edgeAttribute)
+        }
+        self = target.graph
+    }
+
+    /// Reads an edge list whose fields are decimal integers (as `Int(_:)` reads them; anything
+    /// else is `invalidVertex`).
+    @inlinable public init(
+        edgeList input: some Sequence<UInt8>,
+        columns: [String] = [],
+        edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
+    ) throws(ParseError) {
+        var target = _UndirectedTarget<Self>()
+        try _readInput(input) { (text) throws(ParseError) in
+            try _readEdgeList(text, columns: columns, into: &target, map: _integerID, edgeAttribute: edgeAttribute)
+        }
+        self = target.graph
+    }
+
+    /// Reads an adjacency list whose fields are decimal integers.
+    @inlinable public init(adjacencyList input: some Sequence<UInt8>) throws(ParseError) {
+        var target = _UndirectedTarget<Self>()
+        try _readInput(input) { (text) throws(ParseError) in
+            try _readAdjacencyList(text, into: &target, map: _integerID)
+        }
+        self = target.graph
+    }
+}

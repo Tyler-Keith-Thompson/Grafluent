@@ -3,7 +3,7 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# DOT, GraphML, GML, GEXF, Matrix Market and edge-list readers and writers.
+# Readers and writers for DOT, GraphML, node-link JSON, Matrix Market, edge lists, adjacency lists and Mermaid flowcharts, with their own UTF-8, XML and JSON scanners (no Foundation).
 swift_library(
     name = "GraphFormats",
     srcs = glob(["**/*.swift"]),
