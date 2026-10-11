@@ -768,8 +768,7 @@ extension AdjacencyList: MutableDirectedGraph {
     /// Removes the edge at `position`; the last edge moves into it. O(1).
     @inlinable
     public mutating func _removeEdge(at position: Int) -> DirectedEdge<Vertex> {
-        precondition(UInt(bitPattern: position) < UInt(bitPattern: _records.count), "Edge position out of range")
-        let record = _records[position]
+        let record = _records[position]  // traps on a position out of range
         _detach(position)
         return DirectedEdge(from: _vertices[record.source], to: _vertices[record.target])
     }

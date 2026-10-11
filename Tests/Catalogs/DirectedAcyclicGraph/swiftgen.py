@@ -428,7 +428,8 @@ def codable_test(n):
         lines += ["        do {",
                   "            let decoded = try JSONDecoder().decode(%s.self, from: payload)" % T,
                   "            Issue.record(\"decoded \\(decoded)\")",
-                  "        } catch DecodingError.dataCorrupted {",
+                  "        } catch DecodingError.dataCorrupted(let context) {",
+                  "            #expect(context.codingPath.map(\\.stringValue) == [\"%s\"])" % ("base" if "(a cycle)" in exp else "order"),
                   "        } catch {",
                   "            Issue.record(\"unexpected error \\(error)\")",
                   "        }"]

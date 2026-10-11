@@ -417,19 +417,15 @@ internal struct _KeyTable {
     @inline(__always)
     mutating func setLabel(_ key: Int, _ label: Int) { labels[slot(key)] = label }
 
-    /// Adds `key` with `label`.
+    /// Adds `key` with `label`. The key is at least every live key: a new vertex's key is
+    /// `vertices.endIndex` (`MutableDirectedGraph`), and a table built from a graph takes its keys
+    /// in increasing order. So its page is never before `firstPage`, nor before `front`.
     @inlinable
     mutating func insert(_ key: Int, label: Int) {
         let page = key &>> _PositionPage.shift
         if pages.isEmpty {
             firstPage = page
             front = 0
-        } else if page < firstPage {
-            // Grown geometrically, so inserting keys in decreasing order stays linear.
-            let start = Swift.max(0, Swift.min(page, firstPage &- pages.count))
-            pages.insert(contentsOf: repeatElement(-1, count: firstPage &- start), at: 0)
-            front &+= firstPage &- start
-            firstPage = start
         }
         let k = page &- firstPage
         if k >= pages.count {
@@ -446,7 +442,6 @@ internal struct _KeyTable {
                 marks.append(contentsOf: repeatElement(0, count: _PositionPage.size))
             }
             pages[k] = block
-            if k < front { front = k }
             if block != page || firstPage != 0 { flat = false }
         }
         live[block] &+= 1

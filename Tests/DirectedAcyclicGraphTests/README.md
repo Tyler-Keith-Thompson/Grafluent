@@ -58,7 +58,7 @@ struct DirectedAcyclicGraph<Base: MutableDirectedGraph>: BidirectionalDirectedGr
 | Order queries | `topologicalPosition`, the order's subscript, and an order-pruned `hasPath` (true for the same vertex) | DAG-070 – DAG-078 |
 | Equality | The base's: the order is history and does not count | DAG-079, DAG-080 |
 | Algorithms | `transitiveClosure()` appends the missing edges per source in topological order. `transitiveReduction()` keeps the first copy, at fresh positions. `longestPath()` takes the first tying in-edge and the first end in topological order; `longestPath(weight:)` is NetworkX's `dag_longest_path(weight=)`, restarting at zero where the best is negative; `dagShortestPaths` (ShortestPaths) relaxes in the order, and agrees with the generic run on `base` | DAG-081 – DAG-111 |
-| Codable | `{base, order}`, with the order as offsets into `base.vertices`. Decoding re-checks the payload: a cycle, an order that is not a permutation, or a backward edge is `dataCorrupted`. On every base, holes included; a Stable vertex at position 2⁵⁰ costs one page | DAG-112 – DAG-120 |
+| Codable | `{base, order}`, with the order as offsets into `base.vertices`. Decoding re-checks the payload: a cycle (at `base`), an order that is not a permutation (too short, too long, a repeat, an offset out of range) or a backward edge (at `order`) is `dataCorrupted`. On every base, holes included; a Stable vertex at position 2⁵⁰ costs one page | DAG-112 – DAG-123 |
 
 ## How values are pinned
 
@@ -126,6 +126,10 @@ not from the setup.
   - built with its edges in random order, then given parallel copies;
   - cut in the middle and rejoined the other way round, which reorders everything once, then
     holed.
+
+  Keys cross 1024-key pages: on Stable the first page empties and is dropped, two new pages
+  follow, then `removeAll()` starts the positions again at 0; on AdjacencyList two pages empty
+  and three fill again. Every vertex's place is checked after a backward edge in each page.
 
   An adversarial order reverses a chain one edge at a time, moving the whole prefix on every
   insert. Pearce and Kelly's own model is a random DAG with a hidden order and its edges inserted

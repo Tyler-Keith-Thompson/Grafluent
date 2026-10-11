@@ -147,3 +147,6 @@ Conventions:
 | DAG-118 | Codable | StableDirectedGraph with holes: offsets into the live vertices | StableDirectedGraph; decode {base: V [0, 1, 2, 3, 4]; E [4→0, 0→2] / remove(1) / remove(3), order: [2, 0, 1]} | order [4, 0, 2]; V [0, 2, 4]; E [0:4→0, 1:0→2] |
 | DAG-119 | Codable | StableDirectedGraph with holes: an offset past the live vertices rejected | StableDirectedGraph; decode {base: V [0, 1, 2]; E [] / remove(1), order: [0, 2]} | DecodingError.dataCorrupted (not a permutation) |
 | DAG-120 | Codable | StableDirectedGraph: a vertex at position 2⁵⁰ costs one page, not a table to it | StableDirectedGraph; decode {"base": {"vertices": [7], "vertexPositions": [1125899906842624], "vertexEnd": 1125899906842625, "edges": [], "edgePositions": [], "edgeEnd": 0}, "order": [0]} | order [7]; V [7]; E [] |
+| DAG-121 | Codable | an order shorter than the vertices rejected | DirectedPseudograph; decode {base: V [0, 1]; E [], order: [0]} | DecodingError.dataCorrupted (not a permutation) |
+| DAG-122 | Codable | an order longer than the vertices rejected | AdjacencyList; decode {base: V [0, 1]; E [0→1], order: [0, 1, 2]} | DecodingError.dataCorrupted (not a permutation) |
+| DAG-123 | Codable | a negative offset rejected | StableDirectedGraph; decode {base: V [0, 1]; E [0→1], order: [-1, 1]} | DecodingError.dataCorrupted (not a permutation) |

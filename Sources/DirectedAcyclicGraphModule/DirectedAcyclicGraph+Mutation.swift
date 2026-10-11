@@ -168,7 +168,9 @@ extension DirectedAcyclicGraph {
         _labels.removeAll(keepingCapacity: true)
         var f = 0, b = 0
         while f < _forward.count || b < _backward.count {
-            if b == _backward.count || (f < _forward.count && _forward[f].label < _backward[b].label) {
+            // The source, last in the backward set, holds the greatest label of both, so the
+            // backward set runs out last.
+            if f < _forward.count && _forward[f].label < _backward[b].label {
                 _labels.append(_forward[f].label)
                 f &+= 1
             } else {

@@ -4,7 +4,8 @@
 // a chain one edge at a time. A random DAG with a hidden order, its edges inserted in random order
 // (Pearce and Kelly's model), checked against the hidden order's reachability. Churn on each base:
 // new sources placed first, new targets last, reorderings and removals anywhere, with every place,
-// subscript and index checked against the order after each round. See README.md.
+// subscript and index checked against the order after each round. Keys across 1024-key pages, with
+// pages emptied, dropped and filled again. See README.md.
 
 import AdjacencyListModule
 import DirectedAcyclicGraphModule
@@ -210,5 +211,39 @@ struct DirectedAcyclicGraphStressTests {
         run(&pseudograph, &rng, "DirectedPseudograph")
         var stable = DirectedAcyclicGraph<StableDirectedGraph<Int>>()
         run(&stable, &rng, "StableDirectedGraph")
+    }
+
+    @Test("Keys across 1024-key pages: emptied pages freed and reused, the first page dropped, removeAll after it")
+    func keysAcrossPages() throws {
+        // StableDirectedGraph: positions are never reused. Emptying the first page drops it; the
+        // next two pages need two blocks, and must not share the freed one.
+        var stable = DirectedAcyclicGraph<StableDirectedGraph<Int>>(vertices: 0 ..< 2048)
+        for v in 0 ..< 1024 { _ = stable.remove(v) }
+        for v in 2048 ..< 4096 { stable.insert(v) }
+        // One backward edge per page, so Pearce–Kelly reads the labels of each.
+        #expect(stable.insert(edge: DirectedEdge(from: 4095, to: 1024)) != nil)
+        #expect(stable.insert(edge: DirectedEdge(from: 3000, to: 2100)) != nil)
+        var order = Array(stable.topologicalOrder)
+        #expect(order.count == 3072 && Set(order) == Set(1024 ..< 4096))
+        #expect(order.indices.allSatisfy { stable.topologicalPosition(of: order[$0]) == $0 && stable.topologicalOrder[$0] == order[$0] })
+        #expect(stable.topologicalPosition(of: 4095) < stable.topologicalPosition(of: 1024))
+        #expect(stable.topologicalPosition(of: 3000) < stable.topologicalPosition(of: 2100))
+        // Positions start again at 0 after removeAll.
+        stable.removeAll()
+        #expect(stable.insert(edge: DirectedEdge(from: 1, to: 0)) == 0)
+        #expect(Array(stable.topologicalOrder) == [1, 0] && stable.topologicalPosition(of: 0) == 1)
+
+        // AdjacencyList: keys are dense. Removing the last 2000 vertices empties two pages; growing
+        // past them again fills those two and a third, each with its own block.
+        var dense = DirectedAcyclicGraph<AdjacencyList<Int>>(vertices: 0 ..< 3000)
+        for v in (1000 ..< 3000).reversed() { _ = dense.remove(v) }
+        for v in 3000 ..< 6500 { dense.insert(v) }
+        #expect(dense.insert(edge: DirectedEdge(from: 6499, to: 0)) != nil)
+        #expect(dense.insert(edge: DirectedEdge(from: 5000, to: 3500)) != nil)
+        order = Array(dense.topologicalOrder)
+        #expect(order.count == 4500 && Set(order) == Set(0 ..< 1000).union(3000 ..< 6500))
+        #expect(order.indices.allSatisfy { dense.topologicalPosition(of: order[$0]) == $0 })
+        #expect(dense.topologicalPosition(of: 6499) < dense.topologicalPosition(of: 0))
+        #expect(dense.topologicalPosition(of: 5000) < dense.topologicalPosition(of: 3500))
     }
 }

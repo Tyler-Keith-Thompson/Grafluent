@@ -2,7 +2,8 @@
 // source (nil) and one that is not, several sources as one super-source, ties, every
 // representation's index space (indexed, compressed rows, a stable graph with holes), the
 // DirectedAcyclicGraph overload that relaxes in its maintained order, random DAGs against
-// Bellman–Ford, and the precondition. See README.md.
+// Bellman–Ford, ties by the maintained order, and the preconditions (a non-vertex source, a NaN
+// length). See README.md.
 
 import AdjacencyListModule
 import CompressedSparseRowModule
@@ -135,6 +136,34 @@ struct DAGShortestPathTests {
                 }
             }
         }
+    }
+
+    @Test("On a DirectedAcyclicGraph, ties follow its maintained order, not Kahn's over the rows")
+    func tiesFollowTheMaintainedOrder() throws {
+        // 0 → 1 and 0 → 2 tie at 3. The rows list 1 first, so Kahn's algorithm relaxes 1 first;
+        // the graph's own order places 2 first, so 2 relaxes 3 first and keeps it.
+        var dag = DirectedAcyclicGraph<AdjacencyList<Int>>(vertices: [0, 2, 1, 3])
+        for (u, v) in [(0, 1), (0, 2), (1, 3), (2, 3)] { _ = dag.insert(edge: DirectedEdge(from: u, to: v)) }
+        #expect(Array(dag.topologicalOrder) == [0, 2, 1, 3])
+        let tree = dag.dagShortestPaths(from: 0) { _ in 1 }
+        #expect(tree.distance(to: 3) == 2 && tree.parent(of: 3) == 2)
+        let kahn = try #require(dag.base.dagShortestPaths(from: 0) { _ in 1 })
+        #expect(kahn.distance(to: 3) == 2 && kahn.parent(of: 3) == 1)
+    }
+
+    @Test("A NaN path length traps, on either overload", .tags(.precondition))
+    func nanTraps() async {
+        await #expect(processExitsWith: .failure) {
+            let graph = AdjacencyList(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+            _ = graph.dagShortestPaths(from: 0) { $0 == 0 ? Double.nan : 1 }
+        }
+        await #expect(processExitsWith: .failure) {
+            let dag = DirectedAcyclicGraph<AdjacencyList<Int>>(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])!
+            _ = dag.dagShortestPaths(from: 0) { $0 == 0 ? Double.nan : 1 }
+        }
+        // Without NaN, the same graphs answer.
+        let graph = AdjacencyList(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+        #expect(graph.dagShortestPaths(from: 0) { _ in 0.5 }?.distance(to: 2) == 1.0)
     }
 
     @Test("The source must be a vertex", .tags(.precondition))

@@ -1,17 +1,19 @@
 # Planted bugs for DirectedAcyclicGraphModule and the MutableDirectedGraph hooks it reads in
 # AdjacencyListModule, Multigraphs and StableGraphs (module=...); run with
-# `just mutate DirectedAcyclicGraphModule`. See scripts/mutate.py. The hooks' mutants run
-# DirectedAcyclicGraphTests first, then the bases' own suites.
+# `just mutate DirectedAcyclicGraphModule`. See scripts/mutate.py. Also dagShortestPaths in
+# ShortestPaths (module=...). Mutants in other modules run DirectedAcyclicGraphTests first, then
+# ShortestPathsTests and the bases' own suites.
 #
 # Known equivalent mutants (they survive by design):
-#   forwardbound      the forward search without its bound (label < upper): a vertex it then
-#                     reaches placed after the source is not an ancestor of the source, so it is
-#                     never in the backward set, and the merge hands it back its own label (the
-#                     |B| + |F before u| smallest labels are exactly the old ones of those
-#                     vertices). Same order; it only visits more. Time only: see
-#                     Benchmarks (DirectedAcyclicGraph insertion), where the bound is the
-#                     difference between O(δ) and O(n) per backward edge.
-#   backwardbound     the backward search without its bound (label > lower): the mirror image.
+#   backwardbound     the backward search without its bound (label > lower): a vertex it then
+#                     reaches placed before the target does not descend from the target, so it is
+#                     never in the forward set, and the merge hands it back its own label (the
+#                     smallest labels of the pool are exactly the old ones of those vertices).
+#                     Same order; it only visits more. Time only: see Benchmarks
+#                     (DirectedAcyclicGraph insertion), where the bound is the difference between
+#                     O(δ) and O(n) per backward edge. (Without the forward search's bound the
+#                     merge reads past the backward set, whose source no longer holds the
+#                     greatest label, so forwardbound traps and is caught.)
 #   sharedmark        the backward search marking with the forward search's stamp: the two sets
 #                     are disjoint (a vertex in both would make the target reach the source), so
 #                     no vertex the backward search needs carries the forward mark.
@@ -31,8 +33,36 @@
 #                     skipped words of a later row are zero. Time only.
 #   insertmark        not clearing a new key's visit mark: marks are stamps that only grow, so a
 #                     stale mark (from a freed block) is never the current search's.
+#   trimfirst         removing the first slot as a hole instead of advancing `first`: the Fenwick
+#                     count places the rest the same. Time and memory only.
+#   blocklive         counting each key twice: no block is ever freed. Memory only.
+#   removetable       not unlinking a removed key (or the swap-removed one) from the key table: its
+#   movedunlink       block is never freed, and a key inserted again overwrites its entry. Memory
+#                     only.
+#   hasPathbound      `label <= upper`: the only vertex with label `upper` is the goal, which
+#                     returns first.
+#   hasPathmark       not marking visited vertices: as hasPathrevisit.
+#   longestunit       unit weight 2 for longestPath(): every length doubles, so the same argmax
+#                     and the same ties.
+#   buildrepeat       inserting every listed vertex through insert(_:): it skips an existing
+#                     vertex too. One hash more or fewer per vertex.
+#   ordersubscriptcheck  the order's subscript without its range check: an out-of-range place
+#                     reaches a free slot (-1) or the end of the slots, and the base's key lookup
+#                     or the slot array traps. Message only; kept so the trap does not depend on
+#                     each conformer's `_vertex(atKey:)` trapping on -1.
+#   orderiteratorstart  the order's iterator starting at slot 0: every slot before `first` is
+#                     free (-1), and the iterator skips free slots. Time only.
+#   almovedlast       the swap-removing bases reporting the removed key itself as moved when it
+#   psmovedlast       was the last: the wrapper then relabels that key with its own slot and
+#                     frees the slot, the same as the plain removal.
+#
+# Removed as dead code after planting: the key table's branch for a page before `firstPage` and
+# its `front` update on insertion (a new key is `vertices.endIndex`, at least every live key, and
+# tables built from a graph take keys in increasing order); the merge's `b == _backward.count`
+# test (the source, last in the backward set, holds the greatest label, so that set runs out
+# last); AdjacencyList's range precondition in `_removeEdge(at:)` (the record read traps first).
 
-TESTS = ["DirectedAcyclicGraphTests", "AdjacencyListTests", "MultigraphsTests", "StableGraphsTests"]
+TESTS = ["DirectedAcyclicGraphTests", "ShortestPathsTests", "AdjacencyListTests", "MultigraphsTests", "StableGraphsTests"]
 
 K = "DirectedAcyclicGraph.swift"
 M = "DirectedAcyclicGraph+Mutation.swift"
@@ -41,6 +71,7 @@ B = "DirectedAcyclicGraph+Construction.swift"
 C = "DirectedAcyclicGraph+Conformances.swift"
 D = "DirectedAcyclicGraph+DirectedGraph.swift"
 
+SP = "DAGShortestPaths.swift"
 AL = "AdjacencyList.swift"
 PS = "DirectedPseudograph.swift"
 ST = "StableDirectedGraph+Conformances.swift"
@@ -84,7 +115,6 @@ MUTANTS = [
     Mutant("flatread", K, "        if flat { return key }", "", mode="stmt"),
     Mutant("flatkept", K, "            if block != page || firstPage != 0 { flat = false }", "", mode="stmt"),
     Mutant("pagegrow", K, "k >= pages.count", "k > pages.count"),
-    Mutant("pageprepend", K, "pages.insert(contentsOf: repeatElement(-1, count: firstPage &- start), at: 0)", "pages.insert(contentsOf: repeatElement(-1, count: firstPage &- start &- 1), at: 0)", mode="stmt"),
     Mutant("blockreuse", K, "free.popLast()", "free.last"),
     Mutant("blocklive", K, "        live[block] &+= 1", "        live[block] &+= 2", mode="stmt"),
     Mutant("blockfreeearly", K, "guard live[block] == 0 else { return }", "guard live[block] <= 1 else { return }", mode="stmt"),
@@ -135,8 +165,7 @@ MUTANTS = [
     Mutant("sortlargeonly", M, "placed.count > 24", "true"),
     Mutant("insertionsortshift", M, "                    placed[j] = placed[j &- 1]", "", mode="stmt"),
     Mutant("insertionsortorder", M, "placed[j &- 1].label > moving.label", "placed[j &- 1].label < moving.label"),
-    Mutant("mergeend", M, "b == _backward.count || (f < _forward.count && _forward[f].label < _backward[b].label)", "f < _forward.count && _forward[f].label < _backward[b].label"),
-    Mutant("mergeorder", M, "_forward[f].label < _backward[b].label", "_forward[f].label > _backward[b].label", nth=1),
+    Mutant("mergeorder", M, "_forward[f].label < _backward[b].label", "_forward[f].label > _backward[b].label"),
     Mutant("labelsscratch", M, "        _labels.removeAll(keepingCapacity: true)", "", mode="stmt"),
     Mutant("backwardlabel", M, "_table.setLabel(moved.key, _labels[i])", "_table.setLabel(moved.key, moved.label)", nth=0),
     Mutant("forwardlabel", M, "_table.setLabel(moved.key, _labels[i])", "_table.setLabel(moved.key, moved.label)", nth=1),
@@ -226,6 +255,26 @@ MUTANTS = [
     Mutant("safeoutedges", D, "_base._key(of: vertex).map { _base._outEdges(ofKey: $0) }", "Optional<Base.OutEdges>.none"),
     Mutant("safeindegree", D, "_base._key(of: vertex).map { _base._inDegree(ofKey: $0) }", "_base._key(of: vertex).map { _base._outDegree(ofKey: $0) }"),
 
+    # ShortestPaths: dagShortestPaths, in the maintained order or by Kahn's algorithm.
+    Mutant("spsources", SP, "        for s in sources { parent[s] = -1 }", "", mode="stmt", module="ShortestPaths"),
+    Mutant("spunreached", SP, "parent[u] != -2", "true", module="ShortestPaths"),
+    Mutant("spfirstreach", SP, "parent[v] == -2 || candidate < distance[v]", "candidate < distance[v]", nth=0, module="ShortestPaths"),
+    Mutant("spties", SP, "candidate < distance[v]", "candidate <= distance[v]", nth=1, module="ShortestPaths"),
+    Mutant("spparentedge", SP, "                        parentEdge[v] = e", "", mode="stmt", module="ShortestPaths"),
+    Mutant("spnan", SP, '                    precondition(candidate == candidate, "A path\'s length is NaN")', "", mode="stmt", nth=0, module="ShortestPaths"),
+    Mutant("spkahnfirstreach", SP, "parent[v] == -2 || candidate < distance[v]", "candidate < distance[v]", nth=0, module="ShortestPaths"),
+    Mutant("spkahnties", SP, "candidate < distance[v]", "candidate <= distance[v]", nth=3, module="ShortestPaths"),
+    Mutant("spkahnparentedge", SP, "                    parentEdge[v] = e", "", mode="stmt", nth=1, module="ShortestPaths"),
+    Mutant("spkahnnan", SP, '                precondition(candidate == candidate, "A path\'s length is NaN")', "", mode="stmt", nth=1, module="ShortestPaths"),
+    Mutant("spreachcount", SP, "                indegree[v] += 1", "", mode="stmt", module="ShortestPaths"),
+    Mutant("spreachmark", SP, "                    reached[v] = true", "", mode="stmt", module="ShortestPaths"),
+    Mutant("spkahnseed", SP, "indegree[s] == 0", "true", module="ShortestPaths"),
+    Mutant("spkahndecrement", SP, "                indegree[v] -= 1", "", mode="stmt", module="ShortestPaths"),
+    Mutant("spcycle", SP, "queue.count == reachable", "true", module="ShortestPaths"),
+    Mutant("spcyclenil", SP, "        guard result.acyclic else { return nil }", "", mode="stmt", module="ShortestPaths"),
+    Mutant("spdagorder", SP, "_DAGShortestPaths<Self, W>(sources: indices, placeholder: edges.endIndex, order: order)", "_DAGShortestPaths<Self, W>(sources: indices, placeholder: edges.endIndex, order: nil)", module="ShortestPaths"),
+    Mutant("spdagnumbers", SP, "rows.numbers[$0]", "$0", module="ShortestPaths"),
+
     # MutableDirectedGraph hooks: AdjacencyList.
     Mutant("alvertex", AL, "_vertices[key]", "_vertices[_vertices.count - 1 - key]", nth=0, module="AdjacencyListModule"),
     Mutant("alsuccessors", AL, "Neighbors(vertices: _vertices, slots: _out[row: key])", "Neighbors(vertices: _vertices, slots: _out[row: _vertices.count - 1 - key])", module="AdjacencyListModule"),
@@ -239,7 +288,6 @@ MUTANTS = [
     Mutant("alinsertedge", AL, "_insertEdge(slots: source, target)", "_insertEdge(slots: target, source)", nth=1, module="AdjacencyListModule"),
     Mutant("almovednil", AL, "key == last ? nil : last", "nil", module="AdjacencyListModule"),
     Mutant("almovedlast", AL, "key == last ? nil : last", "last", module="AdjacencyListModule"),
-    Mutant("alremoveedgecheck", AL, '        precondition(UInt(bitPattern: position) < UInt(bitPattern: _records.count), "Edge position out of range")', "", mode="stmt", module="AdjacencyListModule"),
 
     # MutableDirectedGraph hooks: DirectedPseudograph.
     Mutant("psvertex", PS, "_vertices[key]", "_vertices[_vertices.count - 1 - key]", nth=0, module="Multigraphs"),
@@ -258,8 +306,9 @@ MUTANTS = [
     # MutableDirectedGraph hooks: StableDirectedGraph.
     Mutant("stsuccessors", ST, "Neighbors(pages: _vertexPages, base: _vertexBase, row: _outRow(key))", "Neighbors(pages: _vertexPages, base: _vertexBase, row: _inRow(key))", module="StableGraphs"),
     Mutant("stpredecessors", ST, "Neighbors(pages: _vertexPages, base: _vertexBase, row: _inRow(key))", "Neighbors(pages: _vertexPages, base: _vertexBase, row: _outRow(key))", nth=1, module="StableGraphs"),
-    Mutant("stsuccessorkeys", ST, "_outPages.withUnsafeBufferPointer { _LiveRow.Ends(ends: $0[k].endSlice(l), count: $0[k].degree(l)) }", "_outPages.withUnsafeBufferPointer { _LiveRow.Ends(ends: $0[k].endSlice(l), count: 0) }", module="StableGraphs"),
-    Mutant("stpredecessorkeys", ST, "_inPages.withUnsafeBufferPointer { _LiveRow.Ends(ends: $0[k].endSlice(l), count: $0[k].degree(l)) }", "_inPages.withUnsafeBufferPointer { _LiveRow.Ends(ends: $0[k].endSlice(l), count: 0) }", module="StableGraphs"),
+    # (The rows' `count` is only their underestimatedCount, so the ends are mutated, not it.)
+    Mutant("stsuccessorkeys", ST, "_outPages.withUnsafeBufferPointer { _LiveRow.Ends(ends: $0[k].endSlice(l), count: $0[k].degree(l)) }", "_inPages.withUnsafeBufferPointer { _LiveRow.Ends(ends: $0[k].endSlice(l), count: $0[k].degree(l)) }", module="StableGraphs"),
+    Mutant("stpredecessorkeys", ST, "_inPages.withUnsafeBufferPointer { _LiveRow.Ends(ends: $0[k].endSlice(l), count: $0[k].degree(l)) }", "_outPages.withUnsafeBufferPointer { _LiveRow.Ends(ends: $0[k].endSlice(l), count: $0[k].degree(l)) }", nth=1, module="StableGraphs"),
     Mutant("stinedges", ST, "_inEdges(slot: key)", "_inEdges(slot: _vertexBase)", module="StableGraphs"),
     Mutant("stindegree", ST, "_inDegree(key)", "_outDegree(key)", module="StableGraphs"),
     Mutant("stoutdegree", ST, "_outDegree(key)", "_inDegree(key)", nth=0, module="StableGraphs"),

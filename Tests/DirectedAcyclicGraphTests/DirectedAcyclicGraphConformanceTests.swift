@@ -221,6 +221,8 @@ struct DirectedAcyclicGraphConformanceTests {
         let b = DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [0, 1, 2])
         #expect(Array(a.topologicalOrder) == [2, 1, 0] && Array(b.topologicalOrder) == [0, 1, 2])
         #expect(a == b && a.hashValue == b.hashValue && Set([a, b]).count == 1)
+        // The hash is the base's own.
+        #expect(a.hashValue == a.base.hashValue && b.hashValue == b.base.hashValue)
         #expect(a.base == b.base)
         var c = DirectedAcyclicGraph<AdjacencyList<Int>>(vertices: [0, 1])
         let d = c
@@ -349,6 +351,16 @@ struct DirectedAcyclicGraphConformanceTests {
         _ = reordered.remove(edge: DirectedEdge(from: 1, to: 0))
         let copied = try #require(DirectedAcyclicGraph<AdjacencyList<Int>>(reordered))
         #expect(Array(reordered.topologicalOrder) == [1, 0] && Array(copied.topologicalOrder) == [0, 1])
+        // The same type comes back unchanged, its order included.
+        let same = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(reordered))
+        #expect(Array(same.topologicalOrder) == [1, 0] && same == reordered)
+        // A Base, even when only known to be some DirectedGraph, keeps its storage: here Stable's holes.
+        var holes = StableDirectedGraph<Int>(vertices: [5, 6, 7, 8], edges: [DirectedEdge(from: 5, to: 6), DirectedEdge(from: 8, to: 7), DirectedEdge(from: 6, to: 7)])
+        _ = holes.remove(5)
+        func converted(_ graph: some DirectedGraph<Int>) -> DirectedAcyclicGraph<StableDirectedGraph<Int>>? { DirectedAcyclicGraph(graph) }
+        let kept = try #require(converted(holes))
+        #expect(Array(kept.vertices.indices) == [1, 2, 3] && Array(kept.edges.indices) == [1, 2])
+        #expect(Array(kept.topologicalOrder) == [6, 8, 7] && kept.base == holes)
         let cyclic = AdjacencyList<Int>(edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 0)])
         #expect(DirectedAcyclicGraph<DirectedPseudograph<Int>>(cyclic) == nil)
         #expect(DirectedAcyclicGraph<StableDirectedGraph<Int>>(cyclic) == nil)

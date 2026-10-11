@@ -820,12 +820,22 @@ def define():
         ("SG", "StableDirectedGraph with holes: offsets into the live vertices", [0, 1, 2, 3, 4], [(4, 0), (0, 2)], [1, 3], [2, 0, 1]),
         ("SG", "StableDirectedGraph with holes: an offset past the live vertices rejected", [0, 1, 2], [], [1], [0, 2]),
     ]:
-        r = decode(kind, V, E, order, removed)
-        inp = f"{NAMES[kind]}; decode {{base: V {lst(V)}; E [" + ", ".join(f"{u}→{v}" for u, v in E) + "]" + \
-            "".join(f" / remove({x})" for x in removed) + f", order: {order}}}"
-        raw(D, title, inp, r if isinstance(r, str) else show_state(r))
+        codable_row(D, kind, title, V, E, removed, order)
     raw(D, "StableDirectedGraph: a vertex at position 2⁵⁰ costs one page, not a table to it",
         "StableDirectedGraph; decode " + HOSTILE_JSON, show_state(decode_stable([7], [HOSTILE], HOSTILE + 1, [0])))
+    for kind, title, V, E, removed, order in [
+        ("DP", "an order shorter than the vertices rejected", [0, 1], [], [], [0]),
+        ("AL", "an order longer than the vertices rejected", [0, 1], [(0, 1)], [], [0, 1, 2]),
+        ("SG", "a negative offset rejected", [0, 1], [(0, 1)], [], [-1, 1]),
+    ]:
+        codable_row(D, kind, title, V, E, removed, order)
+
+
+def codable_row(D, kind, title, V, E, removed, order):
+    r = decode(kind, V, E, order, removed)
+    inp = f"{NAMES[kind]}; decode {{base: V {lst(V)}; E [" + ", ".join(f"{u}→{v}" for u, v in E) + "]" + \
+        "".join(f" / remove({x})" for x in removed) + f", order: {order}}}"
+    raw(D, title, inp, r if isinstance(r, str) else show_state(r))
 
 
 def render():
