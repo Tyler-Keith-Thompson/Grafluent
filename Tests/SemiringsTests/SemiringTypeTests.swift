@@ -1,6 +1,7 @@
-// The four semirings' constants (catalog SR-001 – SR-007): zero and one by value, their
-// descriptions, zero worse than one by the natural order, and hashing; and the counting
-// semiring, which is not selective, so only dagShortestDistances takes it (SR-324, SR-333).
+// The four semirings' constants (catalog SR-001 – SR-007, and the other scalar families from
+// SR-356): zero and one by value, their descriptions, zero worse than one by the
+// natural order, and hashing; and the counting semiring, which is not selective, so only
+// dagShortestDistances takes it (SR-324, SR-333).
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import GraphProtocols
@@ -142,4 +143,76 @@ struct SemiringTypeTests {
         let distances = try #require(graph.dagShortestDistances(from: 0) { _ in CountingSemiring<Double>(1) })
         #expect([distances.distance(to: 0).value, distances.distance(to: 1).value] == [1, 1])
     }
+
+    @Test("SR-356 zero and one (BottleneckSemiring<UInt>)")
+    func sr356() {
+        // (.zero, .one) → (0, UInt.max)
+        #expect(BottleneckSemiring<UInt>.zero.value == 0 && BottleneckSemiring<UInt>.one.value == UInt.max)
+        #expect(BottleneckSemiring<UInt>.zero == BottleneckSemiring<UInt>(0) && BottleneckSemiring<UInt>.one == BottleneckSemiring<UInt>(UInt.max))
+        // CustomStringConvertible: the value.
+        #expect(BottleneckSemiring<UInt>.zero.description == "0" && BottleneckSemiring<UInt>.one.description == "18446744073709551615")
+        #expect("\(BottleneckSemiring<UInt>(UInt.max))" == "18446744073709551615")
+        // zero is the worst element, one beats it.
+        #expect(BottleneckSemiring<UInt>.one < BottleneckSemiring<UInt>.zero)
+        // Hashable: equal values hash alike.
+        #expect(Set([BottleneckSemiring<UInt>.zero, BottleneckSemiring<UInt>(0), BottleneckSemiring<UInt>.one]).count == 2)
+    }
+
+    @Test("SR-357 zero and one (TropicalSemiring<UInt8>)")
+    func sr357() {
+        // (.zero, .one) → (UInt8.max, 0)
+        #expect(TropicalSemiring<UInt8>.zero.value == UInt8.max && TropicalSemiring<UInt8>.one.value == 0)
+        #expect(TropicalSemiring<UInt8>.zero == TropicalSemiring<UInt8>(UInt8.max) && TropicalSemiring<UInt8>.one == TropicalSemiring<UInt8>(0))
+        // CustomStringConvertible: the value.
+        #expect(TropicalSemiring<UInt8>.zero.description == "255" && TropicalSemiring<UInt8>.one.description == "0")
+        #expect("\(TropicalSemiring<UInt8>(0))" == "0")
+        // zero is the worst element, one beats it.
+        #expect(TropicalSemiring<UInt8>.one < TropicalSemiring<UInt8>.zero)
+        // Hashable: equal values hash alike.
+        #expect(Set([TropicalSemiring<UInt8>.zero, TropicalSemiring<UInt8>(UInt8.max), TropicalSemiring<UInt8>.one]).count == 2)
+    }
+
+    @Test("SR-358 zero and one (TropicalSemiring<Int8>)")
+    func sr358() {
+        // (.zero, .one) → (Int8.max, 0)
+        #expect(TropicalSemiring<Int8>.zero.value == Int8.max && TropicalSemiring<Int8>.one.value == 0)
+        #expect(TropicalSemiring<Int8>.zero == TropicalSemiring<Int8>(Int8.max) && TropicalSemiring<Int8>.one == TropicalSemiring<Int8>(0))
+        // CustomStringConvertible: the value.
+        #expect(TropicalSemiring<Int8>.zero.description == "127" && TropicalSemiring<Int8>.one.description == "0")
+        #expect("\(TropicalSemiring<Int8>(0))" == "0")
+        // zero is the worst element, one beats it.
+        #expect(TropicalSemiring<Int8>.one < TropicalSemiring<Int8>.zero)
+        // Hashable: equal values hash alike.
+        #expect(Set([TropicalSemiring<Int8>.zero, TropicalSemiring<Int8>(Int8.max), TropicalSemiring<Int8>.one]).count == 2)
+    }
+
+    @Test("SR-359 zero and one (TropicalSemiring<Float>)")
+    func sr359() {
+        // (.zero, .one) → (.infinity, 0.0)
+        #expect(TropicalSemiring<Float>.zero.value == Float.infinity && TropicalSemiring<Float>.one.value == 0.0)
+        #expect(TropicalSemiring<Float>.zero == TropicalSemiring<Float>(Float.infinity) && TropicalSemiring<Float>.one == TropicalSemiring<Float>(0.0))
+        // CustomStringConvertible: the value.
+        #expect(TropicalSemiring<Float>.zero.description == "inf" && TropicalSemiring<Float>.one.description == "0.0")
+        #expect("\(TropicalSemiring<Float>(0.0))" == "0.0")
+        // zero is the worst element, one beats it.
+        #expect(TropicalSemiring<Float>.one < TropicalSemiring<Float>.zero)
+        // Hashable: equal values hash alike.
+        #expect(Set([TropicalSemiring<Float>.zero, TropicalSemiring<Float>(Float.infinity), TropicalSemiring<Float>.one]).count == 2)
+    }
+
+    #if !((os(macOS) || targetEnvironment(macCatalyst)) && arch(x86_64))
+    @Test("SR-360 zero and one (BottleneckSemiring<Float16>)")
+    func sr360() {
+        // (.zero, .one) → (-.infinity, .infinity)
+        #expect(BottleneckSemiring<Float16>.zero.value == -Float16.infinity && BottleneckSemiring<Float16>.one.value == Float16.infinity)
+        #expect(BottleneckSemiring<Float16>.zero == BottleneckSemiring<Float16>(-Float16.infinity) && BottleneckSemiring<Float16>.one == BottleneckSemiring<Float16>(Float16.infinity))
+        // CustomStringConvertible: the value.
+        #expect(BottleneckSemiring<Float16>.zero.description == "-inf" && BottleneckSemiring<Float16>.one.description == "inf")
+        #expect("\(BottleneckSemiring<Float16>(Float16.infinity))" == "inf")
+        // zero is the worst element, one beats it.
+        #expect(BottleneckSemiring<Float16>.one < BottleneckSemiring<Float16>.zero)
+        // Hashable: equal values hash alike.
+        #expect(Set([BottleneckSemiring<Float16>.zero, BottleneckSemiring<Float16>(-Float16.infinity), BottleneckSemiring<Float16>.one]).count == 2)
+    }
+    #endif
 }

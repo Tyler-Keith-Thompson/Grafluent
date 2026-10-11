@@ -6,8 +6,8 @@
 
 First checks that ref.py's model reproduces cases.md byte for byte (every row recomputed, and
 every algorithm row checked against NetworkX, scipy or brute force by ref.py), then writes one
-@Test per phase-1 row (SR-001 – SR-340). Phase-2 rows (SR-341 – SR-369: `star`,
-`kleeneClosure`, `LogSemiring`) are written to SemiringPhase2Tests.swift only with --phase2,
+@Test per phase-1 row. Phase-2 rows (the last ones: `star`, `kleeneClosure`, `LogSemiring`) are
+written to SemiringPhase2Tests.swift only with --phase2,
 since phase 1 does not declare them; without the flag that file is removed.
 
 Each row is written the way the catalog writes it: `S(value)` operands for the law and
@@ -45,9 +45,8 @@ with open(os.path.join(HERE, "cases.md")) as f:
     assert f.read() == TEXT, "cases.md is not ref.py's output"
 ROWS = {int(r[0][3:]): r for r in ref.ROWS}
 N = len(ROWS)
-assert N == 369
 P2 = min(n for n, r in ROWS.items() if r[1].startswith("Phase 2"))
-assert P2 == 341 and all(ROWS[n][1].startswith("Phase 2") for n in range(P2, N + 1))
+assert all(ROWS[n][1].startswith("Phase 2") for n in range(P2, N + 1))
 
 
 def group(n): return ROWS[n][1]
@@ -65,7 +64,7 @@ def sr(n): return ref.ALL[sname(n)]
 # ---------------------------------------------------------------------------------------------
 
 def scalar(s):
-    return {"Int": "Int", "Double": "Double", "Bool": "Bool"}[s.scalar]
+    return s.scalar
 
 
 def lit(s, tok):
@@ -73,11 +72,11 @@ def lit(s, tok):
     tok = tok.strip()
     if tok == "—":
         return "nil"
-    if s.scalar == "Double":
+    if ref.is_float(s):
         if tok == ".infinity":
-            return "Double.infinity"
+            return "%s.infinity" % s.scalar
         if tok == "-.infinity":
-            return "-Double.infinity"
+            return "-%s.infinity" % s.scalar
     return tok
 
 
@@ -115,7 +114,7 @@ def wrap(items, ind, per=12):
 def swift_description(s, v):
     if s.scalar == "Bool":
         return "true" if v else "false"
-    if s.scalar == "Int":
+    if ref.is_int(s):
         return str(v)
     if v == ref.INF:
         return "inf"
@@ -250,6 +249,7 @@ def matrix_checks(n, mat, receiver, g, ind, idx, values):
     lines += [ind + "]",
               ind + "#expect((0 ..< %d).map { i in (0 ..< %d).map { %s.distance(from: i, to: $0)?.value } } == expected)" % (g.n, g.n, mat),
               ind + "#expect((0 ..< %d).map { i in (0 ..< %d).map { %s.distance(fromIndex: i, toIndex: $0)?.value } } == expected)" % (g.n, g.n, mat),
+              ind + "#expect((0 ..< %d).map { i in (0 ..< %d).map { %s.hasPath(from: i, to: $0) } } == expected.map { $0.map { $0 != nil } })" % (g.n, g.n, mat),
               ind + "// Every path: arcs of the graph from i to j, whose ⊗-product is the distance; nil where no path.",
               ind + "for i in 0 ..< %d {" % g.n,
               ind + "    for j in 0 ..< %d {" % g.n,
@@ -520,17 +520,28 @@ def algorithm_test(n):
 # ---------------------------------------------------------------------------------------------
 # Trap rows: the call in a child process, then the setup without the fault
 # ---------------------------------------------------------------------------------------------
+# Keyed by (semiring, operands): the setup without the fault, run in this process.
 WITHOUT = {
-    210: ["// One less: the largest finite sum, and a sum landing on Int.max is zero.",
+    ("TropicalSemiring<Int>", "a = Int.max - 3, b = 4"): ["// One less: the largest finite sum, and a sum landing on Int.max is zero.",
           "#expect((TropicalSemiring<Int>(Int.max - 3) ⊗ TropicalSemiring<Int>(2)).value == Int.max - 1)",
           "#expect((TropicalSemiring<Int>(Int.max - 3) ⊗ TropicalSemiring<Int>(3)) == .zero)"],
-    211: ["// One less: the most negative sum that fits.",
+    ("TropicalSemiring<Int>", "a = Int.min + 3, b = -4"): ["// One less: the most negative sum that fits.",
           "#expect((TropicalSemiring<Int>(Int.min + 3) ⊗ TropicalSemiring<Int>(-3)).value == Int.min)"],
-    214: ["// The largest sums that fit.",
+    ("CountingSemiring<Int>", "a = Int.max, b = 1"): ["// The largest sums that fit.",
           "#expect((CountingSemiring<Int>(Int.max) ⊕ CountingSemiring<Int>(0)).value == Int.max)",
           "#expect((CountingSemiring<Int>(Int.max - 1) ⊕ CountingSemiring<Int>(1)).value == Int.max)"],
-    215: ["// One less: the largest product that fits (SR-216).",
+    ("CountingSemiring<Int>", "a = 4294967296, b = 2147483648"): ["// One less: the largest product that fits.",
           "#expect((CountingSemiring<Int>(4294967296) ⊗ CountingSemiring<Int>(2147483647)).value == 9223372032559808512)"],
+    ("TropicalSemiring<Int8>", "a = Int8.max - 7, b = 8"): ["// One less lands on Int8.max: zero.",
+          "#expect((TropicalSemiring<Int8>(Int8.max - 7) ⊗ TropicalSemiring<Int8>(7)) == .zero)"],
+    ("TropicalSemiring<Int16>", "a = Int16.min + 1, b = -2"): ["// One less lands on Int16.min: −∞, which absorbs.",
+          "#expect((TropicalSemiring<Int16>(Int16.min + 1) ⊗ TropicalSemiring<Int16>(-1)).value == Int16.min)"],
+    ("TropicalSemiring<Int32>", "a = Int32.max - 1, b = 2"): ["// One less lands on Int32.max: zero.",
+          "#expect((TropicalSemiring<Int32>(Int32.max - 1) ⊗ TropicalSemiring<Int32>(1)) == .zero)"],
+    ("TropicalSemiring<UInt8>", "a = 200, b = 56"): ["// One less lands on UInt8.max: zero.",
+          "#expect((TropicalSemiring<UInt8>(200) ⊗ TropicalSemiring<UInt8>(55)) == .zero)"],
+    ("TropicalSemiring<UInt64>", "a = UInt64.max - 2, b = 3"): ["// One less lands on UInt64.max: zero.",
+          "#expect((TropicalSemiring<UInt64>(UInt64.max - 2) ⊗ TropicalSemiring<UInt64>(2)) == .zero)"],
 }
 
 
@@ -547,7 +558,7 @@ def trap_test(n):
         lines += operand_lines(n, "            ", ["a", "b"])
         lines.append("            _ = a.%s(b)" % ("times" if "⊗" in op(n) else "plus"))
         lines.append("        }")
-        lines += ["        " + l for l in WITHOUT[n]]
+        lines += ["        " + l for l in WITHOUT[(sname(n), inp(n))]]
         return lines + ["    }"]
     fn, args, wrapped = call_parts(n)
     glines, view, idx = graph_lines(n, "            ")
@@ -645,7 +656,18 @@ def phase2_test(n):
 # Files
 # ---------------------------------------------------------------------------------------------
 
+FLOAT16_GUARD = "#if !((os(macOS) || targetEnvironment(macCatalyst)) && arch(x86_64))"
+
+
 def test_for(n):
+    lines = test_body(n)
+    if "Float16" in sname(n):
+        # Float16 is unavailable on Intel Macs.
+        return ["    " + FLOAT16_GUARD] + lines + ["    #endif"]
+    return lines
+
+
+def test_body(n):
     if is_trap(n):
         return trap_test(n)
     g = group(n)
@@ -675,18 +697,23 @@ TRAPS = [n for n in range(1, P2) if is_trap(n)]
 ALGO = ("Dijkstra", "Bellman–Ford", "DAG", "DAG distances", "Floyd–Warshall")
 FILES = [
     ("SemiringTypeTests.swift", "Semirings: zero, one and the types", ids("Constants", "Not available"),
-     "The four semirings' constants (catalog SR-001 – SR-007): zero and one by value, their\n"
-     "// descriptions, zero worse than one by the natural order, and hashing; and the counting\n"
-     "// semiring, which is not selective, so only dagShortestDistances takes it (SR-324, SR-333)."),
+     "The four semirings' constants (catalog SR-001 – SR-007, and the other scalar families from\n"
+     f"// SR-{min(ids('Constants')[7:]):03d}): zero and one by value, their descriptions, zero worse than one by the\n"
+     "// natural order, and hashing; and the counting semiring, which is not selective, so only\n"
+     "// dagShortestDistances takes it (SR-%03d, SR-%03d)." % tuple(ids("Not available"))),
     ("SemiringLawTests.swift", "Semirings: laws and the natural order", ids("Laws", "Order"),
-     "The semiring laws on the catalog's operands (SR-008 – SR-207): ⊕ associative and commutative,\n"
-     "// zero its identity, ⊗ associative with identity one, zero annihilating, ⊗ distributing from\n"
-     "// both sides, ⊗ commutative (true of all four, not required); selectivity and idempotence; and\n"
-     "// the natural order, a < b when a ⊕ b == a != b, with zero the worst element."),
+     "The semiring laws on the catalog's operands (SR-008 – SR-207, and from "
+     f"SR-{min(n for n in ids('Laws') if n > 207):03d} one triple per\n"
+     "// other scalar: fixed-width integers, Float, Float16): ⊕ associative and commutative, zero its\n"
+     "// identity, ⊗ associative with identity one, zero annihilating, ⊗ distributing from both sides,\n"
+     "// ⊗ commutative (true of all four, not required); selectivity and idempotence; and the natural\n"
+     "// order, a < b when a ⊕ b == a != b, with zero the worst element."),
     ("SemiringArithmeticTests.swift", "Semirings: arithmetic at the edges", ids("Arithmetic"),
-     "Arithmetic at the edges of the scalars (SR-208 – SR-217, the trap rows are in\n"
-     "// SemiringPreconditionTests.swift): Int.max is the tropical zero and absorbs (Boost's\n"
-     "// closed_plus), infinity absorbs, min of extremes never overflows, Double counts round."),
+     "Arithmetic at the edges of the scalars (SR-208 – SR-217, and the other widths from "
+     f"SR-{min(n for n in ids('Arithmetic') if n > 217):03d};\n"
+     "// the trap rows are in SemiringPreconditionTests.swift): Int.max is the tropical zero and\n"
+     "// absorbs (Boost's closed_plus), infinity absorbs, min of extremes never overflows, Double counts\n"
+     "// round, and unsigned 0 is the bottleneck zero."),
     ("SemiringDijkstraTests.swift", "Semirings: Dijkstra over a selective semiring", ids("Dijkstra"),
      "Dijkstra over a selective semiring (catalog Dijkstra rows): shortest paths (tropical), widest\n"
      "// paths (bottleneck, with a cutoff meaning at least this wide) and reachability (Boolean); an\n"
@@ -706,8 +733,8 @@ FILES = [
     ("SemiringAgreementTests.swift", "Semirings: agreement with the W overloads and the references", ids("Agreement", "Overflow"),
      "Agreement rows: the semiring and W overloads give the same distances on the catalog's LCG\n"
      "// graphs; Boolean reachability is Traversal's descendants(of:); the bottleneck, Boolean and\n"
-     "// counting rows were checked by ref.py against brute force and NetworkX. And SR-274: an Int.max\n"
-     "// weight is the tropical zero, so it neither traps nor reaches."),
+     "// counting rows were checked by ref.py against brute force and NetworkX. And SR-%03d: an Int.max\n"
+     "// weight is the tropical zero, so it neither traps nor reaches." % ids("Overflow")[0]),
     ("SemiringPreconditionTests.swift", "Semirings: preconditions", TRAPS,
      "Preconditions (catalog trap rows): each trapping call runs in a child process (exit test). The\n"
      "// same setup then runs in this process without the fault, so the trap is the call's and not\n"
@@ -762,8 +789,8 @@ assert sorted(n for _, _, rows, _ in FILES for n in rows) == list(range(1, P2))
 phase2 = os.path.join(OUT, "SemiringPhase2Tests.swift")
 if PHASE2:
     k = write("SemiringPhase2Tests.swift", "Semirings: phase 2 (star, kleeneClosure, LogSemiring)", list(range(P2, N + 1)),
-              "Phase 2 (catalog SR-341 – SR-369): star on the closed semirings, Lehmann's kleeneClosure (−∞\n"
-              "// through a negative cycle) and LogSemiring. Written only with swiftgen.py --phase2.")
+              "Phase 2 (catalog SR-%03d – SR-%03d): star on the closed semirings, Lehmann's kleeneClosure (−∞\n"
+              "// through a negative cycle) and LogSemiring. Written only with swiftgen.py --phase2." % (P2, N))
     print("SemiringPhase2Tests.swift", k)
 elif os.path.exists(phase2):
     os.remove(phase2)

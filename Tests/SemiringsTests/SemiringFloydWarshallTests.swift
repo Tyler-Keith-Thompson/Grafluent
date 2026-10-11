@@ -29,6 +29,7 @@ struct SemiringFloydWarshallTests {
         ]
         #expect((0 ..< 5).map { i in (0 ..< 5).map { matrix.distance(from: i, to: $0)?.value } } == expected)
         #expect((0 ..< 5).map { i in (0 ..< 5).map { matrix.distance(fromIndex: i, toIndex: $0)?.value } } == expected)
+        #expect((0 ..< 5).map { i in (0 ..< 5).map { matrix.hasPath(from: i, to: $0) } } == expected.map { $0.map { $0 != nil } })
         // Every path: arcs of the graph from i to j, whose ⊗-product is the distance; nil where no path.
         for i in 0 ..< 5 {
             for j in 0 ..< 5 {
@@ -62,6 +63,7 @@ struct SemiringFloydWarshallTests {
         ]
         #expect((0 ..< 3).map { i in (0 ..< 3).map { matrix.distance(from: i, to: $0)?.value } } == expected)
         #expect((0 ..< 3).map { i in (0 ..< 3).map { matrix.distance(fromIndex: i, toIndex: $0)?.value } } == expected)
+        #expect((0 ..< 3).map { i in (0 ..< 3).map { matrix.hasPath(from: i, to: $0) } } == expected.map { $0.map { $0 != nil } })
         // Every path: arcs of the graph from i to j, whose ⊗-product is the distance; nil where no path.
         for i in 0 ..< 3 {
             for j in 0 ..< 3 {
@@ -96,6 +98,7 @@ struct SemiringFloydWarshallTests {
         ]
         #expect((0 ..< 4).map { i in (0 ..< 4).map { matrix.distance(from: i, to: $0)?.value } } == expected)
         #expect((0 ..< 4).map { i in (0 ..< 4).map { matrix.distance(fromIndex: i, toIndex: $0)?.value } } == expected)
+        #expect((0 ..< 4).map { i in (0 ..< 4).map { matrix.hasPath(from: i, to: $0) } } == expected.map { $0.map { $0 != nil } })
         // Every path: arcs of the graph from i to j, whose ⊗-product is the distance; nil where no path.
         for i in 0 ..< 4 {
             for j in 0 ..< 4 {
@@ -136,6 +139,7 @@ struct SemiringFloydWarshallTests {
         ]
         #expect((0 ..< 4).map { i in (0 ..< 4).map { matrix.distance(from: i, to: $0)?.value } } == expected)
         #expect((0 ..< 4).map { i in (0 ..< 4).map { matrix.distance(fromIndex: i, toIndex: $0)?.value } } == expected)
+        #expect((0 ..< 4).map { i in (0 ..< 4).map { matrix.hasPath(from: i, to: $0) } } == expected.map { $0.map { $0 != nil } })
         // Every path: arcs of the graph from i to j, whose ⊗-product is the distance; nil where no path.
         for i in 0 ..< 4 {
             for j in 0 ..< 4 {
@@ -179,6 +183,7 @@ struct SemiringFloydWarshallTests {
         ]
         #expect((0 ..< 5).map { i in (0 ..< 5).map { matrix.distance(from: i, to: $0)?.value } } == expected)
         #expect((0 ..< 5).map { i in (0 ..< 5).map { matrix.distance(fromIndex: i, toIndex: $0)?.value } } == expected)
+        #expect((0 ..< 5).map { i in (0 ..< 5).map { matrix.hasPath(from: i, to: $0) } } == expected.map { $0.map { $0 != nil } })
         // Every path: arcs of the graph from i to j, whose ⊗-product is the distance; nil where no path.
         for i in 0 ..< 5 {
             for j in 0 ..< 5 {
@@ -212,6 +217,7 @@ struct SemiringFloydWarshallTests {
         ]
         #expect((0 ..< 3).map { i in (0 ..< 3).map { matrix.distance(from: i, to: $0)?.value } } == expected)
         #expect((0 ..< 3).map { i in (0 ..< 3).map { matrix.distance(fromIndex: i, toIndex: $0)?.value } } == expected)
+        #expect((0 ..< 3).map { i in (0 ..< 3).map { matrix.hasPath(from: i, to: $0) } } == expected.map { $0.map { $0 != nil } })
         // Every path: arcs of the graph from i to j, whose ⊗-product is the distance; nil where no path.
         for i in 0 ..< 3 {
             for j in 0 ..< 3 {
@@ -246,6 +252,7 @@ struct SemiringFloydWarshallTests {
         ]
         #expect((0 ..< 4).map { i in (0 ..< 4).map { matrix.distance(from: i, to: $0)?.value } } == expected)
         #expect((0 ..< 4).map { i in (0 ..< 4).map { matrix.distance(fromIndex: i, toIndex: $0)?.value } } == expected)
+        #expect((0 ..< 4).map { i in (0 ..< 4).map { matrix.hasPath(from: i, to: $0) } } == expected.map { $0.map { $0 != nil } })
         // Every path: arcs of the graph from i to j, whose ⊗-product is the distance; nil where no path.
         for i in 0 ..< 4 {
             for j in 0 ..< 4 {
@@ -286,6 +293,7 @@ struct SemiringFloydWarshallTests {
         ]
         #expect((0 ..< 4).map { i in (0 ..< 4).map { matrix.distance(from: i, to: $0)?.value } } == expected)
         #expect((0 ..< 4).map { i in (0 ..< 4).map { matrix.distance(fromIndex: i, toIndex: $0)?.value } } == expected)
+        #expect((0 ..< 4).map { i in (0 ..< 4).map { matrix.hasPath(from: i, to: $0) } } == expected.map { $0.map { $0 != nil } })
         // Every path: arcs of the graph from i to j, whose ⊗-product is the distance; nil where no path.
         for i in 0 ..< 4 {
             for j in 0 ..< 4 {
@@ -329,6 +337,7 @@ struct SemiringFloydWarshallTests {
         ]
         #expect((0 ..< 5).map { i in (0 ..< 5).map { matrix.distance(from: i, to: $0)?.value } } == expected)
         #expect((0 ..< 5).map { i in (0 ..< 5).map { matrix.distance(fromIndex: i, toIndex: $0)?.value } } == expected)
+        #expect((0 ..< 5).map { i in (0 ..< 5).map { matrix.hasPath(from: i, to: $0) } } == expected.map { $0.map { $0 != nil } })
         // Every path: arcs of the graph from i to j, whose ⊗-product is the distance; nil where no path.
         for i in 0 ..< 5 {
             for j in 0 ..< 5 {
@@ -363,6 +372,7 @@ struct SemiringFloydWarshallTests {
         ]
         #expect((0 ..< 4).map { i in (0 ..< 4).map { matrix.distance(from: i, to: $0)?.value } } == expected)
         #expect((0 ..< 4).map { i in (0 ..< 4).map { matrix.distance(fromIndex: i, toIndex: $0)?.value } } == expected)
+        #expect((0 ..< 4).map { i in (0 ..< 4).map { matrix.hasPath(from: i, to: $0) } } == expected.map { $0.map { $0 != nil } })
         // Every path: arcs of the graph from i to j, whose ⊗-product is the distance; nil where no path.
         for i in 0 ..< 4 {
             for j in 0 ..< 4 {
@@ -394,6 +404,7 @@ struct SemiringFloydWarshallTests {
         ]
         #expect((0 ..< 4).map { i in (0 ..< 4).map { matrix.distance(from: i, to: $0)?.value } } == expected)
         #expect((0 ..< 4).map { i in (0 ..< 4).map { matrix.distance(fromIndex: i, toIndex: $0)?.value } } == expected)
+        #expect((0 ..< 4).map { i in (0 ..< 4).map { matrix.hasPath(from: i, to: $0) } } == expected.map { $0.map { $0 != nil } })
         // Every path: arcs of the graph from i to j, whose ⊗-product is the distance; nil where no path.
         for i in 0 ..< 4 {
             for j in 0 ..< 4 {
@@ -429,6 +440,7 @@ struct SemiringFloydWarshallTests {
         ]
         #expect((0 ..< 5).map { i in (0 ..< 5).map { matrix.distance(from: i, to: $0)?.value } } == expected)
         #expect((0 ..< 5).map { i in (0 ..< 5).map { matrix.distance(fromIndex: i, toIndex: $0)?.value } } == expected)
+        #expect((0 ..< 5).map { i in (0 ..< 5).map { matrix.hasPath(from: i, to: $0) } } == expected.map { $0.map { $0 != nil } })
         // Every path: arcs of the graph from i to j, whose ⊗-product is the distance; nil where no path.
         for i in 0 ..< 5 {
             for j in 0 ..< 5 {
@@ -463,6 +475,7 @@ struct SemiringFloydWarshallTests {
         ]
         #expect((0 ..< 4).map { i in (0 ..< 4).map { matrix.distance(from: i, to: $0)?.value } } == expected)
         #expect((0 ..< 4).map { i in (0 ..< 4).map { matrix.distance(fromIndex: i, toIndex: $0)?.value } } == expected)
+        #expect((0 ..< 4).map { i in (0 ..< 4).map { matrix.hasPath(from: i, to: $0) } } == expected.map { $0.map { $0 != nil } })
         // Every path: arcs of the graph from i to j, whose ⊗-product is the distance; nil where no path.
         for i in 0 ..< 4 {
             for j in 0 ..< 4 {
@@ -494,6 +507,7 @@ struct SemiringFloydWarshallTests {
         ]
         #expect((0 ..< 4).map { i in (0 ..< 4).map { matrix.distance(from: i, to: $0)?.value } } == expected)
         #expect((0 ..< 4).map { i in (0 ..< 4).map { matrix.distance(fromIndex: i, toIndex: $0)?.value } } == expected)
+        #expect((0 ..< 4).map { i in (0 ..< 4).map { matrix.hasPath(from: i, to: $0) } } == expected.map { $0.map { $0 != nil } })
         // Every path: arcs of the graph from i to j, whose ⊗-product is the distance; nil where no path.
         for i in 0 ..< 4 {
             for j in 0 ..< 4 {
@@ -530,6 +544,7 @@ struct SemiringFloydWarshallTests {
         ]
         #expect((0 ..< 6).map { i in (0 ..< 6).map { matrix.distance(from: i, to: $0)?.value } } == expected)
         #expect((0 ..< 6).map { i in (0 ..< 6).map { matrix.distance(fromIndex: i, toIndex: $0)?.value } } == expected)
+        #expect((0 ..< 6).map { i in (0 ..< 6).map { matrix.hasPath(from: i, to: $0) } } == expected.map { $0.map { $0 != nil } })
         // Every path: arcs of the graph from i to j, whose ⊗-product is the distance; nil where no path.
         for i in 0 ..< 6 {
             for j in 0 ..< 6 {
@@ -563,6 +578,7 @@ struct SemiringFloydWarshallTests {
         ]
         #expect((0 ..< 3).map { i in (0 ..< 3).map { matrix.distance(from: i, to: $0)?.value } } == expected)
         #expect((0 ..< 3).map { i in (0 ..< 3).map { matrix.distance(fromIndex: i, toIndex: $0)?.value } } == expected)
+        #expect((0 ..< 3).map { i in (0 ..< 3).map { matrix.hasPath(from: i, to: $0) } } == expected.map { $0.map { $0 != nil } })
         // Every path: arcs of the graph from i to j, whose ⊗-product is the distance; nil where no path.
         for i in 0 ..< 3 {
             for j in 0 ..< 3 {

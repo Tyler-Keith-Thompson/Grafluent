@@ -48,7 +48,8 @@ struct SemiringPropertyTests {
             #expect(!(S.zero < a) && (a < .zero || a == .zero), "zero is the worst: \(context)")
             #expect((a <= b) == (a.plus(b) == a) && (a > b) == (b < a), "Comparable's derived operators: \(context)")
         }
-        let tropicalInt = Gen.int(in: -60 ... 50).map { $0 < -50 ? Int.max : $0 }
+        // Int.max is the zero (+∞) and Int.min the absorbing −∞: +∞ absorbs first.
+        let tropicalInt = Gen.int(in: -70 ... 50).map { $0 < -60 ? Int.min : $0 < -50 ? Int.max : $0 }
         await propertyCheck(count: 500, input: tropicalInt, tropicalInt, tropicalInt) { a, b, c in
             check(TropicalSemiring(a), TropicalSemiring(b), TropicalSemiring(c))
             order(TropicalSemiring(a), TropicalSemiring(b), TropicalSemiring(c))

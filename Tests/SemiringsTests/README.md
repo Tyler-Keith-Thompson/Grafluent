@@ -40,7 +40,8 @@ DistanceMatrix: distance(from:to:), distance(fromIndex:toIndex:), path(from:to:)
 
 ## How values are pinned
 
-`swiftgen.py` writes one test per phase-1 catalog row (SR-001 – SR-340). It sits next to `ref.py`
+`swiftgen.py` writes one test per phase-1 catalog row (SR-001 – SR-429; SR-341 – SR-429 came from the review: −∞ in
+Bellman–Ford, the floating-point `W` Floyd–Warshall, and the other scalar widths). It sits next to `ref.py`
 and `cases.md` in [`Tests/Catalogs/Semirings/`](../Catalogs/Semirings/):
 
 ```
@@ -50,7 +51,7 @@ uv run --quiet --no-project --with networkx==3.7 --with scipy==1.18.1 --with num
 
 It first checks that `ref.py` reproduces `cases.md` byte for byte. `ref.py` recomputes every row and
 checks every algorithm row against NetworkX, scipy or brute force. With `--phase2` it also writes
-`SemiringPhase2Tests.swift` (SR-341 – SR-369: `star`, `kleeneClosure`, `LogSemiring`), which phase
+`SemiringPhase2Tests.swift` (SR-430 – SR-458: `star`, `kleeneClosure`, `LogSemiring`), which phase
 1 does not declare. Without the flag it removes that file.
 
 - **Laws.** The catalog's operands, `S(value)`. The law is written with `plus(_:)` and `times(_:)`,
@@ -96,7 +97,8 @@ parenthesize them.
 
 **Properties** (`SemiringPropertyTests.swift`, swift-property-based, with shrinking):
 
-- **Laws on random values of all seven instantiations.** The values include the infinities. The test
+- **Laws on random values of all seven instantiations.** The values include the infinities (and
+  `Int.min`, the tropical −∞). The test
   checks associativity, both identities, annihilation, distributivity on both sides and
   commutativity, in both spellings and with precedence. For the selective semirings it also checks
   selectivity, idempotence, the natural order against `plus`, trichotomy, transitivity, zero as the
@@ -121,6 +123,18 @@ overloads of Dijkstra (one source, several, a cutoff, the single-target search),
 Floyd–Warshall against the same call on `.directed` and against the numeric overloads, on a
 `Pseudograph` (native search) and an `UndirectedAdjacencyList<String>` (through the view); `nil`
 exactly when an edge better than one is reachable; and the same traps as the directed calls.
+
+**Review additions** (`SemiringReviewTests.swift`, hand-written, 6 tests): Floyd–Warshall over
+`Double` and `Float` reads `.infinity` (or a path rounding to it) as no edge, as in scipy, while
+an integer or generic `W` keeps every weight as an edge, also on undirected graphs;
+`DistanceMatrix.hasPath(from:to:)`; `BottleneckSemiring`'s order reversed from the values'
+(`.max()` is the narrowest); and −∞ ⊗ +∞ over `Double` is NaN (the carrier is ℝ ∪ {+∞}). The
+NaN-weight exit tests for every engine are in `extra_traps.swift`.
+
+**Sentinels** (`SemiringSentinelTests.swift`, hand-written, 4 tests): what the catalog leaves out.
+The unsigned bottleneck zero is 0, and `UInt.max` is the unsigned tropical zero and absorbs.
+`Int.min` is the tropical −∞ and absorbs every finite value, and the zero absorbs before it
+(`Int.max ⊗ Int.min` is the zero).
 
 ## Planted bugs
 

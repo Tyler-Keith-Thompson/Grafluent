@@ -78,7 +78,7 @@ extension _SemiringScalar where Self: BinaryFloatingPoint {
     public static var _semiringNegativeInfinity: Self { -.infinity }
 
     /// Plain `+`: IEEE 754 already makes `.infinity` absorb every finite value. `-.infinity +
-    /// .infinity` is NaN; −∞ is outside these semirings' values.
+    /// .infinity` is NaN; the tropical carrier is ℝ ∪ {+∞} (Mohri), without −∞.
     @inlinable
     @inline(__always)
     public static func _tropicalProduct(_ a: Self, _ b: Self) -> Self {

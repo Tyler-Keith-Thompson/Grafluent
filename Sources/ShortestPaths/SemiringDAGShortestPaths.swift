@@ -2,53 +2,91 @@ import DirectedAcyclicGraphModule
 import GraphProtocols
 import Semirings
 
-/// Paths in an acyclic graph over a semiring, relaxing each vertex's out-edges once in a
-/// topological order, as `_DAGShortestPaths`. With `accumulate` false it keeps the best candidate
-/// (a selective semiring, with parents); with `accumulate` true it ⊕-combines every candidate
-/// (Mohri's shortest distance, over any semiring, without parents).
+/// How `_SemiringDAGPaths` combines a candidate into a distance: a static policy, so the
+/// combination specializes into the loop (a stored closure measured 1.17–1.69× the `W` engine).
+@usableFromInline
+protocol _SemiringDAGCombine {
+    associatedtype W: Semiring
+
+    /// Whether the search keeps parents.
+    static var keepsParents: Bool { get }
+
+    /// Combines `candidate` into `distance`; `true` when the candidate replaced it, so its parent
+    /// changes.
+    static func combine(_ distance: inout W, _ candidate: W) -> Bool
+}
+
+/// Keep the better candidate, by the natural order (best paths, with parents).
 @frozen
 @usableFromInline
-struct _SemiringDAGPaths<G: DirectedGraph, W: Semiring>: _IndexSpaceAlgorithm {
+enum _KeepBest<W: SelectiveSemiring>: _SemiringDAGCombine {
+    @inlinable
+    static var keepsParents: Bool { true }
+
+    @inlinable
+    @inline(__always)
+    static func combine(_ distance: inout W, _ candidate: W) -> Bool {
+        guard candidate < distance else { return false }
+        distance = candidate
+        return true
+    }
+}
+
+/// ⊕-combine every candidate (Mohri's shortest distance, without parents).
+@frozen
+@usableFromInline
+enum _Accumulate<W: Semiring>: _SemiringDAGCombine {
+    @inlinable
+    static var keepsParents: Bool { false }
+
+    @inlinable
+    @inline(__always)
+    static func combine(_ distance: inout W, _ candidate: W) -> Bool {
+        distance = distance.plus(candidate)
+        return false
+    }
+}
+
+/// Paths in an acyclic graph over a semiring, relaxing each vertex's out-edges once in a
+/// topological order, as `_DAGShortestPaths`. `_KeepBest` keeps the best candidate (a selective
+/// semiring, with parents); `_Accumulate` ⊕-combines every candidate (Mohri's shortest distance,
+/// over any semiring, without parents).
+@frozen
+@usableFromInline
+struct _SemiringDAGPaths<G: DirectedGraph, Combine: _SemiringDAGCombine>: _IndexSpaceAlgorithm {
+    @usableFromInline typealias W = Combine.W
+
     @usableFromInline let sources: [Int]
     @usableFromInline let placeholder: G.Edges.Index
     /// A topological order of every index, or `nil` to sort the reachable ones here.
     @usableFromInline let order: [Int]?
-    /// Combine: `distance[v] = distance[v] ⊕ candidate` for every candidate, or (for a selective
-    /// `W`) keep the better through `better`.
-    @usableFromInline let better: ((W, W) -> Bool)?
 
     @inlinable
-    init(sources: [Int], placeholder: G.Edges.Index, order: [Int]?, better: ((W, W) -> Bool)?) {
+    init(sources: [Int], placeholder: G.Edges.Index, order: [Int]?) {
         self.sources = sources
         self.placeholder = placeholder
         self.order = order
-        self.better = better
     }
 
-    /// The search state (parents only when `better` is given), and whether the vertices the
+    /// The search state (parents only when `Combine` keeps them), and whether the vertices the
     /// sources reach have no cycle.
     @usableFromInline
     typealias Output = (distance: [W], parent: [Int], parentEdge: [G.Edges.Index], acyclic: Bool)
 
     @inlinable
     @inline(__always)
-    func relax(_ u: Int, _ distance: inout [W], _ parent: inout [Int], _ parentEdge: inout [G.Edges.Index], _ v: Int, _ e: G.Edges.Index, _ w: W) {
-        let candidate = distance[u].times(w)
-        if let better {
-            if better(candidate, distance[v]) {
-                distance[v] = candidate
-                parent[v] = u
-                parentEdge[v] = e
-            }
-        } else {
-            distance[v] = distance[v].plus(candidate)
+    func relax(_ u: Int, _ du: W, _ distance: inout [W], _ parent: inout [Int], _ parentEdge: inout [G.Edges.Index], _ v: Int, _ e: G.Edges.Index, _ w: W) {
+        precondition(w == w, "A weight is NaN")
+        if Combine.combine(&distance[v], du.times(w)) && Combine.keepsParents {
+            parent[v] = u
+            parentEdge[v] = e
         }
     }
 
     @inlinable
     func run<Arcs: IteratorProtocol>(count n: Int, _ arcs: (Int) -> Arcs, _ weight: (G.Edges.Index) -> W) -> Output where Arcs.Element == (Int, G.Edges.Index) {
         var distance = [W](repeating: .zero, count: n)
-        let paths = better != nil
+        let paths = Combine.keepsParents
         var parent = paths ? [Int](repeating: -2, count: n) : []
         var parentEdge = paths ? [G.Edges.Index](repeating: placeholder, count: n) : []
         for s in sources {
@@ -56,11 +94,13 @@ struct _SemiringDAGPaths<G: DirectedGraph, W: Semiring>: _IndexSpaceAlgorithm {
             if paths { parent[s] = -1 }
         }
         if let order {
-            // An index at `.zero` contributes nothing (zero annihilates, and is ⊕'s identity).
-            for u in order where distance[u] != .zero {
+            for u in order {
+                // An index at `.zero` contributes nothing (zero annihilates, and is ⊕'s identity).
+                let du = distance[u]
+                if du == .zero { continue }
                 var out = arcs(u)
                 while let (v, e) = out.next() {
-                    relax(u, &distance, &parent, &parentEdge, v, e, weight(e))
+                    relax(u, du, &distance, &parent, &parentEdge, v, e, weight(e))
                 }
             }
             return (distance, parent, parentEdge, true)
@@ -93,10 +133,11 @@ struct _SemiringDAGPaths<G: DirectedGraph, W: Semiring>: _IndexSpaceAlgorithm {
         while next < queue.count {
             let u = queue[next]
             next += 1
-            let live = distance[u] != .zero
+            let du = distance[u]
+            let live = du != .zero
             var out = arcs(u)
             while let (v, e) = out.next() {
-                if live { relax(u, &distance, &parent, &parentEdge, v, e, weight(e)) }
+                if live { relax(u, du, &distance, &parent, &parentEdge, v, e, weight(e)) }
                 indegree[v] -= 1
                 if indegree[v] == 0 { queue.append(v) }
             }
@@ -172,7 +213,8 @@ extension DirectedGraph {
     /// vertex is reached exactly when its distance is not `.zero`. O(n + m) over the reachable
     /// part.
     ///
-    /// - Precondition: `source` is a vertex; every ⊗ succeeds. There is no NaN check.
+    /// - Precondition: `source` is a vertex; no examined weight is NaN (`w == w`); every ⊗
+    ///   succeeds.
     @inlinable
     public func dagShortestPaths<S: SelectiveSemiring>(
         from source: Vertex, weight: (Edges.Index) -> S
@@ -190,7 +232,7 @@ extension DirectedGraph {
     ) -> ShortestPathTree<Self, S>? {
         let ids = _numberedVertices()
         let (indices, listed) = _sourceIndices(sources, ids)
-        let result = _runInIndexSpace(_SemiringDAGPaths<Self, S>(sources: indices, placeholder: edges.endIndex, order: nil, better: { $0 < $1 }), ids, weight: weight)
+        let result = _runInIndexSpace(_SemiringDAGPaths<Self, _KeepBest<S>>(sources: indices, placeholder: edges.endIndex, order: nil), ids, weight: weight)
         guard result.acyclic else { return nil }
         return ShortestPathTree(ids: ids, distance: result.distance, parent: result.parent, parentEdge: result.parentEdge, sources: listed)
     }
@@ -206,7 +248,7 @@ extension DirectedGraph {
     ///     graph.dagShortestDistances(from: s) { _ in CountingSemiring(1) }
     ///
     /// - Precondition: `source` is a vertex; every ⊕ and ⊗ succeeds (`CountingSemiring<Int>` and
-    ///   tropical `Int` trap on overflow). There is no NaN check.
+    ///   tropical `Int` trap on overflow); no examined weight is NaN (`w == w`).
     @inlinable
     public func dagShortestDistances<S: Semiring>(
         from source: Vertex, weight: (Edges.Index) -> S
@@ -225,7 +267,7 @@ extension DirectedGraph {
     ) -> ShortestDistances<Self, S>? {
         let ids = _numberedVertices()
         let (indices, listed) = _distinctSourceIndices(sources, ids)
-        let result = _runInIndexSpace(_SemiringDAGPaths<Self, S>(sources: indices, placeholder: edges.endIndex, order: nil, better: nil), ids, weight: weight)
+        let result = _runInIndexSpace(_SemiringDAGPaths<Self, _Accumulate<S>>(sources: indices, placeholder: edges.endIndex, order: nil), ids, weight: weight)
         guard result.acyclic else { return nil }
         return ShortestDistances(ids: ids, distance: result.distance, sources: listed)
     }
@@ -262,7 +304,7 @@ extension DirectedAcyclicGraph {
     ) -> ShortestPathTree<Self, S> {
         let ids = _numberedVertices()
         let (indices, listed) = _sourceIndices(sources, ids)
-        let result = _runInIndexSpace(_SemiringDAGPaths<Self, S>(sources: indices, placeholder: edges.endIndex, order: _semiringOrder(ids), better: { $0 < $1 }), ids, weight: weight)
+        let result = _runInIndexSpace(_SemiringDAGPaths<Self, _KeepBest<S>>(sources: indices, placeholder: edges.endIndex, order: _semiringOrder(ids)), ids, weight: weight)
         return ShortestPathTree(ids: ids, distance: result.distance, parent: result.parent, parentEdge: result.parentEdge, sources: listed)
     }
 
@@ -287,7 +329,7 @@ extension DirectedAcyclicGraph {
     ) -> ShortestDistances<Self, S> {
         let ids = _numberedVertices()
         let (indices, listed) = _distinctSourceIndices(sources, ids)
-        let result = _runInIndexSpace(_SemiringDAGPaths<Self, S>(sources: indices, placeholder: edges.endIndex, order: _semiringOrder(ids), better: nil), ids, weight: weight)
+        let result = _runInIndexSpace(_SemiringDAGPaths<Self, _Accumulate<S>>(sources: indices, placeholder: edges.endIndex, order: _semiringOrder(ids)), ids, weight: weight)
         return ShortestDistances(ids: ids, distance: result.distance, sources: listed)
     }
 }

@@ -7,7 +7,7 @@ its existing entry points plus one new name. Phase 2 adds `ClosedSemiring` (Klee
 `kleeneClosure(weight:)` (Lehmann's algebraic path problem), `LogSemiring`, and Mohri's generic
 single-source algorithm for graphs with cycles.
 
-`cases.md` (SR-001 – SR-369, 369 rows; SR-341 – SR-369 are phase 2) pins the values. `ref.py`
+`cases.md` (SR-001 – SR-458, 458 rows; SR-430 – SR-458 are phase 2; SR-341 – SR-429 were added in the review) pins the values. `ref.py`
 computes every row from the definitions below with Swift's `Int` (trapping) and `Double`
 arithmetic. It recomputes every algorithm row another way: tropical rows against NetworkX 3.7 and
 scipy 1.18.1 (`shortest_path` 'D', 'BF' and 'FW', `NegativeCycleError`, `floyd_warshall`,
@@ -27,19 +27,19 @@ against its definition, and 3,500 random law triples. Run (about 2 s with `--str
 | Entry point | Semiring | Why |
 |---|---|---|
 | `dijkstraShortestPaths(from:cutoff:weight:)` (one source, several), `dijkstraShortestPath(from:to:weight:)` | `S: SelectiveSemiring`, no weight better than `.one` | Dijkstra is correct exactly when ⊕ picks one operand (a total natural order) and extending a path never improves it (Knuth's superior functions, 1977; Mohri 2002 §4; Gondran–Minoux ch. 4). Tropical gives shortest paths. Bottleneck gives **widest paths** (igraph `widest_path_widths_dijkstra`, Pollack's maximum-capacity route), and its cutoff means "at least this wide". Boolean gives reachability. |
-| `bellmanFordShortestPaths(from:weight:)` (one, several) | `S: SelectiveSemiring` | LEMON's weak rounds; `nil` when a cycle whose weight is better than `.one` is reachable. That cycle is negative in the tropical semiring, and it cannot exist in the bottleneck or Boolean ones (SR-283: the tropical rows' negative cycle is harmless there). `findNegativeCycle` keeps its `W` overloads only, since only the tropical semiring has such cycles. |
+| `bellmanFordShortestPaths(from:weight:)` (one, several) | `S: SelectiveSemiring` | LEMON's weak rounds; `nil` when a cycle whose weight is better than `.one` is reachable, also when saturated distances hide it: a −∞ distance (`Int.min`, `-.infinity`) cannot improve, so after the rounds a check on the subgraph of −∞ distances finds a cycle through a −∞ weight (strongly connected components) or a negative cycle of finite weights there (weak rounds); free unless some distance is −∞ (SR-341 – SR-352, and `ref.py --stress` against the definition). That cycle is negative in the tropical semiring, and it cannot exist in the bottleneck or Boolean ones (SR-283: the tropical rows' negative cycle is harmless there). `findNegativeCycle` keeps its `W` overloads only, since only the tropical semiring has such cycles. |
 | `dagShortestPaths(from:weight:)` on `DirectedGraph` (optional) and `DirectedAcyclicGraph` | `S: SelectiveSemiring` | Boost's `dag_shortest_paths` over any selective semiring: widest paths in a DAG, reachability. |
 | `dagShortestDistances(from:weight:)` → `ShortestDistances<Self, S>` (optional on `DirectedGraph`, not on `DirectedAcyclicGraph`) | `S: Semiring` | Mohri's shortest distance: ⊕ over **every** path of the ⊗ of its weights, in topological order. Over `CountingSemiring` it is **path counting** (with weights, weighted path sums). It needs no idempotence, so it is the one entry point that takes `CountingSemiring`. |
-| `floydWarshallShortestPaths(weight:)` → `DistanceMatrix<Self, D>?`, with both the existing `W: Comparable & AdditiveArithmetic` overload and the `S: SelectiveSemiring` one | either | README already plans Floyd–Warshall and `DistanceMatrix`. Over a selective semiring it is the all-pairs case of the algebraic path problem: all-pairs widest paths, and over `BooleanSemiring` **Warshall's transitive closure** (reflexive: the diagonal is `.one`, the empty path; NetworkX `transitive_closure(reflexive=True)`). `nil` when a diagonal entry ends better than `.one` (scipy's `NegativeCycleError`, NetworkX's negative diagonal). |
+| `floydWarshallShortestPaths(weight:)` → `DistanceMatrix<Self, D>?`, with both the existing `W: Comparable & AdditiveArithmetic` overload and the `S: SelectiveSemiring` one | either | README already plans Floyd–Warshall and `DistanceMatrix`. Over a selective semiring it is the all-pairs case of the algebraic path problem: all-pairs widest paths, and over `BooleanSemiring` **Warshall's transitive closure** (reflexive: the diagonal is `.one`, the empty path; NetworkX `transitive_closure(reflexive=True)`). `nil` when a diagonal entry ends better than `.one` (scipy's `NegativeCycleError`, NetworkX's negative diagonal). A third overload, `W: _SemiringScalar & BinaryFloatingPoint`, runs the tropical loop for `Double`, `Float` and `Float16` (1.6× faster than the reached-flag loop), where a weight of +∞, or a path rounding to +∞, is no edge, as in scipy; integers and other `W` keep the reached flag (SR-353, SR-354). |
 | Undirected graphs | | Overloads on `Graph` mirroring the `W` ones in `Undirected.swift`: `dijkstraShortestPaths` (one source, several), `dijkstraShortestPath`, `bellmanFordShortestPaths` (one, several), and `floydWarshallShortestPaths` with both its `W` and `S` overloads. Each runs over `directed` (SR-220 and SR-239 call it directly), and Dijkstra walks the graph's own rows when it has vertex indices. A reachable edge better than `.one` is a 2-cycle better than `.one` (w ⊗ w ⊑ w < 1̄), so Bellman–Ford returns `nil` after one O(V + E) pass, as a negative edge does in the `W` overload. Tests: `SemiringUndirectedTests.swift`, written by hand. |
 
-**Phase 2** (rows pinned now, SR-341 – SR-369)
+**Phase 2** (rows pinned now, SR-430 – SR-458)
 
 | Entry point | Why |
 |---|---|
 | `ClosedSemiring` (`star`), conformances for the tropical, bottleneck and Boolean semirings | Lehmann 1977: a closed semiring has a\* = 1̄ ⊕ a ⊕ a² ⊕ … . Tropical: a\* = 0 when a ≥ 0, else −∞; bottleneck: +∞; Boolean: `true`. `CountingSemiring<Int>` is not closed (1\* is infinite) and does not conform. |
-| `kleeneClosure(weight:)` → `DistanceMatrix<Self, S>` (`S: ClosedSemiring`) | The algebraic path problem on graphs with any cycles (Lehmann; Rote 1990), Floyd–Warshall with d_kk\* in the middle. Tropical with negative cycles gives −∞ through them (SR-354), where Floyd–Warshall returns `nil`. |
-| `LogSemiring<Value: BinaryFloatingPoint>` | Mohri's log semiring (⊕ = −log(e^−a + e^−b), ⊗ = +): path probabilities with `dagShortestDistances` (SR-369). Needs `log`/`exp` on a generic floating type, so it waits for a decision on swift-numerics `Real`, a new dependency. |
+| `kleeneClosure(weight:)` → `DistanceMatrix<Self, S>` (`S: ClosedSemiring`) | The algebraic path problem on graphs with any cycles (Lehmann; Rote 1990), Floyd–Warshall with d_kk\* in the middle. Tropical with negative cycles gives −∞ through them (SR-443), where Floyd–Warshall returns `nil`. The loop must skip ⊗ when a factor is 0̄ (as `ref.py`'s `kleene` does): over `Double`, −∞ ⊗ +∞ is NaN, since the carrier is ℝ ∪ {+∞} (D4). |
+| `LogSemiring<Value: BinaryFloatingPoint>` | Mohri's log semiring (⊕ = −log(e^−a + e^−b), ⊗ = +): path probabilities with `dagShortestDistances` (SR-458). Semirings.jl's `LogSemiring` uses the opposite sign convention (⊕ = log(e^a + e^b), over log-probabilities rather than their negatives); the doc comment must state Mohri's. Needs `log`/`exp` on a generic floating type, so it waits for a decision on swift-numerics `Real`, a new dependency. |
 | `shortestDistances(from:weight:)` on graphs with cycles | Mohri's generic single-source algorithm over k-closed semirings (a queue, ⊕-accumulated residuals). Phase 1 has no type that needs it: the selective ones go through Bellman–Ford, and counting on a cyclic graph diverges. |
 
 **Not planned, or later**
@@ -112,6 +112,7 @@ extension DirectedGraph {
     public func dagShortestDistances<S: Semiring>(from source: Vertex, weight: (Edges.Index) -> S) -> ShortestDistances<Self, S>?
     public func dagShortestDistances<S: Semiring>(from sources: some Sequence<Vertex>, weight: (Edges.Index) -> S) -> ShortestDistances<Self, S>?
     public func floydWarshallShortestPaths<W: Comparable & AdditiveArithmetic>(weight: (Edges.Index) -> W) -> DistanceMatrix<Self, W>?
+    public func floydWarshallShortestPaths<W: _SemiringScalar & BinaryFloatingPoint>(weight: (Edges.Index) -> W) -> DistanceMatrix<Self, W>?   // +∞ is no edge
     public func floydWarshallShortestPaths<S: SelectiveSemiring>(weight: (Edges.Index) -> S) -> DistanceMatrix<Self, S>?
     // Phase 2
     public func kleeneClosure<S: ClosedSemiring>(weight: (Edges.Index) -> S) -> DistanceMatrix<Self, S>
@@ -121,6 +122,7 @@ extension Graph {   // through `directed`, as the W overloads in Undirected.swif
     public func dijkstraShortestPath<S: SelectiveSemiring>(from: Vertex, to: Vertex, weight: (Edges.Index) -> S) -> (path: Path<Vertex, DirectedView<Self>.Edges.Index>, distance: S)?
     public func bellmanFordShortestPaths<S: SelectiveSemiring>(from: Vertex / some Sequence<Vertex>, weight: (Edges.Index) -> S) -> ShortestPathTree<DirectedView<Self>, S>?
     public func floydWarshallShortestPaths<W: Comparable & AdditiveArithmetic>(weight: (Edges.Index) -> W) -> DistanceMatrix<DirectedView<Self>, W>?
+    public func floydWarshallShortestPaths<W: _SemiringScalar & BinaryFloatingPoint>(weight: (Edges.Index) -> W) -> DistanceMatrix<DirectedView<Self>, W>?
     public func floydWarshallShortestPaths<S: SelectiveSemiring>(weight: (Edges.Index) -> S) -> DistanceMatrix<DirectedView<Self>, S>?
 }
 extension DirectedAcyclicGraph {
@@ -136,6 +138,7 @@ public struct ShortestDistances<G: DirectedGraph, Distance> {
 }
 public struct DistanceMatrix<G: DirectedGraph, Distance> {
     public func distance(from: G.Vertex, to: G.Vertex) -> Distance?          // nil where no path
+    public func hasPath(from: G.Vertex, to: G.Vertex) -> Bool
     public func path(from: G.Vertex, to: G.Vertex) -> Path<G.Vertex, G.Edges.Index>?   // not for kleeneClosure
     public func distance(fromIndex: Int, toIndex: Int) -> Distance?
 }
@@ -155,11 +158,11 @@ Usage: `g.dijkstraShortestPaths(from: s) { BottleneckSemiring(capacity[$0]) }` (
 | Grafluent | Used by | Not chosen, and why |
 |---|---|---|
 | `Semiring`, `zero`, `one` | Mohri 2002 (0̄, 1̄), Haskell `semirings` (`zero`, `one`), Julia Semirings.jl (`zero`, `one`), GraphBLAS (the add monoid's identity) | `additiveIdentity` / `multiplicativeIdentity`: longer, and Swift already says `zero` for an additive identity. No semiring type conforms to `AdditiveArithmetic` or `Numeric`, so the two `zero`s never meet (a tropical `zero` is +∞). |
-| `plus(_:)`, `times(_:)`, and the operators `⊕`, `⊗` | Haskell `semirings` (`Data.Semiring`: `plus`, `times`, `zero`, `one`); the operators after Mohri, Gondran–Minoux, Lehmann, Julia Semirings.jl (`⊕`, `⊗`) and README's own wording | Operators only: `⊕` and `⊗` are hard to type, so the requirements are the named methods and the operators are defined once, in an extension, by calling them (Haskell likewise defines `+` and `*` from `plus` and `times`). Not `+`/`*` themselves: `+` on a tropical value that computes `min` misleads, and `TropicalSemiring` must not look like a number. `add`/`multiply` (no library uses them for semirings). One risk: another module declaring `⊕` with another precedence makes a call site that imports both ambiguous; the methods are never ambiguous. A second reason to prefer the methods: Swift Testing's `#expect` folds its expression without these operators' precedences, so `#expect(a ⊕ b == c)` does not type-check, while `#expect(a.plus(b) == c)` does (the tests compute operator expressions outside the macro). The `Semiring` doc comment says so. |
+| `plus(_:)`, `times(_:)`, and the operators `⊕`, `⊗` | Haskell `semirings` (`Data.Semiring`: `plus`, `times`, `zero`, `one`); the operators after Mohri, Gondran–Minoux, Lehmann and README's own wording (Julia Semirings.jl spells them `+` and `*`) | Operators only: `⊕` and `⊗` are hard to type, so the requirements are the named methods and the operators are defined once, in an extension, by calling them (Haskell likewise defines `+` and `*` from `plus` and `times`). Not `+`/`*` themselves: `+` on a tropical value that computes `min` misleads, and `TropicalSemiring` must not look like a number. `add`/`multiply` (no library uses them for semirings). One risk: another module declaring `⊕` with another precedence makes a call site that imports both ambiguous; the methods are never ambiguous. A second reason to prefer the methods: Swift Testing's `#expect` folds its expression without these operators' precedences, so `#expect(a ⊕ b == c)` does not type-check, while `#expect(a.plus(b) == c)` does (the tests compute operator expressions outside the macro). The `Semiring` doc comment says so. |
 | `SelectiveSemiring` | Gondran–Minoux, *Graphs, Dioids and Semirings* (2008), "selective dioid": a ⊕ b ∈ {a, b} | `OrderedSemiring` (a different notion in the literature: an order compatible with both operations), `TotallyOrderedSemiring`, `DijkstraSemiring`. |
 | `<` as the natural order | Mohri's natural order (a ⊑ b iff a ⊕ b = a), Gondran–Minoux's canonical order | Comparing raw values. Bottleneck and Boolean then read reversed (`BottleneckSemiring(9) < BottleneckSemiring(2)`, `true < false`), but `<` means "better" in every selective semiring, so Dijkstra's queue, its cutoff and the "better than one" check are one code path. The raw value is `.value`. |
 | `ClosedSemiring`, `star` | Lehmann 1977 "closed semiring", Haskell `Star` class (`star`), Kleene algebra | `asteroid`, `closure` (the matrix operation is the closure, the element operation the star). |
-| `TropicalSemiring` = (min, +) | Mohri, Pin ("tropical semiring" = min-plus), GraphBLAS `GrB_MIN_PLUS_SEMIRING_*`, Semirings.jl `TropicalSemiring` | `MinPlusSemiring` (GraphBLAS's spelling, longer). TropicalNumbers.jl uses max-plus for "tropical": the doc comment states min-plus. |
+| `TropicalSemiring` = (min, +) | Mohri, Pin ("tropical semiring" = min-plus), GraphBLAS `GrB_MIN_PLUS_SEMIRING_*`, TropicalNumbers.jl `TropicalMinPlus` | `MinPlusSemiring` (GraphBLAS's spelling, longer). Semirings.jl's `TropicalSemiring` and TropicalNumbers.jl's plain `Tropical` are max-plus: the doc comment states min-plus. |
 | `BottleneckSemiring` = (max, min) | Gondran–Minoux, "bottleneck" / maximum-capacity path problem, GraphBLAS `GrB_MAX_MIN_SEMIRING_*` | `WidestPathSemiring`, `MaxMinSemiring`. |
 | `BooleanSemiring` | Mohri, GraphBLAS `GrB_LOR_LAND_SEMIRING_BOOL`, Semirings.jl `BoolSemiring` | |
 | `CountingSemiring` | Green, Karvounarakis, Tannen 2007 (the counting semiring ℕ); Haskell `semirings` has it as the numeric instance | `ProbabilitySemiring` (Mohri; a probability is a `CountingSemiring<Double>`, same operations), `PlusTimesSemiring` (GraphBLAS). |
@@ -209,14 +212,20 @@ in Boost (SR-209). After the `Int.max` check, either operand `Int.min` (−∞) 
 returns −∞) composes without overflow, and a path whose finite sum lands exactly on `Int.min`
 stays there (the precondition tests' `bellmanFordShortestPaths` row reaching `Int.min`). Unsigned
 integers have no −∞ sentinel (`.min` is 0, the tropical one) and check only `.max`. On floating
-point, the product is plain `+`, since IEEE already makes ∞ absorbing. −∞ (and NaN) are outside
-phase 1's laws: −∞ + ∞ is NaN, where `ref.py`'s `trop_times_double` returns ∞; phase 2 must
-settle that before `star` produces −∞ over `Double`.
+point, the product is plain `+`, since IEEE already makes ∞ absorbing: the carrier is Mohri's
+ℝ ∪ {+∞}, and −∞ ⊗ +∞ is NaN, not 0̄. `ref.py`'s `trop_times_double` is plain `+` too, so the
+catalog pins nothing Swift does not produce. The lawful product (checking for +∞ first) cost
+1.4–2.2× in Floyd–Warshall, and no engine can observe the NaN: each skips a 0̄ distance, and a NaN
+candidate never relaxes. Phase 2's `kleeneClosure` must skip ⊗ when a factor is 0̄.
 
-**There is no generic NaN check.** The semiring engines never compare a value with itself:
-`TropicalSemiring(.nan)` compares false with everything, so it is never better than `.one`
-(Dijkstra does not trap) and never better than a distance (it never relaxes). The `W` overloads
-keep their NaN preconditions, and the `W` Floyd–Warshall checks each weight.
+On unsigned integers `BottleneckSemiring.zero` is `0` (`.min`), so an edge of capacity 0 carries
+no path (SR-355). `BottleneckSemiring`'s `Comparable` is the natural order, the reverse of the
+values': `.max()` of some widths is the narrowest.
+
+**Each engine checks each examined weight for NaN** (`precondition(w == w)`), as the `W` engines
+do, and Dijkstra its cutoff; without it a NaN weight was silently dropped (tropical) or read as
++∞ (bottleneck, whose `min` keeps the other operand), and the engines disagreed. The check costs
+nothing measurable (SemiringsBenchmarks).
 
 **Integer sentinels are spelled `.infinity`.** Inside the library, `FixedWidthInteger` has a
 `package` (not `public`) `static var infinity: Self { .max }`, and signed integers a

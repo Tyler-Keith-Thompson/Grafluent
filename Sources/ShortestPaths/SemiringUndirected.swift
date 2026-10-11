@@ -14,6 +14,7 @@ extension Graph {
         sources: some Sequence<Vertex>, target: Vertex?, cutoff: S?, weight: (Edges.Index) -> S
     ) -> ShortestPathTree<DirectedView<Self>, S>? {
         guard vertexIndexBound != nil else { return nil }
+        precondition(cutoff.map { $0 == $0 } ?? true, "The cutoff is NaN")
         let view = directed
         let ids = view._numberedVertices()
         let (indices, listed) = view._sourceIndices(sources, ids)
@@ -105,6 +106,15 @@ extension Graph {
     /// any edge is negative, since it is a negative 2-cycle.
     @inlinable
     public func floydWarshallShortestPaths<W: Comparable & AdditiveArithmetic>(
+        weight: (Edges.Index) -> W
+    ) -> DistanceMatrix<DirectedView<Self>, W>? {
+        directed.floydWarshallShortestPaths { weight($0.position) }
+    }
+
+    /// `directed.floydWarshallShortestPaths(weight:)` over binary floating point, weighing each arc
+    /// by its edge: a weight of `.infinity` means "no edge"; `nil` when any edge is negative.
+    @inlinable
+    public func floydWarshallShortestPaths<W: _SemiringScalar & BinaryFloatingPoint>(
         weight: (Edges.Index) -> W
     ) -> DistanceMatrix<DirectedView<Self>, W>? {
         directed.floydWarshallShortestPaths { weight($0.position) }

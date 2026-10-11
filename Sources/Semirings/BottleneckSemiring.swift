@@ -3,8 +3,13 @@
 ///
 /// `zero` is −∞ (`Int.min`, `-.infinity`), `one` is +∞ (`Int.max`, `.infinity`), ⊕ is `max` and
 /// ⊗ is `min`, so neither ever overflows. `<` is the natural order, "wider": `BottleneckSemiring(9) <
-/// BottleneckSemiring(2)`. A path's value is its narrowest edge, and a weight of −∞ carries no
-/// path. No operation checks for NaN.
+/// BottleneckSemiring(2)`, so the order is the reverse of the values': `[a, b].max()` is the
+/// narrower and `.min()` the wider. A path's value is its narrowest edge, and a weight equal to
+/// `zero` carries no path. No operation checks for NaN; the ShortestPaths entry points trap on a
+/// NaN weight.
+///
+/// On unsigned integers `zero` is `0` (`Value.min`), so an edge of capacity 0 carries no path, as
+/// −∞ does for signed integers and floating point.
 ///
 ///     graph.dijkstraShortestPaths(from: s) { BottleneckSemiring(capacity[$0]) }
 ///
@@ -21,7 +26,7 @@ public struct BottleneckSemiring<Value: _SemiringScalar>: SelectiveSemiring, Has
         self.value = value
     }
 
-    /// −∞: `Value.min` for integers, `-.infinity` for floating point.
+    /// −∞: `Value.min` for integers (`0` for unsigned ones), `-.infinity` for floating point.
     @inlinable
     public static var zero: Self { Self(Value._semiringNegativeInfinity) }
 
@@ -43,7 +48,7 @@ public struct BottleneckSemiring<Value: _SemiringScalar>: SelectiveSemiring, Has
         other.value < value ? other : self
     }
 
-    /// Whether `lhs` is wider.
+    /// Whether `lhs` is wider: the reverse of the values' order.
     @inlinable
     @inline(__always)
     public static func < (lhs: Self, rhs: Self) -> Bool {

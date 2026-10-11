@@ -1,4 +1,4 @@
-# Semirings: case catalog (SR-001 – SR-369, 369 rows)
+# Semirings: case catalog (SR-001 – SR-458, 458 rows)
 
 Generated and checked by `ref.py` (`uv run --quiet --no-project --with networkx==3.7 --with
 scipy==1.18.1 --with numpy==2.3.4 python3 Tests/Catalogs/Semirings/ref.py`; `--write` regenerates
@@ -10,7 +10,7 @@ NetworkX 3.7 and scipy 1.18.1 (`shortest_path` 'D', 'BF', 'FW', `NegativeCycleEr
 `floyd_warshall`, `negative_edge_cycle`), bottleneck and Boolean rows against brute force over
 simple paths (and NetworkX `descendants`, `transitive_closure(reflexive=True)`), counting rows
 against NetworkX `all_simple_edge_paths` (closed forms 2^k and C(r+c−2, r−1) for the big ones).
-Law rows evaluate both sides; the model asserts they are equal. Rows SR-341 – SR-369
+Law rows evaluate both sides; the model asserts they are equal. Rows SR-430 – SR-458
 are phase 2.
 
 ## Notation
@@ -384,34 +384,123 @@ preconditions; "does not compile" rows are type checks (a `#if false` snippet, o
 | SR-338 | Agreement | against NetworkX all_simple_edge_paths | `CountingSemiring<Int>` | `D[10]: dlcg(10,25,11;1..3)` | `dagShortestDistances(from: 0)` | [1, 2, 4, 19, 40, 80, 46, 436, 189, 1044] |
 | SR-339 | Agreement | against NetworkX all_simple_edge_paths | `CountingSemiring<Int>` | `D[10]: dlcg(10,25,12;1..3)` | `dagShortestDistances(from: 0)` | [1, 0, 0, 0, 0, 1, 0, 5, 16, 49] |
 | SR-340 | Agreement | against NetworkX all_simple_edge_paths | `CountingSemiring<Int>` | `D[10]: dlcg(10,25,13;1..3)` | `dagShortestDistances(from: 0)` | [1, 2, 0, 2, 9, 6, 27, 91, 64, 198] |
-| SR-341 | Phase 2: star | a.star (Lehmann) | `TropicalSemiring<Int>` | `a = 5` | `a.star` | 0 |
-| SR-342 | Phase 2: star | a.star (Lehmann) | `TropicalSemiring<Int>` | `a = 0` | `a.star` | 0 |
-| SR-343 | Phase 2: star | a.star (Lehmann) | `TropicalSemiring<Int>` | `a = -1` | `a.star` | Int.min |
-| SR-344 | Phase 2: star | a.star (Lehmann) | `TropicalSemiring<Int>` | `a = Int.max` | `a.star` | 0 |
-| SR-345 | Phase 2: star | a.star (Lehmann) | `TropicalSemiring<Double>` | `a = 2.5` | `a.star` | 0.0 |
-| SR-346 | Phase 2: star | a.star (Lehmann) | `TropicalSemiring<Double>` | `a = 0.0` | `a.star` | 0.0 |
-| SR-347 | Phase 2: star | a.star (Lehmann) | `TropicalSemiring<Double>` | `a = -0.5` | `a.star` | -.infinity |
-| SR-348 | Phase 2: star | a.star (Lehmann) | `TropicalSemiring<Double>` | `a = .infinity` | `a.star` | 0.0 |
-| SR-349 | Phase 2: star | a.star (Lehmann) | `BottleneckSemiring<Int>` | `a = 5` | `a.star` | Int.max |
-| SR-350 | Phase 2: star | a.star (Lehmann) | `BottleneckSemiring<Int>` | `a = Int.min` | `a.star` | Int.max |
-| SR-351 | Phase 2: star | a.star (Lehmann) | `BooleanSemiring` | `a = true` | `a.star` | true |
-| SR-352 | Phase 2: star | a.star (Lehmann) | `BooleanSemiring` | `a = false` | `a.star` | true |
-| SR-353 | Phase 2: Kleene closure | no negative cycle: Floyd–Warshall's matrix | `TropicalSemiring<Int>` | `D[5]: 0>1:4, 0>2:1, 2>1:2, 1>3:1, 2>3:5` | `kleeneClosure()` | [0, 3, 1, 4, —; —, 0, —, 1, —; —, 2, 0, 3, —; —, —, —, 0, —; —, —, —, —, 0] |
-| SR-354 | Phase 2: Kleene closure | negative cycle: −∞ through it | `TropicalSemiring<Int>` | `D[4]: 0>1:1, 1>2:-3, 2>1:1, 2>3:2` | `kleeneClosure()` | [0, Int.min, Int.min, Int.min; —, Int.min, Int.min, Int.min; —, Int.min, Int.min, Int.min; —, —, —, 0] |
-| SR-355 | Phase 2: Kleene closure | a negative loop | `TropicalSemiring<Int>` | `D[3]: 0>0:-1, 1>0:2, 0>2:3` | `kleeneClosure()` | [Int.min, —, Int.min; Int.min, 0, Int.min; —, —, 0] |
-| SR-356 | Phase 2: Kleene closure | no negative cycle: Floyd–Warshall's matrix | `TropicalSemiring<Double>` | `D[5]: 0>1:4, 0>2:1, 2>1:2, 1>3:1, 2>3:5` | `kleeneClosure()` | [0.0, 3.0, 1.0, 4.0, —; —, 0.0, —, 1.0, —; —, 2.0, 0.0, 3.0, —; —, —, —, 0.0, —; —, —, —, —, 0.0] |
-| SR-357 | Phase 2: Kleene closure | negative cycle: −∞ through it | `TropicalSemiring<Double>` | `D[4]: 0>1:1, 1>2:-3, 2>1:1, 2>3:2` | `kleeneClosure()` | [0.0, -.infinity, -.infinity, -.infinity; —, -.infinity, -.infinity, -.infinity; —, -.infinity, -.infinity, -.infinity; —, —, —, 0.0] |
-| SR-358 | Phase 2: Kleene closure | a negative loop | `TropicalSemiring<Double>` | `D[3]: 0>0:-1, 1>0:2, 0>2:3` | `kleeneClosure()` | [-.infinity, —, -.infinity; -.infinity, 0.0, -.infinity; —, —, 0.0] |
-| SR-359 | Phase 2: Kleene closure | widest paths, cycles included | `BottleneckSemiring<Int>` | `D[4]: 0>1:3, 0>1:8, 1>2:2, 2>1:9, 1>3:5` | `kleeneClosure()` | [Int.max, 8, 2, 5; —, Int.max, 2, 5; —, 9, Int.max, 5; —, —, —, Int.max] |
-| SR-360 | Phase 2: Kleene closure | reflexive transitive closure | `BooleanSemiring` | `D[6]: 0>1:true, 1>2:true, 2>0:true, 2>3:false, 3>4:true, 5>5:true` | `kleeneClosure()` | [true, true, true, —, —, —; true, true, true, —, —, —; true, true, true, —, —, —; —, —, —, true, true, —; —, —, —, —, true, —; —, —, —, —, —, true] |
-| SR-361 | Phase 2: laws | ⊕ is associative | `LogSemiring<Double>` | `a = 1.0, b = 2.0, c = 0.5` | `(a ⊕ b) ⊕ c == a ⊕ (b ⊕ c)` | both ≈-0.104130605337 |
-| SR-362 | Phase 2: laws | ⊕ is commutative | `LogSemiring<Double>` | `a = 1.0, b = 2.0, c = 0.5` | `a ⊕ b == b ⊕ a` | both ≈0.686738312482 |
-| SR-363 | Phase 2: laws | zero is ⊕'s identity | `LogSemiring<Double>` | `a = 1.0, b = 2.0, c = 0.5` | `a ⊕ .zero == a` | both ≈1 |
-| SR-364 | Phase 2: laws | ⊗ distributes over ⊕ from the left | `LogSemiring<Double>` | `a = 1.0, b = 2.0, c = 0.5` | `a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c)` | both ≈1.29858672202 |
-| SR-365 | Phase 2: laws | ⊕ is associative | `LogSemiring<Double>` | `a = .infinity, b = 0.25, c = 3.0` | `(a ⊕ b) ⊕ c == a ⊕ (b ⊕ c)` | both ≈0.188032410997 |
-| SR-366 | Phase 2: laws | ⊕ is commutative | `LogSemiring<Double>` | `a = .infinity, b = 0.25, c = 3.0` | `a ⊕ b == b ⊕ a` | both ≈0.25 |
-| SR-367 | Phase 2: laws | zero is ⊕'s identity | `LogSemiring<Double>` | `a = .infinity, b = 0.25, c = 3.0` | `a ⊕ .zero == a` | both .infinity |
-| SR-368 | Phase 2: laws | ⊗ distributes over ⊕ from the left | `LogSemiring<Double>` | `a = .infinity, b = 0.25, c = 3.0` | `a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c)` | both .infinity |
-| SR-369 | Phase 2: Log | −log of the total probability of the paths | `LogSemiring<Double>` | `D[4]: 0>1:0.6931471805599453, 0>2:1.3862943611198906, 1>3:0.0, 2>3:0.6931471805599453` | `dagShortestDistances(from: 0)` | [≈0, ≈0.69314718056, ≈1.38629436112, ≈0.470003629246] |
+| SR-341 | Bellman–Ford | a cycle through a −∞ weight: nil (the parents would form a cycle) | `TropicalSemiring<Int>` | `D[3]: 0>1:Int.min, 1>0:5, 1>2:1` | `bellmanFordShortestPaths(from: 0)` | nil |
+| SR-342 | Bellman–Ford | a −∞ weight on no cycle: −∞ behind it | `TropicalSemiring<Int>` | `D[4]: 0>1:3, 1>2:Int.min, 2>3:5, 0>3:2` | `bellmanFordShortestPaths(from: 0)` | [0, 3, Int.min, Int.min] |
+| SR-343 | Bellman–Ford | a cycle through a −∞ weight on vertices already at −∞: nil | `TropicalSemiring<Int>` | `D[3]: 0>1:Int.min, 1>2:Int.min, 2>1:5` | `bellmanFordShortestPaths(from: 0)` | nil |
+| SR-344 | Bellman–Ford | a negative loop on a vertex already at −∞: nil | `TropicalSemiring<Int>` | `D[3]: 0>1:Int.min, 1>2:3, 2>2:-1` | `bellmanFordShortestPaths(from: 0)` | nil |
+| SR-345 | Bellman–Ford | a negative cycle of finite weights on vertices already at −∞: nil | `TropicalSemiring<Int>` | `D[4]: 0>1:Int.min, 1>2:4, 2>3:-2, 3>2:-3` | `bellmanFordShortestPaths(from: 0)` | nil |
+| SR-346 | Bellman–Ford | a positive cycle behind a −∞ weight is harmless | `TropicalSemiring<Int>` | `D[3]: 0>1:Int.min, 1>2:5, 2>1:5` | `bellmanFordShortestPaths(from: 0)` | [0, Int.min, Int.min] |
+| SR-347 | Bellman–Ford | a cycle through a −∞ weight: nil (the parents would form a cycle) | `TropicalSemiring<Double>` | `D[3]: 0>1:-.infinity, 1>0:5, 1>2:1` | `bellmanFordShortestPaths(from: 0)` | nil |
+| SR-348 | Bellman–Ford | a −∞ weight on no cycle: −∞ behind it | `TropicalSemiring<Double>` | `D[4]: 0>1:3, 1>2:-.infinity, 2>3:5, 0>3:2` | `bellmanFordShortestPaths(from: 0)` | [0.0, 3.0, -.infinity, -.infinity] |
+| SR-349 | Bellman–Ford | a cycle through a −∞ weight on vertices already at −∞: nil | `TropicalSemiring<Double>` | `D[3]: 0>1:-.infinity, 1>2:-.infinity, 2>1:5` | `bellmanFordShortestPaths(from: 0)` | nil |
+| SR-350 | Bellman–Ford | a negative loop on a vertex already at −∞: nil | `TropicalSemiring<Double>` | `D[3]: 0>1:-.infinity, 1>2:3, 2>2:-1` | `bellmanFordShortestPaths(from: 0)` | nil |
+| SR-351 | Bellman–Ford | a negative cycle of finite weights on vertices already at −∞: nil | `TropicalSemiring<Double>` | `D[4]: 0>1:-.infinity, 1>2:4, 2>3:-2, 3>2:-3` | `bellmanFordShortestPaths(from: 0)` | nil |
+| SR-352 | Bellman–Ford | a positive cycle behind a −∞ weight is harmless | `TropicalSemiring<Double>` | `D[3]: 0>1:-.infinity, 1>2:5, 2>1:5` | `bellmanFordShortestPaths(from: 0)` | [0.0, -.infinity, -.infinity] |
+| SR-353 | Agreement | the W overload gives the same matrix | `TropicalSemiring<Double>` | `D[12]: lcg(12,40,4;0..36/4)` | `floydWarshallShortestPaths()` | [0.0, 8.25, 2.25, 9.0, 6.5, 7.75, 7.75, 6.5, 5.75, 9.25, 0.25, 2.75; 2.0, 0.0, 4.25, 11.0, 8.5, 6.0, 9.75, 8.5, 7.75, 11.25, 2.25, 4.75; 11.75, 13.75, 0.0, 9.25, 4.25, 5.5, 8.0, 4.75, 3.5, 9.5, 9.25, 6.0; 4.5, 10.75, 2.25, 0.0, 6.5, 2.5, 1.25, 6.75, 5.75, 0.25, 4.75, 3.0; 10.5, 10.25, 4.5, 8.0, 0.0, 2.0, 3.75, 3.5, 2.25, 8.25, 8.0, 2.5; 10.25, 8.25, 5.25, 14.5, 9.5, 0.0, 13.25, 4.25, 8.75, 14.75, 10.5, 0.5; 11.5, 9.5, 6.5, 7.75, 10.75, 1.25, 0.0, 5.5, 10.0, 8.0, 6.5, 1.75; 7.0, 14.75, 1.0, 10.25, 5.25, 6.5, 9.0, 0.0, 4.5, 10.5, 7.25, 3.0; 8.25, 16.0, 2.25, 5.75, 6.5, 7.75, 7.0, 1.25, 0.0, 6.0, 5.75, 4.25; 4.25, 12.5, 2.0, 11.25, 6.25, 7.5, 10.0, 6.75, 5.5, 0.0, 4.5, 7.0; 13.25, 15.75, 2.0, 11.25, 6.25, 7.5, 10.0, 6.25, 5.5, 11.5, 0.0, 2.5; 10.75, 18.5, 4.75, 14.0, 9.0, 10.25, 12.75, 3.75, 8.25, 14.25, 11.0, 0.0] |
+| SR-354 | Agreement | the W overload gives the same matrix (.infinity is no edge, as in scipy) | `TropicalSemiring<Double>` | `D[4]: 0>1:.infinity, 1>2:1.5, 0>2:4.0, 2>3:.infinity` | `floydWarshallShortestPaths()` | [0.0, —, 4.0, —; —, 0.0, 1.5, —; —, —, 0.0, —; —, —, —, 0.0] |
+| SR-355 | Dijkstra | unsigned: a capacity-0 edge is zero and carries no path | `BottleneckSemiring<UInt>` | `D[4]: 0>1:0, 1>2:5, 0>2:3, 2>3:0` | `dijkstraShortestPaths(from: 0)` | [UInt.max, —, 3, —] |
+| SR-356 | Constants | zero and one | `BottleneckSemiring<UInt>` | — | `(.zero, .one)` | (0, UInt.max) |
+| SR-357 | Constants | zero and one | `TropicalSemiring<UInt8>` | — | `(.zero, .one)` | (UInt8.max, 0) |
+| SR-358 | Constants | zero and one | `TropicalSemiring<Int8>` | — | `(.zero, .one)` | (Int8.max, 0) |
+| SR-359 | Constants | zero and one | `TropicalSemiring<Float>` | — | `(.zero, .one)` | (.infinity, 0.0) |
+| SR-360 | Constants | zero and one | `BottleneckSemiring<Float16>` | — | `(.zero, .one)` | (-.infinity, .infinity) |
+| SR-361 | Laws | ⊗ is associative | `TropicalSemiring<Int8>` | `a = 100, b = Int8.max, c = -28` | `(a ⊗ b) ⊗ c == a ⊗ (b ⊗ c)` | both Int8.max |
+| SR-362 | Laws | zero annihilates | `TropicalSemiring<Int8>` | `a = 100, b = Int8.max, c = -28` | `.zero ⊗ a == a ⊗ .zero` | both Int8.max |
+| SR-363 | Laws | ⊗ distributes over ⊕ from the left | `TropicalSemiring<Int8>` | `a = 100, b = Int8.max, c = -28` | `a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c)` | both 72 |
+| SR-364 | Laws | selective: a ⊕ b is the better by < | `TropicalSemiring<Int8>` | `a = 100, b = Int8.max` | `a ⊕ b == (b < a ? b : a)` | true (100) |
+| SR-365 | Laws | ⊗ is associative | `TropicalSemiring<Int16>` | `a = Int16.min, b = 7, c = Int16.max` | `(a ⊗ b) ⊗ c == a ⊗ (b ⊗ c)` | both Int16.max |
+| SR-366 | Laws | zero annihilates | `TropicalSemiring<Int16>` | `a = Int16.min, b = 7, c = Int16.max` | `.zero ⊗ a == a ⊗ .zero` | both Int16.max |
+| SR-367 | Laws | ⊗ distributes over ⊕ from the left | `TropicalSemiring<Int16>` | `a = Int16.min, b = 7, c = Int16.max` | `a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c)` | both Int16.min |
+| SR-368 | Laws | selective: a ⊕ b is the better by < | `TropicalSemiring<Int16>` | `a = Int16.min, b = 7` | `a ⊕ b == (b < a ? b : a)` | true (Int16.min) |
+| SR-369 | Laws | ⊗ is associative | `TropicalSemiring<Int32>` | `a = 2000000000, b = -1, c = Int32.max` | `(a ⊗ b) ⊗ c == a ⊗ (b ⊗ c)` | both Int32.max |
+| SR-370 | Laws | zero annihilates | `TropicalSemiring<Int32>` | `a = 2000000000, b = -1, c = Int32.max` | `.zero ⊗ a == a ⊗ .zero` | both Int32.max |
+| SR-371 | Laws | ⊗ distributes over ⊕ from the left | `TropicalSemiring<Int32>` | `a = 2000000000, b = -1, c = Int32.max` | `a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c)` | both 1999999999 |
+| SR-372 | Laws | selective: a ⊕ b is the better by < | `TropicalSemiring<Int32>` | `a = 2000000000, b = -1` | `a ⊕ b == (b < a ? b : a)` | true (-1) |
+| SR-373 | Laws | ⊗ is associative | `TropicalSemiring<UInt8>` | `a = 200, b = 55, c = UInt8.max` | `(a ⊗ b) ⊗ c == a ⊗ (b ⊗ c)` | both UInt8.max |
+| SR-374 | Laws | zero annihilates | `TropicalSemiring<UInt8>` | `a = 200, b = 55, c = UInt8.max` | `.zero ⊗ a == a ⊗ .zero` | both UInt8.max |
+| SR-375 | Laws | ⊗ distributes over ⊕ from the left | `TropicalSemiring<UInt8>` | `a = 200, b = 55, c = UInt8.max` | `a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c)` | both UInt8.max |
+| SR-376 | Laws | selective: a ⊕ b is the better by < | `TropicalSemiring<UInt8>` | `a = 200, b = 55` | `a ⊕ b == (b < a ? b : a)` | true (55) |
+| SR-377 | Laws | ⊗ is associative | `TropicalSemiring<UInt16>` | `a = 1, b = 2, c = UInt16.max` | `(a ⊗ b) ⊗ c == a ⊗ (b ⊗ c)` | both UInt16.max |
+| SR-378 | Laws | zero annihilates | `TropicalSemiring<UInt16>` | `a = 1, b = 2, c = UInt16.max` | `.zero ⊗ a == a ⊗ .zero` | both UInt16.max |
+| SR-379 | Laws | ⊗ distributes over ⊕ from the left | `TropicalSemiring<UInt16>` | `a = 1, b = 2, c = UInt16.max` | `a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c)` | both 3 |
+| SR-380 | Laws | selective: a ⊕ b is the better by < | `TropicalSemiring<UInt16>` | `a = 1, b = 2` | `a ⊕ b == (b < a ? b : a)` | true (1) |
+| SR-381 | Laws | ⊗ is associative | `TropicalSemiring<UInt32>` | `a = 4000000000, b = 294967295, c = 0` | `(a ⊗ b) ⊗ c == a ⊗ (b ⊗ c)` | both UInt32.max |
+| SR-382 | Laws | zero annihilates | `TropicalSemiring<UInt32>` | `a = 4000000000, b = 294967295, c = 0` | `.zero ⊗ a == a ⊗ .zero` | both UInt32.max |
+| SR-383 | Laws | ⊗ distributes over ⊕ from the left | `TropicalSemiring<UInt32>` | `a = 4000000000, b = 294967295, c = 0` | `a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c)` | both 4000000000 |
+| SR-384 | Laws | selective: a ⊕ b is the better by < | `TropicalSemiring<UInt32>` | `a = 4000000000, b = 294967295` | `a ⊕ b == (b < a ? b : a)` | true (294967295) |
+| SR-385 | Laws | ⊗ is associative | `TropicalSemiring<UInt64>` | `a = UInt64.max - 1, b = 1, c = 0` | `(a ⊗ b) ⊗ c == a ⊗ (b ⊗ c)` | both UInt64.max |
+| SR-386 | Laws | zero annihilates | `TropicalSemiring<UInt64>` | `a = UInt64.max - 1, b = 1, c = 0` | `.zero ⊗ a == a ⊗ .zero` | both UInt64.max |
+| SR-387 | Laws | ⊗ distributes over ⊕ from the left | `TropicalSemiring<UInt64>` | `a = UInt64.max - 1, b = 1, c = 0` | `a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c)` | both 18446744073709551614 |
+| SR-388 | Laws | selective: a ⊕ b is the better by < | `TropicalSemiring<UInt64>` | `a = UInt64.max - 1, b = 1` | `a ⊕ b == (b < a ? b : a)` | true (1) |
+| SR-389 | Laws | ⊗ is associative | `TropicalSemiring<UInt>` | `a = 3, b = UInt.max, c = 0` | `(a ⊗ b) ⊗ c == a ⊗ (b ⊗ c)` | both UInt.max |
+| SR-390 | Laws | zero annihilates | `TropicalSemiring<UInt>` | `a = 3, b = UInt.max, c = 0` | `.zero ⊗ a == a ⊗ .zero` | both UInt.max |
+| SR-391 | Laws | ⊗ distributes over ⊕ from the left | `TropicalSemiring<UInt>` | `a = 3, b = UInt.max, c = 0` | `a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c)` | both 3 |
+| SR-392 | Laws | selective: a ⊕ b is the better by < | `TropicalSemiring<UInt>` | `a = 3, b = UInt.max` | `a ⊕ b == (b < a ? b : a)` | true (3) |
+| SR-393 | Laws | ⊗ is associative | `BottleneckSemiring<UInt>` | `a = 0, b = UInt.max, c = 7` | `(a ⊗ b) ⊗ c == a ⊗ (b ⊗ c)` | both 0 |
+| SR-394 | Laws | zero annihilates | `BottleneckSemiring<UInt>` | `a = 0, b = UInt.max, c = 7` | `.zero ⊗ a == a ⊗ .zero` | both 0 |
+| SR-395 | Laws | ⊗ distributes over ⊕ from the left | `BottleneckSemiring<UInt>` | `a = 0, b = UInt.max, c = 7` | `a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c)` | both 0 |
+| SR-396 | Laws | selective: a ⊕ b is the better by < | `BottleneckSemiring<UInt>` | `a = 0, b = UInt.max` | `a ⊕ b == (b < a ? b : a)` | true (UInt.max) |
+| SR-397 | Laws | ⊗ is associative | `BottleneckSemiring<UInt8>` | `a = 5, b = 0, c = UInt8.max` | `(a ⊗ b) ⊗ c == a ⊗ (b ⊗ c)` | both 0 |
+| SR-398 | Laws | zero annihilates | `BottleneckSemiring<UInt8>` | `a = 5, b = 0, c = UInt8.max` | `.zero ⊗ a == a ⊗ .zero` | both 0 |
+| SR-399 | Laws | ⊗ distributes over ⊕ from the left | `BottleneckSemiring<UInt8>` | `a = 5, b = 0, c = UInt8.max` | `a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c)` | both 5 |
+| SR-400 | Laws | selective: a ⊕ b is the better by < | `BottleneckSemiring<UInt8>` | `a = 5, b = 0` | `a ⊕ b == (b < a ? b : a)` | true (5) |
+| SR-401 | Laws | ⊗ is associative | `TropicalSemiring<Float>` | `a = 1.7014118346046923e+38, b = 1.7014118346046923e+38, c = -0.5` | `(a ⊗ b) ⊗ c == a ⊗ (b ⊗ c)` | both .infinity |
+| SR-402 | Laws | zero annihilates | `TropicalSemiring<Float>` | `a = 1.7014118346046923e+38, b = 1.7014118346046923e+38, c = -0.5` | `.zero ⊗ a == a ⊗ .zero` | both .infinity |
+| SR-403 | Laws | ⊗ distributes over ⊕ from the left | `TropicalSemiring<Float>` | `a = 1.7014118346046923e+38, b = 1.7014118346046923e+38, c = -0.5` | `a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c)` | both 1.7014118346046923e+38 |
+| SR-404 | Laws | selective: a ⊕ b is the better by < | `TropicalSemiring<Float>` | `a = 1.7014118346046923e+38, b = 1.7014118346046923e+38` | `a ⊕ b == (b < a ? b : a)` | true (1.7014118346046923e+38) |
+| SR-405 | Laws | ⊗ is associative | `TropicalSemiring<Float16>` | `a = 32768.0, b = 32768.0, c = .infinity` | `(a ⊗ b) ⊗ c == a ⊗ (b ⊗ c)` | both .infinity |
+| SR-406 | Laws | zero annihilates | `TropicalSemiring<Float16>` | `a = 32768.0, b = 32768.0, c = .infinity` | `.zero ⊗ a == a ⊗ .zero` | both .infinity |
+| SR-407 | Laws | ⊗ distributes over ⊕ from the left | `TropicalSemiring<Float16>` | `a = 32768.0, b = 32768.0, c = .infinity` | `a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c)` | both .infinity |
+| SR-408 | Laws | selective: a ⊕ b is the better by < | `TropicalSemiring<Float16>` | `a = 32768.0, b = 32768.0` | `a ⊕ b == (b < a ? b : a)` | true (32768.0) |
+| SR-409 | Laws | ⊗ is associative | `BottleneckSemiring<Float16>` | `a = -.infinity, b = 65504.0, c = 0.5` | `(a ⊗ b) ⊗ c == a ⊗ (b ⊗ c)` | both -.infinity |
+| SR-410 | Laws | zero annihilates | `BottleneckSemiring<Float16>` | `a = -.infinity, b = 65504.0, c = 0.5` | `.zero ⊗ a == a ⊗ .zero` | both -.infinity |
+| SR-411 | Laws | ⊗ distributes over ⊕ from the left | `BottleneckSemiring<Float16>` | `a = -.infinity, b = 65504.0, c = 0.5` | `a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c)` | both -.infinity |
+| SR-412 | Laws | selective: a ⊕ b is the better by < | `BottleneckSemiring<Float16>` | `a = -.infinity, b = 65504.0` | `a ⊕ b == (b < a ? b : a)` | true (65504.0) |
+| SR-413 | Arithmetic | a finite sum reaching Int8.max is zero | `TropicalSemiring<Int8>` | `a = Int8.max - 7, b = 7` | `a ⊗ b` | Int8.max |
+| SR-414 | Arithmetic | overflow traps at the width | `TropicalSemiring<Int8>` | `a = Int8.max - 7, b = 8` | `a ⊗ b` | **trap** (overflow) |
+| SR-415 | Arithmetic | Int8.min absorbs (−∞) | `TropicalSemiring<Int8>` | `a = Int8.min, b = -1` | `a ⊗ b` | Int8.min |
+| SR-416 | Arithmetic | Int16.max absorbs before Int16.min | `TropicalSemiring<Int16>` | `a = Int16.min, b = Int16.max` | `a ⊗ b` | Int16.max |
+| SR-417 | Arithmetic | negative overflow traps at the width | `TropicalSemiring<Int16>` | `a = Int16.min + 1, b = -2` | `a ⊗ b` | **trap** (overflow) |
+| SR-418 | Arithmetic | overflow traps at the width | `TropicalSemiring<Int32>` | `a = Int32.max - 1, b = 2` | `a ⊗ b` | **trap** (overflow) |
+| SR-419 | Arithmetic | a finite sum reaching UInt8.max is zero | `TropicalSemiring<UInt8>` | `a = 200, b = 55` | `a ⊗ b` | UInt8.max |
+| SR-420 | Arithmetic | overflow traps at the width | `TropicalSemiring<UInt8>` | `a = 200, b = 56` | `a ⊗ b` | **trap** (overflow) |
+| SR-421 | Arithmetic | UInt16.max absorbs | `TropicalSemiring<UInt16>` | `a = UInt16.max, b = 1` | `a ⊗ b` | UInt16.max |
+| SR-422 | Arithmetic | a finite sum reaching UInt32.max is zero | `TropicalSemiring<UInt32>` | `a = UInt32.max - 1, b = 1` | `a ⊗ b` | UInt32.max |
+| SR-423 | Arithmetic | overflow traps at the width | `TropicalSemiring<UInt64>` | `a = UInt64.max - 2, b = 3` | `a ⊗ b` | **trap** (overflow) |
+| SR-424 | Arithmetic | 0 is one, not −∞: it does not absorb | `TropicalSemiring<UInt>` | `a = 0, b = 9` | `a ⊗ b` | 9 |
+| SR-425 | Arithmetic | 0 is zero: it annihilates | `BottleneckSemiring<UInt>` | `a = 0, b = 9` | `a ⊗ b` | 0 |
+| SR-426 | Arithmetic | 0 is zero: ⊕'s identity | `BottleneckSemiring<UInt>` | `a = 0, b = 9` | `a ⊕ b` | 9 |
+| SR-427 | Arithmetic | a sum rounding past Float's range is zero | `TropicalSemiring<Float>` | `a = 1.7014118346046923e+38, b = 1.7014118346046923e+38` | `a ⊗ b` | .infinity |
+| SR-428 | Arithmetic | a sum rounding past Float16's range is zero | `TropicalSemiring<Float16>` | `a = 32768.0, b = 32768.0` | `a ⊗ b` | .infinity |
+| SR-429 | Arithmetic | -.infinity is zero: it annihilates | `BottleneckSemiring<Float16>` | `a = -.infinity, b = 65504.0` | `a ⊗ b` | -.infinity |
+| SR-430 | Phase 2: star | a.star (Lehmann) | `TropicalSemiring<Int>` | `a = 5` | `a.star` | 0 |
+| SR-431 | Phase 2: star | a.star (Lehmann) | `TropicalSemiring<Int>` | `a = 0` | `a.star` | 0 |
+| SR-432 | Phase 2: star | a.star (Lehmann) | `TropicalSemiring<Int>` | `a = -1` | `a.star` | Int.min |
+| SR-433 | Phase 2: star | a.star (Lehmann) | `TropicalSemiring<Int>` | `a = Int.max` | `a.star` | 0 |
+| SR-434 | Phase 2: star | a.star (Lehmann) | `TropicalSemiring<Double>` | `a = 2.5` | `a.star` | 0.0 |
+| SR-435 | Phase 2: star | a.star (Lehmann) | `TropicalSemiring<Double>` | `a = 0.0` | `a.star` | 0.0 |
+| SR-436 | Phase 2: star | a.star (Lehmann) | `TropicalSemiring<Double>` | `a = -0.5` | `a.star` | -.infinity |
+| SR-437 | Phase 2: star | a.star (Lehmann) | `TropicalSemiring<Double>` | `a = .infinity` | `a.star` | 0.0 |
+| SR-438 | Phase 2: star | a.star (Lehmann) | `BottleneckSemiring<Int>` | `a = 5` | `a.star` | Int.max |
+| SR-439 | Phase 2: star | a.star (Lehmann) | `BottleneckSemiring<Int>` | `a = Int.min` | `a.star` | Int.max |
+| SR-440 | Phase 2: star | a.star (Lehmann) | `BooleanSemiring` | `a = true` | `a.star` | true |
+| SR-441 | Phase 2: star | a.star (Lehmann) | `BooleanSemiring` | `a = false` | `a.star` | true |
+| SR-442 | Phase 2: Kleene closure | no negative cycle: Floyd–Warshall's matrix | `TropicalSemiring<Int>` | `D[5]: 0>1:4, 0>2:1, 2>1:2, 1>3:1, 2>3:5` | `kleeneClosure()` | [0, 3, 1, 4, —; —, 0, —, 1, —; —, 2, 0, 3, —; —, —, —, 0, —; —, —, —, —, 0] |
+| SR-443 | Phase 2: Kleene closure | negative cycle: −∞ through it | `TropicalSemiring<Int>` | `D[4]: 0>1:1, 1>2:-3, 2>1:1, 2>3:2` | `kleeneClosure()` | [0, Int.min, Int.min, Int.min; —, Int.min, Int.min, Int.min; —, Int.min, Int.min, Int.min; —, —, —, 0] |
+| SR-444 | Phase 2: Kleene closure | a negative loop | `TropicalSemiring<Int>` | `D[3]: 0>0:-1, 1>0:2, 0>2:3` | `kleeneClosure()` | [Int.min, —, Int.min; Int.min, 0, Int.min; —, —, 0] |
+| SR-445 | Phase 2: Kleene closure | no negative cycle: Floyd–Warshall's matrix | `TropicalSemiring<Double>` | `D[5]: 0>1:4, 0>2:1, 2>1:2, 1>3:1, 2>3:5` | `kleeneClosure()` | [0.0, 3.0, 1.0, 4.0, —; —, 0.0, —, 1.0, —; —, 2.0, 0.0, 3.0, —; —, —, —, 0.0, —; —, —, —, —, 0.0] |
+| SR-446 | Phase 2: Kleene closure | negative cycle: −∞ through it | `TropicalSemiring<Double>` | `D[4]: 0>1:1, 1>2:-3, 2>1:1, 2>3:2` | `kleeneClosure()` | [0.0, -.infinity, -.infinity, -.infinity; —, -.infinity, -.infinity, -.infinity; —, -.infinity, -.infinity, -.infinity; —, —, —, 0.0] |
+| SR-447 | Phase 2: Kleene closure | a negative loop | `TropicalSemiring<Double>` | `D[3]: 0>0:-1, 1>0:2, 0>2:3` | `kleeneClosure()` | [-.infinity, —, -.infinity; -.infinity, 0.0, -.infinity; —, —, 0.0] |
+| SR-448 | Phase 2: Kleene closure | widest paths, cycles included | `BottleneckSemiring<Int>` | `D[4]: 0>1:3, 0>1:8, 1>2:2, 2>1:9, 1>3:5` | `kleeneClosure()` | [Int.max, 8, 2, 5; —, Int.max, 2, 5; —, 9, Int.max, 5; —, —, —, Int.max] |
+| SR-449 | Phase 2: Kleene closure | reflexive transitive closure | `BooleanSemiring` | `D[6]: 0>1:true, 1>2:true, 2>0:true, 2>3:false, 3>4:true, 5>5:true` | `kleeneClosure()` | [true, true, true, —, —, —; true, true, true, —, —, —; true, true, true, —, —, —; —, —, —, true, true, —; —, —, —, —, true, —; —, —, —, —, —, true] |
+| SR-450 | Phase 2: laws | ⊕ is associative | `LogSemiring<Double>` | `a = 1.0, b = 2.0, c = 0.5` | `(a ⊕ b) ⊕ c == a ⊕ (b ⊕ c)` | both ≈-0.104130605337 |
+| SR-451 | Phase 2: laws | ⊕ is commutative | `LogSemiring<Double>` | `a = 1.0, b = 2.0, c = 0.5` | `a ⊕ b == b ⊕ a` | both ≈0.686738312482 |
+| SR-452 | Phase 2: laws | zero is ⊕'s identity | `LogSemiring<Double>` | `a = 1.0, b = 2.0, c = 0.5` | `a ⊕ .zero == a` | both ≈1 |
+| SR-453 | Phase 2: laws | ⊗ distributes over ⊕ from the left | `LogSemiring<Double>` | `a = 1.0, b = 2.0, c = 0.5` | `a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c)` | both ≈1.29858672202 |
+| SR-454 | Phase 2: laws | ⊕ is associative | `LogSemiring<Double>` | `a = .infinity, b = 0.25, c = 3.0` | `(a ⊕ b) ⊕ c == a ⊕ (b ⊕ c)` | both ≈0.188032410997 |
+| SR-455 | Phase 2: laws | ⊕ is commutative | `LogSemiring<Double>` | `a = .infinity, b = 0.25, c = 3.0` | `a ⊕ b == b ⊕ a` | both ≈0.25 |
+| SR-456 | Phase 2: laws | zero is ⊕'s identity | `LogSemiring<Double>` | `a = .infinity, b = 0.25, c = 3.0` | `a ⊕ .zero == a` | both .infinity |
+| SR-457 | Phase 2: laws | ⊗ distributes over ⊕ from the left | `LogSemiring<Double>` | `a = .infinity, b = 0.25, c = 3.0` | `a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c)` | both .infinity |
+| SR-458 | Phase 2: Log | −log of the total probability of the paths | `LogSemiring<Double>` | `D[4]: 0>1:0.6931471805599453, 0>2:1.3862943611198906, 1>3:0.0, 2>3:0.6931471805599453` | `dagShortestDistances(from: 0)` | [≈0, ≈0.69314718056, ≈1.38629436112, ≈0.470003629246] |
 
-369 rows.
+458 rows.

@@ -83,8 +83,7 @@ def trop_times_int(a, b):
 
 
 def trop_times_double(a, b):
-    if a == INF or b == INF:
-        return INF
+    """Swift's plain `+`: the carrier is ℝ ∪ {+∞} (Mohri), so −∞ ⊗ +∞ is NaN, as in Swift."""
     return a + b
 
 
@@ -115,7 +114,65 @@ CNT_I = SR("CountingSemiring<Int>", "Int", 0, 1, lambda a, b: chk(a + b), lambda
 CNT_D = SR("CountingSemiring<Double>", "Double", 0.0, 1.0, lambda a, b: a + b, lambda a, b: a * b)
 LOG_D = SR("LogSemiring<Double>", "Double", INF, 0.0, log_plus, trop_times_double)  # phase 2
 
-ALL = {s.name: s for s in [TROP_I, TROP_D, BOT_I, BOT_D, BOOL, CNT_I, CNT_D, LOG_D]}
+# The other scalars: fixed-width integers (trapping at their width; signed ones absorb .min as
+# −∞ after .max, unsigned ones have no −∞) and Float / Float16 (IEEE at their width).
+INT_WIDTHS = {"Int": (64, True), "Int8": (8, True), "Int16": (16, True), "Int32": (32, True), "Int64": (64, True),
+              "UInt": (64, False), "UInt8": (8, False), "UInt16": (16, False), "UInt32": (32, False), "UInt64": (64, False)}
+FLOATS = {"Double": np.float64, "Float": np.float32, "Float16": np.float16}
+
+
+def int_range(t):
+    bits, signed = INT_WIDTHS[t]
+    return (-(1 << (bits - 1)), (1 << (bits - 1)) - 1) if signed else (0, (1 << bits) - 1)
+
+
+def trop_int(t):
+    lo, hi = int_range(t)
+    signed = INT_WIDTHS[t][1]
+
+    def times(a, b):
+        if a == hi or b == hi:
+            return hi
+        if signed and (a == lo or b == lo):
+            return lo
+        if not lo <= a + b <= hi:
+            raise Trap("overflow")
+        return a + b
+    return SR(f"TropicalSemiring<{t}>", t, hi, 0, min, times, lambda a, b: a < b)
+
+
+def bot_int(t):
+    lo, hi = int_range(t)
+    return SR(f"BottleneckSemiring<{t}>", t, lo, hi, max, min, lambda a, b: a > b)
+
+
+def trop_float(t):
+    f = FLOATS[t]
+    return SR(f"TropicalSemiring<{t}>", t, INF, 0.0, min, lambda a, b: float(f(a) + f(b)), lambda a, b: a < b)
+
+
+def bot_float(t):
+    return SR(f"BottleneckSemiring<{t}>", t, -INF, INF, max, min, lambda a, b: a > b)
+
+
+SCALAR_SRS = [trop_int("Int8"), trop_int("Int16"), trop_int("Int32"), trop_int("UInt8"), trop_int("UInt16"),
+              trop_int("UInt32"), trop_int("UInt64"), trop_int("UInt"), bot_int("UInt"), bot_int("UInt8"),
+              trop_float("Float"), trop_float("Float16"), bot_float("Float16")]
+
+ALL = {s.name: s for s in [TROP_I, TROP_D, BOT_I, BOT_D, BOOL, CNT_I, CNT_D, LOG_D] + SCALAR_SRS}
+
+
+def is_int(s):
+    return s.scalar in INT_WIDTHS
+
+
+def is_float(s):
+    return s.scalar in FLOATS
+
+
+def minus_inf(s, v):
+    """A tropical Int.min as −∞, for NetworkX and the cycle sums."""
+    return -INF if s is TROP_I and v == IMIN else v
 
 
 def fmt(s, v):
@@ -123,8 +180,12 @@ def fmt(s, v):
         return "—"
     if s.scalar == "Bool":
         return "true" if v else "false"
-    if s.scalar == "Int":
-        return {IMAX: "Int.max", IMIN: "Int.min"}.get(v, str(v))
+    if is_int(s):
+        lo, hi = int_range(s.scalar)
+        names = {hi: f"{s.scalar}.max"}
+        if INT_WIDTHS[s.scalar][1]:
+            names[lo] = f"{s.scalar}.min"
+        return names.get(v, str(v))
     if v == INF:
         return ".infinity"
     if v == -INF:
@@ -138,8 +199,9 @@ def parse_value(s, t):
     t = t.strip()
     if s.scalar == "Bool":
         return {"true": True, "false": False}[t]
-    if s.scalar == "Int":
-        return eval(t.replace("Int.max", str(IMAX)).replace("Int.min", str(IMIN)))
+    if is_int(s):
+        lo, hi = int_range(s.scalar)
+        return eval(t.replace(f"{s.scalar}.max", str(hi)).replace(f"{s.scalar}.min", str(lo)))
     return float(t.replace("-.infinity", "-inf").replace(".infinity", "inf"))
 
 
@@ -245,7 +307,7 @@ def parse_graph(cell, s):
         u, v = int(mm.group(1)), int(mm.group(3))
         edges.append((u, v, parse_value(s, mm.group(4))))
         n = max(n, u + 1, v + 1)
-    if s.scalar == "Double":
+    if is_float(s):
         edges = [(u, v, float(w)) for u, v, w in edges]
     return G(directed, n, edges)
 
@@ -259,8 +321,7 @@ def dijkstra(g, s, sources, cutoff=None):
     rows = g.out()
     dist = [s.zero] * g.n
     parent = [None] * g.n
-    key = {TROP_I: lambda v: v, TROP_D: lambda v: v, BOT_I: lambda v: -v, BOT_D: lambda v: -v,
-           BOOL: lambda v: 0 if v else 1}[s]
+    key = (lambda v: 0 if v else 1) if s is BOOL else (lambda v: -v) if s.name.startswith("Bottleneck") else (lambda v: v)
     heap, done, tick = [], [False] * g.n, itertools.count()
     for x in sources:
         dist[x] = s.one
@@ -284,15 +345,18 @@ def dijkstra(g, s, sources, cutoff=None):
 
 
 def bellman_ford(g, s, sources):
-    """LEMON's weak rounds; None when an improving cycle is reachable."""
+    """LEMON's weak rounds; None when work is left after n rounds, or when the converged distances
+    hide a cycle better than one (a −∞ distance cannot improve, so such a cycle stops relaxing)."""
     if not s.selective:
         raise Trap("not a SelectiveSemiring (does not compile)")
     rows = g.out()
     dist = [s.zero] * g.n
     reached = [False] * g.n
+    parent = [None] * g.n
     for x in sources:
         dist[x] = s.one
         reached[x] = True
+        parent[x] = -1
     active, rnd = list(dict.fromkeys(sources)), 0
     while active and rnd < g.n:
         rnd += 1
@@ -303,12 +367,58 @@ def bellman_ford(g, s, sources):
                 if s.better(c, dist[v]):
                     dist[v] = c
                     reached[v] = True
+                    parent[v] = u
                     if v not in nxt:
                         nxt.append(v)
         active = nxt
     if active:
         return None
+    if hidden_improving_cycle(g, s, dist):
+        return None
     return [d if reached[i] else None for i, d in enumerate(dist)]
+
+
+def saturated(s, x):
+    """The tropical −∞ (Int.min for signed integers, -inf for floating point): it absorbs ⊗."""
+    if not s.name.startswith("Tropical"):
+        return False
+    if is_int(s):
+        return INT_WIDTHS[s.scalar][1] and x == int_range(s.scalar)[0]
+    return x == -INF
+
+
+def hidden_improving_cycle(g, s, dist):
+    """On the subgraph H of saturated distances (arcs of weight other than 0̄): a cycle through an
+    arc of saturated weight (one strongly connected component), or a negative cycle of finite
+    weights (weak rounds from 1̄ at every vertex of H)."""
+    members = [v for v in range(g.n) if saturated(s, dist[v])]
+    if not members:
+        return False
+    inside = set(members)
+    h = nx.MultiDiGraph()
+    h.add_nodes_from(members)
+    finite = []
+    for u, v, w, _ in g.arcs():
+        if u in inside and v in inside and w != s.zero:
+            h.add_edge(u, v, absorbing=saturated(s, w))
+            if not saturated(s, w):
+                finite.append((u, v, w))
+    comp = {}
+    for i, c in enumerate(nx.strongly_connected_components(h)):
+        for x in c:
+            comp[x] = i
+    if any(d["absorbing"] and comp[u] == comp[v] for u, v, d in h.edges(data=True)):
+        return True
+    d = {x: s.one for x in members}
+    for _ in range(len(members)):
+        changed = False
+        for u, v, w in finite:
+            c = s.times(d[u], w)
+            if s.better(c, d[v]):
+                d[v], changed = c, True
+        if not changed:
+            return False
+    return True
 
 
 def topo_reachable(g, sources):
@@ -450,11 +560,14 @@ def simple_paths_value(g, s, src, dst):
     return acc
 
 
-def reach(g, sources):
+def reach(g, sources, s=None):
+    """The vertices `sources` reach (over arcs other than 0̄ when `s` is given)."""
     rows, seen, st = g.out(), set(sources), list(sources)
     while st:
         u = st.pop()
-        for v, _, _ in rows[u]:
+        for v, w, _ in rows[u]:
+            if s is not None and w == s.zero:
+                continue
             if v not in seen:
                 seen.add(v)
                 st.append(v)
@@ -467,7 +580,7 @@ def to_nx(g, s):
     h.add_nodes_from(range(g.n))
     for u, v, w, _ in g.arcs():
         if w != s.zero:
-            h.add_edge(u, v, weight=w)
+            h.add_edge(u, v, weight=minus_inf(s, w))
     return h
 
 
@@ -485,6 +598,18 @@ def check_row(g, s, op, sources, val):
     """Recompute `val` another way; raise on a mismatch."""
     def bad(why):
         raise AssertionError(f"{s} {op}: {why}")
+    if op == "bellmanFord" and s in (TROP_I, TROP_D):
+        # The verdict by definition: a reachable cycle whose sum (−∞ for an Int.min edge) is negative.
+        h = nx.DiGraph()
+        h.add_nodes_from(range(g.n))
+        live = reach(g, sources, s)
+        for u, v, w, _ in g.arcs():
+            if w != s.zero and u in live and (not h.has_edge(u, v) or h[u][v]["weight"] > minus_inf(s, w)):
+                h.add_edge(u, v, weight=minus_inf(s, w))
+        neg = any(u == v and h[u][v]["weight"] < 0 for u, v in h.edges) or any(
+            sum(h[c[i]][c[(i + 1) % len(c)]]["weight"] for i in range(len(c))) < 0 for c in nx.simple_cycles(h))
+        if neg != (val is None):
+            bad(f"reachable negative cycle {neg}, model {val}")
     if op in ("dijkstra", "bellmanFord", "dag") and val is not None:
         if s in (TROP_I, TROP_D):
             h = to_nx(g, s)
@@ -504,9 +629,9 @@ def check_row(g, s, op, sources, val):
                     if best is not None:
                         theirs[v] = best
             for v in range(g.n):
-                if (val[v] is None) != (v not in theirs) or (val[v] is not None and val[v] != theirs[v]):
+                if (val[v] is None) != (v not in theirs) or (val[v] is not None and minus_inf(s, val[v]) != theirs[v]):
                     bad(f"NetworkX gives {theirs} at {v}, model {val}")
-            if len(sources) == 1:
+            if len(sources) == 1 and not any(minus_inf(s, w) == -INF for *_, w, _ in g.arcs()):
                 a = to_scipy(g, s)
                 method = {"dijkstra": "D", "bellmanFord": "BF", "dag": "BF"}[op]
                 if method == "D" and (a < 0).any():
@@ -630,6 +755,43 @@ LAW_TRIPLES = {
     "CountingSemiring<Int>": [("3", "-2", "7"), ("0", "1", "5"), ("6", "6", "-1")],
     "CountingSemiring<Double>": [("1.5", "-2.25", "4.0"), ("0.0", "1.0", "0.5")],
 }
+
+# One triple per other scalar, with its sentinels (and a sum landing on .max, or rounding to +∞).
+SCALAR_TRIPLES = [
+    ("TropicalSemiring<Int8>", ("100", "Int8.max", "-28")),
+    ("TropicalSemiring<Int16>", ("Int16.min", "7", "Int16.max")),
+    ("TropicalSemiring<Int32>", ("2000000000", "-1", "Int32.max")),
+    ("TropicalSemiring<UInt8>", ("200", "55", "UInt8.max")),
+    ("TropicalSemiring<UInt16>", ("1", "2", "UInt16.max")),
+    ("TropicalSemiring<UInt32>", ("4000000000", "294967295", "0")),
+    ("TropicalSemiring<UInt64>", ("UInt64.max - 1", "1", "0")),
+    ("TropicalSemiring<UInt>", ("3", "UInt.max", "0")),
+    ("BottleneckSemiring<UInt>", ("0", "UInt.max", "7")),
+    ("BottleneckSemiring<UInt8>", ("5", "0", "UInt8.max")),
+    ("TropicalSemiring<Float>", ("1.7014118346046923e+38", "1.7014118346046923e+38", "-0.5")),
+    ("TropicalSemiring<Float16>", ("32768.0", "32768.0", ".infinity")),
+    ("BottleneckSemiring<Float16>", ("-.infinity", "65504.0", "0.5")),
+]
+
+SCALAR_ARITHMETIC = [
+    ("TropicalSemiring<Int8>", "a finite sum reaching Int8.max is zero", "Int8.max - 7", "7", "a ⊗ b"),
+    ("TropicalSemiring<Int8>", "overflow traps at the width", "Int8.max - 7", "8", "a ⊗ b"),
+    ("TropicalSemiring<Int8>", "Int8.min absorbs (−∞)", "Int8.min", "-1", "a ⊗ b"),
+    ("TropicalSemiring<Int16>", "Int16.max absorbs before Int16.min", "Int16.min", "Int16.max", "a ⊗ b"),
+    ("TropicalSemiring<Int16>", "negative overflow traps at the width", "Int16.min + 1", "-2", "a ⊗ b"),
+    ("TropicalSemiring<Int32>", "overflow traps at the width", "Int32.max - 1", "2", "a ⊗ b"),
+    ("TropicalSemiring<UInt8>", "a finite sum reaching UInt8.max is zero", "200", "55", "a ⊗ b"),
+    ("TropicalSemiring<UInt8>", "overflow traps at the width", "200", "56", "a ⊗ b"),
+    ("TropicalSemiring<UInt16>", "UInt16.max absorbs", "UInt16.max", "1", "a ⊗ b"),
+    ("TropicalSemiring<UInt32>", "a finite sum reaching UInt32.max is zero", "UInt32.max - 1", "1", "a ⊗ b"),
+    ("TropicalSemiring<UInt64>", "overflow traps at the width", "UInt64.max - 2", "3", "a ⊗ b"),
+    ("TropicalSemiring<UInt>", "0 is one, not −∞: it does not absorb", "0", "9", "a ⊗ b"),
+    ("BottleneckSemiring<UInt>", "0 is zero: it annihilates", "0", "9", "a ⊗ b"),
+    ("BottleneckSemiring<UInt>", "0 is zero: ⊕'s identity", "0", "9", "a ⊕ b"),
+    ("TropicalSemiring<Float>", "a sum rounding past Float's range is zero", "1.7014118346046923e+38", "1.7014118346046923e+38", "a ⊗ b"),
+    ("TropicalSemiring<Float16>", "a sum rounding past Float16's range is zero", "32768.0", "32768.0", "a ⊗ b"),
+    ("BottleneckSemiring<Float16>", "-.infinity is zero: it annihilates", "-.infinity", "65504.0", "a ⊗ b"),
+]
 
 LAWS = [
     ("⊕ is associative", "(a ⊕ b) ⊕ c == a ⊕ (b ⊕ c)", lambda s, a, b, c: (s.plus(s.plus(a, b), c), s.plus(a, s.plus(b, c)))),
@@ -761,6 +923,38 @@ def define():
     for seed in (11, 12, 13):
         R("Agreement", "against NetworkX all_simple_edge_paths", "CountingSemiring<Int>", f"D[10]: dlcg(10,25,{seed};1..3)", "dagShortestDistances(from: 0)")
 
+    # ---------------------------------------------------------------- review additions
+    # −∞ weights in Bellman–Ford: a cycle through one saturates instead of running out of rounds.
+    for name, lo in [("TropicalSemiring<Int>", "Int.min"), ("TropicalSemiring<Double>", "-.infinity")]:
+        R("Bellman–Ford", "a cycle through a −∞ weight: nil (the parents would form a cycle)", name,
+          f"D[3]: 0>1:{lo}, 1>0:5, 1>2:1", "bellmanFordShortestPaths(from: 0)")
+        R("Bellman–Ford", "a −∞ weight on no cycle: −∞ behind it", name,
+          f"D[4]: 0>1:3, 1>2:{lo}, 2>3:5, 0>3:2", "bellmanFordShortestPaths(from: 0)")
+        R("Bellman–Ford", "a cycle through a −∞ weight on vertices already at −∞: nil", name,
+          f"D[3]: 0>1:{lo}, 1>2:{lo}, 2>1:5", "bellmanFordShortestPaths(from: 0)")
+        R("Bellman–Ford", "a negative loop on a vertex already at −∞: nil", name,
+          f"D[3]: 0>1:{lo}, 1>2:3, 2>2:-1", "bellmanFordShortestPaths(from: 0)")
+        R("Bellman–Ford", "a negative cycle of finite weights on vertices already at −∞: nil", name,
+          f"D[4]: 0>1:{lo}, 1>2:4, 2>3:-2, 3>2:-3", "bellmanFordShortestPaths(from: 0)")
+        R("Bellman–Ford", "a positive cycle behind a −∞ weight is harmless", name,
+          f"D[3]: 0>1:{lo}, 1>2:5, 2>1:5", "bellmanFordShortestPaths(from: 0)")
+    # The binary floating-point W overload of Floyd–Warshall runs the tropical loop.
+    R("Agreement", "the W overload gives the same matrix", "TropicalSemiring<Double>", "D[12]: lcg(12,40,4;0..36/4)", "floydWarshallShortestPaths()")
+    R("Agreement", "the W overload gives the same matrix (.infinity is no edge, as in scipy)", "TropicalSemiring<Double>",
+      "D[4]: 0>1:.infinity, 1>2:1.5, 0>2:4.0, 2>3:.infinity", "floydWarshallShortestPaths()")
+    # The other scalars: constants, laws on one triple with their sentinels, arithmetic at the width.
+    R("Dijkstra", "unsigned: a capacity-0 edge is zero and carries no path", "BottleneckSemiring<UInt>",
+      "D[4]: 0>1:0, 1>2:5, 0>2:3, 2>3:0", "dijkstraShortestPaths(from: 0)")
+    for name in ["BottleneckSemiring<UInt>", "TropicalSemiring<UInt8>", "TropicalSemiring<Int8>", "TropicalSemiring<Float>",
+                 "BottleneckSemiring<Float16>"]:
+        R("Constants", "zero and one", name, "—", "(.zero, .one)")
+    for name, t in SCALAR_TRIPLES:
+        for law, text, _ in [LAWS[3], LAWS[5], LAWS[6]]:
+            R("Laws", law, name, f"a = {t[0]}, b = {t[1]}, c = {t[2]}", text)
+        R("Laws", "selective: a ⊕ b is the better by <", name, f"a = {t[0]}, b = {t[1]}", "a ⊕ b == (b < a ? b : a)")
+    for name, case, a, b, o in SCALAR_ARITHMETIC:
+        R("Arithmetic", case, name, f"a = {a}, b = {b}", o)
+
     # ---------------------------------------------------------------- phase 2
     for name, vals in [("TropicalSemiring<Int>", ["5", "0", "-1", "Int.max"]), ("TropicalSemiring<Double>", ["2.5", "0.0", "-0.5", ".infinity"]),
                        ("BottleneckSemiring<Int>", ["5", "Int.min"]), ("BooleanSemiring", ["true", "false"])]:
@@ -786,10 +980,11 @@ def operands(s, inp):
     for part in inp.split(", "):
         k, v = part.split(" = ")
         v = v.strip()
-        m = re.fullmatch(r"Int\.(max|min) ([+-]) (\d+)", v)
+        m = re.fullmatch(r"(\w+)\.(max|min) ([+-]) (\d+)", v)
         if m:
-            base = IMAX if m.group(1) == "max" else IMIN
-            out[k] = base + int(m.group(3)) * (1 if m.group(2) == "+" else -1)
+            lo, hi = int_range(m.group(1))
+            base = hi if m.group(2) == "max" else lo
+            out[k] = base + int(m.group(4)) * (1 if m.group(3) == "+" else -1)
         else:
             out[k] = parse_value(s, v)
     return out
@@ -1037,6 +1232,10 @@ def stress():
             check_row(g, s, "dijkstra", src, dijkstra(g, s, src)[0]); bump("tropical Dijkstra")
             g = random_graph(rng, n, s, -3, 9)
             check_row(g, s, "bellmanFord", src, bellman_ford(g, s, src)); bump("tropical Bellman–Ford")
+            # −∞ weights: saturated distances must not hide a cycle better than one.
+            lo = IMIN if s is TROP_I else -INF
+            gi = G(True, n, [(u, v, lo if rng.random() < 0.15 else w) for u, v, w in random_graph(rng, n, s, -2, 9).edges])
+            check_row(gi, s, "bellmanFord", src, bellman_ford(gi, s, src)); bump("tropical Bellman–Ford with −∞")
             check_row(g, s, "floydWarshall", [], floyd_warshall(g, s)); bump("tropical Floyd–Warshall")
             k = kleene(g, s)
             check_row(g, s, "kleene", [], k); bump("tropical Kleene closure")
@@ -1057,7 +1256,7 @@ def stress():
             src = [rng.randrange(n)]
             check_row(g, s, "dagDistances", src, dag_distances(g, s, src)); bump("counting DAG distances")
     # Laws on random operands.
-    for s, gen_v in [(TROP_I, lambda: rng.choice([IMAX, rng.randint(-50, 50)])),
+    for s, gen_v in [(TROP_I, lambda: rng.choice([IMAX, IMIN, rng.randint(-50, 50)])),
                      (TROP_D, lambda: rng.choice([INF, rng.randint(-50, 50) / 4])),
                      (BOT_I, lambda: rng.choice([IMAX, IMIN, rng.randint(-50, 50)])),
                      (BOT_D, lambda: rng.choice([INF, -INF, rng.randint(-50, 50) / 4])),

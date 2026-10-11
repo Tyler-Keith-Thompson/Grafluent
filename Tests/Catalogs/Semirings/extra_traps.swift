@@ -224,3 +224,73 @@
         #expect(matrix.distance(from: 1, to: 0) == nil && matrix.path(from: 0, to: 1)?.edges == [0])
         #expect(graph.dijkstraShortestPaths(from: 0) { _ in TropicalSemiring(1) }.path(to: 1)?.vertices == [0, 1])
     }
+
+    @Test("A NaN weight traps in every semiring engine, tropical and bottleneck, and so does a NaN cutoff")
+    func nanWeights() async throws {
+        await #expect(processExitsWith: .failure) {
+            let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+            let w = [1.0, Double.nan]
+            _ = graph.dijkstraShortestPaths(from: 0) { TropicalSemiring(w[$0]) }
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+            let w = [1.0, Double.nan]
+            _ = graph.dijkstraShortestPaths(from: 0) { BottleneckSemiring(w[$0]) }
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+            _ = graph.dijkstraShortestPaths(from: 0, cutoff: TropicalSemiring(Double.nan)) { _ in TropicalSemiring(1.0) }
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+            let w = [1.0, Double.nan]
+            _ = graph.bellmanFordShortestPaths(from: 0) { TropicalSemiring(w[$0]) }
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+            let w = [1.0, Double.nan]
+            _ = graph.bellmanFordShortestPaths(from: 0) { BottleneckSemiring(w[$0]) }
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+            let w = [1.0, Double.nan]
+            _ = graph.dagShortestPaths(from: 0) { BottleneckSemiring(w[$0]) }
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+            let w = [1.0, Double.nan]
+            _ = graph.dagShortestDistances(from: 0) { CountingSemiring(w[$0]) }
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+            let dag = DirectedAcyclicGraph(graph)!
+            let w = [1.0, Double.nan]
+            _ = dag.dagShortestPaths(from: 0) { TropicalSemiring(w[$0]) }
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+            let w = [1.0, Double.nan]
+            _ = graph.floydWarshallShortestPaths { BottleneckSemiring(w[$0]) }
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+            let w = [1.0, Double.nan]
+            _ = graph.floydWarshallShortestPaths { w[$0] }
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+            let w: [Float] = [1, .nan]
+            _ = graph.floydWarshallShortestPaths { w[$0] }
+        }
+        // Without the fault: a NaN weight the search never examines does not trap, and finite weights answer.
+        let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+        let w = [1.0, Double.nan]
+        #expect(graph.dijkstraShortestPaths(from: 2) { TropicalSemiring(w[$0]) }.distance(to: 2)?.value == 0)
+        #expect(graph.bellmanFordShortestPaths(from: 2) { BottleneckSemiring(w[$0]) }?.distance(to: 2)?.value == .infinity)
+        #expect(graph.dagShortestDistances(from: 2) { CountingSemiring(w[$0]) }?.distance(to: 2).value == 1)
+        let finite = [1.0, 2.0]
+        #expect(graph.dijkstraShortestPaths(from: 0, cutoff: TropicalSemiring(5.0)) { TropicalSemiring(finite[$0]) }.distance(to: 2)?.value == 3)
+        #expect(graph.dagShortestPaths(from: 0) { BottleneckSemiring(finite[$0]) }?.distance(to: 2)?.value == 1)
+        #expect(try #require(graph.floydWarshallShortestPaths { finite[$0] }).distance(from: 0, to: 2) == 3)
+        #expect(try #require(graph.floydWarshallShortestPaths { BottleneckSemiring(finite[$0]) }).distance(from: 0, to: 2)?.value == 1)
+    }

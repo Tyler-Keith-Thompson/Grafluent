@@ -349,4 +349,168 @@ struct SemiringBellmanFordTests {
             #expect(tree.parentEdge(of: v) == path.edges.last)
         }
     }
+
+    @Test("SR-341 a cycle through a −∞ weight: nil (the parents would form a cycle) (TropicalSemiring<Int>)")
+    func sr341() {
+        // bellmanFordShortestPaths(from: 0) → nil
+        let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 0), DirectedEdge(from: 1, to: 2)])
+        let w: [Int] = [Int.min, 5, 1]
+        #expect(graph.bellmanFordShortestPaths(from: 0) { TropicalSemiring(w[$0]) } == nil)
+    }
+
+    @Test("SR-342 a −∞ weight on no cycle: −∞ behind it (TropicalSemiring<Int>)")
+    func sr342() throws {
+        // bellmanFordShortestPaths(from: 0) → [0, 3, Int.min, Int.min]
+        let graph = DirectedPseudograph(vertices: 0 ..< 4, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 3), DirectedEdge(from: 0, to: 3)])
+        let w: [Int] = [3, Int.min, 5, 2]
+        let tree = try #require(graph.bellmanFordShortestPaths(from: 0) { TropicalSemiring(w[$0]) })
+        let expected: [Int?] = [0, 3, Int.min, Int.min]
+        #expect((0 ..< 4).map { tree.distance(to: $0)?.value } == expected)
+        #expect((0 ..< 4).map { tree.distance(toIndex: $0)?.value } == expected)
+        #expect((0 ..< 4).map { tree.hasPath(to: $0) } == expected.map { $0 != nil })
+        #expect(tree.sources == [0])
+        // Every tree path: arcs of the graph from a source, whose ⊗-product is the distance.
+        for v in 0 ..< 4 {
+            guard let path = tree.path(to: v) else { continue }
+            var product = TropicalSemiring<Int>.one
+            for (k, e) in path.edges.enumerated() {
+                #expect(graph.source(ofEdgeAt: e) == path.vertices[k] && graph.target(ofEdgeAt: e) == path.vertices[k + 1])
+                product = product.times(TropicalSemiring(w[e]))
+            }
+            #expect(path.vertices.last == v && tree.sources.contains(path.vertices[0]))
+            #expect(product == tree.distance(to: v))
+            #expect(tree.parentEdge(of: v) == path.edges.last)
+        }
+    }
+
+    @Test("SR-343 a cycle through a −∞ weight on vertices already at −∞: nil (TropicalSemiring<Int>)")
+    func sr343() {
+        // bellmanFordShortestPaths(from: 0) → nil
+        let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 1)])
+        let w: [Int] = [Int.min, Int.min, 5]
+        #expect(graph.bellmanFordShortestPaths(from: 0) { TropicalSemiring(w[$0]) } == nil)
+    }
+
+    @Test("SR-344 a negative loop on a vertex already at −∞: nil (TropicalSemiring<Int>)")
+    func sr344() {
+        // bellmanFordShortestPaths(from: 0) → nil
+        let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 2)])
+        let w: [Int] = [Int.min, 3, -1]
+        #expect(graph.bellmanFordShortestPaths(from: 0) { TropicalSemiring(w[$0]) } == nil)
+    }
+
+    @Test("SR-345 a negative cycle of finite weights on vertices already at −∞: nil (TropicalSemiring<Int>)")
+    func sr345() {
+        // bellmanFordShortestPaths(from: 0) → nil
+        let graph = DirectedPseudograph(vertices: 0 ..< 4, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 3), DirectedEdge(from: 3, to: 2)])
+        let w: [Int] = [Int.min, 4, -2, -3]
+        #expect(graph.bellmanFordShortestPaths(from: 0) { TropicalSemiring(w[$0]) } == nil)
+    }
+
+    @Test("SR-346 a positive cycle behind a −∞ weight is harmless (TropicalSemiring<Int>)")
+    func sr346() throws {
+        // bellmanFordShortestPaths(from: 0) → [0, Int.min, Int.min]
+        let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 1)])
+        let w: [Int] = [Int.min, 5, 5]
+        let tree = try #require(graph.bellmanFordShortestPaths(from: 0) { TropicalSemiring(w[$0]) })
+        let expected: [Int?] = [0, Int.min, Int.min]
+        #expect((0 ..< 3).map { tree.distance(to: $0)?.value } == expected)
+        #expect((0 ..< 3).map { tree.distance(toIndex: $0)?.value } == expected)
+        #expect((0 ..< 3).map { tree.hasPath(to: $0) } == expected.map { $0 != nil })
+        #expect(tree.sources == [0])
+        // Every tree path: arcs of the graph from a source, whose ⊗-product is the distance.
+        for v in 0 ..< 3 {
+            guard let path = tree.path(to: v) else { continue }
+            var product = TropicalSemiring<Int>.one
+            for (k, e) in path.edges.enumerated() {
+                #expect(graph.source(ofEdgeAt: e) == path.vertices[k] && graph.target(ofEdgeAt: e) == path.vertices[k + 1])
+                product = product.times(TropicalSemiring(w[e]))
+            }
+            #expect(path.vertices.last == v && tree.sources.contains(path.vertices[0]))
+            #expect(product == tree.distance(to: v))
+            #expect(tree.parentEdge(of: v) == path.edges.last)
+        }
+    }
+
+    @Test("SR-347 a cycle through a −∞ weight: nil (the parents would form a cycle) (TropicalSemiring<Double>)")
+    func sr347() {
+        // bellmanFordShortestPaths(from: 0) → nil
+        let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 0), DirectedEdge(from: 1, to: 2)])
+        let w: [Double] = [-Double.infinity, 5.0, 1.0]
+        #expect(graph.bellmanFordShortestPaths(from: 0) { TropicalSemiring(w[$0]) } == nil)
+    }
+
+    @Test("SR-348 a −∞ weight on no cycle: −∞ behind it (TropicalSemiring<Double>)")
+    func sr348() throws {
+        // bellmanFordShortestPaths(from: 0) → [0.0, 3.0, -.infinity, -.infinity]
+        let graph = DirectedPseudograph(vertices: 0 ..< 4, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 3), DirectedEdge(from: 0, to: 3)])
+        let w: [Double] = [3.0, -Double.infinity, 5.0, 2.0]
+        let tree = try #require(graph.bellmanFordShortestPaths(from: 0) { TropicalSemiring(w[$0]) })
+        let expected: [Double?] = [0.0, 3.0, -Double.infinity, -Double.infinity]
+        #expect((0 ..< 4).map { tree.distance(to: $0)?.value } == expected)
+        #expect((0 ..< 4).map { tree.distance(toIndex: $0)?.value } == expected)
+        #expect((0 ..< 4).map { tree.hasPath(to: $0) } == expected.map { $0 != nil })
+        #expect(tree.sources == [0])
+        // Every tree path: arcs of the graph from a source, whose ⊗-product is the distance.
+        for v in 0 ..< 4 {
+            guard let path = tree.path(to: v) else { continue }
+            var product = TropicalSemiring<Double>.one
+            for (k, e) in path.edges.enumerated() {
+                #expect(graph.source(ofEdgeAt: e) == path.vertices[k] && graph.target(ofEdgeAt: e) == path.vertices[k + 1])
+                product = product.times(TropicalSemiring(w[e]))
+            }
+            #expect(path.vertices.last == v && tree.sources.contains(path.vertices[0]))
+            #expect(product == tree.distance(to: v))
+            #expect(tree.parentEdge(of: v) == path.edges.last)
+        }
+    }
+
+    @Test("SR-349 a cycle through a −∞ weight on vertices already at −∞: nil (TropicalSemiring<Double>)")
+    func sr349() {
+        // bellmanFordShortestPaths(from: 0) → nil
+        let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 1)])
+        let w: [Double] = [-Double.infinity, -Double.infinity, 5.0]
+        #expect(graph.bellmanFordShortestPaths(from: 0) { TropicalSemiring(w[$0]) } == nil)
+    }
+
+    @Test("SR-350 a negative loop on a vertex already at −∞: nil (TropicalSemiring<Double>)")
+    func sr350() {
+        // bellmanFordShortestPaths(from: 0) → nil
+        let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 2)])
+        let w: [Double] = [-Double.infinity, 3.0, -1.0]
+        #expect(graph.bellmanFordShortestPaths(from: 0) { TropicalSemiring(w[$0]) } == nil)
+    }
+
+    @Test("SR-351 a negative cycle of finite weights on vertices already at −∞: nil (TropicalSemiring<Double>)")
+    func sr351() {
+        // bellmanFordShortestPaths(from: 0) → nil
+        let graph = DirectedPseudograph(vertices: 0 ..< 4, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 3), DirectedEdge(from: 3, to: 2)])
+        let w: [Double] = [-Double.infinity, 4.0, -2.0, -3.0]
+        #expect(graph.bellmanFordShortestPaths(from: 0) { TropicalSemiring(w[$0]) } == nil)
+    }
+
+    @Test("SR-352 a positive cycle behind a −∞ weight is harmless (TropicalSemiring<Double>)")
+    func sr352() throws {
+        // bellmanFordShortestPaths(from: 0) → [0.0, -.infinity, -.infinity]
+        let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 1)])
+        let w: [Double] = [-Double.infinity, 5.0, 5.0]
+        let tree = try #require(graph.bellmanFordShortestPaths(from: 0) { TropicalSemiring(w[$0]) })
+        let expected: [Double?] = [0.0, -Double.infinity, -Double.infinity]
+        #expect((0 ..< 3).map { tree.distance(to: $0)?.value } == expected)
+        #expect((0 ..< 3).map { tree.distance(toIndex: $0)?.value } == expected)
+        #expect((0 ..< 3).map { tree.hasPath(to: $0) } == expected.map { $0 != nil })
+        #expect(tree.sources == [0])
+        // Every tree path: arcs of the graph from a source, whose ⊗-product is the distance.
+        for v in 0 ..< 3 {
+            guard let path = tree.path(to: v) else { continue }
+            var product = TropicalSemiring<Double>.one
+            for (k, e) in path.edges.enumerated() {
+                #expect(graph.source(ofEdgeAt: e) == path.vertices[k] && graph.target(ofEdgeAt: e) == path.vertices[k + 1])
+                product = product.times(TropicalSemiring(w[e]))
+            }
+            #expect(path.vertices.last == v && tree.sources.contains(path.vertices[0]))
+            #expect(product == tree.distance(to: v))
+            #expect(tree.parentEdge(of: v) == path.edges.last)
+        }
+    }
 }

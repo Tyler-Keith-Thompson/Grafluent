@@ -83,7 +83,7 @@ struct SemiringPreconditionTests {
             let b = CountingSemiring<Int>(2147483648)
             _ = a.times(b)
         }
-        // One less: the largest product that fits (SR-216).
+        // One less: the largest product that fits.
         #expect((CountingSemiring<Int>(4294967296) ⊗ CountingSemiring<Int>(2147483647)).value == 9223372032559808512)
     }
 
@@ -204,6 +204,96 @@ struct SemiringPreconditionTests {
         let distances = try #require(graph.dagShortestDistances(from: 36) { CountingSemiring(w[$0]) })
         #expect(distances.distance(to: 1224).value == 7219428434016265740)
         #expect(distances.distance(to: 0).value == 0 && distances.distance(to: 36).value == 1)
+    }
+
+    @Test("SR-414 overflow traps at the width (TropicalSemiring<Int8>: a = Int8.max - 7, b = 8)")
+    func sr414() async {
+        // a ⊗ b → **trap** (overflow)
+        await #expect(processExitsWith: .failure) {
+            let a = TropicalSemiring<Int8>(Int8.max - 7)
+            let b = TropicalSemiring<Int8>(8)
+            _ = a ⊗ b
+        }
+        // The method the operator calls traps too.
+        await #expect(processExitsWith: .failure) {
+            let a = TropicalSemiring<Int8>(Int8.max - 7)
+            let b = TropicalSemiring<Int8>(8)
+            _ = a.times(b)
+        }
+        // One less lands on Int8.max: zero.
+        #expect((TropicalSemiring<Int8>(Int8.max - 7) ⊗ TropicalSemiring<Int8>(7)) == .zero)
+    }
+
+    @Test("SR-417 negative overflow traps at the width (TropicalSemiring<Int16>: a = Int16.min + 1, b = -2)")
+    func sr417() async {
+        // a ⊗ b → **trap** (overflow)
+        await #expect(processExitsWith: .failure) {
+            let a = TropicalSemiring<Int16>(Int16.min + 1)
+            let b = TropicalSemiring<Int16>(-2)
+            _ = a ⊗ b
+        }
+        // The method the operator calls traps too.
+        await #expect(processExitsWith: .failure) {
+            let a = TropicalSemiring<Int16>(Int16.min + 1)
+            let b = TropicalSemiring<Int16>(-2)
+            _ = a.times(b)
+        }
+        // One less lands on Int16.min: −∞, which absorbs.
+        #expect((TropicalSemiring<Int16>(Int16.min + 1) ⊗ TropicalSemiring<Int16>(-1)).value == Int16.min)
+    }
+
+    @Test("SR-418 overflow traps at the width (TropicalSemiring<Int32>: a = Int32.max - 1, b = 2)")
+    func sr418() async {
+        // a ⊗ b → **trap** (overflow)
+        await #expect(processExitsWith: .failure) {
+            let a = TropicalSemiring<Int32>(Int32.max - 1)
+            let b = TropicalSemiring<Int32>(2)
+            _ = a ⊗ b
+        }
+        // The method the operator calls traps too.
+        await #expect(processExitsWith: .failure) {
+            let a = TropicalSemiring<Int32>(Int32.max - 1)
+            let b = TropicalSemiring<Int32>(2)
+            _ = a.times(b)
+        }
+        // One less lands on Int32.max: zero.
+        #expect((TropicalSemiring<Int32>(Int32.max - 1) ⊗ TropicalSemiring<Int32>(1)) == .zero)
+    }
+
+    @Test("SR-420 overflow traps at the width (TropicalSemiring<UInt8>: a = 200, b = 56)")
+    func sr420() async {
+        // a ⊗ b → **trap** (overflow)
+        await #expect(processExitsWith: .failure) {
+            let a = TropicalSemiring<UInt8>(200)
+            let b = TropicalSemiring<UInt8>(56)
+            _ = a ⊗ b
+        }
+        // The method the operator calls traps too.
+        await #expect(processExitsWith: .failure) {
+            let a = TropicalSemiring<UInt8>(200)
+            let b = TropicalSemiring<UInt8>(56)
+            _ = a.times(b)
+        }
+        // One less lands on UInt8.max: zero.
+        #expect((TropicalSemiring<UInt8>(200) ⊗ TropicalSemiring<UInt8>(55)) == .zero)
+    }
+
+    @Test("SR-423 overflow traps at the width (TropicalSemiring<UInt64>: a = UInt64.max - 2, b = 3)")
+    func sr423() async {
+        // a ⊗ b → **trap** (overflow)
+        await #expect(processExitsWith: .failure) {
+            let a = TropicalSemiring<UInt64>(UInt64.max - 2)
+            let b = TropicalSemiring<UInt64>(3)
+            _ = a ⊗ b
+        }
+        // The method the operator calls traps too.
+        await #expect(processExitsWith: .failure) {
+            let a = TropicalSemiring<UInt64>(UInt64.max - 2)
+            let b = TropicalSemiring<UInt64>(3)
+            _ = a.times(b)
+        }
+        // One less lands on UInt64.max: zero.
+        #expect((TropicalSemiring<UInt64>(UInt64.max - 2) ⊗ TropicalSemiring<UInt64>(2)) == .zero)
     }
 
     @Test("A source or target that is not a vertex traps, in every semiring entry point")
@@ -431,5 +521,75 @@ struct SemiringPreconditionTests {
         let matrix = try #require(graph.floydWarshallShortestPaths { _ in TropicalSemiring(1) })
         #expect(matrix.distance(from: 1, to: 0) == nil && matrix.path(from: 0, to: 1)?.edges == [0])
         #expect(graph.dijkstraShortestPaths(from: 0) { _ in TropicalSemiring(1) }.path(to: 1)?.vertices == [0, 1])
+    }
+
+    @Test("A NaN weight traps in every semiring engine, tropical and bottleneck, and so does a NaN cutoff")
+    func nanWeights() async throws {
+        await #expect(processExitsWith: .failure) {
+            let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+            let w = [1.0, Double.nan]
+            _ = graph.dijkstraShortestPaths(from: 0) { TropicalSemiring(w[$0]) }
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+            let w = [1.0, Double.nan]
+            _ = graph.dijkstraShortestPaths(from: 0) { BottleneckSemiring(w[$0]) }
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+            _ = graph.dijkstraShortestPaths(from: 0, cutoff: TropicalSemiring(Double.nan)) { _ in TropicalSemiring(1.0) }
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+            let w = [1.0, Double.nan]
+            _ = graph.bellmanFordShortestPaths(from: 0) { TropicalSemiring(w[$0]) }
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+            let w = [1.0, Double.nan]
+            _ = graph.bellmanFordShortestPaths(from: 0) { BottleneckSemiring(w[$0]) }
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+            let w = [1.0, Double.nan]
+            _ = graph.dagShortestPaths(from: 0) { BottleneckSemiring(w[$0]) }
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+            let w = [1.0, Double.nan]
+            _ = graph.dagShortestDistances(from: 0) { CountingSemiring(w[$0]) }
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+            let dag = DirectedAcyclicGraph(graph)!
+            let w = [1.0, Double.nan]
+            _ = dag.dagShortestPaths(from: 0) { TropicalSemiring(w[$0]) }
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+            let w = [1.0, Double.nan]
+            _ = graph.floydWarshallShortestPaths { BottleneckSemiring(w[$0]) }
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+            let w = [1.0, Double.nan]
+            _ = graph.floydWarshallShortestPaths { w[$0] }
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+            let w: [Float] = [1, .nan]
+            _ = graph.floydWarshallShortestPaths { w[$0] }
+        }
+        // Without the fault: a NaN weight the search never examines does not trap, and finite weights answer.
+        let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+        let w = [1.0, Double.nan]
+        #expect(graph.dijkstraShortestPaths(from: 2) { TropicalSemiring(w[$0]) }.distance(to: 2)?.value == 0)
+        #expect(graph.bellmanFordShortestPaths(from: 2) { BottleneckSemiring(w[$0]) }?.distance(to: 2)?.value == .infinity)
+        #expect(graph.dagShortestDistances(from: 2) { CountingSemiring(w[$0]) }?.distance(to: 2).value == 1)
+        let finite = [1.0, 2.0]
+        #expect(graph.dijkstraShortestPaths(from: 0, cutoff: TropicalSemiring(5.0)) { TropicalSemiring(finite[$0]) }.distance(to: 2)?.value == 3)
+        #expect(graph.dagShortestPaths(from: 0) { BottleneckSemiring(finite[$0]) }?.distance(to: 2)?.value == 1)
+        #expect(try #require(graph.floydWarshallShortestPaths { finite[$0] }).distance(from: 0, to: 2) == 3)
+        #expect(try #require(graph.floydWarshallShortestPaths { BottleneckSemiring(finite[$0]) }).distance(from: 0, to: 2)?.value == 1)
     }
 }

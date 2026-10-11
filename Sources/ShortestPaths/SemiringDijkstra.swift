@@ -49,7 +49,7 @@ struct _SemiringDijkstra<G: DirectedGraph, W: SelectiveSemiring>: _IndexSpaceAlg
                         var out = arcs(u)
                         while let (v, e) = out.next() {
                             let w = weight(e)
-                            precondition(!(w < .one), "Dijkstra's algorithm needs every examined weight to be no better than .one (no negative tropical weight); use Bellman–Ford")
+                            precondition(w == w && !(w < .one), "Dijkstra's algorithm needs every examined weight to be no better than .one (no negative tropical weight) and not NaN; use Bellman–Ford")
                             let candidate = du.times(w)
                             if let cutoff, cutoff < candidate { continue }
                             // The buffers are unchecked: a conformer breaking the index laws traps here
@@ -84,8 +84,8 @@ extension DirectedGraph {
     ///   distance no worse than `cutoff` ("at least this wide" for widest paths).
     /// - Precondition: `source` is a vertex; no examined weight is better than `.one` (`!(w <
     ///   .one)`, a nonnegative tropical weight), which every bottleneck and Boolean weight
-    ///   satisfies; every ⊗ along the way succeeds (tropical `Int` sums trap on overflow). There
-    ///   is no NaN check.
+    ///   satisfies; no examined weight and no cutoff is NaN (`w == w`); every ⊗ along the way
+    ///   succeeds (tropical `Int` sums trap on overflow).
     @inlinable
     public func dijkstraShortestPaths<S: SelectiveSemiring>(
         from source: Vertex, cutoff: S? = nil, weight: (Edges.Index) -> S
@@ -101,6 +101,7 @@ extension DirectedGraph {
     public func dijkstraShortestPaths<S: SelectiveSemiring>(
         from sources: some Sequence<Vertex>, cutoff: S? = nil, weight: (Edges.Index) -> S
     ) -> ShortestPathTree<Self, S> {
+        precondition(cutoff.map { $0 == $0 } ?? true, "The cutoff is NaN")
         let ids = _numberedVertices()
         let (indices, listed) = _sourceIndices(sources, ids)
         let result = _runInIndexSpace(_SemiringDijkstra<Self, S>(sources: indices, target: -1, cutoff: cutoff, placeholder: edges.endIndex), ids, weight: weight)

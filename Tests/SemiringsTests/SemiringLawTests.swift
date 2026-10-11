@@ -1,7 +1,8 @@
-// The semiring laws on the catalog's operands (SR-008 – SR-207): ⊕ associative and commutative,
-// zero its identity, ⊗ associative with identity one, zero annihilating, ⊗ distributing from
-// both sides, ⊗ commutative (true of all four, not required); selectivity and idempotence; and
-// the natural order, a < b when a ⊕ b == a != b, with zero the worst element.
+// The semiring laws on the catalog's operands (SR-008 – SR-207, and from SR-361 one triple per
+// other scalar: fixed-width integers, Float, Float16): ⊕ associative and commutative, zero its
+// identity, ⊗ associative with identity one, zero annihilating, ⊗ distributing from both sides,
+// ⊗ commutative (true of all four, not required); selectivity and idempotence; and the natural
+// order, a < b when a ⊕ b == a != b, with zero the worst element.
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import Semirings
@@ -2862,4 +2863,774 @@ struct SemiringLawTests {
         #expect(sum.value == 3.0)
         #expect((a ⊕ a) == sum)
     }
+
+    @Test("SR-361 ⊗ is associative (TropicalSemiring<Int8>: a = 100, b = Int8.max, c = -28)")
+    func sr361() {
+        // (a ⊗ b) ⊗ c == a ⊗ (b ⊗ c) → both Int8.max
+        let a = TropicalSemiring<Int8>(100)
+        let b = TropicalSemiring<Int8>(Int8.max)
+        let c = TropicalSemiring<Int8>(-28)
+        let lhs: TropicalSemiring<Int8> = a.times(b).times(c)
+        let rhs: TropicalSemiring<Int8> = a.times(b.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == Int8.max && rhs.value == Int8.max)
+        // The operators call the methods.
+        let lhsOperators: TropicalSemiring<Int8> = (a ⊗ b) ⊗ c
+        let rhsOperators: TropicalSemiring<Int8> = a ⊗ (b ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-362 zero annihilates (TropicalSemiring<Int8>: a = 100, b = Int8.max, c = -28)")
+    func sr362() {
+        // .zero ⊗ a == a ⊗ .zero → both Int8.max
+        let a = TropicalSemiring<Int8>(100)
+        let lhs: TropicalSemiring<Int8> = TropicalSemiring<Int8>.zero.times(a)
+        let rhs: TropicalSemiring<Int8> = a.times(TropicalSemiring<Int8>.zero)
+        #expect(lhs == rhs)
+        #expect(lhs.value == Int8.max && rhs.value == Int8.max)
+        // The operators call the methods.
+        let lhsOperators: TropicalSemiring<Int8> = .zero ⊗ a
+        let rhsOperators: TropicalSemiring<Int8> = a ⊗ .zero
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-363 ⊗ distributes over ⊕ from the left (TropicalSemiring<Int8>: a = 100, b = Int8.max, c = -28)")
+    func sr363() {
+        // a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c) → both 72
+        let a = TropicalSemiring<Int8>(100)
+        let b = TropicalSemiring<Int8>(Int8.max)
+        let c = TropicalSemiring<Int8>(-28)
+        let lhs: TropicalSemiring<Int8> = a.times(b.plus(c))
+        let rhs: TropicalSemiring<Int8> = a.times(b).plus(a.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == 72 && rhs.value == 72)
+        // The operators call the methods.
+        let lhsOperators: TropicalSemiring<Int8> = a ⊗ (b ⊕ c)
+        let rhsOperators: TropicalSemiring<Int8> = (a ⊗ b) ⊕ (a ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-364 selective: a ⊕ b is the better by < (TropicalSemiring<Int8>: a = 100, b = Int8.max)")
+    func sr364() {
+        // a ⊕ b == (b < a ? b : a) → true (100)
+        let a = TropicalSemiring<Int8>(100)
+        let b = TropicalSemiring<Int8>(Int8.max)
+        let sum = a.plus(b)
+        #expect(sum == (b < a ? b : a))
+        #expect(sum == a || sum == b)
+        #expect(sum.value == 100)
+        #expect((a ⊕ b) == sum)
+    }
+
+    @Test("SR-365 ⊗ is associative (TropicalSemiring<Int16>: a = Int16.min, b = 7, c = Int16.max)")
+    func sr365() {
+        // (a ⊗ b) ⊗ c == a ⊗ (b ⊗ c) → both Int16.max
+        let a = TropicalSemiring<Int16>(Int16.min)
+        let b = TropicalSemiring<Int16>(7)
+        let c = TropicalSemiring<Int16>(Int16.max)
+        let lhs: TropicalSemiring<Int16> = a.times(b).times(c)
+        let rhs: TropicalSemiring<Int16> = a.times(b.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == Int16.max && rhs.value == Int16.max)
+        // The operators call the methods.
+        let lhsOperators: TropicalSemiring<Int16> = (a ⊗ b) ⊗ c
+        let rhsOperators: TropicalSemiring<Int16> = a ⊗ (b ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-366 zero annihilates (TropicalSemiring<Int16>: a = Int16.min, b = 7, c = Int16.max)")
+    func sr366() {
+        // .zero ⊗ a == a ⊗ .zero → both Int16.max
+        let a = TropicalSemiring<Int16>(Int16.min)
+        let lhs: TropicalSemiring<Int16> = TropicalSemiring<Int16>.zero.times(a)
+        let rhs: TropicalSemiring<Int16> = a.times(TropicalSemiring<Int16>.zero)
+        #expect(lhs == rhs)
+        #expect(lhs.value == Int16.max && rhs.value == Int16.max)
+        // The operators call the methods.
+        let lhsOperators: TropicalSemiring<Int16> = .zero ⊗ a
+        let rhsOperators: TropicalSemiring<Int16> = a ⊗ .zero
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-367 ⊗ distributes over ⊕ from the left (TropicalSemiring<Int16>: a = Int16.min, b = 7, c = Int16.max)")
+    func sr367() {
+        // a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c) → both Int16.min
+        let a = TropicalSemiring<Int16>(Int16.min)
+        let b = TropicalSemiring<Int16>(7)
+        let c = TropicalSemiring<Int16>(Int16.max)
+        let lhs: TropicalSemiring<Int16> = a.times(b.plus(c))
+        let rhs: TropicalSemiring<Int16> = a.times(b).plus(a.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == Int16.min && rhs.value == Int16.min)
+        // The operators call the methods.
+        let lhsOperators: TropicalSemiring<Int16> = a ⊗ (b ⊕ c)
+        let rhsOperators: TropicalSemiring<Int16> = (a ⊗ b) ⊕ (a ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-368 selective: a ⊕ b is the better by < (TropicalSemiring<Int16>: a = Int16.min, b = 7)")
+    func sr368() {
+        // a ⊕ b == (b < a ? b : a) → true (Int16.min)
+        let a = TropicalSemiring<Int16>(Int16.min)
+        let b = TropicalSemiring<Int16>(7)
+        let sum = a.plus(b)
+        #expect(sum == (b < a ? b : a))
+        #expect(sum == a || sum == b)
+        #expect(sum.value == Int16.min)
+        #expect((a ⊕ b) == sum)
+    }
+
+    @Test("SR-369 ⊗ is associative (TropicalSemiring<Int32>: a = 2000000000, b = -1, c = Int32.max)")
+    func sr369() {
+        // (a ⊗ b) ⊗ c == a ⊗ (b ⊗ c) → both Int32.max
+        let a = TropicalSemiring<Int32>(2000000000)
+        let b = TropicalSemiring<Int32>(-1)
+        let c = TropicalSemiring<Int32>(Int32.max)
+        let lhs: TropicalSemiring<Int32> = a.times(b).times(c)
+        let rhs: TropicalSemiring<Int32> = a.times(b.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == Int32.max && rhs.value == Int32.max)
+        // The operators call the methods.
+        let lhsOperators: TropicalSemiring<Int32> = (a ⊗ b) ⊗ c
+        let rhsOperators: TropicalSemiring<Int32> = a ⊗ (b ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-370 zero annihilates (TropicalSemiring<Int32>: a = 2000000000, b = -1, c = Int32.max)")
+    func sr370() {
+        // .zero ⊗ a == a ⊗ .zero → both Int32.max
+        let a = TropicalSemiring<Int32>(2000000000)
+        let lhs: TropicalSemiring<Int32> = TropicalSemiring<Int32>.zero.times(a)
+        let rhs: TropicalSemiring<Int32> = a.times(TropicalSemiring<Int32>.zero)
+        #expect(lhs == rhs)
+        #expect(lhs.value == Int32.max && rhs.value == Int32.max)
+        // The operators call the methods.
+        let lhsOperators: TropicalSemiring<Int32> = .zero ⊗ a
+        let rhsOperators: TropicalSemiring<Int32> = a ⊗ .zero
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-371 ⊗ distributes over ⊕ from the left (TropicalSemiring<Int32>: a = 2000000000, b = -1, c = Int32.max)")
+    func sr371() {
+        // a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c) → both 1999999999
+        let a = TropicalSemiring<Int32>(2000000000)
+        let b = TropicalSemiring<Int32>(-1)
+        let c = TropicalSemiring<Int32>(Int32.max)
+        let lhs: TropicalSemiring<Int32> = a.times(b.plus(c))
+        let rhs: TropicalSemiring<Int32> = a.times(b).plus(a.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == 1999999999 && rhs.value == 1999999999)
+        // The operators call the methods.
+        let lhsOperators: TropicalSemiring<Int32> = a ⊗ (b ⊕ c)
+        let rhsOperators: TropicalSemiring<Int32> = (a ⊗ b) ⊕ (a ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-372 selective: a ⊕ b is the better by < (TropicalSemiring<Int32>: a = 2000000000, b = -1)")
+    func sr372() {
+        // a ⊕ b == (b < a ? b : a) → true (-1)
+        let a = TropicalSemiring<Int32>(2000000000)
+        let b = TropicalSemiring<Int32>(-1)
+        let sum = a.plus(b)
+        #expect(sum == (b < a ? b : a))
+        #expect(sum == a || sum == b)
+        #expect(sum.value == -1)
+        #expect((a ⊕ b) == sum)
+    }
+
+    @Test("SR-373 ⊗ is associative (TropicalSemiring<UInt8>: a = 200, b = 55, c = UInt8.max)")
+    func sr373() {
+        // (a ⊗ b) ⊗ c == a ⊗ (b ⊗ c) → both UInt8.max
+        let a = TropicalSemiring<UInt8>(200)
+        let b = TropicalSemiring<UInt8>(55)
+        let c = TropicalSemiring<UInt8>(UInt8.max)
+        let lhs: TropicalSemiring<UInt8> = a.times(b).times(c)
+        let rhs: TropicalSemiring<UInt8> = a.times(b.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == UInt8.max && rhs.value == UInt8.max)
+        // The operators call the methods.
+        let lhsOperators: TropicalSemiring<UInt8> = (a ⊗ b) ⊗ c
+        let rhsOperators: TropicalSemiring<UInt8> = a ⊗ (b ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-374 zero annihilates (TropicalSemiring<UInt8>: a = 200, b = 55, c = UInt8.max)")
+    func sr374() {
+        // .zero ⊗ a == a ⊗ .zero → both UInt8.max
+        let a = TropicalSemiring<UInt8>(200)
+        let lhs: TropicalSemiring<UInt8> = TropicalSemiring<UInt8>.zero.times(a)
+        let rhs: TropicalSemiring<UInt8> = a.times(TropicalSemiring<UInt8>.zero)
+        #expect(lhs == rhs)
+        #expect(lhs.value == UInt8.max && rhs.value == UInt8.max)
+        // The operators call the methods.
+        let lhsOperators: TropicalSemiring<UInt8> = .zero ⊗ a
+        let rhsOperators: TropicalSemiring<UInt8> = a ⊗ .zero
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-375 ⊗ distributes over ⊕ from the left (TropicalSemiring<UInt8>: a = 200, b = 55, c = UInt8.max)")
+    func sr375() {
+        // a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c) → both UInt8.max
+        let a = TropicalSemiring<UInt8>(200)
+        let b = TropicalSemiring<UInt8>(55)
+        let c = TropicalSemiring<UInt8>(UInt8.max)
+        let lhs: TropicalSemiring<UInt8> = a.times(b.plus(c))
+        let rhs: TropicalSemiring<UInt8> = a.times(b).plus(a.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == UInt8.max && rhs.value == UInt8.max)
+        // The operators call the methods.
+        let lhsOperators: TropicalSemiring<UInt8> = a ⊗ (b ⊕ c)
+        let rhsOperators: TropicalSemiring<UInt8> = (a ⊗ b) ⊕ (a ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-376 selective: a ⊕ b is the better by < (TropicalSemiring<UInt8>: a = 200, b = 55)")
+    func sr376() {
+        // a ⊕ b == (b < a ? b : a) → true (55)
+        let a = TropicalSemiring<UInt8>(200)
+        let b = TropicalSemiring<UInt8>(55)
+        let sum = a.plus(b)
+        #expect(sum == (b < a ? b : a))
+        #expect(sum == a || sum == b)
+        #expect(sum.value == 55)
+        #expect((a ⊕ b) == sum)
+    }
+
+    @Test("SR-377 ⊗ is associative (TropicalSemiring<UInt16>: a = 1, b = 2, c = UInt16.max)")
+    func sr377() {
+        // (a ⊗ b) ⊗ c == a ⊗ (b ⊗ c) → both UInt16.max
+        let a = TropicalSemiring<UInt16>(1)
+        let b = TropicalSemiring<UInt16>(2)
+        let c = TropicalSemiring<UInt16>(UInt16.max)
+        let lhs: TropicalSemiring<UInt16> = a.times(b).times(c)
+        let rhs: TropicalSemiring<UInt16> = a.times(b.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == UInt16.max && rhs.value == UInt16.max)
+        // The operators call the methods.
+        let lhsOperators: TropicalSemiring<UInt16> = (a ⊗ b) ⊗ c
+        let rhsOperators: TropicalSemiring<UInt16> = a ⊗ (b ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-378 zero annihilates (TropicalSemiring<UInt16>: a = 1, b = 2, c = UInt16.max)")
+    func sr378() {
+        // .zero ⊗ a == a ⊗ .zero → both UInt16.max
+        let a = TropicalSemiring<UInt16>(1)
+        let lhs: TropicalSemiring<UInt16> = TropicalSemiring<UInt16>.zero.times(a)
+        let rhs: TropicalSemiring<UInt16> = a.times(TropicalSemiring<UInt16>.zero)
+        #expect(lhs == rhs)
+        #expect(lhs.value == UInt16.max && rhs.value == UInt16.max)
+        // The operators call the methods.
+        let lhsOperators: TropicalSemiring<UInt16> = .zero ⊗ a
+        let rhsOperators: TropicalSemiring<UInt16> = a ⊗ .zero
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-379 ⊗ distributes over ⊕ from the left (TropicalSemiring<UInt16>: a = 1, b = 2, c = UInt16.max)")
+    func sr379() {
+        // a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c) → both 3
+        let a = TropicalSemiring<UInt16>(1)
+        let b = TropicalSemiring<UInt16>(2)
+        let c = TropicalSemiring<UInt16>(UInt16.max)
+        let lhs: TropicalSemiring<UInt16> = a.times(b.plus(c))
+        let rhs: TropicalSemiring<UInt16> = a.times(b).plus(a.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == 3 && rhs.value == 3)
+        // The operators call the methods.
+        let lhsOperators: TropicalSemiring<UInt16> = a ⊗ (b ⊕ c)
+        let rhsOperators: TropicalSemiring<UInt16> = (a ⊗ b) ⊕ (a ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-380 selective: a ⊕ b is the better by < (TropicalSemiring<UInt16>: a = 1, b = 2)")
+    func sr380() {
+        // a ⊕ b == (b < a ? b : a) → true (1)
+        let a = TropicalSemiring<UInt16>(1)
+        let b = TropicalSemiring<UInt16>(2)
+        let sum = a.plus(b)
+        #expect(sum == (b < a ? b : a))
+        #expect(sum == a || sum == b)
+        #expect(sum.value == 1)
+        #expect((a ⊕ b) == sum)
+    }
+
+    @Test("SR-381 ⊗ is associative (TropicalSemiring<UInt32>: a = 4000000000, b = 294967295, c = 0)")
+    func sr381() {
+        // (a ⊗ b) ⊗ c == a ⊗ (b ⊗ c) → both UInt32.max
+        let a = TropicalSemiring<UInt32>(4000000000)
+        let b = TropicalSemiring<UInt32>(294967295)
+        let c = TropicalSemiring<UInt32>(0)
+        let lhs: TropicalSemiring<UInt32> = a.times(b).times(c)
+        let rhs: TropicalSemiring<UInt32> = a.times(b.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == UInt32.max && rhs.value == UInt32.max)
+        // The operators call the methods.
+        let lhsOperators: TropicalSemiring<UInt32> = (a ⊗ b) ⊗ c
+        let rhsOperators: TropicalSemiring<UInt32> = a ⊗ (b ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-382 zero annihilates (TropicalSemiring<UInt32>: a = 4000000000, b = 294967295, c = 0)")
+    func sr382() {
+        // .zero ⊗ a == a ⊗ .zero → both UInt32.max
+        let a = TropicalSemiring<UInt32>(4000000000)
+        let lhs: TropicalSemiring<UInt32> = TropicalSemiring<UInt32>.zero.times(a)
+        let rhs: TropicalSemiring<UInt32> = a.times(TropicalSemiring<UInt32>.zero)
+        #expect(lhs == rhs)
+        #expect(lhs.value == UInt32.max && rhs.value == UInt32.max)
+        // The operators call the methods.
+        let lhsOperators: TropicalSemiring<UInt32> = .zero ⊗ a
+        let rhsOperators: TropicalSemiring<UInt32> = a ⊗ .zero
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-383 ⊗ distributes over ⊕ from the left (TropicalSemiring<UInt32>: a = 4000000000, b = 294967295, c = 0)")
+    func sr383() {
+        // a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c) → both 4000000000
+        let a = TropicalSemiring<UInt32>(4000000000)
+        let b = TropicalSemiring<UInt32>(294967295)
+        let c = TropicalSemiring<UInt32>(0)
+        let lhs: TropicalSemiring<UInt32> = a.times(b.plus(c))
+        let rhs: TropicalSemiring<UInt32> = a.times(b).plus(a.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == 4000000000 && rhs.value == 4000000000)
+        // The operators call the methods.
+        let lhsOperators: TropicalSemiring<UInt32> = a ⊗ (b ⊕ c)
+        let rhsOperators: TropicalSemiring<UInt32> = (a ⊗ b) ⊕ (a ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-384 selective: a ⊕ b is the better by < (TropicalSemiring<UInt32>: a = 4000000000, b = 294967295)")
+    func sr384() {
+        // a ⊕ b == (b < a ? b : a) → true (294967295)
+        let a = TropicalSemiring<UInt32>(4000000000)
+        let b = TropicalSemiring<UInt32>(294967295)
+        let sum = a.plus(b)
+        #expect(sum == (b < a ? b : a))
+        #expect(sum == a || sum == b)
+        #expect(sum.value == 294967295)
+        #expect((a ⊕ b) == sum)
+    }
+
+    @Test("SR-385 ⊗ is associative (TropicalSemiring<UInt64>: a = UInt64.max - 1, b = 1, c = 0)")
+    func sr385() {
+        // (a ⊗ b) ⊗ c == a ⊗ (b ⊗ c) → both UInt64.max
+        let a = TropicalSemiring<UInt64>(UInt64.max - 1)
+        let b = TropicalSemiring<UInt64>(1)
+        let c = TropicalSemiring<UInt64>(0)
+        let lhs: TropicalSemiring<UInt64> = a.times(b).times(c)
+        let rhs: TropicalSemiring<UInt64> = a.times(b.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == UInt64.max && rhs.value == UInt64.max)
+        // The operators call the methods.
+        let lhsOperators: TropicalSemiring<UInt64> = (a ⊗ b) ⊗ c
+        let rhsOperators: TropicalSemiring<UInt64> = a ⊗ (b ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-386 zero annihilates (TropicalSemiring<UInt64>: a = UInt64.max - 1, b = 1, c = 0)")
+    func sr386() {
+        // .zero ⊗ a == a ⊗ .zero → both UInt64.max
+        let a = TropicalSemiring<UInt64>(UInt64.max - 1)
+        let lhs: TropicalSemiring<UInt64> = TropicalSemiring<UInt64>.zero.times(a)
+        let rhs: TropicalSemiring<UInt64> = a.times(TropicalSemiring<UInt64>.zero)
+        #expect(lhs == rhs)
+        #expect(lhs.value == UInt64.max && rhs.value == UInt64.max)
+        // The operators call the methods.
+        let lhsOperators: TropicalSemiring<UInt64> = .zero ⊗ a
+        let rhsOperators: TropicalSemiring<UInt64> = a ⊗ .zero
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-387 ⊗ distributes over ⊕ from the left (TropicalSemiring<UInt64>: a = UInt64.max - 1, b = 1, c = 0)")
+    func sr387() {
+        // a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c) → both 18446744073709551614
+        let a = TropicalSemiring<UInt64>(UInt64.max - 1)
+        let b = TropicalSemiring<UInt64>(1)
+        let c = TropicalSemiring<UInt64>(0)
+        let lhs: TropicalSemiring<UInt64> = a.times(b.plus(c))
+        let rhs: TropicalSemiring<UInt64> = a.times(b).plus(a.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == 18446744073709551614 && rhs.value == 18446744073709551614)
+        // The operators call the methods.
+        let lhsOperators: TropicalSemiring<UInt64> = a ⊗ (b ⊕ c)
+        let rhsOperators: TropicalSemiring<UInt64> = (a ⊗ b) ⊕ (a ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-388 selective: a ⊕ b is the better by < (TropicalSemiring<UInt64>: a = UInt64.max - 1, b = 1)")
+    func sr388() {
+        // a ⊕ b == (b < a ? b : a) → true (1)
+        let a = TropicalSemiring<UInt64>(UInt64.max - 1)
+        let b = TropicalSemiring<UInt64>(1)
+        let sum = a.plus(b)
+        #expect(sum == (b < a ? b : a))
+        #expect(sum == a || sum == b)
+        #expect(sum.value == 1)
+        #expect((a ⊕ b) == sum)
+    }
+
+    @Test("SR-389 ⊗ is associative (TropicalSemiring<UInt>: a = 3, b = UInt.max, c = 0)")
+    func sr389() {
+        // (a ⊗ b) ⊗ c == a ⊗ (b ⊗ c) → both UInt.max
+        let a = TropicalSemiring<UInt>(3)
+        let b = TropicalSemiring<UInt>(UInt.max)
+        let c = TropicalSemiring<UInt>(0)
+        let lhs: TropicalSemiring<UInt> = a.times(b).times(c)
+        let rhs: TropicalSemiring<UInt> = a.times(b.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == UInt.max && rhs.value == UInt.max)
+        // The operators call the methods.
+        let lhsOperators: TropicalSemiring<UInt> = (a ⊗ b) ⊗ c
+        let rhsOperators: TropicalSemiring<UInt> = a ⊗ (b ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-390 zero annihilates (TropicalSemiring<UInt>: a = 3, b = UInt.max, c = 0)")
+    func sr390() {
+        // .zero ⊗ a == a ⊗ .zero → both UInt.max
+        let a = TropicalSemiring<UInt>(3)
+        let lhs: TropicalSemiring<UInt> = TropicalSemiring<UInt>.zero.times(a)
+        let rhs: TropicalSemiring<UInt> = a.times(TropicalSemiring<UInt>.zero)
+        #expect(lhs == rhs)
+        #expect(lhs.value == UInt.max && rhs.value == UInt.max)
+        // The operators call the methods.
+        let lhsOperators: TropicalSemiring<UInt> = .zero ⊗ a
+        let rhsOperators: TropicalSemiring<UInt> = a ⊗ .zero
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-391 ⊗ distributes over ⊕ from the left (TropicalSemiring<UInt>: a = 3, b = UInt.max, c = 0)")
+    func sr391() {
+        // a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c) → both 3
+        let a = TropicalSemiring<UInt>(3)
+        let b = TropicalSemiring<UInt>(UInt.max)
+        let c = TropicalSemiring<UInt>(0)
+        let lhs: TropicalSemiring<UInt> = a.times(b.plus(c))
+        let rhs: TropicalSemiring<UInt> = a.times(b).plus(a.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == 3 && rhs.value == 3)
+        // The operators call the methods.
+        let lhsOperators: TropicalSemiring<UInt> = a ⊗ (b ⊕ c)
+        let rhsOperators: TropicalSemiring<UInt> = (a ⊗ b) ⊕ (a ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-392 selective: a ⊕ b is the better by < (TropicalSemiring<UInt>: a = 3, b = UInt.max)")
+    func sr392() {
+        // a ⊕ b == (b < a ? b : a) → true (3)
+        let a = TropicalSemiring<UInt>(3)
+        let b = TropicalSemiring<UInt>(UInt.max)
+        let sum = a.plus(b)
+        #expect(sum == (b < a ? b : a))
+        #expect(sum == a || sum == b)
+        #expect(sum.value == 3)
+        #expect((a ⊕ b) == sum)
+    }
+
+    @Test("SR-393 ⊗ is associative (BottleneckSemiring<UInt>: a = 0, b = UInt.max, c = 7)")
+    func sr393() {
+        // (a ⊗ b) ⊗ c == a ⊗ (b ⊗ c) → both 0
+        let a = BottleneckSemiring<UInt>(0)
+        let b = BottleneckSemiring<UInt>(UInt.max)
+        let c = BottleneckSemiring<UInt>(7)
+        let lhs: BottleneckSemiring<UInt> = a.times(b).times(c)
+        let rhs: BottleneckSemiring<UInt> = a.times(b.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == 0 && rhs.value == 0)
+        // The operators call the methods.
+        let lhsOperators: BottleneckSemiring<UInt> = (a ⊗ b) ⊗ c
+        let rhsOperators: BottleneckSemiring<UInt> = a ⊗ (b ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-394 zero annihilates (BottleneckSemiring<UInt>: a = 0, b = UInt.max, c = 7)")
+    func sr394() {
+        // .zero ⊗ a == a ⊗ .zero → both 0
+        let a = BottleneckSemiring<UInt>(0)
+        let lhs: BottleneckSemiring<UInt> = BottleneckSemiring<UInt>.zero.times(a)
+        let rhs: BottleneckSemiring<UInt> = a.times(BottleneckSemiring<UInt>.zero)
+        #expect(lhs == rhs)
+        #expect(lhs.value == 0 && rhs.value == 0)
+        // The operators call the methods.
+        let lhsOperators: BottleneckSemiring<UInt> = .zero ⊗ a
+        let rhsOperators: BottleneckSemiring<UInt> = a ⊗ .zero
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-395 ⊗ distributes over ⊕ from the left (BottleneckSemiring<UInt>: a = 0, b = UInt.max, c = 7)")
+    func sr395() {
+        // a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c) → both 0
+        let a = BottleneckSemiring<UInt>(0)
+        let b = BottleneckSemiring<UInt>(UInt.max)
+        let c = BottleneckSemiring<UInt>(7)
+        let lhs: BottleneckSemiring<UInt> = a.times(b.plus(c))
+        let rhs: BottleneckSemiring<UInt> = a.times(b).plus(a.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == 0 && rhs.value == 0)
+        // The operators call the methods.
+        let lhsOperators: BottleneckSemiring<UInt> = a ⊗ (b ⊕ c)
+        let rhsOperators: BottleneckSemiring<UInt> = (a ⊗ b) ⊕ (a ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-396 selective: a ⊕ b is the better by < (BottleneckSemiring<UInt>: a = 0, b = UInt.max)")
+    func sr396() {
+        // a ⊕ b == (b < a ? b : a) → true (UInt.max)
+        let a = BottleneckSemiring<UInt>(0)
+        let b = BottleneckSemiring<UInt>(UInt.max)
+        let sum = a.plus(b)
+        #expect(sum == (b < a ? b : a))
+        #expect(sum == a || sum == b)
+        #expect(sum.value == UInt.max)
+        #expect((a ⊕ b) == sum)
+    }
+
+    @Test("SR-397 ⊗ is associative (BottleneckSemiring<UInt8>: a = 5, b = 0, c = UInt8.max)")
+    func sr397() {
+        // (a ⊗ b) ⊗ c == a ⊗ (b ⊗ c) → both 0
+        let a = BottleneckSemiring<UInt8>(5)
+        let b = BottleneckSemiring<UInt8>(0)
+        let c = BottleneckSemiring<UInt8>(UInt8.max)
+        let lhs: BottleneckSemiring<UInt8> = a.times(b).times(c)
+        let rhs: BottleneckSemiring<UInt8> = a.times(b.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == 0 && rhs.value == 0)
+        // The operators call the methods.
+        let lhsOperators: BottleneckSemiring<UInt8> = (a ⊗ b) ⊗ c
+        let rhsOperators: BottleneckSemiring<UInt8> = a ⊗ (b ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-398 zero annihilates (BottleneckSemiring<UInt8>: a = 5, b = 0, c = UInt8.max)")
+    func sr398() {
+        // .zero ⊗ a == a ⊗ .zero → both 0
+        let a = BottleneckSemiring<UInt8>(5)
+        let lhs: BottleneckSemiring<UInt8> = BottleneckSemiring<UInt8>.zero.times(a)
+        let rhs: BottleneckSemiring<UInt8> = a.times(BottleneckSemiring<UInt8>.zero)
+        #expect(lhs == rhs)
+        #expect(lhs.value == 0 && rhs.value == 0)
+        // The operators call the methods.
+        let lhsOperators: BottleneckSemiring<UInt8> = .zero ⊗ a
+        let rhsOperators: BottleneckSemiring<UInt8> = a ⊗ .zero
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-399 ⊗ distributes over ⊕ from the left (BottleneckSemiring<UInt8>: a = 5, b = 0, c = UInt8.max)")
+    func sr399() {
+        // a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c) → both 5
+        let a = BottleneckSemiring<UInt8>(5)
+        let b = BottleneckSemiring<UInt8>(0)
+        let c = BottleneckSemiring<UInt8>(UInt8.max)
+        let lhs: BottleneckSemiring<UInt8> = a.times(b.plus(c))
+        let rhs: BottleneckSemiring<UInt8> = a.times(b).plus(a.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == 5 && rhs.value == 5)
+        // The operators call the methods.
+        let lhsOperators: BottleneckSemiring<UInt8> = a ⊗ (b ⊕ c)
+        let rhsOperators: BottleneckSemiring<UInt8> = (a ⊗ b) ⊕ (a ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-400 selective: a ⊕ b is the better by < (BottleneckSemiring<UInt8>: a = 5, b = 0)")
+    func sr400() {
+        // a ⊕ b == (b < a ? b : a) → true (5)
+        let a = BottleneckSemiring<UInt8>(5)
+        let b = BottleneckSemiring<UInt8>(0)
+        let sum = a.plus(b)
+        #expect(sum == (b < a ? b : a))
+        #expect(sum == a || sum == b)
+        #expect(sum.value == 5)
+        #expect((a ⊕ b) == sum)
+    }
+
+    @Test("SR-401 ⊗ is associative (TropicalSemiring<Float>: a = 1.7014118346046923e+38, b = 1.7014118346046923e+38, c = -0.5)")
+    func sr401() {
+        // (a ⊗ b) ⊗ c == a ⊗ (b ⊗ c) → both .infinity
+        let a = TropicalSemiring<Float>(1.7014118346046923e+38)
+        let b = TropicalSemiring<Float>(1.7014118346046923e+38)
+        let c = TropicalSemiring<Float>(-0.5)
+        let lhs: TropicalSemiring<Float> = a.times(b).times(c)
+        let rhs: TropicalSemiring<Float> = a.times(b.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == Float.infinity && rhs.value == Float.infinity)
+        // The operators call the methods.
+        let lhsOperators: TropicalSemiring<Float> = (a ⊗ b) ⊗ c
+        let rhsOperators: TropicalSemiring<Float> = a ⊗ (b ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-402 zero annihilates (TropicalSemiring<Float>: a = 1.7014118346046923e+38, b = 1.7014118346046923e+38, c = -0.5)")
+    func sr402() {
+        // .zero ⊗ a == a ⊗ .zero → both .infinity
+        let a = TropicalSemiring<Float>(1.7014118346046923e+38)
+        let lhs: TropicalSemiring<Float> = TropicalSemiring<Float>.zero.times(a)
+        let rhs: TropicalSemiring<Float> = a.times(TropicalSemiring<Float>.zero)
+        #expect(lhs == rhs)
+        #expect(lhs.value == Float.infinity && rhs.value == Float.infinity)
+        // The operators call the methods.
+        let lhsOperators: TropicalSemiring<Float> = .zero ⊗ a
+        let rhsOperators: TropicalSemiring<Float> = a ⊗ .zero
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-403 ⊗ distributes over ⊕ from the left (TropicalSemiring<Float>: a = 1.7014118346046923e+38, b = 1.7014118346046923e+38, c = -0.5)")
+    func sr403() {
+        // a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c) → both 1.7014118346046923e+38
+        let a = TropicalSemiring<Float>(1.7014118346046923e+38)
+        let b = TropicalSemiring<Float>(1.7014118346046923e+38)
+        let c = TropicalSemiring<Float>(-0.5)
+        let lhs: TropicalSemiring<Float> = a.times(b.plus(c))
+        let rhs: TropicalSemiring<Float> = a.times(b).plus(a.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == 1.7014118346046923e+38 && rhs.value == 1.7014118346046923e+38)
+        // The operators call the methods.
+        let lhsOperators: TropicalSemiring<Float> = a ⊗ (b ⊕ c)
+        let rhsOperators: TropicalSemiring<Float> = (a ⊗ b) ⊕ (a ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-404 selective: a ⊕ b is the better by < (TropicalSemiring<Float>: a = 1.7014118346046923e+38, b = 1.7014118346046923e+38)")
+    func sr404() {
+        // a ⊕ b == (b < a ? b : a) → true (1.7014118346046923e+38)
+        let a = TropicalSemiring<Float>(1.7014118346046923e+38)
+        let b = TropicalSemiring<Float>(1.7014118346046923e+38)
+        let sum = a.plus(b)
+        #expect(sum == (b < a ? b : a))
+        #expect(sum == a || sum == b)
+        #expect(sum.value == 1.7014118346046923e+38)
+        #expect((a ⊕ b) == sum)
+    }
+
+    #if !((os(macOS) || targetEnvironment(macCatalyst)) && arch(x86_64))
+    @Test("SR-405 ⊗ is associative (TropicalSemiring<Float16>: a = 32768.0, b = 32768.0, c = .infinity)")
+    func sr405() {
+        // (a ⊗ b) ⊗ c == a ⊗ (b ⊗ c) → both .infinity
+        let a = TropicalSemiring<Float16>(32768.0)
+        let b = TropicalSemiring<Float16>(32768.0)
+        let c = TropicalSemiring<Float16>(Float16.infinity)
+        let lhs: TropicalSemiring<Float16> = a.times(b).times(c)
+        let rhs: TropicalSemiring<Float16> = a.times(b.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == Float16.infinity && rhs.value == Float16.infinity)
+        // The operators call the methods.
+        let lhsOperators: TropicalSemiring<Float16> = (a ⊗ b) ⊗ c
+        let rhsOperators: TropicalSemiring<Float16> = a ⊗ (b ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+    #endif
+
+    #if !((os(macOS) || targetEnvironment(macCatalyst)) && arch(x86_64))
+    @Test("SR-406 zero annihilates (TropicalSemiring<Float16>: a = 32768.0, b = 32768.0, c = .infinity)")
+    func sr406() {
+        // .zero ⊗ a == a ⊗ .zero → both .infinity
+        let a = TropicalSemiring<Float16>(32768.0)
+        let lhs: TropicalSemiring<Float16> = TropicalSemiring<Float16>.zero.times(a)
+        let rhs: TropicalSemiring<Float16> = a.times(TropicalSemiring<Float16>.zero)
+        #expect(lhs == rhs)
+        #expect(lhs.value == Float16.infinity && rhs.value == Float16.infinity)
+        // The operators call the methods.
+        let lhsOperators: TropicalSemiring<Float16> = .zero ⊗ a
+        let rhsOperators: TropicalSemiring<Float16> = a ⊗ .zero
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+    #endif
+
+    #if !((os(macOS) || targetEnvironment(macCatalyst)) && arch(x86_64))
+    @Test("SR-407 ⊗ distributes over ⊕ from the left (TropicalSemiring<Float16>: a = 32768.0, b = 32768.0, c = .infinity)")
+    func sr407() {
+        // a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c) → both .infinity
+        let a = TropicalSemiring<Float16>(32768.0)
+        let b = TropicalSemiring<Float16>(32768.0)
+        let c = TropicalSemiring<Float16>(Float16.infinity)
+        let lhs: TropicalSemiring<Float16> = a.times(b.plus(c))
+        let rhs: TropicalSemiring<Float16> = a.times(b).plus(a.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == Float16.infinity && rhs.value == Float16.infinity)
+        // The operators call the methods.
+        let lhsOperators: TropicalSemiring<Float16> = a ⊗ (b ⊕ c)
+        let rhsOperators: TropicalSemiring<Float16> = (a ⊗ b) ⊕ (a ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+    #endif
+
+    #if !((os(macOS) || targetEnvironment(macCatalyst)) && arch(x86_64))
+    @Test("SR-408 selective: a ⊕ b is the better by < (TropicalSemiring<Float16>: a = 32768.0, b = 32768.0)")
+    func sr408() {
+        // a ⊕ b == (b < a ? b : a) → true (32768.0)
+        let a = TropicalSemiring<Float16>(32768.0)
+        let b = TropicalSemiring<Float16>(32768.0)
+        let sum = a.plus(b)
+        #expect(sum == (b < a ? b : a))
+        #expect(sum == a || sum == b)
+        #expect(sum.value == 32768.0)
+        #expect((a ⊕ b) == sum)
+    }
+    #endif
+
+    #if !((os(macOS) || targetEnvironment(macCatalyst)) && arch(x86_64))
+    @Test("SR-409 ⊗ is associative (BottleneckSemiring<Float16>: a = -.infinity, b = 65504.0, c = 0.5)")
+    func sr409() {
+        // (a ⊗ b) ⊗ c == a ⊗ (b ⊗ c) → both -.infinity
+        let a = BottleneckSemiring<Float16>(-Float16.infinity)
+        let b = BottleneckSemiring<Float16>(65504.0)
+        let c = BottleneckSemiring<Float16>(0.5)
+        let lhs: BottleneckSemiring<Float16> = a.times(b).times(c)
+        let rhs: BottleneckSemiring<Float16> = a.times(b.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == -Float16.infinity && rhs.value == -Float16.infinity)
+        // The operators call the methods.
+        let lhsOperators: BottleneckSemiring<Float16> = (a ⊗ b) ⊗ c
+        let rhsOperators: BottleneckSemiring<Float16> = a ⊗ (b ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+    #endif
+
+    #if !((os(macOS) || targetEnvironment(macCatalyst)) && arch(x86_64))
+    @Test("SR-410 zero annihilates (BottleneckSemiring<Float16>: a = -.infinity, b = 65504.0, c = 0.5)")
+    func sr410() {
+        // .zero ⊗ a == a ⊗ .zero → both -.infinity
+        let a = BottleneckSemiring<Float16>(-Float16.infinity)
+        let lhs: BottleneckSemiring<Float16> = BottleneckSemiring<Float16>.zero.times(a)
+        let rhs: BottleneckSemiring<Float16> = a.times(BottleneckSemiring<Float16>.zero)
+        #expect(lhs == rhs)
+        #expect(lhs.value == -Float16.infinity && rhs.value == -Float16.infinity)
+        // The operators call the methods.
+        let lhsOperators: BottleneckSemiring<Float16> = .zero ⊗ a
+        let rhsOperators: BottleneckSemiring<Float16> = a ⊗ .zero
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+    #endif
+
+    #if !((os(macOS) || targetEnvironment(macCatalyst)) && arch(x86_64))
+    @Test("SR-411 ⊗ distributes over ⊕ from the left (BottleneckSemiring<Float16>: a = -.infinity, b = 65504.0, c = 0.5)")
+    func sr411() {
+        // a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c) → both -.infinity
+        let a = BottleneckSemiring<Float16>(-Float16.infinity)
+        let b = BottleneckSemiring<Float16>(65504.0)
+        let c = BottleneckSemiring<Float16>(0.5)
+        let lhs: BottleneckSemiring<Float16> = a.times(b.plus(c))
+        let rhs: BottleneckSemiring<Float16> = a.times(b).plus(a.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == -Float16.infinity && rhs.value == -Float16.infinity)
+        // The operators call the methods.
+        let lhsOperators: BottleneckSemiring<Float16> = a ⊗ (b ⊕ c)
+        let rhsOperators: BottleneckSemiring<Float16> = (a ⊗ b) ⊕ (a ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+    #endif
+
+    #if !((os(macOS) || targetEnvironment(macCatalyst)) && arch(x86_64))
+    @Test("SR-412 selective: a ⊕ b is the better by < (BottleneckSemiring<Float16>: a = -.infinity, b = 65504.0)")
+    func sr412() {
+        // a ⊕ b == (b < a ? b : a) → true (65504.0)
+        let a = BottleneckSemiring<Float16>(-Float16.infinity)
+        let b = BottleneckSemiring<Float16>(65504.0)
+        let sum = a.plus(b)
+        #expect(sum == (b < a ? b : a))
+        #expect(sum == a || sum == b)
+        #expect(sum.value == 65504.0)
+        #expect((a ⊕ b) == sum)
+    }
+    #endif
 }

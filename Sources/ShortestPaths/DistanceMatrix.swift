@@ -55,6 +55,16 @@ public struct DistanceMatrix<G: DirectedGraph, Distance> {
         return _distance[k]
     }
 
+    /// Whether a path joins `source` to `target`: always for a vertex and itself. As
+    /// `distance(from:to:) != nil`, without reading the distance.
+    ///
+    /// - Precondition: `source` and `target` are vertices of the graph.
+    @inlinable
+    public func hasPath(from source: G.Vertex, to target: G.Vertex) -> Bool {
+        let i = _index(of: source), j = _index(of: target)
+        return i == j || _lastEdge[i * _count + j] != _placeholder
+    }
+
     /// A best path from `source` to `target`, both included, with the edges it takes (which tell
     /// parallel edges apart): the trivial path `[source]` when they are equal, `nil` when no path
     /// joins them. O(length) edge lookups.

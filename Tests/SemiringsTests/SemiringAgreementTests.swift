@@ -473,6 +473,7 @@ struct SemiringAgreementTests {
         ]
         #expect((0 ..< 12).map { i in (0 ..< 12).map { matrix.distance(from: i, to: $0)?.value } } == expected)
         #expect((0 ..< 12).map { i in (0 ..< 12).map { matrix.distance(fromIndex: i, toIndex: $0)?.value } } == expected)
+        #expect((0 ..< 12).map { i in (0 ..< 12).map { matrix.hasPath(from: i, to: $0) } } == expected.map { $0.map { $0 != nil } })
         // Every path: arcs of the graph from i to j, whose ⊗-product is the distance; nil where no path.
         for i in 0 ..< 12 {
             for j in 0 ..< 12 {
@@ -730,6 +731,7 @@ struct SemiringAgreementTests {
         ]
         #expect((0 ..< 9).map { i in (0 ..< 9).map { matrix.distance(from: i, to: $0)?.value } } == expected)
         #expect((0 ..< 9).map { i in (0 ..< 9).map { matrix.distance(fromIndex: i, toIndex: $0)?.value } } == expected)
+        #expect((0 ..< 9).map { i in (0 ..< 9).map { matrix.hasPath(from: i, to: $0) } } == expected.map { $0.map { $0 != nil } })
         // Every path: arcs of the graph from i to j, whose ⊗-product is the distance; nil where no path.
         for i in 0 ..< 9 {
             for j in 0 ..< 9 {
@@ -811,6 +813,7 @@ struct SemiringAgreementTests {
         ]
         #expect((0 ..< 9).map { i in (0 ..< 9).map { matrix.distance(from: i, to: $0)?.value } } == expected)
         #expect((0 ..< 9).map { i in (0 ..< 9).map { matrix.distance(fromIndex: i, toIndex: $0)?.value } } == expected)
+        #expect((0 ..< 9).map { i in (0 ..< 9).map { matrix.hasPath(from: i, to: $0) } } == expected.map { $0.map { $0 != nil } })
         // Every path: arcs of the graph from i to j, whose ⊗-product is the distance; nil where no path.
         for i in 0 ..< 9 {
             for j in 0 ..< 9 {
@@ -892,6 +895,7 @@ struct SemiringAgreementTests {
         ]
         #expect((0 ..< 10).map { i in (0 ..< 10).map { matrix.distance(from: i, to: $0)?.value } } == expected)
         #expect((0 ..< 10).map { i in (0 ..< 10).map { matrix.distance(fromIndex: i, toIndex: $0)?.value } } == expected)
+        #expect((0 ..< 10).map { i in (0 ..< 10).map { matrix.hasPath(from: i, to: $0) } } == expected.map { $0.map { $0 != nil } })
         // Every path: arcs of the graph from i to j, whose ⊗-product is the distance; nil where no path.
         for i in 0 ..< 10 {
             for j in 0 ..< 10 {
@@ -979,5 +983,99 @@ struct SemiringAgreementTests {
         #expect((0 ..< 10).map { distances.distance(to: $0).value } == expected)
         #expect((0 ..< 10).map { distances.distance(toIndex: $0).value } == expected)
         #expect(distances.sources == [0])
+    }
+
+    @Test("SR-353 the W overload gives the same matrix (TropicalSemiring<Double>)")
+    func sr353() throws {
+        // floydWarshallShortestPaths() → [0.0, 8.25, 2.25, 9.0, 6.5, 7.75, 7.75, 6.5, 5.75, 9.25, 0.25, 2.75; 2.0, 0.0, 4.25, 11.0, 8.5, 6.0, 9.75, 8.5, 7.75, 11.25, 2.25, 4.75; 11.75, 13.75, 0.0, 9.25, 4.25, 5.5, 8.0, 4.75, 3.5, 9.5, 9.25,  …
+        let graph = DirectedPseudograph(vertices: 0 ..< 12, edges: [
+            DirectedEdge(from: 2, to: 4), DirectedEdge(from: 10, to: 11), DirectedEdge(from: 5, to: 11), DirectedEdge(from: 1, to: 5),
+            DirectedEdge(from: 2, to: 4), DirectedEdge(from: 7, to: 2), DirectedEdge(from: 2, to: 8), DirectedEdge(from: 11, to: 7),
+            DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 10), DirectedEdge(from: 2, to: 7), DirectedEdge(from: 6, to: 10),
+            DirectedEdge(from: 9, to: 4), DirectedEdge(from: 2, to: 5), DirectedEdge(from: 3, to: 4), DirectedEdge(from: 7, to: 0),
+            DirectedEdge(from: 1, to: 0), DirectedEdge(from: 6, to: 7), DirectedEdge(from: 9, to: 2), DirectedEdge(from: 8, to: 10),
+            DirectedEdge(from: 10, to: 2), DirectedEdge(from: 8, to: 3), DirectedEdge(from: 6, to: 3), DirectedEdge(from: 4, to: 6),
+            DirectedEdge(from: 7, to: 11), DirectedEdge(from: 0, to: 3), DirectedEdge(from: 4, to: 2), DirectedEdge(from: 3, to: 6),
+            DirectedEdge(from: 4, to: 5), DirectedEdge(from: 3, to: 9), DirectedEdge(from: 9, to: 0), DirectedEdge(from: 3, to: 9),
+            DirectedEdge(from: 1, to: 5), DirectedEdge(from: 6, to: 5), DirectedEdge(from: 8, to: 7), DirectedEdge(from: 4, to: 8),
+            DirectedEdge(from: 7, to: 2), DirectedEdge(from: 0, to: 6), DirectedEdge(from: 5, to: 1), DirectedEdge(from: 4, to: 5),
+        ])
+        let w: [Double] = [
+            4.25, 2.5, 0.5, 6.0, 8.75, 1.0, 3.5, 3.75, 8.25, 0.25, 5.5, 6.5,
+            7.75, 5.5, 8.25, 7.0, 2.0, 8.25, 2.0, 5.75, 2.0, 5.75, 7.75, 3.75,
+            3.0, 9.0, 7.0, 1.25, 3.0, 0.25, 4.25, 6.0, 8.25, 1.25, 1.25, 2.25,
+            7.25, 7.75, 8.25, 2.0,
+        ]
+        let matrix = try #require(graph.floydWarshallShortestPaths { TropicalSemiring(w[$0]) })
+        let expected: [[Double?]] = [
+            [0.0, 8.25, 2.25, 9.0, 6.5, 7.75, 7.75, 6.5, 5.75, 9.25, 0.25, 2.75],
+            [2.0, 0.0, 4.25, 11.0, 8.5, 6.0, 9.75, 8.5, 7.75, 11.25, 2.25, 4.75],
+            [11.75, 13.75, 0.0, 9.25, 4.25, 5.5, 8.0, 4.75, 3.5, 9.5, 9.25, 6.0],
+            [4.5, 10.75, 2.25, 0.0, 6.5, 2.5, 1.25, 6.75, 5.75, 0.25, 4.75, 3.0],
+            [10.5, 10.25, 4.5, 8.0, 0.0, 2.0, 3.75, 3.5, 2.25, 8.25, 8.0, 2.5],
+            [10.25, 8.25, 5.25, 14.5, 9.5, 0.0, 13.25, 4.25, 8.75, 14.75, 10.5, 0.5],
+            [11.5, 9.5, 6.5, 7.75, 10.75, 1.25, 0.0, 5.5, 10.0, 8.0, 6.5, 1.75],
+            [7.0, 14.75, 1.0, 10.25, 5.25, 6.5, 9.0, 0.0, 4.5, 10.5, 7.25, 3.0],
+            [8.25, 16.0, 2.25, 5.75, 6.5, 7.75, 7.0, 1.25, 0.0, 6.0, 5.75, 4.25],
+            [4.25, 12.5, 2.0, 11.25, 6.25, 7.5, 10.0, 6.75, 5.5, 0.0, 4.5, 7.0],
+            [13.25, 15.75, 2.0, 11.25, 6.25, 7.5, 10.0, 6.25, 5.5, 11.5, 0.0, 2.5],
+            [10.75, 18.5, 4.75, 14.0, 9.0, 10.25, 12.75, 3.75, 8.25, 14.25, 11.0, 0.0],
+        ]
+        #expect((0 ..< 12).map { i in (0 ..< 12).map { matrix.distance(from: i, to: $0)?.value } } == expected)
+        #expect((0 ..< 12).map { i in (0 ..< 12).map { matrix.distance(fromIndex: i, toIndex: $0)?.value } } == expected)
+        #expect((0 ..< 12).map { i in (0 ..< 12).map { matrix.hasPath(from: i, to: $0) } } == expected.map { $0.map { $0 != nil } })
+        // Every path: arcs of the graph from i to j, whose ⊗-product is the distance; nil where no path.
+        for i in 0 ..< 12 {
+            for j in 0 ..< 12 {
+                let path = matrix.path(from: i, to: j)
+                #expect((path == nil) == (expected[i][j] == nil))
+                guard let path else { continue }
+                var product = TropicalSemiring<Double>.one
+                for (k, e) in path.edges.enumerated() {
+                    #expect(graph.source(ofEdgeAt: e) == path.vertices[k] && graph.target(ofEdgeAt: e) == path.vertices[k + 1])
+                    product = product.times(TropicalSemiring(w[e]))
+                }
+                #expect(path.vertices.first == i && path.vertices.last == j)
+                #expect(product == matrix.distance(from: i, to: j))
+            }
+        }
+        // The W overload: the same matrix.
+        let reference = try #require(graph.floydWarshallShortestPaths { w[$0] })
+        #expect((0 ..< 12).map { i in (0 ..< 12).map { reference.distance(from: i, to: $0) } } == expected)
+    }
+
+    @Test("SR-354 the W overload gives the same matrix (.infinity is no edge, as in scipy) (TropicalSemiring<Double>)")
+    func sr354() throws {
+        // floydWarshallShortestPaths() → [0.0, —, 4.0, —; —, 0.0, 1.5, —; —, —, 0.0, —; —, —, —, 0.0]
+        let graph = DirectedPseudograph(vertices: 0 ..< 4, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 2, to: 3)])
+        let w: [Double] = [Double.infinity, 1.5, 4.0, Double.infinity]
+        let matrix = try #require(graph.floydWarshallShortestPaths { TropicalSemiring(w[$0]) })
+        let expected: [[Double?]] = [
+            [0.0, nil, 4.0, nil],
+            [nil, 0.0, 1.5, nil],
+            [nil, nil, 0.0, nil],
+            [nil, nil, nil, 0.0],
+        ]
+        #expect((0 ..< 4).map { i in (0 ..< 4).map { matrix.distance(from: i, to: $0)?.value } } == expected)
+        #expect((0 ..< 4).map { i in (0 ..< 4).map { matrix.distance(fromIndex: i, toIndex: $0)?.value } } == expected)
+        #expect((0 ..< 4).map { i in (0 ..< 4).map { matrix.hasPath(from: i, to: $0) } } == expected.map { $0.map { $0 != nil } })
+        // Every path: arcs of the graph from i to j, whose ⊗-product is the distance; nil where no path.
+        for i in 0 ..< 4 {
+            for j in 0 ..< 4 {
+                let path = matrix.path(from: i, to: j)
+                #expect((path == nil) == (expected[i][j] == nil))
+                guard let path else { continue }
+                var product = TropicalSemiring<Double>.one
+                for (k, e) in path.edges.enumerated() {
+                    #expect(graph.source(ofEdgeAt: e) == path.vertices[k] && graph.target(ofEdgeAt: e) == path.vertices[k + 1])
+                    product = product.times(TropicalSemiring(w[e]))
+                }
+                #expect(path.vertices.first == i && path.vertices.last == j)
+                #expect(product == matrix.distance(from: i, to: j))
+            }
+        }
+        // The W overload: the same matrix.
+        let reference = try #require(graph.floydWarshallShortestPaths { w[$0] })
+        #expect((0 ..< 4).map { i in (0 ..< 4).map { reference.distance(from: i, to: $0) } } == expected)
     }
 }

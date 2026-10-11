@@ -864,4 +864,29 @@ struct SemiringDijkstraTests {
             #expect(tree.parentEdge(of: v) == path.edges.last)
         }
     }
+
+    @Test("SR-355 unsigned: a capacity-0 edge is zero and carries no path (BottleneckSemiring<UInt>)")
+    func sr355() {
+        // dijkstraShortestPaths(from: 0) → [UInt.max, —, 3, —]
+        let graph = DirectedPseudograph(vertices: 0 ..< 4, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 2, to: 3)])
+        let w: [UInt] = [0, 5, 3, 0]
+        let tree = graph.dijkstraShortestPaths(from: 0) { BottleneckSemiring(w[$0]) }
+        let expected: [UInt?] = [UInt.max, nil, 3, nil]
+        #expect((0 ..< 4).map { tree.distance(to: $0)?.value } == expected)
+        #expect((0 ..< 4).map { tree.distance(toIndex: $0)?.value } == expected)
+        #expect((0 ..< 4).map { tree.hasPath(to: $0) } == expected.map { $0 != nil })
+        #expect(tree.sources == [0])
+        // Every tree path: arcs of the graph from a source, whose ⊗-product is the distance.
+        for v in 0 ..< 4 {
+            guard let path = tree.path(to: v) else { continue }
+            var product = BottleneckSemiring<UInt>.one
+            for (k, e) in path.edges.enumerated() {
+                #expect(graph.source(ofEdgeAt: e) == path.vertices[k] && graph.target(ofEdgeAt: e) == path.vertices[k + 1])
+                product = product.times(BottleneckSemiring(w[e]))
+            }
+            #expect(path.vertices.last == v && tree.sources.contains(path.vertices[0]))
+            #expect(product == tree.distance(to: v))
+            #expect(tree.parentEdge(of: v) == path.edges.last)
+        }
+    }
 }

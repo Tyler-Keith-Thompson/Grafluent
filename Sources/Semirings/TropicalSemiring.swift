@@ -6,9 +6,11 @@
 ///
 /// On integers ⊗ is Boost's `closed_plus`: `.max` (+∞, the zero) absorbs, then `.min` (−∞), and
 /// any other sum traps on overflow. A finite sum that lands exactly on `.max` is the zero, so an
-/// edge of that weight carries no path. On floating point ⊗ is `+`, where `.infinity` absorbs every
-/// finite value. −∞ and NaN are outside the laws (`-.infinity + .infinity` is NaN), and no
-/// operation checks for NaN.
+/// edge of that weight carries no path. On floating point the carrier is Mohri's ℝ ∪ {+∞}: ⊗ is
+/// `+`, where `.infinity` absorbs every finite value. −∞ is outside it (`-.infinity ⊗ .zero` is NaN,
+/// not `.zero`; checking for it cost 1.4–2.2× in Floyd–Warshall, and no algorithm here computes
+/// that product: each skips a `.zero` distance and treats a NaN candidate as no improvement). No
+/// operation checks for NaN; the ShortestPaths entry points trap on a NaN weight.
 ///
 ///     graph.dijkstraShortestPaths(from: s) { TropicalSemiring(length[$0]) }
 @frozen
@@ -56,4 +58,21 @@ public struct TropicalSemiring<Value: _SemiringScalar>: SelectiveSemiring, Hasha
 extension TropicalSemiring: CustomStringConvertible {
     /// The value, as `"3"` or `"inf"`.
     public var description: String { "\(value)" }
+}
+
+/// Underscored: a selective semiring with values that absorb ⊗ by everything but `zero`, as the
+/// tropical −∞ does. A distance at such a value cannot improve, so Bellman–Ford reads this to find
+/// a cycle better than `one` that the saturated distances hide. Not meant for other conformers.
+public protocol _SaturatingSemiring: SelectiveSemiring {
+    /// Whether `self ⊗ x == self` for every `x` other than `zero`.
+    var _isSaturated: Bool { get }
+}
+
+extension TropicalSemiring: _SaturatingSemiring {
+    /// Whether the value is −∞ (`Int.min`, `-.infinity`); never for unsigned integers, whose
+    /// `.min` is `one`.
+    @inlinable
+    public var _isSaturated: Bool {
+        Value._semiringNegativeInfinity < .zero && value == Value._semiringNegativeInfinity
+    }
 }
