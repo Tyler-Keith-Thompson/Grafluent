@@ -975,7 +975,8 @@ arcs u>v and v>u with the edge's position), vertices `0..<n` listed first, then 
 | `dlcg(n,m,s;lo..hi)` | as `lcg`, each pair written low>high (acyclic) |
 
 **Op**: the call on the graph (`DirectedAcyclicGraph(g).` wraps it first). Laws: `a`, `b`, `c` are
-`S(value)`; `Int.max - 3` is computed in `Int`.
+`S(value)`; `Int.max - 3` is computed in `Int`. `x ⊕ y` and `x ⊗ y` are the operators, which call
+the requirements `x.plus(y)` and `x.times(y)`: the law rows hold for both spellings.
 
 **Expected.** A list is per vertex in `vertices` order: `distance(to:)` for a tree, `—` where it
 is `nil` (not reached); `dagShortestDistances` lists `distance(to:)` for every vertex (0̄ where no

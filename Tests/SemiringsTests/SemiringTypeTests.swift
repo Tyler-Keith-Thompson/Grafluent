@@ -1,0 +1,145 @@
+// The four semirings' constants (catalog SR-001 – SR-007): zero and one by value, their
+// descriptions, zero worse than one by the natural order, and hashing; and the counting
+// semiring, which is not selective, so only dagShortestDistances takes it (SR-324, SR-333).
+// Generated from cases.md by swiftgen.py; see README.md.
+
+import GraphProtocols
+import Multigraphs
+import Semirings
+import ShortestPaths
+import Testing
+
+@Suite("Semirings: zero, one and the types")
+struct SemiringTypeTests {
+    @Test("SR-001 zero and one (TropicalSemiring<Int>)")
+    func sr001() {
+        // (.zero, .one) → (Int.max, 0)
+        #expect(TropicalSemiring<Int>.zero.value == Int.max && TropicalSemiring<Int>.one.value == 0)
+        #expect(TropicalSemiring<Int>.zero == TropicalSemiring<Int>(Int.max) && TropicalSemiring<Int>.one == TropicalSemiring<Int>(0))
+        // CustomStringConvertible: the value.
+        #expect(TropicalSemiring<Int>.zero.description == "9223372036854775807" && TropicalSemiring<Int>.one.description == "0")
+        #expect("\(TropicalSemiring<Int>(0))" == "0")
+        // zero is the worst element, one beats it.
+        #expect(TropicalSemiring<Int>.one < TropicalSemiring<Int>.zero)
+        // Hashable: equal values hash alike.
+        #expect(Set([TropicalSemiring<Int>.zero, TropicalSemiring<Int>(Int.max), TropicalSemiring<Int>.one]).count == 2)
+    }
+
+    @Test("SR-002 zero and one (TropicalSemiring<Double>)")
+    func sr002() {
+        // (.zero, .one) → (.infinity, 0.0)
+        #expect(TropicalSemiring<Double>.zero.value == Double.infinity && TropicalSemiring<Double>.one.value == 0.0)
+        #expect(TropicalSemiring<Double>.zero == TropicalSemiring<Double>(Double.infinity) && TropicalSemiring<Double>.one == TropicalSemiring<Double>(0.0))
+        // CustomStringConvertible: the value.
+        #expect(TropicalSemiring<Double>.zero.description == "inf" && TropicalSemiring<Double>.one.description == "0.0")
+        #expect("\(TropicalSemiring<Double>(0.0))" == "0.0")
+        // zero is the worst element, one beats it.
+        #expect(TropicalSemiring<Double>.one < TropicalSemiring<Double>.zero)
+        // Hashable: equal values hash alike.
+        #expect(Set([TropicalSemiring<Double>.zero, TropicalSemiring<Double>(Double.infinity), TropicalSemiring<Double>.one]).count == 2)
+    }
+
+    @Test("SR-003 zero and one (BottleneckSemiring<Int>)")
+    func sr003() {
+        // (.zero, .one) → (Int.min, Int.max)
+        #expect(BottleneckSemiring<Int>.zero.value == Int.min && BottleneckSemiring<Int>.one.value == Int.max)
+        #expect(BottleneckSemiring<Int>.zero == BottleneckSemiring<Int>(Int.min) && BottleneckSemiring<Int>.one == BottleneckSemiring<Int>(Int.max))
+        // CustomStringConvertible: the value.
+        #expect(BottleneckSemiring<Int>.zero.description == "-9223372036854775808" && BottleneckSemiring<Int>.one.description == "9223372036854775807")
+        #expect("\(BottleneckSemiring<Int>(Int.max))" == "9223372036854775807")
+        // zero is the worst element, one beats it.
+        #expect(BottleneckSemiring<Int>.one < BottleneckSemiring<Int>.zero)
+        // Hashable: equal values hash alike.
+        #expect(Set([BottleneckSemiring<Int>.zero, BottleneckSemiring<Int>(Int.min), BottleneckSemiring<Int>.one]).count == 2)
+    }
+
+    @Test("SR-004 zero and one (BottleneckSemiring<Double>)")
+    func sr004() {
+        // (.zero, .one) → (-.infinity, .infinity)
+        #expect(BottleneckSemiring<Double>.zero.value == -Double.infinity && BottleneckSemiring<Double>.one.value == Double.infinity)
+        #expect(BottleneckSemiring<Double>.zero == BottleneckSemiring<Double>(-Double.infinity) && BottleneckSemiring<Double>.one == BottleneckSemiring<Double>(Double.infinity))
+        // CustomStringConvertible: the value.
+        #expect(BottleneckSemiring<Double>.zero.description == "-inf" && BottleneckSemiring<Double>.one.description == "inf")
+        #expect("\(BottleneckSemiring<Double>(Double.infinity))" == "inf")
+        // zero is the worst element, one beats it.
+        #expect(BottleneckSemiring<Double>.one < BottleneckSemiring<Double>.zero)
+        // Hashable: equal values hash alike.
+        #expect(Set([BottleneckSemiring<Double>.zero, BottleneckSemiring<Double>(-Double.infinity), BottleneckSemiring<Double>.one]).count == 2)
+    }
+
+    @Test("SR-005 zero and one (BooleanSemiring)")
+    func sr005() {
+        // (.zero, .one) → (false, true)
+        #expect(BooleanSemiring.zero.value == false && BooleanSemiring.one.value == true)
+        #expect(BooleanSemiring.zero == BooleanSemiring(false) && BooleanSemiring.one == BooleanSemiring(true))
+        // CustomStringConvertible: the value.
+        #expect(BooleanSemiring.zero.description == "false" && BooleanSemiring.one.description == "true")
+        #expect("\(BooleanSemiring(true))" == "true")
+        // zero is the worst element, one beats it.
+        #expect(BooleanSemiring.one < BooleanSemiring.zero)
+        // Hashable: equal values hash alike.
+        #expect(Set([BooleanSemiring.zero, BooleanSemiring(false), BooleanSemiring.one]).count == 2)
+    }
+
+    @Test("SR-006 zero and one (CountingSemiring<Int>)")
+    func sr006() {
+        // (.zero, .one) → (0, 1)
+        #expect(CountingSemiring<Int>.zero.value == 0 && CountingSemiring<Int>.one.value == 1)
+        #expect(CountingSemiring<Int>.zero == CountingSemiring<Int>(0) && CountingSemiring<Int>.one == CountingSemiring<Int>(1))
+        // CustomStringConvertible: the value.
+        #expect(CountingSemiring<Int>.zero.description == "0" && CountingSemiring<Int>.one.description == "1")
+        #expect("\(CountingSemiring<Int>(1))" == "1")
+        // Hashable: equal values hash alike.
+        #expect(Set([CountingSemiring<Int>.zero, CountingSemiring<Int>(0), CountingSemiring<Int>.one]).count == 2)
+    }
+
+    @Test("SR-007 zero and one (CountingSemiring<Double>)")
+    func sr007() {
+        // (.zero, .one) → (0.0, 1.0)
+        #expect(CountingSemiring<Double>.zero.value == 0.0 && CountingSemiring<Double>.one.value == 1.0)
+        #expect(CountingSemiring<Double>.zero == CountingSemiring<Double>(0.0) && CountingSemiring<Double>.one == CountingSemiring<Double>(1.0))
+        // CustomStringConvertible: the value.
+        #expect(CountingSemiring<Double>.zero.description == "0.0" && CountingSemiring<Double>.one.description == "1.0")
+        #expect("\(CountingSemiring<Double>(1.0))" == "1.0")
+        // Hashable: equal values hash alike.
+        #expect(Set([CountingSemiring<Double>.zero, CountingSemiring<Double>(0.0), CountingSemiring<Double>.one]).count == 2)
+    }
+
+    @Test("SR-324 Dijkstra needs a SelectiveSemiring (CountingSemiring<Int>)")
+    func sr324() throws {
+        // dijkstraShortestPaths(from: 0) → does not compile (CountingSemiring<Int> is not a SelectiveSemiring)
+        // The call does not type-check: dijkstraShortestPaths takes S: SelectiveSemiring.
+        #if false
+        let rejected = DirectedPseudograph(vertices: 0 ..< 2, edges: [DirectedEdge(from: 0, to: 1)])
+        _ = rejected.dijkstraShortestPaths(from: 0) { _ in CountingSemiring<Int>(1) }
+        #endif
+        func isSemiring(_ type: Any.Type) -> Bool { type is any Semiring.Type }
+        func isSelective(_ type: Any.Type) -> Bool { type is any SelectiveSemiring.Type }
+        func isComparable(_ type: Any.Type) -> Bool { type is any Comparable.Type }
+        #expect(isSemiring(CountingSemiring<Int>.self))
+        #expect(!isSelective(CountingSemiring<Int>.self) && !isComparable(CountingSemiring<Int>.self))
+        // dagShortestDistances is the entry point that takes it.
+        let graph = DirectedPseudograph(vertices: 0 ..< 2, edges: [DirectedEdge(from: 0, to: 1)])
+        let distances = try #require(graph.dagShortestDistances(from: 0) { _ in CountingSemiring<Int>(1) })
+        #expect([distances.distance(to: 0).value, distances.distance(to: 1).value] == [1, 1])
+    }
+
+    @Test("SR-333 Dijkstra needs a SelectiveSemiring (CountingSemiring<Double>)")
+    func sr333() throws {
+        // dijkstraShortestPaths(from: 0) → does not compile (CountingSemiring<Double> is not a SelectiveSemiring)
+        // The call does not type-check: dijkstraShortestPaths takes S: SelectiveSemiring.
+        #if false
+        let rejected = DirectedPseudograph(vertices: 0 ..< 2, edges: [DirectedEdge(from: 0, to: 1)])
+        _ = rejected.dijkstraShortestPaths(from: 0) { _ in CountingSemiring<Double>(1) }
+        #endif
+        func isSemiring(_ type: Any.Type) -> Bool { type is any Semiring.Type }
+        func isSelective(_ type: Any.Type) -> Bool { type is any SelectiveSemiring.Type }
+        func isComparable(_ type: Any.Type) -> Bool { type is any Comparable.Type }
+        #expect(isSemiring(CountingSemiring<Double>.self))
+        #expect(!isSelective(CountingSemiring<Double>.self) && !isComparable(CountingSemiring<Double>.self))
+        // dagShortestDistances is the entry point that takes it.
+        let graph = DirectedPseudograph(vertices: 0 ..< 2, edges: [DirectedEdge(from: 0, to: 1)])
+        let distances = try #require(graph.dagShortestDistances(from: 0) { _ in CountingSemiring<Double>(1) })
+        #expect([distances.distance(to: 0).value, distances.distance(to: 1).value] == [1, 1])
+    }
+}

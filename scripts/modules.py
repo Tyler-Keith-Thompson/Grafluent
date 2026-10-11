@@ -52,7 +52,7 @@ MODULES = [
 
     # Algorithms
     ("Traversal", "Algorithms", "Breadth-first and depth-first search as event sequences, reachability, topological ordering, cycle finding.", ["GraphProtocols", "Walks"]),
-    ("ShortestPaths", "Algorithms", "Dijkstra, Bellman–Ford, A*, DAG and unweighted shortest paths; later Floyd–Warshall, Johnson, Yen, Δ-stepping, contraction hierarchies.", ["GraphProtocols", "Walks", "PriorityQueueModule", "DirectedAcyclicGraphModule"]),
+    ("ShortestPaths", "Algorithms", "Dijkstra, Bellman–Ford, A*, DAG, unweighted and Floyd–Warshall shortest paths, over numeric weights or a selective semiring, and Mohri's DAG shortest distances over any semiring; later Johnson, Yen, Δ-stepping, contraction hierarchies.", ["GraphProtocols", "Walks", "Semirings", "PriorityQueueModule", "DirectedAcyclicGraphModule"]),
     ("SpanningTrees", "Algorithms", "Minimum and maximum spanning forests by Kruskal, Prim and Borůvka; later Chu–Liu/Edmonds and Steiner tree approximation.", ["GraphProtocols", "DisjointSetModule", "PriorityQueueModule"]),
     ("Connectivity", "Algorithms", "Strong and weak components, condensation, attracting components, dominators; connected components, bridges, articulation points, biconnected and bi-edge-connected components and the block–cut tree of undirected graphs.", ["GraphProtocols", "CompressedSparseRowModule"]),
     ("Cycles", "Algorithms", "Cycle detection, cycle bases, elementary circuits, girth.", ["GraphProtocols", "Walks", "DisjointSetModule"]),
@@ -120,6 +120,7 @@ TEST_TARGETS = [
     ("IsomorphismTests", ["GraphProtocols", "IsomorphismModule", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "Multigraphs", "LabeledGraphs", "RandomGraphs", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("HypergraphsTests", ["GraphProtocols", "Hypergraphs", "AdjacencyListModule", "Traversal", "Connectivity", "ShortestPaths", "SpanningTrees", "BipartiteGraphs", "Cycles", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("IncidenceMatrixTests", ["GraphProtocols", "IncidenceMatrixModule", "Hypergraphs", "Multigraphs", "AdjacencyListModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
+    ("SemiringsTests", ["Semirings", "ShortestPaths", "GraphProtocols", "Multigraphs", "AdjacencyListModule", "DirectedAcyclicGraphModule", "Traversal", "Walks", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
 ]
 
 # Bazel test sizes above the default "small" (60 s timeout), for suites whose solo run takes more

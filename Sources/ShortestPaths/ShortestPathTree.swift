@@ -15,15 +15,18 @@ import Walks
 /// with cheap vertex indices. While the tree is alive, the next mutation of the original copies
 /// it; a tree of a graph about to change should be read and dropped first.
 ///
-/// **Several sources.** Each source starts at distance zero with no parent. Dijkstra's algorithm
+/// **Several sources.** Each source starts at distance zero (`.one` over a semiring) with no parent. Dijkstra's algorithm
 /// and breadth-first search never improve on that, so a source keeps no parent even when another
 /// source reaches it. Bellman–Ford treats the sources as one super-source (NetworkX's
 /// `_bellman_ford`): a negative path from one source to another improves the second, which then
 /// has that distance, a parent and a path from the first.
 ///
+/// **Semirings.** Over a `SelectiveSemiring` a distance is the ⊗-product of a path's weights, the
+/// best by the natural order `<`, and a vertex is reached exactly when its distance is not `.zero`.
+///
 /// Not `Equatable`: two correct trees can choose different parents on ties.
 @frozen
-public struct ShortestPathTree<G: DirectedGraph, Distance: Comparable & AdditiveArithmetic> {
+public struct ShortestPathTree<G: DirectedGraph, Distance: Comparable> {
     @usableFromInline let _ids: _VertexIdentifiers<G>
     /// Each index's distance; meaningful only where `_parent[i] != _unreached`.
     @usableFromInline let _distance: [Distance]

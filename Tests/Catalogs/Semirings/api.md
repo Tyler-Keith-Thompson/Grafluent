@@ -31,7 +31,7 @@ against its definition, and 3,500 random law triples. Run (about 2 s with `--str
 | `dagShortestPaths(from:weight:)` on `DirectedGraph` (optional) and `DirectedAcyclicGraph` | `S: SelectiveSemiring` | Boost's `dag_shortest_paths` over any selective semiring: widest paths in a DAG, reachability. |
 | `dagShortestDistances(from:weight:)` → `ShortestDistances<Self, S>` (optional on `DirectedGraph`, not on `DirectedAcyclicGraph`) | `S: Semiring` | Mohri's shortest distance: ⊕ over **every** path of the ⊗ of its weights, in topological order. Over `CountingSemiring` it is **path counting** (with weights, weighted path sums). It needs no idempotence, so it is the one entry point that takes `CountingSemiring`. |
 | `floydWarshallShortestPaths(weight:)` → `DistanceMatrix<Self, D>?`, with both the existing `W: Comparable & AdditiveArithmetic` overload and the `S: SelectiveSemiring` one | either | README already plans Floyd–Warshall and `DistanceMatrix`. Over a selective semiring it is the all-pairs case of the algebraic path problem: all-pairs widest paths, and over `BooleanSemiring` **Warshall's transitive closure** (reflexive: the diagonal is `.one`, the empty path; NetworkX `transitive_closure(reflexive=True)`). `nil` when a diagonal entry ends better than `.one` (scipy's `NegativeCycleError`, NetworkX's negative diagonal). |
-| Undirected graphs | | Through `graph.directed`, as in every ShortestPaths entry point (SR-220, SR-239). |
+| Undirected graphs | | Overloads on `Graph` mirroring the `W` ones in `Undirected.swift`: `dijkstraShortestPaths` (one source, several), `dijkstraShortestPath`, `bellmanFordShortestPaths` (one, several), and `floydWarshallShortestPaths` with both its `W` and `S` overloads. Each runs over `directed` (SR-220 and SR-239 call it directly), and Dijkstra walks the graph's own rows when it has vertex indices. A reachable edge better than `.one` is a 2-cycle better than `.one` (w ⊗ w ⊑ w < 1̄), so Bellman–Ford returns `nil` after one O(V + E) pass, as a negative edge does in the `W` overload. Tests: `SemiringUndirectedTests.swift`, written by hand. |
 
 **Phase 2** (rows pinned now, SR-341 – SR-369)
 
@@ -60,10 +60,14 @@ infix operator ⊕: AdditionPrecedence
 infix operator ⊗: MultiplicationPrecedence
 
 public protocol Semiring: Equatable {
-    static var zero: Self { get }               // 0̄: ⊕'s identity, annihilates under ⊗
-    static var one: Self { get }                // 1̄: ⊗'s identity
-    static func ⊕ (lhs: Self, rhs: Self) -> Self
-    static func ⊗ (lhs: Self, rhs: Self) -> Self
+    static var zero: Self { get }               // 0̄: plus's identity, annihilates under times
+    static var one: Self { get }                // 1̄: times's identity
+    func plus(_ other: Self) -> Self            // ⊕ (Haskell Data.Semiring's `plus`)
+    func times(_ other: Self) -> Self           // ⊗ (Haskell Data.Semiring's `times`)
+}
+extension Semiring {
+    public static func ⊕ (lhs: Self, rhs: Self) -> Self    // lhs.plus(rhs)
+    public static func ⊗ (lhs: Self, rhs: Self) -> Self    // lhs.times(rhs)
 }
 /// ⊕ returns one of its operands, and `<` is the natural order: a < b when a ⊕ b == a != b
 /// ("a is better"). So a ⊕ b == min(a, b) by `<`, and `.zero` is the greatest element.
@@ -112,6 +116,13 @@ extension DirectedGraph {
     // Phase 2
     public func kleeneClosure<S: ClosedSemiring>(weight: (Edges.Index) -> S) -> DistanceMatrix<Self, S>
 }
+extension Graph {   // through `directed`, as the W overloads in Undirected.swift
+    public func dijkstraShortestPaths<S: SelectiveSemiring>(from: Vertex / some Sequence<Vertex>, cutoff: S? = nil, weight: (Edges.Index) -> S) -> ShortestPathTree<DirectedView<Self>, S>
+    public func dijkstraShortestPath<S: SelectiveSemiring>(from: Vertex, to: Vertex, weight: (Edges.Index) -> S) -> (path: Path<Vertex, DirectedView<Self>.Edges.Index>, distance: S)?
+    public func bellmanFordShortestPaths<S: SelectiveSemiring>(from: Vertex / some Sequence<Vertex>, weight: (Edges.Index) -> S) -> ShortestPathTree<DirectedView<Self>, S>?
+    public func floydWarshallShortestPaths<W: Comparable & AdditiveArithmetic>(weight: (Edges.Index) -> W) -> DistanceMatrix<DirectedView<Self>, W>?
+    public func floydWarshallShortestPaths<S: SelectiveSemiring>(weight: (Edges.Index) -> S) -> DistanceMatrix<DirectedView<Self>, S>?
+}
 extension DirectedAcyclicGraph {
     public func dagShortestPaths<S: SelectiveSemiring>(from …, weight: …) -> ShortestPathTree<Self, S>       // not optional
     public func dagShortestDistances<S: Semiring>(from …, weight: …) -> ShortestDistances<Self, S>           // not optional
@@ -131,7 +142,8 @@ public struct DistanceMatrix<G: DirectedGraph, Distance> {
 
 // Phase 2
 public protocol ClosedSemiring: Semiring { var star: Self { get } }
-@frozen public struct LogSemiring<Value: BinaryFloatingPoint>: Semiring, Comparable, Hashable, Sendable
+@frozen public struct LogSemiring<Value: BinaryFloatingPoint>: Semiring, Comparable, Hashable
+extension LogSemiring: Sendable where Value: Sendable {}
 ```
 
 Usage: `g.dijkstraShortestPaths(from: s) { BottleneckSemiring(capacity[$0]) }` (widest paths),
@@ -143,7 +155,7 @@ Usage: `g.dijkstraShortestPaths(from: s) { BottleneckSemiring(capacity[$0]) }` (
 | Grafluent | Used by | Not chosen, and why |
 |---|---|---|
 | `Semiring`, `zero`, `one` | Mohri 2002 (0̄, 1̄), Haskell `semirings` (`zero`, `one`), Julia Semirings.jl (`zero`, `one`), GraphBLAS (the add monoid's identity) | `additiveIdentity` / `multiplicativeIdentity`: longer, and Swift already says `zero` for an additive identity. No semiring type conforms to `AdditiveArithmetic` or `Numeric`, so the two `zero`s never meet (a tropical `zero` is +∞). |
-| `⊕`, `⊗` | Mohri, Gondran–Minoux, Lehmann; Julia Semirings.jl (`⊕`, `⊗`); README's own wording | Haskell's `plus`/`times` (and `+`/`*`): `+` on a tropical value that computes `min` misleads, and `TropicalSemiring` must not look like a number. Named methods next to the operators would be synonyms. One risk: another module declaring `⊕` with another precedence makes a call site that imports both ambiguous. |
+| `plus(_:)`, `times(_:)`, and the operators `⊕`, `⊗` | Haskell `semirings` (`Data.Semiring`: `plus`, `times`, `zero`, `one`); the operators after Mohri, Gondran–Minoux, Lehmann, Julia Semirings.jl (`⊕`, `⊗`) and README's own wording | Operators only: `⊕` and `⊗` are hard to type, so the requirements are the named methods and the operators are defined once, in an extension, by calling them (Haskell likewise defines `+` and `*` from `plus` and `times`). Not `+`/`*` themselves: `+` on a tropical value that computes `min` misleads, and `TropicalSemiring` must not look like a number. `add`/`multiply` (no library uses them for semirings). One risk: another module declaring `⊕` with another precedence makes a call site that imports both ambiguous; the methods are never ambiguous. A second reason to prefer the methods: Swift Testing's `#expect` folds its expression without these operators' precedences, so `#expect(a ⊕ b == c)` does not type-check, while `#expect(a.plus(b) == c)` does (the tests compute operator expressions outside the macro). The `Semiring` doc comment says so. |
 | `SelectiveSemiring` | Gondran–Minoux, *Graphs, Dioids and Semirings* (2008), "selective dioid": a ⊕ b ∈ {a, b} | `OrderedSemiring` (a different notion in the literature: an order compatible with both operations), `TotallyOrderedSemiring`, `DijkstraSemiring`. |
 | `<` as the natural order | Mohri's natural order (a ⊑ b iff a ⊕ b = a), Gondran–Minoux's canonical order | Comparing raw values. Bottleneck and Boolean then read reversed (`BottleneckSemiring(9) < BottleneckSemiring(2)`, `true < false`), but `<` means "better" in every selective semiring, so Dijkstra's queue, its cutoff and the "better than one" check are one code path. The raw value is `.value`. |
 | `ClosedSemiring`, `star` | Lehmann 1977 "closed semiring", Haskell `Star` class (`star`), Kleene algebra | `asteroid`, `closure` (the matrix operation is the closure, the element operation the star). |
@@ -167,7 +179,9 @@ pin that both give the same distances). The one new name, `dagShortestDistances`
 result (no tree: ⊕ over all paths) and takes non-selective semirings.
 
 **D2. Requirements live in protocols, laws in documentation.** `Semiring` requires the four
-operations. The laws (associativity, ⊕ commutative, identities, 0̄ annihilating, distributivity
+operations: `zero`, `one`, `plus(_:)` and `times(_:)`. `⊕` and `⊗` are an extension on `Semiring`
+calling the two methods, not requirements, so a conformer writes only the methods and the two
+spellings cannot disagree. The laws (associativity, ⊕ commutative, identities, 0̄ annihilating, distributivity
 on both sides) are documented and pinned per type by SR-008 – SR-207. `SelectiveSemiring` adds
 selectivity and the natural order (`<`). Dijkstra's extra condition, that no weight is better
 than `.one` (a ⊑ a ⊗ w), is a **precondition per examined edge**: `!(w < .one)`, the generalized
@@ -190,9 +204,28 @@ standard library's fixed-width integers and `Float16`/`Float`/`Double`, supplies
 (`.max`/`.min`, `±.infinity`) and the tropical product. The tropical product on integers is
 Boost's `closed_plus`: either operand `Int.max` gives `Int.max`, otherwise `+`, which traps on
 overflow (SR-208 – SR-211, SR-273). A finite sum that lands exactly on `Int.max` reads as 0̄, as
-in Boost (SR-209). On floating point, the product is plain `+`, since IEEE already makes ∞
-absorbing. −∞ (and NaN) are outside phase 1's laws (−∞ + ∞ is NaN). The existing NaN
-preconditions stay. Rejected: `Value?` storage (Haskell's `Tropical = Infinity | Tropical a`)
+in Boost (SR-209). After the `Int.max` check, either operand `Int.min` (−∞) gives `Int.min`, as
+`ref.py`'s `trop_times_int` does: −∞ is absorbing except against 0̄, so phase 2's star (which
+returns −∞) composes without overflow, and a path whose finite sum lands exactly on `Int.min`
+stays there (the precondition tests' `bellmanFordShortestPaths` row reaching `Int.min`). Unsigned
+integers have no −∞ sentinel (`.min` is 0, the tropical one) and check only `.max`. On floating
+point, the product is plain `+`, since IEEE already makes ∞ absorbing. −∞ (and NaN) are outside
+phase 1's laws: −∞ + ∞ is NaN, where `ref.py`'s `trop_times_double` returns ∞; phase 2 must
+settle that before `star` produces −∞ over `Double`.
+
+**There is no generic NaN check.** The semiring engines never compare a value with itself:
+`TropicalSemiring(.nan)` compares false with everything, so it is never better than `.one`
+(Dijkstra does not trap) and never better than a distance (it never relaxes). The `W` overloads
+keep their NaN preconditions, and the `W` Floyd–Warshall checks each weight.
+
+**Integer sentinels are spelled `.infinity`.** Inside the library, `FixedWidthInteger` has a
+`package` (not `public`) `static var infinity: Self { .max }`, and signed integers a
+`negativeInfinity` (`.min`), so the code reads `a == .infinity` where it means +∞ and
+`Double`'s own `.infinity` reads the same. They are absorbing sentinels, not arithmetic
+infinities (`Int.infinity + 1` traps), which is why they stay package-level: a public
+`Int.infinity` would mislead library users. `_SemiringScalar`'s requirements keep underscored
+names (`_semiringInfinity`, `_semiringNegativeInfinity`), which integers satisfy through these
+sentinels and floating point through `±.infinity`. Rejected: `Value?` storage (Haskell's `Tropical = Infinity | Tropical a`)
 doubles `Double`'s stride to 16 bytes; and a runtime cast in `zero` turns an unsupported type into
 a trap instead of a compile error.
 
@@ -221,6 +254,15 @@ distances and never adds them. `ShortestDistances` (Mohri) and `DistanceMatrix` 
 (a negative loop counts: SR-240). Paths are stored as the last edge into each target
 (`Edges.Index`, which tells parallel edges apart), as a predecessor-edge matrix, n² entries.
 Undirected graphs go through `.directed`. Ties are not pinned beyond the distances.
+
+**D11. Preconditions the tests assume.** Empty sources trap only where a tree is returned
+(`dijkstraShortestPaths`, `bellmanFordShortestPaths`, `dagShortestPaths`, as the `W` overloads);
+`dagShortestDistances(from: [])` returns every distance `.zero` with `sources == []`, Mohri's
+problem with no initial weights. A non-vertex source or target traps in every entry point. The
+results trap on a non-vertex (`distance(to:)`, `path(to:)`, `distance(from:to:)`,
+`path(from:to:)`) and on an index outside `0..<vertexCount` (`distance(toIndex:)`,
+`distance(fromIndex:toIndex:)`, either index). Every ⊕ and ⊗ an algorithm computes must succeed,
+so tropical `Int` and `CountingSemiring<Int>` overflow traps (D4, D5).
 
 **D10. Multi-source `dagShortestDistances`:** each source starts at `.one`, listed once, and a
 source reached from another adds both: 1 + the number of paths from the other (SR-322), Mohri's
