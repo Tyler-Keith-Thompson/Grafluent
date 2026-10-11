@@ -277,3 +277,71 @@ package struct _MultipartitePairs: Collection {
 
 extension _MultipartitePairs: Sendable {}
 extension _MultipartitePairs.Index: Sendable {}
+
+/// Every pair (u, v) with u and v in different parts, in row-major order: the arcs of a complete
+/// multipartite digraph with both arcs per edge, whose parts are consecutive ranges of `0..<n`
+/// ending at `ends` (empty parts dropped). Row u is `0..<start` then `end..<n`, skipping u's own
+/// part. Computed as read, so no edge list is allocated; `count` is stored.
+@frozen
+@usableFromInline
+package struct _CrossPartArcs: Collection {
+    /// The end of each non-empty part, ascending; the last is n.
+    @usableFromInline let ends: [Int]
+    @usableFromInline let n: Int
+    @usableFromInline package let count: Int
+
+    /// The arcs of the parts `pairs` describes: twice its pairs.
+    @inlinable
+    package init(_ pairs: _MultipartitePairs) {
+        precondition(pairs.count <= Int.max / 2, "edge count overflows Int")
+        ends = pairs.ends
+        n = pairs.n
+        count = 2 * pairs.count
+    }
+
+    /// The arc (u, v), with u in part `part`.
+    @frozen
+    @usableFromInline
+    package struct Index: Comparable {
+        @usableFromInline var u: Int
+        @usableFromInline var v: Int
+        @usableFromInline var part: Int
+
+        @inlinable
+        init(u: Int, v: Int, part: Int) {
+            self.u = u
+            self.v = v
+            self.part = part
+        }
+
+        @inlinable
+        package static func == (a: Index, b: Index) -> Bool { a.u == b.u && a.v == b.v }
+
+        @inlinable
+        package static func < (a: Index, b: Index) -> Bool { (a.u, a.v) < (b.u, b.v) }
+    }
+
+    @inlinable package var startIndex: Index { ends.count < 2 ? endIndex : Index(u: 0, v: ends[0], part: 0) }
+    @inlinable package var endIndex: Index { Index(u: n, v: 0, part: ends.count) }
+
+    @inlinable
+    package subscript(position: Index) -> DirectedEdge<Int> {
+        DirectedEdge(from: position.u, to: position.v)
+    }
+
+    @inlinable
+    package func index(after i: Index) -> Index {
+        var v = i.v &+ 1
+        // Skip u's own part.
+        if v == (i.part == 0 ? 0 : ends[i.part &- 1]) { v = ends[i.part] }
+        if v < n { return Index(u: i.u, v: v, part: i.part) }
+        let u = i.u &+ 1
+        guard u < n else { return endIndex }
+        let part = u == ends[i.part] ? i.part &+ 1 : i.part
+        // With two or more parts every row is non-empty: it starts at 0, or after part 0.
+        return Index(u: u, v: part == 0 ? ends[0] : 0, part: part)
+    }
+}
+
+extension _CrossPartArcs: Sendable {}
+extension _CrossPartArcs.Index: Sendable {}

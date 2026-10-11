@@ -313,7 +313,7 @@ documented numbering, and edges come sorted, so `edges` reads the same on every 
 
 | Module | Graphs |
 |---|---|
-| `NamedGraphs` | `complete`, `completeBipartite`, `path`, `cycle`, `star`, `wheel`, `grid(dimensions:periodic:)` (any number of dimensions, row-major, optionally a torus), `hypercube`, `petersen`, `empty`; directed forms along the natural orientation (path, cycle, star, wheel, left → right) or with both arcs (complete, grid, hypercube, Petersen); `Tree.path`, `Tree.star` and `BipartiteGraph.completeBipartite` built without validation. The Θ(n²) families read their edges lazily, with no edge list |
+| `NamedGraphs` | `complete`, `completeBipartite`, `path`, `cycle`, `star`, `wheel`, `grid(dimensions:periodic:)` (any number of dimensions, row-major, optionally a torus), `hypercube`, `petersen`, `empty`; directed forms along the natural orientation (path, cycle, star, wheel) or with both arcs (complete, complete bipartite, grid, hypercube, Petersen); `Tree.path`, `Tree.star` and `BipartiteGraph.completeBipartite` built without validation. The Θ(n²) families read their edges lazily, with no edge list |
 | `RandomGraphs` | `erdosRenyi` G(n, p) (Batagelj–Brandes skipping) and G(n, m), `barabasiAlbert` (directed new → old), `wattsStrogatz`, `randomGeometric` (with its positions, through a cell grid), `stochasticBlockModel` (skipping over each block pair, indexed arithmetically), `Tree.random` (a Prüfer code), and the Barak–Erdős random DAG `DirectedAcyclicGraph.erdosRenyi`, whose order 0..<n is handed to the wrapper with no Kahn pass |
 
 Random generators take `inout some RandomNumberGenerator` so their output is reproducible, and each

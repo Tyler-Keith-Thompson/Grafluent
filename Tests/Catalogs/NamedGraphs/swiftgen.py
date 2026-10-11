@@ -65,11 +65,11 @@ FAMILIES = {
     "balancedTree": lambda d, branchingFactor, height: ref.balanced_tree(branchingFactor, height, d),
 }
 ORIENTATION = {
-    "complete": "both arcs", "completeBipartite": "left → right", "path": "i → i + 1",
+    "complete": "both arcs", "completeBipartite": "both arcs", "path": "i → i + 1",
     "cycle": "i → (i + 1) mod n", "star": "hub → leaf", "wheel": "hub → rim, rim i → i + 1 and n − 1 → 1",
     "grid": "both arcs", "hypercube": "both arcs", "petersen": "both arcs", "empty": "no arcs",
     "ladder": "both arcs", "circularLadder": "both arcs", "barbell": "both arcs", "lollipop": "both arcs",
-    "completeMultipartite": "earlier part → later part", "turan": "earlier part → later part",
+    "completeMultipartite": "both arcs", "turan": "both arcs",
     "balancedTree": "parent → child",
 }
 
@@ -380,7 +380,7 @@ def ids(*groups):
 FILES = [
     ("CompleteGraphTests.swift", "NamedGraphs complete and complete bipartite graphs", ids("Complete", "CompleteBipartite"),
      "Complete and complete bipartite graphs (catalog NG-001 – NG-019): K_n on 0..<n with every pair, both\n"
-     "// arcs when directed; K_{a,b} with left 0..<a and right a..<a+b, left → right when directed; and\n"
+     "// arcs when directed; K_{a,b} with left 0..<a and right a..<a+b, both arcs when directed; and\n"
      "// BipartiteGraph.completeBipartite with its sides."),
     ("PathCycleStarWheelTests.swift", "NamedGraphs paths, cycles, stars and wheels", ids("Path", "Cycle", "Star", "Wheel"),
      "Paths, cycles, stars and wheels (catalog NG-021 – NG-049): i – i+1; the cycle's closing edge stored\n"
@@ -401,7 +401,7 @@ FILES = [
     ("MultipartiteBalancedTreeTests.swift", "NamedGraphs complete multipartite, Turán and balanced tree graphs",
      ids("CompleteMultipartite", "Turan", "BalancedTree"),
      "Complete multipartite and Turán graphs and balanced trees (catalog NG-112 – NG-135): parts as\n"
-     "// consecutive ranges, earlier part → later part when directed; the balanced tree in breadth-first\n"
+     "// consecutive ranges, both arcs when directed; the balanced tree in breadth-first\n"
      "// order, parent → child when directed, and as a Tree."),
     ("NamedGraphPreconditionTests.swift", "NamedGraphs preconditions", [n for n in range(1, N + 1) if is_trap(n)],
      "Preconditions (catalog trap rows): each trapping call runs in a child process (exit test), on every\n"

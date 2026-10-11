@@ -96,7 +96,7 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("NamedGraphs: CompressedSparseRow.lollipop, clique of 1000, path of 10⁶") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.lollipop(cliqueVertexCount: 1000, pathVertexCount: 1_000_000)) }
     }
-    Benchmark("NamedGraphs: CompressedSparseRow.turan, n = 2000, r = 4 (1.5·10⁶ arcs)") { benchmark in
+    Benchmark("NamedGraphs: CompressedSparseRow.turan, n = 2000, r = 4 (3·10⁶ arcs)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.turan(vertexCount: 2000, partCount: 4)) }
     }
     Benchmark("NamedGraphs: UndirectedAdjacencyList.turan, n = 2000, r = 4") { benchmark in

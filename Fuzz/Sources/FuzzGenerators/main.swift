@@ -175,9 +175,9 @@ func undirectedModel(_ spec: Spec) -> [[Int]]? {
 func directedModel(_ spec: Spec) -> [[Int]]? {
     let rowMajor: ([[Int]]) -> [[Int]] = { $0.sorted { $0.lexicographicallyPrecedes($1) } }
     switch spec {
-    case .complete, .grid, .hypercube, .petersen:
+    case .complete, .completeBipartite, .grid, .hypercube, .petersen:
         return rowMajor(undirectedModel(spec)!.flatMap { [$0, [$0[1], $0[0]]] })
-    case .completeBipartite, .path, .star, .empty:
+    case .path, .star, .empty:
         return undirectedModel(spec)
     case .cycle(let n): return rowMajor((0 ..< n).map { [$0, ($0 + 1) % n] })
     case .wheel(let n): return rowMajor((1 ..< n).map { [0, $0] } + (1 ..< n).map { [$0, $0 == n - 1 ? 1 : $0 + 1] })

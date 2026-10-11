@@ -42,15 +42,17 @@ extension _DirectedGraphConstruction {
         return Self(_vertexCount: n, sortedEdges: _DistinctPairs(n), _ConstructionToken())
     }
 
-    /// K_{a,b} oriented from the left side `0..<leftCount` to the right side
-    /// `leftCount..<leftCount + rightCount` (igraph `Full_Bipartite(mode="out")`): a·b arcs in
-    /// row-major order. O(a + b + ab), with no edge list allocated.
+    /// K_{a,b} with both arcs of every edge, left side `0..<leftCount` and right side
+    /// `leftCount..<leftCount + rightCount` (igraph `Full_Bipartite(mode="all")`, the default):
+    /// 2ab arcs in row-major order, so the left rows come first. O(a + b + ab), with no edge list
+    /// allocated.
     ///
-    /// - Precondition: both counts are non-negative, and a + b and a·b fit in `Int`.
+    /// - Precondition: both counts are non-negative, and a + b and 2·a·b fit in `Int`.
     @inlinable
     public static func completeBipartite(leftCount a: Int, rightCount b: Int) -> Self {
         _checkCompleteBipartite(a, b)
-        return Self(_vertexCount: a + b, sortedEdges: _CrossPairs(a, b), _ConstructionToken())
+        let arcs = _CrossPartArcs(_multipartitePairs([a, b]))
+        return Self(_vertexCount: a + b, sortedEdges: arcs, _ConstructionToken())
     }
 }
 

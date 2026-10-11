@@ -104,7 +104,7 @@ extension BipartiteGraph where Vertex == Int {
 | Factory | Vertices | Undirected edges | Directed form | n, m (undirected) | Rows |
 |---|---|---|---|---|---|
 | `complete(vertexCount:)` | `0..<n` | every pair | both arcs | n, n(n−1)/2 | NG-001 – NG-011 |
-| `completeBipartite(leftCount:rightCount:)` | left `0..<a`, right `a..<a+b` (NetworkX) | every left–right pair | left → right (igraph `Full_Bipartite(mode="out")`) | a+b, ab | NG-012 – NG-020 |
+| `completeBipartite(leftCount:rightCount:)` | left `0..<a`, right `a..<a+b` (NetworkX) | every left–right pair | both arcs (igraph `Full_Bipartite(mode="all")`, the default) | a+b, ab | NG-012 – NG-020 |
 | `path(vertexCount:)` | `0..<n` | i – i+1 | i → i+1 | n, max(n−1, 0) | NG-021 – NG-029 |
 | `cycle(vertexCount:)` | `0..<n`, n ≥ 3 | i – (i+1) mod n | i → (i+1) mod n | n, n | NG-030 – NG-037 |
 | `star(vertexCount:)` | hub 0, leaves `1..<n`, n ≥ 1 | 0 – i | hub → leaf | n, n−1 | NG-038 – NG-044 |
@@ -117,18 +117,17 @@ extension BipartiteGraph where Vertex == Int {
 | `circularLadder(rungCount:)` | as the ladder, n ≥ 3 | the ladder, and each rail closed: 0 – n−1, n – 2n−1 | both arcs | 2n, 3n | NG-096 – NG-099 |
 | `barbell(cliqueVertexCount:pathVertexCount:)` | cliques `0..<k` and `k+p..<2k+p`, path `k..<k+p` (NetworkX) | both cliques, and the path k−1 – k – … – k+p | both arcs | 2k+p, k(k−1)+p+1 | NG-100 – NG-105 |
 | `lollipop(cliqueVertexCount:pathVertexCount:)` | clique `0..<k`, path `k..<k+p` (NetworkX) | the clique, and the path k−1 – k – … – k+p−1 | both arcs | k+p, k(k−1)/2+p | NG-106 – NG-111 |
-| `completeMultipartite(partSizes:)` | parts as consecutive ranges, in order (NetworkX) | every pair in different parts | earlier part → later part (igraph's C `igraph_full_multipartite`, `IGRAPH_OUT`) | Σsᵢ, Σᵢ<ⱼ sᵢsⱼ | NG-112 – NG-118 |
-| `turan(vertexCount:partCount:)` | r parts of ⌊n/r⌋ and ⌈n/r⌉, the smaller first (NetworkX) | as `completeMultipartite` | earlier part → later part | n, Σᵢ<ⱼ sᵢsⱼ | NG-119 – NG-125 |
+| `completeMultipartite(partSizes:)` | parts as consecutive ranges, in order (NetworkX) | every pair in different parts | both arcs (igraph's C `igraph_full_multipartite`, `IGRAPH_ALL`) | Σsᵢ, Σᵢ<ⱼ sᵢsⱼ | NG-112 – NG-118 |
+| `turan(vertexCount:partCount:)` | r parts of ⌊n/r⌋ and ⌈n/r⌉, the smaller first (NetworkX) | as `completeMultipartite` | both arcs | n, Σᵢ<ⱼ sᵢsⱼ | NG-119 – NG-125 |
 | `balancedTree(branchingFactor:height:)` | breadth-first: root 0, children of p are r·p+1 … r·p+r (NetworkX, igraph `Tree`) | parent – child | parent → child (NetworkX's `create_using=nx.DiGraph`) | 1+r+…+r^h, n−1 | NG-126 – NG-135 |
 
-**The directed form.** Families with a natural orientation (path, cycle, star, wheel, complete
-bipartite, and from phase 1 complete multipartite, Turán and the balanced tree) get one arc per edge
-along it. Families without one (complete, grid, hypercube, Petersen, and from phase 1 the ladders,
-barbell and lollipop) get both arcs, which is `graph.directed` materialized. Complete
-multipartite generalizes complete bipartite, so it keeps its left-to-right orientation, earlier part
-to later part: `completeMultipartite(partSizes: [a, b])` is `completeBipartite(leftCount: a,
-rightCount: b)` on every conformer, and n parts of size 1 give the transitive tournament, not
-`complete`'s both arcs. NetworkX raises for a directed ladder, circular ladder, barbell or lollipop;
+**The directed form.** Families with a natural orientation (path, cycle, star, wheel, and from
+phase 1 the balanced tree) get one arc per edge along it. Families without one (complete, complete
+bipartite, grid, hypercube, Petersen, and from phase 1 complete multipartite, Turán, the ladders,
+barbell and lollipop) get both arcs, which is `graph.directed` materialized. For complete bipartite
+and multipartite this is igraph's default (`Full_Bipartite(mode="all")`, `IGRAPH_ALL`); it keeps `completeMultipartite(partSizes:
+[a, b])` equal to `completeBipartite(leftCount: a, rightCount: b)` on every conformer, and n parts
+of size 1 equal to `complete(vertexCount: n)`. NetworkX raises for a directed ladder, circular ladder, barbell or lollipop;
 its `nx.DiGraph(G)` is the both-arcs form. This is NetworkX's `create_using=nx.DiGraph`
 everywhere NetworkX allows it (complete, path, cycle, star, grid_2d), and NetworkX's `nx.DiGraph(G)`
 for the rest. igraph orients a directed `Hypercube` from lower to higher index and a directed
@@ -172,7 +171,7 @@ igraph (NetworkX's `hypercube_graph(0)` is the null graph, NG-069); `ladder(rung
 ### Complexity and performance targets
 
 Every factory is O(n + m) time and builds no intermediate hash table. The Θ(n²) families
-(`complete`, `completeBipartite`) pass a lazy collection that computes its edges, so no edge array
+(`complete`, `completeBipartite`, `completeMultipartite`, `turan`) pass a lazy collection that computes its edges, so no edge array
 is ever allocated; the others pass an exact-capacity array of m edges, freed after the build. The
 body of each family is non-generic except for the final bulk initializer, so a family adds one small
 specialization per conformer used.
@@ -200,7 +199,8 @@ Phase 1's families, measured (`just bench --target NamedGraphsBenchmarks`, p50):
 
 The both-arcs families go through one counting placement of the arcs (`_bothArcs`, no sort), so
 their CSR cost is about 4.5 ns per arc against the path's 3. Complete multipartite and Turán compute
-their edges as read (`_MultipartitePairs`) and allocate no edge list.
+their edges as read (`_MultipartitePairs`, and `_CrossPartArcs` for both arcs, which the directed
+`completeBipartite` shares) and allocate no edge list.
 
 The CSR targets are the cost of writing `offsets` and `targets` once; the adjacency-list targets
 are igraph's time, since that representation hashes every vertex and edge by design. Benchmarks go in

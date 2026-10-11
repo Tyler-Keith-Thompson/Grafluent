@@ -58,21 +58,20 @@ extension _GraphConstruction {
 }
 
 extension _DirectedGraphConstruction {
-    /// The complete multipartite graph oriented from each part to every later one, as
-    /// `completeBipartite(leftCount:rightCount:)` is oriented left to right (igraph's C
-    /// `igraph_full_multipartite` with `IGRAPH_OUT`): one arc u → v for each edge, u < v, in
-    /// row-major order. So n parts of size 1 give the transitive tournament, not
-    /// `complete(vertexCount:)`'s both arcs. O(n + m), with no edge list allocated.
+    /// The complete multipartite graph with both arcs of every edge: u → v for each u and v in
+    /// different parts, Σᵢ≠ⱼ sᵢsⱼ arcs in row-major order (igraph's `Full_Multipartite` with
+    /// `mode="all"`, the default). n parts of size 1 give `complete(vertexCount:)`, and two parts
+    /// give `completeBipartite(leftCount:rightCount:)`. O(n + m), with no edge list allocated.
     ///
     /// - Precondition: no size is negative, and the counts fit in `Int`.
     @inlinable
     public static func completeMultipartite(partSizes: [Int]) -> Self {
-        let pairs = _multipartitePairs(partSizes)
-        return Self(_vertexCount: pairs.n, sortedEdges: pairs, _ConstructionToken())
+        let arcs = _CrossPartArcs(_multipartitePairs(partSizes))
+        return Self(_vertexCount: arcs.n, sortedEdges: arcs, _ConstructionToken())
     }
 
-    /// The Turán graph oriented from each part to every later one, as
-    /// `completeMultipartite(partSizes:)`. O(n + m).
+    /// The Turán graph with both arcs of every edge, as `completeMultipartite(partSizes:)`.
+    /// O(n + m).
     ///
     /// - Precondition: `1 ≤ partCount ≤ vertexCount`.
     @inlinable

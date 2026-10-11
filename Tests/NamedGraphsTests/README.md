@@ -46,9 +46,9 @@ The undirected conformers are `UndirectedAdjacencyList<Int>`, `Pseudograph<Int>`
 
 Every catalog row runs its family on all nine conformers. The undirected form runs on the three
 undirected types. The directed form runs on the six directed types, with one arc per edge along
-the natural orientation (path, cycle, star, wheel, complete bipartite; complete multipartite and
-Turán from earlier part to later part; the balanced tree from parent to child) or both arcs
-(complete, grid, hypercube, Petersen, the ladders, barbell, lollipop). The catalog shows one form. `swiftgen.py` takes the other from
+the natural orientation (path, cycle, star, wheel; the balanced tree from parent to child) or both
+arcs (complete, complete bipartite, complete multipartite, Turán, grid, hypercube, Petersen, the
+ladders, barbell, lollipop). The catalog shows one form. `swiftgen.py` takes the other from
 `ref.py`'s model, which checks both against NetworkX 3.7 and igraph 1.0. Each run checks:
 
 - the vertex and edge counts, `vertices` as `0..<n` in order, and `vertexIndex(of:)` as the identity;

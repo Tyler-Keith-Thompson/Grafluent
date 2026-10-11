@@ -35,7 +35,7 @@ Conventions:
 | NG-014 | CompleteBipartite | K1,1: left 0..<1, right 1..<2 | `UndirectedAdjacencyList<Int>.completeBipartite(leftCount: 1, rightCount: 1)` | n 2; m 1; deg [1, 1]; E [0–1] |
 | NG-015 | CompleteBipartite | K2,3: left 0..<2, right 2..<5 | `UndirectedAdjacencyList<Int>.completeBipartite(leftCount: 2, rightCount: 3)` | n 5; m 6; deg [3, 3, 2, 2, 2]; E [0–2, 0–3, 0–4, 1–2, 1–3, 1–4] |
 | NG-016 | CompleteBipartite | K3,2: left 0..<3, right 3..<5 | `UndirectedAdjacencyList<Int>.completeBipartite(leftCount: 3, rightCount: 2)` | n 5; m 6; deg [2, 2, 2, 3, 3]; E [0–3, 0–4, 1–3, 1–4, 2–3, 2–4] |
-| NG-017 | CompleteBipartite | K2,3 directed: left → right | `CompressedSparseRow.completeBipartite(leftCount: 2, rightCount: 3)` | n 5; m 6; out [3, 3, 0, 0, 0]; in [0, 0, 2, 2, 2]; E [0→2, 0→3, 0→4, 1→2, 1→3, 1→4] |
+| NG-017 | CompleteBipartite | K2,3 directed: both arcs | `CompressedSparseRow.completeBipartite(leftCount: 2, rightCount: 3)` | n 5; m 12; out [3, 3, 2, 2, 2]; in [3, 3, 2, 2, 2]; E [0→2, 0→3, 0→4, 1→2, 1→3, 1→4, 2→0, 2→1, 3→0, 3→1, 4→0, 4→1] |
 | NG-018 | CompleteBipartite | BipartiteGraph sides | `BipartiteGraph<Int>.completeBipartite(leftCount: 2, rightCount: 2)` | n 4; m 4; deg [2, 2, 2, 2]; E [0–2, 0–3, 1–2, 1–3]; left [0, 1]; right [2, 3] |
 | NG-019 | CompleteBipartite | BipartiteGraph with an empty side | `BipartiteGraph<Int>.completeBipartite(leftCount: 0, rightCount: 2)` | n 2; m 0; deg [0, 0]; E []; left []; right [0, 1] |
 | NG-020 | CompleteBipartite | negative side | `UndirectedAdjacencyList<Int>.completeBipartite(leftCount: 2, rightCount: -1)` | **trap**: rightCount -1 is negative |
@@ -134,14 +134,14 @@ Conventions:
 | NG-113 | CompleteMultipartite | parts [2, 0, 1] | `UndirectedAdjacencyList<Int>.completeMultipartite(partSizes: [2, 0, 1])` | n 3; m 2; deg [1, 1, 2]; E [0–2, 1–2] |
 | NG-114 | CompleteMultipartite | parts [1, 2, 3] | `UndirectedAdjacencyList<Int>.completeMultipartite(partSizes: [1, 2, 3])` | n 6; m 11; deg [5, 4, 4, 3, 3, 3]; E [0–1, 0–2, 0–3, 0–4, 0–5, 1–3, 1–4, 1–5, 2–3, 2–4, 2–5] |
 | NG-115 | CompleteMultipartite | parts [1, 1, 1, 1] | `UndirectedAdjacencyList<Int>.completeMultipartite(partSizes: [1, 1, 1, 1])` | n 4; m 6; deg [3, 3, 3, 3]; E [0–1, 0–2, 0–3, 1–2, 1–3, 2–3] |
-| NG-116 | CompleteMultipartite | directed: earlier part → later part | `CompressedSparseRow.completeMultipartite(partSizes: [1, 2, 3])` | n 6; m 11; out [5, 3, 3, 0, 0, 0]; in [0, 1, 1, 3, 3, 3]; E [0→1, 0→2, 0→3, 0→4, 0→5, 1→3, 1→4, 1→5, 2→3, 2→4, 2→5] |
+| NG-116 | CompleteMultipartite | directed: both arcs | `CompressedSparseRow.completeMultipartite(partSizes: [1, 2, 3])` | n 6; m 22; out [5, 4, 4, 3, 3, 3]; in [5, 4, 4, 3, 3, 3]; E [0→1, 0→2, 0→3, 0→4, 0→5, 1→0, 1→3, 1→4, 1→5, 2→0, 2→3, 2→4, 2→5, 3→0, 3→1, 3→2, 4→0, 4→1, 4→2, 5→0, 5→1, 5→2] |
 | NG-117 | CompleteMultipartite | negative part size | `UndirectedAdjacencyList<Int>.completeMultipartite(partSizes: [2, -1])` | **trap**: part size -1 is negative |
 | NG-118 | CompleteMultipartite | edge count overflows Int | `UndirectedAdjacencyList<Int>.completeMultipartite(partSizes: [1 << 32, 1 << 32])` | **trap**: edge count overflows Int |
 | NG-119 | Turan | T(5, 2): parts [2, 3], smaller first | `UndirectedAdjacencyList<Int>.turan(vertexCount: 5, partCount: 2)` | n 5; m 6; deg [3, 3, 2, 2, 2]; E [0–2, 0–3, 0–4, 1–2, 1–3, 1–4] |
 | NG-120 | Turan | T(7, 3): parts [2, 2, 3] | `UndirectedAdjacencyList<Int>.turan(vertexCount: 7, partCount: 3)` | n 7; m 16; deg [5, 5, 5, 5, 4, 4, 4]; E [0–2, 0–3, 0–4, 0–5, 0–6, 1–2, 1–3, 1–4, 1–5, 1–6, 2–4, 2–5, 2–6, 3–4, 3–5, 3–6] |
 | NG-121 | Turan | T(4, 4) is K4 | `UndirectedAdjacencyList<Int>.turan(vertexCount: 4, partCount: 4)` | n 4; m 6; deg [3, 3, 3, 3]; E [0–1, 0–2, 0–3, 1–2, 1–3, 2–3] |
 | NG-122 | Turan | T(4, 1): one part, no edges | `UndirectedAdjacencyList<Int>.turan(vertexCount: 4, partCount: 1)` | n 4; m 0; deg [0, 0, 0, 0]; E [] |
-| NG-123 | Turan | directed: earlier part → later part | `CompressedSparseRow.turan(vertexCount: 5, partCount: 2)` | n 5; m 6; out [3, 3, 0, 0, 0]; in [0, 0, 2, 2, 2]; E [0→2, 0→3, 0→4, 1→2, 1→3, 1→4] |
+| NG-123 | Turan | directed: both arcs | `CompressedSparseRow.turan(vertexCount: 5, partCount: 2)` | n 5; m 12; out [3, 3, 2, 2, 2]; in [3, 3, 2, 2, 2]; E [0→2, 0→3, 0→4, 1→2, 1→3, 1→4, 2→0, 2→1, 3→0, 3→1, 4→0, 4→1] |
 | NG-124 | Turan | no parts | `UndirectedAdjacencyList<Int>.turan(vertexCount: 5, partCount: 0)` | **trap**: a Turán graph needs 1 ≤ partCount ≤ vertexCount, not 0 and 5 |
 | NG-125 | Turan | more parts than vertices | `UndirectedAdjacencyList<Int>.turan(vertexCount: 5, partCount: 6)` | **trap**: a Turán graph needs 1 ≤ partCount ≤ vertexCount, not 6 and 5 |
 | NG-126 | BalancedTree | r = 2, h = 2: children of p are 2p + 1, 2p + 2 | `UndirectedAdjacencyList<Int>.balancedTree(branchingFactor: 2, height: 2)` | n 7; m 6; deg [2, 3, 3, 1, 1, 1, 1]; E [0–1, 0–2, 1–3, 1–4, 2–5, 2–6] |

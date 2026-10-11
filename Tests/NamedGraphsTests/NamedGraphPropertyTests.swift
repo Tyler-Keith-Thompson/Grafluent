@@ -45,7 +45,7 @@ struct NamedGraphPropertyTests {
         }
     }
 
-    @Test("completeBipartite: left 0..<a, right a..<a+b, every left–right pair; directed left → right; BipartiteGraph sides")
+    @Test("completeBipartite: left 0..<a, right a..<a+b, every left–right pair; directed both arcs, row-major; BipartiteGraph sides")
     func completeBipartite() async {
         await propertyCheck(count: 80, input: Gen.int(in: 0 ... 9), Gen.int(in: 0 ... 9)) { a, b in
             var pairs: [[Int]] = []
@@ -70,10 +70,13 @@ struct NamedGraphPropertyTests {
                                                       DirectedPseudograph<Int>.completeBipartite(leftCount: a, rightCount: b),
                                                       DirectedMultigraph<Int>.completeBipartite(leftCount: a, rightCount: b),
                                                       StableDirectedGraph<Int>.completeBipartite(leftCount: a, rightCount: b)]
+            // Both arcs, row-major: the left rows, then the right rows.
+            var arcs = pairs
+            for v in a ..< a + b { for u in 0 ..< a { arcs.append([v, u]) } }
             for graph in directed {
-                #expect(graph.vertexCount == a + b && graph.edgeCount == a * b, "\(a), \(b)")
-                #expect(graph.edges.map { [$0.source, $0.target] } == pairs, "\(a), \(b)")
-                #expect((0 ..< a + b).map { graph.outDegree(of: $0) } == (0 ..< a + b).map { $0 < a ? b : 0 }, "\(a), \(b)")
+                #expect(graph.vertexCount == a + b && graph.edgeCount == 2 * a * b, "\(a), \(b)")
+                #expect(graph.edges.map { [$0.source, $0.target] } == arcs, "\(a), \(b)")
+                #expect((0 ..< a + b).map { graph.outDegree(of: $0) } == degrees, "\(a), \(b)")
             }
         }
     }
@@ -421,7 +424,7 @@ struct NamedGraphPropertyTests {
         }
     }
 
-    @Test("completeMultipartite: adjacent exactly across parts, sorted; earlier part → later part; two parts are completeBipartite")
+    @Test("completeMultipartite: adjacent exactly across parts, sorted; directed both arcs; two parts are completeBipartite, parts of 1 are complete")
     func completeMultipartite() async {
         await propertyCheck(count: 120, input: Gen.int(in: 0 ... 5).array(of: 0 ... 5)) { sizes in
             // The part of each vertex, parts laid out consecutively.
@@ -443,8 +446,14 @@ struct NamedGraphPropertyTests {
                                                       DirectedPseudograph<Int>.completeMultipartite(partSizes: sizes),
                                                       DirectedMultigraph<Int>.completeMultipartite(partSizes: sizes),
                                                       StableDirectedGraph<Int>.completeMultipartite(partSizes: sizes)]
+            var arcs: [[Int]] = []
+            for u in 0 ..< n { for v in 0 ..< n where part[u] != part[v] { arcs.append([u, v]) } }
             for graph in directed {
-                #expect(graph.vertexCount == n && graph.edges.map { [$0.source, $0.target] } == pairs, "\(sizes)")
+                #expect(graph.vertexCount == n && graph.edges.map { [$0.source, $0.target] } == arcs, "\(sizes)")
+            }
+            if sizes.allSatisfy({ $0 == 1 }) {
+                #expect(CompressedSparseRow.completeMultipartite(partSizes: sizes) == CompressedSparseRow.complete(vertexCount: n),
+                        "\(sizes)")
             }
             if sizes.count == 2 {
                 let (a, b) = (sizes[0], sizes[1])
@@ -456,7 +465,7 @@ struct NamedGraphPropertyTests {
         }
     }
 
-    @Test("turan: r parts differing by at most one, smaller first; edges within r/8 of Turán's bound (1 − 1/r)n²/2; earlier part → later part")
+    @Test("turan: r parts differing by at most one, smaller first; edges within r/8 of Turán's bound (1 − 1/r)n²/2; directed both arcs")
     func turan() async {
         await propertyCheck(count: 80, input: Gen.int(in: 1 ... 25), Gen.int(in: 1 ... 25)) { n, r in
             guard r <= n else { return }
@@ -479,8 +488,10 @@ struct NamedGraphPropertyTests {
                                                       DirectedPseudograph<Int>.turan(vertexCount: n, partCount: r),
                                                       DirectedMultigraph<Int>.turan(vertexCount: n, partCount: r),
                                                       StableDirectedGraph<Int>.turan(vertexCount: n, partCount: r)]
+            let expectedArcs = CompressedSparseRow.completeMultipartite(partSizes: sizes)
             for graph in directed {
-                #expect(graph.edgeCount == m && graph.edges.allSatisfy { $0.source < $0.target }, "\(n), \(r)")
+                #expect(graph.edgeCount == 2 * m, "\(n), \(r)")
+                #expect(graph.edges.map { [$0.source, $0.target] } == expectedArcs.edges.map { [$0.source, $0.target] }, "\(n), \(r)")
             }
         }
     }

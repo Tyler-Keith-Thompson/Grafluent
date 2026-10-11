@@ -1,5 +1,5 @@
 // Complete and complete bipartite graphs (catalog NG-001 – NG-019): K_n on 0..<n with every pair, both
-// arcs when directed; K_{a,b} with left 0..<a and right a..<a+b, left → right when directed; and
+// arcs when directed; K_{a,b} with left 0..<a and right a..<a+b, both arcs when directed; and
 // BipartiteGraph.completeBipartite with its sides.
 // Generated from cases.md by swiftgen.py; see README.md.
 
@@ -376,7 +376,7 @@ struct CompleteGraphTests {
         check(UndirectedAdjacencyList<Int>.completeBipartite(leftCount: 0, rightCount: 0), "UndirectedAdjacencyList<Int>")
         check(Pseudograph<Int>.completeBipartite(leftCount: 0, rightCount: 0), "Pseudograph<Int>")
         check(Multigraph<Int>.completeBipartite(leftCount: 0, rightCount: 0), "Multigraph<Int>")
-        // The directed form: left → right.
+        // The directed form: both arcs.
         func checkDirected(_ graph: some DirectedGraph<Int>, _ type: String) {
             #expect(graph.vertexCount == 0 && graph.edgeCount == 0 && graph.edges.count == 0, "\(type)")
             #expect(Array(graph.vertices) == Array(0 ..< 0), "\(type)")
@@ -415,7 +415,7 @@ struct CompleteGraphTests {
         check(UndirectedAdjacencyList<Int>.completeBipartite(leftCount: 0, rightCount: 3), "UndirectedAdjacencyList<Int>")
         check(Pseudograph<Int>.completeBipartite(leftCount: 0, rightCount: 3), "Pseudograph<Int>")
         check(Multigraph<Int>.completeBipartite(leftCount: 0, rightCount: 3), "Multigraph<Int>")
-        // The directed form: left → right.
+        // The directed form: both arcs.
         func checkDirected(_ graph: some DirectedGraph<Int>, _ type: String) {
             #expect(graph.vertexCount == 3 && graph.edgeCount == 0 && graph.edges.count == 0, "\(type)")
             #expect(Array(graph.vertices) == Array(0 ..< 3), "\(type)")
@@ -454,20 +454,19 @@ struct CompleteGraphTests {
         check(UndirectedAdjacencyList<Int>.completeBipartite(leftCount: 1, rightCount: 1), "UndirectedAdjacencyList<Int>")
         check(Pseudograph<Int>.completeBipartite(leftCount: 1, rightCount: 1), "Pseudograph<Int>")
         check(Multigraph<Int>.completeBipartite(leftCount: 1, rightCount: 1), "Multigraph<Int>")
-        // The directed form: left → right.
+        // The directed form: both arcs.
         func checkDirected(_ graph: some DirectedGraph<Int>, _ type: String) {
-            #expect(graph.vertexCount == 2 && graph.edgeCount == 1 && graph.edges.count == 1, "\(type)")
+            #expect(graph.vertexCount == 2 && graph.edgeCount == 2 && graph.edges.count == 2, "\(type)")
             #expect(Array(graph.vertices) == Array(0 ..< 2), "\(type)")
             #expect((0 ..< 2).map { graph.vertexIndex(of: $0) } == Array(0 ..< 2), "\(type)")
             var inDegrees = [Int](repeating: 0, count: 2)
             for edge in graph.edges { inDegrees[edge.target] += 1 }
-            #expect(graph.edges.map { [$0.source, $0.target] } == [[0, 1]] as [[Int]], "\(type)")
-            #expect((0 ..< 2).map { graph.outDegree(of: $0) } == [1, 0] as [Int], "\(type)")
-            #expect(inDegrees == [0, 1] as [Int], "\(type)")
-            #expect((0 ..< 2).map { graph.successors(of: $0).sorted() } == [[1], []] as [[Int]], "\(type)")
+            #expect(graph.edges.map { [$0.source, $0.target] } == [[0, 1], [1, 0]] as [[Int]], "\(type)")
+            #expect((0 ..< 2).map { graph.outDegree(of: $0) } == [1, 1] as [Int], "\(type)")
+            #expect(inDegrees == [1, 1] as [Int], "\(type)")
+            #expect((0 ..< 2).map { graph.successors(of: $0).sorted() } == [[1], [0]] as [[Int]], "\(type)")
             #expect(graph.edges.allSatisfy { graph.contains(edge: $0) }, "\(type)")
             #expect((0 ..< 2).allSatisfy { v in graph.outEdges(of: v).allSatisfy { graph.source(ofEdgeAt: $0) == v } }, "\(type)")
-            #expect(!graph.contains(edge: DirectedEdge(from: 1, to: 0)), "\(type)")
         }
         checkDirected(CompressedSparseRow.completeBipartite(leftCount: 1, rightCount: 1), "CompressedSparseRow")
         checkDirected(AdjacencyMatrix.completeBipartite(leftCount: 1, rightCount: 1), "AdjacencyMatrix")
@@ -494,17 +493,17 @@ struct CompleteGraphTests {
         check(UndirectedAdjacencyList<Int>.completeBipartite(leftCount: 2, rightCount: 3), "UndirectedAdjacencyList<Int>")
         check(Pseudograph<Int>.completeBipartite(leftCount: 2, rightCount: 3), "Pseudograph<Int>")
         check(Multigraph<Int>.completeBipartite(leftCount: 2, rightCount: 3), "Multigraph<Int>")
-        // The directed form: left → right.
+        // The directed form: both arcs.
         func checkDirected(_ graph: some DirectedGraph<Int>, _ type: String) {
-            #expect(graph.vertexCount == 5 && graph.edgeCount == 6 && graph.edges.count == 6, "\(type)")
+            #expect(graph.vertexCount == 5 && graph.edgeCount == 12 && graph.edges.count == 12, "\(type)")
             #expect(Array(graph.vertices) == Array(0 ..< 5), "\(type)")
             #expect((0 ..< 5).map { graph.vertexIndex(of: $0) } == Array(0 ..< 5), "\(type)")
             var inDegrees = [Int](repeating: 0, count: 5)
             for edge in graph.edges { inDegrees[edge.target] += 1 }
-            #expect(graph.edges.map { [$0.source, $0.target] } == [[0, 2], [0, 3], [0, 4], [1, 2], [1, 3], [1, 4]] as [[Int]], "\(type)")
-            #expect((0 ..< 5).map { graph.outDegree(of: $0) } == [3, 3, 0, 0, 0] as [Int], "\(type)")
-            #expect(inDegrees == [0, 0, 2, 2, 2] as [Int], "\(type)")
-            #expect((0 ..< 5).map { graph.successors(of: $0).sorted() } == [[2, 3, 4], [2, 3, 4], [], [], []] as [[Int]], "\(type)")
+            #expect(graph.edges.map { [$0.source, $0.target] } == [[0, 2], [0, 3], [0, 4], [1, 2], [1, 3], [1, 4], [2, 0], [2, 1], [3, 0], [3, 1], [4, 0], [4, 1]] as [[Int]], "\(type)")
+            #expect((0 ..< 5).map { graph.outDegree(of: $0) } == [3, 3, 2, 2, 2] as [Int], "\(type)")
+            #expect(inDegrees == [3, 3, 2, 2, 2] as [Int], "\(type)")
+            #expect((0 ..< 5).map { graph.successors(of: $0).sorted() } == [[2, 3, 4], [2, 3, 4], [0, 1], [0, 1], [0, 1]] as [[Int]], "\(type)")
             #expect(graph.edges.allSatisfy { graph.contains(edge: $0) }, "\(type)")
             #expect((0 ..< 5).allSatisfy { v in graph.outEdges(of: v).allSatisfy { graph.source(ofEdgeAt: $0) == v } }, "\(type)")
             #expect(!graph.contains(edge: DirectedEdge(from: 0, to: 1)), "\(type)")
@@ -534,17 +533,17 @@ struct CompleteGraphTests {
         check(UndirectedAdjacencyList<Int>.completeBipartite(leftCount: 3, rightCount: 2), "UndirectedAdjacencyList<Int>")
         check(Pseudograph<Int>.completeBipartite(leftCount: 3, rightCount: 2), "Pseudograph<Int>")
         check(Multigraph<Int>.completeBipartite(leftCount: 3, rightCount: 2), "Multigraph<Int>")
-        // The directed form: left → right.
+        // The directed form: both arcs.
         func checkDirected(_ graph: some DirectedGraph<Int>, _ type: String) {
-            #expect(graph.vertexCount == 5 && graph.edgeCount == 6 && graph.edges.count == 6, "\(type)")
+            #expect(graph.vertexCount == 5 && graph.edgeCount == 12 && graph.edges.count == 12, "\(type)")
             #expect(Array(graph.vertices) == Array(0 ..< 5), "\(type)")
             #expect((0 ..< 5).map { graph.vertexIndex(of: $0) } == Array(0 ..< 5), "\(type)")
             var inDegrees = [Int](repeating: 0, count: 5)
             for edge in graph.edges { inDegrees[edge.target] += 1 }
-            #expect(graph.edges.map { [$0.source, $0.target] } == [[0, 3], [0, 4], [1, 3], [1, 4], [2, 3], [2, 4]] as [[Int]], "\(type)")
-            #expect((0 ..< 5).map { graph.outDegree(of: $0) } == [2, 2, 2, 0, 0] as [Int], "\(type)")
-            #expect(inDegrees == [0, 0, 0, 3, 3] as [Int], "\(type)")
-            #expect((0 ..< 5).map { graph.successors(of: $0).sorted() } == [[3, 4], [3, 4], [3, 4], [], []] as [[Int]], "\(type)")
+            #expect(graph.edges.map { [$0.source, $0.target] } == [[0, 3], [0, 4], [1, 3], [1, 4], [2, 3], [2, 4], [3, 0], [3, 1], [3, 2], [4, 0], [4, 1], [4, 2]] as [[Int]], "\(type)")
+            #expect((0 ..< 5).map { graph.outDegree(of: $0) } == [2, 2, 2, 3, 3] as [Int], "\(type)")
+            #expect(inDegrees == [2, 2, 2, 3, 3] as [Int], "\(type)")
+            #expect((0 ..< 5).map { graph.successors(of: $0).sorted() } == [[3, 4], [3, 4], [3, 4], [0, 1, 2], [0, 1, 2]] as [[Int]], "\(type)")
             #expect(graph.edges.allSatisfy { graph.contains(edge: $0) }, "\(type)")
             #expect((0 ..< 5).allSatisfy { v in graph.outEdges(of: v).allSatisfy { graph.source(ofEdgeAt: $0) == v } }, "\(type)")
             #expect(!graph.contains(edge: DirectedEdge(from: 0, to: 1)), "\(type)")
@@ -557,9 +556,9 @@ struct CompleteGraphTests {
         checkDirected(StableDirectedGraph<Int>.completeBipartite(leftCount: 3, rightCount: 2), "StableDirectedGraph<Int>")
     }
 
-    @Test("NG-017 K2,3 directed: left → right")
+    @Test("NG-017 K2,3 directed: both arcs")
     func ng017() {
-        // CompressedSparseRow.completeBipartite(leftCount: 2, rightCount: 3) → n 5; m 6; out [3, 3, 0, 0, 0]; in [0, 0, 2, 2, 2]; E [0→2, 0→3, 0→4, 1→2, 1→3, 1→4]
+        // CompressedSparseRow.completeBipartite(leftCount: 2, rightCount: 3) → n 5; m 12; out [3, 3, 2, 2, 2]; in [3, 3, 2, 2, 2]; E [0→2, 0→3, 0→4, 1→2, 1→3, 1→4, 2→0, 2→1, 3→0, 3→1, 4→0, 4→1]
         func check(_ graph: some Graph<Int>, _ type: String) {
             #expect(graph.vertexCount == 5 && graph.edgeCount == 6 && graph.edges.count == 6, "\(type)")
             #expect(Array(graph.vertices) == Array(0 ..< 5), "\(type)")
@@ -574,17 +573,17 @@ struct CompleteGraphTests {
         check(UndirectedAdjacencyList<Int>.completeBipartite(leftCount: 2, rightCount: 3), "UndirectedAdjacencyList<Int>")
         check(Pseudograph<Int>.completeBipartite(leftCount: 2, rightCount: 3), "Pseudograph<Int>")
         check(Multigraph<Int>.completeBipartite(leftCount: 2, rightCount: 3), "Multigraph<Int>")
-        // The directed form: left → right.
+        // The directed form: both arcs.
         func checkDirected(_ graph: some DirectedGraph<Int>, _ type: String) {
-            #expect(graph.vertexCount == 5 && graph.edgeCount == 6 && graph.edges.count == 6, "\(type)")
+            #expect(graph.vertexCount == 5 && graph.edgeCount == 12 && graph.edges.count == 12, "\(type)")
             #expect(Array(graph.vertices) == Array(0 ..< 5), "\(type)")
             #expect((0 ..< 5).map { graph.vertexIndex(of: $0) } == Array(0 ..< 5), "\(type)")
             var inDegrees = [Int](repeating: 0, count: 5)
             for edge in graph.edges { inDegrees[edge.target] += 1 }
-            #expect(graph.edges.map { [$0.source, $0.target] } == [[0, 2], [0, 3], [0, 4], [1, 2], [1, 3], [1, 4]] as [[Int]], "\(type)")
-            #expect((0 ..< 5).map { graph.outDegree(of: $0) } == [3, 3, 0, 0, 0] as [Int], "\(type)")
-            #expect(inDegrees == [0, 0, 2, 2, 2] as [Int], "\(type)")
-            #expect((0 ..< 5).map { graph.successors(of: $0).sorted() } == [[2, 3, 4], [2, 3, 4], [], [], []] as [[Int]], "\(type)")
+            #expect(graph.edges.map { [$0.source, $0.target] } == [[0, 2], [0, 3], [0, 4], [1, 2], [1, 3], [1, 4], [2, 0], [2, 1], [3, 0], [3, 1], [4, 0], [4, 1]] as [[Int]], "\(type)")
+            #expect((0 ..< 5).map { graph.outDegree(of: $0) } == [3, 3, 2, 2, 2] as [Int], "\(type)")
+            #expect(inDegrees == [3, 3, 2, 2, 2] as [Int], "\(type)")
+            #expect((0 ..< 5).map { graph.successors(of: $0).sorted() } == [[2, 3, 4], [2, 3, 4], [0, 1], [0, 1], [0, 1]] as [[Int]], "\(type)")
             #expect(graph.edges.allSatisfy { graph.contains(edge: $0) }, "\(type)")
             #expect((0 ..< 5).allSatisfy { v in graph.outEdges(of: v).allSatisfy { graph.source(ofEdgeAt: $0) == v } }, "\(type)")
             #expect(!graph.contains(edge: DirectedEdge(from: 0, to: 1)), "\(type)")

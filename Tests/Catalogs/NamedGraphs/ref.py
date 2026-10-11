@@ -81,7 +81,10 @@ def complete_bipartite(a, b, directed=False):
     _count(b, "rightCount")
     require(a + b <= INT_MAX and a * b <= INT_MAX, "count overflows Int")
     pairs = [(u, a + v) for u in range(a) for v in range(b)]
-    return G(a + b, sorted(pairs), directed)  # directed: left -> right
+    if directed:
+        require(2 * a * b <= INT_MAX, "count overflows Int")
+        return _both_arcs(G(a + b, sorted(pairs), False))
+    return G(a + b, sorted(pairs), False)
 
 
 def path(n, directed=False):
@@ -208,7 +211,10 @@ def complete_multipartite(sizes, directed=False):
         parts.append(range(n, n + s))
         n += s
     pairs = [(u, v) for i, a in enumerate(parts) for b in parts[i + 1:] for u in a for v in b]
-    return G(n, sorted(pairs), directed)  # directed: earlier part -> later part, u < v
+    if directed:
+        require(2 * m <= INT_MAX, "edge count overflows Int")
+        return _both_arcs(G(n, sorted(pairs), False))
+    return G(n, sorted(pairs), False)
 
 
 def turan_sizes(n, r):
@@ -313,12 +319,11 @@ def nx_oracle(family, args, directed):
     if family == "balancedTree":
         return nx_relabeled(nx.balanced_tree(args[0], args[1], create_using=D), ident)
     if directed:
-        if family in ("hypercube", "petersen", "ladder", "circularLadder", "barbell", "lollipop"):
+        if family in ("hypercube", "petersen", "ladder", "circularLadder", "barbell", "lollipop",
+                      "completeBipartite", "completeMultipartite", "turan"):
             und = nx_oracle(family, args, False)
             return None if und is None else (und[0], und[1] | {(v, u) for u, v in und[1]})
-        if family in ("completeMultipartite", "turan"):
-            return nx_oracle(family, args, False)  # one arc per edge, from the earlier part: u -> v, u < v
-        return None  # NetworkX has no directed complete bipartite or wheel
+        return None  # NetworkX has no directed wheel
     if family == "completeBipartite":
         return nx_relabeled(nx.complete_bipartite_graph(*args), ident)
     if family == "wheel":
@@ -350,7 +355,7 @@ def ig_oracle(family, args, directed):
     if family == "complete":
         H = ig.Graph.Full(args[0], directed=directed)
     elif family == "completeBipartite":
-        H = ig.Graph.Full_Bipartite(args[0], args[1], directed=directed, mode="out")
+        H = ig.Graph.Full_Bipartite(args[0], args[1], directed=directed)  # mode="all", the default
     elif family == "path":
         H = ig.Graph.Ring(args[0], directed=directed, circular=False)
     elif family == "cycle":
@@ -408,7 +413,7 @@ def check(family, args, directed, g):
     if family in m_expected:
         assert g.n == args[0] and len(g.edges) == m_expected[family](args[0])
     if family == "completeBipartite":
-        assert g.n == args[0] + args[1] and len(g.edges) == args[0] * args[1]
+        assert g.n == args[0] + args[1] and len(g.edges) == args[0] * args[1] * (2 if directed else 1)
     if family in ("ladder", "circularLadder"):
         k = args[0]
         assert g.n == 2 * k and len(g.edges) == (3 * k if family == "circularLadder" else max(3 * k - 2, 0)) * (2 if directed else 1)
@@ -419,8 +424,8 @@ def check(family, args, directed, g):
         assert len(g.edges) == ((2 if two else 1) * (k * (k - 1) // 2) + p + (1 if two else 0)) * (2 if directed else 1)
     if family in ("completeMultipartite", "turan"):
         sizes = args[0] if family == "completeMultipartite" else turan_sizes(*args)
-        assert g.n == sum(sizes) and len(g.edges) == (sum(sizes) ** 2 - sum(x * x for x in sizes)) // 2
-        assert all(u < v for u, v in g.edges)
+        assert g.n == sum(sizes) and len(g.edges) == (sum(sizes) ** 2 - sum(x * x for x in sizes)) // (1 if directed else 2)
+        assert directed or all(u < v for u, v in g.edges)
     if family == "balancedTree":
         r, h = args
         assert g.n == (h + 1 if r == 1 else (r ** (h + 1) - 1) // (r - 1) if r > 1 else 1) and len(g.edges) == g.n - 1
@@ -503,7 +508,7 @@ def build_rows():
         row("CompleteBipartite", f"K{a},{b}: left 0..<{a}, right {a}..<{a + b}",
             f"{U}.completeBipartite(leftCount: {a}, rightCount: {b})",
             lambda a=a, b=b: complete_bipartite(a, b), family="completeBipartite", args=(a, b))
-    row("CompleteBipartite", "K2,3 directed: left → right", f"{C}.completeBipartite(leftCount: 2, rightCount: 3)",
+    row("CompleteBipartite", "K2,3 directed: both arcs", f"{C}.completeBipartite(leftCount: 2, rightCount: 3)",
         lambda: complete_bipartite(2, 3, True), family="completeBipartite", args=(2, 3), directed=True)
     row("CompleteBipartite", "BipartiteGraph sides", "BipartiteGraph<Int>.completeBipartite(leftCount: 2, rightCount: 2)",
         lambda: bipartite_complete(2, 2), family="completeBipartite", args=(2, 2),
@@ -645,7 +650,7 @@ def more_rows(U, C):
     for sizes in ([], [2, 0, 1], [1, 2, 3], [1, 1, 1, 1]):
         row("CompleteMultipartite", f"parts {sizes}", f"{U}.completeMultipartite(partSizes: {sizes})",
             lambda sizes=sizes: complete_multipartite(sizes), family="completeMultipartite", args=(sizes,))
-    row("CompleteMultipartite", "directed: earlier part → later part", f"{C}.completeMultipartite(partSizes: [1, 2, 3])",
+    row("CompleteMultipartite", "directed: both arcs", f"{C}.completeMultipartite(partSizes: [1, 2, 3])",
         lambda: complete_multipartite([1, 2, 3], True), family="completeMultipartite", args=([1, 2, 3],), directed=True)
     row("CompleteMultipartite", "negative part size", f"{U}.completeMultipartite(partSizes: [2, -1])",
         lambda: complete_multipartite([2, -1]))
@@ -656,7 +661,7 @@ def more_rows(U, C):
                        (4, 1, ": one part, no edges")):
         row("Turan", f"T({n}, {r}){what}", f"{U}.turan(vertexCount: {n}, partCount: {r})",
             lambda n=n, r=r: turan(n, r), family="turan", args=(n, r))
-    row("Turan", "directed: earlier part → later part", f"{C}.turan(vertexCount: 5, partCount: 2)",
+    row("Turan", "directed: both arcs", f"{C}.turan(vertexCount: 5, partCount: 2)",
         lambda: turan(5, 2, True), family="turan", args=(5, 2), directed=True)
     row("Turan", "no parts", f"{U}.turan(vertexCount: 5, partCount: 0)", lambda: turan(5, 0))
     row("Turan", "more parts than vertices", f"{U}.turan(vertexCount: 5, partCount: 6)", lambda: turan(5, 6))
