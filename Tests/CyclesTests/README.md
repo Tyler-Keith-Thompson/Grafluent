@@ -81,7 +81,7 @@ test.
 | `GirthTests.swift` | 35 | §G: NetworkX's named graphs, JGraphT's GraphMetricsTest (pseudographs and multigraphs, both kinds), igraph, Boost, loops and parallel pairs |
 | `CycleRepresentationTests.swift` | 55 | §I: CY-701 rows on `UndirectedAdjacencyList` / `AdjacencyList`, CY-702 on `CompressedSparseRow` / `AdjacencyMatrix` and `.undirected` of each, CY-703 conformers without indices and with vertex indices only, CY-704 – CY-706 rows reversed and rotated, CY-707 `g.directed`, CY-708 `digraph.undirected`, CY-709 String and `Collider` vertices, CY-710 adjacency lists after removals |
 | `CyclePropertyTests.swift` | 15 | §J (PropertyBased, shrinking): CY-750 – CY-754, CY-756 – CY-764 against oracles written in each test, rows shuffled by a shrinkable seed |
-| `CycleStressTests.swift` | 14 | §K inside a `Task` with a one-minute limit: Johnson's figure 1 (k ≤ 9 and k = 1000), 2³⁰ dead ends, 10⁵-deep directed and undirected cycles, a 10⁵ path, DKL(9), K₉, the first cycle of K₂₀₀, 10 000 chained triangles, a looped star of 10⁵ leaves, a bounded ladder, girth on a 2 000-cycle and a 100 × 100 grid |
+| `Performance/CycleStressTests.swift` | 14 | §K inside a `Task` with a one-minute limit: Johnson's figure 1 (k ≤ 9 and k = 1000), 2³⁰ dead ends, 10⁵-deep directed and undirected cycles, a 10⁵ path, DKL(9), K₉, the first cycle of K₂₀₀, 10 000 chained triangles, a looped star of 10⁵ leaves, a bounded ladder, girth on a 2 000-cycle and a 100 × 100 grid |
 | `CycleConformanceTests.swift` | 8 | §L: `Sendable` (CY-852), value semantics (CY-853), not a `Collection` (CY-854), laziness on a row-counting conformer (CY-855), generic code (CY-856), no hashing on indexed adjacency lists (CY-857), `isAcyclic` on the views (CY-858), `Codable` and rotation equality (CY-859) |
 | `CyclePreconditionTests.swift` | 4 | §L exit tests: negative bound (CY-850), root not a vertex (CY-851), index rows that break the laws (CY-860) |
 | `CycleReviewTests.swift` | 11 | Added after planting bugs and the review (CY-1001 – CY-1011): girth after a longer cycle from earlier roots, a windmill with its hub last, a bounded 100 × 100 grid, girth of 10⁵-vertex forests and DAGs, edge indices out of range and edges in no row, iterators copied part-way, Traversal's directed `findCycle` against `simpleCycles`, `isAcyclic` without hashing |
@@ -112,7 +112,7 @@ Case IDs (CY-001 … CY-860) refer to the catalog (`cases.md`), harvested from N
 | CY-701 – CY-710 | I. Representations | `CycleRepresentationTests.swift` |
 | CY-750 – CY-764 | J. Properties | `CyclePropertyTests.swift` |
 | CY-755, CY-765 | J. igraph's and Boost's counts | not Swift tests: `ref.py` checks every row and random graph against python-igraph; Boost's counts are pinned as literals in §E and §F (CY-413 – CY-417, CY-482 – CY-486) |
-| CY-800 – CY-811, CY-813, CY-814 | K. Stress | `CycleStressTests.swift` |
+| CY-800 – CY-811, CY-813, CY-814 | K. Stress | `Performance/CycleStressTests.swift` |
 | CY-812 | K. Chordless stress | not tested: phase 2 |
 | CY-850 – CY-859 | L. Conformance | `CycleConformanceTests.swift`; CY-850 and CY-851 in `CyclePreconditionTests.swift` |
 | CY-860 | L. Broken index rows | `CyclePreconditionTests.swift` |

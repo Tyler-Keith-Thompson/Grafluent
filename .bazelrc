@@ -11,6 +11,13 @@ build --compilation_mode=dbg
 # copy-on-write and inlining bugs tend to show up.
 build:release --compilation_mode=opt
 
+# Release builds and runs only the tests that rely on speed (the `<Name>PerformanceTests` targets;
+# PERFORMANCE_TESTS in scripts/modules.py). Every other test target and test library is tagged
+# `debug-only`, and is neither compiled nor run optimized. Neither flag changes the configuration,
+# so switching them keeps the analysis cache.
+build:release --build_tag_filters=-debug-only
+test:release --test_tag_filters=-debug-only
+
 # Local disk cache for incremental builds.
 build --disk_cache=~/.cache/bazel-grafluent
 

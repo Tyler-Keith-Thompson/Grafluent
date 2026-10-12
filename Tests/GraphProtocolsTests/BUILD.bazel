@@ -4,6 +4,8 @@ load("@rules_apple//apple:macos.bzl", "macos_unit_test")
 load("//tools:swift_rules.bzl", "swift_library", "swift_test")
 
 # The tests, built once and linked into two runners.
+# Tagged `debug-only`: none of these relies on speed, so
+# `--config=release` neither builds nor runs them (.bazelrc).
 swift_library(
     name = "GraphProtocolsTestsLibrary",
     testonly = True,
@@ -12,6 +14,7 @@ swift_library(
     alwayslink = True,
     srcs = glob(["**/*.swift"]),
     module_name = "GraphProtocolsTests",
+    tags = ["debug-only"],
     # Read by //:package_swift_test, which checks Package.swift against the Bazel graph.
     visibility = ["//:__pkg__"],
     deps = [
@@ -30,6 +33,7 @@ swift_library(
 swift_test(
     name = "GraphProtocolsTests",
     size = "small",
+    tags = ["debug-only"],
     deps = [":GraphProtocolsTestsLibrary"],
 )
 

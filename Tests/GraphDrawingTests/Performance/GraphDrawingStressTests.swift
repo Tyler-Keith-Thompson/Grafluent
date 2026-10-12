@@ -3,7 +3,7 @@
 // expected value is known by construction or is an invariant: Reingold–Tilford on a 2 × 10⁵-vertex
 // random tree and a 10⁵-vertex path (no recursion), circularLayout on 10⁶ isolated vertices,
 // Sugiyama on a 1 000-vertex random DAG and a 500-vertex cyclic digraph and on a star and an in-star
-// of 4 × 10⁴ leaves (the layering at 5 × 10⁴ is in SugiyamaLayeringLinearProgramTests), Fruchterman–Reingold
+// of 4 × 10⁴ leaves (the layering at 5 × 10⁴ is in SugiyamaLayeringLinearProgramScaleTests), Fruchterman–Reingold
 // exact on 500 vertices and with Barnes–Hut on 5 000, stress majorization on a 15 × 15 grid. See
 // README.md.
 

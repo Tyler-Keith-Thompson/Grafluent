@@ -58,11 +58,12 @@ invariants. DR-163 runs on a `DirectedAcyclicGraph`.
 
 The catalog-row files are every file except `GraphDrawingConformanceTests.swift`,
 `GraphDrawingPlantedBugTests.swift`, `GraphDrawingPropertyTests.swift`,
-`GraphDrawingReviewTests.swift`, `GraphDrawingStressTests.swift` and
-`SugiyamaLayeringLinearProgramTests.swift`. `swiftgen.py` generates them from `cases.md`, next
-to `ref.py`, and also writes `SugiyamaLayeringLinearProgramTests.swift` (not catalog rows: 400
-random DAGs and one of 5 × 10⁴ vertices whose least total span scipy's HiGHS solves once, at
-generation; the test compares `sugiyamaLayout()`'s total span with it):
+`GraphDrawingReviewTests.swift`, `Performance/GraphDrawingStressTests.swift` and
+the two `SugiyamaLayeringLinearProgram` files. `swiftgen.py` generates them from `cases.md`, next
+to `ref.py`, and also writes `SugiyamaLayeringLinearProgramTests.swift` and
+`Performance/SugiyamaLayeringLinearProgramScaleTests.swift` (not catalog rows: 400 random DAGs, and
+one of 5 × 10⁴ vertices, whose least total span scipy's HiGHS solves once, at generation; the
+tests compare `sugiyamaLayout()`'s total span with it):
 
 ```
 uv run --quiet --no-project --with networkx==3.7 --with igraph==1.0.0 --with numpy==2.3.4 --with scipy==1.18.1 python3 Tests/Catalogs/GraphDrawing/swiftgen.py [--phase2]

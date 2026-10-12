@@ -54,7 +54,7 @@ func aStarShortestPath(from:cutoff:successors:heuristic:success:) -> (path: [V],
 ## How values are pinned
 
 The catalog-row files are every file except `ImplicitGraphConformanceTests.swift`,
-`ImplicitGraphPropertyTests.swift` and `ImplicitGraphStressTests.swift`. `swiftgen.py` generated
+`ImplicitGraphPropertyTests.swift` and `Performance/ImplicitGraphStressTests.swift`. `swiftgen.py` generated
 them from `cases.md`; it sits next to `ref.py` and `cases.md` in
 [`Tests/Catalogs/ImplicitGraphs/`](../Catalogs/ImplicitGraphs/):
 

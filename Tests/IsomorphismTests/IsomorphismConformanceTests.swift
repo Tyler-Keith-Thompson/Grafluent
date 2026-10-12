@@ -7,8 +7,8 @@
 // DirectedPseudograph. Relabelled copies (permuted vertices, shuffled edge positions, String names)
 // move every mapping by the relabelling; an undirected graph's `directed` view has the same
 // mappings; Weisfeiler–Leman hashes are equal across representations and copies. Then the value
-// laws of Isomorphism and Isomorphisms, laziness, and how often the colour closures are read. See
-// README.md.
+// laws of Isomorphism and Isomorphisms, and how often the colour closures are read; laziness relies
+// on speed and is in Performance/IsomorphismLazinessTests.swift. See README.md.
 
 import AdjacencyListModule
 import AdjacencyMatrixModule
@@ -361,30 +361,6 @@ struct IsomorphismConformanceTests {
         let arcs = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 0)])
         let rotations = Array(arcs.isomorphisms(to: arcs))
         #expect(rotations.count == 3 && Set(rotations).count == 3 && rotations == Array(arcs.isomorphisms(to: arcs)))
-    }
-
-    @Test("The sequence is lazy: the first mappings of E(40) onto itself (40! of them) and of K₁₂ come at once", .timeLimit(.minutes(1)))
-    func laziness() async {
-        await Task {
-            let empty = Pseudograph(vertices: 0 ..< 40)
-            let some = Array(empty.isomorphisms(to: empty).prefix(5))
-            #expect(some.count == 5 && Set(some).count == 5)
-            #expect(some.allSatisfy { Set($0.images) == Set(0 ..< 40) })
-            #expect(empty.isIsomorphic(to: empty) && empty.isomorphism(to: empty) != nil)
-            var edges: [UndirectedEdge<Int>] = []
-            for u in 0 ..< 12 { for v in u + 1 ..< 12 { edges.append(UndirectedEdge(u, v)) } }
-            let complete = Pseudograph(vertices: 0 ..< 12, edges: edges)
-            var iterator = complete.isomorphisms(to: complete).makeIterator()
-            var seen = Set<[Int]>()
-            for _ in 0 ..< 100 {
-                guard let mapping = iterator.next() else { break }
-                seen.insert(Array(mapping.images))
-            }
-            #expect(seen.count == 100)
-            let digraph = DirectedPseudograph(vertices: 0 ..< 40)
-            #expect(Array(digraph.monomorphisms(to: digraph).prefix(3)).count == 3)
-            #expect(Array(Pseudograph(vertices: 0 ..< 3).monomorphisms(to: empty).prefix(4)).count == 4)
-        }.value
     }
 
     @Test("Colour closures are read at most once per vertex and edge, at the call: iterating the sequence reads none")

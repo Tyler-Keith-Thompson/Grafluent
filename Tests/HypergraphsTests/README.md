@@ -82,7 +82,7 @@ isolated vertices, because an `OrderedSet` hashes only from 16 elements.
 
 The catalog-row files are every file except `HypergraphConformanceTests.swift`,
 `HypergraphEdgeCaseTests.swift`, `HypergraphHashTests.swift`, `HypergraphPropertyTests.swift` and
-`HypergraphStressTests.swift`.
+`Performance/HypergraphStressTests.swift`.
 `swiftgen.py`, which sits next to `ref.py`, generated them:
 
 ```

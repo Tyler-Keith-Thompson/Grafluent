@@ -82,7 +82,7 @@ vertex into its `Set` result. The test pins exactly that: one lookup plus the ha
 
 The catalog-row files are every file except `LabeledGraphConformanceTests.swift`,
 `LabeledGraphHashTests.swift`, `LabeledGraphPropertyTests.swift` and
-`LabeledGraphStressTests.swift`. `swiftgen.py` generated them from `cases.md`; it sits next to
+`Performance/LabeledGraphStressTests.swift`. `swiftgen.py` generated them from `cases.md`; it sits next to
 `ref.py` and `cases.md` in [`Tests/Catalogs/LabeledGraphs/`](../Catalogs/LabeledGraphs/):
 
 ```

@@ -29,7 +29,7 @@ test-one target:
 filter pattern:
     {{BAZEL}} test //... --test_filter={{pattern}}
 
-[doc('Run every test optimized (-O), where copy-on-write and inlining bugs tend to surface')]
+[doc('Run the speed-reliant tests (the PerformanceTests targets) optimized (-O); the rest run in debug only')]
 test-release:
     {{BAZEL_RELEASE}} test --config=release //...
 
@@ -94,7 +94,7 @@ bench-compare:
 generate *args="":
     @bash scripts/generate-xcodeproj.sh {{args}}
 
-[doc('Build optimized')]
+[doc('Build optimized: the library and the speed-reliant tests, not the debug-only test targets')]
 release:
     {{BAZEL_RELEASE}} build --config=release //...
 

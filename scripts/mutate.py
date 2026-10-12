@@ -124,9 +124,17 @@ class Mutant:
 
 
 def load_spec(module):
+    """The spec's mutants and test bundles. A bundle's speed-reliant tests are a bundle of their own
+    (PERFORMANCE_TESTS in scripts/modules.py), and run after it, so a spec names only the first."""
     path = os.path.join(ROOT, "scripts", "mutants", f"{module}.py")
     spec = runpy.run_path(path, init_globals={"Mutant": Mutant})
-    return spec["MUTANTS"], spec["TESTS"]
+    table = runpy.run_path(os.path.join(ROOT, "scripts", "modules.py"))
+    bundles = []
+    for b in spec["TESTS"]:
+        bundles.append(b)
+        if b in table["PERFORMANCE_TESTS"]:
+            bundles.append(table["performance_target"](b))
+    return spec["MUTANTS"], bundles
 
 
 # ── Stored results ───────────────────────────────────────────────────
@@ -138,12 +146,18 @@ def source_dirs(bundles):
     deps = {name: d for name, _, _, d in table["MODULES"]}
     deps["GrafluentTestSupport"] = ["GraphProtocols"]
     tests = dict(table["TEST_TARGETS"])
+    # A performance bundle's sources are in Performance/ under its module's test directory.
+    home = {b: b for b in tests}
+    for b in table["PERFORMANCE_TESTS"]:
+        tests[table["performance_target"](b)] = tests[b]
+        home[table["performance_target"](b)] = b
     dirs, seen = [], set()
     pending = []
     for b in bundles:
         if b not in tests:
             sys.exit(f"{b} is not a test target in scripts/modules.py")
-        dirs.append(os.path.join("Tests", b))
+        if os.path.join("Tests", home[b]) not in dirs:
+            dirs.append(os.path.join("Tests", home[b]))
         pending += tests[b]
     while pending:
         d = pending.pop()
@@ -159,7 +173,7 @@ def pruned_manifest(bundles, modules=()):
     """Package.swift with only the bundles, the modules and everything they depend on. Other
     targets are left out of the workspace, so another module's unfinished edits cannot break this
     run's build, and their changes do not invalidate its stored results."""
-    names = {os.path.basename(d) for d in source_dirs(bundles)} | set(modules)
+    names = {os.path.basename(d) for d in source_dirs(bundles)} | set(modules) | set(bundles)
     with open(os.path.join(ROOT, "Package.swift")) as f:
         lines = f.read().split("\n")
     kept = [line for line in lines

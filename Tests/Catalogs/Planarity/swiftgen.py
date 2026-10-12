@@ -22,7 +22,8 @@ subdivision of its kind made of the graph's edges, with its branch vertices and 
 paths in the documented order; a unique witness is pinned exactly. Graphs are `Pseudograph<Int>`
 (Multigraphs) with the row's vertices listed, so positions are the catalog's; `D:` rows are
 `AdjacencyList<Int>(...).undirected`. Trap rows go to the precondition file, with the hand-written
-exit tests in extra_traps.swift.
+exit tests in extra_traps.swift. The scale rows (PlanarityScaleTests.swift) rely on speed, so they
+go to OUT_DIR/Performance, the PlanarityPerformanceTests target (scripts/modules.py).
 """
 import os
 import re
@@ -36,6 +37,8 @@ import ref  # noqa: E402
 ARGS = [a for a in sys.argv[1:] if not a.startswith("--")]
 PHASE2 = "--phase2" in sys.argv
 OUT = os.path.abspath(ARGS[0]) if ARGS else os.path.normpath(os.path.join(HERE, "..", "..", "PlanarityTests"))
+# Files of speed-reliant tests, written to Performance/ (PERFORMANCE_TESTS in scripts/modules.py).
+PERFORMANCE_FILES = {"PlanarityScaleTests.swift"}
 
 # ---------------------------------------------------------------------------------------------
 # Catalog check
@@ -586,7 +589,9 @@ def write(fname, suite, rows, comment):
     out += ["", '@Suite("%s"%s)' % (suite, tags), "struct %s {" % fname[:-6]]
     out += body
     out.append("}")
-    with open(os.path.join(OUT, fname), "w") as f:
+    directory = os.path.join(OUT, "Performance") if fname in PERFORMANCE_FILES else OUT
+    os.makedirs(directory, exist_ok=True)
+    with open(os.path.join(directory, fname), "w") as f:
         f.write("\n".join(out) + "\n")
     return sum(1 for l in body if l.lstrip().startswith("@Test("))
 

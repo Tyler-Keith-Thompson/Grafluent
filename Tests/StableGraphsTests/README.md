@@ -68,7 +68,7 @@ vertex's `firstIndex(of:)`, `vertices[p]`, rows (`successors`, `outEdges`, `pred
 other initializer that fits (the builder included) against the same state.
 
 The catalog-row files (every file but `StableGraphConformanceTests.swift`,
-`StableGraphPropertyTests.swift`, `StableGraphSparseConformerTests.swift`, `StableGraphStressTests.swift`
+`StableGraphPropertyTests.swift`, `StableGraphSparseConformerTests.swift`, `Performance/StableGraphStressTests.swift`
 and `StableGraphChurnTests.swift`) were generated from `cases.md`
 by `swiftgen.py`, next to `ref.py` and `cases.md` in
 [`Tests/Catalogs/StableGraphs/`](../Catalogs/StableGraphs/), which says how to run it. It first
@@ -131,7 +131,7 @@ removal (a trap), and `degree(of:)` counting a self-loop once (41).
 | `StableGraphPreconditionTests.swift` | 30 | Exit tests: SG-050 – SG-065, SG-138 (`vertexIndex(checked:)` with a vertex hole), then `extra_traps.swift`: every neighbourhood and degree of a non-vertex or removed vertex; position lookups at holes, negative and past the end; positions from before a reset; dense index lookups; stepping past either end; a negative edge capacity; the sparse lookups |
 | `StableGraphConformanceTests.swift` | 13 | Algorithms (Traversal; Connectivity's components, condensation, attracting components and dominator trees; ShortestPaths) on eight seeded graphs with many holes and before any removal, against the compacted copy; a DAG with holes; the laws with holes; `SparselyIndexedDirectedGraph` through generic code; the collections skipping holes and as values; rows as random-access collections of positions indexed by offset; Codable through JSON and property lists; Hashable; Sendable; the builder and initializers; resets; copy-on-write; capacity |
 | `StableGraphPropertyTests.swift` | 4 | PropertyBased, shrinking: random sequences against the model; Codable round trips keeping the next fresh positions; equality and hashing ignoring positions and holes; algorithms on random graphs with holes against the compacted copy |
-| `StableGraphStressTests.swift` | 6 | Inside a `Task` with a one-minute limit: a 10⁵-vertex cycle with every other vertex removed and re-connected; 10⁵ copies of one pair churned from both ends; a 10⁵-edge star with every other edge removed by position; a 300 × 300 grid with vertices removed and re-inserted; 10⁵ steps of vertex churn (quadratic before the row pools bounded packing by the row table); the three bulk removals on a 10⁵-edge star |
+| `Performance/StableGraphStressTests.swift` | 6 | Inside a `Task` with a one-minute limit: a 10⁵-vertex cycle with every other vertex removed and re-connected; 10⁵ copies of one pair churned from both ends; a 10⁵-edge star with every other edge removed by position; a 300 × 300 grid with vertices removed and re-inserted; 10⁵ steps of vertex churn (quadratic before the row pools bounded packing by the row table); the three bulk removals on a 10⁵-edge star |
 | `StableGraphSparseConformerTests.swift` | 2 | A test-local `SparselyIndexedDirectedGraph` outside the library, on the default `_numberedRows`: components, depth- and breadth-first search, descendants, ancestors, dominator and post-dominator trees against the wrapped graph and the compacted copy; post-dominators and `component(of:)` with one vertex hole against the hole-free graph |
 
 138 catalog rows (117 value rows, 21 trap rows), 9 more exit tests (map handle misuse among them)

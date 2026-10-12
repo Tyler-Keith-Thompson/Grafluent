@@ -64,7 +64,7 @@ the catalog cell, each final state also checks `edges(between:and:)` / `edges(fr
 `edgeCount` for every pair that has an edge, with ref.py's model's class order (which ref.py checks
 against the key order of NetworkX 3.7's `G[u][v]`). The catalog-row files (every file but
 `MultigraphLawTests.swift`, `MultigraphConformanceTests.swift`, `MultigraphPropertyTests.swift`
-and `MultigraphStressTests.swift`) were generated from `cases.md` by a script (`swiftgen.py`, next to `ref.py` and `cases.md` in [`Tests/Catalogs/Multigraphs/`](../Catalogs/Multigraphs/), which says how to
+and `Performance/MultigraphStressTests.swift`) were generated from `cases.md` by a script (`swiftgen.py`, next to `ref.py` and `cases.md` in [`Tests/Catalogs/Multigraphs/`](../Catalogs/Multigraphs/), which says how to
 run it). It first checks that `ref.py` reproduces `cases.md` exactly, then re-evaluates each row
 with `ref.py`'s model (structured values, not the printed cells), asserts that every value matches
 the catalog cell, and writes it out.
@@ -124,7 +124,7 @@ in-rows reversed in directed vertex removal (MG-098, MG-099, then a trap).
 | `MultigraphLawTests.swift` | 8 | `Graph`'s laws (counts, index maps, rows against `edges`, `oppositeVertex`, degrees, edge indices, every pair's class, `contains(edge:)`, `_withIncidentIndexRows` read back) on `Pseudograph` fresh and after removals; `Multigraph` forwarding every requirement to its storage; `BidirectionalDirectedGraph`'s laws on both directed types; the drop-in check against both reference conformers on hand-made shapes and every fixture; the fixtures' pseudograph degrees; generic code |
 | `MultigraphConformanceTests.swift` | 10 | Codable through JSON and property lists after removals, malformed payloads throwing on all four types, Hashable (orders ignored, multisets told apart, colliding vertex hashes), `Sendable` across a `Task`, the mirror, the builders with control flow, the remaining initializers, `EdgesConnecting` as a collection and a value, copy-on-write on every mutation, capacity |
 | `MultigraphPropertyTests.swift` | 10 | PropertyBased, shrinking: random operation sequences against the model for each of the four types; the laws on random graphs after random removals (undirected, directed); equality and hashing independent of orders; Codable round trips; the collapse to the simple lists and simple graphs both ways; the drop-in check against the reference conformers |
-| `MultigraphStressTests.swift` | 4 | Inside a `Task` with a one-minute limit: 10⁵ copies of one pair (newest-first removal, removal from the front, directed with a second class), a seeded random pseudograph and directed pseudograph on 10⁵ vertices against the reference conformers and then half removed, 10⁵ edges inserted and removed again by edge, by pair, by vertex and by position |
+| `Performance/MultigraphStressTests.swift` | 4 | Inside a `Task` with a one-minute limit: 10⁵ copies of one pair (newest-first removal, removal from the front, directed with a second class), a seeded random pseudograph and directed pseudograph on 10⁵ vertices against the reference conformers and then half removed, 10⁵ edges inserted and removed again by edge, by pair, by vertex and by position |
 
 192 catalog rows (169 value rows, 23 trap rows) and 32 more tests (8 laws, 10 conformance, 10
 property, 4 stress): 224 tests in all.

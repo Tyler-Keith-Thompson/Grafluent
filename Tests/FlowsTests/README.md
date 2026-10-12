@@ -181,7 +181,7 @@ parentheses): the cut's search following residuals ≥ 0 (472), the source-side 
 | `DisjointPathsRepresentationTests.swift` | 24 | Every disjoint-path row again: the count, the ends, the disjointness |
 | `FlowsConformanceTests.swift` | 16 | Equality of the four results, `Sendable`, descriptions, each result's own copy of the graph, generic code, `Collider` and `String` vertices, Int32, UInt16 and Float capacities, an undirected graph against its `directed` view, self-loops never asked, zero costs, Gomory–Hu lookups both ways, parallel edges kept apart, `flowMap`, the signed undirected flow, cut sides from index zero, unsigned minimum-cost capacities |
 | `FlowsPropertyTests.swift` | 10 | PropertyBased with shrinking: directed and undirected maximum flows against brute force and Edmonds–Karp written out; floating capacities (eighths exact, integral Doubles integral); medium layered networks past push–relabel's global-relabel threshold, with gaps; global cuts against brute force, the cut's validity, the components rule and the least cyclic pair, in Int and Double; medium clustered global cuts (20 – 60 vertices) against the least maximum flow from the first vertex; Gomory–Hu against Gusfield written out and brute force; minimum-cost flow against a successive-shortest-path oracle; minimum-cost maximum flow; connectivity and disjoint paths by Menger |
-| `FlowsStressTests.swift` | 8 | Inside a `Task` with a one-minute limit; see above |
+| `Performance/FlowsStressTests.swift` | 8 | Inside a `Task` with a one-minute limit; see above |
 | `UndirectedCapacityRangeTests.swift` | 3 | Int8 and UInt8 undirected capacities where twice a capacity overflows |
 
 531 catalog rows (507 value rows, 24 trap rows), their 507 representation tests, and 47 more tests

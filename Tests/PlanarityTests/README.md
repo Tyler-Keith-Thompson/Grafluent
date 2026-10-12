@@ -83,8 +83,9 @@ unique witness (K₅, K₃,₃, their subdivisions, with pendant parts or other 
 exactly. Where only one kind occurs, the kind is pinned. A second call returns the same witness.
 
 The catalog-row files are every file except `PlanarityConformanceTests.swift`,
-`PlanarityPropertyTests.swift`, `PlanarityStressTests.swift`, `PlanarityDeepGraphTests.swift`,
-`PlanarityEngineBranchTests.swift` and `PlanarityLayoutTests.swift`. `swiftgen.py` generated them from
+`PlanarityPropertyTests.swift`, `Performance/PlanarityStressTests.swift`, `Performance/PlanarityDeepGraphTests.swift`,
+`PlanarityEngineBranchTests.swift` and `PlanarityLayoutTests.swift` (the scale rows,
+`Performance/PlanarityScaleTests.swift`, are catalog rows too). `swiftgen.py` generated them from
 `cases.md`; it sits next to `ref.py` and `cases.md` in
 [`Tests/Catalogs/Planarity/`](../Catalogs/Planarity/):
 
@@ -126,7 +127,7 @@ this process without the call, so the trap comes from the call and not from the 
   agrees with `isOuterplanar`, reversing the labels and the edge order changes no answer, a second
   call returns the same embedding and witness, and `rightFace` names the face that
   `face(from:alongEdgeAt:)` walks.
-- **Deep graphs** (`PlanarityDeepGraphTests.swift`), depth-first trees 10⁵ or more vertices deep: a
+- **Deep graphs** (`Performance/PlanarityDeepGraphTests.swift`), depth-first trees 10⁵ or more vertices deep: a
   200 000-vertex path; a 100 000-rung ladder and a 100 000-vertex polygon fan (both outerplanar,
   the fan with exactly 2n − 3 edges, and not outerplanar after one more chord); a K₃,₃ with each
   edge subdivided into 20 001 edges, whose witness is the whole graph; and a K₅ at the end of a

@@ -71,7 +71,7 @@ called `matrix[i, j]`, without labels.
 
 The catalog-row files are every file except `CanonicalSignTests.swift`,
 `SpectralAccuracyTests.swift`, `SpectralConformanceTests.swift`, `SpectralNoConvergenceTests.swift`,
-`SpectralPropertyTests.swift` and `SpectralStressTests.swift`.
+`SpectralPropertyTests.swift` and `Performance/SpectralStressTests.swift`.
 `swiftgen.py` generated them from `cases.md`. It sits next to `ref.py` and `cases.md` in
 [`Tests/Catalogs/SpectralGraphTheory/`](../Catalogs/SpectralGraphTheory/):
 

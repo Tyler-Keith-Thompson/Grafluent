@@ -84,7 +84,7 @@ property tests write their oracles inside each test.
 | `DistanceRepresentationTests.swift` | 63 | Every §A – §G row without parallel edges on `UndirectedAdjacencyList` / `AdjacencyList` (one test per graph), and every directed row on 0..<n on `CompressedSparseRow` with row-major positions |
 | `WeightReadingTests.swift` | 6 | The closure once per edge in position order for every weighted entry point: a pseudograph, a disconnected graph, a digraph, `graph.directed` (arc order), the adjacency list and CSR; never on K₁ or edgeless graphs |
 | `DistanceConformanceTests.swift` | 6 | `Sendable` across a `Task`, the value holding a copy of the graph, generic code, conformers without indices (undirected and directed), `Collider` vertices |
-| `DistanceStressTests.swift` | 21 | §H inside a `Task` with a one-minute limit: the 10⁵ path (diameter, path, radius, center, periphery, eccentricities, density), the 10⁵ star, the 10⁴ cycle, the all-pairs rows at 10⁴, a 300 × 300 grid, K₄₀₀, a 10⁵ directed path on CSR, a weighted 10⁵ path and a disconnected weighted pair of paths |
+| `Performance/DistanceStressTests.swift` | 21 | §H inside a `Task` with a one-minute limit: the 10⁵ path (diameter, path, radius, center, periphery, eccentricities, density), the 10⁵ star, the 10⁴ cycle, the all-pairs rows at 10⁴, a 300 × 300 grid, K₄₀₀, a 10⁵ directed path on CSR, a weighted 10⁵ path and a disconnected weighted pair of paths |
 | `DistancePropertyTests.swift` | 7 | PropertyBased, shrinking: unweighted undirected and directed against BFS from every vertex (exact paths), `Int` weights against Floyd–Warshall (path validity, closure order), `Double` quarters (average included), the bounding shapes on `UndirectedAdjacencyList`, random trees against TreeAlgorithms, the views |
 | `DistancePreconditionTests.swift` | 10 | Exit tests: non-vertices on the graph and the value, both kinds, weighted too (DI-042); `eccentricity(ofIndex:)` out of range; negative and NaN weights on every weighted entry point (DI-240, DI-630 – DI-633), `Int` and `Double`, out of reach, on a loop, single-source, `-infinity`, `Int.min`, the least negative `Double`, through `graph.directed` |
 
@@ -112,8 +112,8 @@ properties the catalog does not list.
 | DI-501 – DI-510 | F. Loops and parallel edges | `MultigraphDistanceTests.swift` |
 | DI-601 – DI-629, DI-634 – DI-636 | G. Weighted | `WeightedDistanceTests.swift`; again in `DoubleWeightTests.swift` |
 | DI-630 – DI-633 | G. Negative and NaN weights | `DistancePreconditionTests.swift` |
-| DI-901 – DI-904, DI-906 – DI-908, DI-910 – DI-912, DI-915 | H. Stress | `DistanceStressTests.swift` |
-| DI-905, DI-909, DI-913, DI-914 | H. All-pairs stress | `DistanceStressTests.swift` at 10⁴ vertices |
+| DI-901 – DI-904, DI-906 – DI-908, DI-910 – DI-912, DI-915 | H. Stress | `Performance/DistanceStressTests.swift` |
+| DI-905, DI-909, DI-913, DI-914 | H. All-pairs stress | `Performance/DistanceStressTests.swift` at 10⁴ vertices |
 
 ## Not tested
 

@@ -83,7 +83,7 @@ set. The property tests write their oracles inside each test.
 | `DigraphUndirectedTests.swift` | 15 | §F: a reciprocal pair, both orientations of a triangle, a triangle with a reciprocal pendant, through `digraph.undirected` |
 | `CliqueRepresentationTests.swift` | 181 | Every undirected catalog graph of §A – §E on `UndirectedAdjacencyList` and `AdjacencyList.undirected`, and on 0..<n on `CompressedSparseRow` (symmetric, via a file-private conformer) and `AdjacencyMatrix.undirected`. Seven graphs on conformers without indices, with vertex indices only, and with rows reversed. Karate and CQ-122 with `Collider` vertices. Every entry point in each test |
 | `CliquePropertyTests.swift` | 7 | PropertyBased, shrinking, multigraphs with loops and shuffled rows. Maximal cliques against every vertex subset. The maximum clique against every clique. Core numbers, `kCore`, `kShell` and the ordering's defining property against peeling. The exact ordering against api.md's BZ replayed on the simple rows. Triangles, clustering, transitivity and average against vertex triples. `graph.directed.undirected`. 14-vertex simple graphs on `UndirectedAdjacencyList` |
-| `CliqueStressTests.swift` | 6 | §G inside a `Task` with a one-minute limit: the 10⁵ path and star, a 300 × 300 grid, K₁₂₀, moon(8) (6 561 cliques), lcg(2000, 20000, 7) |
+| `Performance/CliqueStressTests.swift` | 6 | §G inside a `Task` with a one-minute limit: the 10⁵ path and star, a 300 × 300 grid, K₁₂₀, moon(8) (6 561 cliques), lcg(2000, 20000, 7) |
 | `CliqueConformanceTests.swift` | 6 | `Sendable` across a `Task` (sequence, iterator, both values). Value semantics after mutating the graph. Iterators that start over, and a copied iterator that resumes on its own. Laziness on a row-counting conformer, and a lazy filter by size. Not a `Collection`. Generic and existential code. No hashing on `UndirectedAdjacencyList` |
 | `CliquePreconditionTests.swift` | 8 | Exit tests: non-vertices on the graph, on both values and through a view (CQ-068, CQ-466); `kCore(-1)` and `kShell(-1)` (CQ-069); every `ofIndex:` member at n and at −1 |
 
@@ -109,7 +109,7 @@ conformance that the catalog does not list.
 | CQ-401 – CQ-465 | E. Triangles and clustering | `TriangleClusteringTests.swift`; again in `CliqueRepresentationTests.swift` |
 | CQ-466 | E. Not a vertex | `CliquePreconditionTests.swift` |
 | CQ-501 – CQ-515 | F. Directed graphs through `undirected` | `DigraphUndirectedTests.swift` |
-| CQ-601 – CQ-633 | G. Large shapes | `CliqueStressTests.swift`, one test per graph (its rows named as a range) |
+| CQ-601 – CQ-633 | G. Large shapes | `Performance/CliqueStressTests.swift`, one test per graph (its rows named as a range) |
 
 ## Not tested
 

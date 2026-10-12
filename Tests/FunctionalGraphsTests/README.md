@@ -54,7 +54,7 @@ func brentCycleDetection(from:successor:) -> (tailLength: Int, cycleLength: Int,
 ## How values are pinned
 
 The catalog-row files are every file except `FunctionalGraphConformanceTests.swift`,
-`FunctionalGraphPropertyTests.swift` and `FunctionalGraphStressTests.swift`. `swiftgen.py`
+`FunctionalGraphPropertyTests.swift` and `Performance/FunctionalGraphStressTests.swift`. `swiftgen.py`
 generated them from `cases.md`; it sits next to `ref.py` and `cases.md` in
 [`Tests/Catalogs/FunctionalGraphs/`](../Catalogs/FunctionalGraphs/):
 

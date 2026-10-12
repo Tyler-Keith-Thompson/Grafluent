@@ -2,6 +2,7 @@
 
 load("@rules_xcodeproj//xcodeproj:defs.bzl", "xcodeproj", "xcschemes")
 load("//tools:docc.bzl", "docc_site")
+load("//tools:performance_tests.bzl", "PERFORMANCE_TEST_PACKAGES")
 load("//tools:swiftpm.bzl", "swiftpm_manifest_test")
 
 # Test bundles are derived from the directory layout rather than listed: a directory under
@@ -16,8 +17,21 @@ TEST_PACKAGES = sorted([
 ])
 
 # Xcode runs each package's .xctest bundle target; `bazel test` runs its swift_test (see
-# scripts/modules.py).
-TEST_TARGETS = ["//" + package + ":" + package.removeprefix("Tests/") + "Bundle" for package in TEST_PACKAGES]
+# scripts/modules.py). A package in PERFORMANCE_TEST_PACKAGES holds a second test module, its
+# speed-reliant tests, named with `Performance` before `Tests`.
+TEST_MODULES = {
+    package: [package.removeprefix("Tests/")] + (
+        [package.removeprefix("Tests/").removesuffix("Tests") + "PerformanceTests"] if package in PERFORMANCE_TEST_PACKAGES else []
+    )
+    for package in TEST_PACKAGES
+}
+
+TEST_BUNDLES = {
+    package: ["//" + package + ":" + module + "Bundle" for module in TEST_MODULES[package]]
+    for package in TEST_PACKAGES
+}
+
+TEST_TARGETS = [bundle for package in TEST_PACKAGES for bundle in TEST_BUNDLES[package]]
 
 # A library-only package has nothing to launch, so the project's top-level targets are its test
 # bundles. Every library reaches the project as a dependency of one of them.
@@ -34,11 +48,12 @@ xcodeproj(
             ),
         ),
     ] + [
-        # One scheme per test bundle, since a suite is usually worked on alone.
+        # One scheme per test package (its tests and any performance tests), since a module's
+        # suites are usually worked on alone.
         xcschemes.scheme(
             name = package.removeprefix("Tests/"),
             test = xcschemes.test(
-                test_targets = [xcschemes.test_target("//" + package + ":" + package.removeprefix("Tests/") + "Bundle")],
+                test_targets = [xcschemes.test_target(bundle) for bundle in TEST_BUNDLES[package]],
             ),
         )
         for package in TEST_PACKAGES
@@ -68,7 +83,8 @@ swiftpm_manifest_test(
         "//" + package
         for package in sorted(subpackages(include = ["Sources/*"]))
     ] + ["//Tests/GrafluentTestSupport"] + [
-        "//" + package + ":" + package.removeprefix("Tests/") + "Library"
+        "//" + package + ":" + module + "Library"
         for package in TEST_PACKAGES
+        for module in TEST_MODULES[package]
     ],
 )

@@ -71,7 +71,7 @@ the process and pin each round's partition. A trap row runs its call in a child 
 test), then runs the same setup in this process without the call.
 
 The catalog-row files are every file except `IsomorphismConformanceTests.swift`,
-`IsomorphismPropertyTests.swift`, `IsomorphismStressTests.swift` and
+`IsomorphismPropertyTests.swift`, `Performance/IsomorphismStressTests.swift` and
 `IsomorphismHardFamiliesTests.swift`. `swiftgen.py` generated them
 from `cases.md`. It sits next to `ref.py` and `cases.md` in
 [`Tests/Catalogs/Isomorphism/`](../Catalogs/Isomorphism/):

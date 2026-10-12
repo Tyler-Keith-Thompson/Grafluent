@@ -131,7 +131,7 @@ is checked, so the trap comes from the fault.
   - Writers work over `AdjacencyList`, `StableDirectedGraph` with holes and
     `UndirectedAdjacencyList`.
   - `AttributeValue` literals and the value semantics of both types.
-- **Stress** (`GraphFormatsStressTests.swift`). Each test runs inside a `Task` with a one-minute
+- **Stress** (`Performance/GraphFormatsStressTests.swift`). Each test runs inside a `Task` with a one-minute
   limit and an explicit bound on its own time:
   - 10⁵ weighted arcs through the edge list, Matrix Market and node-link JSON.
   - 10⁵ labelled arcs through DOT, GraphML, the adjacency list and Mermaid.

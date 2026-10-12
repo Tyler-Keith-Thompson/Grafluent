@@ -68,7 +68,7 @@ negation.
 
 The catalog-row files are every file except `IncidenceMatrixConformanceTests.swift`,
 `IncidenceMatrixEdgeCaseTests.swift`, `IncidenceMatrixPropertyTests.swift` and
-`IncidenceMatrixStressTests.swift`. `swiftgen.py`, which
+`Performance/IncidenceMatrixStressTests.swift`. `swiftgen.py`, which
 sits next to `ref.py`, generated them:
 
 ```

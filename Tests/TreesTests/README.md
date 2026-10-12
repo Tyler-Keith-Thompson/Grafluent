@@ -102,7 +102,7 @@ that model. The property tests write their oracles inside each test.
 | `TreeConformanceTests.swift` | 7 | Codable round trips and the adjacency-list format both ways, invalid encodings throwing `dataCorrupted`, descriptions, `Sendable`, generic code |
 | `TreeRepresentationTests.swift` | 10 | Catalog rows on `UndirectedAdjacencyList` (also after removals), `AdjacencyList`, `CompressedSparseRow`, `.directed` and `.undirected`, reversed rows, no indices; `isTree` hashes no vertex on an indexed adjacency list |
 | `TreePropertyTests.swift` | 7 | PropertyBased, shrinking: recognition against union–find and in-degree counts, rooted queries against recursion, paths against BFS, Prüfer against the textbook loop, parent arrays, equality and Codable under shuffles |
-| `TreeStressTests.swift` | 16 | §K inside a `Task` with a one-minute limit: the 10⁶ path (depth, postorder, height, path, ancestor, descendants, Prüfer), the 10⁶ star, kary(10⁶, 2), 10⁶ isolated vertices, a 10⁶ parent chain, conversions and equality at 10⁶ |
+| `Performance/TreeStressTests.swift` | 16 | §K inside a `Task` with a one-minute limit: the 10⁶ path (depth, postorder, height, path, ancestor, descendants, Prüfer), the 10⁶ star, kary(10⁶, 2), 10⁶ isolated vertices, a 10⁶ parent chain, conversions and equality at 10⁶ |
 | `TreePreconditionTests.swift` | 5 | Exit tests: a root that is not a vertex (TS-109), queries and paths on a non-vertex (TS-246, TS-315 and the other rooted queries, `component(of:)`) |
 | `TreeReviewTests.swift` | 10 | Added after planting bugs and the review (TS-1001 – TS-1010): a forest with a parallel pair, edges keeping their orientation, hashes that see edges, `Int` vertices by first appearance, small trees without a vertex table, one-vertex trees of a forest, children with the parent edge anywhere in the row, parent arrays, rooted-tree decoding errors, equal hashes under shuffles |
 
@@ -132,7 +132,7 @@ properties the catalog does not list.
 | TS-500 – TS-517 | H. Prüfer codes | `PruferTests.swift` |
 | TS-600 – TS-611 | I. Graph rows | `TreeGraphRowTests.swift` |
 | TS-700 – TS-707 | J. Equality | `TreeEqualityTests.swift` |
-| TS-800 – TS-813 | K. Scale | `TreeStressTests.swift` |
+| TS-800 – TS-813 | K. Scale | `Performance/TreeStressTests.swift` |
 | TS-1001 – TS-1010 | Review: see the file table | `TreeReviewTests.swift` |
 
 ## Not tested

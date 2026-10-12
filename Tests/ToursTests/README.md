@@ -169,7 +169,7 @@ tree's ties to the later position (13), Hierholzer on Christofides' multigraph f
 | the ten `…RepresentationTests.swift` files | 65, 65, 76, 78, 61, 46, 22, 21, 26, 45 | Every non-trap row again on the other representations |
 | `ToursConformanceTests.swift` | 9 | Generic code, `String` and `Collider` vertices, Int8 / UInt8 / UInt / Int32 / Float weights, results as `Walks` values (and `Sendable`), the `directed` view, every edgeless graph, `improving:` reading only vertices, tours below three vertices, `weight` asked once |
 | `ToursPropertyTests.swift` | 9 | See above |
-| `ToursStressTests.swift` | 8 | See above |
+| `Performance/ToursStressTests.swift` | 8 | See above |
 | `ToursRegressionTests.swift` | 7 | Inputs from planted-bug testing (`scripts/mutants/Tours.py`) and fuzzing (`FuzzTours`): a directed graph with ±1 vertices and ±2 vertices (no trail), a directed trail whose first vertex with an edge reaches nothing, Hierholzer on edges in two components (self-loops at two vertices); a Hamiltonian cycle through a cut vertex (K(5) and K(14), undirected and directed), which only the reachability prune makes fast; `twoOptTour(improving:)` against JGraphT's procedure written out on 400 seeded graphs of 9 to 16 vertices with weights 0 – 2 (tied moves); `improving:` below three vertices; Christofides' `Int8` bound at n = 3 (2 accepted, ±3 traps) |
 
 505 value rows and 26 trap rows, the 505 representation tests, and 41 more tests (8 precondition, 9
