@@ -368,6 +368,71 @@ func fuzzUndirected<G: MutableGraph>(_ type: G.Type, _ format: Format, _ bytes: 
     roundTrip(format, reading, back, directed: false, text: text)
 }
 
+/// Node-link JSON and GraphML read one way or two: NetworkX's JSON layout in one pass, GraphML's
+/// nodes and edges ahead in the first walk. A variant of the document that only forces the general
+/// reader (an ignored member before the closing brace, a key nothing uses before `</graphml>`)
+/// must read the same: the same graph and the same calls in the same order, or the same error when
+/// it is one of meaning. (A grammar error may come from where the insertion lands, inside an
+/// unterminated string for one, so then the variant must only fail too.)
+func checkGeneralReader(_ format: Format, _ bytes: [UInt8]) {
+    func isSpace(_ b: UInt8) -> Bool { b == 0x20 || b == 0x09 || b == 0x0A || b == 0x0D }
+    var end = bytes.count
+    while end > 0 && isSpace(bytes[end - 1]) { end -= 1 }
+    let insertion: Int
+    let filler: [UInt8]
+    switch format {
+    case .nodeLinkJSON:
+        guard end > 0, bytes[end - 1] == UInt8(ascii: "}") else { return }
+        var before = end - 2
+        while before >= 0 && isSpace(bytes[before]) { before -= 1 }
+        guard before >= 0, bytes[before] != UInt8(ascii: "{") else { return }
+        insertion = end - 1
+        filler = Array(", \"zz_general_reader\": 0".utf8)
+    case .graphML:
+        let close = Array("</graphml>".utf8)
+        guard end >= close.count, Array(bytes[(end - close.count) ..< end]) == close else { return }
+        insertion = end - close.count
+        filler = Array("<key id=\"zz_general_reader\" for=\"node\" attr.name=\"zz_general_reader\"/>".utf8)
+    default:
+        return
+    }
+    // A document that already names the filler's key would read it twice.
+    let name = Array("zz_general_reader".utf8)
+    if bytes.count >= name.count && (0 ... bytes.count - name.count).contains(where: { bytes[$0 ..< $0 + name.count].elementsEqual(name) }) { return }
+    let variant = Array(bytes[..<insertion]) + filler + Array(bytes[insertion...])
+    func read(_ input: [UInt8]) -> (String, ParseError?) {
+        var log: [String] = []
+        do throws(ParseError) {
+            let g: DirectedPseudograph<String>
+            if format == .graphML {
+                g = try DirectedPseudograph<String>(graphML: input, vertexAttribute: { log.append("v \(Array($0.unicodeScalars)) \($1) \(render($2))") },
+                                                    edgeAttribute: { log.append("e \($0) \($1) \(render($2))") },
+                                                    graphAttribute: { log.append("g \($0) \(render($1))") })
+            } else {
+                g = try DirectedPseudograph<String>(nodeLinkJSON: input, vertexAttribute: { log.append("v \(Array($0.unicodeScalars)) \($1) \(render($2))") },
+                                                    edgeAttribute: { log.append("e \($0) \($1) \(render($2))") },
+                                                    graphAttribute: { log.append("g \($0) \(render($1))") })
+            }
+            let edges = g.edges.map { "\(Array($0.source.unicodeScalars))>\(Array($0.target.unicodeScalars))" }
+            return ("\(g.vertices.map { Array($0.unicodeScalars) }) \(edges) \(log)", nil)
+        } catch {
+            return ("\(error) \(log)", error)
+        }
+    }
+    let (a, errorA) = read(bytes)
+    let (b, errorB) = read(variant)
+    if let errorA {
+        switch errorA.kind {
+        case .kindMismatch, .invalidVertex, .duplicateVertex, .undeclaredVertex, .undeclaredKey, .unsupported:
+            break
+        default:
+            check(errorB != nil, "\(format): the general reader read what the first did not:\n\(a)\n\(b)")
+            return
+        }
+    }
+    check(a == b, "\(format): one pass and the general reader differ:\n\(a)\n\(b)")
+}
+
 @main
 enum FuzzGraphFormats {
     static func main() {
@@ -378,7 +443,9 @@ enum FuzzGraphFormats {
             var bytes: [UInt8] = []
             while !input.isEmpty { bytes.append(UInt8(input.byte())) }
             switch selector / 7 % 4 {
-            case 0: fuzzDirected(DirectedPseudograph<String>.self, format, bytes, columns: columns)
+            case 0:
+                checkGeneralReader(format, bytes)
+                fuzzDirected(DirectedPseudograph<String>.self, format, bytes, columns: columns)
             case 1: fuzzDirected(AdjacencyList<String>.self, format, bytes, columns: columns)
             case 2: fuzzUndirected(Pseudograph<String>.self, format, bytes, columns: columns)
             default: fuzzUndirected(UndirectedAdjacencyList<String>.self, format, bytes, columns: columns)

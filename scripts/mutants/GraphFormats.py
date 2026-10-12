@@ -1,7 +1,8 @@
 # Planted bugs for GraphFormats: the scanners (UTF-8, lines, XML, JSON, the shared key index), every
-# reader and writer, the limits (Matrix Market's vertex bound, the expansion budget), the decimal
-# parser and Schubfach, and the bulk hooks in AdjacencyListModule and Multigraphs the line readers
-# build through. Run with `just mutate GraphFormats`; see scripts/mutate.py.
+# reader and writer, node-link's one-pass read and GraphML's lookahead, the limits (Matrix Market's
+# vertex bound, the expansion budget), the decimal parser and Schubfach, and the bulk hooks in
+# AdjacencyListModule and Multigraphs the readers build through. Run with `just mutate
+# GraphFormats`; see scripts/mutate.py.
 #
 # Removed as equivalent or dead (2026-10-11):
 # - undirectedreserve: `_ReadTarget.reserve` was only ever called on `_BulkTarget`; removed from the
@@ -82,8 +83,12 @@ MUTANTS = [
 
     # Bulk target and replay.
     Mutant("bulkalias", RT, "keys[vertex] = existing\n            return (existing, false)", "return (key, false)", mode="stmt"),
-    Mutant("bulkreplay", RT, "body(positions[Int(head >> 24)], names[Int(head >> 2 & 0x3F_FFFF)], value)", "body(positions[0], names[Int(head >> 2 & 0x3F_FFFF)], value)", mode="stmt"),
-    Mutant("bulkpositions", RT, "for (edge, value) in dense.enumerated() { body(positions[edge], name, .double(value)) }", "for (_, value) in dense.enumerated() { body(positions[0], name, .double(value)) }", mode="stmt"),
+    Mutant("bulkreplay", RT, "edgeAttribute(position(element), name, value)", "edgeAttribute(position(0), name, value)", mode="stmt"),
+    Mutant("bulkpositions", RT, "for (edge, value) in dense.enumerated() { edgeAttribute(position(edge), name, .double(value)) }",
+           "for (_, value) in dense.enumerated() { edgeAttribute(position(0), name, .double(value)) }", mode="stmt"),
+    Mutant("bulkvertex", RT, "vertexAttribute(vertices[~element], name, value)", "vertexAttribute(vertices[0], name, value)", mode="stmt"),
+    Mutant("bulkvertexspill", RT, "if isDense { spill() }\n        append(~key, name, value)", "append(~key, name, value)", mode="stmt"),
+    Mutant("bulkdenseorder", RT, "edge == dense.count", "true", nth=0),
 
     # Rows built by counting sort (AdjacencyListModule, Multigraphs).
     Mutant("arcrowsoutedge", FO, "outEdgeStorage[o] = p", "outEdgeStorage[o] = o", mode="stmt", module="AdjacencyListModule"),
@@ -110,7 +115,7 @@ MUTANTS = [
     # GraphML.
     Mutant("gmlstamp", GML, "stamps[groups[k]] = generation", "", mode="stmt"),
     Mutant("gmlgroupname", GML, "groupsByName[_ScalarKey(key.name)]", "groupsByName.first(where: { $0.key.string == key.name })?.value", nth=0),
-    Mutant("gmldefaultdomain", GML, "domain == .graph ? 0 : domain == .node ? 1 : 2", "domain == .graph ? 0 : 1"),
+    Mutant("gmldefaultdomain", GML, "domain == .graph ? 0 : domain == .node ? 1 : 2", "domain == .graph ? 0 : 1", nth=1),
     Mutant("gmlbudget", GML, "try budget.spend(applicable.count, at: offset)", "", mode="stmt"),
     Mutant("gmlboolean", GML, "if word.elementsEqual(\"true\".utf8) || word.elementsEqual(\"1\".utf8) { return true }",
            "if word.elementsEqual(\"true\".utf8) { return true }", mode="stmt"),
@@ -134,6 +139,53 @@ MUTANTS = [
     Mutant("nlnullkey", NL, "json.kind(keyOffset) != .null", "true"),
     Mutant("nlcount", NL, "group.count &+= 1", "", mode="stmt"),
     Mutant("nlidtype", NL, "preconditionFailure(\"A node-link id must be a string or an integer, not \\(id)\")", "break", mode="stmt"),
+    Mutant("nlnumbers", NL, "numbers[i] = earlier == i ? target.insertEdge(collected.us[i], collected.vs[i]) : numbers[earlier]",
+           "numbers[i] = earlier == i ? target.insertEdge(collected.us[i], collected.vs[i]) : numbers[i]", mode="stmt"),
+    Mutant("nlwriterkeycache", NL, "encodedKey.removeAll(keepingCapacity: true)", "", mode="stmt"),
+    Mutant("nlwriterkeykind", NL, "lastKeyIsNode == node", "true"),
+    Mutant("nlwriterkeys", NL, "out.appendDecimal(Int(keys[edge]))", "", mode="stmt"),
+
+    # Node-link JSON, the one-pass read.
+    Mutant("nl1order", NL, "guard member > last, colon() else { return false }", "guard colon() else { return false }", mode="stmt"),
+    Mutant("nl1directed", NL, "guard isDirected == Direction.isDirected, readNodes() else { return false }", "guard readNodes() else { return false }", mode="stmt"),
+    Mutant("nl1edges", NL, "guard text[p] == UInt8(ascii: \"}\"), last == 4 else { return false }", "guard text[p] == UInt8(ascii: \"}\") else { return false }", mode="stmt"),
+    Mutant("nl1trailing", NL, "after < n", "false"),
+    Mutant("nl1trailingat", NL, "ParseError(.syntax, at: trailing)", "ParseError(.syntax, at: trailing &+ 1)"),
+    Mutant("nl1graphscalars", NL, "guard scalars else { return false }", "", mode="stmt"),
+    Mutant("nl1member", NL, "if memberWords[k] == word { return false }", "", mode="stmt"),
+    Mutant("nl1longmember", NL, "if same { return false }", "", mode="stmt"),
+    Mutant("nl1memberlimit", NL, "guard memberCount < Self.memberLimit else { return false }", "", mode="stmt"),
+    Mutant("nl1digits", NL, "guard q &- digits <= 18 else { return nil }", "", mode="stmt"),
+    Mutant("nl1finite", NL, "!integral && d.isFinite", "!integral"),
+    Mutant("nl1dupinteger", NL, "guard dense[i] == 0 else { return false }", "", mode="stmt"),
+    Mutant("nl1dupstring", NL, "guard added else { return false }", "", mode="stmt"),
+    Mutant("nl1merge", NL, "if !target.key(for: vertex).inserted { throw ParseError(.duplicateVertex, at: idOffsets[k]) }", "_ = target.key(for: vertex)", mode="stmt"),
+    Mutant("nl1vertexattributes", NL, "vertexAttributes.elements[entry] == ~k", "true"),
+    Mutant("nl1graph", NL, "if let scalar = json.scalar(value, scratch: &scratch) { graphAttribute(_string(name), scalar) }", "", mode="stmt"),
+
+    # GraphML, the lookahead.
+    Mutant("gmllookkey", GML, "collector.sink.active = false\n                return", "return", mode="stmt"),
+    Mutant("gmllookbudget", GML, "if graphDefaults > 0 { try budget.spend(graphDefaults, at: 0) }", "", mode="stmt"),
+    Mutant("gmllookport", GML, "node.unsupported == nil", "true", nth=1),
+    Mutant("gmllookdup", GML, "guard ids.insertIfAbsent(id, hash: _IDTable.hash(id)) else { return false }", "_ = ids.insertIfAbsent(id, hash: _IDTable.hash(id))", mode="stmt"),
+    Mutant("gmllooktarget", GML, "ids.find(end, hash: _IDTable.hash(end))", "ids.find(source, hash: _IDTable.hash(source))"),
+    Mutant("gmllookdefault", GML, "value.start == Int.min", "false"),
+    Mutant("gmllookvertex", GML, "buffer.recordVertex(~value.element, value.key, attribute)", "", mode="stmt"),
+    Mutant("gmllookview", GML, "spans.append(base - start)", "spans.append(0)", mode="stmt"),
+    Mutant("gmllookdirected", GML, "directed.withBytes({ _xmlBoolean(Array($0)) }) != Direction.isDirected", "false"),
+    Mutant("gmllookmerge", GML, "if !lookahead.key(for: vertex).inserted { throw ParseError(.duplicateVertex, at: offset) }", "_ = lookahead.key(for: vertex)", mode="stmt"),
+    Mutant("gmllookoffset", GML, "ParseError(.invalidVertex, at: offset)", "ParseError(.invalidVertex, at: 0)"),
+    Mutant("gmledgeport", GML, "edge.sourcePort = a.nameStart", "", mode="stmt"),
+    Mutant("gmledgedirected", GML, "if scanner.isNamed(a, \"directed\") { directed = a }", "", mode="stmt"),
+    Mutant("gmlverbatim", GML, "a.verbatim", "true"),
+    Mutant("gmlnegativezero", GML, "i != 0", "true"),
+    Mutant("gmltextview", GML, "base >= start && base + bytes.count <= start + input.count", "true"),
+    Mutant("gmltextpieces", GML, "element.text.append(contentsOf: view)", "", mode="stmt"),
+    Mutant("xmltextdirect", XML, "observer.text(UnsafeBufferPointer(rebasing: text[p ..< q]), depth: depth)",
+           "observer.text(UnsafeBufferPointer(rebasing: text[p ..< max(p, q &- 1)]), depth: depth)", mode="stmt"),
+    Mutant("xmlattributeclear", XML, "while !attributes.isEmpty { attributes.removeLast() }", "if !attributes.isEmpty { attributes.removeLast() }", mode="stmt"),
+    Mutant("mdgroupclear", MD, "if list.count == 1 { list.removeLast() } else if !list.isEmpty { list.removeAll(keepingCapacity: true) }",
+           "if list.count == 1 { list.removeLast() }", mode="stmt"),
 
     # Mermaid.
     Mutant("mdstylelink", MD, "next < n && _isMermaidID(text[next])", "next < n"),
@@ -142,7 +194,19 @@ MUTANTS = [
 
     # Writers: distinct IDs, keys by scalars.
     Mutant("idrepeat", WS, "!repeated", "true"),
-    Mutant("distinctkeys", WS, "!_sameScalars(pairs[i].key, pairs[j].key)", "pairs[i].key != pairs[j].key"),
+    Mutant("distinctkeys", WS, "!_sameScalars(key, other)", "key != other"),
+    Mutant("iddecimalzero", WS, "(count == 1 || bytes[0] != UInt8(ascii: \"0\"))", "true"),
+    Mutant("iddecimallimit", WS, "return value < decimalLimit ? value : nil", "return value", mode="stmt"),
+    Mutant("idword", WS, "if n <= 8 && out.appendWord(word, count: n) { return }", "if out.appendWord(word, count: n) { return }", mode="stmt"),
+    Mutant("outword", OB, "UInt(bitPattern: remaining &- 8) <= 8", "remaining <= 16"),
+    Mutant("outdigit", OB, "UInt(bitPattern: value) < 10", "value < 10"),
+    Mutant("idseparator", WS, "word << 8 | UInt64(separator)", "word << 8"),
+    Mutant("distinctmany", WS, "precondition(set.insert(_ScalarKey(key)).inserted, \"Attribute key \\(key) given twice for one element\")", "_ = set.insert(_ScalarKey(key))", mode="stmt"),
+    Mutant("listtokenplain", EL, "b <= 0x20 || b >= 0x7F", "b < 0x20 || b >= 0x7F"),
+    Mutant("nlwritermulti", NL, "multigraph = true", "", mode="stmt"),
+    Mutant("nlwriterkeyreset", NL, "counts[b] = 0", "", mode="stmt"),
+    Mutant("dpeightlimit", DP, "significant <= 11", "significant <= 12", nth=1),
+    Mutant("dpeightcheck", DP, "(word & 0xF0F0_F0F0_F0F0_F0F0)", "(0x3030_3030_3030_3030)"),
     Mutant("scalarhash", SK, "_sameScalars(a.string, b.string)", "a.string == b.string"),
 
     # Decimal parsing.

@@ -15,6 +15,12 @@
             let graph = Pseudograph<String>(vertices: ["a"])
             graph.writeNodeLinkJSON(to: &output, graphAttributes: [("g", .boolean(true)), ("g", .boolean(false))])
         }
+        await #expect(processExitsWith: .failure) {
+            // Past eight keys, compared through a set.
+            var output = ""
+            let graph = DirectedPseudograph<String>(edges: [DirectedEdge(from: "a", to: "b")])
+            graph.writeNodeLinkJSON(to: &output, edgeAttributes: { _ in (0 ..< 10).map { ("k\($0 % 9)", .integer($0)) } })
+        }
         // Without the fault: the same keys once each.
         var output = ""
         DirectedPseudograph<String>(vertices: ["a"]).writeDOT(to: &output, vertexAttributes: { _ in [("k", .integer(1)), ("l", .integer(2))] })
@@ -96,6 +102,12 @@
         await #expect(processExitsWith: .failure) {
             var output = ""
             DirectedPseudograph<String>(edges: [DirectedEdge(from: "a", to: "b")]).writeNodeLinkJSON(to: &output, edgeAttributes: { _ in [("key", .integer(0))] })
+        }
+        await #expect(processExitsWith: .failure) {
+            // An edge attribute named as the nodes' last one was: still checked as an edge's.
+            var output = ""
+            DirectedPseudograph<String>(edges: [DirectedEdge(from: "a", to: "b")]).writeNodeLinkJSON(
+                to: &output, vertexAttributes: { _ in [("source", .integer(1))] }, edgeAttributes: { _ in [("source", .integer(2))] })
         }
         // Without the fault: the same names are fine on the other element kind, and finite doubles.
         var output = ""
@@ -230,6 +242,31 @@
         DirectedPseudograph<Int>(vertices: [1, 2]).writeDOT(to: &output, vertexID: { $0 == 1 ? "\u{E9}" : "e\u{301}" })
         // Compared by scalars: `==` on String would also accept both written precomposed.
         #expect(Array(output.unicodeScalars) == Array("digraph {\n\t\"\u{E9}\";\n\t\"e\u{301}\";\n}\n".unicodeScalars))
+    }
+
+    @Test("A repeated decimal ID traps, small or past the vertex count, in every writer; 7 and 07 are two IDs")
+    func repeatedDecimalID() async {
+        await #expect(processExitsWith: .failure) {
+            var output = ""
+            Pseudograph<Int>(vertices: [1, 2]).writeAdjacencyList(to: &output, vertexID: { _ in "7" })
+        }
+        await #expect(processExitsWith: .failure) {
+            var output = ""
+            DirectedPseudograph<Int>(vertices: [1, 2]).writeAdjacencyList(to: &output, vertexID: { _ in "99999999999" })
+        }
+        await #expect(processExitsWith: .failure) {
+            var output = ""
+            DirectedPseudograph<Int>(vertices: [1, 2, 3]).writeNodeLinkJSON(to: &output, vertexID: { .integer($0 == 3 ? 1 : $0) })
+        }
+        await #expect(processExitsWith: .failure) {
+            var output = ""
+            DirectedPseudograph<Int>(edges: [DirectedEdge(from: 1, to: 2)]).writeEdgeList(to: &output, vertexID: { _ in "0" })
+        }
+        // Without the fault: a decimal, its spelling with a leading zero or a sign, and one past
+        // the vertex count are four IDs.
+        var output = ""
+        DirectedPseudograph<Int>(vertices: [1, 2, 3, 4]).writeAdjacencyList(to: &output, vertexID: { ["7", "07", "+7", "99999999999"][$0 - 1] })
+        #expect(output == "7\n07\n+7\n99999999999\n")
     }
 
     @Test("Node-link JSON: an id that is neither a string nor an integer traps")

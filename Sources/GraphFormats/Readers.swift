@@ -40,12 +40,10 @@ extension MutableDirectedGraph {
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in },
         graphAttribute: (String, AttributeValue) -> Void = { _, _ in }
     ) throws(ParseError) {
-        var target = _DirectedTarget<Self>()
-        try _readInput(input, xmlCharacters: true) { (text) throws(ParseError) in
-            try _readGraphML(text, into: &target, map: { vertex(_string($0)) }, vertexAttribute: vertexAttribute,
-                             edgeAttribute: edgeAttribute, graphAttribute: graphAttribute)
+        self = try Self._readBulk(input, xmlCharacters: true, names: [], vertexAttribute: vertexAttribute,
+                                  edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
+            try _readGraphML(text, into: &target, buffer: &buffer, map: { vertex(_string($0)) }, graphAttribute: graphAttribute)
         }
-        self = target.graph
     }
 
     /// Reads NetworkX's node-link JSON: `directed`, `multigraph`, `graph`, `nodes`, and `edges` (or
@@ -57,12 +55,10 @@ extension MutableDirectedGraph {
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in },
         graphAttribute: (String, AttributeValue) -> Void = { _, _ in }
     ) throws(ParseError) {
-        var target = _DirectedTarget<Self>()
-        try _readInput(input) { (text) throws(ParseError) in
-            try _readNodeLinkJSON(text, into: &target, map: vertex, vertexAttribute: vertexAttribute,
-                                  edgeAttribute: edgeAttribute, graphAttribute: graphAttribute)
+        self = try _readInput(input) { (text) throws(ParseError) -> Self in
+            try _readNodeLinkJSON(text, as: _BulkTarget<Vertex, _Directed>.self, map: vertex, vertexAttribute: vertexAttribute,
+                                  edgeAttribute: edgeAttribute, graphAttribute: graphAttribute) { Self._built($0, reportingPositions: $1) }
         }
-        self = target.graph
     }
 
     /// Reads a Matrix Market coordinate file: vertices `0..<n` (each index mapped once by `vertex`,
@@ -76,7 +72,7 @@ extension MutableDirectedGraph {
         vertex: (Int) -> Vertex?,
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
     ) throws(ParseError) {
-        self = try Self._readLines(input, names: ["weight"], edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
+        self = try Self._readBulk(input, names: ["weight"], edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
             try _readMatrixMarket(text, into: &target, maximumVertexCount: maximumVertexCount, identity: false, map: vertex,
                                   weight: { buffer.record($0, 0, $1) })
         }
@@ -90,7 +86,7 @@ extension MutableDirectedGraph {
         vertex: (String) -> Vertex?,
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
     ) throws(ParseError) {
-        self = try Self._readLines(input, names: columns, edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
+        self = try Self._readBulk(input, names: columns, edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
             try _readEdgeList(text, columnCount: columns.count, into: &target, map: { vertex(_string($0)) },
                               value: { buffer.record($0, $1, $2) })
         }
@@ -101,7 +97,7 @@ extension MutableDirectedGraph {
         adjacencyList input: some Sequence<UInt8>,
         vertex: (String) -> Vertex?
     ) throws(ParseError) {
-        self = try Self._readLines(input, names: [], edgeAttribute: { _, _, _ in }) { (text, target, _) throws(ParseError) in
+        self = try Self._readBulk(input, names: [], edgeAttribute: { _, _, _ in }) { (text, target, _) throws(ParseError) in
             try _readAdjacencyList(text, into: &target, map: { vertex(_string($0)) })
         }
     }
@@ -114,11 +110,13 @@ extension MutableDirectedGraph {
         vertexLabel: (Vertex, String) -> Void = { _, _ in },
         edgeLabel: (Edges.Index, String) -> Void = { _, _ in }
     ) throws(ParseError) {
-        var target = _DirectedTarget<Self>()
-        try _readInput(input) { (text) throws(ParseError) in
-            try _readMermaid(text, into: &target, map: { vertex(_string($0)) }, vertexLabel: vertexLabel, edgeLabel: edgeLabel)
+        self = try Self._readBulk(input, names: ["label"], vertexAttribute: { vertex, _, label in
+            if case .string(let label) = label { vertexLabel(vertex, label) }
+        }, edgeAttribute: { position, _, label in
+            if case .string(let label) = label { edgeLabel(position, label) }
+        }) { (text, target, buffer) throws(ParseError) in
+            try _readMermaid(text, into: &target, buffer: &buffer, map: { vertex(_string($0)) })
         }
-        self = target.graph
     }
 }
 
@@ -145,12 +143,10 @@ extension MutableDirectedGraph where Vertex == String {
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in },
         graphAttribute: (String, AttributeValue) -> Void = { _, _ in }
     ) throws(ParseError) {
-        var target = _DirectedTarget<Self>()
-        try _readInput(input, xmlCharacters: true) { (text) throws(ParseError) in
-            try _readGraphML(text, into: &target, map: _string, vertexAttribute: vertexAttribute,
-                             edgeAttribute: edgeAttribute, graphAttribute: graphAttribute)
+        self = try Self._readBulk(input, xmlCharacters: true, names: [], vertexAttribute: vertexAttribute,
+                                  edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
+            try _readGraphML(text, into: &target, buffer: &buffer, map: _string, graphAttribute: graphAttribute)
         }
-        self = target.graph
     }
 
     /// Reads node-link JSON, a string `id` as itself and an integer `id` as its decimal text.
@@ -160,12 +156,10 @@ extension MutableDirectedGraph where Vertex == String {
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in },
         graphAttribute: (String, AttributeValue) -> Void = { _, _ in }
     ) throws(ParseError) {
-        var target = _DirectedTarget<Self>()
-        try _readInput(input) { (text) throws(ParseError) in
-            try _readNodeLinkJSON(text, into: &target, map: _stringNodeID, vertexAttribute: vertexAttribute,
-                                  edgeAttribute: edgeAttribute, graphAttribute: graphAttribute)
+        self = try _readInput(input) { (text) throws(ParseError) -> Self in
+            try _readNodeLinkJSON(text, as: _BulkTarget<Vertex, _Directed>.self, map: _stringNodeID, vertexAttribute: vertexAttribute,
+                                  edgeAttribute: edgeAttribute, graphAttribute: graphAttribute) { Self._built($0, reportingPositions: $1) }
         }
-        self = target.graph
     }
 
     /// Reads an edge list, each field its own vertex.
@@ -174,7 +168,7 @@ extension MutableDirectedGraph where Vertex == String {
         columns: [String] = [],
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
     ) throws(ParseError) {
-        self = try Self._readLines(input, names: columns, edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
+        self = try Self._readBulk(input, names: columns, edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
             try _readEdgeList(text, columnCount: columns.count, into: &target, map: _string,
                               value: { buffer.record($0, $1, $2) })
         }
@@ -182,7 +176,7 @@ extension MutableDirectedGraph where Vertex == String {
 
     /// Reads an adjacency list, each field its own vertex.
     @inlinable public init(adjacencyList input: some Sequence<UInt8>) throws(ParseError) {
-        self = try Self._readLines(input, names: [], edgeAttribute: { _, _, _ in }) { (text, target, _) throws(ParseError) in
+        self = try Self._readBulk(input, names: [], edgeAttribute: { _, _, _ in }) { (text, target, _) throws(ParseError) in
             try _readAdjacencyList(text, into: &target, map: _string)
         }
     }
@@ -193,11 +187,13 @@ extension MutableDirectedGraph where Vertex == String {
         vertexLabel: (Vertex, String) -> Void = { _, _ in },
         edgeLabel: (Edges.Index, String) -> Void = { _, _ in }
     ) throws(ParseError) {
-        var target = _DirectedTarget<Self>()
-        try _readInput(input) { (text) throws(ParseError) in
-            try _readMermaid(text, into: &target, map: _string, vertexLabel: vertexLabel, edgeLabel: edgeLabel)
+        self = try Self._readBulk(input, names: ["label"], vertexAttribute: { vertex, _, label in
+            if case .string(let label) = label { vertexLabel(vertex, label) }
+        }, edgeAttribute: { position, _, label in
+            if case .string(let label) = label { edgeLabel(position, label) }
+        }) { (text, target, buffer) throws(ParseError) in
+            try _readMermaid(text, into: &target, buffer: &buffer, map: _string)
         }
-        self = target.graph
     }
 }
 
@@ -209,12 +205,10 @@ extension MutableDirectedGraph where Vertex == Int {
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in },
         graphAttribute: (String, AttributeValue) -> Void = { _, _ in }
     ) throws(ParseError) {
-        var target = _DirectedTarget<Self>()
-        try _readInput(input) { (text) throws(ParseError) in
-            try _readNodeLinkJSON(text, into: &target, map: _integerNodeID, vertexAttribute: vertexAttribute,
-                                  edgeAttribute: edgeAttribute, graphAttribute: graphAttribute)
+        self = try _readInput(input) { (text) throws(ParseError) -> Self in
+            try _readNodeLinkJSON(text, as: _BulkTarget<Vertex, _Directed>.self, map: _integerNodeID, vertexAttribute: vertexAttribute,
+                                  edgeAttribute: edgeAttribute, graphAttribute: graphAttribute) { Self._built($0, reportingPositions: $1) }
         }
-        self = target.graph
     }
 
     /// Reads a Matrix Market file onto the vertices `0..<n`; more than `maximumVertexCount` is
@@ -224,7 +218,7 @@ extension MutableDirectedGraph where Vertex == Int {
         maximumVertexCount: Int = 1 << 24,
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
     ) throws(ParseError) {
-        self = try Self._readLines(input, names: ["weight"], edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
+        self = try Self._readBulk(input, names: ["weight"], edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
             try _readMatrixMarket(text, into: &target, maximumVertexCount: maximumVertexCount, identity: true, map: { $0 },
                                   weight: { buffer.record($0, 0, $1) })
         }
@@ -237,14 +231,14 @@ extension MutableDirectedGraph where Vertex == Int {
         columns: [String] = [],
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
     ) throws(ParseError) {
-        self = try Self._readLines(input, names: columns, edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
+        self = try Self._readBulk(input, names: columns, edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
             try _readIntegerEdgeList(text, columnCount: columns.count, into: &target, value: { buffer.record($0, $1, $2) })
         }
     }
 
     /// Reads an adjacency list whose fields are decimal integers.
     @inlinable public init(adjacencyList input: some Sequence<UInt8>) throws(ParseError) {
-        self = try Self._readLines(input, names: [], edgeAttribute: { _, _, _ in }) { (text, target, _) throws(ParseError) in
+        self = try Self._readBulk(input, names: [], edgeAttribute: { _, _, _ in }) { (text, target, _) throws(ParseError) in
             try _readIntegerAdjacencyList(text, into: &target)
         }
     }
@@ -280,12 +274,10 @@ extension MutableGraph {
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in },
         graphAttribute: (String, AttributeValue) -> Void = { _, _ in }
     ) throws(ParseError) {
-        var target = _UndirectedTarget<Self>()
-        try _readInput(input, xmlCharacters: true) { (text) throws(ParseError) in
-            try _readGraphML(text, into: &target, map: { vertex(_string($0)) }, vertexAttribute: vertexAttribute,
-                             edgeAttribute: edgeAttribute, graphAttribute: graphAttribute)
+        self = try Self._readBulk(input, xmlCharacters: true, names: [], vertexAttribute: vertexAttribute,
+                                  edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
+            try _readGraphML(text, into: &target, buffer: &buffer, map: { vertex(_string($0)) }, graphAttribute: graphAttribute)
         }
-        self = target.graph
     }
 
     /// Reads NetworkX's node-link JSON: `directed`, `multigraph`, `graph`, `nodes`, and `edges` (or
@@ -297,12 +289,10 @@ extension MutableGraph {
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in },
         graphAttribute: (String, AttributeValue) -> Void = { _, _ in }
     ) throws(ParseError) {
-        var target = _UndirectedTarget<Self>()
-        try _readInput(input) { (text) throws(ParseError) in
-            try _readNodeLinkJSON(text, into: &target, map: vertex, vertexAttribute: vertexAttribute,
-                                  edgeAttribute: edgeAttribute, graphAttribute: graphAttribute)
+        self = try _readInput(input) { (text) throws(ParseError) -> Self in
+            try _readNodeLinkJSON(text, as: _BulkTarget<Vertex, _Undirected>.self, map: vertex, vertexAttribute: vertexAttribute,
+                                  edgeAttribute: edgeAttribute, graphAttribute: graphAttribute) { Self._built($0, reportingPositions: $1) }
         }
-        self = target.graph
     }
 
     /// Reads a Matrix Market coordinate file: vertices `0..<n` (each index mapped once by `vertex`,
@@ -316,7 +306,7 @@ extension MutableGraph {
         vertex: (Int) -> Vertex?,
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
     ) throws(ParseError) {
-        self = try Self._readLines(input, names: ["weight"], edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
+        self = try Self._readBulk(input, names: ["weight"], edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
             try _readMatrixMarket(text, into: &target, maximumVertexCount: maximumVertexCount, identity: false, map: vertex,
                                   weight: { buffer.record($0, 0, $1) })
         }
@@ -330,7 +320,7 @@ extension MutableGraph {
         vertex: (String) -> Vertex?,
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
     ) throws(ParseError) {
-        self = try Self._readLines(input, names: columns, edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
+        self = try Self._readBulk(input, names: columns, edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
             try _readEdgeList(text, columnCount: columns.count, into: &target, map: { vertex(_string($0)) },
                               value: { buffer.record($0, $1, $2) })
         }
@@ -341,7 +331,7 @@ extension MutableGraph {
         adjacencyList input: some Sequence<UInt8>,
         vertex: (String) -> Vertex?
     ) throws(ParseError) {
-        self = try Self._readLines(input, names: [], edgeAttribute: { _, _, _ in }) { (text, target, _) throws(ParseError) in
+        self = try Self._readBulk(input, names: [], edgeAttribute: { _, _, _ in }) { (text, target, _) throws(ParseError) in
             try _readAdjacencyList(text, into: &target, map: { vertex(_string($0)) })
         }
     }
@@ -354,11 +344,13 @@ extension MutableGraph {
         vertexLabel: (Vertex, String) -> Void = { _, _ in },
         edgeLabel: (Edges.Index, String) -> Void = { _, _ in }
     ) throws(ParseError) {
-        var target = _UndirectedTarget<Self>()
-        try _readInput(input) { (text) throws(ParseError) in
-            try _readMermaid(text, into: &target, map: { vertex(_string($0)) }, vertexLabel: vertexLabel, edgeLabel: edgeLabel)
+        self = try Self._readBulk(input, names: ["label"], vertexAttribute: { vertex, _, label in
+            if case .string(let label) = label { vertexLabel(vertex, label) }
+        }, edgeAttribute: { position, _, label in
+            if case .string(let label) = label { edgeLabel(position, label) }
+        }) { (text, target, buffer) throws(ParseError) in
+            try _readMermaid(text, into: &target, buffer: &buffer, map: { vertex(_string($0)) })
         }
-        self = target.graph
     }
 }
 
@@ -385,12 +377,10 @@ extension MutableGraph where Vertex == String {
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in },
         graphAttribute: (String, AttributeValue) -> Void = { _, _ in }
     ) throws(ParseError) {
-        var target = _UndirectedTarget<Self>()
-        try _readInput(input, xmlCharacters: true) { (text) throws(ParseError) in
-            try _readGraphML(text, into: &target, map: _string, vertexAttribute: vertexAttribute,
-                             edgeAttribute: edgeAttribute, graphAttribute: graphAttribute)
+        self = try Self._readBulk(input, xmlCharacters: true, names: [], vertexAttribute: vertexAttribute,
+                                  edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
+            try _readGraphML(text, into: &target, buffer: &buffer, map: _string, graphAttribute: graphAttribute)
         }
-        self = target.graph
     }
 
     /// Reads node-link JSON, a string `id` as itself and an integer `id` as its decimal text.
@@ -400,12 +390,10 @@ extension MutableGraph where Vertex == String {
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in },
         graphAttribute: (String, AttributeValue) -> Void = { _, _ in }
     ) throws(ParseError) {
-        var target = _UndirectedTarget<Self>()
-        try _readInput(input) { (text) throws(ParseError) in
-            try _readNodeLinkJSON(text, into: &target, map: _stringNodeID, vertexAttribute: vertexAttribute,
-                                  edgeAttribute: edgeAttribute, graphAttribute: graphAttribute)
+        self = try _readInput(input) { (text) throws(ParseError) -> Self in
+            try _readNodeLinkJSON(text, as: _BulkTarget<Vertex, _Undirected>.self, map: _stringNodeID, vertexAttribute: vertexAttribute,
+                                  edgeAttribute: edgeAttribute, graphAttribute: graphAttribute) { Self._built($0, reportingPositions: $1) }
         }
-        self = target.graph
     }
 
     /// Reads an edge list, each field its own vertex.
@@ -414,7 +402,7 @@ extension MutableGraph where Vertex == String {
         columns: [String] = [],
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
     ) throws(ParseError) {
-        self = try Self._readLines(input, names: columns, edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
+        self = try Self._readBulk(input, names: columns, edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
             try _readEdgeList(text, columnCount: columns.count, into: &target, map: _string,
                               value: { buffer.record($0, $1, $2) })
         }
@@ -422,7 +410,7 @@ extension MutableGraph where Vertex == String {
 
     /// Reads an adjacency list, each field its own vertex.
     @inlinable public init(adjacencyList input: some Sequence<UInt8>) throws(ParseError) {
-        self = try Self._readLines(input, names: [], edgeAttribute: { _, _, _ in }) { (text, target, _) throws(ParseError) in
+        self = try Self._readBulk(input, names: [], edgeAttribute: { _, _, _ in }) { (text, target, _) throws(ParseError) in
             try _readAdjacencyList(text, into: &target, map: _string)
         }
     }
@@ -433,11 +421,13 @@ extension MutableGraph where Vertex == String {
         vertexLabel: (Vertex, String) -> Void = { _, _ in },
         edgeLabel: (Edges.Index, String) -> Void = { _, _ in }
     ) throws(ParseError) {
-        var target = _UndirectedTarget<Self>()
-        try _readInput(input) { (text) throws(ParseError) in
-            try _readMermaid(text, into: &target, map: _string, vertexLabel: vertexLabel, edgeLabel: edgeLabel)
+        self = try Self._readBulk(input, names: ["label"], vertexAttribute: { vertex, _, label in
+            if case .string(let label) = label { vertexLabel(vertex, label) }
+        }, edgeAttribute: { position, _, label in
+            if case .string(let label) = label { edgeLabel(position, label) }
+        }) { (text, target, buffer) throws(ParseError) in
+            try _readMermaid(text, into: &target, buffer: &buffer, map: _string)
         }
-        self = target.graph
     }
 }
 
@@ -449,12 +439,10 @@ extension MutableGraph where Vertex == Int {
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in },
         graphAttribute: (String, AttributeValue) -> Void = { _, _ in }
     ) throws(ParseError) {
-        var target = _UndirectedTarget<Self>()
-        try _readInput(input) { (text) throws(ParseError) in
-            try _readNodeLinkJSON(text, into: &target, map: _integerNodeID, vertexAttribute: vertexAttribute,
-                                  edgeAttribute: edgeAttribute, graphAttribute: graphAttribute)
+        self = try _readInput(input) { (text) throws(ParseError) -> Self in
+            try _readNodeLinkJSON(text, as: _BulkTarget<Vertex, _Undirected>.self, map: _integerNodeID, vertexAttribute: vertexAttribute,
+                                  edgeAttribute: edgeAttribute, graphAttribute: graphAttribute) { Self._built($0, reportingPositions: $1) }
         }
-        self = target.graph
     }
 
     /// Reads a Matrix Market file onto the vertices `0..<n`; more than `maximumVertexCount` is
@@ -464,7 +452,7 @@ extension MutableGraph where Vertex == Int {
         maximumVertexCount: Int = 1 << 24,
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
     ) throws(ParseError) {
-        self = try Self._readLines(input, names: ["weight"], edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
+        self = try Self._readBulk(input, names: ["weight"], edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
             try _readMatrixMarket(text, into: &target, maximumVertexCount: maximumVertexCount, identity: true, map: { $0 },
                                   weight: { buffer.record($0, 0, $1) })
         }
@@ -477,14 +465,14 @@ extension MutableGraph where Vertex == Int {
         columns: [String] = [],
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
     ) throws(ParseError) {
-        self = try Self._readLines(input, names: columns, edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
+        self = try Self._readBulk(input, names: columns, edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
             try _readIntegerEdgeList(text, columnCount: columns.count, into: &target, value: { buffer.record($0, $1, $2) })
         }
     }
 
     /// Reads an adjacency list whose fields are decimal integers.
     @inlinable public init(adjacencyList input: some Sequence<UInt8>) throws(ParseError) {
-        self = try Self._readLines(input, names: [], edgeAttribute: { _, _, _ in }) { (text, target, _) throws(ParseError) in
+        self = try Self._readBulk(input, names: [], edgeAttribute: { _, _, _ in }) { (text, target, _) throws(ParseError) in
             try _readIntegerAdjacencyList(text, into: &target)
         }
     }

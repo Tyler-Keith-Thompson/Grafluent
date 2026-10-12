@@ -174,6 +174,9 @@ struct GraphFormatsNumberTests {
             (9_999_999_999_999_998, "9999999999999998.0"), (1e16, "1e+16"), (1.0000000000000002e16, "1.0000000000000002e+16"),
             (123_456_789_012_345.67, "123456789012345.67"), (0.0001, "0.0001"), (0.00001, "1e-05"), (5e-324, "5e-324"),
             (1.7976931348623157e308, "1.7976931348623157e+308"), (2.5, "2.5"), (100, "100.0"), (-0.0, "-0.0"),
+            // A fraction that starts past the eighth digit (found by FuzzGraphFormats: its copy read
+            // past the digits' storage).
+            (2_999_500_931_950.435, "2999500931950.435"), (9_999_999_999_999.998, "9999999999999.998"),
         ]
         var output = ""
         let graph = DirectedPseudograph<Int>(vertices: 0 ..< 2, edges: Array(repeating: DirectedEdge(from: 0, to: 1), count: cases.count))

@@ -124,38 +124,61 @@ import GraphProtocols
     }
 }
 
-/// Edge attributes reported while a `_BulkTarget` is filled, kept in order and replayed with the
-/// built graph's positions. Plain words, so that a million values cost two array appends each and
-/// nothing to destroy: per entry its edge number, name number and kind packed in one word, and its
-/// payload (an integer's or a double's bits, a boolean, or an index into `strings`) in another.
-@usableFromInline internal struct _EdgeAttributeBuffer {
-    @usableFromInline let names: [String]
-    /// Edge number << 24 | name number << 2 | kind (0 integer, 1 double, 2 boolean, 3 string).
-    @usableFromInline var heads: [UInt64] = []
+/// Vertex and edge attributes reported while a `_BulkTarget` is filled, kept in order and replayed
+/// once the graph is built: an edge's with the built graph's position for its number, a vertex's
+/// with its vertex. Plain words, so that a million values cost three array appends each and nothing
+/// to destroy: per entry its element (an edge number, or `~key` for a vertex), its name number and
+/// kind in one word (name << 2 | kind: 0 integer, 1 double, 2 boolean, 3 string), and its payload
+/// (an integer's or a double's bits, a boolean, or an index into `strings`).
+@usableFromInline internal struct _AttributeBuffer {
+    @usableFromInline var names: [String]
+    @usableFromInline var elements: [Int] = []
+    @usableFromInline var tags: [UInt64] = []
     @usableFromInline var payloads: [UInt64] = []
     @usableFromInline var strings: [String] = []
     /// While every entry so far is a double under the first name for the next edge in order (a
-    /// Matrix Market weight, a one-column edge list): only the values, one append each.
+    /// Matrix Market weight, a one-column edge list, a GraphML or node-link weight): only the
+    /// values, one append each.
     @usableFromInline var dense: [Double] = []
     @usableFromInline var isDense = true
 
     @inlinable init(names: [String]) {
-        precondition(names.count < 1 << 22, "Too many columns")
         self.names = names
     }
 
-    @inlinable var isEmpty: Bool { heads.isEmpty && dense.isEmpty }
+    @inlinable var isEmpty: Bool { elements.isEmpty && dense.isEmpty }
 
     /// Ends the dense run: its values become ordinary entries.
     @inlinable mutating func spill() {
         isDense = false
-        for (edge, value) in dense.enumerated() {
-            heads.append(UInt64(truncatingIfNeeded: edge) << 24 | 1)
-            payloads.append(value.bitPattern)
-        }
+        elements.append(contentsOf: dense.indices)
+        tags.append(contentsOf: repeatElement(1, count: dense.count))
+        payloads.append(contentsOf: dense.lazy.map(\.bitPattern))
         dense = []
     }
 
+    @inline(__always)
+    @inlinable mutating func append(_ element: Int, _ name: Int, _ value: AttributeValue) {
+        elements.append(element)
+        let tag = UInt64(truncatingIfNeeded: name) << 2
+        switch value {
+        case .integer(let i):
+            tags.append(tag)
+            payloads.append(UInt64(bitPattern: Int64(i)))
+        case .double(let d):
+            tags.append(tag | 1)
+            payloads.append(d.bitPattern)
+        case .boolean(let b):
+            tags.append(tag | 2)
+            payloads.append(b ? 1 : 0)
+        case .string(let t):
+            tags.append(tag | 3)
+            payloads.append(UInt64(strings.count))
+            strings.append(t)
+        }
+    }
+
+    /// Records attribute `name` (a number into `names`) of edge number `edge`.
     @inline(__always)
     @inlinable mutating func record(_ edge: Int, _ name: Int, _ value: AttributeValue) {
         if isDense {
@@ -165,22 +188,7 @@ import GraphProtocols
             }
             spill()
         }
-        let head = UInt64(truncatingIfNeeded: edge) << 24 | UInt64(truncatingIfNeeded: name) << 2
-        switch value {
-        case .integer(let i):
-            heads.append(head)
-            payloads.append(UInt64(bitPattern: Int64(i)))
-        case .double(let d):
-            heads.append(head | 1)
-            payloads.append(d.bitPattern)
-        case .boolean(let b):
-            heads.append(head | 2)
-            payloads.append(b ? 1 : 0)
-        case .string(let t):
-            heads.append(head | 3)
-            payloads.append(UInt64(strings.count))
-            strings.append(t)
-        }
+        append(edge, name, value)
     }
 
     @inline(__always)
@@ -192,81 +200,108 @@ import GraphProtocols
             }
             spill()
         }
-        heads.append(UInt64(truncatingIfNeeded: edge) << 24 | UInt64(truncatingIfNeeded: name) << 2 | 1)
+        elements.append(edge)
+        tags.append(UInt64(truncatingIfNeeded: name) << 2 | 1)
         payloads.append(value.bitPattern)
     }
 
-    /// Calls `body` with each entry, in order, its edge given by `positions`.
-    @inlinable func replay<Position>(_ positions: [Position], _ body: (Position, String, AttributeValue) -> Void) {
+    /// Records attribute `name` of the vertex with key `key`.
+    @inlinable mutating func recordVertex(_ key: Int, _ name: Int, _ value: AttributeValue) {
+        if isDense { spill() }
+        append(~key, name, value)
+    }
+
+    /// The name and value of ordinary entry `k`.
+    @inline(__always)
+    @inlinable func entry(_ k: Int) -> (name: String, value: AttributeValue) {
+        let tag = tags[k], payload = payloads[k]
+        let value: AttributeValue
+        switch tag & 3 {
+        case 0: value = .integer(Int(Int64(bitPattern: payload)))
+        case 1: value = .double(Double(bitPattern: payload))
+        case 2: value = .boolean(payload != 0)
+        default: value = .string(strings[Int(payload)])
+        }
+        return (names[Int(tag >> 2)], value)
+    }
+
+    /// Calls `vertexAttribute` or `edgeAttribute` with each entry, in order: a vertex's from
+    /// `vertices` by its key, an edge's under `position(edge)`.
+    @inlinable func replay<Vertex, Position>(
+        _ position: (Int) -> Position, vertices: ContiguousArray<Vertex>,
+        vertexAttribute: (Vertex, String, AttributeValue) -> Void, edgeAttribute: (Position, String, AttributeValue) -> Void
+    ) {
         if isDense {
             guard !dense.isEmpty else { return }
             let name = names[0]
-            for (edge, value) in dense.enumerated() { body(positions[edge], name, .double(value)) }
+            for (edge, value) in dense.enumerated() { edgeAttribute(position(edge), name, .double(value)) }
             return
         }
-        for k in heads.indices {
-            let head = heads[k], payload = payloads[k]
-            let value: AttributeValue
-            switch head & 3 {
-            case 0: value = .integer(Int(Int64(bitPattern: payload)))
-            case 1: value = .double(Double(bitPattern: payload))
-            case 2: value = .boolean(payload != 0)
-            default: value = .string(strings[Int(payload)])
+        for k in elements.indices {
+            let element = elements[k]
+            let (name, value) = entry(k)
+            if element >= 0 {
+                edgeAttribute(position(element), name, value)
+            } else {
+                vertexAttribute(vertices[~element], name, value)
             }
-            body(positions[Int(head >> 24)], names[Int(head >> 2 & 0x3F_FFFF)], value)
         }
     }
 }
 
 extension MutableDirectedGraph {
-    /// Reads a line format with `read` into a bulk target and builds the graph from it in one step,
-    /// then replays the edge attributes `read` buffered (each under one of `names`).
-    @inlinable static func _readLines(
-        _ input: some Sequence<UInt8>, names: [String], edgeAttribute: (Edges.Index, String, AttributeValue) -> Void,
-        _ read: (UnsafeBufferPointer<UInt8>, inout _BulkTarget<Vertex, _Directed>, inout _EdgeAttributeBuffer) throws(ParseError) -> Void
+    /// Reads a format with `read` into a bulk target and builds the graph from it in one step,
+    /// then replays the vertex and edge attributes `read` buffered (each under one of the buffer's
+    /// names, `names` to start with).
+    @inlinable static func _readBulk(
+        _ input: some Sequence<UInt8>, xmlCharacters: Bool = false, names: [String],
+        vertexAttribute: (Vertex, String, AttributeValue) -> Void = { _, _, _ in },
+        edgeAttribute: (Edges.Index, String, AttributeValue) -> Void,
+        _ read: (UnsafeBufferPointer<UInt8>, inout _BulkTarget<Vertex, _Directed>, inout _AttributeBuffer) throws(ParseError) -> Void
     ) throws(ParseError) -> Self {
-        var target = _BulkTarget<Vertex, _Directed>()
-        var buffer = _EdgeAttributeBuffer(names: names)
-        try _readInput(input) { (text) throws(ParseError) in try read(text, &target, &buffer) }
-        return _build(target, buffer, edgeAttribute: edgeAttribute)
+        try _readInput(input, xmlCharacters: xmlCharacters) { (text) throws(ParseError) -> Self in
+            var target = _BulkTarget<Vertex, _Directed>()
+            var buffer = _AttributeBuffer(names: names)
+            try read(text, &target, &buffer)
+            let (graph, positions) = _built(target, reportingPositions: !buffer.isEmpty)
+            buffer.replay({ positions[$0] }, vertices: target.vertices, vertexAttribute: vertexAttribute, edgeAttribute: edgeAttribute)
+            return graph
+        }
     }
 
-    /// The graph a line-format reader collected in `target`, its buffered edge attributes replayed
-    /// through `edgeAttribute` with the graph's positions.
-    @inlinable static func _build(
-        _ target: _BulkTarget<Vertex, _Directed>, _ buffer: _EdgeAttributeBuffer,
-        edgeAttribute: (Edges.Index, String, AttributeValue) -> Void
-    ) -> Self {
-        let (graph, positions) = Self._built(vertices: target.vertices, sourceKeys: target.firsts, targetKeys: target.seconds,
-                                             reportingPositions: !buffer.isEmpty, _ConstructionToken())
-        buffer.replay(positions, edgeAttribute)
-        return graph
+    /// The graph `target` collected, in one step, with each edge's position by its number when
+    /// `reportingPositions`.
+    @inlinable static func _built(_ target: borrowing _BulkTarget<Vertex, _Directed>, reportingPositions: Bool) -> (graph: Self, positions: [Edges.Index]) {
+        Self._built(vertices: target.vertices, sourceKeys: target.firsts, targetKeys: target.seconds,
+                    reportingPositions: reportingPositions, _ConstructionToken())
     }
 }
 
 extension MutableGraph {
-    /// Reads a line format with `read` into a bulk target and builds the graph from it in one step,
-    /// then replays the edge attributes `read` buffered (each under one of `names`).
-    @inlinable static func _readLines(
-        _ input: some Sequence<UInt8>, names: [String], edgeAttribute: (Edges.Index, String, AttributeValue) -> Void,
-        _ read: (UnsafeBufferPointer<UInt8>, inout _BulkTarget<Vertex, _Undirected>, inout _EdgeAttributeBuffer) throws(ParseError) -> Void
+    /// Reads a format with `read` into a bulk target and builds the graph from it in one step,
+    /// then replays the vertex and edge attributes `read` buffered (each under one of the buffer's
+    /// names, `names` to start with).
+    @inlinable static func _readBulk(
+        _ input: some Sequence<UInt8>, xmlCharacters: Bool = false, names: [String],
+        vertexAttribute: (Vertex, String, AttributeValue) -> Void = { _, _, _ in },
+        edgeAttribute: (Edges.Index, String, AttributeValue) -> Void,
+        _ read: (UnsafeBufferPointer<UInt8>, inout _BulkTarget<Vertex, _Undirected>, inout _AttributeBuffer) throws(ParseError) -> Void
     ) throws(ParseError) -> Self {
-        var target = _BulkTarget<Vertex, _Undirected>()
-        var buffer = _EdgeAttributeBuffer(names: names)
-        try _readInput(input) { (text) throws(ParseError) in try read(text, &target, &buffer) }
-        return _build(target, buffer, edgeAttribute: edgeAttribute)
+        try _readInput(input, xmlCharacters: xmlCharacters) { (text) throws(ParseError) -> Self in
+            var target = _BulkTarget<Vertex, _Undirected>()
+            var buffer = _AttributeBuffer(names: names)
+            try read(text, &target, &buffer)
+            let (graph, positions) = _built(target, reportingPositions: !buffer.isEmpty)
+            buffer.replay({ positions[$0] }, vertices: target.vertices, vertexAttribute: vertexAttribute, edgeAttribute: edgeAttribute)
+            return graph
+        }
     }
 
-    /// The graph a line-format reader collected in `target`, its buffered edge attributes replayed
-    /// through `edgeAttribute` with the graph's positions.
-    @inlinable static func _build(
-        _ target: _BulkTarget<Vertex, _Undirected>, _ buffer: _EdgeAttributeBuffer,
-        edgeAttribute: (Edges.Index, String, AttributeValue) -> Void
-    ) -> Self {
-        let (graph, positions) = Self._built(vertices: target.vertices, uKeys: target.firsts, vKeys: target.seconds,
-                                             reportingPositions: !buffer.isEmpty, _ConstructionToken())
-        buffer.replay(positions, edgeAttribute)
-        return graph
+    /// The graph `target` collected, in one step, with each edge's position by its number when
+    /// `reportingPositions`.
+    @inlinable static func _built(_ target: borrowing _BulkTarget<Vertex, _Undirected>, reportingPositions: Bool) -> (graph: Self, positions: [Edges.Index]) {
+        Self._built(vertices: target.vertices, uKeys: target.firsts, vKeys: target.seconds,
+                    reportingPositions: reportingPositions, _ConstructionToken())
     }
 }
 

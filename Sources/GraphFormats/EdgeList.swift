@@ -38,6 +38,13 @@
 /// it (Python's `str.split()`).
 @inlinable func _isListToken(_ bytes: UnsafeBufferPointer<UInt8>) -> Bool {
     guard !bytes.isEmpty else { return false }
+    // Printable ASCII but `#` holds no whitespace: the usual ID, in one pass.
+    var plain = true
+    for b in bytes where b <= 0x20 || b >= 0x7F || b == UInt8(ascii: "#") {
+        plain = false
+        break
+    }
+    if plain { return true }
     for b in bytes where b == UInt8(ascii: "#") { return false }
     return !_containsWhitespace(bytes)
 }

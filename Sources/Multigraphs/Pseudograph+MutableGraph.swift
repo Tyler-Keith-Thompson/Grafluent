@@ -33,6 +33,8 @@ extension _ParallelClasses {
         links = ContiguousArray(repeating: _ParallelLinks(previous: -1, next: -1), count: m)
         var pairs: [_SlotPair] = []
         var values: [Int] = []
+        pairs.reserveCapacity(m)
+        values.reserveCapacity(m)
         var slot = [Int](repeating: 0, count: m)
         for p in 0 ..< m {
             let g = group[p]

@@ -14,8 +14,9 @@ import Multigraphs
 //
 // Parse-only rows read the same text with one bad line appended (an entry too many, a one-field
 // line, trailing text after the document): the line formats collect the whole file before
-// building, and JSON and XML check the whole document first, so each throws after parsing all of
-// it and before building anything. Throughput is input bytes over that time.
+// building, node-link JSON reads it in one pass that checks it as it goes, and GraphML's first walk
+// checks it while noting its nodes and edges (the work its second walk did), so each throws after
+// parsing all of it and before building anything. Throughput is input bytes over that time.
 
 /// A `TextOutputStream` that keeps only the byte count, so a write measures the writer.
 struct ByteCounter: TextOutputStream {

@@ -45,9 +45,16 @@
         arena.deallocate()
     }
 
-    /// The hash of `bytes`.
+    /// The hash of `bytes`. At most 8 bytes are hashed as one word, in one round of the hasher
+    /// instead of its byte loop: fewer than 8 zero-padded with their count in the top byte (which
+    /// tells them apart as the bytes do), 8 as they are (so a word of 8 can share a hash with at
+    /// most one shorter ID).
     @inline(__always)
     @inlinable static func hash(_ bytes: UnsafeBufferPointer<UInt8>) -> Int {
+        let count = bytes.count
+        // One word: its `hashValue`, the hasher's one-shot form, with the same per-process seed.
+        if count < 8 { return (prefix(bytes) | UInt64(truncatingIfNeeded: count) << 56).hashValue }
+        if count == 8 { return prefix(bytes).hashValue }
         var hasher = Hasher()
         hasher.combine(bytes: UnsafeRawBufferPointer(bytes))
         return hasher.finalize()
@@ -63,9 +70,22 @@
     @inline(__always)
     @inlinable static func prefix(_ bytes: UnsafeBufferPointer<UInt8>) -> UInt64 {
         guard let base = bytes.baseAddress else { return 0 }
-        if bytes.count >= 8 { return UnsafeRawPointer(base).loadUnaligned(as: UInt64.self) }
+        let raw = UnsafeRawPointer(base)
+        let count = bytes.count
+        if count >= 8 { return raw.loadUnaligned(as: UInt64.self).littleEndian }
+        // Fewer than eight: a load of four, two and one byte as the count's bits say, none past the
+        // end.
         var word: UInt64 = 0
-        for k in 0 ..< bytes.count { word |= UInt64(base[k]) << (8 &* UInt64(k)) }
+        var k = 0
+        if count & 4 != 0 {
+            word = UInt64(raw.loadUnaligned(as: UInt32.self).littleEndian)
+            k = 4
+        }
+        if count & 2 != 0 {
+            word |= UInt64(raw.loadUnaligned(fromByteOffset: k, as: UInt16.self).littleEndian) << UInt64(8 &* k)
+            k &+= 2
+        }
+        if count & 1 != 0 { word |= UInt64(base[k]) << UInt64(8 &* k) }
         return word
     }
 

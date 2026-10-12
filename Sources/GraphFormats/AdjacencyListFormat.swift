@@ -28,36 +28,68 @@
 
 /// Writes one line per vertex in `vertices` order: the vertex, then the far end of each of its
 /// edges in position order; an undirected edge on the line of whichever endpoint comes first, a
-/// loop once.
+/// loop once. The rows are a stable counting sort of the edges by line, from one pass over the
+/// graph (each edge's line and far end kept for the second, as 32-bit numbers when they fit).
 @inlinable func _writeAdjacencyList<Source: _WriteSource>(
     _ source: Source, to out: inout _OutputBuffer, vertexID: (Source.Vertex) -> String
 ) {
-    let n = source.vertexCount
-    // The rows, as one array grouped by line (a counting sort of the edges by line).
-    var rowStart = [Int](repeating: 0, count: n + 1)
-    source.forEachEdge { _, u, v in
-        let line = Source.isDirected ? u : min(u, v)
-        rowStart[line + 1] += 1
+    if source.vertexCount <= Int(Int32.max) {
+        _writeAdjacencyList(source, numbers: Int32.self, to: &out, vertexID: vertexID)
+    } else {
+        _writeAdjacencyList(source, numbers: Int.self, to: &out, vertexID: vertexID)
     }
-    for k in 0 ..< n { rowStart[k + 1] += rowStart[k] }
+}
+
+/// `_writeAdjacencyList`, with vertex numbers stored as `Number`.
+@inlinable func _writeAdjacencyList<Source: _WriteSource, Number: FixedWidthInteger>(
+    _ source: Source, numbers _: Number.Type, to out: inout _OutputBuffer, vertexID: (Source.Vertex) -> String
+) {
+    let n = source.vertexCount, m = source.edgeCount
+    var rowStart = [Int](repeating: 0, count: n &+ 1)
+    var lines = [Number](repeating: 0, count: m), ends = [Number](repeating: 0, count: m)
+    var count = 0
+    rowStart.withUnsafeMutableBufferPointer { rowStart in
+        lines.withUnsafeMutableBufferPointer { lines in
+            ends.withUnsafeMutableBufferPointer { ends in
+                source.forEachEdge { _, u, v in
+                    let forward = Source.isDirected || u <= v
+                    let line = forward ? u : v
+                    lines[count] = Number(truncatingIfNeeded: line)
+                    ends[count] = Number(truncatingIfNeeded: forward ? v : u)
+                    rowStart[line &+ 1] &+= 1
+                    count &+= 1
+                }
+            }
+        }
+        for k in 0 ..< n { rowStart[k &+ 1] &+= rowStart[k] }
+    }
+    var far = [Number](repeating: 0, count: count)
     var fill = rowStart
-    var far = [Int](repeating: 0, count: rowStart[n])
-    source.forEachEdge { _, u, v in
-        let line = Source.isDirected ? u : min(u, v)
-        far[fill[line]] = Source.isDirected || u <= v ? v : u
-        fill[line] += 1
+    fill.withUnsafeMutableBufferPointer { fill in
+        far.withUnsafeMutableBufferPointer { far in
+            lines.withUnsafeBufferPointer { lines in
+                ends.withUnsafeBufferPointer { ends in
+                    for i in 0 ..< count {
+                        let line = Int(truncatingIfNeeded: lines[i])
+                        far[fill[line]] = ends[i]
+                        fill[line] &+= 1
+                    }
+                }
+            }
+        }
     }
     var ids = _IDCache(vertexCount: n)
     for k in 0 ..< n {
         let id = vertexID(source.vertex(at: k))
         ids.set(k, id: id.debugDescription) { _appendListToken(id, to: &$0) }
     }
-    for k in 0 ..< n {
-        ids.write(k, to: &out)
-        for j in rowStart[k] ..< rowStart[k + 1] {
-            out.append(0x20)
-            ids.write(far[j], to: &out)
+    rowStart.withUnsafeBufferPointer { rowStart in
+        far.withUnsafeBufferPointer { far in
+            for k in 0 ..< n {
+                ids.write(k, to: &out)
+                for j in rowStart[k] ..< rowStart[k &+ 1] { ids.write(Int(truncatingIfNeeded: far[j]), to: &out, after: 0x20) }
+                out.append(0x0A)
+            }
         }
-        out.append(0x0A)
     }
 }

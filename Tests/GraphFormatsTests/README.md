@@ -159,6 +159,12 @@ is checked, so the trap comes from the fault.
 - **Identifiers** (`GraphFormatsIdentifierTests.swift`). IDs and attribute names compare by Unicode
   scalars: canonically equivalent IDs are two IDs (merged by a `String` target, kept apart by a
   scalar one), and two DOT default keys, two GraphML key names, two writer keys.
+- **One-pass reads** (`GraphFormatsOnePassTests.swift`). Node-link JSON in NetworkX's layout is read
+  in one pass, and GraphML's first walk reads the nodes and edges ahead; on seeded documents with
+  errors of every kind, each must read as its general reader does (forced by an ignored member, or a
+  key after the graph): the same graph, the same calls to every closure in order (the `vertex`
+  mapping included, with merges and refusals), or the same error. Also the order of the attribute
+  and label calls, which come after the build in document order.
 
 `UndirectedAdjacencyList` and `Pseudograph` as `MutableGraph` are tested in their own suites
 (`AdjacencyListTests`, `MultigraphsTests`).

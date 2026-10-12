@@ -223,8 +223,8 @@ through a mutable representation and converted (`CompressedSparseRow(adjacencyLi
   `vertex` closure maps each ID once (a dictionary from ID bytes to key, so a repeated ID costs one
   lookup, no closure call). If two IDs map to the same vertex they are one vertex.
 - **Edges** are inserted in file order with the target's `_insertEdge(fromKey:toKey:)`, which
-  returns the position the attribute callbacks get (the line formats build the same graph in one
-  step, below). A simple target (`AdjacencyList`,
+  returns the position the attribute callbacks get (every reader but DOT builds the same graph in
+  one step, below). A simple target (`AdjacencyList`,
   `UndirectedAdjacencyList`) returns the existing position for a repeated pair, so a parallel
   edge in the file merges and its attributes are set again: last value wins (GF-019, GF-051,
   GF-119, GF-151). This is NetworkX's behaviour when reading into `DiGraph`/`Graph`.
@@ -260,9 +260,13 @@ through a mutable representation and converted (`CompressedSparseRow(adjacencyLi
   includes defaults: a vertex created after `node [k=v]` gets `k` before its explicit attributes
   (GF-005, GF-006), Graphviz's rule. GraphML `<default>` values are reported for every element of
   that domain that has no `<data>` for the key, after its explicit data (GF-046). Repeated keys
-  call again; a caller storing into a dictionary keeps the last. The line formats (Matrix Market,
-  edge list, adjacency list) read the whole file before building the graph, so their callbacks run
-  after the last line is read, and not at all when a later line is an error.
+  call again; a caller storing into a dictionary keeps the last. The readers that build in one step
+  (all but DOT) report a vertex's or an edge's attributes once the whole file is read and the
+  graph built, in document order, and not at all when the file holds an error: the line formats'
+  edge values, GraphML's node and edge data (interleaved as the elements are), Mermaid's labels.
+  Node-link JSON reports each node's attributes as the node is read (after its `id` is mapped, as
+  before any edge) and the edges' after the build, so its order is the document's. Graph
+  attributes are reported when read: before any vertex is mapped.
 - **Defaults are applied, within a budget (decision).** Applying them is what Graphviz and the
   GraphML specification say, and DOT's scoping (`node [..]` reaches only vertices created after it)
   cannot be reported once, as NetworkX's `node_default` reports GraphML's: a caller would lose which
@@ -634,6 +638,26 @@ What `read(write(g))` gives back, into a target of the same kind and type:
   table (which becomes the graph's) and map each pair to its first copy's position; the multigraphs
   keep every pair. Edge attributes are buffered during the read and replayed with the built graph's
   positions. Any other conformer (`StableDirectedGraph`) gets the default: one insertion per edge.
+  GraphML, node-link JSON and Mermaid build the same way: their nodes and edges go into the same
+  bulk target, their vertex and edge attributes (or labels) into the same buffer, as plain words
+  with a dense lane for one double per edge in order, replayed after the build in document order.
+- **Node-link JSON in NetworkX's layout is read in one pass.** The top-level members in NetworkX's
+  order (`directed`, `multigraph`, `graph`, `nodes`, then `edges` or `links`, each once), keys
+  without escapes, scalar node and edge members, and edges naming nodes declared before them: that
+  document is checked as `validateDocument` checks it while its nodes and edges are read, keys
+  compared as words, integers and doubles in one scan. Anything else, and any error, leaves it to
+  the two-pass reader (the document checked first), which reports every error as before; the one
+  pass has called nothing by then. Its `id` mapping comes after the pass, in node order with each
+  node's attributes, which is when and how the two-pass reader makes it.
+- **GraphML reads its nodes and edges in the first walk when it can.** The walk that checks the
+  document also notes the first graph's nodes and edges (`_GraphMLLookahead`: their IDs and values
+  where they are in the text), with their keys checked and defaults spent, and after the walk looks
+  up the IDs and reads the values, without the `vertex` mapping. It goes on while it can tell the
+  second walk would read the graph the same way: keys all before the graph, every node and edge
+  check and value passing, edges naming nodes declared before them; otherwise the second walk
+  reads the graph as before. When the lookahead holds, the keys, graph and graph-data checks run as
+  before, and then the IDs are mapped in node order. `GraphFormatsOnePassTests.swift` and
+  `FuzzGraphFormats` read documents both ways.
 - **Specialization.** The readers and writers are `@inlinable` down to the scanners, so a call on a
   concrete representation (`DirectedPseudograph<Int>`) is specialized in the caller's module: the
   target's insertions, the edge iteration and the attribute closures are direct calls. Unspecialized,
@@ -699,26 +723,26 @@ into `DirectedPseudograph<Int>` / `AdjacencyList<Int>` where the IDs are integer
 | Hostile inputs | the 3,000 mutated inputs of `--stress` and a libFuzzer target per reader (`just fuzz`) run without a crash, a hang or memory beyond 16× the input |
 
 Measured (`GraphFormatsBenchmarks`, release, medians, the development machine at load average
-3–6, 2026-10-11, after the speed pass; the first review's numbers in parentheses; details in
-`Benchmarks/README.md`):
+4–6, 2026-10-12, after the second speed pass; the first review's numbers in parentheses; details
+in `Benchmarks/README.md`):
 
 | Measure | Target | Measured | |
 |---|---|---|---|
-| Parse only: Matrix Market (32.9 MB) | ≥ 300 MB/s | 50 ms: 658 MB/s (123 ms) | met |
+| Parse only: Matrix Market (32.9 MB) | ≥ 300 MB/s | 45 ms: 732 MB/s (123 ms) | met |
 | Parse only: edge list, `Int` vertices, weight column (31.0 MB) | ≥ 300 MB/s | 66 ms: 470 MB/s (229 ms) | met |
-| Parse only: adjacency list (6.5 MB) | ≥ 300 MB/s | 13 ms: 498 MB/s (60 ms) | met |
-| Parse only: GraphML walk (102.3 MB) / node-link document check (77.5 MB) | ≥ 300 MB/s | 234 ms: 437 MB/s / 177 ms: 438 MB/s | met |
-| Matrix Market parse + build into `CompressedSparseRow`, real / pattern | ≤ 100 ms | 89 ms / 70 ms (157 / 93) | met |
-| Matrix Market into `DirectedPseudograph<Int>` / `AdjacencyList<Int>` | reported | 91 ms / 75 ms (145 / 144) | 16× `mmread` + `from_scipy_sparse_array` |
-| Edge list read (`Int` vertices) | ≥ 30× | 112 ms: 32× (257 ms) | met |
-| Adjacency list read | | 56 ms: 32× (103 ms) | |
-| GraphML read / write | ≥ 20× | 1,203 ms: 9.2× / 208 ms: 45× | miss / met |
-| Node-link JSON read / write | ≥ 10× | 760 ms: 3.3× / 162 ms: 6.4× | miss / miss |
-| Edge list write / adjacency list write | ≥ 20× | 73 ms: 20× / 19 ms: 11× | met / miss |
-| Matrix Market write | ≤ 190 ms | 63 ms | met |
-| DOT write / read | ≥ 50× | 1.8 ms / 43 ms | met |
-| Mermaid read | ≥ 100 MB/s | 477 ms: 48 MB/s | miss: building the target |
-| Allocations | O(1) per vertex, none per edge | readers 16–574 in all | met |
+| Parse only: adjacency list (6.5 MB) | ≥ 300 MB/s | 14 ms: 463 MB/s (60 ms) | met |
+| Parse only: GraphML walk (102.3 MB) / node-link one pass (77.5 MB) | ≥ 300 MB/s | 259 ms: 395 MB/s / 162 ms: 479 MB/s | met (GraphML's walk now also notes the nodes and edges: 234 ms before) |
+| Matrix Market parse + build into `CompressedSparseRow`, real / pattern | ≤ 100 ms | 82 ms / 67 ms (157 / 93) | met |
+| Matrix Market into `DirectedPseudograph<Int>` / `AdjacencyList<Int>` | reported | 87 ms / 73 ms (145 / 144) | 17× `mmread` + `from_scipy_sparse_array` |
+| Edge list read (`Int` vertices) | ≥ 30× | 106 ms: 34× (257 ms) | met |
+| Adjacency list read | | 57 ms: 31× (103 ms) | |
+| GraphML read / write | ≥ 20× | 386 ms: 29× (1,203 ms after the first pass) / 170 ms: 55× | met / met |
+| Node-link JSON read / write | ≥ 10× | 191 ms: 13× (760 ms) / 90 ms: 11.5× (162 ms) | met / met |
+| Edge list write / adjacency list write | ≥ 20× | 61 ms: 24× / 8.6 ms: 25× (19 ms) | met / met |
+| Matrix Market write | ≤ 190 ms | 62 ms | met |
+| DOT write / read | ≥ 50× | 1.1 ms / 42 ms | met |
+| Mermaid read | ≥ 100 MB/s | 162 ms: 141 MB/s (477 ms) | met |
+| Allocations | O(1) per vertex, none per edge | readers 24–396 in all | met |
 
 What the speed pass changed: an `Int` target reads the edge and adjacency lists with each field
 parsed as it is scanned and its vertex found by value (an array for small values), leaving any
@@ -731,6 +755,21 @@ first lookup); node-link edges are read in two passes, their merges decided for 
 once; the edge-list writer keeps its per-edge body small, so that the caller's attribute closure
 is inlined and its array stays on the stack (one allocation per edge was the writer's regression,
 with a slower scalar comparison of column names and a two-probe ID check).
+
+What the second speed pass changed: GraphML, node-link JSON and Mermaid build in one step, as the
+line formats do, their attributes buffered and replayed in document order (incremental insertion
+was most of GraphML's time). Node-link JSON in NetworkX's layout is read in one pass that checks
+the grammar as it goes (two passes for anything else, so every error is as before); GraphML's first
+walk notes the nodes and edges, which are resolved after it, so there is no second walk (the walk
+alone, the parse-only row, went from 234 to 259 ms for it, the read from 1,203 to 386 ms). Eight
+digits are read at a time (fast_float's conversion), an ID of at most 8 bytes is hashed as one
+word through `hashValue`, attribute values are kept where they are in the text. The node-link
+writer keeps its state behind a pointer and its large parts out of line, so that its frame stays
+inside the compiler's stack-promotion budget (1 KiB; over it, the array each attribute closure
+returns was heap-allocated, 10⁶ times), and counts edge keys by a counting sort instead of a table
+of pairs. The writers' distinct-ID check takes decimal IDs below 8 × the vertex count by a bitmap
+(the table of every ID cost the adjacency-list writer 6 ms in cache misses), and writes an ID of at
+most 8 bytes, with its separator, in one store.
 
 ## Library disagreements found
 

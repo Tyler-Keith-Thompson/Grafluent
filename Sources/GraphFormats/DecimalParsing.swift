@@ -199,6 +199,21 @@
     case none
 }
 
+/// The value of the eight ASCII digits at `base[i]`, read as one word (the SWAR conversion of
+/// fast_float and simdjson); `nil` when fewer than eight bytes are left or one is not a digit.
+@inline(__always)
+@inlinable func _eightDigits(_ base: UnsafePointer<UInt8>, _ i: Int, _ limit: Int) -> UInt64? {
+    guard i &+ 8 <= limit else { return nil }
+    let word = UnsafeRawPointer(base + i).loadUnaligned(as: UInt64.self).littleEndian
+    // Every byte is 0x30 – 0x39: its high nibble is 3, and adding 6 does not carry into it.
+    guard (word & 0xF0F0_F0F0_F0F0_F0F0) | (((word &+ 0x0606_0606_0606_0606) & 0xF0F0_F0F0_F0F0_F0F0) >> 4)
+        == 0x3333_3333_3333_3333 else { return nil }
+    var v = word &- 0x3030_3030_3030_3030
+    v = v &* 10 &+ (v >> 8)
+    v = ((v & 0x0000_00FF_0000_00FF) &* 0x000F_4240_0000_0064 &+ ((v >> 16) & 0x0000_00FF_0000_00FF) &* 0x0000_2710_0000_0001) >> 32
+    return v & 0xFFFF_FFFF
+}
+
 /// Reads the longest prefix of `base[start..<limit]` that the decimal grammar allows as an integer
 /// or a decimal, in one pass: the digits are accumulated while the grammar is checked (the first
 /// 19 significant ones; the rest only counted), and the value comes from Eisel–Lemire, or
@@ -217,6 +232,13 @@
     var significant = 0, dropped = 0
     var integerDigits = 0, fractionDigits = 0
     while i < limit {
+        if w != 0 && significant <= 11, let eight = _eightDigits(base, i, limit) {
+            w = w &* 100_000_000 &+ eight
+            significant &+= 8
+            integerDigits &+= 8
+            i &+= 8
+            continue
+        }
         let d = base[i] &- 0x30
         if d >= 10 { break }
         integerDigits &+= 1
@@ -237,6 +259,13 @@
         decimal = true
         i &+= 1
         while i < limit {
+            if w != 0 && significant <= 11, let eight = _eightDigits(base, i, limit) {
+                w = w &* 100_000_000 &+ eight
+                significant &+= 8
+                fractionDigits &+= 8
+                i &+= 8
+                continue
+            }
             let d = base[i] &- 0x30
             if d >= 10 { break }
             fractionDigits &+= 1

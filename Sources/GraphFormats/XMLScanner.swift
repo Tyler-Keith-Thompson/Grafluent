@@ -364,7 +364,12 @@
         guard let nameEnd = name(p &+ 1) else { throw ParseError(.syntax, at: p &+ 1) }
         var localStart = p &+ 1
         for k in (p &+ 1) ..< nameEnd where text[k] == UInt8(ascii: ":") { localStart = k &+ 1 }
-        attributes.removeAll(keepingCapacity: true)
+        // Most tags have a few attributes: emptied one by one, without the general replace path.
+        if attributes.count <= 4 {
+            while !attributes.isEmpty { attributes.removeLast() }
+        } else {
+            attributes.removeAll(keepingCapacity: true)
+        }
         var q = nameEnd
         var indexed = false
         defer { if indexed { nameIndex.end() } }
@@ -493,7 +498,7 @@
             // Character data, up to the next `<`.
             let depth = stack.count &- 1
             let wanted = observer.wantsText(depth: depth)
-            buffer.removeAll(keepingCapacity: true)
+            if !buffer.isEmpty { buffer.removeAll(keepingCapacity: true) }
             var q = p
             var run = p
             while q < n && text[q] != UInt8(ascii: "<") {
@@ -517,8 +522,13 @@
                 }
             }
             if wanted {
-                buffer.append(contentsOf: UnsafeBufferPointer(rebasing: text[run ..< q]))
-                buffer.withUnsafeBufferPointer { observer.text($0, depth: depth) }
+                if run == p {
+                    // No reference and no carriage return: the text as it stands.
+                    observer.text(UnsafeBufferPointer(rebasing: text[p ..< q]), depth: depth)
+                } else {
+                    buffer.append(contentsOf: UnsafeBufferPointer(rebasing: text[run ..< q]))
+                    buffer.withUnsafeBufferPointer { observer.text($0, depth: depth) }
+                }
             }
             p = q
         }

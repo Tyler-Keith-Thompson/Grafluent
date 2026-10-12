@@ -326,4 +326,18 @@ struct GraphFormatsInterfaceTests {
         UndirectedAdjacencyList<String>(vertices: ["p", "q"], edges: [UndirectedEdge("q", "p"), UndirectedEdge("p", "p")]).writeAdjacencyList(to: &output)
         #expect(output == "p q p\nq\n")
     }
+
+    @Test("Node-link writer: each edge's key counts the earlier edges between its pair only, in each kind")
+    func nodeLinkWriterKeys() {
+        // 1 is the far end of two sources: its count from the first row does not carry into the
+        // next one.
+        var output = ""
+        DirectedPseudograph<Int>(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 0, to: 1)])
+            .writeNodeLinkJSON(to: &output)
+        #expect(output == "{\"directed\": true, \"multigraph\": true, \"graph\": {}, \"nodes\": [{\"id\": 0}, {\"id\": 1}, {\"id\": 2}], \"edges\": [{\"source\": 0, \"target\": 1, \"key\": 0}, {\"source\": 2, \"target\": 1, \"key\": 0}, {\"source\": 2, \"target\": 1, \"key\": 1}, {\"source\": 0, \"target\": 1, \"key\": 1}]}")
+        output = ""
+        Pseudograph<Int>(vertices: 0 ..< 3, edges: [UndirectedEdge(1, 0), UndirectedEdge(1, 2), UndirectedEdge(2, 1), UndirectedEdge(0, 1)])
+            .writeNodeLinkJSON(to: &output)
+        #expect(output == "{\"directed\": false, \"multigraph\": true, \"graph\": {}, \"nodes\": [{\"id\": 0}, {\"id\": 1}, {\"id\": 2}], \"edges\": [{\"source\": 1, \"target\": 0, \"key\": 0}, {\"source\": 1, \"target\": 2, \"key\": 0}, {\"source\": 2, \"target\": 1, \"key\": 1}, {\"source\": 0, \"target\": 1, \"key\": 1}]}")
+    }
 }

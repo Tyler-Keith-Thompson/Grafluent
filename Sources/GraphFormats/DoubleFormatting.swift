@@ -11,8 +11,9 @@
     init() {
     }
 
-    /// Up to 17 digits, as ASCII, in 32 bytes (so that 24 can be copied from any of the first 8).
-    @usableFromInline var digits: (UInt64, UInt64, UInt64, UInt64) = (0, 0, 0, 0)
+    /// Up to 17 digits, as ASCII, in 40 bytes (so that 24 can be copied from any of the first 17:
+    /// the positional layout copies the fraction from just after the point, up to digit 16).
+    @usableFromInline var digits: (UInt64, UInt64, UInt64, UInt64, UInt64) = (0, 0, 0, 0, 0)
     @usableFromInline var count = 0
     @usableFromInline var exponent = 0
 

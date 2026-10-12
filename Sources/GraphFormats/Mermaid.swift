@@ -101,23 +101,23 @@
     return (s, e)
 }
 
-/// Reads a Mermaid flowchart into `target`.
-@inlinable func _readMermaid<Target: _ReadTarget>(
-    _ text: UnsafeBufferPointer<UInt8>, into target: inout Target,
-    map: (UnsafeBufferPointer<UInt8>) -> Target.Vertex?,
-    vertexLabel: (Target.Vertex, String) -> Void,
-    edgeLabel: (Target.Position, String) -> Void
+/// Reads a Mermaid flowchart into a bulk target, its labels into `buffer` (as strings under its
+/// first name).
+@inlinable func _readMermaid<Vertex: Hashable, Direction: _Direction>(
+    _ text: UnsafeBufferPointer<UInt8>, into target: inout _BulkTarget<Vertex, Direction>, buffer: inout _AttributeBuffer,
+    map: (UnsafeBufferPointer<UInt8>) -> Vertex?
 ) throws(ParseError) {
-    var reader = _MermaidReader<Target>(text: text)
-    try reader.read(into: &target, map: map, vertexLabel: vertexLabel, edgeLabel: edgeLabel)
+    var reader = _MermaidReader<_BulkTarget<Vertex, Direction>>(text: text)
+    try reader.read(into: &target, map: map, vertexLabel: { buffer.recordVertex($0, 0, .string($1)) },
+                    edgeLabel: { buffer.record($0, 0, .string($1)) })
 }
 
 @usableFromInline internal struct _MermaidReader<Target: _ReadTarget>: ~Copyable {
     @usableFromInline let text: UnsafeBufferPointer<UInt8>
     @usableFromInline let n: Int
     @usableFromInline var registry = _Registry<Target>()
-    @usableFromInline var sources: [(key: Int, id: Int)] = []
-    @usableFromInline var targets: [(key: Int, id: Int)] = []
+    @usableFromInline var sources: [Int] = []
+    @usableFromInline var targets: [Int] = []
     /// The edges the file may still ask for, one per input byte (`_ExpansionBudget`): an `&` group
     /// multiplies them.
     @usableFromInline var budget: _ExpansionBudget
@@ -156,7 +156,7 @@
 
     @inlinable mutating func read(
         into target: inout Target, map: (UnsafeBufferPointer<UInt8>) -> Target.Vertex?,
-        vertexLabel: (Target.Vertex, String) -> Void, edgeLabel: (Target.Position, String) -> Void
+        vertexLabel: (_ key: Int, String) -> Void, edgeLabel: (Target.Position, String) -> Void
     ) throws(ParseError) {
         var p = 0
         // Front matter: `---` alone on the first line, up to the next line that is `---`.
@@ -222,10 +222,10 @@
     /// A chain of vertex groups joined by links; returns where it ends.
     @inlinable mutating func statement(
         _ start: Int, into target: inout Target, map: (UnsafeBufferPointer<UInt8>) -> Target.Vertex?,
-        vertexLabel: (Target.Vertex, String) -> Void, edgeLabel: (Target.Position, String) -> Void
+        vertexLabel: (_ key: Int, String) -> Void, edgeLabel: (Target.Position, String) -> Void
     ) throws(ParseError) -> Int {
         // The lists live in `self` between statements, so their storage is reused.
-        var sources: [(key: Int, id: Int)] = [], targets: [(key: Int, id: Int)] = []
+        var sources: [Int] = [], targets: [Int] = []
         swap(&sources, &self.sources)
         swap(&targets, &self.targets)
         defer {
@@ -240,7 +240,7 @@
             try budget.spend(sources.count &* targets.count, at: link.offset)
             for u in sources {
                 for v in targets {
-                    let position = target.insertEdge(u.key, v.key)
+                    let position = target.insertEdge(u, v)
                     if let label = link.label { edgeLabel(position, label) }
                 }
             }
@@ -250,10 +250,11 @@
 
     /// Vertices joined by `&`.
     @inlinable mutating func group(
-        _ start: Int, into list: inout [(key: Int, id: Int)], target: inout Target,
-        map: (UnsafeBufferPointer<UInt8>) -> Target.Vertex?, vertexLabel: (Target.Vertex, String) -> Void
+        _ start: Int, into list: inout [Int], target: inout Target,
+        map: (UnsafeBufferPointer<UInt8>) -> Target.Vertex?, vertexLabel: (_ key: Int, String) -> Void
     ) throws(ParseError) -> Int {
-        list.removeAll(keepingCapacity: true)
+        // Most groups are one vertex: emptied without the general replace path.
+        if list.count == 1 { list.removeLast() } else if !list.isEmpty { list.removeAll(keepingCapacity: true) }
         var q = start
         while true {
             q = try node(blanks(q), into: &list, target: &target, map: map, vertexLabel: vertexLabel)
@@ -267,8 +268,8 @@
     }
 
     @inlinable mutating func node(
-        _ start: Int, into list: inout [(key: Int, id: Int)], target: inout Target,
-        map: (UnsafeBufferPointer<UInt8>) -> Target.Vertex?, vertexLabel: (Target.Vertex, String) -> Void
+        _ start: Int, into list: inout [Int], target: inout Target,
+        map: (UnsafeBufferPointer<UInt8>) -> Target.Vertex?, vertexLabel: (_ key: Int, String) -> Void
     ) throws(ParseError) -> Int {
         var q = start
         while q < n && _isMermaidID(text[q]) { q += 1 }
@@ -277,16 +278,18 @@
             throw ParseError(.unsupported, at: start)
         }
         let resolved = try registry.resolve(UnsafeBufferPointer(rebasing: text[start ..< q]), at: start, into: &target, map: map)
-        list.append((resolved.key, resolved.id))
+        list.append(resolved.key)
         if _starts(text, q, "@{") { throw ParseError(.unsupported, at: q) }
         let opening = q < n ? text[q] : 0
         let mayOpen = opening == UInt8(ascii: "(") || opening == UInt8(ascii: "[") || opening == UInt8(ascii: "{")
             || opening == UInt8(ascii: ">")
-        for shape in _shapes where mayOpen && _starts(text, q, shape.open) {
-            let (label, end) = try self.shape(q + shape.open.utf8CodeUnitCount, shape.closings)
-            vertexLabel(registry.vertices[resolved.id], label)
-            q = end
-            break
+        if mayOpen {
+            for shape in _shapes where _starts(text, q, shape.open) {
+                let (label, end) = try self.shape(q + shape.open.utf8CodeUnitCount, shape.closings)
+                vertexLabel(resolved.key, label)
+                q = end
+                break
+            }
         }
         if _starts(text, q, ":::") {
             var c = q + 3

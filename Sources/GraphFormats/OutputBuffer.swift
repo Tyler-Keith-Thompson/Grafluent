@@ -49,6 +49,14 @@
     @inlinable mutating func append(_ bytes: UnsafeBufferPointer<UInt8>) {
         guard let source = bytes.baseAddress else { return }
         let remaining = bytes.count
+        // A piece of 8 to 16 bytes, when 16 fit: two word copies (overlapping when shorter).
+        if UInt(bitPattern: remaining &- 8) <= 8 && count &+ 16 <= Self.capacity {
+            let from = UnsafeRawPointer(source), to = UnsafeMutableRawPointer(base + count)
+            to.storeBytes(of: from.loadUnaligned(as: UInt64.self), as: UInt64.self)
+            to.storeBytes(of: from.loadUnaligned(fromByteOffset: remaining &- 8, as: UInt64.self), toByteOffset: remaining &- 8, as: UInt64.self)
+            count &+= remaining
+            return
+        }
         // A short piece that fits: a plain loop, cheaper than a call to memmove.
         if remaining <= 32 && count &+ remaining <= Self.capacity {
             var k = 0
@@ -60,6 +68,16 @@
             return
         }
         appendLong(source, remaining)
+    }
+
+    /// Appends the first `count` (at most 8) bytes of `word`, little-endian, with one store when 8
+    /// bytes fit before the end of the buffer; `false`, with nothing appended, when they do not.
+    @inline(__always)
+    @inlinable mutating func appendWord(_ word: UInt64, count n: Int) -> Bool {
+        guard count &+ 8 <= Self.capacity else { return false }
+        UnsafeMutableRawPointer(base + count).storeBytes(of: word.littleEndian, as: UInt64.self)
+        count &+= n
+        return true
     }
 
     @inlinable mutating func appendLong(_ start: UnsafePointer<UInt8>, _ length: Int) {
@@ -87,6 +105,11 @@
     /// Appends `value` in decimal.
     @inlinable mutating func appendDecimal(_ value: Int) {
         reserve(20)
+        if UInt(bitPattern: value) < 10 {
+            base[count] = UInt8(truncatingIfNeeded: value) &+ 0x30
+            count &+= 1
+            return
+        }
         var magnitude = value.magnitude
         var digits = 1
         var bound: UInt = 10
@@ -109,7 +132,9 @@
     }
 }
 
-/// Runs `body` with a buffer that delivers to `output`, then flushes what remains.
+/// Runs `body` with a buffer that delivers to `output`, then flushes what remains. Always inlined,
+/// so that a writer's body (and the caller's closures it calls) can be inlined into the caller.
+@inline(__always)
 @inlinable func _withOutputBuffer(_ output: inout some TextOutputStream, _ body: (inout _OutputBuffer) -> Void) {
     withoutActuallyEscaping({ (piece: String) in output.write(piece) }) { deliver in
         var buffer = _OutputBuffer(deliver: deliver)
