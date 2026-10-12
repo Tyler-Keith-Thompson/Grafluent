@@ -120,6 +120,13 @@ checks the whole state. The precondition file also takes the hand-written exit t
   - A permutation of 10⁵ vertices.
   - 120 Pollard-rho closures x² + c mod m with m up to 3 × 10⁹, and the factor 97 of 8 051 found
     from the detected cycle.
+- **Without vertex indices** (`FunctionalGraphUnindexedTests.swift`): `init?(_ graph:)` on a
+  minimal conformer whose `vertexIndexBound` is nil, the hashed path no library conformer takes:
+  vertex i is the i-th listed vertex, and the result is nil on out-degree 0 or 2. Added for planted
+  bugs in `just mutate FunctionalGraphs` that every other test let through.
+- **Rebuilds** (`FunctionalGraphRebuildTests.swift`): 40 decompositions of a broom built in a row,
+  with freed buffers full of large values in between, so a build step that reads memory it never
+  wrote (a depth count not reset) shows as a wrong tail or step.
 
 ## Planted bugs
 

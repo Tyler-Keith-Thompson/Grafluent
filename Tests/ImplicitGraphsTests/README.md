@@ -124,6 +124,13 @@ into an array in one pass and reports an `underestimatedCount` of 0, so `Array.i
   - A hashed closure on 10⁵ vertices, against a `DirectedPseudograph`.
   - 200 unbounded weighted searches, where Dijkstra and A* must agree, and each path must cost what
     it says.
+- **Review cases** (`ImplicitGraphReviewTests.swift`), each added for a planted bug in
+  `just mutate ImplicitGraphs` that every other test let through: `targetIndex(ofEdgeAt:)`, the
+  one-pass `edges.map`, `index(after:)` and the subscript trapping at `endIndex` under a closure
+  that accepts any `Int`, the closure Dijkstra's heap order on a queue deep enough to misplace an
+  entry, A* preferring the farther of equal priorities (an exact estimate on an open grid expands
+  one shortest path; a farther goal beats a nearer state queued after it), the NaN check on the start's estimate, and the cutoff bounding the distance
+  alone.
 
 ## Planted bugs
 
