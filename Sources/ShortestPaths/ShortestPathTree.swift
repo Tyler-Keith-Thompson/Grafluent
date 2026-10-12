@@ -166,32 +166,8 @@ extension Arborescence {
         }
         var parents = [Int](repeating: -1, count: vertices.count)
         for i in parent.indices where parent[i] >= 0 { parents[number[i]] = number[parent[i]] }
-        self = _arborescence(vertices, parents: parents)
+        self.init(vertices: vertices, parents: parents)
     }
-}
-
-/// The arborescence on `vertices` in which the k-th vertex's parent is the `parents[k]`-th (-1 for
-/// the root), numbered without a table when the vertices are the `Int`s `0..<n` in order.
-///
-/// - Precondition: `parents` is a tree with one root.
-@inlinable
-func _arborescence<Vertex: Hashable>(_ vertices: ContiguousArray<Vertex>, parents: [Int]) -> Arborescence<Vertex> {
-    var dense = Vertex.self == Int.self
-    if dense {
-        for (k, v) in vertices.enumerated() where v as! Int != k {
-            dense = false
-            break
-        }
-    }
-    var slots: [Vertex: Int] = [:]
-    if !dense {
-        slots.reserveCapacity(vertices.count)
-        for (k, v) in vertices.enumerated() { slots[v] = k }
-    }
-    guard let layout = _TreeLayout.fromParents(vertices: vertices, slots: slots, dense: dense, parents: parents) else {
-        preconditionFailure("The parents do not form a tree with one root")
-    }
-    return Arborescence(RootedTree(_layout: layout))
 }
 
 extension ShortestPathTree: Sendable where G: Sendable, G.Vertex: Sendable, G.Edges.Index: Sendable, Distance: Sendable {}

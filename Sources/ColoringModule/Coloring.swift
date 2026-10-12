@@ -25,18 +25,9 @@ public struct Coloring<G: Graph> {
     /// `_vertexNumbering()`.
     @inlinable
     init(_ graph: G, numbering: (listed: [G.Vertex], numbers: [G.Vertex: Int])?, colors: [Int]) {
-        let n = colors.count
         var k = 0
         for c in colors where c >= k { k = c + 1 }
-        var offsets = [Int](repeating: 0, count: k + 1)
-        for c in colors { offsets[c + 1] += 1 }
-        for c in 0 ..< k { offsets[c + 1] += offsets[c] }
-        var fill = offsets
-        var order = [Int](repeating: 0, count: n)
-        for v in 0 ..< n {
-            order[fill[colors[v]]] = v
-            fill[colors[v]] += 1
-        }
+        let (offsets, order) = _countingSort(labels: colors, count: k)
         _graph = graph
         _numbers = numbering?.numbers
         _colors = colors

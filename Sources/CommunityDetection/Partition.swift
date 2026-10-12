@@ -43,15 +43,7 @@ public struct Partition<G: DirectedGraph>: RandomAccessCollection {
             }
             canonical[v] = renumber[label]
         }
-        var offsets = [Int](repeating: 0, count: count + 1)
-        for c in canonical { offsets[c + 1] += 1 }
-        for c in 0 ..< count { offsets[c + 1] += offsets[c] }
-        var fill = offsets
-        var order = [Int](repeating: 0, count: n)
-        for v in 0 ..< n {
-            order[fill[canonical[v]]] = v
-            fill[canonical[v]] += 1
-        }
+        let (offsets, order) = _countingSort(labels: canonical, count: count)
         _graph = graph
         _numbers = numbers
         _labels = canonical

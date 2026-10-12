@@ -108,13 +108,13 @@ MUTANTS = [
     Mutant("ffrows_skip", "GreedyColoring.swift", "            while used[c] == v { c += 1 }", "            while used[c] == v || c == 1 { c += 1 }", mode="stmt"),
 
     # Coloring
-    Mutant("coloring_classes", "Coloring.swift", "            fill[colors[v]] += 1", "", mode="stmt"),
+    Mutant("coloring_classes", "CountingSort.swift", "                    offsets[label] &+= 1", "", mode="stmt", module="GraphProtocols"),
     Mutant("coloring_equal", "Coloring.swift", "lhs._colors == rhs._colors", "lhs._offsets == rhs._offsets"),
     Mutant("coloring_colorof", "Coloring.swift", "            return _colors[v]", "            return _colors[_colors.count - 1 - v]", mode="stmt"),
     Mutant("coloring_index", "Coloring.swift", "index >= 0 && index < _colors.count", "index < _colors.count"),
 
     # EdgeColoring
-    Mutant("ec_classes", "EdgeColoring.swift", "            fill[colors[e]] += 1", "", mode="stmt"),
+    Mutant("ec_classes", "EdgeColoring.swift", "order.map { positions[$0] }", "positions"),
     Mutant("ec_equal", "EdgeColoring.swift", "lhs._colors == rhs._colors", "lhs._offsets == rhs._offsets"),
     Mutant("ec_search", "EdgeColoring.swift", "_positions[mid] < position", "_positions[mid] <= position"),
     Mutant("ends_loop", "EdgeColoring.swift", '                precondition(w != v, "edgeColoring() requires a simple graph: the graph has a self-loop")', "", mode="stmt"),

@@ -88,6 +88,7 @@ MUTANTS = [
 
     # reuse pass (C): the pooled out-rows lent to algorithms, and their copy into compressed rows.
     Mutant("outrowsedges", AL, "            _outEdges.withUnsafeRows { edges, edgeRows in body(targets, targetRows, edges, edgeRows) }", "            _out.withUnsafeRows { edges, edgeRows in body(targets, targetRows, edges, edgeRows) }", mode="stmt"),
-    Mutant("pooledloops", "CompressedRows.swift", "row[k] != v", "true", module="GraphProtocols"),
-    Mutant("pooledbulkedges", "CompressedRows.swift", "                            for k in 0 ..< length { edges.append(edgeIndex(of: unsafeBitCast(pooledEdges[edgeStart + k], to: Edges.Index.self))) }", "                            for k in 0 ..< length { edges.append(k) }", mode="stmt", module="GraphProtocols"),
+    Mutant("pooledloops", "CompressedRows.swift", "k &+= w == v ? 0 : 1", "k &+= 1", module="GraphProtocols"),
+    Mutant("pooledbulkedges", "CompressedRows.swift", "edges.append(edgeIndex(of: unsafeBitCast(pooledEdges[edgeStart + k], to: Edges.Index.self)))", "edges.append(k)", module="GraphProtocols"),
+    Mutant("pooledloopedges", "CompressedRows.swift", "!dropsLoops || pooled[start + k] != v", "true", module="GraphProtocols"),
 ]

@@ -82,4 +82,15 @@ struct SemiringReviewTests {
         #expect(TropicalSemiring(Int.min).times(.zero) == .zero)
         #expect(TropicalSemiring(-Double.infinity).times(TropicalSemiring(5)).value == -.infinity)
     }
+
+    @Test("dagShortestDistances(from: []) is every distance .zero, with no sources")
+    func dagShortestDistancesFromNoSources() throws {
+        let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+        let w = [2, 3]
+        let distances = try #require(graph.dagShortestDistances(from: [Int]()) { TropicalSemiring(w[$0]) })
+        #expect(distances.sources == [])
+        #expect((0 ..< 3).map { distances.distance(to: $0) } == [TropicalSemiring<Int>.zero, .zero, .zero])
+        let counts = try #require(graph.dagShortestDistances(from: EmptyCollection<Int>()) { _ in CountingSemiring(1) })
+        #expect(counts.sources == [] && (0 ..< 3).map { counts.distance(toIndex: $0) } == [.zero, .zero, .zero])
+    }
 }

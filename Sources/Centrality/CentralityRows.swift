@@ -42,66 +42,12 @@ extension Graph {
 }
 
 extension DirectedGraph {
-    /// The rows (edge numbers only when `readsEdges`), and the vertex numbers when the graph has
-    /// no vertex indices. Rows a representation lends (compressed sparse row) are copied whole.
-    /// Kept rather than `_compressedRows(readsEdges:dropsLoops:)`: the shared builder made the
-    /// copy from `successorIndices` about twice as slow (`pageRank()` on an `AdjacencyList` of
-    /// 5·10⁵ arcs, +23%).
+    /// The rows, every arc kept (edge numbers only when `readsEdges`), and the vertex numbers when
+    /// the graph has no vertex indices.
     @inlinable
     func _centralityRows(readsEdges: Bool) -> (rows: _CompressedRows, numbers: [Vertex: Int]?) {
-        if let n = vertexIndexBound {
-            if Edges.Index.self == Int.self, let rows = _withSuccessorIndexRows({ offsets, targets in
-                // Slot k is the edge with index k.
-                _CompressedRows(offsets: Array(offsets), targets: Array(targets), edges: readsEdges ? Array(0 ..< targets.count) : [])
-            }) {
-                return (rows, nil)
-            }
-            var offsets: [Int] = [0]
-            var targets: [Int] = [], edges: [Int] = []
-            offsets.reserveCapacity(n + 1)
-            targets.reserveCapacity(edgeCount)
-            guard readsEdges else {
-                for v in 0 ..< n {
-                    for w in successorIndices(ofIndex: v) {
-                        precondition(UInt(bitPattern: w) < UInt(bitPattern: n), "A successor index is out of range")
-                        targets.append(w)
-                    }
-                    offsets.append(targets.count)
-                }
-                return (_CompressedRows(offsets: offsets, targets: targets, edges: []), nil)
-            }
-            edges.reserveCapacity(edgeCount)
-            let indexed = edgeIndexBound != nil
-            let numbers = indexed ? [:] : _edgeNumbers()
-            for v in 0 ..< n {
-                var successors = successorIndices(ofIndex: v).makeIterator()
-                for position in outEdges(ofIndex: v) {
-                    guard let w = successors.next() else { preconditionFailure("successorIndices and outEdges differ in length") }
-                    precondition(UInt(bitPattern: w) < UInt(bitPattern: n), "A successor index is out of range")
-                    targets.append(w)
-                    edges.append(indexed ? edgeIndex(of: position) : numbers[position]!)
-                }
-                precondition(successors.next() == nil, "successorIndices and outEdges differ in length")
-                offsets.append(targets.count)
-            }
-            return (_CompressedRows(offsets: offsets, targets: targets, edges: edges), nil)
-        }
-        let listed = Array(vertices)
-        let vertexNumbers = _vertexNumbers(listed)
-        let indexed = edgeIndexBound != nil
-        let numbers = !readsEdges || indexed ? [:] : _edgeNumbers()
-        var offsets: [Int] = [0]
-        var targets: [Int] = [], edges: [Int] = []
-        offsets.reserveCapacity(listed.count + 1)
-        targets.reserveCapacity(edgeCount)
-        for v in listed {
-            for position in outEdges(of: v) {
-                targets.append(vertexNumbers[target(ofEdgeAt: position)]!)
-                if readsEdges { edges.append(indexed ? edgeIndex(of: position) : numbers[position]!) }
-            }
-            offsets.append(targets.count)
-        }
-        return (_CompressedRows(offsets: offsets, targets: targets, edges: edges), vertexNumbers)
+        let copied = _compressedRows(readsEdges: readsEdges, dropsLoops: false)
+        return (copied.rows, copied.numbering?.numbers)
     }
 }
 

@@ -62,23 +62,12 @@ extension DirectedGraph {
         var vertices = ContiguousArray<Vertex>()
         vertices.reserveCapacity(order.count)
         var parents = [Int](repeating: -1, count: order.count)
-        var dense = Vertex.self == Int.self
         for (k, id) in order.enumerated() {
-            let v = search.ids.vertex(id)
-            if dense, v as! Int != k { dense = false }
-            vertices.append(v)
+            vertices.append(search.ids.vertex(id))
             // `discovery` numbers the vertices in discovery order, as `order` lists them.
             let p = search.parent[id]
             if p >= 0 { parents[k] = search.discovery[p] }
         }
-        var slots: [Vertex: Int] = [:]
-        if !dense {
-            slots.reserveCapacity(vertices.count)
-            for (k, v) in vertices.enumerated() { slots[v] = k }
-        }
-        guard let layout = _TreeLayout.fromParents(vertices: vertices, slots: slots, dense: dense, parents: parents) else {
-            preconditionFailure("A search tree has one root")
-        }
-        return Arborescence(RootedTree(_layout: layout))
+        return Arborescence(vertices: vertices, parents: parents)
     }
 }

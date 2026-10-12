@@ -344,19 +344,11 @@ public struct DominanceFrontiers<G: DirectedGraph> {
             }
         }
         // Group by runner; within a group, y is increasing because the outer loop is.
-        var offsets = [Int](repeating: 0, count: n + 1)
-        for r in runners { offsets[r + 1] += 1 }
-        for v in 0 ..< n { offsets[v + 1] += offsets[v] }
-        var next = offsets
-        var grouped = [Int](repeating: 0, count: members.count)
-        for (r, y) in zip(runners, members) {
-            grouped[next[r]] = y
-            next[r] += 1
-        }
+        let (offsets, order) = _countingSort(labels: runners, count: n)
         _vertices = vertices
         _reachable = result.dfn.map { $0 >= 0 }
         _offsets = offsets
-        _members = grouped.map { vertices.vertex($0) }
+        _members = order.map { vertices.vertex(members[$0]) }
     }
 
     /// The dominance frontier of `vertex`, in `vertices` order; `nil` when the root does not reach

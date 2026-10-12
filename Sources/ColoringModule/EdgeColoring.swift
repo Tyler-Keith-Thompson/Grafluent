@@ -24,23 +24,14 @@ public struct EdgeColoring<G: Graph> {
     /// edge index, which `Graph`'s laws put in `edges` order.
     @inlinable
     init(_ graph: G, colors: [Int]) {
-        let m = colors.count
         let positions = Array(graph.edges.indices)
         var k = 0
         for c in colors where c >= k { k = c + 1 }
-        var offsets = [Int](repeating: 0, count: k + 1)
-        for c in colors { offsets[c + 1] += 1 }
-        for c in 0 ..< k { offsets[c + 1] += offsets[c] }
-        var fill = offsets
-        var members = positions
-        for e in 0 ..< m {
-            members[fill[colors[e]]] = positions[e]
-            fill[colors[e]] += 1
-        }
+        let (offsets, order) = _countingSort(labels: colors, count: k)
         _graph = graph
         _positions = graph.edgeIndexBound == nil ? positions : []
         _colors = colors
-        _members = members
+        _members = order.map { positions[$0] }
         _offsets = offsets
     }
 

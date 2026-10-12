@@ -128,12 +128,12 @@ MUTANTS = [
     Mutant("da_reached", "DominatorTree+Arborescence.swift",
            "tree._enter[v] >= 0",
            "true"),
+    Mutant("df_members", "Dominators.swift",
+           "order.map { vertices.vertex(members[$0]) }",
+           "order.map { vertices.vertex($0) }"),
     Mutant("da_parent", "DominatorTree+Arborescence.swift",
            "parents[number[v]] = number[tree._idom[v]]",
            "parents[number[v]] = tree._idom[v]"),
-    Mutant("da_dense", "DominatorTree+Arborescence.swift",
-           "v as! Int != k",
-           "false"),
 
     # reuse pass (C)
     Mutant("pooledcursor", "DirectedGraph.swift",

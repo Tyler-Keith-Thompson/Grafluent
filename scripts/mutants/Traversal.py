@@ -43,9 +43,10 @@ MUTANTS = [
     Mutant("st_parent", "SearchTrees.swift",
            "search.discovery[p]",
            "p"),
-    Mutant("st_dense", "SearchTrees.swift",
-           "v as! Int != k",
-           "false"),
+    # The shared conversion in Trees: Int vertices taken as 0..<n in order whatever they are.
+    Mutant("st_dense", "Arborescence.swift",
+           "_TreeLayout.numbering(vertices)",
+           "(slots: [Vertex: Int](), dense: true)", module="Trees"),
     # The search's depthLimit argument: the 6th and 12th `depthLimit` in the file.
     Mutant("st_bfs_limit", "SearchTrees.swift",
            "depthLimit",

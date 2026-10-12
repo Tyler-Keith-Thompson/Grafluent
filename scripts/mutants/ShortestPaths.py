@@ -136,7 +136,4 @@ MUTANTS = [
     Mutant("sa_parent", "ShortestPathTree.swift",
            "parents[number[i]] = number[parent[i]]",
            "parents[number[i]] = parent[i]"),
-    Mutant("sa_dense", "ShortestPathTree.swift",
-           "v as! Int != k",
-           "false"),
 ]

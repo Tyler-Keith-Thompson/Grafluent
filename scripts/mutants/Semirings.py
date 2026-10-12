@@ -220,4 +220,6 @@ MUTANTS = [
     Mutant("unemptysources", UN, 'precondition(!sources.isEmpty, "A shortest-path search needs at least one source")', "", mode="stmt", module=SP),
     Mutant("unvertex", UN, 'precondition(contains(s), "\\(s) is not a vertex")', "", mode="stmt", module=SP),
     Mutant("unnativetarget", UN, "target.map { view._index(of: $0, ids) } ?? -1", "-1", module=SP),
+    # dagShortestDistances(from: []): the one caller that allows no sources.
+    Mutant("emptysources", "ShortestPathTree.swift", "allowsEmpty || !indices.isEmpty", "!indices.isEmpty", module=SP),
 ]

@@ -45,6 +45,21 @@ public struct Arborescence<Vertex: Hashable> {
         _layout = layout
     }
 
+    /// The arborescence on `vertices` (distinct) in which the k-th vertex's parent is the
+    /// `parents[k]`-th, -1 for the root: the tree-shaped results of other modules (search trees,
+    /// shortest-path trees, dominator trees) convert through it. Numbered without a table when
+    /// the vertices are the `Int`s `0..<n` in order. O(n).
+    ///
+    /// - Precondition: `parents` is a tree with one root.
+    @inlinable
+    package init(vertices: ContiguousArray<Vertex>, parents: [Int]) {
+        let (slots, dense) = _TreeLayout.numbering(vertices)
+        guard let layout = _TreeLayout.fromParents(vertices: vertices, slots: slots, dense: dense, parents: parents) else {
+            preconditionFailure("The parents do not form a tree with one root")
+        }
+        _layout = layout
+    }
+
     /// The rooted tree with every edge directed from parent to child. O(1).
     @inlinable
     public init(_ tree: RootedTree<Vertex>) {
