@@ -52,7 +52,7 @@ verify: test spm-test
 modules:
     python3 scripts/modules.py
 
-[doc('Plant the bugs in scripts/mutants/<module>.py and report survivors; only mutants whose code or tests changed run (--all: every one; --full-suite: no coverage-based test selection), e.g. just mutate ShortestPaths')]
+[doc('Plant the bugs in scripts/mutants/<module>.py and report survivors; only mutants whose code or tests changed run (--all: every one; --select: coverage-based test selection). Performance tests run only for survivors of the rest, and their kills count once confirmed against an unmutated run, e.g. just mutate ShortestPaths')]
 mutate module *args="":
     python3 {{PROJECT_ROOT}}/scripts/mutate.py {{module}} {{args}}
 
