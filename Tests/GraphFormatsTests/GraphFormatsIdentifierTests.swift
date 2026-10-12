@@ -40,6 +40,21 @@ struct GraphFormatsIdentifierTests {
         #expect(declared.vertexCount == 2 && declared.edgeCount == 1)
     }
 
+    @Test("DOT node defaults keep canonically equivalent names apart in 40 separate graphs")
+    func attributeNamesManyTables() throws {
+        // Each graph's defaults go in a fresh dictionary holding one name: a table of 2 buckets
+        // (capacity 1). The second name is compared with the first only when it lands in the same
+        // bucket, half the time, so a name check by canonical equivalence passes all 40 graphs
+        // with probability 2⁻⁴⁰ (about 9.1 × 10⁻¹³). Each pair is different, so its bucket bits are too.
+        for i in 0 ..< 40 {
+            let composed = "\u{E9}\(i)", decomposed = "e\u{301}\(i)"
+            var keys: [[Unicode.Scalar]] = []
+            _ = try DirectedPseudograph<String>(dot: "digraph { node [\"\(composed)\"=1, \"\(decomposed)\"=2] x }".utf8,
+                                                vertexAttribute: { _, key, _ in keys.append(Array(key.unicodeScalars)) })
+            #expect(keys == [Array(composed.unicodeScalars), Array(decomposed.unicodeScalars)], "\(i)")
+        }
+    }
+
     @Test("Attribute names compare by scalars: DOT defaults, GraphML key names and the writers' keys")
     func attributeNames() throws {
         let composed = "\u{E9}", decomposed = "e\u{301}"
