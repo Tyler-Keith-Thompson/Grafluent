@@ -96,6 +96,11 @@ extension DirectedGraph {
             }) {
                 return result
             }
+            if let result = _withCheckedOutIndexRows({ targets, targetRows, _, _ in
+                _tarjan(count: n, stopAfterFirst: stopAfterFirst) { _PooledRowCursor(row: $0, targets: targets, targetRows: targetRows) }
+            }) {
+                return result
+            }
             return _tarjan(count: n, stopAfterFirst: stopAfterFirst) { successorIndices(ofIndex: $0).makeIterator() }
         }
         if let rows = vertices.rows {

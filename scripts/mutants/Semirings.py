@@ -151,8 +151,6 @@ MUTANTS = [
     Mutant("hzeroarc", BF, "guard w != .zero else { continue }", "", mode="stmt", module=SP),
     Mutant("habsorbing", BF, "(w as! any _SaturatingSemiring)._isSaturated", "false", module=SP),
     Mutant("hcomponent", BF, "component[targets[a]] == component[u]", "true", module=SP),
-    Mutant("hlowback", BF, "low[v] = min(low[v], order[w])", "", mode="stmt", module=SP),
-    Mutant("hlowup", BF, "low[parentCall.vertex] = min(low[parentCall.vertex], low[v])", "", mode="stmt", module=SP),
     Mutant("hfinite", BF, "!absorbing[a]", "true", module=SP),
     Mutant("hstart", BF, "[W](repeating: .one, count: k)", "[W](repeating: .zero, count: k)", module=SP),
     Mutant("hrounds", BF, "round < k", "round < k - 1", module=SP),

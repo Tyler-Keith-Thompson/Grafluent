@@ -552,4 +552,5 @@ simple lists use about 64 bytes plus one entry per edge.
     `_withOutIndexRows` modelled on `_withIncidentIndexRows` (rows with start, length, unused)
     would let directed algorithms read `AdjacencyList` and `DirectedPseudograph` rows without
     retaining per vertex. That is a GraphProtocols change benefiting both, and outside this
-    module.
+    module. Done in the reuse pass (2026-10-12): `DirectedPseudograph` lends its pooled rows
+    and `DirectedMultigraph` forwards them.

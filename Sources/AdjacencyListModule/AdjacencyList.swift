@@ -867,6 +867,19 @@ extension AdjacencyList: BidirectionalDirectedGraph {
     /// The position itself. O(1).
     @inlinable
     public func edgeIndex(of position: Int) -> Int { position }
+
+    /// The stored rows: `_out` and `_outEdges`, whose entries are slots and edge positions.
+    @inlinable
+    public func _withOutIndexRows<Result>(
+        _ body: (
+            _ targets: UnsafeBufferPointer<Int>, _ targetRows: UnsafeBufferPointer<Int>,
+            _ edges: UnsafeBufferPointer<Int>, _ edgeRows: UnsafeBufferPointer<Int>
+        ) -> Result
+    ) -> Result? {
+        _out.withUnsafeRows { targets, targetRows in
+            _outEdges.withUnsafeRows { edges, edgeRows in body(targets, targetRows, edges, edgeRows) }
+        }
+    }
 }
 
 extension AdjacencyList {

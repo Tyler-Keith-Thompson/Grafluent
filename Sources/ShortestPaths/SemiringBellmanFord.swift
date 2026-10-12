@@ -1,3 +1,4 @@
+import Connectivity
 import GraphProtocols
 import Semirings
 
@@ -106,51 +107,10 @@ struct _SemiringBellmanFord<G: DirectedGraph, W: SelectiveSemiring>: _IndexSpace
             }
             offsets.append(targets.count)
         }
-        // Tarjan's strongly connected components, iteratively.
-        var order = [Int](repeating: -1, count: k)
-        var low = [Int](repeating: 0, count: k)
-        var component = [Int](repeating: -1, count: k)
-        var onStack = [Bool](repeating: false, count: k)
-        var stack: [Int] = []
-        var calls: [(vertex: Int, arc: Int)] = []
-        var counter = 0
-        var components = 0
-        for root in 0 ..< k where order[root] < 0 {
-            order[root] = counter
-            low[root] = counter
-            counter += 1
-            stack.append(root)
-            onStack[root] = true
-            calls.append((root, offsets[root]))
-            while let (v, a) = calls.last {
-                if a < offsets[v + 1] {
-                    calls[calls.count - 1].arc = a + 1
-                    let w = targets[a]
-                    if order[w] < 0 {
-                        order[w] = counter
-                        low[w] = counter
-                        counter += 1
-                        stack.append(w)
-                        onStack[w] = true
-                        calls.append((w, offsets[w]))
-                    } else if onStack[w] {
-                        low[v] = min(low[v], order[w])
-                    }
-                    continue
-                }
-                calls.removeLast()
-                if let parentCall = calls.last {
-                    low[parentCall.vertex] = min(low[parentCall.vertex], low[v])
-                }
-                if low[v] == order[v] {
-                    while true {
-                        let x = stack.removeLast()
-                        onStack[x] = false
-                        component[x] = components
-                        if x == v { break }
-                    }
-                    components += 1
-                }
+        // Strongly connected components: Connectivity's Tarjan.
+        let component = offsets.withUnsafeBufferPointer { offsets in
+            targets.withUnsafeBufferPointer { targets in
+                _tarjan(count: k) { _RowCursor(row: $0, offsets: offsets, targets: targets) }.labels
             }
         }
         for u in 0 ..< k {

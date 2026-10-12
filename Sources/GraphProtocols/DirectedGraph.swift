@@ -180,6 +180,25 @@ public protocol DirectedGraph<Vertex> {
     func _withSuccessorIndexRows<Result>(
         _ body: (_ offsets: UnsafeBufferPointer<Int>, _ targets: UnsafeBufferPointer<Int>) -> Result
     ) -> Result?
+
+    /// For representations that store out-adjacency as rows in index space, each row in its own
+    /// block of a shared pool (`AdjacencyList`): calls `body` with the target storage and its row
+    /// table, and the edge-position storage and its row table, and returns its result. A row table
+    /// holds three entries per vertex index `v`: the row's start in the storage, its length, and
+    /// one more the algorithm ignores; so `successorIndices(ofIndex: v)` is
+    /// `targets[targetRows[3v] ..< targetRows[3v] + targetRows[3v + 1]]`, and `outEdges(ofIndex: v)`
+    /// likewise from `edges` and `edgeRows`. Only for a graph whose `Edges.Index` is `Int`. The
+    /// buffers are valid only during the call. Default: `nil`, without calling `body`.
+    ///
+    /// Not for use outside the library, as `_withSuccessorIndexRows`; algorithms read the rows
+    /// through `_withCheckedOutIndexRows(_:)`, which checks the tables' bounds once. A view that
+    /// changes adjacency (a subgraph, a filter) must not forward it.
+    func _withOutIndexRows<Result>(
+        _ body: (
+            _ targets: UnsafeBufferPointer<Int>, _ targetRows: UnsafeBufferPointer<Int>,
+            _ edges: UnsafeBufferPointer<Int>, _ edgeRows: UnsafeBufferPointer<Int>
+        ) -> Result
+    ) -> Result?
 }
 
 /// A directed graph that also answers in-neighborhoods: Boost's `BidirectionalGraph`. Kept apart
@@ -321,6 +340,38 @@ extension DirectedGraph {
     }
 
     @inlinable
+    public func _withOutIndexRows<Result>(
+        _ body: (
+            _ targets: UnsafeBufferPointer<Int>, _ targetRows: UnsafeBufferPointer<Int>,
+            _ edges: UnsafeBufferPointer<Int>, _ edgeRows: UnsafeBufferPointer<Int>
+        ) -> Result
+    ) -> Result? {
+        nil
+    }
+
+    /// `_withOutIndexRows(_:)`, with every row checked once to lie in bounds in both storages and
+    /// the two rows of a vertex equally long, O(n), so `body` may read them unchecked. `nil`
+    /// without vertex indices or stored rows.
+    @inlinable
+    @inline(__always)
+    package func _withCheckedOutIndexRows<Result>(
+        _ body: (
+            _ targets: UnsafeBufferPointer<Int>, _ targetRows: UnsafeBufferPointer<Int>,
+            _ edges: UnsafeBufferPointer<Int>, _ edgeRows: UnsafeBufferPointer<Int>
+        ) -> Result
+    ) -> Result? {
+        guard let n = vertexIndexBound else { return nil }
+        return _withOutIndexRows { targets, targetRows, edges, edgeRows in
+            precondition(targetRows.count >= 3 * n && edgeRows.count >= 3 * n, "The row tables are shorter than vertexIndexBound")
+            for v in 0 ..< n {
+                let (ts, tl, es, el) = (targetRows[3 * v], targetRows[3 * v + 1], edgeRows[3 * v], edgeRows[3 * v + 1])
+                precondition(tl == el && tl >= 0 && ts >= 0 && es >= 0 && ts + tl <= targets.count && es + el <= edges.count, "Row \(v) of the out-adjacency tables is out of bounds")
+            }
+            return body(targets, targetRows, edges, edgeRows)
+        }
+    }
+
+    @inlinable
     public func vertexIndex(of vertex: Vertex) -> Int {
         preconditionFailure("\(Self.self) has no vertex indices; check vertexIndexBound first")
     }
@@ -411,6 +462,33 @@ package struct _RowCursor: IteratorProtocol {
     package mutating func next() -> Int? {
         guard position < end else { return nil }
         defer { position += 1 }
+        return targets[position]
+    }
+}
+
+/// A cursor over the targets of one row of `_withOutIndexRows`: an iterator that holds no
+/// reference. Unchecked: the tables are checked once by `_withCheckedOutIndexRows(_:)`.
+@frozen
+@usableFromInline
+package struct _PooledRowCursor: IteratorProtocol {
+    @usableFromInline var position: Int
+    @usableFromInline let end: Int
+    @usableFromInline let targets: UnsafePointer<Int>
+
+    @inlinable
+    @inline(__always)
+    package init(row: Int, targets: UnsafeBufferPointer<Int>, targetRows: UnsafeBufferPointer<Int>) {
+        position = targetRows[3 &* row]
+        end = position &+ targetRows[3 &* row &+ 1]
+        // A placeholder when there are no edges at all; never read.
+        self.targets = targets.baseAddress ?? UnsafePointer(bitPattern: MemoryLayout<Int>.alignment)!
+    }
+
+    @inlinable
+    @inline(__always)
+    package mutating func next() -> Int? {
+        guard position < end else { return nil }
+        defer { position &+= 1 }
         return targets[position]
     }
 }

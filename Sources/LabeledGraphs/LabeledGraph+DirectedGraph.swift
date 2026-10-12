@@ -305,6 +305,17 @@ extension LabeledGraph: DirectedGraph where Base: DirectedGraph<Int> {
     ) -> Result? {
         _base._withSuccessorIndexRows(body)
     }
+
+    /// The base's pooled rows, when it has them (`AdjacencyList`), valid here for the same reason.
+    @inlinable
+    public func _withOutIndexRows<Result>(
+        _ body: (
+            _ targets: UnsafeBufferPointer<Int>, _ targetRows: UnsafeBufferPointer<Int>,
+            _ edges: UnsafeBufferPointer<Int>, _ edgeRows: UnsafeBufferPointer<Int>
+        ) -> Result
+    ) -> Result? {
+        _base._withOutIndexRows(body)
+    }
 }
 
 extension LabeledGraph where Base: DirectedGraph<Int> {

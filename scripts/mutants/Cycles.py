@@ -68,4 +68,7 @@ MUTANTS = [
     # Preconditions
     Mutant("negativebound", "SimpleCycles.swift", "maxLength >= 0", "true", nth=1),
     Mutant("negativeboundundirected", "SimpleCycles.swift", "maxLength >= 0", "true", nth=3),
+
+    # reuse pass (C)
+    Mutant("girthsccsize", "Girth.swift", "size[components[v]] >= 2", "size[components[v]] >= 3"),
 ]

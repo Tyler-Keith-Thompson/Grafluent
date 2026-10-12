@@ -43,6 +43,16 @@ extension DirectedAcyclicGraph: DirectedGraph {
     ) -> Result? {
         _base._withSuccessorIndexRows(body)
     }
+
+    @inlinable
+    public func _withOutIndexRows<Result>(
+        _ body: (
+            _ targets: UnsafeBufferPointer<Int>, _ targetRows: UnsafeBufferPointer<Int>,
+            _ edges: UnsafeBufferPointer<Int>, _ edgeRows: UnsafeBufferPointer<Int>
+        ) -> Result
+    ) -> Result? {
+        _base._withOutIndexRows(body)
+    }
 }
 
 extension DirectedAcyclicGraph: BidirectionalDirectedGraph {

@@ -159,7 +159,7 @@ extension DirectedGraph {
     /// `edges`) only when `readsEdges`, self-loops dropped when `dropsLoops`; and the vertices
     /// listed and numbered when the graph has no vertex indices. Rows a representation lends
     /// (`_withSuccessorIndexRows`) are copied whole when no loop is dropped, with slot `k` as
-    /// edge `k`.
+    /// edge `k`; pooled rows (`_withOutIndexRows`) a row at a time.
     @inlinable
     package func _compressedRows(readsEdges: Bool, dropsLoops: Bool) -> (rows: _CompressedRows, numbering: (listed: [Vertex], numbers: [Vertex: Int])?) {
         if let n = vertexIndexBound {
@@ -183,6 +183,36 @@ extension DirectedGraph {
                     kept.append(keptTargets.count)
                 }
                 return _CompressedRows(offsets: kept, targets: keptTargets, edges: keptEdges)
+            }) {
+                return (rows, nil)
+            }
+            if Edges.Index.self == Int.self, !readsEdges || edgeIndexBound != nil, let rows = _withCheckedOutIndexRows({ pooled, pooledRows, pooledEdges, edgeRows -> _CompressedRows in
+                var offsets: [Int] = [0]
+                var targets: [Int] = [], edges: [Int] = []
+                offsets.reserveCapacity(n + 1)
+                targets.reserveCapacity(pooled.count)
+                if readsEdges { edges.reserveCapacity(pooled.count) }
+                for v in 0 ..< n {
+                    let start = pooledRows[3 * v], length = pooledRows[3 * v + 1], edgeStart = edgeRows[3 * v]
+                    let row = UnsafeBufferPointer(rebasing: pooled[start ..< start + length])
+                    // The largest as unsigned, so a negative index counts as out of range too.
+                    var largest: UInt = 0
+                    for w in row { largest = max(largest, UInt(bitPattern: w)) }
+                    precondition(length == 0 || largest < UInt(bitPattern: n), "A successor index is out of range")
+                    if dropsLoops {
+                        for k in 0 ..< length where row[k] != v {
+                            targets.append(row[k])
+                            if readsEdges { edges.append(edgeIndex(of: unsafeBitCast(pooledEdges[edgeStart + k], to: Edges.Index.self))) }
+                        }
+                    } else {
+                        targets.append(contentsOf: row)
+                        if readsEdges {
+                            for k in 0 ..< length { edges.append(edgeIndex(of: unsafeBitCast(pooledEdges[edgeStart + k], to: Edges.Index.self))) }
+                        }
+                    }
+                    offsets.append(targets.count)
+                }
+                return _CompressedRows(offsets: offsets, targets: targets, edges: edges)
             }) {
                 return (rows, nil)
             }

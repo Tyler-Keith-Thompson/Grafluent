@@ -178,5 +178,6 @@ its ID; tests without an ID check laws, properties or conformance that the catal
 | Complexity (O(1) `edgeCount(between:)` and `remove(edge:)`, the class map's cost against `UndirectedAdjacencyList`, `Pseudograph(multigraph)` in O(1), no copy of shared storage on a no-op or trapping mutation) | Benchmarks; the stress tests bound costs loosely, and the copy-on-write test checks values only |
 | A trapping `insert(edge:)` on a multigraph leaving no stray vertex | The trap ends the child process, so its state cannot be observed |
 | `_withSuccessorIndexRows` on the directed types | An underscored hook whose value api.md fixes (`nil`) as an implementation choice, not a contract |
+| `_withOutIndexRows` beyond agreement with `successorIndices`/`outEdges` | MultigraphOutIndexRowsTests (underscored API, added in the reuse pass) checks only that the lent rows are the stored ones |
 | Phase 2 (`selfLoopCount`, `hasParallelEdges`, `isSimple`, dictionary literals, `init(adjacency:)`, bulk insertion, contraction) | Not in phase 1 |
 | NetworkX on random graphs (`just diff`) | Not Swift tests; `ref.py` checks every catalog row and 1,200 random sequences against NetworkX 3.7, and the property tests use the documented rules as their oracle |

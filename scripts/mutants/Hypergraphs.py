@@ -314,9 +314,6 @@ MUTANTS = [
 
     # Directed algorithms: components.
     Mutant("strongheads", B, "for j in targetIndices(ofHyperedgeAt: position) { targets.append(j) }", "for j in sourceIndices(ofHyperedgeAt: position) { targets.append(j) }", mode="stmt"),
-    Mutant("strongcross", B, "component[next] < 0", "true"),
-    Mutant("stronglowlink", B, "if low[node] < low[parent] { low[parent] = low[node] }", "", mode="stmt"),
-    Mutant("strongroot", B, "low[node] == order[node]", "true"),
     Mutant("strongtest", B, "for i in 1 ..< n where component[i] != first { return false }", "", mode="stmt"),
     Mutant("strongempty", B, "        guard n > 0 else { return false }", "", mode="stmt"),
     Mutant("stronggroups", B, "groups[label[c]].append(vertex(atIndex: i))", "groups[0].append(vertex(atIndex: i))", mode="stmt"),

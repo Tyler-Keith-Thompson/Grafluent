@@ -1,4 +1,5 @@
 import AdjacencyListModule
+import Connectivity
 import DisjointSetModule
 import GraphProtocols
 import OrderedCollections
@@ -225,7 +226,7 @@ extension DirectedHypergraph {
     }
 
     /// For each node of the incidence graph (vertex indices, then `n +` hyperedge index), the
-    /// number of its strong component, by Tarjan's algorithm.
+    /// number of its strong component, by Connectivity's Tarjan.
     @inlinable
     internal func _strongComponentLabels() -> [Int] {
         let (n, m) = _indexBounds()
@@ -247,76 +248,11 @@ extension DirectedHypergraph {
             p &+= 1
             offsets[p] = targets.count
         }
-        var component = [Int](repeating: -1, count: count)
-        var order = [Int](repeating: -1, count: count)
-        var low = [Int](repeating: 0, count: count)
-        // The Tarjan stack, and the depth-first path as (node, next successor slot) pairs.
-        var stack = [Int](repeating: 0, count: count)
-        var pathNodes = [Int](repeating: 0, count: count)
-        var pathCursors = [Int](repeating: 0, count: count)
-        offsets.withUnsafeBufferPointer { offsets in
+        return offsets.withUnsafeBufferPointer { offsets in
             targets.withUnsafeBufferPointer { targets in
-                component.withUnsafeMutableBufferPointer { component in
-                    order.withUnsafeMutableBufferPointer { order in
-                        low.withUnsafeMutableBufferPointer { low in
-                            stack.withUnsafeMutableBufferPointer { stack in
-                                pathNodes.withUnsafeMutableBufferPointer { pathNodes in
-                                    pathCursors.withUnsafeMutableBufferPointer { pathCursors in
-                                        var counter = 0, components = 0, stackTop = 0
-                                        for root in 0 ..< count where order[root] < 0 {
-                                            order[root] = counter
-                                            low[root] = counter
-                                            counter &+= 1
-                                            stack[stackTop] = root
-                                            stackTop &+= 1
-                                            pathNodes[0] = root
-                                            pathCursors[0] = offsets[root]
-                                            var depth = 1
-                                            while depth > 0 {
-                                                let node = pathNodes[depth &- 1]
-                                                let cursor = pathCursors[depth &- 1]
-                                                if cursor < offsets[node &+ 1] {
-                                                    pathCursors[depth &- 1] = cursor &+ 1
-                                                    let next = targets[cursor]
-                                                    if order[next] < 0 {
-                                                        order[next] = counter
-                                                        low[next] = counter
-                                                        counter &+= 1
-                                                        stack[stackTop] = next
-                                                        stackTop &+= 1
-                                                        pathNodes[depth] = next
-                                                        pathCursors[depth] = offsets[next]
-                                                        depth &+= 1
-                                                    } else if component[next] < 0, order[next] < low[node] {
-                                                        low[node] = order[next]
-                                                    }
-                                                    continue
-                                                }
-                                                depth &-= 1
-                                                if depth > 0 {
-                                                    let parent = pathNodes[depth &- 1]
-                                                    if low[node] < low[parent] { low[parent] = low[node] }
-                                                }
-                                                if low[node] == order[node] {
-                                                    while true {
-                                                        stackTop &-= 1
-                                                        let w = stack[stackTop]
-                                                        component[w] = components
-                                                        if w == node { break }
-                                                    }
-                                                    components &+= 1
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                _tarjan(count: count) { _RowCursor(row: $0, offsets: offsets, targets: targets) }.labels
             }
         }
-        return component
     }
 }
 

@@ -85,4 +85,9 @@ MUTANTS = [
     Mutant("ucheckedincident", UAL, "        return _incident[row: slot]", "        return _neighbors[row: slot]", mode="stmt"),
     Mutant("ucheckedindex", UAL, "        return slot\n", "        return slot &+ 1\n", mode="stmt", nth=0),
     Mutant("ucheckedinsert", UAL, "_slots[edge.v]", "Optional(_slots[edge.v] ?? 0)", nth=2),
+
+    # reuse pass (C): the pooled out-rows lent to algorithms, and their copy into compressed rows.
+    Mutant("outrowsedges", AL, "            _outEdges.withUnsafeRows { edges, edgeRows in body(targets, targetRows, edges, edgeRows) }", "            _out.withUnsafeRows { edges, edgeRows in body(targets, targetRows, edges, edgeRows) }", mode="stmt"),
+    Mutant("pooledloops", "CompressedRows.swift", "row[k] != v", "true", module="GraphProtocols"),
+    Mutant("pooledbulkedges", "CompressedRows.swift", "                            for k in 0 ..< length { edges.append(edgeIndex(of: unsafeBitCast(pooledEdges[edgeStart + k], to: Edges.Index.self))) }", "                            for k in 0 ..< length { edges.append(k) }", mode="stmt", module="GraphProtocols"),
 ]

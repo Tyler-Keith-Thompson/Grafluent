@@ -22,7 +22,7 @@ MUTANTS = [
            "unsafeBitCast(Swift.max(position - 1, 0), to: Index.self)"),
     Mutant("nohook", "IndexSpace.swift",
            "Edges.Index.self == Int.self",
-           "Edges.Index.self == String.self"),
+           "Edges.Index.self == String.self", nth=0),
 
     # Undirected
     Mutant("orient", "Undirected.swift",

@@ -1,7 +1,7 @@
 import GraphProtocols
 
 /// The out-edges of a vertex in index space, as (target index, edge position) pairs: what every
-/// engine in this module walks. Three sources, chosen once per run by `_runInIndexSpace`.
+/// engine in this module walks. Four sources, chosen once per run by `_runInIndexSpace`.
 @usableFromInline
 protocol _IndexSpaceAlgorithm {
     associatedtype G: DirectedGraph
@@ -37,6 +37,37 @@ struct _RowArcs<Index>: IteratorProtocol {
         defer { position += 1 }
         // `Index` is `Int` here: checked once, in `_runInIndexSpace`.
         return (targets[position], unsafeBitCast(position, to: Index.self))
+    }
+}
+
+/// A row of `_withOutIndexRows`: targets and edge positions from their pooled rows.
+@frozen
+@usableFromInline
+struct _PooledArcs<Index>: IteratorProtocol {
+    @usableFromInline var k: Int
+    @usableFromInline let end: Int
+    @usableFromInline let targets: UnsafePointer<Int>
+    @usableFromInline let edges: UnsafePointer<Int>
+
+    @inlinable
+    @inline(__always)
+    init(row: Int, targets: UnsafeBufferPointer<Int>, targetRows: UnsafeBufferPointer<Int>, edges: UnsafeBufferPointer<Int>, edgeRows: UnsafeBufferPointer<Int>) {
+        // Rows checked by `_withCheckedOutIndexRows`; placeholders when there are no edges at all,
+        // never read.
+        let placeholder = UnsafePointer<Int>(bitPattern: MemoryLayout<Int>.alignment)!
+        k = 0
+        end = targetRows[3 &* row &+ 1]
+        self.targets = (targets.baseAddress ?? placeholder) + targetRows[3 &* row]
+        self.edges = (edges.baseAddress ?? placeholder) + edgeRows[3 &* row]
+    }
+
+    @inlinable
+    @inline(__always)
+    mutating func next() -> (Int, Index)? {
+        guard k < end else { return nil }
+        defer { k &+= 1 }
+        // `Index` is `Int` here: checked once, in `_runInIndexSpace`.
+        return (targets[k], unsafeBitCast(edges[k], to: Index.self))
     }
 }
 
@@ -104,7 +135,8 @@ extension DirectedGraph {
     }
 
     /// Runs `algorithm` over the cheapest out-edge source the graph offers: its rows (compressed
-    /// sparse row), its index-space rows, or a lookup per edge.
+    /// sparse row), its pooled rows (`_withOutIndexRows`), its index-space rows, or a lookup per
+    /// edge.
     @inlinable
     @inline(__always)
     func _runInIndexSpace<A: _IndexSpaceAlgorithm>(_ algorithm: A, _ ids: _VertexIdentifiers<Self>, weight: (Edges.Index) -> A.W) -> A.Output where A.G == Self {
@@ -112,6 +144,11 @@ extension DirectedGraph {
         if ids.isIndexed {
             if Edges.Index.self == Int.self, let output = _withSuccessorIndexRows({ offsets, targets in
                 algorithm.run(count: n, { _RowArcs<Edges.Index>(row: $0, offsets: offsets, targets: targets) }, weight)
+            }) {
+                return output
+            }
+            if Edges.Index.self == Int.self, let output = _withCheckedOutIndexRows({ targets, targetRows, edges, edgeRows in
+                algorithm.run(count: n, { _PooledArcs<Edges.Index>(row: $0, targets: targets, targetRows: targetRows, edges: edges, edgeRows: edgeRows) }, weight)
             }) {
                 return output
             }

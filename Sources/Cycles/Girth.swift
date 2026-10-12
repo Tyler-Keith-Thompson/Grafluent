@@ -1,3 +1,4 @@
+import Connectivity
 import GraphProtocols
 
 extension Graph {
@@ -116,55 +117,16 @@ func _girth(_ rows: _CycleRows) -> Int? {
 }
 
 /// Labels each vertex in a strong component of two or more vertices with its component, and
-/// leaves the others −1: Tarjan's algorithm, iteratively.
+/// leaves the others −1: Connectivity's Tarjan, then a size per component.
 @inlinable
 func _strongComponentLabels(_ rows: _CycleRows, _ labels: inout [Int]) {
     let n = rows.count
-    var disc = [Int](repeating: -1, count: n)
-    var low = [Int](repeating: 0, count: n)
-    var stack: [Int] = []
-    var frames: [(v: Int, slot: Int)] = []
-    var time = 0, components = 0
-    var members: [Int] = []
-    for root in 0 ..< n where disc[root] < 0 {
-        disc[root] = time
-        low[root] = time
-        time += 1
-        stack.append(root)
-        frames.append((root, rows.offsets[root]))
-        while let top = frames.last {
-            let v = top.v
-            if top.slot < rows.offsets[v + 1] {
-                frames[frames.count - 1].slot += 1
-                let w = rows.targets[top.slot]
-                if disc[w] < 0 {
-                    disc[w] = time
-                    low[w] = time
-                    time += 1
-                    stack.append(w)
-                    frames.append((w, rows.offsets[w]))
-                } else if low[w] >= 0 {
-                    low[v] = min(low[v], disc[w])
-                }
-            } else {
-                frames.removeLast()
-                if let parent = frames.last { low[parent.v] = min(low[parent.v], low[v]) }
-                if low[v] == disc[v] {
-                    var size = 0
-                    while true {
-                        let x = stack.removeLast()
-                        low[x] = -1
-                        members.append(x)
-                        size += 1
-                        if x == v { break }
-                    }
-                    if size >= 2 {
-                        for x in members.suffix(size) { labels[x] = components }
-                        components += 1
-                    }
-                    members.removeLast(size)
-                }
-            }
+    let (components, count, _) = rows.offsets.withUnsafeBufferPointer { offsets in
+        rows.targets.withUnsafeBufferPointer { targets in
+            _tarjan(count: n) { _RowCursor(row: $0, offsets: offsets, targets: targets) }
         }
     }
+    var size = [Int](repeating: 0, count: count)
+    for v in 0 ..< n { size[components[v]] += 1 }
+    for v in 0 ..< n where size[components[v]] >= 2 { labels[v] = components[v] }
 }
