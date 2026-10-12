@@ -12,12 +12,12 @@ struct _UnderlyingSimpleGraph {
     @usableFromInline var vertexCount: Int
     @usableFromInline var edgeCount: Int
     /// Two vertex numbers per simple edge, the lesser first.
-    @usableFromInline var ends: [Int]
+    @usableFromInline var ends: [Int32]
     /// Per simple edge, the edge number it stands for (empty when edge numbers were not read).
     @usableFromInline var representative: [Int]
     /// The rows: `rowEdges[rowStart[v] ..< rowStart[v + 1]]` are the simple edges at `v`.
-    @usableFromInline var rowStart: [Int]
-    @usableFromInline var rowEdges: [Int]
+    @usableFromInline var rowStart: [Int32]
+    @usableFromInline var rowEdges: [Int32]
     /// Whether more distinct pairs exist than the reader's limit allowed.
     @usableFromInline var exceeded: Bool
     /// With the copies kept: per edge number, its simple edge, or −2 for a self-loop.
@@ -33,11 +33,15 @@ struct _UnderlyingSimpleGraph {
 
     /// The vertex across simple edge `k` from `v`.
     @inlinable @inline(__always)
-    func other(_ k: Int, _ v: Int) -> Int { ends[2 &* k] == v ? ends[2 &* k &+ 1] : ends[2 &* k] }
+    func other(_ k: Int, _ v: Int) -> Int { Int(ends[2 &* k]) == v ? Int(ends[2 &* k &+ 1]) : Int(ends[2 &* k]) }
+
+    /// End `i` (0 or 1) of simple edge `k`.
+    @inlinable @inline(__always)
+    func end(_ k: Int, _ i: Int) -> Int { Int(ends[2 &* k &+ i]) }
 
     /// The simple graph from a list of pairs (each lesser end first, distinct), its rows built.
     @usableFromInline
-    init(vertexCount n: Int, edgeCount m: Int, ends: [Int], representative: [Int], exceeded: Bool,
+    init(vertexCount n: Int, edgeCount m: Int, ends: [Int32], representative: [Int], exceeded: Bool,
          simpleEdgeOf: [Int] = [], loops: [Int] = [], loopVertex: [Int] = [], firstEdge: [Int] = []) {
         vertexCount = n
         edgeCount = m
@@ -49,20 +53,21 @@ struct _UnderlyingSimpleGraph {
         self.loopVertex = loopVertex
         self.firstEdge = firstEdge
         // Rows by counting: each simple edge goes to both ends, in increasing edge number.
-        var start = [Int](repeating: 0, count: n + 1)
+        precondition(n + ends.count < _Int32Buffer.indexLimit, "Planarity: the graph is too large")
+        var start = [Int32](repeating: 0, count: n + 1)
         let s = ends.count / 2
-        var rows = [Int](repeating: 0, count: 2 * s)
+        var rows = [Int32](unsafeUninitializedCapacity: 2 * s) { _, count in count = 2 * s }
         ends.withUnsafeBufferPointer { ends in
             start.withUnsafeMutableBufferPointer { start in
-                for x in ends { start[x + 1] += 1 }
+                for x in ends { start[Int(x) + 1] += 1 }
                 for v in 0 ..< n { start[v + 1] += start[v] }
                 var fill = Array(start[0 ..< n])
                 rows.withUnsafeMutableBufferPointer { rows in
                     for k in 0 ..< s {
-                        let a = ends[2 * k], b = ends[2 * k + 1]
-                        rows[fill[a]] = k
+                        let a = Int(ends[2 * k]), b = Int(ends[2 * k + 1])
+                        rows[Int(fill[a])] = Int32(k)
                         fill[a] += 1
-                        rows[fill[b]] = k
+                        rows[Int(fill[b])] = Int32(k)
                         fill[b] += 1
                     }
                 }
@@ -70,6 +75,35 @@ struct _UnderlyingSimpleGraph {
         }
         rowStart = start
         rowEdges = rows
+    }
+
+    /// Runs the left-right engine on this graph's own arrays, without copying them.
+    func withLeftRight<R>(_ body: (inout _LeftRightPlanarity) -> R) -> R {
+        ends.withUnsafeBufferPointer { ends in
+            rowStart.withUnsafeBufferPointer { rowStart in
+                rowEdges.withUnsafeBufferPointer { rowEdges in
+                    var engine = _LeftRightPlanarity(n: vertexCount, ends: ends, rowStart: rowStart, rowEdges: rowEdges)
+                    return body(&engine)
+                }
+            }
+        }
+    }
+
+    /// Whether the graph is planar, by the left-right test.
+    @usableFromInline
+    func leftRightIsPlanar() -> Bool { withLeftRight { $0.isPlanar() } }
+
+    /// The embedding over every edge position, by the left-right test, or nil when not planar.
+    @usableFromInline
+    func leftRightEmbedding() -> _EmbeddingLayout? { withLeftRight { $0.embedding(self) } }
+
+    /// The simple edges of a Kuratowski subgraph, by Boyer–Myrvold, or nil when the graph is planar.
+    /// The engine lives here, not in inlinable code: a `~Copyable` value there trips the 6.3
+    /// compiler's cross-module inliner.
+    @usableFromInline
+    func boyerMyrvoldKuratowskiSubgraph() -> [Int]? {
+        var search = _BoyerMyrvold(self)
+        return search.findKuratowskiSubgraph()
     }
 
     /// The same graph plus an apex: vertex `n`, joined to every vertex. Outerplanarity is planarity
@@ -80,8 +114,8 @@ struct _UnderlyingSimpleGraph {
         var withApex = ends
         withApex.reserveCapacity(ends.count + 2 * n)
         for v in 0 ..< n {
-            withApex.append(v)
-            withApex.append(n)
+            withApex.append(Int32(v))
+            withApex.append(Int32(n))
         }
         return _UnderlyingSimpleGraph(vertexCount: n + 1, edgeCount: edgeCount + n, ends: withApex, representative: [], exceeded: false)
     }
@@ -111,7 +145,7 @@ struct _UnderlyingSimpleGraphReader: _UndirectedRowsAlgorithm {
     func run<Rows: _IncidenceRowSource>(count n: Int, edgeCount m: Int, _ rows: inout Rows) -> _UnderlyingSimpleGraph {
         var stamp = [Int](repeating: -1, count: n)
         var pairNumber = [Int](repeating: 0, count: n)
-        var ends: [Int] = []
+        var ends: [Int32] = []
         var representative: [Int] = []
         var simpleEdgeOf = keepsCopies ? [Int](repeating: -1, count: m) : []
         var loops: [Int] = []
@@ -154,8 +188,8 @@ struct _UnderlyingSimpleGraphReader: _UndirectedRowsAlgorithm {
                 }
                 stamp[w] = v
                 pairNumber[w] = count
-                ends.append(v)
-                ends.append(w)
+                ends.append(Int32(truncatingIfNeeded: v))
+                ends.append(Int32(truncatingIfNeeded: w))
                 if readsEdges {
                     let e = rows.edge(v, k)
                     precondition(UInt(bitPattern: e) < UInt(bitPattern: m), "An edge index is out of range")

@@ -139,7 +139,7 @@ TEST_SIZES = {name: "medium" for name in ["ColoringModuleTests", "DistancesTests
 
 # The library modules the differential harness (Differential/, scripts/differential.py) links.
 # Both its Package.swift and its BUILD.bazel are written from this list.
-DIFFERENTIAL_DEPENDENCIES = ["GraphProtocols", "AdjacencyListModule", "ShortestPaths", "SpanningTrees", "Connectivity", "Walks", "Cycles", "Trees", "TreeAlgorithms", "Distances", "Cliques", "Centrality", "CommunityDetection", "BipartiteGraphs", "MatchingModule", "Covering", "ColoringModule", "Multigraphs", "Flows", "Tours", "CompressedSparseRowModule", "DirectedAcyclicGraphModule"]
+DIFFERENTIAL_DEPENDENCIES = ["GraphProtocols", "AdjacencyListModule", "ShortestPaths", "SpanningTrees", "Connectivity", "Walks", "Cycles", "Trees", "TreeAlgorithms", "Distances", "Cliques", "Centrality", "CommunityDetection", "BipartiteGraphs", "MatchingModule", "Covering", "ColoringModule", "Multigraphs", "Flows", "Tours", "CompressedSparseRowModule", "DirectedAcyclicGraphModule", "Planarity"]
 
 PLATFORMS = '[.macOS(.v15), .iOS(.v18), .tvOS(.v18), .watchOS(.v11), .visionOS(.v2)]'
 

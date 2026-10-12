@@ -30,7 +30,7 @@ extension Graph {
 struct PlanarEmbedding<G: Graph>: CustomStringConvertible
     clockwiseIncidentEdges(of:), clockwiseIncidentEdges(safe:), clockwiseNeighbors(of:),
         clockwiseNeighbors(safe:), clockwiseNeighborIndices(ofIndex:)
-    faceCount, faces, face(from:alongEdgeAt:)
+    faceCount, faces, face(from:alongEdgeAt:), rightFace(from:alongEdgeAt:)
     dualGraph()                                         // phase 2
 struct KuratowskiSubgraph<G: Graph>: CustomStringConvertible
     kind (.k5, .k33), edges, branchVertices, paths
@@ -64,7 +64,8 @@ Every planar row checks the embedding against the definitions, written out in th
 - `clockwiseNeighbors`, `clockwiseNeighborIndices(ofIndex:)` and the `safe:` spellings say the same;
 - `faces` is exactly the orbits of the face permutation, in the documented order and from the
   documented start, computed in the test from the clockwise orders;
-- `face(from:alongEdgeAt:)` is the orbit from every half-edge (a sample of them on the largest rows);
+- `face(from:alongEdgeAt:)` is the orbit from every half-edge (a sample of them on the largest rows),
+  and `rightFace(from:alongEdgeAt:)` is that orbit's position in `faces`;
 - `faceCount` is Euler's count;
 - a second call returns the same embedding, `isPlanar` is true and there is no witness.
 
@@ -82,7 +83,8 @@ unique witness (K₅, K₃,₃, their subdivisions, with pendant parts or other 
 exactly. Where only one kind occurs, the kind is pinned. A second call returns the same witness.
 
 The catalog-row files are every file except `PlanarityConformanceTests.swift`,
-`PlanarityPropertyTests.swift` and `PlanarityStressTests.swift`. `swiftgen.py` generated them from
+`PlanarityPropertyTests.swift`, `PlanarityStressTests.swift`, `PlanarityDeepGraphTests.swift`,
+`PlanarityEngineBranchTests.swift` and `PlanarityLayoutTests.swift`. `swiftgen.py` generated them from
 `cases.md`; it sits next to `ref.py` and `cases.md` in
 [`Tests/Catalogs/Planarity/`](../Catalogs/Planarity/):
 
@@ -119,7 +121,22 @@ this process without the call, so the trap comes from the call and not from the 
   `isPlanar`, `isOuterplanar`, the embedding (one of the model's planar rotations) and the witness
   (its degrees). On graphs of up to 30 vertices, exactly one witness exists and meets the
   definitions; a chord drawn inside a face keeps the graph planar and adds one face; and a
-  Kuratowski subgraph is minimal, since deleting any of its edges leaves a planar graph.
+  Kuratowski subgraph is minimal, since deleting any of its edges leaves a planar graph. On graphs
+  of up to 14 vertices the two engines are cross-checked: Boyer–Myrvold on the graph plus an apex
+  agrees with `isOuterplanar`, reversing the labels and the edge order changes no answer, a second
+  call returns the same embedding and witness, and `rightFace` names the face that
+  `face(from:alongEdgeAt:)` walks.
+- **Deep graphs** (`PlanarityDeepGraphTests.swift`), depth-first trees 10⁵ or more vertices deep: a
+  200 000-vertex path; a 100 000-rung ladder and a 100 000-vertex polygon fan (both outerplanar,
+  the fan with exactly 2n − 3 edges, and not outerplanar after one more chord); a K₃,₃ with each
+  edge subdivided into 20 001 edges, whose witness is the whole graph; and a K₅ at the end of a
+  200 000-vertex path.
+- **Engine branches** (`PlanarityEngineBranchTests.swift`): the smallest graphs found where a
+  planted bug in one branch changes the outcome: an edge returning as low as its parent edge (the
+  left-right test's second-lowest return point), a Walkdown stopping vertex already beside the
+  root on the other side (the short-circuit's deviation from the reference implementation,
+  documented in `BoyerMyrvold.swift`), minor C attached above both x and y, and minor E2. Each is
+  checked against the definitions, the witnesses for minimality.
 - **Stress.** Each test has a one-minute limit:
   - a 120 × 120 triangulated grid (3-connected, so its embedding is unique: triangles and one
     outer face);
@@ -157,3 +174,16 @@ Swift, with the Kuratowski subgraph found by deletion. The suite caught every on
 | `face(from:alongEdgeAt:)` not trapping for a foreign edge | PL-127, extra traps |
 | Left-right nesting order without the chordal +1 | properties, conformance, stress |
 | Left-right conflict check skipped | PL-022, PL-024, properties |
+
+The implementation is checked by `just mutate Planarity` (scripts/mutants/Planarity.py): 100
+mutants over the reading of the simple graph and the shortcuts; the left-right test's
+orientation, nesting order, conflict pairs, side resolution and embedding search; the layout's
+rows, twins, copies, loops and face tracing; the public accessors; Boyer–Myrvold's set-up, Walkup
+and Walkdown (including the short-circuit beside the root); and the Kuratowski isolation, with a
+marking mutant in each of minors A–D, E1 (x side), E2, E3, E4 and the K₅ case, each caught, which
+shows each case is reached. Five survive as equivalent (two sorts that give the same order, a sign
+that is never 0, a choice between planar embeddings, and two Walkup stops that only cost time);
+the spec lists each with its reason. Survivors of the first runs led to changes:
+`PlanarityLayoutTests.swift` pins where a loop goes beside parallel copies; three mutants that
+only the randomized properties caught, some runs and not others, got the deterministic graphs in
+`PlanarityEngineBranchTests.swift`; and minor E1's mark on the y side, never read, was removed.

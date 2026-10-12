@@ -201,12 +201,14 @@ struct PlanarityInputTests {
         #expect(slots.values.allSatisfy { $0.count == 2 } && slots.count == graph.edgeCount)
         var seen = rotation.map { [Bool](repeating: false, count: $0.count) }
         var orbits: [(vertices: [Int], edges: [Int])] = []
+        var faceOf = rotation.map { [Int](repeating: -1, count: $0.count) }
         for i in rotation.indices {
             for s in rotation[i].indices where !seen[i][s] {
                 var vertices: [Int] = [], edges: [Int] = []
                 var (x, y) = (i, s)
                 repeat {
                     seen[x][y] = true
+                    faceOf[x][y] = orbits.count
                     vertices.append(vertexList[x])
                     edges.append(rotation[x][y])
                     let twin = slots[rotation[x][y]]!.first { $0 != (x, y) }!
@@ -233,6 +235,7 @@ struct PlanarityInputTests {
                 } while (x, y) != (i, s)
                 let face = embedding.face(from: vertexList[i], alongEdgeAt: rotation[i][s])
                 #expect(face.vertices == vertices + [vertexList[i]] && face.edges == edges)
+                #expect(embedding.rightFace(from: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
             }
         }
         #expect(embedding.faces.map(\.length).sorted(by: >) == [4, 2])

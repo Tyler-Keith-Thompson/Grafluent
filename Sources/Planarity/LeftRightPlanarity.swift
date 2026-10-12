@@ -7,11 +7,12 @@
 /// `ends[2k + 1]`. The embedding is a clockwise successor per half-edge, around its tail.
 @usableFromInline
 struct _LeftRightPlanarity: ~Copyable {
-    typealias Buffer = UnsafeMutableBufferPointer<Int>
+    typealias Buffer = _Int32Buffer
 
     var arena: _ScratchArena
     let n: Int
     let s: Int
+    /// The graph's own arrays, borrowed for the engine's lifetime (`_UnderlyingSimpleGraph.withLeftRight`).
     let ends: Buffer
     let rowStart: Buffer
     let rowEdges: Buffer
@@ -44,46 +45,43 @@ struct _LeftRightPlanarity: ~Copyable {
     let previousHalf: Buffer
     // Counting sort by nesting depth, keys in −(2n + 2) ... 2n + 2.
     let keyCounts: Buffer
+    /// The number of depth-first trees with an edge, counted by the embedding pass.
+    var componentsWithEdges = 0
 
-    @usableFromInline
-    init(_ graph: borrowing _UnderlyingSimpleGraph) {
-        let n = graph.vertexCount
-        let s = graph.simpleEdgeCount
+    /// An engine over `n` vertices and the simple edges in `ends`, with rows `rowStart`, `rowEdges`.
+    /// Only the arrays read before they are written are initialized.
+    init(n: Int, ends: UnsafeBufferPointer<Int32>, rowStart: UnsafeBufferPointer<Int32>, rowEdges: UnsafeBufferPointer<Int32>) {
+        let s = ends.count / 2
         self.n = n
         self.s = s
-        var arena = _ScratchArena(capacity: 10 * n + 2 * (n + 1) + 22 * s + 4 * n + 6)
-        ends = arena.take(2 * s, repeating: 0)
-        rowStart = arena.take(n + 1, repeating: 0)
-        rowEdges = arena.take(2 * s, repeating: 0)
+        self.ends = Buffer(ends)
+        self.rowStart = Buffer(rowStart)
+        self.rowEdges = Buffer(rowEdges)
+        var arena = _ScratchArena(capacity: 13 * n + 7 + 18 * s)
         height = arena.take(n, repeating: -1)
         parentEdge = arena.take(n, repeating: -1)
-        cursor = arena.take(n, repeating: 0)
         resuming = arena.take(n, repeating: 0)
-        dfsStack = arena.take(n, repeating: 0)
-        orderStart = arena.take(n + 1, repeating: 0)
-        leftRef = arena.take(n, repeating: -1)
-        rightRef = arena.take(n, repeating: -1)
-        firstHalf = arena.take(n, repeating: -1)
+        cursor = arena.takeUninitialized(n)
+        dfsStack = arena.takeUninitialized(n)
+        orderStart = arena.takeUninitialized(n + 1)
+        leftRef = arena.takeUninitialized(n)
+        rightRef = arena.takeUninitialized(n)
+        firstHalf = arena.takeUninitialized(n)
         source = arena.take(s, repeating: -1)
-        lowpt = arena.take(s, repeating: 0)
-        lowpt2 = arena.take(s, repeating: 0)
-        nesting = arena.take(s, repeating: 0)
         ref = arena.take(s, repeating: -1)
         side = arena.take(s, repeating: 1)
-        lowptEdge = arena.take(s, repeating: -1)
-        stackBottom = arena.take(s, repeating: 0)
-        ordered = arena.take(s, repeating: 0)
-        scratch = arena.take(s, repeating: 0)
-        pairs = arena.take(4 * s, repeating: -1)
+        lowpt = arena.takeUninitialized(s)
+        lowpt2 = arena.takeUninitialized(s)
+        nesting = arena.takeUninitialized(s)
+        lowptEdge = arena.takeUninitialized(s)
+        stackBottom = arena.takeUninitialized(s)
+        ordered = arena.takeUninitialized(s)
+        scratch = arena.takeUninitialized(s)
+        pairs = arena.takeUninitialized(4 * s)
         nextHalf = arena.takeUninitialized(2 * s)
         previousHalf = arena.takeUninitialized(2 * s)
-        keyCounts = arena.take(4 * n + 6, repeating: 0)
+        keyCounts = arena.takeUninitialized(4 * n + 6)
         self.arena = arena
-        for i in 0 ..< 2 * s {
-            ends[i] = graph.ends[i]
-            rowEdges[i] = graph.rowEdges[i]
-        }
-        for v in 0 ... n { rowStart[v] = graph.rowStart[v] }
     }
 
     @inline(__always)
@@ -101,11 +99,11 @@ struct _LeftRightPlanarity: ~Copyable {
     }
 
     /// The embedding of a planar graph over every edge position, or nil.
-    @usableFromInline
     mutating func embedding(_ graph: borrowing _UnderlyingSimpleGraph) -> _EmbeddingLayout? {
         guard isPlanar() else { return nil }
         embed()
-        return _EmbeddingLayout(graph, firstHalf: UnsafeBufferPointer(firstHalf), nextHalf: UnsafeBufferPointer(nextHalf), previousHalf: UnsafeBufferPointer(previousHalf))
+        // previousHalf is free once the rotation is built: the layout's scratch.
+        return _EmbeddingLayout(graph, firstHalf: firstHalf, nextHalf: nextHalf, componentsWithEdges: componentsWithEdges, scratch: previousHalf)
     }
 
     // MARK: Orientation
@@ -171,9 +169,10 @@ struct _LeftRightPlanarity: ~Copyable {
         }
     }
 
-    /// Each vertex's outgoing edges in increasing nesting depth, stable in edge number. The edges are placed in their tail's row; short rows are then sorted
-    /// in place by insertion, and when some row is long, two counting sorts (by key, then by tail)
-    /// order everything instead, so the whole is O(n + m).
+    /// Each vertex's outgoing edges in increasing nesting depth, stable in edge number. The edges
+    /// are placed in their tail's row; short rows are then sorted in place by insertion, and when
+    /// some row is long, two counting sorts (by key, then by tail) order everything instead, so the
+    /// whole is O(n + m).
     mutating func order() {
         for v in 0 ... n { orderStart[v] = 0 }
         for k in 0 ..< s { orderStart[source[k] + 1] += 1 }
@@ -405,12 +404,52 @@ struct _LeftRightPlanarity: ~Copyable {
 
     // MARK: Embedding
 
-    /// The third search: resolves each edge's side through its chain of references, reorders the
-    /// outgoing edges by signed nesting depth, then places each tree edge first at its child and
-    /// each back edge beside the tree edge it returns along, left or right.
+    /// The third search: resolves each edge's side through its chain of references, orders each
+    /// vertex's outgoing edges clockwise by signed nesting depth when the search first reaches it,
+    /// then places each tree edge first at its child and each back edge beside the tree edge it
+    /// returns along, left or right.
     mutating func embed() {
-        linkOutgoing()
-        placeIncoming()
+        var components = 0
+        for root in 0 ..< n where parentEdge[root] == -1 {
+            linkOutgoing(root)
+            if orderStart[root] == orderStart[root + 1] { continue }
+            components += 1
+            dfsStack[0] = root
+            var top = 1
+            while top > 0 {
+                top -= 1
+                let v = dfsStack[top]
+                let end = orderStart[v + 1]
+                var i = cursor[v]
+                while i < end {
+                    let k = scratch[i]
+                    i += 1
+                    // The edge leaves v: its head is its other end.
+                    let lesser = ends[2 * k]
+                    let atV = lesser == v ? 2 * k : 2 * k + 1
+                    let atW = atV ^ 1
+                    let w = lesser == v ? ends[2 * k + 1] : lesser
+                    if k == parentEdge[w] {
+                        cursor[v] = i
+                        linkOutgoing(w)
+                        insertFirst(atW, at: w)
+                        leftRef[v] = atV
+                        rightRef[v] = atV
+                        dfsStack[top] = v
+                        dfsStack[top + 1] = w
+                        top += 2
+                        break
+                    }
+                    if side[k] == 1 {
+                        insert(atW, after: rightRef[w])
+                    } else {
+                        insert(atW, before: leftRef[w])
+                        leftRef[w] = atW
+                    }
+                }
+            }
+        }
+        componentsWithEdges = components
     }
 
     /// The side of edge `k`: the product of the signs along its chain of references, each
@@ -436,82 +475,48 @@ struct _LeftRightPlanarity: ~Copyable {
         return side[k]
     }
 
-    /// Each vertex's outgoing edges clockwise in signed nesting order, derived from the unsigned
-    /// order in O(deg) per vertex: the left edges (side −1) by decreasing depth, then the right
-    /// edges by increasing depth. Rewrites `ordered` in that order and links the half-edges.
-    @inline(never)
-    func linkOutgoing() {
-        for v in 0 ..< n {
-            let first = orderStart[v], end = orderStart[v + 1]
-            guard first < end else { continue }
-            var out = first
-            var i = end - 1
-            while i >= first {
-                let k = ordered[i]
-                if resolvedSide(k) < 0 {
-                    scratch[out] = k
-                    out += 1
-                }
-                i -= 1
-            }
-            for i in first ..< end where side[ordered[i]] > 0 {
-                scratch[out] = ordered[i]
+    /// `v`'s outgoing edges clockwise in signed nesting order, derived from the unsigned order in
+    /// O(deg): the left edges (side −1) by decreasing depth, then the right edges by increasing
+    /// depth. Writes them to `scratch` in that order, links their half-edges into `v`'s ring, and
+    /// points `v`'s cursor at the first.
+    @inline(__always)
+    func linkOutgoing(_ v: Int) {
+        let first = orderStart[v], end = orderStart[v + 1]
+        cursor[v] = first
+        guard first < end else {
+            firstHalf[v] = -1
+            return
+        }
+        var out = first
+        var i = end - 1
+        while i >= first {
+            let k = ordered[i]
+            if resolvedSide(k) < 0 {
+                scratch[out] = k
                 out += 1
             }
-            var previous = -1
-            for i in first ..< end {
-                let k = scratch[i]
-                ordered[i] = k
-                let h = ends[2 * k] == v ? 2 * k : 2 * k + 1
-                if previous == -1 {
-                    firstHalf[v] = h
-                } else {
-                    nextHalf[previous] = h
-                    previousHalf[h] = previous
-                }
-                previous = h
-            }
-            nextHalf[previous] = firstHalf[v]
-            previousHalf[firstHalf[v]] = previous
+            i -= 1
         }
-    }
-
-    /// The incoming ends: each tree edge first at its child, each back edge beside the tree edge
-    /// it returns along, left or right.
-    @inline(never)
-    func placeIncoming() {
-        for v in 0 ..< n { cursor[v] = orderStart[v] }
-        for root in 0 ..< n where parentEdge[root] == -1 {
-            dfsStack[0] = root
-            var top = 1
-            while top > 0 {
-                top -= 1
-                let v = dfsStack[top]
-                let end = orderStart[v + 1]
-                while cursor[v] < end {
-                    let k = ordered[cursor[v]]
-                    cursor[v] += 1
-                    let w = target(k)
-                    let atV = ends[2 * k] == v ? 2 * k : 2 * k + 1
-                    let atW = atV ^ 1
-                    if k == parentEdge[w] {
-                        insertFirst(atW, at: w)
-                        leftRef[v] = atV
-                        rightRef[v] = atV
-                        dfsStack[top] = v
-                        dfsStack[top + 1] = w
-                        top += 2
-                        break
-                    }
-                    if side[k] == 1 {
-                        insert(atW, after: rightRef[w])
-                    } else {
-                        insert(atW, before: leftRef[w])
-                        leftRef[w] = atW
-                    }
-                }
-            }
+        for i in first ..< end where side[ordered[i]] > 0 {
+            scratch[out] = ordered[i]
+            out += 1
         }
+        var previous = -1
+        var head = -1
+        for i in first ..< end {
+            let k = scratch[i]
+            let h = ends[2 * k] == v ? 2 * k : 2 * k + 1
+            if previous == -1 {
+                head = h
+            } else {
+                nextHalf[previous] = h
+                previousHalf[h] = previous
+            }
+            previous = h
+        }
+        firstHalf[v] = head
+        nextHalf[previous] = head
+        previousHalf[head] = previous
     }
 
     /// Inserts `h` immediately clockwise after `r`.

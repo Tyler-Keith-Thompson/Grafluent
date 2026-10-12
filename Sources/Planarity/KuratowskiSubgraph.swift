@@ -1,9 +1,8 @@
 import GraphProtocols
 import Walks
 
-/// The two Kuratowski graphs: the complete graph K₅ and the complete bipartite graph K₃,₃. By
-/// Kuratowski's theorem (1930), a graph is planar exactly when it contains no subdivision of
-/// either.
+/// The two graphs of Kuratowski's theorem (1930), the complete graph K₅ and the complete bipartite
+/// graph K₃,₃: a graph is planar exactly when it contains no subdivision of either.
 @frozen
 public enum KuratowskiGraph: Hashable, Sendable, CaseIterable, CustomStringConvertible {
     /// K₅: five branch vertices, each pair joined.
@@ -45,7 +44,8 @@ public struct KuratowskiSubgraph<G: Graph> {
         var degree = [Int](repeating: 0, count: n)
         var incident = [Int](repeating: -1, count: 4 * n)
         for k in witness {
-            for end in [simple.ends[2 * k], simple.ends[2 * k + 1]] {
+            for i in 0 ... 1 {
+                let end = simple.end(k, i)
                 precondition(degree[end] < 4, "Planarity: a Kuratowski subgraph vertex of degree above 4")
                 incident[4 * end + degree[end]] = k
                 degree[end] += 1
@@ -53,8 +53,9 @@ public struct KuratowskiSubgraph<G: Graph> {
         }
         var branch: [Int] = []
         for k in witness {
-            for end in [simple.ends[2 * k], simple.ends[2 * k + 1]] where degree[end] > 2 && !branch.contains(end) {
-                branch.append(end)
+            for i in 0 ... 1 {
+                let end = simple.end(k, i)
+                if degree[end] > 2 && !branch.contains(end) { branch.append(end) }
             }
         }
         branch.sort()
@@ -102,6 +103,8 @@ public struct KuratowskiSubgraph<G: Graph> {
             }
             paths.append(Path(_uncheckedVertices: found.vertices.map(vertex), edges: found.edges.map(position)))
         }
+        // Each witness edge lies on exactly one path: no stray cycle beside the subdivision.
+        precondition(paths.reduce(0) { $0 + $1.edges.count } == witness.count, "Planarity: the Kuratowski subgraph has edges off its paths")
         kind = isK5 ? .k5 : .k33
         edges = witness.map { simple.representative[$0] }.sorted().map { positions[$0] }
         branchVertices = order.map(vertex)

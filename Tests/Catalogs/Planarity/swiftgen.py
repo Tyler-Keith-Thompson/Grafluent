@@ -14,9 +14,10 @@ Every planar row checks the embedding against the definitions in api.md, written
 each clockwise order is a permutation of the vertex's incident edges that starts at the first one,
 the three clockwise accessors and their `safe:` spellings agree, `faces` is exactly the orbits of
 the face permutation in the documented order, `face(from:alongEdgeAt:)` is the orbit from that
-half-edge, `faceCount` is Euler's count, and a second call returns the same embedding. Rows whose
-embedding is unique compare every clockwise order (as a cyclic order) with the model's embedding or
-its mirror image, the same one at every vertex. Every non-planar witness is checked to be a
+half-edge and `rightFace(from:alongEdgeAt:)` its position in `faces`, `faceCount` is Euler's
+count, and a second call returns the same embedding. Rows whose embedding is unique compare every
+clockwise order (as a cyclic order) with the model's embedding or its mirror image, the same one at
+every vertex. Every non-planar witness is checked to be a
 subdivision of its kind made of the graph's edges, with its branch vertices and internally disjoint
 paths in the documented order; a unique witness is pinned exactly. Graphs are `Pseudograph<Int>`
 (Multigraphs) with the row's vertices listed, so positions are the catalog's; `D:` rows are
@@ -158,12 +159,14 @@ def embedding_block(g, ind, face_count, lengths=None, mirror=None, sample=1):
     a(ind + "#expect(slots.values.allSatisfy { $0.count == 2 } && slots.count == graph.edgeCount)")
     a(ind + "var seen = rotation.map { [Bool](repeating: false, count: $0.count) }")
     a(ind + "var orbits: [(vertices: [Int], edges: [Int])] = []")
+    a(ind + "var faceOf = rotation.map { [Int](repeating: -1, count: $0.count) }")
     a(ind + "for i in rotation.indices {")
     a(ind + "    for s in rotation[i].indices where !seen[i][s] {")
     a(ind + "        var vertices: [Int] = [], edges: [Int] = []")
     a(ind + "        var (x, y) = (i, s)")
     a(ind + "        repeat {")
     a(ind + "            seen[x][y] = true")
+    a(ind + "            faceOf[x][y] = orbits.count")
     a(ind + "            vertices.append(vertexList[x])")
     a(ind + "            edges.append(rotation[x][y])")
     a(ind + "            let twin = slots[rotation[x][y]]!.first { $0 != (x, y) }!")
@@ -194,6 +197,7 @@ def embedding_block(g, ind, face_count, lengths=None, mirror=None, sample=1):
     a(ind + "        } while (x, y) != (i, s)")
     a(ind + "        let face = embedding.face(from: vertexList[i], alongEdgeAt: rotation[i][s])")
     a(ind + "        #expect(face.vertices == vertices + [vertexList[i]] && face.edges == edges)")
+    a(ind + "        #expect(embedding.rightFace(from: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])")
     a(ind + "    }")
     a(ind + "}")
     if lengths is not None:

@@ -79,7 +79,7 @@ SECTIONS = {
     "Cliques": "cliques", "Centrality": "centrality", "CommunityDetection": "communities",
     "BipartiteGraphs": "bipartite", "MatchingModule": "matching", "Covering": "covering",
     "ColoringModule": "coloring", "Flows": "flows", "Tours": "tours",
-    "DirectedAcyclicGraphModule": "dag",
+    "DirectedAcyclicGraphModule": "dag", "Planarity": "planarity",
 }
 ALL_SECTIONS = sorted(set(SECTIONS.values()))
 
@@ -262,6 +262,66 @@ def compare(case, mine, ref, sections):
         problems += differential_tours.compare_tours(case, mine["tours"])
     if "dag" in sections and case["directed"]:
         problems += compare_dag(case, mine["dag"])
+    if "planarity" in sections:
+        problems += compare_planarity(case, mine["planarity"])
+    return problems
+
+
+def is_kuratowski_subdivision(pairs, kind):
+    """Whether the edges `pairs` (no loops, no repeated pair) form a subdivision of K5 or K3,3, as
+    `kind` says: suppressing every degree-2 vertex leaves that graph."""
+    if len({tuple(sorted(p)) for p in pairs}) != len(pairs) or any(u == v for u, v in pairs):
+        return False
+    H = nx.MultiGraph()
+    H.add_edges_from(pairs)
+    for v in [v for v in H if H.degree(v) == 2]:
+        a, b = [w for _, w in H.edges(v)]
+        if a == v or b == v:
+            return False
+        H.remove_node(v)
+        H.add_edge(a, b)
+    if any(u == v for u, v in H.edges()) or H.number_of_edges() != nx.Graph(H).number_of_edges():
+        return False
+    target = nx.complete_graph(5) if kind == "K5" else nx.complete_bipartite_graph(3, 3)
+    return nx.is_isomorphic(nx.Graph(H), target)
+
+
+def compare_planarity(case, mine):
+    """Planarity against NetworkX's check_planarity on the case's edges as an undirected graph (a
+    directed case's arcs as edges; loops and repeated pairs cannot change planarity): isPlanar; the
+    embedding's face count against Euler's formula over every edge, loops and parallel copies
+    included (m − n′ + 2c on the vertices with an edge); the witness a subdivision of its kind
+    made of the graph's edges; isOuterplanar against check_planarity of the graph plus an apex."""
+    problems = []
+    n = case["n"]
+    U = nx.Graph()
+    U.add_nodes_from(range(n))
+    U.add_edges_from((u, v) for u, v, _ in case["edges"] if u != v)
+    theirs, _ = nx.check_planarity(U)
+    if mine["isPlanar"] != theirs:
+        problems.append(f"isPlanar: library {mine['isPlanar']}, NetworkX {theirs}")
+    if not mine["consistent"]:
+        problems.append("isPlanar, planarEmbedding() and findKuratowskiSubgraph() disagree")
+    A = U.copy()
+    A.add_edges_from((v, "apex") for v in range(n))
+    outer, _ = nx.check_planarity(A)
+    if mine["isOuterplanar"] != outer:
+        problems.append(f"isOuterplanar: library {mine['isOuterplanar']}, NetworkX on the apex graph {outer}")
+    if mine["isPlanar"]:
+        M = nx.MultiGraph()
+        M.add_edges_from((u, v) for u, v, _ in case["edges"])
+        euler = M.number_of_edges() - M.number_of_nodes() + 2 * nx.number_connected_components(M)
+        if mine.get("faceCount") != euler:
+            problems.append(f"faceCount: library {mine.get('faceCount')}, Euler's formula {euler}")
+        if not mine["embeddingValid"]:
+            problems.append("the embedding breaks the definitions (a rotation or a face side)")
+    else:
+        pairs = mine.get("witnessPairs") or []
+        present = {tuple(sorted((u, v))) for u, v, _ in case["edges"]}
+        if not all(tuple(sorted(p)) in present for p in pairs):
+            problems.append("the witness uses an edge the graph does not have")
+        elif not is_kuratowski_subdivision([tuple(p) for p in pairs], mine.get("witnessKind")):
+            problems.append(f"the witness ({mine.get('witnessKind')}, {len(pairs)} edges) is not a subdivision of its kind")
     return problems
 
 
@@ -1823,7 +1883,8 @@ def main():
             ("cycles", ["all cycles listed", "cycles compared", "with a cycle basis", "girth ≤ 2"]),
             ("trees", ["trees", "forests of 2+ trees", "arborescences"]),
             ("centrality", ["eigenvector converged", "eigenvector nil", "katz nil", "hits compared"]),
-            ("bipartite", ["bipartite", "odd cycles checked"])]:
+            ("bipartite", ["bipartite", "odd cycles checked"]),
+            ("planarity", ["planar", "K5 witnesses", "K3,3 witnesses", "outerplanar"])]:
         if section in sections:
             covered.update(dict.fromkeys(counters, 0))
     for start in range(0, args.cases, args.batch):
@@ -1890,6 +1951,12 @@ def main():
             if "bipartite" in sections:
                 covered["bipartite"] += mine["bipartite"]["isBipartite"]
                 covered["odd cycles checked"] += mine["bipartite"].get("oddCycle") is not None
+            if "planarity" in sections:
+                planarity = mine["planarity"]
+                covered["planar"] += planarity["isPlanar"]
+                covered["K5 witnesses"] += planarity.get("witnessKind") == "K5"
+                covered["K3,3 witnesses"] += planarity.get("witnessKind") == "K33"
+                covered["outerplanar"] += planarity["isOuterplanar"]
             problems = compare(case, mine, ref, sections)
             if problems:
                 failures += 1

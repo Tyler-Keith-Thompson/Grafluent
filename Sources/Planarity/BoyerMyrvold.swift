@@ -13,7 +13,7 @@
 /// record.
 @usableFromInline
 struct _BoyerMyrvold: ~Copyable {
-    typealias Buffer = UnsafeMutableBufferPointer<Int>
+    typealias Buffer = _Int32Buffer
 
     static var none: Int { -1 }
     static var child: Int { 1 }
@@ -110,24 +110,24 @@ struct _BoyerMyrvold: ~Copyable {
                         vertexOfIndex[next] = root
                         next += 1
                         frames[0] = root
-                        cursor[root] = rowStart[root]
+                        cursor[root] = Int(rowStart[root])
                         var top = 1
                         while top > 0 {
                             let v = frames[top - 1]
-                            if cursor[v] == rowStart[v + 1] {
+                            if cursor[v] == Int(rowStart[v + 1]) {
                                 top -= 1
                                 continue
                             }
-                            let k = rowEdges[cursor[v]]
+                            let k = Int(rowEdges[cursor[v]])
                             cursor[v] += 1
-                            let w = ends[2 * k] == v ? ends[2 * k + 1] : ends[2 * k]
+                            let w = Int(ends[2 * k]) == v ? Int(ends[2 * k + 1]) : Int(ends[2 * k])
                             if index[w] == -1 {
                                 index[w] = next
                                 vertexOfIndex[next] = w
                                 parent[next] = index[v]
                                 treeEdge[next] = k
                                 next += 1
-                                cursor[w] = rowStart[w]
+                                cursor[w] = Int(rowStart[w])
                                 frames[top] = w
                                 top += 1
                             }
@@ -170,9 +170,9 @@ struct _BoyerMyrvold: ~Copyable {
                     for d in 0 ..< n {
                         leastAncestor[d] = d
                         let v = vertexOfIndex[d]
-                        for i in rowStart[v] ..< rowStart[v + 1] {
-                            let k = rowEdges[i]
-                            let a = index[ends[2 * k] == v ? ends[2 * k + 1] : ends[2 * k]]
+                        for i in Int(rowStart[v]) ..< Int(rowStart[v + 1]) {
+                            let k = Int(rowEdges[i])
+                            let a = index[Int(ends[2 * k]) == v ? Int(ends[2 * k + 1]) : Int(ends[2 * k])]
                             guard a < d && k != treeEdge[d] else { continue }
                             neighbor[2 * k] = d
                             edgeType[2 * k] = Self.forward
@@ -452,8 +452,16 @@ struct _BoyerMyrvold: ~Copyable {
                 } else {
                     updateFuturePertinentChild(w, v)
                     if isFuturePertinent(w, v) {
-                        // A stopping vertex: short-circuit the external face from the root to it,
-                        // keeping at least three vertices on that face.
+                        // A stopping vertex: short-circuit the external face from the root to it.
+                        //
+                        // A deviation from the reference implementation. When w is already the
+                        // root's neighbour on the other side, the short-circuit would leave a
+                        // two-vertex external face: both of w's links would name the root, so a
+                        // later walk could not tell which way it entered. The reference keeps an
+                        // inversion flag on w for that case. Here the short-circuit instead stops
+                        // one vertex further along, so the face keeps three vertices and every
+                        // link stays unambiguous. Without this step, the isolator traps or loops on
+                        // some graphs that reach it.
                         if ext[2 * root + (1 ^ rootSide)] == w {
                             let x = w
                             w = ext[2 * w + wPrevious]

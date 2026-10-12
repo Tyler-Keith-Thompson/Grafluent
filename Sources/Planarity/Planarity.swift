@@ -23,8 +23,7 @@ extension Graph {
     public var isPlanar: Bool {
         let simple = _runOnUndirectedRows(_UnderlyingSimpleGraphReader(limit: _planarEdgeLimit, readsEdges: false, keepsCopies: false))
         if simple.exceeded { return false }
-        var test = _LeftRightPlanarity(simple)
-        return test.isPlanar()
+        return simple.leftRightIsPlanar()
     }
 
     /// A planar embedding of the graph, over every edge position (loops and parallel copies
@@ -37,8 +36,7 @@ extension Graph {
         let simple = _runOnUndirectedRows(_UnderlyingSimpleGraphReader(limit: _planarEdgeLimit, readsEdges: true, keepsCopies: true),
                                           edgeNumbers: edgeNumbers, vertexNumbering: numbering)
         if simple.exceeded { return nil }
-        var test = _LeftRightPlanarity(simple)
-        guard let layout = test.embedding(simple) else { return nil }
+        guard let layout = simple.leftRightEmbedding() else { return nil }
         return PlanarEmbedding(self, numbering, edgeNumbers: edgeNumbers, layout: layout)
     }
 
@@ -53,8 +51,7 @@ extension Graph {
         let limit = n >= 3 ? 3 * n - 5 : Int.max
         let simple = _runOnUndirectedRows(_UnderlyingSimpleGraphReader(limit: limit, readsEdges: true, keepsCopies: false),
                                           vertexNumbering: numbering)
-        var search = _BoyerMyrvold(simple)
-        guard let witness = search.findKuratowskiSubgraph() else { return nil }
+        guard let witness = simple.boyerMyrvoldKuratowskiSubgraph() else { return nil }
         return KuratowskiSubgraph(self, simple, witness: witness, listed: numbering?.listed)
     }
 
@@ -66,7 +63,6 @@ extension Graph {
         let n = vertexIndexBound ?? vertexCount
         let simple = _runOnUndirectedRows(_UnderlyingSimpleGraphReader(limit: n >= 2 ? 2 * n - 3 : .max, readsEdges: false, keepsCopies: false))
         if simple.exceeded { return false }
-        var test = _LeftRightPlanarity(simple.addingApex())
-        return test.isPlanar()
+        return simple.addingApex().leftRightIsPlanar()
     }
 }

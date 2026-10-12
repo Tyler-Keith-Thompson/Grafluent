@@ -4,9 +4,10 @@
 //
 // The arguments, if any, name the sections to answer (scripts/differential.py's --module):
 // shortestpaths, spanningtrees, connectivity, cycles, trees, distances, cliques, centrality,
-// communities, bipartite, matching, covering, coloring, flows, tours, dag. With none, every section is
-// answered. A section not asked for is left at its default and not computed. `flows-catalog` or
-// `tours-catalog` as the only argument answers catalog requests instead (Flows.swift, Tours.swift).
+// communities, bipartite, matching, covering, coloring, flows, tours, dag, planarity. With none,
+// every section is answered. A section not asked for is left at its default and not computed.
+// `flows-catalog` or `tours-catalog` as the only argument answers catalog requests instead
+// (Flows.swift, Tours.swift).
 
 import AdjacencyListModule
 import BipartiteGraphs
@@ -66,6 +67,7 @@ struct Result: Encodable {
     var flows: FlowAnswers?
     var tours: ToursAnswers?
     var dag: DirectedAcyclicGraphAnswers?
+    var planarity: PlanarityAnswers?
 }
 
 /// Cliques on the simple graph: maximal cliques (each sorted), the clique number and the
@@ -707,6 +709,7 @@ for c in cases {
         if wants("flows"), let f = c.flow { results[results.count - 1].flows = flowAnswers(directed: true, n: c.n, f) }
         if wants("tours"), let t = c.tours { results[results.count - 1].tours = toursAnswers(directed: true, n: c.n, edges: c.edges, sources: c.sources, target: c.target, t) }
         if wants("dag") { results[results.count - 1].dag = directedAcyclicGraphAnswers(n: c.n, edges: c.edges, source: c.sources[0], target: c.target) }
+        if wants("planarity") { results[results.count - 1].planarity = planarityAnswers(n: c.n, edges: c.edges) }
     } else {
         let graph = UndirectedAdjacencyList(vertices: 0 ..< c.n, edges: c.edges.map { UndirectedEdge($0[0], $0[1]) })
         var byEdge: [UndirectedEdge<Int>: Int] = [:]
@@ -876,6 +879,7 @@ for c in cases {
         if wants("coloring") { result.coloring = coloringAnswers(graph) }
         if wants("flows"), let f = c.flow { result.flows = flowAnswers(directed: false, n: c.n, f) }
         if wants("tours"), let t = c.tours { result.tours = toursAnswers(directed: false, n: c.n, edges: c.edges, sources: c.sources, target: c.target, t) }
+        if wants("planarity") { result.planarity = planarityAnswers(n: c.n, edges: c.edges) }
         results.append(result)
     }
 }

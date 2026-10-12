@@ -47,6 +47,7 @@ let package = Package(
         target("FuzzDirectedAcyclicGraph", ["GraphProtocols", "DirectedAcyclicGraphModule", "AdjacencyListModule", "Multigraphs", "StableGraphs", "Traversal", "Walks"]),
         target("FuzzHypergraphs", ["GraphProtocols", "Hypergraphs", "IncidenceMatrixModule", "AdjacencyListModule", "Connectivity"]),
         target("FuzzIsomorphism", ["GraphProtocols", "IsomorphismModule", "Multigraphs"]),
+        target("FuzzPlanarity", ["GraphProtocols", "Planarity", "Multigraphs"]),
         target("FuzzSemirings", ["GraphProtocols", "Semirings", "ShortestPaths", "Multigraphs", "AdjacencyListModule", "DirectedAcyclicGraphModule", "Walks"]),
         target("FuzzGraphDrawing", ["GraphProtocols", "GraphDrawing", "Multigraphs", "Trees", "Cycles"]),
     ]

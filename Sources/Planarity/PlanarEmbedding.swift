@@ -65,9 +65,8 @@ public struct PlanarEmbedding<G: Graph> {
     /// Without edge indices: each position's edge number.
     @usableFromInline let _edgeNumbers: [G.Edges.Index: Int]
     @usableFromInline let _layout: _EmbeddingLayout
-    /// The positions of `_layout.rowEdges`, and each edge number's position (empty when positions
-    /// are the edge numbers themselves, `Int`s from 0).
-    @usableFromInline let _rowPositions: [G.Edges.Index]
+    /// Each edge number's position (empty when positions are the edge numbers themselves, `Int`s
+    /// from 0).
     @usableFromInline let _positions: [G.Edges.Index]
 
     @inlinable
@@ -78,19 +77,15 @@ public struct PlanarEmbedding<G: Graph> {
         let edges = graph.edges, m = layout.edgeCount
         // m increasing Int positions from 0 below m are exactly 0..<m.
         if G.Edges.Index.self == Int.self && edges.startIndex as? Int == 0 && edges.endIndex as? Int == m && edges.count == m {
-            // Positions 0..<m are the edge numbers: share the rows rather than map them.
             _positions = []
-            _rowPositions = unsafeBitCast(layout.rowEdges, to: [G.Edges.Index].self)
         } else {
-            let positions = Array(edges.indices)
-            _positions = positions
-            _rowPositions = layout.rowEdges.map { positions[$0] }
+            _positions = Array(edges.indices)
         }
     }
 
-    /// The position of edge number `k`.
+    /// The row of vertex number `v`: a range of slots.
     @inlinable
-    func _position(_ k: Int) -> G.Edges.Index { _positions.isEmpty ? unsafeBitCast(k, to: G.Edges.Index.self) : _positions[k] }
+    func _row(_ v: Int) -> Range<Int> { Int(_layout.rowOffsets[v]) ..< Int(_layout.rowOffsets[v + 1]) }
 
     /// The edges at `vertex` in clockwise order, starting at the first edge of
     /// `incidentEdges(of:)`; a self-loop's position twice (NetworkX's `neighbors_cw_order`, with
@@ -98,16 +93,15 @@ public struct PlanarEmbedding<G: Graph> {
     ///
     /// - Precondition: `vertex` is a vertex of the graph.
     @inlinable
-    public func clockwiseIncidentEdges(of vertex: G.Vertex) -> ArraySlice<G.Edges.Index> {
-        let v = _vertices.number(of: vertex)
-        return _rowPositions[_layout.rowOffsets[v] ..< _layout.rowOffsets[v + 1]]
+    public func clockwiseIncidentEdges(of vertex: G.Vertex) -> ClockwiseIncidentEdges {
+        ClockwiseIncidentEdges(_numbers: _layout.rowEdges[_row(_vertices.number(of: vertex))], _positions: _positions)
     }
 
     /// `clockwiseIncidentEdges(of:)`, or nil when `vertex` is not a vertex of the graph.
     @inlinable
-    public func clockwiseIncidentEdges(safe vertex: G.Vertex) -> ArraySlice<G.Edges.Index>? {
+    public func clockwiseIncidentEdges(safe vertex: G.Vertex) -> ClockwiseIncidentEdges? {
         guard let v = _vertices.number(safe: vertex) else { return nil }
-        return _rowPositions[_layout.rowOffsets[v] ..< _layout.rowOffsets[v + 1]]
+        return ClockwiseIncidentEdges(_numbers: _layout.rowEdges[_row(v)], _positions: _positions)
     }
 
     /// The vertices across the edges at `vertex`, in clockwise order: the vertex across each entry
@@ -116,15 +110,14 @@ public struct PlanarEmbedding<G: Graph> {
     /// - Precondition: `vertex` is a vertex of the graph.
     @inlinable
     public func clockwiseNeighbors(of vertex: G.Vertex) -> ClockwiseNeighbors {
-        let v = _vertices.number(of: vertex)
-        return ClockwiseNeighbors(_numbers: _layout.rowNeighbors[_layout.rowOffsets[v] ..< _layout.rowOffsets[v + 1]], _vertices: _vertices)
+        ClockwiseNeighbors(_numbers: _layout.rowNeighbors[_row(_vertices.number(of: vertex))], _vertices: _vertices)
     }
 
     /// `clockwiseNeighbors(of:)`, or nil when `vertex` is not a vertex of the graph.
     @inlinable
     public func clockwiseNeighbors(safe vertex: G.Vertex) -> ClockwiseNeighbors? {
         guard let v = _vertices.number(safe: vertex) else { return nil }
-        return ClockwiseNeighbors(_numbers: _layout.rowNeighbors[_layout.rowOffsets[v] ..< _layout.rowOffsets[v + 1]], _vertices: _vertices)
+        return ClockwiseNeighbors(_numbers: _layout.rowNeighbors[_row(v)], _vertices: _vertices)
     }
 
     /// `clockwiseNeighbors(of:)` in index space: the numbers of the neighbours of vertex number
@@ -133,14 +126,14 @@ public struct PlanarEmbedding<G: Graph> {
     ///
     /// - Precondition: `index` is in `0..<vertexCount`.
     @inlinable
-    public func clockwiseNeighborIndices(ofIndex index: Int) -> ArraySlice<Int> {
+    public func clockwiseNeighborIndices(ofIndex index: Int) -> ClockwiseNeighborIndices {
         precondition(index >= 0 && index + 1 < _layout.rowOffsets.count, "Vertex index \(index) out of range")
-        return _layout.rowNeighbors[_layout.rowOffsets[index] ..< _layout.rowOffsets[index + 1]]
+        return ClockwiseNeighborIndices(_numbers: _layout.rowNeighbors[_row(index)])
     }
 
     /// The number of faces: Σ (2 − n_c + m_c) over the connected components with an edge.
     @inlinable
-    public var faceCount: Int { _layout.faceOffsets.count - 1 }
+    public var faceCount: Int { _layout.faceStart.count }
 
     /// The faces, each a closed walk along the half-edges with the face on their right, in the
     /// order a walk of the vertices in order, and of each clockwise order in order, first reaches
@@ -149,13 +142,10 @@ public struct PlanarEmbedding<G: Graph> {
     @inlinable
     public var faces: Faces { Faces(_embedding: self) }
 
-    /// The face to the right of edge `position` crossed from `vertex` (NetworkX's
-    /// `traverse_face(v, w)`): a closed walk starting and ending at `vertex`. For a self-loop, the
-    /// end listed first in `clockwiseIncidentEdges(of: vertex)`. O(face length).
-    ///
-    /// - Precondition: `vertex` is a vertex of the graph and an end of the edge at `position`.
+    /// The slot of the half-edge leaving `vertex` along the edge at `position` (a self-loop's end
+    /// listed first), trapping when there is none. O(degree).
     @inlinable
-    public func face(from vertex: G.Vertex, alongEdgeAt position: G.Edges.Index) -> Walk<G.Vertex, G.Edges.Index> {
+    func _slot(from vertex: G.Vertex, alongEdgeAt position: G.Edges.Index) -> Int {
         let v = _vertices.number(of: vertex)
         let graph = _vertices.graph
         let e: Int
@@ -166,36 +156,72 @@ public struct PlanarEmbedding<G: Graph> {
             e = number
         }
         precondition(e >= 0 && e < _layout.edgeCount, "\(position) is not an edge position of the graph")
-        let first = _layout.firstSlot(ofEdge: e), second = _layout.twinSlot(first)
-        let start: Int
-        if _layout.rowNeighbors[second] == v {
-            start = first
-        } else if _layout.rowNeighbors[first] == v {
-            start = second
-        } else {
-            preconditionFailure("The edge at \(position) is not incident to \(vertex)")
-        }
-        let found = _layout.face(fromSlot: start)
+        guard let slot = _layout.slot(at: v, ofEdge: e) else { preconditionFailure("The edge at \(position) is not incident to \(vertex)") }
+        return slot
+    }
+
+    /// The face to the right of edge `position` crossed from `vertex` (NetworkX's
+    /// `traverse_face(v, w)`): a closed walk starting and ending at `vertex`. For a self-loop, the
+    /// end listed first in `clockwiseIncidentEdges(of: vertex)`. O(degree + face length).
+    ///
+    /// - Precondition: `vertex` is a vertex of the graph and an end of the edge at `position`.
+    @inlinable
+    public func face(from vertex: G.Vertex, alongEdgeAt position: G.Edges.Index) -> Walk<G.Vertex, G.Edges.Index> {
+        let found = _layout.face(fromSlot: _slot(from: vertex, alongEdgeAt: position))
         return _walk(found.vertices, found.edges)
     }
 
+    /// The position in `faces` of the face to the right of edge `position` crossed from `vertex`
+    /// (OGDF's `rightFace`): the face `face(from:alongEdgeAt:)` walks. Crossed from its other end,
+    /// an edge has the face on its other side, the same one for a bridge. For a self-loop, the end
+    /// listed first in `clockwiseIncidentEdges(of: vertex)`. O(degree).
+    ///
+    /// - Precondition: `vertex` is a vertex of the graph and an end of the edge at `position`.
     @inlinable
-    func _walk(_ vertexNumbers: some Collection<Int>, _ edgeNumbers: some Collection<Int>) -> Walk<G.Vertex, G.Edges.Index> {
+    public func rightFace(from vertex: G.Vertex, alongEdgeAt position: G.Edges.Index) -> Int {
+        Int(_layout.faceOfSlot[_slot(from: vertex, alongEdgeAt: position)])
+    }
+
+    @inlinable
+    func _walk(_ vertexNumbers: [Int], _ edgeNumbers: [Int]) -> Walk<G.Vertex, G.Edges.Index> {
         var vertices: [G.Vertex] = []
         vertices.reserveCapacity(vertexNumbers.count + 1)
         for v in vertexNumbers { vertices.append(_vertices.vertex(v)) }
         if let first = vertices.first { vertices.append(first) }
-        return Walk(_uncheckedVertices: vertices, edges: edgeNumbers.map { _position($0) })
+        return Walk(_uncheckedVertices: vertices, edges: _positions.isEmpty ? unsafeBitCast(edgeNumbers, to: [G.Edges.Index].self) : edgeNumbers.map { _positions[$0] })
+    }
+
+    /// The edge positions at a vertex, in clockwise order.
+    @frozen
+    public struct ClockwiseIncidentEdges: RandomAccessCollection {
+        @usableFromInline let _numbers: ArraySlice<Int32>
+        @usableFromInline let _positions: [G.Edges.Index]
+
+        @inlinable
+        init(_numbers: ArraySlice<Int32>, _positions: [G.Edges.Index]) {
+            self._numbers = _numbers
+            self._positions = _positions
+        }
+
+        @inlinable public var startIndex: Int { 0 }
+        @inlinable public var endIndex: Int { _numbers.count }
+
+        @inlinable
+        public subscript(position: Int) -> G.Edges.Index {
+            precondition(position >= 0 && position < _numbers.count, "Index out of range")
+            let k = Int(_numbers[_numbers.startIndex + position])
+            return _positions.isEmpty ? unsafeBitCast(k, to: G.Edges.Index.self) : _positions[k]
+        }
     }
 
     /// The vertices across the edges at a vertex, in clockwise order.
     @frozen
     public struct ClockwiseNeighbors: RandomAccessCollection {
-        @usableFromInline let _numbers: ArraySlice<Int>
+        @usableFromInline let _numbers: ArraySlice<Int32>
         @usableFromInline let _vertices: _NumberedVertices<G>
 
         @inlinable
-        init(_numbers: ArraySlice<Int>, _vertices: _NumberedVertices<G>) {
+        init(_numbers: ArraySlice<Int32>, _vertices: _NumberedVertices<G>) {
             self._numbers = _numbers
             self._vertices = _vertices
         }
@@ -206,7 +232,25 @@ public struct PlanarEmbedding<G: Graph> {
         @inlinable
         public subscript(position: Int) -> G.Vertex {
             precondition(position >= 0 && position < _numbers.count, "Index out of range")
-            return _vertices.vertex(_numbers[_numbers.startIndex + position])
+            return _vertices.vertex(Int(_numbers[_numbers.startIndex + position]))
+        }
+    }
+
+    /// The numbers of the vertices across the edges at a vertex, in clockwise order.
+    @frozen
+    public struct ClockwiseNeighborIndices: RandomAccessCollection {
+        @usableFromInline let _numbers: ArraySlice<Int32>
+
+        @inlinable
+        init(_numbers: ArraySlice<Int32>) { self._numbers = _numbers }
+
+        @inlinable public var startIndex: Int { 0 }
+        @inlinable public var endIndex: Int { _numbers.count }
+
+        @inlinable
+        public subscript(position: Int) -> Int {
+            precondition(position >= 0 && position < _numbers.count, "Index out of range")
+            return Int(_numbers[_numbers.startIndex + position])
         }
     }
 
@@ -225,15 +269,16 @@ public struct PlanarEmbedding<G: Graph> {
         @inlinable
         public subscript(position: Int) -> Walk<G.Vertex, G.Edges.Index> {
             precondition(position >= 0 && position < endIndex, "Face position out of range")
-            let layout = _embedding._layout
-            let range = layout.faceOffsets[position] ..< layout.faceOffsets[position + 1]
-            return _embedding._walk(layout.faceVertices[range], layout.faceEdges[range])
+            let found = _embedding._layout.face(fromSlot: Int(_embedding._layout.faceStart[position]))
+            return _embedding._walk(found.vertices, found.edges)
         }
     }
 }
 
 extension PlanarEmbedding: @unchecked Sendable where G: Sendable, G.Vertex: Sendable, G.Edges.Index: Sendable {}
 extension PlanarEmbedding.ClockwiseNeighbors: @unchecked Sendable where G: Sendable, G.Vertex: Sendable {}
+extension PlanarEmbedding.ClockwiseIncidentEdges: @unchecked Sendable where G.Edges.Index: Sendable {}
+extension PlanarEmbedding.ClockwiseNeighborIndices: Sendable {}
 extension PlanarEmbedding.Faces: @unchecked Sendable where G: Sendable, G.Vertex: Sendable, G.Edges.Index: Sendable {}
 
 extension PlanarEmbedding: CustomStringConvertible {

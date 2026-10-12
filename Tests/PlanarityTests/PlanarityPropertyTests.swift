@@ -3,9 +3,11 @@
 // orders per vertex), whose face orbits decide planarity by Euler's formula and outerplanarity by a
 // face holding every vertex of its component. On larger random graphs: exactly one witness exists
 // and meets the definitions; a chord drawn inside a face keeps the graph planar and adds one face;
-// a Kuratowski subgraph is minimal (deleting any of its edges leaves a planar graph). Graphs are
-// `Pseudograph`s with loops and parallel edges, vertices listed in a seeded shuffled order. See
-// README.md.
+// a Kuratowski subgraph is minimal (deleting any of its edges leaves a planar graph). The two
+// engines are cross-checked against each other: Boyer–Myrvold on the graph plus an apex decides
+// outerplanarity, reversed labels keep every answer, and `rightFace` agrees with the face walks.
+// Graphs are `Pseudograph`s with loops and parallel edges, vertices listed in a seeded shuffled
+// order. See README.md.
 
 import GrafluentTestSupport
 import GraphProtocols
@@ -164,6 +166,43 @@ struct PlanarityPropertyTests {
                     for (k, p) in path.edges.enumerated() { #expect(Set([pairs[p].0, pairs[p].1]) == Set([path.vertices[k], path.vertices[k + 1]]), "\(context)") }
                 }
                 #expect(witness.paths.map(\.edges).joined().sorted() == witness.edges, "\(context)")
+            }
+        }
+    }
+
+    @Test("Cross-checks: isOuterplanar is the apex graph's planarity by Boyer–Myrvold; reversed labels keep both answers; a second call gives the same results; rightFace names the face face(from:alongEdgeAt:) walks")
+    func crossChecks() async {
+        let edges = zip(Gen.int(in: 0 ... 13), Gen.int(in: 0 ... 13)).array(of: 0 ... 45)
+        await propertyCheck(count: 300, input: edges, Gen.int(in: 1 ... 14)) { raw, n in
+            let pairs = raw.map { ($0.0 % n, $0.1 % n) }
+            let graph = Pseudograph<Int>(vertices: 0 ..< n, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            let context = "\(pairs) on \(n) vertices"
+            let planar = graph.isPlanar
+            let witness = graph.findKuratowskiSubgraph()
+            #expect(planar == (witness == nil), "left-right and Boyer–Myrvold disagree: \(context)")
+            // Outerplanar exactly when the graph plus an apex joined to every vertex is planar,
+            // asked of the other engine.
+            let apex = Pseudograph<Int>(vertices: 0 ... n, edges: (pairs + (0 ..< n).map { ($0, n) }).map { UndirectedEdge($0.0, $0.1) })
+            #expect(graph.isOuterplanar == (apex.findKuratowskiSubgraph() == nil), "\(context)")
+            // The same graph with labels and edge order reversed.
+            let reversed = Pseudograph<Int>(vertices: 0 ..< n, edges: pairs.reversed().map { UndirectedEdge(n - 1 - $0.0, n - 1 - $0.1) })
+            #expect(reversed.isPlanar == planar && (reversed.findKuratowskiSubgraph() == nil) == planar && reversed.isOuterplanar == graph.isOuterplanar, "\(context)")
+            #expect(graph.findKuratowskiSubgraph() == witness, "\(context)")
+            guard let embedding = graph.planarEmbedding() else {
+                #expect(!planar, "\(context)")
+                return
+            }
+            let again = graph.planarEmbedding()!
+            #expect((0 ..< n).allSatisfy { Array(again.clockwiseIncidentEdges(of: $0)) == Array(embedding.clockwiseIncidentEdges(of: $0)) }, "\(context)")
+            // Each half-edge's face, walked from it, is the face rightFace names, rotated to start there.
+            for v in 0 ..< n {
+                for p in Set(embedding.clockwiseIncidentEdges(of: v)) {
+                    let walk = embedding.face(from: v, alongEdgeAt: p)
+                    let face = embedding.faces[embedding.rightFace(from: v, alongEdgeAt: p)]
+                    #expect(walk.vertices.first == v && walk.vertices.last == v && walk.edges.first == p, "\(context)")
+                    let start = face.edges.indices.filter { face.edges[$0] == p && face.vertices[$0] == v }
+                    #expect(start.contains { Array(face.edges[$0...] + face.edges[..<$0]) == walk.edges }, "\(context)")
+                }
             }
         }
     }

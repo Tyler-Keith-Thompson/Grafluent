@@ -9,7 +9,7 @@ import PackageDescription
 // `just diff` builds it through Bazel (Differential/BUILD.bazel); this package is the
 // `--swiftpm` fallback. See Differential/README.md.
 
-let products: [Target.Dependency] = ["GraphProtocols", "AdjacencyListModule", "ShortestPaths", "SpanningTrees", "Connectivity", "Walks", "Cycles", "Trees", "TreeAlgorithms", "Distances", "Cliques", "Centrality", "CommunityDetection", "BipartiteGraphs", "MatchingModule", "Covering", "ColoringModule", "Multigraphs", "Flows", "Tours", "CompressedSparseRowModule", "DirectedAcyclicGraphModule"].map { .product(name: $0, package: "Grafluent") }
+let products: [Target.Dependency] = ["GraphProtocols", "AdjacencyListModule", "ShortestPaths", "SpanningTrees", "Connectivity", "Walks", "Cycles", "Trees", "TreeAlgorithms", "Distances", "Cliques", "Centrality", "CommunityDetection", "BipartiteGraphs", "MatchingModule", "Covering", "ColoringModule", "Multigraphs", "Flows", "Tours", "CompressedSparseRowModule", "DirectedAcyclicGraphModule", "Planarity"].map { .product(name: $0, package: "Grafluent") }
 
 let package = Package(
     name: "GrafluentDifferential",

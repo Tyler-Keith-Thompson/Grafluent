@@ -487,7 +487,7 @@ extension _BoyerMyrvold {
                 context.ux = c.uz
                 context.dx = c.dz
             } else if mark[c.z] == _FaceMark.lowRYW {
-                mark[c.py] = _FaceMark.highRYW
+                // Minor C then marks from x around to the root, past py, without reading its mark.
                 context.y = c.z
                 context.uy = c.uz
                 context.dy = c.dz

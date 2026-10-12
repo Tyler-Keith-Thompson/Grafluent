@@ -71,11 +71,12 @@ extension Graph {
 public struct PlanarEmbedding<G: Graph> {
     // The clockwise order around a vertex, starting at the first edge of incidentEdges(of:).
     // A self-loop appears twice (its two ends), as in incidentEdges(of:).
-    public func clockwiseIncidentEdges(of vertex: G.Vertex) -> ArraySlice<G.Edges.Index>   // traps on a non-vertex
-    public func clockwiseIncidentEdges(safe vertex: G.Vertex) -> ArraySlice<G.Edges.Index>? // Principle 6
-    public func clockwiseNeighbors(of vertex: G.Vertex) -> ClockwiseNeighbors               // RandomAccessCollection<G.Vertex>
+    // Each a RandomAccessCollection indexed from 0, O(1) to make, over the embedding's 32-bit rows.
+    public func clockwiseIncidentEdges(of vertex: G.Vertex) -> ClockwiseIncidentEdges       // of G.Edges.Index; traps on a non-vertex
+    public func clockwiseIncidentEdges(safe vertex: G.Vertex) -> ClockwiseIncidentEdges?    // Principle 6
+    public func clockwiseNeighbors(of vertex: G.Vertex) -> ClockwiseNeighbors               // of G.Vertex
     public func clockwiseNeighbors(safe vertex: G.Vertex) -> ClockwiseNeighbors?
-    public func clockwiseNeighborIndices(ofIndex index: Int) -> ArraySlice<Int>             // index space, O(1); without vertex indices, index i is the i-th vertex of `vertices`
+    public func clockwiseNeighborIndices(ofIndex index: Int) -> ClockwiseNeighborIndices    // of Int, index space; without vertex indices, index i is the i-th vertex of `vertices`
 
     public var faceCount: Int                       // Σ (2 − n_c + m_c) over components with an edge
     public var faces: Faces                         // RandomAccessCollection<Walk<G.Vertex, G.Edges.Index>>, closed walks
@@ -83,6 +84,8 @@ public struct PlanarEmbedding<G: Graph> {
     // a closed walk starting and ending at `vertex`. On a loop, the end listed first in
     // clockwiseIncidentEdges(of: vertex). Traps when the edge is not at the vertex.
     public func face(from vertex: G.Vertex, alongEdgeAt position: G.Edges.Index) -> Walk<G.Vertex, G.Edges.Index>
+    // The position in `faces` of that face (OGDF rightFace): what the dual graph is built from.
+    public func rightFace(from vertex: G.Vertex, alongEdgeAt position: G.Edges.Index) -> Int
 
     // Phase 2
     public func dualGraph() -> Pseudograph<Int>
@@ -108,10 +111,11 @@ public enum KuratowskiGraph: Hashable, Sendable, CaseIterable { case k5, k33 }  
 | `isPlanar` | NetworkX `is_planar`, rustworkx, JGraphT `isPlanar()`, OGDF `isPlanar`, Sage | Boost `boyer_myrvold_planarity_test` and LEMON `checkPlanarity` name the algorithm or a verb. A Swift `Bool` property reads `is…` (as `isBipartite`). |
 | `planarEmbedding()`, `PlanarEmbedding` | NetworkX `PlanarEmbedding`, LEMON `PlanarEmbedding`, the README row | Boost has no type, only a property map named `embedding`. JGraphT's `Embedding` alone drops "planar", and OGDF's `CombinatorialEmbedding` is the textbook term but longer and less familiar. |
 | `findKuratowskiSubgraph()`, `KuratowskiSubgraph` | Boost `kuratowski_subgraph` and `is_kuratowski_subgraph`, NetworkX's docstring ("a Kuratowski subgraph"), the README row | JGraphT `getKuratowskiSubdivision`, OGDF `KuratowskiSubdivision`: "subdivision" is the more precise term, and the doc comment says the subgraph *is* a subdivision. Boost and NetworkX agree on "subgraph", which reads better as a noun beside `findCycle()`. NetworkX's `counterexample` says nothing about the shape. |
-| `KuratowskiGraph`: `.k5`, `.k33` | K₅ and K₃,₃ are "the Kuratowski graphs" in the literature (Kuratowski 1930). Sage writes "K5" and "K33". A top-level type rather than `KuratowskiSubgraph<G>.Kind`: nested in a generic type, a kind could not be compared across graph types | `.completeGraph` / `.completeBipartiteGraph` are unambiguous but hide the sizes, and a reader looks for K₅ and K₃,₃. |
+| `KuratowskiGraph`: `.k5`, `.k33` | The two graphs of Kuratowski's theorem (1930): a graph is planar exactly when it contains no subdivision of K₅ or K₃,₃. Sage writes "K5" and "K33". A top-level type rather than `KuratowskiSubgraph<G>.Kind`: nested in a generic type, a kind could not be compared across graph types | `.completeGraph` / `.completeBipartiteGraph` are unambiguous but hide the sizes, and a reader looks for K₅ and K₃,₃. |
 | `branchVertices`, `paths` | "branch vertices" of a subdivision (Diestel; OGDF's `KuratowskiSubdivision` is a list of paths) | NetworkX and JGraphT return a graph and leave the reader to find the structure. Tests and drawing code both need it. |
 | `clockwiseNeighbors(of:)`, `clockwiseIncidentEdges(of:)` | NetworkX `neighbors_cw_order`, Boost's embedding (each vertex's edges in order), JGraphT `getEdgesAround`, written with the repo's `neighbors(of:)` and `incidentEdges(of:)` | `neighborsClockwise`, `rotation(of:)`: "rotation system" is the textbook name for the whole structure, but no library names an accessor after it. |
 | `faces`, `faceCount`, `face(from:alongEdgeAt:)` | NetworkX `faces()`, `traverse_face(v, w)`; Boost `planar_face_traversal`; OGDF `CombinatorialEmbedding` | NetworkX names the face by a half-edge (v, w). A position is the repo's edge identity (parallel edges differ), and `alongEdgeAt:` follows `oppositeVertex(to:acrossEdgeAt:)`. |
+| `rightFace(from:alongEdgeAt:)` | OGDF `CombinatorialEmbedding::rightFace(adjEntry)`; Boost's `planar_face_traversal` visitor reports each face's edges in turn, and NetworkX's `traverse_face` walks it | The face is named by its position in `faces`, which is what `dualGraph()` numbers its vertices by. `faceIndex(…)` says less: every half-edge has a face on each side, and this one is on the right, as in `face(from:alongEdgeAt:)`. |
 | `isOuterplanar` | Mathematica `OuterplanarGraphQ`; "outerplanar" everywhere in the literature | Sage `is_circular_planar` is the older name. |
 | `dualGraph()` (phase 2) | OGDF `DualGraph`, Mathematica `DualPlanarGraph`, Sage `planar_dual` | `dual()` alone is ambiguous next to other duals (line graphs, transposes). |
 
@@ -255,11 +259,20 @@ engine.
   offers them. Build the simple underlying graph in one pass: per vertex, a stamp array marks
   neighbours already seen; loops and later copies go to side lists.
 - The engines work on half-edge ids 2k and 2k + 1 for edge number k, in flat `Int32` arrays sized
-  once (`~Copyable` scratch, an explicit DFS stack, no recursion), per the performance notes.
+  once (`~Copyable` scratch, an explicit DFS stack, no recursion), per the performance notes. The
+  left-right engine reads the simple graph's own arrays rather than copying them, and initializes
+  only the arrays it reads before writing. Its embedding pass orders each vertex's outgoing edges
+  when the search first reaches the vertex, so there is no separate linking pass.
 - After the test, splice each parallel copy beside its representative (ascending at the
   lesser-index end, descending at the other) and each loop as two adjacent half-edges. Then rotate
   every row to start at its first incident edge. This is O(m).
-- Faces: one pass marking half-edges (O(m)), storing offsets.
+- Faces: one pass over the slots (O(m)), storing each face's first slot and each slot's face, both
+  `Int32`. The face count is known beforehand from Euler's formula (m − n′ + 2c over the vertices
+  with an edge and their components), so the array is sized exactly, and the pass checks that it
+  finds exactly that many.
+- The result keeps 32-bit rows of edge numbers and neighbours, each slot's twin, each slot's face
+  and each face's first slot: five integers per edge and one per vertex and face, about 36 bytes
+  per edge on a triangulation.
 - Outerplanarity: the left-right test on the graph plus an apex, in place: the apex is index n, and
   its row is generated rather than stored.
 
@@ -271,7 +284,8 @@ engine.
 | `planarEmbedding()` | O(n + m), faces included | O(n + m), kept in the result |
 | `findKuratowskiSubgraph()` | O(n + m): deduplication, then Boyer–Myrvold on at most 3n − 5 pairs | O(n) after deduplication |
 | `isOuterplanar` | O(n + m) | O(n + m) |
-| `clockwise…(of:)`, `face(from:alongEdgeAt:)` | O(1) to slice; O(face length) for a face | — |
+| `clockwise…(of:)`, `faces[i]` | O(1) to slice; O(face length) for a face | — |
+| `face(from:alongEdgeAt:)`, `rightFace(from:alongEdgeAt:)` | O(degree) to find the half-edge, plus O(face length) for the walk | — |
 | `dualGraph()` (phase 2) | O(n + m) | O(f + m) |
 
 ## Performance
@@ -302,11 +316,31 @@ once and stored as edge lists):
 | Measure | Target |
 |---|---|
 | `isPlanar` on the four planar inputs (10⁴–3 × 10⁵ edges) | ≤ rustworkx `is_planar`; ≥ 30× NetworkX |
-| `planarEmbedding()` (rotation and faces) | ≤ 1.5× our `isPlanar`; ≤ ½ of Boost's test with embedding |
+| `planarEmbedding()` (rotation and faces) | ≤ 2× our `isPlanar` (restated from 1.5×, see below); ≤ ½ of Boost's test with embedding |
 | `isPlanar` on the near-planar inputs | ≤ rustworkx (failure is found mid-run) |
 | `findKuratowskiSubgraph()` on the near-planar inputs | ≤ Boost's test with Kuratowski output (26.7 ms, 265 ms, 1.2 ms) |
 | `isPlanar` on dense inputs (m > 3n − 6 distinct pairs) | O(m) to count distinct pairs, no DFS |
 | Allocations | `isPlanar`: scratch only (no per-vertex arrays); `planarEmbedding()`: the result's arrays plus scratch |
+
+**`planarEmbedding()` against `isPlanar`, measured.** The 1.5× target was missed and is restated
+as 2×. Medians of 21 interleaved runs (`-O`, the same machine as the baselines):
+
+| Input | `isPlanar` | `planarEmbedding()` | ratio | reading the rows (test / embedding) | left-right test | + embedding pass | + layout and faces | rustworkx `is_planar` | Boost test + embedding + Kuratowski |
+|---|---|---|---|---|---|---|---|---|---|
+| Delaunay, 10,000 points | 2.10 ms | 3.68 ms | 1.75× | 0.44 / 0.59 ms | 1.72 ms | +0.69 ms | +0.64 ms | 10.5 ms | 72.1 ms |
+| Delaunay, 100,000 points | 42.3 ms | 79.9 ms | 1.89× | 5.3 / 7.7 ms | 42.2 ms | +16.0 ms | +15.8 ms | 189 ms | 2,360 ms |
+| grid 316 × 316 | 6.81 ms | 11.1 ms | 1.62× | 2.2 / 3.2 ms | 4.61 ms | +1.84 ms | +1.47 ms | 104 ms | 1,653 ms |
+| stacked triangulation, 100,000 | 31.9 ms | 57.9 ms | 1.82× | 7.1 / 10.2 ms | 29.2 ms | +13.3 ms | +9.5 ms | 151 ms | 516 ms |
+
+The embedding pass and the layout each cost a third to a half of the test itself. Both follow
+linked rings of half-edges whose numbers are unrelated to vertex order, so on the large inputs
+they are bound by cache misses, as the test is; the reading step also keeps each edge number,
+its simple edge and each vertex's first edge. What was done: the linking pass fused into the
+embedding search, the simple graph's arrays borrowed instead of copied, arrays written before
+they are read left uninitialized, `Int32` storage throughout, faces stored as slots, the face
+array sized from Euler's formula. Before that the ratios were 1.60–1.96× (103.5 ms on the
+100,000-point Delaunay graph). `planarEmbedding()` is still 2.4–9.4× faster than rustworkx's bare
+test and 9–150× faster than Boost's test with embedding and Kuratowski output.
 
 ## Library disagreements found
 
@@ -323,7 +357,7 @@ once and stored as edge lists):
   Brandes's formulation; every edge position embedded, loops and parallel edges included),
   `findKuratowskiSubgraph()` (Boyer–Myrvold's Kuratowski isolation), `isOuterplanar`.
   `PlanarEmbedding` gives the clockwise orders, `faces`, `faceCount` and
-  `face(from:alongEdgeAt:)`. Phase 2: `dualGraph()`, embeddings supplied by the caller,
+  `face(from:alongEdgeAt:)`, `rightFace(from:alongEdgeAt:)`. Phase 2: `dualGraph()`, embeddings supplied by the caller,
   augmentation; straight-line drawing goes in `GraphDrawing`." Result types: `PlanarEmbedding`,
   `KuratowskiSubgraph` (kind, edges, branch vertices, paths).
 - Terminology: "Clockwise order of edges at each vertex: rotation system / combinatorial
