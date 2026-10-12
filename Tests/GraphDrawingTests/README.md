@@ -57,8 +57,9 @@ edges, and `feedbackArcSet()`. DR-152 (several optimal layerings) checks the tot
 invariants. DR-163 runs on a `DirectedAcyclicGraph`.
 
 The catalog-row files are every file except `GraphDrawingConformanceTests.swift`,
-`GraphDrawingPropertyTests.swift`, `GraphDrawingReviewTests.swift`, `GraphDrawingStressTests.swift`
-and `SugiyamaLayeringLinearProgramTests.swift`. `swiftgen.py` generates them from `cases.md`, next
+`GraphDrawingPlantedBugTests.swift`, `GraphDrawingPropertyTests.swift`,
+`GraphDrawingReviewTests.swift`, `GraphDrawingStressTests.swift` and
+`SugiyamaLayeringLinearProgramTests.swift`. `swiftgen.py` generates them from `cases.md`, next
 to `ref.py`, and also writes `SugiyamaLayeringLinearProgramTests.swift` (not catalog rows: 400
 random DAGs and one of 5 × 10⁴ vertices whose least total span scipy's HiGHS solves once, at
 generation; the test compares `sugiyamaLayout()`'s total span with it):
@@ -112,6 +113,22 @@ process without the call.
   - FR from coincident vertices (all at one point, or two of six), exact and Barnes–Hut: they
     separate, and the drawing is deterministic;
   - caller layers with numbers up to 3 × 10¹² and `Int.max / 2`: empty layers skipped, y as given.
+- **Planted bugs.** What `just mutate GraphDrawing` (scripts/mutants/GraphDrawing.py) found the
+  rest of the suite letting through:
+  - `Drawing`: the `positions` setter's count check, `position(safe:)` past the end of `0..<n`,
+    equality comparing vertices, and the description's x before y;
+  - Fruchterman–Reingold: the start temperature (a tenth of the larger side, k/10 from one point
+    with the default k = √(1/n)), two coincident vertices moving apart, the stopping rules (below
+    the threshold, not at it; one vertex finished at once), and the parameter traps;
+  - Barnes–Hut: a cell containing the vertex is opened, a leaf uses the exact distance floor, a
+    far cell of two bodies acts at its centre of mass with their mass, and θ = 0 is exact;
+  - self-loops ignored (their weights and lengths are not read), with and without vertex indices
+    (a `StableDirectedGraph` with a removed vertex);
+  - stress majorization: weighted target distances against Floyd–Warshall, and the stop at a
+    decrease of exactly tolerance × stress;
+  - Sugiyama: caller layers' reversed bends from source to target, and one whole drawing with long
+    edges (found by comparing the planted bugs' drawings with the unmutated one on random
+    digraphs) that pins crossing reduction and Brandes–Köpf.
 - **Stress.** Each test runs inside a Task with a one-minute limit and a wall-clock bound:
   - Reingold–Tilford on a 2 × 10⁵-vertex LCG tree, and on a 10⁵-vertex path (no recursion);
   - `circularLayout` on 10⁶ vertices;

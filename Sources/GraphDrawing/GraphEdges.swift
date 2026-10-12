@@ -69,12 +69,6 @@ extension Graph {
         }
         return _DrawingEdges(vertices: listed, offsets: offsets, us: us, vs: vs, values: values)
     }
-
-    /// The vertices with their numbering, and no edges.
-    @inlinable
-    func _drawingVertices() -> _DrawingEdges<Vertex> {
-        _DrawingEdges(vertices: ContiguousArray(vertices), offsets: nil, us: [], vs: [], values: [])
-    }
 }
 
 /// The positions of `vertices` in `drawing`, in order.
