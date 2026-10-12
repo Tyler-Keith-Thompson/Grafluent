@@ -3,7 +3,8 @@
 # Known equivalent mutants:
 #   directedstop  without the early stop, pruning still settles a graph that is not strongly
 #                 connected in a few searches (every vertex a missing search reached is skipped).
-#   selfloop      a self-loop is on no shortest path, so dropping the skip changes nothing.
+#   selfloop, selfloopdirected
+#                 a self-loop is on no shortest path, so keeping it in the rows changes nothing.
 #   diameterrule, radiusrule, undirectedmiss, pruning
 #                 each removes a shortcut (a goal's rule-out, the stop at the first miss, the
 #                 skip of vertices a missing search reached): the answers are the same, only the
@@ -14,9 +15,12 @@ TESTS = ["DistancesTests"]
 
 MUTANTS = [
     # Rows and weights
-    Mutant("selfloop", "DistanceRows.swift", "                if w == v { continue }", "", mode="stmt", nth=0),
-    Mutant("weightsign", "DistanceRows.swift", "w >= .zero && w == w", "w == w", nth=0),
-    Mutant("weightnan", "DistanceRows.swift", "w >= .zero && w == w", "w >= .zero || w != w", nth=1),
+    Mutant("selfloop", "DistanceRows.swift", "_CopyRows(readsEdges: true, dropsLoops: true)", "_CopyRows(readsEdges: true, dropsLoops: false)"),
+    Mutant("selfloopdirected", "DistanceRows.swift", "_compressedRows(readsEdges: true, dropsLoops: true)", "_compressedRows(readsEdges: true, dropsLoops: false)"),
+    Mutant("weightsign", "DistanceRows.swift", "$0 >= .zero && $0 == $0", "$0 == $0", nth=0),
+    Mutant("weightnan", "DistanceRows.swift", "$0 >= .zero && $0 == $0", "$0 >= .zero || $0 != $0", nth=0),
+    Mutant("weightsigndirected", "DistanceRows.swift", "$0 >= .zero && $0 == $0", "$0 == $0", nth=1),
+    Mutant("weightnandirected", "DistanceRows.swift", "$0 >= .zero && $0 == $0", "$0 >= .zero || $0 != $0", nth=1),
 
     # Breadth-first search
     Mutant("bfsreset", "DistanceRows.swift", "                            for k in 0 ..< reached { distanceBuffer[queueBuffer[k]] = -1 }", "", mode="stmt"),
@@ -39,12 +43,12 @@ MUTANTS = [
     Mutant("boundingdisconnected", "Extrema.swift", "        guard reachedAll else { return nil }", "", mode="stmt", nth=0),
 
     # All-sources searches and pruning
-    Mutant("undirectedmiss", "Extrema.swift", "rows.undirected || stopAtMiss", "stopAtMiss", nth=0),
+    Mutant("undirectedmiss", "Extrema.swift", "undirected || stopAtMiss", "stopAtMiss", nth=0),
     Mutant("pruning", "Extrema.swift", "        for v in searches.reachedVertices { known[v] = true }", "        for v in searches.reachedVertices.prefix(2) { known[v] = true }", mode="stmt", nth=0),
     Mutant("radiusinfinite", "Extrema.swift", "infinite ? nil : diameter", "diameter"),
     Mutant("leasttotal", "Extrema.swift", "if least.map({ t < $0 }) ?? true { least = t }", "if least.map({ t > $0 }) ?? true { least = t }", mode="stmt"),
-    Mutant("wienerhalf", "Extrema.swift", "rows.undirected ? total / 2 : total", "total"),
-    Mutant("wienerweightedhalf", "Extrema.swift", "rows.undirected ? s + 1 : 0", "0", nth=0),
+    Mutant("wienerhalf", "Extrema.swift", "undirected ? total / 2 : total", "total"),
+    Mutant("wienerweightedhalf", "Extrema.swift", "undirected ? s + 1 : 0", "0", nth=0),
     Mutant("pairs", "Extrema.swift", "undirected ? n * (n - 1) / 2 : n * (n - 1)", "n * (n - 1)"),
 
     # Measures
@@ -54,6 +58,6 @@ MUTANTS = [
     Mutant("averageone", "Measures.swift", "n == 1 ? 0 : Double(total) / Double(_pairCount(n, undirected: true))", "Double(total) / Double(max(_pairCount(n, undirected: true), 1)) + (n == 1 ? 1 : 0)"),
     Mutant("density", "Measures.swift", "2 * Double(edgeCount) / (Double(n) * Double(n - 1))", "Double(edgeCount) / (Double(n) * Double(n - 1))"),
     Mutant("directeddensity", "DirectedMeasures.swift", "Double(edgeCount) / (Double(n) * Double(n - 1))", "2 * Double(edgeCount) / (Double(n) * Double(n - 1))"),
-    Mutant("directedstop", "DirectedMeasures.swift", "_allEccentricities(rows, stopAtMiss: true)", "_allEccentricities(rows)", nth=0),
+    Mutant("directedstop", "DirectedMeasures.swift", "_allEccentricities(rows, undirected: false, stopAtMiss: true)", "_allEccentricities(rows, undirected: false)", nth=0),
     Mutant("center", "Eccentricities.swift", "_matching(_values, _radius)", "_matching(_values, _diameter)"),
 ]

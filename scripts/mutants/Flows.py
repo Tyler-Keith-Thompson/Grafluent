@@ -59,8 +59,6 @@
 #                       flow reaches the cutoff and never beats the best; without the cutoff a pair's
 #                       value is its true flow, compared the same way.
 #   fe_nan              a NaN capacity fails `c >= 0` next, the same trap with another message.
-#   fe_contains_directed, fe_contains_undirected
-#                       with vertex indices, vertexIndex(of:) traps on a non-vertex itself.
 #
 # Dead code the survivors showed, removed: the undirected Edmonds–Karp's `|| against > 0` (at most one
 # of the two flows is nonzero), checkRowSums' every-row form and `extra` (no caller), Hao–Orlin's
@@ -263,7 +261,7 @@ MUTANTS = [
     Mutant("mcf_loop_zero", "MinimumCostFlow.swift", "cost[e] < 0", "cost[e] <= 0"),
     Mutant("mcf_greatest", "MinimumCostFlow.swift", "greatest = max(greatest, cost[e].magnitude > UInt(Int.max) ? Int.max : abs(cost[e]))", "", mode="stmt"),
     Mutant("mcf_bigm", "MinimumCostFlow.swift", "(greatest &+ 1).multipliedReportingOverflow(by: n &+ 1)", "(greatest &+ 1).multipliedReportingOverflow(by: 1)"),
-    Mutant("mcf_room", "MinimumCostFlow.swift", "!overflowM && !overflowRoom", "!overflowM"),
+    Mutant("mcf_room", "MinimumCostFlow.swift", "!overflowM && bigM <= Int.max / 4", "!overflowM"),
     Mutant("mcf_potentials", "MinimumCostFlow.swift", "for v in 0 ..< n { potentials[v] = simplex.potential[v] }", "", mode="stmt"),
     Mutant("mcf_total", "MinimumCostFlow.swift", "totalCost += flows[e] * cost[e]", "", mode="stmt"),
     Mutant("mcf_shipped", "MinimumCostFlow.swift", "b > 0", "b != 0"),
@@ -305,7 +303,7 @@ MUTANTS = [
     Mutant("fe_infinite", "FlowEdges.swift", "precondition(c - c == .zero, \"A capacity is infinite\")", "", mode="stmt"),
     Mutant("fe_loops_asked", "FlowEdges.swift", "edges.tail[e] != edges.head[e]", "true"),
     Mutant("fe_orient", "FlowEdges.swift", "tail[e] != head[e] && edges[position].u != _vertex(number: Int(tail[e]), listed)", "false"),
-    Mutant("fe_contains_directed", "FlowEdges.swift", "precondition(contains(vertex), \"\\(vertex) is not a vertex of the graph\")", "", mode="stmt", nth=0),
-    Mutant("fe_contains_undirected", "FlowEdges.swift", "precondition(contains(vertex), \"\\(vertex) is not a vertex of the graph\")", "", mode="stmt", nth=1),
+    Mutant("fe_indexed_directed", "FlowEdges.swift", "vertices.listed == nil ? nil : vertices.numbers", "vertices.numbers", nth=0),
+    Mutant("fe_indexed_undirected", "FlowEdges.swift", "vertices.listed == nil ? nil : vertices.numbers", "vertices.numbers", nth=1),
     Mutant("fe_float_overflow", "FlowEdges.swift", "sum - sum != .zero", "false"),
 ]

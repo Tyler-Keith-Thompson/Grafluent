@@ -8,7 +8,7 @@ extension Graph {
     @inlinable
     public func closenessCentrality(wfImproved: Bool = true) -> CentralityScores<DirectedView<Self>> {
         let rows = _centralityRows(readsEdges: false)
-        let numbers = _centralityNumbers()
+        let numbers = _vertexNumbering()?.numbers
         var search = _UnweightedCentralitySearch(rows)
         return CentralityScores(directed, numbers: numbers, scores: _closenessScores(&search, wfImproved: wfImproved))
     }
@@ -19,9 +19,9 @@ extension Graph {
     @inlinable
     public func closenessCentrality(of vertex: Vertex, wfImproved: Bool = true) -> Double {
         let rows = _centralityRows(readsEdges: false)
-        let numbers = _centralityNumbers()
+        let numbers = _vertexNumbering()?.numbers
         var search = _UnweightedCentralitySearch(rows)
-        return Centrality._closeness(&search, at: _centralityNumber(of: vertex, numbers), wfImproved: wfImproved)
+        return Centrality._closeness(&search, at: _vertexNumber(of: vertex, numbers, "The vertex is not in the graph"), wfImproved: wfImproved)
     }
 
     /// Closeness centrality over weighted distances; `weight` is called once per edge, in
@@ -32,8 +32,8 @@ extension Graph {
     @inlinable
     public func closenessCentrality<W: BinaryInteger>(weight: (Edges.Index) -> W, wfImproved: Bool = true) -> CentralityScores<DirectedView<Self>> {
         let rows = _centralityRows(readsEdges: true)
-        let numbers = _centralityNumbers()
-        var search = _weightedSearch(_IntegerConversion<W>.self, rows, _centralityWeights(weight, { $0 >= .zero }, _integerWeightMessage))
+        let numbers = _vertexNumbering()?.numbers
+        var search = _weightedSearch(_IntegerConversion<W>.self, rows, _edgeWeights(weight, valid: { $0 >= .zero }, message: _integerWeightMessage))
         return CentralityScores(directed, numbers: numbers, scores: _closenessScores(&search, wfImproved: wfImproved))
     }
 
@@ -43,9 +43,9 @@ extension Graph {
     @inlinable
     public func closenessCentrality<W: BinaryInteger>(of vertex: Vertex, weight: (Edges.Index) -> W, wfImproved: Bool = true) -> Double {
         let rows = _centralityRows(readsEdges: true)
-        let numbers = _centralityNumbers()
-        var search = _weightedSearch(_IntegerConversion<W>.self, rows, _centralityWeights(weight, { $0 >= .zero }, _integerWeightMessage))
-        return Centrality._closeness(&search, at: _centralityNumber(of: vertex, numbers), wfImproved: wfImproved)
+        let numbers = _vertexNumbering()?.numbers
+        var search = _weightedSearch(_IntegerConversion<W>.self, rows, _edgeWeights(weight, valid: { $0 >= .zero }, message: _integerWeightMessage))
+        return Centrality._closeness(&search, at: _vertexNumber(of: vertex, numbers, "The vertex is not in the graph"), wfImproved: wfImproved)
     }
 
     /// Closeness centrality over weighted distances; `weight` is called once per edge, in
@@ -56,8 +56,8 @@ extension Graph {
     @inlinable
     public func closenessCentrality<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W, wfImproved: Bool = true) -> CentralityScores<DirectedView<Self>> {
         let rows = _centralityRows(readsEdges: true)
-        let numbers = _centralityNumbers()
-        var search = _weightedSearch(_FloatingConversion<W>.self, rows, _centralityWeights(weight, { $0 >= .zero && !$0.isNaN }, _floatingWeightMessage))
+        let numbers = _vertexNumbering()?.numbers
+        var search = _weightedSearch(_FloatingConversion<W>.self, rows, _edgeWeights(weight, valid: { $0 >= .zero && !$0.isNaN }, message: _floatingWeightMessage))
         return CentralityScores(directed, numbers: numbers, scores: _closenessScores(&search, wfImproved: wfImproved))
     }
 
@@ -67,9 +67,9 @@ extension Graph {
     @inlinable
     public func closenessCentrality<W: BinaryFloatingPoint>(of vertex: Vertex, weight: (Edges.Index) -> W, wfImproved: Bool = true) -> Double {
         let rows = _centralityRows(readsEdges: true)
-        let numbers = _centralityNumbers()
-        var search = _weightedSearch(_FloatingConversion<W>.self, rows, _centralityWeights(weight, { $0 >= .zero && !$0.isNaN }, _floatingWeightMessage))
-        return Centrality._closeness(&search, at: _centralityNumber(of: vertex, numbers), wfImproved: wfImproved)
+        let numbers = _vertexNumbering()?.numbers
+        var search = _weightedSearch(_FloatingConversion<W>.self, rows, _edgeWeights(weight, valid: { $0 >= .zero && !$0.isNaN }, message: _floatingWeightMessage))
+        return Centrality._closeness(&search, at: _vertexNumber(of: vertex, numbers, "The vertex is not in the graph"), wfImproved: wfImproved)
     }
 
     /// Harmonic centrality (Marchiori and Latora; NetworkX `harmonic_centrality`): Σ 1/d(v, u) over
@@ -77,7 +77,7 @@ extension Graph {
     @inlinable
     public func harmonicCentrality() -> CentralityScores<DirectedView<Self>> {
         let rows = _centralityRows(readsEdges: false)
-        let numbers = _centralityNumbers()
+        let numbers = _vertexNumbering()?.numbers
         var search = _UnweightedCentralitySearch(rows)
         return CentralityScores(directed, numbers: numbers, scores: _harmonicScores(&search))
     }
@@ -88,9 +88,9 @@ extension Graph {
     @inlinable
     public func harmonicCentrality(of vertex: Vertex) -> Double {
         let rows = _centralityRows(readsEdges: false)
-        let numbers = _centralityNumbers()
+        let numbers = _vertexNumbering()?.numbers
         var search = _UnweightedCentralitySearch(rows)
-        return search.sums(from: _centralityNumber(of: vertex, numbers)).harmonic
+        return search.sums(from: _vertexNumber(of: vertex, numbers, "The vertex is not in the graph")).harmonic
     }
 
     /// Harmonic centrality over weighted distances; a vertex at distance 0 adds nothing.
@@ -99,8 +99,8 @@ extension Graph {
     @inlinable
     public func harmonicCentrality<W: BinaryInteger>(weight: (Edges.Index) -> W) -> CentralityScores<DirectedView<Self>> {
         let rows = _centralityRows(readsEdges: true)
-        let numbers = _centralityNumbers()
-        var search = _weightedSearch(_IntegerConversion<W>.self, rows, _centralityWeights(weight, { $0 >= .zero }, _integerWeightMessage))
+        let numbers = _vertexNumbering()?.numbers
+        var search = _weightedSearch(_IntegerConversion<W>.self, rows, _edgeWeights(weight, valid: { $0 >= .zero }, message: _integerWeightMessage))
         return CentralityScores(directed, numbers: numbers, scores: _harmonicScores(&search))
     }
 
@@ -110,9 +110,9 @@ extension Graph {
     @inlinable
     public func harmonicCentrality<W: BinaryInteger>(of vertex: Vertex, weight: (Edges.Index) -> W) -> Double {
         let rows = _centralityRows(readsEdges: true)
-        let numbers = _centralityNumbers()
-        var search = _weightedSearch(_IntegerConversion<W>.self, rows, _centralityWeights(weight, { $0 >= .zero }, _integerWeightMessage))
-        return search.sums(from: _centralityNumber(of: vertex, numbers)).harmonic
+        let numbers = _vertexNumbering()?.numbers
+        var search = _weightedSearch(_IntegerConversion<W>.self, rows, _edgeWeights(weight, valid: { $0 >= .zero }, message: _integerWeightMessage))
+        return search.sums(from: _vertexNumber(of: vertex, numbers, "The vertex is not in the graph")).harmonic
     }
 
     /// Harmonic centrality over weighted distances; a vertex at distance 0 adds nothing.
@@ -121,8 +121,8 @@ extension Graph {
     @inlinable
     public func harmonicCentrality<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W) -> CentralityScores<DirectedView<Self>> {
         let rows = _centralityRows(readsEdges: true)
-        let numbers = _centralityNumbers()
-        var search = _weightedSearch(_FloatingConversion<W>.self, rows, _centralityWeights(weight, { $0 >= .zero && !$0.isNaN }, _floatingWeightMessage))
+        let numbers = _vertexNumbering()?.numbers
+        var search = _weightedSearch(_FloatingConversion<W>.self, rows, _edgeWeights(weight, valid: { $0 >= .zero && !$0.isNaN }, message: _floatingWeightMessage))
         return CentralityScores(directed, numbers: numbers, scores: _harmonicScores(&search))
     }
 
@@ -132,9 +132,9 @@ extension Graph {
     @inlinable
     public func harmonicCentrality<W: BinaryFloatingPoint>(of vertex: Vertex, weight: (Edges.Index) -> W) -> Double {
         let rows = _centralityRows(readsEdges: true)
-        let numbers = _centralityNumbers()
-        var search = _weightedSearch(_FloatingConversion<W>.self, rows, _centralityWeights(weight, { $0 >= .zero && !$0.isNaN }, _floatingWeightMessage))
-        return search.sums(from: _centralityNumber(of: vertex, numbers)).harmonic
+        let numbers = _vertexNumbering()?.numbers
+        var search = _weightedSearch(_FloatingConversion<W>.self, rows, _edgeWeights(weight, valid: { $0 >= .zero && !$0.isNaN }, message: _floatingWeightMessage))
+        return search.sums(from: _vertexNumber(of: vertex, numbers, "The vertex is not in the graph")).harmonic
     }
 }
 
@@ -159,7 +159,7 @@ extension DirectedGraph {
         let (copied, numbers) = _centralityRows(readsEdges: false)
         let rows = copied.transposed()
         var search = _UnweightedCentralitySearch(rows)
-        return Centrality._closeness(&search, at: _centralityNumber(of: vertex, numbers), wfImproved: wfImproved)
+        return Centrality._closeness(&search, at: _vertexNumber(of: vertex, numbers, "The vertex is not in the graph"), wfImproved: wfImproved)
     }
 
     /// Closeness centrality over weighted incoming distances; `weight` is called once per edge, in
@@ -171,7 +171,7 @@ extension DirectedGraph {
     public func closenessCentrality<W: BinaryInteger>(weight: (Edges.Index) -> W, wfImproved: Bool = true) -> CentralityScores<Self> {
         let (copied, numbers) = _centralityRows(readsEdges: true)
         let rows = copied.transposed()
-        var search = _weightedSearch(_IntegerConversion<W>.self, rows, _centralityWeights(weight, { $0 >= .zero }, _integerWeightMessage))
+        var search = _weightedSearch(_IntegerConversion<W>.self, rows, _edgeWeights(weight, valid: { $0 >= .zero }, message: _integerWeightMessage))
         return CentralityScores(self, numbers: numbers, scores: _closenessScores(&search, wfImproved: wfImproved))
     }
 
@@ -182,8 +182,8 @@ extension DirectedGraph {
     public func closenessCentrality<W: BinaryInteger>(of vertex: Vertex, weight: (Edges.Index) -> W, wfImproved: Bool = true) -> Double {
         let (copied, numbers) = _centralityRows(readsEdges: true)
         let rows = copied.transposed()
-        var search = _weightedSearch(_IntegerConversion<W>.self, rows, _centralityWeights(weight, { $0 >= .zero }, _integerWeightMessage))
-        return Centrality._closeness(&search, at: _centralityNumber(of: vertex, numbers), wfImproved: wfImproved)
+        var search = _weightedSearch(_IntegerConversion<W>.self, rows, _edgeWeights(weight, valid: { $0 >= .zero }, message: _integerWeightMessage))
+        return Centrality._closeness(&search, at: _vertexNumber(of: vertex, numbers, "The vertex is not in the graph"), wfImproved: wfImproved)
     }
 
     /// Closeness centrality over weighted incoming distances; `weight` is called once per edge, in
@@ -195,7 +195,7 @@ extension DirectedGraph {
     public func closenessCentrality<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W, wfImproved: Bool = true) -> CentralityScores<Self> {
         let (copied, numbers) = _centralityRows(readsEdges: true)
         let rows = copied.transposed()
-        var search = _weightedSearch(_FloatingConversion<W>.self, rows, _centralityWeights(weight, { $0 >= .zero && !$0.isNaN }, _floatingWeightMessage))
+        var search = _weightedSearch(_FloatingConversion<W>.self, rows, _edgeWeights(weight, valid: { $0 >= .zero && !$0.isNaN }, message: _floatingWeightMessage))
         return CentralityScores(self, numbers: numbers, scores: _closenessScores(&search, wfImproved: wfImproved))
     }
 
@@ -206,8 +206,8 @@ extension DirectedGraph {
     public func closenessCentrality<W: BinaryFloatingPoint>(of vertex: Vertex, weight: (Edges.Index) -> W, wfImproved: Bool = true) -> Double {
         let (copied, numbers) = _centralityRows(readsEdges: true)
         let rows = copied.transposed()
-        var search = _weightedSearch(_FloatingConversion<W>.self, rows, _centralityWeights(weight, { $0 >= .zero && !$0.isNaN }, _floatingWeightMessage))
-        return Centrality._closeness(&search, at: _centralityNumber(of: vertex, numbers), wfImproved: wfImproved)
+        var search = _weightedSearch(_FloatingConversion<W>.self, rows, _edgeWeights(weight, valid: { $0 >= .zero && !$0.isNaN }, message: _floatingWeightMessage))
+        return Centrality._closeness(&search, at: _vertexNumber(of: vertex, numbers, "The vertex is not in the graph"), wfImproved: wfImproved)
     }
 
     /// Harmonic centrality (Marchiori and Latora; NetworkX `harmonic_centrality`): Σ 1/d(v, u) over
@@ -228,7 +228,7 @@ extension DirectedGraph {
         let (copied, numbers) = _centralityRows(readsEdges: false)
         let rows = copied.transposed()
         var search = _UnweightedCentralitySearch(rows)
-        return search.sums(from: _centralityNumber(of: vertex, numbers)).harmonic
+        return search.sums(from: _vertexNumber(of: vertex, numbers, "The vertex is not in the graph")).harmonic
     }
 
     /// Harmonic centrality over weighted incoming distances; a vertex at distance 0 adds nothing.
@@ -238,7 +238,7 @@ extension DirectedGraph {
     public func harmonicCentrality<W: BinaryInteger>(weight: (Edges.Index) -> W) -> CentralityScores<Self> {
         let (copied, numbers) = _centralityRows(readsEdges: true)
         let rows = copied.transposed()
-        var search = _weightedSearch(_IntegerConversion<W>.self, rows, _centralityWeights(weight, { $0 >= .zero }, _integerWeightMessage))
+        var search = _weightedSearch(_IntegerConversion<W>.self, rows, _edgeWeights(weight, valid: { $0 >= .zero }, message: _integerWeightMessage))
         return CentralityScores(self, numbers: numbers, scores: _harmonicScores(&search))
     }
 
@@ -249,8 +249,8 @@ extension DirectedGraph {
     public func harmonicCentrality<W: BinaryInteger>(of vertex: Vertex, weight: (Edges.Index) -> W) -> Double {
         let (copied, numbers) = _centralityRows(readsEdges: true)
         let rows = copied.transposed()
-        var search = _weightedSearch(_IntegerConversion<W>.self, rows, _centralityWeights(weight, { $0 >= .zero }, _integerWeightMessage))
-        return search.sums(from: _centralityNumber(of: vertex, numbers)).harmonic
+        var search = _weightedSearch(_IntegerConversion<W>.self, rows, _edgeWeights(weight, valid: { $0 >= .zero }, message: _integerWeightMessage))
+        return search.sums(from: _vertexNumber(of: vertex, numbers, "The vertex is not in the graph")).harmonic
     }
 
     /// Harmonic centrality over weighted incoming distances; a vertex at distance 0 adds nothing.
@@ -260,7 +260,7 @@ extension DirectedGraph {
     public func harmonicCentrality<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W) -> CentralityScores<Self> {
         let (copied, numbers) = _centralityRows(readsEdges: true)
         let rows = copied.transposed()
-        var search = _weightedSearch(_FloatingConversion<W>.self, rows, _centralityWeights(weight, { $0 >= .zero && !$0.isNaN }, _floatingWeightMessage))
+        var search = _weightedSearch(_FloatingConversion<W>.self, rows, _edgeWeights(weight, valid: { $0 >= .zero && !$0.isNaN }, message: _floatingWeightMessage))
         return CentralityScores(self, numbers: numbers, scores: _harmonicScores(&search))
     }
 
@@ -271,7 +271,7 @@ extension DirectedGraph {
     public func harmonicCentrality<W: BinaryFloatingPoint>(of vertex: Vertex, weight: (Edges.Index) -> W) -> Double {
         let (copied, numbers) = _centralityRows(readsEdges: true)
         let rows = copied.transposed()
-        var search = _weightedSearch(_FloatingConversion<W>.self, rows, _centralityWeights(weight, { $0 >= .zero && !$0.isNaN }, _floatingWeightMessage))
-        return search.sums(from: _centralityNumber(of: vertex, numbers)).harmonic
+        var search = _weightedSearch(_FloatingConversion<W>.self, rows, _edgeWeights(weight, valid: { $0 >= .zero && !$0.isNaN }, message: _floatingWeightMessage))
+        return search.sums(from: _vertexNumber(of: vertex, numbers, "The vertex is not in the graph")).harmonic
     }
 }

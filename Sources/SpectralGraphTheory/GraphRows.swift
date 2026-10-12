@@ -115,11 +115,7 @@ extension Graph {
     /// The number of `vertex`: its vertex index, or its position in `vertices`.
     @inlinable
     func _spectralNumber(of vertex: Vertex, _ numbering: (listed: [Vertex], numbers: [Vertex: Int])?) -> Int {
-        if let numbering {
-            guard let v = numbering.numbers[vertex] else { preconditionFailure("The vertex is not in the graph") }
-            return v
-        }
-        return _requiredVertexIndex(of: vertex, "The vertex is not in the graph")
+        _vertexNumber(of: vertex, numbering?.numbers, "The vertex is not in the graph")
     }
 }
 
@@ -158,7 +154,7 @@ extension DirectedGraph {
                 }
             } else {
                 let indexed = edgeIndexBound != nil
-                let numbers = indexed ? [:] : _spectralEdgeNumbers()
+                let numbers = indexed ? [:] : _edgeNumbers()
                 for v in 0 ..< n {
                     var successors = successorIndices(ofIndex: v).makeIterator()
                     for position in outEdges(ofIndex: v) {
@@ -175,11 +171,9 @@ extension DirectedGraph {
             let listed = Array(vertices)
             n = listed.count
             precondition(n <= Int(Int32.max), "More vertices than the spectral engines index (2³¹ − 1)")
-            var vertexNumbers: [Vertex: Int] = [:]
-            vertexNumbers.reserveCapacity(n)
-            for (i, v) in listed.enumerated() { vertexNumbers[v] = i }
+            let vertexNumbers = _vertexNumbers(listed)
             let indexed = edgeIndexBound != nil
-            let numbers = !readsEdges || indexed ? [:] : _spectralEdgeNumbers()
+            let numbers = !readsEdges || indexed ? [:] : _edgeNumbers()
             for v in listed {
                 for position in outEdges(of: v) {
                     targets.append(Int32(truncatingIfNeeded: vertexNumbers[target(ofEdgeAt: position)]!))
@@ -189,15 +183,6 @@ extension DirectedGraph {
             }
         }
         return _MergedRows(count: n, slotOffsets: offsets, targets: targets, weights: readsEdges ? slotWeights : nil, symmetric: false)
-    }
-
-    /// Each edge position's offset in `edges`.
-    @inlinable
-    func _spectralEdgeNumbers() -> [Edges.Index: Int] {
-        var numbers: [Edges.Index: Int] = [:]
-        numbers.reserveCapacity(edgeCount)
-        for (k, position) in edges.indices.enumerated() { numbers[position] = k }
-        return numbers
     }
 
     @inlinable

@@ -331,7 +331,7 @@ extension Graph {
     func _louvainCommunities(_ weights: [Double]?, resolution: Double, threshold: Double, order: (Int) -> [Int]) -> Partition<DirectedView<Self>> {
         _checkLouvain(resolution: resolution, threshold: threshold)
         let listed = _listedVertices()
-        let numbers = listed.map(CommunityDetection._communityNumbers)
+        let numbers = listed.map(_vertexNumbers)
         let labels = _louvain(_communityGraph(), weights, resolution: resolution, threshold: threshold, order: order)
         return Partition(directed, numbers: numbers, listed: listed, labels: labels)
     }
@@ -384,7 +384,7 @@ extension DirectedGraph {
     func _louvainCommunities(_ weights: [Double]?, resolution: Double, threshold: Double, order: (Int) -> [Int]) -> Partition<Self> {
         _checkLouvain(resolution: resolution, threshold: threshold)
         let listed = _listedVertices()
-        let numbers = listed.map(CommunityDetection._communityNumbers)
+        let numbers = listed.map(_vertexNumbers)
         let labels = _louvain(_communityGraph(numbers), weights, resolution: resolution, threshold: threshold, order: order)
         return Partition(self, numbers: numbers, listed: listed, labels: labels)
     }

@@ -30,7 +30,7 @@ extension Graph {
     @inlinable
     public func eccentricities<W: Comparable & AdditiveArithmetic>(weight: (Edges.Index) -> W) -> Eccentricities<DirectedView<Self>, W> {
         let rows = _distanceRows()
-        return Eccentricities(directed, listed: _listedVertices(), values: _allEccentricities(rows, weights: _distanceWeights(weight)))
+        return Eccentricities(directed, listed: _listedVertices(), values: _allEccentricities(rows, weights: _distanceWeights(weight), undirected: true))
     }
 
     /// The eccentricity of one vertex: one search. Nil when the graph is not connected.
@@ -127,7 +127,7 @@ extension Graph {
     public func diameterPath<W: Comparable & AdditiveArithmetic>(weight: (Edges.Index) -> W) -> (path: Path<Vertex, Edges.Index>, distance: W)? {
         let rows = _distanceRows()
         let weights = _distanceWeights(weight)
-        let values = _allEccentricities(rows, weights: weights)
+        let values = _allEccentricities(rows, weights: weights, undirected: true)
         guard rows.count > 0, let diameter = _radiusAndDiameter(values).diameter else { return nil }
         let u = values.firstIndex { $0 == diameter }!
         var searches = _DijkstraSearches(rows, weights: weights)
@@ -138,7 +138,7 @@ extension Graph {
     }
 
     @inlinable
-    func _path(_ u: Int, _ v: Int, _ parentSlot: [Int], _ rows: _DistanceRows) -> Path<Vertex, Edges.Index> {
+    func _path(_ u: Int, _ v: Int, _ parentSlot: [Int], _ rows: _CompressedRows) -> Path<Vertex, Edges.Index> {
         let (vertexNumbers, edgeNumbers) = _pathNumbers(u, v, parentSlot, rows)
         let listed = _listedVertices()
         let positions = Array(edges.indices)
@@ -151,7 +151,7 @@ extension Graph {
     @inlinable
     public func centroid() -> [Vertex] {
         let listed = _listedVertices()
-        return _leastTotals(_totals(_distanceRows())).map { _vertex(number: $0, listed) }
+        return _leastTotals(_totals(_distanceRows(), undirected: true)).map { _vertex(number: $0, listed) }
     }
 
     /// The vertices of least total weighted distance to all others. O(n · m log n).
@@ -160,13 +160,13 @@ extension Graph {
     @inlinable
     public func centroid<W: Comparable & AdditiveArithmetic>(weight: (Edges.Index) -> W) -> [Vertex] {
         let listed = _listedVertices()
-        return _leastTotals(_totals(_distanceRows(), weights: _distanceWeights(weight))).map { _vertex(number: $0, listed) }
+        return _leastTotals(_totals(_distanceRows(), weights: _distanceWeights(weight), undirected: true)).map { _vertex(number: $0, listed) }
     }
 
     /// The sum of the distances over all unordered pairs of vertices (NetworkX `wiener_index`);
     /// nil when the graph is not connected, 0 when it has fewer than two vertices. O(n(n + m)).
     @inlinable
-    public func wienerIndex() -> Int? { _wienerIndex(_distanceRows()) }
+    public func wienerIndex() -> Int? { _wienerIndex(_distanceRows(), undirected: true) }
 
     /// The sum of the weighted distances over all unordered pairs, sources in index order and each
     /// one's later targets in index order.
@@ -174,7 +174,7 @@ extension Graph {
     /// - Precondition: Every weight is at least `.zero` and not NaN; the sums fit in `W`.
     @inlinable
     public func wienerIndex<W: Comparable & AdditiveArithmetic>(weight: (Edges.Index) -> W) -> W? {
-        _wienerIndex(_distanceRows(), weights: _distanceWeights(weight))
+        _wienerIndex(_distanceRows(), weights: _distanceWeights(weight), undirected: true)
     }
 
     /// The Wiener index over the number of pairs (NetworkX `average_shortest_path_length`); 0 for

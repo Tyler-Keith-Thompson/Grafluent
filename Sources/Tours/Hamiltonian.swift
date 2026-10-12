@@ -21,13 +21,14 @@ struct _HamiltonianRows: Sendable {
     @inlinable
     var count: Int { rowOffsets.count - 1 }
 
-    /// From rows given as offsets, targets and edge numbers.
+    /// From rows with edge numbers.
     @inlinable
-    init(offsets: [Int], targets: [Int], edges: [Int], directed: Bool) {
-        let n = offsets.count - 1
+    init(_ rows: _CompressedRows, directed: Bool) {
+        let n = rows.count
+        let offsets = rows.offsets, targets = rows.targets
         rowOffsets = offsets
         rowTargets = targets
-        rowEdges = edges
+        rowEdges = rows.edges
         self.directed = directed
         var stamp = [Int](repeating: -1, count: n)
         var nextOffsets = [Int](repeating: 0, count: n + 1)
@@ -64,32 +65,6 @@ struct _HamiltonianRows: Sendable {
             previousOffsets = nextOffsets
             previous = next
         }
-    }
-}
-
-/// Copies an undirected graph's rows for the search.
-@frozen
-@usableFromInline
-struct _CopyHamiltonianRows: _UndirectedRowsAlgorithm {
-    @inlinable
-    init() {}
-
-    @inlinable
-    func run<Rows: _IncidenceRowSource>(count n: Int, edgeCount: Int, _ rows: inout Rows) -> _HamiltonianRows {
-        var offsets = [Int](repeating: 0, count: n + 1)
-        var targets: [Int] = [], edges: [Int] = []
-        targets.reserveCapacity(2 * edgeCount)
-        edges.reserveCapacity(2 * edgeCount)
-        for v in 0 ..< n {
-            for k in 0 ..< rows.count(v) {
-                let w = rows.neighbor(v, k), e = rows.edge(v, k)
-                precondition(UInt(bitPattern: w) < UInt(bitPattern: n) && UInt(bitPattern: e) < UInt(bitPattern: edgeCount), "A neighbor or edge index is out of range")
-                targets.append(w)
-                edges.append(e)
-            }
-            offsets[v + 1] = targets.count
-        }
-        return _HamiltonianRows(offsets: offsets, targets: targets, edges: edges, directed: false)
     }
 }
 
@@ -488,7 +463,7 @@ extension DirectedGraph {
     func _hamiltonianRows() -> (_HamiltonianRows, _DirectedTourRows<Self>) {
         let rows = _directedTourRows(positions: true)
         let search = _withTourRows(rows) { offsets, targets in
-            _HamiltonianRows(offsets: Array(offsets), targets: Array(targets), edges: Array(0 ..< targets.count), directed: true)
+            _HamiltonianRows(_CompressedRows(offsets: Array(offsets), targets: Array(targets), edges: Array(0 ..< targets.count)), directed: true)
         }
         return (search, rows)
     }
@@ -551,8 +526,8 @@ extension Graph {
     @inlinable
     func _hamiltonianRows() -> (_HamiltonianRows, _TourNumbering<Vertex>) {
         let numbering = _tourNumbering()
-        let rows = _runOnUndirectedRows(_CopyHamiltonianRows(), vertexNumbering: numbering.isIndexed ? nil : (numbering.listed, numbering.numbers))
-        return (rows, numbering)
+        let rows = _runOnUndirectedRows(_CopyRows(readsEdges: true, dropsLoops: false), vertexNumbering: numbering.isIndexed ? nil : (numbering.listed, numbering.numbers))
+        return (_HamiltonianRows(rows, directed: false), numbering)
     }
 
     @inlinable

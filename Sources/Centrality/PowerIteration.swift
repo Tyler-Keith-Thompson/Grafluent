@@ -240,7 +240,7 @@ func _hits<S: _SlotWeights>(_ offsets: UnsafeBufferPointer<Int>, _ targets: Unsa
     throw NoConvergence(iterations: maxIterations, residual: change / Double(n))
 }
 
-extension _CentralityRows {
+extension _CompressedRows {
     /// Runs `body` over the rows' buffers and the slot weights (unit weights when nil).
     @inlinable
     func withIteration<R, E: Error>(_ weights: [Double]?, _ body: (UnsafeBufferPointer<Int>, UnsafeBufferPointer<Int>, _UnitSlotWeights?, _BufferSlotWeights?) throws(E) -> R) throws(E) -> R {
@@ -313,7 +313,7 @@ extension Graph {
     public func eigenvectorCentrality(tolerance: Double = 1e-6, maxIterations: Int = 100) throws(NoConvergence) -> CentralityScores<DirectedView<Self>> {
         _checkIteration(tolerance: tolerance, maxIterations: maxIterations)
         let rows = _centralityRows(readsEdges: false)
-        let numbers = _centralityNumbers()
+        let numbers = _vertexNumbering()?.numbers
         let scores = try rows.eigenvector(nil, tolerance: tolerance, maxIterations: maxIterations)
         return CentralityScores(directed, numbers: numbers, scores: scores)
     }
@@ -329,8 +329,8 @@ extension Graph {
     public func eigenvectorCentrality<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W, tolerance: Double = 1e-6, maxIterations: Int = 100) throws(NoConvergence) -> CentralityScores<DirectedView<Self>> {
         _checkIteration(tolerance: tolerance, maxIterations: maxIterations)
         let rows = _centralityRows(readsEdges: true)
-        let numbers = _centralityNumbers()
-        let scores = try rows.eigenvector(rows.iterationWeights(_centralityWeights(weight, { $0 >= .zero && $0.isFinite }, _iterationWeightMessage)), tolerance: tolerance, maxIterations: maxIterations)
+        let numbers = _vertexNumbering()?.numbers
+        let scores = try rows.eigenvector(rows.iterationWeights(_edgeWeights(weight, valid: { $0 >= .zero && $0.isFinite }, message: _iterationWeightMessage)), tolerance: tolerance, maxIterations: maxIterations)
         return CentralityScores(directed, numbers: numbers, scores: scores)
     }
 
@@ -346,7 +346,7 @@ extension Graph {
     public func katzCentrality(alpha: Double = 0.1, beta: Double = 1, normalized: Bool = true, tolerance: Double = 1e-6, maxIterations: Int = 1000) throws(NoConvergence) -> CentralityScores<DirectedView<Self>> {
         _checkKatz(alpha: alpha, beta: beta, tolerance: tolerance, maxIterations: maxIterations)
         let rows = _centralityRows(readsEdges: false)
-        let numbers = _centralityNumbers()
+        let numbers = _vertexNumbering()?.numbers
         let scores = try rows.katz(nil, alpha: alpha, beta: beta, normalized: normalized, tolerance: tolerance, maxIterations: maxIterations)
         return CentralityScores(directed, numbers: numbers, scores: scores)
     }
@@ -362,8 +362,8 @@ extension Graph {
     public func katzCentrality<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W, alpha: Double = 0.1, beta: Double = 1, normalized: Bool = true, tolerance: Double = 1e-6, maxIterations: Int = 1000) throws(NoConvergence) -> CentralityScores<DirectedView<Self>> {
         _checkKatz(alpha: alpha, beta: beta, tolerance: tolerance, maxIterations: maxIterations)
         let rows = _centralityRows(readsEdges: true)
-        let numbers = _centralityNumbers()
-        let scores = try rows.katz(rows.iterationWeights(_centralityWeights(weight, { $0 >= .zero && $0.isFinite }, _iterationWeightMessage)), alpha: alpha, beta: beta, normalized: normalized, tolerance: tolerance, maxIterations: maxIterations)
+        let numbers = _vertexNumbering()?.numbers
+        let scores = try rows.katz(rows.iterationWeights(_edgeWeights(weight, valid: { $0 >= .zero && $0.isFinite }, message: _iterationWeightMessage)), alpha: alpha, beta: beta, normalized: normalized, tolerance: tolerance, maxIterations: maxIterations)
         return CentralityScores(directed, numbers: numbers, scores: scores)
     }
 
@@ -380,7 +380,7 @@ extension Graph {
     public func pageRank(dampingFactor: Double = 0.85, tolerance: Double = 1e-6, maxIterations: Int = 100) throws(NoConvergence) -> CentralityScores<DirectedView<Self>> {
         _checkPageRank(dampingFactor: dampingFactor, tolerance: tolerance, maxIterations: maxIterations)
         let rows = _centralityRows(readsEdges: false)
-        let numbers = _centralityNumbers()
+        let numbers = _vertexNumbering()?.numbers
         let scores = try rows.pageRank(nil, dampingFactor: dampingFactor, personalization: nil, tolerance: tolerance, maxIterations: maxIterations)
         return CentralityScores(directed, numbers: numbers, scores: scores)
     }
@@ -399,7 +399,7 @@ extension Graph {
         _checkPageRank(dampingFactor: dampingFactor, tolerance: tolerance, maxIterations: maxIterations)
         let p = _personalization(personalization)
         let rows = _centralityRows(readsEdges: false)
-        let numbers = _centralityNumbers()
+        let numbers = _vertexNumbering()?.numbers
         let scores = try rows.pageRank(nil, dampingFactor: dampingFactor, personalization: p, tolerance: tolerance, maxIterations: maxIterations)
         return CentralityScores(directed, numbers: numbers, scores: scores)
     }
@@ -416,8 +416,8 @@ extension Graph {
     public func pageRank<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W, dampingFactor: Double = 0.85, tolerance: Double = 1e-6, maxIterations: Int = 100) throws(NoConvergence) -> CentralityScores<DirectedView<Self>> {
         _checkPageRank(dampingFactor: dampingFactor, tolerance: tolerance, maxIterations: maxIterations)
         let rows = _centralityRows(readsEdges: true)
-        let numbers = _centralityNumbers()
-        let scores = try rows.pageRank(rows.iterationWeights(_centralityWeights(weight, { $0 >= .zero && $0.isFinite }, _iterationWeightMessage)), dampingFactor: dampingFactor, personalization: nil, tolerance: tolerance, maxIterations: maxIterations)
+        let numbers = _vertexNumbering()?.numbers
+        let scores = try rows.pageRank(rows.iterationWeights(_edgeWeights(weight, valid: { $0 >= .zero && $0.isFinite }, message: _iterationWeightMessage)), dampingFactor: dampingFactor, personalization: nil, tolerance: tolerance, maxIterations: maxIterations)
         return CentralityScores(directed, numbers: numbers, scores: scores)
     }
 
@@ -433,8 +433,8 @@ extension Graph {
     public func pageRank<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W, dampingFactor: Double = 0.85, personalization: (Vertex) -> Double, tolerance: Double = 1e-6, maxIterations: Int = 100) throws(NoConvergence) -> CentralityScores<DirectedView<Self>> {
         _checkPageRank(dampingFactor: dampingFactor, tolerance: tolerance, maxIterations: maxIterations)
         let rows = _centralityRows(readsEdges: true)
-        let numbers = _centralityNumbers()
-        let weights = rows.iterationWeights(_centralityWeights(weight, { $0 >= .zero && $0.isFinite }, _iterationWeightMessage))
+        let numbers = _vertexNumbering()?.numbers
+        let weights = rows.iterationWeights(_edgeWeights(weight, valid: { $0 >= .zero && $0.isFinite }, message: _iterationWeightMessage))
         let p = _personalization(personalization)
         let scores = try rows.pageRank(weights, dampingFactor: dampingFactor, personalization: p, tolerance: tolerance, maxIterations: maxIterations)
         return CentralityScores(directed, numbers: numbers, scores: scores)
@@ -501,7 +501,7 @@ extension DirectedGraph {
     public func eigenvectorCentrality<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W, tolerance: Double = 1e-6, maxIterations: Int = 100) throws(NoConvergence) -> CentralityScores<Self> {
         _checkIteration(tolerance: tolerance, maxIterations: maxIterations)
         let (rows, numbers) = _centralityRows(readsEdges: true)
-        let scores = try rows.eigenvector(rows.iterationWeights(_centralityWeights(weight, { $0 >= .zero && $0.isFinite }, _iterationWeightMessage)), tolerance: tolerance, maxIterations: maxIterations)
+        let scores = try rows.eigenvector(rows.iterationWeights(_edgeWeights(weight, valid: { $0 >= .zero && $0.isFinite }, message: _iterationWeightMessage)), tolerance: tolerance, maxIterations: maxIterations)
         return CentralityScores(self, numbers: numbers, scores: scores)
     }
 
@@ -532,7 +532,7 @@ extension DirectedGraph {
     public func katzCentrality<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W, alpha: Double = 0.1, beta: Double = 1, normalized: Bool = true, tolerance: Double = 1e-6, maxIterations: Int = 1000) throws(NoConvergence) -> CentralityScores<Self> {
         _checkKatz(alpha: alpha, beta: beta, tolerance: tolerance, maxIterations: maxIterations)
         let (rows, numbers) = _centralityRows(readsEdges: true)
-        let scores = try rows.katz(rows.iterationWeights(_centralityWeights(weight, { $0 >= .zero && $0.isFinite }, _iterationWeightMessage)), alpha: alpha, beta: beta, normalized: normalized, tolerance: tolerance, maxIterations: maxIterations)
+        let scores = try rows.katz(rows.iterationWeights(_edgeWeights(weight, valid: { $0 >= .zero && $0.isFinite }, message: _iterationWeightMessage)), alpha: alpha, beta: beta, normalized: normalized, tolerance: tolerance, maxIterations: maxIterations)
         return CentralityScores(self, numbers: numbers, scores: scores)
     }
 
@@ -583,7 +583,7 @@ extension DirectedGraph {
     public func pageRank<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W, dampingFactor: Double = 0.85, tolerance: Double = 1e-6, maxIterations: Int = 100) throws(NoConvergence) -> CentralityScores<Self> {
         _checkPageRank(dampingFactor: dampingFactor, tolerance: tolerance, maxIterations: maxIterations)
         let (rows, numbers) = _centralityRows(readsEdges: true)
-        let scores = try rows.pageRank(rows.iterationWeights(_centralityWeights(weight, { $0 >= .zero && $0.isFinite }, _iterationWeightMessage)), dampingFactor: dampingFactor, personalization: nil, tolerance: tolerance, maxIterations: maxIterations)
+        let scores = try rows.pageRank(rows.iterationWeights(_edgeWeights(weight, valid: { $0 >= .zero && $0.isFinite }, message: _iterationWeightMessage)), dampingFactor: dampingFactor, personalization: nil, tolerance: tolerance, maxIterations: maxIterations)
         return CentralityScores(self, numbers: numbers, scores: scores)
     }
 
@@ -599,7 +599,7 @@ extension DirectedGraph {
     public func pageRank<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W, dampingFactor: Double = 0.85, personalization: (Vertex) -> Double, tolerance: Double = 1e-6, maxIterations: Int = 100) throws(NoConvergence) -> CentralityScores<Self> {
         _checkPageRank(dampingFactor: dampingFactor, tolerance: tolerance, maxIterations: maxIterations)
         let (rows, numbers) = _centralityRows(readsEdges: true)
-        let weights = rows.iterationWeights(_centralityWeights(weight, { $0 >= .zero && $0.isFinite }, _iterationWeightMessage))
+        let weights = rows.iterationWeights(_edgeWeights(weight, valid: { $0 >= .zero && $0.isFinite }, message: _iterationWeightMessage))
         let p = _personalization(personalization)
         let scores = try rows.pageRank(weights, dampingFactor: dampingFactor, personalization: p, tolerance: tolerance, maxIterations: maxIterations)
         return CentralityScores(self, numbers: numbers, scores: scores)
@@ -633,7 +633,7 @@ extension DirectedGraph {
     public func hits<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W, tolerance: Double = 1e-8, maxIterations: Int = 100) throws(NoConvergence) -> HubAndAuthorityScores<Self> {
         _checkIteration(tolerance: tolerance, maxIterations: maxIterations)
         let (rows, numbers) = _centralityRows(readsEdges: true)
-        let (hubs, authorities) = try rows.hits(rows.iterationWeights(_centralityWeights(weight, { $0 >= .zero && $0.isFinite }, _iterationWeightMessage)), tolerance: tolerance, maxIterations: maxIterations)
+        let (hubs, authorities) = try rows.hits(rows.iterationWeights(_edgeWeights(weight, valid: { $0 >= .zero && $0.isFinite }, message: _iterationWeightMessage)), tolerance: tolerance, maxIterations: maxIterations)
         return HubAndAuthorityScores(hubs: CentralityScores(self, numbers: numbers, scores: hubs), authorities: CentralityScores(self, numbers: numbers, scores: authorities))
     }
 }

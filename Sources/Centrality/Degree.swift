@@ -13,7 +13,7 @@ extension Graph {
         let scores = vertexIndexBound != nil
             ? (0 ..< n).map { n == 1 ? 1 : Double(degree(ofIndex: $0)) * scale }
             : vertices.map { n == 1 ? 1 : Double(degree(of: $0)) * scale }
-        return CentralityScores(directed, numbers: _centralityNumbers(), scores: scores)
+        return CentralityScores(directed, numbers: _vertexNumbering()?.numbers, scores: scores)
     }
 }
 
@@ -36,7 +36,7 @@ extension DirectedGraph {
     /// the targets, without vertex indices). No edge is read.
     @inlinable
     func _degreeCentrality(incoming: Bool, outgoing: Bool) -> CentralityScores<Self> {
-        let numbers = _centralityNumbers()
+        let numbers = _vertexNumbering()?.numbers
         let n = vertexCount
         var counts: [Int]
         if !outgoing {

@@ -7,7 +7,7 @@ import PriorityQueueModule
 /// predecessor lists are built. Each slot is a distinct path step, so parallel copies count as
 /// distinct shortest paths; a loop never satisfies d(w) = d(v) + 1.
 @inlinable
-func _betweenness(_ rows: _CentralityRows, endpoints: Bool) -> [Double] {
+func _betweenness(_ rows: _CompressedRows, endpoints: Bool) -> [Double] {
     let n = rows.count
     var result = [Double](repeating: 0, count: n)
     guard n > 0 else { return result }
@@ -85,7 +85,7 @@ func _betweenness(_ rows: _CentralityRows, endpoints: Bool) -> [Double] {
 /// heap), so a sum that absorbs a tiny weight (d + w == d) never makes the DAG cyclic or reads a
 /// dependency not yet computed.
 @inlinable
-func _betweenness<W: Comparable & AdditiveArithmetic>(_ rows: _CentralityRows, slotWeights weights: [W], endpoints: Bool) -> [Double] {
+func _betweenness<W: Comparable & AdditiveArithmetic>(_ rows: _CompressedRows, slotWeights weights: [W], endpoints: Bool) -> [Double] {
     let n = rows.count
     var result = [Double](repeating: 0, count: n)
     guard n > 0 else { return result }
@@ -196,7 +196,7 @@ extension Graph {
     public func betweennessCentrality(normalized: Bool = true, endpoints: Bool = false) -> CentralityScores<DirectedView<Self>> {
         var scores = _betweenness(_centralityRows(readsEdges: false), endpoints: endpoints)
         _rescaleBetweenness(&scores, normalized: normalized, endpoints: endpoints, directed: false)
-        return CentralityScores(directed, numbers: _centralityNumbers(), scores: scores)
+        return CentralityScores(directed, numbers: _vertexNumbering()?.numbers, scores: scores)
     }
 
     /// Weighted betweenness centrality. Path lengths tie only when their sums are exactly equal, so
@@ -208,10 +208,10 @@ extension Graph {
     @inlinable
     public func betweennessCentrality<W: Comparable & AdditiveArithmetic>(weight: (Edges.Index) -> W, normalized: Bool = true, endpoints: Bool = false) -> CentralityScores<DirectedView<Self>> {
         let rows = _centralityRows(readsEdges: true)
-        let weights = _centralityWeights(weight, { $0 > .zero }, "Edge weights must be greater than zero")
+        let weights = _edgeWeights(weight, valid: { $0 > .zero }, message: "Edge weights must be greater than zero")
         var scores = _betweenness(rows, slotWeights: rows.slotWeights(weights), endpoints: endpoints)
         _rescaleBetweenness(&scores, normalized: normalized, endpoints: endpoints, directed: false)
-        return CentralityScores(directed, numbers: _centralityNumbers(), scores: scores)
+        return CentralityScores(directed, numbers: _vertexNumbering()?.numbers, scores: scores)
     }
 }
 
@@ -235,7 +235,7 @@ extension DirectedGraph {
     @inlinable
     public func betweennessCentrality<W: Comparable & AdditiveArithmetic>(weight: (Edges.Index) -> W, normalized: Bool = true, endpoints: Bool = false) -> CentralityScores<Self> {
         let (rows, numbers) = _centralityRows(readsEdges: true)
-        let weights = _centralityWeights(weight, { $0 > .zero }, "Edge weights must be greater than zero")
+        let weights = _edgeWeights(weight, valid: { $0 > .zero }, message: "Edge weights must be greater than zero")
         var scores = _betweenness(rows, slotWeights: rows.slotWeights(weights), endpoints: endpoints)
         _rescaleBetweenness(&scores, normalized: normalized, endpoints: endpoints, directed: true)
         return CentralityScores(self, numbers: numbers, scores: scores)

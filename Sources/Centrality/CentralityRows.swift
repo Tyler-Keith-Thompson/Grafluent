@@ -1,30 +1,14 @@
 import GraphProtocols
 import PriorityQueueModule
 
-/// A graph's arcs in index space: vertex `v`'s out-arcs are slots `offsets[v] ..< offsets[v + 1]`
-/// of `targets`, in row order, and, when the measure reads weights, of `edges` (the edge's
-/// number: its offset in `edges`); `edges` is empty otherwise. Self-loops are kept (an undirected
-/// loop twice, as its row lists it) for the matrix measures; the searches never cross them.
-@frozen
-@usableFromInline
-struct _CentralityRows: Sendable {
-    @usableFromInline var offsets: [Int]
-    @usableFromInline var targets: [Int]
-    @usableFromInline var edges: [Int]
+// The measures read a graph's arcs as `_CompressedRows`: in row order, with edge numbers
+// (offsets in `edges`) only when they read weights. Self-loops are kept (an undirected loop
+// twice, as its row lists it) for the matrix measures; the searches never cross them.
 
-    @inlinable
-    init(offsets: [Int], targets: [Int], edges: [Int]) {
-        self.offsets = offsets
-        self.targets = targets
-        self.edges = edges
-    }
-
-    @inlinable
-    var count: Int { offsets.count - 1 }
-
+extension _CompressedRows {
     /// The reversed arcs, each source's in-arcs in increasing source index, then row order.
     @inlinable
-    func transposed() -> _CentralityRows {
+    func transposed() -> _CompressedRows {
         let n = count
         let withEdges = !edges.isEmpty
         var start = [Int](repeating: 0, count: n + 1)
@@ -41,7 +25,7 @@ struct _CentralityRows: Sendable {
                 fill[w] += 1
             }
         }
-        return _CentralityRows(offsets: start, targets: reversedTargets, edges: reversedEdges)
+        return _CompressedRows(offsets: start, targets: reversedTargets, edges: reversedEdges)
     }
 
     /// The weight of each slot, from the weights by edge number.
@@ -49,92 +33,26 @@ struct _CentralityRows: Sendable {
     func slotWeights<W>(_ weights: [W]) -> [W] { edges.map { weights[$0] } }
 }
 
-/// Copies an undirected graph's rows: every edge end, a loop twice; edge numbers only when
-/// `readsEdges`.
-@frozen
-@usableFromInline
-struct _CopyCentralityRows: _UndirectedRowsAlgorithm {
-    @usableFromInline let readsEdges: Bool
-
-    @inlinable
-    init(readsEdges: Bool) { self.readsEdges = readsEdges }
-
-    @inlinable
-    func run<Rows: _IncidenceRowSource>(count n: Int, edgeCount: Int, _ rows: inout Rows) -> _CentralityRows {
-        var offsets = [Int](repeating: 0, count: n + 1)
-        var targets: [Int] = [], edges: [Int] = []
-        targets.reserveCapacity(2 * edgeCount)
-        if readsEdges { edges.reserveCapacity(2 * edgeCount) }
-        for v in 0 ..< n {
-            for k in 0 ..< rows.count(v) {
-                let w = rows.neighbor(v, k)
-                precondition(UInt(bitPattern: w) < UInt(bitPattern: n), "A neighbor index is out of range")
-                targets.append(w)
-                if readsEdges {
-                    let e = rows.edge(v, k)
-                    precondition(UInt(bitPattern: e) < UInt(bitPattern: edgeCount), "An edge index is out of range")
-                    edges.append(e)
-                }
-            }
-            offsets[v + 1] = targets.count
-        }
-        return _CentralityRows(offsets: offsets, targets: targets, edges: edges)
-    }
-}
-
-/// Each edge's weight by number, read once in position order and checked by `valid`.
-@inlinable
-func _readWeights<Positions: Sequence, W>(_ positions: Positions, count: Int, _ weight: (Positions.Element) -> W, _ valid: (W) -> Bool, _ message: @autoclosure () -> String) -> [W] {
-    var weights: [W] = []
-    weights.reserveCapacity(count)
-    for position in positions {
-        let w = weight(position)
-        precondition(valid(w), message())
-        weights.append(w)
-    }
-    return weights
-}
-
-/// The number of `vertex`: from `numbers`, or its vertex index (`required`, one lookup).
-@inlinable
-func _number<V>(of vertex: V, _ numbers: [V: Int]?, required: (V) -> Int) -> Int {
-    if let numbers {
-        guard let v = numbers[vertex] else { preconditionFailure("The vertex is not in the graph") }
-        return v
-    }
-    return required(vertex)
-}
-
 extension Graph {
+    /// Every edge end, a loop twice; edge numbers only when `readsEdges`.
     @inlinable
-    func _centralityRows(readsEdges: Bool) -> _CentralityRows {
-        _runOnUndirectedRows(_CopyCentralityRows(readsEdges: readsEdges))
-    }
-
-    /// Vertex numbers for a result: nil when the graph has vertex indices.
-    @inlinable
-    func _centralityNumbers() -> [Vertex: Int]? { _listedVertices().map(_vertexNumbers) }
-
-    @inlinable
-    func _centralityNumber(of vertex: Vertex, _ numbers: [Vertex: Int]?) -> Int {
-        _number(of: vertex, numbers) { _requiredVertexIndex(of: $0, "The vertex is not in the graph") }
-    }
-
-    @inlinable
-    func _centralityWeights<W>(_ weight: (Edges.Index) -> W, _ valid: (W) -> Bool, _ message: @autoclosure () -> String) -> [W] {
-        _readWeights(edges.indices, count: edgeCount, weight, valid, message())
+    func _centralityRows(readsEdges: Bool) -> _CompressedRows {
+        _runOnUndirectedRows(_CopyRows(readsEdges: readsEdges, dropsLoops: false))
     }
 }
 
 extension DirectedGraph {
     /// The rows (edge numbers only when `readsEdges`), and the vertex numbers when the graph has
     /// no vertex indices. Rows a representation lends (compressed sparse row) are copied whole.
+    /// Kept rather than `_compressedRows(readsEdges:dropsLoops:)`: the shared builder made the
+    /// copy from `successorIndices` about twice as slow (`pageRank()` on an `AdjacencyList` of
+    /// 5·10⁵ arcs, +23%).
     @inlinable
-    func _centralityRows(readsEdges: Bool) -> (rows: _CentralityRows, numbers: [Vertex: Int]?) {
+    func _centralityRows(readsEdges: Bool) -> (rows: _CompressedRows, numbers: [Vertex: Int]?) {
         if let n = vertexIndexBound {
             if Edges.Index.self == Int.self, let rows = _withSuccessorIndexRows({ offsets, targets in
                 // Slot k is the edge with index k.
-                _CentralityRows(offsets: Array(offsets), targets: Array(targets), edges: readsEdges ? Array(0 ..< targets.count) : [])
+                _CompressedRows(offsets: Array(offsets), targets: Array(targets), edges: readsEdges ? Array(0 ..< targets.count) : [])
             }) {
                 return (rows, nil)
             }
@@ -150,7 +68,7 @@ extension DirectedGraph {
                     }
                     offsets.append(targets.count)
                 }
-                return (_CentralityRows(offsets: offsets, targets: targets, edges: []), nil)
+                return (_CompressedRows(offsets: offsets, targets: targets, edges: []), nil)
             }
             edges.reserveCapacity(edgeCount)
             let indexed = edgeIndexBound != nil
@@ -166,7 +84,7 @@ extension DirectedGraph {
                 precondition(successors.next() == nil, "successorIndices and outEdges differ in length")
                 offsets.append(targets.count)
             }
-            return (_CentralityRows(offsets: offsets, targets: targets, edges: edges), nil)
+            return (_CompressedRows(offsets: offsets, targets: targets, edges: edges), nil)
         }
         let listed = Array(vertices)
         let vertexNumbers = _vertexNumbers(listed)
@@ -183,21 +101,7 @@ extension DirectedGraph {
             }
             offsets.append(targets.count)
         }
-        return (_CentralityRows(offsets: offsets, targets: targets, edges: edges), vertexNumbers)
-    }
-
-    /// Vertex numbers for a result: nil when the graph has vertex indices.
-    @inlinable
-    func _centralityNumbers() -> [Vertex: Int]? { _listedVertices().map(_vertexNumbers) }
-
-    @inlinable
-    func _centralityNumber(of vertex: Vertex, _ numbers: [Vertex: Int]?) -> Int {
-        _number(of: vertex, numbers) { _requiredVertexIndex(of: $0, "The vertex is not in the graph") }
-    }
-
-    @inlinable
-    func _centralityWeights<W>(_ weight: (Edges.Index) -> W, _ valid: (W) -> Bool, _ message: @autoclosure () -> String) -> [W] {
-        _readWeights(edges.indices, count: edgeCount, weight, valid, message())
+        return (_CompressedRows(offsets: offsets, targets: targets, edges: edges), vertexNumbers)
     }
 }
 

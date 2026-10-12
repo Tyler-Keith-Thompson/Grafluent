@@ -269,7 +269,7 @@ extension Graph {
     func _greedyModularityCommunities(_ weights: [Double]?, resolution: Double) -> Partition<DirectedView<Self>> {
         _checkResolution(resolution)
         let listed = _listedVertices()
-        let numbers = listed.map(CommunityDetection._communityNumbers)
+        let numbers = listed.map(_vertexNumbers)
         let labels = _greedyModularity(_communityGraph(), weights, resolution: resolution)
         return Partition(directed, numbers: numbers, listed: listed, labels: labels)
     }
@@ -300,7 +300,7 @@ extension DirectedGraph {
     func _greedyModularityCommunities(_ weights: [Double]?, resolution: Double) -> Partition<Self> {
         _checkResolution(resolution)
         let listed = _listedVertices()
-        let numbers = listed.map(CommunityDetection._communityNumbers)
+        let numbers = listed.map(_vertexNumbers)
         let labels = _greedyModularity(_communityGraph(numbers), weights, resolution: resolution)
         return Partition(self, numbers: numbers, listed: listed, labels: labels)
     }

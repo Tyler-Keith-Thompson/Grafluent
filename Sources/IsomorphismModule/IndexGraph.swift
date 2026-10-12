@@ -196,10 +196,7 @@ final class _VertexNumbers<Vertex: Hashable> {
     @inlinable
     init(_ listed: [Vertex]) {
         self.listed = listed
-        var numbers: [Vertex: Int] = [:]
-        numbers.reserveCapacity(listed.count)
-        for (i, v) in listed.enumerated() { numbers[v] = i }
-        self.numbers = numbers
+        numbers = _vertexNumbers(listed)
     }
 }
 
@@ -221,33 +218,6 @@ struct _ColorTable<Color: Hashable> {
     }
 }
 
-/// Collects an undirected graph's rows as they are (a self-loop twice).
-@usableFromInline
-struct _CopyIncidenceRows: _UndirectedRowsAlgorithm {
-    @inlinable
-    init() {}
-
-    @inlinable
-    var readsEdges: Bool { false }
-
-    @inlinable
-    func run<Rows: _IncidenceRowSource>(count n: Int, edgeCount: Int, _ rows: inout Rows) -> (offsets: [Int], targets: [Int]) {
-        var offsets = [Int](repeating: 0, count: n + 1)
-        var targets: [Int] = []
-        targets.reserveCapacity(2 * edgeCount)
-        for v in 0 ..< n {
-            let c = rows.count(v)
-            for k in 0 ..< c {
-                let w = rows.neighbor(v, k)
-                precondition(UInt(bitPattern: w) < UInt(bitPattern: n), "A neighbor index is out of range")
-                targets.append(w)
-            }
-            offsets[v + 1] = targets.count
-        }
-        return (offsets, targets)
-    }
-}
-
 extension Graph {
     /// The numbering of a graph without vertex indices; nil with them.
     @inlinable
@@ -261,7 +231,7 @@ extension Graph {
     func _indexGraph(_ numbers: _VertexNumbers<Vertex>?, vertexColors: [Int], edgeColors: [Int]) -> _IndexGraph {
         let n = vertexIndexBound ?? numbers!.listed.count
         if edgeColors.isEmpty {
-            let rows = _runOnUndirectedRows(_CopyIncidenceRows(), vertexNumbering: numbers.map { ($0.listed, $0.numbers) })
+            let rows = _runOnUndirectedRows(_CopyRows(readsEdges: false, dropsLoops: false), vertexNumbering: numbers.map { ($0.listed, $0.numbers) })
             return _IndexGraph(count: n, isDirected: false, edgeCount: rows.targets.count / 2, offsets: rows.offsets, targets: rows.targets, colors: [], vertexColors: vertexColors)
         }
         var sources: [Int] = [], targets: [Int] = [], colors: [Int] = []

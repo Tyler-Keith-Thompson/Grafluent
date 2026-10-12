@@ -1,3 +1,5 @@
+import GraphProtocols
+
 /// What a bounding run must decide.
 @usableFromInline
 enum _ExtremaGoal: Sendable {
@@ -10,7 +12,7 @@ enum _ExtremaGoal: Sendable {
 /// Searches alternate between the candidate of least lower bound and the one of greatest upper
 /// bound (ties: greater degree, then lower index). Nil when the graph is not connected.
 @inlinable
-func _bounding(_ rows: _DistanceRows, _ goal: _ExtremaGoal) -> (lower: [Int], upper: [Int], minUpper: Int, maxLower: Int)? {
+func _bounding(_ rows: _CompressedRows, _ goal: _ExtremaGoal) -> (lower: [Int], upper: [Int], minUpper: Int, maxLower: Int)? {
     let n = rows.count
     guard n > 0 else { return ([], [], 0, 0) }
     var searches = _BreadthFirstSearches(rows)
@@ -100,7 +102,7 @@ func _bounding(_ rows: _DistanceRows, _ goal: _ExtremaGoal) -> (lower: [Int], up
 /// a search that misses a vertex misses it too, so its search is skipped. `stopAtMiss` returns at
 /// the first infinite eccentricity (for the diameter).
 @inlinable
-func _allEccentricities(_ rows: _DistanceRows, stopAtMiss: Bool = false) -> [Int?] {
+func _allEccentricities(_ rows: _CompressedRows, undirected: Bool, stopAtMiss: Bool = false) -> [Int?] {
     let n = rows.count
     var result = [Int?](repeating: nil, count: n)
     var known = [Bool](repeating: false, count: n)
@@ -112,7 +114,7 @@ func _allEccentricities(_ rows: _DistanceRows, stopAtMiss: Bool = false) -> [Int
             result[s] = e
             continue
         }
-        if rows.undirected || stopAtMiss { return [Int?](repeating: nil, count: n) }
+        if undirected || stopAtMiss { return [Int?](repeating: nil, count: n) }
         for v in searches.reachedVertices { known[v] = true }
     }
     return result
@@ -120,7 +122,7 @@ func _allEccentricities(_ rows: _DistanceRows, stopAtMiss: Bool = false) -> [Int
 
 /// The same with weights, by Dijkstra's algorithm.
 @inlinable
-func _allEccentricities<W: Comparable & AdditiveArithmetic>(_ rows: _DistanceRows, weights: [W], stopAtMiss: Bool = false) -> [W?] {
+func _allEccentricities<W: Comparable & AdditiveArithmetic>(_ rows: _CompressedRows, weights: [W], undirected: Bool, stopAtMiss: Bool = false) -> [W?] {
     let n = rows.count
     var result = [W?](repeating: nil, count: n)
     var known = [Bool](repeating: false, count: n)
@@ -132,7 +134,7 @@ func _allEccentricities<W: Comparable & AdditiveArithmetic>(_ rows: _DistanceRow
             result[s] = e
             continue
         }
-        if rows.undirected || stopAtMiss { return [W?](repeating: nil, count: n) }
+        if undirected || stopAtMiss { return [W?](repeating: nil, count: n) }
         for v in 0 ..< n where searches.reached[v] == searches.round { known[v] = true }
     }
     return result
@@ -164,7 +166,7 @@ func _matching<W: Equatable>(_ values: [W?], _ target: W?) -> [Int] {
 /// Each vertex's total distance to every other, nil when it does not reach them all, by
 /// searches from every vertex (pruned as `_allEccentricities`).
 @inlinable
-func _totals(_ rows: _DistanceRows) -> [Int?] {
+func _totals(_ rows: _CompressedRows, undirected: Bool) -> [Int?] {
     let n = rows.count
     var result = [Int?](repeating: nil, count: n)
     var known = [Bool](repeating: false, count: n)
@@ -176,14 +178,14 @@ func _totals(_ rows: _DistanceRows) -> [Int?] {
             result[s] = total
             continue
         }
-        if rows.undirected { return [Int?](repeating: nil, count: n) }
+        if undirected { return [Int?](repeating: nil, count: n) }
         for v in searches.reachedVertices { known[v] = true }
     }
     return result
 }
 
 @inlinable
-func _totals<W: Comparable & AdditiveArithmetic>(_ rows: _DistanceRows, weights: [W]) -> [W?] {
+func _totals<W: Comparable & AdditiveArithmetic>(_ rows: _CompressedRows, weights: [W], undirected: Bool) -> [W?] {
     let n = rows.count
     var result = [W?](repeating: nil, count: n)
     var known = [Bool](repeating: false, count: n)
@@ -195,7 +197,7 @@ func _totals<W: Comparable & AdditiveArithmetic>(_ rows: _DistanceRows, weights:
             result[s] = total
             continue
         }
-        if rows.undirected { return [W?](repeating: nil, count: n) }
+        if undirected { return [W?](repeating: nil, count: n) }
         for v in 0 ..< n where searches.reached[v] == searches.round { known[v] = true }
     }
     return result
@@ -215,7 +217,7 @@ func _leastTotals<W: Comparable>(_ totals: [W?]) -> [Int] {
 /// The Wiener index: sources in index order, each source's targets in index order (only later
 /// ones when undirected), one running total; nil when some pair is not connected.
 @inlinable
-func _wienerIndex(_ rows: _DistanceRows) -> Int? {
+func _wienerIndex(_ rows: _CompressedRows, undirected: Bool) -> Int? {
     // Integer sums are exact in any order: each search's own total, halved when every pair is
     // counted from both ends.
     let n = rows.count
@@ -226,18 +228,18 @@ func _wienerIndex(_ rows: _DistanceRows) -> Int? {
         guard reachedAll else { return nil }
         total += sum
     }
-    return rows.undirected ? total / 2 : total
+    return undirected ? total / 2 : total
 }
 
 @inlinable
-func _wienerIndex<W: Comparable & AdditiveArithmetic>(_ rows: _DistanceRows, weights: [W]) -> W? {
+func _wienerIndex<W: Comparable & AdditiveArithmetic>(_ rows: _CompressedRows, weights: [W], undirected: Bool) -> W? {
     let n = rows.count
     var searches = _DijkstraSearches(rows, weights: weights)
     var total = W.zero
     for s in 0 ..< n {
         let (_, reachedAll, _) = searches.search(from: s)
         guard reachedAll else { return nil }
-        for t in (rows.undirected ? s + 1 : 0) ..< n where t != s { total += searches.distance[t] }
+        for t in (undirected ? s + 1 : 0) ..< n where t != s { total += searches.distance[t] }
     }
     return total
 }

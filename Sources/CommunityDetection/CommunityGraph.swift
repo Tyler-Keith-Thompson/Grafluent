@@ -26,78 +26,6 @@ struct _CommunityGraph: Sendable {
     var edgeCount: Int { from.count }
 }
 
-/// Copies an undirected graph's rows, with edge numbers when `readsEdges`.
-@frozen
-@usableFromInline
-struct _CopyCommunityRows: _UndirectedRowsAlgorithm {
-    @usableFromInline let readsEdges: Bool
-
-    @inlinable
-    init(readsEdges: Bool) { self.readsEdges = readsEdges }
-
-    @inlinable
-    func run<Rows: _IncidenceRowSource>(count n: Int, edgeCount: Int, _ rows: inout Rows) -> (offsets: [Int], targets: [Int], edges: [Int]) {
-        var offsets = [Int](repeating: 0, count: n + 1)
-        var targets: [Int] = [], edges: [Int] = []
-        targets.reserveCapacity(2 * edgeCount)
-        edges.reserveCapacity(2 * edgeCount)
-        for v in 0 ..< n {
-            for k in 0 ..< rows.count(v) {
-                let w = rows.neighbor(v, k)
-                precondition(UInt(bitPattern: w) < UInt(bitPattern: n), "A neighbor index is out of range")
-                targets.append(w)
-                if readsEdges {
-                    let e = rows.edge(v, k)
-                    precondition(UInt(bitPattern: e) < UInt(bitPattern: edgeCount), "An edge index is out of range")
-                    edges.append(e)
-                }
-            }
-            offsets[v + 1] = targets.count
-        }
-        return (offsets, targets, edges)
-    }
-}
-
-/// Each edge's ends by edge number, the end met first in the rows as `from`, without copying the
-/// rows.
-@frozen
-@usableFromInline
-struct _CopyEdgeEnds: _UndirectedRowsAlgorithm {
-    @inlinable
-    init() {}
-
-    @inlinable
-    func run<Rows: _IncidenceRowSource>(count n: Int, edgeCount: Int, _ rows: inout Rows) -> (from: [Int], to: [Int]) {
-        var from = [Int](repeating: -1, count: edgeCount), to = [Int](repeating: 0, count: edgeCount)
-        from.withUnsafeMutableBufferPointer { from in
-            to.withUnsafeMutableBufferPointer { to in
-                for v in 0 ..< n {
-                    for k in 0 ..< rows.count(v) {
-                        let e = rows.edge(v, k)
-                        precondition(UInt(bitPattern: e) < UInt(bitPattern: edgeCount), "An edge index is out of range")
-                        if from[e] < 0 {
-                            let w = rows.neighbor(v, k)
-                            precondition(UInt(bitPattern: w) < UInt(bitPattern: n), "A neighbor index is out of range")
-                            from[e] = v
-                            to[e] = w
-                        }
-                    }
-                }
-            }
-        }
-        return (from, to)
-    }
-}
-
-/// The vertex numbers of a graph without vertex indices: positions in `listed`.
-@inlinable
-func _communityNumbers<V: Hashable>(_ listed: [V]) -> [V: Int] {
-    var numbers: [V: Int] = [:]
-    numbers.reserveCapacity(listed.count)
-    for (i, v) in listed.enumerated() { numbers[v] = i }
-    return numbers
-}
-
 /// Each edge's weight as `Double`, read once in position order and checked: finite, at least zero.
 @inlinable
 func _communityWeights<Positions: Sequence, W: BinaryFloatingPoint>(_ positions: Positions, count: Int, _ weight: (Positions.Element) -> W) -> [Double] {
@@ -119,7 +47,7 @@ func _checkResolution(_ resolution: Double) {
 extension Graph {
     /// Vertex numbers when the graph has no vertex indices; nil when it has them.
     @inlinable
-    func _communityNumbers() -> [Vertex: Int]? { _listedVertices().map(CommunityDetection._communityNumbers) }
+    func _communityNumbers() -> [Vertex: Int]? { _listedVertices().map(_vertexNumbers) }
 
     @inlinable
     func _communityNumber(of vertex: Vertex, _ numbers: [Vertex: Int]?) -> Int? {
@@ -139,11 +67,11 @@ extension Graph {
     /// The rows alone, for label propagation (edge numbers only when the votes are weighted).
     @inlinable
     func _labelPropagationRows(readsEdges: Bool) -> _CommunityGraph {
-        let (offsets, targets, edges) = _runOnUndirectedRows(_CopyCommunityRows(readsEdges: readsEdges))
-        var graph = _CommunityGraph(count: offsets.count - 1, directed: false, from: [], to: [])
-        graph.offsets = offsets
-        graph.targets = targets
-        graph.edges = edges
+        let rows = _runOnUndirectedRows(_CopyRows(readsEdges: readsEdges, dropsLoops: false))
+        var graph = _CommunityGraph(count: rows.count, directed: false, from: [], to: [])
+        graph.offsets = rows.offsets
+        graph.targets = rows.targets
+        graph.edges = rows.edges
         return graph
     }
 
@@ -156,7 +84,7 @@ extension Graph {
 extension DirectedGraph {
     /// Vertex numbers when the graph has no vertex indices; nil when it has them.
     @inlinable
-    func _communityNumbers() -> [Vertex: Int]? { _listedVertices().map(CommunityDetection._communityNumbers) }
+    func _communityNumbers() -> [Vertex: Int]? { _listedVertices().map(_vertexNumbers) }
 
     @inlinable
     func _communityNumber(of vertex: Vertex, _ numbers: [Vertex: Int]?) -> Int? {
@@ -171,11 +99,7 @@ extension DirectedGraph {
         var from = [Int](repeating: 0, count: edgeCount), to = [Int](repeating: 0, count: edgeCount)
         if let n = vertexIndexBound {
             let indexed = edgeIndexBound != nil
-            var edgeNumbers: [Edges.Index: Int] = [:]
-            if !indexed {
-                edgeNumbers.reserveCapacity(edgeCount)
-                for (k, position) in edges.indices.enumerated() { edgeNumbers[position] = k }
-            }
+            let edgeNumbers = indexed ? [:] : _edgeNumbers()
             for v in 0 ..< n {
                 var successors = successorIndices(ofIndex: v).makeIterator()
                 for position in outEdges(ofIndex: v) {

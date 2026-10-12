@@ -19,6 +19,8 @@
 #     autotarget (any target cell chosen by a label-invariant rule), autoabsorbroot (an orbit's
 #     root need not be its least vertex: every orbit still has its root searched),
 #     autoabsorbonce, autojumpback, autojumpbackbest, autosimpleoff.
+#     skiplargestall (queueing the largest fragment too: Hopcroft's skip bounds the work, not
+#     the result).
 #   Checks that cannot fail.
 #     startbalance       the two halves of the union have equal size, so the one-class start is
 #                        always balanced.
@@ -57,7 +59,8 @@
 #                        only if two graphs' canonical leaves interleaved the colour entries and
 #                        rows exactly; no such pair found.
 #   Hash quality, never equality.
-#     wlmixa, wlmixb, wlmixboth, wlmultisetboth, wlmix, wldegree, wlcount, wlinitial, wlround.
+#     wlmixa, wlmixb, wlmixboth, wlmultisetboth, wlmix, wldegree, wlcount, wlinitial, wlround,
+#     wledgecolorplain.
 #   The result.
 #     chainkeep          redundant generators leave every basic orbit, and the order, as it is.
 #     grouporbitroot     orbits are numbered by their first vertex whatever the root.

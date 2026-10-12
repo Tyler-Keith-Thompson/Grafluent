@@ -3,9 +3,6 @@
 # Known equivalent mutants:
 #   hz_cursor            the undirected cursor left on the edge just taken: the next scan meets it
 #                        first, skips it by its used bit, and takes the same next edge.
-#   tn_contains_u, tn_contains_d
-#                        without the contains check, vertexIndex(of:) traps on a non-vertex itself
-#                        in every representation (a worse message, the same trap).
 #   hr_parallel, hr_loops, hs_init_out, hp_dsoft, hs_init_count, hp_back_count
 #                        the Hamiltonian pruning only cuts subtrees without a solution, so a weaker
 #                        prune finds the same first solution. Parallel copies or self-loops in the
@@ -34,8 +31,6 @@
 #                        since a path's last vertex other than the target then has f = 1 < 2.
 #   hs_parallel_retry    retrying a parallel copy from the same frame explores the same failed
 #                        subtree again: slower, the same result.
-#   tm_ends_last         _EdgeEnds keeping the last end met rather than the first: the undirected
-#                        matrix is filled symmetrically, so the cells are the same.
 #   to_row_nonpositive   a move of gain zero is never better than the best so far (at least zero).
 #   to_rows_all          rescanning the rows after q too: their columns are all past q, unchanged,
 #                        so the full rescan finds the same best move.
@@ -117,8 +112,6 @@ MUTANTS = [
     Mutant("conn_from_first_d", "Eulerian.swift", "degrees.shape == 0 ? degrees.first : degrees.trailStart", "degrees.first"),
     Mutant("reach_directed", "Eulerian.swift", "                reached &+= 1", "", mode="stmt", nth=2),
     # The simple graph a tour reads
-    Mutant("tn_contains_u", "TourRows.swift", "            precondition(contains(vertex), message())", "", mode="stmt", nth=0),
-    Mutant("tn_contains_d", "TourRows.swift", "            precondition(contains(vertex), message())", "", mode="stmt", nth=1),
     # Hamiltonian rows and the search's setup
     Mutant("hr_parallel", "Hamiltonian.swift", "                if w == v || stamp[w] == v { continue }", "                if w == v { continue }", mode="stmt"),
     Mutant("hr_loops", "Hamiltonian.swift", "                if w == v || stamp[w] == v { continue }", "                if stamp[w] == v { continue }", mode="stmt"),
@@ -171,7 +164,6 @@ MUTANTS = [
     Mutant("tm_arc_close", "TourMatrix.swift", "order[$0 + 1 == n ? 0 : $0 + 1]", "order[$0 + 1 == n ? 1 : $0 + 1]"),
     Mutant("tm_symmetric_weight", "TourMatrix.swift", "                    weights[v * n + u] = w", "", mode="stmt"),
     Mutant("tm_symmetric_edge", "TourMatrix.swift", "                    edges[v * n + u] = e", "", mode="stmt"),
-    Mutant("tm_ends_last", "TourMatrix.swift", "from[e] < 0", "true"),
     Mutant("tm_close", "TourMatrix.swift", "order[i + 1 == n ? 0 : i + 1]", "order[i + 1 == n ? 1 : i + 1]"),
     # Nearest neighbour
     Mutant("nn_last_tie", "NearestNeighbor.swift", "w < nearest", "w <= nearest"),
@@ -248,4 +240,8 @@ MUTANTS = [
     Mutant("ch_vertex_limit", "Christofides.swift", "vertexCount < 3 || quotient > 0", "true"),
     Mutant("ch_int_negative", "Christofides.swift", "w <= $0 && w >= -$0", "w <= $0"),
     Mutant("ch_float_bound", "Christofides.swift", "$0.magnitude <= limit", "true"),
+
+    # reuse pass (B)
+    Mutant("tn_indexed_u", "TourRows.swift", "numbering.isIndexed ? nil : numbering.numbers", "numbering.numbers"),
+    Mutant("tn_indexed_d", "TourRows.swift", "rows.isIndexed ? nil : rows.numbers", "rows.numbers"),
 ]

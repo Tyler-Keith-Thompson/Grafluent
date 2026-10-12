@@ -3,7 +3,7 @@ import Walks
 
 /// The vertex and edge numbers of the path a search with parents found from `u` to `v`.
 @inlinable
-func _pathNumbers(_ u: Int, _ v: Int, _ parentSlot: [Int], _ rows: _DistanceRows) -> (vertices: [Int], edges: [Int]) {
+func _pathNumbers(_ u: Int, _ v: Int, _ parentSlot: [Int], _ rows: _CompressedRows) -> (vertices: [Int], edges: [Int]) {
     var vertices: [Int] = [v], edges: [Int] = []
     var x = v
     while x != u {
@@ -44,7 +44,7 @@ extension DirectedGraph {
     @inlinable
     public func eccentricities() -> Eccentricities<Self, Int> {
         let (rows, listed) = _distanceRows()
-        return Eccentricities(self, listed: listed, values: _allEccentricities(rows))
+        return Eccentricities(self, listed: listed, values: _allEccentricities(rows, undirected: false))
     }
 
     /// Every vertex's eccentricity by weighted out-distance, by Dijkstra's algorithm. `weight` is
@@ -54,7 +54,7 @@ extension DirectedGraph {
     @inlinable
     public func eccentricities<W: Comparable & AdditiveArithmetic>(weight: (Edges.Index) -> W) -> Eccentricities<Self, W> {
         let (rows, listed) = _distanceRows()
-        return Eccentricities(self, listed: listed, values: _allEccentricities(rows, weights: _distanceWeights(weight)))
+        return Eccentricities(self, listed: listed, values: _allEccentricities(rows, weights: _distanceWeights(weight), undirected: false))
     }
 
     /// The eccentricity of one vertex over out-distances: one search.
@@ -89,7 +89,7 @@ extension DirectedGraph {
     @inlinable
     public func diameter() -> Int? {
         let (rows, _) = _distanceRows()
-        return _radiusAndDiameter(_allEccentricities(rows, stopAtMiss: true)).diameter
+        return _radiusAndDiameter(_allEccentricities(rows, undirected: false, stopAtMiss: true)).diameter
     }
 
     /// The vertices of least eccentricity, in `vertices` order.
@@ -107,7 +107,7 @@ extension DirectedGraph {
     @inlinable
     public func diameter<W: Comparable & AdditiveArithmetic>(weight: (Edges.Index) -> W) -> W? {
         let (rows, _) = _distanceRows()
-        return _radiusAndDiameter(_allEccentricities(rows, weights: _distanceWeights(weight), stopAtMiss: true)).diameter
+        return _radiusAndDiameter(_allEccentricities(rows, weights: _distanceWeights(weight), undirected: false, stopAtMiss: true)).diameter
     }
 
     @inlinable
@@ -122,7 +122,7 @@ extension DirectedGraph {
     @inlinable
     public func diameterPath() -> Path<Vertex, Edges.Index>? {
         let (rows, listed) = _distanceRows()
-        let values = _allEccentricities(rows, stopAtMiss: true)
+        let values = _allEccentricities(rows, undirected: false, stopAtMiss: true)
         guard rows.count > 0, let diameter = _radiusAndDiameter(values).diameter else { return nil }
         let u = values.firstIndex { $0 == diameter }!
         var searches = _BreadthFirstSearches(rows)
@@ -138,7 +138,7 @@ extension DirectedGraph {
     public func diameterPath<W: Comparable & AdditiveArithmetic>(weight: (Edges.Index) -> W) -> (path: Path<Vertex, Edges.Index>, distance: W)? {
         let (rows, listed) = _distanceRows()
         let weights = _distanceWeights(weight)
-        let values = _allEccentricities(rows, weights: weights, stopAtMiss: true)
+        let values = _allEccentricities(rows, weights: weights, undirected: false, stopAtMiss: true)
         guard rows.count > 0, let diameter = _radiusAndDiameter(values).diameter else { return nil }
         let u = values.firstIndex { $0 == diameter }!
         var searches = _DijkstraSearches(rows, weights: weights)
@@ -155,22 +155,22 @@ extension DirectedGraph {
     @inlinable
     public func centroid() -> [Vertex] {
         let (rows, listed) = _distanceRows()
-        return _leastTotals(_totals(rows)).map { _vertex(number: $0, listed) }
+        return _leastTotals(_totals(rows, undirected: false)).map { _vertex(number: $0, listed) }
     }
 
     @inlinable
     public func centroid<W: Comparable & AdditiveArithmetic>(weight: (Edges.Index) -> W) -> [Vertex] {
         let (rows, listed) = _distanceRows()
-        return _leastTotals(_totals(rows, weights: _distanceWeights(weight))).map { _vertex(number: $0, listed) }
+        return _leastTotals(_totals(rows, weights: _distanceWeights(weight), undirected: false)).map { _vertex(number: $0, listed) }
     }
 
     /// The sum of the distances over all ordered pairs; nil when not strongly connected.
     @inlinable
-    public func wienerIndex() -> Int? { _wienerIndex(_distanceRows().rows) }
+    public func wienerIndex() -> Int? { _wienerIndex(_distanceRows().rows, undirected: false) }
 
     @inlinable
     public func wienerIndex<W: Comparable & AdditiveArithmetic>(weight: (Edges.Index) -> W) -> W? {
-        _wienerIndex(_distanceRows().rows, weights: _distanceWeights(weight))
+        _wienerIndex(_distanceRows().rows, weights: _distanceWeights(weight), undirected: false)
     }
 
     /// The Wiener index over the number of ordered pairs; 0 for one vertex; nil when empty or not

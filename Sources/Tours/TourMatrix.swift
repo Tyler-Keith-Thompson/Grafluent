@@ -1,32 +1,6 @@
 import GraphProtocols
 import Walks
 
-/// Each edge's two ends by number (the end met first in the rows as `from`), read from the rows.
-@frozen
-@usableFromInline
-struct _EdgeEnds: _UndirectedRowsAlgorithm {
-    @inlinable
-    init() {}
-
-    @inlinable
-    func run<Rows: _IncidenceRowSource>(count n: Int, edgeCount m: Int, _ rows: inout Rows) -> (from: [Int], to: [Int]) {
-        var from = [Int](repeating: -1, count: m), to = [Int](repeating: 0, count: m)
-        for v in 0 ..< n {
-            for k in 0 ..< rows.count(v) {
-                let e = rows.edge(v, k)
-                precondition(UInt(bitPattern: e) < UInt(bitPattern: m), "An edge index is out of range")
-                if from[e] < 0 {
-                    let w = rows.neighbor(v, k)
-                    precondition(UInt(bitPattern: w) < UInt(bitPattern: n), "A neighbor index is out of range")
-                    from[e] = v
-                    to[e] = w
-                }
-            }
-        }
-        return (from, to)
-    }
-}
-
 /// Traps on a NaN or infinite weight. w − w is zero for every finite value of a floating-point
 /// type (and for every integer), and NaN for NaN and ±∞, so one subtraction tests both without
 /// knowing the type: ±∞ would turn sums into ∞ − ∞ = NaN (Held–Karp's table, 2-opt's gains).
@@ -68,7 +42,7 @@ extension Graph {
     @inlinable
     func _tourMatrix<W: Comparable & AdditiveArithmetic>(_ weight: (Edges.Index) -> W, _ numbering: _TourNumbering<Vertex>) -> _TourMatrix<W> {
         let n = numbering.isIndexed ? vertexIndexBound! : numbering.listed.count
-        let (from, to) = _runOnUndirectedRows(_EdgeEnds(), vertexNumbering: numbering.isIndexed ? nil : (numbering.listed, numbering.numbers))
+        let (from, to) = _runOnUndirectedRows(_CopyEdgeEnds(), vertexNumbering: numbering.isIndexed ? nil : (numbering.listed, numbering.numbers))
         var weights = [W](repeating: .zero, count: n * n)
         var edges = [Int](repeating: -1, count: n * n)
         var e = 0
@@ -116,11 +90,7 @@ extension DirectedGraph {
     /// for one with them (as `Graph._tourNumbering()`).
     @inlinable
     func _directedTourNumbering() -> _TourNumbering<Vertex> {
-        guard vertexIndexBound == nil else { return _TourNumbering(listed: [], numbers: [:], isIndexed: true) }
-        let listed = Array(vertices)
-        var numbers: [Vertex: Int] = [:]
-        numbers.reserveCapacity(listed.count)
-        for (i, v) in listed.enumerated() { numbers[v] = i }
+        guard let (listed, numbers) = _vertexNumbering() else { return _TourNumbering(listed: [], numbers: [:], isIndexed: true) }
         return _TourNumbering(listed: listed, numbers: numbers, isIndexed: false)
     }
 

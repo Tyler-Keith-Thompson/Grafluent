@@ -10,18 +10,18 @@ protocol _CentralitySearch {
     mutating func sums(from s: Int) -> (reached: Int, total: Double, harmonic: Double)
 }
 
-/// Breadth-first searches over `_CentralityRows`, reusing one queue and distance array; a loop
+/// Breadth-first searches over `_CompressedRows`, reusing one queue and distance array; a loop
 /// never reaches anything new, so the rows' self-loops cost a check and nothing else.
 @frozen
 @usableFromInline
 struct _UnweightedCentralitySearch: _CentralitySearch {
-    @usableFromInline let rows: _CentralityRows
+    @usableFromInline let rows: _CompressedRows
     @usableFromInline var distance: [Int]
     @usableFromInline var queue: [Int]
     @usableFromInline var reachedCount = 0
 
     @inlinable
-    init(_ rows: _CentralityRows) {
+    init(_ rows: _CompressedRows) {
         self.rows = rows
         distance = [Int](repeating: -1, count: rows.count)
         queue = [Int](repeating: 0, count: rows.count)
@@ -101,13 +101,13 @@ enum _FloatingConversion<Value: BinaryFloatingPoint>: _DoubleConversion {
     static func double(_ value: Value) -> Double { Double(value) }
 }
 
-/// Dijkstra's searches over `_CentralityRows` with a weight per slot, reusing one heap; distances
+/// Dijkstra's searches over `_CompressedRows` with a weight per slot, reusing one heap; distances
 /// are summed in `W` and converted to `Double` once per settled vertex.
 @frozen
 @usableFromInline
 struct _WeightedCentralitySearch<C: _DoubleConversion>: _CentralitySearch {
     @usableFromInline typealias W = C.Value
-    @usableFromInline let rows: _CentralityRows
+    @usableFromInline let rows: _CompressedRows
     @usableFromInline let weights: [W]
     @usableFromInline var distance: [W]
     /// The round in which each vertex was reached; `round` for the current search.
@@ -116,7 +116,7 @@ struct _WeightedCentralitySearch<C: _DoubleConversion>: _CentralitySearch {
     @usableFromInline var heap: IndexedPriorityQueue<W>
 
     @inlinable
-    init(_ rows: _CentralityRows, slotWeights: [W]) {
+    init(_ rows: _CompressedRows, slotWeights: [W]) {
         self.rows = rows
         weights = slotWeights
         distance = [W](repeating: .zero, count: rows.count)
@@ -204,7 +204,7 @@ func _harmonicScores<S: _CentralitySearch>(_ search: inout S) -> [Double] {
 
 /// The weighted search over `rows`, with weights by edge number.
 @inlinable
-func _weightedSearch<C: _DoubleConversion>(_: C.Type, _ rows: _CentralityRows, _ weights: [C.Value]) -> _WeightedCentralitySearch<C> {
+func _weightedSearch<C: _DoubleConversion>(_: C.Type, _ rows: _CompressedRows, _ weights: [C.Value]) -> _WeightedCentralitySearch<C> {
     _WeightedCentralitySearch(rows, slotWeights: rows.slotWeights(weights))
 }
 

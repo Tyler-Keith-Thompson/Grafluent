@@ -38,12 +38,7 @@ struct _FlowVertices<Vertex: Hashable> {
     @inlinable
     init(listed: [Vertex]?) {
         self.listed = listed
-        var numbers: [Vertex: Int] = [:]
-        if let listed {
-            numbers.reserveCapacity(listed.count)
-            for (i, v) in listed.enumerated() { numbers[v] = i }
-        }
-        self.numbers = numbers
+        numbers = listed.map(_vertexNumbers) ?? [:]
     }
 }
 
@@ -87,7 +82,7 @@ extension DirectedGraph {
                 }
                 positionNumbers = builder.build()
             }
-            let numbers = indexed || sparse != nil ? [:] : _flowEdgeNumbers()
+            let numbers = indexed || sparse != nil ? [:] : _edgeNumbers()
             tail.withUnsafeMutableBufferPointer { tail in
                 head.withUnsafeMutableBufferPointer { head in
                     for v in 0 ..< n {
@@ -130,7 +125,7 @@ extension DirectedGraph {
         }
         precondition(listed.count < Int(Int32.max), "Flows need fewer than 2³¹ vertices")
         let indexed = edgeIndexBound != nil
-        let numbers = indexed ? [:] : _flowEdgeNumbers()
+        let numbers = indexed ? [:] : _edgeNumbers()
         for (v, vertex) in listed.enumerated() {
             for position in outEdges(of: vertex) {
                 let e = indexed ? edgeIndex(of: position) : numbers[position]!
@@ -141,23 +136,10 @@ extension DirectedGraph {
         return (_FlowEdges(vertexCount: listed.count, tail: tail, head: head, directed: true), vertices)
     }
 
-    /// Each edge position's offset in `edges`.
-    @inlinable
-    func _flowEdgeNumbers() -> [Edges.Index: Int] {
-        var numbers: [Edges.Index: Int] = [:]
-        numbers.reserveCapacity(edgeCount)
-        for (k, position) in edges.indices.enumerated() { numbers[position] = k }
-        return numbers
-    }
-
     /// The number of `vertex`, trapping when it is not a vertex.
     @inlinable
     func _flowNumber(of vertex: Vertex, _ vertices: _FlowVertices<Vertex>) -> Int {
-        if vertices.listed != nil {
-            guard let v = vertices.numbers[vertex] else { preconditionFailure("\(vertex) is not a vertex of the graph") }
-            return v
-        }
-        return _requiredVertexIndex(of: vertex, "\(vertex) is not a vertex of the graph")
+        _vertexNumber(of: vertex, vertices.listed == nil ? nil : vertices.numbers, "\(vertex) is not a vertex of the graph")
     }
 
     /// Every vertex by number.
@@ -221,11 +203,7 @@ extension Graph {
     /// The number of `vertex`, trapping when it is not a vertex.
     @inlinable
     func _flowNumber(of vertex: Vertex, _ vertices: _FlowVertices<Vertex>) -> Int {
-        if vertices.listed != nil {
-            guard let v = vertices.numbers[vertex] else { preconditionFailure("\(vertex) is not a vertex of the graph") }
-            return v
-        }
-        return _requiredVertexIndex(of: vertex, "\(vertex) is not a vertex of the graph")
+        _vertexNumber(of: vertex, vertices.listed == nil ? nil : vertices.numbers, "\(vertex) is not a vertex of the graph")
     }
 
     /// Every vertex by number.

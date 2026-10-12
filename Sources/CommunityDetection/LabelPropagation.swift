@@ -135,7 +135,7 @@ extension Graph {
     @inlinable
     func _labelPropagation(_ weights: [Double]?, _ run: (_CommunityGraph) -> [Int]) -> Partition<DirectedView<Self>> {
         let listed = _listedVertices()
-        let numbers = listed.map(CommunityDetection._communityNumbers)
+        let numbers = listed.map(_vertexNumbers)
         let labels = run(_labelPropagationRows(readsEdges: weights != nil))
         return Partition(directed, numbers: numbers, listed: listed, labels: labels)
     }

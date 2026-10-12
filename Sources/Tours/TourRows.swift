@@ -33,11 +33,7 @@ extension Graph {
     /// The number of `vertex`, trapping with `message` when it is not a vertex.
     @inlinable
     func _tourNumber(of vertex: Vertex, _ numbering: _TourNumbering<Vertex>, _ message: @autoclosure () -> String) -> Int {
-        if numbering.isIndexed {
-            return _requiredVertexIndex(of: vertex, message())
-        }
-        guard let v = numbering.numbers[vertex] else { preconditionFailure(message()) }
-        return v
+        _vertexNumber(of: vertex, numbering.isIndexed ? nil : numbering.numbers, message())
     }
 
     @inlinable
@@ -116,9 +112,7 @@ extension DirectedGraph {
             return _DirectedTourRows(offsets: offsets, targets: targets, positions: positions, isLent: false, count: n, listed: [], numbers: [:], isIndexed: true)
         }
         let listed = Array(vertices)
-        var numbers: [Vertex: Int] = [:]
-        numbers.reserveCapacity(listed.count)
-        for (i, v) in listed.enumerated() { numbers[v] = i }
+        let numbers = _vertexNumbers(listed)
         var offsets = [Int](repeating: 0, count: listed.count + 1)
         var targets: [Int] = []
         var positions: [Edges.Index] = []
@@ -145,11 +139,7 @@ extension DirectedGraph {
     /// The number of `vertex`, trapping with `message` when it is not a vertex.
     @inlinable
     func _tourNumber(of vertex: Vertex, _ rows: _DirectedTourRows<Self>, _ message: @autoclosure () -> String) -> Int {
-        if rows.isIndexed {
-            return _requiredVertexIndex(of: vertex, message())
-        }
-        guard let v = rows.numbers[vertex] else { preconditionFailure(message()) }
-        return v
+        _vertexNumber(of: vertex, rows.isIndexed ? nil : rows.numbers, message())
     }
 
     @inlinable

@@ -161,6 +161,12 @@ struct DistancePreconditionTests {
             _ = graph.averageShortestPathLength(weight: { w[$0] })
         }
         await #expect(processExitsWith: .failure) {
+            // A NaN out of reach, as DI-630: only the check as the weights are read can trap.
+            let graph = ReferencePseudograph(edges: [UndirectedEdge(0, 1), UndirectedEdge(2, 3)])
+            let w: [Double] = [1, .nan]
+            _ = graph.diameter(weight: { w[$0] })
+        }
+        await #expect(processExitsWith: .failure) {
             let graph = ReferenceDirectedMultigraph(edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 0)])
             let w: [Double] = [1, .nan]
             _ = graph.eccentricities(weight: { w[$0] })
