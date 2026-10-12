@@ -1,0 +1,8 @@
+# Generated instances (gen.py writes them on first run), LEMON's sources, build products.
+/data/
+/.deps/
+/build/
+/rust/target/
+__pycache__/
+# Smoke-test tables; full-size tables in results/ are meant to be kept.
+/results/*-smoke.md

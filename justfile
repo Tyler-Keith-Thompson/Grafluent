@@ -111,3 +111,7 @@ deps target="//Sources/Grafluent":
 [doc('List every buildable target')]
 targets:
     {{BAZEL}} query '//...' --output=label_kind
+
+[doc('Compare Grafluent with petgraph, rustworkx-core, BGL, LEMON and igraph on identical instances (Benchmarks/CrossLanguage/README.md), e.g. just bench-cross, or just bench-cross --scale smoke --repeat 3')]
+bench-cross *args="":
+    python3 {{PROJECT_ROOT}}/Benchmarks/CrossLanguage/run.py {{args}}

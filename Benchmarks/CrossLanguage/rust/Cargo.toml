@@ -1,0 +1,15 @@
+[package]
+name = "cross-rust"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+petgraph = "0.8"
+rustworkx-core = "0.17"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
