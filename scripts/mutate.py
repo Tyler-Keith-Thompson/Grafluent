@@ -155,12 +155,25 @@ def source_dirs(bundles):
     return sorted(dirs)
 
 
+def pruned_manifest(bundles, modules=()):
+    """Package.swift with only the bundles, the modules and everything they depend on. Other
+    targets are left out of the workspace, so another module's unfinished edits cannot break this
+    run's build, and their changes do not invalidate its stored results."""
+    names = {os.path.basename(d) for d in source_dirs(bundles)} | set(modules)
+    with open(os.path.join(ROOT, "Package.swift")) as f:
+        lines = f.read().split("\n")
+    kept = [line for line in lines
+            if not (m := re.match(r'\s*\.(?:library|target|testTarget)\(name: "([^"]+)"', line)) or m.group(1) in names]
+    return "\n".join(kept)
+
+
 def inputs_key(bundles):
     h = hashlib.sha256()
     h.update(STORE_VERSION.encode() + SWITCH.encode() + INSTRUMENT.encode())
     version = subprocess.run(SWIFT + ["--version"], capture_output=True, text=True).stdout
     h.update(version.encode())
-    files = ["Package.swift", "Package.resolved"]
+    h.update(pruned_manifest(bundles).encode())
+    files = ["Package.resolved"]
     for d in source_dirs(bundles):
         for parent, subdirs, names in os.walk(os.path.join(ROOT, d)):
             subdirs.sort()
@@ -223,14 +236,22 @@ def write_if_changed(path, data):
         f.write(data)
 
 
-def sync_workspace(modules):
-    os.makedirs(WORK, exist_ok=True)
+def sync_workspace(modules, bundles):
+    """WORK: the bundles' directories and their modules' only (source_dirs), under a manifest
+    naming just those (pruned_manifest)."""
+    dirs = set(source_dirs(bundles)) | {os.path.join("Sources", m) for m in modules}
+    for top in ["Sources", "Tests"]:
+        os.makedirs(os.path.join(WORK, top), exist_ok=True)
+        for name in os.listdir(os.path.join(WORK, top)):
+            if os.path.join(top, name) not in dirs:
+                path = os.path.join(WORK, top, name)
+                shutil.rmtree(path) if os.path.isdir(path) else os.remove(path)
     # -c compares checksums so a file rewritten with the same contents keeps its mtime and does
     # not rebuild; --delete drops files gone from the checkout. The mutated modules get the
     # schemata (apply_schemata), written only where they changed.
-    excluded = [a for module in modules for a in ("--exclude", f"/Sources/{module}/")]
-    for item in ["Package.swift", "Sources", "Tests"]:
-        subprocess.run(["rsync", "-a", "-c", "--delete", *excluded, os.path.join(ROOT, item), WORK], check=True)
+    for d in sorted(dirs - {os.path.join("Sources", m) for m in modules}):
+        subprocess.run(["rsync", "-a", "-c", "--delete", os.path.join(ROOT, d) + "/", os.path.join(WORK, d)], check=True)
+    write_if_changed(os.path.join(WORK, "Package.swift"), pruned_manifest(bundles, modules).encode())
 
 
 def sync_coverage_workspace(module, bundles):
@@ -238,7 +259,7 @@ def sync_coverage_workspace(module, bundles):
     os.makedirs(COVERAGE_WORK, exist_ok=True)
     for item in ["Sources", "Tests"]:
         subprocess.run(["rsync", "-a", "-c", "--delete", os.path.join(WORK, item), COVERAGE_WORK], check=True)
-    with open(os.path.join(ROOT, "Package.swift")) as f:
+    with open(os.path.join(WORK, "Package.swift")) as f:
         manifest = f.read()
     manifest, found = re.subn(rf'(\.target\(name: "{module}",.*?)\),\n',
                               rf'\1, swiftSettings: [{INSTRUMENT}]),\n', manifest, count=1)
@@ -555,7 +576,7 @@ def main():
 
     if stale:
         atexit.register(reap)
-        sync_workspace(mutated_modules(args.module, mutants))
+        sync_workspace(mutated_modules(args.module, mutants), bundles)
         spans = apply_schemata(args.module, mutants)
         # The coverage build, when selection needs a new pass, goes alongside the schemata build.
         coverage_key = hashlib.sha256((inputs + "\0" + "\0".join(map(definition, mutants))).encode()).hexdigest()
