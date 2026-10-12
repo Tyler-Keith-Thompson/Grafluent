@@ -44,18 +44,23 @@ def targets():
     return sorted(os.path.basename(p) for p in glob.glob(os.path.join(FUZZ, "Sources", "Fuzz*")) if not p.endswith("FuzzSupport"))
 
 
-def build():
+def build(products):
+    """Builds the chosen targets only, one product at a time when they are not all of them, so
+    a target another module has left broken does not stop the rest."""
     swiftly = shutil.which("swiftly") or os.path.expanduser("~/.swiftly/bin/swiftly")
     # Resolve first: a package added to the library is otherwise missing from this package's
     # stale resolution ("no such module").
     subprocess.run([swiftly, "run", "swift", "package", "resolve", f"+{VERSION}"], cwd=FUZZ, capture_output=True)
     command = [swiftly, "run", "swift", "build", "-c", "release", "-Xswiftc", "-sanitize=fuzzer,address", f"+{VERSION}"]
-    result = subprocess.run(command, cwd=FUZZ, capture_output=True, text=True)
-    # The swift.org toolchain reads the newer SDK's interfaces with an argument it does not know
-    # and falls back; the message is noise.
-    lines = [l for l in (result.stdout + result.stderr).splitlines() if "-target-arch-variant" not in l]
-    if result.returncode != 0:
-        sys.exit("The fuzz build failed:\n" + "\n".join(l for l in lines if "error" in l or "warning" in l)[-4000:])
+    for product in ([None] if products is None else products):
+        selected = command + (["--product", product] if product else [])
+        result = subprocess.run(selected, cwd=FUZZ, capture_output=True, text=True)
+        # The swift.org toolchain reads the newer SDK's interfaces with an argument it does not
+        # know and falls back; the message is noise.
+        lines = [l for l in (result.stdout + result.stderr).splitlines() if "-target-arch-variant" not in l]
+        if result.returncode != 0:
+            sys.exit(f"The fuzz build{' of ' + product if product else ''} failed:\n"
+                     + "\n".join(l for l in lines if "error" in l or "warning" in l)[-4000:])
 
 
 def run(target, seconds, jobs):
@@ -112,7 +117,7 @@ def main():
     unknown = set(chosen) - set(known)
     if unknown:
         sys.exit(f"No such targets: {', '.join(sorted(unknown))}; there are {', '.join(known)}")
-    build()
+    build(None if set(chosen) == set(known) else chosen)
 
     if args.command == "run":
         jobs = args.jobs or max(1, (os.cpu_count() or 4) // len(chosen))
