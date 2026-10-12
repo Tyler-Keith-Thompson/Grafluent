@@ -1,5 +1,5 @@
     @Test("A negative weight traps every Laplacian-family entry point, Int and Double weights")
-    func negativeWeightsEverywhere() async {
+    func negativeWeightsEverywhere() async throws {
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(vertices: Array(0 ..< 3), edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
             let weights: [Int] = [1, -1]
@@ -18,22 +18,22 @@
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(vertices: Array(0 ..< 3), edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
             let weights: [Double] = [1, -1]
-            _ = graph.normalizedLaplacianSpectrum(weight: { weights[$0] })
+            _ = try graph.normalizedLaplacianSpectrum(weight: { weights[$0] })
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(vertices: Array(0 ..< 3), edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
             let weights: [Int] = [1, -1]
-            _ = graph.algebraicConnectivity(weight: { weights[$0] })
+            _ = try graph.algebraicConnectivity(weight: { weights[$0] })
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(vertices: Array(0 ..< 3), edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
             let weights: [Double] = [1, -1]
-            _ = graph.fiedlerVector(weight: { weights[$0] }, normalized: true)
+            _ = try graph.fiedlerVector(weight: { weights[$0] }, normalized: true)
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(vertices: Array(0 ..< 3), edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
             let weights: [Int] = [1, -1]
-            _ = graph.spectralOrdering(weight: { weights[$0] })
+            _ = try graph.spectralOrdering(weight: { weights[$0] })
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(vertices: Array(0 ..< 3), edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
@@ -61,10 +61,10 @@
         #expect(graph.normalizedLaplacianMatrix(weight: { weights[$0] }).nonzeroCount == 7)
         #expect(graph.randomWalkLaplacianMatrix(weight: { weights[$0] }).nonzeroCount == 7)
         #expect(graph.signlessLaplacianMatrix(weight: { weights[$0] }).nonzeroCount == 7)
-        #expect(graph.normalizedLaplacianSpectrum(weight: { weights[$0] }).count == 3)
-        #expect(graph.algebraicConnectivity(weight: { weights[$0] }) > 0)
-        #expect(graph.fiedlerVector(weight: { weights[$0] }, normalized: true) != nil)
-        #expect(graph.spectralOrdering(weight: { weights[$0] }).count == 3)
+        #expect(try graph.normalizedLaplacianSpectrum(weight: { weights[$0] }).count == 3)
+        #expect(try graph.algebraicConnectivity(weight: { weights[$0] }) > 0)
+        #expect(try graph.fiedlerVector(weight: { weights[$0] }, normalized: true) != nil)
+        #expect(try graph.spectralOrdering(weight: { weights[$0] }).count == 3)
         #expect(graph.numberOfSpanningTrees(weight: { weights[$0] }) == 2)
         #expect(graph.effectiveGraphResistance(weight: { weights[$0] }).map { abs($0 - 3) <= 1e-9 * 3 } == true)
         #expect(graph.kemenyConstant(weight: { weights[$0] }) != nil)
@@ -73,7 +73,7 @@
     }
 
     @Test("NaN and infinite weights trap everywhere, the adjacency matrix and spectrum included")
-    func nonFiniteWeightsEverywhere() async {
+    func nonFiniteWeightsEverywhere() async throws {
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(vertices: Array(0 ..< 3), edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
             let weights: [Double] = [1, .infinity]
@@ -82,27 +82,27 @@
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(vertices: Array(0 ..< 3), edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
             let weights: [Double] = [.nan, 1]
-            _ = graph.adjacencySpectrum(weight: { weights[$0] })
+            _ = try graph.adjacencySpectrum(weight: { weights[$0] })
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(vertices: Array(0 ..< 3), edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
             let weights: [Double] = [1, -.infinity]
-            _ = graph.adjacencySpectrum(weight: { weights[$0] })
+            _ = try graph.adjacencySpectrum(weight: { weights[$0] })
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(vertices: Array(0 ..< 3), edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
             let weights: [Double] = [1, .nan]
-            _ = graph.spectralRadius(weight: { weights[$0] })
+            _ = try graph.spectralRadius(weight: { weights[$0] })
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(vertices: Array(0 ..< 3), edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
             let weights: [Double] = [1, .infinity]
-            _ = graph.resistanceDistance(from: 0, to: 2, weight: { weights[$0] })
+            _ = try graph.resistanceDistance(from: 0, to: 2, weight: { weights[$0] })
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(vertices: Array(0 ..< 3), edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
             let weights: [Float] = [1, .nan]
-            _ = graph.laplacianSpectrum(weight: { weights[$0] })
+            _ = try graph.laplacianSpectrum(weight: { weights[$0] })
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferenceDirectedMultigraph(vertices: Array(0 ..< 3), edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
@@ -113,87 +113,87 @@
         let graph = ReferencePseudograph(vertices: Array(0 ..< 3), edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
         let weights: [Double] = [1, -2]
         #expect(graph.adjacencyMatrix(weight: { weights[$0] }).nonzeroCount == 4)
-        #expect(graph.adjacencySpectrum(weight: { weights[$0] }).count == 3)
+        #expect(try graph.adjacencySpectrum(weight: { weights[$0] }).count == 3)
         let positive: [Float] = [1, 2]
-        #expect(graph.laplacianSpectrum(weight: { positive[$0] }).count == 3)
-        #expect(graph.resistanceDistance(from: 0, to: 2, weight: { positive[$0] }).map { abs($0 - 1.5) <= 1e-6 * 1.5 } == true)
-        #expect(abs(graph.spectralRadius(weight: { positive[$0] }) - 5.0.squareRoot()) <= 1e-6 * 5.0.squareRoot())
+        #expect(try graph.laplacianSpectrum(weight: { positive[$0] }).count == 3)
+        #expect(try graph.resistanceDistance(from: 0, to: 2, weight: { positive[$0] }).map { abs($0 - 1.5) <= 1e-6 * 1.5 } == true)
+        #expect(abs(try graph.spectralRadius(weight: { positive[$0] }) - 5.0.squareRoot()) <= 1e-6 * 5.0.squareRoot())
         let digraph = ReferenceDirectedMultigraph(vertices: Array(0 ..< 3), edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
         #expect(digraph.adjacencyMatrix(weight: { weights[$0] }).nonzeroCount == 2)
     }
 
     @Test("A negative weight traps even on an edge outside the component a call reads")
-    func negativeWeightOutsideTheComponent() async {
+    func negativeWeightOutsideTheComponent() async throws {
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(vertices: Array(0 ..< 4), edges: [UndirectedEdge(0, 1), UndirectedEdge(2, 3)])
             let weights: [Double] = [1, -1]
-            _ = graph.resistanceDistance(from: 0, to: 1, weight: { weights[$0] })
+            _ = try graph.resistanceDistance(from: 0, to: 1, weight: { weights[$0] })
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(vertices: Array(0 ..< 4), edges: [UndirectedEdge(0, 1), UndirectedEdge(2, 3)])
             let weights: [Double] = [1, -1]
-            _ = graph.algebraicConnectivity(weight: { weights[$0] })
+            _ = try graph.algebraicConnectivity(weight: { weights[$0] })
         }
         // Without the fault: R(0, 1) = 1, and λ₂ = 0 (two components).
         let graph = ReferencePseudograph(vertices: Array(0 ..< 4), edges: [UndirectedEdge(0, 1), UndirectedEdge(2, 3)])
         let weights: [Double] = [1, 1]
-        #expect(graph.resistanceDistance(from: 0, to: 1, weight: { weights[$0] }).map { abs($0 - 1) <= 1e-6 } == true)
-        #expect(graph.algebraicConnectivity(weight: { weights[$0] }) == 0)
+        #expect(try graph.resistanceDistance(from: 0, to: 1, weight: { weights[$0] }).map { abs($0 - 1) <= 1e-6 } == true)
+        #expect(try graph.algebraicConnectivity(weight: { weights[$0] }) == 0)
     }
 
     @Test("Fewer than two vertices trap the Fiedler vector and normalized λ₂, not the ordering")
-    func fewerThanTwoVertices() async {
+    func fewerThanTwoVertices() async throws {
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(vertices: [] as [Int], edges: [])
-            _ = graph.fiedlerVector()
+            _ = try graph.fiedlerVector()
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(vertices: [0], edges: [UndirectedEdge(0, 0)])
-            _ = graph.fiedlerVector(normalized: true)
+            _ = try graph.fiedlerVector(normalized: true)
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(vertices: [0], edges: [])
-            _ = graph.algebraicConnectivity(normalized: true)
+            _ = try graph.algebraicConnectivity(normalized: true)
         }
         // Without the fault: two vertices answer; one vertex has an ordering.
         let two = ReferencePseudograph(vertices: [0, 1], edges: [UndirectedEdge(0, 1)])
-        #expect(two.fiedlerVector()?.values.count == 2)
-        #expect(abs(two.algebraicConnectivity(normalized: true) - 2) <= 1e-6 * 2)
-        #expect(ReferencePseudograph(vertices: [0], edges: [UndirectedEdge(0, 0)]).spectralOrdering() == [0])
+        #expect(try two.fiedlerVector()?.values.count == 2)
+        #expect(abs(try two.algebraicConnectivity(normalized: true) - 2) <= 1e-6 * 2)
+        #expect(try ReferencePseudograph(vertices: [0], edges: [UndirectedEdge(0, 0)]).spectralOrdering() == [0])
     }
 
     @Test("resistanceDistance traps when the source is not a vertex")
-    func resistanceFromNonVertex() async {
+    func resistanceFromNonVertex() async throws {
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(vertices: Array(0 ..< 3), edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
-            _ = graph.resistanceDistance(from: 7, to: 0)
+            _ = try graph.resistanceDistance(from: 7, to: 0)
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(vertices: Array(0 ..< 3), edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
-            _ = graph.resistanceDistance(from: 7, to: 7)
+            _ = try graph.resistanceDistance(from: 7, to: 7)
         }
         // Without the fault: R(1, 0) = 1.
         let graph = ReferencePseudograph(vertices: Array(0 ..< 3), edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
-        #expect(graph.resistanceDistance(from: 1, to: 0).map { abs($0 - 1) <= 1e-6 } == true)
+        #expect(try graph.resistanceDistance(from: 1, to: 0).map { abs($0 - 1) <= 1e-6 } == true)
     }
 
     @Test("FiedlerVector.value(of:) traps on a non-vertex, value(ofIndex:) out of range")
-    func fiedlerVectorLookups() async {
+    func fiedlerVectorLookups() async throws {
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(vertices: Array(0 ..< 3), edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
-            _ = graph.fiedlerVector()?.value(of: 5)
+            _ = try graph.fiedlerVector()?.value(of: 5)
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(vertices: Array(0 ..< 3), edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
-            _ = graph.fiedlerVector()?.value(ofIndex: 3)
+            _ = try graph.fiedlerVector()?.value(ofIndex: 3)
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(vertices: Array(0 ..< 3), edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
-            _ = graph.fiedlerVector()?.value(ofIndex: -1)
+            _ = try graph.fiedlerVector()?.value(ofIndex: -1)
         }
         // Without the fault: P₃'s Fiedler vector is (1, 0, −1)/√2.
         let graph = ReferencePseudograph(vertices: Array(0 ..< 3), edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
-        let fiedler = graph.fiedlerVector()
+        let fiedler = try graph.fiedlerVector()
         #expect(fiedler.map { abs($0.value(of: 2) + 0.5.squareRoot()) <= 1e-5 } == true)
         #expect(fiedler.map { abs($0.value(ofIndex: 0) - 0.5.squareRoot()) <= 1e-5 } == true)
     }

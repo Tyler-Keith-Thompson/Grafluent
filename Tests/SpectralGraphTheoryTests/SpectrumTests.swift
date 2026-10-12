@@ -10,11 +10,11 @@ import Testing
 @Suite("SpectralGraphTheory spectra")
 struct SpectrumTests {
     @Test("SGT-047 empty graph")
-    func sgt047() {
+    func sgt047() throws {
         // U: · laplacianSpectrum() → []
         let edges: [(Int, Int)] = []
         let graph = ReferencePseudograph(vertices: [] as [Int], edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let spectrum = graph.laplacianSpectrum()
+        let spectrum = try graph.laplacianSpectrum()
         let expected: [Double] = []
         #expect(spectrum.count == expected.count)
         #expect(zip(spectrum, spectrum.dropFirst()).allSatisfy { $0 <= $1 })
@@ -25,11 +25,11 @@ struct SpectrumTests {
     }
 
     @Test("SGT-048 one vertex")
-    func sgt048() {
+    func sgt048() throws {
         // U: [0] · laplacianSpectrum() → 0
         let edges: [(Int, Int)] = []
         let graph = ReferencePseudograph(vertices: Array(0 ..< 1), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let spectrum = graph.laplacianSpectrum()
+        let spectrum = try graph.laplacianSpectrum()
         let expected: [Double] = [0]
         #expect(spectrum.count == expected.count)
         #expect(zip(spectrum, spectrum.dropFirst()).allSatisfy { $0 <= $1 })
@@ -40,11 +40,11 @@ struct SpectrumTests {
     }
 
     @Test("SGT-049 three isolated vertices")
-    func sgt049() {
+    func sgt049() throws {
         // U: E(3) · laplacianSpectrum() → 0 ×3
         let edges: [(Int, Int)] = []
         let graph = ReferencePseudograph(vertices: Array(0 ..< 3), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let spectrum = graph.laplacianSpectrum()
+        let spectrum = try graph.laplacianSpectrum()
         let expected: [Double] = [0, 0, 0]
         #expect(spectrum.count == expected.count)
         #expect(zip(spectrum, spectrum.dropFirst()).allSatisfy { $0 <= $1 })
@@ -55,11 +55,11 @@ struct SpectrumTests {
     }
 
     @Test("SGT-050 K2")
-    func sgt050() {
+    func sgt050() throws {
         // U: K(2) · laplacianSpectrum() → 0, 2
         let edges: [(Int, Int)] = [(0, 1)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 2), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let spectrum = graph.laplacianSpectrum()
+        let spectrum = try graph.laplacianSpectrum()
         let expected: [Double] = [0, 2]
         #expect(spectrum.count == expected.count)
         #expect(zip(spectrum, spectrum.dropFirst()).allSatisfy { $0 <= $1 })
@@ -70,11 +70,11 @@ struct SpectrumTests {
     }
 
     @Test("SGT-051 K5")
-    func sgt051() {
+    func sgt051() throws {
         // U: K(5) · laplacianSpectrum() → 0, 5 ×4
         let edges: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 5), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let spectrum = graph.laplacianSpectrum()
+        let spectrum = try graph.laplacianSpectrum()
         let expected: [Double] = [1e-16, 5, 5, 5, 5]
         #expect(spectrum.count == expected.count)
         #expect(zip(spectrum, spectrum.dropFirst()).allSatisfy { $0 <= $1 })
@@ -85,11 +85,11 @@ struct SpectrumTests {
     }
 
     @Test("SGT-052 path P5")
-    func sgt052() {
+    func sgt052() throws {
         // U: P(0..4) · laplacianSpectrum() → 0, 0.3819660113, 1.381966011, 2.618033989, 3.618033989
         let edges: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 5), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let spectrum = graph.laplacianSpectrum()
+        let spectrum = try graph.laplacianSpectrum()
         let expected: [Double] = [9e-17, 0.3819660112501, 1.3819660112501, 2.6180339887499, 3.6180339887499]
         #expect(spectrum.count == expected.count)
         #expect(zip(spectrum, spectrum.dropFirst()).allSatisfy { $0 <= $1 })
@@ -100,11 +100,11 @@ struct SpectrumTests {
     }
 
     @Test("SGT-053 cycle C6")
-    func sgt053() {
+    func sgt053() throws {
         // U: C(0..5) · laplacianSpectrum() → 0, 1 ×2, 3 ×2, 4
         let edges: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 6), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let spectrum = graph.laplacianSpectrum()
+        let spectrum = try graph.laplacianSpectrum()
         let expected: [Double] = [-7e-16, 1, 1, 3, 3, 4]
         #expect(spectrum.count == expected.count)
         #expect(zip(spectrum, spectrum.dropFirst()).allSatisfy { $0 <= $1 })
@@ -115,11 +115,11 @@ struct SpectrumTests {
     }
 
     @Test("SGT-054 star K1,4")
-    func sgt054() {
+    func sgt054() throws {
         // U: S(0;1..4) · laplacianSpectrum() → 0, 1 ×3, 5
         let edges: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 5), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let spectrum = graph.laplacianSpectrum()
+        let spectrum = try graph.laplacianSpectrum()
         let expected: [Double] = [0, 1, 1, 1, 5]
         #expect(spectrum.count == expected.count)
         #expect(zip(spectrum, spectrum.dropFirst()).allSatisfy { $0 <= $1 })
@@ -130,11 +130,11 @@ struct SpectrumTests {
     }
 
     @Test("SGT-055 hypercube Q3")
-    func sgt055() {
+    func sgt055() throws {
         // U: Q(3) · laplacianSpectrum() → 0, 2 ×3, 4 ×3, 6
         let edges: [(Int, Int)] = [(0, 1), (0, 2), (0, 4), (1, 3), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 6), (5, 7), (6, 7)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 8), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let spectrum = graph.laplacianSpectrum()
+        let spectrum = try graph.laplacianSpectrum()
         let expected: [Double] = [-2e-16, 2, 2, 2, 4, 4, 4, 6]
         #expect(spectrum.count == expected.count)
         #expect(zip(spectrum, spectrum.dropFirst()).allSatisfy { $0 <= $1 })
@@ -145,11 +145,11 @@ struct SpectrumTests {
     }
 
     @Test("SGT-056 K5")
-    func sgt056() {
+    func sgt056() throws {
         // U: K(5) · adjacencySpectrum() → -1 ×4, 4
         let edges: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 5), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let spectrum = graph.adjacencySpectrum()
+        let spectrum = try graph.adjacencySpectrum()
         let expected: [Double] = [-1, -1, -1, -1, 4]
         #expect(spectrum.count == expected.count)
         #expect(zip(spectrum, spectrum.dropFirst()).allSatisfy { $0 <= $1 })
@@ -160,11 +160,11 @@ struct SpectrumTests {
     }
 
     @Test("SGT-057 path P5")
-    func sgt057() {
+    func sgt057() throws {
         // U: P(0..4) · adjacencySpectrum() → -1.732050808, -1, 0, 1, 1.732050808
         let edges: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 5), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let spectrum = graph.adjacencySpectrum()
+        let spectrum = try graph.adjacencySpectrum()
         let expected: [Double] = [-1.73205080756888, -1, -3e-17, 1, 1.73205080756888]
         #expect(spectrum.count == expected.count)
         #expect(zip(spectrum, spectrum.dropFirst()).allSatisfy { $0 <= $1 })
@@ -175,11 +175,11 @@ struct SpectrumTests {
     }
 
     @Test("SGT-058 cycle C6")
-    func sgt058() {
+    func sgt058() throws {
         // U: C(0..5) · adjacencySpectrum() → -2, -1 ×2, 1 ×2, 2
         let edges: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 6), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let spectrum = graph.adjacencySpectrum()
+        let spectrum = try graph.adjacencySpectrum()
         let expected: [Double] = [-2, -1, -1, 1, 1, 2]
         #expect(spectrum.count == expected.count)
         #expect(zip(spectrum, spectrum.dropFirst()).allSatisfy { $0 <= $1 })
@@ -190,11 +190,11 @@ struct SpectrumTests {
     }
 
     @Test("SGT-059 star K1,4")
-    func sgt059() {
+    func sgt059() throws {
         // U: S(0;1..4) · adjacencySpectrum() → -2, 0 ×3, 2
         let edges: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 5), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let spectrum = graph.adjacencySpectrum()
+        let spectrum = try graph.adjacencySpectrum()
         let expected: [Double] = [-2, 0, 0, 0, 2]
         #expect(spectrum.count == expected.count)
         #expect(zip(spectrum, spectrum.dropFirst()).allSatisfy { $0 <= $1 })
@@ -205,11 +205,11 @@ struct SpectrumTests {
     }
 
     @Test("SGT-060 hypercube Q3")
-    func sgt060() {
+    func sgt060() throws {
         // U: Q(3) · adjacencySpectrum() → -3, -1 ×3, 1 ×3, 3
         let edges: [(Int, Int)] = [(0, 1), (0, 2), (0, 4), (1, 3), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 6), (5, 7), (6, 7)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 8), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let spectrum = graph.adjacencySpectrum()
+        let spectrum = try graph.adjacencySpectrum()
         let expected: [Double] = [-3, -1, -1, -1, 1, 1, 1, 3]
         #expect(spectrum.count == expected.count)
         #expect(zip(spectrum, spectrum.dropFirst()).allSatisfy { $0 <= $1 })
@@ -220,11 +220,11 @@ struct SpectrumTests {
     }
 
     @Test("SGT-061 K5")
-    func sgt061() {
+    func sgt061() throws {
         // U: K(5) · normalizedLaplacianSpectrum() → 0, 1.25 ×4
         let edges: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 5), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let spectrum = graph.normalizedLaplacianSpectrum()
+        let spectrum = try graph.normalizedLaplacianSpectrum()
         let expected: [Double] = [3e-17, 1.25, 1.25, 1.25, 1.25]
         #expect(spectrum.count == expected.count)
         #expect(zip(spectrum, spectrum.dropFirst()).allSatisfy { $0 <= $1 })
@@ -235,11 +235,11 @@ struct SpectrumTests {
     }
 
     @Test("SGT-062 path P5")
-    func sgt062() {
+    func sgt062() throws {
         // U: P(0..4) · normalizedLaplacianSpectrum() → 0, 0.2928932188, 1, 1.707106781, 2
         let edges: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 5), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let spectrum = graph.normalizedLaplacianSpectrum()
+        let spectrum = try graph.normalizedLaplacianSpectrum()
         let expected: [Double] = [-2e-16, 0.29289321881345, 1, 1.70710678118655, 2]
         #expect(spectrum.count == expected.count)
         #expect(zip(spectrum, spectrum.dropFirst()).allSatisfy { $0 <= $1 })
@@ -250,11 +250,11 @@ struct SpectrumTests {
     }
 
     @Test("SGT-063 cycle C6")
-    func sgt063() {
+    func sgt063() throws {
         // U: C(0..5) · normalizedLaplacianSpectrum() → 0, 0.5 ×2, 1.5 ×2, 2
         let edges: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 6), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let spectrum = graph.normalizedLaplacianSpectrum()
+        let spectrum = try graph.normalizedLaplacianSpectrum()
         let expected: [Double] = [-1e-16, 0.5, 0.5, 1.5, 1.5, 2]
         #expect(spectrum.count == expected.count)
         #expect(zip(spectrum, spectrum.dropFirst()).allSatisfy { $0 <= $1 })
@@ -265,11 +265,11 @@ struct SpectrumTests {
     }
 
     @Test("SGT-064 star K1,4")
-    func sgt064() {
+    func sgt064() throws {
         // U: S(0;1..4) · normalizedLaplacianSpectrum() → 0, 1 ×3, 2
         let edges: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 5), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let spectrum = graph.normalizedLaplacianSpectrum()
+        let spectrum = try graph.normalizedLaplacianSpectrum()
         let expected: [Double] = [0, 1, 1, 1, 2]
         #expect(spectrum.count == expected.count)
         #expect(zip(spectrum, spectrum.dropFirst()).allSatisfy { $0 <= $1 })
@@ -280,11 +280,11 @@ struct SpectrumTests {
     }
 
     @Test("SGT-065 hypercube Q3")
-    func sgt065() {
+    func sgt065() throws {
         // U: Q(3) · normalizedLaplacianSpectrum() → 0, 0.6666666667 ×3, 1.333333333 ×3, 2
         let edges: [(Int, Int)] = [(0, 1), (0, 2), (0, 4), (1, 3), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 6), (5, 7), (6, 7)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 8), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let spectrum = graph.normalizedLaplacianSpectrum()
+        let spectrum = try graph.normalizedLaplacianSpectrum()
         let expected: [Double] = [3e-16, 0.66666666666667, 0.66666666666667, 0.66666666666667, 1.33333333333333, 1.33333333333333, 1.33333333333333, 2]
         #expect(spectrum.count == expected.count)
         #expect(zip(spectrum, spectrum.dropFirst()).allSatisfy { $0 <= $1 })
@@ -295,11 +295,11 @@ struct SpectrumTests {
     }
 
     @Test("SGT-066 K2,3 Laplacian")
-    func sgt066() {
+    func sgt066() throws {
         // U: KB(0..1;2..4) · laplacianSpectrum() → 0, 2 ×2, 3, 5
         let edges: [(Int, Int)] = [(0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4)]
         let graph = ReferencePseudograph(vertices: [0, 2, 3, 4, 1], edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let spectrum = graph.laplacianSpectrum()
+        let spectrum = try graph.laplacianSpectrum()
         let expected: [Double] = [2e-16, 2, 2, 3, 5]
         #expect(spectrum.count == expected.count)
         #expect(zip(spectrum, spectrum.dropFirst()).allSatisfy { $0 <= $1 })
@@ -310,11 +310,11 @@ struct SpectrumTests {
     }
 
     @Test("SGT-067 K2,3 adjacency")
-    func sgt067() {
+    func sgt067() throws {
         // U: KB(0..1;2..4) · adjacencySpectrum() → -2.449489743, 0 ×3, 2.449489743
         let edges: [(Int, Int)] = [(0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4)]
         let graph = ReferencePseudograph(vertices: [0, 2, 3, 4, 1], edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let spectrum = graph.adjacencySpectrum()
+        let spectrum = try graph.adjacencySpectrum()
         let expected: [Double] = [-2.4494897427832, 0, 2e-16, 3e-16, 2.4494897427832]
         #expect(spectrum.count == expected.count)
         #expect(zip(spectrum, spectrum.dropFirst()).allSatisfy { $0 <= $1 })
@@ -325,14 +325,14 @@ struct SpectrumTests {
     }
 
     @Test("SGT-068 Petersen Laplacian")
-    func sgt068() {
+    func sgt068() throws {
         // U: nx(petersen) · laplacianSpectrum() → 0, 2 ×5, 5 ×4
         let edges: [(Int, Int)] = [
             (0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8),
             (6, 8), (6, 9), (7, 9),
         ]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 10), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let spectrum = graph.laplacianSpectrum()
+        let spectrum = try graph.laplacianSpectrum()
         let expected: [Double] = [
             2e-16, 2, 2, 2, 2, 2, 5, 5,
             5, 5,
@@ -346,14 +346,14 @@ struct SpectrumTests {
     }
 
     @Test("SGT-069 Petersen adjacency")
-    func sgt069() {
+    func sgt069() throws {
         // U: nx(petersen) · adjacencySpectrum() → -2 ×4, 1 ×5, 3
         let edges: [(Int, Int)] = [
             (0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8),
             (6, 8), (6, 9), (7, 9),
         ]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 10), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let spectrum = graph.adjacencySpectrum()
+        let spectrum = try graph.adjacencySpectrum()
         let expected: [Double] = [
             -2, -2, -2, -2, 1, 1, 1, 1,
             1, 3,
@@ -367,14 +367,14 @@ struct SpectrumTests {
     }
 
     @Test("SGT-070 grid 3×4 Laplacian")
-    func sgt070() {
+    func sgt070() throws {
         // U: grid(3,4) · laplacianSpectrum() → 0, 0.5857864376, 1, 1.585786438, 2, 3 ×2, 3.414213562, 3.585786438, 4.414213562, 5, 6.414213562
         let edges: [(Int, Int)] = [
             (0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7),
             (6, 10), (7, 11), (8, 9), (9, 10), (10, 11),
         ]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 12), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let spectrum = graph.laplacianSpectrum()
+        let spectrum = try graph.laplacianSpectrum()
         let expected: [Double] = [
             -9e-16, 0.5857864376269, 1, 1.5857864376269, 2, 3, 3, 3.4142135623731,
             3.5857864376269, 4.4142135623731, 5, 6.4142135623731,
@@ -388,11 +388,11 @@ struct SpectrumTests {
     }
 
     @Test("SGT-071 two triangles: 0 twice")
-    func sgt071() {
+    func sgt071() throws {
         // U: C(0,1,2), C(3,4,5) · laplacianSpectrum() → 0 ×2, 3 ×4
         let edges: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (3, 4), (4, 5), (5, 3)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 6), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let spectrum = graph.laplacianSpectrum()
+        let spectrum = try graph.laplacianSpectrum()
         let expected: [Double] = [-1e-16, -1e-16, 3, 3, 3, 3]
         #expect(spectrum.count == expected.count)
         #expect(zip(spectrum, spectrum.dropFirst()).allSatisfy { $0 <= $1 })
@@ -403,11 +403,11 @@ struct SpectrumTests {
     }
 
     @Test("SGT-072 path and isolated vertex, normalized: 0 per component")
-    func sgt072() {
+    func sgt072() throws {
         // U: [0,1,2,3] P(0,1,2) · normalizedLaplacianSpectrum() → 0 ×2, 1, 2
         let edges: [(Int, Int)] = [(0, 1), (1, 2)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 4), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let spectrum = graph.normalizedLaplacianSpectrum()
+        let spectrum = try graph.normalizedLaplacianSpectrum()
         let expected: [Double] = [0, 2e-16, 1, 2]
         #expect(spectrum.count == expected.count)
         #expect(zip(spectrum, spectrum.dropFirst()).allSatisfy { $0 <= $1 })
@@ -418,11 +418,11 @@ struct SpectrumTests {
     }
 
     @Test("SGT-073 doubled edge")
-    func sgt073() {
+    func sgt073() throws {
         // U: 0=1 · laplacianSpectrum() → 0, 4
         let edges: [(Int, Int)] = [(0, 1), (0, 1)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 2), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let spectrum = graph.laplacianSpectrum()
+        let spectrum = try graph.laplacianSpectrum()
         let expected: [Double] = [0, 4]
         #expect(spectrum.count == expected.count)
         #expect(zip(spectrum, spectrum.dropFirst()).allSatisfy { $0 <= $1 })
@@ -433,11 +433,11 @@ struct SpectrumTests {
     }
 
     @Test("SGT-074 self-loop: adjacency 1 ± √2")
-    func sgt074() {
+    func sgt074() throws {
         // U: 0-0, 0-1 · adjacencySpectrum() → -0.4142135624, 2.414213562
         let edges: [(Int, Int)] = [(0, 0), (0, 1)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 2), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let spectrum = graph.adjacencySpectrum()
+        let spectrum = try graph.adjacencySpectrum()
         let expected: [Double] = [-0.4142135623731, 2.4142135623731]
         #expect(spectrum.count == expected.count)
         #expect(zip(spectrum, spectrum.dropFirst()).allSatisfy { $0 <= $1 })
@@ -448,11 +448,11 @@ struct SpectrumTests {
     }
 
     @Test("SGT-075 self-loop: Laplacian unchanged")
-    func sgt075() {
+    func sgt075() throws {
         // U: 0-0, 0-1 · laplacianSpectrum() → 0, 2
         let edges: [(Int, Int)] = [(0, 0), (0, 1)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 2), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let spectrum = graph.laplacianSpectrum()
+        let spectrum = try graph.laplacianSpectrum()
         let expected: [Double] = [0, 2]
         #expect(spectrum.count == expected.count)
         #expect(zip(spectrum, spectrum.dropFirst()).allSatisfy { $0 <= $1 })
@@ -463,11 +463,11 @@ struct SpectrumTests {
     }
 
     @Test("SGT-076 self-loop: normalized")
-    func sgt076() {
+    func sgt076() throws {
         // U: 0-0, 0-1 · normalizedLaplacianSpectrum() → 0, 1.333333333
         let edges: [(Int, Int)] = [(0, 0), (0, 1)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 2), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let spectrum = graph.normalizedLaplacianSpectrum()
+        let spectrum = try graph.normalizedLaplacianSpectrum()
         let expected: [Double] = [-2e-17, 1.33333333333333]
         #expect(spectrum.count == expected.count)
         #expect(zip(spectrum, spectrum.dropFirst()).allSatisfy { $0 <= $1 })
@@ -478,12 +478,12 @@ struct SpectrumTests {
     }
 
     @Test("SGT-077 weighted triangle")
-    func sgt077() {
+    func sgt077() throws {
         // U: C(0,1,2) · laplacianSpectrum(weight:) [1, 2, 3] → 0, 4.267949192, 7.732050808
         let edges: [(Int, Int)] = [(0, 1), (1, 2), (2, 0)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 3), edges: edges.map { UndirectedEdge($0.0, $0.1) })
         let weights: [Int] = [1, 2, 3]
-        let spectrum = graph.laplacianSpectrum(weight: { weights[$0] })
+        let spectrum = try graph.laplacianSpectrum(weight: { weights[$0] })
         let expected: [Double] = [4e-16, 4.2679491924311, 7.7320508075689]
         #expect(spectrum.count == expected.count)
         #expect(zip(spectrum, spectrum.dropFirst()).allSatisfy { $0 <= $1 })
@@ -494,12 +494,12 @@ struct SpectrumTests {
     }
 
     @Test("SGT-078 weighted triangle, normalized")
-    func sgt078() {
+    func sgt078() throws {
         // U: C(0,1,2) · normalizedLaplacianSpectrum(weight:) [1, 2, 3] → 0, 1.276393202, 1.723606798
         let edges: [(Int, Int)] = [(0, 1), (1, 2), (2, 0)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 3), edges: edges.map { UndirectedEdge($0.0, $0.1) })
         let weights: [Int] = [1, 2, 3]
-        let spectrum = graph.normalizedLaplacianSpectrum(weight: { weights[$0] })
+        let spectrum = try graph.normalizedLaplacianSpectrum(weight: { weights[$0] })
         let expected: [Double] = [1e-16, 1.27639320225002, 1.72360679774998]
         #expect(spectrum.count == expected.count)
         #expect(zip(spectrum, spectrum.dropFirst()).allSatisfy { $0 <= $1 })
@@ -510,7 +510,7 @@ struct SpectrumTests {
     }
 
     @Test("SGT-079 grid 20×20 Laplacian (summary)")
-    func sgt079() {
+    func sgt079() throws {
         // U: grid(20,20) · laplacianSpectrum() → 400 values; smallest 0, 0.02462331881, 0.02462331881, 0.04924663762; largest 7.877489714, 7.950753362; Σ 1520; Σ² 7368
         let edges: [(Int, Int)] = [
             (0, 1), (0, 20), (1, 2), (1, 21), (2, 3), (2, 22), (3, 4), (3, 23), (4, 5), (4, 24), (5, 6), (5, 25),
@@ -579,7 +579,7 @@ struct SpectrumTests {
             (395, 396), (396, 397), (397, 398), (398, 399),
         ]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 400), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let spectrum = graph.laplacianSpectrum()
+        let spectrum = try graph.laplacianSpectrum()
         let expected: [Double] = [
             4e-15, 0.02462331880972, 0.02462331880973, 0.04924663761945, 0.09788696740969, 0.0978869674097, 0.12251028621941, 0.12251028621942,
             0.1957739348194, 0.21798695162325, 0.21798695162326, 0.24261027043298, 0.242610270433, 0.31587391903296, 0.31587391903296, 0.3819660112501,
@@ -641,7 +641,7 @@ struct SpectrumTests {
     }
 
     @Test("SGT-080 hypercube Q6 Laplacian (summary)")
-    func sgt080() {
+    func sgt080() throws {
         // U: Q(6) · laplacianSpectrum() → 64 values; smallest 0, 2, 2, 2; largest 10, 12; Σ 384; Σ² 2688
         let edges: [(Int, Int)] = [
             (0, 1), (0, 2), (0, 4), (0, 8), (0, 16), (0, 32), (1, 3), (1, 5), (1, 9), (1, 17), (1, 33), (2, 3),
@@ -662,7 +662,7 @@ struct SpectrumTests {
             (56, 57), (56, 58), (56, 60), (57, 59), (57, 61), (58, 59), (58, 62), (59, 63), (60, 61), (60, 62), (61, 63), (62, 63),
         ]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 64), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let spectrum = graph.laplacianSpectrum()
+        let spectrum = try graph.laplacianSpectrum()
         let expected: [Double] = [
             9e-16, 2, 2, 2, 2, 2, 2, 4,
             4, 4, 4, 4, 4, 4, 4, 4,
@@ -682,7 +682,7 @@ struct SpectrumTests {
     }
 
     @Test("SGT-081 karate club Laplacian (summary)")
-    func sgt081() {
+    func sgt081() throws {
         // U: nx(karate_club) · laplacianSpectrum() → 34 values; smallest 0, 0.4685252267, 0.9092476638, 1.125010718; largest 17.05517119, 18.13669597; Σ 156; Σ² 1368
         let edges: [(Int, Int)] = [
             (0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8), (0, 10), (0, 11), (0, 12), (0, 13),
@@ -694,7 +694,7 @@ struct SpectrumTests {
             (29, 33), (30, 32), (30, 33), (31, 32), (31, 33), (32, 33),
         ]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 34), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let spectrum = graph.laplacianSpectrum()
+        let spectrum = try graph.laplacianSpectrum()
         let expected: [Double] = [
             -3e-15, 0.4685252267014, 0.90924766380331, 1.12501071824467, 1.2594041101217, 1.59928307542958, 1.76189862114404, 1.82605520982546,
             1.95505044733737, 2, 2, 2, 2, 2, 2.4870917344645, 2.74915717527666,
@@ -711,7 +711,7 @@ struct SpectrumTests {
     }
 
     @Test("SGT-082 karate club adjacency (summary)")
-    func sgt082() {
+    func sgt082() throws {
         // U: nx(karate_club) · adjacencySpectrum() → 34 values; smallest -4.487229194, -3.447934858, -3.110690917, -2.437424427; largest 4.977074233, 6.725697728; Σ 0; Σ² 156
         let edges: [(Int, Int)] = [
             (0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8), (0, 10), (0, 11), (0, 12), (0, 13),
@@ -723,7 +723,7 @@ struct SpectrumTests {
             (29, 33), (30, 32), (30, 33), (31, 32), (31, 33), (32, 33),
         ]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 34), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let spectrum = graph.adjacencySpectrum()
+        let spectrum = try graph.adjacencySpectrum()
         let expected: [Double] = [
             -4.4872291941623, -3.4479348579588, -3.1106909166517, -2.43742442656863, -2.09082295477648, -2, -1.6876894475452, -1.44407373518236,
             -1.19242424583723, -1.04208785499145, -0.79240681501887, -0.4188187483321, -2e-15, -2e-15, -1e-15, -9e-16,
@@ -740,7 +740,7 @@ struct SpectrumTests {
     }
 
     @Test("SGT-083 random multigraph lcg(60,150,3) normalized (summary)")
-    func sgt083() {
+    func sgt083() throws {
         // U: lcg(60,150,3) · normalizedLaplacianSpectrum() → 60 values; smallest 0, 0.2002576706, 0.2351635713, 0.2403154366; largest 1.754407671, 1.80528904; Σ 60; Σ² 73.58148369
         let edges: [(Int, Int)] = [
             (59, 43), (35, 58), (24, 23), (55, 5), (29, 9), (43, 42), (56, 9), (58, 5), (39, 19), (7, 56), (5, 46), (11, 6),
@@ -758,7 +758,7 @@ struct SpectrumTests {
             (7, 11), (32, 5), (13, 26), (44, 55), (49, 20), (12, 53),
         ]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 60), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let spectrum = graph.normalizedLaplacianSpectrum()
+        let spectrum = try graph.normalizedLaplacianSpectrum()
         let expected: [Double] = [
             -3e-16, 0.20025767064418, 0.23516357129422, 0.24031543661537, 0.287354652451, 0.30217446629008, 0.33098560343725, 0.37791244601066,
             0.42563046039466, 0.4485055911326, 0.49028833166021, 0.49945890789054, 0.52587882802483, 0.5562080113679, 0.60054585425548, 0.61735646209558,

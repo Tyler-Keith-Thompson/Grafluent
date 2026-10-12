@@ -246,11 +246,11 @@ func directedCentrality<G: DirectedGraph<Int>>(_ graph: G, _ n: Int, _ w: (G.Edg
     a.betweennessRaw = graph.betweennessCentrality(normalized: false).scores
     a.betweennessEndpoints = graph.betweennessCentrality(endpoints: true).scores
     a.weightedBetweenness = graph.betweennessCentrality(weight: { abs(w($0)) + 1 }).scores
-    a.eigenvector = graph.eigenvectorCentrality()?.scores
-    a.katz = graph.katzCentrality()?.scores
-    a.pageRank = graph.pageRank()?.scores
-    a.weightedPageRank = graph.pageRank(weight: { Double(abs(w($0))) })?.scores
-    let hits = graph.hits()
+    a.eigenvector = (try? graph.eigenvectorCentrality())?.scores
+    a.katz = (try? graph.katzCentrality())?.scores
+    a.pageRank = (try? graph.pageRank())?.scores
+    a.weightedPageRank = (try? graph.pageRank(weight: { Double(abs(w($0))) }))?.scores
+    let hits = try? graph.hits()
     a.hubs = hits?.hubs.scores
     a.authorities = hits?.authorities.scores
     a.consistent = (0 ..< n).allSatisfy { v in
@@ -273,10 +273,10 @@ func undirectedCentrality<G: Graph<Int>>(_ graph: G, _ n: Int, _ w: (G.Edges.Ind
     a.betweennessRaw = graph.betweennessCentrality(normalized: false).scores
     a.betweennessEndpoints = graph.betweennessCentrality(endpoints: true).scores
     a.weightedBetweenness = graph.betweennessCentrality(weight: { abs(w($0)) + 1 }).scores
-    a.eigenvector = graph.eigenvectorCentrality()?.scores
-    a.katz = graph.katzCentrality()?.scores
-    a.pageRank = graph.pageRank()?.scores
-    a.weightedPageRank = graph.pageRank(weight: { Double(abs(w($0))) })?.scores
+    a.eigenvector = (try? graph.eigenvectorCentrality())?.scores
+    a.katz = (try? graph.katzCentrality())?.scores
+    a.pageRank = (try? graph.pageRank())?.scores
+    a.weightedPageRank = (try? graph.pageRank(weight: { Double(abs(w($0))) }))?.scores
     let view = graph.directed
     a.consistent = (0 ..< n).allSatisfy { v in
         graph.closenessCentrality(of: v) == a.closeness[v] && graph.harmonicCentrality(of: v) == a.harmonic[v]

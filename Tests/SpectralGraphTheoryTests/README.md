@@ -24,20 +24,26 @@ does not have: String vertices with no indices.
 extension Graph {               // each also with weight: (Edges.Index) -> W, W: BinaryInteger or BinaryFloatingPoint
     func adjacencyMatrix() -> SparseMatrix, laplacianMatrix(), normalizedLaplacianMatrix(),
          randomWalkLaplacianMatrix(), signlessLaplacianMatrix()
-    func adjacencySpectrum() -> [Double], laplacianSpectrum(), normalizedLaplacianSpectrum()      // ascending
-    func algebraicConnectivity(weight:normalized:tolerance:) -> Double                              // traps below 2 vertices
-    func fiedlerVector(weight:normalized:tolerance:) -> FiedlerVector<Self>?                        // nil when not connected
-    func spectralOrdering(weight:normalized:tolerance:) -> [Vertex]
-    func spectralRadius(weight:tolerance:) -> Double
+    func adjacencySpectrum(maxIterations:) throws(NoConvergence) -> [Double], laplacianSpectrum(maxIterations:),
+         normalizedLaplacianSpectrum(maxIterations:)                                                // ascending
+    func algebraicConnectivity(weight:normalized:tolerance:maxIterations:) throws(NoConvergence) -> Double   // traps below 2 vertices
+    func fiedlerVector(weight:normalized:tolerance:maxIterations:) throws(NoConvergence) -> FiedlerVector<Self>?   // nil when not connected
+    func spectralOrdering(weight:normalized:tolerance:maxIterations:) throws(NoConvergence) -> [Vertex]
+    func spectralRadius(weight:tolerance:maxIterations:) throws(NoConvergence) -> Double
     func numberOfSpanningTrees(weight:) -> Double
-    func resistanceDistance(from:to:weight:tolerance:) -> Double?                                    // nil across components
+    func resistanceDistance(from:to:weight:tolerance:maxIterations:) throws(NoConvergence) -> Double?  // nil across components
     func effectiveGraphResistance(weight:) -> Double?, kemenyConstant(weight:) -> Double?
 }
 extension DirectedGraph { func adjacencyMatrix(weight:), laplacianMatrix(weight:) }                 // out-degrees
 struct SparseMatrix: Equatable, Hashable, Sendable, CustomStringConvertible
     rowCount, offsets, columns, values, nonzeroCount, subscript(_ row: Int, _ column: Int), pattern, static *
 struct FiedlerVector<G: Graph> { algebraicConnectivity, values, value(of:), value(ofIndex:) }
+struct NoConvergence: Error, Hashable, Sendable { iterations, residual }                            // GraphProtocols
 ```
+
+Every `maxIterations:` is `Int? = nil`, nil meaning the method's default limit (30 n QL/QR
+iterations for a dense spectrum, 1,000 shift-invert products for λ₂, 20,000 + 20√n products for ρ,
+20,000 + 2n conjugate-gradient iterations for a resistance).
 
 api.md does not say where `weight:` goes in the argument list. The tests put it first, as
 Centrality does (`algebraicConnectivity(weight:normalized:tolerance:)`), and after the vertices in
@@ -55,6 +61,7 @@ called `matrix[i, j]`, without labels.
 | Rows | In vertex-index order, or `vertices` order without indices | SGT-011, conformance |
 | Weights | Finite everywhere; ≥ 0 for every Laplacian-family call; read once per position | SGT-031 – SGT-035, extra traps, conformance |
 | λ₂ | 0 when not connected (weight-0 edges do not connect); traps below two vertices | SGT-095, SGT-100, SGT-106 |
+| Iteration limits | `NoConvergence` with the iterations spent (exactly `maxIterations` below 5,000 vertices) and a residual above the tolerance; nil keeps the default limits; below 64 vertices λ₂ and ρ are dense and do not read the limit; `maxIterations` < 1 traps | no-convergence, accuracy |
 | Fiedler vector | Unit, canonical sign (relative 1e-4 rule); nil when not connected | SGT-108 – SGT-125, canonical sign |
 | Ordering | Components by least index; ≤ 2 vertices in index order; ties within 1e-8 · max\|x\| in index order | SGT-127 – SGT-134 |
 | Counts | 0 empty or disconnected, 1 for one vertex; exact (correctly rounded) for integer weights below 2¹⁰⁰; `.infinity` past `Double` | SGT-148 – SGT-168, stress, accuracy |
@@ -63,8 +70,8 @@ called `matrix[i, j]`, without labels.
 ## How values are pinned
 
 The catalog-row files are every file except `CanonicalSignTests.swift`,
-`SpectralAccuracyTests.swift`, `SpectralConformanceTests.swift`, `SpectralPropertyTests.swift`
-and `SpectralStressTests.swift`.
+`SpectralAccuracyTests.swift`, `SpectralConformanceTests.swift`, `SpectralNoConvergenceTests.swift`,
+`SpectralPropertyTests.swift` and `SpectralStressTests.swift`.
 `swiftgen.py` generated them from `cases.md`. It sits next to `ref.py` and `cases.md` in
 [`Tests/Catalogs/SpectralGraphTheory/`](../Catalogs/SpectralGraphTheory/):
 
@@ -138,8 +145,9 @@ hand-written exit tests in `extra_traps.swift`:
     decades, against the series–parallel law;
   - scale invariance at c = 10^±150 (property-based and on the Lanczos paths): λ₂(cw) = cλ₂(w),
     N(cw) = N(w), τ(cw) = c^(n−1) τ(w), R(cw) = R(w)/c;
-  - traps: sums that overflow `Double`, and the work limits (a tolerance of 10⁻³⁰⁰ runs Lanczos on
-    A and by shift-invert out of products).
+  - traps: sums that overflow `Double`; and the work limits, which throw `NoConvergence`: a
+    tolerance of 10⁻³⁰⁰ runs Lanczos on A and by shift-invert out of products, exactly 20,160 and
+    1,000.
 - **Properties** (swift-property-based, with shrinking). The graphs are random multigraphs with
   loops and integer weights, 0 included, with vertices listed in a seeded order. The properties
   are:
@@ -156,6 +164,13 @@ hand-written exit tests in `extra_traps.swift`:
   - the Fiedler vector is orthogonal to 1 (or to D^1/2 · 1 on N) and follows the sign rule;
   - the ordering sorts by the Fiedler vector when λ₂ is simple, and lists components by least
     index.
+- **NoConvergence** (`SpectralNoConvergenceTests.swift`). Every entry point that iterates throws it
+  with a tiny `maxIterations`, every overload: the dense spectra with exactly the limit and an
+  off-diagonal entry above rounding; λ₂, the Fiedler vector and the ordering by shift-invert (a
+  path of 200) after one product, and on a 10 × 10 grid, where a limit given cuts the shifted run
+  short; ρ after one product, with signed weights too; resistance after exactly 1, 2 and 10
+  conjugate-gradient iterations. A larger limit answers bit for bit as the default does. Below 64
+  vertices, and for components of at most two, the limit is not read. `maxIterations` < 1 traps.
 - **Stress**, each with a one-minute limit:
   - the 100 × 100 grid: λ₂ = 2 − 2cos(π/100), which is double, where SciPy's `eigsh(which="SA")`
     returns 0.00888; ρ = 4cos(π/101);

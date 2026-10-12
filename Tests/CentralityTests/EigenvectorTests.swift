@@ -1,6 +1,6 @@
 // §E: the principal eigenvector of Aᵀ by power iteration on A + I from the uniform start, Euclidean
-// norm 1; an undirected loop is 2 in A, parallel copies add; disconnected graphs; nil on a DAG and
-// with too few iterations.
+// norm 1; an undirected loop is 2 in A, parallel copies add; disconnected graphs; NoConvergence on a
+// DAG and with too few iterations.
 // Expected values are ref.py's model at full precision (the catalog cells are the same values
 // rounded to 12 digits); non-iterative rows compare within 1e-12 relative to max(1, |value|), the
 // iterative ones within the catalog's Tol of the limit. Undirected rows also run on
@@ -19,7 +19,7 @@ struct EigenvectorTests {
         // U: K(4)
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
         let graph = ReferencePseudograph(vertices: 0 ..< 4, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let result = try #require(graph.eigenvectorCentrality())
+        let result = try graph.eigenvectorCentrality()
         let expected: [Double] = [0.5, 0.5, 0.5, 0.5]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -32,7 +32,7 @@ struct EigenvectorTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try #require(graph.directed.eigenvectorCentrality())
+        let arcs = try graph.directed.eigenvectorCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
             #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -44,7 +44,7 @@ struct EigenvectorTests {
         // U: P(0,1,2)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
         let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let result = try #require(graph.eigenvectorCentrality())
+        let result = try graph.eigenvectorCentrality()
         let expected: [Double] = [0.5, 0.7071067811865474, 0.5]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -57,7 +57,7 @@ struct EigenvectorTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try #require(graph.directed.eigenvectorCentrality())
+        let arcs = try graph.directed.eigenvectorCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
             #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -69,7 +69,7 @@ struct EigenvectorTests {
         // U: S(0;1..4)
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4)]
         let graph = ReferencePseudograph(vertices: 0 ..< 5, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let result = try #require(graph.eigenvectorCentrality())
+        let result = try graph.eigenvectorCentrality()
         let expected: [Double] = [
             0.7071067811865479, 0.35355339059327356, 0.35355339059327356, 0.35355339059327356,
             0.35355339059327356
@@ -85,7 +85,7 @@ struct EigenvectorTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try #require(graph.directed.eigenvectorCentrality())
+        let arcs = try graph.directed.eigenvectorCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
             #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -97,7 +97,7 @@ struct EigenvectorTests {
         // U: P(0,1,2,3)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
         let graph = ReferencePseudograph(vertices: 0 ..< 4, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let result = try #require(graph.eigenvectorCentrality())
+        let result = try graph.eigenvectorCentrality()
         let expected: [Double] = [
             0.3717480344601846, 0.6015009550075456, 0.6015009550075456, 0.3717480344601846
         ]
@@ -112,7 +112,7 @@ struct EigenvectorTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try #require(graph.directed.eigenvectorCentrality())
+        let arcs = try graph.directed.eigenvectorCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
             #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -127,7 +127,7 @@ struct EigenvectorTests {
             (3, 6), (4, 6), (5, 6), (5, 7), (6, 7), (7, 8), (8, 9)
         ]
         let graph = ReferencePseudograph(vertices: 0 ..< 10, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let result = try #require(graph.eigenvectorCentrality())
+        let result = try graph.eigenvectorCentrality()
         let expected: [Double] = [
             0.3522093968166346, 0.3522093968166346, 0.2858349913908715, 0.4810208582728083,
             0.2858349913908715, 0.39769063647017033, 0.39769063647017033, 0.19586058302781284,
@@ -144,7 +144,7 @@ struct EigenvectorTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try #require(graph.directed.eigenvectorCentrality())
+        let arcs = try graph.directed.eigenvectorCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
             #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -166,7 +166,7 @@ struct EigenvectorTests {
             (32, 33)
         ]
         let graph = ReferencePseudograph(vertices: 0 ..< 34, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let result = try #require(graph.eigenvectorCentrality())
+        let result = try graph.eigenvectorCentrality()
         let expected: [Double] = [
             0.35549144452455894, 0.2659599195524863, 0.317192504486429, 0.21117972037788527,
             0.0759688181830663, 0.07948304511709661, 0.07948304511709661, 0.17095974804479222,
@@ -189,7 +189,7 @@ struct EigenvectorTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try #require(graph.directed.eigenvectorCentrality())
+        let arcs = try graph.directed.eigenvectorCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
             #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -209,7 +209,7 @@ struct EigenvectorTests {
             ("Bischeri", "Guadagni"), ("Guadagni", "Lamberteschi")
         ]
         let graph = ReferencePseudograph(vertices: ["Acciaiuoli", "Medici", "Castellani", "Peruzzi", "Strozzi", "Barbadori", "Ridolfi", "Tornabuoni", "Albizzi", "Salviati", "Pazzi", "Bischeri", "Guadagni", "Ginori", "Lamberteschi"], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let result = try #require(graph.eigenvectorCentrality())
+        let result = try graph.eigenvectorCentrality()
         let expected: [Double] = [
             0.13215429472871026, 0.43030809404092446, 0.2590261671902524, 0.2757303735808764,
             0.3559804484113811, 0.21170525116052846, 0.3415526440572176, 0.3258423011242119,
@@ -227,7 +227,7 @@ struct EigenvectorTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try #require(graph.directed.eigenvectorCentrality())
+        let arcs = try graph.directed.eigenvectorCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
             #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -239,7 +239,7 @@ struct EigenvectorTests {
         // U: K(3), 3-4
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (3, 4)]
         let graph = ReferencePseudograph(vertices: 0 ..< 5, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let result = try #require(graph.eigenvectorCentrality())
+        let result = try graph.eigenvectorCentrality()
         let expected: [Double] = [
             0.5773502691896258, 0.5773502691896258, 0.5773502691896258, 4.7221377109224855e-15,
             4.7221377109224855e-15
@@ -255,7 +255,7 @@ struct EigenvectorTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try #require(graph.directed.eigenvectorCentrality())
+        let arcs = try graph.directed.eigenvectorCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
             #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -267,7 +267,7 @@ struct EigenvectorTests {
         // U: K(3), C(3,4,5)
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (3, 4), (4, 5), (5, 3)]
         let graph = ReferencePseudograph(vertices: 0 ..< 6, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let result = try #require(graph.eigenvectorCentrality())
+        let result = try graph.eigenvectorCentrality()
         let expected: [Double] = [
             0.408248290463863, 0.408248290463863, 0.408248290463863, 0.408248290463863,
             0.408248290463863, 0.408248290463863
@@ -283,7 +283,7 @@ struct EigenvectorTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try #require(graph.directed.eigenvectorCentrality())
+        let arcs = try graph.directed.eigenvectorCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
             #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -295,7 +295,7 @@ struct EigenvectorTests {
         // U: P(0,1,2), 1-1
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (1, 1)]
         let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let result = try #require(graph.eigenvectorCentrality())
+        let result = try graph.eigenvectorCentrality()
         let expected: [Double] = [0.3250575836718682, 0.8880738339771153, 0.3250575836718682]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -308,7 +308,7 @@ struct EigenvectorTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try #require(graph.directed.eigenvectorCentrality())
+        let arcs = try graph.directed.eigenvectorCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
             #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -320,7 +320,7 @@ struct EigenvectorTests {
         // U: 0-1, 0-1, 1-2, 0-3, 3-2
         let pairs: [(Int, Int)] = [(0, 1), (0, 1), (1, 2), (0, 3), (3, 2)]
         let graph = ReferencePseudograph(vertices: 0 ..< 4, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let result = try #require(graph.eigenvectorCentrality())
+        let result = try graph.eigenvectorCentrality()
         let expected: [Double] = [
             0.6015009550075454, 0.6015009550075454, 0.37174803446018484, 0.37174803446018484
         ]
@@ -335,7 +335,7 @@ struct EigenvectorTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try #require(graph.directed.eigenvectorCentrality())
+        let arcs = try graph.directed.eigenvectorCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
             #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -347,7 +347,7 @@ struct EigenvectorTests {
         // D: C(0,1,2)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        let result = try #require(graph.eigenvectorCentrality())
+        let result = try graph.eigenvectorCentrality()
         let expected: [Double] = [0.5773502691896257, 0.5773502691896257, 0.5773502691896257]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -362,12 +362,14 @@ struct EigenvectorTests {
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
     }
 
-    @Test("CE-142 D(P(0,1,2)).eigenvectorCentrality() is nil")
+    @Test("CE-142 D(P(0,1,2)).eigenvectorCentrality() throws NoConvergence")
     func eigenvector142() {
         // D: P(0,1,2)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        #expect(graph.eigenvectorCentrality() == nil)
+        let failure = #expect(throws: NoConvergence.self) { try graph.eigenvectorCentrality() }
+        #expect(failure?.iterations == 100)
+        #expect(failure.map { !($0.residual < 1e-06) } == true)
     }
 
     @Test("CE-143 D(C(0,1,2), 0>3).eigenvectorCentrality() is [0.5, 0.5, 0.5, 0.5]: In-edges (left eigenvector): 3 inherits 0's score")
@@ -375,7 +377,7 @@ struct EigenvectorTests {
         // D: C(0,1,2), 0>3
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (0, 3)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        let result = try #require(graph.eigenvectorCentrality())
+        let result = try graph.eigenvectorCentrality()
         let expected: [Double] = [0.5, 0.5, 0.5, 0.5]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -396,7 +398,7 @@ struct EigenvectorTests {
         let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
         let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         let w: [Double] = [1, 2]
-        let result = try #require(graph.eigenvectorCentrality(weight: { w[$0] }))
+        let result = try graph.eigenvectorCentrality(weight: { w[$0] })
         let expected: [Double] = [0.31622776601683783, 0.7071067811865478, 0.6324555320336757]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -409,14 +411,14 @@ struct EigenvectorTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try #require(graph.directed.eigenvectorCentrality(weight: { w[$0.position] }))
+        let arcs = try graph.directed.eigenvectorCentrality(weight: { w[$0.position] })
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
             #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
         }
     }
 
-    @Test("CE-145 U(nx(karate_club)).eigenvectorCentrality(maxIterations: 5) is nil: NetworkX raises with max_iter=5 too")
+    @Test("CE-145 U(nx(karate_club)).eigenvectorCentrality(maxIterations: 5) throws NoConvergence: NetworkX raises with max_iter=5 too")
     func eigenvector145() {
         // U: nx(karate_club)
         let pairs: [(Int, Int)] = [
@@ -431,8 +433,12 @@ struct EigenvectorTests {
             (32, 33)
         ]
         let graph = ReferencePseudograph(vertices: 0 ..< 34, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        #expect(graph.eigenvectorCentrality(maxIterations: 5) == nil)
-        #expect(graph.directed.eigenvectorCentrality(maxIterations: 5) == nil)
+        let failure = #expect(throws: NoConvergence.self) { try graph.eigenvectorCentrality(maxIterations: 5) }
+        #expect(failure?.iterations == 5)
+        #expect(failure.map { !($0.residual < 1e-06) } == true)
+        let directedFailure = #expect(throws: NoConvergence.self) { try graph.directed.eigenvectorCentrality(maxIterations: 5) }
+        #expect(directedFailure?.iterations == 5)
+        #expect(directedFailure.map { !($0.residual < 1e-06) } == true)
     }
 
     @Test("CE-146 U(nx(karate_club)).eigenvectorCentrality(tolerance: 1e-10) is 34 scores, [0.355491444525, 0.265959919552, …]")
@@ -450,7 +456,7 @@ struct EigenvectorTests {
             (32, 33)
         ]
         let graph = ReferencePseudograph(vertices: 0 ..< 34, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let result = try #require(graph.eigenvectorCentrality(tolerance: 1e-10))
+        let result = try graph.eigenvectorCentrality(tolerance: 1e-10)
         let expected: [Double] = [
             0.35549144452455894, 0.2659599195524863, 0.317192504486429, 0.21117972037788527,
             0.0759688181830663, 0.07948304511709661, 0.07948304511709661, 0.17095974804479222,
@@ -473,7 +479,7 @@ struct EigenvectorTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try #require(graph.directed.eigenvectorCentrality(tolerance: 1e-10))
+        let arcs = try graph.directed.eigenvectorCentrality(tolerance: 1e-10)
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
             #expect(error <= 1e-8 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -485,7 +491,7 @@ struct EigenvectorTests {
         // U: P(0,1,2)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
         let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let result = try #require(graph.directed.eigenvectorCentrality())
+        let result = try graph.directed.eigenvectorCentrality()
         let expected: [Double] = [0.5, 0.7071067811865474, 0.5]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -505,7 +511,7 @@ struct EigenvectorTests {
         // D: C(0,1,2), 2>0
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (2, 0)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        let result = try #require(graph.eigenvectorCentrality())
+        let result = try graph.eigenvectorCentrality()
         let expected: [Double] = [0.702414383919315, 0.5575066659755585, 0.44249333402444174]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {

@@ -1,4 +1,5 @@
-// §F: x = αAᵀx + β1 from x₀ = 0, normalized to Euclidean norm 1 by default; nil when α ≥ 1/ρ(A).
+// §F: x = αAᵀx + β1 from x₀ = 0, normalized to Euclidean norm 1 by default; NoConvergence when
+// α ≥ 1/ρ(A).
 // Expected values are ref.py's model at full precision (the catalog cells are the same values
 // rounded to 12 digits); non-iterative rows compare within 1e-12 relative to max(1, |value|), the
 // iterative ones within the catalog's Tol of the limit. Undirected rows also run on
@@ -17,7 +18,7 @@ struct KatzTests {
         // U: P(0,1,2)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
         let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let result = try #require(graph.katzCentrality())
+        let result = try graph.katzCentrality()
         let expected: [Double] = [0.5598852584152163, 0.6107839182711452, 0.5598852584152163]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -30,7 +31,7 @@ struct KatzTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try #require(graph.directed.katzCentrality())
+        let arcs = try graph.directed.katzCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
             #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -42,7 +43,7 @@ struct KatzTests {
         // U: K(4)
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
         let graph = ReferencePseudograph(vertices: 0 ..< 4, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let result = try #require(graph.katzCentrality())
+        let result = try graph.katzCentrality()
         let expected: [Double] = [0.5, 0.5, 0.5, 0.5]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -55,7 +56,7 @@ struct KatzTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try #require(graph.directed.katzCentrality())
+        let arcs = try graph.directed.katzCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
             #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -77,7 +78,7 @@ struct KatzTests {
             (32, 33)
         ]
         let graph = ReferencePseudograph(vertices: 0 ..< 34, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let result = try #require(graph.katzCentrality())
+        let result = try graph.katzCentrality()
         let expected: [Double] = [
             0.3213246219124112, 0.23548427483304846, 0.26576591973677494, 0.1949132148792719,
             0.12190437880575036, 0.13097224917085232, 0.13097224917085232, 0.1662330569529996,
@@ -100,14 +101,14 @@ struct KatzTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try #require(graph.directed.katzCentrality())
+        let arcs = try graph.directed.katzCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
             #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
         }
     }
 
-    @Test("CE-163 U(nx(karate_club)).katzCentrality(alpha: 0.2) is nil: α > 1/λ_max ≈ 0.149: the series diverges")
+    @Test("CE-163 U(nx(karate_club)).katzCentrality(alpha: 0.2) throws NoConvergence: α > 1/λ_max ≈ 0.149: the series diverges")
     func katz163() {
         // U: nx(karate_club)
         let pairs: [(Int, Int)] = [
@@ -122,8 +123,12 @@ struct KatzTests {
             (32, 33)
         ]
         let graph = ReferencePseudograph(vertices: 0 ..< 34, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        #expect(graph.katzCentrality(alpha: 0.2) == nil)
-        #expect(graph.directed.katzCentrality(alpha: 0.2) == nil)
+        let failure = #expect(throws: NoConvergence.self) { try graph.katzCentrality(alpha: 0.2) }
+        #expect(failure?.iterations == 1000)
+        #expect(failure.map { !($0.residual < 1e-06) } == true)
+        let directedFailure = #expect(throws: NoConvergence.self) { try graph.directed.katzCentrality(alpha: 0.2) }
+        #expect(directedFailure?.iterations == 1000)
+        #expect(directedFailure.map { !($0.residual < 1e-06) } == true)
     }
 
     @Test("CE-164 U(P(0,1,2)).katzCentrality(normalized: false) is [1.12244897959, 1.22448979592, 1.12244897959]: (I − αAᵀ)⁻¹β1")
@@ -131,7 +136,7 @@ struct KatzTests {
         // U: P(0,1,2)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
         let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let result = try #require(graph.katzCentrality(normalized: false))
+        let result = try graph.katzCentrality(normalized: false)
         let expected: [Double] = [1.1224489795918366, 1.2244897959183674, 1.1224489795918366]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -142,7 +147,7 @@ struct KatzTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = try #require(graph.directed.katzCentrality(normalized: false))
+        let arcs = try graph.directed.katzCentrality(normalized: false)
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
             #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -154,7 +159,7 @@ struct KatzTests {
         // U: P(0,1,2)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
         let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let result = try #require(graph.katzCentrality(alpha: 0.5, beta: 2, normalized: false))
+        let result = try graph.katzCentrality(alpha: 0.5, beta: 2, normalized: false)
         let expected: [Double] = [5.999999999999998, 7.999999999999997, 5.999999999999998]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -165,7 +170,7 @@ struct KatzTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = try #require(graph.directed.katzCentrality(alpha: 0.5, beta: 2, normalized: false))
+        let arcs = try graph.directed.katzCentrality(alpha: 0.5, beta: 2, normalized: false)
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
             #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -177,7 +182,7 @@ struct KatzTests {
         // D: P(0,1,2)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        let result = try #require(graph.katzCentrality())
+        let result = try graph.katzCentrality()
         let expected: [Double] = [0.5389993709611511, 0.5928993080572663, 0.5982893017668779]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -197,7 +202,7 @@ struct KatzTests {
         // D: C(0,1,2)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        let result = try #require(graph.katzCentrality())
+        let result = try graph.katzCentrality()
         let expected: [Double] = [0.5773502691896257, 0.5773502691896257, 0.5773502691896257]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -217,7 +222,7 @@ struct KatzTests {
         // U: P(0,1,2), 1-1
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (1, 1)]
         let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let result = try #require(graph.katzCentrality())
+        let result = try graph.katzCentrality()
         let expected: [Double] = [0.5144957554275265, 0.6859943405700353, 0.5144957554275265]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -230,7 +235,7 @@ struct KatzTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try #require(graph.directed.katzCentrality())
+        let arcs = try graph.directed.katzCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
             #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -242,7 +247,7 @@ struct KatzTests {
         // U: 0-1, 0-1, 1-2
         let pairs: [(Int, Int)] = [(0, 1), (0, 1), (1, 2)]
         let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let result = try #require(graph.katzCentrality())
+        let result = try graph.katzCentrality()
         let expected: [Double] = [0.5821278344542006, 0.6254265990003808, 0.5195851745541625]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -255,7 +260,7 @@ struct KatzTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try #require(graph.directed.katzCentrality())
+        let arcs = try graph.directed.katzCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
             #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -268,7 +273,7 @@ struct KatzTests {
         let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
         let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         let w: [Double] = [1, 2]
-        let result = try #require(graph.katzCentrality(weight: { w[$0] }))
+        let result = try graph.katzCentrality(weight: { w[$0] })
         let expected: [Double] = [0.5195851745541625, 0.6254265990003808, 0.5821278344542006]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -281,19 +286,23 @@ struct KatzTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try #require(graph.directed.katzCentrality(weight: { w[$0.position] }))
+        let arcs = try graph.directed.katzCentrality(weight: { w[$0.position] })
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
             #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
         }
     }
 
-    @Test("CE-171 U(K(4)).katzCentrality(alpha: 0.4) is nil: α·λ_max = 1.2")
+    @Test("CE-171 U(K(4)).katzCentrality(alpha: 0.4) throws NoConvergence: α·λ_max = 1.2")
     func katz171() {
         // U: K(4)
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
         let graph = ReferencePseudograph(vertices: 0 ..< 4, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        #expect(graph.katzCentrality(alpha: 0.4) == nil)
-        #expect(graph.directed.katzCentrality(alpha: 0.4) == nil)
+        let failure = #expect(throws: NoConvergence.self) { try graph.katzCentrality(alpha: 0.4) }
+        #expect(failure?.iterations == 1000)
+        #expect(failure.map { !($0.residual < 1e-06) } == true)
+        let directedFailure = #expect(throws: NoConvergence.self) { try graph.directed.katzCentrality(alpha: 0.4) }
+        #expect(directedFailure?.iterations == 1000)
+        #expect(directedFailure.map { !($0.residual < 1e-06) } == true)
     }
 }

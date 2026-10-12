@@ -13,7 +13,7 @@ import Testing
 @Suite("SpectralGraphTheory accuracy under weight spread")
 struct SpectralAccuracyTests {
     @Test("Weighted λ₂, n from 64 to 500, weights log-uniform over five decades: relative to the dense λ₂, on L and on N")
-    func weightedAlgebraicConnectivity() {
+    func weightedAlgebraicConnectivity() throws {
         for (n, seed) in [(64, 1), (150, 2), (250, 3), (500, 4)] as [(Int, UInt)] {
             var rng = SeededRandomNumberGenerator(seed: seed)
             var edges = (0 ..< n).map { UndirectedEdge($0, ($0 + 1) % n) }
@@ -22,18 +22,18 @@ struct SpectralAccuracyTests {
             let weights = edges.indices.map { _ in Double(sign: .plus, exponent: Int.random(in: -8 ... 8, using: &rng), significand: Double.random(in: 1 ..< 2, using: &rng)) }
             let graph = ReferencePseudograph(vertices: Array(0 ..< n), edges: edges)
             for normalized in [false, true] {
-                let dense = normalized ? graph.normalizedLaplacianSpectrum(weight: { weights[$0] })[1] : graph.laplacianSpectrum(weight: { weights[$0] })[1]
-                let value = graph.algebraicConnectivity(weight: { weights[$0] }, normalized: normalized)
+                let dense = try normalized ? graph.normalizedLaplacianSpectrum(weight: { weights[$0] })[1] : graph.laplacianSpectrum(weight: { weights[$0] })[1]
+                let value = try graph.algebraicConnectivity(weight: { weights[$0] }, normalized: normalized)
                 // The dense N carries more rounding than the dense L, so its bound is looser.
                 #expect(abs(value - dense) <= (normalized ? 1e-7 : 1e-9) * dense, "n \(n), normalized \(normalized): \(value) against \(dense)")
-                let fiedler = graph.fiedlerVector(weight: { weights[$0] }, normalized: normalized)
+                let fiedler = try graph.fiedlerVector(weight: { weights[$0] }, normalized: normalized)
                 #expect(fiedler?.algebraicConnectivity == value, "n \(n), normalized \(normalized)")
             }
         }
     }
 
     @Test("Weighted paths, one edge of 10⁶ or 10¹² and log-uniform over twelve decades: λ₂ and the Fiedler vector against power iteration on L_g⁻¹")
-    func heavyEdgePaths() {
+    func heavyEdgePaths() throws {
         /// λ₂ and its unit eigenvector (canonical sign) of the path with conductances `c`: power
         /// iteration on L⁺, applied through the grounded inverse (L_g⁻¹)ᵢⱼ = Σ_{e < min(i, j)} 1/c_e.
         func reference(_ c: [Double]) -> (value: Double, vector: [Double]) {
@@ -87,9 +87,9 @@ struct SpectralAccuracyTests {
             let n = c.count + 1
             let graph = ReferencePseudograph(vertices: Array(0 ..< n), edges: (0 ..< n - 1).map { UndirectedEdge($0, $0 + 1) })
             let (value, vector) = reference(c)
-            let lambda = graph.algebraicConnectivity(weight: { c[$0] })
+            let lambda = try graph.algebraicConnectivity(weight: { c[$0] })
             #expect(abs(lambda - value) <= 1e-7 * value, "\(name): \(lambda) against \(value)")
-            guard let fiedler = graph.fiedlerVector(weight: { c[$0] }) else {
+            guard let fiedler = try graph.fiedlerVector(weight: { c[$0] }) else {
                 Issue.record("\(name): nil on a connected path")
                 continue
             }
@@ -108,7 +108,7 @@ struct SpectralAccuracyTests {
     }
 
     @Test("The Fiedler residual ‖Lx − λ₂x‖ is within 10⁻⁷ · λ₂ on random graphs with weights over twelve decades (shift-invert; a FuzzSpectral finding)")
-    func fiedlerResidualUnderSpread() {
+    func fiedlerResidualUnderSpread() throws {
         for seed in 1 ... 12 as ClosedRange<UInt> {
             var rng = SeededRandomNumberGenerator(seed: seed)
             let n = 80
@@ -116,7 +116,7 @@ struct SpectralAccuracyTests {
             for _ in 0 ..< 20 { edges.append(UndirectedEdge(Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng))) }
             let weights = edges.indices.map { _ in Double(sign: .plus, exponent: Int.random(in: -20 ... 20, using: &rng), significand: Double.random(in: 1 ..< 2, using: &rng)) }
             let graph = ReferencePseudograph(vertices: Array(0 ..< n), edges: edges)
-            guard let fiedler = graph.fiedlerVector(weight: { weights[$0] }) else {
+            guard let fiedler = try graph.fiedlerVector(weight: { weights[$0] }) else {
                 Issue.record("seed \(seed): nil on a connected graph")
                 continue
             }
@@ -135,7 +135,7 @@ struct SpectralAccuracyTests {
     }
 
     @Test("Lanczos-sized graphs with loops and parallel edges: λ₂ of L and of N against the dense λ₂ (the shifted operators drop the loops)")
-    func loopsOnTheShiftedPath() {
+    func loopsOnTheShiftedPath() throws {
         for seed in 1 ... 3 as ClosedRange<UInt> {
             var rng = SeededRandomNumberGenerator(seed: seed)
             let n = 100
@@ -147,17 +147,17 @@ struct SpectralAccuracyTests {
             }
             let weights = edges.indices.map { _ in Int.random(in: 1 ... 3, using: &rng) }
             let graph = ReferencePseudograph(vertices: Array(0 ..< n), edges: edges)
-            let dense = graph.laplacianSpectrum(weight: { weights[$0] })[1]
-            let value = graph.algebraicConnectivity(weight: { weights[$0] })
+            let dense = try graph.laplacianSpectrum(weight: { weights[$0] })[1]
+            let value = try graph.algebraicConnectivity(weight: { weights[$0] })
             #expect(abs(value - dense) <= 1e-9 * dense, "seed \(seed): \(value) against \(dense)")
-            let denseN = graph.normalizedLaplacianSpectrum(weight: { weights[$0] })[1]
-            let valueN = graph.algebraicConnectivity(weight: { weights[$0] }, normalized: true)
+            let denseN = try graph.normalizedLaplacianSpectrum(weight: { weights[$0] })[1]
+            let valueN = try graph.algebraicConnectivity(weight: { weights[$0] }, normalized: true)
             #expect(abs(valueN - denseN) <= 1e-7 * denseN, "seed \(seed), normalized: \(valueN) against \(denseN)")
         }
     }
 
     @Test("Negative weights on a Lanczos-sized graph: ρ is max |λ(A)|, the most negative eigenvalue when it is the larger; parallel edges of opposite weight store nothing")
-    func negativeWeights() {
+    func negativeWeights() throws {
         var rng = SeededRandomNumberGenerator(seed: 13)
         let n = 90
         var edges = (0 ..< n).map { UndirectedEdge($0, ($0 + 1) % n) }
@@ -165,9 +165,9 @@ struct SpectralAccuracyTests {
         let graph = ReferencePseudograph(vertices: Array(0 ..< n), edges: edges)
         for sign in [-1, 1] {
             // All weights −1: A = −A₀, whose largest magnitude is −λ_min(A) = ρ(A₀) on a graph with odd cycles.
-            let spectrum = graph.adjacencySpectrum(weight: { _ in sign })
+            let spectrum = try graph.adjacencySpectrum(weight: { _ in sign })
             let rho = max(abs(spectrum.first!), abs(spectrum.last!))
-            let value = graph.spectralRadius(weight: { _ in sign })
+            let value = try graph.spectralRadius(weight: { _ in sign })
             #expect(abs(value - rho) <= 1e-8 * rho, "sign \(sign): \(value) against \(rho)")
         }
         let pair = ReferencePseudograph(vertices: [0, 1, 2], edges: [UndirectedEdge(0, 1), UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
@@ -177,7 +177,7 @@ struct SpectralAccuracyTests {
     }
 
     @Test("Barbells (two cliques joined by a long path): λ₂ relative to the dense λ₂, on L and on N")
-    func barbells() {
+    func barbells() throws {
         for (k, p) in [(20, 100), (40, 300)] {
             var edges: [UndirectedEdge<Int>] = []
             for a in 0 ..< k {
@@ -189,11 +189,11 @@ struct SpectralAccuracyTests {
             for i in k - 1 ..< k + p { edges.append(UndirectedEdge(i, i + 1)) }
             let n = 2 * k + p
             let graph = ReferencePseudograph(vertices: Array(0 ..< n), edges: edges)
-            let dense = graph.laplacianSpectrum()[1]
-            let value = graph.algebraicConnectivity()
+            let dense = try graph.laplacianSpectrum()[1]
+            let value = try graph.algebraicConnectivity()
             #expect(abs(value - dense) <= 1e-9 * dense, "K\(k) + P\(p): \(value) against \(dense)")
-            let denseN = graph.normalizedLaplacianSpectrum()[1]
-            let valueN = graph.algebraicConnectivity(normalized: true)
+            let denseN = try graph.normalizedLaplacianSpectrum()[1]
+            let valueN = try graph.algebraicConnectivity(normalized: true)
             #expect(abs(valueN - denseN) <= 1e-7 * denseN, "K\(k) + P\(p), normalized: \(valueN) against \(denseN)")
         }
     }
@@ -268,26 +268,26 @@ struct SpectralAccuracyTests {
     }
 
     @Test("Dense spectra of weights near Double's limits (the scaled blocks of the root-free iteration): c times the unit spectrum")
-    func extremeSpectra() {
+    func extremeSpectra() throws {
         let edges = [(0, 1), (1, 2), (2, 3), (3, 0), (0, 2), (1, 1)].map { UndirectedEdge($0.0, $0.1) }
         let graph = ReferencePseudograph(vertices: Array(0 ..< 4), edges: edges)
-        let unitL = graph.laplacianSpectrum(), unitA = graph.adjacencySpectrum()
+        let unitL = try graph.laplacianSpectrum(), unitA = try graph.adjacencySpectrum()
         for c in [1e300, 1e-300, 1e200, 1e-200] {
-            for (a, b) in zip(graph.laplacianSpectrum(weight: { _ in c }), unitL) { #expect(abs(a - c * b) <= 1e-14 * c * 4, "L, c \(c)") }
-            for (a, b) in zip(graph.adjacencySpectrum(weight: { _ in c }), unitA) { #expect(abs(a - c * b) <= 1e-14 * c * 4, "A, c \(c)") }
+            for (a, b) in zip(try graph.laplacianSpectrum(weight: { _ in c }), unitL) { #expect(abs(a - c * b) <= 1e-14 * c * 4, "L, c \(c)") }
+            for (a, b) in zip(try graph.adjacencySpectrum(weight: { _ in c }), unitA) { #expect(abs(a - c * b) <= 1e-14 * c * 4, "A, c \(c)") }
         }
     }
 
     @Test("Normalized matrices with weights near Double's limit: w/√d/√d does not overflow; N, its spectrum, λ₂ and the Kemeny constant are the unweighted ones")
-    func normalizedOverflow() {
+    func normalizedOverflow() throws {
         let graph = ReferencePseudograph(vertices: [0, 1, 2], edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
         for w in [1e200, 1e300, 1e-300] {
             let heavy = graph.normalizedLaplacianMatrix(weight: { _ in w }), plain = graph.normalizedLaplacianMatrix()
             #expect(heavy.columns == plain.columns, "w \(w)")
             for (a, b) in zip(heavy.values, plain.values) { #expect(abs(a - b) <= 1e-15, "w \(w): \(a) against \(b)") }
-            let spectrum = graph.normalizedLaplacianSpectrum(weight: { _ in w })
-            for (a, b) in zip(spectrum, graph.normalizedLaplacianSpectrum()) { #expect(abs(a - b) <= 1e-14, "w \(w)") }
-            #expect(abs(graph.algebraicConnectivity(weight: { _ in w }, normalized: true) - 1) <= 1e-14, "w \(w)")
+            let spectrum = try graph.normalizedLaplacianSpectrum(weight: { _ in w })
+            for (a, b) in zip(spectrum, try graph.normalizedLaplacianSpectrum()) { #expect(abs(a - b) <= 1e-14, "w \(w)") }
+            #expect(abs(try graph.algebraicConnectivity(weight: { _ in w }, normalized: true) - 1) <= 1e-14, "w \(w)")
             let kemeny = graph.kemenyConstant(weight: { _ in w })
             #expect(kemeny.map { abs($0 - 1.5) <= 1e-14 } == true, "w \(w): \(String(describing: kemeny))")
         }
@@ -332,7 +332,7 @@ struct SpectralAccuracyTests {
     }
 
     @Test("Resistance distance across 300 series bundles of three parallel two-edge paths, conductances over twelve decades: within 10⁻⁸ of the series–parallel law")
-    func resistanceUnderSpread() {
+    func resistanceUnderSpread() throws {
         var rng = SeededRandomNumberGenerator(seed: 31)
         let bundles = 300
         var edges: [UndirectedEdge<Int>] = []
@@ -353,14 +353,14 @@ struct SpectralAccuracyTests {
             exact += 1 / conductance
         }
         let graph = ReferencePseudograph(vertices: Array(0 ..< next), edges: edges)
-        let r = graph.resistanceDistance(from: 0, to: bundles, weight: { weights[$0] })
+        let r = try graph.resistanceDistance(from: 0, to: bundles, weight: { weights[$0] })
         #expect(r.map { abs($0 - exact) <= 1e-8 * exact } == true, "\(String(describing: r)) against \(exact)")
-        let back = graph.resistanceDistance(from: bundles, to: 0, weight: { weights[$0] })
+        let back = try graph.resistanceDistance(from: bundles, to: 0, weight: { weights[$0] })
         #expect(back.map { abs($0 - exact) <= 1e-8 * exact } == true, "reversed: \(String(describing: back))")
     }
 
     @Test("Scale invariance at c = 10^±150: λ₂(cw) = cλ₂(w), N(cw) = N(w), τ(cw) = c^(n−1)τ(w), R(cw) = R(w)/c", .tags(.randomized))
-    func scaleInvariance() async {
+    func scaleInvariance() async throws {
         let triples = zip(Gen.int(in: 0 ... 6), Gen.int(in: 0 ... 6), Gen.int(in: 1 ... 9)).array(of: 0 ... 14)
         await propertyCheck(count: 120, input: triples, Gen.int(in: 2 ... 7), Gen.bool) { raw, n, up in
             let c = up ? 1e150 : 1e-150
@@ -369,8 +369,8 @@ struct SpectralAccuracyTests {
             let graph = ReferencePseudograph(vertices: Array(0 ..< n), edges: edges)
             let context = "n \(n), edges \(raw), c \(c)"
             for normalized in [false, true] {
-                let plain = graph.algebraicConnectivity(weight: { weights[$0] }, normalized: normalized)
-                let scaled = graph.algebraicConnectivity(weight: { c * weights[$0] }, normalized: normalized)
+                let plain = try graph.algebraicConnectivity(weight: { weights[$0] }, normalized: normalized)
+                let scaled = try graph.algebraicConnectivity(weight: { c * weights[$0] }, normalized: normalized)
                 let expected = normalized ? plain : c * plain
                 #expect(abs(scaled - expected) <= 1e-9 * expected, "normalized \(normalized), \(context)")
             }
@@ -384,8 +384,8 @@ struct SpectralAccuracyTests {
                 for _ in 0 ..< n - 1 { power *= c }
                 #expect(abs(scaledTau - power * tau) <= 1e-14 * power * tau, "\(context)")
             }
-            let r = graph.resistanceDistance(from: 0, to: n - 1, weight: { weights[$0] })!
-            let scaledR = graph.resistanceDistance(from: 0, to: n - 1, weight: { c * weights[$0] })!
+            let r = try graph.resistanceDistance(from: 0, to: n - 1, weight: { weights[$0] })!
+            let scaledR = try graph.resistanceDistance(from: 0, to: n - 1, weight: { c * weights[$0] })!
             #expect(abs(scaledR - r / c) <= 1e-9 * r / c, "\(context)")
         }
         // The Lanczos paths (shifted and shift-invert), on 120 vertices.
@@ -398,21 +398,21 @@ struct SpectralAccuracyTests {
         let path = ReferencePseudograph(vertices: Array(0 ..< n), edges: (0 ..< n - 1).map { UndirectedEdge($0, $0 + 1) })
         for c in [1e150, 1e-150] {
             for g in [graph, path] {
-                let plain = g.algebraicConnectivity(weight: { weights[$0] })
-                let scaled = g.algebraicConnectivity(weight: { c * weights[$0] })
+                let plain = try g.algebraicConnectivity(weight: { weights[$0] })
+                let scaled = try g.algebraicConnectivity(weight: { c * weights[$0] })
                 #expect(abs(scaled - c * plain) <= 1e-7 * c * plain, "c \(c)")
-                let r = g.resistanceDistance(from: 0, to: n - 1, weight: { weights[$0] })!
-                let scaledR = g.resistanceDistance(from: 0, to: n - 1, weight: { c * weights[$0] })!
+                let r = try g.resistanceDistance(from: 0, to: n - 1, weight: { weights[$0] })!
+                let scaledR = try g.resistanceDistance(from: 0, to: n - 1, weight: { c * weights[$0] })!
                 #expect(abs(scaledR - r / c) <= 1e-8 * r / c, "c \(c)")
             }
         }
     }
 
     @Test("Weights whose sums overflow Double trap rather than return infinities: a weighted degree, a merged parallel pair", .tags(.precondition))
-    func overflowingSums() async {
+    func overflowingSums() async throws {
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(vertices: [0, 1, 2], edges: [UndirectedEdge(0, 1), UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
-            _ = graph.algebraicConnectivity(weight: { _ in 1.5e308 })
+            _ = try graph.algebraicConnectivity(weight: { _ in 1.5e308 })
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(vertices: [0, 1, 2], edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2), UndirectedEdge(1, 2)])
@@ -424,37 +424,42 @@ struct SpectralAccuracyTests {
         }
         // Without the fault: the same graphs with weights whose sums stay finite.
         let graph = ReferencePseudograph(vertices: [0, 1, 2], edges: [UndirectedEdge(0, 1), UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
-        #expect(graph.algebraicConnectivity(weight: { _ in 1e307 }) > 0)
+        #expect(try graph.algebraicConnectivity(weight: { _ in 1e307 }) > 0)
         let digraph = ReferenceDirectedMultigraph(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 1)])
         #expect(digraph.adjacencyMatrix(weight: { _ in 1e307 })[0, 1] == 2e307)
     }
 
-    @Test("Work limits: a tolerance below rounding runs Lanczos (on A; by shift-invert) out of products, which traps; the default converges", .tags(.precondition))
-    func workLimits() async {
-        await #expect(processExitsWith: .failure) {
+    @Test("Work limits: a tolerance below rounding runs Lanczos (on A; by shift-invert) out of products, which throws NoConvergence at the default limit; the default tolerance converges")
+    func workLimits() throws {
+        do {
             // A random graph: no symmetry, so the Krylov space never closes early.
             let n = 64
             var rng = SeededRandomNumberGenerator(seed: 7)
             let edges = (0 ..< n).map { UndirectedEdge($0, ($0 + 1) % n) } + (0 ..< n).map { _ in UndirectedEdge(Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng)) }
             let graph = ReferencePseudograph(vertices: Array(0 ..< n), edges: edges)
-            _ = graph.spectralRadius(tolerance: 1e-300)
+            let error = #expect(throws: NoConvergence.self) { try graph.spectralRadius(tolerance: 1e-300) }
+            // 20,000 + 20√64 products.
+            #expect(error?.iterations == 20_160)
+            #expect((error?.residual ?? 0) > 1e-300)
         }
-        await #expect(processExitsWith: .failure) {
-            // σ/λ₂ ≈ 0.4 n² > 20 n: the shift-invert path.
+        do {
+            // σ/λ₂ ≈ 0.4 n² > 20 n: the shift-invert path, 1,000 products.
             let n = 64
             let graph = ReferencePseudograph(vertices: Array(0 ..< n), edges: (0 ..< n - 1).map { UndirectedEdge($0, $0 + 1) })
-            _ = graph.algebraicConnectivity(tolerance: 1e-300)
+            let error = #expect(throws: NoConvergence.self) { try graph.algebraicConnectivity(tolerance: 1e-300) }
+            #expect(error?.iterations == 1_000)
+            #expect((error?.residual ?? 0) > 1e-300)
         }
         // Without the fault: the default tolerance converges on the same graphs.
         let n = 64
         var rng = SeededRandomNumberGenerator(seed: 7)
         let edges = (0 ..< n).map { UndirectedEdge($0, ($0 + 1) % n) } + (0 ..< n).map { _ in UndirectedEdge(Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng)) }
         let graph = ReferencePseudograph(vertices: Array(0 ..< n), edges: edges)
-        let largest = graph.adjacencySpectrum().map { abs($0) }.max()!
-        #expect(abs(graph.spectralRadius() - largest) <= 1e-8 * largest)
+        let largest = try graph.adjacencySpectrum().map { abs($0) }.max()!
+        #expect(abs(try graph.spectralRadius() - largest) <= 1e-8 * largest)
         let path = ReferencePseudograph(vertices: Array(0 ..< n), edges: (0 ..< n - 1).map { UndirectedEdge($0, $0 + 1) })
         // 2 − 2cos(π/64) = 4 sin²(π/128).
         let s = 0.024541228522912288
-        #expect(abs(path.algebraicConnectivity() - 4 * s * s) <= 1e-8 * 4 * s * s)
+        #expect(abs(try path.algebraicConnectivity() - 4 * s * s) <= 1e-8 * 4 * s * s)
     }
 }

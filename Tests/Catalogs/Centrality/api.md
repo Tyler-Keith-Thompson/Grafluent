@@ -76,20 +76,20 @@ extension Graph {
     func betweennessCentrality<W: Comparable & AdditiveArithmetic>(
         weight: (Edges.Index) -> W, normalized: Bool = true, endpoints: Bool = false) -> CentralityScores<DirectedView<Self>>
 
-    /// nil when the iteration has not converged after `maxIterations` steps.
-    func eigenvectorCentrality(tolerance: Double = 1e-6, maxIterations: Int = 100) -> CentralityScores<DirectedView<Self>>?
+    /// Throws NoConvergence when the iteration has not converged after `maxIterations` steps.
+    func eigenvectorCentrality(tolerance: Double = 1e-6, maxIterations: Int = 100) throws(NoConvergence) -> CentralityScores<DirectedView<Self>>
     func eigenvectorCentrality<W: BinaryFloatingPoint>(
-        weight: (Edges.Index) -> W, tolerance: Double = 1e-6, maxIterations: Int = 100) -> CentralityScores<DirectedView<Self>>?
+        weight: (Edges.Index) -> W, tolerance: Double = 1e-6, maxIterations: Int = 100) throws(NoConvergence) -> CentralityScores<DirectedView<Self>>
 
     func katzCentrality(alpha: Double = 0.1, beta: Double = 1, normalized: Bool = true,
-                        tolerance: Double = 1e-6, maxIterations: Int = 1000) -> CentralityScores<DirectedView<Self>>?
+                        tolerance: Double = 1e-6, maxIterations: Int = 1000) throws(NoConvergence) -> CentralityScores<DirectedView<Self>>
     func katzCentrality<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W, alpha: Double = 0.1, beta: Double = 1,
-                        normalized: Bool = true, tolerance: Double = 1e-6, maxIterations: Int = 1000) -> CentralityScores<DirectedView<Self>>?
+                        normalized: Bool = true, tolerance: Double = 1e-6, maxIterations: Int = 1000) throws(NoConvergence) -> CentralityScores<DirectedView<Self>>
 
     /// Each edge is two arcs (`graph.directed`), a self-loop two loop arcs.
-    func pageRank(dampingFactor: Double = 0.85, tolerance: Double = 1e-6, maxIterations: Int = 100) -> CentralityScores<DirectedView<Self>>?
+    func pageRank(dampingFactor: Double = 0.85, tolerance: Double = 1e-6, maxIterations: Int = 100) throws(NoConvergence) -> CentralityScores<DirectedView<Self>>
     func pageRank(dampingFactor: Double = 0.85, personalization: (Vertex) -> Double,
-                  tolerance: Double = 1e-6, maxIterations: Int = 100) -> CentralityScores<DirectedView<Self>>?
+                  tolerance: Double = 1e-6, maxIterations: Int = 100) throws(NoConvergence) -> CentralityScores<DirectedView<Self>>
     // … and both with a leading `weight: (Edges.Index) -> W`, W: BinaryFloatingPoint.
 }
 
@@ -103,9 +103,9 @@ extension DirectedGraph {
     // CentralityScores<Self>.
 
     /// Kleinberg's hubs and authorities, each summing to 1.
-    func hits(tolerance: Double = 1e-8, maxIterations: Int = 100) -> HubAndAuthorityScores<Self>?
+    func hits(tolerance: Double = 1e-8, maxIterations: Int = 100) throws(NoConvergence) -> HubAndAuthorityScores<Self>
     func hits<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W, tolerance: Double = 1e-8,
-                                      maxIterations: Int = 100) -> HubAndAuthorityScores<Self>?
+                                      maxIterations: Int = 100) throws(NoConvergence) -> HubAndAuthorityScores<Self>
 }
 
 /// A score per vertex (README: "a dense vector indexed by vertex").
@@ -248,14 +248,14 @@ to 1). Disconnected graphs: the limit is the Perron vector of the components wit
 spectral radius, the rest 0 (CE-137); with several such components, their mix from the uniform
 start (CE-138). NetworkX's numpy variant raises `AmbiguousSolution` there; the iteration is
 defined, so it is returned. A DAG (nilpotent A) has no positive eigenvector: the iterates creep
-polynomially and the result is nil (CE-142); igraph special-cases DAGs to 1 on sinks. The empty
+polynomially and the call throws `NoConvergence` (CE-142); igraph special-cases DAGs to 1 on sinks. The empty
 graph gives an empty result; an edgeless one is uniform (CE-019).
 
 ### Katz
 
 x = α Aᵀx + β1 (in-arcs; the same A as eigenvector), computed as NetworkX does: x₀ = 0,
 x_{k+1} = αAᵀx_k + β, then divided by ‖x‖₂ when `normalized` (default; CE-164 without). It
-converges exactly when α < 1/ρ(A); otherwise the iterates grow and the result is nil (CE-163, CE-171).
+converges exactly when α < 1/ρ(A); otherwise the iterates grow and the call throws `NoConvergence` (CE-163, CE-171).
 No precondition on α beyond finite (a check would need ρ(A), an eigen-solve). Defaults α = 0.1,
 β = 1 (NetworkX). NetworkX refuses multigraphs; ours counts copies (CE-169).
 
@@ -290,18 +290,23 @@ matrix; NetworkX returns NaN, igraph all-equal. `DirectedGraph` only (Scope).
   later than n× looser. The defaults are NetworkX's (1e-6, 1e-6, 1e-6, 1e-8; 100, 1000, 100, 100
   iterations), so results match NetworkX's within the catalog's Tol (1e-4; CE-146 with
   `tolerance: 1e-10`: 1e-8).
-* **Non-convergence returns nil.** The result type is `CentralityScores?` / `HubAndAuthorityScores?`.
+* **Non-convergence throws `NoConvergence`** (*revised*; phase 1 returned nil). The methods are
+  `throws(NoConvergence)` and return `CentralityScores` / `HubAndAuthorityScores`. The error
+  (in `GraphProtocols`, shared with SpectralGraphTheory's eigensolvers; Eigen's
+  `ComputationInfo::NoConvergence`) carries `iterations` (`maxIterations`) and `residual`, the
+  last step's L1 change over n, on `tolerance`'s scale (infinite or NaN once Katz overflows).
   Reasons: (1) it happens on valid input (a DAG for eigenvector, α ≥ 1/ρ for Katz, too few
   iterations for any of them: CE-142, CE-145, CE-163, CE-171, CE-186, CE-206), so a precondition
   would crash ordinary programs, and α ≥ 1/ρ cannot be checked up front without an eigen-solve;
   (2) NetworkX raises `PowerIterationFailedConvergence` on exactly these inputs (`ref.py` checks
-  that NetworkX raises on every nil row it can run), and Grafluent maps such failures to an
-  optional, not a throw (README: a thrown error must be `Sendable`); (3) a result with a
-  `converged` flag would be ignored by callers and gives scores with no guarantee; a caller who
-  wants a result anyway raises `maxIterations` or `tolerance`.
+  that NetworkX raises on every `NoConvergence` row it can run); (3) the error says how far the
+  iteration got, which nil did not, and a typed throw names the one way the call fails; (4) a
+  result with a `converged` flag would be ignored by callers and gives scores with no guarantee.
+  A caller who wants a result anyway raises `maxIterations` or `tolerance`; `try?` gives back
+  the optional.
 * **Preconditions:** `tolerance > 0` and finite, `maxIterations ≥ 1`, α and β finite, weights
   finite and ≥ 0 (CE-149), 0 ≤ dampingFactor ≤ 1.
-* The empty graph returns an empty (non-nil) result without iterating (CE-005 – CE-008).
+* The empty graph returns an empty result without iterating or throwing (CE-005 – CE-008).
 
 ### Numerical policy
 
@@ -397,7 +402,7 @@ Iterations to converge: geometric in |λ₂/λ₁| (eigenvector, with the shift 
 | Betweenness floating ties | NetworkX and Boost: exact equality ([1, 0, 0, 1]); igraph: epsilon ([1, ½, 0, ½]) | CE-114 |
 | Undirected self-loop in A | NetworkX counts it once (eigenvector [0.408, 0.816, 0.408]; PageRank [0.2128, 0.5745, 0.2128]); igraph twice ([0.366, 1, 0.366] scaled; PageRank [0.1842, 0.6316, 0.1842]); ours twice, as `degree(of:)` | CE-139, CE-182 |
 | NetworkX internal | `eigenvector_centrality` and `katz_centrality` refuse multigraphs, `eigenvector_centrality_numpy` and `pagerank` sum parallel copies | CE-140, CE-169, CE-183 |
-| Eigenvector on a DAG | NetworkX raises `PowerIterationFailedConvergence`; igraph returns 1 on sinks, 0 elsewhere (with a warning). Ours: nil | CE-142 |
+| Eigenvector on a DAG | NetworkX raises `PowerIterationFailedConvergence`; igraph returns 1 on sinks, 0 elsewhere (with a warning). Ours: `NoConvergence` | CE-142 |
 | Eigenvector, disconnected | NetworkX iteration: 4.5e-6 on the smaller component; `eigenvector_centrality_numpy`: raises `AmbiguousSolution`. Ours: the limit (0) | CE-137 |
 | Scaling | NetworkX: Euclidean norm 1 (eigenvector, Katz), sum 1 (PageRank, HITS); igraph: greatest = 1 (eigenvector, hub/authority) | CE-130, CE-197 |
 | Empty graph | NetworkX `eigenvector_centrality` raises `NetworkXPointlessConcept`, the others return `{}`. Ours: empty for all | CE-001 – CE-008 |

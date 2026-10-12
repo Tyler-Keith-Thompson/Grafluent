@@ -86,21 +86,24 @@ extension Graph {
     public func randomWalkLaplacianMatrix() -> SparseMatrix    // D^-1 (D − A)
     public func signlessLaplacianMatrix() -> SparseMatrix      // D + A
 
-    // Full spectra, ascending (dense; O(n³) time, O(n²) memory)
-    public func adjacencySpectrum() -> [Double]
-    public func laplacianSpectrum() -> [Double]
-    public func normalizedLaplacianSpectrum() -> [Double]
+    // Full spectra, ascending (dense; O(n³) time, O(n²) memory). maxIterations: QL/QR iterations
+    // in all, nil for 30 n.
+    public func adjacencySpectrum(maxIterations: Int? = nil) throws(NoConvergence) -> [Double]
+    public func laplacianSpectrum(maxIterations: Int? = nil) throws(NoConvergence) -> [Double]
+    public func normalizedLaplacianSpectrum(maxIterations: Int? = nil) throws(NoConvergence) -> [Double]
 
-    // Sparse (thick-restart Lanczos; dense below 64 vertices); each also with weight: first
-    public func algebraicConnectivity(normalized: Bool = false, tolerance: Double = 1e-8) -> Double
-    public func fiedlerVector(normalized: Bool = false, tolerance: Double = 1e-8) -> FiedlerVector<Self>?
-    public func spectralOrdering(normalized: Bool = false, tolerance: Double = 1e-8) -> [Vertex]
-    public func spectralRadius(tolerance: Double = 1e-8) -> Double   // weight: may be negative
+    // Sparse (thick-restart Lanczos; dense below 64 vertices); each also with weight: first.
+    // maxIterations: products per Lanczos run, nil for the work limits under Numerics.
+    public func algebraicConnectivity(normalized: Bool = false, tolerance: Double = 1e-8, maxIterations: Int? = nil) throws(NoConvergence) -> Double
+    public func fiedlerVector(normalized: Bool = false, tolerance: Double = 1e-8, maxIterations: Int? = nil) throws(NoConvergence) -> FiedlerVector<Self>?
+    public func spectralOrdering(normalized: Bool = false, tolerance: Double = 1e-8, maxIterations: Int? = nil) throws(NoConvergence) -> [Vertex]
+    public func spectralRadius(tolerance: Double = 1e-8, maxIterations: Int? = nil) throws(NoConvergence) -> Double   // weight: may be negative
 
-    // Matrix-tree theorem and electrical networks; each also with weight: (a conductance)
+    // Matrix-tree theorem and electrical networks; each also with weight: (a conductance).
+    // maxIterations: conjugate-gradient iterations, nil for 20,000 + 2n.
     public func numberOfSpanningTrees() -> Double
-    public func resistanceDistance(from source: Vertex, to target: Vertex, tolerance: Double = 1e-10) -> Double?
-    public func resistanceDistance<W>(from source: Vertex, to target: Vertex, weight: (Edges.Index) -> W, tolerance: Double = 1e-10) -> Double?
+    public func resistanceDistance(from source: Vertex, to target: Vertex, tolerance: Double = 1e-10, maxIterations: Int? = nil) throws(NoConvergence) -> Double?
+    public func resistanceDistance<W>(from source: Vertex, to target: Vertex, weight: (Edges.Index) -> W, tolerance: Double = 1e-10, maxIterations: Int? = nil) throws(NoConvergence) -> Double?
     public func effectiveGraphResistance() -> Double?
     public func kemenyConstant() -> Double?
 
@@ -276,8 +279,9 @@ With w(e) the weight of edge e (1 without `weight:`):
   alone the root-free QL/QR iteration of Pal, Walker and Kahan (LAPACK `dsterf`: squared
   off-diagonals, no square root per rotation, blocks scaled into range), and with vectors (the
   small-n Fiedler path, the Lanczos projections) the implicit QL iteration with Wilkinson shifts
-  (`tql2`, LAPACK `dsteqr`'s method), which traps if an eigenvalue takes more than 60 iterations
-  (only a NaN or infinite entry does that). A matrix whose largest entry lies outside 2^±500 is
+  (`tql2`, LAPACK `dsteqr`'s method), which throws `NoConvergence` if an eigenvalue takes more
+  than 60 iterations (the root-free iteration after `maxIterations` in all, 30 n by default, as
+  `dsterf`); with the finite entries the preconditions guarantee, neither has been reached. A matrix whose largest entry lies outside 2^±500 is
   first scaled by a power of two, exactly: Householder squares entries. O(n³) time, n² `Double`s.
   Deterministic: one thread, fixed operation order. A blocked reduction (`dsytrd` with `dlatrd`
   panels) was not added: `tred2` already runs at 11.7 GFlop/s at n = 2,000, the QL step is 8 %
@@ -346,13 +350,24 @@ With w(e) the weight of edge e (1 without `weight:`):
   no n² memory. `effectiveGraphResistance`, `kemenyConstant` and `numberOfSpanningTrees` use the
   dense GTH elimination (O(n³), less on sparse graphs: zero multipliers are skipped). Sparse
   elimination with a fill-reducing order is phase 2 if large inputs ask.
-- **Work limits (decision, review).** Every iterative path counts matrix–vector products (a
-  conjugate-gradient iteration is one) and traps when its limit is spent: Lanczos on σI − L
-  4,000 + 20√n (then shift-invert, not a trap), shift-invert 1,000, each solve 20,000 + 2n, ρ(A)
-  20,000 + 20√n. Each limit is documented on its method. In the measurements only a tolerance
-  below rounding (10⁻³⁰⁰) reached one; phase 1 instead ran on (a 10⁵ path past 500 s) or
-  stopped silently. Whether these become a typed throw or `nil` is the repo-wide trap-versus-throw
-  decision, taken in the `safe:` pass.
+- **Work limits (decision, review; throwing decided later).** Every iterative path counts
+  matrix–vector products (a conjugate-gradient iteration is one) and throws `NoConvergence`
+  (`throws(NoConvergence)`, the error in `GraphProtocols` that Centrality's power iterations throw
+  too) when its limit is spent, with the products spent and the residual on the tolerance's scale:
+  Lanczos on σI − L 4,000 + 20√n (then shift-invert, not a failure), shift-invert 1,000, each
+  solve 20,000 + 2n, ρ(A) 20,000 + 20√n; the dense spectra after 30 n QL/QR iterations. Each
+  public method takes `maxIterations: Int? = nil` in place of the limit that throws (nil keeps
+  the default): QL/QR iterations for a spectrum, products per Lanczos run for λ₂, the Fiedler
+  vector, the ordering and ρ (a limit given also cuts the run on σI − L short; a solve inside
+  shift-invert keeps 20,000 + 2n), conjugate-gradient iterations for a resistance. The budget is
+  tested after every step, so a run throws with exactly the limit (a polynomial-filtered step,
+  from 5,000 vertices, counts 10). Below 64 vertices λ₂ and ρ come from the dense solver, which
+  does not read `maxIterations`. `nil` keeps its one meaning (not connected, different
+  components), and an invalid parameter (`tolerance` ≤ 0, `maxIterations` < 1) still traps. The
+  name is Eigen's (`ComputationInfo::NoConvergence`); NetworkX raises
+  `PowerIterationFailedConvergence` and SciPy `ArpackNoConvergence` in the same place. In the
+  measurements only a tolerance below rounding (10⁻³⁰⁰) reached a default limit; phase 1 instead
+  ran on (a 10⁵ path past 500 s) or stopped silently.
 - **Start vector**: a fixed one, vᵢ = SplitMix64(i)'s 53-bit uniform in [0.5, 1.5) (the counter
   i + 1 times the golden-ratio increment, then SplitMix64's finalizer), so results are
   reproducible bit for bit on one platform and build; across platforms the last bits may differ
@@ -570,9 +585,9 @@ the Swift inputs are the same families, `UndirectedAdjacencyList`):
 1. **Element type of `SparseMatrix`.** *Recommendation:* `Double` only (above). A generic
    `SparseMatrix<Scalar>` only if `GraphFormats`' Matrix Market reader wants integer or complex
    matrices; then this type moves to its own module in the final reuse pass.
-2. **Iteration cap.** *Decided in review:* no `maxIterations:` parameter; every iterative path
-   has a work limit in products and traps when it is spent (Numerics, "Work limits"). Trap
-   versus throw or `nil` is the repo-wide decision of the `safe:` pass.
+2. **Iteration cap.** *Decided in review:* every iterative path has a work limit in products.
+   *Revised:* spending it throws `NoConvergence` instead of trapping, and each method takes an
+   optional `maxIterations:` (nil: the limit), as Centrality does (Numerics, "Work limits").
 3. **Small-n threshold** (dense below 64 vertices): kept at 64; the Lanczos path at 64–200
    vertices takes well under a millisecond, so nothing argues for moving it.
 4. **`numberOfSpanningTrees` exactness.** *Decided:* `Double`, as NetworkX, but exact (correctly

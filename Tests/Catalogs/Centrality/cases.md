@@ -36,8 +36,8 @@ arcs, a self-loop two loop arcs). `hits.hubs` / `hits.authorities` read the two 
 `hits()`'s result; `of: v` is the one-vertex form, returning a scalar.
 
 **Expected**: per-vertex scores in `vertices` order, printed to 12 significant digits
-(`score(ofIndex: i)` for each i); `#x` a scalar; `nil` (an iterative method did not converge
-within `maxIterations`); `trap` a precondition failure.
+(`score(ofIndex: i)` for each i); `#x` a scalar; `NoConvergence` (an iterative method threw it: it did
+not converge within `maxIterations`); `trap` a precondition failure.
 
 **Tol**: how far the Swift result may lie from Expected, per score, relative to max(1, |Expected|).
 `exact` means 1e-12: non-iterative values are a fixed sequence of floating-point operations, and
@@ -55,7 +55,7 @@ NetworkX where it applies, land within Tol.
 | CE-002 | `U: []` | `closenessCentrality` | `[]` | exact | |
 | CE-003 | `U: []` | `harmonicCentrality` | `[]` | exact | |
 | CE-004 | `U: []` | `betweennessCentrality` | `[]` | exact | |
-| CE-005 | `U: []` | `eigenvectorCentrality` | `[]` | 1e-4 | Not nil: there is nothing to iterate. NetworkX raises `NetworkXPointlessConcept` |
+| CE-005 | `U: []` | `eigenvectorCentrality` | `[]` | 1e-4 | No throw: there is nothing to iterate. NetworkX raises `NetworkXPointlessConcept` |
 | CE-006 | `U: []` | `katzCentrality` | `[]` | 1e-4 | NetworkX `{}` |
 | CE-007 | `U: []` | `pageRank` | `[]` | 1e-4 | NetworkX `{}` |
 | CE-008 | `D: []` | `hits.hubs` | `[]` | 1e-4 | NetworkX `({}, {})` |
@@ -184,10 +184,10 @@ NetworkX where it applies, land within Tol.
 | CE-139 | `U: P(0,1,2), 1-1` | `eigenvectorCentrality` | `[0.325057583672, 0.888073833977, 0.325057583672]` | 1e-4 | A_11 = 2 (the loop twice, as `degree(of:)`): λ = 1 + √3. igraph agrees ([0.366, 1, 0.366] scaled to max 1); NetworkX counts the loop once ([0.408, 0.816, 0.408]) |
 | CE-140 | `U: 0-1, 0-1, 1-2, 0-3, 3-2` | `eigenvectorCentrality` | `[0.601500955008, 0.601500955008, 0.37174803446, 0.37174803446]` | 1e-4 | Parallel edges add: igraph agrees, `eigenvector_centrality_numpy` agrees; `eigenvector_centrality` refuses multigraphs |
 | CE-141 | `D: C(0,1,2)` | `eigenvectorCentrality` | `[0.57735026919, 0.57735026919, 0.57735026919]` | 1e-4 | |
-| CE-142 | `D: P(0,1,2)` | `eigenvectorCentrality` | `nil` | 1e-4 | A DAG: A + I has only eigenvalue 1 with a Jordan block, so the iterates creep toward the sink and never meet the stop rule in 100 iterations. NetworkX raises `PowerIterationFailedConvergence`; igraph special-cases DAGs ([0, 0, 1]) |
+| CE-142 | `D: P(0,1,2)` | `eigenvectorCentrality` | `NoConvergence` | 1e-4 | A DAG: A + I has only eigenvalue 1 with a Jordan block, so the iterates creep toward the sink and never meet the stop rule in 100 iterations. NetworkX raises `PowerIterationFailedConvergence`; igraph special-cases DAGs ([0, 0, 1]) |
 | CE-143 | `D: C(0,1,2), 0>3` | `eigenvectorCentrality` | `[0.5, 0.5, 0.5, 0.5]` | 1e-4 | In-edges (left eigenvector): 3 inherits 0's score |
 | CE-144 | `U: P(0,1,2)` | `eigenvectorCentrality(weight: [1.0, 2.0])` | `[0.316227766017, 0.707106781187, 0.632455532034]` | 1e-4 | |
-| CE-145 | `U: nx(karate_club)` | `eigenvectorCentrality(maxIterations: 5)` | `nil` | 1e-4 | NetworkX raises with `max_iter=5` too |
+| CE-145 | `U: nx(karate_club)` | `eigenvectorCentrality(maxIterations: 5)` | `NoConvergence` | 1e-4 | NetworkX raises with `max_iter=5` too |
 | CE-146 | `U: nx(karate_club)` | `eigenvectorCentrality(tolerance: 1e-10)` | `[0.355491444525, 0.265959919552, 0.317192504486, 0.211179720378, 0.0759688181831, 0.0794830451171, 0.0794830451171, 0.170959748045, 0.227403907125, 0.102674250724, 0.0759688181831, 0.0528556974935, 0.0842546287167, 0.226472720142, 0.10140326219, 0.10140326219, 0.0236356281046, 0.0923995381957, 0.10140326219, 0.147912510293, 0.10140326219, 0.0923995381957, 0.10140326219, 0.150118571861, 0.0570524405412, 0.0592064749168, 0.0755794134883, 0.13347715338, 0.131077822984, 0.134960819262, 0.174758302314, 0.191033841407, 0.308644219791, 0.373363470291]` | 1e-8 | |
 | CE-147 | `U: P(0,1,2)` | `directed > eigenvectorCentrality` | `[0.5, 0.707106781187, 0.5]` | 1e-4 | Same as undirected |
 | CE-148 | `D: C(0,1,2), 2>0` | `eigenvectorCentrality` | `[0.702414383919, 0.557506665976, 0.442493334024]` | 1e-4 | A parallel arc counts twice |
@@ -200,7 +200,7 @@ NetworkX where it applies, land within Tol.
 | CE-160 | `U: P(0,1,2)` | `katzCentrality` | `[0.559885258415, 0.610783918271, 0.559885258415]` | 1e-4 | α = 0.1, β = 1, Euclidean norm 1 (NetworkX defaults) |
 | CE-161 | `U: K(4)` | `katzCentrality` | `[0.5, 0.5, 0.5, 0.5]` | 1e-4 | |
 | CE-162 | `U: nx(karate_club)` | `katzCentrality` | `[0.321324621912, 0.235484274833, 0.265765919737, 0.194913214879, 0.121904378806, 0.130972249171, 0.130972249171, 0.166233056953, 0.200717829848, 0.124201488531, 0.121904378806, 0.0966167160081, 0.116108037496, 0.199373699693, 0.125133413305, 0.125133413305, 0.090678703651, 0.120165143491, 0.125133413305, 0.153305786231, 0.125133413305, 0.120165143491, 0.125133413305, 0.166790639839, 0.110211037863, 0.111564581821, 0.112935499279, 0.151901656301, 0.143581648765, 0.153106027217, 0.168753623773, 0.193801602341, 0.275085167485, 0.3314064274]` | 1e-4 | |
-| CE-163 | `U: nx(karate_club)` | `katzCentrality(alpha: 0.2)` | `nil` | 1e-4 | α > 1/λ_max ≈ 0.149: the series diverges. NetworkX raises |
+| CE-163 | `U: nx(karate_club)` | `katzCentrality(alpha: 0.2)` | `NoConvergence` | 1e-4 | α > 1/λ_max ≈ 0.149: the series diverges. NetworkX raises |
 | CE-164 | `U: P(0,1,2)` | `katzCentrality(normalized: false)` | `[1.12244897959, 1.22448979592, 1.12244897959]` | 1e-4 | (I − αAᵀ)⁻¹β1 |
 | CE-165 | `U: P(0,1,2)` | `katzCentrality(alpha: 0.5, beta: 2.0, normalized: false)` | `[6, 8, 6]` | 1e-4 | |
 | CE-166 | `D: P(0,1,2)` | `katzCentrality` | `[0.538999370961, 0.592899308057, 0.598289301767]` | 1e-4 | In-edges: β, β + αβ, β + α(β + αβ), normalized |
@@ -208,7 +208,7 @@ NetworkX where it applies, land within Tol.
 | CE-168 | `U: P(0,1,2), 1-1` | `katzCentrality` | `[0.514495755428, 0.68599434057, 0.514495755428]` | 1e-4 | Loop twice in A. NetworkX counts it once |
 | CE-169 | `U: 0-1, 0-1, 1-2` | `katzCentrality` | `[0.582127834454, 0.625426599, 0.519585174554]` | 1e-4 | NetworkX refuses multigraphs |
 | CE-170 | `U: P(0,1,2)` | `katzCentrality(weight: [1.0, 2.0])` | `[0.519585174554, 0.625426599, 0.582127834454]` | 1e-4 | |
-| CE-171 | `U: K(4)` | `katzCentrality(alpha: 0.4)` | `nil` | 1e-4 | α·λ_max = 1.2 |
+| CE-171 | `U: K(4)` | `katzCentrality(alpha: 0.4)` | `NoConvergence` | 1e-4 | α·λ_max = 1.2 |
 
 ## G. PageRank
 
@@ -225,7 +225,7 @@ NetworkX where it applies, land within Tol.
 | CE-183 | `D: 0>1, 0>1, 0>2, 2>0, 1>0` | `pageRank` | `[0.486486486486, 0.325675675676, 0.187837837838]` | 1e-4 | Parallel arcs add (NetworkX MultiDiGraph and igraph agree) |
 | CE-184 | `D: 0>1, 0>2, 1>0, 2>0` | `pageRank(weight: [1.0, 3.0, 1.0, 1.0])` | `[0.486486486486, 0.153378378378, 0.360135135135]` | 1e-4 | Out-weights normalized per row |
 | CE-185 | `D: 0>1, 1>2` | `pageRank(weight: [0.0, 1.0])` | `[0.25974025974, 0.25974025974, 0.480519480519]` | 1e-4 | Zero out-weight: vertex 0 is dangling |
-| CE-186 | `U: nx(karate_club)` | `pageRank(maxIterations: 3)` | `nil` | 1e-4 | NetworkX raises with `max_iter=3` too |
+| CE-186 | `U: nx(karate_club)` | `pageRank(maxIterations: 3)` | `NoConvergence` | 1e-4 | NetworkX raises with `max_iter=3` too |
 | CE-187 | `D: P(0,1,2)` | `pageRank(personalization: [0, 0, 0])` | `trap` | 1e-4 | Precondition: personalization ≥ 0, finite, positive sum |
 | CE-188 | `D: P(0,1,2)` | `pageRank(personalization: [-1, 1, 1])` | `trap` | 1e-4 | |
 | CE-189 | `D: [0..2]` | `pageRank(personalization: [1, 2, 1])` | `[0.25, 0.5, 0.25]` | 1e-4 | No arcs: the personalization itself |
@@ -247,4 +247,4 @@ NetworkX where it applies, land within Tol.
 | CE-203 | `D: 0>1, 0>2, 3>1` | `hits(weight: [2.0, 1.0, 1.0]).hubs` | `[0.707106781187, 0, 0, 0.292893218813]` | 1e-4 | |
 | CE-204 | `U: nx(karate_club)` | `directed > hits.hubs` | `[0.0714127288083, 0.0534272312355, 0.0637190645564, 0.0424227371247, 0.0152609597062, 0.0159669135031, 0.0159669135031, 0.0343431672191, 0.0456819251198, 0.0206256677494, 0.0152609597062, 0.0106178915111, 0.0169254507923, 0.0454948640681, 0.0203703458256, 0.0203703458256, 0.0047480318473, 0.0185616370374, 0.0203703458256, 0.0297133338864, 0.0203703458256, 0.0185616370374, 0.0203703458256, 0.0301564975094, 0.011460952231, 0.0118936643963, 0.0151827343303, 0.0268134941171, 0.026331505778, 0.0271115396282, 0.0351062379767, 0.038375741863, 0.0620018464738, 0.0750029421566]` | 1e-4 | Symmetric A: hubs = authorities = eigenvector centrality rescaled to sum 1 |
 | CE-205 | `U: nx(karate_club)` | `directed > hits.authorities` | `[0.0714127288083, 0.0534272312355, 0.0637190645564, 0.0424227371247, 0.0152609597062, 0.0159669135031, 0.0159669135031, 0.0343431672191, 0.0456819251198, 0.0206256677494, 0.0152609597062, 0.0106178915111, 0.0169254507923, 0.0454948640681, 0.0203703458256, 0.0203703458256, 0.0047480318473, 0.0185616370374, 0.0203703458256, 0.0297133338864, 0.0203703458256, 0.0185616370374, 0.0203703458256, 0.0301564975094, 0.011460952231, 0.0118936643963, 0.0151827343303, 0.0268134941171, 0.026331505778, 0.0271115396282, 0.0351062379767, 0.038375741863, 0.0620018464738, 0.0750029421566]` | 1e-4 | |
-| CE-206 | `D: 0>1, 0>2, 3>1` | `hits(maxIterations: 1).hubs` | `nil` | 1e-4 | |
+| CE-206 | `D: 0>1, 0>2, 3>1` | `hits(maxIterations: 1).hubs` | `NoConvergence` | 1e-4 | |

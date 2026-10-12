@@ -391,7 +391,7 @@ struct CentralityPropertyTests {
     }
 
     @Test("Eigenvector centrality equals the limit of the dense power iteration on Aᵀ + I, on connected undirected and strongly connected directed multigraphs with loops, unweighted and weighted; norm 1, non-negative")
-    func eigenvector() async {
+    func eigenvector() async throws {
         let triples = zip(Gen.int(in: 0 ... 7), Gen.int(in: 0 ... 7), Gen.int(in: 1 ... 8)).array(of: 0 ... 12)
         await propertyCheck(count: 150, input: triples, Gen.int(in: 1 ... 8), Gen.bool, Gen.bool, Gen.int(in: 0 ... 1_000_000)) { raw, n, isDirected, weighted, seed in
             // A spanning path (undirected) or a Hamiltonian cycle (directed) keeps the Perron vector unique.
@@ -418,12 +418,8 @@ struct CentralityPropertyTests {
             if isDirected {
                 let graph = ShuffledDigraph(vertexCount: n, edges: ends.map { DirectedEdge(from: $0.0, to: $0.1) }, seed: seed)
                 let result = weighted
-                    ? graph.eigenvectorCentrality(weight: { w[$0] }, tolerance: 1e-13, maxIterations: 100_000)
-                    : graph.eigenvectorCentrality(tolerance: 1e-13, maxIterations: 100_000)
-                guard let result else {
-                    Issue.record("nil on a strongly connected digraph: \(ends), weights \(w)")
-                    return
-                }
+                    ? try graph.eigenvectorCentrality(weight: { w[$0] }, tolerance: 1e-13, maxIterations: 100_000)
+                    : try graph.eigenvectorCentrality(tolerance: 1e-13, maxIterations: 100_000)
                 for v in 0 ..< n {
                     let error = abs(result.score(of: v) - x[v])
                     #expect(error <= 1e-7, "\(ends), weights \(w), vertex \(v)")
@@ -434,15 +430,11 @@ struct CentralityPropertyTests {
             } else {
                 let graph = ShuffledPseudograph(vertexCount: n, edges: ends.map { UndirectedEdge($0.0, $0.1) }, seed: seed)
                 let found = weighted
-                    ? graph.eigenvectorCentrality(weight: { w[$0] }, tolerance: 1e-13, maxIterations: 100_000)
-                    : graph.eigenvectorCentrality(tolerance: 1e-13, maxIterations: 100_000)
+                    ? try graph.eigenvectorCentrality(weight: { w[$0] }, tolerance: 1e-13, maxIterations: 100_000)
+                    : try graph.eigenvectorCentrality(tolerance: 1e-13, maxIterations: 100_000)
                 let arcs = weighted
-                    ? graph.directed.eigenvectorCentrality(weight: { w[$0.position] }, tolerance: 1e-13, maxIterations: 100_000)
-                    : graph.directed.eigenvectorCentrality(tolerance: 1e-13, maxIterations: 100_000)
-                guard let found, let arcs else {
-                    Issue.record("nil on a connected graph: \(ends), weights \(w)")
-                    return
-                }
+                    ? try graph.directed.eigenvectorCentrality(weight: { w[$0.position] }, tolerance: 1e-13, maxIterations: 100_000)
+                    : try graph.directed.eigenvectorCentrality(tolerance: 1e-13, maxIterations: 100_000)
                 for v in 0 ..< n {
                     let error = abs(found.score(of: v) - x[v])
                     #expect(error <= 1e-7, "\(ends), weights \(w), vertex \(v)")
@@ -457,7 +449,7 @@ struct CentralityPropertyTests {
     }
 
     @Test("Katz equals the solution of (I − αAᵀ)x = β1 (normalized to norm 1 or not) for α below 1/ρ(A), on multigraphs with loops, unweighted and weighted; as α → 0 it tends to uniform")
-    func katz() async {
+    func katz() async throws {
         let triples = zip(Gen.int(in: 0 ... 7), Gen.int(in: 0 ... 7), Gen.int(in: 0 ... 8)).array(of: 0 ... 14)
         await propertyCheck(count: 150, input: triples, Gen.int(in: 1 ... 8), Gen.bool, Gen.bool, Gen.int(in: 1 ... 4), Gen.int(in: 0 ... 1_000_000)) { raw, n, isDirected, normalized, betaQuarters, seed in
             let ends: [(Int, Int)] = raw.map { ($0.0 % n, $0.1 % n) }
@@ -480,40 +472,28 @@ struct CentralityPropertyTests {
                 let norm = x.reduce(0) { $0 + $1 * $1 }.squareRoot()
                 x = x.map { $0 / norm }
             }
-            let tiny: CentralityScores<ShuffledDigraph>?
-            let found: CentralityScores<ShuffledDigraph>?
+            let tiny: CentralityScores<ShuffledDigraph>
+            let found: CentralityScores<ShuffledDigraph>
             if isDirected {
                 let graph = ShuffledDigraph(vertexCount: n, edges: ends.map { DirectedEdge(from: $0.0, to: $0.1) }, seed: seed)
-                found = graph.katzCentrality(weight: { w[$0] }, alpha: alpha, beta: beta, normalized: normalized, tolerance: 1e-14)
-                tiny = graph.katzCentrality(weight: { w[$0] }, alpha: 1e-9, beta: beta, normalized: normalized)
+                found = try graph.katzCentrality(weight: { w[$0] }, alpha: alpha, beta: beta, normalized: normalized, tolerance: 1e-14)
+                tiny = try graph.katzCentrality(weight: { w[$0] }, alpha: 1e-9, beta: beta, normalized: normalized)
             } else {
                 let graph = ShuffledPseudograph(vertexCount: n, edges: ends.map { UndirectedEdge($0.0, $0.1) }, seed: seed)
-                let undirected = graph.katzCentrality(weight: { w[$0] }, alpha: alpha, beta: beta, normalized: normalized, tolerance: 1e-14)
-                let arcs = graph.directed.katzCentrality(weight: { w[$0.position] }, alpha: alpha, beta: beta, normalized: normalized, tolerance: 1e-14)
-                guard let undirected, let arcs else {
-                    Issue.record("nil below 1/ρ: \(ends), weights \(w), α \(alpha)")
-                    return
-                }
+                let undirected = try graph.katzCentrality(weight: { w[$0] }, alpha: alpha, beta: beta, normalized: normalized, tolerance: 1e-14)
+                let arcs = try graph.directed.katzCentrality(weight: { w[$0.position] }, alpha: alpha, beta: beta, normalized: normalized, tolerance: 1e-14)
                 for v in 0 ..< n {
                     let error = abs(undirected.score(of: v) - x[v])
                     #expect(error <= 1e-9 * max(1, abs(x[v])), "\(ends), weights \(w), vertex \(v)")
                     let arcError = abs(arcs.score(of: v) - x[v])
                     #expect(arcError <= 1e-9 * max(1, abs(x[v])), "graph.directed, vertex \(v)")
                 }
-                let unweighted = graph.katzCentrality(alpha: 1e-9, beta: beta, normalized: normalized)
-                guard let unweighted else {
-                    Issue.record("nil at α = 1e-9")
-                    return
-                }
+                let unweighted = try graph.katzCentrality(alpha: 1e-9, beta: beta, normalized: normalized)
                 let uniform = normalized ? 1 / Double(n).squareRoot() : beta
                 for v in 0 ..< n {
                     let error = abs(unweighted.score(of: v) - uniform)
                     #expect(error <= 1e-6 * max(1, uniform), "α → 0, vertex \(v)")
                 }
-                return
-            }
-            guard let found, let tiny else {
-                Issue.record("nil below 1/ρ: \(ends), weights \(w), α \(alpha)")
                 return
             }
             for v in 0 ..< n {
@@ -527,7 +507,7 @@ struct CentralityPropertyTests {
     }
 
     @Test("PageRank equals the limit of the dense iteration with dangling mass along the personalization, on multigraphs with loops, zero out-weights and random personalizations; it sums to 1")
-    func pageRank() async {
+    func pageRank() async throws {
         let triples = zip(Gen.int(in: 0 ... 7), Gen.int(in: 0 ... 7), Gen.int(in: 0 ... 8)).array(of: 0 ... 14)
         let personal = Gen.int(in: 0 ... 4).array(of: 8 ... 8)
         await propertyCheck(count: 150, input: triples, Gen.int(in: 1 ... 8), Gen.bool, Gen.int(in: 0 ... 3), personal, Gen.int(in: 0 ... 1_000_000)) { raw, n, isDirected, dampingChoice, rawPersonal, seed in
@@ -556,32 +536,28 @@ struct CentralityPropertyTests {
                     return damping * (flow + dangling * jump[t]) + (1 - damping) * jump[t]
                 }
             }
-            var results: [CentralityScores<ShuffledDigraph>?] = []
-            var viewResults: [CentralityScores<DirectedView<ShuffledPseudograph>>?] = []
+            var results: [CentralityScores<ShuffledDigraph>] = []
+            var viewResults: [CentralityScores<DirectedView<ShuffledPseudograph>>] = []
             if isDirected {
                 let graph = ShuffledDigraph(vertexCount: n, edges: ends.map { DirectedEdge(from: $0.0, to: $0.1) }, seed: seed)
                 if personalized {
-                    results.append(graph.pageRank(weight: { w[$0] }, dampingFactor: damping, personalization: { p[$0] }, tolerance: 1e-14, maxIterations: 10_000))
+                    results.append(try graph.pageRank(weight: { w[$0] }, dampingFactor: damping, personalization: { p[$0] }, tolerance: 1e-14, maxIterations: 10_000))
                 } else {
-                    results.append(graph.pageRank(weight: { w[$0] }, dampingFactor: damping, tolerance: 1e-14, maxIterations: 10_000))
+                    results.append(try graph.pageRank(weight: { w[$0] }, dampingFactor: damping, tolerance: 1e-14, maxIterations: 10_000))
                 }
             } else {
                 let graph = ShuffledPseudograph(vertexCount: n, edges: ends.map { UndirectedEdge($0.0, $0.1) }, seed: seed)
                 if personalized {
-                    viewResults.append(graph.pageRank(weight: { w[$0] }, dampingFactor: damping, personalization: { p[$0] }, tolerance: 1e-14, maxIterations: 10_000))
-                    viewResults.append(graph.directed.pageRank(weight: { w[$0.position] }, dampingFactor: damping, personalization: { p[$0] }, tolerance: 1e-14, maxIterations: 10_000))
+                    viewResults.append(try graph.pageRank(weight: { w[$0] }, dampingFactor: damping, personalization: { p[$0] }, tolerance: 1e-14, maxIterations: 10_000))
+                    viewResults.append(try graph.directed.pageRank(weight: { w[$0.position] }, dampingFactor: damping, personalization: { p[$0] }, tolerance: 1e-14, maxIterations: 10_000))
                 } else {
-                    viewResults.append(graph.pageRank(weight: { w[$0] }, dampingFactor: damping, tolerance: 1e-14, maxIterations: 10_000))
-                    viewResults.append(graph.directed.pageRank(weight: { w[$0.position] }, dampingFactor: damping, tolerance: 1e-14, maxIterations: 10_000))
+                    viewResults.append(try graph.pageRank(weight: { w[$0] }, dampingFactor: damping, tolerance: 1e-14, maxIterations: 10_000))
+                    viewResults.append(try graph.directed.pageRank(weight: { w[$0.position] }, dampingFactor: damping, tolerance: 1e-14, maxIterations: 10_000))
                 }
             }
-            let scoreLists: [[Double]?] = results.map { r in r.map { s in (0 ..< n).map { s.score(of: $0) } } }
-                + viewResults.map { r in r.map { s in (0 ..< n).map { s.score(of: $0) } } }
+            let scoreLists: [[Double]] = results.map { s in (0 ..< n).map { s.score(of: $0) } }
+                + viewResults.map { s in (0 ..< n).map { s.score(of: $0) } }
             for scores in scoreLists {
-                guard let scores else {
-                    Issue.record("nil: \(ends), weights \(w), d \(damping)")
-                    continue
-                }
                 for v in 0 ..< n {
                     let error = abs(scores[v] - x[v])
                     #expect(error <= 1e-9, "\(ends), weights \(w), d \(damping), p \(p), vertex \(v)")
@@ -593,19 +569,15 @@ struct CentralityPropertyTests {
     }
 
     @Test("HITS on graph.directed of a connected non-bipartite multigraph: hubs = authorities = eigenvector centrality rescaled to sum 1")
-    func hitsSymmetric() async {
+    func hitsSymmetric() async throws {
         let pairs = zip(Gen.int(in: 0 ... 7), Gen.int(in: 0 ... 7)).array(of: 0 ... 12)
         await propertyCheck(count: 150, input: pairs, Gen.int(in: 3 ... 8), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
             // A spanning path and the triangle 0-1-2: connected, not bipartite, so σ₁ = λ₁ is simple.
             var ends: [(Int, Int)] = (0 ..< n - 1).map { ($0, $0 + 1) } + [(0, 2)]
             ends += raw.map { ($0.0 % n, $0.1 % n) }
             let graph = ShuffledPseudograph(vertexCount: n, edges: ends.map { UndirectedEdge($0.0, $0.1) }, seed: seed)
-            let hits = graph.directed.hits(tolerance: 1e-13, maxIterations: 100_000)
-            let eigenvector = graph.eigenvectorCentrality(tolerance: 1e-13, maxIterations: 100_000)
-            guard let hits, let eigenvector else {
-                Issue.record("nil: \(ends)")
-                return
-            }
+            let hits = try graph.directed.hits(tolerance: 1e-13, maxIterations: 100_000)
+            let eigenvector = try graph.eigenvectorCentrality(tolerance: 1e-13, maxIterations: 100_000)
             let total = eigenvector.scores.reduce(0, +)
             for v in 0 ..< n {
                 let expected = eigenvector.score(of: v) / total
@@ -618,7 +590,7 @@ struct CentralityPropertyTests {
     }
 
     @Test("HITS equals the limit of the dense iteration a = Aᵀh, h = Aa from the uniform start, on random weighted digraphs; each vector sums to 1")
-    func hitsGeneral() async {
+    func hitsGeneral() async throws {
         let triples = zip(Gen.int(in: 0 ... 7), Gen.int(in: 0 ... 7), Gen.int(in: 1 ... 8)).array(of: 1 ... 14)
         await propertyCheck(count: 150, input: triples, Gen.int(in: 1 ... 8), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
             let ends: [(Int, Int)] = raw.map { ($0.0 % n, $0.1 % n) }
@@ -648,10 +620,7 @@ struct CentralityPropertyTests {
             let hubTotal = h.reduce(0, +)
             let authorityTotal = auth.reduce(0, +)
             let graph = ShuffledDigraph(vertexCount: n, edges: ends.map { DirectedEdge(from: $0.0, to: $0.1) }, seed: seed)
-            guard let result = graph.hits(weight: { w[$0] }, tolerance: 1e-13, maxIterations: 100_000) else {
-                Issue.record("nil: \(ends), weights \(w)")
-                return
-            }
+            let result = try graph.hits(weight: { w[$0] }, tolerance: 1e-13, maxIterations: 100_000)
             for v in 0 ..< n {
                 let hubError = abs(result.hubs.score(of: v) - h[v] / hubTotal)
                 #expect(hubError <= 1e-6, "\(ends), weights \(w), vertex \(v)")

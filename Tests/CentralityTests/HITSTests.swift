@@ -1,7 +1,7 @@
 // §H: hubs and authorities from the uniform start, each summing to 1; the limit from the uniform
 // start where σ₁ is not simple; parallel arcs adding; weights; `graph.directed` on the karate club
-// (hubs = authorities); nil after one iteration. Each test also checks that the other vector has
-// one score per vertex.
+// (hubs = authorities); NoConvergence after one iteration. Each test also checks that the other
+// vector has one score per vertex.
 // Expected values are ref.py's model at full precision (the catalog cells are the same values
 // rounded to 12 digits); non-iterative rows compare within 1e-12 relative to max(1, |value|), the
 // iterative ones within the catalog's Tol of the limit. Undirected rows also run on
@@ -20,7 +20,7 @@ struct HITSTests {
         // D: P(0,1,2)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        let scores = try #require(graph.hits())
+        let scores = try graph.hits()
         let result = scores.hubs
         let expected: [Double] = [0.5, 0.5, 0]
         #expect(result.scores.count == expected.count)
@@ -46,7 +46,7 @@ struct HITSTests {
         // D: P(0,1,2)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        let scores = try #require(graph.hits())
+        let scores = try graph.hits()
         let result = scores.authorities
         let expected: [Double] = [0, 0.5, 0.5]
         #expect(result.scores.count == expected.count)
@@ -72,7 +72,7 @@ struct HITSTests {
         // D: 0>1, 0>2, 3>1
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (3, 1)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        let scores = try #require(graph.hits())
+        let scores = try graph.hits()
         let result = scores.hubs
         let expected: [Double] = [0.6180339887498947, 0, 0, 0.38196601125010526]
         #expect(result.scores.count == expected.count)
@@ -98,7 +98,7 @@ struct HITSTests {
         // D: 0>1, 0>2, 3>1
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (3, 1)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        let scores = try #require(graph.hits())
+        let scores = try graph.hits()
         let result = scores.authorities
         let expected: [Double] = [0, 0.6180339887498951, 0.3819660112501048, 0]
         #expect(result.scores.count == expected.count)
@@ -124,7 +124,7 @@ struct HITSTests {
         // D: C(0,1,2)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        let scores = try #require(graph.hits())
+        let scores = try graph.hits()
         let result = scores.hubs
         let expected: [Double] = [0.3333333333333333, 0.3333333333333333, 0.3333333333333333]
         #expect(result.scores.count == expected.count)
@@ -150,7 +150,7 @@ struct HITSTests {
         // D: 0>1, 0>2, 1>2, 2>0, 3>2
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (2, 0), (3, 2)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        let scores = try #require(graph.hits())
+        let scores = try graph.hits()
         let result = scores.hubs
         let expected: [Double] = [
             0.4142135623730949, 0.29289321881345237, 4.0118020525605287e-16, 0.29289321881345237
@@ -178,7 +178,7 @@ struct HITSTests {
         // D: 0>1, 0>2, 1>2, 2>0, 3>2
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (2, 0), (3, 2)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        let scores = try #require(graph.hits())
+        let scores = try graph.hits()
         let result = scores.authorities
         let expected: [Double] = [9.685346924847842e-16, 0.2928932188134522, 0.7071067811865468, 0]
         #expect(result.scores.count == expected.count)
@@ -204,7 +204,7 @@ struct HITSTests {
         // D: 0>1, 0>1, 0>2, 2>0, 1>0
         let pairs: [(Int, Int)] = [(0, 1), (0, 1), (0, 2), (2, 0), (1, 0)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        let scores = try #require(graph.hits())
+        let scores = try graph.hits()
         let result = scores.hubs
         let expected: [Double] = [0.9999999999999984, 7.555786372591424e-16, 7.555786372591424e-16]
         #expect(result.scores.count == expected.count)
@@ -231,7 +231,7 @@ struct HITSTests {
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (3, 1)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
         let w: [Double] = [2, 1, 1]
-        let scores = try #require(graph.hits(weight: { w[$0] }))
+        let scores = try graph.hits(weight: { w[$0] })
         let result = scores.hubs
         let expected: [Double] = [0.7071067811865476, 0, 0, 0.2928932188134525]
         #expect(result.scores.count == expected.count)
@@ -267,7 +267,7 @@ struct HITSTests {
             (32, 33)
         ]
         let graph = ReferencePseudograph(vertices: 0 ..< 34, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let scores = try #require(graph.directed.hits())
+        let scores = try graph.directed.hits()
         let result = scores.hubs
         let expected: [Double] = [
             0.07141272880825182, 0.05342723123552988, 0.06371906455637473, 0.0424227371247089,
@@ -313,7 +313,7 @@ struct HITSTests {
             (32, 33)
         ]
         let graph = ReferencePseudograph(vertices: 0 ..< 34, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let scores = try #require(graph.directed.hits())
+        let scores = try graph.directed.hits()
         let result = scores.authorities
         let expected: [Double] = [
             0.07141272880825178, 0.053427231235529844, 0.06371906455637472, 0.042422737124708856,
@@ -344,11 +344,13 @@ struct HITSTests {
         #expect(abs(otherTotal - 1) <= 1e-12)
     }
 
-    @Test("CE-206 D(0>1, 0>2, 3>1).hits(maxIterations: 1).hubs is nil")
+    @Test("CE-206 D(0>1, 0>2, 3>1).hits(maxIterations: 1).hubs throws NoConvergence")
     func hits206() {
         // D: 0>1, 0>2, 3>1
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (3, 1)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        #expect(graph.hits(maxIterations: 1) == nil)
+        let failure = #expect(throws: NoConvergence.self) { try graph.hits(maxIterations: 1) }
+        #expect(failure?.iterations == 1)
+        #expect(failure.map { !($0.residual < 1e-08) } == true)
     }
 }

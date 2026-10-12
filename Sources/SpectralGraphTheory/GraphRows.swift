@@ -88,6 +88,12 @@ func _spectralWeights<Positions: Sequence, W: BinaryFloatingPoint>(_ positions: 
     return weights
 }
 
+/// Traps on an iteration limit below 1; nil (the method's default limit) passes.
+@inlinable
+func _checkMaxIterations(_ maxIterations: Int?) {
+    if let maxIterations { precondition(maxIterations >= 1, "maxIterations must be at least 1") }
+}
+
 extension Graph {
     /// The weighted adjacency in index space: vertices numbered by vertex index, or by position in
     /// `numbering.listed` for a graph without vertex indices.

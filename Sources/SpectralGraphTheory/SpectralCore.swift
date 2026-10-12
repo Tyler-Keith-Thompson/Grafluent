@@ -1,6 +1,8 @@
 // The spectral quantities in index space, on `_WeightedAdjacency`: non-generic, so they are
 // compiled once, in the module.
 
+import GraphProtocols
+
 /// Below this many vertices the dense solver answers for λ₂, the Fiedler vector and ρ(A).
 @usableFromInline let _denseThreshold = 64
 
@@ -16,11 +18,14 @@ func _canonicalSign(_ x: inout [Double]) {
     }
 }
 
-/// The work limits, in matrix–vector products (one conjugate-gradient iteration is one). A run
-/// that reaches its limit traps: the input is far outside what the method is for.
+/// The default work limits, in matrix–vector products (one conjugate-gradient iteration is one),
+/// and for the dense spectra in QL/QR iterations. A run that reaches its limit throws
+/// `NoConvergence`; the public methods take `maxIterations` in place of the limit that throws.
 @usableFromInline
 enum _SpectralLimits {
-    /// Lanczos on σI − L before switching to shift-invert.
+    /// The root-free QL/QR iterations of a dense spectrum, in all (LAPACK's `dsterf`).
+    @usableFromInline static func dense(_ n: Int) -> Int { 30 * n }
+    /// Lanczos on σI − L before switching to shift-invert (not a failure).
     @usableFromInline static func shifted(_ n: Int) -> Int { 4_000 + 20 * Int(Double(n).squareRoot()) }
     /// Lanczos (outer products) on L⁺ by shift-invert.
     @usableFromInline static let shiftInvert = 1_000
@@ -40,10 +45,11 @@ func _shiftInvertRatio(_ tolerance: Double) -> Double {
 }
 
 extension _WeightedAdjacency {
-    /// All eigenvalues of the matrix of `kind`, ascending (dense).
+    /// All eigenvalues of the matrix of `kind`, ascending (dense); throws after `maxIterations`
+    /// QL/QR iterations (nil: 30 n).
     @usableFromInline
-    func spectrum(_ kind: _MatrixKind) -> [Double] {
-        _eigenvalues(dense(kind), count)
+    func spectrum(_ kind: _MatrixKind, maxIterations: Int?) throws(NoConvergence) -> [Double] {
+        try _eigenvalues(dense(kind), count, maxIterations: maxIterations ?? _SpectralLimits.dense(count))
     }
 
     /// The rows with every weight scaled by a power of two (exactly) so that Gershgorin's bound
@@ -134,23 +140,24 @@ extension _WeightedAdjacency {
 
     /// λ₂ of L (of N when `normalized`) of a connected graph with at least two vertices, and a unit
     /// eigenvector orthogonal to the null vector, with the canonical sign. λ₂ is the edge-sum
-    /// Rayleigh quotient of the vector.
+    /// Rayleigh quotient of the vector. `maxIterations` limits each Lanczos run (see
+    /// `iterativeFiedler`); the dense path below `_denseThreshold` vertices ignores it.
     @usableFromInline
-    func connectedFiedler(normalized: Bool, tolerance: Double) -> (value: Double, vector: [Double]) {
+    func connectedFiedler(normalized: Bool, tolerance: Double, maxIterations: Int?) throws(NoConvergence) -> (value: Double, vector: [Double]) {
         let (rows, exponent) = rescaledIntoRange()
         if exponent != 0 {
-            let (value, vector) = rows.connectedFiedler(normalized: normalized, tolerance: tolerance)
+            let (value, vector) = try rows.connectedFiedler(normalized: normalized, tolerance: tolerance, maxIterations: maxIterations)
             return (normalized ? value : Double(sign: .plus, exponent: exponent, significand: value), vector)
         }
         let n = count
         var x: [Double]
         let null: [Double]
         if n < _denseThreshold {
-            let (_, vectors) = _eigensystem(dense(normalized ? .normalizedLaplacian : .laplacian), n)
+            let (_, vectors) = try _eigensystem(dense(normalized ? .normalizedLaplacian : .laplacian), n)
             x = Array(vectors[n ..< 2 * n])
             null = nullVector(normalized: normalized)
         } else {
-            (x, null) = iterativeFiedler(normalized: normalized, tolerance: tolerance)
+            (x, null) = try iterativeFiedler(normalized: normalized, tolerance: tolerance, maxIterations: maxIterations)
         }
         // Orthogonal to the null vector and unit length, to rounding.
         var dot = 0.0
@@ -167,15 +174,20 @@ extension _WeightedAdjacency {
     /// The Fiedler vector by Lanczos: on σI − L while σ/λ₂ is moderate, else (or when that runs
     /// out of products) on L⁺ by shift-invert, each product a conjugate-gradient solve with L
     /// grounded at the vertex of largest degree. Returns the vector and the null vector.
+    ///
+    /// The run on σI − L hands over after min(`_SpectralLimits.shifted(n)`, `maxIterations`)
+    /// products; the shift-invert run throws after `maxIterations` (nil: `shiftInvert`), and a
+    /// solve inside it after `_SpectralLimits.solve(n)`.
     @usableFromInline
-    func iterativeFiedler(normalized: Bool, tolerance: Double) -> (vector: [Double], null: [Double]) {
+    func iterativeFiedler(normalized: Bool, tolerance: Double, maxIterations: Int?) throws(NoConvergence) -> (vector: [Double], null: [Double]) {
         let n = count
         let (op, shift, null) = shiftedLaplacian(normalized: normalized)
         let ratio = min(_shiftInvertRatio(tolerance), 20 * Double(n))
         var products = 0
         if shift / rayleighBound(normalized: normalized) <= ratio {
-            let rule = _LanczosRule(tolerance: tolerance, shift: shift, floor: 0, abandonRatio: ratio, budget: _SpectralLimits.shifted(n))
-            if let (_, vector) = _largestEigenpair(count: n, null: null, lowerBound: 0, filters: n >= _filterMinimumSize, rule: rule, products: &products, apply: op.apply) {
+            let rule = _LanczosRule(tolerance: tolerance, shift: shift, floor: 0, abandonRatio: ratio, budget: min(_SpectralLimits.shifted(n), maxIterations ?? .max))
+            // Abandoning or spending the budget here hands over to shift-invert.
+            if let (_, vector) = try? _largestEigenpair(count: n, null: null, lowerBound: 0, filters: n >= _filterMinimumSize, rule: rule, products: &products, apply: op.apply) {
                 return (vector, null)
             }
         }
@@ -190,36 +202,37 @@ extension _WeightedAdjacency {
         let buffers = UnsafeMutablePointer<Double>.allocate(capacity: 2 * n)
         defer { buffers.deallocate() }
         let b = buffers, solution = buffers + n
-        let rule = _LanczosRule(tolerance: tolerance, shift: 0, floor: 0, abandonRatio: .infinity, budget: _SpectralLimits.shiftInvert)
+        let rule = _LanczosRule(tolerance: tolerance, shift: 0, floor: 0, abandonRatio: .infinity, budget: maxIterations ?? _SpectralLimits.shiftInvert)
         let limit = _SpectralLimits.solve(n)
-        let outcome = root.withOptionalPointer { root -> [Double]? in
+        let vector = try root.withOptionalPointer { (root) throws(NoConvergence) -> [Double] in
             /// output = K input: D^1/2 L_g⁻¹ D^1/2 (without D for L), the null space left to the caller.
-            func apply(_ input: UnsafePointer<Double>, _ output: UnsafeMutablePointer<Double>) {
+            func apply(_ input: UnsafePointer<Double>, _ output: UnsafeMutablePointer<Double>) throws(NoConvergence) {
                 if let root {
                     for v in 0 ..< n { b[v] = root[v] * input[v] }
                 } else {
                     b.update(from: input, count: n)
                 }
                 solution.update(repeating: 0, count: n)
-                let solved = solver.solve(b, solution, tolerance: inner, budget: solver.products + limit)
-                precondition(solved, "Conjugate gradients did not converge within \(limit) products (shift-invert λ₂)")
+                try solver.solve(b, solution, tolerance: inner, budget: solver.products + limit)
                 if let root {
                     for v in 0 ..< n { output[v] = root[v] * solution[v] }
                 } else {
                     output.update(from: solution, count: n)
                 }
             }
-            guard var (_, vector) = _largestEigenpair(count: n, null: null, lowerBound: 0, filters: false, rule: rule, products: &products, apply: apply) else { return nil }
+            // Without a shift the run never abandons: it converges or throws.
+            guard var (_, vector) = try _largestEigenpair(count: n, null: null, lowerBound: 0, filters: false, rule: rule, products: &products, apply: apply) else {
+                preconditionFailure("Shift-invert Lanczos abandoned")
+            }
             // One more inverse-iteration step: the Ritz vector meets the residual test for L⁺,
             // whose error along an eigenvector of L with eigenvalue λ costs λ in Lx − λ₂x; the step
             // scales that error by λ₂/λ, so ‖Lx − λ₂x‖ ≤ tolerance · λ₂ as well.
             var next = [Double](repeating: 0, count: n)
-            vector.withUnsafeBufferPointer { x in next.withUnsafeMutableBufferPointer { apply(x.baseAddress!, $0.baseAddress!) } }
+            try vector.withUnsafeBufferPointer { (x) throws(NoConvergence) in
+                try next.withUnsafeMutableBufferPointer { (y) throws(NoConvergence) in try apply(x.baseAddress!, y.baseAddress!) }
+            }
             vector = next
             return vector
-        }
-        guard let vector = outcome else {
-            preconditionFailure("Lanczos did not converge within \(_SpectralLimits.shiftInvert) shift-invert products (λ₂)")
         }
         return (vector, null)
     }
@@ -228,27 +241,27 @@ extension _WeightedAdjacency {
     ///
     /// - Precondition: at least two vertices.
     @usableFromInline
-    func algebraicConnectivity(normalized: Bool, tolerance: Double) -> Double {
+    func algebraicConnectivity(normalized: Bool, tolerance: Double, maxIterations: Int?) throws(NoConvergence) -> Double {
         precondition(count >= 2, "The algebraic connectivity needs at least two vertices")
         guard components().count == 1 else { return 0 }
-        return connectedFiedler(normalized: normalized, tolerance: tolerance).value
+        return try connectedFiedler(normalized: normalized, tolerance: tolerance, maxIterations: maxIterations).value
     }
 
     /// λ₂ and its canonical unit eigenvector; nil when the graph is not connected.
     ///
     /// - Precondition: at least two vertices.
     @usableFromInline
-    func fiedler(normalized: Bool, tolerance: Double) -> (value: Double, vector: [Double])? {
+    func fiedler(normalized: Bool, tolerance: Double, maxIterations: Int?) throws(NoConvergence) -> (value: Double, vector: [Double])? {
         precondition(count >= 2, "The Fiedler vector needs at least two vertices")
         guard components().count == 1 else { return nil }
-        return connectedFiedler(normalized: normalized, tolerance: tolerance)
+        return try connectedFiedler(normalized: normalized, tolerance: tolerance, maxIterations: maxIterations)
     }
 
     /// The spectral ordering in index space (api.md): components by least vertex; a component of at
     /// most two vertices in index order; a larger one ascending by its Fiedler vector, entries within
     /// 1e-8 · max|x| of their predecessor kept in index order.
     @usableFromInline
-    func spectralOrdering(normalized: Bool, tolerance: Double) -> [Int] {
+    func spectralOrdering(normalized: Bool, tolerance: Double, maxIterations: Int?) throws(NoConvergence) -> [Int] {
         let n = count
         guard n > 0 else { return [] }
         let (component, componentCount) = components()
@@ -262,7 +275,7 @@ extension _WeightedAdjacency {
                 continue
             }
             let sub = componentCount == 1 ? self : induced(group)
-            let x = sub.connectedFiedler(normalized: normalized, tolerance: tolerance).vector
+            let x = try sub.connectedFiedler(normalized: normalized, tolerance: tolerance, maxIterations: maxIterations).vector
             var largest = 0.0
             for t in x { largest = max(largest, abs(t)) }
             let sorted = (0 ..< group.count).sorted { x[$0] < x[$1] || (x[$0] == x[$1] && $0 < $1) }
@@ -280,32 +293,35 @@ extension _WeightedAdjacency {
         return order
     }
 
-    /// ρ(A) = max |λ(A)|: 0 without a stored entry.
+    /// ρ(A) = max |λ(A)|: 0 without a stored entry. Each Lanczos run throws after `maxIterations`
+    /// products (nil: `_SpectralLimits.radius(n)`); the dense path below `_denseThreshold` vertices
+    /// ignores it.
     @usableFromInline
-    func spectralRadius(tolerance: Double) -> Double {
+    func spectralRadius(tolerance: Double, maxIterations: Int?) throws(NoConvergence) -> Double {
         let n = count
         guard !columns.isEmpty else { return 0 }
         let (rows, exponent) = rescaledIntoRange()
-        if exponent != 0 { return Double(sign: .plus, exponent: exponent, significand: rows.spectralRadius(tolerance: tolerance)) }
+        if exponent != 0 { return Double(sign: .plus, exponent: exponent, significand: try rows.spectralRadius(tolerance: tolerance, maxIterations: maxIterations)) }
         if n < _denseThreshold {
-            let spectrum = spectrum(.adjacency)
+            let spectrum = try spectrum(.adjacency, maxIterations: nil)
             return max(abs(spectrum[0]), abs(spectrum[n - 1]))
         }
         let bound = gershgorinBound
-        let limit = _SpectralLimits.radius(n)
+        let limit = maxIterations ?? _SpectralLimits.radius(n)
         var products = 0
         let op = adjacencyOperator(negated: false)
         let rule = _LanczosRule(tolerance: tolerance, shift: 0, floor: hasNegativeEntry ? 1e-6 * bound : 0, abandonRatio: .infinity, budget: limit)
-        guard let (largest, _) = _largestEigenpair(count: n, null: nil, lowerBound: -bound, filters: n >= _filterMinimumSize, rule: rule, products: &products, apply: op.apply) else {
-            preconditionFailure("Lanczos did not converge within \(limit) products (spectral radius)")
+        // Without a shift a run never abandons: it converges or throws.
+        guard let (largest, _) = try _largestEigenpair(count: n, null: nil, lowerBound: -bound, filters: n >= _filterMinimumSize, rule: rule, products: &products, apply: op.apply) else {
+            preconditionFailure("Lanczos on A abandoned")
         }
         guard hasNegativeEntry else { return max(largest, 0) }
         // Without Perron–Frobenius, the most negative eigenvalue may be the larger in magnitude.
         let negatedOperator = adjacencyOperator(negated: true)
         let negatedRule = _LanczosRule(tolerance: tolerance, shift: 0, floor: max(abs(largest), 1e-6 * bound), abandonRatio: .infinity, budget: limit)
         products = 0
-        guard let (negated, _) = _largestEigenpair(count: n, null: nil, lowerBound: -bound, filters: n >= _filterMinimumSize, rule: negatedRule, products: &products, apply: negatedOperator.apply) else {
-            preconditionFailure("Lanczos did not converge within \(limit) products (spectral radius)")
+        guard let (negated, _) = try _largestEigenpair(count: n, null: nil, lowerBound: -bound, filters: n >= _filterMinimumSize, rule: negatedRule, products: &products, apply: negatedOperator.apply) else {
+            preconditionFailure("Lanczos on −A abandoned")
         }
         return max(largest, negated, 0)
     }
@@ -347,12 +363,12 @@ extension _WeightedAdjacency {
     /// The effective resistance between `source` and `target` with each weight a conductance: the
     /// potential at `source` when a unit current enters there and leaves at `target` (grounded),
     /// by preconditioned conjugate gradients on the rows. nil when they lie in different
-    /// components.
+    /// components; throws after `maxIterations` products (nil: `_SpectralLimits.solve(n)`).
     @usableFromInline
-    func resistance(from source: Int, to target: Int, tolerance: Double) -> Double? {
+    func resistance(from source: Int, to target: Int, tolerance: Double, maxIterations: Int?) throws(NoConvergence) -> Double? {
         if source == target { return 0 }
         let (rows, exponent) = rescaledIntoRange()
-        if exponent != 0 { return rows.resistance(from: source, to: target, tolerance: tolerance).map { Double(sign: .plus, exponent: -exponent, significand: $0) } }
+        if exponent != 0 { return try rows.resistance(from: source, to: target, tolerance: tolerance, maxIterations: maxIterations).map { Double(sign: .plus, exponent: -exponent, significand: $0) } }
         let n = count
         // Is `source` in the component of `target`?
         var seen = [Bool](repeating: false, count: n)
@@ -374,13 +390,12 @@ extension _WeightedAdjacency {
         var b = [Double](repeating: 0, count: n)
         b[source] = 1
         var x = [Double](repeating: 0, count: n)
-        let limit = _SpectralLimits.solve(n)
-        let solved = b.withUnsafeBufferPointer { b in
-            x.withUnsafeMutableBufferPointer { x in
-                solver.solve(b.baseAddress!, x.baseAddress!, tolerance: tolerance, budget: limit)
+        let limit = maxIterations ?? _SpectralLimits.solve(n)
+        try b.withUnsafeBufferPointer { (b) throws(NoConvergence) in
+            try x.withUnsafeMutableBufferPointer { (x) throws(NoConvergence) in
+                try solver.solve(b.baseAddress!, x.baseAddress!, tolerance: tolerance, budget: limit)
             }
         }
-        precondition(solved, "Conjugate gradients did not converge within \(limit) products (resistance distance)")
         return x[source]
     }
 

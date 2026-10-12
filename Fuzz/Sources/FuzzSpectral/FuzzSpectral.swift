@@ -57,11 +57,16 @@ enum FuzzSpectral {
     }
 
     static func fuzz(_ input: inout FuzzInput) {
-        if input.byte() % 2 == 0 { large(&input) } else { small(&input) }
+        do {
+            if input.byte() % 2 == 0 { try large(&input) } else { try small(&input) }
+        } catch {
+            // No input has reached the default iteration limits in the measurements: a finding.
+            check(false, "\(error)")
+        }
     }
 
     /// The Lanczos paths against the dense solver.
-    static func large(_ input: inout FuzzInput) {
+    static func large(_ input: inout FuzzInput) throws {
         let n = 64 + input.int(below: 32)
         let kind = input.int(below: 3), spread = input.int(in: 1 ... 20)
         var edges: [UndirectedEdge<Int>] = []
@@ -91,13 +96,13 @@ enum FuzzSpectral {
         }
         let sigma = 2 * degree.max()!
         for normalized in [false, true] {
-            let spectrum = normalized ? graph.normalizedLaplacianSpectrum(weight: { weights[$0] }) : graph.laplacianSpectrum(weight: { weights[$0] })
+            let spectrum = try normalized ? graph.normalizedLaplacianSpectrum(weight: { weights[$0] }) : graph.laplacianSpectrum(weight: { weights[$0] })
             let scale = normalized ? 2 : sigma
             let dense = spectrum[1]
-            let value = graph.algebraicConnectivity(weight: { weights[$0] }, normalized: normalized)
+            let value = try graph.algebraicConnectivity(weight: { weights[$0] }, normalized: normalized)
             // The dense λ₂ is accurate to about n ε · scale; the iterative one relative to itself.
             check(abs(value - dense) <= 1e-6 * dense + 1e-11 * Double(n) * scale, "λ₂ \(value) against dense \(dense), normalized \(normalized), n \(n)")
-            guard let fiedler = graph.fiedlerVector(weight: { weights[$0] }, normalized: normalized) else {
+            guard let fiedler = try graph.fiedlerVector(weight: { weights[$0] }, normalized: normalized) else {
                 check(dense <= 1e-11 * Double(n) * scale, "nil Fiedler vector with dense λ₂ \(dense)")
                 continue
             }
@@ -129,7 +134,7 @@ enum FuzzSpectral {
         }
         // ρ(A), with negative weights when the class allows them.
         let signed = edges.indices.map { _ in weight(&input, kind == 2 ? 3 : kind, spread) }
-        let a = graph.adjacencySpectrum(weight: { signed[$0] })
+        let a = try graph.adjacencySpectrum(weight: { signed[$0] })
         let rho = max(abs(a.first ?? 0), abs(a.last ?? 0))
         var bound = 0.0
         var rows = [Double](repeating: 0, count: n)
@@ -138,12 +143,12 @@ enum FuzzSpectral {
             rows[e.v] += abs(signed[k])
         }
         bound = rows.max()!
-        let radius = graph.spectralRadius(weight: { signed[$0] })
+        let radius = try graph.spectralRadius(weight: { signed[$0] })
         check(abs(radius - rho) <= 1e-6 * rho + 1e-11 * Double(n) * bound, "ρ \(radius) against dense \(rho)")
     }
 
     /// The electrical laws and the matrix-tree theorem on small graphs.
-    static func small(_ input: inout FuzzInput) {
+    static func small(_ input: inout FuzzInput) throws {
         let n = input.int(in: 1 ... 9)
         let kind = input.int(below: 3), spread = input.int(in: 1 ... 20)
         let m = input.int(below: 24)
@@ -220,7 +225,7 @@ enum FuzzSpectral {
         var r = [[Double]](repeating: [Double](repeating: 0, count: n), count: n)
         for u in 0 ..< n {
             for v in 0 ..< n {
-                let value = graph.resistanceDistance(from: u, to: v, weight: { weights[$0] })
+                let value = try graph.resistanceDistance(from: u, to: v, weight: { weights[$0] })
                 check((value == nil) == (find(u) != find(v)), "R(\(u), \(v)) nil: \(value == nil)")
                 r[u][v] = value ?? .infinity
             }

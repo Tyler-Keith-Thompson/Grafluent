@@ -1,6 +1,6 @@
 // §G: PageRank with the damping factor, dangling vertices following the personalization, each
-// undirected edge two arcs and a loop two loop arcs, parallel arcs adding, weights per row; nil with
-// too few iterations.
+// undirected edge two arcs and a loop two loop arcs, parallel arcs adding, weights per row;
+// NoConvergence with too few iterations.
 // Expected values are ref.py's model at full precision (the catalog cells are the same values
 // rounded to 12 digits); non-iterative rows compare within 1e-12 relative to max(1, |value|), the
 // iterative ones within the catalog's Tol of the limit. Undirected rows also run on
@@ -19,7 +19,7 @@ struct PageRankTests {
         // D: P(0,1,2)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        let result = try #require(graph.pageRank())
+        let result = try graph.pageRank()
         let expected: [Double] = [0.18441678192715505, 0.3411710465652378, 0.47441217150760673]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -39,7 +39,7 @@ struct PageRankTests {
         // D: C(0,1,2)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        let result = try #require(graph.pageRank())
+        let result = try graph.pageRank()
         let expected: [Double] = [0.3333333333333333, 0.3333333333333333, 0.3333333333333333]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -59,7 +59,7 @@ struct PageRankTests {
         // D: 0>1, 0>2, 1>2, 2>0, 3>2
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (2, 0), (3, 2)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        let result = try #require(graph.pageRank())
+        let result = try graph.pageRank()
         let expected: [Double] = [
             0.3725268513284352, 0.1958239118145841, 0.39414923685698067, 0.037500000000000006
         ]
@@ -82,7 +82,7 @@ struct PageRankTests {
         let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
         let p: [Double] = [1, 0, 0]
-        let result = try #require(graph.pageRank(personalization: { p[$0] }))
+        let result = try graph.pageRank(personalization: { p[$0] })
         let expected: [Double] = [0.38872691933916437, 0.33041788143829026, 0.2808551992225454]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -102,7 +102,7 @@ struct PageRankTests {
         // D: P(0,1,2)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        let result = try #require(graph.pageRank(dampingFactor: 0.5))
+        let result = try graph.pageRank(dampingFactor: 0.5)
         let expected: [Double] = [0.23529411764705863, 0.3529411764705885, 0.4117647058823528]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -132,7 +132,7 @@ struct PageRankTests {
             (32, 33)
         ]
         let graph = ReferencePseudograph(vertices: 0 ..< 34, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let result = try #require(graph.pageRank())
+        let result = try graph.pageRank()
         let expected: [Double] = [
             0.09699728538830414, 0.05287692406114842, 0.0570785094884618, 0.03585985778641361,
             0.0219779523645932, 0.02911115467837563, 0.02911115467837563, 0.024490497035283804,
@@ -155,7 +155,7 @@ struct PageRankTests {
         #expect(byVertex == result.scores)
         let total = result.scores.reduce(0, +)
         #expect(abs(total - 1) <= 1e-12, "scores sum to 1")
-        let arcs = try #require(graph.directed.pageRank())
+        let arcs = try graph.directed.pageRank()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
             #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -167,7 +167,7 @@ struct PageRankTests {
         // U: S(0;1..4)
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4)]
         let graph = ReferencePseudograph(vertices: 0 ..< 5, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let result = try #require(graph.pageRank())
+        let result = try graph.pageRank()
         let expected: [Double] = [
             0.47567567567567465, 0.13108108108108138, 0.13108108108108138, 0.13108108108108138,
             0.13108108108108138
@@ -183,7 +183,7 @@ struct PageRankTests {
         #expect(byVertex == result.scores)
         let total = result.scores.reduce(0, +)
         #expect(abs(total - 1) <= 1e-12, "scores sum to 1")
-        let arcs = try #require(graph.directed.pageRank())
+        let arcs = try graph.directed.pageRank()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
             #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -195,7 +195,7 @@ struct PageRankTests {
         // U: P(0,1,2), 1-1
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (1, 1)]
         let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let result = try #require(graph.pageRank())
+        let result = try graph.pageRank()
         let expected: [Double] = [0.1842105263157897, 0.6315789473684206, 0.1842105263157897]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -208,7 +208,7 @@ struct PageRankTests {
         #expect(byVertex == result.scores)
         let total = result.scores.reduce(0, +)
         #expect(abs(total - 1) <= 1e-12, "scores sum to 1")
-        let arcs = try #require(graph.directed.pageRank())
+        let arcs = try graph.directed.pageRank()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
             #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -220,7 +220,7 @@ struct PageRankTests {
         // D: 0>1, 0>1, 0>2, 2>0, 1>0
         let pairs: [(Int, Int)] = [(0, 1), (0, 1), (0, 2), (2, 0), (1, 0)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        let result = try #require(graph.pageRank())
+        let result = try graph.pageRank()
         let expected: [Double] = [0.4864864864864869, 0.3256756756756751, 0.18783783783783758]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -241,7 +241,7 @@ struct PageRankTests {
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 0), (2, 0)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
         let w: [Double] = [1, 3, 1, 1]
-        let result = try #require(graph.pageRank(weight: { w[$0] }))
+        let result = try graph.pageRank(weight: { w[$0] })
         let expected: [Double] = [0.486486486486487, 0.15337837837837817, 0.3601351351351345]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -262,7 +262,7 @@ struct PageRankTests {
         let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
         let w: [Double] = [0, 1]
-        let result = try #require(graph.pageRank(weight: { w[$0] }))
+        let result = try graph.pageRank(weight: { w[$0] })
         let expected: [Double] = [0.25974025974025955, 0.25974025974025955, 0.4805194805194806]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -277,7 +277,7 @@ struct PageRankTests {
         #expect(abs(total - 1) <= 1e-12, "scores sum to 1")
     }
 
-    @Test("CE-186 U(nx(karate_club)).pageRank(maxIterations: 3) is nil: NetworkX raises with max_iter=3 too")
+    @Test("CE-186 U(nx(karate_club)).pageRank(maxIterations: 3) throws NoConvergence: NetworkX raises with max_iter=3 too")
     func pageRank186() {
         // U: nx(karate_club)
         let pairs: [(Int, Int)] = [
@@ -292,8 +292,12 @@ struct PageRankTests {
             (32, 33)
         ]
         let graph = ReferencePseudograph(vertices: 0 ..< 34, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        #expect(graph.pageRank(maxIterations: 3) == nil)
-        #expect(graph.directed.pageRank(maxIterations: 3) == nil)
+        let failure = #expect(throws: NoConvergence.self) { try graph.pageRank(maxIterations: 3) }
+        #expect(failure?.iterations == 3)
+        #expect(failure.map { !($0.residual < 1e-06) } == true)
+        let directedFailure = #expect(throws: NoConvergence.self) { try graph.directed.pageRank(maxIterations: 3) }
+        #expect(directedFailure?.iterations == 3)
+        #expect(directedFailure.map { !($0.residual < 1e-06) } == true)
     }
 
     @Test("CE-189 D([0..2]).pageRank(personalization: [1, 2, 1]) is [0.25, 0.5, 0.25]: No arcs: the personalization itself")
@@ -301,7 +305,7 @@ struct PageRankTests {
         // D: [0..2]
         let graph = ReferenceDirectedMultigraph<Int>(vertices: 0 ..< 3, edges: [])
         let p: [Double] = [1, 2, 1]
-        let result = try #require(graph.pageRank(personalization: { p[$0] }))
+        let result = try graph.pageRank(personalization: { p[$0] })
         let expected: [Double] = [0.25, 0.5, 0.25]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -321,7 +325,7 @@ struct PageRankTests {
         // U: P(0,1,2)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
         let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let result = try #require(graph.directed.pageRank())
+        let result = try graph.directed.pageRank()
         let expected: [Double] = [0.256756756756757, 0.4864864864864858, 0.256756756756757]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {

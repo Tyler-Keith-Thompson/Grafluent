@@ -88,7 +88,7 @@ struct CentralityPreconditionTests {
             let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
             let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             let w: [Double] = [1, .infinity]
-            _ = graph.eigenvectorCentrality(weight: { w[$0] })
+            _ = try graph.eigenvectorCentrality(weight: { w[$0] })
         }
     }
 
@@ -99,7 +99,7 @@ struct CentralityPreconditionTests {
             let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
             let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
             let p: [Double] = [0, 0, 0]
-            _ = graph.pageRank(personalization: { p[$0] })
+            _ = try graph.pageRank(personalization: { p[$0] })
         }
     }
 
@@ -110,7 +110,7 @@ struct CentralityPreconditionTests {
             let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
             let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
             let p: [Double] = [-1, 1, 1]
-            _ = graph.pageRank(personalization: { p[$0] })
+            _ = try graph.pageRank(personalization: { p[$0] })
         }
     }
 
@@ -121,12 +121,12 @@ struct CentralityPreconditionTests {
             let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
             let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
             let w: [Double] = [1, -1]
-            _ = graph.pageRank(weight: { w[$0] })
+            _ = try graph.pageRank(weight: { w[$0] })
         }
     }
 
     @Test("score(of:) traps on a non-vertex, on an undirected and a directed result")
-    func scoreOfNonVertex() async {
+    func scoreOfNonVertex() async throws {
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(edges: [UndirectedEdge(0, 1)])
             _ = graph.degreeCentrality().score(of: 2)
@@ -137,13 +137,13 @@ struct CentralityPreconditionTests {
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferenceDirectedMultigraph(edges: [DirectedEdge(from: 0, to: 1)])
-            let hits = graph.hits()
-            _ = hits?.authorities.score(of: -1)
+            let hits = try graph.hits()
+            _ = hits.authorities.score(of: -1)
         }
     }
 
     @Test("score(ofIndex:) traps out of range: at n, at −1, and at 0 on the empty result")
-    func scoreOfIndexOutOfRange() async {
+    func scoreOfIndexOutOfRange() async throws {
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
             _ = graph.closenessCentrality().score(ofIndex: 3)
@@ -154,7 +154,7 @@ struct CentralityPreconditionTests {
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferenceDirectedMultigraph<Int>(vertices: [], edges: [])
-            _ = graph.pageRank()?.score(ofIndex: 0)
+            _ = try graph.pageRank().score(ofIndex: 0)
         }
     }
 
@@ -259,165 +259,165 @@ struct CentralityPreconditionTests {
     }
 
     @Test("Eigenvector, Katz, PageRank and HITS weights: negative, NaN and +infinity trap, on Graph and DirectedGraph")
-    func iterativeWeights() async {
+    func iterativeWeights() async throws {
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
             let w: [Double] = [1, -1]
-            _ = graph.eigenvectorCentrality(weight: { w[$0] })
+            _ = try graph.eigenvectorCentrality(weight: { w[$0] })
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferenceDirectedMultigraph(edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 0)])
             let w: [Double] = [.nan, 1]
-            _ = graph.eigenvectorCentrality(weight: { w[$0] })
+            _ = try graph.eigenvectorCentrality(weight: { w[$0] })
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
             let w: [Double] = [1, .infinity]
-            _ = graph.katzCentrality(weight: { w[$0] })
+            _ = try graph.katzCentrality(weight: { w[$0] })
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferenceDirectedMultigraph(edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 0)])
             let w: [Float] = [-2, 1]
-            _ = graph.katzCentrality(weight: { w[$0] })
+            _ = try graph.katzCentrality(weight: { w[$0] })
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
             let w: [Double] = [.nan, 1]
-            _ = graph.pageRank(weight: { w[$0] })
+            _ = try graph.pageRank(weight: { w[$0] })
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferenceDirectedMultigraph(edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 0)])
             let w: [Double] = [1, .infinity]
-            _ = graph.pageRank(weight: { w[$0] }, personalization: { _ in 1 })
+            _ = try graph.pageRank(weight: { w[$0] }, personalization: { _ in 1 })
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferenceDirectedMultigraph(edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 0)])
             let w: [Double] = [1, -1]
-            _ = graph.hits(weight: { w[$0] })
+            _ = try graph.hits(weight: { w[$0] })
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferenceDirectedMultigraph(edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 0)])
             let w: [Double] = [.infinity, 1]
-            _ = graph.hits(weight: { w[$0] })
+            _ = try graph.hits(weight: { w[$0] })
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
             let w: [Double] = [1, .nan]
-            _ = graph.directed.hits(weight: { w[$0.position] })
+            _ = try graph.directed.hits(weight: { w[$0.position] })
         }
     }
 
     @Test("tolerance must be positive and finite: 0, −1e-6, NaN and +infinity trap for eigenvector, Katz, PageRank and HITS")
-    func tolerance() async {
+    func tolerance() async throws {
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
-            _ = graph.eigenvectorCentrality(tolerance: 0)
-        }
-        await #expect(processExitsWith: .failure) {
-            let graph = ReferencePseudograph(edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
-            _ = graph.eigenvectorCentrality(tolerance: -1e-6)
+            _ = try graph.eigenvectorCentrality(tolerance: 0)
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
-            _ = graph.katzCentrality(tolerance: -1e-6)
-        }
-        await #expect(processExitsWith: .failure) {
-            let graph = ReferenceDirectedMultigraph(edges: [DirectedEdge(from: 0, to: 1)])
-            _ = graph.katzCentrality(tolerance: .nan)
+            _ = try graph.eigenvectorCentrality(tolerance: -1e-6)
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
-            _ = graph.pageRank(tolerance: -1)
+            _ = try graph.katzCentrality(tolerance: -1e-6)
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferenceDirectedMultigraph(edges: [DirectedEdge(from: 0, to: 1)])
-            _ = graph.pageRank(tolerance: .infinity)
+            _ = try graph.katzCentrality(tolerance: .nan)
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = ReferencePseudograph(edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
+            _ = try graph.pageRank(tolerance: -1)
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferenceDirectedMultigraph(edges: [DirectedEdge(from: 0, to: 1)])
-            _ = graph.hits(tolerance: -1e-8)
+            _ = try graph.pageRank(tolerance: .infinity)
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferenceDirectedMultigraph(edges: [DirectedEdge(from: 0, to: 1)])
-            _ = graph.hits(tolerance: 0)
+            _ = try graph.hits(tolerance: -1e-8)
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = ReferenceDirectedMultigraph(edges: [DirectedEdge(from: 0, to: 1)])
+            _ = try graph.hits(tolerance: 0)
         }
     }
 
     @Test("maxIterations must be at least 1: 0 and −1 trap for eigenvector, Katz, PageRank and HITS, weighted too")
-    func maxIterations() async {
+    func maxIterations() async throws {
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
-            _ = graph.eigenvectorCentrality(maxIterations: 0)
+            _ = try graph.eigenvectorCentrality(maxIterations: 0)
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferenceDirectedMultigraph(edges: [DirectedEdge(from: 0, to: 1)])
-            _ = graph.katzCentrality(maxIterations: 0)
+            _ = try graph.katzCentrality(maxIterations: 0)
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
-            _ = graph.pageRank(maxIterations: -1)
+            _ = try graph.pageRank(maxIterations: -1)
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferenceDirectedMultigraph(edges: [DirectedEdge(from: 0, to: 1)])
-            _ = graph.hits(maxIterations: 0)
+            _ = try graph.hits(maxIterations: 0)
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferenceDirectedMultigraph(edges: [DirectedEdge(from: 0, to: 1)])
             let w: [Double] = [1]
-            _ = graph.pageRank(weight: { w[$0] }, personalization: { _ in 1 }, maxIterations: 0)
+            _ = try graph.pageRank(weight: { w[$0] }, personalization: { _ in 1 }, maxIterations: 0)
         }
     }
 
     @Test("Katz: α and β must be finite: NaN and ±infinity trap")
-    func katzParameters() async {
+    func katzParameters() async throws {
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
-            _ = graph.katzCentrality(alpha: .nan)
+            _ = try graph.katzCentrality(alpha: .nan)
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
-            _ = graph.katzCentrality(alpha: .infinity)
+            _ = try graph.katzCentrality(alpha: .infinity)
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferenceDirectedMultigraph(edges: [DirectedEdge(from: 0, to: 1)])
-            _ = graph.katzCentrality(beta: .nan)
+            _ = try graph.katzCentrality(beta: .nan)
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferenceDirectedMultigraph(edges: [DirectedEdge(from: 0, to: 1)])
             let w: [Double] = [1]
-            _ = graph.katzCentrality(weight: { w[$0] }, beta: -.infinity)
+            _ = try graph.katzCentrality(weight: { w[$0] }, beta: -.infinity)
         }
     }
 
     @Test("PageRank: the damping factor must lie in [0, 1] (−0.1, 1.5 and NaN trap); personalization NaN or +infinity traps")
-    func pageRankParameters() async {
+    func pageRankParameters() async throws {
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
-            _ = graph.pageRank(dampingFactor: -0.1)
+            _ = try graph.pageRank(dampingFactor: -0.1)
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferenceDirectedMultigraph(edges: [DirectedEdge(from: 0, to: 1)])
-            _ = graph.pageRank(dampingFactor: 1.5)
+            _ = try graph.pageRank(dampingFactor: 1.5)
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferenceDirectedMultigraph(edges: [DirectedEdge(from: 0, to: 1)])
-            _ = graph.pageRank(dampingFactor: .nan, personalization: { _ in 1 })
+            _ = try graph.pageRank(dampingFactor: .nan, personalization: { _ in 1 })
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferenceDirectedMultigraph(edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
             let p: [Double] = [1, .nan, 1]
-            _ = graph.pageRank(personalization: { p[$0] })
+            _ = try graph.pageRank(personalization: { p[$0] })
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
             let p: [Double] = [1, .infinity, 1]
-            _ = graph.pageRank(personalization: { p[$0] })
+            _ = try graph.pageRank(personalization: { p[$0] })
         }
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
             let w: [Double] = [1, 1]
             let p: [Double] = [0, 0, 0]
-            _ = graph.pageRank(weight: { w[$0] }, personalization: { p[$0] })
+            _ = try graph.pageRank(weight: { w[$0] }, personalization: { p[$0] })
         }
     }
 }

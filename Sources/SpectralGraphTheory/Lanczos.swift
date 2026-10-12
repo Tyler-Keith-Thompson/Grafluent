@@ -6,6 +6,8 @@
 // it (the DGKS criterion: Daniel, Gragg, Kaufman and Stewart, "Reorthogonalization and stable
 // algorithms for updating the Gram–Schmidt QR factorization", Math. Comp. 30(136), 1976).
 
+import GraphProtocols
+
 /// y = diag ∘ x + sign · B x for a symmetric B given by rows (an unweighted B stores no values):
 /// the operators the Lanczos iteration runs on (σI − L, σI − N, A or −A).
 @usableFromInline
@@ -53,7 +55,9 @@ struct _LanczosRule {
     /// Give up (nil) once shift / (shift − θ) passes this: the gap is too small for the shifted
     /// operator, and the caller switches to shift-invert.
     @usableFromInline let abandonRatio: Double
-    /// Give up (nil) once this many operator applications are spent.
+    /// Give up (throw) once this many operator applications are spent without convergence: the
+    /// expansion stops after the step that reaches it (a filtered step applies the operator
+    /// `_filterDegree` times, and the filtered residual once more, so it may pass it by that much).
     @usableFromInline let budget: Int
 
     @usableFromInline
@@ -70,9 +74,11 @@ struct _LanczosRule {
 }
 
 /// The largest eigenvalue of the operator `apply` (n × n, symmetric) on the orthogonal complement
-/// of the unit vector `null` (the whole space when nil), and a unit eigenvector; nil when `rule`
-/// gives up first. `products` counts the applications. `lowerBound` bounds the spectrum from below
-/// (on the complement).
+/// of the unit vector `null` (the whole space when nil), and a unit eigenvector; nil when `rule`'s
+/// abandon ratio is passed. `products` counts the applications. `lowerBound` bounds the spectrum
+/// from below (on the complement). Throws `NoConvergence` when the budget is spent (the products
+/// spent, and the top Ritz pair's residual over `rule.threshold(θ) / tolerance`, so on the
+/// tolerance's scale), and passes on what `apply` or the projected QL iteration throws.
 ///
 /// A basis of `_lanczosBasisSize` vectors, keeping the `_lanczosKept` largest Ritz vectors at each
 /// restart, with the top Ritz pair tested every `_lanczosCheckEvery` steps. With `filters`, a run
@@ -85,7 +91,7 @@ struct _LanczosRule {
 /// Zhou and Saad, Chebyshev–Davidson, 2007). Its Ritz vectors are then judged by their residual
 /// for M itself.
 @usableFromInline
-func _largestEigenpair(count n: Int, null: [Double]?, lowerBound: Double, filters: Bool, rule: _LanczosRule, products: inout Int, apply op: (UnsafePointer<Double>, UnsafeMutablePointer<Double>) -> Void) -> (value: Double, vector: [Double])? {
+func _largestEigenpair(count n: Int, null: [Double]?, lowerBound: Double, filters: Bool, rule: _LanczosRule, products: inout Int, apply op: (UnsafePointer<Double>, UnsafeMutablePointer<Double>) throws(NoConvergence) -> Void) throws(NoConvergence) -> (value: Double, vector: [Double])? {
     let dimension = null == nil ? n : n - 1
     precondition(dimension >= 1, "No vector to iterate on")
     let m = min(_lanczosBasisSize, dimension)
@@ -109,7 +115,7 @@ func _largestEigenpair(count n: Int, null: [Double]?, lowerBound: Double, filter
     let temporary = c2 + (m + 1)
     t.update(repeating: 0, count: m * m)
 
-    return null.withOptionalPointer { z -> (value: Double, vector: [Double])? in
+    return try null.withOptionalPointer { (z) throws(NoConvergence) -> (value: Double, vector: [Double])? in
         // Start vector, deflated and normalized.
         var i = 0
         while i < n {
@@ -129,11 +135,11 @@ func _largestEigenpair(count n: Int, null: [Double]?, lowerBound: Double, filter
         }
         /// The top Ritz pair of the leading size × size block of T: its value, and the last entry
         /// of its vector (in `y`, column `size − 1`).
-        func ritz(_ size: Int) -> Double {
+        func ritz(_ size: Int) throws(NoConvergence) -> Double {
             for col in 0 ..< size {
                 for row in 0 ..< size { y[col * size + row] = t[col * m + row] }
             }
-            _symmetricEigen(size, y, d, e, vectors: true)
+            try _symmetricEigen(size, y, d, e, vectors: true)
             return d[size - 1]
         }
 
@@ -154,7 +160,7 @@ func _largestEigenpair(count n: Int, null: [Double]?, lowerBound: Double, filter
                     // T₀ = x, T₁ = (M − c)x / e, T_{k+1} = 2 (M − c) T_k / e − T_{k−1}; each projected.
                     var previous = p0, current = p1
                     previous.update(from: x, count: n)
-                    op(x, current)
+                    try op(x, current)
                     var r = 0
                     let inverse = 1 / halfWidth
                     while r < n {
@@ -164,7 +170,7 @@ func _largestEigenpair(count n: Int, null: [Double]?, lowerBound: Double, filter
                     if let z { _axpy(-_dot(z, current, n), z, current, n) }
                     var k = 1
                     while k < _filterDegree {
-                        op(current, p2)
+                        try op(current, p2)
                         r = 0
                         let twice = 2 * inverse
                         while r < n {
@@ -178,7 +184,7 @@ func _largestEigenpair(count n: Int, null: [Double]?, lowerBound: Double, filter
                     w.update(from: current, count: n)
                     products += _filterDegree
                 } else {
-                    op(x, w)
+                    try op(x, w)
                     products += 1
                 }
                 let length = _dot(w, w, n).squareRoot()
@@ -215,17 +221,19 @@ func _largestEigenpair(count n: Int, null: [Double]?, lowerBound: Double, filter
                     t[j * m + j - 1] = beta
                     if !filtered && j % _lanczosCheckEvery == 0 {
                         // Test the top Ritz pair now, rather than at the end of the expansion.
-                        let theta = ritz(j)
+                        let theta = try ritz(j)
                         if abs(beta * y[(j - 1) * j + j - 1]) <= rule.threshold(theta) {
                             early = true
                             break
                         }
                     }
+                    // The budget is spent: test the pair below, and throw unless it converged.
+                    if products >= rule.budget { break }
                 }
             }
             size = j
             // Rayleigh–Ritz on the size×size projection.
-            let value0 = early ? d[size - 1] : ritz(size)
+            let value0 = early ? d[size - 1] : try ritz(size)
             let top = size - 1
             restarts += 1
             var value = value0
@@ -233,7 +241,7 @@ func _largestEigenpair(count n: Int, null: [Double]?, lowerBound: Double, filter
             if filtered {
                 // Judge the top Ritz vector of p(M) by its Rayleigh quotient and residual for M.
                 combine(y + top * size, size, into: p0)
-                op(p0, p1)
+                try op(p0, p1)
                 products += 1
                 value = _dot(p0, p1, n)
                 _axpy(-value, p0, p1, n)
@@ -246,7 +254,7 @@ func _largestEigenpair(count n: Int, null: [Double]?, lowerBound: Double, filter
                 return (value, vector)
             }
             if rule.shift > 0 && rule.shift > value && rule.shift / (rule.shift - value) > rule.abandonRatio { return nil }
-            if products >= rule.budget { return nil }
+            if products >= rule.budget { throw NoConvergence(iterations: products, residual: residual * rule.tolerance / rule.threshold(value)) }
             let keep = min(kept, size - 1)
             if filters && !filtered && restarts >= _filterAfterRestarts {
                 // Start again on p(M) from the best Ritz vector.
@@ -317,10 +325,10 @@ func _largestEigenpair(count n: Int, null: [Double]?, lowerBound: Double, filter
 extension Optional where Wrapped == [Double] {
     /// Calls `body` with a pointer to the array's elements, or nil.
     @inline(__always)
-    func withOptionalPointer<R>(_ body: (UnsafePointer<Double>?) -> R) -> R {
+    func withOptionalPointer<R, E: Error>(_ body: (UnsafePointer<Double>?) throws(E) -> R) throws(E) -> R {
         switch self {
-        case .none: return body(nil)
-        case .some(let array): return array.withUnsafeBufferPointer { body($0.baseAddress) }
+        case .none: return try body(nil)
+        case .some(let array): return try array.withUnsafeBufferPointer { (buffer) throws(E) -> R in try body(buffer.baseAddress) }
         }
     }
 }

@@ -89,7 +89,7 @@ struct SpectralPropertyTests {
     }
 
     @Test("Rows of L sum to 0, xᵀLx = Σ w(x_u − x_v)², and the spectra of L, N, A are ordered, PSD and sum to the trace")
-    func laplacianIsPositiveSemidefinite() async {
+    func laplacianIsPositiveSemidefinite() async throws {
         let triples = zip(Gen.int(in: 0 ... 6), Gen.int(in: 0 ... 6), Gen.int(in: 0 ... 4)).array(of: 0 ... 12)
         await propertyCheck(count: 300, input: triples, Gen.int(in: 1 ... 7), Gen.bool, Gen.int(in: 0 ... 1_000_000)) { raw, n, weighted, seed in
             let edges = raw.map { UndirectedEdge($0.0 % n, $0.1 % n) }
@@ -115,9 +115,9 @@ struct SpectralPropertyTests {
             }
             #expect(form == expected, "\(context)")
             // Spectra: ascending, n values, L and N nonnegative, N at most 2, sums equal to the traces.
-            let ls = weighted ? graph.laplacianSpectrum(weight: { weights[$0] }) : graph.laplacianSpectrum()
-            let ns = weighted ? graph.normalizedLaplacianSpectrum(weight: { weights[$0] }) : graph.normalizedLaplacianSpectrum()
-            let asp = weighted ? graph.adjacencySpectrum(weight: { weights[$0] }) : graph.adjacencySpectrum()
+            let ls = try weighted ? graph.laplacianSpectrum(weight: { weights[$0] }) : graph.laplacianSpectrum()
+            let ns = try weighted ? graph.normalizedLaplacianSpectrum(weight: { weights[$0] }) : graph.normalizedLaplacianSpectrum()
+            let asp = try weighted ? graph.adjacencySpectrum(weight: { weights[$0] }) : graph.adjacencySpectrum()
             let adjacency = weighted ? graph.adjacencyMatrix(weight: { weights[$0] }) : graph.adjacencyMatrix()
             let normalized = weighted ? graph.normalizedLaplacianMatrix(weight: { weights[$0] }) : graph.normalizedLaplacianMatrix()
             let scale = max(1, ls.last ?? 0)
@@ -134,14 +134,14 @@ struct SpectralPropertyTests {
             let squares = adjacency.values.reduce(0) { $0 + $1 * $1 }
             #expect(abs(asp.reduce(0) { $0 + $1 * $1 } - squares) <= 1e-9 * max(1, squares), "\(context)")
             // The spectral radius is the largest |λ(A)|.
-            let radius = weighted ? graph.spectralRadius(weight: { weights[$0] }) : graph.spectralRadius()
+            let radius = try weighted ? graph.spectralRadius(weight: { weights[$0] }) : graph.spectralRadius()
             let largest = asp.map { abs($0) }.max() ?? 0
             #expect(abs(radius - largest) <= 1e-6 * max(1, largest), "\(context)")
         }
     }
 
     @Test("The Fiedler pair satisfies ‖Mx − λ₂x‖ ≤ 1e-6 · scale, λ₂ is the second eigenvalue, and 0 means disconnected")
-    func eigenResidual() async {
+    func eigenResidual() async throws {
         let triples = zip(Gen.int(in: 0 ... 6), Gen.int(in: 0 ... 6), Gen.int(in: 0 ... 4)).array(of: 0 ... 14)
         await propertyCheck(count: 300, input: triples, Gen.int(in: 2 ... 7), Gen.bool, Gen.bool, Gen.int(in: 0 ... 1_000_000)) { raw, n, weighted, normalized, seed in
             let edges = raw.map { UndirectedEdge($0.0 % n, $0.1 % n) }
@@ -166,15 +166,15 @@ struct SpectralPropertyTests {
                 ? (weighted ? graph.normalizedLaplacianMatrix(weight: { weights[$0] }) : graph.normalizedLaplacianMatrix())
                 : (weighted ? graph.laplacianMatrix(weight: { weights[$0] }) : graph.laplacianMatrix())
             let spectrum = normalized
-                ? (weighted ? graph.normalizedLaplacianSpectrum(weight: { weights[$0] }) : graph.normalizedLaplacianSpectrum())
-                : (weighted ? graph.laplacianSpectrum(weight: { weights[$0] }) : graph.laplacianSpectrum())
+                ? try (weighted ? graph.normalizedLaplacianSpectrum(weight: { weights[$0] }) : graph.normalizedLaplacianSpectrum())
+                : try (weighted ? graph.laplacianSpectrum(weight: { weights[$0] }) : graph.laplacianSpectrum())
             let scale = max(1, spectrum.last ?? 0)
             let lambda = weighted
-                ? graph.algebraicConnectivity(weight: { weights[$0] }, normalized: normalized)
-                : graph.algebraicConnectivity(normalized: normalized)
+                ? try graph.algebraicConnectivity(weight: { weights[$0] }, normalized: normalized)
+                : try graph.algebraicConnectivity(normalized: normalized)
             let fiedler = weighted
-                ? graph.fiedlerVector(weight: { weights[$0] }, normalized: normalized)
-                : graph.fiedlerVector(normalized: normalized)
+                ? try graph.fiedlerVector(weight: { weights[$0] }, normalized: normalized)
+                : try graph.fiedlerVector(normalized: normalized)
             guard connected else {
                 #expect(lambda == 0 && fiedler == nil, "\(context)")
                 return
@@ -255,7 +255,7 @@ struct SpectralPropertyTests {
     }
 
     @Test("Resistance is a metric: 0 on the diagonal, symmetric, the triangle inequality; and it sums to the effective graph resistance")
-    func resistanceIsAMetric() async {
+    func resistanceIsAMetric() async throws {
         let triples = zip(Gen.int(in: 0 ... 5), Gen.int(in: 0 ... 5), Gen.int(in: 1 ... 4)).array(of: 0 ... 12)
         await propertyCheck(count: 200, input: triples, Gen.int(in: 1 ... 6), Gen.bool, Gen.int(in: 0 ... 1_000_000)) { raw, n, weighted, seed in
             let edges = raw.map { UndirectedEdge($0.0 % n, $0.1 % n) }
@@ -270,7 +270,7 @@ struct SpectralPropertyTests {
             var r = [[Double?]](repeating: [Double?](repeating: nil, count: n), count: n)
             for a in 0 ..< n {
                 for b in 0 ..< n {
-                    r[a][b] = weighted ? graph.resistanceDistance(from: a, to: b, weight: { weights[$0] }) : graph.resistanceDistance(from: a, to: b)
+                    r[a][b] = try weighted ? graph.resistanceDistance(from: a, to: b, weight: { weights[$0] }) : graph.resistanceDistance(from: a, to: b)
                 }
             }
             for a in 0 ..< n {
@@ -305,7 +305,7 @@ struct SpectralPropertyTests {
     }
 
     @Test("Series and parallel laws: a path of bundles of parallel edges has R = Σ 1 / Σ conductances")
-    func seriesAndParallel() async {
+    func seriesAndParallel() async throws {
         // Each bundle: 1 to 4 parallel edges between consecutive path vertices, conductances 1…8 / 4.
         let bundles = Gen.int(in: 1 ... 8).array(of: 1 ... 4).array(of: 1 ... 6)
         await propertyCheck(count: 300, input: bundles, Gen.int(in: 0 ... 1_000_000)) { bundles, seed in
@@ -331,21 +331,21 @@ struct SpectralPropertyTests {
                 let parallel = 1 / bundle.reduce(0.0) { $0 + Double($1) / 4 }
                 expected += parallel
                 // One bundle alone: the parallel law.
-                let r = graph.resistanceDistance(from: i, to: i + 1, weight: { shuffledWeights[$0] })
+                let r = try graph.resistanceDistance(from: i, to: i + 1, weight: { shuffledWeights[$0] })
                 #expect(r.map { abs($0 - parallel) <= 1e-6 * max(1, parallel) } == true, "bundle \(i), \(context)")
             }
             let end = bundles.count
-            let r = graph.resistanceDistance(from: 0, to: end, weight: { shuffledWeights[$0] })
+            let r = try graph.resistanceDistance(from: 0, to: end, weight: { shuffledWeights[$0] })
             #expect(r.map { abs($0 - expected) <= 1e-6 * max(1, expected) } == true, "\(context)")
             // Unweighted, each edge a unit resistor: Σ 1/(bundle size).
             let unit = bundles.reduce(0.0) { $0 + 1 / Double($1.count) }
-            let ru = graph.resistanceDistance(from: end, to: 0)
+            let ru = try graph.resistanceDistance(from: end, to: 0)
             #expect(ru.map { abs($0 - unit) <= 1e-6 * max(1, unit) } == true, "\(context)")
         }
     }
 
     @Test("The Fiedler vector is orthogonal to the null vector (1, or D^1/2 · 1 normalized) and follows the relative sign rule")
-    func fiedlerOrthogonalAndSigned() async {
+    func fiedlerOrthogonalAndSigned() async throws {
         let triples = zip(Gen.int(in: 0 ... 7), Gen.int(in: 0 ... 7), Gen.int(in: 1 ... 4)).array(of: 1 ... 16)
         await propertyCheck(count: 300, input: triples, Gen.int(in: 2 ... 8), Gen.bool, Gen.bool, Gen.int(in: 0 ... 1_000_000)) { raw, n, weighted, normalized, seed in
             // A spanning path keeps the graph connected; the random edges (loops included) follow it.
@@ -360,8 +360,8 @@ struct SpectralPropertyTests {
             let graph = ReferencePseudograph(vertices: listed, edges: edges)
             let context = "n \(n), edges \(raw), weighted \(weighted), normalized \(normalized), seed \(seed)"
             let fiedler = weighted
-                ? graph.fiedlerVector(weight: { weights[$0] }, normalized: normalized)
-                : graph.fiedlerVector(normalized: normalized)
+                ? try graph.fiedlerVector(weight: { weights[$0] }, normalized: normalized)
+                : try graph.fiedlerVector(normalized: normalized)
             guard let fiedler else {
                 Issue.record("nil on a connected graph, \(context)")
                 return
@@ -384,11 +384,11 @@ struct SpectralPropertyTests {
             }
             // The ordering of a connected graph with more than two vertices sorts by this vector when
             // λ₂ is simple (otherwise by some λ₂ vector, not necessarily this one).
-            let order = weighted ? graph.spectralOrdering(weight: { weights[$0] }, normalized: normalized) : graph.spectralOrdering(normalized: normalized)
+            let order = try weighted ? graph.spectralOrdering(weight: { weights[$0] }, normalized: normalized) : graph.spectralOrdering(normalized: normalized)
             #expect(order.sorted() == listed.sorted(), "\(context)")
             let spectrum = normalized
-                ? (weighted ? graph.normalizedLaplacianSpectrum(weight: { weights[$0] }) : graph.normalizedLaplacianSpectrum())
-                : (weighted ? graph.laplacianSpectrum(weight: { weights[$0] }) : graph.laplacianSpectrum())
+                ? try (weighted ? graph.normalizedLaplacianSpectrum(weight: { weights[$0] }) : graph.normalizedLaplacianSpectrum())
+                : try (weighted ? graph.laplacianSpectrum(weight: { weights[$0] }) : graph.laplacianSpectrum())
             let simple = n > 2 && spectrum[2] - spectrum[1] > 1e-3 * max(1, spectrum[n - 1])
             if simple {
                 for (a, b) in zip(order, order.dropFirst()) {
@@ -401,7 +401,7 @@ struct SpectralPropertyTests {
     }
 
     @Test("The spectral ordering lists components by least index, small ones in index order, each sorted")
-    func orderingByComponents() async {
+    func orderingByComponents() async throws {
         let triples = zip(Gen.int(in: 0 ... 7), Gen.int(in: 0 ... 7), Gen.int(in: 0 ... 3)).array(of: 0 ... 10)
         await propertyCheck(count: 300, input: triples, Gen.int(in: 1 ... 8), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
             let edges = raw.map { UndirectedEdge($0.0 % n, $0.1 % n) }
@@ -432,7 +432,7 @@ struct SpectralPropertyTests {
                 let r = find(i)
                 if let k = seen[r] { components[k].append(i) } else { seen[r] = components.count; components.append([i]) }
             }
-            let order = graph.spectralOrdering(weight: { weights[$0] })
+            let order = try graph.spectralOrdering(weight: { weights[$0] })
             #expect(order.count == n, "\(context)")
             var start = 0
             for component in components {

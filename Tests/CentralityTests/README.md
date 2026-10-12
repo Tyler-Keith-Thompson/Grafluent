@@ -22,17 +22,18 @@ extension Graph {                       // results are CentralityScores<Directed
     func harmonicCentrality() -> CentralityScores<…>, func harmonicCentrality(of: Vertex) -> Double   // and the weighted forms
     func betweennessCentrality(normalized: Bool = true, endpoints: Bool = false) -> CentralityScores<…>
     func betweennessCentrality<W: Comparable & AdditiveArithmetic>(weight:normalized:endpoints:)
-    func eigenvectorCentrality(tolerance: 1e-6, maxIterations: 100) -> CentralityScores<…>?            // and (weight:…)
-    func katzCentrality(alpha: 0.1, beta: 1, normalized: true, tolerance: 1e-6, maxIterations: 1000) -> CentralityScores<…>?   // and (weight:…)
-    func pageRank(dampingFactor: 0.85, tolerance: 1e-6, maxIterations: 100) -> CentralityScores<…>?
-    func pageRank(dampingFactor:personalization: (Vertex) -> Double, tolerance:maxIterations:) -> CentralityScores<…>?   // both also with a leading weight:
+    func eigenvectorCentrality(tolerance: 1e-6, maxIterations: 100) throws(NoConvergence) -> CentralityScores<…>   // and (weight:…)
+    func katzCentrality(alpha: 0.1, beta: 1, normalized: true, tolerance: 1e-6, maxIterations: 1000) throws(NoConvergence) -> CentralityScores<…>   // and (weight:…)
+    func pageRank(dampingFactor: 0.85, tolerance: 1e-6, maxIterations: 100) throws(NoConvergence) -> CentralityScores<…>
+    func pageRank(dampingFactor:personalization: (Vertex) -> Double, tolerance:maxIterations:) throws(NoConvergence) -> CentralityScores<…>   // both also with a leading weight:
 }
 extension DirectedGraph {               // the same members, returning CentralityScores<Self>; incoming distances
     func inDegreeCentrality() -> CentralityScores<Self>, func outDegreeCentrality() -> CentralityScores<Self>
-    func hits(tolerance: 1e-8, maxIterations: 100) -> HubAndAuthorityScores<Self>?                      // and (weight:…)
+    func hits(tolerance: 1e-8, maxIterations: 100) throws(NoConvergence) -> HubAndAuthorityScores<Self>   // and (weight:…)
 }
 struct CentralityScores<G: DirectedGraph>      // score(of:) traps on a non-vertex, score(ofIndex:) out of range; scores: [Double]
 struct HubAndAuthorityScores<G: DirectedGraph> // hubs, authorities: CentralityScores<G>, each summing to 1
+struct NoConvergence: Error, Hashable, Sendable // iterations, residual (GraphProtocols)
 // Sendable when G and G.Vertex are
 ```
 
@@ -44,9 +45,9 @@ struct HubAndAuthorityScores<G: DirectedGraph> // hubs, authorities: CentralityS
 | Closeness, harmonic | Incoming distances d(v, u) on directed graphs (NetworkX). Closeness (r − 1)/S · (r − 1)/(n − 1), without the second factor when `wfImproved: false`; 0 when S = 0. Harmonic Σ 1/d over 0 < d < ∞, not normalized: a zero distance to another vertex is skipped | CE-050 – CE-080 |
 | Betweenness | Paths are edge sequences: parallel copies are distinct shortest paths, loops lie on none. NetworkX's rescaling: undirected unnormalized halves, normalized ÷ (n − 1)(n − 2) on ordered pairs (n(n − 1) with endpoints), no scaling when the divisor is 0. Ties by exact equality of weight sums | CE-090 – CE-121 |
 | A for the iterative measures | A_vw is the sum of the weights of the slots v → w as the rows list them: an undirected loop is 2, parallel copies add. Eigenvector and Katz over in-arcs (Aᵀ), PageRank over out-arcs, HITS a = Aᵀh, h = Aa | CE-139, CE-140, CE-148, CE-168, CE-169, CE-182, CE-183, CE-202 |
-| Iterations | From the uniform start (Katz from 0); eigenvector on A + I; stop after the first step with ‖x_k − x_{k−1}‖₁ < n · tolerance; `nil` when that does not happen within `maxIterations` (a DAG for eigenvector, α ≥ 1/ρ for Katz, too few iterations). Scales: Euclidean norm 1 (eigenvector, Katz normalized), sum 1 (PageRank, hubs, authorities) | CE-130 – CE-206 |
+| Iterations | From the uniform start (Katz from 0); eigenvector on A + I; stop after the first step with ‖x_k − x_{k−1}‖₁ < n · tolerance; `NoConvergence` when that does not happen within `maxIterations` (a DAG for eigenvector, α ≥ 1/ρ for Katz, too few iterations), with `maxIterations` and the last change over n. Scales: Euclidean norm 1 (eigenvector, Katz normalized), sum 1 (PageRank, hubs, authorities) | CE-130 – CE-206 |
 | PageRank | Dangling vertices (no out-arcs or out-weight 0) send their mass along the personalization; each undirected edge two arcs, a loop two loop arcs | CE-175 – CE-191 |
-| Degenerate graphs | The empty graph gives an empty, non-nil result for every measure; edgeless graphs are uniform for eigenvector, Katz, PageRank and HITS | CE-001 – CE-027 |
+| Degenerate graphs | The empty graph gives an empty result for every measure, without throwing; edgeless graphs are uniform for eigenvector, Katz, PageRank and HITS | CE-001 – CE-027 |
 | Closures | Closeness, harmonic and betweenness read the weight closure once per edge, in position order, before any search. The iterative measures convert each weight once per edge (order unspecified). The personalization is read once per vertex, in `vertices` order | `WeightReadingTests.swift` |
 
 ## How values are pinned
@@ -76,7 +77,7 @@ betweenness, `wfImproved` ignored, unnormalized undirected betweenness not halve
 counted in harmonic, an undirected loop once in A, one vertex scoring 0 for degree, zero
 betweenness weights accepted, power iteration without the + I shift, dangling mass spread
 uniformly, Katz never normalized, NaN HITS on an edgeless graph, weights read twice, the
-one-vertex form scoring the wrong vertex, a missing tolerance check, and nil on the empty graph.
+one-vertex form scoring the wrong vertex, a missing tolerance check, and NoConvergence on the empty graph.
 Each of these fails tests. The property tests write their oracles inside each test.
 
 ## Files
@@ -87,16 +88,17 @@ Each of these fails tests. The property tests write their oracles inside each te
 | `DegreeCentralityTests.swift` | 12 | §B: a star, a loop and parallel copies on `Graph`, in, out and total on a dipath, a directed loop, an isolated vertex, the karate club, `graph.directed`, one vertex |
 | `ClosenessHarmonicTests.swift` | 27 | §C: paths, a disconnected graph with and without Wasserman–Faust, an isolated vertex, incoming distances on a dipath and an out-star, Krackhardt's kite, the Florentine families (`String` vertices), the karate club, `Int` and `Double` weights, zero weights, loops and parallels, the one-vertex forms |
 | `BetweennessTests.swift` | 29 | §D: every rescaling on P₅, stars, cycles, the kite, Florentine families, karate, Petersen, disconnected, directed ordered pairs, `graph.directed`, parallel edges as distinct paths, a loop, K₅, K₂,₃, `Int` and `Double` weights, exact-equality ties, karate weighted, endpoints |
-| `EigenvectorTests.swift` | 19 | §E: K₄, bipartite paths and stars (the shift), the kite, karate (also at 1e-10), Florentine families, disconnected graphs, a loop and parallel copies in A, directed cycles and in-edges, nil on a DAG and with 5 iterations, weights |
-| `KatzTests.swift` | 12 | §F: defaults, K₄, karate, nil above 1/ρ, unnormalized, α and β, directed, a loop, parallel copies, weights |
-| `PageRankTests.swift` | 14 | §G: dangling vertices, cycles, NetworkX's example, personalization, damping 0.5, karate, a star, a loop as two arcs, parallel arcs, weights, a zero out-weight, nil with 3 iterations, no arcs, `graph.directed` |
-| `HITSTests.swift` | 12 | §H: a dipath (σ₁ double), NetworkX's example, a cycle, parallel arcs, weights, karate through `graph.directed` (hubs = authorities), nil after one iteration; each also checks the other vector's size and both sums |
+| `EigenvectorTests.swift` | 19 | §E: K₄, bipartite paths and stars (the shift), the kite, karate (also at 1e-10), Florentine families, disconnected graphs, a loop and parallel copies in A, directed cycles and in-edges, NoConvergence on a DAG and with 5 iterations, weights |
+| `KatzTests.swift` | 12 | §F: defaults, K₄, karate, NoConvergence above 1/ρ, unnormalized, α and β, directed, a loop, parallel copies, weights |
+| `PageRankTests.swift` | 14 | §G: dangling vertices, cycles, NetworkX's example, personalization, damping 0.5, karate, a star, a loop as two arcs, parallel arcs, weights, a zero out-weight, NoConvergence with 3 iterations, no arcs, `graph.directed` |
+| `HITSTests.swift` | 12 | §H: a dipath (σ₁ double), NetworkX's example, a cycle, parallel arcs, weights, karate through `graph.directed` (hubs = authorities), NoConvergence after one iteration; each also checks the other vector's size and both sums |
 | `CentralityRepresentationTests.swift` | 74 | Every §A – §H graph without parallel edges on `UndirectedAdjacencyList` (23) or `AdjacencyList` (17), and every directed graph on 0..<n on `CompressedSparseRow` (17) and `AdjacencyMatrix` (17) with the arcs in row-major order; one test per graph, every row of that graph |
 | `WeightReadingTests.swift` | 7 | The weight closure once per edge (position order for the searches) on a pseudograph, a disconnected graph, a digraph, `graph.directed`, `UndirectedAdjacencyList` and `CompressedSparseRow`; the personalization once per vertex in `vertices` order; nothing read on edgeless graphs |
 | `CentralityConformanceTests.swift` | 7 | `Sendable` across a `Task`, the value holding a copy of the graph, generic code over `some Graph` / `some DirectedGraph`, conformers without indices (undirected and directed, vertices not in value order), bitwise determinism (twice, and across two representations with the same rows), `Collider` vertices |
 | `CentralityPropertyTests.swift` | 9 | PropertyBased, shrinking, multigraphs with loops, shuffled rows and vertex orders: degree against counts; closeness and harmonic against BFS and Floyd–Warshall (`Int` and `Double` weights, zeros); betweenness against Σ σ_sv·σ_vt/σ_st over edge sequences (every rescaling, `graph.directed`); eigenvector, Katz (and α → 0), PageRank (personalized, dangling) and HITS against dense iterations run to convergence; HITS on symmetric graphs against eigenvector centrality |
-| `CentralityStressTests.swift` | 13 | Inside a `Task` with a one-minute limit: degree on 10⁵-leaf stars, one-vertex closeness and harmonic on a 10⁵-vertex path (also weighted), all-pairs closeness, harmonic and betweenness on P₂₀₀₀, Brandes on a 30 × 30 grid and a directed 1000-cycle, PageRank on a 10⁵-leaf star and a 10⁵-vertex dipath, Katz on a 10⁵-vertex path, HITS on a 10⁵-leaf out-star, eigenvector on a 10⁴-leaf star (nil with the defaults) and a 10⁵-cycle |
+| `CentralityStressTests.swift` | 13 | Inside a `Task` with a one-minute limit: degree on 10⁵-leaf stars, one-vertex closeness and harmonic on a 10⁵-vertex path (also weighted), all-pairs closeness, harmonic and betweenness on P₂₀₀₀, Brandes on a 30 × 30 grid and a directed 1000-cycle, PageRank on a 10⁵-leaf star and a 10⁵-vertex dipath, Katz on a 10⁵-vertex path, HITS on a 10⁵-leaf out-star, eigenvector on a 10⁴-leaf star (NoConvergence with the defaults) and a 10⁵-cycle |
 | `CentralityPreconditionTests.swift` | 20 | Exit tests: the catalog's trap rows; non-vertices for `score(of:)` and the one-vertex forms; `score(ofIndex:)` out of range; negative, NaN, `-infinity` and `Int.min` closeness/harmonic weights (also out of the queried vertex's reach); zero, -0.0, negative and NaN betweenness weights; negative, NaN and infinite iterative weights; `tolerance` ≤ 0, NaN or infinite; `maxIterations` < 1; non-finite α and β; a damping factor outside [0, 1]; non-finite personalization values |
+| `NoConvergenceTests.swift` | 5 | Every iterative entry point (18) throws `NoConvergence` after `maxIterations: 1` with iterations 1 and a residual not below the tolerance; the first step's residual worked by hand for each measure; the limit is exact (converging on step k answers with k and throws with k − 1); Katz past 1/ρ; nothing to iterate on the empty graph and an edgeless HITS |
 | `CentralityReviewTests.swift` | 3 | Added after the review (CE-1001 – CE-1003), not by the original author of this suite: weighted betweenness where a floating-point sum absorbs a weight |
 
 236 tests from the catalog's 162 rows (152 value rows, 10 trap rows) and their 74 representation

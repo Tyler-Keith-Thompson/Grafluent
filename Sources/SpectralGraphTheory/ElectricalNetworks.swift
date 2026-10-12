@@ -77,17 +77,22 @@ extension Graph {
     /// or, on a weight spread that puts that below rounding, until the true residual stops
     /// improving. Jacobi preconditioned for 300 iterations, then by a modified incomplete Cholesky
     /// factor in maximum-spanning-tree order. O((n + m) √κ) time; about 9 n words, and O(n + m) for
-    /// the factor when it is built. Traps after 20,000 + 2n products, which no input has reached
-    /// in the measurements.
+    /// the factor when it is built.
     ///
-    /// - Precondition: `source` and `target` are vertices of the graph, and `tolerance > 0`.
+    /// - Precondition: `source` and `target` are vertices of the graph, `tolerance > 0`, and
+    ///   `maxIterations`, when given, is at least 1.
+    /// - Throws: `NoConvergence` after `maxIterations` conjugate-gradient iterations (one
+    ///   matrix–vector product each; 20,000 + 2n when nil), with that count and the residual's norm
+    ///   relative to the right-hand side's. No input has reached the default limit in the
+    ///   measurements.
     @inlinable
-    public func resistanceDistance(from source: Vertex, to target: Vertex, tolerance: Double = 1e-10) -> Double? {
+    public func resistanceDistance(from source: Vertex, to target: Vertex, tolerance: Double = 1e-10, maxIterations: Int? = nil) throws(NoConvergence) -> Double? {
         precondition(tolerance > 0, "The tolerance is not positive")
+        _checkMaxIterations(maxIterations)
         let numbering = _vertexNumbering()
         let s = _spectralNumber(of: source, numbering), t = _spectralNumber(of: target, numbering)
         if s == t { return 0 }
-        return _spectralAdjacency(nil, numbering: numbering).resistance(from: s, to: t, tolerance: tolerance)
+        return try _spectralAdjacency(nil, numbering: numbering).resistance(from: s, to: t, tolerance: tolerance, maxIterations: maxIterations)
     }
 
     /// The resistance distance between `source` and `target` (Klein and Randić 1993): the
@@ -102,21 +107,25 @@ extension Graph {
     /// or, on a weight spread that puts that below rounding, until the true residual stops
     /// improving. Jacobi preconditioned for 300 iterations, then by a modified incomplete Cholesky
     /// factor in maximum-spanning-tree order. O((n + m) √κ) time; about 9 n words, and O(n + m) for
-    /// the factor when it is built. Traps after 20,000 + 2n products, which no input has reached
-    /// in the measurements.
+    /// the factor when it is built.
     ///
     /// `weight` gives the conductance of the edge at each position, read once per position (every
     /// position, also outside the component); a weight of 0 is no edge.
     ///
     /// - Precondition: `source` and `target` are vertices of the graph, every weight is finite and
-    ///   nonnegative, and `tolerance > 0`.
+    ///   nonnegative, `tolerance > 0`, and `maxIterations`, when given, is at least 1.
+    /// - Throws: `NoConvergence` after `maxIterations` conjugate-gradient iterations (one
+    ///   matrix–vector product each; 20,000 + 2n when nil), with that count and the residual's norm
+    ///   relative to the right-hand side's. No input has reached the default limit in the
+    ///   measurements.
     @inlinable
-    public func resistanceDistance<W: BinaryInteger>(from source: Vertex, to target: Vertex, weight: (Edges.Index) -> W, tolerance: Double = 1e-10) -> Double? {
+    public func resistanceDistance<W: BinaryInteger>(from source: Vertex, to target: Vertex, weight: (Edges.Index) -> W, tolerance: Double = 1e-10, maxIterations: Int? = nil) throws(NoConvergence) -> Double? {
         precondition(tolerance > 0, "The tolerance is not positive")
+        _checkMaxIterations(maxIterations)
         let numbering = _vertexNumbering()
         let s = _spectralNumber(of: source, numbering), t = _spectralNumber(of: target, numbering)
         if s == t { return 0 }
-        return _spectralAdjacency(_spectralWeights(weight), numbering: numbering).resistance(from: s, to: t, tolerance: tolerance)
+        return try _spectralAdjacency(_spectralWeights(weight), numbering: numbering).resistance(from: s, to: t, tolerance: tolerance, maxIterations: maxIterations)
     }
 
     /// The resistance distance between `source` and `target` (Klein and Randić 1993): the
@@ -131,21 +140,25 @@ extension Graph {
     /// or, on a weight spread that puts that below rounding, until the true residual stops
     /// improving. Jacobi preconditioned for 300 iterations, then by a modified incomplete Cholesky
     /// factor in maximum-spanning-tree order. O((n + m) √κ) time; about 9 n words, and O(n + m) for
-    /// the factor when it is built. Traps after 20,000 + 2n products, which no input has reached
-    /// in the measurements.
+    /// the factor when it is built.
     ///
     /// `weight` gives the conductance of the edge at each position, read once per position (every
     /// position, also outside the component); a weight of 0 is no edge.
     ///
     /// - Precondition: `source` and `target` are vertices of the graph, every weight is finite and
-    ///   nonnegative, and `tolerance > 0`.
+    ///   nonnegative, `tolerance > 0`, and `maxIterations`, when given, is at least 1.
+    /// - Throws: `NoConvergence` after `maxIterations` conjugate-gradient iterations (one
+    ///   matrix–vector product each; 20,000 + 2n when nil), with that count and the residual's norm
+    ///   relative to the right-hand side's. No input has reached the default limit in the
+    ///   measurements.
     @inlinable
-    public func resistanceDistance<W: BinaryFloatingPoint>(from source: Vertex, to target: Vertex, weight: (Edges.Index) -> W, tolerance: Double = 1e-10) -> Double? {
+    public func resistanceDistance<W: BinaryFloatingPoint>(from source: Vertex, to target: Vertex, weight: (Edges.Index) -> W, tolerance: Double = 1e-10, maxIterations: Int? = nil) throws(NoConvergence) -> Double? {
         precondition(tolerance > 0, "The tolerance is not positive")
+        _checkMaxIterations(maxIterations)
         let numbering = _vertexNumbering()
         let s = _spectralNumber(of: source, numbering), t = _spectralNumber(of: target, numbering)
         if s == t { return 0 }
-        return _spectralAdjacency(_spectralWeights(weight), numbering: numbering).resistance(from: s, to: t, tolerance: tolerance)
+        return try _spectralAdjacency(_spectralWeights(weight), numbering: numbering).resistance(from: s, to: t, tolerance: tolerance, maxIterations: maxIterations)
     }
 
     /// The effective graph resistance (the Kirchhoff index of Klein and Randić): the sum of

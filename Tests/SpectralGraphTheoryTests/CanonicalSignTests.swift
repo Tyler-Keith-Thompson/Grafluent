@@ -18,7 +18,7 @@ struct CanonicalSignTests {
         // positive, where an absolute 1e-9 threshold would make the middle positive instead.
         let graph = ReferencePseudograph(vertices: [2, 0, 1, 3, 4], edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2), UndirectedEdge(2, 3), UndirectedEdge(3, 4)])
         let weights: [Double] = [1, 1, 1.00001, 1]
-        let fiedler = try #require(graph.fiedlerVector(weight: { weights[$0] }))
+        let fiedler = try #require(try graph.fiedlerVector(weight: { weights[$0] }))
         #expect(abs(fiedler.algebraicConnectivity - 0.3819673932056512) <= 1e-6 * 4)
         #expect(abs(fiedler.value(of: 0) - 0.601501901) <= 1e-5)
         #expect(abs(fiedler.value(of: 4) + 0.601500752) <= 1e-5)
@@ -29,7 +29,7 @@ struct CanonicalSignTests {
     @Test("Dense path: P₅ with its middle vertex (entry 0) listed first is signed by the next entry")
     func zeroFirstEntryDense() throws {
         let graph = ReferencePseudograph(vertices: [2, 0, 1, 3, 4], edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2), UndirectedEdge(2, 3), UndirectedEdge(3, 4)])
-        let fiedler = try #require(graph.fiedlerVector())
+        let fiedler = try #require(try graph.fiedlerVector())
         #expect(abs(fiedler.value(of: 2)) <= 1e-6)
         #expect(abs(fiedler.value(of: 0) - 0.601500955) <= 1e-5)
         #expect(abs(fiedler.value(of: 4) + 0.601500955) <= 1e-5)
@@ -40,7 +40,7 @@ struct CanonicalSignTests {
         let n = 65
         let listed = [32] + Array(0 ..< 32) + Array(33 ..< n)
         let graph = ReferencePseudograph(vertices: listed, edges: (0 ..< n - 1).map { UndirectedEdge($0, $0 + 1) })
-        let fiedler = try #require(graph.fiedlerVector(normalized: normalized))
+        let fiedler = try #require(try graph.fiedlerVector(normalized: normalized))
         // The middle entry is 0 up to the iteration's noise; the vector is odd about the middle.
         #expect(abs(fiedler.value(of: 32)) <= 1e-5)
         #expect(fiedler.value(of: 0) > 0.1)
@@ -50,7 +50,7 @@ struct CanonicalSignTests {
         }
         // The ordering follows the vector: on L it ascends from the far end. (N's vector is not
         // monotone along a path: its end entries are scaled by √1 against √2 inside.)
-        let order = graph.spectralOrdering(normalized: normalized)
+        let order = try graph.spectralOrdering(normalized: normalized)
         if normalized {
             #expect(order.sorted() == Array(0 ..< n))
             for (a, b) in zip(order, order.dropFirst()) {

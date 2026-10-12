@@ -1,5 +1,5 @@
 // §A: the empty graph (both kinds), K₁, three isolated vertices and K₂: every measure. The empty graph
-// gives an empty result for every measure, iterative ones included (not nil: there is nothing to
+// gives an empty result for every measure, iterative ones included (no throw: there is nothing to
 // iterate); one vertex scores 1 for degree (NetworkX's rule) and 0 for closeness, harmonic and
 // betweenness; edgeless graphs are uniform for eigenvector, Katz, PageRank and HITS (api.md).
 // Expected values are ref.py's model at full precision (the catalog cells are the same values
@@ -113,11 +113,11 @@ struct CentralityDegenerateGraphTests {
         }
     }
 
-    @Test("CE-005 U([]).eigenvectorCentrality() is []: Not nil: there is nothing to iterate")
+    @Test("CE-005 U([]).eigenvectorCentrality() is []: No throw: there is nothing to iterate")
     func eigenvector005() throws {
         // U: []
         let graph = ReferencePseudograph<Int>(vertices: [], edges: [])
-        let result = try #require(graph.eigenvectorCentrality())
+        let result = try graph.eigenvectorCentrality()
         let expected: [Double] = []
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -128,7 +128,7 @@ struct CentralityDegenerateGraphTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = try #require(graph.directed.eigenvectorCentrality())
+        let arcs = try graph.directed.eigenvectorCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
             #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -139,7 +139,7 @@ struct CentralityDegenerateGraphTests {
     func katz006() throws {
         // U: []
         let graph = ReferencePseudograph<Int>(vertices: [], edges: [])
-        let result = try #require(graph.katzCentrality())
+        let result = try graph.katzCentrality()
         let expected: [Double] = []
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -150,7 +150,7 @@ struct CentralityDegenerateGraphTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = try #require(graph.directed.katzCentrality())
+        let arcs = try graph.directed.katzCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
             #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -161,7 +161,7 @@ struct CentralityDegenerateGraphTests {
     func pageRank007() throws {
         // U: []
         let graph = ReferencePseudograph<Int>(vertices: [], edges: [])
-        let result = try #require(graph.pageRank())
+        let result = try graph.pageRank()
         let expected: [Double] = []
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -172,7 +172,7 @@ struct CentralityDegenerateGraphTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = try #require(graph.directed.pageRank())
+        let arcs = try graph.directed.pageRank()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
             #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -183,7 +183,7 @@ struct CentralityDegenerateGraphTests {
     func hits008() throws {
         // D: []
         let graph = ReferenceDirectedMultigraph<Int>(vertices: [], edges: [])
-        let scores = try #require(graph.hits())
+        let scores = try graph.hits()
         let result = scores.hubs
         let expected: [Double] = []
         #expect(result.scores.count == expected.count)
@@ -323,7 +323,7 @@ struct CentralityDegenerateGraphTests {
     func eigenvector014() throws {
         // U: [0]
         let graph = ReferencePseudograph<Int>(vertices: 0 ..< 1, edges: [])
-        let result = try #require(graph.eigenvectorCentrality())
+        let result = try graph.eigenvectorCentrality()
         let expected: [Double] = [1]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -336,7 +336,7 @@ struct CentralityDegenerateGraphTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try #require(graph.directed.eigenvectorCentrality())
+        let arcs = try graph.directed.eigenvectorCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
             #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -347,7 +347,7 @@ struct CentralityDegenerateGraphTests {
     func katz015() throws {
         // U: [0]
         let graph = ReferencePseudograph<Int>(vertices: 0 ..< 1, edges: [])
-        let result = try #require(graph.katzCentrality())
+        let result = try graph.katzCentrality()
         let expected: [Double] = [1]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -360,7 +360,7 @@ struct CentralityDegenerateGraphTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try #require(graph.directed.katzCentrality())
+        let arcs = try graph.directed.katzCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
             #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -371,7 +371,7 @@ struct CentralityDegenerateGraphTests {
     func pageRank016() throws {
         // U: [0]
         let graph = ReferencePseudograph<Int>(vertices: 0 ..< 1, edges: [])
-        let result = try #require(graph.pageRank())
+        let result = try graph.pageRank()
         let expected: [Double] = [1]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -384,7 +384,7 @@ struct CentralityDegenerateGraphTests {
         #expect(byVertex == result.scores)
         let total = result.scores.reduce(0, +)
         #expect(abs(total - 1) <= 1e-12, "scores sum to 1")
-        let arcs = try #require(graph.directed.pageRank())
+        let arcs = try graph.directed.pageRank()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
             #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -395,7 +395,7 @@ struct CentralityDegenerateGraphTests {
     func hits017() throws {
         // D: [0]
         let graph = ReferenceDirectedMultigraph<Int>(vertices: 0 ..< 1, edges: [])
-        let scores = try #require(graph.hits())
+        let scores = try graph.hits()
         let result = scores.hubs
         let expected: [Double] = [1]
         #expect(result.scores.count == expected.count)
@@ -442,7 +442,7 @@ struct CentralityDegenerateGraphTests {
     func eigenvector019() throws {
         // U: [0..2]
         let graph = ReferencePseudograph<Int>(vertices: 0 ..< 3, edges: [])
-        let result = try #require(graph.eigenvectorCentrality())
+        let result = try graph.eigenvectorCentrality()
         let expected: [Double] = [0.5773502691896257, 0.5773502691896257, 0.5773502691896257]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -455,7 +455,7 @@ struct CentralityDegenerateGraphTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try #require(graph.directed.eigenvectorCentrality())
+        let arcs = try graph.directed.eigenvectorCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
             #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -466,7 +466,7 @@ struct CentralityDegenerateGraphTests {
     func katz020() throws {
         // U: [0..2]
         let graph = ReferencePseudograph<Int>(vertices: 0 ..< 3, edges: [])
-        let result = try #require(graph.katzCentrality())
+        let result = try graph.katzCentrality()
         let expected: [Double] = [0.5773502691896258, 0.5773502691896258, 0.5773502691896258]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -479,7 +479,7 @@ struct CentralityDegenerateGraphTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try #require(graph.directed.katzCentrality())
+        let arcs = try graph.directed.katzCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
             #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -490,7 +490,7 @@ struct CentralityDegenerateGraphTests {
     func katz021() throws {
         // U: [0..2]
         let graph = ReferencePseudograph<Int>(vertices: 0 ..< 3, edges: [])
-        let result = try #require(graph.katzCentrality(normalized: false))
+        let result = try graph.katzCentrality(normalized: false)
         let expected: [Double] = [1, 1, 1]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -501,7 +501,7 @@ struct CentralityDegenerateGraphTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = try #require(graph.directed.katzCentrality(normalized: false))
+        let arcs = try graph.directed.katzCentrality(normalized: false)
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
             #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -512,7 +512,7 @@ struct CentralityDegenerateGraphTests {
     func pageRank022() throws {
         // U: [0..2]
         let graph = ReferencePseudograph<Int>(vertices: 0 ..< 3, edges: [])
-        let result = try #require(graph.pageRank())
+        let result = try graph.pageRank()
         let expected: [Double] = [0.3333333333333333, 0.3333333333333333, 0.3333333333333333]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -525,7 +525,7 @@ struct CentralityDegenerateGraphTests {
         #expect(byVertex == result.scores)
         let total = result.scores.reduce(0, +)
         #expect(abs(total - 1) <= 1e-12, "scores sum to 1")
-        let arcs = try #require(graph.directed.pageRank())
+        let arcs = try graph.directed.pageRank()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
             #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -536,7 +536,7 @@ struct CentralityDegenerateGraphTests {
     func hits023() throws {
         // D: [0..2]
         let graph = ReferenceDirectedMultigraph<Int>(vertices: 0 ..< 3, edges: [])
-        let scores = try #require(graph.hits())
+        let scores = try graph.hits()
         let result = scores.authorities
         let expected: [Double] = [0.3333333333333333, 0.3333333333333333, 0.3333333333333333]
         #expect(result.scores.count == expected.count)

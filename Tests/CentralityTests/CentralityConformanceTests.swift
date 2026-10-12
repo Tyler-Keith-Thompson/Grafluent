@@ -55,14 +55,14 @@ struct CentralityConformanceTests {
         // D: 0>1, 0>2, 3>1
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (3, 1)]
         let digraph = AdjacencyList(vertices: 0 ..< 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        let hits = try #require(await Task { digraph.hits() }.value)
+        let hits = try await Task { try digraph.hits() }.value
         let hubs = requireSendable(hits).hubs
         let expectedHubs: [Double] = [0.6180339887498947, 0, 0, 0.38196601125010526]
         for (i, value) in expectedHubs.enumerated() {
             let error = abs(hubs.score(ofIndex: i) - value)
             #expect(error <= 1e-4, "index \(i)")
         }
-        let pageRank = try #require(await Task { graph.pageRank() }.value)
+        let pageRank = try await Task { try graph.pageRank() }.value
         #expect(requireSendable(pageRank).scores.count == 5)
     }
 
@@ -89,7 +89,7 @@ struct CentralityConformanceTests {
 
     @Test("CE-030, CE-050, CE-070, CE-090, CE-094, CE-132, CE-160, CE-181 from generic code over some Graph, and CE-121, CE-177 over some DirectedGraph")
     func genericCode() throws {
-        func undirected<G: Graph>(_ g: G, at v: G.Vertex) -> [Double?] {
+        func undirected<G: Graph>(_ g: G, at v: G.Vertex) throws -> [Double?] {
             [
                 g.degreeCentrality().score(of: v),
                 g.closenessCentrality().score(of: v),
@@ -97,21 +97,21 @@ struct CentralityConformanceTests {
                 g.harmonicCentrality().score(of: v),
                 g.harmonicCentrality(of: v),
                 g.betweennessCentrality().score(of: v),
-                g.eigenvectorCentrality()?.score(of: v),
-                g.katzCentrality()?.score(of: v),
-                g.pageRank()?.score(of: v)
+                try g.eigenvectorCentrality().score(of: v),
+                try g.katzCentrality().score(of: v),
+                try g.pageRank().score(of: v)
             ]
         }
-        func directed<G: DirectedGraph>(_ g: G, at v: G.Vertex) -> [Double?] {
+        func directed<G: DirectedGraph>(_ g: G, at v: G.Vertex) throws -> [Double?] {
             [
                 g.betweennessCentrality(normalized: false).score(of: v),
-                g.pageRank()?.score(of: v),
-                g.hits()?.hubs.score(of: v)
+                try g.pageRank().score(of: v),
+                try g.hits().hubs.score(of: v)
             ]
         }
         // U: S(0;1..4): CE-030, CE-094, CE-132, CE-181 at the hub
         let star = ReferencePseudograph(vertices: 0 ..< 5, edges: (1 ... 4).map { UndirectedEdge(0, $0) })
-        let hub = undirected(star, at: 0)
+        let hub = try undirected(star, at: 0)
         let hubDegree = try #require(hub[0])
         #expect(abs(hubDegree - 1) <= 1e-12)
         let hubBetweenness = try #require(hub[5])
@@ -122,7 +122,7 @@ struct CentralityConformanceTests {
         #expect(abs(hubPageRank - 0.47567567567567465) <= 1e-4)
         // U: P(0..4): CE-050, CE-070 at vertex 2; U: P(0,1,2): CE-160 at vertex 1
         let path = ReferencePseudograph(vertices: 0 ..< 5, edges: (0 ..< 4).map { UndirectedEdge($0, $0 + 1) })
-        let middle = undirected(path, at: 2)
+        let middle = try undirected(path, at: 2)
         let closeness = try #require(middle[1])
         #expect(abs(closeness - 0.6666666666666666) <= 1e-12)
         let closenessOne = try #require(middle[2])
@@ -155,7 +155,7 @@ struct CentralityConformanceTests {
         let betweennessByValue: [Double] = [0.6666666666666666, 0.6666666666666666, 0.3333333333333333, 0.3333333333333333]
         let eigenvectorByValue: [Double] = [0.6015009550075454, 0.6015009550075454, 0.37174803446018484, 0.37174803446018484]
         let betweenness = graph.betweennessCentrality(normalized: false)
-        let eigenvector = try #require(graph.eigenvectorCentrality())
+        let eigenvector = try graph.eigenvectorCentrality()
         for (i, v) in graph.vertices.enumerated() {
             let byIndex = abs(betweenness.score(ofIndex: i) - betweennessByValue[v])
             #expect(byIndex <= 1e-12, "index \(i)")
@@ -168,13 +168,21 @@ struct CentralityConformanceTests {
         #expect(byPosition == betweenness.scores)
     }
 
+    @Test("CE-009 one vertex scores 1 for degree on conformers without indices too, with and without a loop")
+    func singleVertexWithoutIndices() {
+        #expect(PlainGraph(vertices: ["a"], edges: []).degreeCentrality().scores == [1])
+        #expect(PlainGraph(vertices: ["a"], edges: [UndirectedEdge("a", "a")]).degreeCentrality().scores == [1])
+        #expect(PlainDigraph(vertices: ["a"], edges: []).degreeCentrality().scores == [1])
+        #expect(PlainDigraph(vertices: ["a"], edges: [DirectedEdge(from: "a", to: "a")]).outDegreeCentrality().scores == [1])
+    }
+
     @Test("CE-177, CE-121, CE-197, CE-198 on a directed conformer without indices, vertices listed in reverse")
     func directedWithoutIndices() throws {
         // D: 0>1, 0>2, 1>2, 2>0, 3>2, vertices listed [3, 2, 1, 0]
         let arcs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (2, 0), (3, 2)]
         let graph = PlainDigraph(vertices: [3, 2, 1, 0], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) })
         let pageRankByValue: [Double] = [0.3725268513284352, 0.1958239118145841, 0.39414923685698067, 0.037500000000000006]
-        let pageRank = try #require(graph.pageRank())
+        let pageRank = try graph.pageRank()
         for (i, v) in graph.vertices.enumerated() {
             let error = abs(pageRank.score(ofIndex: i) - pageRankByValue[v])
             #expect(error <= 1e-4, "index \(i)")
@@ -191,7 +199,7 @@ struct CentralityConformanceTests {
         // D: 0>1, 0>2, 3>1, vertices listed [3, 2, 1, 0]
         let hubPairs: [(Int, Int)] = [(0, 1), (0, 2), (3, 1)]
         let small = PlainDigraph(vertices: [3, 2, 1, 0], edges: hubPairs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        let hits = try #require(small.hits())
+        let hits = try small.hits()
         let hubsByValue: [Double] = [0.6180339887498947, 0, 0, 0.38196601125010526]
         let authoritiesByValue: [Double] = [0, 0.6180339887498951, 0.3819660112501048, 0]
         for v in 0 ..< 4 {
@@ -224,10 +232,10 @@ struct CentralityConformanceTests {
                 g.harmonicCentrality().scores,
                 g.betweennessCentrality().scores,
                 g.betweennessCentrality(weight: { w[g.edges.distance(from: g.edges.startIndex, to: $0)] }).scores,
-                try #require(g.eigenvectorCentrality()).scores,
-                try #require(g.katzCentrality()).scores,
-                try #require(g.pageRank()).scores,
-                try #require(g.directed.hits()).hubs.scores
+                try g.eigenvectorCentrality().scores,
+                try g.katzCentrality().scores,
+                try g.pageRank().scores,
+                try g.directed.hits().hubs.scores
             ]
         }
         let first = try all(reference)

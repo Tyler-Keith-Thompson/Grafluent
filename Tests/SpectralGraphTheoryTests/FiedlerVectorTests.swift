@@ -15,7 +15,7 @@ struct FiedlerVectorTests {
         // U: P(0..3) · fiedlerVector() → λ₂ = 0.5857864376; [0.6532814824, 0.2705980501, -0.2705980501, -0.6532814824]
         let edges: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 4), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let fiedler = try #require(graph.fiedlerVector())
+        let fiedler = try #require(try graph.fiedlerVector())
         // λ₂ to 1e-6 · max(1, scale), scale = 3.4142135623731; entries to 1e-5, canonical sign.
         #expect(abs(fiedler.algebraicConnectivity - 0.5857864376269) <= 1e-6 * 3.4142135623731)
         let expected: [Double] = [0.65328148243819, 0.2705980500731, -0.2705980500731, -0.65328148243819]
@@ -34,7 +34,7 @@ struct FiedlerVectorTests {
         // U: P(0..4) · fiedlerVector() → λ₂ = 0.3819660113; [0.601500955, 0.3717480345, 0, -0.3717480345, -0.601500955]
         let edges: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 5), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let fiedler = try #require(graph.fiedlerVector())
+        let fiedler = try #require(try graph.fiedlerVector())
         // λ₂ to 1e-6 · max(1, scale), scale = 3.6180339887499; entries to 1e-5, canonical sign.
         #expect(abs(fiedler.algebraicConnectivity - 0.3819660112501) <= 1e-6 * 3.6180339887499)
         let expected: [Double] = [0.60150095500755, 0.37174803446018, 2e-16, -0.37174803446018, -0.60150095500755]
@@ -53,7 +53,7 @@ struct FiedlerVectorTests {
         // U: P(2,0,3,1) · fiedlerVector() → λ₂ = 0.5857864376; [0.6532814824, 0.2705980501, -0.2705980501, -0.6532814824]
         let edges: [(Int, Int)] = [(2, 0), (0, 3), (3, 1)]
         let graph = ReferencePseudograph(vertices: [2, 0, 3, 1], edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let fiedler = try #require(graph.fiedlerVector())
+        let fiedler = try #require(try graph.fiedlerVector())
         // λ₂ to 1e-6 · max(1, scale), scale = 3.4142135623731; entries to 1e-5, canonical sign.
         #expect(abs(fiedler.algebraicConnectivity - 0.5857864376269) <= 1e-6 * 3.4142135623731)
         let expected: [Double] = [0.65328148243819, 0.2705980500731, -0.2705980500731, -0.65328148243819]
@@ -72,7 +72,7 @@ struct FiedlerVectorTests {
         // U: P(3,2,1,0) · fiedlerVector() → λ₂ = 0.5857864376; [0.6532814824, 0.2705980501, -0.2705980501, -0.6532814824]
         let edges: [(Int, Int)] = [(3, 2), (2, 1), (1, 0)]
         let graph = ReferencePseudograph(vertices: [3, 2, 1, 0], edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let fiedler = try #require(graph.fiedlerVector())
+        let fiedler = try #require(try graph.fiedlerVector())
         // λ₂ to 1e-6 · max(1, scale), scale = 3.4142135623731; entries to 1e-5, canonical sign.
         #expect(abs(fiedler.algebraicConnectivity - 0.5857864376269) <= 1e-6 * 3.4142135623731)
         let expected: [Double] = [0.65328148243819, 0.2705980500731, -0.2705980500731, -0.65328148243819]
@@ -94,7 +94,7 @@ struct FiedlerVectorTests {
             (3, 4),
         ]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 8), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let fiedler = try #require(graph.fiedlerVector())
+        let fiedler = try #require(try graph.fiedlerVector())
         // λ₂ to 1e-6 · max(1, scale), scale = 5.6457513110646; entries to 1e-5, canonical sign.
         #expect(abs(fiedler.algebraicConnectivity - 0.3542486889354) <= 1e-6 * 5.6457513110646)
         let expected: [Double] = [0.38252766196473, 0.38252766196473, 0.38252766196473, 0.2470177392322, -0.2470177392322, -0.38252766196473, -0.38252766196473, -0.38252766196473]
@@ -116,7 +116,7 @@ struct FiedlerVectorTests {
             (6, 10), (7, 11), (8, 9), (9, 10), (10, 11),
         ]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 12), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let fiedler = try #require(graph.fiedlerVector())
+        let fiedler = try #require(try graph.fiedlerVector())
         // λ₂ to 1e-6 · max(1, scale), scale = 6.4142135623731; entries to 1e-5, canonical sign.
         #expect(abs(fiedler.algebraicConnectivity - 0.5857864376269) <= 1e-6 * 6.4142135623731)
         let expected: [Double] = [
@@ -139,7 +139,7 @@ struct FiedlerVectorTests {
         let edges: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 4), edges: edges.map { UndirectedEdge($0.0, $0.1) })
         let weights: [Int] = [1, 2, 3]
-        let fiedler = try #require(graph.fiedlerVector(weight: { weights[$0] }))
+        let fiedler = try #require(try graph.fiedlerVector(weight: { weights[$0] }))
         // λ₂ to 1e-6 · max(1, scale), scale = 7.7587704831436; entries to 1e-5, canonical sign.
         #expect(abs(fiedler.algebraicConnectivity - 0.93582222752409) <= 1e-6 * 7.7587704831436)
         let expected: [Double] = [0.79312841385727, 0.05090121488871, -0.34402962874599, -0.5]
@@ -158,7 +158,7 @@ struct FiedlerVectorTests {
         // U: 0=1, P(1,2,3) · fiedlerVector() → λ₂ = 0.6570769172; [0.5605806578, 0.3764083525, -0.2392654978, -0.6977235125]
         let edges: [(Int, Int)] = [(0, 1), (0, 1), (1, 2), (2, 3)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 4), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let fiedler = try #require(graph.fiedlerVector())
+        let fiedler = try #require(try graph.fiedlerVector())
         // λ₂ to 1e-6 · max(1, scale), scale = 4.8136065026483; entries to 1e-5, canonical sign.
         #expect(abs(fiedler.algebraicConnectivity - 0.65707691722283) <= 1e-6 * 4.8136065026483)
         let expected: [Double] = [0.56058065775662, 0.37640835252989, -0.23926549782084, -0.69772351246567]
@@ -177,7 +177,7 @@ struct FiedlerVectorTests {
         // U: 1-1, P(0..3) · fiedlerVector() → λ₂ = 0.5857864376; [0.2705980501, 0.6532814824, -0.2705980501, -0.6532814824]
         let edges: [(Int, Int)] = [(1, 1), (0, 1), (1, 2), (2, 3)]
         let graph = ReferencePseudograph(vertices: [1, 0, 2, 3], edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let fiedler = try #require(graph.fiedlerVector())
+        let fiedler = try #require(try graph.fiedlerVector())
         // λ₂ to 1e-6 · max(1, scale), scale = 3.4142135623731; entries to 1e-5, canonical sign.
         #expect(abs(fiedler.algebraicConnectivity - 0.5857864376269) <= 1e-6 * 3.4142135623731)
         let expected: [Double] = [0.2705980500731, 0.65328148243819, -0.2705980500731, -0.65328148243819]
@@ -196,7 +196,7 @@ struct FiedlerVectorTests {
         // U: P(0..3) · fiedlerVector(normalized: true) → λ₂ = 0.5; [0.5773502692, 0.4082482905, -0.4082482905, -0.5773502692]
         let edges: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 4), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let fiedler = try #require(graph.fiedlerVector(normalized: true))
+        let fiedler = try #require(try graph.fiedlerVector(normalized: true))
         // λ₂ to 1e-6 · max(1, scale), scale = 2; entries to 1e-5, canonical sign.
         #expect(abs(fiedler.algebraicConnectivity - 0.5) <= 1e-6 * 2)
         let expected: [Double] = [0.57735026918963, 0.40824829046386, -0.40824829046386, -0.57735026918963]
@@ -223,7 +223,7 @@ struct FiedlerVectorTests {
             (29, 33), (30, 32), (30, 33), (31, 32), (31, 33), (32, 33),
         ]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 34), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let fiedler = try #require(graph.fiedlerVector())
+        let fiedler = try #require(try graph.fiedlerVector())
         // λ₂ to 1e-6 · max(1, scale), scale = 18.1366959730044; entries to 1e-5, canonical sign.
         #expect(abs(fiedler.algebraicConnectivity - 0.4685252267014) <= 1e-6 * 18.1366959730044)
         let expected: [Double] = [
@@ -248,11 +248,11 @@ struct FiedlerVectorTests {
         // U: K(4) · fiedlerVector() → degenerate: λ₂ = 4 ×3 (some unit vector of that eigenspace)
         let edges: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 4), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let fiedler = try #require(graph.fiedlerVector())
+        let fiedler = try #require(try graph.fiedlerVector())
         // Degenerate: λ₂ = 4 with multiplicity 3. Only invariants are pinned.
         let scale: Double = 4
         #expect(abs(fiedler.algebraicConnectivity - 4) <= 1e-6 * scale)
-        #expect(graph.laplacianSpectrum().filter { abs($0 - 4) <= 1e-6 * scale }.count == 3)
+        #expect(try graph.laplacianSpectrum().filter { abs($0 - 4) <= 1e-6 * scale }.count == 3)
         let x = fiedler.values
         #expect(x.count == 4)
         #expect(abs(x.reduce(0) { $0 + $1 * $1 } - 1) <= 1e-9)
@@ -269,11 +269,11 @@ struct FiedlerVectorTests {
         // U: C(0..5) · fiedlerVector() → degenerate: λ₂ = 1 ×2 (some unit vector of that eigenspace)
         let edges: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 6), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let fiedler = try #require(graph.fiedlerVector())
+        let fiedler = try #require(try graph.fiedlerVector())
         // Degenerate: λ₂ = 1 with multiplicity 2. Only invariants are pinned.
         let scale: Double = 4
         #expect(abs(fiedler.algebraicConnectivity - 1) <= 1e-6 * scale)
-        #expect(graph.laplacianSpectrum().filter { abs($0 - 1) <= 1e-6 * scale }.count == 2)
+        #expect(try graph.laplacianSpectrum().filter { abs($0 - 1) <= 1e-6 * scale }.count == 2)
         let x = fiedler.values
         #expect(x.count == 6)
         #expect(abs(x.reduce(0) { $0 + $1 * $1 } - 1) <= 1e-9)
@@ -290,11 +290,11 @@ struct FiedlerVectorTests {
         // U: S(0;1..4) · fiedlerVector() → degenerate: λ₂ = 1 ×3 (some unit vector of that eigenspace)
         let edges: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 5), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let fiedler = try #require(graph.fiedlerVector())
+        let fiedler = try #require(try graph.fiedlerVector())
         // Degenerate: λ₂ = 1 with multiplicity 3. Only invariants are pinned.
         let scale: Double = 5
         #expect(abs(fiedler.algebraicConnectivity - 1) <= 1e-6 * scale)
-        #expect(graph.laplacianSpectrum().filter { abs($0 - 1) <= 1e-6 * scale }.count == 3)
+        #expect(try graph.laplacianSpectrum().filter { abs($0 - 1) <= 1e-6 * scale }.count == 3)
         let x = fiedler.values
         #expect(x.count == 5)
         #expect(abs(x.reduce(0) { $0 + $1 * $1 } - 1) <= 1e-9)
@@ -311,11 +311,11 @@ struct FiedlerVectorTests {
         // U: Q(3) · fiedlerVector() → degenerate: λ₂ = 2 ×3 (some unit vector of that eigenspace)
         let edges: [(Int, Int)] = [(0, 1), (0, 2), (0, 4), (1, 3), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 6), (5, 7), (6, 7)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 8), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let fiedler = try #require(graph.fiedlerVector())
+        let fiedler = try #require(try graph.fiedlerVector())
         // Degenerate: λ₂ = 2 with multiplicity 3. Only invariants are pinned.
         let scale: Double = 6
         #expect(abs(fiedler.algebraicConnectivity - 2) <= 1e-6 * scale)
-        #expect(graph.laplacianSpectrum().filter { abs($0 - 2) <= 1e-6 * scale }.count == 3)
+        #expect(try graph.laplacianSpectrum().filter { abs($0 - 2) <= 1e-6 * scale }.count == 3)
         let x = fiedler.values
         #expect(x.count == 8)
         #expect(abs(x.reduce(0) { $0 + $1 * $1 } - 1) <= 1e-9)
@@ -328,27 +328,27 @@ struct FiedlerVectorTests {
     }
 
     @Test("SGT-123 disconnected")
-    func sgt123() {
+    func sgt123() throws {
         // U: C(0,1,2), C(3,4,5) · fiedlerVector() → nil
         let edges: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (3, 4), (4, 5), (5, 3)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 6), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        #expect(graph.fiedlerVector() == nil)
+        #expect(try graph.fiedlerVector() == nil)
     }
 
     @Test("SGT-124 two isolated vertices")
-    func sgt124() {
+    func sgt124() throws {
         // U: E(2) · fiedlerVector() → nil
         let edges: [(Int, Int)] = []
         let graph = ReferencePseudograph(vertices: Array(0 ..< 2), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        #expect(graph.fiedlerVector() == nil)
+        #expect(try graph.fiedlerVector() == nil)
     }
 
     @Test("SGT-125 weight 0 disconnects")
-    func sgt125() {
+    func sgt125() throws {
         // U: P(0..3) · fiedlerVector(weight:) [1, 0, 1] → nil
         let edges: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 4), edges: edges.map { UndirectedEdge($0.0, $0.1) })
         let weights: [Int] = [1, 0, 1]
-        #expect(graph.fiedlerVector(weight: { weights[$0] }) == nil)
+        #expect(try graph.fiedlerVector(weight: { weights[$0] }) == nil)
     }
 }

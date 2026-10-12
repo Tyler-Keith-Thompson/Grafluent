@@ -217,8 +217,14 @@ def scale_of(g, w, name, call):
 # Calls
 # ---------------------------------------------------------------------------------------------
 
+# The entry points that iterate, so throw `NoConvergence`: their calls are written with `try`.
+THROWING = ("adjacencySpectrum", "laplacianSpectrum", "normalizedLaplacianSpectrum", "algebraicConnectivity",
+            "fiedlerVector", "spectralOrdering", "spectralRadius", "resistanceDistance")
+
+
 def call_expr(call, wr, var="graph"):
-    """The Swift call, with `weights` passed as the closure when the row has them."""
+    """The Swift call, with `weights` passed as the closure when the row has them, and `try` when
+    it throws."""
     if call.endswith(" weight:"):
         call = call[:-len(" weight:")]
     name = call.split("(")[0]
@@ -229,7 +235,7 @@ def call_expr(call, wr, var="graph"):
             args.append("weight: { weights[$0] }")
         else:
             args.insert(0, "weight: { weights[$0] }")
-    return "%s.%s(%s)" % (var, name, ", ".join(args))
+    return "%s%s.%s(%s)" % ("try " if name in THROWING else "", var, name, ", ".join(args))
 
 
 def weight_decl(wr, ind="        "):
@@ -402,7 +408,7 @@ def fiedler_lines(g, w, call, v, ce):
     out = ["        let fiedler = try #require(%s)" % ce]
     if v[0] == "degenerate":
         lam, k = v[1], v[2]
-        spec = "graph.%s(%s)" % ("normalizedLaplacianSpectrum" if normalized else "laplacianSpectrum", wcall)
+        spec = "try graph.%s(%s)" % ("normalizedLaplacianSpectrum" if normalized else "laplacianSpectrum", wcall)
         z = null_vector(g, w, normalized)
         out += ["        // Degenerate: λ₂ = %s with multiplicity %d. Only invariants are pinned." % (num(lam), k),
                 "        let scale: Double = %s" % num(s),
@@ -454,7 +460,7 @@ def ordering_lines(g, w, call, v, ce):
             "        // more than 1e-4.",
             "        let catalog = %s" % ints(names),
             "        #expect(order.sorted() == catalog.sorted())",
-            "        let fiedler = try #require(graph.fiedlerVector())",
+            "        let fiedler = try #require(try graph.fiedlerVector())",
             "        for (a, b) in zip(order, order.dropFirst()) {",
             "            #expect(fiedler.value(of: a) <= fiedler.value(of: b) + 1e-6, \"\\(a) before \\(b)\")",
             "        }",
@@ -476,12 +482,12 @@ WITHOUT = {
     33: ("weights", "[Double]", "[1, 2]", "        #expect(graph.laplacianMatrix(weight: { weights[$0] }).nonzeroCount == 7)"),
     34: ("weights", "[Double]", "[1, 2]", "        #expect(graph.laplacianMatrix(weight: { weights[$0] }).nonzeroCount == 7)"),
     35: ("weights", "[Double]", "[1, 2]", "        #expect(graph.adjacencyMatrix(weight: { weights[$0] }).nonzeroCount == 4)"),
-    84: ("weights", "[Int]", "[1, 1]", "        #expect(graph.laplacianSpectrum(weight: { weights[$0] }).count == 3)"),
-    106: ("graph", None, None, "        #expect(abs(graph.algebraicConnectivity() - 2) <= 1e-6 * 2)"),
-    107: ("graph", None, None, "        #expect(abs(graph.algebraicConnectivity() - 2) <= 1e-6 * 2)"),
-    126: ("graph", None, None, "        #expect(graph.fiedlerVector()?.values.count == 2)"),
-    183: ("call", None, None, "        #expect(graph.resistanceDistance(from: 0, to: 2).map { abs($0 - 2) <= 1e-6 * 2 } == true)"),
-    184: ("weights", "[Int]", "[1, 1]", "        #expect(graph.resistanceDistance(from: 0, to: 2, weight: { weights[$0] }).map { abs($0 - 2) <= 1e-6 * 2 } == true)"),
+    84: ("weights", "[Int]", "[1, 1]", "        #expect(try graph.laplacianSpectrum(weight: { weights[$0] }).count == 3)"),
+    106: ("graph", None, None, "        #expect(abs(try graph.algebraicConnectivity() - 2) <= 1e-6 * 2)"),
+    107: ("graph", None, None, "        #expect(abs(try graph.algebraicConnectivity() - 2) <= 1e-6 * 2)"),
+    126: ("graph", None, None, "        #expect(try graph.fiedlerVector()?.values.count == 2)"),
+    183: ("call", None, None, "        #expect(try graph.resistanceDistance(from: 0, to: 2).map { abs($0 - 2) <= 1e-6 * 2 } == true)"),
+    184: ("weights", "[Int]", "[1, 1]", "        #expect(try graph.resistanceDistance(from: 0, to: 2, weight: { weights[$0] }).map { abs($0 - 2) <= 1e-6 * 2 } == true)"),
     210: ("call", None, None, "        #expect(graph.numberOfSpanningTrees(root: 0) == 1)"),
 }
 
@@ -511,6 +517,8 @@ def trap_test(n):
         lines += graph_lines(g)
     lines.append(check)
     lines.append("    }")
+    if any(re.search(r"(^|[^A-Za-z])try ", l) for l in lines):
+        lines[1] = lines[1].replace("() async {", "() async throws {")
     return lines
 
 
@@ -536,7 +544,7 @@ def phase2_test(n):
             lines.append("        #expect(%s == nil)" % ce)
         elif v[0] == "degenerate":
             lines += ["        let split = try #require(%s)" % ce,
-                      "        let fiedler = try #require(graph.fiedlerVector())",
+                      "        let fiedler = try #require(try graph.fiedlerVector())",
                       "        let all = (split.negative + split.nonnegative).sorted()",
                       "        #expect(all == Array(graph.vertices).sorted())",
                       "        #expect(split.negative.allSatisfy { fiedler.value(of: $0) < 0 })",

@@ -180,6 +180,16 @@ def check_vector(lines, ind, result, expected, tol, target):
     lines.append(f"{ind}#expect(byVertex == {result}.scores)")
 
 
+def no_convergence(ind, var, expr, name, a):
+    """An iterative row with no limit: the call throws NoConvergence after `maxIterations` steps,
+    whose last change over n is not below the tolerance (NaN or infinite once Katz overflows)."""
+    limit = a.get("maxIterations", 1000 if name == "katzCentrality" else 100)
+    tol = a.get("tolerance", 1e-8 if name == "hits" else 1e-6)
+    return [f"{ind}let {var} = #expect(throws: NoConvergence.self) {{ try {expr} }}",
+            f"{ind}#expect({var}?.iterations == {num(limit)})",
+            f"{ind}#expect({var}.map {{ !($0.residual < {num(float(tol))}) }} == true)"]
+
+
 def emit_row_body(row, ind, kind="reference", override=None):
     """Body lines checking one row (graph already built). Returns (lines, throws)."""
     g = ref.parse_graph(row["g"])
@@ -196,9 +206,9 @@ def emit_row_body(row, ind, kind="reference", override=None):
     if name == "hits":
         text_full = f"{target}.{text}"
         if dflt is None:
-            lines.append(f"{ind}#expect({text_full} == nil)")
+            lines += no_convergence(ind, "failure", text_full, name, a)
             return lines, throws
-        lines.append(f"{ind}let scores = try #require({text_full})")
+        lines.append(f"{ind}let scores = try {text_full}")
         lines.append(f"{ind}let result = scores.{part}")
         throws = True
         check_vector(lines, ind, "result", exact, tol, target)
@@ -213,9 +223,9 @@ def emit_row_body(row, ind, kind="reference", override=None):
             lines.append(f"{ind}#expect(abs(otherTotal - 1) <= 1e-12)")
         return lines, throws
     if iterative and dflt is None:
-        lines.append(f"{ind}#expect({target}.{text} == nil)")
+        lines += no_convergence(ind, "failure", f"{target}.{text}", name, a)
         if view is None and not g.directed:
-            lines.append(f"{ind}#expect(graph.directed.{call(name, a, 'directed')[2]} == nil)")
+            lines += no_convergence(ind, "directedFailure", f"graph.directed.{call(name, a, 'directed')[2]}", name, a)
         return lines, throws
     if "of" in a:
         lines.append(f"{ind}let value = {target}.{text}")
@@ -230,7 +240,7 @@ def emit_row_body(row, ind, kind="reference", override=None):
         lines.append(f"{ind}#expect(difference <= {tol} * max(1, abs(expected)))")
         return lines, throws
     if iterative:
-        lines.append(f"{ind}let result = try #require({target}.{text})")
+        lines.append(f"{ind}let result = try {target}.{text}")
         throws = True
     else:
         lines.append(f"{ind}let result = {target}.{text}")
@@ -255,7 +265,7 @@ def emit_row_body(row, ind, kind="reference", override=None):
         twice = (name == "degreeCentrality" and g.n > 1) or (name == "betweennessCentrality" and a.get("normalized", True) is False)
         _, _, dtext = call(name, a, "directed")
         if iterative:
-            lines.append(f"{ind}let arcs = try #require(graph.directed.{dtext})")
+            lines.append(f"{ind}let arcs = try graph.directed.{dtext}")
         else:
             lines.append(f"{ind}let arcs = graph.directed.{dtext}")
         factor = "2 * " if twice else ""
@@ -300,7 +310,8 @@ def test_for_row(row):
         base, _, rest = opd.partition(".")
         opd = base + "()" + ("." + rest if rest else "")
     note = note_text(row["notes"])
-    title = f"{row['cid']} {graphline}.{opd} is {exp_desc(row, exact) if isinstance(exact, list) else row['exp']}"
+    verb = "throws" if row["exp"] == "NoConvergence" else "is"
+    title = f"{row['cid']} {graphline}.{opd} {verb} {exp_desc(row, exact) if isinstance(exact, list) else row['exp']}"
     if note:
         title += f": {note}"
     _, glines = build_graph(row["g"], ind)
@@ -321,13 +332,14 @@ def trap_test(row):
     note = note_text(row["notes"])
     title = f"{row['cid']} {gdesc(row['g'])}.{row['op']} traps" + (f": {note}" if note else "")
     g, glines = build_graph(row["g"], ind)
+    iterative = name in ITER
     lines = [f'    @Test("{esc(title)}")', f"    func {fname}() async {{", "        await #expect(processExitsWith: .failure) {"]
     lines += [ind + l for l in glines]
     if "weight" in a:
         lines.append(ind + weight_decl(a["weight"], g.m)[1])
     target, decls, text = call(name, a, view)
     lines += [ind + d for d in decls]
-    lines.append(f"{ind}_ = {target}.{text}")
+    lines.append(f"{ind}_ = {'try ' if iterative else ''}{target}.{text}")
     lines += ["        }", "    }"]
     return "\n".join(lines)
 
@@ -335,7 +347,7 @@ def trap_test(row):
 SECTIONS = {
     "A": ("DegenerateGraphTests.swift", "Degenerate graphs", "CentralityDegenerateGraphTests", [
         "§A: the empty graph (both kinds), K₁, three isolated vertices and K₂: every measure. The empty graph",
-        "gives an empty result for every measure, iterative ones included (not nil: there is nothing to",
+        "gives an empty result for every measure, iterative ones included (no throw: there is nothing to",
         "iterate); one vertex scores 1 for degree (NetworkX's rule) and 0 for closeness, harmonic and",
         "betweenness; edgeless graphs are uniform for eigenvector, Katz, PageRank and HITS (api.md).",
     ]),
@@ -357,22 +369,23 @@ SECTIONS = {
     ]),
     "E": ("EigenvectorTests.swift", "Eigenvector", "EigenvectorTests", [
         "§E: the principal eigenvector of Aᵀ by power iteration on A + I from the uniform start, Euclidean",
-        "norm 1; an undirected loop is 2 in A, parallel copies add; disconnected graphs; nil on a DAG and",
-        "with too few iterations.",
+        "norm 1; an undirected loop is 2 in A, parallel copies add; disconnected graphs; NoConvergence on a",
+        "DAG and with too few iterations.",
     ]),
     "F": ("KatzTests.swift", "Katz", "KatzTests", [
-        "§F: x = αAᵀx + β1 from x₀ = 0, normalized to Euclidean norm 1 by default; nil when α ≥ 1/ρ(A).",
+        "§F: x = αAᵀx + β1 from x₀ = 0, normalized to Euclidean norm 1 by default; NoConvergence when",
+        "α ≥ 1/ρ(A).",
     ]),
     "G": ("PageRankTests.swift", "PageRank", "PageRankTests", [
         "§G: PageRank with the damping factor, dangling vertices following the personalization, each",
-        "undirected edge two arcs and a loop two loop arcs, parallel arcs adding, weights per row; nil with",
-        "too few iterations.",
+        "undirected edge two arcs and a loop two loop arcs, parallel arcs adding, weights per row;",
+        "NoConvergence with too few iterations.",
     ]),
     "H": ("HITSTests.swift", "HITS", "HITSTests", [
         "§H: hubs and authorities from the uniform start, each summing to 1; the limit from the uniform",
         "start where σ₁ is not simple; parallel arcs adding; weights; `graph.directed` on the karate club",
-        "(hubs = authorities); nil after one iteration. Each test also checks that the other vector has",
-        "one score per vertex.",
+        "(hubs = authorities); NoConvergence after one iteration. Each test also checks that the other",
+        "vector has one score per vertex.",
     ]),
 }
 

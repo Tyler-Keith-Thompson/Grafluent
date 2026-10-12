@@ -22,7 +22,7 @@ PACKAGES = [
 # (name, group, description, dependencies)
 MODULES = [
     # Vocabulary
-    ("GraphProtocols", "Vocabulary", "DirectedGraph, Graph and their refinements; Arc and Edge; the result builders that construct graphs.", ["swift-algorithms/Algorithms"]),
+    ("GraphProtocols", "Vocabulary", "DirectedGraph, Graph and their refinements; Arc and Edge; the result builders that construct graphs; NoConvergence, the error of iterative methods.", ["swift-algorithms/Algorithms"]),
     ("Walks", "Vocabulary", "Walk, Trail, Path, Circuit and Cycle: vertex sequences with the edge positions between them, their invariants enforced by construction.", ["GraphProtocols"]),
     ("Semirings", "Vocabulary", "The Semiring protocol and the tropical, bottleneck, Boolean and counting semirings, for algebraic path problems.", []),
 

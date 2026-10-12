@@ -10,11 +10,11 @@ import Testing
 @Suite("SpectralGraphTheory spectral ordering")
 struct SpectralOrderingTests {
     @Test("SGT-127 path in shuffled order")
-    func sgt127() {
+    func sgt127() throws {
         // U: P(2,0,4,1,3) · spectralOrdering() → [3, 1, 4, 0, 2]
         let edges: [(Int, Int)] = [(2, 0), (0, 4), (4, 1), (1, 3)]
         let graph = ReferencePseudograph(vertices: [2, 0, 4, 1, 3], edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        #expect(graph.spectralOrdering() == [3, 1, 4, 0, 2])
+        #expect(try graph.spectralOrdering() == [3, 1, 4, 0, 2])
     }
 
     @Test("SGT-128 barbell")
@@ -25,13 +25,13 @@ struct SpectralOrderingTests {
             (3, 4),
         ]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 8), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let order = graph.spectralOrdering()
+        let order = try graph.spectralOrdering()
         // Ties: the order relies on the tie rule, so it is checked against the returned
         // Fiedler vector, and against the catalog list wherever the model's entries differ by
         // more than 1e-4.
         let catalog = [5, 6, 7, 4, 3, 0, 1, 2]
         #expect(order.sorted() == catalog.sorted())
-        let fiedler = try #require(graph.fiedlerVector())
+        let fiedler = try #require(try graph.fiedlerVector())
         for (a, b) in zip(order, order.dropFirst()) {
             #expect(fiedler.value(of: a) <= fiedler.value(of: b) + 1e-6, "\(a) before \(b)")
         }
@@ -45,11 +45,11 @@ struct SpectralOrderingTests {
     }
 
     @Test("SGT-129 components by least vertex; small ones in index order")
-    func sgt129() {
+    func sgt129() throws {
         // U: [0,1,2,3,4,5,6,7] P(5,1,6), 3-4, P(0,7,2) · spectralOrdering() → [2, 7, 0, 6, 1, 5, 3, 4]
         let edges: [(Int, Int)] = [(5, 1), (1, 6), (3, 4), (0, 7), (7, 2)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 8), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        #expect(graph.spectralOrdering() == [2, 7, 0, 6, 1, 5, 3, 4])
+        #expect(try graph.spectralOrdering() == [2, 7, 0, 6, 1, 5, 3, 4])
     }
 
     @Test("SGT-130 grid 2×5: tied entries in index order")
@@ -60,13 +60,13 @@ struct SpectralOrderingTests {
             (8, 9),
         ]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 10), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let order = graph.spectralOrdering()
+        let order = try graph.spectralOrdering()
         // Ties: the order relies on the tie rule, so it is checked against the returned
         // Fiedler vector, and against the catalog list wherever the model's entries differ by
         // more than 1e-4.
         let catalog = [4, 9, 3, 8, 2, 7, 1, 6, 0, 5]
         #expect(order.sorted() == catalog.sorted())
-        let fiedler = try #require(graph.fiedlerVector())
+        let fiedler = try #require(try graph.fiedlerVector())
         for (a, b) in zip(order, order.dropFirst()) {
             #expect(fiedler.value(of: a) <= fiedler.value(of: b) + 1e-6, "\(a) before \(b)")
         }
@@ -83,12 +83,12 @@ struct SpectralOrderingTests {
     }
 
     @Test("SGT-131 weighted path")
-    func sgt131() {
+    func sgt131() throws {
         // U: P(0..4) · spectralOrdering(weight:) [1, 3, 1, 3] → [4, 3, 2, 1, 0]
         let edges: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 5), edges: edges.map { UndirectedEdge($0.0, $0.1) })
         let weights: [Int] = [1, 3, 1, 3]
-        #expect(graph.spectralOrdering(weight: { weights[$0] }) == [4, 3, 2, 1, 0])
+        #expect(try graph.spectralOrdering(weight: { weights[$0] }) == [4, 3, 2, 1, 0])
     }
 
     @Test("SGT-132 karate club")
@@ -104,7 +104,7 @@ struct SpectralOrderingTests {
             (29, 33), (30, 32), (30, 33), (31, 32), (31, 33), (32, 33),
         ]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 34), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let order = graph.spectralOrdering()
+        let order = try graph.spectralOrdering()
         // Ties: the order relies on the tie rule, so it is checked against the returned
         // Fiedler vector, and against the catalog list wherever the model's entries differ by
         // more than 1e-4.
@@ -113,7 +113,7 @@ struct SpectralOrderingTests {
             17, 21, 12, 0, 11, 4, 10, 5, 6, 16,
         ]
         #expect(order.sorted() == catalog.sorted())
-        let fiedler = try #require(graph.fiedlerVector())
+        let fiedler = try #require(try graph.fiedlerVector())
         for (a, b) in zip(order, order.dropFirst()) {
             #expect(fiedler.value(of: a) <= fiedler.value(of: b) + 1e-6, "\(a) before \(b)")
         }
@@ -133,18 +133,18 @@ struct SpectralOrderingTests {
     }
 
     @Test("SGT-133 one vertex")
-    func sgt133() {
+    func sgt133() throws {
         // U: [0] · spectralOrdering() → [0]
         let edges: [(Int, Int)] = []
         let graph = ReferencePseudograph(vertices: Array(0 ..< 1), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        #expect(graph.spectralOrdering() == [0])
+        #expect(try graph.spectralOrdering() == [0])
     }
 
     @Test("SGT-134 empty graph")
-    func sgt134() {
+    func sgt134() throws {
         // U: · spectralOrdering() → []
         let edges: [(Int, Int)] = []
         let graph = ReferencePseudograph(vertices: [] as [Int], edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        #expect(graph.spectralOrdering() == [] as [Int])
+        #expect(try graph.spectralOrdering() == [] as [Int])
     }
 }

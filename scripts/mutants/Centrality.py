@@ -13,13 +13,14 @@ TESTS = ["CentralityTests"]
 MUTANTS = [
     # Rows
     Mutant("transposeorder", "CentralityRows.swift", "reversedTargets[fill[w]] = v", "reversedTargets[fill[w]] = w", mode="stmt"),
-    Mutant("scoreindex", "CentralityRows.swift", "return _scores[_graph.vertexIndex(of: vertex)]", "return _scores[_scores.count - 1 - _graph.vertexIndex(of: vertex)]", mode="stmt"),
+    Mutant("scoreindex", "CentralityRows.swift", "return _scores[_graph._requiredVertexIndex(of: vertex, \"The vertex is not in the graph\")]", "return _scores[_scores.count - 1 - _graph._requiredVertexIndex(of: vertex, \"The vertex is not in the graph\")]", mode="stmt"),
 
     # Degree
     Mutant("degreesingle", "Degree.swift", "n == 1 ? 1 : Double(degree(of: $0)) * scale", "Double(degree(of: $0)) * scale"),
     Mutant("indegree", "Degree.swift", "for v in 0 ..< n { for w in successorIndices(ofIndex: v) { counts[w] += 1 } }", "", mode="stmt"),
     Mutant("indegreelisted", "Degree.swift", "for position in edges.indices { counts[numbers[target(ofEdgeAt: position)]!] += 1 }", "", mode="stmt"),
-    Mutant("outdegree", "Degree.swift", "outgoing ? vertices.map { outDegree(of: $0) } : [Int](repeating: 0, count: n)", "[Int](repeating: 0, count: n)"),
+    Mutant("outdegree", "Degree.swift", "counts = (0 ..< n).map { outDegree(ofIndex: $0) }", "counts = [Int](repeating: 0, count: n)", mode="stmt"),
+    Mutant("outdegreelisted", "Degree.swift", "counts = vertices.map { outDegree(of: $0) }", "counts = [Int](repeating: 0, count: n)", mode="stmt"),
     Mutant("degreescale", "Degree.swift", "1 / Double(n - 1)", "1 / Double(n)", nth=0),
 
     # Searches
@@ -58,5 +59,11 @@ MUTANTS = [
     Mutant("hitsedgeless", "PowerIteration.swift", "greatestHub > 0", "true"),
     Mutant("hitsnormalize", "PowerIteration.swift", "                h[i] /= hubTotal", "", mode="stmt"),
     Mutant("hitsauthority", "PowerIteration.swift", "a[i] *= 1 / greatestAuthority", "", mode="stmt"),
+    # NoConvergence: the residual (the last change over n), per measure
+    Mutant("eigenresidual", "PowerIteration.swift", "change / Double(n)", "change", nth=0),
+    Mutant("katzresidual", "PowerIteration.swift", "change / Double(n)", "change", nth=1),
+    Mutant("pagerankresidual", "PowerIteration.swift", "change / Double(n)", "change", nth=2),
+    Mutant("hitsresidual", "PowerIteration.swift", "change / Double(n)", "change", nth=3),
+    Mutant("hitslastchange", "PowerIteration.swift", "        change = step", "", mode="stmt"),
     Mutant("weightsread", "PowerIteration.swift", "edges.map { Double(weights[$0]) }", "edges.map { _ in 1.0 }"),
 ]

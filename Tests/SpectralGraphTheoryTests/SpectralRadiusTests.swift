@@ -9,55 +9,55 @@ import Testing
 @Suite("SpectralGraphTheory spectral radius")
 struct SpectralRadiusTests {
     @Test("SGT-135 K5: 4")
-    func sgt135() {
+    func sgt135() throws {
         // U: K(5) · spectralRadius() → 4
         let edges: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 5), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.spectralRadius()
+        let value = try graph.spectralRadius()
         #expect(abs(value - 4) <= 1e-6 * 4)
     }
 
     @Test("SGT-136 path P5: √3")
-    func sgt136() {
+    func sgt136() throws {
         // U: P(0..4) · spectralRadius() → 1.732050808
         let edges: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 5), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.spectralRadius()
+        let value = try graph.spectralRadius()
         #expect(abs(value - 1.73205080756888) <= 1e-6 * 1.73205080756888)
     }
 
     @Test("SGT-137 cycle C7: 2")
-    func sgt137() {
+    func sgt137() throws {
         // U: C(0..6) · spectralRadius() → 2
         let edges: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 0)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 7), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.spectralRadius()
+        let value = try graph.spectralRadius()
         #expect(abs(value - 2) <= 1e-6 * 2)
     }
 
     @Test("SGT-138 star K1,4: 2")
-    func sgt138() {
+    func sgt138() throws {
         // U: S(0;1..4) · spectralRadius() → 2
         let edges: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 5), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.spectralRadius()
+        let value = try graph.spectralRadius()
         #expect(abs(value - 2) <= 1e-6 * 2)
     }
 
     @Test("SGT-139 Petersen: 3")
-    func sgt139() {
+    func sgt139() throws {
         // U: nx(petersen) · spectralRadius() → 3
         let edges: [(Int, Int)] = [
             (0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8),
             (6, 8), (6, 9), (7, 9),
         ]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 10), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.spectralRadius()
+        let value = try graph.spectralRadius()
         #expect(abs(value - 3) <= 1e-6 * 3)
     }
 
     @Test("SGT-140 grid 10×10: 4cos(π/11)")
-    func sgt140() {
+    func sgt140() throws {
         // U: grid(10,10) · spectralRadius() → 3.837971894
         let edges: [(Int, Int)] = [
             (0, 1), (0, 10), (1, 2), (1, 11), (2, 3), (2, 12), (3, 4), (3, 13), (4, 5), (4, 14), (5, 6), (5, 15),
@@ -77,12 +77,12 @@ struct SpectralRadiusTests {
             (88, 89), (88, 98), (89, 99), (90, 91), (91, 92), (92, 93), (93, 94), (94, 95), (95, 96), (96, 97), (97, 98), (98, 99),
         ]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 100), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.spectralRadius()
+        let value = try graph.spectralRadius()
         #expect(abs(value - 3.837971894458) <= 1e-6 * 3.837971894458)
     }
 
     @Test("SGT-141 karate club")
-    func sgt141() {
+    func sgt141() throws {
         // U: nx(karate_club) · spectralRadius() → 6.725697728
         let edges: [(Int, Int)] = [
             (0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8), (0, 10), (0, 11), (0, 12), (0, 13),
@@ -94,58 +94,58 @@ struct SpectralRadiusTests {
             (29, 33), (30, 32), (30, 33), (31, 32), (31, 33), (32, 33),
         ]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 34), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.spectralRadius()
+        let value = try graph.spectralRadius()
         #expect(abs(value - 6.7256977276317) <= 1e-6 * 6.7256977276317)
     }
 
     @Test("SGT-142 doubled edge: 2")
-    func sgt142() {
+    func sgt142() throws {
         // U: 0=1 · spectralRadius() → 2
         let edges: [(Int, Int)] = [(0, 1), (0, 1)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 2), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.spectralRadius()
+        let value = try graph.spectralRadius()
         #expect(abs(value - 2) <= 1e-6 * 2)
     }
 
     @Test("SGT-143 self-loop: 1 + √2")
-    func sgt143() {
+    func sgt143() throws {
         // U: 0-0, 0-1 · spectralRadius() → 2.414213562
         let edges: [(Int, Int)] = [(0, 0), (0, 1)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 2), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.spectralRadius()
+        let value = try graph.spectralRadius()
         #expect(abs(value - 2.4142135623731) <= 1e-6 * 2.4142135623731)
     }
 
     @Test("SGT-144 weighted")
-    func sgt144() {
+    func sgt144() throws {
         // U: C(0,1,2) · spectralRadius(weight:) [1, 2, 3] → 4.113090584
         let edges: [(Int, Int)] = [(0, 1), (1, 2), (2, 0)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 3), edges: edges.map { UndirectedEdge($0.0, $0.1) })
         let weights: [Int] = [1, 2, 3]
-        let value = graph.spectralRadius(weight: { weights[$0] })
+        let value = try graph.spectralRadius(weight: { weights[$0] })
         #expect(abs(value - 4.11309058432495) <= 1e-6 * 4.11309058432495)
     }
 
     @Test("SGT-145 isolated vertices: 0")
-    func sgt145() {
+    func sgt145() throws {
         // U: E(3) · spectralRadius() → 0
         let edges: [(Int, Int)] = []
         let graph = ReferencePseudograph(vertices: Array(0 ..< 3), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.spectralRadius()
+        let value = try graph.spectralRadius()
         #expect(value == 0)
     }
 
     @Test("SGT-146 empty graph: 0")
-    func sgt146() {
+    func sgt146() throws {
         // U: · spectralRadius() → 0
         let edges: [(Int, Int)] = []
         let graph = ReferencePseudograph(vertices: [] as [Int], edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.spectralRadius()
+        let value = try graph.spectralRadius()
         #expect(value == 0)
     }
 
     @Test("SGT-147 lcg(200,600,11)")
-    func sgt147() {
+    func sgt147() throws {
         // U: lcg(200,600,11) · spectralRadius() → 7.070631103
         let edges: [(Int, Int)] = [
             (96, 51), (143, 8), (134, 83), (153, 122), (140, 163), (75, 107), (168, 51), (109, 27), (184, 67), (153, 77), (59, 99), (56, 138),
@@ -200,7 +200,7 @@ struct SpectralRadiusTests {
             (71, 146), (125, 186), (174, 133), (3, 178), (19, 110), (125, 42), (28, 43), (22, 72), (129, 22), (93, 108), (155, 119), (134, 152),
         ]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 200), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.spectralRadius()
+        let value = try graph.spectralRadius()
         #expect(abs(value - 7.0706311034338) <= 1e-6 * 7.0706311034338)
     }
 }

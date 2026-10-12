@@ -74,15 +74,21 @@ extension Graph {
     /// vertices, for the polynomial filter), and on the shift-invert path O(n + m) more for the
     /// solver.
     ///
-    /// Traps when the work limit is spent: 4,000 + 20√n products on σI − L (then shift-invert),
-    /// 1,000 shift-invert products, 20,000 + 2n per solve. Only a tolerance below rounding has
-    /// reached it in the measurements.
-    ///
-    /// - Precondition: at least two vertices, and `tolerance > 0`.
+    /// - Precondition: at least two vertices, `tolerance > 0`, and `maxIterations`, when given, is
+    ///   at least 1.
+    /// - Throws: `NoConvergence` when the Lanczos run on L⁺ spends `maxIterations` matrix–vector
+    ///   products (1,000 when nil) without converging, with the products spent and the Ritz
+    ///   residual relative to 1/λ₂. The run on σI − L that may come first hands over to
+    ///   shift-invert rather than throwing, after 4,000 + 20√n products or `maxIterations`,
+    ///   whichever is smaller. Each shift-invert product is a conjugate-gradient solve that throws,
+    ///   with its own iterations and relative residual, after 20,000 + 2n. Below 64 vertices the
+    ///   dense solver answers and `maxIterations` is unused. Only a tolerance below rounding has
+    ///   reached the default limits in the measurements.
     @inlinable
-    public func algebraicConnectivity(normalized: Bool = false, tolerance: Double = 1e-8) -> Double {
+    public func algebraicConnectivity(normalized: Bool = false, tolerance: Double = 1e-8, maxIterations: Int? = nil) throws(NoConvergence) -> Double {
         precondition(tolerance > 0, "The tolerance is not positive")
-        return _spectralAdjacency(nil, numbering: nil).algebraicConnectivity(normalized: normalized, tolerance: tolerance)
+        _checkMaxIterations(maxIterations)
+        return try _spectralAdjacency(nil, numbering: nil).algebraicConnectivity(normalized: normalized, tolerance: tolerance, maxIterations: maxIterations)
     }
 
     /// The algebraic connectivity λ₂: the second smallest eigenvalue of the Laplacian L (of the
@@ -99,18 +105,24 @@ extension Graph {
     /// vertices, for the polynomial filter), and on the shift-invert path O(n + m) more for the
     /// solver.
     ///
-    /// Traps when the work limit is spent: 4,000 + 20√n products on σI − L (then shift-invert),
-    /// 1,000 shift-invert products, 20,000 + 2n per solve. Only a tolerance below rounding has
-    /// reached it in the measurements.
-    ///
     /// `weight` gives the weight of the edge at each position, read once per position; a weight of
     /// 0 is no edge.
     ///
-    /// - Precondition: at least two vertices, and `tolerance > 0`. Every weight is finite and nonnegative.
+    /// - Precondition: at least two vertices, and `tolerance > 0`. Every weight is finite and
+    ///   nonnegative, and `maxIterations`, when given, is at least 1.
+    /// - Throws: `NoConvergence` when the Lanczos run on L⁺ spends `maxIterations` matrix–vector
+    ///   products (1,000 when nil) without converging, with the products spent and the Ritz
+    ///   residual relative to 1/λ₂. The run on σI − L that may come first hands over to
+    ///   shift-invert rather than throwing, after 4,000 + 20√n products or `maxIterations`,
+    ///   whichever is smaller. Each shift-invert product is a conjugate-gradient solve that throws,
+    ///   with its own iterations and relative residual, after 20,000 + 2n. Below 64 vertices the
+    ///   dense solver answers and `maxIterations` is unused. Only a tolerance below rounding has
+    ///   reached the default limits in the measurements.
     @inlinable
-    public func algebraicConnectivity<W: BinaryInteger>(weight: (Edges.Index) -> W, normalized: Bool = false, tolerance: Double = 1e-8) -> Double {
+    public func algebraicConnectivity<W: BinaryInteger>(weight: (Edges.Index) -> W, normalized: Bool = false, tolerance: Double = 1e-8, maxIterations: Int? = nil) throws(NoConvergence) -> Double {
         precondition(tolerance > 0, "The tolerance is not positive")
-        return _spectralAdjacency(_spectralWeights(weight), numbering: nil).algebraicConnectivity(normalized: normalized, tolerance: tolerance)
+        _checkMaxIterations(maxIterations)
+        return try _spectralAdjacency(_spectralWeights(weight), numbering: nil).algebraicConnectivity(normalized: normalized, tolerance: tolerance, maxIterations: maxIterations)
     }
 
     /// The algebraic connectivity λ₂: the second smallest eigenvalue of the Laplacian L (of the
@@ -127,18 +139,24 @@ extension Graph {
     /// vertices, for the polynomial filter), and on the shift-invert path O(n + m) more for the
     /// solver.
     ///
-    /// Traps when the work limit is spent: 4,000 + 20√n products on σI − L (then shift-invert),
-    /// 1,000 shift-invert products, 20,000 + 2n per solve. Only a tolerance below rounding has
-    /// reached it in the measurements.
-    ///
     /// `weight` gives the weight of the edge at each position, read once per position; a weight of
     /// 0 is no edge.
     ///
-    /// - Precondition: at least two vertices, and `tolerance > 0`. Every weight is finite and nonnegative.
+    /// - Precondition: at least two vertices, and `tolerance > 0`. Every weight is finite and
+    ///   nonnegative, and `maxIterations`, when given, is at least 1.
+    /// - Throws: `NoConvergence` when the Lanczos run on L⁺ spends `maxIterations` matrix–vector
+    ///   products (1,000 when nil) without converging, with the products spent and the Ritz
+    ///   residual relative to 1/λ₂. The run on σI − L that may come first hands over to
+    ///   shift-invert rather than throwing, after 4,000 + 20√n products or `maxIterations`,
+    ///   whichever is smaller. Each shift-invert product is a conjugate-gradient solve that throws,
+    ///   with its own iterations and relative residual, after 20,000 + 2n. Below 64 vertices the
+    ///   dense solver answers and `maxIterations` is unused. Only a tolerance below rounding has
+    ///   reached the default limits in the measurements.
     @inlinable
-    public func algebraicConnectivity<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W, normalized: Bool = false, tolerance: Double = 1e-8) -> Double {
+    public func algebraicConnectivity<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W, normalized: Bool = false, tolerance: Double = 1e-8, maxIterations: Int? = nil) throws(NoConvergence) -> Double {
         precondition(tolerance > 0, "The tolerance is not positive")
-        return _spectralAdjacency(_spectralWeights(weight), numbering: nil).algebraicConnectivity(normalized: normalized, tolerance: tolerance)
+        _checkMaxIterations(maxIterations)
+        return try _spectralAdjacency(_spectralWeights(weight), numbering: nil).algebraicConnectivity(normalized: normalized, tolerance: tolerance, maxIterations: maxIterations)
     }
 
     /// The Fiedler vector: λ₂ and a unit eigenvector of it, with the canonical sign (see
@@ -154,17 +172,23 @@ extension Graph {
     /// vertices, for the polynomial filter), and on the shift-invert path O(n + m) more for the
     /// solver.
     ///
-    /// Traps when the work limit is spent: 4,000 + 20√n products on σI − L (then shift-invert),
-    /// 1,000 shift-invert products, 20,000 + 2n per solve. Only a tolerance below rounding has
-    /// reached it in the measurements.
-    ///
-    /// - Precondition: at least two vertices, and `tolerance > 0`.
+    /// - Precondition: at least two vertices, `tolerance > 0`, and `maxIterations`, when given, is
+    ///   at least 1.
+    /// - Throws: `NoConvergence` when the Lanczos run on L⁺ spends `maxIterations` matrix–vector
+    ///   products (1,000 when nil) without converging, with the products spent and the Ritz
+    ///   residual relative to 1/λ₂. The run on σI − L that may come first hands over to
+    ///   shift-invert rather than throwing, after 4,000 + 20√n products or `maxIterations`,
+    ///   whichever is smaller. Each shift-invert product is a conjugate-gradient solve that throws,
+    ///   with its own iterations and relative residual, after 20,000 + 2n. Below 64 vertices the
+    ///   dense solver answers and `maxIterations` is unused. Only a tolerance below rounding has
+    ///   reached the default limits in the measurements.
     @inlinable
-    public func fiedlerVector(normalized: Bool = false, tolerance: Double = 1e-8) -> FiedlerVector<Self>? {
+    public func fiedlerVector(normalized: Bool = false, tolerance: Double = 1e-8, maxIterations: Int? = nil) throws(NoConvergence) -> FiedlerVector<Self>? {
         precondition(tolerance > 0, "The tolerance is not positive")
+        _checkMaxIterations(maxIterations)
         let weights: [Double]? = nil
         let numbering = _vertexNumbering()
-        guard let (value, vector) = _spectralAdjacency(weights, numbering: numbering).fiedler(normalized: normalized, tolerance: tolerance) else { return nil }
+        guard let (value, vector) = try _spectralAdjacency(weights, numbering: numbering).fiedler(normalized: normalized, tolerance: tolerance, maxIterations: maxIterations) else { return nil }
         return FiedlerVector(self, numbers: numbering?.numbers, algebraicConnectivity: value, values: vector)
     }
 
@@ -181,20 +205,26 @@ extension Graph {
     /// vertices, for the polynomial filter), and on the shift-invert path O(n + m) more for the
     /// solver.
     ///
-    /// Traps when the work limit is spent: 4,000 + 20√n products on σI − L (then shift-invert),
-    /// 1,000 shift-invert products, 20,000 + 2n per solve. Only a tolerance below rounding has
-    /// reached it in the measurements.
-    ///
     /// `weight` gives the weight of the edge at each position, read once per position; a weight of
     /// 0 is no edge.
     ///
-    /// - Precondition: at least two vertices, and `tolerance > 0`. Every weight is finite and nonnegative.
+    /// - Precondition: at least two vertices, and `tolerance > 0`. Every weight is finite and
+    ///   nonnegative, and `maxIterations`, when given, is at least 1.
+    /// - Throws: `NoConvergence` when the Lanczos run on L⁺ spends `maxIterations` matrix–vector
+    ///   products (1,000 when nil) without converging, with the products spent and the Ritz
+    ///   residual relative to 1/λ₂. The run on σI − L that may come first hands over to
+    ///   shift-invert rather than throwing, after 4,000 + 20√n products or `maxIterations`,
+    ///   whichever is smaller. Each shift-invert product is a conjugate-gradient solve that throws,
+    ///   with its own iterations and relative residual, after 20,000 + 2n. Below 64 vertices the
+    ///   dense solver answers and `maxIterations` is unused. Only a tolerance below rounding has
+    ///   reached the default limits in the measurements.
     @inlinable
-    public func fiedlerVector<W: BinaryInteger>(weight: (Edges.Index) -> W, normalized: Bool = false, tolerance: Double = 1e-8) -> FiedlerVector<Self>? {
+    public func fiedlerVector<W: BinaryInteger>(weight: (Edges.Index) -> W, normalized: Bool = false, tolerance: Double = 1e-8, maxIterations: Int? = nil) throws(NoConvergence) -> FiedlerVector<Self>? {
         precondition(tolerance > 0, "The tolerance is not positive")
+        _checkMaxIterations(maxIterations)
         let weights = _spectralWeights(weight)
         let numbering = _vertexNumbering()
-        guard let (value, vector) = _spectralAdjacency(weights, numbering: numbering).fiedler(normalized: normalized, tolerance: tolerance) else { return nil }
+        guard let (value, vector) = try _spectralAdjacency(weights, numbering: numbering).fiedler(normalized: normalized, tolerance: tolerance, maxIterations: maxIterations) else { return nil }
         return FiedlerVector(self, numbers: numbering?.numbers, algebraicConnectivity: value, values: vector)
     }
 
@@ -211,20 +241,26 @@ extension Graph {
     /// vertices, for the polynomial filter), and on the shift-invert path O(n + m) more for the
     /// solver.
     ///
-    /// Traps when the work limit is spent: 4,000 + 20√n products on σI − L (then shift-invert),
-    /// 1,000 shift-invert products, 20,000 + 2n per solve. Only a tolerance below rounding has
-    /// reached it in the measurements.
-    ///
     /// `weight` gives the weight of the edge at each position, read once per position; a weight of
     /// 0 is no edge.
     ///
-    /// - Precondition: at least two vertices, and `tolerance > 0`. Every weight is finite and nonnegative.
+    /// - Precondition: at least two vertices, and `tolerance > 0`. Every weight is finite and
+    ///   nonnegative, and `maxIterations`, when given, is at least 1.
+    /// - Throws: `NoConvergence` when the Lanczos run on L⁺ spends `maxIterations` matrix–vector
+    ///   products (1,000 when nil) without converging, with the products spent and the Ritz
+    ///   residual relative to 1/λ₂. The run on σI − L that may come first hands over to
+    ///   shift-invert rather than throwing, after 4,000 + 20√n products or `maxIterations`,
+    ///   whichever is smaller. Each shift-invert product is a conjugate-gradient solve that throws,
+    ///   with its own iterations and relative residual, after 20,000 + 2n. Below 64 vertices the
+    ///   dense solver answers and `maxIterations` is unused. Only a tolerance below rounding has
+    ///   reached the default limits in the measurements.
     @inlinable
-    public func fiedlerVector<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W, normalized: Bool = false, tolerance: Double = 1e-8) -> FiedlerVector<Self>? {
+    public func fiedlerVector<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W, normalized: Bool = false, tolerance: Double = 1e-8, maxIterations: Int? = nil) throws(NoConvergence) -> FiedlerVector<Self>? {
         precondition(tolerance > 0, "The tolerance is not positive")
+        _checkMaxIterations(maxIterations)
         let weights = _spectralWeights(weight)
         let numbering = _vertexNumbering()
-        guard let (value, vector) = _spectralAdjacency(weights, numbering: numbering).fiedler(normalized: normalized, tolerance: tolerance) else { return nil }
+        guard let (value, vector) = try _spectralAdjacency(weights, numbering: numbering).fiedler(normalized: normalized, tolerance: tolerance, maxIterations: maxIterations) else { return nil }
         return FiedlerVector(self, numbers: numbering?.numbers, algebraicConnectivity: value, values: vector)
     }
 
@@ -244,17 +280,22 @@ extension Graph {
     /// vertices, for the polynomial filter), and on the shift-invert path O(n + m) more for the
     /// solver.
     ///
-    /// Traps when the work limit is spent: 4,000 + 20√n products on σI − L (then shift-invert),
-    /// 1,000 shift-invert products, 20,000 + 2n per solve. Only a tolerance below rounding has
-    /// reached it in the measurements.
-    ///
-    /// - Precondition: `tolerance > 0`.
+    /// - Precondition: `tolerance > 0`, and `maxIterations`, when given, is at least 1.
+    /// - Throws: `NoConvergence` when the Lanczos run on L⁺ spends `maxIterations` matrix–vector
+    ///   products (1,000 when nil) without converging, with the products spent and the Ritz
+    ///   residual relative to 1/λ₂. The run on σI − L that may come first hands over to
+    ///   shift-invert rather than throwing, after 4,000 + 20√n products or `maxIterations`,
+    ///   whichever is smaller. Each shift-invert product is a conjugate-gradient solve that throws,
+    ///   with its own iterations and relative residual, after 20,000 + 2n. Below 64 vertices the
+    ///   dense solver answers and `maxIterations` is unused. Only a tolerance below rounding has
+    ///   reached the default limits in the measurements.
     @inlinable
-    public func spectralOrdering(normalized: Bool = false, tolerance: Double = 1e-8) -> [Vertex] {
+    public func spectralOrdering(normalized: Bool = false, tolerance: Double = 1e-8, maxIterations: Int? = nil) throws(NoConvergence) -> [Vertex] {
         precondition(tolerance > 0, "The tolerance is not positive")
+        _checkMaxIterations(maxIterations)
         let weights: [Double]? = nil
         let numbering = _vertexNumbering()
-        let order = _spectralAdjacency(weights, numbering: numbering).spectralOrdering(normalized: normalized, tolerance: tolerance)
+        let order = try _spectralAdjacency(weights, numbering: numbering).spectralOrdering(normalized: normalized, tolerance: tolerance, maxIterations: maxIterations)
         return order.map { _vertex(number: $0, numbering?.listed) }
     }
 
@@ -274,20 +315,26 @@ extension Graph {
     /// vertices, for the polynomial filter), and on the shift-invert path O(n + m) more for the
     /// solver.
     ///
-    /// Traps when the work limit is spent: 4,000 + 20√n products on σI − L (then shift-invert),
-    /// 1,000 shift-invert products, 20,000 + 2n per solve. Only a tolerance below rounding has
-    /// reached it in the measurements.
-    ///
     /// `weight` gives the weight of the edge at each position, read once per position; a weight of
     /// 0 is no edge.
     ///
-    /// - Precondition: `tolerance > 0`. Every weight is finite and nonnegative.
+    /// - Precondition: `tolerance > 0`. Every weight is finite and nonnegative, and
+    ///   `maxIterations`, when given, is at least 1.
+    /// - Throws: `NoConvergence` when the Lanczos run on L⁺ spends `maxIterations` matrix–vector
+    ///   products (1,000 when nil) without converging, with the products spent and the Ritz
+    ///   residual relative to 1/λ₂. The run on σI − L that may come first hands over to
+    ///   shift-invert rather than throwing, after 4,000 + 20√n products or `maxIterations`,
+    ///   whichever is smaller. Each shift-invert product is a conjugate-gradient solve that throws,
+    ///   with its own iterations and relative residual, after 20,000 + 2n. Below 64 vertices the
+    ///   dense solver answers and `maxIterations` is unused. Only a tolerance below rounding has
+    ///   reached the default limits in the measurements.
     @inlinable
-    public func spectralOrdering<W: BinaryInteger>(weight: (Edges.Index) -> W, normalized: Bool = false, tolerance: Double = 1e-8) -> [Vertex] {
+    public func spectralOrdering<W: BinaryInteger>(weight: (Edges.Index) -> W, normalized: Bool = false, tolerance: Double = 1e-8, maxIterations: Int? = nil) throws(NoConvergence) -> [Vertex] {
         precondition(tolerance > 0, "The tolerance is not positive")
+        _checkMaxIterations(maxIterations)
         let weights = _spectralWeights(weight)
         let numbering = _vertexNumbering()
-        let order = _spectralAdjacency(weights, numbering: numbering).spectralOrdering(normalized: normalized, tolerance: tolerance)
+        let order = try _spectralAdjacency(weights, numbering: numbering).spectralOrdering(normalized: normalized, tolerance: tolerance, maxIterations: maxIterations)
         return order.map { _vertex(number: $0, numbering?.listed) }
     }
 
@@ -307,20 +354,26 @@ extension Graph {
     /// vertices, for the polynomial filter), and on the shift-invert path O(n + m) more for the
     /// solver.
     ///
-    /// Traps when the work limit is spent: 4,000 + 20√n products on σI − L (then shift-invert),
-    /// 1,000 shift-invert products, 20,000 + 2n per solve. Only a tolerance below rounding has
-    /// reached it in the measurements.
-    ///
     /// `weight` gives the weight of the edge at each position, read once per position; a weight of
     /// 0 is no edge.
     ///
-    /// - Precondition: `tolerance > 0`. Every weight is finite and nonnegative.
+    /// - Precondition: `tolerance > 0`. Every weight is finite and nonnegative, and
+    ///   `maxIterations`, when given, is at least 1.
+    /// - Throws: `NoConvergence` when the Lanczos run on L⁺ spends `maxIterations` matrix–vector
+    ///   products (1,000 when nil) without converging, with the products spent and the Ritz
+    ///   residual relative to 1/λ₂. The run on σI − L that may come first hands over to
+    ///   shift-invert rather than throwing, after 4,000 + 20√n products or `maxIterations`,
+    ///   whichever is smaller. Each shift-invert product is a conjugate-gradient solve that throws,
+    ///   with its own iterations and relative residual, after 20,000 + 2n. Below 64 vertices the
+    ///   dense solver answers and `maxIterations` is unused. Only a tolerance below rounding has
+    ///   reached the default limits in the measurements.
     @inlinable
-    public func spectralOrdering<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W, normalized: Bool = false, tolerance: Double = 1e-8) -> [Vertex] {
+    public func spectralOrdering<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W, normalized: Bool = false, tolerance: Double = 1e-8, maxIterations: Int? = nil) throws(NoConvergence) -> [Vertex] {
         precondition(tolerance > 0, "The tolerance is not positive")
+        _checkMaxIterations(maxIterations)
         let weights = _spectralWeights(weight)
         let numbering = _vertexNumbering()
-        let order = _spectralAdjacency(weights, numbering: numbering).spectralOrdering(normalized: normalized, tolerance: tolerance)
+        let order = try _spectralAdjacency(weights, numbering: numbering).spectralOrdering(normalized: normalized, tolerance: tolerance, maxIterations: maxIterations)
         return order.map { _vertex(number: $0, numbering?.listed) }
     }
 }

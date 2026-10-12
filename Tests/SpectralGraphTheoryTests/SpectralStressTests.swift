@@ -38,11 +38,11 @@ struct SpectralStressTests {
             let lambda2 = 4 * sine * sine
             #expect(abs(lambda2 - 0.000986879268) <= 1e-12)
             let scale = 8.0
-            let value = graph.algebraicConnectivity()
+            let value = try graph.algebraicConnectivity()
             #expect(abs(value - lambda2) <= 1e-6 * scale)
             #expect(abs(value - 0.00887607) > 1e-3)
             // The Fiedler vector of a double λ₂: only invariants.
-            let fiedler = try #require(graph.fiedlerVector())
+            let fiedler = try #require(try graph.fiedlerVector())
             #expect(abs(fiedler.algebraicConnectivity - lambda2) <= 1e-6 * scale)
             let x = fiedler.values
             #expect(x.count == side * side)
@@ -59,7 +59,7 @@ struct SpectralStressTests {
                 cosine += term
                 term *= -(s * s) / Double((2 * k - 1) * (2 * k))
             }
-            let radius = graph.spectralRadius()
+            let radius = try graph.spectralRadius()
             #expect(abs(radius - 4 * cosine) <= 1e-6 * 4)
             #expect(abs(radius - 3.99807) <= 1e-4)
         }.value
@@ -90,8 +90,8 @@ struct SpectralStressTests {
             }
             let lambda2 = 4 * sine(pi / 240) * sine(pi / 240)
             let scale = 8.0
-            #expect(abs(graph.algebraicConnectivity() - lambda2) <= 1e-6 * scale)
-            let fiedler = try #require(graph.fiedlerVector())
+            #expect(abs(try graph.algebraicConnectivity() - lambda2) <= 1e-6 * scale)
+            let fiedler = try #require(try graph.fiedlerVector())
             #expect(abs(fiedler.algebraicConnectivity - lambda2) <= 1e-6 * scale)
             // x[i·30 + j] = cos(π(i + ½)/120) / √(60 · 30): constant along a row, first entry positive.
             let norm = (60.0 * 30).squareRoot()
@@ -103,7 +103,7 @@ struct SpectralStressTests {
             }
             #expect(worst <= 1e-5)
             // Ascending: the last row first; a row's 30 vertices are tied, so only the blocks are pinned.
-            let order = graph.spectralOrdering()
+            let order = try graph.spectralOrdering()
             #expect(order.count == rows * columns)
             for k in 0 ..< rows {
                 let block = order[k * columns ..< (k + 1) * columns].sorted()
@@ -125,12 +125,12 @@ struct SpectralStressTests {
                 for k in stride(from: 0, to: n, by: 2) { edges.append(UndirectedEdge(perm[k], perm[k + 1])) }
             }
             let graph = ReferencePseudograph(vertices: Array(0 ..< n), edges: edges)
-            let lambda2 = graph.algebraicConnectivity()
+            let lambda2 = try graph.algebraicConnectivity()
             // 3 − 2√2 = 0.17157…; for n = 10⁴ the observed λ₂ is within a few thousandths of it.
             let bound = 3 - 2 * 2.0.squareRoot()
             #expect(abs(lambda2 - bound) <= 0.03)
-            #expect(abs(graph.spectralRadius() - 3) <= 1e-6 * 3)
-            let fiedler = try #require(graph.fiedlerVector())
+            #expect(abs(try graph.spectralRadius() - 3) <= 1e-6 * 3)
+            let fiedler = try #require(try graph.fiedlerVector())
             #expect(abs(fiedler.algebraicConnectivity - lambda2) <= 1e-6 * 6)
             let x = fiedler.values
             #expect(abs(x.reduce(0) { $0 + $1 * $1 } - 1) <= 1e-9)
@@ -141,7 +141,7 @@ struct SpectralStressTests {
             let rayleigh = zip(lx, x).reduce(0) { $0 + $1.0 * $1.1 }
             #expect(abs(rayleigh - lambda2) <= 1e-6 * 6)
             // Normalized: N = L / 3 for a 3-regular graph.
-            #expect(abs(graph.algebraicConnectivity(normalized: true) - lambda2 / 3) <= 1e-6 * 2)
+            #expect(abs(try graph.algebraicConnectivity(normalized: true) - lambda2 / 3) <= 1e-6 * 2)
         }.value
     }
 
@@ -165,12 +165,12 @@ struct SpectralStressTests {
 
     @Test("Resistances: a cycle of 2 000 (k(n − k)/n) and a binary tree of 2¹⁴ − 1 vertices with conductances by depth", .timeLimit(.minutes(1)))
     func resistancesAtScale() async throws {
-        await Task {
+        try await Task {
             let n = 2_000
             let cycle = ReferencePseudograph(vertices: Array(0 ..< n), edges: (0 ..< n).map { UndirectedEdge($0, ($0 + 1) % n) })
             for k in [1, 500, 1_000] {
                 let expected = Double(k * (n - k)) / Double(n)
-                let r = cycle.resistanceDistance(from: 0, to: k)
+                let r = try cycle.resistanceDistance(from: 0, to: k)
                 #expect(r.map { abs($0 - expected) <= 1e-6 * max(1, expected) } == true, "R(0, \(k))")
             }
             // Heap order: the parent of v is (v − 1)/2; the edge into a vertex at depth d conducts 1 + d.
@@ -188,7 +188,7 @@ struct SpectralStressTests {
             let tree = ReferencePseudograph(vertices: Array(0 ..< count), edges: edges)
             let expected = 2 * (1 ... depth).reduce(0.0) { $0 + 1 / Double(1 + $1) }
             let leftmost = (1 << depth) - 1, rightmost = count - 1
-            let r = tree.resistanceDistance(from: leftmost, to: rightmost, weight: { weights[$0] })
+            let r = try tree.resistanceDistance(from: leftmost, to: rightmost, weight: { weights[$0] })
             #expect(r.map { abs($0 - expected) <= 1e-6 * max(1, expected) } == true)
         }.value
     }

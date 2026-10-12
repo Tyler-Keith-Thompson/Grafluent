@@ -96,15 +96,15 @@ let benchmarks: @Sendable () -> Void = {
             for _ in benchmark.scaledIterations { blackHole(graph.laplacianMatrix()) }
         }
         Benchmark("SpectralGraphTheory: algebraicConnectivity(), \(name) (shifted eigsh \(lambda))") { benchmark in
-            for _ in benchmark.scaledIterations { blackHole(graph.algebraicConnectivity()) }
+            for _ in benchmark.scaledIterations { blackHole(try graph.algebraicConnectivity()) }
         }
         Benchmark("SpectralGraphTheory: spectralRadius(), \(name) (eigsh LA \(radius))") { benchmark in
-            for _ in benchmark.scaledIterations { blackHole(graph.spectralRadius()) }
+            for _ in benchmark.scaledIterations { blackHole(try graph.spectralRadius()) }
         }
     }
     let grid300 = inputs[1].1
     Benchmark("SpectralGraphTheory: fiedlerVector(), grid 300×300") { benchmark in
-        for _ in benchmark.scaledIterations { blackHole(grid300.fiedlerVector()) }
+        for _ in benchmark.scaledIterations { blackHole(try grid300.fiedlerVector()) }
     }
     Benchmark("SpectralGraphTheory: normalizedLaplacianMatrix(weight:), G(n, p) 10⁵ giant component") { benchmark in
         let graph = inputs[5].1
@@ -115,13 +115,13 @@ let benchmarks: @Sendable () -> Void = {
     for (n, numpy) in [(1_000, "77 ms"), (2_000, "610–730 ms")] {
         let graph = giantComponent(n, seed: 5)
         Benchmark("SpectralGraphTheory: laplacianSpectrum(), G(n, p) \(n) (numpy eigvalsh \(numpy))") { benchmark in
-            for _ in benchmark.scaledIterations { blackHole(graph.laplacianSpectrum()) }
+            for _ in benchmark.scaledIterations { blackHole(try graph.laplacianSpectrum()) }
         }
     }
     // scipy.sparse.linalg.cg, Jacobi preconditioned, on the grounded Laplacian: 51 ms.
     let giant = inputs[5].1
     Benchmark("SpectralGraphTheory: resistanceDistance(from:to:), G(n, p) 10⁵ giant component (scipy cg 51 ms)") { benchmark in
-        for _ in benchmark.scaledIterations { blackHole(giant.resistanceDistance(from: 0, to: giant.vertexCount - 1)) }
+        for _ in benchmark.scaledIterations { blackHole(try giant.resistanceDistance(from: 0, to: giant.vertexCount - 1)) }
     }
     Benchmark("SpectralGraphTheory: numberOfSpanningTrees(), G(n, p) 1000") { benchmark in
         let graph = giantComponent(1_000, seed: 5)
@@ -130,7 +130,7 @@ let benchmarks: @Sendable () -> Void = {
     // The shift-invert path: σ/λ₂ ≈ 0.4 n² on a path (phase 1 ran past 500 s here).
     let path = UndirectedAdjacencyList(vertices: 0 ..< 100_000, edges: (0 ..< 99_999).map { UndirectedEdge($0, $0 + 1) })
     Benchmark("SpectralGraphTheory: algebraicConnectivity(), path 10⁵ (shift-invert)") { benchmark in
-        for _ in benchmark.scaledIterations { blackHole(path.algebraicConnectivity()) }
+        for _ in benchmark.scaledIterations { blackHole(try path.algebraicConnectivity()) }
     }
     // Conductances log-uniform over 2⁻²⁰ … 2²¹ on the 100 × 100 grid: Jacobi, then the incomplete
     // factor (phase 1's Jacobi stopped at its cap with an error of 8.6 · 10⁻⁴).
@@ -138,13 +138,13 @@ let benchmarks: @Sendable () -> Void = {
     var spreadRandom = SeededRandomNumberGenerator(seed: 6)
     let spread = (0 ..< spreadGrid.edgeCount).map { _ in Double(sign: .plus, exponent: Int.random(in: -20 ... 20, using: &spreadRandom), significand: Double.random(in: 1 ..< 2, using: &spreadRandom)) }
     Benchmark("SpectralGraphTheory: resistanceDistance(from:to:weight:), grid 100×100, conductances over twelve decades") { benchmark in
-        for _ in benchmark.scaledIterations { blackHole(spreadGrid.resistanceDistance(from: 0, to: spreadGrid.vertexCount - 1, weight: { spread[$0] })) }
+        for _ in benchmark.scaledIterations { blackHole(try spreadGrid.resistanceDistance(from: 0, to: spreadGrid.vertexCount - 1, weight: { spread[$0] })) }
     }
     // api.md: finishes with the correct λ₂ = 2 − 2cos(π/1000) ≈ 9.8696e-6 in under 120 s.
     Benchmark("SpectralGraphTheory: algebraicConnectivity(), grid 1000×1000 (target < 120 s; no SciPy method finished)", configuration: .init(maxDuration: .seconds(1), maxIterations: 1)) { benchmark in
         let graph = grid(1_000)
         benchmark.startMeasurement()
-        let value = graph.algebraicConnectivity()
+        let value = try graph.algebraicConnectivity()
         benchmark.stopMeasurement()
         precondition(abs(value - 9.869_596_28e-6) <= 1e-4 * 9.87e-6, "λ₂ = \(value)")
         blackHole(value)

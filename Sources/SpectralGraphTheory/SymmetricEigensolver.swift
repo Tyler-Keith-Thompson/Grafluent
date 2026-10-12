@@ -6,6 +6,8 @@
 // LAPACK's `dsterf` instead. One thread, fixed operation order, so results are reproducible bit
 // for bit on one platform and build.
 
+import GraphProtocols
+
 /// sqrt(a² + b²) without overflow or destructive underflow.
 @inline(__always)
 func _hypot(_ a: Double, _ b: Double) -> Double {
@@ -19,9 +21,10 @@ func _hypot(_ a: Double, _ b: Double) -> Double {
 /// The eigenvalues of the symmetric `n`×`n` matrix in `a`, ascending, into `d`; with `vectors`,
 /// `a` is overwritten with orthonormal eigenvectors, column `j` (entries `a[j * n ..< j * n + n]`)
 /// belonging to `d[j]`. `a` is column-major (for a symmetric matrix, also row-major); only its
-/// lower triangle is read. `e` is scratch of `n` entries. O(n³) time.
+/// lower triangle is read. `e` is scratch of `n` entries. O(n³) time. Throws when an eigenvalue
+/// takes more than 60 QL iterations (see `_tridiagonalQL`).
 @usableFromInline
-func _symmetricEigen(_ n: Int, _ a: UnsafeMutablePointer<Double>, _ d: UnsafeMutablePointer<Double>, _ e: UnsafeMutablePointer<Double>, vectors: Bool) {
+func _symmetricEigen(_ n: Int, _ a: UnsafeMutablePointer<Double>, _ d: UnsafeMutablePointer<Double>, _ e: UnsafeMutablePointer<Double>, vectors: Bool) throws(NoConvergence) {
     guard n > 0 else { return }
     if n == 1 {
         d[0] = a[0]
@@ -29,7 +32,7 @@ func _symmetricEigen(_ n: Int, _ a: UnsafeMutablePointer<Double>, _ d: UnsafeMut
         return
     }
     _tridiagonalize(n, a, d, e, vectors: vectors)
-    _tridiagonalQL(n, a, d, e, vectors: vectors)
+    try _tridiagonalQL(n, a, d, e, vectors: vectors)
     // Selection sort, ascending, carrying the vectors.
     for i in 0 ..< n - 1 {
         var k = i
@@ -167,13 +170,16 @@ func _tridiagonalize(_ n: Int, _ a: UnsafeMutablePointer<Double>, _ d: UnsafeMut
 }
 
 /// The implicit QL iteration on the tridiagonal (`tql2`): eigenvalues into `d` (unsorted); with
-/// `vectors`, the rotations applied to the columns of `a`.
+/// `vectors`, the rotations applied to the columns of `a`. Throws when an eigenvalue takes more
+/// than 60 iterations (EISPACK's `tql2` gives up after 30), with the iterations spent in all and
+/// the off-diagonal entry left, relative to the largest |d| + |e| seen.
 @inline(__always)
-func _tridiagonalQL(_ n: Int, _ a: UnsafeMutablePointer<Double>, _ d: UnsafeMutablePointer<Double>, _ e: UnsafeMutablePointer<Double>, vectors: Bool) {
+func _tridiagonalQL(_ n: Int, _ a: UnsafeMutablePointer<Double>, _ d: UnsafeMutablePointer<Double>, _ e: UnsafeMutablePointer<Double>, vectors: Bool) throws(NoConvergence) {
     for i in 1 ..< n { e[i - 1] = e[i] }
     e[n - 1] = 0
     var f = 0.0
     var tst1 = 0.0
+    var total = 0
     let eps = Double.ulpOfOne
     for l in 0 ..< n {
         tst1 = max(tst1, abs(d[l]) + abs(e[l]))
@@ -186,6 +192,7 @@ func _tridiagonalQL(_ n: Int, _ a: UnsafeMutablePointer<Double>, _ d: UnsafeMuta
             var iterations = 0
             repeat {
                 iterations += 1
+                total += 1
                 var g = d[l]
                 var p = (d[l + 1] - g) / (2 * e[l])
                 var r = _hypot(p, 1)
@@ -232,7 +239,7 @@ func _tridiagonalQL(_ n: Int, _ a: UnsafeMutablePointer<Double>, _ d: UnsafeMuta
                 d[l] = c * p
                 // QL converges cubically; the cap only guards against a pathological input.
             } while abs(e[l]) > eps * tst1 && iterations < 60
-            precondition(abs(e[l]) <= eps * tst1, "The QL iteration did not converge in 60 iterations (a NaN or infinite entry?)")
+            guard abs(e[l]) <= eps * tst1 else { throw NoConvergence(iterations: total, residual: abs(e[l]) / tst1) }
         }
         d[l] += f
         e[l] = 0
@@ -240,22 +247,23 @@ func _tridiagonalQL(_ n: Int, _ a: UnsafeMutablePointer<Double>, _ d: UnsafeMuta
 }
 
 /// The eigenvalues of the symmetric `n`×`n` column-major matrix `matrix`, ascending: Householder
-/// tridiagonalization, then the root-free QL/QR iteration.
+/// tridiagonalization, then the root-free QL/QR iteration, which throws after `maxIterations`
+/// iterations in all.
 @usableFromInline
-func _eigenvalues(_ matrix: [Double], _ n: Int) -> [Double] {
+func _eigenvalues(_ matrix: [Double], _ n: Int, maxIterations: Int) throws(NoConvergence) -> [Double] {
     guard n > 0 else { return [] }
     var a = matrix
     let exponent = _scaleIntoRange(&a)
     var d = [Double](repeating: 0, count: n)
     var e = [Double](repeating: 0, count: n)
-    a.withUnsafeMutableBufferPointer { a in
-        d.withUnsafeMutableBufferPointer { d in
-            e.withUnsafeMutableBufferPointer { e in
+    try a.withUnsafeMutableBufferPointer { (a) throws(NoConvergence) in
+        try d.withUnsafeMutableBufferPointer { (d) throws(NoConvergence) in
+            try e.withUnsafeMutableBufferPointer { (e) throws(NoConvergence) in
                 _tridiagonalize(n, a.baseAddress!, d.baseAddress!, e.baseAddress!, vectors: false)
                 // e[i] couples i − 1 and i; the root-free iteration wants it at i − 1.
                 for i in 1 ..< n { e[i - 1] = e[i] }
                 e[n - 1] = 0
-                _tridiagonalEigenvalues(n, d.baseAddress!, e.baseAddress!)
+                try _tridiagonalEigenvalues(n, d.baseAddress!, e.baseAddress!, maxIterations: maxIterations)
             }
         }
     }
@@ -281,9 +289,11 @@ func _scaleIntoRange(_ a: inout [Double]) -> Int {
 /// (`e[i]` couples i and i + 1), into `d`, unsorted; `e` is destroyed. The root-free QL/QR
 /// iteration of Pal, Walker and Kahan (LAPACK's `dsterf`): it carries the squares of the
 /// off-diagonal, so a rotation costs no square root, choosing QL or QR per block by which end is
-/// larger, with blocks scaled into a safe range first.
+/// larger, with blocks scaled into a safe range first. Throws once `maxIterations` iterations are
+/// spent in all (LAPACK's limit is 30 n), with the off-diagonal entry being reduced, relative to
+/// the largest entry of its block.
 @usableFromInline
-func _tridiagonalEigenvalues(_ n: Int, _ d: UnsafeMutablePointer<Double>, _ e: UnsafeMutablePointer<Double>) {
+func _tridiagonalEigenvalues(_ n: Int, _ d: UnsafeMutablePointer<Double>, _ e: UnsafeMutablePointer<Double>, maxIterations: Int) throws(NoConvergence) {
     guard n > 1 else { return }
     let eps = Double.ulpOfOne / 2
     let eps2 = eps * eps
@@ -291,7 +301,7 @@ func _tridiagonalEigenvalues(_ n: Int, _ d: UnsafeMutablePointer<Double>, _ e: U
     let safeMaximum = 1 / safeMinimum
     let scaledMaximum = safeMaximum.squareRoot() / 3
     let scaledMinimum = safeMinimum.squareRoot() / eps2
-    let maximumIterations = 30 * n
+    let maximumIterations = maxIterations
     var iterations = 0
     var l1 = 0
     while l1 < n {
@@ -354,7 +364,7 @@ func _tridiagonalEigenvalues(_ n: Int, _ d: UnsafeMutablePointer<Double>, _ e: U
                     l += 2
                     continue
                 }
-                precondition(iterations < maximumIterations, "The QL iteration did not converge (a NaN or infinite entry?)")
+                guard iterations < maximumIterations else { throw NoConvergence(iterations: iterations, residual: e[l].squareRoot() / (scale * norm)) }
                 iterations += 1
                 // The shift.
                 let root = e[l].squareRoot()
@@ -402,7 +412,7 @@ func _tridiagonalEigenvalues(_ n: Int, _ d: UnsafeMutablePointer<Double>, _ e: U
                     l -= 2
                     continue
                 }
-                precondition(iterations < maximumIterations, "The QL iteration did not converge (a NaN or infinite entry?)")
+                guard iterations < maximumIterations else { throw NoConvergence(iterations: iterations, residual: e[l - 1].squareRoot() / (scale * norm)) }
                 iterations += 1
                 let root = e[l - 1].squareRoot()
                 var sigma = (d[l - 1] - p) / (2 * root)
@@ -461,18 +471,19 @@ func _eigenvalues2(_ a: Double, _ b: Double, _ c: Double) -> (Double, Double) {
 }
 
 /// The eigenvalues of the symmetric `n`×`n` column-major matrix `matrix`, ascending, and the
-/// orthonormal eigenvectors, column `j` of the result belonging to eigenvalue `j`.
+/// orthonormal eigenvectors, column `j` of the result belonging to eigenvalue `j`. Throws as
+/// `_symmetricEigen` does.
 @usableFromInline
-func _eigensystem(_ matrix: [Double], _ n: Int) -> (values: [Double], vectors: [Double]) {
+func _eigensystem(_ matrix: [Double], _ n: Int) throws(NoConvergence) -> (values: [Double], vectors: [Double]) {
     var a = matrix
     let exponent = _scaleIntoRange(&a)
     var d = [Double](repeating: 0, count: n)
     var e = [Double](repeating: 0, count: n)
-    a.withUnsafeMutableBufferPointer { a in
-        d.withUnsafeMutableBufferPointer { d in
-            e.withUnsafeMutableBufferPointer { e in
+    try a.withUnsafeMutableBufferPointer { (a) throws(NoConvergence) in
+        try d.withUnsafeMutableBufferPointer { (d) throws(NoConvergence) in
+            try e.withUnsafeMutableBufferPointer { (e) throws(NoConvergence) in
                 guard n > 0 else { return }
-                _symmetricEigen(n, a.baseAddress!, d.baseAddress!, e.baseAddress!, vectors: true)
+                try _symmetricEigen(n, a.baseAddress!, d.baseAddress!, e.baseAddress!, vectors: true)
             }
         }
     }

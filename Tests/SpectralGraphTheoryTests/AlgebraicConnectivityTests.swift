@@ -10,60 +10,60 @@ import Testing
 @Suite("SpectralGraphTheory algebraic connectivity")
 struct AlgebraicConnectivityTests {
     @Test("SGT-085 K2")
-    func sgt085() {
+    func sgt085() throws {
         // U: K(2) · algebraicConnectivity() → 2
         let edges: [(Int, Int)] = [(0, 1)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 2), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.algebraicConnectivity()
+        let value = try graph.algebraicConnectivity()
         // Iterative: 1e-6 · max(1, scale), scale = 2, the largest eigenvalue.
         #expect(abs(value - 2) <= 1e-6 * 2)
     }
 
     @Test("SGT-086 path P10: 2 − 2cos(π/10)")
-    func sgt086() {
+    func sgt086() throws {
         // U: P(0..9) · algebraicConnectivity() → 0.09788696741
         let edges: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 8), (8, 9)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 10), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.algebraicConnectivity()
+        let value = try graph.algebraicConnectivity()
         // Iterative: 1e-6 · max(1, scale), scale = 3.9021130325903, the largest eigenvalue.
         #expect(abs(value - 0.0978869674097) <= 1e-6 * 3.9021130325903)
     }
 
     @Test("SGT-087 cycle C10: 2 − 2cos(2π/10)")
-    func sgt087() {
+    func sgt087() throws {
         // U: C(0..9) · algebraicConnectivity() → 0.3819660113
         let edges: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 8), (8, 9), (9, 0)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 10), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.algebraicConnectivity()
+        let value = try graph.algebraicConnectivity()
         // Iterative: 1e-6 · max(1, scale), scale = 4, the largest eigenvalue.
         #expect(abs(value - 0.3819660112501) <= 1e-6 * 4)
     }
 
     @Test("SGT-088 K6")
-    func sgt088() {
+    func sgt088() throws {
         // U: K(6) · algebraicConnectivity() → 6
         let edges: [(Int, Int)] = [
             (0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5),
             (3, 4), (3, 5), (4, 5),
         ]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 6), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.algebraicConnectivity()
+        let value = try graph.algebraicConnectivity()
         // Iterative: 1e-6 · max(1, scale), scale = 6, the largest eigenvalue.
         #expect(abs(value - 6) <= 1e-6 * 6)
     }
 
     @Test("SGT-089 star K1,5")
-    func sgt089() {
+    func sgt089() throws {
         // U: S(0;1..5) · algebraicConnectivity() → 1
         let edges: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 6), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.algebraicConnectivity()
+        let value = try graph.algebraicConnectivity()
         // Iterative: 1e-6 · max(1, scale), scale = 6, the largest eigenvalue.
         #expect(abs(value - 1) <= 1e-6 * 6)
     }
 
     @Test("SGT-090 hypercube Q4")
-    func sgt090() {
+    func sgt090() throws {
         // U: Q(4) · algebraicConnectivity() → 2
         let edges: [(Int, Int)] = [
             (0, 1), (0, 2), (0, 4), (0, 8), (1, 3), (1, 5), (1, 9), (2, 3), (2, 6), (2, 10), (3, 7), (3, 11),
@@ -71,26 +71,26 @@ struct AlgebraicConnectivityTests {
             (9, 13), (10, 11), (10, 14), (11, 15), (12, 13), (12, 14), (13, 15), (14, 15),
         ]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 16), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.algebraicConnectivity()
+        let value = try graph.algebraicConnectivity()
         // Iterative: 1e-6 · max(1, scale), scale = 8, the largest eigenvalue.
         #expect(abs(value - 2) <= 1e-6 * 8)
     }
 
     @Test("SGT-091 Petersen")
-    func sgt091() {
+    func sgt091() throws {
         // U: nx(petersen) · algebraicConnectivity() → 2
         let edges: [(Int, Int)] = [
             (0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8),
             (6, 8), (6, 9), (7, 9),
         ]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 10), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.algebraicConnectivity()
+        let value = try graph.algebraicConnectivity()
         // Iterative: 1e-6 · max(1, scale), scale = 5, the largest eigenvalue.
         #expect(abs(value - 2) <= 1e-6 * 5)
     }
 
     @Test("SGT-092 grid 10×10")
-    func sgt092() {
+    func sgt092() throws {
         // U: grid(10,10) · algebraicConnectivity() → 0.09788696741
         let edges: [(Int, Int)] = [
             (0, 1), (0, 10), (1, 2), (1, 11), (2, 3), (2, 12), (3, 4), (3, 13), (4, 5), (4, 14), (5, 6), (5, 15),
@@ -110,13 +110,13 @@ struct AlgebraicConnectivityTests {
             (88, 89), (88, 98), (89, 99), (90, 91), (91, 92), (92, 93), (93, 94), (94, 95), (95, 96), (96, 97), (97, 98), (98, 99),
         ]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 100), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.algebraicConnectivity()
+        let value = try graph.algebraicConnectivity()
         // Iterative: 1e-6 · max(1, scale), scale = 7.8042260651806, the largest eigenvalue.
         #expect(abs(value - 0.0978869674097) <= 1e-6 * 7.8042260651806)
     }
 
     @Test("SGT-093 grid 30×30")
-    func sgt093() {
+    func sgt093() throws {
         // U: grid(30,30) · algebraicConnectivity() → 0.01095620926
         let edges: [(Int, Int)] = [
             (0, 1), (0, 30), (1, 2), (1, 31), (2, 3), (2, 32), (3, 4), (3, 33), (4, 5), (4, 34), (5, 6), (5, 35),
@@ -266,13 +266,13 @@ struct AlgebraicConnectivityTests {
             (887, 888), (888, 889), (889, 890), (890, 891), (891, 892), (892, 893), (893, 894), (894, 895), (895, 896), (896, 897), (897, 898), (898, 899),
         ]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 900), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.algebraicConnectivity()
+        let value = try graph.algebraicConnectivity()
         // Iterative: 1e-6 · max(1, scale), scale = 7.9780875814731, the largest eigenvalue.
         #expect(abs(value - 0.01095620926345) <= 1e-6 * 7.9780875814731)
     }
 
     @Test("SGT-094 karate club")
-    func sgt094() {
+    func sgt094() throws {
         // U: nx(karate_club) · algebraicConnectivity() → 0.4685252267
         let edges: [(Int, Int)] = [
             (0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8), (0, 10), (0, 11), (0, 12), (0, 13),
@@ -284,98 +284,98 @@ struct AlgebraicConnectivityTests {
             (29, 33), (30, 32), (30, 33), (31, 32), (31, 33), (32, 33),
         ]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 34), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.algebraicConnectivity()
+        let value = try graph.algebraicConnectivity()
         // Iterative: 1e-6 · max(1, scale), scale = 18.1366959730044, the largest eigenvalue.
         #expect(abs(value - 0.4685252267014) <= 1e-6 * 18.1366959730044)
     }
 
     @Test("SGT-095 disconnected: 0")
-    func sgt095() {
+    func sgt095() throws {
         // U: C(0,1,2), C(3,4,5) · algebraicConnectivity() → 0
         let edges: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (3, 4), (4, 5), (5, 3)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 6), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.algebraicConnectivity()
+        let value = try graph.algebraicConnectivity()
         // Iterative: 1e-6 · max(1, scale), scale = 3, the largest eigenvalue.
         #expect(abs(value - -1e-16) <= 1e-6 * 3)
     }
 
     @Test("SGT-096 two isolated vertices: 0")
-    func sgt096() {
+    func sgt096() throws {
         // U: E(2) · algebraicConnectivity() → 0
         let edges: [(Int, Int)] = []
         let graph = ReferencePseudograph(vertices: Array(0 ..< 2), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.algebraicConnectivity()
+        let value = try graph.algebraicConnectivity()
         // Not connected: exactly 0, found by the components pass.
         #expect(value == 0)
     }
 
     @Test("SGT-097 doubled edge: 4")
-    func sgt097() {
+    func sgt097() throws {
         // U: 0=1 · algebraicConnectivity() → 4
         let edges: [(Int, Int)] = [(0, 1), (0, 1)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 2), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.algebraicConnectivity()
+        let value = try graph.algebraicConnectivity()
         // Iterative: 1e-6 · max(1, scale), scale = 4, the largest eigenvalue.
         #expect(abs(value - 4) <= 1e-6 * 4)
     }
 
     @Test("SGT-098 loops do not change L")
-    func sgt098() {
+    func sgt098() throws {
         // U: 0-0, P(0..3) · algebraicConnectivity() → 0.5857864376
         let edges: [(Int, Int)] = [(0, 0), (0, 1), (1, 2), (2, 3)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 4), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.algebraicConnectivity()
+        let value = try graph.algebraicConnectivity()
         // Iterative: 1e-6 · max(1, scale), scale = 3.4142135623731, the largest eigenvalue.
         #expect(abs(value - 0.5857864376269) <= 1e-6 * 3.4142135623731)
     }
 
     @Test("SGT-099 weighted path")
-    func sgt099() {
+    func sgt099() throws {
         // U: P(0..3) · algebraicConnectivity(weight:) [1, 2, 3] → 0.9358222275
         let edges: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 4), edges: edges.map { UndirectedEdge($0.0, $0.1) })
         let weights: [Int] = [1, 2, 3]
-        let value = graph.algebraicConnectivity(weight: { weights[$0] })
+        let value = try graph.algebraicConnectivity(weight: { weights[$0] })
         // Iterative: 1e-6 · max(1, scale), scale = 7.7587704831436, the largest eigenvalue.
         #expect(abs(value - 0.93582222752409) <= 1e-6 * 7.7587704831436)
     }
 
     @Test("SGT-100 weight 0 disconnects")
-    func sgt100() {
+    func sgt100() throws {
         // U: P(0..3) · algebraicConnectivity(weight:) [1, 0, 1] → 0
         let edges: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 4), edges: edges.map { UndirectedEdge($0.0, $0.1) })
         let weights: [Int] = [1, 0, 1]
-        let value = graph.algebraicConnectivity(weight: { weights[$0] })
+        let value = try graph.algebraicConnectivity(weight: { weights[$0] })
         // Not connected: exactly 0, found by the components pass.
         #expect(value == 0)
     }
 
     @Test("SGT-101 path P10, normalized: 1 − cos(π/9)")
-    func sgt101() {
+    func sgt101() throws {
         // U: P(0..9) · algebraicConnectivity(normalized: true) → 0.06030737921
         let edges: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 8), (8, 9)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 10), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.algebraicConnectivity(normalized: true)
+        let value = try graph.algebraicConnectivity(normalized: true)
         // Iterative: 1e-6 · max(1, scale), scale = 2, the largest eigenvalue.
         #expect(abs(value - 0.0603073792141) <= 1e-6 * 2)
     }
 
     @Test("SGT-102 Petersen, normalized")
-    func sgt102() {
+    func sgt102() throws {
         // U: nx(petersen) · algebraicConnectivity(normalized: true) → 0.6666666667
         let edges: [(Int, Int)] = [
             (0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8),
             (6, 8), (6, 9), (7, 9),
         ]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 10), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.algebraicConnectivity(normalized: true)
+        let value = try graph.algebraicConnectivity(normalized: true)
         // Iterative: 1e-6 · max(1, scale), scale = 1.66666666666667, the largest eigenvalue.
         #expect(abs(value - 0.66666666666667) <= 1e-6 * 1.66666666666667)
     }
 
     @Test("SGT-103 karate club, normalized")
-    func sgt103() {
+    func sgt103() throws {
         // U: nx(karate_club) · algebraicConnectivity(normalized: true) → 0.1322723292
         let edges: [(Int, Int)] = [
             (0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8), (0, 10), (0, 11), (0, 12), (0, 13),
@@ -387,23 +387,23 @@ struct AlgebraicConnectivityTests {
             (29, 33), (30, 32), (30, 33), (31, 32), (31, 33), (32, 33),
         ]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 34), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.algebraicConnectivity(normalized: true)
+        let value = try graph.algebraicConnectivity(normalized: true)
         // Iterative: 1e-6 · max(1, scale), scale = 1.71461134747362, the largest eigenvalue.
         #expect(abs(value - 0.13227232922952) <= 1e-6 * 1.71461134747362)
     }
 
     @Test("SGT-104 self-loop, normalized: loops count in the degrees")
-    func sgt104() {
+    func sgt104() throws {
         // U: 0-0, P(0..3) · algebraicConnectivity(normalized: true) → 0.3110562314
         let edges: [(Int, Int)] = [(0, 0), (0, 1), (1, 2), (2, 3)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 4), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.algebraicConnectivity(normalized: true)
+        let value = try graph.algebraicConnectivity(normalized: true)
         // Iterative: 1e-6 · max(1, scale), scale = 1.8857109904471, the largest eigenvalue.
         #expect(abs(value - 0.3110562313517) <= 1e-6 * 1.8857109904471)
     }
 
     @Test("SGT-105 lcg(200,600,11)")
-    func sgt105() {
+    func sgt105() throws {
         // U: lcg(200,600,11) · algebraicConnectivity() → 0.6454627161
         let edges: [(Int, Int)] = [
             (96, 51), (143, 8), (134, 83), (153, 122), (140, 163), (75, 107), (168, 51), (109, 27), (184, 67), (153, 77), (59, 99), (56, 138),
@@ -458,7 +458,7 @@ struct AlgebraicConnectivityTests {
             (71, 146), (125, 186), (174, 133), (3, 178), (19, 110), (125, 42), (28, 43), (22, 72), (129, 22), (93, 108), (155, 119), (134, 152),
         ]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 200), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.algebraicConnectivity()
+        let value = try graph.algebraicConnectivity()
         // Iterative: 1e-6 · max(1, scale), scale = 15.4712433912266, the largest eigenvalue.
         #expect(abs(value - 0.64546271610012) <= 1e-6 * 15.4712433912266)
     }

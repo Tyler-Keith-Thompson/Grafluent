@@ -66,36 +66,36 @@ struct SpectralConformanceTests {
         let nm = reference.normalizedLaplacianMatrix(), rw = reference.randomWalkLaplacianMatrix(), q = reference.signlessLaplacianMatrix()
         let wl = reference.laplacianMatrix(weight: { conductance(reference.edges[$0]) })
         let wn = reference.normalizedLaplacianMatrix(weight: { conductance(reference.edges[$0]) })
-        let ls = reference.laplacianSpectrum(), ns = reference.normalizedLaplacianSpectrum(), asp = reference.adjacencySpectrum()
+        let ls = try reference.laplacianSpectrum(), ns = try reference.normalizedLaplacianSpectrum(), asp = try reference.adjacencySpectrum()
         let scale = max(1, ls.last ?? 0)
-        let radius = reference.spectralRadius()
+        let radius = try reference.spectralRadius()
         let trees = reference.numberOfSpanningTrees(weight: { conductance(reference.edges[$0]) })
         let effective = reference.effectiveGraphResistance(weight: { conductance(reference.edges[$0]) })
         let kemeny = reference.kemenyConstant()
-        let resistance = listed.map { u in listed.map { v in reference.resistanceDistance(from: u, to: v, weight: { conductance(reference.edges[$0]) }) } }
-        let lambda = n >= 2 ? reference.algebraicConnectivity() : 0
-        let fiedler = n >= 2 ? reference.fiedlerVector() : nil
+        let resistance = try listed.map { u in try listed.map { v in try reference.resistanceDistance(from: u, to: v, weight: { conductance(reference.edges[$0]) }) } }
+        let lambda = try n >= 2 ? reference.algebraicConnectivity() : 0
+        let fiedler = try n >= 2 ? reference.fiedlerVector() : nil
         let simple = n > 2 && ls[2] - ls[1] > 1e-3 * scale
-        let order = reference.spectralOrdering()
+        let order = try reference.spectralOrdering()
         let context = "seed \(seed), n \(n), edges \(edgeList.map { [$0.u, $0.v] }), listed \(listed)"
 
-        func check<G: Graph>(_ graph: G, _ name: String, vertex: (Int) -> G.Vertex) {
+        func check<G: Graph>(_ graph: G, _ name: String, vertex: (Int) -> G.Vertex) throws {
             let context = "\(name), \(context)"
             #expect(graph.adjacencyMatrix() == a, "\(context)")
             #expect(graph.laplacianMatrix() == l, "\(context)")
             #expect(graph.normalizedLaplacianMatrix() == nm, "\(context)")
             #expect(graph.randomWalkLaplacianMatrix() == rw, "\(context)")
             #expect(graph.signlessLaplacianMatrix() == q, "\(context)")
-            for (mine, theirs) in [(graph.laplacianSpectrum(), ls), (graph.normalizedLaplacianSpectrum(), ns), (graph.adjacencySpectrum(), asp)] {
+            for (mine, theirs) in try [(graph.laplacianSpectrum(), ls), (graph.normalizedLaplacianSpectrum(), ns), (graph.adjacencySpectrum(), asp)] {
                 #expect(mine.count == theirs.count && zip(mine, theirs).allSatisfy { abs($0 - $1) <= 1e-9 * scale }, "\(context)")
             }
-            #expect(abs(graph.spectralRadius() - radius) <= 1e-6 * max(1, radius), "\(context)")
+            #expect(abs(try graph.spectralRadius() - radius) <= 1e-6 * max(1, radius), "\(context)")
             let mineKemeny = graph.kemenyConstant()
             #expect((mineKemeny == nil) == (kemeny == nil), "\(context)")
             if let mineKemeny, let kemeny { #expect(abs(mineKemeny - kemeny) <= 1e-9 * max(1, kemeny), "\(context)") }
             if n >= 2 {
-                #expect(abs(graph.algebraicConnectivity() - lambda) <= 1e-6 * scale, "\(context)")
-                let mine = graph.fiedlerVector()
+                #expect(abs(try graph.algebraicConnectivity() - lambda) <= 1e-6 * scale, "\(context)")
+                let mine = try graph.fiedlerVector()
                 #expect((mine == nil) == (fiedler == nil), "\(context)")
                 if let mine, let fiedler {
                     #expect(abs(mine.algebraicConnectivity - fiedler.algebraicConnectivity) <= 1e-6 * scale, "\(context)")
@@ -108,15 +108,15 @@ struct SpectralConformanceTests {
                 }
             }
             if simple || n <= 2 || fiedler == nil {
-                #expect(graph.spectralOrdering() == order.map(vertex), "\(context)")
+                #expect(try graph.spectralOrdering() == order.map(vertex), "\(context)")
             } else {
-                #expect(Set(graph.spectralOrdering()) == Set(order.map(vertex)), "\(context)")
+                #expect(Set(try graph.spectralOrdering()) == Set(order.map(vertex)), "\(context)")
             }
         }
-        check(pseudograph, "Pseudograph") { $0 }
-        check(adjacencyList, "UndirectedAdjacencyList") { $0 }
-        check(arcs, "AdjacencyList.undirected") { $0 }
-        check(strings, "String vertices without indices") { "v\($0)" }
+        try check(pseudograph, "Pseudograph") { $0 }
+        try check(adjacencyList, "UndirectedAdjacencyList") { $0 }
+        try check(arcs, "AdjacencyList.undirected") { $0 }
+        try check(strings, "String vertices without indices") { "v\($0)" }
 
         // The weighted electrical quantities on each representation, by endpoint.
         let p = pseudograph, u = adjacencyList
@@ -131,7 +131,7 @@ struct SpectralConformanceTests {
         if let pe, let effective { #expect(abs(pe - effective) <= 1e-9 * max(1, effective), "\(context)") }
         for (i, x) in listed.enumerated() {
             for (j, y) in listed.enumerated() {
-                let mine = u.resistanceDistance(from: x, to: y, weight: { conductance(u.edges[$0]) })
+                let mine = try u.resistanceDistance(from: x, to: y, weight: { conductance(u.edges[$0]) })
                 #expect((mine == nil) == (resistance[i][j] == nil), "R(\(x), \(y)), \(context)")
                 if let mine, let theirs = resistance[i][j] {
                     #expect(abs(mine - theirs) <= 1e-6 * max(1, theirs), "R(\(x), \(y)), \(context)")
@@ -193,7 +193,7 @@ struct SpectralConformanceTests {
     }
 
     @Test("digraph.undirected: the spectral quantities of the symmetrization, as an undirected multigraph of the arcs", arguments: 0 ..< 30)
-    func undirectedView(seed: Int) {
+    func undirectedView(seed: Int) throws {
         var rng = SeededRandomNumberGenerator(seed: UInt(seed) &+ 3_000)
         let n = Int.random(in: 2 ... 9, using: &rng)
         var arcs = Set<[Int]>()
@@ -209,8 +209,8 @@ struct SpectralConformanceTests {
         // Both arcs of a pair are two parallel edges.
         #expect(view.laplacianMatrix() == reference.laplacianMatrix(), "\(context)")
         #expect(view.numberOfSpanningTrees() == reference.numberOfSpanningTrees(), "\(context)")
-        let scale = max(1, reference.laplacianSpectrum().last ?? 0)
-        #expect(abs(view.algebraicConnectivity() - reference.algebraicConnectivity()) <= 1e-6 * scale, "\(context)")
+        let scale = max(1, try reference.laplacianSpectrum().last ?? 0)
+        #expect(abs(try view.algebraicConnectivity() - reference.algebraicConnectivity()) <= 1e-6 * scale, "\(context)")
         let mine = view.kemenyConstant(), theirs = reference.kemenyConstant()
         #expect((mine == nil) == (theirs == nil), "\(context)")
         if let mine, let theirs { #expect(abs(mine - theirs) <= 1e-9 * max(1, theirs), "\(context)") }
@@ -237,33 +237,33 @@ struct SpectralConformanceTests {
     }
 
     @Test("Results are deterministic: two calls give the same bits, also on the Lanczos path (n ≥ 64)")
-    func determinism() {
+    func determinism() throws {
         var rng = SeededRandomNumberGenerator(seed: 11)
         for n in [10, 200] {
             var edges = (0 ..< n - 1).map { UndirectedEdge($0, $0 + 1) }
             for _ in 0 ..< 2 * n { edges.append(UndirectedEdge(Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng))) }
             let graph = ReferencePseudograph(vertices: Array(0 ..< n), edges: edges)
-            #expect(graph.algebraicConnectivity() == graph.algebraicConnectivity(), "n \(n)")
-            #expect(graph.fiedlerVector()?.values == graph.fiedlerVector()?.values, "n \(n)")
-            #expect(graph.fiedlerVector(normalized: true)?.values == graph.fiedlerVector(normalized: true)?.values, "n \(n)")
-            #expect(graph.spectralOrdering() == graph.spectralOrdering(), "n \(n)")
-            #expect(graph.spectralRadius() == graph.spectralRadius(), "n \(n)")
-            #expect(graph.resistanceDistance(from: 0, to: n - 1) == graph.resistanceDistance(from: 0, to: n - 1), "n \(n)")
+            #expect(try graph.algebraicConnectivity() == graph.algebraicConnectivity(), "n \(n)")
+            #expect(try graph.fiedlerVector()?.values == graph.fiedlerVector()?.values, "n \(n)")
+            #expect(try graph.fiedlerVector(normalized: true)?.values == graph.fiedlerVector(normalized: true)?.values, "n \(n)")
+            #expect(try graph.spectralOrdering() == graph.spectralOrdering(), "n \(n)")
+            #expect(try graph.spectralRadius() == graph.spectralRadius(), "n \(n)")
+            #expect(try graph.resistanceDistance(from: 0, to: n - 1) == graph.resistanceDistance(from: 0, to: n - 1), "n \(n)")
         }
     }
 
     @Test("tolerance: λ₂ and ρ stay within it relative to themselves, the Fiedler residual within tolerance · λ₂")
-    func toleranceParameter() {
+    func toleranceParameter() throws {
         var rng = SeededRandomNumberGenerator(seed: 5)
         let n = 300
         var edges = (0 ..< n - 1).map { UndirectedEdge($0, $0 + 1) }
         for _ in 0 ..< 600 { edges.append(UndirectedEdge(Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng))) }
         let graph = ReferencePseudograph(vertices: Array(0 ..< n), edges: edges)
-        let exact = graph.laplacianSpectrum()
+        let exact = try graph.laplacianSpectrum()
         for tolerance in [1e-3, 1e-6, 1e-8, 1e-10] {
-            let value = graph.algebraicConnectivity(tolerance: tolerance)
+            let value = try graph.algebraicConnectivity(tolerance: tolerance)
             #expect(abs(value - exact[1]) <= tolerance * exact[1], "tolerance \(tolerance)")
-            if let fiedler = graph.fiedlerVector(tolerance: tolerance) {
+            if let fiedler = try graph.fiedlerVector(tolerance: tolerance) {
                 let x = fiedler.values
                 let lx = graph.laplacianMatrix() * x
                 let residual = zip(lx, x).reduce(0) { $0 + ($1.0 - fiedler.algebraicConnectivity * $1.1) * ($1.0 - fiedler.algebraicConnectivity * $1.1) }
@@ -272,12 +272,12 @@ struct SpectralConformanceTests {
                 Issue.record("nil on a connected graph")
             }
         }
-        let largest = graph.adjacencySpectrum().map { abs($0) }.max()!
-        #expect(abs(graph.spectralRadius(tolerance: 1e-4) - largest) <= 1e-4 * largest)
-        #expect(abs(graph.spectralRadius() - largest) <= 1e-8 * largest)
+        let largest = try graph.adjacencySpectrum().map { abs($0) }.max()!
+        #expect(abs(try graph.spectralRadius(tolerance: 1e-4) - largest) <= 1e-4 * largest)
+        #expect(abs(try graph.spectralRadius() - largest) <= 1e-8 * largest)
         // resistanceDistance's tolerance: a loose one is still within 10 %.
-        let r = graph.resistanceDistance(from: 0, to: n - 1)
-        let loose = graph.resistanceDistance(from: 0, to: n - 1, tolerance: 1e-4)
+        let r = try graph.resistanceDistance(from: 0, to: n - 1)
+        let loose = try graph.resistanceDistance(from: 0, to: n - 1, tolerance: 1e-4)
         if let r, let loose { #expect(abs(r - loose) <= 1e-1 * max(1, r)) } else { Issue.record("nil on a connected graph") }
     }
 
@@ -290,7 +290,7 @@ struct SpectralConformanceTests {
     }
 
     @Test("Each weighted entry point reads the weight of the edge at each position exactly once")
-    func weightReading() {
+    func weightReading() throws {
         final class Reads {
             var count: [Int]
             init(_ m: Int) { count = [Int](repeating: 0, count: m) }
@@ -300,9 +300,9 @@ struct SpectralConformanceTests {
         edges += [UndirectedEdge(3, 3), UndirectedEdge(0, 1), UndirectedEdge(0, 69), UndirectedEdge(10, 40)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 70), edges: edges)
         let m = edges.count
-        func reads(_ call: (_ weight: @escaping (Int) -> Double) -> Void) -> [Int] {
+        func reads(_ call: (_ weight: @escaping (Int) -> Double) throws -> Void) rethrows -> [Int] {
             let r = Reads(m)
-            call { p in r.count[p] += 1; return Double(p % 3 + 1) }
+            try call { p in r.count[p] += 1; return Double(p % 3 + 1) }
             return r.count
         }
         let once = [Int](repeating: 1, count: m)
@@ -311,16 +311,16 @@ struct SpectralConformanceTests {
         #expect(reads { _ = graph.normalizedLaplacianMatrix(weight: $0) } == once, "normalizedLaplacianMatrix")
         #expect(reads { _ = graph.randomWalkLaplacianMatrix(weight: $0) } == once, "randomWalkLaplacianMatrix")
         #expect(reads { _ = graph.signlessLaplacianMatrix(weight: $0) } == once, "signlessLaplacianMatrix")
-        #expect(reads { _ = graph.adjacencySpectrum(weight: $0) } == once, "adjacencySpectrum")
-        #expect(reads { _ = graph.laplacianSpectrum(weight: $0) } == once, "laplacianSpectrum")
-        #expect(reads { _ = graph.normalizedLaplacianSpectrum(weight: $0) } == once, "normalizedLaplacianSpectrum")
-        #expect(reads { _ = graph.algebraicConnectivity(weight: $0) } == once, "algebraicConnectivity")
-        #expect(reads { _ = graph.algebraicConnectivity(weight: $0, normalized: true) } == once, "algebraicConnectivity(normalized:)")
-        #expect(reads { _ = graph.fiedlerVector(weight: $0) } == once, "fiedlerVector")
-        #expect(reads { _ = graph.spectralOrdering(weight: $0) } == once, "spectralOrdering")
-        #expect(reads { _ = graph.spectralRadius(weight: $0) } == once, "spectralRadius")
+        #expect(try reads { _ = try graph.adjacencySpectrum(weight: $0) } == once, "adjacencySpectrum")
+        #expect(try reads { _ = try graph.laplacianSpectrum(weight: $0) } == once, "laplacianSpectrum")
+        #expect(try reads { _ = try graph.normalizedLaplacianSpectrum(weight: $0) } == once, "normalizedLaplacianSpectrum")
+        #expect(try reads { _ = try graph.algebraicConnectivity(weight: $0) } == once, "algebraicConnectivity")
+        #expect(try reads { _ = try graph.algebraicConnectivity(weight: $0, normalized: true) } == once, "algebraicConnectivity(normalized:)")
+        #expect(try reads { _ = try graph.fiedlerVector(weight: $0) } == once, "fiedlerVector")
+        #expect(try reads { _ = try graph.spectralOrdering(weight: $0) } == once, "spectralOrdering")
+        #expect(try reads { _ = try graph.spectralRadius(weight: $0) } == once, "spectralRadius")
         #expect(reads { _ = graph.numberOfSpanningTrees(weight: $0) } == once, "numberOfSpanningTrees")
-        #expect(reads { _ = graph.resistanceDistance(from: 0, to: 50, weight: $0) } == once, "resistanceDistance")
+        #expect(try reads { _ = try graph.resistanceDistance(from: 0, to: 50, weight: $0) } == once, "resistanceDistance")
         #expect(reads { _ = graph.effectiveGraphResistance(weight: $0) } == once, "effectiveGraphResistance")
         #expect(reads { _ = graph.kemenyConstant(weight: $0) } == once, "kemenyConstant")
         let digraph = ReferenceDirectedMultigraph(vertices: Array(0 ..< 70), edges: edges.map { DirectedEdge(from: $0.u, to: $0.v) })

@@ -111,7 +111,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-005: eigenvectorCentrality
-            let result = try #require(graph.eigenvectorCentrality())
+            let result = try graph.eigenvectorCentrality()
             let expected: [Double] = []
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -122,7 +122,7 @@ struct CentralityRepresentationTests {
             #expect(byIndex == result.scores)
             let byVertex = graph.vertices.map { result.score(of: $0) }
             #expect(byVertex == result.scores)
-            let arcs = try #require(graph.directed.eigenvectorCentrality())
+            let arcs = try graph.directed.eigenvectorCentrality()
             for (i, value) in expected.enumerated() {
                 let error = abs(arcs.score(ofIndex: i) - value)
                 #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -130,7 +130,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-006: katzCentrality
-            let result = try #require(graph.katzCentrality())
+            let result = try graph.katzCentrality()
             let expected: [Double] = []
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -141,7 +141,7 @@ struct CentralityRepresentationTests {
             #expect(byIndex == result.scores)
             let byVertex = graph.vertices.map { result.score(of: $0) }
             #expect(byVertex == result.scores)
-            let arcs = try #require(graph.directed.katzCentrality())
+            let arcs = try graph.directed.katzCentrality()
             for (i, value) in expected.enumerated() {
                 let error = abs(arcs.score(ofIndex: i) - value)
                 #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -149,7 +149,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-007: pageRank
-            let result = try #require(graph.pageRank())
+            let result = try graph.pageRank()
             let expected: [Double] = []
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -160,7 +160,7 @@ struct CentralityRepresentationTests {
             #expect(byIndex == result.scores)
             let byVertex = graph.vertices.map { result.score(of: $0) }
             #expect(byVertex == result.scores)
-            let arcs = try #require(graph.directed.pageRank())
+            let arcs = try graph.directed.pageRank()
             for (i, value) in expected.enumerated() {
                 let error = abs(arcs.score(ofIndex: i) - value)
                 #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -175,7 +175,7 @@ struct CentralityRepresentationTests {
         #expect(Array(graph.vertices) == [])
         do {
             // CE-008: hits.hubs
-            let scores = try #require(graph.hits())
+            let scores = try graph.hits()
             let result = scores.hubs
             let expected: [Double] = []
             #expect(result.scores.count == expected.count)
@@ -198,7 +198,7 @@ struct CentralityRepresentationTests {
         let graph = CompressedSparseRow(vertexCount: 0)
         do {
             // CE-008: hits.hubs
-            let scores = try #require(graph.hits())
+            let scores = try graph.hits()
             let result = scores.hubs
             let expected: [Double] = []
             #expect(result.scores.count == expected.count)
@@ -221,7 +221,7 @@ struct CentralityRepresentationTests {
         let graph = AdjacencyMatrix(vertexCount: 0)
         do {
             // CE-008: hits.hubs
-            let scores = try #require(graph.hits())
+            let scores = try graph.hits()
             let result = scores.hubs
             let expected: [Double] = []
             #expect(result.scores.count == expected.count)
@@ -350,7 +350,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-014: eigenvectorCentrality
-            let result = try #require(graph.eigenvectorCentrality())
+            let result = try graph.eigenvectorCentrality()
             let expected: [Double] = [1]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -363,7 +363,7 @@ struct CentralityRepresentationTests {
             #expect(byVertex == result.scores)
             let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
             #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-            let arcs = try #require(graph.directed.eigenvectorCentrality())
+            let arcs = try graph.directed.eigenvectorCentrality()
             for (i, value) in expected.enumerated() {
                 let error = abs(arcs.score(ofIndex: i) - value)
                 #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -371,7 +371,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-015: katzCentrality
-            let result = try #require(graph.katzCentrality())
+            let result = try graph.katzCentrality()
             let expected: [Double] = [1]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -384,7 +384,7 @@ struct CentralityRepresentationTests {
             #expect(byVertex == result.scores)
             let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
             #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-            let arcs = try #require(graph.directed.katzCentrality())
+            let arcs = try graph.directed.katzCentrality()
             for (i, value) in expected.enumerated() {
                 let error = abs(arcs.score(ofIndex: i) - value)
                 #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -392,7 +392,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-016: pageRank
-            let result = try #require(graph.pageRank())
+            let result = try graph.pageRank()
             let expected: [Double] = [1]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -405,7 +405,7 @@ struct CentralityRepresentationTests {
             #expect(byVertex == result.scores)
             let total = result.scores.reduce(0, +)
             #expect(abs(total - 1) <= 1e-12, "scores sum to 1")
-            let arcs = try #require(graph.directed.pageRank())
+            let arcs = try graph.directed.pageRank()
             for (i, value) in expected.enumerated() {
                 let error = abs(arcs.score(ofIndex: i) - value)
                 #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -420,7 +420,7 @@ struct CentralityRepresentationTests {
         #expect(Array(graph.vertices) == [0])
         do {
             // CE-017: hits.hubs
-            let scores = try #require(graph.hits())
+            let scores = try graph.hits()
             let result = scores.hubs
             let expected: [Double] = [1]
             #expect(result.scores.count == expected.count)
@@ -462,7 +462,7 @@ struct CentralityRepresentationTests {
         let graph = CompressedSparseRow(vertexCount: 1)
         do {
             // CE-017: hits.hubs
-            let scores = try #require(graph.hits())
+            let scores = try graph.hits()
             let result = scores.hubs
             let expected: [Double] = [1]
             #expect(result.scores.count == expected.count)
@@ -504,7 +504,7 @@ struct CentralityRepresentationTests {
         let graph = AdjacencyMatrix(vertexCount: 1)
         do {
             // CE-017: hits.hubs
-            let scores = try #require(graph.hits())
+            let scores = try graph.hits()
             let result = scores.hubs
             let expected: [Double] = [1]
             #expect(result.scores.count == expected.count)
@@ -566,7 +566,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-019: eigenvectorCentrality
-            let result = try #require(graph.eigenvectorCentrality())
+            let result = try graph.eigenvectorCentrality()
             let expected: [Double] = [0.5773502691896257, 0.5773502691896257, 0.5773502691896257]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -579,7 +579,7 @@ struct CentralityRepresentationTests {
             #expect(byVertex == result.scores)
             let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
             #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-            let arcs = try #require(graph.directed.eigenvectorCentrality())
+            let arcs = try graph.directed.eigenvectorCentrality()
             for (i, value) in expected.enumerated() {
                 let error = abs(arcs.score(ofIndex: i) - value)
                 #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -587,7 +587,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-020: katzCentrality
-            let result = try #require(graph.katzCentrality())
+            let result = try graph.katzCentrality()
             let expected: [Double] = [0.5773502691896258, 0.5773502691896258, 0.5773502691896258]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -600,7 +600,7 @@ struct CentralityRepresentationTests {
             #expect(byVertex == result.scores)
             let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
             #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-            let arcs = try #require(graph.directed.katzCentrality())
+            let arcs = try graph.directed.katzCentrality()
             for (i, value) in expected.enumerated() {
                 let error = abs(arcs.score(ofIndex: i) - value)
                 #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -608,7 +608,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-021: katzCentrality(normalized: false)
-            let result = try #require(graph.katzCentrality(normalized: false))
+            let result = try graph.katzCentrality(normalized: false)
             let expected: [Double] = [1, 1, 1]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -619,7 +619,7 @@ struct CentralityRepresentationTests {
             #expect(byIndex == result.scores)
             let byVertex = graph.vertices.map { result.score(of: $0) }
             #expect(byVertex == result.scores)
-            let arcs = try #require(graph.directed.katzCentrality(normalized: false))
+            let arcs = try graph.directed.katzCentrality(normalized: false)
             for (i, value) in expected.enumerated() {
                 let error = abs(arcs.score(ofIndex: i) - value)
                 #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -627,7 +627,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-022: pageRank
-            let result = try #require(graph.pageRank())
+            let result = try graph.pageRank()
             let expected: [Double] = [0.3333333333333333, 0.3333333333333333, 0.3333333333333333]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -640,7 +640,7 @@ struct CentralityRepresentationTests {
             #expect(byVertex == result.scores)
             let total = result.scores.reduce(0, +)
             #expect(abs(total - 1) <= 1e-12, "scores sum to 1")
-            let arcs = try #require(graph.directed.pageRank())
+            let arcs = try graph.directed.pageRank()
             for (i, value) in expected.enumerated() {
                 let error = abs(arcs.score(ofIndex: i) - value)
                 #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -655,7 +655,7 @@ struct CentralityRepresentationTests {
         #expect(Array(graph.vertices) == [0, 1, 2])
         do {
             // CE-023: hits.authorities
-            let scores = try #require(graph.hits())
+            let scores = try graph.hits()
             let result = scores.authorities
             let expected: [Double] = [0.3333333333333333, 0.3333333333333333, 0.3333333333333333]
             #expect(result.scores.count == expected.count)
@@ -678,7 +678,7 @@ struct CentralityRepresentationTests {
         do {
             // CE-189: pageRank(personalization: [1, 2, 1])
             let p: [Double] = [1, 2, 1]
-            let result = try #require(graph.pageRank(personalization: { p[$0] }))
+            let result = try graph.pageRank(personalization: { p[$0] })
             let expected: [Double] = [0.25, 0.5, 0.25]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -700,7 +700,7 @@ struct CentralityRepresentationTests {
         let graph = CompressedSparseRow(vertexCount: 3)
         do {
             // CE-023: hits.authorities
-            let scores = try #require(graph.hits())
+            let scores = try graph.hits()
             let result = scores.authorities
             let expected: [Double] = [0.3333333333333333, 0.3333333333333333, 0.3333333333333333]
             #expect(result.scores.count == expected.count)
@@ -723,7 +723,7 @@ struct CentralityRepresentationTests {
         do {
             // CE-189: pageRank(personalization: [1, 2, 1])
             let p: [Double] = [1, 2, 1]
-            let result = try #require(graph.pageRank(personalization: { p[$0] }))
+            let result = try graph.pageRank(personalization: { p[$0] })
             let expected: [Double] = [0.25, 0.5, 0.25]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -745,7 +745,7 @@ struct CentralityRepresentationTests {
         let graph = AdjacencyMatrix(vertexCount: 3)
         do {
             // CE-023: hits.authorities
-            let scores = try #require(graph.hits())
+            let scores = try graph.hits()
             let result = scores.authorities
             let expected: [Double] = [0.3333333333333333, 0.3333333333333333, 0.3333333333333333]
             #expect(result.scores.count == expected.count)
@@ -768,7 +768,7 @@ struct CentralityRepresentationTests {
         do {
             // CE-189: pageRank(personalization: [1, 2, 1])
             let p: [Double] = [1, 2, 1]
-            let result = try #require(graph.pageRank(personalization: { p[$0] }))
+            let result = try graph.pageRank(personalization: { p[$0] })
             let expected: [Double] = [0.25, 0.5, 0.25]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -919,7 +919,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-132: eigenvectorCentrality
-            let result = try #require(graph.eigenvectorCentrality())
+            let result = try graph.eigenvectorCentrality()
             let expected: [Double] = [
                 0.7071067811865479, 0.35355339059327356, 0.35355339059327356, 0.35355339059327356,
                 0.35355339059327356
@@ -935,7 +935,7 @@ struct CentralityRepresentationTests {
             #expect(byVertex == result.scores)
             let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
             #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-            let arcs = try #require(graph.directed.eigenvectorCentrality())
+            let arcs = try graph.directed.eigenvectorCentrality()
             for (i, value) in expected.enumerated() {
                 let error = abs(arcs.score(ofIndex: i) - value)
                 #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -943,7 +943,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-181: pageRank
-            let result = try #require(graph.pageRank())
+            let result = try graph.pageRank()
             let expected: [Double] = [
                 0.47567567567567465, 0.13108108108108138, 0.13108108108108138, 0.13108108108108138,
                 0.13108108108108138
@@ -959,7 +959,7 @@ struct CentralityRepresentationTests {
             #expect(byVertex == result.scores)
             let total = result.scores.reduce(0, +)
             #expect(abs(total - 1) <= 1e-12, "scores sum to 1")
-            let arcs = try #require(graph.directed.pageRank())
+            let arcs = try graph.directed.pageRank()
             for (i, value) in expected.enumerated() {
                 let error = abs(arcs.score(ofIndex: i) - value)
                 #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -1013,7 +1013,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-139: eigenvectorCentrality
-            let result = try #require(graph.eigenvectorCentrality())
+            let result = try graph.eigenvectorCentrality()
             let expected: [Double] = [0.3250575836718682, 0.8880738339771153, 0.3250575836718682]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -1026,7 +1026,7 @@ struct CentralityRepresentationTests {
             #expect(byVertex == result.scores)
             let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
             #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-            let arcs = try #require(graph.directed.eigenvectorCentrality())
+            let arcs = try graph.directed.eigenvectorCentrality()
             for (i, value) in expected.enumerated() {
                 let error = abs(arcs.score(ofIndex: i) - value)
                 #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -1034,7 +1034,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-168: katzCentrality
-            let result = try #require(graph.katzCentrality())
+            let result = try graph.katzCentrality()
             let expected: [Double] = [0.5144957554275265, 0.6859943405700353, 0.5144957554275265]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -1047,7 +1047,7 @@ struct CentralityRepresentationTests {
             #expect(byVertex == result.scores)
             let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
             #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-            let arcs = try #require(graph.directed.katzCentrality())
+            let arcs = try graph.directed.katzCentrality()
             for (i, value) in expected.enumerated() {
                 let error = abs(arcs.score(ofIndex: i) - value)
                 #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -1055,7 +1055,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-182: pageRank
-            let result = try #require(graph.pageRank())
+            let result = try graph.pageRank()
             let expected: [Double] = [0.1842105263157897, 0.6315789473684206, 0.1842105263157897]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -1068,7 +1068,7 @@ struct CentralityRepresentationTests {
             #expect(byVertex == result.scores)
             let total = result.scores.reduce(0, +)
             #expect(abs(total - 1) <= 1e-12, "scores sum to 1")
-            let arcs = try #require(graph.directed.pageRank())
+            let arcs = try graph.directed.pageRank()
             for (i, value) in expected.enumerated() {
                 let error = abs(arcs.score(ofIndex: i) - value)
                 #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -1222,11 +1222,13 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-142: eigenvectorCentrality
-            #expect(graph.eigenvectorCentrality() == nil)
+            let failure = #expect(throws: NoConvergence.self) { try graph.eigenvectorCentrality() }
+            #expect(failure?.iterations == 100)
+            #expect(failure.map { !($0.residual < 1e-06) } == true)
         }
         do {
             // CE-166: katzCentrality
-            let result = try #require(graph.katzCentrality())
+            let result = try graph.katzCentrality()
             let expected: [Double] = [0.5389993709611511, 0.5928993080572663, 0.5982893017668779]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -1242,7 +1244,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-175: pageRank
-            let result = try #require(graph.pageRank())
+            let result = try graph.pageRank()
             let expected: [Double] = [0.18441678192715505, 0.3411710465652378, 0.47441217150760673]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -1259,7 +1261,7 @@ struct CentralityRepresentationTests {
         do {
             // CE-178: pageRank(personalization: [1, 0, 0])
             let p: [Double] = [1, 0, 0]
-            let result = try #require(graph.pageRank(personalization: { p[$0] }))
+            let result = try graph.pageRank(personalization: { p[$0] })
             let expected: [Double] = [0.38872691933916437, 0.33041788143829026, 0.2808551992225454]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -1275,7 +1277,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-179: pageRank(dampingFactor: 0.5)
-            let result = try #require(graph.pageRank(dampingFactor: 0.5))
+            let result = try graph.pageRank(dampingFactor: 0.5)
             let expected: [Double] = [0.23529411764705863, 0.3529411764705885, 0.4117647058823528]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -1291,7 +1293,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-195: hits.hubs
-            let scores = try #require(graph.hits())
+            let scores = try graph.hits()
             let result = scores.hubs
             let expected: [Double] = [0.5, 0.5, 0]
             #expect(result.scores.count == expected.count)
@@ -1313,7 +1315,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-196: hits.authorities
-            let scores = try #require(graph.hits())
+            let scores = try graph.hits()
             let result = scores.authorities
             let expected: [Double] = [0, 0.5, 0.5]
             #expect(result.scores.count == expected.count)
@@ -1481,11 +1483,13 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-142: eigenvectorCentrality
-            #expect(graph.eigenvectorCentrality() == nil)
+            let failure = #expect(throws: NoConvergence.self) { try graph.eigenvectorCentrality() }
+            #expect(failure?.iterations == 100)
+            #expect(failure.map { !($0.residual < 1e-06) } == true)
         }
         do {
             // CE-166: katzCentrality
-            let result = try #require(graph.katzCentrality())
+            let result = try graph.katzCentrality()
             let expected: [Double] = [0.5389993709611511, 0.5928993080572663, 0.5982893017668779]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -1501,7 +1505,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-175: pageRank
-            let result = try #require(graph.pageRank())
+            let result = try graph.pageRank()
             let expected: [Double] = [0.18441678192715505, 0.3411710465652378, 0.47441217150760673]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -1518,7 +1522,7 @@ struct CentralityRepresentationTests {
         do {
             // CE-178: pageRank(personalization: [1, 0, 0])
             let p: [Double] = [1, 0, 0]
-            let result = try #require(graph.pageRank(personalization: { p[$0] }))
+            let result = try graph.pageRank(personalization: { p[$0] })
             let expected: [Double] = [0.38872691933916437, 0.33041788143829026, 0.2808551992225454]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -1534,7 +1538,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-179: pageRank(dampingFactor: 0.5)
-            let result = try #require(graph.pageRank(dampingFactor: 0.5))
+            let result = try graph.pageRank(dampingFactor: 0.5)
             let expected: [Double] = [0.23529411764705863, 0.3529411764705885, 0.4117647058823528]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -1550,7 +1554,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-195: hits.hubs
-            let scores = try #require(graph.hits())
+            let scores = try graph.hits()
             let result = scores.hubs
             let expected: [Double] = [0.5, 0.5, 0]
             #expect(result.scores.count == expected.count)
@@ -1572,7 +1576,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-196: hits.authorities
-            let scores = try #require(graph.hits())
+            let scores = try graph.hits()
             let result = scores.authorities
             let expected: [Double] = [0, 0.5, 0.5]
             #expect(result.scores.count == expected.count)
@@ -1740,11 +1744,13 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-142: eigenvectorCentrality
-            #expect(graph.eigenvectorCentrality() == nil)
+            let failure = #expect(throws: NoConvergence.self) { try graph.eigenvectorCentrality() }
+            #expect(failure?.iterations == 100)
+            #expect(failure.map { !($0.residual < 1e-06) } == true)
         }
         do {
             // CE-166: katzCentrality
-            let result = try #require(graph.katzCentrality())
+            let result = try graph.katzCentrality()
             let expected: [Double] = [0.5389993709611511, 0.5928993080572663, 0.5982893017668779]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -1760,7 +1766,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-175: pageRank
-            let result = try #require(graph.pageRank())
+            let result = try graph.pageRank()
             let expected: [Double] = [0.18441678192715505, 0.3411710465652378, 0.47441217150760673]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -1777,7 +1783,7 @@ struct CentralityRepresentationTests {
         do {
             // CE-178: pageRank(personalization: [1, 0, 0])
             let p: [Double] = [1, 0, 0]
-            let result = try #require(graph.pageRank(personalization: { p[$0] }))
+            let result = try graph.pageRank(personalization: { p[$0] })
             let expected: [Double] = [0.38872691933916437, 0.33041788143829026, 0.2808551992225454]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -1793,7 +1799,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-179: pageRank(dampingFactor: 0.5)
-            let result = try #require(graph.pageRank(dampingFactor: 0.5))
+            let result = try graph.pageRank(dampingFactor: 0.5)
             let expected: [Double] = [0.23529411764705863, 0.3529411764705885, 0.4117647058823528]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -1809,7 +1815,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-195: hits.hubs
-            let scores = try #require(graph.hits())
+            let scores = try graph.hits()
             let result = scores.hubs
             let expected: [Double] = [0.5, 0.5, 0]
             #expect(result.scores.count == expected.count)
@@ -1831,7 +1837,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-196: hits.authorities
-            let scores = try #require(graph.hits())
+            let scores = try graph.hits()
             let result = scores.authorities
             let expected: [Double] = [0, 0.5, 0.5]
             #expect(result.scores.count == expected.count)
@@ -2192,7 +2198,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-135: eigenvectorCentrality
-            let result = try #require(graph.eigenvectorCentrality())
+            let result = try graph.eigenvectorCentrality()
             let expected: [Double] = [
                 0.35549144452455894, 0.2659599195524863, 0.317192504486429, 0.21117972037788527,
                 0.0759688181830663, 0.07948304511709661, 0.07948304511709661, 0.17095974804479222,
@@ -2215,7 +2221,7 @@ struct CentralityRepresentationTests {
             #expect(byVertex == result.scores)
             let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
             #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-            let arcs = try #require(graph.directed.eigenvectorCentrality())
+            let arcs = try graph.directed.eigenvectorCentrality()
             for (i, value) in expected.enumerated() {
                 let error = abs(arcs.score(ofIndex: i) - value)
                 #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -2223,12 +2229,16 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-145: eigenvectorCentrality(maxIterations: 5)
-            #expect(graph.eigenvectorCentrality(maxIterations: 5) == nil)
-            #expect(graph.directed.eigenvectorCentrality(maxIterations: 5) == nil)
+            let failure = #expect(throws: NoConvergence.self) { try graph.eigenvectorCentrality(maxIterations: 5) }
+            #expect(failure?.iterations == 5)
+            #expect(failure.map { !($0.residual < 1e-06) } == true)
+            let directedFailure = #expect(throws: NoConvergence.self) { try graph.directed.eigenvectorCentrality(maxIterations: 5) }
+            #expect(directedFailure?.iterations == 5)
+            #expect(directedFailure.map { !($0.residual < 1e-06) } == true)
         }
         do {
             // CE-146: eigenvectorCentrality(tolerance: 1e-10)
-            let result = try #require(graph.eigenvectorCentrality(tolerance: 1e-10))
+            let result = try graph.eigenvectorCentrality(tolerance: 1e-10)
             let expected: [Double] = [
                 0.35549144452455894, 0.2659599195524863, 0.317192504486429, 0.21117972037788527,
                 0.0759688181830663, 0.07948304511709661, 0.07948304511709661, 0.17095974804479222,
@@ -2251,7 +2261,7 @@ struct CentralityRepresentationTests {
             #expect(byVertex == result.scores)
             let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
             #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-            let arcs = try #require(graph.directed.eigenvectorCentrality(tolerance: 1e-10))
+            let arcs = try graph.directed.eigenvectorCentrality(tolerance: 1e-10)
             for (i, value) in expected.enumerated() {
                 let error = abs(arcs.score(ofIndex: i) - value)
                 #expect(error <= 1e-8 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -2259,7 +2269,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-162: katzCentrality
-            let result = try #require(graph.katzCentrality())
+            let result = try graph.katzCentrality()
             let expected: [Double] = [
                 0.3213246219124112, 0.23548427483304846, 0.26576591973677494, 0.1949132148792719,
                 0.12190437880575036, 0.13097224917085232, 0.13097224917085232, 0.1662330569529996,
@@ -2282,7 +2292,7 @@ struct CentralityRepresentationTests {
             #expect(byVertex == result.scores)
             let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
             #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-            let arcs = try #require(graph.directed.katzCentrality())
+            let arcs = try graph.directed.katzCentrality()
             for (i, value) in expected.enumerated() {
                 let error = abs(arcs.score(ofIndex: i) - value)
                 #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -2290,12 +2300,16 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-163: katzCentrality(alpha: 0.2)
-            #expect(graph.katzCentrality(alpha: 0.2) == nil)
-            #expect(graph.directed.katzCentrality(alpha: 0.2) == nil)
+            let failure = #expect(throws: NoConvergence.self) { try graph.katzCentrality(alpha: 0.2) }
+            #expect(failure?.iterations == 1000)
+            #expect(failure.map { !($0.residual < 1e-06) } == true)
+            let directedFailure = #expect(throws: NoConvergence.self) { try graph.directed.katzCentrality(alpha: 0.2) }
+            #expect(directedFailure?.iterations == 1000)
+            #expect(directedFailure.map { !($0.residual < 1e-06) } == true)
         }
         do {
             // CE-180: pageRank
-            let result = try #require(graph.pageRank())
+            let result = try graph.pageRank()
             let expected: [Double] = [
                 0.09699728538830414, 0.05287692406114842, 0.0570785094884618, 0.03585985778641361,
                 0.0219779523645932, 0.02911115467837563, 0.02911115467837563, 0.024490497035283804,
@@ -2318,7 +2332,7 @@ struct CentralityRepresentationTests {
             #expect(byVertex == result.scores)
             let total = result.scores.reduce(0, +)
             #expect(abs(total - 1) <= 1e-12, "scores sum to 1")
-            let arcs = try #require(graph.directed.pageRank())
+            let arcs = try graph.directed.pageRank()
             for (i, value) in expected.enumerated() {
                 let error = abs(arcs.score(ofIndex: i) - value)
                 #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -2326,12 +2340,16 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-186: pageRank(maxIterations: 3)
-            #expect(graph.pageRank(maxIterations: 3) == nil)
-            #expect(graph.directed.pageRank(maxIterations: 3) == nil)
+            let failure = #expect(throws: NoConvergence.self) { try graph.pageRank(maxIterations: 3) }
+            #expect(failure?.iterations == 3)
+            #expect(failure.map { !($0.residual < 1e-06) } == true)
+            let directedFailure = #expect(throws: NoConvergence.self) { try graph.directed.pageRank(maxIterations: 3) }
+            #expect(directedFailure?.iterations == 3)
+            #expect(directedFailure.map { !($0.residual < 1e-06) } == true)
         }
         do {
             // CE-204: directed > hits.hubs
-            let scores = try #require(graph.directed.hits())
+            let scores = try graph.directed.hits()
             let result = scores.hubs
             let expected: [Double] = [
                 0.07141272880825182, 0.05342723123552988, 0.06371906455637473, 0.0424227371247089,
@@ -2363,7 +2381,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-205: directed > hits.authorities
-            let scores = try #require(graph.directed.hits())
+            let scores = try graph.directed.hits()
             let result = scores.authorities
             let expected: [Double] = [
                 0.07141272880825178, 0.053427231235529844, 0.06371906455637472, 0.042422737124708856,
@@ -2514,7 +2532,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-131: eigenvectorCentrality
-            let result = try #require(graph.eigenvectorCentrality())
+            let result = try graph.eigenvectorCentrality()
             let expected: [Double] = [0.5, 0.7071067811865474, 0.5]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -2527,7 +2545,7 @@ struct CentralityRepresentationTests {
             #expect(byVertex == result.scores)
             let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
             #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-            let arcs = try #require(graph.directed.eigenvectorCentrality())
+            let arcs = try graph.directed.eigenvectorCentrality()
             for (i, value) in expected.enumerated() {
                 let error = abs(arcs.score(ofIndex: i) - value)
                 #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -2536,7 +2554,7 @@ struct CentralityRepresentationTests {
         do {
             // CE-144: eigenvectorCentrality(weight: [1.0, 2.0])
             let w: [Double] = [1, 2]
-            let result = try #require(graph.eigenvectorCentrality(weight: { w[$0] }))
+            let result = try graph.eigenvectorCentrality(weight: { w[$0] })
             let expected: [Double] = [0.31622776601683783, 0.7071067811865478, 0.6324555320336757]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -2549,7 +2567,7 @@ struct CentralityRepresentationTests {
             #expect(byVertex == result.scores)
             let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
             #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-            let arcs = try #require(graph.directed.eigenvectorCentrality(weight: { w[$0.position] }))
+            let arcs = try graph.directed.eigenvectorCentrality(weight: { w[$0.position] })
             for (i, value) in expected.enumerated() {
                 let error = abs(arcs.score(ofIndex: i) - value)
                 #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -2557,7 +2575,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-147: directed > eigenvectorCentrality
-            let result = try #require(graph.directed.eigenvectorCentrality())
+            let result = try graph.directed.eigenvectorCentrality()
             let expected: [Double] = [0.5, 0.7071067811865474, 0.5]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -2573,7 +2591,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-160: katzCentrality
-            let result = try #require(graph.katzCentrality())
+            let result = try graph.katzCentrality()
             let expected: [Double] = [0.5598852584152163, 0.6107839182711452, 0.5598852584152163]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -2586,7 +2604,7 @@ struct CentralityRepresentationTests {
             #expect(byVertex == result.scores)
             let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
             #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-            let arcs = try #require(graph.directed.katzCentrality())
+            let arcs = try graph.directed.katzCentrality()
             for (i, value) in expected.enumerated() {
                 let error = abs(arcs.score(ofIndex: i) - value)
                 #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -2594,7 +2612,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-164: katzCentrality(normalized: false)
-            let result = try #require(graph.katzCentrality(normalized: false))
+            let result = try graph.katzCentrality(normalized: false)
             let expected: [Double] = [1.1224489795918366, 1.2244897959183674, 1.1224489795918366]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -2605,7 +2623,7 @@ struct CentralityRepresentationTests {
             #expect(byIndex == result.scores)
             let byVertex = graph.vertices.map { result.score(of: $0) }
             #expect(byVertex == result.scores)
-            let arcs = try #require(graph.directed.katzCentrality(normalized: false))
+            let arcs = try graph.directed.katzCentrality(normalized: false)
             for (i, value) in expected.enumerated() {
                 let error = abs(arcs.score(ofIndex: i) - value)
                 #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -2613,7 +2631,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-165: katzCentrality(alpha: 0.5, beta: 2.0, normalized: false)
-            let result = try #require(graph.katzCentrality(alpha: 0.5, beta: 2, normalized: false))
+            let result = try graph.katzCentrality(alpha: 0.5, beta: 2, normalized: false)
             let expected: [Double] = [5.999999999999998, 7.999999999999997, 5.999999999999998]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -2624,7 +2642,7 @@ struct CentralityRepresentationTests {
             #expect(byIndex == result.scores)
             let byVertex = graph.vertices.map { result.score(of: $0) }
             #expect(byVertex == result.scores)
-            let arcs = try #require(graph.directed.katzCentrality(alpha: 0.5, beta: 2, normalized: false))
+            let arcs = try graph.directed.katzCentrality(alpha: 0.5, beta: 2, normalized: false)
             for (i, value) in expected.enumerated() {
                 let error = abs(arcs.score(ofIndex: i) - value)
                 #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -2633,7 +2651,7 @@ struct CentralityRepresentationTests {
         do {
             // CE-170: katzCentrality(weight: [1.0, 2.0])
             let w: [Double] = [1, 2]
-            let result = try #require(graph.katzCentrality(weight: { w[$0] }))
+            let result = try graph.katzCentrality(weight: { w[$0] })
             let expected: [Double] = [0.5195851745541625, 0.6254265990003808, 0.5821278344542006]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -2646,7 +2664,7 @@ struct CentralityRepresentationTests {
             #expect(byVertex == result.scores)
             let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
             #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-            let arcs = try #require(graph.directed.katzCentrality(weight: { w[$0.position] }))
+            let arcs = try graph.directed.katzCentrality(weight: { w[$0.position] })
             for (i, value) in expected.enumerated() {
                 let error = abs(arcs.score(ofIndex: i) - value)
                 #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -2654,7 +2672,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-190: directed > pageRank
-            let result = try #require(graph.directed.pageRank())
+            let result = try graph.directed.pageRank()
             let expected: [Double] = [0.256756756756757, 0.4864864864864858, 0.256756756756757]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -3100,7 +3118,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-134: eigenvectorCentrality
-            let result = try #require(graph.eigenvectorCentrality())
+            let result = try graph.eigenvectorCentrality()
             let expected: [Double] = [
                 0.3522093968166346, 0.3522093968166346, 0.2858349913908715, 0.4810208582728083,
                 0.2858349913908715, 0.39769063647017033, 0.39769063647017033, 0.19586058302781284,
@@ -3117,7 +3135,7 @@ struct CentralityRepresentationTests {
             #expect(byVertex == result.scores)
             let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
             #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-            let arcs = try #require(graph.directed.eigenvectorCentrality())
+            let arcs = try graph.directed.eigenvectorCentrality()
             for (i, value) in expected.enumerated() {
                 let error = abs(arcs.score(ofIndex: i) - value)
                 #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -3244,7 +3262,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-136: eigenvectorCentrality
-            let result = try #require(graph.eigenvectorCentrality())
+            let result = try graph.eigenvectorCentrality()
             let expected: [Double] = [
                 0.13215429472871026, 0.43030809404092446, 0.2590261671902524, 0.2757303735808764,
                 0.3559804484113811, 0.21170525116052846, 0.3415526440572176, 0.3258423011242119,
@@ -3262,7 +3280,7 @@ struct CentralityRepresentationTests {
             #expect(byVertex == result.scores)
             let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
             #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-            let arcs = try #require(graph.directed.eigenvectorCentrality())
+            let arcs = try graph.directed.eigenvectorCentrality()
             for (i, value) in expected.enumerated() {
                 let error = abs(arcs.score(ofIndex: i) - value)
                 #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -3323,7 +3341,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-133: eigenvectorCentrality
-            let result = try #require(graph.eigenvectorCentrality())
+            let result = try graph.eigenvectorCentrality()
             let expected: [Double] = [
                 0.3717480344601846, 0.6015009550075456, 0.6015009550075456, 0.3717480344601846
             ]
@@ -3338,7 +3356,7 @@ struct CentralityRepresentationTests {
             #expect(byVertex == result.scores)
             let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
             #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-            let arcs = try #require(graph.directed.eigenvectorCentrality())
+            let arcs = try graph.directed.eigenvectorCentrality()
             for (i, value) in expected.enumerated() {
                 let error = abs(arcs.score(ofIndex: i) - value)
                 #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -3958,7 +3976,7 @@ struct CentralityRepresentationTests {
         #expect(Array(graph.vertices) == [0, 1, 2, 3])
         do {
             // CE-130: eigenvectorCentrality
-            let result = try #require(graph.eigenvectorCentrality())
+            let result = try graph.eigenvectorCentrality()
             let expected: [Double] = [0.5, 0.5, 0.5, 0.5]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -3971,7 +3989,7 @@ struct CentralityRepresentationTests {
             #expect(byVertex == result.scores)
             let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
             #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-            let arcs = try #require(graph.directed.eigenvectorCentrality())
+            let arcs = try graph.directed.eigenvectorCentrality()
             for (i, value) in expected.enumerated() {
                 let error = abs(arcs.score(ofIndex: i) - value)
                 #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -3979,7 +3997,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-161: katzCentrality
-            let result = try #require(graph.katzCentrality())
+            let result = try graph.katzCentrality()
             let expected: [Double] = [0.5, 0.5, 0.5, 0.5]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -3992,7 +4010,7 @@ struct CentralityRepresentationTests {
             #expect(byVertex == result.scores)
             let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
             #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-            let arcs = try #require(graph.directed.katzCentrality())
+            let arcs = try graph.directed.katzCentrality()
             for (i, value) in expected.enumerated() {
                 let error = abs(arcs.score(ofIndex: i) - value)
                 #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -4000,8 +4018,12 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-171: katzCentrality(alpha: 0.4)
-            #expect(graph.katzCentrality(alpha: 0.4) == nil)
-            #expect(graph.directed.katzCentrality(alpha: 0.4) == nil)
+            let failure = #expect(throws: NoConvergence.self) { try graph.katzCentrality(alpha: 0.4) }
+            #expect(failure?.iterations == 1000)
+            #expect(failure.map { !($0.residual < 1e-06) } == true)
+            let directedFailure = #expect(throws: NoConvergence.self) { try graph.directed.katzCentrality(alpha: 0.4) }
+            #expect(directedFailure?.iterations == 1000)
+            #expect(directedFailure.map { !($0.residual < 1e-06) } == true)
         }
     }
 
@@ -4013,7 +4035,7 @@ struct CentralityRepresentationTests {
         #expect(Array(graph.vertices) == [0, 1, 2, 3, 4])
         do {
             // CE-137: eigenvectorCentrality
-            let result = try #require(graph.eigenvectorCentrality())
+            let result = try graph.eigenvectorCentrality()
             let expected: [Double] = [
                 0.5773502691896258, 0.5773502691896258, 0.5773502691896258, 4.7221377109224855e-15,
                 4.7221377109224855e-15
@@ -4029,7 +4051,7 @@ struct CentralityRepresentationTests {
             #expect(byVertex == result.scores)
             let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
             #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-            let arcs = try #require(graph.directed.eigenvectorCentrality())
+            let arcs = try graph.directed.eigenvectorCentrality()
             for (i, value) in expected.enumerated() {
                 let error = abs(arcs.score(ofIndex: i) - value)
                 #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -4045,7 +4067,7 @@ struct CentralityRepresentationTests {
         #expect(Array(graph.vertices) == [0, 1, 2, 3, 4, 5])
         do {
             // CE-138: eigenvectorCentrality
-            let result = try #require(graph.eigenvectorCentrality())
+            let result = try graph.eigenvectorCentrality()
             let expected: [Double] = [
                 0.408248290463863, 0.408248290463863, 0.408248290463863, 0.408248290463863,
                 0.408248290463863, 0.408248290463863
@@ -4061,7 +4083,7 @@ struct CentralityRepresentationTests {
             #expect(byVertex == result.scores)
             let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
             #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-            let arcs = try #require(graph.directed.eigenvectorCentrality())
+            let arcs = try graph.directed.eigenvectorCentrality()
             for (i, value) in expected.enumerated() {
                 let error = abs(arcs.score(ofIndex: i) - value)
                 #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
@@ -4077,7 +4099,7 @@ struct CentralityRepresentationTests {
         #expect(Array(graph.vertices) == [0, 1, 2])
         do {
             // CE-141: eigenvectorCentrality
-            let result = try #require(graph.eigenvectorCentrality())
+            let result = try graph.eigenvectorCentrality()
             let expected: [Double] = [0.5773502691896257, 0.5773502691896257, 0.5773502691896257]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -4093,7 +4115,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-167: katzCentrality
-            let result = try #require(graph.katzCentrality())
+            let result = try graph.katzCentrality()
             let expected: [Double] = [0.5773502691896257, 0.5773502691896257, 0.5773502691896257]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -4109,7 +4131,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-176: pageRank
-            let result = try #require(graph.pageRank())
+            let result = try graph.pageRank()
             let expected: [Double] = [0.3333333333333333, 0.3333333333333333, 0.3333333333333333]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -4125,7 +4147,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-199: hits.hubs
-            let scores = try #require(graph.hits())
+            let scores = try graph.hits()
             let result = scores.hubs
             let expected: [Double] = [0.3333333333333333, 0.3333333333333333, 0.3333333333333333]
             #expect(result.scores.count == expected.count)
@@ -4155,7 +4177,7 @@ struct CentralityRepresentationTests {
         #expect(Array(graph.edges) == pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
         do {
             // CE-141: eigenvectorCentrality
-            let result = try #require(graph.eigenvectorCentrality())
+            let result = try graph.eigenvectorCentrality()
             let expected: [Double] = [0.5773502691896257, 0.5773502691896257, 0.5773502691896257]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -4171,7 +4193,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-167: katzCentrality
-            let result = try #require(graph.katzCentrality())
+            let result = try graph.katzCentrality()
             let expected: [Double] = [0.5773502691896257, 0.5773502691896257, 0.5773502691896257]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -4187,7 +4209,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-176: pageRank
-            let result = try #require(graph.pageRank())
+            let result = try graph.pageRank()
             let expected: [Double] = [0.3333333333333333, 0.3333333333333333, 0.3333333333333333]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -4203,7 +4225,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-199: hits.hubs
-            let scores = try #require(graph.hits())
+            let scores = try graph.hits()
             let result = scores.hubs
             let expected: [Double] = [0.3333333333333333, 0.3333333333333333, 0.3333333333333333]
             #expect(result.scores.count == expected.count)
@@ -4233,7 +4255,7 @@ struct CentralityRepresentationTests {
         #expect(Array(graph.edges) == pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
         do {
             // CE-141: eigenvectorCentrality
-            let result = try #require(graph.eigenvectorCentrality())
+            let result = try graph.eigenvectorCentrality()
             let expected: [Double] = [0.5773502691896257, 0.5773502691896257, 0.5773502691896257]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -4249,7 +4271,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-167: katzCentrality
-            let result = try #require(graph.katzCentrality())
+            let result = try graph.katzCentrality()
             let expected: [Double] = [0.5773502691896257, 0.5773502691896257, 0.5773502691896257]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -4265,7 +4287,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-176: pageRank
-            let result = try #require(graph.pageRank())
+            let result = try graph.pageRank()
             let expected: [Double] = [0.3333333333333333, 0.3333333333333333, 0.3333333333333333]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -4281,7 +4303,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-199: hits.hubs
-            let scores = try #require(graph.hits())
+            let scores = try graph.hits()
             let result = scores.hubs
             let expected: [Double] = [0.3333333333333333, 0.3333333333333333, 0.3333333333333333]
             #expect(result.scores.count == expected.count)
@@ -4311,7 +4333,7 @@ struct CentralityRepresentationTests {
         #expect(Array(graph.vertices) == [0, 1, 2, 3])
         do {
             // CE-143: eigenvectorCentrality
-            let result = try #require(graph.eigenvectorCentrality())
+            let result = try graph.eigenvectorCentrality()
             let expected: [Double] = [0.5, 0.5, 0.5, 0.5]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -4335,7 +4357,7 @@ struct CentralityRepresentationTests {
         #expect(Array(graph.edges) == pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
         do {
             // CE-143: eigenvectorCentrality
-            let result = try #require(graph.eigenvectorCentrality())
+            let result = try graph.eigenvectorCentrality()
             let expected: [Double] = [0.5, 0.5, 0.5, 0.5]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -4359,7 +4381,7 @@ struct CentralityRepresentationTests {
         #expect(Array(graph.edges) == pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
         do {
             // CE-143: eigenvectorCentrality
-            let result = try #require(graph.eigenvectorCentrality())
+            let result = try graph.eigenvectorCentrality()
             let expected: [Double] = [0.5, 0.5, 0.5, 0.5]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -4383,7 +4405,7 @@ struct CentralityRepresentationTests {
         #expect(Array(graph.vertices) == [0, 1, 2, 3])
         do {
             // CE-177: pageRank
-            let result = try #require(graph.pageRank())
+            let result = try graph.pageRank()
             let expected: [Double] = [
                 0.3725268513284352, 0.1958239118145841, 0.39414923685698067, 0.037500000000000006
             ]
@@ -4401,7 +4423,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-200: hits.hubs
-            let scores = try #require(graph.hits())
+            let scores = try graph.hits()
             let result = scores.hubs
             let expected: [Double] = [
                 0.4142135623730949, 0.29289321881345237, 4.0118020525605287e-16, 0.29289321881345237
@@ -4425,7 +4447,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-201: hits.authorities
-            let scores = try #require(graph.hits())
+            let scores = try graph.hits()
             let result = scores.authorities
             let expected: [Double] = [9.685346924847842e-16, 0.2928932188134522, 0.7071067811865468, 0]
             #expect(result.scores.count == expected.count)
@@ -4455,7 +4477,7 @@ struct CentralityRepresentationTests {
         #expect(Array(graph.edges) == pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
         do {
             // CE-177: pageRank
-            let result = try #require(graph.pageRank())
+            let result = try graph.pageRank()
             let expected: [Double] = [
                 0.3725268513284352, 0.1958239118145841, 0.39414923685698067, 0.037500000000000006
             ]
@@ -4473,7 +4495,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-200: hits.hubs
-            let scores = try #require(graph.hits())
+            let scores = try graph.hits()
             let result = scores.hubs
             let expected: [Double] = [
                 0.4142135623730949, 0.29289321881345237, 4.0118020525605287e-16, 0.29289321881345237
@@ -4497,7 +4519,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-201: hits.authorities
-            let scores = try #require(graph.hits())
+            let scores = try graph.hits()
             let result = scores.authorities
             let expected: [Double] = [9.685346924847842e-16, 0.2928932188134522, 0.7071067811865468, 0]
             #expect(result.scores.count == expected.count)
@@ -4527,7 +4549,7 @@ struct CentralityRepresentationTests {
         #expect(Array(graph.edges) == pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
         do {
             // CE-177: pageRank
-            let result = try #require(graph.pageRank())
+            let result = try graph.pageRank()
             let expected: [Double] = [
                 0.3725268513284352, 0.1958239118145841, 0.39414923685698067, 0.037500000000000006
             ]
@@ -4545,7 +4567,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-200: hits.hubs
-            let scores = try #require(graph.hits())
+            let scores = try graph.hits()
             let result = scores.hubs
             let expected: [Double] = [
                 0.4142135623730949, 0.29289321881345237, 4.0118020525605287e-16, 0.29289321881345237
@@ -4569,7 +4591,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-201: hits.authorities
-            let scores = try #require(graph.hits())
+            let scores = try graph.hits()
             let result = scores.authorities
             let expected: [Double] = [9.685346924847842e-16, 0.2928932188134522, 0.7071067811865468, 0]
             #expect(result.scores.count == expected.count)
@@ -4600,7 +4622,7 @@ struct CentralityRepresentationTests {
         do {
             // CE-184: pageRank(weight: [1.0, 3.0, 1.0, 1.0])
             let w: [Double] = [1, 3, 1, 1]
-            let result = try #require(graph.pageRank(weight: { w[$0] }))
+            let result = try graph.pageRank(weight: { w[$0] })
             let expected: [Double] = [0.486486486486487, 0.15337837837837817, 0.3601351351351345]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -4625,7 +4647,7 @@ struct CentralityRepresentationTests {
         do {
             // CE-184: pageRank(weight: [1.0, 3.0, 1.0, 1.0]) (weights carried with their arcs)
             let w: [Double] = [1, 3, 1, 1]
-            let result = try #require(graph.pageRank(weight: { w[$0] }))
+            let result = try graph.pageRank(weight: { w[$0] })
             let expected: [Double] = [0.486486486486487, 0.15337837837837817, 0.3601351351351345]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -4651,7 +4673,7 @@ struct CentralityRepresentationTests {
             // CE-184: pageRank(weight: [1.0, 3.0, 1.0, 1.0]) (weights carried with their arcs)
             let w: [Double] = [1, 3, 1, 1]
             let arcs = pairs.map { DirectedEdge(from: $0.0, to: $0.1) }
-            let result = try #require(graph.pageRank(weight: { w[arcs.firstIndex(of: graph.edges[$0])!] }))
+            let result = try graph.pageRank(weight: { w[arcs.firstIndex(of: graph.edges[$0])!] })
             let expected: [Double] = [0.486486486486487, 0.15337837837837817, 0.3601351351351345]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -4676,7 +4698,7 @@ struct CentralityRepresentationTests {
         do {
             // CE-185: pageRank(weight: [0.0, 1.0])
             let w: [Double] = [0, 1]
-            let result = try #require(graph.pageRank(weight: { w[$0] }))
+            let result = try graph.pageRank(weight: { w[$0] })
             let expected: [Double] = [0.25974025974025955, 0.25974025974025955, 0.4805194805194806]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -4701,7 +4723,7 @@ struct CentralityRepresentationTests {
         do {
             // CE-185: pageRank(weight: [0.0, 1.0]) (weights carried with their arcs)
             let w: [Double] = [0, 1]
-            let result = try #require(graph.pageRank(weight: { w[$0] }))
+            let result = try graph.pageRank(weight: { w[$0] })
             let expected: [Double] = [0.25974025974025955, 0.25974025974025955, 0.4805194805194806]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -4727,7 +4749,7 @@ struct CentralityRepresentationTests {
             // CE-185: pageRank(weight: [0.0, 1.0]) (weights carried with their arcs)
             let w: [Double] = [0, 1]
             let arcs = pairs.map { DirectedEdge(from: $0.0, to: $0.1) }
-            let result = try #require(graph.pageRank(weight: { w[arcs.firstIndex(of: graph.edges[$0])!] }))
+            let result = try graph.pageRank(weight: { w[arcs.firstIndex(of: graph.edges[$0])!] })
             let expected: [Double] = [0.25974025974025955, 0.25974025974025955, 0.4805194805194806]
             #expect(result.scores.count == expected.count)
             for (i, value) in expected.enumerated() {
@@ -4751,7 +4773,7 @@ struct CentralityRepresentationTests {
         #expect(Array(graph.vertices) == [0, 1, 2, 3])
         do {
             // CE-197: hits.hubs
-            let scores = try #require(graph.hits())
+            let scores = try graph.hits()
             let result = scores.hubs
             let expected: [Double] = [0.6180339887498947, 0, 0, 0.38196601125010526]
             #expect(result.scores.count == expected.count)
@@ -4773,7 +4795,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-198: hits.authorities
-            let scores = try #require(graph.hits())
+            let scores = try graph.hits()
             let result = scores.authorities
             let expected: [Double] = [0, 0.6180339887498951, 0.3819660112501048, 0]
             #expect(result.scores.count == expected.count)
@@ -4796,7 +4818,7 @@ struct CentralityRepresentationTests {
         do {
             // CE-203: hits(weight: [2.0, 1.0, 1.0]).hubs
             let w: [Double] = [2, 1, 1]
-            let scores = try #require(graph.hits(weight: { w[$0] }))
+            let scores = try graph.hits(weight: { w[$0] })
             let result = scores.hubs
             let expected: [Double] = [0.7071067811865476, 0, 0, 0.2928932188134525]
             #expect(result.scores.count == expected.count)
@@ -4818,7 +4840,9 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-206: hits(maxIterations: 1).hubs
-            #expect(graph.hits(maxIterations: 1) == nil)
+            let failure = #expect(throws: NoConvergence.self) { try graph.hits(maxIterations: 1) }
+            #expect(failure?.iterations == 1)
+            #expect(failure.map { !($0.residual < 1e-08) } == true)
         }
     }
 
@@ -4830,7 +4854,7 @@ struct CentralityRepresentationTests {
         #expect(Array(graph.edges) == pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
         do {
             // CE-197: hits.hubs
-            let scores = try #require(graph.hits())
+            let scores = try graph.hits()
             let result = scores.hubs
             let expected: [Double] = [0.6180339887498947, 0, 0, 0.38196601125010526]
             #expect(result.scores.count == expected.count)
@@ -4852,7 +4876,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-198: hits.authorities
-            let scores = try #require(graph.hits())
+            let scores = try graph.hits()
             let result = scores.authorities
             let expected: [Double] = [0, 0.6180339887498951, 0.3819660112501048, 0]
             #expect(result.scores.count == expected.count)
@@ -4875,7 +4899,7 @@ struct CentralityRepresentationTests {
         do {
             // CE-203: hits(weight: [2.0, 1.0, 1.0]).hubs (weights carried with their arcs)
             let w: [Double] = [2, 1, 1]
-            let scores = try #require(graph.hits(weight: { w[$0] }))
+            let scores = try graph.hits(weight: { w[$0] })
             let result = scores.hubs
             let expected: [Double] = [0.7071067811865476, 0, 0, 0.2928932188134525]
             #expect(result.scores.count == expected.count)
@@ -4897,7 +4921,9 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-206: hits(maxIterations: 1).hubs
-            #expect(graph.hits(maxIterations: 1) == nil)
+            let failure = #expect(throws: NoConvergence.self) { try graph.hits(maxIterations: 1) }
+            #expect(failure?.iterations == 1)
+            #expect(failure.map { !($0.residual < 1e-08) } == true)
         }
     }
 
@@ -4909,7 +4935,7 @@ struct CentralityRepresentationTests {
         #expect(Array(graph.edges) == pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
         do {
             // CE-197: hits.hubs
-            let scores = try #require(graph.hits())
+            let scores = try graph.hits()
             let result = scores.hubs
             let expected: [Double] = [0.6180339887498947, 0, 0, 0.38196601125010526]
             #expect(result.scores.count == expected.count)
@@ -4931,7 +4957,7 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-198: hits.authorities
-            let scores = try #require(graph.hits())
+            let scores = try graph.hits()
             let result = scores.authorities
             let expected: [Double] = [0, 0.6180339887498951, 0.3819660112501048, 0]
             #expect(result.scores.count == expected.count)
@@ -4955,7 +4981,7 @@ struct CentralityRepresentationTests {
             // CE-203: hits(weight: [2.0, 1.0, 1.0]).hubs (weights carried with their arcs)
             let w: [Double] = [2, 1, 1]
             let arcs = pairs.map { DirectedEdge(from: $0.0, to: $0.1) }
-            let scores = try #require(graph.hits(weight: { w[arcs.firstIndex(of: graph.edges[$0])!] }))
+            let scores = try graph.hits(weight: { w[arcs.firstIndex(of: graph.edges[$0])!] })
             let result = scores.hubs
             let expected: [Double] = [0.7071067811865476, 0, 0, 0.2928932188134525]
             #expect(result.scores.count == expected.count)
@@ -4977,7 +5003,9 @@ struct CentralityRepresentationTests {
         }
         do {
             // CE-206: hits(maxIterations: 1).hubs
-            #expect(graph.hits(maxIterations: 1) == nil)
+            let failure = #expect(throws: NoConvergence.self) { try graph.hits(maxIterations: 1) }
+            #expect(failure?.iterations == 1)
+            #expect(failure.map { !($0.residual < 1e-08) } == true)
         }
     }
 }

@@ -3,7 +3,7 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# DirectedGraph, Graph and their refinements; Arc and Edge; the result builders that construct graphs.
+# DirectedGraph, Graph and their refinements; Arc and Edge; the result builders that construct graphs; NoConvergence, the error of iterative methods.
 swift_library(
     name = "GraphProtocols",
     srcs = glob(["**/*.swift"]),

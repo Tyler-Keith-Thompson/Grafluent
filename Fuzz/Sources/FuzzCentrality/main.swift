@@ -163,9 +163,9 @@ enum FuzzCentrality {
             let alpha = 1 / (rowSum + 1)
             let dw = { (e: Int) in Double(weight(e)) }
             checkIterations("\(name) \(weighted ? "weighted" : "unweighted")", a,
-                            eigenvector: graph.eigenvectorCentrality(weight: dw, tolerance: 1e-13, maxIterations: 20000)?.scores,
-                            katz: graph.katzCentrality(weight: dw, alpha: alpha, normalized: false, tolerance: 1e-14, maxIterations: 200_000)?.scores, alpha: alpha,
-                            pageRank: graph.pageRank(weight: dw, tolerance: 1e-14, maxIterations: 10000)?.scores, hits: nil)
+                            eigenvector: (try? graph.eigenvectorCentrality(weight: dw, tolerance: 1e-13, maxIterations: 20000))?.scores,
+                            katz: (try? graph.katzCentrality(weight: dw, alpha: alpha, normalized: false, tolerance: 1e-14, maxIterations: 200_000))?.scores, alpha: alpha,
+                            pageRank: (try? graph.pageRank(weight: dw, tolerance: 1e-14, maxIterations: 10000))?.scores, hits: nil)
         }
     }
 
@@ -197,11 +197,11 @@ enum FuzzCentrality {
             let columnSum = (0 ..< n).map { w in (0 ..< n).reduce(0.0) { $0 + a[$1][w] } }.max() ?? 0
             let alpha = 1 / (columnSum + 1)
             let dw = { (e: Int) in Double(weight(e)) }
-            let hits = graph.hits(weight: dw, tolerance: 1e-13, maxIterations: 100_000)
+            let hits = try? graph.hits(weight: dw, tolerance: 1e-13, maxIterations: 100_000)
             checkIterations("\(name) \(weighted ? "weighted" : "unweighted")", a,
-                            eigenvector: graph.eigenvectorCentrality(weight: dw, tolerance: 1e-13, maxIterations: 20000)?.scores,
-                            katz: graph.katzCentrality(weight: dw, alpha: alpha, normalized: false, tolerance: 1e-14, maxIterations: 200_000)?.scores, alpha: alpha,
-                            pageRank: graph.pageRank(weight: dw, tolerance: 1e-14, maxIterations: 10000)?.scores,
+                            eigenvector: (try? graph.eigenvectorCentrality(weight: dw, tolerance: 1e-13, maxIterations: 20000))?.scores,
+                            katz: (try? graph.katzCentrality(weight: dw, alpha: alpha, normalized: false, tolerance: 1e-14, maxIterations: 200_000))?.scores, alpha: alpha,
+                            pageRank: (try? graph.pageRank(weight: dw, tolerance: 1e-14, maxIterations: 10000))?.scores,
                             hits: hits.map { ($0.hubs.scores, $0.authorities.scores) })
         }
     }

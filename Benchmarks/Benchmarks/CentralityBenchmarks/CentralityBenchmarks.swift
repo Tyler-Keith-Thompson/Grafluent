@@ -79,7 +79,7 @@ let benchmarks: @Sendable () -> Void = {
     for v in 0 ..< web.vertexCount { wt.append(contentsOf: web.successorIndices(ofIndex: v)); wo.append(wt.count) }
     let expected = handWrittenBetweenness(so, st).map { $0 / Double(1999 * 1998) }
     precondition(zip(expected, small.betweennessCentrality().scores).allSatisfy { abs($0 - $1) < 1e-9 })
-    precondition(zip(handWrittenPageRank(wo, wt), web.pageRank()!.scores).allSatisfy { abs($0 - $1) < 1e-12 })
+    precondition(zip(handWrittenPageRank(wo, wt), try! web.pageRank().scores).allSatisfy { abs($0 - $1) < 1e-12 })
 
     Benchmark("Centrality: BASELINE hand-written Brandes with predecessor lists, G(2000, 10⁴)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(handWrittenBetweenness(so, st)) }
@@ -100,12 +100,12 @@ let benchmarks: @Sendable () -> Void = {
         for _ in benchmark.scaledIterations { blackHole(handWrittenPageRank(wo, wt)) }
     }
     Benchmark("Centrality: pageRank(), directed G(10⁵, 5·10⁵)") { benchmark in
-        for _ in benchmark.scaledIterations { blackHole(web.pageRank()) }
+        for _ in benchmark.scaledIterations { blackHole(try web.pageRank()) }
     }
     Benchmark("Centrality: eigenvectorCentrality(), G(2000, 10⁴)") { benchmark in
-        for _ in benchmark.scaledIterations { blackHole(small.eigenvectorCentrality()) }
+        for _ in benchmark.scaledIterations { blackHole(try small.eigenvectorCentrality()) }
     }
     Benchmark("Centrality: hits(), directed G(10⁵, 5·10⁵)") { benchmark in
-        for _ in benchmark.scaledIterations { blackHole(web.hits(maxIterations: 1000)) }
+        for _ in benchmark.scaledIterations { blackHole(try web.hits(maxIterations: 1000)) }
     }
 }

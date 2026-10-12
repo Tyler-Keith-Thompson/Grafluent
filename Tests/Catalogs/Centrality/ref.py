@@ -20,8 +20,8 @@ checked independently:
   with the row's parameters (defaults otherwise) must lie within the row's Tol of it;
 * NetworkX 3.7 on every case it accepts with the same semantics (simple graphs; PageRank and
   closeness also multigraphs; eigenvector, Katz and PageRank on undirected graphs only without
-  self-loops, since NetworkX counts an undirected loop once in A), within Tol; `nil` rows must make
-  NetworkX raise PowerIterationFailedConvergence when it runs the same iteration.
+  self-loops, since NetworkX counts an undirected loop once in A), within Tol; `NoConvergence` rows
+  must make NetworkX raise PowerIterationFailedConvergence when it runs the same iteration.
 """
 
 import heapq
@@ -707,7 +707,7 @@ ITERATIVE = {"eigenvectorCentrality", "katzCentrality", "pageRank", "hits"}
 
 def fmt(x):
     if x is None:
-        return "nil"
+        return "NoConvergence"
     if isinstance(x, list):
         return "[" + ", ".join(f"{(0.0 if abs(v) < 1e-13 else v):.12g}" for v in x) + "]"
     return f"#{x:.12g}"
@@ -715,7 +715,7 @@ def fmt(x):
 
 def parse_expected(s):
     s = s.strip().strip("`")
-    if s in ("nil", "trap"):
+    if s in ("NoConvergence", "trap"):
         return s
     if s.startswith("#"):
         return float(s[1:])
@@ -741,7 +741,7 @@ def evaluate(gcell, op):
     except Trap:
         return g, name, a, part, "trap", "trap"
     if name in ITERATIVE and dflt is None:
-        exact = None  # the documented result is nil; no limit is claimed
+        exact = None  # the documented result is NoConvergence; no limit is claimed
     return g, name, a, part, exact, dflt
 
 
@@ -846,14 +846,14 @@ def main():
         if exp is None:
             problems.append(f"{cid}: unfilled")
             continue
-        if exp in ("trap", "nil") or exact in ("trap", None):
-            got = "trap" if exact == "trap" else "nil" if exact is None else exact
+        if exp in ("trap", "NoConvergence") or exact in ("trap", None):
+            got = "trap" if exact == "trap" else "NoConvergence" if exact is None else exact
             if got != exp:
                 problems.append(f"{cid}: expected {exp}, model {got}")
-            if exp == "nil" and name in ("eigenvectorCentrality", "katzCentrality", "pageRank"):
+            if exp == "NoConvergence" and name in ("eigenvectorCentrality", "katzCentrality", "pageRank"):
                 try:
                     nx_value(g, name, a, part)
-                    problems.append(f"{cid}: NetworkX converged where the model says nil")
+                    problems.append(f"{cid}: NetworkX converged where the model says NoConvergence")
                 except nx.PowerIterationFailedConvergence:
                     pass
             continue

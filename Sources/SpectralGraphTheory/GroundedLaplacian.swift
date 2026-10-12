@@ -3,6 +3,8 @@
 // themselves, the grounded unknown held at 0, with a Jacobi or an incomplete Cholesky
 // preconditioner. Resistance distance and the shift-invert path of λ₂ run on it.
 
+import GraphProtocols
+
 /// A modified incomplete Cholesky factor of the grounded Laplacian with no fill (MIC(0); Gustafsson,
 /// "A class of first order factorization methods", BIT 18, 1978), L_g ≈ (I − C) P (I − C)ᵀ.
 ///
@@ -221,11 +223,13 @@ final class _GroundedSolver {
     deinit { workspace.deallocate() }
 
     /// Solves L_g x = b to a residual of at most `tolerance` · ‖b‖ (b's entry at the ground is
-    /// ignored), from the x given; x at the ground is 0 after. False when `budget` products are
-    /// spent first.
+    /// ignored), from the x given; x at the ground is 0 after. Throws when `budget` products (a
+    /// total, `products` included) are spent first, with the products this solve spent and its
+    /// residual relative to ‖b‖.
     @usableFromInline
-    func solve(_ b: UnsafePointer<Double>, _ x: UnsafeMutablePointer<Double>, tolerance: Double, budget: Int) -> Bool {
+    func solve(_ b: UnsafePointer<Double>, _ x: UnsafeMutablePointer<Double>, tolerance: Double, budget: Int) throws(NoConvergence) {
         let n = rows.count
+        let start = products
         let r = workspace, z = r + n, p = z + n, q = p + n, scratch = q + n
         let g = ground
         x[g] = 0
@@ -240,7 +244,7 @@ final class _GroundedSolver {
         let target = tolerance * bb.squareRoot()
         if bb == 0 {
             for v in 0 ..< n { x[v] = 0 }
-            return true
+            return
         }
         var useFactor = factor != nil
         var sinceStart = 0
@@ -249,12 +253,12 @@ final class _GroundedSolver {
         for v in 0 ..< n { p[v] = z[v] }
         var rz = _dot(r, z, n)
         var rr = _dot(r, r, n)
-        if rr.squareRoot() <= target { return true }
+        if rr.squareRoot() <= target { return }
         while true {
-            if products >= budget { return false }
+            if products >= budget { throw NoConvergence(iterations: products - start, residual: (rr / bb).squareRoot()) }
             let pq = product(p, into: q)
             // pᵀLp = 0 only for p = 0, which leaves nothing to reduce.
-            guard pq > 0 else { return true }
+            guard pq > 0 else { return }
             let alpha = rz / pq
             _axpy(alpha, p, x, n)
             _axpy(-alpha, q, r, n)
@@ -273,9 +277,9 @@ final class _GroundedSolver {
                 }
                 r[g] = 0
                 trueNorm = trueNorm.squareRoot()
-                if trueNorm <= target || trueNorm > 0.5 * lastTrueNorm { return true }
+                if trueNorm <= target || trueNorm > 0.5 * lastTrueNorm { return }
                 lastTrueNorm = trueNorm
-                if products >= budget { return false }
+                if products >= budget { throw NoConvergence(iterations: products - start, residual: trueNorm / bb.squareRoot()) }
                 applyPreconditioner(z, r, useFactor, scratch)
                 for v in 0 ..< n { p[v] = z[v] }
                 rz = _dot(r, z, n)

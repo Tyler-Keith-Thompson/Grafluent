@@ -170,7 +170,7 @@ struct CentralityStressTests {
             // U: [0..99999] S(0;1..99999)
             let n = 100_000
             let graph = UndirectedAdjacencyList(vertices: 0 ..< n, edges: (1 ..< n).map { UndirectedEdge(0, $0) })
-            let result = try #require(graph.pageRank(tolerance: 1e-12, maxIterations: 1_000))
+            let result = try graph.pageRank(tolerance: 1e-12, maxIterations: 1_000)
             // Computed with ref.py: pagerank_model to tolerance 1e-15 (the limit); with these
             // parameters the model lies within 2.1e-8 of it.
             #expect(abs(result.score(of: 0) - 0.45946027028966857) <= 1e-6)
@@ -187,7 +187,7 @@ struct CentralityStressTests {
             // D: [0..99999] P(0..99999)
             let n = 100_000
             let graph = CompressedSparseRow(vertexCount: n, edges: (0 ..< n - 1).map { DirectedEdge(from: $0, to: $0 + 1) })
-            let result = try #require(graph.pageRank())
+            let result = try graph.pageRank()
             // Computed with ref.py: pagerank_model's limit; with the defaults it lies within 7.3e-6.
             let indices = [0, 1, 50, 99_998, 99_999]
             let expected = [1.5000850048169153e-06, 2.7751572589112896e-06, 9.99805255666874e-06, 1.0000566696327601e-05, 1.0000566696327601e-05]
@@ -204,7 +204,7 @@ struct CentralityStressTests {
             // U: [0..99999] P(0..99999)
             let n = 100_000
             let graph = ReferencePseudograph(vertices: 0 ..< n, edges: (0 ..< n - 1).map { UndirectedEdge($0, $0 + 1) })
-            let result = try #require(graph.katzCentrality())
+            let result = try graph.katzCentrality()
             // Computed with ref.py: katz_model's limit; with the defaults it lies within 2.2e-10
             // (normalized) and 1.3e-7 (not normalized).
             let indices = [0, 1, 2, 50_000, 99_999]
@@ -213,7 +213,7 @@ struct CentralityStressTests {
                 let error = abs(result.score(of: i) - value)
                 #expect(error <= 1e-6, "vertex \(i)")
             }
-            let raw = try #require(graph.katzCentrality(normalized: false))
+            let raw = try graph.katzCentrality(normalized: false)
             let rawExpected = [1.1237243569579451, 1.2372435695794524, 1.2487113388365794, 1.25, 1.1237243569579451]
             for (i, value) in zip(indices, rawExpected) {
                 let error = abs(raw.score(of: i) - value)
@@ -228,7 +228,7 @@ struct CentralityStressTests {
             // D: [0..99999] S(0;1..99999)
             let n = 100_000
             let graph = CompressedSparseRow(vertexCount: n, edges: (1 ..< n).map { DirectedEdge(from: 0, to: $0) })
-            let result = try #require(graph.hits())
+            let result = try graph.hits()
             // Computed with ref.py: hits_model.
             #expect(abs(result.hubs.score(of: 0) - 1) <= 1e-4)
             #expect(abs(result.authorities.score(of: 0)) <= 1e-4)
@@ -239,15 +239,18 @@ struct CentralityStressTests {
         }.value
     }
 
-    @Test("U(S(0;1..9999)).eigenvectorCentrality(): nil with the defaults (the shifted iteration contracts by 0.98); with tolerance 1e-10 the hub is 1/√2", .timeLimit(.minutes(1)))
+    @Test("U(S(0;1..9999)).eigenvectorCentrality(): NoConvergence with the defaults (the shifted iteration contracts by 0.98); with tolerance 1e-10 the hub is 1/√2", .timeLimit(.minutes(1)))
     func starEigenvector() async throws {
         try await Task {
             // U: [0..9999] S(0;1..9999)
             let n = 10_000
             let graph = UndirectedAdjacencyList(vertices: 0 ..< n, edges: (1 ..< n).map { UndirectedEdge(0, $0) })
-            // Computed with ref.py: eigenvector_model returns nil with the defaults.
-            #expect(graph.eigenvectorCentrality() == nil)
-            let result = try #require(graph.eigenvectorCentrality(tolerance: 1e-10, maxIterations: 10_000))
+            // Computed with ref.py: eigenvector_model does not converge with the defaults. The last
+            // change over n is above the tolerance, 1e-6.
+            let failure = #expect(throws: NoConvergence.self) { try graph.eigenvectorCentrality() }
+            #expect(failure?.iterations == 100)
+            #expect(failure.map { $0.residual >= 1e-6 && $0.residual.isFinite } == true)
+            let result = try graph.eigenvectorCentrality(tolerance: 1e-10, maxIterations: 10_000)
             // Computed with ref.py: the closed form 1/√2, 1/√(2(n − 1)), which its model at
             // tolerance 1e-13 meets within 5e-12; with these parameters it lies within 4.9e-9.
             #expect(abs(result.score(of: 0) - 0.7071067811865475) <= 1e-6)
@@ -262,7 +265,7 @@ struct CentralityStressTests {
             // U: [0..99999] C(0..99999)
             let n = 100_000
             let graph = ReferencePseudograph(vertices: 0 ..< n, edges: (0 ..< n).map { UndirectedEdge($0, ($0 + 1) % n) })
-            let result = try #require(graph.eigenvectorCentrality())
+            let result = try graph.eigenvectorCentrality()
             // Computed with ref.py: eigenvector_model.
             let worst = result.scores.map { abs($0 - 0.0031622776601683794) }.max()!
             #expect(worst <= 1e-4)

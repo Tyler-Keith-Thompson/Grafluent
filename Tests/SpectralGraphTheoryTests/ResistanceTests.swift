@@ -14,7 +14,7 @@ struct ResistanceTests {
         // U: P(0..3) · resistanceDistance(from: 0, to: 3) → 3
         let edges: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 4), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.resistanceDistance(from: 0, to: 3)
+        let value = try graph.resistanceDistance(from: 0, to: 3)
         let resistance = try #require(value)
         // 3
         #expect(abs(resistance - 3) <= 1e-6 * 3)
@@ -25,7 +25,7 @@ struct ResistanceTests {
         // U: C(0..3) · resistanceDistance(from: 0, to: 2) → 1
         let edges: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 0)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 4), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.resistanceDistance(from: 0, to: 2)
+        let value = try graph.resistanceDistance(from: 0, to: 2)
         let resistance = try #require(value)
         // 1
         #expect(abs(resistance - 1) <= 1e-6 * 1)
@@ -36,36 +36,36 @@ struct ResistanceTests {
         // U: K(4) · resistanceDistance(from: 1, to: 2) → 1/2 (0.5)
         let edges: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 4), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.resistanceDistance(from: 1, to: 2)
+        let value = try graph.resistanceDistance(from: 1, to: 2)
         let resistance = try #require(value)
         // 1/2 (0.5)
         #expect(abs(resistance - 0.5) <= 1e-6 * 1)
     }
 
     @Test("SGT-172 same vertex: 0")
-    func sgt172() {
+    func sgt172() throws {
         // U: K(4) · resistanceDistance(from: 2, to: 2) → 0
         let edges: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 4), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.resistanceDistance(from: 2, to: 2)
+        let value = try graph.resistanceDistance(from: 2, to: 2)
         #expect(value == 0)
     }
 
     @Test("SGT-173 different components: nil")
-    func sgt173() {
+    func sgt173() throws {
         // U: C(0,1,2), C(3,4,5) · resistanceDistance(from: 0, to: 4) → nil
         let edges: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (3, 4), (4, 5), (5, 3)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 6), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.resistanceDistance(from: 0, to: 4)
+        let value = try graph.resistanceDistance(from: 0, to: 4)
         #expect(value == nil)
     }
 
     @Test("SGT-174 isolated vertex to itself: 0")
-    func sgt174() {
+    func sgt174() throws {
         // U: [0,1]  · resistanceDistance(from: 1, to: 1) → 0
         let edges: [(Int, Int)] = []
         let graph = ReferencePseudograph(vertices: Array(0 ..< 2), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.resistanceDistance(from: 1, to: 1)
+        let value = try graph.resistanceDistance(from: 1, to: 1)
         #expect(value == 0)
     }
 
@@ -74,7 +74,7 @@ struct ResistanceTests {
         // U: 0=1 · resistanceDistance(from: 0, to: 1) → 1/2 (0.5)
         let edges: [(Int, Int)] = [(0, 1), (0, 1)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 2), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.resistanceDistance(from: 0, to: 1)
+        let value = try graph.resistanceDistance(from: 0, to: 1)
         let resistance = try #require(value)
         // 1/2 (0.5)
         #expect(abs(resistance - 0.5) <= 1e-6 * 1)
@@ -86,7 +86,7 @@ struct ResistanceTests {
         let edges: [(Int, Int)] = [(0, 1), (1, 2)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 3), edges: edges.map { UndirectedEdge($0.0, $0.1) })
         let weights: [Int] = [2, 4]
-        let value = graph.resistanceDistance(from: 0, to: 2, weight: { weights[$0] })
+        let value = try graph.resistanceDistance(from: 0, to: 2, weight: { weights[$0] })
         let resistance = try #require(value)
         // 3/4 (0.75)
         #expect(abs(resistance - 0.75) <= 1e-6 * 1)
@@ -97,7 +97,7 @@ struct ResistanceTests {
         // U: 0-1, 0-2, 1-2, 1-3, 2-3 · resistanceDistance(from: 0, to: 3) → 1
         let edges: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (1, 3), (2, 3)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 4), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.resistanceDistance(from: 0, to: 3)
+        let value = try graph.resistanceDistance(from: 0, to: 3)
         let resistance = try #require(value)
         // 1
         #expect(abs(resistance - 1) <= 1e-6 * 1)
@@ -111,7 +111,7 @@ struct ResistanceTests {
             (6, 8), (6, 9), (7, 9),
         ]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 10), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.resistanceDistance(from: 0, to: 1)
+        let value = try graph.resistanceDistance(from: 0, to: 1)
         let resistance = try #require(value)
         // 3/5 (0.6)
         #expect(abs(resistance - 0.6) <= 1e-6 * 1)
@@ -125,7 +125,7 @@ struct ResistanceTests {
             (6, 8), (6, 9), (7, 9),
         ]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 10), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.resistanceDistance(from: 0, to: 2)
+        let value = try graph.resistanceDistance(from: 0, to: 2)
         let resistance = try #require(value)
         // 4/5 (0.8)
         #expect(abs(resistance - 0.8) <= 1e-6 * 1)
@@ -136,7 +136,7 @@ struct ResistanceTests {
         // U: grid(3,3) · resistanceDistance(from: 0, to: 8) → 3/2 (1.5)
         let edges: [(Int, Int)] = [(0, 1), (0, 3), (1, 2), (1, 4), (2, 5), (3, 4), (3, 6), (4, 5), (4, 7), (5, 8), (6, 7), (7, 8)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 9), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.resistanceDistance(from: 0, to: 8)
+        let value = try graph.resistanceDistance(from: 0, to: 8)
         let resistance = try #require(value)
         // 3/2 (1.5)
         #expect(abs(resistance - 1.5) <= 1e-6 * 1.5)
@@ -147,19 +147,19 @@ struct ResistanceTests {
         // U: 1-1, P(0..2) · resistanceDistance(from: 0, to: 2) → 2
         let edges: [(Int, Int)] = [(1, 1), (0, 1), (1, 2)]
         let graph = ReferencePseudograph(vertices: [1, 0, 2], edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let value = graph.resistanceDistance(from: 0, to: 2)
+        let value = try graph.resistanceDistance(from: 0, to: 2)
         let resistance = try #require(value)
         // 2
         #expect(abs(resistance - 2) <= 1e-6 * 2)
     }
 
     @Test("SGT-182 weight 0 disconnects: nil")
-    func sgt182() {
+    func sgt182() throws {
         // U: P(0..2) · resistanceDistance(from: 0, to: 2) weight: [1, 0] → nil
         let edges: [(Int, Int)] = [(0, 1), (1, 2)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 3), edges: edges.map { UndirectedEdge($0.0, $0.1) })
         let weights: [Int] = [1, 0]
-        let value = graph.resistanceDistance(from: 0, to: 2, weight: { weights[$0] })
+        let value = try graph.resistanceDistance(from: 0, to: 2, weight: { weights[$0] })
         #expect(value == nil)
     }
 
