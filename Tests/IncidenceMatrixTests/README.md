@@ -67,7 +67,8 @@ one column at a time. `transposed()` and `reversed` are checked as involutions, 
 negation.
 
 The catalog-row files are every file except `IncidenceMatrixConformanceTests.swift`,
-`IncidenceMatrixPropertyTests.swift` and `IncidenceMatrixStressTests.swift`. `swiftgen.py`, which
+`IncidenceMatrixEdgeCaseTests.swift`, `IncidenceMatrixPropertyTests.swift` and
+`IncidenceMatrixStressTests.swift`. `swiftgen.py`, which
 sits next to `ref.py`, generated them:
 
 ```
@@ -91,6 +92,11 @@ There is no hash-law file. The vertices are `Int`s, and every read is in index s
   - Also: the conversions between all four types and from graphs (one column per edge in `edges`
     order, by vertex index), Codable round trips, copy-on-write, the resets and capacity, Hashable,
     and Sendable.
+- **Edge cases** (`IncidenceMatrixEdgeCaseTests.swift`), one behavior each, written for the planted
+  bugs the rest let through (`scripts/mutants/IncidenceMatrixModule.py`): the descriptions and
+  their elision, hashing across storage strides, near-miss membership and equality, the trapping
+  index reads, the decoder's overflow guards, and edge subscripts on the oriented matrix's
+  incidence graph.
 - **Properties** (swift-property-based, with shrinking):
   - B·Bᵀ = D + A on loopless multigraphs and Bᵀ·B = 2I + A(L(G)) on loopless simple graphs,
     computed from the public cells;

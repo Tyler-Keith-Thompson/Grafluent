@@ -189,10 +189,8 @@ public protocol DirectedHypergraph<Vertex> {
     func inHyperedgeIndices(ofIndex index: Int) -> IncidentHyperedgeIndices
 
     // `_forEachMemberIndex` runs over both sides, each vertex at least once (the oriented matrix
-    // ORs its planes' words); `_withIncidenceRows(targets:_:)` is the undirected hook per side
-    // (`targets: false` the source incidences, `true` the target incidences, each from 0).
+    // ORs its planes' words).
     func _forEachMemberIndex(ofHyperedgeAt position: Hyperedges.Index, _ body: (Int) -> Void)
-    func _withIncidenceRows<Result>(targets: Bool, _ body: /* as above */) -> Result
 }
 ```
 

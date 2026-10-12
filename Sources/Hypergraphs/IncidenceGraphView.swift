@@ -106,21 +106,19 @@ public struct IncidenceGraphView<Base: Hypergraph>: Graph {
     }
 
     /// The incidence numbers at one vertex of an incidence graph view, its edge positions: a
-    /// stored or computed row (shifted by a constant), or a contiguous range. Random access,
+    /// stored or computed row, or a contiguous range. Random access,
     /// O(1) per element.
     @frozen
     public struct IncidentEdgeIndices: RandomAccessCollection, Sendable {
         @usableFromInline internal let _row: ArraySlice<Int>
         @usableFromInline internal let _range: Range<Int>
-        @usableFromInline internal let _shift: Int
         @usableFromInline internal let _isRange: Bool
 
-        /// `row`'s entries plus `shift`.
+        /// `row`'s entries.
         @inlinable
-        internal init(row: ArraySlice<Int>, shift: Int) {
+        internal init(row: ArraySlice<Int>) {
             _row = row
             _range = 0 ..< row.count
-            _shift = shift
             _isRange = false
         }
 
@@ -129,7 +127,6 @@ public struct IncidenceGraphView<Base: Hypergraph>: Graph {
         internal init(range: Range<Int>) {
             _row = []
             _range = range
-            _shift = 0
             _isRange = true
         }
 
@@ -144,7 +141,7 @@ public struct IncidenceGraphView<Base: Hypergraph>: Graph {
                 precondition(position >= 0 && position < _range.count, "Index out of range")
                 return _range.lowerBound &+ position
             }
-            return _row[_row.startIndex &+ position] &+ _shift
+            return _row[_row.startIndex &+ position]
         }
     }
 
@@ -335,8 +332,8 @@ public struct IncidenceGraphView<Base: Hypergraph>: Graph {
             let h = vertex &- _n
             return IncidentEdgeIndices(range: _memberOffsets[h] ..< _memberOffsets[h &+ 1])
         }
-        if _hasPlane { return IncidentEdgeIndices(row: _plane.row(vertex), shift: 0) }
-        return IncidentEdgeIndices(row: _computedIncidences(ofIndex: vertex)[...], shift: 0)
+        if _hasPlane { return IncidentEdgeIndices(row: _plane.row(vertex)) }
+        return IncidentEdgeIndices(row: _computedIncidences(ofIndex: vertex)[...])
     }
 
     /// The base's degree of a vertex, or size of a hyperedge.

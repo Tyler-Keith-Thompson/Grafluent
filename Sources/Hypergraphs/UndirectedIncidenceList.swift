@@ -391,8 +391,7 @@ extension UndirectedIncidenceList {
     /// - Precondition: `index` is in `0..<vertexCount`.
     @inlinable
     public func vertex(atIndex index: Int) -> Vertex {
-        precondition(index >= 0 && index < _vertices.count, "Vertex index \(index) is out of range 0..<\(_vertices.count)")
-        return _vertices[index]
+        _vertices[index]
     }
 
     /// `hyperedgeCount`: the positions are the indices.
@@ -543,7 +542,7 @@ extension UndirectedIncidenceList: Codable where Vertex: Codable {
         for row in rows {
             var previous = -1
             for i in row {
-                guard i >= 0, i < set.count else {
+                guard i < set.count else {
                     throw DecodingError.dataCorruptedError(forKey: .hyperedges, in: container, debugDescription: "Member index \(i) is out of range 0..<\(set.count)")
                 }
                 guard i > previous else {

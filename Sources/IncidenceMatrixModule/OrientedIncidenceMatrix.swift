@@ -387,11 +387,8 @@ extension OrientedIncidenceMatrix {
     @inlinable
     @discardableResult
     public mutating func insert(sources: some Sequence<Int>, targets: some Sequence<Int>) -> Int {
-        let sourceList = Array(sources), targetList = Array(targets)
-        for v in sourceList { _sources._checkVertex(v) }
-        for v in targetList { _targets._checkVertex(v) }
-        _sources.insert(hyperedge: sourceList)
-        return _targets.insert(hyperedge: targetList)
+        _sources.insert(hyperedge: sources)
+        return _targets.insert(hyperedge: targets)
     }
 
     /// Appends the column of `edge`: −1 at its source and +1 at its target (0 for a self-loop).

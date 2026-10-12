@@ -122,12 +122,6 @@ package struct _IncidencePlane {
         precondition(p >= 0 && p < memberOffsets.count &- 1, "Hyperedge position \(p) is out of range 0..<\(memberOffsets.count &- 1)")
     }
 
-    @inlinable
-    @inline(__always)
-    package func checkVertex(_ i: Int) {
-        precondition(i >= 0 && i < incidences.rowCount, "Vertex index \(i) is out of range 0..<\(incidences.rowCount)")
-    }
-
     /// The incidence numbers of hyperedge `p`.
     @inlinable
     package func range(of p: Int) -> Range<Int> {
@@ -150,21 +144,18 @@ package struct _IncidencePlane {
     /// The incidence numbers of vertex `i`.
     @inlinable
     package func row(_ i: Int) -> ArraySlice<Int> {
-        checkVertex(i)
-        return incidences[row: i]
+        incidences[row: i]
     }
 
     /// The hyperedge positions of vertex `i`, ascending.
     @inlinable
     package func hyperedgeRow(_ i: Int) -> ArraySlice<Int> {
-        checkVertex(i)
-        return positions[row: i]
+        positions[row: i]
     }
 
     @inlinable
     package func degree(_ i: Int) -> Int {
-        checkVertex(i)
-        return incidences.count(ofRow: i)
+        incidences.count(ofRow: i)
     }
 
     @inlinable
@@ -211,22 +202,6 @@ package struct _IncidencePlane {
     @inlinable
     package func rows() -> [[Int]] {
         (0 ..< hyperedgeCount).map { Array(memberIndices(of: $0)) }
-    }
-
-    /// The transpose: hyperedge `i` of the result is vertex `i`'s row of hyperedge positions, over
-    /// `hyperedgeCount` vertices. O(n + m + p).
-    @inlinable
-    package func transposed(vertexCount n: Int) -> _IncidencePlane {
-        var offsets = ContiguousArray<Int>()
-        offsets.reserveCapacity(n &+ 1)
-        offsets.append(0)
-        var flat = ContiguousArray<Int>()
-        flat.reserveCapacity(incidenceCount)
-        for i in 0 ..< n {
-            flat.append(contentsOf: positions[row: i])
-            offsets.append(flat.count)
-        }
-        return _IncidencePlane(vertexCount: hyperedgeCount, offsets: offsets, members: flat)
     }
 }
 
@@ -410,39 +385,4 @@ internal struct _SortedRowsBuilder {
         count = 0
         return (offsets, members)
     }
-}
-
-/// `flat[start...]` sorted ascending without repeats, in place, the rest untouched. O(k) when
-/// already strictly ascending, O(k log k) otherwise.
-@inlinable
-package func _sortUniqueTail(_ flat: inout ContiguousArray<Int>, from start: Int) {
-    let end = flat.count
-    var k = start &+ 1
-    while k < end {
-        if flat[k &- 1] >= flat[k] { break }
-        k &+= 1
-    }
-    if k >= end { return }
-    if end &- start <= 16 {
-        // Insertion sort: the standard sort's setup dominates on a hyperedge of a few members.
-        flat.withUnsafeMutableBufferPointer { flat in
-            for i in k ..< end {
-                let x = flat[i]
-                var j = i
-                while j > start, flat[j &- 1] > x {
-                    flat[j] = flat[j &- 1]
-                    j &-= 1
-                }
-                flat[j] = x
-            }
-        }
-    } else {
-        flat[start ..< end].sort()
-    }
-    var write = start &+ 1
-    for read in start &+ 1 ..< end where flat[read] != flat[write &- 1] {
-        flat[write] = flat[read]
-        write &+= 1
-    }
-    flat.removeLast(end &- write)
 }

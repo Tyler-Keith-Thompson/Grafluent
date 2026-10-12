@@ -481,8 +481,7 @@ extension IncidenceList {
     /// - Precondition: `index` is in `0..<vertexCount`.
     @inlinable
     public func vertex(atIndex index: Int) -> Vertex {
-        precondition(index >= 0 && index < _vertices.count, "Vertex index \(index) is out of range 0..<\(_vertices.count)")
-        return _vertices[index]
+        _vertices[index]
     }
 
     /// `hyperedgeCount`: the positions are the indices.
@@ -524,19 +523,6 @@ extension IncidenceList {
         _targets.members.withUnsafeBufferPointer { members in
             for q in targetRange { body(members[q]) }
         }
-    }
-
-    /// One plane's storage, lent. O(1).
-    @inlinable
-    public func _withIncidenceRows<Result>(
-        targets: Bool,
-        _ body: (
-            _ memberOffsets: UnsafeBufferPointer<Int>, _ members: UnsafeBufferPointer<Int>,
-            _ incidences: UnsafeBufferPointer<Int>, _ incidenceRows: UnsafeBufferPointer<Int>,
-            _ hyperedges: UnsafeBufferPointer<Int>, _ hyperedgeRows: UnsafeBufferPointer<Int>
-        ) -> Result
-    ) -> Result {
-        targets ? _targets.withIncidenceRows(body) : _sources.withIncidenceRows(body)
     }
 }
 
@@ -653,7 +639,7 @@ extension IncidenceList: Codable where Vertex: Codable {
             for row in rows {
                 var previous = -1
                 for i in row {
-                    guard i >= 0, i < set.count else {
+                    guard i < set.count else {
                         throw DecodingError.dataCorruptedError(forKey: key, in: container, debugDescription: "Vertex index \(i) is out of range 0..<\(set.count)")
                     }
                     guard i > previous else {

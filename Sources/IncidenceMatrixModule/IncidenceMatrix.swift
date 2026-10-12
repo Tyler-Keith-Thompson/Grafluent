@@ -87,10 +87,7 @@ extension IncidenceMatrix {
         var offsets = [0]
         var flat: [Int] = []
         for hyperedge in hyperedges {
-            for v in hyperedge {
-                precondition(v >= 0 && v < vertexCount, "Member \(v) is out of range 0..<\(vertexCount)")
-                flat.append(v)
-            }
+            flat.append(contentsOf: hyperedge)
             offsets.append(flat.count)
         }
         self.init(_vertexCount: vertexCount, hyperedgeCount: offsets.count - 1)
@@ -519,13 +516,11 @@ extension IncidenceMatrix {
     @inlinable
     @discardableResult
     public mutating func insert(hyperedge members: some Sequence<Int>) -> Int {
-        let list = Array(members)
-        for v in list { _checkVertex(v) }
         let position = _columns.rowCount
         _rows.appendColumn()
         _columns.appendRow()
         _sizes.append(0)
-        for v in list { _setCell(v, position, to: true) }
+        for v in members { _setCell(v, position, to: true) }
         return position
     }
 
@@ -681,7 +676,7 @@ extension IncidenceMatrix: Codable {
     internal static func _checkDecodedColumn<Key: CodingKey>(_ column: [Int], vertexCount n: Int, key: Key, in container: KeyedDecodingContainer<Key>) throws {
         var previous = -1
         for v in column {
-            guard v >= 0, v < n else {
+            guard v < n else {
                 throw DecodingError.dataCorruptedError(forKey: key, in: container, debugDescription: "Member \(v) is out of range 0..<\(n)")
             }
             guard v > previous else {

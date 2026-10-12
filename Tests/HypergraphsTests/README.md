@@ -80,7 +80,8 @@ second time on a vertex type, local to the test, whose `hash(into:)` and `==` co
 isolated vertices, because an `OrderedSet` hashes only from 16 elements.
 
 The catalog-row files are every file except `HypergraphConformanceTests.swift`,
-`HypergraphHashTests.swift`, `HypergraphPropertyTests.swift` and `HypergraphStressTests.swift`.
+`HypergraphEdgeCaseTests.swift`, `HypergraphHashTests.swift`, `HypergraphPropertyTests.swift` and
+`HypergraphStressTests.swift`.
 `swiftgen.py`, which sits next to `ref.py`, generated them:
 
 ```
@@ -111,6 +112,17 @@ checked.
   - Also: `IncidenceList(_:)` from a directed graph (B- and F-connection there are reachability),
     Codable round trips, copy-on-write, the resets and capacity, `init(_:)` across conformers, and
     Sendable.
+- **Edge cases** (`HypergraphEdgeCaseTests.swift`), one behavior each, written for the planted
+  bugs the rest let through (`scripts/mutants/Hypergraphs.py`):
+  - a hyperedge of 40 members past the builder's insertion-sort limit, unsorted and repeated;
+  - copies of conformers without vertex indices;
+  - re-inserting a vertex adds no row; `hyperedgeIndex(of:)` traps out of range;
+  - the in-side `safe:` reads, and `contains(sources:targets:)` on both sides;
+  - near-miss equality (same sizes, other members; sides split differently) and hashing;
+  - hostile payloads: a negative index, a repeated vertex;
+  - the views' membership, opposite ends and trapping reads, and edge subscripts, components and
+    bridges on views over test-local conformers (the protocols' computed rows);
+  - the clique expansions' vertex indices, edge membership and predecessors.
 - **Hash law.** A counting vertex on hypergraphs of at least 16 vertices:
   - index-space reads, whole-hypergraph algorithms and graph algorithms on the views cause no hash
     and no comparison;

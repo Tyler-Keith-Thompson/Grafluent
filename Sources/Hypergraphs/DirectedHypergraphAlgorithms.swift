@@ -172,7 +172,6 @@ extension DirectedHypergraph {
     @inlinable
     public var isWeaklyConnected: Bool {
         let (n, _) = _indexBounds()
-        guard n > 0 else { return false }
         var sets = DisjointSet(count: n)
         _unionSides(&sets)
         return sets.setCount == 1

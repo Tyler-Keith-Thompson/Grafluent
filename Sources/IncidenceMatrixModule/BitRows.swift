@@ -141,7 +141,6 @@ package struct _BitRows {
     /// differ.
     @inlinable
     package mutating func formUnion(_ other: _BitRows) {
-        precondition(rowCount == other.rowCount && columnCount == other.columnCount, "The planes differ in shape")
         let used = Self.wordsNeeded(columnCount), stride = wordsPerRow, otherStride = other.wordsPerRow
         words.withUnsafeMutableBufferPointer { words in
             other.words.withUnsafeBufferPointer { otherWords in

@@ -215,7 +215,6 @@ extension Hypergraph {
     @inlinable
     public func contains(hyperedge members: some Sequence<Vertex>) -> Bool {
         let wanted = Set(members)
-        for v in wanted where !contains(v) { return false }
         for hyperedge in hyperedges where hyperedge.count == wanted.count {
             if hyperedge.allSatisfy({ wanted.contains($0) }) { return true }
         }
@@ -271,13 +270,6 @@ extension Hypergraph where IncidentHyperedgeIndices == LazyMapSequence<IncidentH
 // MARK: - Incidence rows, computed
 
 extension Hypergraph {
-    /// The position whose hyperedge index is `index`: `hyperedges` is in index order.
-    @inlinable
-    package func _hyperedgePosition(ofIndex index: Int) -> Hyperedges.Index {
-        precondition(index >= 0 && index < hyperedgeCount, "Hyperedge index \(index) is out of range")
-        return hyperedges.index(hyperedges.startIndex, offsetBy: index)
-    }
-
     @inlinable
     public func _forEachMemberIndex(ofHyperedgeAt position: Hyperedges.Index, _ body: (Int) -> Void) {
         for i in memberIndices(ofHyperedgeAt: position) { body(i) }
