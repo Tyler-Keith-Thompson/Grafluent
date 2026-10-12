@@ -6,9 +6,9 @@ import GraphProtocols
 ///
 /// - Precondition: both factors have vertex indices, and |V(G)|·|V(H)| fits in an `Int`.
 @inlinable
-public func lexicographicProduct<G: DirectedGraph, H: DirectedGraph>(_ g: G, _ h: H) -> LexicographicProduct<G, H> {
+public func lexicographicProductView<G: DirectedGraph, H: DirectedGraph>(_ g: G, _ h: H) -> LexicographicProductView<G, H> {
     let (nG, nH) = _factorCounts(g.vertexIndexBound, h.vertexIndexBound)
-    return LexicographicProduct(first: g, second: h, firstCount: nG, secondCount: nH)
+    return LexicographicProductView(first: g, second: h, firstCount: nG, secondCount: nH)
 }
 
 /// The lexicographic product G ∘ H of two undirected graphs, as a lazy view: G with each vertex
@@ -17,15 +17,15 @@ public func lexicographicProduct<G: DirectedGraph, H: DirectedGraph>(_ g: G, _ h
 ///
 /// - Precondition: both factors have vertex indices, and |V(G)|·|V(H)| fits in an `Int`.
 @inlinable
-public func lexicographicProduct<G: Graph, H: Graph>(_ g: G, _ h: H) -> LexicographicProduct<G, H> {
+public func lexicographicProductView<G: Graph, H: Graph>(_ g: G, _ h: H) -> LexicographicProductView<G, H> {
     let (nG, nH) = _factorCounts(g.vertexIndexBound, h.vertexIndexBound)
-    return LexicographicProduct(first: g, second: h, firstCount: nG, secondCount: nH, factors: _Factors(first: g, second: h))
+    return LexicographicProductView(first: g, second: h, firstCount: nG, secondCount: nH, factors: _Factors(first: g, second: h))
 }
 
 /// The lexicographic product G ∘ H of two graphs, both directed or both undirected, as a lazy
-/// view. Made by `lexicographicProduct(_:_:)`. Also called the composition G[H].
+/// view. Made by `lexicographicProductView(_:_:)`. Also called the composition G[H].
 ///
-/// Vertices and their indices are as in `CartesianProduct`. The row of (g, h) lists `(g′, h′)` for
+/// Vertices and their indices are as in `CartesianProductView`. The row of (g, h) lists `(g′, h′)` for
 /// each entry g′ of G's row and **every** h′ of H, in index order, then the H-moves `(g, h′)`.
 ///
 /// An edge's position is `.first(edge: e, uVertexIndex: s, vVertexIndex: t)`, G's edge `e` with
@@ -36,7 +36,7 @@ public func lexicographicProduct<G: Graph, H: Graph>(_ g: G, _ h: H) -> Lexicogr
 /// second. Directed, the product has edge indices when both factors do:
 /// `index(e)·|V(H)|² + s·|V(H)| + t`, then `m_G·|V(H)|² + g·m_H + index(f)`. Undirected it has none.
 @frozen
-public struct LexicographicProduct<First, Second> {
+public struct LexicographicProductView<First, Second> {
     /// G, the first factor.
     public let first: First
     /// H, the second factor.
@@ -200,12 +200,12 @@ public struct LexicographicProduct<First, Second> {
     }
 }
 
-extension LexicographicProduct: Sendable where First: Sendable, Second: Sendable {}
-extension LexicographicProduct.Position: Sendable where FirstEdge: Sendable, SecondEdge: Sendable {}
-extension LexicographicProduct.IndexRow: Sendable where FirstRow: Sendable, SecondRow: Sendable {}
-extension LexicographicProduct.EdgeRow: Sendable where FirstEdges: Sendable, SecondEdges: Sendable {}
+extension LexicographicProductView: Sendable where First: Sendable, Second: Sendable {}
+extension LexicographicProductView.Position: Sendable where FirstEdge: Sendable, SecondEdge: Sendable {}
+extension LexicographicProductView.IndexRow: Sendable where FirstRow: Sendable, SecondRow: Sendable {}
+extension LexicographicProductView.EdgeRow: Sendable where FirstEdges: Sendable, SecondEdges: Sendable {}
 
-extension LexicographicProduct.Position {
+extension LexicographicProductView.Position {
     /// The first position of the H-part at G-vertex index `g` or later, or the end.
     @inlinable
     static func _secondStart<HE: Collection>(_ secondEdges: HE, from g: Int, firstCount: Int) -> Self where HE.Index == SecondEdge {
@@ -295,7 +295,7 @@ struct _UndirectedLexicographicRows<G: Graph, H: Graph> {
     }
 
     @inlinable
-    mutating func next() -> (index: Int, position: LexicographicProduct<G, H>.Position<G.Edges.Index, H.Edges.Index>)? {
+    mutating func next() -> (index: Int, position: LexicographicProductView<G, H>.Position<G.Edges.Index, H.Edges.Index>)? {
         if inFirst {
             while true {
                 if let edge, cursor < end {

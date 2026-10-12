@@ -14,10 +14,10 @@ import Testing
 struct SubgraphViewTests {
     @Test("GO-010 empty base, empty set")
     func go010() {
-        // AL V []; E [] / .inducedSubgraph(on: [])
+        // AL V []; E [] / .inducedSubgraphView(on: [])
         // Expected: V []; E []; bounds 0/0; rows []
         let graph = AdjacencyList<String>(vertices: [] as [String], edges: [] as [DirectedEdge<String>])
-        let view = graph.inducedSubgraph(on: [] as [String])
+        let view = graph.inducedSubgraphView(on: [] as [String])
         #expect(Array(view.vertices) == [] as [String])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [] as [Int])
         #expect((0 ..< 0).map { view.vertex(atIndex: $0) } == [] as [String])
@@ -29,10 +29,10 @@ struct SubgraphViewTests {
 
     @Test("GO-011 keep nothing")
     func go011() {
-        // AL V [a, b]; E [a→b] / .inducedSubgraph(on: [])
+        // AL V [a, b]; E [a→b] / .inducedSubgraphView(on: [])
         // Expected: V []; E []; bounds 0/nil; rows []
         let graph = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
-        let view = graph.inducedSubgraph(on: [] as [String])
+        let view = graph.inducedSubgraphView(on: [] as [String])
         #expect(Array(view.vertices) == [] as [String])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [] as [Int])
         #expect((0 ..< 0).map { view.vertex(atIndex: $0) } == [] as [String])
@@ -44,10 +44,10 @@ struct SubgraphViewTests {
 
     @Test("GO-012 keep everything: same graph, the base's edge indices")
     func go012() {
-        // AL V [a, b, c]; E [a→b, b→c, c→a] / .inducedSubgraph(on: [a, b, c])
+        // AL V [a, b, c]; E [a→b, b→c, c→a] / .inducedSubgraphView(on: [a, b, c])
         // Expected: V [a#0, b#1, c#2]; E [0:a→b, 1:b→c, 2:c→a]; bounds 3/3; rows [a: b; b: c; c: a]
         let graph = AdjacencyList<String>(vertices: ["a", "b", "c"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "c"), DirectedEdge(from: "c", to: "a")])
-        let view = graph.inducedSubgraph(on: ["a", "b", "c"])
+        let view = graph.inducedSubgraphView(on: ["a", "b", "c"])
         #expect(Array(view.vertices) == ["a", "b", "c"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2])
         #expect((0 ..< 3).map { view.vertex(atIndex: $0) } == ["a", "b", "c"])
@@ -97,10 +97,10 @@ struct SubgraphViewTests {
 
     @Test("GO-013 renumbered in base order, not listed order")
     func go013() {
-        // AL V [a, b, c, d]; E [a→b, b→c, c→d, d→a] / .inducedSubgraph(on: [d, b, a])
+        // AL V [a, b, c, d]; E [a→b, b→c, c→d, d→a] / .inducedSubgraphView(on: [d, b, a])
         // Expected: V [a#0, b#1, d#2]; E [0:a→b, 3:d→a]; bounds 3/nil; rows [a: b; b: ; d: a]
         let graph = AdjacencyList<String>(vertices: ["a", "b", "c", "d"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "c"), DirectedEdge(from: "c", to: "d"), DirectedEdge(from: "d", to: "a")])
-        let view = graph.inducedSubgraph(on: ["d", "b", "a"])
+        let view = graph.inducedSubgraphView(on: ["d", "b", "a"])
         #expect(Array(view.vertices) == ["a", "b", "d"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2])
         #expect((0 ..< 3).map { view.vertex(atIndex: $0) } == ["a", "b", "d"])
@@ -149,10 +149,10 @@ struct SubgraphViewTests {
 
     @Test("GO-014 repeated vertex listed once")
     func go014() {
-        // AL V [a, b, c]; E [a→b, b→c] / .inducedSubgraph(on: [b, b, c])
+        // AL V [a, b, c]; E [a→b, b→c] / .inducedSubgraphView(on: [b, b, c])
         // Expected: V [b#0, c#1]; E [1:b→c]; bounds 2/nil; rows [b: c; c: ]
         let graph = AdjacencyList<String>(vertices: ["a", "b", "c"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "c")])
-        let view = graph.inducedSubgraph(on: ["b", "b", "c"])
+        let view = graph.inducedSubgraphView(on: ["b", "b", "c"])
         #expect(Array(view.vertices) == ["b", "c"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1])
         #expect((0 ..< 2).map { view.vertex(atIndex: $0) } == ["b", "c"])
@@ -190,10 +190,10 @@ struct SubgraphViewTests {
 
     @Test("GO-015 arcs leaving the set dropped")
     func go015() {
-        // AL V [a, b, c]; E [a→b, a→c, c→b] / .inducedSubgraph(on: [a, b])
+        // AL V [a, b, c]; E [a→b, a→c, c→b] / .inducedSubgraphView(on: [a, b])
         // Expected: V [a#0, b#1]; E [0:a→b]; bounds 2/nil; rows [a: b; b: ]
         let graph = AdjacencyList<String>(vertices: ["a", "b", "c"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "a", to: "c"), DirectedEdge(from: "c", to: "b")])
-        let view = graph.inducedSubgraph(on: ["a", "b"])
+        let view = graph.inducedSubgraphView(on: ["a", "b"])
         #expect(Array(view.vertices) == ["a", "b"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1])
         #expect((0 ..< 2).map { view.vertex(atIndex: $0) } == ["a", "b"])
@@ -231,10 +231,10 @@ struct SubgraphViewTests {
 
     @Test("GO-016 self-loop kept")
     func go016() {
-        // AL V [a, b]; E [a→a, a→b] / .inducedSubgraph(on: [a])
+        // AL V [a, b]; E [a→a, a→b] / .inducedSubgraphView(on: [a])
         // Expected: V [a#0]; E [0:a→a]; bounds 1/nil; rows [a: a]
         let graph = DirectedPseudograph<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "a"), DirectedEdge(from: "a", to: "b")])
-        let view = graph.inducedSubgraph(on: ["a"])
+        let view = graph.inducedSubgraphView(on: ["a"])
         #expect(Array(view.vertices) == ["a"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0])
         #expect((0 ..< 1).map { view.vertex(atIndex: $0) } == ["a"])
@@ -261,10 +261,10 @@ struct SubgraphViewTests {
 
     @Test("GO-017 parallel arcs both kept, base positions")
     func go017() {
-        // AL V [a, b, c]; E [c→a, a→b, a→b] / .inducedSubgraph(on: [a, b])
+        // AL V [a, b, c]; E [c→a, a→b, a→b] / .inducedSubgraphView(on: [a, b])
         // Expected: V [a#0, b#1]; E [1:a→b, 2:a→b]; bounds 2/nil; rows [a: b b; b: ]
         let graph = DirectedPseudograph<String>(vertices: ["a", "b", "c"], edges: [DirectedEdge(from: "c", to: "a"), DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "a", to: "b")])
-        let view = graph.inducedSubgraph(on: ["a", "b"])
+        let view = graph.inducedSubgraphView(on: ["a", "b"])
         #expect(Array(view.vertices) == ["a", "b"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1])
         #expect((0 ..< 2).map { view.vertex(atIndex: $0) } == ["a", "b"])
@@ -302,10 +302,10 @@ struct SubgraphViewTests {
 
     @Test("GO-018 isolated kept vertex")
     func go018() {
-        // AL V [a, b, c]; E [a→b] / .inducedSubgraph(on: [c, a])
+        // AL V [a, b, c]; E [a→b] / .inducedSubgraphView(on: [c, a])
         // Expected: V [a#0, c#1]; E []; bounds 2/nil; rows [a: ; c: ]
         let graph = AdjacencyList<String>(vertices: ["a", "b", "c"], edges: [DirectedEdge(from: "a", to: "b")])
-        let view = graph.inducedSubgraph(on: ["c", "a"])
+        let view = graph.inducedSubgraphView(on: ["c", "a"])
         #expect(Array(view.vertices) == ["a", "c"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1])
         #expect((0 ..< 2).map { view.vertex(atIndex: $0) } == ["a", "c"])
@@ -341,10 +341,10 @@ struct SubgraphViewTests {
 
     @Test("GO-019 predecessors filtered too")
     func go019() {
-        // AL V [a, b, c, d]; E [b→a, c→a, d→a] / .inducedSubgraph(on: [a, c, d])
+        // AL V [a, b, c, d]; E [b→a, c→a, d→a] / .inducedSubgraphView(on: [a, c, d])
         // Expected: V [a#0, c#1, d#2]; E [1:c→a, 2:d→a]; bounds 3/nil; predecessors(of: a) [c, d]
         let graph = AdjacencyList<String>(vertices: ["a", "b", "c", "d"], edges: [DirectedEdge(from: "b", to: "a"), DirectedEdge(from: "c", to: "a"), DirectedEdge(from: "d", to: "a")])
-        let view = graph.inducedSubgraph(on: ["a", "c", "d"])
+        let view = graph.inducedSubgraphView(on: ["a", "c", "d"])
         #expect(Array(view.predecessors(of: "a")) == ["c", "d"])
         #expect(Array(view.vertices) == ["a", "c", "d"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2])
@@ -394,10 +394,10 @@ struct SubgraphViewTests {
 
     @Test("GO-020 construction hashes once per listed vertex, rows none")
     func go020() {
-        // AL V [a, b, c, d]; E [a→b, b→c, c→d] / .inducedSubgraph(on: [b, c, d, c])
+        // AL V [a, b, c, d]; E [a→b, b→c, c→d] / .inducedSubgraphView(on: [b, c, d, c])
         // Expected: V [b#0, c#1, d#2]; E [1:b→c, 2:c→d]; bounds 3/nil; hashes at construction 4; successorIndices(ofIndex: 0) [1]; edgeIndexBound nil; hashes 0
         let graph = AdjacencyList<String>(vertices: ["a", "b", "c", "d"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "c"), DirectedEdge(from: "c", to: "d")])
-        let view = graph.inducedSubgraph(on: ["b", "c", "d", "c"])
+        let view = graph.inducedSubgraphView(on: ["b", "c", "d", "c"])
         #expect(Array(view.vertices) == ["b", "c", "d"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2])
         #expect((0 ..< 3).map { view.vertex(atIndex: $0) } == ["b", "c", "d"])
@@ -462,7 +462,7 @@ struct SubgraphViewTests {
             func label(_ name: String) -> Counted { Counted(name: name, tally: tally) }
             let counted = AdjacencyList<Counted>(vertices: ["a", "b", "c", "d"].map(label), edges: [DirectedEdge(from: label("a"), to: label("b")), DirectedEdge(from: label("b"), to: label("c")), DirectedEdge(from: label("c"), to: label("d"))])
             tally.hashes = 0
-            let induced = counted.inducedSubgraph(on: ["b", "c", "d", "c"].map(label))
+            let induced = counted.inducedSubgraphView(on: ["b", "c", "d", "c"].map(label))
             #expect(tally.hashes == 4)
             tally.hashes = 0
             let row = Array(induced.successorIndices(ofIndex: 0))
@@ -477,10 +477,10 @@ struct SubgraphViewTests {
 
     @Test("GO-021 edgeCount counts kept arcs (O(Σ out-degree of kept vertices))")
     func go021() {
-        // AL V [a, b, c]; E [a→b, b→c, c→a, a→c] / .inducedSubgraph(on: [a, c]) / .edgeCount
+        // AL V [a, b, c]; E [a→b, b→c, c→a, a→c] / .inducedSubgraphView(on: [a, c]) / .edgeCount
         // Expected: V [a#0, c#1]; E [2:c→a, 3:a→c]; bounds 2/nil; edgeCount 2
         let graph = AdjacencyList<String>(vertices: ["a", "b", "c"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "c"), DirectedEdge(from: "c", to: "a"), DirectedEdge(from: "a", to: "c")])
-        let view = graph.inducedSubgraph(on: ["a", "c"])
+        let view = graph.inducedSubgraphView(on: ["a", "c"])
         #expect(view.edgeCount == 2)
         #expect(Array(view.vertices) == ["a", "c"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1])
@@ -519,10 +519,10 @@ struct SubgraphViewTests {
 
     @Test("GO-024 contains(_:) is false, no trap, for a dropped vertex")
     func go024() {
-        // AL V [a, b]; E [a→b] / .inducedSubgraph(on: [a]) / .contains(b)
+        // AL V [a, b]; E [a→b] / .inducedSubgraphView(on: [a]) / .contains(b)
         // Expected: V [a#0]; E []; bounds 1/nil; contains(b) false; contains(z) false
         let graph = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
-        let view = graph.inducedSubgraph(on: ["a"])
+        let view = graph.inducedSubgraphView(on: ["a"])
         #expect(!view.contains("b") && !view.contains("z"))
         #expect(Array(view.vertices) == ["a"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0])
@@ -548,10 +548,10 @@ struct SubgraphViewTests {
 
     @Test("GO-026 undirected: incident rows filtered")
     func go026() {
-        // UL V [a, b, c, d]; E [a–b, b–c, c–d, d–a, a–c] / .inducedSubgraph(on: [a, b, c])
+        // UL V [a, b, c, d]; E [a–b, b–c, c–d, d–a, a–c] / .inducedSubgraphView(on: [a, b, c])
         // Expected: V [a#0, b#1, c#2]; E [0:a–b, 1:b–c, 4:a–c]; bounds 3/nil; rows [a: b c; b: a c; c: b a]
         let graph = UndirectedAdjacencyList<String>(vertices: ["a", "b", "c", "d"], edges: [UndirectedEdge("a", "b"), UndirectedEdge("b", "c"), UndirectedEdge("c", "d"), UndirectedEdge("d", "a"), UndirectedEdge("a", "c")])
-        let view = graph.inducedSubgraph(on: ["a", "b", "c"])
+        let view = graph.inducedSubgraphView(on: ["a", "b", "c"])
         #expect(Array(view.vertices) == ["a", "b", "c"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2])
         #expect((0 ..< 3).map { view.vertex(atIndex: $0) } == ["a", "b", "c"])
@@ -587,10 +587,10 @@ struct SubgraphViewTests {
 
     @Test("GO-027 undirected: self-loop listed twice in its row")
     func go027() {
-        // UL V [a, b]; E [a–a, a–b] / .inducedSubgraph(on: [a])
+        // UL V [a, b]; E [a–a, a–b] / .inducedSubgraphView(on: [a])
         // Expected: V [a#0]; E [0:a–a]; bounds 1/nil; rows [a: a a]
         let graph = Pseudograph<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "a"), UndirectedEdge("a", "b")])
-        let view = graph.inducedSubgraph(on: ["a"])
+        let view = graph.inducedSubgraphView(on: ["a"])
         #expect(Array(view.vertices) == ["a"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0])
         #expect((0 ..< 1).map { view.vertex(atIndex: $0) } == ["a"])
@@ -612,10 +612,10 @@ struct SubgraphViewTests {
 
     @Test("GO-028 undirected: parallel edges both kept")
     func go028() {
-        // UL V [a, b, c]; E [a–b, b–a, b–c] / .inducedSubgraph(on: [b, a])
+        // UL V [a, b, c]; E [a–b, b–a, b–c] / .inducedSubgraphView(on: [b, a])
         // Expected: V [a#0, b#1]; E [0:a–b, 1:b–a]; bounds 2/nil; rows [a: b b; b: a a]
         let graph = Pseudograph<String>(vertices: ["a", "b", "c"], edges: [UndirectedEdge("a", "b"), UndirectedEdge("b", "a"), UndirectedEdge("b", "c")])
-        let view = graph.inducedSubgraph(on: ["b", "a"])
+        let view = graph.inducedSubgraphView(on: ["b", "a"])
         #expect(Array(view.vertices) == ["a", "b"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1])
         #expect((0 ..< 2).map { view.vertex(atIndex: $0) } == ["a", "b"])
@@ -644,10 +644,10 @@ struct SubgraphViewTests {
 
     @Test("GO-029 no edges: every vertex, no arcs")
     func go029() {
-        // AL V [a, b, c]; E [a→b, b→c] / .spanningSubgraph(edges: [])
+        // AL V [a, b, c]; E [a→b, b→c] / .spanningSubgraphView(edges: [])
         // Expected: V [a#0, b#1, c#2]; E []; bounds 3/0; rows [a: ; b: ; c: ]; edgeIndex []
         let graph = AdjacencyList<String>(vertices: ["a", "b", "c"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "c")])
-        let view = graph.spanningSubgraph(edges: [] as [Int])
+        let view = graph.spanningSubgraphView(edges: [] as [Int])
         #expect(Array(view.vertices) == ["a", "b", "c"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2])
         #expect((0 ..< 3).map { view.vertex(atIndex: $0) } == ["a", "b", "c"])
@@ -694,10 +694,10 @@ struct SubgraphViewTests {
 
     @Test("GO-030 every edge: dense edge indices equal the base's")
     func go030() {
-        // AL V [a, b, c]; E [a→b, b→c] / .spanningSubgraph(edges: [0, 1])
+        // AL V [a, b, c]; E [a→b, b→c] / .spanningSubgraphView(edges: [0, 1])
         // Expected: V [a#0, b#1, c#2]; E [0:a→b, 1:b→c]; bounds 3/2; rows [a: b; b: c; c: ]; edgeIndex [0: 0, 1: 1]
         let graph = AdjacencyList<String>(vertices: ["a", "b", "c"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "c")])
-        let view = graph.spanningSubgraph(edges: [0, 1])
+        let view = graph.spanningSubgraphView(edges: [0, 1])
         #expect(Array(view.vertices) == ["a", "b", "c"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2])
         #expect((0 ..< 3).map { view.vertex(atIndex: $0) } == ["a", "b", "c"])
@@ -747,10 +747,10 @@ struct SubgraphViewTests {
 
     @Test("GO-031 edge indices renumbered by rank in base index order")
     func go031() {
-        // AL V [a, b, c, d]; E [a→b, b→c, c→d, d→a] / .spanningSubgraph(edges: [3, 1])
+        // AL V [a, b, c, d]; E [a→b, b→c, c→d, d→a] / .spanningSubgraphView(edges: [3, 1])
         // Expected: V [a#0, b#1, c#2, d#3]; E [1:b→c, 3:d→a]; bounds 4/2; rows [a: ; b: c; c: ; d: a]; edgeIndex [1: 0, 3: 1]
         let graph = AdjacencyList<String>(vertices: ["a", "b", "c", "d"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "c"), DirectedEdge(from: "c", to: "d"), DirectedEdge(from: "d", to: "a")])
-        let view = graph.spanningSubgraph(edges: [3, 1])
+        let view = graph.spanningSubgraphView(edges: [3, 1])
         #expect(Array(view.vertices) == ["a", "b", "c", "d"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2, 3])
         #expect((0 ..< 4).map { view.vertex(atIndex: $0) } == ["a", "b", "c", "d"])
@@ -811,10 +811,10 @@ struct SubgraphViewTests {
 
     @Test("GO-032 repeated position kept once")
     func go032() {
-        // AL V [a, b]; E [a→b, b→a] / .spanningSubgraph(edges: [1, 1])
+        // AL V [a, b]; E [a→b, b→a] / .spanningSubgraphView(edges: [1, 1])
         // Expected: V [a#0, b#1]; E [1:b→a]; bounds 2/1; rows [a: ; b: a]; edgeIndex [1: 0]
         let graph = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "a")])
-        let view = graph.spanningSubgraph(edges: [1, 1])
+        let view = graph.spanningSubgraphView(edges: [1, 1])
         #expect(Array(view.vertices) == ["a", "b"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1])
         #expect((0 ..< 2).map { view.vertex(atIndex: $0) } == ["a", "b"])
@@ -853,10 +853,10 @@ struct SubgraphViewTests {
 
     @Test("GO-033 one of two parallel arcs")
     func go033() {
-        // AL V [a, b]; E [a→b, a→b] / .spanningSubgraph(edges: [1])
+        // AL V [a, b]; E [a→b, a→b] / .spanningSubgraphView(edges: [1])
         // Expected: V [a#0, b#1]; E [1:a→b]; bounds 2/1; rows [a: b; b: ]; edgeIndex [1: 0]
         let graph = DirectedPseudograph<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "a", to: "b")])
-        let view = graph.spanningSubgraph(edges: [1])
+        let view = graph.spanningSubgraphView(edges: [1])
         #expect(Array(view.vertices) == ["a", "b"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1])
         #expect((0 ..< 2).map { view.vertex(atIndex: $0) } == ["a", "b"])
@@ -895,10 +895,10 @@ struct SubgraphViewTests {
 
     @Test("GO-034 self-loop")
     func go034() {
-        // AL V [a, b]; E [a→a, a→b] / .spanningSubgraph(edges: [0])
+        // AL V [a, b]; E [a→a, a→b] / .spanningSubgraphView(edges: [0])
         // Expected: V [a#0, b#1]; E [0:a→a]; bounds 2/1; rows [a: a; b: ]; edgeIndex [0: 0]
         let graph = DirectedPseudograph<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "a"), DirectedEdge(from: "a", to: "b")])
-        let view = graph.spanningSubgraph(edges: [0])
+        let view = graph.spanningSubgraphView(edges: [0])
         #expect(Array(view.vertices) == ["a", "b"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1])
         #expect((0 ..< 2).map { view.vertex(atIndex: $0) } == ["a", "b"])
@@ -937,10 +937,10 @@ struct SubgraphViewTests {
 
     @Test("GO-035 vertex indices are the base's (identity, no renumbering)")
     func go035() {
-        // AL V [a, b, c]; E [c→a] / .spanningSubgraph(edges: [0])
+        // AL V [a, b, c]; E [c→a] / .spanningSubgraphView(edges: [0])
         // Expected: V [a#0, b#1, c#2]; E [0:c→a]; bounds 3/1; vertexIndex(of: c) 2
         let graph = AdjacencyList<String>(vertices: ["a", "b", "c"], edges: [DirectedEdge(from: "c", to: "a")])
-        let view = graph.spanningSubgraph(edges: [0])
+        let view = graph.spanningSubgraphView(edges: [0])
         #expect(view.vertexIndex(of: "c") == 2 && graph.vertexIndex(of: "c") == 2)
         #expect(Array(view.vertices) == ["a", "b", "c"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2])
@@ -991,10 +991,10 @@ struct SubgraphViewTests {
 
     @Test("GO-037 undirected: tree of a cycle")
     func go037() {
-        // UL V [a, b, c, d]; E [a–b, b–c, c–d, d–a] / .spanningSubgraph(edges: [0, 1, 2])
+        // UL V [a, b, c, d]; E [a–b, b–c, c–d, d–a] / .spanningSubgraphView(edges: [0, 1, 2])
         // Expected: V [a#0, b#1, c#2, d#3]; E [0:a–b, 1:b–c, 2:c–d]; bounds 4/3; rows [a: b; b: a c; c: b d; d: c]
         let graph = UndirectedAdjacencyList<String>(vertices: ["a", "b", "c", "d"], edges: [UndirectedEdge("a", "b"), UndirectedEdge("b", "c"), UndirectedEdge("c", "d"), UndirectedEdge("d", "a")])
-        let view = graph.spanningSubgraph(edges: [0, 1, 2])
+        let view = graph.spanningSubgraphView(edges: [0, 1, 2])
         #expect(Array(view.vertices) == ["a", "b", "c", "d"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2, 3])
         #expect((0 ..< 4).map { view.vertex(atIndex: $0) } == ["a", "b", "c", "d"])
@@ -1042,10 +1042,10 @@ struct SubgraphViewTests {
 
     @Test("GO-038 undirected: self-loop kept twice in its row")
     func go038() {
-        // UL V [a, b]; E [a–a, a–b] / .spanningSubgraph(edges: [0])
+        // UL V [a, b]; E [a–a, a–b] / .spanningSubgraphView(edges: [0])
         // Expected: V [a#0, b#1]; E [0:a–a]; bounds 2/1; rows [a: a a; b: ]
         let graph = Pseudograph<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "a"), UndirectedEdge("a", "b")])
-        let view = graph.spanningSubgraph(edges: [0])
+        let view = graph.spanningSubgraphView(edges: [0])
         #expect(Array(view.vertices) == ["a", "b"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1])
         #expect((0 ..< 2).map { view.vertex(atIndex: $0) } == ["a", "b"])
@@ -1076,10 +1076,10 @@ struct SubgraphViewTests {
 
     @Test("GO-039 both filters")
     func go039() {
-        // AL V [a, b, c, d]; E [a→b, b→c, c→d, a→c] / .subgraph(vertices: [a, b, c], edges: [0, 3])
+        // AL V [a, b, c, d]; E [a→b, b→c, c→d, a→c] / .subgraphView(vertices: [a, b, c], edges: [0, 3])
         // Expected: V [a#0, b#1, c#2]; E [0:a→b, 3:a→c]; bounds 3/2; rows [a: b c; b: ; c: ]
         let graph = AdjacencyList<String>(vertices: ["a", "b", "c", "d"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "c"), DirectedEdge(from: "c", to: "d"), DirectedEdge(from: "a", to: "c")])
-        let view = graph.subgraph(vertices: ["a", "b", "c"], edges: [0, 3])
+        let view = graph.subgraphView(vertices: ["a", "b", "c"], edges: [0, 3])
         #expect(Array(view.vertices) == ["a", "b", "c"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2])
         #expect((0 ..< 3).map { view.vertex(atIndex: $0) } == ["a", "b", "c"])
@@ -1129,10 +1129,10 @@ struct SubgraphViewTests {
 
     @Test("GO-040 edge with an end outside the vertex set dropped (JGraphT AsSubgraph)")
     func go040() {
-        // AL V [a, b, c]; E [a→b, b→c] / .subgraph(vertices: [a, b], edges: [0, 1])
+        // AL V [a, b, c]; E [a→b, b→c] / .subgraphView(vertices: [a, b], edges: [0, 1])
         // Expected: V [a#0, b#1]; E [0:a→b]; bounds 2/1; rows [a: b; b: ]
         let graph = AdjacencyList<String>(vertices: ["a", "b", "c"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "c")])
-        let view = graph.subgraph(vertices: ["a", "b"], edges: [0, 1])
+        let view = graph.subgraphView(vertices: ["a", "b"], edges: [0, 1])
         #expect(Array(view.vertices) == ["a", "b"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1])
         #expect((0 ..< 2).map { view.vertex(atIndex: $0) } == ["a", "b"])
@@ -1171,10 +1171,10 @@ struct SubgraphViewTests {
 
     @Test("GO-041 edge indices count only edges whose ends are kept")
     func go041() {
-        // AL V [a, b, c]; E [a→b, b→c, c→a] / .subgraph(vertices: [b, c], edges: [0, 1, 2])
+        // AL V [a, b, c]; E [a→b, b→c, c→a] / .subgraphView(vertices: [b, c], edges: [0, 1, 2])
         // Expected: V [b#0, c#1]; E [1:b→c]; bounds 2/1; rows [b: c; c: ]
         let graph = AdjacencyList<String>(vertices: ["a", "b", "c"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "c"), DirectedEdge(from: "c", to: "a")])
-        let view = graph.subgraph(vertices: ["b", "c"], edges: [0, 1, 2])
+        let view = graph.subgraphView(vertices: ["b", "c"], edges: [0, 1, 2])
         #expect(Array(view.vertices) == ["b", "c"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1])
         #expect((0 ..< 2).map { view.vertex(atIndex: $0) } == ["b", "c"])
@@ -1213,10 +1213,10 @@ struct SubgraphViewTests {
 
     @Test("GO-042 no vertices")
     func go042() {
-        // AL V [a, b]; E [a→b] / .subgraph(vertices: [], edges: [0])
+        // AL V [a, b]; E [a→b] / .subgraphView(vertices: [], edges: [0])
         // Expected: V []; E []; bounds 0/0; rows []
         let graph = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
-        let view = graph.subgraph(vertices: [] as [String], edges: [0])
+        let view = graph.subgraphView(vertices: [] as [String], edges: [0])
         #expect(Array(view.vertices) == [] as [String])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [] as [Int])
         #expect((0 ..< 0).map { view.vertex(atIndex: $0) } == [] as [String])
@@ -1228,10 +1228,10 @@ struct SubgraphViewTests {
 
     @Test("GO-043 undirected")
     func go043() {
-        // UL V [a, b, c, d]; E [a–b, b–c, c–d, d–a] / .subgraph(vertices: [a, b, d], edges: [0, 3, 1])
+        // UL V [a, b, c, d]; E [a–b, b–c, c–d, d–a] / .subgraphView(vertices: [a, b, d], edges: [0, 3, 1])
         // Expected: V [a#0, b#1, d#2]; E [0:a–b, 3:d–a]; bounds 3/2; rows [a: b d; b: a; d: a]
         let graph = UndirectedAdjacencyList<String>(vertices: ["a", "b", "c", "d"], edges: [UndirectedEdge("a", "b"), UndirectedEdge("b", "c"), UndirectedEdge("c", "d"), UndirectedEdge("d", "a")])
-        let view = graph.subgraph(vertices: ["a", "b", "d"], edges: [0, 3, 1])
+        let view = graph.subgraphView(vertices: ["a", "b", "d"], edges: [0, 3, 1])
         #expect(Array(view.vertices) == ["a", "b", "d"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2])
         #expect((0 ..< 3).map { view.vertex(atIndex: $0) } == ["a", "b", "d"])
@@ -1271,10 +1271,10 @@ struct SubgraphViewTests {
 
     @Test("GO-046 subgraph of a subgraph: positions still the base's")
     func go046() {
-        // AL V [a, b, c, d]; E [a→b, b→c, c→d, d→a] / .inducedSubgraph(on: [a, b, c]).inducedSubgraph(on: [b, c])
+        // AL V [a, b, c, d]; E [a→b, b→c, c→d, d→a] / .inducedSubgraphView(on: [a, b, c]).inducedSubgraphView(on: [b, c])
         // Expected: V [b#0, c#1]; E [1:b→c]; bounds 2/nil; rows [b: c; c: ]
         let graph = AdjacencyList<String>(vertices: ["a", "b", "c", "d"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "c"), DirectedEdge(from: "c", to: "d"), DirectedEdge(from: "d", to: "a")])
-        let view = graph.inducedSubgraph(on: ["a", "b", "c"]).inducedSubgraph(on: ["b", "c"])
+        let view = graph.inducedSubgraphView(on: ["a", "b", "c"]).inducedSubgraphView(on: ["b", "c"])
         #expect(Array(view.vertices) == ["b", "c"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1])
         #expect((0 ..< 2).map { view.vertex(atIndex: $0) } == ["b", "c"])
@@ -1312,10 +1312,10 @@ struct SubgraphViewTests {
 
     @Test("GO-047 reverse of an induced subgraph")
     func go047() {
-        // AL V [a, b, c]; E [a→b, b→c, c→a] / .inducedSubgraph(on: [a, b]).reverseView
+        // AL V [a, b, c]; E [a→b, b→c, c→a] / .inducedSubgraphView(on: [a, b]).transposedView
         // Expected: V [a#0, b#1]; E [0:b→a]; bounds 2/nil; rows [a: ; b: a]
         let graph = AdjacencyList<String>(vertices: ["a", "b", "c"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "c"), DirectedEdge(from: "c", to: "a")])
-        let view = graph.inducedSubgraph(on: ["a", "b"]).reverseView
+        let view = graph.inducedSubgraphView(on: ["a", "b"]).transposedView
         #expect(Array(view.vertices) == ["a", "b"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1])
         #expect((0 ..< 2).map { view.vertex(atIndex: $0) } == ["a", "b"])

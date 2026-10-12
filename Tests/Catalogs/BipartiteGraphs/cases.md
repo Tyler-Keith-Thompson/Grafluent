@@ -10,7 +10,7 @@ Conventions:
   Rows list edge ends in position order (an `UndirectedAdjacencyList` built by inserting `E` in
   order). `multigraph` rows have parallel edges or several loops, so tests need a Graph conformer
   that keeps them (an in-file struct, rows in position order). `digraph` rows are a
-  `DirectedGraph` (an `AdjacencyList` with arcs inserted in order) read through `.undirected`:
+  `DirectedGraph` (an `AdjacencyList` with arcs inserted in order) read through `.undirectedView`:
   rows are successors, then predecessors.
 * `left` and `right` are `bipartition()!.left` / `.right` (and `BipartiteGraph(g)!.left`): the
   least vertex of each connected component is left; each side in `vertices` order.

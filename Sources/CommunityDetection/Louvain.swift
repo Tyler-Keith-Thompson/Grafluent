@@ -333,7 +333,7 @@ extension Graph {
         let listed = _listedVertices()
         let numbers = listed.map(_vertexNumbers)
         let labels = _louvain(_communityGraph(), weights, resolution: resolution, threshold: threshold, order: order)
-        return Partition(directed, numbers: numbers, listed: listed, labels: labels)
+        return Partition(directedView, numbers: numbers, listed: listed, labels: labels)
     }
 
     /// Louvain communities (Blondel et al.; NetworkX `louvain_communities`): each level moves

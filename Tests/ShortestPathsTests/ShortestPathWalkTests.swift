@@ -21,9 +21,9 @@ struct ShortestPathWalkTests {
         #expect(witness?.edges == [.init(position: 1, reversed: false), .init(position: 1, reversed: true)])
         #expect(witness?.length == 2)
         #expect(cycle.findNegativeCycle { weights[$0] } == witness)
-        #expect(cycle.directed.findNegativeCycle(from: source) { weights[$0.position] } == witness)
+        #expect(cycle.directedView.findNegativeCycle(from: source) { weights[$0.position] } == witness)
         if let witness {
-            #expect(Cycle(vertices: witness.vertices, edges: witness.edges, in: cycle.directed) != nil)
+            #expect(Cycle(vertices: witness.vertices, edges: witness.edges, in: cycle.directedView) != nil)
         }
     }
 
@@ -142,7 +142,7 @@ struct ShortestPathWalkTests {
                 #expect(directed.bellmanFordShortestPaths(from: source) { weights[$0] } != nil)
             }
             if let witness = undirected.findNegativeCycle(from: source, weight: { weights[$0] }) {
-                #expect(Cycle(vertices: witness.vertices, edges: witness.edges, in: undirected.directed) != nil, "\(witness): \(raw)")
+                #expect(Cycle(vertices: witness.vertices, edges: witness.edges, in: undirected.directedView) != nil, "\(witness): \(raw)")
                 #expect(witness.weight { weights[$0.position] } < 0, "\(witness): \(raw)")
             } else {
                 #expect(undirected.bellmanFordShortestPaths(from: source) { weights[$0] } != nil)

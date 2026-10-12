@@ -101,4 +101,10 @@ MUTANTS = [
     Mutant("stableacceptable", "StableMatching.swift", "if mine < 0 { continue }", "", mode="stmt"),
     Mutant("stableprefer", "StableMatching.swift", "mine < theirs", "mine > theirs"),
     Mutant("stabledisplaced", "StableMatching.swift", "                free.append(current)", "", mode="stmt"),
+
+    # The checked: spellings
+    Mutant("checkedmate", "Matching.swift", "        guard _graph.contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=0),
+    Mutant("checkededge", "Matching.swift", "        guard _graph.contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=1),
+    Mutant("checkedproposer", "StableMatching.swift", "proposer >= 0 && proposer < _proposerMates.count", "proposer < _proposerMates.count", nth=1),
+    Mutant("checkedreviewer", "StableMatching.swift", "reviewer >= 0 && reviewer < _reviewerMates.count", "reviewer >= 0", nth=1),
 ]

@@ -6,7 +6,7 @@
 /// self-loop (XGI's `DiHypergraph` allows both).
 ///
 /// Not a `DirectedGraph`, and independent of `Hypergraph`, as `DirectedGraph` is of `Graph`. The
-/// `Hypergraphs` module's `incidenceGraph` reads a directed hypergraph as a
+/// `Hypergraphs` module's `incidenceGraphView` reads a directed hypergraph as a
 /// `BidirectionalDirectedGraph`, sources → hyperedge → targets.
 ///
 /// **Hyperedges and their identity.** As for `Hypergraph`: a hyperedge's position in `hyperedges`

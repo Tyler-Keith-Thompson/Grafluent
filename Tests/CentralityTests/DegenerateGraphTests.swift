@@ -5,7 +5,7 @@
 // Expected values are ref.py's model at full precision (the catalog cells are the same values
 // rounded to 12 digits); non-iterative rows compare within 1e-12 relative to max(1, |value|), the
 // iterative ones within the catalog's Tol of the limit. Undirected rows also run on
-// `graph.directed` (the same values; twice for degree and unnormalized betweenness).
+// `graph.directedView` (the same values; twice for degree and unnormalized betweenness).
 // Case IDs (CE-nnn) refer to the catalog; see README.md.
 
 import Centrality
@@ -30,10 +30,10 @@ struct CentralityDegenerateGraphTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = graph.directed.degreeCentrality()
+        let arcs = graph.directedView.degreeCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -57,10 +57,10 @@ struct CentralityDegenerateGraphTests {
             let difference = abs(one - result.score(of: v))
             #expect(difference <= 1e-12 * max(1, abs(one)), "vertex \(v)")
         }
-        let arcs = graph.directed.closenessCentrality()
+        let arcs = graph.directedView.closenessCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -84,10 +84,10 @@ struct CentralityDegenerateGraphTests {
             let difference = abs(one - result.score(of: v))
             #expect(difference <= 1e-12 * max(1, abs(one)), "vertex \(v)")
         }
-        let arcs = graph.directed.harmonicCentrality()
+        let arcs = graph.directedView.harmonicCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -106,10 +106,10 @@ struct CentralityDegenerateGraphTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = graph.directed.betweennessCentrality()
+        let arcs = graph.directedView.betweennessCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -128,10 +128,10 @@ struct CentralityDegenerateGraphTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = try graph.directed.eigenvectorCentrality()
+        let arcs = try graph.directedView.eigenvectorCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -150,10 +150,10 @@ struct CentralityDegenerateGraphTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = try graph.directed.katzCentrality()
+        let arcs = try graph.directedView.katzCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -172,10 +172,10 @@ struct CentralityDegenerateGraphTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = try graph.directed.pageRank()
+        let arcs = try graph.directedView.pageRank()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -214,10 +214,10 @@ struct CentralityDegenerateGraphTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = graph.directed.degreeCentrality()
+        let arcs = graph.directedView.degreeCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -241,10 +241,10 @@ struct CentralityDegenerateGraphTests {
             let difference = abs(one - result.score(of: v))
             #expect(difference <= 1e-12 * max(1, abs(one)), "vertex \(v)")
         }
-        let arcs = graph.directed.closenessCentrality()
+        let arcs = graph.directedView.closenessCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -268,10 +268,10 @@ struct CentralityDegenerateGraphTests {
             let difference = abs(one - result.score(of: v))
             #expect(difference <= 1e-12 * max(1, abs(one)), "vertex \(v)")
         }
-        let arcs = graph.directed.harmonicCentrality()
+        let arcs = graph.directedView.harmonicCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -290,10 +290,10 @@ struct CentralityDegenerateGraphTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = graph.directed.betweennessCentrality()
+        let arcs = graph.directedView.betweennessCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -312,10 +312,10 @@ struct CentralityDegenerateGraphTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = graph.directed.betweennessCentrality(endpoints: true)
+        let arcs = graph.directedView.betweennessCentrality(endpoints: true)
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -336,10 +336,10 @@ struct CentralityDegenerateGraphTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try graph.directed.eigenvectorCentrality()
+        let arcs = try graph.directedView.eigenvectorCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -360,10 +360,10 @@ struct CentralityDegenerateGraphTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try graph.directed.katzCentrality()
+        let arcs = try graph.directedView.katzCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -384,10 +384,10 @@ struct CentralityDegenerateGraphTests {
         #expect(byVertex == result.scores)
         let total = result.scores.reduce(0, +)
         #expect(abs(total - 1) <= 1e-12, "scores sum to 1")
-        let arcs = try graph.directed.pageRank()
+        let arcs = try graph.directedView.pageRank()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -431,10 +431,10 @@ struct CentralityDegenerateGraphTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = graph.directed.degreeCentrality()
+        let arcs = graph.directedView.degreeCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - 2 * value)
-            #expect(error <= 1e-12 * max(1, abs(2 * value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(2 * value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -455,10 +455,10 @@ struct CentralityDegenerateGraphTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try graph.directed.eigenvectorCentrality()
+        let arcs = try graph.directedView.eigenvectorCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -479,10 +479,10 @@ struct CentralityDegenerateGraphTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try graph.directed.katzCentrality()
+        let arcs = try graph.directedView.katzCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -501,10 +501,10 @@ struct CentralityDegenerateGraphTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = try graph.directed.katzCentrality(normalized: false)
+        let arcs = try graph.directedView.katzCentrality(normalized: false)
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -525,10 +525,10 @@ struct CentralityDegenerateGraphTests {
         #expect(byVertex == result.scores)
         let total = result.scores.reduce(0, +)
         #expect(abs(total - 1) <= 1e-12, "scores sum to 1")
-        let arcs = try graph.directed.pageRank()
+        let arcs = try graph.directedView.pageRank()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -573,10 +573,10 @@ struct CentralityDegenerateGraphTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = graph.directed.degreeCentrality()
+        let arcs = graph.directedView.degreeCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - 2 * value)
-            #expect(error <= 1e-12 * max(1, abs(2 * value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(2 * value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -596,10 +596,10 @@ struct CentralityDegenerateGraphTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = graph.directed.betweennessCentrality()
+        let arcs = graph.directedView.betweennessCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -619,10 +619,10 @@ struct CentralityDegenerateGraphTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = graph.directed.betweennessCentrality(endpoints: true)
+        let arcs = graph.directedView.betweennessCentrality(endpoints: true)
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -647,10 +647,10 @@ struct CentralityDegenerateGraphTests {
             let difference = abs(one - result.score(of: v))
             #expect(difference <= 1e-12 * max(1, abs(one)), "vertex \(v)")
         }
-        let arcs = graph.directed.closenessCentrality()
+        let arcs = graph.directedView.closenessCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 }

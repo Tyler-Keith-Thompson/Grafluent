@@ -1,8 +1,8 @@
 # GraphProducts test suite
 
-`GraphProducts` has the four standard graph products as lazy views: `cartesianProduct(_:_:)`
-(G □ H), `tensorProduct(_:_:)` (G × H), `strongProduct(_:_:)` (G ⊠ H) and
-`lexicographicProduct(_:_:)` (G ∘ H). Each returns a struct holding both factors. Its vertex is
+`GraphProducts` has the four standard graph products as lazy views: `cartesianProductView(_:_:)`
+(G □ H), `tensorProductView(_:_:)` (G × H), `strongProductView(_:_:)` (G ⊠ H) and
+`lexicographicProductView(_:_:)` (G ∘ H). Each returns a struct holding both factors. Its vertex is
 `Pair(g, h)`, with index `index(g)·|V(H)| + index(h)`. Its rows are computed from the factors'
 index rows, so it stores no edge. The tests come from the proposed API (`api.md` in
 [`Tests/Catalogs/GraphProducts/`](../Catalogs/GraphProducts/), phase 1), with its open questions
@@ -24,9 +24,9 @@ the seeded generator and the tags in `GrafluentTestSupport`.
 ```swift
 struct Pair<First: Hashable, Second: Hashable>: Hashable   // Comparable, Sendable, Codable, BitwiseCopyable when both are
     var first: First; var second: Second; init(_:_:); description "(g, h)"
-func cartesianProduct(_:_:), tensorProduct(_:_:), strongProduct(_:_:), lexicographicProduct(_:_:)
+func cartesianProductView(_:_:), tensorProductView(_:_:), strongProductView(_:_:), lexicographicProductView(_:_:)
     // (G: DirectedGraph, H: DirectedGraph) or (G: Graph, H: Graph)
-CartesianProduct<First, Second> (and Tensor-, Strong-, LexicographicProduct):
+CartesianProductView<First, Second> (and Tensor-, Strong-, LexicographicProductView):
     DirectedGraph, BidirectionalDirectedGraph or Graph as the factors are; Sendable when both are
     var first: First; var second: Second
 ```
@@ -73,7 +73,8 @@ counts. The identity rows also check P2 □ P3 against `UndirectedAdjacencyList<
 nested cube, and the swapped lexicographic product.
 
 The catalog-row files are every file except `ProductConformanceTests.swift`,
-`ProductPropertyTests.swift` and `ProductHashTests.swift`. `swiftgen.py` generated them from
+`ProductPropertyTests.swift`, `ProductHashTests.swift` and `ProductCheckedLookupTests.swift` (the
+products' `checked:` lookups). `swiftgen.py` generated them from
 `cases.md`. It sits next to `ref.py` and `cases.md` in
 [`Tests/Catalogs/GraphProducts/`](../Catalogs/GraphProducts/):
 

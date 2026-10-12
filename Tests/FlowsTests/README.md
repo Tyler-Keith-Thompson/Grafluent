@@ -1,7 +1,7 @@
 # Flows test suite
 
 `Flows` computes maximum flows and minimum cuts on `DirectedGraph` and `Graph` (each undirected
-edge usable either way, results over `directed`): `maximumFlow(from:to:capacity:)` (push–relabel),
+edge usable either way, results over `directedView`): `maximumFlow(from:to:capacity:)` (push–relabel),
 `maximumFlowValue`, `edmondsKarpMaximumFlow`, `dinicMaximumFlow`, the canonical s–t cut
 `minimumCut(from:to:capacity:)` (the least sink side), the global `minimumCut(capacity:)`
 (Nagamochi–Ibaraki on `Graph`, Hao–Orlin on `DirectedGraph`; a minimum cut, pinned only where
@@ -114,7 +114,7 @@ The representation files (one per catalog section) run every non-trap row (465) 
 (or `ReferenceDirectedMultigraph` for rows already on it), on a conformer with no vertex or edge
 indices, and, when no edge repeats, on `CompressedSparseRow` and `AdjacencyMatrix` over the vertex
 indices; undirected rows on `Pseudograph` (or `ReferencePseudograph`), the conformer, and, when no
-arc repeats, `AdjacencyList.undirected` (each edge an arc as written) and `AdjacencyMatrix.undirected`.
+arc repeats, `AdjacencyList.undirectedView` (each edge an arc as written) and `AdjacencyMatrix.undirectedView`.
 `CompressedSparseRow` and `AdjacencyMatrix` number edges by row-major cell, so there each catalog
 edge's position is looked up, a cut's edges are listed in that order, and Edmonds–Karp's flow (which
 follows positions) was recomputed by `swiftgen.py` with `ref.py`'s model on those positions. Every
@@ -173,13 +173,13 @@ parentheses): the cut's search following residuals ≥ 0 (472), the source-side 
 | `VertexConnectivityTests.swift` | 55 | §VertexConnectivity |
 | `MinimumVertexCutTests.swift` | 55 | §MinimumVertexCut |
 | `DisjointPathsTests.swift` | 24 | §EdgeDisjointPaths, §VertexDisjointPaths (FL-502 – FL-523, FL-530, FL-531) |
-| `FlowsPreconditionTests.swift` | 34 | Exit tests: the 24 trap rows (FL-213 – FL-226, FL-249, FL-274, FL-306, FL-307, FL-319, FL-485 – FL-487, FL-524, FL-525), then 10 written by hand: the source as the sink on `Graph`; terminals not in the graph for every entry point, also without indices; negative capacities in every maximum flow and the directed global cut; NaN and infinity in the global cut, Gomory–Hu and Dinic; UInt8 and Double source sums past the type; `minimumCut(between:and:)` with u = v; a negative self-loop capacity in minimum-cost flow; `minimumCostMaximumFlow`'s capacity and cost checks; connectivity terminals; foreign positions and vertices on the results |
+| `FlowsPreconditionTests.swift` | 34 | Exit tests: the 24 trap rows (FL-213 – FL-226, FL-249, FL-274, FL-306, FL-307, FL-319, FL-485 – FL-487, FL-524, FL-525), then 10 written by hand: the source as the sink on `Graph`; terminals not in the graph for every entry point, also without indices; negative capacities in every maximum flow and the directed global cut; NaN and infinity in the global cut, Gomory–Hu and Dinic; UInt8 and Double source sums past the type; `minimumCut(between:and:)` with u = v; a negative self-loop capacity in minimum-cost flow; `minimumCostMaximumFlow`'s capacity and cost checks; connectivity terminals; foreign positions and vertices on the results, whose `checked:` spellings throw instead (in process) |
 | `MaximumFlowRepresentationTests.swift`, `EdmondsKarpRepresentationTests.swift`, `DinicRepresentationTests.swift`, `MaximumFlowValueRepresentationTests.swift`, `MinimumCutRepresentationTests.swift` | 46, 41, 40, 46, 39 | Every flow, value and s–t cut row again on the other representations (Edmonds–Karp's flow recomputed on row-major positions) |
 | `GlobalMinimumCutRepresentationTests.swift`, `GomoryHuTreeRepresentationTests.swift` | 41, 19 | Every global-cut and Gomory–Hu row again |
 | `MinimumCostFlowRepresentationTests.swift` | 46 | Every minimum-cost row again (feasibility and the certificate where the flow is not unique) |
 | `EdgeConnectivityRepresentationTests.swift`, `VertexConnectivityRepresentationTests.swift`, `MinimumVertexCutRepresentationTests.swift` | 55 each | Every connectivity row again |
 | `DisjointPathsRepresentationTests.swift` | 24 | Every disjoint-path row again: the count, the ends, the disjointness |
-| `FlowsConformanceTests.swift` | 16 | Equality of the four results, `Sendable`, descriptions, each result's own copy of the graph, generic code, `Collider` and `String` vertices, Int32, UInt16 and Float capacities, an undirected graph against its `directed` view, self-loops never asked, zero costs, Gomory–Hu lookups both ways, parallel edges kept apart, `flowMap`, the signed undirected flow, cut sides from index zero, unsigned minimum-cost capacities |
+| `FlowsConformanceTests.swift` | 16 | Equality of the four results, `Sendable`, descriptions, each result's own copy of the graph, generic code, `Collider` and `String` vertices, Int32, UInt16 and Float capacities, an undirected graph against its `directedView` view, self-loops never asked, zero costs, Gomory–Hu lookups both ways, parallel edges kept apart, `flowMap`, the signed undirected flow, cut sides from index zero, unsigned minimum-cost capacities |
 | `FlowsPropertyTests.swift` | 10 | PropertyBased with shrinking: directed and undirected maximum flows against brute force and Edmonds–Karp written out; floating capacities (eighths exact, integral Doubles integral); medium layered networks past push–relabel's global-relabel threshold, with gaps; global cuts against brute force, the cut's validity, the components rule and the least cyclic pair, in Int and Double; medium clustered global cuts (20 – 60 vertices) against the least maximum flow from the first vertex; Gomory–Hu against Gusfield written out and brute force; minimum-cost flow against a successive-shortest-path oracle; minimum-cost maximum flow; connectivity and disjoint paths by Menger |
 | `Performance/FlowsStressTests.swift` | 8 | Inside a `Task` with a one-minute limit; see above |
 | `UndirectedCapacityRangeTests.swift` | 3 | Int8 and UInt8 undirected capacities where twice a capacity overflows |
@@ -221,7 +221,7 @@ scale that the catalog does not list.
 | The finiteness test | `c - c == .zero`: true for every finite value, false for infinities and NaN, and it never overflows, so it applies to every type (FL-161's 2⁶² capacities do not trap) | FL-161 – FL-163, FL-223 |
 | `GomoryHuTree.tree` edge orientation | Not pinned: edge k is the pair {vertex k + 1, its parent}, either way round | `GomoryHuTreeTests.swift` |
 | `GomoryHuTree.tree` vertex order | The graph's `vertices` order | `GomoryHuTreeTests.swift`, `gomoryHu` |
-| An undirected graph's `directed` view | The same values, cut sides and cut edges as the undirected entry points (each edge two arcs of the same capacity); the global cut value and the connectivity too | `undirectedAgainstDirectedView` |
+| An undirected graph's `directedView` view | The same values, cut sides and cut edges as the undirected entry points (each edge two arcs of the same capacity); the global cut value and the connectivity too | `undirectedAgainstDirectedView` |
 | Lookups with a position or vertex the graph does not have | Trap (`flow(ofEdgeAt:)`, `MinimumCostFlow.flow(ofEdgeAt:)`, `potential(of:)`) | `foreignLookups` |
 | A negative capacity on a self-loop | Traps in `minimumCostFlow` (loops carry flow there); never asked by the maximum flows | `minimumCostMoreTraps`, `loopsNeverAsked` |
 | The solver's artificial cost, (n + 1)(the greatest \|cost\| + 1) | Not a precondition on the cost type (it is computed in `Int` and never reported); only 4 × it must fit in `Int` | FL-491 |

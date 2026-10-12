@@ -4,9 +4,9 @@
 // would fit; negative capacities for the global cut, Gomory–Hu and minimum-cost flow; a cost total
 // past the cost type. Then the preconditions the catalog does not list (extra_traps.swift): each on
 // the other entry points and kinds of graph, a terminal not in a graph without indices,
-// `GomoryHuTree.minimumCut(between:and:)` with u = v, a floating sum that overflows to infinity.
-// Each exit test builds its inputs inside the closure. Generated from cases.md by swiftgen.py; see
-// README.md.
+// `GomoryHuTree.minimumCut(between:and:)` with u = v, a floating sum that overflows to infinity;
+// with them, in process, the results' `checked:` spellings, which throw instead. Each exit test
+// builds its inputs inside the closure. Generated from cases.md by swiftgen.py; see README.md.
 
 import AdjacencyListModule
 import Flows
@@ -450,8 +450,8 @@ struct FlowsPreconditionTests {
         }
     }
 
-    @Test("Results trap on a position or vertex the graph does not have")
-    func foreignLookups() async {
+    @Test("Results trap on a position or vertex the graph does not have; their checked: spellings throw")
+    func foreignLookups() async throws {
         await #expect(processExitsWith: .failure) {
             let graph = AdjacencyList<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])
             _ = graph.maximumFlow(from: 0, to: 1, capacity: { _ in 5 }).flow(ofEdgeAt: 3)
@@ -468,22 +468,68 @@ struct FlowsPreconditionTests {
             let graph = AdjacencyList<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])
             _ = graph.minimumCostFlow(supply: { _ in 0 }, capacity: { _ in 1 }, cost: { _ in 1 })!.potential(of: 9)
         }
+        // In process: the checked: spellings throw where those trap, and agree where they answer.
+        let graph = AdjacencyList<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])
+        let flow = graph.maximumFlow(from: 0, to: 1, capacity: { _ in 5 })
+        #expect(throws: EdgeNotFound()) { try flow.flow(checkedEdgeAt: 3) }
+        #expect(throws: EdgeNotFound()) { try flow.flow(checkedEdgeAt: 1) }
+        #expect(throws: EdgeNotFound()) { try flow.flow(checkedEdgeAt: -1) }
+        #expect(try flow.flow(checkedEdgeAt: 0) == 5)
+        let unindexed = UnindexedDirectedGraph<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
+        let unindexedFlow = unindexed.edmondsKarpMaximumFlow(from: "a", to: "b", capacity: { _ in 5 })
+        #expect(throws: EdgeNotFound()) { try unindexedFlow.flow(checkedEdgeAt: 3) }
+        #expect(throws: EdgeNotFound()) { try unindexedFlow.flow(checkedEdgeAt: -1) }
+        #expect(try unindexedFlow.flow(checkedEdgeAt: 0) == 5)
+        let costFlow = try #require(graph.minimumCostFlow(supply: { $0 == 0 ? 1 : -1 }, capacity: { _ in 1 }, cost: { _ in 3 }))
+        #expect(throws: EdgeNotFound()) { try costFlow.flow(checkedEdgeAt: 3) }
+        #expect(throws: EdgeNotFound()) { try costFlow.flow(checkedEdgeAt: -1) }
+        #expect(try costFlow.flow(checkedEdgeAt: 0) == 1)
+        #expect(throws: VertexNotFound()) { try costFlow.potential(checked: 9) }
+        #expect(try [0, 1].map { try costFlow.potential(checked: $0) } == [0, 1].map { costFlow.potential(of: $0) })
+        let unindexedCost = try #require(unindexed.minimumCostFlow(supply: { $0 == "a" ? 1 : -1 }, capacity: { _ in 1 }, cost: { _ in 3 }))
+        #expect(throws: EdgeNotFound()) { try unindexedCost.flow(checkedEdgeAt: 1) }
+        #expect(throws: VertexNotFound()) { try unindexedCost.potential(checked: "z") }
+        #expect(try unindexedCost.flow(checkedEdgeAt: 0) == 1 && unindexedCost.potential(checked: "b") == unindexedCost.potential(of: "b"))
     }
 
     @Test("A position the graph does not have traps on a flow over a graph without edge indices, even one before every position (the arc −1 of an undirected graph's view)")
-    func positionBeforeEveryEdge() async {
+    func positionBeforeEveryEdge() async throws {
         await #expect(processExitsWith: .failure) {
             let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1], edges: [UndirectedEdge(0, 1)])
             _ = graph.maximumFlow(from: 0, to: 1, capacity: { _ in 5 }).flow(ofEdgeAt: .init(position: -1, reversed: false))
         }
+        // In process: the arc and the signed undirected spellings throw instead, and agree on an edge.
+        let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1, 2], edges: [UndirectedEdge(1, 0), UndirectedEdge(1, 2)])
+        let flow = graph.maximumFlow(from: 0, to: 2, capacity: { _ in 5 })
+        #expect(throws: EdgeNotFound()) { try flow.flow(checkedEdgeAt: .init(position: -1, reversed: false)) }
+        #expect(throws: EdgeNotFound()) { try flow.flow(checkedEdgeAt: .init(position: 2, reversed: true)) }
+        #expect(throws: EdgeNotFound()) { try flow.flow(checkedEdgeAt: -1) }
+        #expect(throws: EdgeNotFound()) { try flow.flow(checkedEdgeAt: 2) }
+        #expect(try flow.flow(checkedEdgeAt: .init(position: 0, reversed: true)) == 5)
+        #expect(try flow.flow(checkedEdgeAt: .init(position: 0, reversed: false)) == 0)
+        // Edge 0 is stored 1–0 and carries the flow from 0 to 1, against its orientation.
+        #expect(try flow.flow(checkedEdgeAt: 0) == -5 && flow.flow(checkedEdgeAt: 1) == 5)
+        #expect(try [0, 1].map { try flow.flow(checkedEdgeAt: $0) } == [0, 1].map { flow.flow(ofEdgeAt: $0) })
     }
 
-    @Test("GomoryHuTree.capacity(ofEdgeAt:) traps on a negative position")
-    func gomoryHuNegativePosition() async {
+    @Test("GomoryHuTree.capacity(ofEdgeAt:) traps on a negative position; the checked: lookups throw")
+    func gomoryHuNegativePosition() async throws {
         await #expect(processExitsWith: .failure) {
             let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1, 2], edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
             _ = graph.gomoryHuTree(capacity: { _ in 1 })!.capacity(ofEdgeAt: -1)
         }
+        // In process: a tree edge position outside 0 ..< n − 1, or a vertex not in the graph, throws.
+        let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1, 2], edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
+        let tree = try #require(graph.gomoryHuTree(capacity: { $0 == 0 ? 2 : 3 }))
+        #expect(throws: EdgeNotFound()) { try tree.capacity(checkedEdgeAt: -1) }
+        #expect(throws: EdgeNotFound()) { try tree.capacity(checkedEdgeAt: 2) }
+        #expect(try [0, 1].map { try tree.capacity(checkedEdgeAt: $0) } == [0, 1].map { tree.capacity(ofEdgeAt: $0) })
+        #expect(throws: VertexNotFound()) { try tree.minimumCutValue(checkedBetween: 0, and: 7) }
+        #expect(throws: VertexNotFound()) { try tree.minimumCutValue(checkedBetween: 7, and: 0) }
+        #expect(throws: VertexNotFound()) { try tree.minimumCut(checkedBetween: 0, and: -1) }
+        #expect(throws: VertexNotFound()) { try tree.minimumCut(checkedBetween: -1, and: 0) }
+        #expect(try tree.minimumCutValue(checkedBetween: 0, and: 2) == 2)
+        #expect(try tree.minimumCut(checkedBetween: 2, and: 0) == tree.minimumCut(between: 2, and: 0))
     }
 
     @Test("Undirected Edmonds–Karp on Double capacities where twice one overflows: 1e308 + 1e308 at the source traps")

@@ -1,7 +1,7 @@
 // §10: reversal and concatenation. reversed() reverses the vertices and the edges and keeps the
 // type. Over a Graph the result is a walk of the same graph; over a DirectedGraph it is a walk of
 // the converse (written here by hand, with each arc flipped at its own position), and over
-// `g.directed` it names the original arcs, which point backward. Concatenation is on Walk only.
+// `g.directedView` it names the original arcs, which point backward. Concatenation is on Walk only.
 // Fixtures: U3 = 0–1, 1–2, 2–3 weights 2, 3, 4 (JGraphT testReversePathUndirected); D3 = 0→1,
 // 1→2, 2→3; C = 0→1, 1→2, 2→3, 3→1 (JGraphT testConcatPath1). Case IDs (WK-nnn) refer to the
 // catalog; see README.md.
@@ -77,19 +77,19 @@ struct WalkReversalTests {
         #expect(r != c)
     }
 
-    @Test("WK-1007 a walk of g.directed reversed names the original arcs, so it is not a walk of g.directed")
+    @Test("WK-1007 a walk of g.directedView reversed names the original arcs, so it is not a walk of g.directedView")
     func directedViewReversal() throws {
         let u = ReferencePseudograph(edges: [(0, 1), (1, 2), (2, 0)].map { UndirectedEdge($0.0, $0.1) })
         typealias Arc = DirectedView<ReferencePseudograph<Int>>.Edges.Index
         let arcs = [Arc(position: 0, reversed: false), Arc(position: 1, reversed: false)]
-        let walk = try  #require(Walk(vertices: [0, 1, 2], edges: arcs, in: u.directed))
+        let walk = try  #require(Walk(vertices: [0, 1, 2], edges: arcs, in: u.directedView))
         let reversed = walk.reversed()
         #expect(reversed.vertices == [2, 1, 0])
         #expect(reversed.edges == [Arc(position: 1, reversed: false), Arc(position: 0, reversed: false)])
-        #expect(Walk(vertices: reversed.vertices, edges: reversed.edges, in: u.directed) == nil)
-        // Flipping each arc gives the walk back in g.directed.
+        #expect(Walk(vertices: reversed.vertices, edges: reversed.edges, in: u.directedView) == nil)
+        // Flipping each arc gives the walk back in g.directedView.
         let flipped = reversed.edges.map { Arc(position: $0.position, reversed: !$0.reversed) }
-        #expect(Walk(vertices: reversed.vertices, edges: flipped, in: u.directed) != nil)
+        #expect(Walk(vertices: reversed.vertices, edges: flipped, in: u.directedView) != nil)
     }
 
     @Test("WK-1008 append(_:) gives the same walk as appending(_:) and leaves copies alone", .tags(.copyOnWrite))

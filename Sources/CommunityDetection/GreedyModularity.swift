@@ -271,7 +271,7 @@ extension Graph {
         let listed = _listedVertices()
         let numbers = listed.map(_vertexNumbers)
         let labels = _greedyModularity(_communityGraph(), weights, resolution: resolution)
-        return Partition(directed, numbers: numbers, listed: listed, labels: labels)
+        return Partition(directedView, numbers: numbers, listed: listed, labels: labels)
     }
 
     /// Greedy modularity communities (Clauset, Newman and Moore; NetworkX

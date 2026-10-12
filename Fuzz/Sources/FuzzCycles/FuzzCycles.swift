@@ -204,7 +204,7 @@ enum FuzzCycles {
         if removals == 3, n > 1 { _ = list.remove(0) }
         checkUndirected(list, "UndirectedAdjacencyList", maxLength: maxLength)
         checkUndirected(PlainGraph(vertices: Array((0 ..< n).reversed()), edges: Array(list.edges)), "PlainGraph", maxLength: maxLength)
-        checkDirected(list.directed, "directed view", maxLength: maxLength)
+        checkDirected(list.directedView, "directed view", maxLength: maxLength)
 
         let directed = AdjacencyList(vertices: 0 ..< n, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
         checkDirected(directed, "AdjacencyList", maxLength: maxLength)

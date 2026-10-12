@@ -45,7 +45,7 @@ given as an array of vertex arrays; `of: components` is `connectedComponents()` 
 for `D:`). `weight: [w0, …]` is `{ w[$0] }` by edge position (`weight: e%k+c`: edge e weighs
 e mod k + c); `nan`, `inf` are `.nan`, `.infinity`. The karate `weight: […]` list is NetworkX's
 `weight` attribute in edge order. `using: rng(s)` passes a seeded generator (any generator: the
-rows are order-independent). `directed > op` runs op on `graph.directed`. `.count`,
+rows are order-independent). `directed > op` runs op on `graph.directedView`. `.count`,
 `.community(of: v)`, `.coverage`, `.performance` read members of the result.
 
 **Expected**: a partition in **canonical order** (communities by least vertex number, each in

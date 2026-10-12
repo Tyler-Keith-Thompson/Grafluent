@@ -147,12 +147,12 @@ struct DensePrimTests {
         #expect(first.minimumSpanningTree { w[$0] } == first.kruskalMinimumSpanningTree { w[$0] })
     }
 
-    @Test("ST-141 vertex indices without edge indices (AdjacencyMatrix.undirected, ReferencePseudograph): ranks are offsets in edges")
+    @Test("ST-141 vertex indices without edge indices (AdjacencyMatrix.undirectedView, ReferencePseudograph): ranks are offsets in edges")
     func withoutEdgeIndices() {
         let n = 10
         var generator = SeededRandomNumberGenerator(seed: 141)
         let arcs = (0 ..< n).flatMap { u in (u + 1 ..< n).map { DirectedEdge(from: u, to: $0) } }
-        let matrix = AdjacencyMatrix(vertexCount: n, edges: arcs).undirected
+        let matrix = AdjacencyMatrix(vertexCount: n, edges: arcs).undirectedView
         let offset = Dictionary(uniqueKeysWithValues: matrix.edges.indices.enumerated().map { ($1, $0) })
         let weights = (0 ..< matrix.edgeCount).map { _ in Int.random(in: 0 ... 2, using: &generator) }
         let tree = matrix.minimumSpanningTree { weights[offset[$0]!] }
@@ -228,7 +228,7 @@ struct HeapCanonicalPrimTests {
 
 @Suite("Paths the dense one no longer covers")
 struct BelowTheDenseThresholdTests {
-    @Test("ST-150 AdjacencyMatrix.undirected with 4n ≤ m < n²/4: the heap's ranks are offsets in edges")
+    @Test("ST-150 AdjacencyMatrix.undirectedView with 4n ≤ m < n²/4: the heap's ranks are offsets in edges")
     func matrixBetweenThresholds() {
         var generator = SeededRandomNumberGenerator(seed: 150)
         let n = 30
@@ -237,7 +237,7 @@ struct BelowTheDenseThresholdTests {
             let u = Int.random(in: 0 ..< n, using: &generator), v = Int.random(in: 0 ..< n, using: &generator)
             if u < v { arcs.insert(DirectedEdge(from: u, to: v)) }
         }
-        let matrix = AdjacencyMatrix(vertexCount: n, edges: Array(arcs)).undirected
+        let matrix = AdjacencyMatrix(vertexCount: n, edges: Array(arcs)).undirectedView
         let offset = Dictionary(uniqueKeysWithValues: matrix.edges.indices.enumerated().map { ($1, $0) })
         // Two weights only, so nearly every comparison is a tie broken by offset.
         let weights = (0 ..< matrix.edgeCount).map { _ in Int.random(in: 0 ... 1, using: &generator) }
@@ -272,7 +272,7 @@ struct BelowTheDenseThresholdTests {
         // A triangle weighing 1, 2 and NaN by offset: the NaN edge sorts last (its comparisons are
         // ties, broken by offset) and closes a cycle, so it is never taken; only the check traps.
         await #expect(processExitsWith: .failure) {
-            let matrix = AdjacencyMatrix(vertexCount: 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 1, to: 2)]).undirected
+            let matrix = AdjacencyMatrix(vertexCount: 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 1, to: 2)]).undirectedView
             let offset = Dictionary(uniqueKeysWithValues: matrix.edges.indices.enumerated().map { ($1, $0) })
             let weights = [1, 2, Double.nan]
             _ = matrix.kruskalMinimumSpanningTree { weights[offset[$0]!] }

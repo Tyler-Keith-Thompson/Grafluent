@@ -30,6 +30,7 @@ struct BipartiteEdgeColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = try #require(graph.bipartiteEdgeColoring())
         let colors = graph.edges.indices.map { coloring.color(ofEdgeAt: $0) }
+        #expect(graph.edges.indices.map { (try? coloring.color(checkedEdgeAt: $0)) ?? -1 } == colors)
         #expect(colors == [])
         #expect(coloring.colorCount == 0)
         // Proper, checked here: the edges at each vertex have different colours.
@@ -61,6 +62,7 @@ struct BipartiteEdgeColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = try #require(graph.bipartiteEdgeColoring())
         let colors = graph.edges.indices.map { coloring.color(ofEdgeAt: $0) }
+        #expect(graph.edges.indices.map { (try? coloring.color(checkedEdgeAt: $0)) ?? -1 } == colors)
         #expect(colors == [0])
         #expect(coloring.colorCount == 1)
         // Proper, checked here: the edges at each vertex have different colours.
@@ -92,6 +94,7 @@ struct BipartiteEdgeColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = try #require(graph.bipartiteEdgeColoring())
         let colors = graph.edges.indices.map { coloring.color(ofEdgeAt: $0) }
+        #expect(graph.edges.indices.map { (try? coloring.color(checkedEdgeAt: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 0, 1, 0])
         #expect(coloring.colorCount == 2)
         // Proper, checked here: the edges at each vertex have different colours.
@@ -123,6 +126,7 @@ struct BipartiteEdgeColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = try #require(graph.bipartiteEdgeColoring())
         let colors = graph.edges.indices.map { coloring.color(ofEdgeAt: $0) }
+        #expect(graph.edges.indices.map { (try? coloring.color(checkedEdgeAt: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 0, 1, 0, 1])
         #expect(coloring.colorCount == 2)
         // Proper, checked here: the edges at each vertex have different colours.
@@ -154,6 +158,7 @@ struct BipartiteEdgeColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = try #require(graph.bipartiteEdgeColoring())
         let colors = graph.edges.indices.map { coloring.color(ofEdgeAt: $0) }
+        #expect(graph.edges.indices.map { (try? coloring.color(checkedEdgeAt: $0)) ?? -1 } == colors)
         #expect(colors == [2, 0, 1, 1, 2, 0, 0, 1, 2])
         #expect(coloring.colorCount == 3)
         // Proper, checked here: the edges at each vertex have different colours.
@@ -185,6 +190,7 @@ struct BipartiteEdgeColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = try #require(graph.bipartiteEdgeColoring())
         let colors = graph.edges.indices.map { coloring.color(ofEdgeAt: $0) }
+        #expect(graph.edges.indices.map { (try? coloring.color(checkedEdgeAt: $0)) ?? -1 } == colors)
         #expect(colors == [1, 2, 3, 0, 0, 1, 2, 3])
         #expect(coloring.colorCount == 4)
         // Proper, checked here: the edges at each vertex have different colours.
@@ -216,6 +222,7 @@ struct BipartiteEdgeColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = try #require(graph.bipartiteEdgeColoring())
         let colors = graph.edges.indices.map { coloring.color(ofEdgeAt: $0) }
+        #expect(graph.edges.indices.map { (try? coloring.color(checkedEdgeAt: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 2, 2, 0, 1, 1, 2, 0, 0, 1, 2])
         #expect(coloring.colorCount == 3)
         // Proper, checked here: the edges at each vertex have different colours.
@@ -247,6 +254,7 @@ struct BipartiteEdgeColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = try #require(graph.bipartiteEdgeColoring())
         let colors = graph.edges.indices.map { coloring.color(ofEdgeAt: $0) }
+        #expect(graph.edges.indices.map { (try? coloring.color(checkedEdgeAt: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 1, 2, 0, 2, 1, 0, 2, 1, 3, 0, 3, 2, 0, 1, 0])
         #expect(coloring.colorCount == 4)
         // Proper, checked here: the edges at each vertex have different colours.
@@ -278,6 +286,7 @@ struct BipartiteEdgeColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = try #require(graph.bipartiteEdgeColoring())
         let colors = graph.edges.indices.map { coloring.color(ofEdgeAt: $0) }
+        #expect(graph.edges.indices.map { (try? coloring.color(checkedEdgeAt: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 2, 1, 2, 0, 2, 1, 2, 0, 2, 1, 0, 2, 1, 0, 2, 1, 0, 1, 0])
         #expect(coloring.colorCount == 3)
         // Proper, checked here: the edges at each vertex have different colours.
@@ -309,6 +318,7 @@ struct BipartiteEdgeColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = try #require(graph.bipartiteEdgeColoring())
         let colors = graph.edges.indices.map { coloring.color(ofEdgeAt: $0) }
+        #expect(graph.edges.indices.map { (try? coloring.color(checkedEdgeAt: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 3, 2])
         #expect(coloring.colorCount == 4)
         // Proper, checked here: the edges at each vertex have different colours.
@@ -340,6 +350,7 @@ struct BipartiteEdgeColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = try #require(graph.bipartiteEdgeColoring())
         let colors = graph.edges.indices.map { coloring.color(ofEdgeAt: $0) }
+        #expect(graph.edges.indices.map { (try? coloring.color(checkedEdgeAt: $0)) ?? -1 } == colors)
         #expect(colors == [1, 1, 0, 2, 1, 2, 2, 1, 2, 0, 0, 3, 0, 3, 0, 4, 0, 2, 1, 3])
         #expect(coloring.colorCount == 5)
         // Proper, checked here: the edges at each vertex have different colours.
@@ -371,6 +382,7 @@ struct BipartiteEdgeColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = try #require(graph.bipartiteEdgeColoring())
         let colors = graph.edges.indices.map { coloring.color(ofEdgeAt: $0) }
+        #expect(graph.edges.indices.map { (try? coloring.color(checkedEdgeAt: $0)) ?? -1 } == colors)
         #expect(colors == [2, 5, 3, 3, 1, 2, 1, 4, 0, 0, 0, 4, 4, 3, 6, 2, 2, 1, 3, 5, 3, 5, 4, 1, 5, 2, 1, 4, 0, 0])
         #expect(coloring.colorCount == 7)
         // Proper, checked here: the edges at each vertex have different colours.

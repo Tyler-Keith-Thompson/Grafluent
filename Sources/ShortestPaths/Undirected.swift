@@ -1,7 +1,7 @@
 import GraphProtocols
 import Walks
 
-// Undirected graphs through `directed`: each edge is two arcs sharing its position, so both
+// Undirected graphs through `directedView`: each edge is two arcs sharing its position, so both
 // directions weigh the same, and `weight` is called per examined arc (up to twice per edge). A
 // negative undirected edge is a negative 2-cycle for Bellman–Ford, as in Boost, NetworkX, petgraph
 // and JGraphT, and a trap for Dijkstra. Results are over the directed view, whose parent edges say
@@ -63,7 +63,7 @@ extension Graph {
         return nil
     }
 
-    /// The negative cycle a negative edge makes, as a cycle of `directed`: a self-loop alone (its
+    /// The negative cycle a negative edge makes, as a cycle of `directedView`: a self-loop alone (its
     /// forward arc), or there and back over the edge's two arcs, starting at the endpoint first in
     /// `vertices` order. Over the undirected graph itself it would repeat the edge, so it would be
     /// a closed walk, not a cycle.
@@ -86,7 +86,7 @@ extension Graph {
     ) -> ShortestPathTree<DirectedView<Self>, W>? {
         precondition(cutoff.map { $0 == $0 } ?? true, "The cutoff is NaN")
         guard vertexIndexBound != nil else { return nil }
-        let view = directed
+        let view = directedView
         let ids = view._numberedVertices()
         let (indices, listed) = view._sourceIndices(sources, ids)
         let t = target.map { view._index(of: $0, ids) } ?? -1
@@ -103,7 +103,7 @@ extension Graph {
 }
 
 extension Graph {
-    /// `directed.dijkstraShortestPaths(from:cutoff:weight:)`, weighing each arc by its edge.
+    /// `directedView.dijkstraShortestPaths(from:cutoff:weight:)`, weighing each arc by its edge.
     @inlinable
     public func dijkstraShortestPaths<W: Comparable & AdditiveArithmetic>(
         from source: Vertex, cutoff: W? = nil, weight: (Edges.Index) -> W
@@ -111,16 +111,16 @@ extension Graph {
         dijkstraShortestPaths(from: CollectionOfOne(source), cutoff: cutoff, weight: weight)
     }
 
-    /// `directed.dijkstraShortestPaths(from:cutoff:weight:)` from several sources.
+    /// `directedView.dijkstraShortestPaths(from:cutoff:weight:)` from several sources.
     @inlinable
     public func dijkstraShortestPaths<W: Comparable & AdditiveArithmetic>(
         from sources: some Sequence<Vertex>, cutoff: W? = nil, weight: (Edges.Index) -> W
     ) -> ShortestPathTree<DirectedView<Self>, W> {
         if let tree = _undirectedDijkstra(sources: sources, target: nil, cutoff: cutoff, weight: weight, heuristic: nil) { return tree }
-        return directed.dijkstraShortestPaths(from: sources, cutoff: cutoff) { weight($0.position) }
+        return directedView.dijkstraShortestPaths(from: sources, cutoff: cutoff) { weight($0.position) }
     }
 
-    /// `directed.dijkstraShortestPath(from:to:weight:)`, weighing each arc by its edge.
+    /// `directedView.dijkstraShortestPath(from:to:weight:)`, weighing each arc by its edge.
     @inlinable
     public func dijkstraShortestPath<W: Comparable & AdditiveArithmetic>(
         from source: Vertex, to target: Vertex, weight: (Edges.Index) -> W
@@ -128,10 +128,10 @@ extension Graph {
         if let tree = _undirectedDijkstra(sources: CollectionOfOne(source), target: target, cutoff: nil, weight: weight, heuristic: nil) {
             return tree.path(to: target).map { ($0, tree.distance(to: target)!) }
         }
-        return directed.dijkstraShortestPath(from: source, to: target) { weight($0.position) }
+        return directedView.dijkstraShortestPath(from: source, to: target) { weight($0.position) }
     }
 
-    /// `directed.aStarShortestPath(from:to:weight:heuristic:)`, weighing each arc by its edge.
+    /// `directedView.aStarShortestPath(from:to:weight:heuristic:)`, weighing each arc by its edge.
     @inlinable
     public func aStarShortestPath<W: Comparable & AdditiveArithmetic>(
         from source: Vertex, to target: Vertex, weight: (Edges.Index) -> W, heuristic: (Vertex) -> W
@@ -142,10 +142,10 @@ extension Graph {
         if let tree = native {
             return tree.path(to: target).map { ($0, tree.distance(to: target)!) }
         }
-        return directed.aStarShortestPath(from: source, to: target, weight: { weight($0.position) }, heuristic: heuristic)
+        return directedView.aStarShortestPath(from: source, to: target, weight: { weight($0.position) }, heuristic: heuristic)
     }
 
-    /// `directed.bellmanFordShortestPaths(from:weight:)`: `nil` when a negative edge is reachable,
+    /// `directedView.bellmanFordShortestPaths(from:weight:)`: `nil` when a negative edge is reachable,
     /// since it is a negative 2-cycle, found in one O(V + E) pass.
     @inlinable
     public func bellmanFordShortestPaths<W: Comparable & AdditiveArithmetic>(
@@ -154,17 +154,17 @@ extension Graph {
         bellmanFordShortestPaths(from: CollectionOfOne(source), weight: weight)
     }
 
-    /// `directed.bellmanFordShortestPaths(from:weight:)` from several sources.
+    /// `directedView.bellmanFordShortestPaths(from:weight:)` from several sources.
     @inlinable
     public func bellmanFordShortestPaths<W: Comparable & AdditiveArithmetic>(
         from sources: some Sequence<Vertex>, weight: (Edges.Index) -> W
     ) -> ShortestPathTree<DirectedView<Self>, W>? {
         let sources = Array(sources)
         guard _reachableNegativeEdge(from: sources, weight: weight) == nil else { return nil }
-        return directed.bellmanFordShortestPaths(from: sources) { weight($0.position) }
+        return directedView.bellmanFordShortestPaths(from: sources) { weight($0.position) }
     }
 
-    /// `directed.findNegativeCycle(from:weight:)`.
+    /// `directedView.findNegativeCycle(from:weight:)`.
     @inlinable
     public func findNegativeCycle<W: Comparable & AdditiveArithmetic>(
         from source: Vertex, weight: (Edges.Index) -> W
@@ -172,7 +172,7 @@ extension Graph {
         findNegativeCycle(from: CollectionOfOne(source), weight: weight)
     }
 
-    /// `directed.findNegativeCycle(from:weight:)` from several sources. An undirected graph has a
+    /// `directedView.findNegativeCycle(from:weight:)` from several sources. An undirected graph has a
     /// negative cycle exactly when a negative edge is reachable, so this is one O(V + E) search,
     /// and the cycle is that edge: a negative self-loop alone, or its two endpoints.
     @inlinable
@@ -182,23 +182,23 @@ extension Graph {
         _reachableNegativeEdge(from: Array(sources), weight: weight).map { _negativeEdgeCycle($0.edge, from: $0.from) }
     }
 
-    /// `directed.findNegativeCycle(weight:)`: a negative edge anywhere, in one pass over the edges.
+    /// `directedView.findNegativeCycle(weight:)`: a negative edge anywhere, in one pass over the edges.
     @inlinable
     public func findNegativeCycle<W: Comparable & AdditiveArithmetic>(weight: (Edges.Index) -> W) -> Cycle<Vertex, DirectedView<Self>.Edges.Index>? {
         _reachableNegativeEdge(from: nil, weight: weight).map { _negativeEdgeCycle($0.edge, from: $0.from) }
     }
 
-    /// `directed.shortestPaths(from:)`: distances in edges.
+    /// `directedView.shortestPaths(from:)`: distances in edges.
     @inlinable
     public func shortestPaths(from source: Vertex) -> ShortestPathTree<DirectedView<Self>, Int> {
         shortestPaths(from: CollectionOfOne(source))
     }
 
-    /// `directed.shortestPaths(from:)` from several sources.
+    /// `directedView.shortestPaths(from:)` from several sources.
     @inlinable
     public func shortestPaths(from sources: some Sequence<Vertex>) -> ShortestPathTree<DirectedView<Self>, Int> {
-        guard vertexIndexBound != nil else { return directed.shortestPaths(from: sources) }
-        let view = directed
+        guard vertexIndexBound != nil else { return directedView.shortestPaths(from: sources) }
+        let view = directedView
         let ids = view._numberedVertices()
         let (indices, listed) = view._sourceIndices(sources, ids)
         var result = _Unweighted<DirectedView<Self>>(sources: indices, placeholder: view.edges.endIndex)

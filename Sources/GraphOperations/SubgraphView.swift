@@ -3,8 +3,8 @@ import Atomics
 import Synchronization
 
 /// A subgraph of a graph, as a lazy view: some of its vertices and some of its edges, renumbered
-/// densely. Made by `inducedSubgraph(on:)`, `spanningSubgraph(edges:)` and
-/// `subgraph(vertices:edges:)` (NetworkX's `subgraph_view`, JGraphT's `AsSubgraph`, LEMON's
+/// densely. Made by `inducedSubgraphView(on:)`, `spanningSubgraphView(edges:)` and
+/// `subgraphView(vertices:edges:)` (NetworkX's `subgraph_view`, JGraphT's `AsSubgraph`, LEMON's
 /// `SubDigraph`, Boost's `filtered_graph`).
 ///
 /// **Vertices** are the kept vertices in the base's order, at view indices `0..<vertexCount`: the

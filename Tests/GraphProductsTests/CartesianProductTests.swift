@@ -13,11 +13,11 @@ import Testing
 struct CartesianProductTests {
     @Test("GP-001 empty factor: empty product")
     func gp001() {
-        // G = UL V []; E []; H = UL V [x, y]; E [x–y] / cartesianProduct(G, H)
+        // G = UL V []; E []; H = UL V [x, y]; E [x–y] / cartesianProductView(G, H)
         // → V []; E []; edgeCount 0; bounds 0/0; rows []
         let g = UndirectedAdjacencyList<String>(vertices: [] as [String], edges: [] as [UndirectedEdge<String>])
         let h = UndirectedAdjacencyList<String>(vertices: ["x", "y"], edges: [UndirectedEdge("x", "y")])
-        let product = cartesianProduct(g, h)
+        let product = cartesianProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [] as [Pair<String, String>])
@@ -35,11 +35,11 @@ struct CartesianProductTests {
 
     @Test("GP-002 K1 is the identity for vertices")
     func gp002() {
-        // G = UL V [a]; E []; H = UL V [x, y]; E [x–y] / cartesianProduct(G, H)
+        // G = UL V [a]; E []; H = UL V [x, y]; E [x–y] / cartesianProductView(G, H)
         // → V [(a,x)#0, (a,y)#1]; E [0·H0:(a,x)–(a,y)]; edgeCount 1; bounds 2/1; rows [(a,x): (a,y); (a,y): (a,x)]
         let g = UndirectedAdjacencyList<String>(vertices: ["a"], edges: [] as [UndirectedEdge<String>])
         let h = UndirectedAdjacencyList<String>(vertices: ["x", "y"], edges: [UndirectedEdge("x", "y")])
-        let product = cartesianProduct(g, h)
+        let product = cartesianProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y")])
@@ -74,11 +74,11 @@ struct CartesianProductTests {
 
     @Test("GP-003 K2 with K2")
     func gp003() {
-        // G = UL V [a, b]; E [a–b]; H = UL V [x, y]; E [x–y] / cartesianProduct(G, H)
+        // G = UL V [a, b]; E [a–b]; H = UL V [x, y]; E [x–y] / cartesianProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3]; E [G0·0:(a,x)–(b,x), G0·1:(a,y)–(b,y), 0·H0:(a,x)–(a,y), 1·H0:(b,x)–(b,y)]; edgeCount 4; bounds 4/4; rows [(a,x): (b,x) (a,y); (a,y): (b,y) (a,x); (b,x): (a,x) (b,y); (b,y): (a,y) (b,x)]
         let g = UndirectedAdjacencyList<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b")])
         let h = UndirectedAdjacencyList<String>(vertices: ["x", "y"], edges: [UndirectedEdge("x", "y")])
-        let product = cartesianProduct(g, h)
+        let product = cartesianProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y")])
@@ -127,11 +127,11 @@ struct CartesianProductTests {
 
     @Test("GP-004 P3 with K2")
     func gp004() {
-        // G = UL V [a, b, c]; E [a–b, b–c]; H = UL V [x, y]; E [x–y] / cartesianProduct(G, H)
+        // G = UL V [a, b, c]; E [a–b, b–c]; H = UL V [x, y]; E [x–y] / cartesianProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3, (c,x)#4, (c,y)#5]; E [G0·0:(a,x)–(b,x), G0·1:(a,y)–(b,y), G1·0:(b,x)–(c,x), G1·1:(b,y)–(c,y), 0·H0:(a,x)–(a,y), 1·H0:(b,x)–(b,y), 2·H0:(c,x)–(c,y)]; edgeCount 7; bounds 6/7
         let g = UndirectedAdjacencyList<String>(vertices: ["a", "b", "c"], edges: [UndirectedEdge("a", "b"), UndirectedEdge("b", "c")])
         let h = UndirectedAdjacencyList<String>(vertices: ["x", "y"], edges: [UndirectedEdge("x", "y")])
-        let product = cartesianProduct(g, h)
+        let product = cartesianProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y"), Pair("c", "x"), Pair("c", "y")])
@@ -194,11 +194,11 @@ struct CartesianProductTests {
 
     @Test("GP-005 edgeless factors")
     func gp005() {
-        // G = UL V [a, b]; E []; H = UL V [x, y]; E [] / cartesianProduct(G, H)
+        // G = UL V [a, b]; E []; H = UL V [x, y]; E [] / cartesianProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3]; E []; edgeCount 0; bounds 4/0
         let g = UndirectedAdjacencyList<String>(vertices: ["a", "b"], edges: [] as [UndirectedEdge<String>])
         let h = UndirectedAdjacencyList<String>(vertices: ["x", "y"], edges: [] as [UndirectedEdge<String>])
-        let product = cartesianProduct(g, h)
+        let product = cartesianProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y")])
@@ -247,11 +247,11 @@ struct CartesianProductTests {
 
     @Test("GP-006 directed: K2 arc with K2 arc")
     func gp006() {
-        // G = AL V [a, b]; E [a→b]; H = AL V [x, y]; E [x→y] / cartesianProduct(G, H)
+        // G = AL V [a, b]; E [a→b]; H = AL V [x, y]; E [x→y] / cartesianProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3]; E [G0·0:(a,x)→(b,x), G0·1:(a,y)→(b,y), 0·H0:(a,x)→(a,y), 1·H0:(b,x)→(b,y)]; edgeCount 4; bounds 4/4; rows [(a,x): (b,x) (a,y); (a,y): (b,y); (b,x): (b,y); (b,y): ]
         let g = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
         let h = AdjacencyList<String>(vertices: ["x", "y"], edges: [DirectedEdge(from: "x", to: "y")])
-        let product = cartesianProduct(g, h)
+        let product = cartesianProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y")])
@@ -315,11 +315,11 @@ struct CartesianProductTests {
 
     @Test("GP-007 directed: 2-cycle with an arc")
     func gp007() {
-        // G = AL V [a, b]; E [a→b, b→a]; H = AL V [x, y]; E [x→y] / cartesianProduct(G, H)
+        // G = AL V [a, b]; E [a→b, b→a]; H = AL V [x, y]; E [x→y] / cartesianProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3]; E [G0·0:(a,x)→(b,x), G0·1:(a,y)→(b,y), G1·0:(b,x)→(a,x), G1·1:(b,y)→(a,y), 0·H0:(a,x)→(a,y), 1·H0:(b,x)→(b,y)]; edgeCount 6; bounds 4/6
         let g = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "a")])
         let h = AdjacencyList<String>(vertices: ["x", "y"], edges: [DirectedEdge(from: "x", to: "y")])
-        let product = cartesianProduct(g, h)
+        let product = cartesianProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y")])
@@ -383,11 +383,11 @@ struct CartesianProductTests {
 
     @Test("GP-008 directed: predecessors from the factors' in-rows")
     func gp008() {
-        // G = AL V [a, b]; E [a→b]; H = AL V [x, y]; E [x→y] / cartesianProduct(G, H)
+        // G = AL V [a, b]; E [a→b]; H = AL V [x, y]; E [x→y] / cartesianProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3]; edgeCount 4; bounds 4/4; predecessors(of: (b,y)) [(a,y), (b,x)]
         let g = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
         let h = AdjacencyList<String>(vertices: ["x", "y"], edges: [DirectedEdge(from: "x", to: "y")])
-        let product = cartesianProduct(g, h)
+        let product = cartesianProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y")])
@@ -453,11 +453,11 @@ struct CartesianProductTests {
 
     @Test("GP-009 undirected: self-loop in G")
     func gp009() {
-        // G = UL V [a, b]; E [a–a, a–b]; H = UL V [x, y]; E [x–y] / cartesianProduct(G, H)
+        // G = UL V [a, b]; E [a–a, a–b]; H = UL V [x, y]; E [x–y] / cartesianProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3]; E [G0·0:(a,x)–(a,x), G0·1:(a,y)–(a,y), G1·0:(a,x)–(b,x), G1·1:(a,y)–(b,y), 0·H0:(a,x)–(a,y), 1·H0:(b,x)–(b,y)]; edgeCount 6; bounds 4/6; rows [(a,x): (a,x) (a,x) (b,x) (a,y); (a,y): (a,y) (a,y) (b,y) (a,x); (b,x): (a,x) (b,y); (b,y): (a,y) (b,x)]
         let g = Pseudograph<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "a"), UndirectedEdge("a", "b")])
         let h = UndirectedAdjacencyList<String>(vertices: ["x", "y"], edges: [UndirectedEdge("x", "y")])
-        let product = cartesianProduct(g, h)
+        let product = cartesianProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y")])
@@ -506,11 +506,11 @@ struct CartesianProductTests {
 
     @Test("GP-010 undirected: self-loop in H")
     func gp010() {
-        // G = UL V [a, b]; E [a–b]; H = UL V [x, y]; E [x–x, x–y] / cartesianProduct(G, H)
+        // G = UL V [a, b]; E [a–b]; H = UL V [x, y]; E [x–x, x–y] / cartesianProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3]; E [G0·0:(a,x)–(b,x), G0·1:(a,y)–(b,y), 0·H0:(a,x)–(a,x), 0·H1:(a,x)–(a,y), 1·H0:(b,x)–(b,x), 1·H1:(b,x)–(b,y)]; edgeCount 6; bounds 4/6; rows [(a,x): (b,x) (a,x) (a,x) (a,y); (a,y): (b,y) (a,x); (b,x): (a,x) (b,x) (b,x) (b,y); (b,y): (a,y) (b,x)]
         let g = UndirectedAdjacencyList<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b")])
         let h = Pseudograph<String>(vertices: ["x", "y"], edges: [UndirectedEdge("x", "x"), UndirectedEdge("x", "y")])
-        let product = cartesianProduct(g, h)
+        let product = cartesianProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y")])
@@ -559,11 +559,11 @@ struct CartesianProductTests {
 
     @Test("GP-011 undirected: self-loops in both")
     func gp011() {
-        // G = UL V [a]; E [a–a]; H = UL V [x]; E [x–x] / cartesianProduct(G, H)
+        // G = UL V [a]; E [a–a]; H = UL V [x]; E [x–x] / cartesianProductView(G, H)
         // → V [(a,x)#0]; E [G0·0:(a,x)–(a,x), 0·H0:(a,x)–(a,x)]; edgeCount 2; bounds 1/2 (NetworkX MultiGraph: 1, merging coincident loop products); rows [(a,x): (a,x) (a,x) (a,x) (a,x)]
         let g = Pseudograph<String>(vertices: ["a"], edges: [UndirectedEdge("a", "a")])
         let h = Pseudograph<String>(vertices: ["x"], edges: [UndirectedEdge("x", "x")])
-        let product = cartesianProduct(g, h)
+        let product = cartesianProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         // NetworkX's MultiGraph merges coincident loop products; here each generating tuple is its own edge.
         let positions = Array(product.edges.indices)
@@ -592,11 +592,11 @@ struct CartesianProductTests {
 
     @Test("GP-012 undirected: parallel edges in G")
     func gp012() {
-        // G = UL V [a, b]; E [a–b, b–a]; H = UL V [x, y]; E [x–y] / cartesianProduct(G, H)
+        // G = UL V [a, b]; E [a–b, b–a]; H = UL V [x, y]; E [x–y] / cartesianProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3]; E [G0·0:(a,x)–(b,x), G0·1:(a,y)–(b,y), G1·0:(b,x)–(a,x), G1·1:(b,y)–(a,y), 0·H0:(a,x)–(a,y), 1·H0:(b,x)–(b,y)]; edgeCount 6; bounds 4/6
         let g = Pseudograph<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b"), UndirectedEdge("b", "a")])
         let h = UndirectedAdjacencyList<String>(vertices: ["x", "y"], edges: [UndirectedEdge("x", "y")])
-        let product = cartesianProduct(g, h)
+        let product = cartesianProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y")])
@@ -645,11 +645,11 @@ struct CartesianProductTests {
 
     @Test("GP-013 directed: self-loop in G")
     func gp013() {
-        // G = AL V [a, b]; E [a→a, a→b]; H = AL V [x, y]; E [x→y] / cartesianProduct(G, H)
+        // G = AL V [a, b]; E [a→a, a→b]; H = AL V [x, y]; E [x→y] / cartesianProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3]; E [G0·0:(a,x)→(a,x), G0·1:(a,y)→(a,y), G1·0:(a,x)→(b,x), G1·1:(a,y)→(b,y), 0·H0:(a,x)→(a,y), 1·H0:(b,x)→(b,y)]; edgeCount 6; bounds 4/6
         let g = DirectedPseudograph<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "a"), DirectedEdge(from: "a", to: "b")])
         let h = AdjacencyList<String>(vertices: ["x", "y"], edges: [DirectedEdge(from: "x", to: "y")])
-        let product = cartesianProduct(g, h)
+        let product = cartesianProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y")])
@@ -713,11 +713,11 @@ struct CartesianProductTests {
 
     @Test("GP-014 rows and lookups: index-space rows hash nothing, a pair lookup hashes twice")
     func gp014() {
-        // G = UL V [a, b, c]; E [a–b, b–c]; H = UL V [x, y]; E [x–y] / cartesianProduct(G, H)
+        // G = UL V [a, b, c]; E [a–b, b–c]; H = UL V [x, y]; E [x–y] / cartesianProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3, (c,x)#4, (c,y)#5]; edgeCount 7; bounds 6/7; all rows: hashes 0; vertexIndex(of: (b,y)): hashes 2
         let g = UndirectedAdjacencyList<String>(vertices: ["a", "b", "c"], edges: [UndirectedEdge("a", "b"), UndirectedEdge("b", "c")])
         let h = UndirectedAdjacencyList<String>(vertices: ["x", "y"], edges: [UndirectedEdge("x", "y")])
-        let product = cartesianProduct(g, h)
+        let product = cartesianProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y"), Pair("c", "x"), Pair("c", "y")])
@@ -792,7 +792,7 @@ struct CartesianProductTests {
         let tally = Tally()
         let countedG = UndirectedAdjacencyList<Counted>(vertices: ["a", "b", "c"].map { Counted(name: $0, tally: tally) }, edges: [UndirectedEdge(Counted(name: "a", tally: tally), Counted(name: "b", tally: tally)), UndirectedEdge(Counted(name: "b", tally: tally), Counted(name: "c", tally: tally))])
         let countedH = UndirectedAdjacencyList<Counted>(vertices: ["x", "y"].map { Counted(name: $0, tally: tally) }, edges: [UndirectedEdge(Counted(name: "x", tally: tally), Counted(name: "y", tally: tally))])
-        let counted = cartesianProduct(countedG, countedH)
+        let counted = cartesianProductView(countedG, countedH)
         tally.hashes = 0
         // Every index-space row, over every vertex.
         for i in 0 ..< 6 {

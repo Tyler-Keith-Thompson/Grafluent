@@ -188,7 +188,7 @@ MUTATING = {"insert", "insert(hyperedge:)", "insert(checked:)", "insert(sources:
 
 def view_lines(x, var, directed, ind):
     _, count, edges, arrow = x
-    out = ["let view = %s.incidenceGraph" % var,
+    out = ["let view = %s.incidenceGraphView" % var,
            "#expect(view.vertices == 0 ..< %d)" % count,
            "#expect(view.edges.map { [$0.%s, $0.%s] } == %s)" % ((("source", "target") if directed else ("u", "v")) + (intlists(edges),)),
            "#expect(Array(view.edges.indices) == %s)" % ints(range(len(edges))),
@@ -310,7 +310,7 @@ def call_lines(g, call, var="hypergraph"):
     if name == "reversed":
         return r, (["do {", "    let reversed = %s.reversed" % var] + state(r, "reversed", "    ")
                    + ["    #expect(reversed.reversed == %s)" % var, "}"])
-    if name == "incidenceGraph":
+    if name == "incidenceGraphView":
         return r, view_lines(r, var, directed, "")
     if name == "cliqueExpansion":
         _, vs, edges, arrow = r

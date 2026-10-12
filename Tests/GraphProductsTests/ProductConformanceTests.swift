@@ -82,11 +82,11 @@ struct ProductConformanceTests {
                 }
             }
         }
-        check(cartesianProduct(g, h), "cartesian")
-        check(tensorProduct(g, h), "tensor")
-        check(strongProduct(g, h), "strong")
-        check(lexicographicProduct(g, h), "lexicographic")
-        check(lexicographicProduct(h, g), "lexicographic, swapped")
+        check(cartesianProductView(g, h), "cartesian")
+        check(tensorProductView(g, h), "tensor")
+        check(strongProductView(g, h), "strong")
+        check(lexicographicProductView(g, h), "lexicographic")
+        check(lexicographicProductView(h, g), "lexicographic, swapped")
     }
 
     @Test("Products of CompressedSparseRow factors (no in-rows) search like a row-order copy", arguments: [1, 2, 3, 4])
@@ -119,10 +119,10 @@ struct ProductConformanceTests {
                 }
             }
         }
-        check(cartesianProduct(g, h), "cartesian")
-        check(tensorProduct(g, h), "tensor")
-        check(strongProduct(g, h), "strong")
-        check(lexicographicProduct(g, h), "lexicographic")
+        check(cartesianProductView(g, h), "cartesian")
+        check(tensorProductView(g, h), "tensor")
+        check(strongProductView(g, h), "strong")
+        check(lexicographicProductView(g, h), "lexicographic")
     }
 
     @Test("Undirected products: Connectivity and ShortestPaths equal Pseudograph(product)", arguments: [1, 2, 3, 4, 5, 6])
@@ -155,8 +155,8 @@ struct ProductConformanceTests {
             #expect(product.bridges().map { offset[$0] ?? -1 } == copy.bridges(), "\(context)")
             #expect(Set(product.articulationPoints()) == Set(copy.articulationPoints()), "\(context)")
             for source in product.vertices {
-                #expect(product.directed.breadthFirstLayers(from: source).map { Set($0) } == copy.directed.breadthFirstLayers(from: source).map { Set($0) }, "\(context)")
-                #expect(product.directed.descendants(of: source) == copy.directed.descendants(of: source), "\(context)")
+                #expect(product.directedView.breadthFirstLayers(from: source).map { Set($0) } == copy.directedView.breadthFirstLayers(from: source).map { Set($0) }, "\(context)")
+                #expect(product.directedView.descendants(of: source) == copy.directedView.descendants(of: source), "\(context)")
                 let hops = product.shortestPaths(from: source), copyHops = copy.shortestPaths(from: source)
                 let tree = product.dijkstraShortestPaths(from: source) { weight[offset[$0] ?? 0] }
                 let copyTree = copy.dijkstraShortestPaths(from: source) { weight[$0] }
@@ -166,18 +166,18 @@ struct ProductConformanceTests {
                 }
             }
         }
-        check(cartesianProduct(g, h), "cartesian")
-        check(tensorProduct(g, h), "tensor")
-        check(strongProduct(g, h), "strong")
-        check(lexicographicProduct(g, h), "lexicographic")
-        check(lexicographicProduct(h, g), "lexicographic, swapped")
+        check(cartesianProductView(g, h), "cartesian")
+        check(tensorProductView(g, h), "tensor")
+        check(strongProductView(g, h), "strong")
+        check(lexicographicProductView(g, h), "lexicographic")
+        check(lexicographicProductView(h, g), "lexicographic, swapped")
     }
 
     @Test("P_r □ P_c is NamedGraphs' grid(dimensions: [r, c]) in index space", arguments: [(1, 1), (1, 4), (2, 3), (3, 3), (4, 2), (5, 7)])
     func gridIdentity(r: Int, c: Int) {
         let pr = UndirectedAdjacencyList<Int>.path(vertexCount: r)
         let pc = UndirectedAdjacencyList<Int>.path(vertexCount: c)
-        let product = cartesianProduct(pr, pc)
+        let product = cartesianProductView(pr, pc)
         let grid = UndirectedAdjacencyList<Int>.grid(dimensions: [r, c])
         #expect(product.vertexIndexBound == grid.vertexCount && product.edgeCount == grid.edgeCount)
         #expect(product.vertices.map { product.vertexIndex(of: $0) } == Array(0 ..< r * c))
@@ -201,13 +201,13 @@ struct ProductConformanceTests {
     func sendableAndNesting() async {
         let g = UndirectedAdjacencyList<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b")])
         let h = UndirectedAdjacencyList<String>(vertices: ["x", "y", "z"], edges: [UndirectedEdge("x", "y"), UndirectedEdge("y", "z")])
-        let product = strongProduct(g, h)
+        let product = strongProductView(g, h)
         let count = await Task.detached { product.edgeCount }.value
         #expect(count == product.edgeCount && count == 1 * 3 + 2 * 2 + 2 * 1 * 2)
         // Q3 = K2 □ K2 □ K2, nested either way, is 3-regular with 12 edges.
         let k2 = UndirectedAdjacencyList<Int>(vertices: [0, 1], edges: [UndirectedEdge(0, 1)])
-        let left = cartesianProduct(cartesianProduct(k2, k2), k2)
-        let right = cartesianProduct(k2, cartesianProduct(k2, k2))
+        let left = cartesianProductView(cartesianProductView(k2, k2), k2)
+        let right = cartesianProductView(k2, cartesianProductView(k2, k2))
         #expect(left.edgeCount == 12 && right.edgeCount == 12)
         #expect((0 ..< 8).allSatisfy { left.degree(ofIndex: $0) == 3 && right.degree(ofIndex: $0) == 3 })
         #expect(left.vertex(atIndex: 5) == Pair(Pair(1, 0), 1) && right.vertex(atIndex: 5) == Pair(1, Pair(0, 1)))

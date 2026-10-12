@@ -287,7 +287,7 @@ at n·m ≲ 10⁹, hypergraphs with large hyperedges). Sparse incidence is `Undi
      directed multigraph. Restricted to one-and-one columns it would be, but `successors(of: v)`
      would scan the source row and read each column's target, O(w(m) + d), and `contains(edge:)`
      would be O(m): the cost the README refuses for `EdgeList`.
-   - Graph algorithms take the graph the matrix was built from, or the matrix's `incidenceGraph`
+   - Graph algorithms take the graph the matrix was built from, or the matrix's `incidenceGraphView`
      view through the hypergraph protocols. The matrices are for algebra.
 3. **One type with an `oriented` flag, or two?** *Recommendation:* two. NetworkX's flag changes
    the element type; Swift should not.

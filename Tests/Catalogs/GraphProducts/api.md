@@ -6,7 +6,7 @@ row-major, the numbering NamedGraphs' grids already use. Every row is computed f
 factors' index rows, with one division per row and no hashing. An edge's position names the factor
 edge or edges, and the factor vertices, that generate it. The products are therefore defined edge
 by edge on multigraphs and pseudographs too. To materialize one, pass it to a representation's
-initializer (`CompressedSparseRow(cartesianProduct(g, h))`).
+initializer (`CompressedSparseRow(cartesianProductView(g, h))`).
 
 `cases.md` (GP-001 – GP-071, 71 rows) pins the values. `ref.py` ports the factors (directed and
 undirected, with parallel edges and self-loops kept) and implements all four products in both
@@ -33,10 +33,10 @@ To run it:
 
 | Name | Decision | Source |
 |---|---|---|
-| Cartesian product G □ H | **`cartesianProduct(_:_:)`** → **`CartesianProduct<First, Second>`** | NetworkX `cartesian_product`; Mathematica `GraphProduct[g, h, "Cartesian"]`; Hammack–Imrich–Klavžar |
-| Tensor product G × H | **`tensorProduct(_:_:)`** → **`TensorProduct<First, Second>`** | NetworkX `tensor_product`; Mathematica `"Tensor"`. Also called the direct, categorical or Kronecker product; those names go in the doc comment, not in typealiases |
-| Strong product G ⊠ H | **`strongProduct(_:_:)`** → **`StrongProduct<First, Second>`** | NetworkX `strong_product`; Mathematica `"Strong"` |
-| Lexicographic product G ∘ H | **`lexicographicProduct(_:_:)`** → **`LexicographicProduct<First, Second>`** | NetworkX `lexicographic_product`; Mathematica `"Lexicographic"`. Also called the composition; doc comment only |
+| Cartesian product G □ H | **`cartesianProductView(_:_:)`** → **`CartesianProductView<First, Second>`** | NetworkX `cartesian_product`; Mathematica `GraphProduct[g, h, "Cartesian"]`; Hammack–Imrich–Klavžar |
+| Tensor product G × H | **`tensorProductView(_:_:)`** → **`TensorProductView<First, Second>`** | NetworkX `tensor_product`; Mathematica `"Tensor"`. Also called the direct, categorical or Kronecker product; those names go in the doc comment, not in typealiases |
+| Strong product G ⊠ H | **`strongProductView(_:_:)`** → **`StrongProductView<First, Second>`** | NetworkX `strong_product`; Mathematica `"Strong"` |
+| Lexicographic product G ∘ H | **`lexicographicProductView(_:_:)`** → **`LexicographicProductView<First, Second>`** | NetworkX `lexicographic_product`; Mathematica `"Lexicographic"`. Also called the composition; doc comment only |
 | Product vertex (g, h) | **`Pair<First: Hashable, Second: Hashable>`**, with `first` and `second` | JGraphT `Pair<A, B>` (`getFirst` / `getSecond`); C++ `std::pair`. The literature's "ordered pair" |
 | The factors | **`first`**, **`second`** on each product | Match `Pair`. NetworkX's parameter names are G and H, used in the doc comments |
 
@@ -48,8 +48,8 @@ writes `cartesian_product(G, H)`, and swift-algorithms writes `product(_:_:)` fo
 Tuples are not `Hashable`, and `Vertex: Hashable` is a protocol requirement, so the vertex is a
 struct. The options were:
 
-- a nested type per product. Rejected: `CartesianProduct<G, H>.Vertex` and
-  `TensorProduct<G, H>.Vertex` would be different types for the same (g, h), and a vertex could
+- a nested type per product. Rejected: `CartesianProductView<G, H>.Vertex` and
+  `TensorProductView<G, H>.Vertex` would be different types for the same (g, h), and a vertex could
   not move between products of the same factors, nor feed a nested product;
 - an invented `ProductVertex`. Rejected: no library uses the name;
 - **`Pair`**. Chosen: one shared struct in this module, as JGraphT's `Pair` and C++'s `std::pair`.
@@ -60,7 +60,7 @@ risk is that an app with its own `Pair` shadows ours. Code that needs ours then 
 `GraphProducts.Pair`, the same remedy as `Walks.Path`. If that cost is judged too high, the
 fallback is `OrderedPair` (the literature's term). There is no typealias either way.
 
-A nested product such as `cartesianProduct(cartesianProduct(a, b), c)` has vertices
+A nested product such as `cartesianProductView(cartesianProductView(a, b), c)` has vertices
 `Pair<Pair<A, B>, C>`, and its index is `(i·|B| + j)·|C| + k` (GP-058).
 
 ## Question 1: index space
@@ -87,17 +87,17 @@ A nested product such as `cartesianProduct(cartesianProduct(a, b), c)` has verti
 
 **Edge positions** are nested `Edges.Index` types, ordered as `edges` lists them. Each is a
 `@frozen` generic type nested in its product, over the factors' position types
-(`CartesianProduct<G, H>.Position<G.Edges.Index, H.Edges.Index>`), so one type serves the
+(`CartesianProductView<G, H>.Position<G.Edges.Index, H.Edges.Index>`), so one type serves the
 directed and the undirected product. All are `Hashable` and `Comparable`, and `Sendable` when the
 factor positions are. Enum cases are public, and the tensor struct has a public memberwise
 `init(first:second:reversed:)`; nothing is checked, as with `DirectedView.Edges.Index`:
 
 | Product | Type | Cases or fields |
 |---|---|---|
-| □ | `enum CartesianProduct.Position` | `.first(edge: FirstEdge, vertexIndex: Int)` (G's edge at H's vertex index), `.second(vertexIndex: Int, edge: SecondEdge)` |
-| × | `struct TensorProduct.Position` | `first: FirstEdge`, `second: SecondEdge`, `reversed: Bool` |
-| ⊠ | `enum StrongProduct.Position` | `.first(edge:vertexIndex:)`, `.second(vertexIndex:edge:)` as □, then `.both(first:second:reversed:)` as × |
-| ∘ | `enum LexicographicProduct.Position` | `.first(edge: FirstEdge, uVertexIndex: Int, vVertexIndex: Int)` (H's vertex indices at the G-edge's `u` end, directed its source, and at its `v` end, directed its target), `.second(vertexIndex: Int, edge: SecondEdge)` |
+| □ | `enum CartesianProductView.Position` | `.first(edge: FirstEdge, vertexIndex: Int)` (G's edge at H's vertex index), `.second(vertexIndex: Int, edge: SecondEdge)` |
+| × | `struct TensorProductView.Position` | `first: FirstEdge`, `second: SecondEdge`, `reversed: Bool` |
+| ⊠ | `enum StrongProductView.Position` | `.first(edge:vertexIndex:)`, `.second(vertexIndex:edge:)` as □, then `.both(first:second:reversed:)` as × |
+| ∘ | `enum LexicographicProductView.Position` | `.first(edge: FirstEdge, uVertexIndex: Int, vVertexIndex: Int)` (H's vertex indices at the G-edge's `u` end, directed its source, and at its `v` end, directed its target), `.second(vertexIndex: Int, edge: SecondEdge)` |
 
 The comparisons are the derived ones for □ and ∘ (case order, then the associated values), and
 written out for × and ⊠ (`Bool` is not `Comparable`; straight before reversed). The end index of
@@ -166,20 +166,20 @@ rows and the degree sum always agree.
 // Comparable (lexicographic), Sendable, Codable, BitwiseCopyable, CustomStringConvertible "(g, h)",
 // each when both parts are.
 
-public func cartesianProduct<G: DirectedGraph, H: DirectedGraph>(_ g: G, _ h: H) -> CartesianProduct<G, H>
-public func cartesianProduct<G: Graph, H: Graph>(_ g: G, _ h: H) -> CartesianProduct<G, H>
-// likewise tensorProduct, strongProduct, lexicographicProduct. A mixed pair (one directed factor,
+public func cartesianProductView<G: DirectedGraph, H: DirectedGraph>(_ g: G, _ h: H) -> CartesianProductView<G, H>
+public func cartesianProductView<G: Graph, H: Graph>(_ g: G, _ h: H) -> CartesianProductView<G, H>
+// likewise tensorProductView, strongProductView, lexicographicProductView. A mixed pair (one directed factor,
 // one undirected) matches neither overload and does not compile.
 
-@frozen public struct CartesianProduct<First, Second> {
+@frozen public struct CartesianProductView<First, Second> {
     public var first: First { get }
     public var second: Second { get }
 }
-extension CartesianProduct: DirectedGraph where First: DirectedGraph, Second: DirectedGraph
-extension CartesianProduct: BidirectionalDirectedGraph where First: BidirectionalDirectedGraph, Second: BidirectionalDirectedGraph
-extension CartesianProduct: Graph where First: Graph, Second: Graph
+extension CartesianProductView: DirectedGraph where First: DirectedGraph, Second: DirectedGraph
+extension CartesianProductView: BidirectionalDirectedGraph where First: BidirectionalDirectedGraph, Second: BidirectionalDirectedGraph
+extension CartesianProductView: Graph where First: Graph, Second: Graph
 // Vertex == Pair<First.Vertex, Second.Vertex>; Vertices: a RandomAccessCollection over 0..<nG·nH.
-// TensorProduct, StrongProduct and LexicographicProduct are shaped the same way.
+// TensorProductView, StrongProductView and LexicographicProductView are shaped the same way.
 ```
 
 One generic type with conditional conformances to both `DirectedGraph` and `Graph` compiles. Each
@@ -196,7 +196,7 @@ A directed ⊠ can have parallel arcs although neither factor has any: a G-loop 
 h → h′ gives (g, h) → (g, h′) twice, once as the □ arc `.second(g, h→h′)` and once as the × arc
 `.both(g→g, h→h′)`. The product lists both, and `edgeCount`, the rows and the degrees count both.
 `CompressedSparseRow(product)` and `AdjacencyList(product)` merge them, as those types keep simple
-graphs; materialize into `DirectedPseudograph(product)` to keep every arc. `strongProduct`'s doc
+graphs; materialize into `DirectedPseudograph(product)` to keep every arc. `strongProductView`'s doc
 comment says so. Undirected, a G-loop and an H-edge likewise give a □ edge and a × edge on the same
 ends; `Pseudograph(product)` keeps both.
 
@@ -213,7 +213,7 @@ ends; `Pseudograph(product)` keeps both.
 - No `lazy.map { self… }`: it copies the product, and both factors, on every call.
 - `_withSuccessorIndexRows` and `_withIncidentIndexRows` are `nil`. The rows are computed.
 - The public row types are nested in each product. Directed rows and □'s undirected rows are
-  generic over the factor rows (`CartesianProduct.IndexRow<First.SuccessorIndices,
+  generic over the factor rows (`CartesianProductView.IndexRow<First.SuccessorIndices,
   Second.SuccessorIndices>`, `EdgeRow`, and □'s `EdgeIndexRow`), so one type serves out-rows,
   in-rows and undirected rows. The undirected ×, ⊠ and ∘ rows (`UndirectedIndexRow`,
   `UndirectedEdgeRow`) walk each factor's neighbor indices and incident positions in step, to tell
@@ -254,11 +254,11 @@ The randomized property test compares each with the row's length on pseudographs
 
 | Benchmark | Target |
 |---|---|
-| BFS and `connectedComponents()` on `cartesianProduct(g, h)`, g and h 1k-vertex sparse graphs (UndirectedAdjacencyList), vs the same on `UndirectedAdjacencyList(product)` materialized | ≤ 1.2× |
+| BFS and `connectedComponents()` on `cartesianProductView(g, h)`, g and h 1k-vertex sparse graphs (UndirectedAdjacencyList), vs the same on `UndirectedAdjacencyList(product)` materialized | ≤ 1.2× |
 | The same for ⊠ and ∘ | ≤ 1.2× |
 | BFS on the product vs NetworkX `cartesian_product` + BFS | ≥ 50× faster |
 | BFS on the product vs the C library's product + BFS, if it has one | ≤ 1× of build + BFS |
-| `CompressedSparseRow(cartesianProduct(g, h))` (materializing) vs NetworkX `cartesian_product` | ≥ 30× faster |
+| `CompressedSparseRow(cartesianProductView(g, h))` (materializing) vs NetworkX `cartesian_product` | ≥ 30× faster |
 | P_r □ P_c vs NamedGraphs `grid(dimensions: [r, c])`, BFS | ≤ 1.2× (the grid is a CSR) |
 | Hashes in index-space members | 0 (catalog rows; property-tested) |
 
@@ -269,5 +269,5 @@ The randomized property test compares each with the row's length on pseudographs
 - Edge indices for undirected ×, ⊠ and ∘ through rank over the factors' loop flags.
 - Other products, only if asked for: NetworkX's `rooted_product`, `corona_product` and
   `modular_product`.
-- Products of more than two factors without nesting: `cartesianProduct(_:_:_:)`. Nesting already
+- Products of more than two factors without nesting: `cartesianProductView(_:_:_:)`. Nesting already
   works (GP-058).

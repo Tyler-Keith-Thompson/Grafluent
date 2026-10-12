@@ -20,7 +20,7 @@ extension Graph {
     public func eccentricities() -> Eccentricities<DirectedView<Self>, Int> {
         let rows = _distanceRows()
         let values: [Int?] = _bounding(rows, .eccentricities).map { $0.lower.map(Optional.some) } ?? [Int?](repeating: nil, count: rows.count)
-        return Eccentricities(directed, listed: _listedVertices(), values: values)
+        return Eccentricities(directedView, listed: _listedVertices(), values: values)
     }
 
     /// Every vertex's eccentricity by weighted distance, by Dijkstra's algorithm from every
@@ -30,7 +30,7 @@ extension Graph {
     @inlinable
     public func eccentricities<W: Comparable & AdditiveArithmetic>(weight: (Edges.Index) -> W) -> Eccentricities<DirectedView<Self>, W> {
         let rows = _distanceRows()
-        return Eccentricities(directed, listed: _listedVertices(), values: _allEccentricities(rows, weights: _distanceWeights(weight), undirected: true))
+        return Eccentricities(directedView, listed: _listedVertices(), values: _allEccentricities(rows, weights: _distanceWeights(weight), undirected: true))
     }
 
     /// The eccentricity of one vertex: one search. Nil when the graph is not connected.

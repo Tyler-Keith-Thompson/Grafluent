@@ -74,6 +74,21 @@ public struct Partition<G: DirectedGraph>: RandomAccessCollection {
         return _labels[_graph._requiredVertexIndex(of: vertex, "\(vertex) is not a vertex of the graph")]
     }
 
+    /// `community(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex of the
+    /// graph: one lookup in the vertex numbers for a graph without vertex indices, otherwise one
+    /// `contains(_:)` on the graph's copy before the trapping spelling.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the graph.
+    @inlinable
+    public func community(checked vertex: G.Vertex) throws(VertexNotFound) -> Int {
+        if let _numbers {
+            guard let v = _numbers[vertex] else { throw VertexNotFound() }
+            return _labels[v]
+        }
+        guard _graph.contains(vertex) else { throw VertexNotFound() }
+        return community(of: vertex)
+    }
+
     /// The position of the community containing the vertex at `index`: its vertex index, or its
     /// position in `vertices` when the graph has no vertex indices.
     ///

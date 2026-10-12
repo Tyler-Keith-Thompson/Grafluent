@@ -162,7 +162,7 @@ struct GraphAlgorithmTests {
         #expect(doubled.back == 1)
         // The directed search over the two-arc view classifies arcs, not edges (CLRS §22.3).
         var counts = [0, 0, 0, 0]
-        for event in UndirectedAdjacencyList(edges: k4.edges).directed.depthFirstSearch(from: 0) {
+        for event in UndirectedAdjacencyList(edges: k4.edges).directedView.depthFirstSearch(from: 0) {
             switch event {
             case .treeEdge: counts[0] += 1
             case .backEdge: counts[1] += 1
@@ -304,7 +304,7 @@ struct GraphAlgorithmTests {
         let petersens: [any Graph<Int>] = [
             UndirectedAdjacencyList(edges: petersen.edges),
             ReferencePseudograph(edges: petersen.edges),
-            AdjacencyList(UndirectedAdjacencyList(edges: petersen.edges).directed).undirected,
+            AdjacencyList(UndirectedAdjacencyList(edges: petersen.edges).directedView).undirectedView,
         ]
         for g in petersens {
             #expect(distances(g, from: 0) == [0: 0, 1: 1, 4: 1, 5: 1, 2: 2, 3: 2, 6: 2, 7: 2, 8: 2, 9: 2])
@@ -313,7 +313,7 @@ struct GraphAlgorithmTests {
         let sevens: [any Graph<Int>] = [
             UndirectedAdjacencyList(vertices: seven.vertices, edges: seven.edges),
             ReferencePseudograph(vertices: seven.vertices, edges: seven.edges),
-            AdjacencyList(UndirectedAdjacencyList(vertices: seven.vertices, edges: seven.edges).directed).undirected,
+            AdjacencyList(UndirectedAdjacencyList(vertices: seven.vertices, edges: seven.edges).directedView).undirectedView,
         ]
         for g in sevens {
             #expect(componentCount(g) == 4)

@@ -81,7 +81,7 @@ struct IncidenceMatrixStressTests {
         }.value
     }
 
-    @Test("incidenceGraph of a 1 024 × 1 024 matrix at density 1/8 reads exactly as an incidence-list copy's", .timeLimit(.minutes(1)))
+    @Test("incidenceGraphView of a 1 024 × 1 024 matrix at density 1/8 reads exactly as an incidence-list copy's", .timeLimit(.minutes(1)))
     func incidenceGraphAtScale() async {
         await Task {
             // Every row and every edge of the view: before the view kept the hyperedges' first
@@ -91,7 +91,7 @@ struct IncidenceMatrixStressTests {
             let columns = (0 ..< n).map { _ in (0 ..< n).filter { _ in Int.random(in: 0 ..< 8, using: &rng) == 0 } }
             let matrix = IncidenceMatrix(vertexCount: n, hyperedges: columns)
             let list = UndirectedIncidenceList<Int>(matrix)
-            let view = matrix.incidenceGraph, listView = list.incidenceGraph
+            let view = matrix.incidenceGraphView, listView = list.incidenceGraphView
             #expect(view.vertexCount == 2 * n && view.edgeCount == columns.map(\.count).reduce(0, +))
             #expect(view.edgeCount == listView.edgeCount)
             for x in view.vertices {
@@ -106,7 +106,7 @@ struct IncidenceMatrixStressTests {
         }.value
     }
 
-    @Test("incidenceGraph of a 512 × 512 oriented matrix at density 1/16 per side reads exactly as an incidence-list copy's", .timeLimit(.minutes(1)))
+    @Test("incidenceGraphView of a 512 × 512 oriented matrix at density 1/16 per side reads exactly as an incidence-list copy's", .timeLimit(.minutes(1)))
     func directedIncidenceGraphAtScale() async {
         await Task {
             var rng = SeededRandomNumberGenerator(seed: 19)
@@ -116,7 +116,7 @@ struct IncidenceMatrixStressTests {
                  targets: (0 ..< n).filter { _ in Int.random(in: 0 ..< 16, using: &rng) == 0 })
             })
             let list = IncidenceList<Int>(oriented)
-            let view = oriented.incidenceGraph, listView = list.incidenceGraph
+            let view = oriented.incidenceGraphView, listView = list.incidenceGraphView
             #expect(view.edgeCount == listView.edgeCount)
             for x in view.vertices {
                 #expect(Array(view.successors(of: x)) == Array(listView.successors(of: x)))

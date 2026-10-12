@@ -38,7 +38,7 @@ struct AStarTests {
 
         let xg4: [(Int, Int, Int)] = [(0, 1, 2), (1, 2, 2), (2, 3, 1), (3, 4, 1), (4, 5, 1), (5, 6, 1), (6, 7, 1), (7, 0, 1)]
         let xg4Graph = UndirectedAdjacencyList(edges: xg4.map { UndirectedEdge($0.0, $0.1) })
-        let fromXG4 = xg4Graph.directed.aStarShortestPath(from: 0, to: 2, weight: { xg4[$0.position].2 }, heuristic: { _ in 0 })
+        let fromXG4 = xg4Graph.directedView.aStarShortestPath(from: 0, to: 2, weight: { xg4[$0.position].2 }, heuristic: { _ in 0 })
         #expect(fromXG4?.path.vertices == [0, 1, 2])
         #expect(fromXG4?.distance == 4)
     }

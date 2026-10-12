@@ -1008,14 +1008,14 @@ def define():
     g = build_ops(DP, [], [(0, 1), (1, 0), (1, 1)])
     und = [(a, b) for a, b in g.edges()]  # UndirectedView: each arc an edge at its own position
     h = copy_generic(g, P, edges=und); h.check_laws()
-    row("Conversion", "Pseudograph(digraph.undirected): opposite arcs become copies", "DirectedPseudograph E [0→1, 1→0, 1→1]", h.state())
+    row("Conversion", "Pseudograph(digraph.undirectedView): opposite arcs become copies", "DirectedPseudograph E [0→1, 1→0, 1→1]", h.state())
     g = build_ops(P, [], [(0, 1), (0, 1), (1, 1)])
     dirs = []
     for a, b in g.edges(): dirs += [(a, b), (b, a)]  # DirectedView: u→v then v→u per edge
     h = copy_generic(g, DP, edges=dirs); h.check_laws()
-    row("Conversion", "DirectedPseudograph(graph.directed): two arcs per edge, a loop's two arcs", "Pseudograph E [0–1, 0–1, 1–1]", h.state())
+    row("Conversion", "DirectedPseudograph(graph.directedView): two arcs per edge, a loop's two arcs", "Pseudograph E [0–1, 0–1, 1–1]", h.state())
     h = copy_generic(g, DM, edges=dirs)
-    row("Conversion", "DirectedMultigraph(graph.directed) with a loop is nil", "Pseudograph E [0–1, 0–1, 1–1]", "nil" if h is None else "?")
+    row("Conversion", "DirectedMultigraph(graph.directedView) with a loop is nil", "Pseudograph E [0–1, 0–1, 1–1]", "nil" if h is None else "?")
     g = build_ops(DP, [], [(0, 1), (0, 1), (1, 1)])
     row("Conversion", "DirectedMultigraph(directedPseudograph) with a loop is nil", "DirectedPseudograph E [0→1, 0→1, 1→1]", "nil" if copy_generic(g, DM) is None else "?")
     g = build_ops(DM, [], [(0, 1), (0, 1)])

@@ -1,5 +1,5 @@
 // Graph algorithms reach a hypergraph through its incidence graph. On seeded random hypergraphs,
-// with empty and repeated hyperedges, every algorithm run on `incidenceGraph` must equal the same
+// with empty and repeated hyperedges, every algorithm run on `incidenceGraphView` must equal the same
 // algorithm on the view copied into an adjacency list (`UndirectedAdjacencyList<Int>` or
 // `AdjacencyList<Int>`, built from the view's own vertices and edges in order, so positions and
 // row orders agree). The hypergraph algorithms are checked against the components of that view.
@@ -22,7 +22,7 @@ import Traversal
 
 @Suite("Hypergraphs conformances and algorithms on the incidence graph", .tags(.conformance))
 struct HypergraphConformanceTests {
-    @Test("Undirected: algorithms on incidenceGraph equal the same on an UndirectedAdjacencyList copy", arguments: 1 ... 8)
+    @Test("Undirected: algorithms on incidenceGraphView equal the same on an UndirectedAdjacencyList copy", arguments: 1 ... 8)
     func undirectedViewAgainstCopy(seed: Int) {
         var rng = SeededRandomNumberGenerator(seed: UInt(seed))
         let names = (0 ..< 6 + seed * 2).map { "v\($0)" }
@@ -32,7 +32,7 @@ struct HypergraphConformanceTests {
             hypergraph.insert(hyperedge: (0 ..< size).map { _ in names.randomElement(using: &rng)! })
         }
         if seed.isMultiple(of: 2) { hypergraph.insert(hyperedge: Array(hypergraph.members(ofHyperedgeAt: 0))) }
-        let view = hypergraph.incidenceGraph
+        let view = hypergraph.incidenceGraphView
         let n = hypergraph.vertexCount, m = hypergraph.hyperedgeCount
         let copy = UndirectedAdjacencyList<Int>(vertices: view.vertices, edges: view.edges)
         #expect(view.vertexCount == n + m && copy.vertexCount == n + m)
@@ -54,9 +54,9 @@ struct HypergraphConformanceTests {
         #expect(view.articulationPoints() == copy.articulationPoints())
         // Traversal, through the directed reading.
         for source in view.vertices {
-            #expect(Array(view.directed.breadthFirstSearch(from: source)) == Array(copy.directed.breadthFirstSearch(from: source)))
-            #expect(Array(view.directed.depthFirstSearch(from: source)) == Array(copy.directed.depthFirstSearch(from: source)))
-            #expect(view.directed.descendants(of: source) == copy.directed.descendants(of: source))
+            #expect(Array(view.directedView.breadthFirstSearch(from: source)) == Array(copy.directedView.breadthFirstSearch(from: source)))
+            #expect(Array(view.directedView.depthFirstSearch(from: source)) == Array(copy.directedView.depthFirstSearch(from: source)))
+            #expect(view.directedView.descendants(of: source) == copy.directedView.descendants(of: source))
         }
         // ShortestPaths, with a weight per incidence (an edge position of the view).
         let weight = (0 ..< view.edgeCount).map { ($0 &* 7 + seed) % 5 + 1 }
@@ -83,7 +83,7 @@ struct HypergraphConformanceTests {
         #expect(hypergraph.isConnected == (n > 0 && viewComponents.count == 1))
     }
 
-    @Test("Directed: algorithms on incidenceGraph equal the same on an AdjacencyList copy", arguments: 1 ... 8)
+    @Test("Directed: algorithms on incidenceGraphView equal the same on an AdjacencyList copy", arguments: 1 ... 8)
     func directedViewAgainstCopy(seed: Int) {
         var rng = SeededRandomNumberGenerator(seed: UInt(50 + seed))
         let names = (0 ..< 5 + seed * 2).map { "v\($0)" }
@@ -93,7 +93,7 @@ struct HypergraphConformanceTests {
             let targets = (0 ..< Int.random(in: 0 ... 3, using: &rng)).map { _ in names.randomElement(using: &rng)! }
             hypergraph.insert(sources: sources, targets: targets)
         }
-        let view = hypergraph.incidenceGraph
+        let view = hypergraph.incidenceGraphView
         let n = hypergraph.vertexCount, m = hypergraph.hyperedgeCount
         let copy = AdjacencyList<Int>(vertices: view.vertices, edges: view.edges)
         #expect(view.vertexCount == n + m && Array(view.edges) == Array(copy.edges))
@@ -185,10 +185,10 @@ struct HypergraphConformanceTests {
             #expect(minimal.isConnected == list.isConnected && minimal.isUniform(size: 2) == list.isUniform(size: 2))
             #expect(minimal.cliqueExpansion() == list.cliqueExpansion() && minimal.lineGraph(s: 1) == list.lineGraph(s: 1))
             #expect(minimal.sConnectedComponents(s: 2) == list.sConnectedComponents(s: 2))
-            #expect(Array(minimal.incidenceGraph.edges) == Array(list.incidenceGraph.edges))
-            for x in minimal.incidenceGraph.vertices {
-                #expect(Array(minimal.incidenceGraph.neighbors(of: x)) == Array(list.incidenceGraph.neighbors(of: x)))
-                #expect(Array(minimal.incidenceGraph.incidentEdges(of: x)) == Array(list.incidenceGraph.incidentEdges(of: x)))
+            #expect(Array(minimal.incidenceGraphView.edges) == Array(list.incidenceGraphView.edges))
+            for x in minimal.incidenceGraphView.vertices {
+                #expect(Array(minimal.incidenceGraphView.neighbors(of: x)) == Array(list.incidenceGraphView.neighbors(of: x)))
+                #expect(Array(minimal.incidenceGraphView.incidentEdges(of: x)) == Array(list.incidenceGraphView.incidentEdges(of: x)))
             }
             #expect(minimal.sConnectedComponents(s: 1) == list.sConnectedComponents(s: 1))
         }
@@ -244,12 +244,12 @@ struct HypergraphConformanceTests {
             #expect(minimal.isBHypergraph == list.isBHypergraph && minimal.isFHypergraph == list.isFHypergraph && minimal.isBFHypergraph == list.isBFHypergraph)
             #expect(minimal.outDegreeHistogram() == list.outDegreeHistogram() && minimal.targetSizeHistogram() == list.targetSizeHistogram())
             #expect(minimal.sourceSizeHistogram() == list.sourceSizeHistogram() && minimal.inDegreeHistogram() == list.inDegreeHistogram())
-            #expect(Array(minimal.incidenceGraph.edges) == Array(list.incidenceGraph.edges))
-            for x in minimal.incidenceGraph.vertices {
-                #expect(Array(minimal.incidenceGraph.successors(of: x)) == Array(list.incidenceGraph.successors(of: x)))
-                #expect(Array(minimal.incidenceGraph.predecessors(of: x)) == Array(list.incidenceGraph.predecessors(of: x)))
-                #expect(Array(minimal.incidenceGraph.outEdges(of: x)) == Array(list.incidenceGraph.outEdges(of: x)))
-                #expect(Array(minimal.incidenceGraph.inEdges(of: x)) == Array(list.incidenceGraph.inEdges(of: x)))
+            #expect(Array(minimal.incidenceGraphView.edges) == Array(list.incidenceGraphView.edges))
+            for x in minimal.incidenceGraphView.vertices {
+                #expect(Array(minimal.incidenceGraphView.successors(of: x)) == Array(list.incidenceGraphView.successors(of: x)))
+                #expect(Array(minimal.incidenceGraphView.predecessors(of: x)) == Array(list.incidenceGraphView.predecessors(of: x)))
+                #expect(Array(minimal.incidenceGraphView.outEdges(of: x)) == Array(list.incidenceGraphView.outEdges(of: x)))
+                #expect(Array(minimal.incidenceGraphView.inEdges(of: x)) == Array(list.incidenceGraphView.inEdges(of: x)))
             }
         }
     }

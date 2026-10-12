@@ -1,5 +1,5 @@
 // Inputs (catalog PL-049 – PL-061): self-loops and parallel edges never change the answer; directed
-// graphs go through `undirected` (AdjacencyList, each arc an edge, a 2-cycle two parallel edges).
+// graphs go through `undirectedView` (AdjacencyList, each arc an edge, a 2-cycle two parallel edges).
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import AdjacencyListModule
@@ -95,13 +95,13 @@ struct PlanarityInputTests {
         #expect((graph.findKuratowskiSubgraph() == nil) == true)
     }
 
-    @Test("PL-055 directed K5 (transitive tournament): undirected.isPlanar")
+    @Test("PL-055 directed K5 (transitive tournament): undirectedView.isPlanar")
     func pl055() {
-        // D: tt(5); undirected.isPlanar → false
+        // D: tt(5); undirectedView.isPlanar → false
         let graph = AdjacencyList<Int>(vertices: 0 ..< 5, edges: [DirectedEdge(from: 0, to: 1),
             DirectedEdge(from: 0, to: 2), DirectedEdge(from: 0, to: 3), DirectedEdge(from: 0, to: 4),
             DirectedEdge(from: 1, to: 2), DirectedEdge(from: 1, to: 3), DirectedEdge(from: 1, to: 4),
-            DirectedEdge(from: 2, to: 3), DirectedEdge(from: 2, to: 4), DirectedEdge(from: 3, to: 4)]).undirected
+            DirectedEdge(from: 2, to: 3), DirectedEdge(from: 2, to: 4), DirectedEdge(from: 3, to: 4)]).undirectedView
         #expect(graph.vertexCount == 5 && graph.edgeCount == 10)
         #expect(Array(graph.vertices) == [0, 1, 2, 3, 4])
         #expect(graph.isPlanar == false)
@@ -110,12 +110,12 @@ struct PlanarityInputTests {
         #expect((graph.findKuratowskiSubgraph() == nil) == false)
     }
 
-    @Test("PL-056 directed K4: undirected.isPlanar")
+    @Test("PL-056 directed K4: undirectedView.isPlanar")
     func pl056() {
-        // D: tt(4); undirected.isPlanar → true
+        // D: tt(4); undirectedView.isPlanar → true
         let graph = AdjacencyList<Int>(vertices: 0 ..< 4, edges: [DirectedEdge(from: 0, to: 1),
             DirectedEdge(from: 0, to: 2), DirectedEdge(from: 0, to: 3), DirectedEdge(from: 1, to: 2),
-            DirectedEdge(from: 1, to: 3), DirectedEdge(from: 2, to: 3)]).undirected
+            DirectedEdge(from: 1, to: 3), DirectedEdge(from: 2, to: 3)]).undirectedView
         #expect(graph.vertexCount == 4 && graph.edgeCount == 6)
         #expect(Array(graph.vertices) == [0, 1, 2, 3])
         #expect(graph.isPlanar == true)
@@ -124,11 +124,11 @@ struct PlanarityInputTests {
         #expect((graph.findKuratowskiSubgraph() == nil) == true)
     }
 
-    @Test("PL-057 a 2-cycle: two parallel edges underneath: undirected.isPlanar")
+    @Test("PL-057 a 2-cycle: two parallel edges underneath: undirectedView.isPlanar")
     func pl057() {
-        // D: 0>1, 1>0; undirected.isPlanar → true
+        // D: 0>1, 1>0; undirectedView.isPlanar → true
         let graph = AdjacencyList<Int>(vertices: 0 ..< 2, edges: [DirectedEdge(from: 0, to: 1),
-            DirectedEdge(from: 1, to: 0)]).undirected
+            DirectedEdge(from: 1, to: 0)]).undirectedView
         #expect(graph.vertexCount == 2 && graph.edgeCount == 2)
         #expect(Array(graph.vertices) == [0, 1])
         #expect(graph.isPlanar == true)
@@ -137,13 +137,13 @@ struct PlanarityInputTests {
         #expect((graph.findKuratowskiSubgraph() == nil) == true)
     }
 
-    @Test("PL-058 directed K3,3: undirected.isPlanar")
+    @Test("PL-058 directed K3,3: undirectedView.isPlanar")
     func pl058() {
-        // D: KB(0..2;3..5); undirected.isPlanar → false
+        // D: KB(0..2;3..5); undirectedView.isPlanar → false
         let graph = AdjacencyList<Int>(vertices: [0, 3, 4, 5, 1, 2], edges: [DirectedEdge(from: 0, to: 3),
             DirectedEdge(from: 0, to: 4), DirectedEdge(from: 0, to: 5), DirectedEdge(from: 1, to: 3),
             DirectedEdge(from: 1, to: 4), DirectedEdge(from: 1, to: 5), DirectedEdge(from: 2, to: 3),
-            DirectedEdge(from: 2, to: 4), DirectedEdge(from: 2, to: 5)]).undirected
+            DirectedEdge(from: 2, to: 4), DirectedEdge(from: 2, to: 5)]).undirectedView
         #expect(graph.vertexCount == 6 && graph.edgeCount == 9)
         #expect(Array(graph.vertices) == [0, 3, 4, 5, 1, 2])
         #expect(graph.isPlanar == false)
@@ -152,13 +152,13 @@ struct PlanarityInputTests {
         #expect((graph.findKuratowskiSubgraph() == nil) == false)
     }
 
-    @Test("PL-059 directed K3,3, some arcs reversed: undirected.isPlanar")
+    @Test("PL-059 directed K3,3, some arcs reversed: undirectedView.isPlanar")
     func pl059() {
-        // D: 0>3, 4>0, 0>5, 3>1, 1>4, 5>1, 2>3, 2>4, 5>2; undirected.isPlanar → false
+        // D: 0>3, 4>0, 0>5, 3>1, 1>4, 5>1, 2>3, 2>4, 5>2; undirectedView.isPlanar → false
         let graph = AdjacencyList<Int>(vertices: [0, 3, 4, 5, 1, 2], edges: [DirectedEdge(from: 0, to: 3),
             DirectedEdge(from: 4, to: 0), DirectedEdge(from: 0, to: 5), DirectedEdge(from: 3, to: 1),
             DirectedEdge(from: 1, to: 4), DirectedEdge(from: 5, to: 1), DirectedEdge(from: 2, to: 3),
-            DirectedEdge(from: 2, to: 4), DirectedEdge(from: 5, to: 2)]).undirected
+            DirectedEdge(from: 2, to: 4), DirectedEdge(from: 5, to: 2)]).undirectedView
         #expect(graph.vertexCount == 6 && graph.edgeCount == 9)
         #expect(Array(graph.vertices) == [0, 3, 4, 5, 1, 2])
         #expect(graph.isPlanar == false)
@@ -167,11 +167,11 @@ struct PlanarityInputTests {
         #expect((graph.findKuratowskiSubgraph() == nil) == false)
     }
 
-    @Test("PL-060 directed: 2-cycle embedding: undirected.planarEmbedding()")
+    @Test("PL-060 directed: 2-cycle embedding: undirectedView.planarEmbedding()")
     func pl060() throws {
-        // D: 0>1, 1>0, 1>2; undirected.planarEmbedding() → faceCount 2; face lengths {4, 2}; unique up to mirror image
+        // D: 0>1, 1>0, 1>2; undirectedView.planarEmbedding() → faceCount 2; face lengths {4, 2}; unique up to mirror image
         let graph = AdjacencyList<Int>(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1),
-            DirectedEdge(from: 1, to: 0), DirectedEdge(from: 1, to: 2)]).undirected
+            DirectedEdge(from: 1, to: 0), DirectedEdge(from: 1, to: 2)]).undirectedView
         #expect(graph.vertexCount == 3 && graph.edgeCount == 3)
         #expect(Array(graph.vertices) == [0, 1, 2])
         let embedding = try #require(graph.planarEmbedding())
@@ -236,6 +236,9 @@ struct PlanarityInputTests {
                 let face = embedding.face(from: vertexList[i], alongEdgeAt: rotation[i][s])
                 #expect(face.vertices == vertices + [vertexList[i]] && face.edges == edges)
                 #expect(embedding.rightFace(from: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
+                let checkedFace = try embedding.face(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s])
+                #expect(checkedFace.vertices == face.vertices && checkedFace.edges == face.edges)
+                #expect(try embedding.rightFace(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
             }
         }
         #expect(embedding.faces.map(\.length).sorted(by: >) == [4, 2])
@@ -254,13 +257,13 @@ struct PlanarityInputTests {
         #expect(!embedding.description.isEmpty)
     }
 
-    @Test("PL-061 directed K5: witness: undirected.findKuratowskiSubgraph()")
+    @Test("PL-061 directed K5: witness: undirectedView.findKuratowskiSubgraph()")
     func pl061() throws {
-        // D: tt(5); undirected.findKuratowskiSubgraph() → K₅: edges [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]; branch vertices [0, 1, 2, 3, 4]
+        // D: tt(5); undirectedView.findKuratowskiSubgraph() → K₅: edges [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]; branch vertices [0, 1, 2, 3, 4]
         let graph = AdjacencyList<Int>(vertices: 0 ..< 5, edges: [DirectedEdge(from: 0, to: 1),
             DirectedEdge(from: 0, to: 2), DirectedEdge(from: 0, to: 3), DirectedEdge(from: 0, to: 4),
             DirectedEdge(from: 1, to: 2), DirectedEdge(from: 1, to: 3), DirectedEdge(from: 1, to: 4),
-            DirectedEdge(from: 2, to: 3), DirectedEdge(from: 2, to: 4), DirectedEdge(from: 3, to: 4)]).undirected
+            DirectedEdge(from: 2, to: 3), DirectedEdge(from: 2, to: 4), DirectedEdge(from: 3, to: 4)]).undirectedView
         #expect(graph.vertexCount == 5 && graph.edgeCount == 10)
         #expect(Array(graph.vertices) == [0, 1, 2, 3, 4])
         let witness = try #require(graph.findKuratowskiSubgraph())

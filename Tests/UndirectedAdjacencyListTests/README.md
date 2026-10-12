@@ -91,7 +91,7 @@ fixtures (`UndirectedFixtures.swift`), the pseudograph test conformer and `Minim
 | `UndirectedAdjacencyListReviewTests.swift` | Added after the critical review, for bugs that survived the first suite: `removeAllEdges` forgets edges (UG-R21); edgeless graphs compare vertices and hashes see both sets (UG-R16); `memberAfterInsert` returns stored instances and orientation (UG-R10); decoding keeps orientation and rejects repeated edges (UG-R19); edge indices (UG-R22); seeded random mutations against a set model, every law after every step (UG-P02) |
 
 The `Graph` laws on this type (with Int and String vertices), its associated types, the builder,
-the `directed` view and conversions are tested in `Tests/GraphProtocolsTests`, beside the other
+the `directedView` view and conversions are tested in `Tests/GraphProtocolsTests`, beside the other
 conformers.
 
 Case IDs in test names (UG-R01, UG-L16, ...) refer to the undirected protocol catalog (`Tests/Catalogs/GraphProtocols/graph.md`); see

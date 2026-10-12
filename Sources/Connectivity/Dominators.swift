@@ -308,6 +308,65 @@ public struct DominatorTree<G: DirectedGraph> {
     }
 }
 
+// MARK: - checked: lookups
+
+// README Principle 6: `VertexNotFound` for a vertex that is not in the graph the tree was
+// computed from, where the trapping spellings are the fast path. Each checks membership once with
+// the graph copy's `contains(_:)`, then calls its trapping spelling. A nil keeps its meaning (the
+// root, or a vertex the root does not reach); `try?` flattens that nil with a missing vertex's, so
+// a caller that must tell them apart catches.
+
+extension DominatorTree {
+    /// `immediateDominator(of: vertex)`, throwing instead of trapping when `vertex` is not a
+    /// vertex: nil still means the root or a vertex the root does not reach.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the graph.
+    @inlinable
+    public func immediateDominator(checked vertex: G.Vertex) throws(VertexNotFound) -> G.Vertex? {
+        guard _vertices.graph.contains(vertex) else { throw VertexNotFound() }
+        return immediateDominator(of: vertex)
+    }
+
+    /// `dominators(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex: nil
+    /// still means the root does not reach it.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the graph.
+    @inlinable
+    public func dominators(checked vertex: G.Vertex) throws(VertexNotFound) -> [G.Vertex]? {
+        guard _vertices.graph.contains(vertex) else { throw VertexNotFound() }
+        return dominators(of: vertex)
+    }
+
+    /// `strictDominators(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex:
+    /// nil still means the root does not reach it.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the graph.
+    @inlinable
+    public func strictDominators(checked vertex: G.Vertex) throws(VertexNotFound) -> [G.Vertex]? {
+        guard _vertices.graph.contains(vertex) else { throw VertexNotFound() }
+        return strictDominators(of: vertex)
+    }
+
+    /// `children(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the graph.
+    @inlinable
+    public func children(checked vertex: G.Vertex) throws(VertexNotFound) -> ArraySlice<G.Vertex> {
+        guard _vertices.graph.contains(vertex) else { throw VertexNotFound() }
+        return children(of: vertex)
+    }
+
+    /// `dominates(a, b)`, throwing instead of trapping when either is not a vertex. O(1) after
+    /// the lookups.
+    ///
+    /// - Throws: `VertexNotFound` when `a` or `b` is not a vertex of the graph.
+    @inlinable
+    public func dominates(checked a: G.Vertex, _ b: G.Vertex) throws(VertexNotFound) -> Bool {
+        guard _vertices.graph.contains(a), _vertices.graph.contains(b) else { throw VertexNotFound() }
+        return dominates(a, b)
+    }
+}
+
 extension DominatorTree: Sendable where G: Sendable, G.Vertex: Sendable {}
 
 /// The dominance frontier of each vertex reachable from a root: the vertices `y` such that the
@@ -361,6 +420,19 @@ public struct DominanceFrontiers<G: DirectedGraph> {
         precondition(v >= 0 && v < _reachable.count, "\(vertex) is not a vertex of the graph")
         guard _reachable[v] else { return nil }
         return _members[_offsets[v] ..< _offsets[v + 1]]
+    }
+
+    /// The dominance frontier of `vertex`, throwing instead of trapping when it is not a vertex:
+    /// nil still means the root does not reach `vertex`. One `contains(_:)` on the graph's copy,
+    /// then the trapping subscript.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the graph.
+    @inlinable
+    public subscript(checked vertex: G.Vertex) -> ArraySlice<G.Vertex>? {
+        get throws(VertexNotFound) {
+            guard _vertices.graph.contains(vertex) else { throw VertexNotFound() }
+            return self[vertex]
+        }
     }
 }
 

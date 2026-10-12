@@ -6,7 +6,7 @@ First runs ref.py's catalog with each case builder instrumented, so every row's 
 as structured values, and checks that the rendered catalog equals cases.md byte for byte. Then
 re-evaluates each row with ref.py's model functions, asserts each value matches its catalog cell,
 and writes one @Test per row. The representation rows (AdjacencyList and AdjacencyMatrix through
-`.undirected`) are recomputed with the same models on those representations' rows: successors then
+`.undirectedView`) are recomputed with the same models on those representations' rows: successors then
 predecessors, arcs in insertion order (AdjacencyList) or at row-major cells (AdjacencyMatrix); the
 weighted rows with NetworkX itself, given that adjacency order.
 """
@@ -137,7 +137,7 @@ def comment_input(cid):
 
 
 def adjlist_repr(g):
-    """The graph as AdjacencyList(arcs as written).undirected: positions are the arcs in order;
+    """The graph as AdjacencyList(arcs as written).undirectedView: positions are the arcs in order;
     each row is out-arcs then in-arcs, each in insertion order. None if an arc repeats."""
     arcs = [(u, v) for (u, v, _) in g.E]
     if len(set(arcs)) != len(arcs):
@@ -156,7 +156,7 @@ def adjlist_repr(g):
 
 
 def matrix_repr(g):
-    """AdjacencyMatrix(vertexCount: n, arcs).undirected for vertices 0..<n in order: positions are
+    """AdjacencyMatrix(vertexCount: n, arcs).undirectedView for vertices 0..<n in order: positions are
     the cells in row-major order; each row is successors ascending, then predecessors ascending."""
     if g.V != list(range(g.n)):
         return None
@@ -294,10 +294,10 @@ def build_graph(g, rep, T):
         L.append(f"let graph = UnindexedGraph<{T}>(vertices: {arr(g.V)}, edges: pairs.map {{ UndirectedEdge($0.0, $0.1) }})")
         L.append("#expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)")
     elif rep == "adjlist":
-        L.append(f"let graph = AdjacencyList<{T}>(vertices: {arr(g.V)} as [{T}], edges: pairs.map {{ DirectedEdge(from: $0.0, to: $0.1) }}).undirected")
+        L.append(f"let graph = AdjacencyList<{T}>(vertices: {arr(g.V)} as [{T}], edges: pairs.map {{ DirectedEdge(from: $0.0, to: $0.1) }}).undirectedView")
         L.append(f"#expect(graph.edgeCount == {len(g.E)})")
     elif rep == "matrix":
-        L.append(f"let graph = AdjacencyMatrix(vertexCount: {g.n}, edges: pairs.map {{ DirectedEdge(from: $0.0, to: $0.1) }}).undirected")
+        L.append(f"let graph = AdjacencyMatrix(vertexCount: {g.n}, edges: pairs.map {{ DirectedEdge(from: $0.0, to: $0.1) }}).undirectedView")
         L.append(f"#expect(graph.edgeCount == {len(g.E)})")
     elif rep == "bipartite":
         L.append(f"let graph = try #require(BipartiteGraph<{T}>(left: {arr(g.left)} as [{T}], right: {arr(g.right)} as [{T}], edges: pairs.map {{ UndirectedEdge($0.0, $0.1) }}))")
@@ -354,6 +354,8 @@ def mates_block(g, rep, es, T, h=None):
         L.append("    #expect(matching.mate(of: v) == mates[i], \"mate of \\(v)\")")
         L.append("    #expect(matching.mate(ofIndex: i) == mateIndices[i], \"mate of index \\(i)\")")
         L.append("    #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], \"matched edge of \\(v)\")")
+        L.append("    #expect((try? matching.mate(checked: v)) == mates[i], \"checked mate of \\(v)\")")
+        L.append("    #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], \"checked matched edge of \\(v)\")")
         L.append("}")
     else:
         me = [medge.get(i) for i in range(g.n)]
@@ -362,6 +364,8 @@ def mates_block(g, rep, es, T, h=None):
         L.append("    #expect(matching.mate(of: v) == mates[i], \"mate of \\(v)\")")
         L.append("    #expect(matching.mate(ofIndex: i) == mateIndices[i], \"mate of index \\(i)\")")
         L.append("    #expect(matching.matchedEdge(of: v) == matchedEdges[i], \"matched edge of \\(v)\")")
+        L.append("    #expect((try? matching.mate(checked: v)) == mates[i], \"checked mate of \\(v)\")")
+        L.append("    #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], \"checked matched edge of \\(v)\")")
         L.append("}")
     return L
 
@@ -923,6 +927,8 @@ def stable_body(cid, args, kwargs):
         f"let expectedReviewerMates: [Int?] = {arr(rmate)}",
         f"for p in 0 ..< {P} {{ #expect(result.mate(ofProposer: p) == expectedProposerMates[p], \"proposer \\(p)\") }}",
         f"for r in 0 ..< {R} {{ #expect(result.mate(ofReviewer: r) == expectedReviewerMates[r], \"reviewer \\(r)\") }}",
+        f"for p in 0 ..< {P} {{ #expect((try? result.mate(checkedProposer: p)) == expectedProposerMates[p], \"checked proposer \\(p)\") }}",
+        f"for r in 0 ..< {R} {{ #expect((try? result.mate(checkedReviewer: r)) == expectedReviewerMates[r], \"checked reviewer \\(r)\") }}",
         "// Every matching over acceptable pairs, by brute force; the stable ones.",
         "func acceptable(_ p: Int, _ r: Int) -> Bool { proposers[p].contains(r) && reviewers[r].contains(p) }",
         "func isStable(_ m: [Int?]) -> Bool {",
@@ -1164,15 +1170,15 @@ total += write("StableMatchingTests.swift", catalog_file_ordered(
 # Representation file
 # ---------------------------------------------------------------------------------------------
 REP_NAMES = {"pseudo": "ReferencePseudograph", "ual": "UndirectedAdjacencyList", "unindexed": "no indices",
-             "adjlist": "AdjacencyList.undirected", "matrix": "AdjacencyMatrix.undirected", "bipartite": "BipartiteGraph"}
+             "adjlist": "AdjacencyList.undirectedView", "matrix": "AdjacencyMatrix.undirectedView", "bipartite": "BipartiteGraph"}
 
 L = header(wrap(
     "The graph rows of the catalog again on other representations. Rows on `UndirectedAdjacencyList` "
     "run again on `ReferencePseudograph`; every graph row runs on a file-private conformer with no "
     "vertex or edge indices (rows from `incidentEdges(of:)`, `mate(ofIndex:)` by position in "
     "`vertices`); all with the catalog's values, since their rows are in position order too. Then on "
-    "`AdjacencyList.undirected` with each edge an arc as written, and on `AdjacencyMatrix.undirected` "
-    "with the arcs at their row-major cells (rows on 0..<n with no arc twice). Through `.undirected` a "
+    "`AdjacencyList.undirectedView` with each edge an arc as written, and on `AdjacencyMatrix.undirectedView` "
+    "with the arcs at their row-major cells (rows on 0..<n with no arc twice). Through `.undirectedView` a "
     "row is successors, then predecessors, so the exact outputs of the row-order-dependent algorithms "
     "differ from the catalog's: swiftgen.py computed each with ref.py's model on that "
     "representation's rows, and the weighted rows with NetworkX 3.7 given that adjacency order. Matrix "
@@ -1251,7 +1257,9 @@ L = header(wrap(
     "preconditions the catalog does not list: `mate(of:)` on a non-vertex, `mate(ofIndex:)` out of "
     "range, `mate(ofProposer:)` and `mate(ofReviewer:)` out of range, a reviewer list naming a proposer "
     "out of range or one twice, a position outside `edges` given to the other two checks, a NaN weight "
-    "to `minimumWeightMatching`, a negative column count, a NaN cost under `maximize`. Each exit test "
+    "to `minimumWeightMatching`, a negative column count, a NaN cost under `maximize`. Then, in process, "
+    "the `checked:` spellings of the four lookups, which throw instead and keep nil for a free vertex or "
+    "an unmatched agent. Each exit test "
     "builds its inputs inside the closure. Generated from cases.md by swiftgen.py, the tests after "
     "MA-238 written by hand; see README.md."),
     ["AdjacencyListModule", "BipartiteGraphs", "GraphProtocols", "GrafluentTestSupport", "MatchingModule", "Testing"],
@@ -1306,6 +1314,43 @@ EXTRA = [
 for ttl, fname, body in EXTRA:
     L += [f"    @Test(\"{esc(ttl)}\")", f"    func {fname}() async {{",
           "        await #expect(processExitsWith: .failure) {"] + ["            " + l for l in body] + ["        }", "    }", ""]
+# The checked: spellings of the lookups above: they throw where the trapping ones trap, and keep nil
+# for a free vertex or an unmatched agent. In process, not exit tests.
+CHECKED = [
+    ("mate(checked:) and matchedEdge(checked:) throw for a non-vertex and keep nil for a free vertex", "checkedMateOfNonVertex",
+     ["let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1, 2], edges: [UndirectedEdge(0, 1)])",
+      "let matching = graph.maximumMatching()",
+      "#expect(throws: VertexNotFound()) { try matching.mate(checked: 7) }",
+      "#expect(throws: VertexNotFound()) { try matching.matchedEdge(checked: -1) }",
+      "#expect(try matching.mate(checked: 0) == 1 && matching.mate(checked: 1) == 0)",
+      "#expect(try matching.mate(checked: 2) == nil && matching.matchedEdge(checked: 2) == nil)",
+      "#expect(try matching.matchedEdge(checked: 1) == 0)",
+      "// Without vertex indices: the lookup goes through the matching's own table.",
+      "struct Unindexed: Graph {",
+      "    let vertices: [String]",
+      "    let edges: [UndirectedEdge<String>]",
+      "    func incidentEdges(of vertex: String) -> [Int] { edges.indices.filter { edges[$0].u == vertex || edges[$0].v == vertex } }",
+      "    func neighbors(of vertex: String) -> [String] { incidentEdges(of: vertex).map { edges[$0].oppositeVertex(to: vertex) } }",
+      "}",
+      "let named = Unindexed(vertices: [\"a\", \"b\", \"c\"], edges: [UndirectedEdge(\"b\", \"c\")])",
+      "#expect(named.vertexIndexBound == nil)",
+      "let namedMatching = named.maximumMatching()",
+      "#expect(throws: VertexNotFound()) { try namedMatching.mate(checked: \"z\") }",
+      "#expect(throws: VertexNotFound()) { try namedMatching.matchedEdge(checked: \"z\") }",
+      "#expect(try namedMatching.mate(checked: \"b\") == \"c\" && namedMatching.mate(checked: \"a\") == nil)",
+      "#expect(try namedMatching.matchedEdge(checked: \"c\") == namedMatching.matchedEdge(of: \"c\"))"]),
+    ("mate(checkedProposer:) and mate(checkedReviewer:) throw out of range and keep nil for an unmatched agent", "checkedStableMates",
+     ["// Proposer 1 lists nobody; reviewer 1 is listed by nobody.",
+      "let result = stableMatching(proposerPreferences: [[0], []], reviewerPreferences: [[0], []])",
+      "#expect(throws: VertexNotFound()) { try result.mate(checkedProposer: 2) }",
+      "#expect(throws: VertexNotFound()) { try result.mate(checkedProposer: -1) }",
+      "#expect(throws: VertexNotFound()) { try result.mate(checkedReviewer: 2) }",
+      "#expect(throws: VertexNotFound()) { try result.mate(checkedReviewer: -1) }",
+      "#expect(try result.mate(checkedProposer: 0) == 0 && result.mate(checkedProposer: 1) == nil)",
+      "#expect(try result.mate(checkedReviewer: 0) == 0 && result.mate(checkedReviewer: 1) == nil)"]),
+]
+for ttl, fname, body in CHECKED:
+    L += [f"    @Test(\"{esc(ttl)}\")", f"    func {fname}() throws {{"] + ["        " + l for l in body] + ["    }", ""]
 total += write("MatchingPreconditionTests.swift", L)
 print("generated tests:", total)
 print("discrepancies (catalog edges, api.md edges):", DISCREPANCIES)

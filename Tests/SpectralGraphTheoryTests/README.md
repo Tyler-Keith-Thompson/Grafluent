@@ -119,10 +119,10 @@ hand-written exit tests in `extra_traps.swift`:
   under an absolute 1e-9 threshold it would pick the opposite sign. P₅ and P₆₅ list their exactly-0
   middle vertex first, on the dense and the Lanczos paths, on L and on N.
 - **Conformance.** Seeded simple graphs with loops on `Pseudograph`, `UndirectedAdjacencyList`,
-  `AdjacencyList.undirected` and String vertices without indices. Every entry point is checked
+  `AdjacencyList.undirectedView` and String vertices without indices. Every entry point is checked
   against the reference: matrices with ==, weights as exact quarters by endpoint. Directed A and L
-  on `AdjacencyList`, `CompressedSparseRow` and `AdjacencyMatrix`. `graph.directed` has the graph's
-  A and L. `digraph.undirected` is the multigraph of its arcs. The file also checks SparseMatrix
+  on `AdjacencyList`, `CompressedSparseRow` and `AdjacencyMatrix`. `graph.directedView` has the graph's
+  A and L. `digraph.undirectedView` is the multigraph of its arcs. The file also checks SparseMatrix
   equality and hashing, bitwise determinism on both paths, the `tolerance:` parameter (λ₂ and ρ
   relative to themselves, the Fiedler residual within tolerance · λ₂), `Sendable`, and that every
   weighted entry point reads each position exactly once.
@@ -195,7 +195,7 @@ counts and conjugate gradients for resistances. Every test passed. The suite was
 |---|---|
 | Explicit zeros stored (weight 0, cancelled diagonals) | SGT-002, SGT-022, SGT-023, matrix property, extra traps |
 | No negative-weight check | SGT-032, SGT-084, SGT-184, extra traps |
-| An undirected loop adds w, not 2w, to A | SGT-016 – SGT-019, matrix property, `graph.directed` |
+| An undirected loop adds w, not 2w, to A | SGT-016 – SGT-019, matrix property, `graph.directedView` |
 | Directed L over in-degrees | SGT-041, SGT-043, SGT-045, SGT-046, directed conformance |
 | Weight-0 edges connect components | SGT-125, SGT-182, eigen-residual and ordering properties |
 | No canonical sign | Fiedler rows, canonical sign, grid stress |

@@ -31,6 +31,7 @@ struct GreedyOrderTests {
         let order = [] as [Int]
         let coloring = graph.greedyColoring(order: order)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 0)
@@ -78,6 +79,7 @@ struct GreedyOrderTests {
         let order = [4, 3, 2, 1, 0] as [Int]
         let coloring = graph.greedyColoring(order: order)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 0, 1, 0])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 2)
@@ -125,6 +127,7 @@ struct GreedyOrderTests {
         let order = [0, 4, 1, 5, 2, 6, 3, 7] as [Int]
         let coloring = graph.greedyColoring(order: order)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 2, 3, 0, 1, 2, 3])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 4)
@@ -172,6 +175,7 @@ struct GreedyOrderTests {
         let order = [0, 1, 2, 3, 4, 5, 6, 7] as [Int]
         let coloring = graph.greedyColoring(order: order)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 0, 0, 0, 1, 1, 1, 1])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 2)
@@ -219,6 +223,7 @@ struct GreedyOrderTests {
         let order = ["c", "b", "a", "d"] as [String]
         let coloring = graph.greedyColoring(order: order)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [2, 1, 0, 1])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 3)
@@ -266,6 +271,7 @@ struct GreedyOrderTests {
         let order = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int]
         let coloring = graph.greedyColoring(order: order)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 0, 1, 2, 1, 0, 2, 2, 1])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 3)
@@ -313,6 +319,7 @@ struct GreedyOrderTests {
         let order = [5, 6, 7, 8, 9, 0, 1, 2, 3, 4] as [Int]
         let coloring = graph.greedyColoring(order: order)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [1, 2, 0, 2, 0, 0, 0, 1, 1, 2])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 3)
@@ -360,6 +367,7 @@ struct GreedyOrderTests {
         let order = [3, 2, 1, 0] as [Int]
         let coloring = graph.greedyColoring(order: order)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [2, 0, 1, 0])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 3)
@@ -407,6 +415,7 @@ struct GreedyOrderTests {
         let order = [2, 1, 0] as [Int]
         let coloring = graph.greedyColoring(order: order)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 0])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 2)

@@ -9,7 +9,7 @@
 // partition row also checks `count`, `community(of:)` against membership, `community(ofIndex:)`
 // against `community(of:)`, and the modularity of the result (at the call's weight and resolution)
 // against ref.py's; undirected rows of the measures, Louvain and greedy modularity also run on
-// `graph.directed` (the same values). Case IDs (CD-nnn) refer to the catalog; see README.md.
+// `graph.directedView` (the same values). Case IDs (CD-nnn) refer to the catalog; see README.md.
 
 import CommunityDetection
 import GrafluentTestSupport
@@ -38,8 +38,8 @@ struct LouvainTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.35714285714285715) <= 1e-12 * max(1, abs(0.35714285714285715)))
-        let arcs = graph.directed.louvainCommunities()
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.louvainCommunities()
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-084 U(K(0..4), K(5..9), 4-5).louvainCommunities() is [[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]]")
@@ -63,8 +63,8 @@ struct LouvainTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.45238095238095233) <= 1e-12 * max(1, abs(0.45238095238095233)))
-        let arcs = graph.directed.louvainCommunities()
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.louvainCommunities()
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-085 U(nx(barbell,5,0)).louvainCommunities() is [[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]]")
@@ -88,8 +88,8 @@ struct LouvainTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.45238095238095233) <= 1e-12 * max(1, abs(0.45238095238095233)))
-        let arcs = graph.directed.louvainCommunities()
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.louvainCommunities()
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-086 U(nx(ring_of_cliques,4,4)).louvainCommunities() is the catalog's partition (4 communities): One community per clique")
@@ -114,8 +114,8 @@ struct LouvainTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.6071428571428571) <= 1e-12 * max(1, abs(0.6071428571428571)))
-        let arcs = graph.directed.louvainCommunities()
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.louvainCommunities()
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-087 U(nx(connected_caveman,4,5)).louvainCommunities() is the catalog's partition (4 communities)")
@@ -142,8 +142,8 @@ struct LouvainTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.65) <= 1e-12 * max(1, abs(0.65)))
-        let arcs = graph.directed.louvainCommunities()
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.louvainCommunities()
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-088 U(nx(karate_club)).louvainCommunities() is the catalog's partition (4 communities): Q = 0.4188, igraph `community_multilevel`'s value; NetworkX's shuffled runs give 0.3854 – 0.4198 by seed (50 seeds)")
@@ -174,8 +174,8 @@ struct LouvainTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.41880341880341876) <= 1e-12 * max(1, abs(0.41880341880341876)))
-        let arcs = graph.directed.louvainCommunities()
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.louvainCommunities()
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-089 U(nx(karate_club)).louvainCommunities().count is 4")
@@ -249,8 +249,8 @@ struct LouvainTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result, weight: { w[$0] })
         #expect(abs(q - 0.44490358126721763) <= 1e-12 * max(1, abs(0.44490358126721763)))
-        let arcs = graph.directed.louvainCommunities(weight: { w[$0.position] })
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.louvainCommunities(weight: { w[$0.position] })
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-092 U(nx(karate_club)).louvainCommunities(resolution: 0.5) is the catalog's partition (2 communities): Lower γ, larger communities")
@@ -281,8 +281,8 @@ struct LouvainTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result, resolution: 0.5)
         #expect(abs(q - 0.6217948717948718) <= 1e-12 * max(1, abs(0.6217948717948718)))
-        let arcs = graph.directed.louvainCommunities(resolution: 0.5)
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.louvainCommunities(resolution: 0.5)
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-093 U(nx(karate_club)).louvainCommunities(resolution: 2) is the catalog's partition (7 communities): Higher γ, smaller communities")
@@ -313,8 +313,8 @@ struct LouvainTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result, resolution: 2)
         #expect(abs(q - 0.1561472715318869) <= 1e-12 * max(1, abs(0.1561472715318869)))
-        let arcs = graph.directed.louvainCommunities(resolution: 2)
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.louvainCommunities(resolution: 2)
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-094 U(nx(karate_club)).louvainCommunities(resolution: 0) is the catalog's partition (1 communities): γ = 0: every connected component is one community")
@@ -344,8 +344,8 @@ struct LouvainTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result, resolution: 0)
         #expect(abs(q - 1) <= 1e-12 * max(1, abs(1)))
-        let arcs = graph.directed.louvainCommunities(resolution: 0)
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.louvainCommunities(resolution: 0)
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-095 U(nx(karate_club)).louvainCommunities(threshold: 1) is the catalog's partition (6 communities): Threshold ≥ any gain: stops after the first level")
@@ -376,8 +376,8 @@ struct LouvainTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.3613576594345825) <= 1e-12 * max(1, abs(0.3613576594345825)))
-        let arcs = graph.directed.louvainCommunities(threshold: 1)
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.louvainCommunities(threshold: 1)
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-096 U(nx(florentine_families)).louvainCommunities() is the catalog's partition (4 communities): String vertices")
@@ -411,8 +411,8 @@ struct LouvainTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.3975) <= 1e-12 * max(1, abs(0.3975)))
-        let arcs = graph.directed.louvainCommunities()
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.louvainCommunities()
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-097 U(K(0..2), K(3..5)).louvainCommunities() is [[0, 1, 2], [3, 4, 5]]: Components never merge (merging lowers Q)")
@@ -435,8 +435,8 @@ struct LouvainTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.5) <= 1e-12 * max(1, abs(0.5)))
-        let arcs = graph.directed.louvainCommunities()
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.louvainCommunities()
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-098 U(K(0..2), K(3..5), 2-3, 2-3, 2-3).louvainCommunities() is [[0, 1], [2, 3], [4, 5]]: Parallel edges are weight: the triple bridge pulls 2 and 3 together")
@@ -459,8 +459,8 @@ struct LouvainTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.14814814814814814) <= 1e-12 * max(1, abs(0.14814814814814814)))
-        let arcs = graph.directed.louvainCommunities()
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.louvainCommunities()
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-099 U(K(0..2), K(3..5), 2-3, 0-0, 4-4).louvainCommunities() is [[0, 1, 2], [3, 4, 5]]: Loops count in degrees")
@@ -483,8 +483,8 @@ struct LouvainTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.38888888888888884) <= 1e-12 * max(1, abs(0.38888888888888884)))
-        let arcs = graph.directed.louvainCommunities()
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.louvainCommunities()
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-100 U(K(0..2), K(3..5), 2-3).louvainCommunities(weight: [1, 1, 1, 1, 1, 1, 10]) is [[0, 1], [2, 3], [4, 5]]: A heavy bridge")
@@ -508,8 +508,8 @@ struct LouvainTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result, weight: { w[$0] })
         #expect(abs(q - 0.15625) <= 1e-12 * max(1, abs(0.15625)))
-        let arcs = graph.directed.louvainCommunities(weight: { w[$0.position] })
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.louvainCommunities(weight: { w[$0.position] })
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-101 U(P(0,1,2,3,4,5,6,7)).louvainCommunities() is [[0, 1, 2, 3], [4, 5, 6, 7]]: Path: ties broken to the greatest label")
@@ -532,8 +532,8 @@ struct LouvainTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.35714285714285715) <= 1e-12 * max(1, abs(0.35714285714285715)))
-        let arcs = graph.directed.louvainCommunities()
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.louvainCommunities()
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-102 U(C(0,1,2,3,4,5,6,7,8,9)).louvainCommunities() is [[0, 1, 2, 9], [3, 4, 5, 6], [7, 8]]: Cycle: every first move is a tie")
@@ -557,8 +557,8 @@ struct LouvainTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.33999999999999997) <= 1e-12 * max(1, abs(0.33999999999999997)))
-        let arcs = graph.directed.louvainCommunities()
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.louvainCommunities()
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-103 U(S(0;1..6)).louvainCommunities() is [[0, 1, 2, 3, 4, 5, 6]]: Star")
@@ -581,8 +581,8 @@ struct LouvainTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q) <= 1e-12)
-        let arcs = graph.directed.louvainCommunities()
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.louvainCommunities()
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-104 U(grid(4,4)).louvainCommunities() is the catalog's partition (4 communities)")
@@ -607,8 +607,8 @@ struct LouvainTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.41666666666666663) <= 1e-12 * max(1, abs(0.41666666666666663)))
-        let arcs = graph.directed.louvainCommunities()
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.louvainCommunities()
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-105 U(lcg(40,90,7)).louvainCommunities() is the catalog's partition (5 communities): Pseudo-random graph (api.md `lcg`)")
@@ -643,8 +643,8 @@ struct LouvainTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.34469135802469136) <= 1e-12 * max(1, abs(0.34469135802469136)))
-        let arcs = graph.directed.louvainCommunities()
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.louvainCommunities()
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-106 U(lcg(60,150,11)).louvainCommunities() is the catalog's partition (7 communities)")
@@ -688,8 +688,8 @@ struct LouvainTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.40613333333333335) <= 1e-12 * max(1, abs(0.40613333333333335)))
-        let arcs = graph.directed.louvainCommunities()
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.louvainCommunities()
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-107 U(lcg(30,60,3)).louvainCommunities(weight: e%5+1) is the catalog's partition (6 communities)")
@@ -721,8 +721,8 @@ struct LouvainTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result, weight: { Double($0 % 5 + 1) })
         #expect(abs(q - 0.422854938271605) <= 1e-12 * max(1, abs(0.422854938271605)))
-        let arcs = graph.directed.louvainCommunities(weight: { Double($0.position % 5 + 1) })
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.louvainCommunities(weight: { Double($0.position % 5 + 1) })
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-108 D(C(0,1,2), C(3,4,5), 2>3).louvainCommunities() is [[0, 1, 2], [3, 4, 5]]: Directed (Dugué–Perez gain)")
@@ -812,12 +812,12 @@ struct LouvainTests {
         #expect(abs(q - 0.34759999999999996) <= 1e-12 * max(1, abs(0.34759999999999996)))
     }
 
-    @Test("CD-111 U(K(0..2), K(3..5), 2-3).directed.louvainCommunities() is [[0, 1, 2], [3, 4, 5]]: graph.directed: the same communities")
+    @Test("CD-111 U(K(0..2), K(3..5), 2-3).directedView.louvainCommunities() is [[0, 1, 2], [3, 4, 5]]: graph.directedView: the same communities")
     func louvain111() {
         // U: K(0..2), K(3..5), 2-3
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (3, 4), (3, 5), (4, 5), (2, 3)]
         let graph = ReferencePseudograph(vertices: 0 ..< 6, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let result = graph.directed.louvainCommunities()
+        let result = graph.directedView.louvainCommunities()
         let expected: [[Int]] = [[0, 1, 2], [3, 4, 5]]
         #expect(result.map { Array($0) } == expected)
         #expect(result.count == expected.count)
@@ -826,11 +826,11 @@ struct LouvainTests {
                 #expect(result.community(of: v) == c, "vertex \(v)")
             }
         }
-        for (i, v) in graph.directed.vertices.enumerated() {
+        for (i, v) in graph.directedView.vertices.enumerated() {
             #expect(result.community(ofIndex: i) == result.community(of: v), "index \(i)")
         }
         // The modularity of the result (ref.py's model).
-        let q = graph.directed.modularity(of: result)
+        let q = graph.directedView.modularity(of: result)
         #expect(abs(q - 0.35714285714285715) <= 1e-12 * max(1, abs(0.35714285714285715)))
     }
 
@@ -934,7 +934,7 @@ struct LouvainTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result, weight: { w[$0] })
         #expect(abs(q) <= 1e-12)
-        let arcs = graph.directed.louvainCommunities(weight: { w[$0.position] })
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.louvainCommunities(weight: { w[$0.position] })
+        #expect(arcs == result, "graph.directedView")
     }
 }

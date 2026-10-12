@@ -8,7 +8,7 @@ func _selfLoopCount(_ graph: some Graph) -> Int {
     return count
 }
 
-extension TensorProduct: DirectedGraph where First: DirectedGraph, Second: DirectedGraph {
+extension TensorProductView: DirectedGraph where First: DirectedGraph, Second: DirectedGraph {
     /// Every pair, row-major: `Pair(g, h)` at index `index(g)·|V(H)| + index(h)`.
     @inlinable
     public var vertices: LazyMapCollection<Range<Int>, Pair<First.Vertex, Second.Vertex>> {
@@ -23,10 +23,10 @@ extension TensorProduct: DirectedGraph where First: DirectedGraph, Second: Direc
     /// The arcs of a directed tensor product, in position order.
     @frozen
     public struct DirectedEdges: Collection {
-        @usableFromInline let product: TensorProduct
+        @usableFromInline let product: TensorProductView
 
         @inlinable
-        init(product: TensorProduct) { self.product = product }
+        init(product: TensorProductView) { self.product = product }
 
         @inlinable
         public var startIndex: Position<First.Edges.Index, Second.Edges.Index> {
@@ -175,7 +175,7 @@ extension TensorProduct: DirectedGraph where First: DirectedGraph, Second: Direc
     }
 }
 
-extension TensorProduct: BidirectionalDirectedGraph where First: BidirectionalDirectedGraph, Second: BidirectionalDirectedGraph {
+extension TensorProductView: BidirectionalDirectedGraph where First: BidirectionalDirectedGraph, Second: BidirectionalDirectedGraph {
     @inlinable
     public func predecessorIndices(ofIndex index: Int) -> IndexRow<First.PredecessorIndices, Second.PredecessorIndices> {
         _checkProductIndex(index, count: _firstCount &* _secondCount)
@@ -232,7 +232,7 @@ extension TensorProduct: BidirectionalDirectedGraph where First: BidirectionalDi
     }
 }
 
-extension TensorProduct: Graph where First: Graph, Second: Graph {
+extension TensorProductView: Graph where First: Graph, Second: Graph {
     /// An undirected row in index space, in the order of `UndirectedEdgeRow`, with a factor
     /// self-loop paired from its first appearance only. No hashing.
     @frozen
@@ -311,10 +311,10 @@ extension TensorProduct: Graph where First: Graph, Second: Graph {
     /// The edges of an undirected tensor product, in position order.
     @frozen
     public struct UndirectedEdges: Collection {
-        @usableFromInline let product: TensorProduct
+        @usableFromInline let product: TensorProductView
 
         @inlinable
-        init(product: TensorProduct) { self.product = product }
+        init(product: TensorProductView) { self.product = product }
 
         @inlinable
         public var startIndex: Position<First.Edges.Index, Second.Edges.Index> {
@@ -455,5 +455,5 @@ extension TensorProduct: Graph where First: Graph, Second: Graph {
     }
 }
 
-extension TensorProduct.DirectedEdges: Sendable where First: Sendable, Second: Sendable {}
-extension TensorProduct.UndirectedEdges: Sendable where First: Sendable, Second: Sendable {}
+extension TensorProductView.DirectedEdges: Sendable where First: Sendable, Second: Sendable {}
+extension TensorProductView.UndirectedEdges: Sendable where First: Sendable, Second: Sendable {}

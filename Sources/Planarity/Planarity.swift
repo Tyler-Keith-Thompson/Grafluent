@@ -2,7 +2,7 @@ import GraphProtocols
 
 /// Planarity on undirected graphs. Self-loops and parallel edges never change an answer: the tests
 /// run on the underlying simple graph, read once through the rows in index space. A directed
-/// graph's planarity is that of `graph.undirected`.
+/// graph's planarity is that of `graph.undirectedView`.
 ///
 /// `isPlanar`, `planarEmbedding()` and `isOuterplanar` run the left-right planarity test (de
 /// Fraysseix and Rosenstiehl, in Brandes's formulation, 2009); `findKuratowskiSubgraph()` runs

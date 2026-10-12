@@ -1,7 +1,7 @@
 // §6: walks of undirected graphs. The stored vertex sequence orients each edge, so one triangle
 // gives two cycles (one per direction) that are not equal: equality does not include reflection,
 // and callers who want it write `a == b || a == b.reversed()`. There and back over one edge is a
-// closed walk of g but a genuine 2-cycle of `g.directed`. Fixtures: U = triangle 0–1, 1–2, 2–0;
+// closed walk of g but a genuine 2-cycle of `g.directedView`. Fixtures: U = triangle 0–1, 1–2, 2–0;
 // UP = parallel pair 0–1, 0–1; UL = two loops at 0. Case IDs (WK-nnn) refer to the catalog; see
 // README.md.
 
@@ -45,15 +45,15 @@ struct UndirectedWalkTests {
         #expect(Cycle(vertices: [0, 1], edges: [0, 0], in: u) == nil)
     }
 
-    @Test("WK-604 there and back over one edge of g.directed is a 2-cycle of distinct arcs")
+    @Test("WK-604 there and back over one edge of g.directedView is a 2-cycle of distinct arcs")
     func directedViewDigon() throws {
         let u = ReferencePseudograph(edges: [(0, 1), (1, 2), (2, 0)].map { UndirectedEdge($0.0, $0.1) })
         typealias Arc = DirectedView<ReferencePseudograph<Int>>.Edges.Index
         let arcs = [Arc(position: 0, reversed: false), Arc(position: 0, reversed: true)]
-        let c = try #require(Cycle(vertices: [0, 1], edges: arcs, in: u.directed))
+        let c = try #require(Cycle(vertices: [0, 1], edges: arcs, in: u.directedView))
         #expect(c.length == 2)
-        #expect(Cycle([0, 1], in: u.directed)?.edges == arcs)
-        #expect(Cycle(vertices: [0, 1], edges: [arcs[1], arcs[0]], in: u.directed) == nil)
+        #expect(Cycle([0, 1], in: u.directedView)?.edges == arcs)
+        #expect(Cycle(vertices: [0, 1], edges: [arcs[1], arcs[0]], in: u.directedView) == nil)
     }
 
     @Test("WK-605 a parallel pair is a 2-cycle (NetworkX lists [0, 1])")

@@ -79,6 +79,15 @@ public struct CentralityScores<G: DirectedGraph> {
         return _scores[_graph._requiredVertexIndex(of: vertex, "The vertex is not in the graph")]
     }
 
+    /// The score of `vertex`, throwing instead of trapping when it is not a vertex of the graph.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the graph.
+    @inlinable
+    public func score(checked vertex: G.Vertex) throws(VertexNotFound) -> Double {
+        guard _graph.contains(vertex) else { throw VertexNotFound() }
+        return score(of: vertex)
+    }
+
     /// The score of the vertex at `index` (its vertex index, or its position in `vertices` when the
     /// graph has no vertex indices).
     ///

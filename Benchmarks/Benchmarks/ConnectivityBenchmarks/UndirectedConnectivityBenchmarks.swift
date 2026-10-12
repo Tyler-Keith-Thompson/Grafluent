@@ -67,7 +67,7 @@ func undirectedConnectivityBenchmarks() {
         if v + side < side * side { out.append(UndirectedEdge(v, v + side)) }
         return out
     })
-    let view = AdjacencyList(vertices: 0 ..< n, edges: pairs.prefix(120_000).map { DirectedEdge(from: $0.u, to: $0.v) }).undirected
+    let view = AdjacencyList(vertices: 0 ..< n, edges: pairs.prefix(120_000).map { DirectedEdge(from: $0.u, to: $0.v) }).undirectedView
 
     // CN-B10: bridges against the hand-written search.
     Benchmark("Connectivity: BASELINE hand-written bridges, G(10⁵, 1.2·10⁵)") { benchmark in
@@ -88,7 +88,7 @@ func undirectedConnectivityBenchmarks() {
     Benchmark("Connectivity: blockCutTree, G(10⁵, 1.2·10⁵)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(sparse.blockCutTree()) }
     }
-    Benchmark("Connectivity: bridges on AdjacencyList.undirected, G(10⁵, 1.2·10⁵)") { benchmark in
+    Benchmark("Connectivity: bridges on AdjacencyList.undirectedView, G(10⁵, 1.2·10⁵)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(view.bridges()) }
     }
     // CN-B11: connected components, against weak components of the directed view.
@@ -96,7 +96,7 @@ func undirectedConnectivityBenchmarks() {
         for _ in benchmark.scaledIterations { blackHole(graph.connectedComponents()) }
     }
     Benchmark("Connectivity: directed.weaklyConnectedComponents, G(10⁵, 10⁶)") { benchmark in
-        for _ in benchmark.scaledIterations { blackHole(graph.directed.weaklyConnectedComponents()) }
+        for _ in benchmark.scaledIterations { blackHole(graph.directedView.weaklyConnectedComponents()) }
     }
     Benchmark("Connectivity: biconnectedComponents, G(10⁵, 10⁶)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(graph.biconnectedComponents()) }

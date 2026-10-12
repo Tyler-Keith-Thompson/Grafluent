@@ -24,69 +24,69 @@ Conventions:
 
 | ID | Group | Case | Input / call | Expected |
 |---|---|---|---|---|
-| GO-001 | Reverse | empty | AL V []; E [] / .reverseView | V []; E []; bounds 0/0 |
-| GO-002 | Reverse | isolated vertices keep their order | AL V [a, b, c]; E [] / .reverseView | V [a#0, b#1, c#2]; E []; bounds 3/0 |
-| GO-003 | Reverse | path: arcs flip, positions kept | AL V [a, b, c]; E [a→b, b→c] / .reverseView | V [a#0, b#1, c#2]; E [0:b→a, 1:c→b]; bounds 3/2; rows [a: ; b: a; c: b] |
-| GO-004 | Reverse | self-loop stays a self-loop | AL V [a]; E [a→a] / .reverseView | V [a#0]; E [0:a→a]; bounds 1/1; rows [a: a] |
-| GO-005 | Reverse | parallel arcs keep both positions | AL V [a, b]; E [a→b, a→b, b→a] / .reverseView | V [a#0, b#1]; E [0:b→a, 1:b→a, 2:a→b]; bounds 2/3; rows [a: b; b: a a] |
-| GO-006 | Reverse | successors are the base's predecessors in in-row order | AL V [a, b, c, d]; E [b→a, c→a, d→a, a→b] / .reverseView | V [a#0, b#1, c#2, d#3]; E [0:a→b, 1:a→c, 2:a→d, 3:b→a]; bounds 4/4; rows [a: b c d; b: a; c: ; d: ] |
-| GO-007 | Reverse | edge indices forwarded | AL V [x, y, z]; E [x→y, y→z, z→x] / .reverseView | V [x#0, y#1, z#2]; E [0:y→x, 1:z→y, 2:x→z]; bounds 3/3; edgeIndex(of: 2) 2; sourceIndex(ofEdgeAt: 2) 0 |
-| GO-008 | Reverse | reverse of the reverse is the base (same type, O(1)) | AL V [a, b, c]; E [a→b, b→c] / .reverseView.reverseView | V [a#0, b#1, c#2]; E [0:a→b, 1:b→c]; bounds 3/2; is the base: true |
-| GO-009 | Reverse | a vertex lookup hashes once, rows none | AL V [a, b, c]; E [a→b, c→b] / .reverseView | V [a#0, b#1, c#2]; E [0:b→a, 1:b→c]; bounds 3/2; outEdges(of: b) [0, 1]; inEdges(ofIndex: 1) []; hashes 1 |
-| GO-010 | Induced | empty base, empty set | AL V []; E [] / .inducedSubgraph(on: []) | V []; E []; bounds 0/0; rows [] |
-| GO-011 | Induced | keep nothing | AL V [a, b]; E [a→b] / .inducedSubgraph(on: []) | V []; E []; bounds 0/nil; rows [] |
-| GO-012 | Induced | keep everything: same graph, the base's edge indices | AL V [a, b, c]; E [a→b, b→c, c→a] / .inducedSubgraph(on: [a, b, c]) | V [a#0, b#1, c#2]; E [0:a→b, 1:b→c, 2:c→a]; bounds 3/3; rows [a: b; b: c; c: a] |
-| GO-013 | Induced | renumbered in base order, not listed order | AL V [a, b, c, d]; E [a→b, b→c, c→d, d→a] / .inducedSubgraph(on: [d, b, a]) | V [a#0, b#1, d#2]; E [0:a→b, 3:d→a]; bounds 3/nil; rows [a: b; b: ; d: a] |
-| GO-014 | Induced | repeated vertex listed once | AL V [a, b, c]; E [a→b, b→c] / .inducedSubgraph(on: [b, b, c]) | V [b#0, c#1]; E [1:b→c]; bounds 2/nil; rows [b: c; c: ] |
-| GO-015 | Induced | arcs leaving the set dropped | AL V [a, b, c]; E [a→b, a→c, c→b] / .inducedSubgraph(on: [a, b]) | V [a#0, b#1]; E [0:a→b]; bounds 2/nil; rows [a: b; b: ] |
-| GO-016 | Induced | self-loop kept | AL V [a, b]; E [a→a, a→b] / .inducedSubgraph(on: [a]) | V [a#0]; E [0:a→a]; bounds 1/nil; rows [a: a] |
-| GO-017 | Induced | parallel arcs both kept, base positions | AL V [a, b, c]; E [c→a, a→b, a→b] / .inducedSubgraph(on: [a, b]) | V [a#0, b#1]; E [1:a→b, 2:a→b]; bounds 2/nil; rows [a: b b; b: ] |
-| GO-018 | Induced | isolated kept vertex | AL V [a, b, c]; E [a→b] / .inducedSubgraph(on: [c, a]) | V [a#0, c#1]; E []; bounds 2/nil; rows [a: ; c: ] |
-| GO-019 | Induced | predecessors filtered too | AL V [a, b, c, d]; E [b→a, c→a, d→a] / .inducedSubgraph(on: [a, c, d]) | V [a#0, c#1, d#2]; E [1:c→a, 2:d→a]; bounds 3/nil; predecessors(of: a) [c, d] |
-| GO-020 | Induced | construction hashes once per listed vertex, rows none | AL V [a, b, c, d]; E [a→b, b→c, c→d] / .inducedSubgraph(on: [b, c, d, c]) | V [b#0, c#1, d#2]; E [1:b→c, 2:c→d]; bounds 3/nil; hashes at construction 4; successorIndices(ofIndex: 0) [1]; edgeIndexBound nil; hashes 0 |
-| GO-021 | Induced | edgeCount counts kept arcs (O(Σ out-degree of kept vertices)) | AL V [a, b, c]; E [a→b, b→c, c→a, a→c] / .inducedSubgraph(on: [a, c]) / .edgeCount | V [a#0, c#1]; E [2:c→a, 3:a→c]; bounds 2/nil; edgeCount 2 |
-| GO-022 | Induced | label not in base traps | AL V [a, b]; E [a→b] / .inducedSubgraph(on: [a, z]) | **trap** (z is not a vertex) |
-| GO-023 | Induced | base vertex outside the view: vertexIndex traps | AL V [a, b]; E [a→b] / .inducedSubgraph(on: [a]) / .vertexIndex(of: b) | **trap** (b is not a vertex of the subgraph) |
-| GO-024 | Induced | contains(_:) is false, no trap, for a dropped vertex | AL V [a, b]; E [a→b] / .inducedSubgraph(on: [a]) / .contains(b) | V [a#0]; E []; bounds 1/nil; contains(b) false; contains(z) false |
-| GO-025 | Induced | base without vertex indices traps (phase 1) | Stable (with holes) V [a, b]; E [a→b] / .inducedSubgraph(on: [a]) | **trap** (the base has no vertex indices (vertexIndexBound is nil)) |
-| GO-026 | Induced | undirected: incident rows filtered | UL V [a, b, c, d]; E [a–b, b–c, c–d, d–a, a–c] / .inducedSubgraph(on: [a, b, c]) | V [a#0, b#1, c#2]; E [0:a–b, 1:b–c, 4:a–c]; bounds 3/nil; rows [a: b c; b: a c; c: b a] |
-| GO-027 | Induced | undirected: self-loop listed twice in its row | UL V [a, b]; E [a–a, a–b] / .inducedSubgraph(on: [a]) | V [a#0]; E [0:a–a]; bounds 1/nil; rows [a: a a] |
-| GO-028 | Induced | undirected: parallel edges both kept | UL V [a, b, c]; E [a–b, b–a, b–c] / .inducedSubgraph(on: [b, a]) | V [a#0, b#1]; E [0:a–b, 1:b–a]; bounds 2/nil; rows [a: b b; b: a a] |
-| GO-029 | Spanning | no edges: every vertex, no arcs | AL V [a, b, c]; E [a→b, b→c] / .spanningSubgraph(edges: []) | V [a#0, b#1, c#2]; E []; bounds 3/0; rows [a: ; b: ; c: ]; edgeIndex [] |
-| GO-030 | Spanning | every edge: dense edge indices equal the base's | AL V [a, b, c]; E [a→b, b→c] / .spanningSubgraph(edges: [0, 1]) | V [a#0, b#1, c#2]; E [0:a→b, 1:b→c]; bounds 3/2; rows [a: b; b: c; c: ]; edgeIndex [0: 0, 1: 1] |
-| GO-031 | Spanning | edge indices renumbered by rank in base index order | AL V [a, b, c, d]; E [a→b, b→c, c→d, d→a] / .spanningSubgraph(edges: [3, 1]) | V [a#0, b#1, c#2, d#3]; E [1:b→c, 3:d→a]; bounds 4/2; rows [a: ; b: c; c: ; d: a]; edgeIndex [1: 0, 3: 1] |
-| GO-032 | Spanning | repeated position kept once | AL V [a, b]; E [a→b, b→a] / .spanningSubgraph(edges: [1, 1]) | V [a#0, b#1]; E [1:b→a]; bounds 2/1; rows [a: ; b: a]; edgeIndex [1: 0] |
-| GO-033 | Spanning | one of two parallel arcs | AL V [a, b]; E [a→b, a→b] / .spanningSubgraph(edges: [1]) | V [a#0, b#1]; E [1:a→b]; bounds 2/1; rows [a: b; b: ]; edgeIndex [1: 0] |
-| GO-034 | Spanning | self-loop | AL V [a, b]; E [a→a, a→b] / .spanningSubgraph(edges: [0]) | V [a#0, b#1]; E [0:a→a]; bounds 2/1; rows [a: a; b: ]; edgeIndex [0: 0] |
-| GO-035 | Spanning | vertex indices are the base's (identity, no renumbering) | AL V [a, b, c]; E [c→a] / .spanningSubgraph(edges: [0]) | V [a#0, b#1, c#2]; E [0:c→a]; bounds 3/1; vertexIndex(of: c) 2 |
-| GO-036 | Spanning | position not in base traps | AL V [a, b]; E [a→b] / .spanningSubgraph(edges: [0, 5]) | **trap** (5 is not an edge position of the base) |
-| GO-037 | Spanning | undirected: tree of a cycle | UL V [a, b, c, d]; E [a–b, b–c, c–d, d–a] / .spanningSubgraph(edges: [0, 1, 2]) | V [a#0, b#1, c#2, d#3]; E [0:a–b, 1:b–c, 2:c–d]; bounds 4/3; rows [a: b; b: a c; c: b d; d: c] |
-| GO-038 | Spanning | undirected: self-loop kept twice in its row | UL V [a, b]; E [a–a, a–b] / .spanningSubgraph(edges: [0]) | V [a#0, b#1]; E [0:a–a]; bounds 2/1; rows [a: a a; b: ] |
-| GO-039 | Subgraph | both filters | AL V [a, b, c, d]; E [a→b, b→c, c→d, a→c] / .subgraph(vertices: [a, b, c], edges: [0, 3]) | V [a#0, b#1, c#2]; E [0:a→b, 3:a→c]; bounds 3/2; rows [a: b c; b: ; c: ] |
-| GO-040 | Subgraph | edge with an end outside the vertex set dropped (JGraphT AsSubgraph) | AL V [a, b, c]; E [a→b, b→c] / .subgraph(vertices: [a, b], edges: [0, 1]) | V [a#0, b#1]; E [0:a→b]; bounds 2/1; rows [a: b; b: ] |
-| GO-041 | Subgraph | edge indices count only edges whose ends are kept | AL V [a, b, c]; E [a→b, b→c, c→a] / .subgraph(vertices: [b, c], edges: [0, 1, 2]) | V [b#0, c#1]; E [1:b→c]; bounds 2/1; rows [b: c; c: ] |
-| GO-042 | Subgraph | no vertices | AL V [a, b]; E [a→b] / .subgraph(vertices: [], edges: [0]) | V []; E []; bounds 0/0; rows [] |
-| GO-043 | Subgraph | undirected | UL V [a, b, c, d]; E [a–b, b–c, c–d, d–a] / .subgraph(vertices: [a, b, d], edges: [0, 3, 1]) | V [a#0, b#1, d#2]; E [0:a–b, 3:d–a]; bounds 3/2; rows [a: b d; b: a; d: a] |
-| GO-044 | Subgraph | label not in base traps | AL V [a, b]; E [a→b] / .subgraph(vertices: [q], edges: [0]) | **trap** (q is not a vertex) |
-| GO-045 | Subgraph | position not in base traps | AL V [a, b]; E [a→b] / .subgraph(vertices: [a], edges: [3]) | **trap** (3 is not an edge position of the base) |
-| GO-046 | Subgraph | subgraph of a subgraph: positions still the base's | AL V [a, b, c, d]; E [a→b, b→c, c→d, d→a] / .inducedSubgraph(on: [a, b, c]).inducedSubgraph(on: [b, c]) | V [b#0, c#1]; E [1:b→c]; bounds 2/nil; rows [b: c; c: ] |
-| GO-047 | Subgraph | reverse of an induced subgraph | AL V [a, b, c]; E [a→b, b→c, c→a] / .inducedSubgraph(on: [a, b]).reverseView | V [a#0, b#1]; E [0:b→a]; bounds 2/nil; rows [a: ; b: a] |
-| GO-048 | Complement | empty graph | AL V []; E [] / .complement | V []; E []; bounds 0/nil; rows [] |
-| GO-049 | Complement | one vertex: no self-loop | AL V [a]; E [] / .complement | V [a#0]; E []; bounds 1/nil; rows [a: ] |
-| GO-050 | Complement | edgeless on three: complete digraph | AL V [a, b, c]; E [] / .complement | V [a#0, b#1, c#2]; E [(0,1):a→b, (0,2):a→c, (1,0):b→a, (1,2):b→c, (2,0):c→a, (2,1):c→b]; bounds 3/nil; rows [a: b c; b: a c; c: a b] |
-| GO-051 | Complement | one arc: the other five | AL V [a, b, c]; E [a→b] / .complement | V [a#0, b#1, c#2]; E [(0,2):a→c, (1,0):b→a, (1,2):b→c, (2,0):c→a, (2,1):c→b]; bounds 3/nil; rows [a: c; b: a c; c: a b] |
-| GO-052 | Complement | complete digraph: no arcs | AL V [a, b]; E [a→b, b→a] / .complement | V [a#0, b#1]; E []; bounds 2/nil; rows [a: ; b: ] |
-| GO-053 | Complement | self-loop ignored | AL V [a, b]; E [a→a] / .complement | V [a#0, b#1]; E [(0,1):a→b, (1,0):b→a]; bounds 2/nil; rows [a: b; b: a] |
-| GO-054 | Complement | parallel arcs count as one | AL V [a, b, c]; E [a→b, a→b] / .complement | V [a#0, b#1, c#2]; E [(0,2):a→c, (1,0):b→a, (1,2):b→c, (2,0):c→a, (2,1):c→b]; bounds 3/nil; rows [a: c; b: a c; c: a b] |
-| GO-055 | Complement | rows ascending by index | AL V [c, a, b]; E [c→b] / .complement | V [c#0, a#1, b#2]; E [(0,1):c→a, (1,0):a→c, (1,2):a→b, (2,0):b→c, (2,1):b→a]; bounds 3/nil; rows [c: a; a: c b; b: c a] |
-| GO-056 | Complement | predecessors when the base is bidirectional | AL V [a, b, c]; E [a→c] / .complement | V [a#0, b#1, c#2]; E [(0,1):a→b, (1,0):b→a, (1,2):b→c, (2,0):c→a, (2,1):c→b]; bounds 3/nil; predecessors(of: c) [b] |
-| GO-057 | Complement | complement twice is the simple loopless base only | AL V [a, b]; E [a→a, a→b, a→b] / .complement.complement | V [a#0, b#1]; E [(0,1):a→b]; bounds 2/nil; rows [a: b; b: ] |
-| GO-058 | Complement | undirected: path P4 to its complement P4 | UL V [a, b, c, d]; E [a–b, b–c, c–d] / .complement | V [a#0, b#1, c#2, d#3]; E [(0,2):a–c, (0,3):a–d, (1,3):b–d]; bounds 4/nil; rows [a: c d; b: d; c: a; d: a b] |
-| GO-059 | Complement | undirected: C5 is self-complementary (as a set of edges, a different C5) | UL V [a, b, c, d, e]; E [a–b, b–c, c–d, d–e, e–a] / .complement | V [a#0, b#1, c#2, d#3, e#4]; E [(0,2):a–c, (0,3):a–d, (1,3):b–d, (1,4):b–e, (2,4):c–e]; bounds 5/nil; rows [a: c d; b: d e; c: a e; d: a b; e: b c] |
-| GO-060 | Complement | undirected: loop and parallel edges ignored | UL V [a, b, c]; E [a–a, a–b, b–a] / .complement | V [a#0, b#1, c#2]; E [(0,2):a–c, (1,2):b–c]; bounds 3/nil; rows [a: c; b: c; c: a b] |
-| GO-061 | Complement | undirected: K4 has an empty complement | UL V [a, b, c, d]; E [a–b, a–c, a–d, b–c, b–d, c–d] / .complement | V [a#0, b#1, c#2, d#3]; E []; bounds 4/nil |
-| GO-062 | Complement | index-space rows hash nothing; contains(edge:) looks its vertices up, the base's negated | AL V [a, b, c]; E [a→b] / .complement | V [a#0, b#1, c#2]; E [(0,2):a→c, (1,0):b→a, (1,2):b→c, (2,0):c→a, (2,1):c→b]; bounds 3/nil; outEdges(ofIndex: 0) [(0, 2)]; hashes 0; contains(edge: a→b) false (looks its vertices up); contains(edge: b→b) false (looks its vertices up) |
-| GO-063 | Complement | base without vertex indices traps (phase 1) | Stable (with holes) V [a, b]; E [] / .complement | **trap** (the base has no vertex indices (vertexIndexBound is nil)) |
+| GO-001 | Reverse | empty | AL V []; E [] / .transposedView | V []; E []; bounds 0/0 |
+| GO-002 | Reverse | isolated vertices keep their order | AL V [a, b, c]; E [] / .transposedView | V [a#0, b#1, c#2]; E []; bounds 3/0 |
+| GO-003 | Reverse | path: arcs flip, positions kept | AL V [a, b, c]; E [a→b, b→c] / .transposedView | V [a#0, b#1, c#2]; E [0:b→a, 1:c→b]; bounds 3/2; rows [a: ; b: a; c: b] |
+| GO-004 | Reverse | self-loop stays a self-loop | AL V [a]; E [a→a] / .transposedView | V [a#0]; E [0:a→a]; bounds 1/1; rows [a: a] |
+| GO-005 | Reverse | parallel arcs keep both positions | AL V [a, b]; E [a→b, a→b, b→a] / .transposedView | V [a#0, b#1]; E [0:b→a, 1:b→a, 2:a→b]; bounds 2/3; rows [a: b; b: a a] |
+| GO-006 | Reverse | successors are the base's predecessors in in-row order | AL V [a, b, c, d]; E [b→a, c→a, d→a, a→b] / .transposedView | V [a#0, b#1, c#2, d#3]; E [0:a→b, 1:a→c, 2:a→d, 3:b→a]; bounds 4/4; rows [a: b c d; b: a; c: ; d: ] |
+| GO-007 | Reverse | edge indices forwarded | AL V [x, y, z]; E [x→y, y→z, z→x] / .transposedView | V [x#0, y#1, z#2]; E [0:y→x, 1:z→y, 2:x→z]; bounds 3/3; edgeIndex(of: 2) 2; sourceIndex(ofEdgeAt: 2) 0 |
+| GO-008 | Reverse | reverse of the reverse is the base (same type, O(1)) | AL V [a, b, c]; E [a→b, b→c] / .transposedView.transposedView | V [a#0, b#1, c#2]; E [0:a→b, 1:b→c]; bounds 3/2; is the base: true |
+| GO-009 | Reverse | a vertex lookup hashes once, rows none | AL V [a, b, c]; E [a→b, c→b] / .transposedView | V [a#0, b#1, c#2]; E [0:b→a, 1:b→c]; bounds 3/2; outEdges(of: b) [0, 1]; inEdges(ofIndex: 1) []; hashes 1 |
+| GO-010 | Induced | empty base, empty set | AL V []; E [] / .inducedSubgraphView(on: []) | V []; E []; bounds 0/0; rows [] |
+| GO-011 | Induced | keep nothing | AL V [a, b]; E [a→b] / .inducedSubgraphView(on: []) | V []; E []; bounds 0/nil; rows [] |
+| GO-012 | Induced | keep everything: same graph, the base's edge indices | AL V [a, b, c]; E [a→b, b→c, c→a] / .inducedSubgraphView(on: [a, b, c]) | V [a#0, b#1, c#2]; E [0:a→b, 1:b→c, 2:c→a]; bounds 3/3; rows [a: b; b: c; c: a] |
+| GO-013 | Induced | renumbered in base order, not listed order | AL V [a, b, c, d]; E [a→b, b→c, c→d, d→a] / .inducedSubgraphView(on: [d, b, a]) | V [a#0, b#1, d#2]; E [0:a→b, 3:d→a]; bounds 3/nil; rows [a: b; b: ; d: a] |
+| GO-014 | Induced | repeated vertex listed once | AL V [a, b, c]; E [a→b, b→c] / .inducedSubgraphView(on: [b, b, c]) | V [b#0, c#1]; E [1:b→c]; bounds 2/nil; rows [b: c; c: ] |
+| GO-015 | Induced | arcs leaving the set dropped | AL V [a, b, c]; E [a→b, a→c, c→b] / .inducedSubgraphView(on: [a, b]) | V [a#0, b#1]; E [0:a→b]; bounds 2/nil; rows [a: b; b: ] |
+| GO-016 | Induced | self-loop kept | AL V [a, b]; E [a→a, a→b] / .inducedSubgraphView(on: [a]) | V [a#0]; E [0:a→a]; bounds 1/nil; rows [a: a] |
+| GO-017 | Induced | parallel arcs both kept, base positions | AL V [a, b, c]; E [c→a, a→b, a→b] / .inducedSubgraphView(on: [a, b]) | V [a#0, b#1]; E [1:a→b, 2:a→b]; bounds 2/nil; rows [a: b b; b: ] |
+| GO-018 | Induced | isolated kept vertex | AL V [a, b, c]; E [a→b] / .inducedSubgraphView(on: [c, a]) | V [a#0, c#1]; E []; bounds 2/nil; rows [a: ; c: ] |
+| GO-019 | Induced | predecessors filtered too | AL V [a, b, c, d]; E [b→a, c→a, d→a] / .inducedSubgraphView(on: [a, c, d]) | V [a#0, c#1, d#2]; E [1:c→a, 2:d→a]; bounds 3/nil; predecessors(of: a) [c, d] |
+| GO-020 | Induced | construction hashes once per listed vertex, rows none | AL V [a, b, c, d]; E [a→b, b→c, c→d] / .inducedSubgraphView(on: [b, c, d, c]) | V [b#0, c#1, d#2]; E [1:b→c, 2:c→d]; bounds 3/nil; hashes at construction 4; successorIndices(ofIndex: 0) [1]; edgeIndexBound nil; hashes 0 |
+| GO-021 | Induced | edgeCount counts kept arcs (O(Σ out-degree of kept vertices)) | AL V [a, b, c]; E [a→b, b→c, c→a, a→c] / .inducedSubgraphView(on: [a, c]) / .edgeCount | V [a#0, c#1]; E [2:c→a, 3:a→c]; bounds 2/nil; edgeCount 2 |
+| GO-022 | Induced | label not in base traps | AL V [a, b]; E [a→b] / .inducedSubgraphView(on: [a, z]) | **trap** (z is not a vertex) |
+| GO-023 | Induced | base vertex outside the view: vertexIndex traps | AL V [a, b]; E [a→b] / .inducedSubgraphView(on: [a]) / .vertexIndex(of: b) | **trap** (b is not a vertex of the subgraph) |
+| GO-024 | Induced | contains(_:) is false, no trap, for a dropped vertex | AL V [a, b]; E [a→b] / .inducedSubgraphView(on: [a]) / .contains(b) | V [a#0]; E []; bounds 1/nil; contains(b) false; contains(z) false |
+| GO-025 | Induced | base without vertex indices traps (phase 1) | Stable (with holes) V [a, b]; E [a→b] / .inducedSubgraphView(on: [a]) | **trap** (the base has no vertex indices (vertexIndexBound is nil)) |
+| GO-026 | Induced | undirected: incident rows filtered | UL V [a, b, c, d]; E [a–b, b–c, c–d, d–a, a–c] / .inducedSubgraphView(on: [a, b, c]) | V [a#0, b#1, c#2]; E [0:a–b, 1:b–c, 4:a–c]; bounds 3/nil; rows [a: b c; b: a c; c: b a] |
+| GO-027 | Induced | undirected: self-loop listed twice in its row | UL V [a, b]; E [a–a, a–b] / .inducedSubgraphView(on: [a]) | V [a#0]; E [0:a–a]; bounds 1/nil; rows [a: a a] |
+| GO-028 | Induced | undirected: parallel edges both kept | UL V [a, b, c]; E [a–b, b–a, b–c] / .inducedSubgraphView(on: [b, a]) | V [a#0, b#1]; E [0:a–b, 1:b–a]; bounds 2/nil; rows [a: b b; b: a a] |
+| GO-029 | Spanning | no edges: every vertex, no arcs | AL V [a, b, c]; E [a→b, b→c] / .spanningSubgraphView(edges: []) | V [a#0, b#1, c#2]; E []; bounds 3/0; rows [a: ; b: ; c: ]; edgeIndex [] |
+| GO-030 | Spanning | every edge: dense edge indices equal the base's | AL V [a, b, c]; E [a→b, b→c] / .spanningSubgraphView(edges: [0, 1]) | V [a#0, b#1, c#2]; E [0:a→b, 1:b→c]; bounds 3/2; rows [a: b; b: c; c: ]; edgeIndex [0: 0, 1: 1] |
+| GO-031 | Spanning | edge indices renumbered by rank in base index order | AL V [a, b, c, d]; E [a→b, b→c, c→d, d→a] / .spanningSubgraphView(edges: [3, 1]) | V [a#0, b#1, c#2, d#3]; E [1:b→c, 3:d→a]; bounds 4/2; rows [a: ; b: c; c: ; d: a]; edgeIndex [1: 0, 3: 1] |
+| GO-032 | Spanning | repeated position kept once | AL V [a, b]; E [a→b, b→a] / .spanningSubgraphView(edges: [1, 1]) | V [a#0, b#1]; E [1:b→a]; bounds 2/1; rows [a: ; b: a]; edgeIndex [1: 0] |
+| GO-033 | Spanning | one of two parallel arcs | AL V [a, b]; E [a→b, a→b] / .spanningSubgraphView(edges: [1]) | V [a#0, b#1]; E [1:a→b]; bounds 2/1; rows [a: b; b: ]; edgeIndex [1: 0] |
+| GO-034 | Spanning | self-loop | AL V [a, b]; E [a→a, a→b] / .spanningSubgraphView(edges: [0]) | V [a#0, b#1]; E [0:a→a]; bounds 2/1; rows [a: a; b: ]; edgeIndex [0: 0] |
+| GO-035 | Spanning | vertex indices are the base's (identity, no renumbering) | AL V [a, b, c]; E [c→a] / .spanningSubgraphView(edges: [0]) | V [a#0, b#1, c#2]; E [0:c→a]; bounds 3/1; vertexIndex(of: c) 2 |
+| GO-036 | Spanning | position not in base traps | AL V [a, b]; E [a→b] / .spanningSubgraphView(edges: [0, 5]) | **trap** (5 is not an edge position of the base) |
+| GO-037 | Spanning | undirected: tree of a cycle | UL V [a, b, c, d]; E [a–b, b–c, c–d, d–a] / .spanningSubgraphView(edges: [0, 1, 2]) | V [a#0, b#1, c#2, d#3]; E [0:a–b, 1:b–c, 2:c–d]; bounds 4/3; rows [a: b; b: a c; c: b d; d: c] |
+| GO-038 | Spanning | undirected: self-loop kept twice in its row | UL V [a, b]; E [a–a, a–b] / .spanningSubgraphView(edges: [0]) | V [a#0, b#1]; E [0:a–a]; bounds 2/1; rows [a: a a; b: ] |
+| GO-039 | Subgraph | both filters | AL V [a, b, c, d]; E [a→b, b→c, c→d, a→c] / .subgraphView(vertices: [a, b, c], edges: [0, 3]) | V [a#0, b#1, c#2]; E [0:a→b, 3:a→c]; bounds 3/2; rows [a: b c; b: ; c: ] |
+| GO-040 | Subgraph | edge with an end outside the vertex set dropped (JGraphT AsSubgraph) | AL V [a, b, c]; E [a→b, b→c] / .subgraphView(vertices: [a, b], edges: [0, 1]) | V [a#0, b#1]; E [0:a→b]; bounds 2/1; rows [a: b; b: ] |
+| GO-041 | Subgraph | edge indices count only edges whose ends are kept | AL V [a, b, c]; E [a→b, b→c, c→a] / .subgraphView(vertices: [b, c], edges: [0, 1, 2]) | V [b#0, c#1]; E [1:b→c]; bounds 2/1; rows [b: c; c: ] |
+| GO-042 | Subgraph | no vertices | AL V [a, b]; E [a→b] / .subgraphView(vertices: [], edges: [0]) | V []; E []; bounds 0/0; rows [] |
+| GO-043 | Subgraph | undirected | UL V [a, b, c, d]; E [a–b, b–c, c–d, d–a] / .subgraphView(vertices: [a, b, d], edges: [0, 3, 1]) | V [a#0, b#1, d#2]; E [0:a–b, 3:d–a]; bounds 3/2; rows [a: b d; b: a; d: a] |
+| GO-044 | Subgraph | label not in base traps | AL V [a, b]; E [a→b] / .subgraphView(vertices: [q], edges: [0]) | **trap** (q is not a vertex) |
+| GO-045 | Subgraph | position not in base traps | AL V [a, b]; E [a→b] / .subgraphView(vertices: [a], edges: [3]) | **trap** (3 is not an edge position of the base) |
+| GO-046 | Subgraph | subgraph of a subgraph: positions still the base's | AL V [a, b, c, d]; E [a→b, b→c, c→d, d→a] / .inducedSubgraphView(on: [a, b, c]).inducedSubgraphView(on: [b, c]) | V [b#0, c#1]; E [1:b→c]; bounds 2/nil; rows [b: c; c: ] |
+| GO-047 | Subgraph | reverse of an induced subgraph | AL V [a, b, c]; E [a→b, b→c, c→a] / .inducedSubgraphView(on: [a, b]).transposedView | V [a#0, b#1]; E [0:b→a]; bounds 2/nil; rows [a: ; b: a] |
+| GO-048 | Complement | empty graph | AL V []; E [] / .complementView | V []; E []; bounds 0/nil; rows [] |
+| GO-049 | Complement | one vertex: no self-loop | AL V [a]; E [] / .complementView | V [a#0]; E []; bounds 1/nil; rows [a: ] |
+| GO-050 | Complement | edgeless on three: complete digraph | AL V [a, b, c]; E [] / .complementView | V [a#0, b#1, c#2]; E [(0,1):a→b, (0,2):a→c, (1,0):b→a, (1,2):b→c, (2,0):c→a, (2,1):c→b]; bounds 3/nil; rows [a: b c; b: a c; c: a b] |
+| GO-051 | Complement | one arc: the other five | AL V [a, b, c]; E [a→b] / .complementView | V [a#0, b#1, c#2]; E [(0,2):a→c, (1,0):b→a, (1,2):b→c, (2,0):c→a, (2,1):c→b]; bounds 3/nil; rows [a: c; b: a c; c: a b] |
+| GO-052 | Complement | complete digraph: no arcs | AL V [a, b]; E [a→b, b→a] / .complementView | V [a#0, b#1]; E []; bounds 2/nil; rows [a: ; b: ] |
+| GO-053 | Complement | self-loop ignored | AL V [a, b]; E [a→a] / .complementView | V [a#0, b#1]; E [(0,1):a→b, (1,0):b→a]; bounds 2/nil; rows [a: b; b: a] |
+| GO-054 | Complement | parallel arcs count as one | AL V [a, b, c]; E [a→b, a→b] / .complementView | V [a#0, b#1, c#2]; E [(0,2):a→c, (1,0):b→a, (1,2):b→c, (2,0):c→a, (2,1):c→b]; bounds 3/nil; rows [a: c; b: a c; c: a b] |
+| GO-055 | Complement | rows ascending by index | AL V [c, a, b]; E [c→b] / .complementView | V [c#0, a#1, b#2]; E [(0,1):c→a, (1,0):a→c, (1,2):a→b, (2,0):b→c, (2,1):b→a]; bounds 3/nil; rows [c: a; a: c b; b: c a] |
+| GO-056 | Complement | predecessors when the base is bidirectional | AL V [a, b, c]; E [a→c] / .complementView | V [a#0, b#1, c#2]; E [(0,1):a→b, (1,0):b→a, (1,2):b→c, (2,0):c→a, (2,1):c→b]; bounds 3/nil; predecessors(of: c) [b] |
+| GO-057 | Complement | complement twice is the simple loopless base only | AL V [a, b]; E [a→a, a→b, a→b] / .complementView.complementView | V [a#0, b#1]; E [(0,1):a→b]; bounds 2/nil; rows [a: b; b: ] |
+| GO-058 | Complement | undirected: path P4 to its complement P4 | UL V [a, b, c, d]; E [a–b, b–c, c–d] / .complementView | V [a#0, b#1, c#2, d#3]; E [(0,2):a–c, (0,3):a–d, (1,3):b–d]; bounds 4/nil; rows [a: c d; b: d; c: a; d: a b] |
+| GO-059 | Complement | undirected: C5 is self-complementary (as a set of edges, a different C5) | UL V [a, b, c, d, e]; E [a–b, b–c, c–d, d–e, e–a] / .complementView | V [a#0, b#1, c#2, d#3, e#4]; E [(0,2):a–c, (0,3):a–d, (1,3):b–d, (1,4):b–e, (2,4):c–e]; bounds 5/nil; rows [a: c d; b: d e; c: a e; d: a b; e: b c] |
+| GO-060 | Complement | undirected: loop and parallel edges ignored | UL V [a, b, c]; E [a–a, a–b, b–a] / .complementView | V [a#0, b#1, c#2]; E [(0,2):a–c, (1,2):b–c]; bounds 3/nil; rows [a: c; b: c; c: a b] |
+| GO-061 | Complement | undirected: K4 has an empty complement | UL V [a, b, c, d]; E [a–b, a–c, a–d, b–c, b–d, c–d] / .complementView | V [a#0, b#1, c#2, d#3]; E []; bounds 4/nil |
+| GO-062 | Complement | index-space rows hash nothing; contains(edge:) looks its vertices up, the base's negated | AL V [a, b, c]; E [a→b] / .complementView | V [a#0, b#1, c#2]; E [(0,2):a→c, (1,0):b→a, (1,2):b→c, (2,0):c→a, (2,1):c→b]; bounds 3/nil; outEdges(ofIndex: 0) [(0, 2)]; hashes 0; contains(edge: a→b) false (looks its vertices up); contains(edge: b→b) false (looks its vertices up) |
+| GO-063 | Complement | base without vertex indices traps (phase 1) | Stable (with holes) V [a, b]; E [] / .complementView | **trap** (the base has no vertex indices (vertexIndexBound is nil)) |
 | GO-064 | LineGraph | no edges | AL V [a, b]; E [] / CompressedSparseRow.lineGraph(of: g) | n 0; E [] |
 | GO-065 | LineGraph | directed path: a chain | AL V [a, b, c, d]; E [a→b, b→c, c→d] / CompressedSparseRow.lineGraph(of: g) | n 3; E [0→1, 1→2] |
 | GO-066 | LineGraph | directed cycle: a cycle on the arcs | AL V [a, b, c]; E [a→b, b→c, c→a] / CompressedSparseRow.lineGraph(of: g) | n 3; E [0→1, 1→2, 2→0] |

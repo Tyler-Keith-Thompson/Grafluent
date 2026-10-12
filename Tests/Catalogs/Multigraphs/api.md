@@ -257,8 +257,8 @@ public enum LooplessEdgeError: Error, Hashable, Sendable { case selfLoop, missin
 The existing generic initializers convert to the simple lists:
 `UndirectedAdjacencyList(pseudograph)` and `AdjacencyList(directedPseudograph)` collapse copies.
 The first copy wins, keeping its orientation, and later edges move down (MG-160 – MG-165). The
-views convert between kinds. `Pseudograph(digraph.undirected)` makes each arc an edge, so
-opposite arcs become copies (MG-173). `DirectedPseudograph(graph.directed)` makes each edge two
+views convert between kinds. `Pseudograph(digraph.undirectedView)` makes each arc an edge, so
+opposite arcs become copies (MG-173). `DirectedPseudograph(graph.directedView)` makes each edge two
 arcs, a loop included (MG-174).
 
 ## Names
@@ -486,7 +486,7 @@ simple lists use about 64 bytes plus one entry per edge.
 | Which copy `remove_edge(u, v)` removes | NetworkX: the last added. JGraphT `removeEdge(u, v)`: the one `getEdge` finds, the first in its edge set. Boost `remove_edge(u, v, g)`: every copy. igraph: by id only. Ours: newest (`remove(edge:)`), every copy (`removeAllEdges(between:and:)`), one particular copy (`remove(edgeAt:)`) | MG-055 – MG-089 |
 | `neighbors(of:)` | NetworkX lists each neighbour once (`G[u]` is keyed by neighbour; a loop once). Boost, LEMON, igraph and ours list one entry per edge end (a loop twice). Degrees agree | MG-016, MG-028 |
 | Edge identity | NetworkX: keys, stable across removals, user-settable, the lowest free integer reused. JGraphT: edge objects. Boost `vecS`: descriptors invalidated by removal. Ours: positions, swap-removed | MG-068, MG-070 |
-| Directed to undirected | NetworkX `MultiDiGraph.to_undirected()` merges `0→1` and `1→0` when they share a key (both key 0 gives one edge). JGraphT `AsUndirectedGraph` and our `.undirected` keep both as copies | MG-173 |
+| Directed to undirected | NetworkX `MultiDiGraph.to_undirected()` merges `0→1` and `1→0` when they share a key (both key 0 gives one edge). JGraphT `AsUndirectedGraph` and our `.undirectedView` keep both as copies | MG-173 |
 | Collapse to a simple graph | NetworkX `nx.Graph(MG)`: each pair once, data from the last copy. igraph `simplify`: combines attributes. Ours: the first copy by position, in its orientation | MG-160 – MG-165 |
 | Missing pair | NetworkX `remove_edge` raises `NetworkXError`; `number_of_edges` returns 0. Ours: nil and 0 | MG-058, MG-019 |
 | `from_dict_of_lists` | NetworkX counts an undirected copy under the endpoint met first, and ignores it under the other. Not adopted (phase 2) | — |

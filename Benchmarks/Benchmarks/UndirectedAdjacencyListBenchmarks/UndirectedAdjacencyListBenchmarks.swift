@@ -25,7 +25,7 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("UndirectedAdjacencyList: build from 500k random edges") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(UndirectedAdjacencyList(vertices: 0 ..< n, edges: edges)) }
     }
-    // UG-B01: breadth-first search, hand-written over neighborIndices vs Traversal through `directed`.
+    // UG-B01: breadth-first search, hand-written over neighborIndices vs Traversal through `directedView`.
     Benchmark("UndirectedAdjacencyList: BASELINE hand-written BFS over neighborIndices") { benchmark in
         for _ in benchmark.scaledIterations {
             var visited = [Bool](repeating: false, count: n)
@@ -46,7 +46,7 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("UndirectedAdjacencyList: breadthFirstSearch through directed, pushed with forEach") { benchmark in
         for _ in benchmark.scaledIterations {
             var discovered = 0
-            graph.directed.breadthFirstSearch(from: 0).forEach { if case .discover = $0 { discovered += 1 } }
+            graph.directedView.breadthFirstSearch(from: 0).forEach { if case .discover = $0 { discovered += 1 } }
             blackHole(discovered)
         }
     }
@@ -89,7 +89,7 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
     Benchmark("UndirectedAdjacencyList: outEdges of every vertex through directed") { benchmark in
-        let view = graph.directed
+        let view = graph.directedView
         for _ in benchmark.scaledIterations {
             var sum = 0
             for v in view.vertices {

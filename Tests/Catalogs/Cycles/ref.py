@@ -121,7 +121,7 @@ class G:
         return self
 
     def directed_view(self):
-        """`graph.directed`: each edge u-v as arcs u>v then v>u (positions 2k, 2k+1); out-rows in
+        """`graph.directedView`: each edge u-v as arcs u>v then v>u (positions 2k, 2k+1); out-rows in
         incidence order (a self-loop's first end its forward arc, its second the reversed one)."""
         assert not self.directed
         h = G(self.vertices, [], True)
@@ -991,7 +991,7 @@ def compute(g, op):
     if op == "minimumCycleBasisLengths":
         return "[" + ",".join(map(str, brute_mcb_lengths(g))) + "]"
     m = re.fullmatch(r"directedCount(?:\(maxLength:\s*(\d+)\))?", op)
-    if m:  # g.directed.simpleCycles(maxLength:).count
+    if m:  # g.directedView.simpleCycles(maxLength:).count
         L = int(m.group(1)) if m.group(1) else None
         return "#%d" % len(brute_cycles(g.directed_view(), L))
     raise ValueError("unknown op " + op)
@@ -1259,7 +1259,7 @@ def properties(trials=600):
                 if gf2_rank([edge_mask(x) for x in b] + [edge_mask(c)]) != span:
                     problems.append("random %d: cycle outside the basis span" % t)
                     break
-            # g.directed: each undirected cycle of length >= 3 twice, each edge one 2-cycle per
+            # g.directedView: each undirected cycle of length >= 3 twice, each edge one 2-cycle per
             # pair of distinct arcs, each loop twice
             d = g.directed_view()
             dc = len(brute_cycles(d))

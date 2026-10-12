@@ -209,7 +209,7 @@ struct DoubleWeightTests {
         #expect(graph.diameter(weight: { w[$0] }) == eccentricities.diameter)
         #expect(graph.center(weight: { w[$0] }) == eccentricities.center)
         #expect(graph.periphery(weight: { w[$0] }) == eccentricities.periphery)
-        let arcs = graph.directed.eccentricities(weight: { w[$0.position] })
+        let arcs = graph.directedView.eccentricities(weight: { w[$0.position] })
         let viaArcs = (0 ..< graph.vertexCount).map { arcs.eccentricity(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -310,7 +310,7 @@ struct DoubleWeightTests {
         #expect(graph.diameter(weight: { w[$0] }) == eccentricities.diameter)
         #expect(graph.center(weight: { w[$0] }) == eccentricities.center)
         #expect(graph.periphery(weight: { w[$0] }) == eccentricities.periphery)
-        let arcs = graph.directed.eccentricities(weight: { w[$0.position] })
+        let arcs = graph.directedView.eccentricities(weight: { w[$0.position] })
         let viaArcs = (0 ..< graph.vertexCount).map { arcs.eccentricity(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -360,7 +360,7 @@ struct DoubleWeightTests {
         #expect(graph.diameter(weight: { w[$0] }) == eccentricities.diameter)
         #expect(graph.center(weight: { w[$0] }) == eccentricities.center)
         #expect(graph.periphery(weight: { w[$0] }) == eccentricities.periphery)
-        let arcs = graph.directed.eccentricities(weight: { w[$0.position] })
+        let arcs = graph.directedView.eccentricities(weight: { w[$0.position] })
         let viaArcs = (0 ..< graph.vertexCount).map { arcs.eccentricity(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -384,7 +384,7 @@ struct DoubleWeightTests {
         #expect(graph.diameter(weight: { w[$0] }) == eccentricities.diameter)
         #expect(graph.center(weight: { w[$0] }) == eccentricities.center)
         #expect(graph.periphery(weight: { w[$0] }) == eccentricities.periphery)
-        let arcs = graph.directed.eccentricities(weight: { w[$0.position] })
+        let arcs = graph.directedView.eccentricities(weight: { w[$0.position] })
         let viaArcs = (0 ..< graph.vertexCount).map { arcs.eccentricity(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -408,7 +408,7 @@ struct DoubleWeightTests {
         #expect(graph.diameter(weight: { w[$0] }) == eccentricities.diameter)
         #expect(graph.center(weight: { w[$0] }) == eccentricities.center)
         #expect(graph.periphery(weight: { w[$0] }) == eccentricities.periphery)
-        let arcs = graph.directed.eccentricities(weight: { w[$0.position] })
+        let arcs = graph.directedView.eccentricities(weight: { w[$0.position] })
         let viaArcs = (0 ..< graph.vertexCount).map { arcs.eccentricity(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -432,7 +432,7 @@ struct DoubleWeightTests {
         #expect(graph.diameter(weight: { w[$0] }) == eccentricities.diameter)
         #expect(graph.center(weight: { w[$0] }) == eccentricities.center)
         #expect(graph.periphery(weight: { w[$0] }) == eccentricities.periphery)
-        let arcs = graph.directed.eccentricities(weight: { w[$0.position] })
+        let arcs = graph.directedView.eccentricities(weight: { w[$0.position] })
         let viaArcs = (0 ..< graph.vertexCount).map { arcs.eccentricity(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -580,7 +580,7 @@ struct DoubleWeightTests {
         #expect(graph.diameter(weight: { w[$0] }) == eccentricities.diameter)
         #expect(graph.center(weight: { w[$0] }) == eccentricities.center)
         #expect(graph.periphery(weight: { w[$0] }) == eccentricities.periphery)
-        let arcs = graph.directed.eccentricities(weight: { w[$0.position] })
+        let arcs = graph.directedView.eccentricities(weight: { w[$0.position] })
         let viaArcs = (0 ..< graph.vertexCount).map { arcs.eccentricity(ofIndex: $0) }
         #expect(viaArcs == expected)
     }

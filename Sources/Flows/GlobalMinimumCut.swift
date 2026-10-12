@@ -461,7 +461,7 @@ struct _MaximumAdjacencyHeap<K: Comparable & AdditiveArithmetic> {
 }
 
 extension Graph {
-    /// A global minimum cut, over `directed`: the least capacity of the edges between a nonempty
+    /// A global minimum cut, over `directedView`: the least capacity of the edges between a nonempty
     /// proper vertex set and the rest, the set holding the first vertex as the source side; nil
     /// below two vertices. By Nagamochi–Ibaraki (LEMON `NagamochiIbaraki`; the same value as
     /// NetworkX `stoer_wagner`, Boost `stoer_wagner_min_cut`, rustworkx `stoer_wagner_min_cut`

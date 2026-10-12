@@ -1,6 +1,6 @@
 // The initializers and predicates on every representation the module can read: the package's
-// `UndirectedAdjacencyList`, `AdjacencyList` and `CompressedSparseRow`, the `.directed` and
-// `.undirected` views, a file-private conformer whose rows are reversed (as an adjacency list's are
+// `UndirectedAdjacencyList`, `AdjacencyList` and `CompressedSparseRow`, the `.directedView` and
+// `.undirectedView` views, a file-private conformer whose rows are reversed (as an adjacency list's are
 // after removals), one with no vertex or edge indices, and an `UndirectedAdjacencyList` after real
 // removals. Built from a graph, a tree has the graph's `vertices` order and its edges at their
 // positions, but its rows are rebuilt in position order whatever the graph's row order (api.md,
@@ -248,31 +248,31 @@ struct TreeRepresentationTests {
         #expect(CompressedSparseRow(vertexCount: 1).isArborescence)
     }
 
-    @Test("Views: digraph.undirected.isTree is the polytree test; graph.directed is an arborescence only without edges")
+    @Test("Views: digraph.undirectedView.isTree is the polytree test; graph.directedView is an arborescence only without edges")
     func views() throws {
         // TS-054's polytree, read as undirected, is the tree 0-1, 2-1; TS-059's opposite arcs a parallel pair.
         let polytree = AdjacencyList(edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 2, to: 1)])
         #expect(!polytree.isArborescence)
-        #expect(polytree.undirected.isTree)
-        let undirectedTree = try #require(Tree(polytree.undirected))
+        #expect(polytree.undirectedView.isTree)
+        let undirectedTree = try #require(Tree(polytree.undirectedView))
         #expect(Array(undirectedTree.edges) == [UndirectedEdge(0, 1), UndirectedEdge(2, 1)])
         let opposite = ReferenceDirectedMultigraph(edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 0)])
-        #expect(!opposite.undirected.isTree)
-        #expect(Forest(opposite.undirected) == nil)
+        #expect(!opposite.undirectedView.isTree)
+        #expect(Forest(opposite.undirectedView) == nil)
         // An arborescence read as undirected is its tree (TS-239's E1).
         let e1: [(Int, Int)] = [(0, 1), (0, 2), (1, 3), (1, 4), (2, 5), (4, 6)]
         let arborescence = try #require(Arborescence(edges: e1.map { DirectedEdge(from: $0.0, to: $0.1) }))
-        #expect(arborescence.undirected.isTree)
-        #expect(Tree(arborescence.undirected) == Tree(RootedTree(arborescence)))
-        // Every edge of g.directed is a digon, so with an edge it is never an arborescence; K₁ is.
+        #expect(arborescence.undirectedView.isTree)
+        #expect(Tree(arborescence.undirectedView) == Tree(RootedTree(arborescence)))
+        // Every edge of g.directedView is a digon, so with an edge it is never an arborescence; K₁ is.
         let k2 = UndirectedAdjacencyList(edges: [UndirectedEdge(0, 1)])
-        #expect(!k2.directed.isArborescence)
-        #expect(Arborescence(k2.directed) == nil)
+        #expect(!k2.directedView.isArborescence)
+        #expect(Arborescence(k2.directedView) == nil)
         let k1 = UndirectedAdjacencyList(vertices: [0])
-        #expect(k1.directed.isArborescence)
+        #expect(k1.directedView.isArborescence)
         let tree = try #require(Tree(edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)]))
-        #expect(!tree.directed.isArborescence)
-        #expect(Arborescence(RootedTree(tree, root: 0)).undirected.isTree)
+        #expect(!tree.directedView.isArborescence)
+        #expect(Arborescence(RootedTree(tree, root: 0)).undirectedView.isTree)
     }
 
     @Test("isTree on an UndirectedAdjacencyList reads the index rows: it hashes no vertex")

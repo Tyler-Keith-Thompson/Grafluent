@@ -185,7 +185,7 @@ struct ShortestPathConformanceTests {
             CompressedSparseRow(vertexCount: 4, edges: edges),
             AdjacencyList(edges: edges),
             ReferenceDirectedMultigraph(edges: edges),
-            UndirectedAdjacencyList(edges: edges.map { UndirectedEdge($0.source, $0.target) }).directed,
+            UndirectedAdjacencyList(edges: edges.map { UndirectedEdge($0.source, $0.target) }).directedView,
         ]
         for graph in graphs {
             #expect(run(graph) == 3)

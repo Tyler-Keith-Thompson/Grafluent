@@ -250,7 +250,7 @@ def op_display(view, name, wspec, of):
     if wspec is not None:
         args.append(f"weight: {wspec}")
     call = f"{name}({', '.join(args)})" if name != "density" else "density"
-    return (f"{view}.{call}" if view else call)
+    return (f"{view}View.{call}" if view else call)
 
 
 def body_for(row, kind="reference", with_tree=True, indent=8, graph_lines=None):
@@ -265,7 +265,7 @@ def body_for(row, kind="reference", with_tree=True, indent=8, graph_lines=None):
         out = []
         g = ref.parse_graph(cell)
         directed = g.directed
-    target = "graph" if view is None else f"graph.{view}"
+    target = "graph" if view is None else f"graph.{view}View"
     W = Weight(wspec, g.m)
     for d in W.decl:
         out.append(pad + d)
@@ -301,9 +301,9 @@ def body_for(row, kind="reference", with_tree=True, indent=8, graph_lines=None):
             out.append(f"{pad}#expect({t}.{W.call(member)} == eccentricities.{member})")
         if not directed and view is None and kind != "tree":
             if W.arg is None:
-                out.append(f"{pad}let arcs = graph.directed.eccentricities()")
+                out.append(f"{pad}let arcs = graph.directedView.eccentricities()")
             else:
-                out.append(f"{pad}let arcs = graph.directed.eccentricities(weight: {W.arc})")
+                out.append(f"{pad}let arcs = graph.directedView.eccentricities(weight: {W.arc})")
             out.append(f"{pad}let viaArcs = (0 ..< graph.vertexCount).map {{ arcs.eccentricity(ofIndex: $0) }}")
             out.append(f"{pad}#expect(viaArcs == expected)")
     elif name == "eccentricity":
@@ -458,7 +458,7 @@ FILES = [
 // and a path with 12 pseudo-random chords. Every `eccentricities` row also checks
 // `eccentricity(ofIndex:)`, `eccentricity(of:)` on the value and on the graph, that the one-shot
 // `radius()`, `diameter()`, `center()` and `periphery()` equal the value's members, and that
-// `graph.directed` gives the same eccentricities; every radius, diameter, center and periphery row
+// `graph.directedView` gives the same eccentricities; every radius, diameter, center and periphery row
 // checks the one-shot call and the `Eccentricities` member. `diameterPath()` pins the breadth-first
 // path from the first peripheral vertex (rows in position order). Literals are catalog cells.
 // Case IDs (DI-nnn) refer to the catalog; see README.md."""),
@@ -482,8 +482,8 @@ FILES = [
 // radius when some vertex reaches every vertex (DI-402, DI-426: the dipath and the acyclic
 // tournament) and a nil diameter; its center is the vertices of least finite eccentricity and its
 // periphery the vertices that do not reach everything (DI-405, DI-427). The Wiener index sums
-// ordered pairs, so `graph.directed` doubles it (DI-438) and keeps the average and the density
-// (DI-437, DI-439); `digraph.undirected` reads each arc as an edge (DI-428, DI-429, DI-434). Loops
+// ordered pairs, so `graph.directedView` doubles it (DI-438) and keeps the average and the density
+// (DI-437, DI-439); `digraph.undirectedView` reads each arc as an edge (DI-428, DI-429, DI-434). Loops
 // count in the density (DI-441). Literals are catalog cells. Case IDs (DI-nnn) refer to the
 // catalog; see README.md."""),
     ("MultigraphDistanceTests.swift", "Self-loops and parallel edges", "MultigraphDistanceTests", 500, 599, """// §F: self-loops and parallel edges, on the `ReferencePseudograph` and `ReferenceDirectedMultigraph`

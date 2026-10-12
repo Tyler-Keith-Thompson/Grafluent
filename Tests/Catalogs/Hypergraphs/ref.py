@@ -931,7 +931,7 @@ def run_call(g, call):
         "insert": lambda v: g.insert(v),
         "removeAll": lambda: (g.remove_all(), VOID)[1],
         "dual": lambda: g.dual(),
-        "incidenceGraph": lambda: g.incidence_graph(),
+        "incidenceGraphView": lambda: g.incidence_graph(),
         "cliqueExpansion": lambda: g.clique_expansion(),
         "hashes": lambda: g.hashes,
         "description": lambda: g.description(),
@@ -1005,7 +1005,7 @@ def run_call(g, call):
     return table[name](*args)
 
 
-PROPERTIES = {"rank", "isConnected", "incidenceGraph", "reversed", "isWeaklyConnected", "isStronglyConnected",
+PROPERTIES = {"rank", "isConnected", "incidenceGraphView", "reversed", "isWeaklyConnected", "isStronglyConnected",
               "isBHypergraph", "isFHypergraph", "isBFHypergraph", "description", "debugDescription"}
 OF_LABEL = {"incidentHyperedges", "degree", "neighbors", "vertexIndex", "outHyperedges", "inHyperedges",
             "outDegree", "inDegree"}
@@ -1216,10 +1216,10 @@ def define():
     case("Dual", "of the empty hypergraph", [], [], [("dual",)], show_state=False)
     case("Dual", "repeated hyperedges become vertices with equal incidence rows", [], [["a", "b"], ["a", "b"]], [("dual",)], show_state=False)
     case("Incidence graph", "vertices 0..<n then n + p; edge q is the q-th incidence (XGI to_bipartite_graph numbering)", EX_V, EX_E,
-         [("incidenceGraph",)], show_state=False)
-    case("Incidence graph", "an empty hyperedge is an isolated vertex", [], EMPTY_E, [("incidenceGraph",)], show_state=False)
+         [("incidenceGraphView",)], show_state=False)
+    case("Incidence graph", "an empty hyperedge is an isolated vertex", [], EMPTY_E, [("incidenceGraphView",)], show_state=False)
     case("Incidence graph", "repeated hyperedges are distinct vertices; the view stays simple", [], [["a", "b"], ["a", "b"]],
-         [("incidenceGraph",)], show_state=False)
+         [("incidenceGraphView",)], show_state=False)
     case("Clique expansion", "every vertex, isolated ones too; each pair once, by index pair (XGI to_graph)", EX_V, EX_E,
          [("cliqueExpansion",)], show_state=False)
     case("Clique expansion", "singletons and empty hyperedges add no edge; no self-loops", [], [["a"], [], ["a", "b"]],
@@ -1314,9 +1314,9 @@ def define():
           DY_V, DY_E, [("dual",)], show_state=False)
     dcase("Dual", "an isolated vertex becomes the empty hyperedge and back", ["z"], [([], [])], [("dual",)], show_state=False)
     dcase("Incidence graph", "sources → hyperedge → targets: source incidences first, then target incidences (XGI directed to_bipartite_graph)",
-          DY_V, DY_E, [("incidenceGraph",)], show_state=False)
+          DY_V, DY_E, [("incidenceGraphView",)], show_state=False)
     dcase("Incidence graph", "a vertex on both sides gives a 2-cycle through its hyperedge", [], [(["a"], ["a", "b"])],
-          [("incidenceGraph",)], show_state=False)
+          [("incidenceGraphView",)], show_state=False)
     dcase("Components", "weak components join sources and targets; isolated vertices alone", DX_V, DX_E,
           [("weaklyConnectedComponents",), ("isWeaklyConnected",)], show_state=False)
     dcase("Components", "strong components through the incidence graph: a → c → d → f → a is a cycle, b and e are not on it",
@@ -1402,8 +1402,8 @@ def render():
         "  `vertices` with each vertex's index; `E [p:…, …]` is `hyperedges` by position, each side in vertex-index",
         "  order.",
         "* `dual()` and `reversed` print as states (the dual's vertices are the original's hyperedge positions).",
-        "* `incidenceGraph`, `cliqueExpansion()` and `lineGraph(s:)` print `vertices …; edges […]` with the edges in",
-        "  edge-position order (`–` undirected, `→` directed). In `incidenceGraph`, vertex index `i` is `i` and",
+        "* `incidenceGraphView`, `cliqueExpansion()` and `lineGraph(s:)` print `vertices …; edges […]` with the edges in",
+        "  edge-position order (`–` undirected, `→` directed). In `incidenceGraphView`, vertex index `i` is `i` and",
         "  hyperedge `p` is `n + p`.",
         "* `hashes()` is the number of vertex lookups so far (a benchmark counter, not API: the Swift suite counts",
         "  with a `Vertex` whose `hash(into:)` counts).",

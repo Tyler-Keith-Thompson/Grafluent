@@ -46,6 +46,15 @@ public struct FiedlerVector<G: Graph> {
         return _values[_graph._requiredVertexIndex(of: vertex, "The vertex is not in the graph")]
     }
 
+    /// The entry of `vertex`, throwing instead of trapping when it is not a vertex of the graph.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the graph.
+    @inlinable
+    public func value(checked vertex: G.Vertex) throws(VertexNotFound) -> Double {
+        guard _graph.contains(vertex) else { throw VertexNotFound() }
+        return value(of: vertex)
+    }
+
     /// The entry of the vertex at `index` (its vertex index, or its position in `vertices` when the
     /// graph has no vertex indices).
     ///

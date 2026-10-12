@@ -16,12 +16,14 @@ the public API and is self-contained per test; shared material is the `Reference
 ```swift
 extension RootedTree {                                              // and the first on Arborescence
     func lowestCommonAncestor(of a: Vertex, _ b: Vertex) -> Vertex  // reflexive: lca(v, v) = v; traps on a non-vertex
+    func lowestCommonAncestor(checked:_:) throws(VertexNotFound) -> Vertex
     var eulerTour: Walk<Vertex, Int>                                // 2n − 1 vertices, children(of:) order
 }
 struct LowestCommonAncestors<Vertex: Hashable>                       // Sendable when Vertex is
     init(_ tree: RootedTree<Vertex>), init(_ arborescence: Arborescence<Vertex>)
     func lowestCommonAncestor(of:_:) -> Vertex, func distance(from:to:) -> Int
     func lowestCommonAncestor(ofIndex:_:) -> Int, func distance(fromIndex:toIndex:) -> Int
+    lowestCommonAncestor(checked:_:), distance(checkedFrom:to:)     // throw VertexNotFound
 struct HeavyLightDecomposition<Vertex: Hashable>                     // Sendable when Vertex is
     init(_ tree: RootedTree<Vertex>), init(_ arborescence: Arborescence<Vertex>)
     func heavyChild(of:) -> Vertex?, func head(of:) -> Vertex
@@ -30,6 +32,9 @@ struct HeavyLightDecomposition<Vertex: Hashable>                     // Sendable
     func subtree(of:) -> Range<Int>
     func segments(from:to:includingCommonAncestor: Bool = true) -> [Segment]
     func lowestCommonAncestor(of:_:) -> Vertex
+    heavyChild(checked:), head(checked:), position(checked:), subtree(checked:),
+    segments(checkedFrom:to:includingCommonAncestor:), lowestCommonAncestor(checked:_:)
+                                                                     // throw VertexNotFound; nil is still a leaf
     struct Segment: Hashable, Sendable { var positions: Range<Int>; var isReversed: Bool }
 extension Tree {
     func center() -> [Vertex], func center<W>(weight: (Int) -> W) -> [Vertex]
@@ -92,7 +97,8 @@ oracles inside each test.
 | `TreeAlgorithmConformanceTests.swift` | 9 | `Sendable` across a `Task`, value semantics, `Segment` hashing and mutation, `Preorder` as a `RandomAccessCollection`, generic code; catalog rows on `UndirectedAdjacencyList`, `AdjacencyList`, parent closures, `Tree(edges:)` and `Collider` vertices |
 
 | `TreeAlgorithmReviewTests.swift` | 5 | Added after the review (TA-1001 – TA-1005): `Double` weights whose sums depend on order, all-zero weights, a tree rooted away from vertex 0, lowest common ancestors on 1000 – 5000 vertices, the heavy–light index forms |
-210 tests in all.
+| `TreeAlgorithmCheckedLookupTests.swift` | 3 | The `checked:` lookups (README Principle 6, TA-1006 – TA-1008): every HLD, `LowestCommonAncestors` and climbing query against its plain spelling on every F1 pair, `VertexNotFound` for either argument, named vertices on both lookup paths |
+213 tests in all.
 
 ## Case IDs
 
@@ -118,6 +124,7 @@ properties the catalog does not list.
 | TA-601 – TA-619, TA-622 – TA-624 | G. Diameter | `DiameterTests.swift` |
 | TA-620, TA-621 | G. Negative and NaN weights | `TreeAlgorithmPreconditionTests.swift` |
 | TA-901 – TA-918 | H. Large inputs | `Performance/TreeAlgorithmStressTests.swift` |
+| TA-1006 – TA-1008 | `checked:` lookups | `TreeAlgorithmCheckedLookupTests.swift` |
 
 ## Not tested
 

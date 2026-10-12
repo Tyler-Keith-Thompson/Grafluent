@@ -7,26 +7,26 @@ extension BidirectionalDirectedGraph {
     /// The view keeps the graph's vertices, vertex indices, edge positions and edge indices; the
     /// edge at position `p` runs from the graph's target of `p` to its source. Its out-rows are the
     /// graph's in-rows. To materialize it, pass it to a representation's initializer
-    /// (`AdjacencyList(g.reverseView)`), or use the representation's own `transposed()`.
+    /// (`AdjacencyList(g.transposedView)`), or use the representation's own `transposed()`.
     @inlinable
-    public var reverseView: ReverseView<Self> { ReverseView(base: self) }
+    public var transposedView: TransposedView<Self> { TransposedView(base: self) }
 }
 
-extension ReverseView {
+extension TransposedView {
     /// The base: reversing twice gives back the graph itself, with no view around it. O(1).
     @inlinable
-    public var reverseView: Base { base }
+    public var transposedView: Base { base }
 }
 
 /// A bidirectional directed graph with every edge reversed: the converse (or transpose) of its
-/// base. Made by `reverseView`.
+/// base. Made by `transposedView`.
 ///
 /// Every member forwards to the base with the two directions swapped, so `successors` is the base's
 /// `predecessors`, `outEdges(ofIndex:)` the base's `inEdges(ofIndex:)`, and the base's own fast
 /// members are the ones called. Positions and edge indices are the base's, so a weight keyed by the
 /// base's positions applies to the view unchanged.
 @frozen
-public struct ReverseView<Base: BidirectionalDirectedGraph>: BidirectionalDirectedGraph {
+public struct TransposedView<Base: BidirectionalDirectedGraph>: BidirectionalDirectedGraph {
     public typealias Vertex = Base.Vertex
 
     /// The graph the view reverses.
@@ -43,7 +43,7 @@ public struct ReverseView<Base: BidirectionalDirectedGraph>: BidirectionalDirect
     @inlinable
     public var edges: Edges { Edges(base: base.edges) }
 
-    /// The edges of a `ReverseView`: the base's, each reversed, at the base's positions.
+    /// The edges of a `TransposedView`: the base's, each reversed, at the base's positions.
     @frozen
     public struct Edges: Collection {
         @usableFromInline let base: Base.Edges
@@ -147,14 +147,14 @@ public struct ReverseView<Base: BidirectionalDirectedGraph>: BidirectionalDirect
     }
 }
 
-extension ReverseView: Sendable where Base: Sendable {}
-extension ReverseView.Edges: Sendable where Base.Edges: Sendable {}
+extension TransposedView: Sendable where Base: Sendable {}
+extension TransposedView.Edges: Sendable where Base.Edges: Sendable {}
 
-extension ReverseView.Edges: BidirectionalCollection where Base.Edges: BidirectionalCollection {
+extension TransposedView.Edges: BidirectionalCollection where Base.Edges: BidirectionalCollection {
     @inlinable public func index(before i: Base.Edges.Index) -> Base.Edges.Index { base.index(before: i) }
 }
 
-extension ReverseView.Edges: RandomAccessCollection where Base.Edges: RandomAccessCollection {
+extension TransposedView.Edges: RandomAccessCollection where Base.Edges: RandomAccessCollection {
     @inlinable public func index(_ i: Base.Edges.Index, offsetBy distance: Int) -> Base.Edges.Index { base.index(i, offsetBy: distance) }
     @inlinable public func distance(from start: Base.Edges.Index, to end: Base.Edges.Index) -> Int { base.distance(from: start, to: end) }
 }

@@ -136,6 +136,7 @@ extension DirectedGraph {
     public let algebraicConnectivity: Double         // λ₂
     public var values: [Double] { get }              // unit length, canonical sign, index order
     public func value(of vertex: G.Vertex) -> Double // traps on a non-vertex
+    public func value(checked vertex: G.Vertex) throws(VertexNotFound) -> Double  // throws instead (Principle 6)
     public func value(ofIndex index: Int) -> Double  // traps outside 0..<vertexCount
 }
 ```
@@ -422,7 +423,7 @@ Parallel edges add their weights; loops follow the conventions above (2 in A, ca
 two matrices in phase 1 (NetworkX's `laplacian_matrix` on a `DiGraph` uses out-degrees; igraph's
 `mode="out"` default; SciPy's `csgraph.laplacian` defaults to **in**-degrees, a disagreement);
 their spectra are complex (phase 2). Spectral quantities of a directed graph's symmetrization
-are `digraph.undirected.…`.
+are `digraph.undirectedView.…`.
 
 ## Platform and dependencies (decision)
 

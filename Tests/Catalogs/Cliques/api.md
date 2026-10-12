@@ -3,7 +3,7 @@
 Maximal-clique enumeration (Bron–Kerbosch), the maximum clique and clique number, the core
 decomposition (core numbers, degeneracy, degeneracy ordering, k-cores and k-shells), and triangle
 counts with the clustering coefficients built on them (local, transitivity, average). All on
-`Graph`. Directed graphs reach them through `digraph.undirected`. `cases.md` (CQ-001 – CQ-633,
+`Graph`. Directed graphs reach them through `digraph.undirectedView`. `cases.md` (CQ-001 – CQ-633,
 276 cases) pins the values. `ref.py` recomputes every one with the model below and checks it
 against brute force, NetworkX 3.7 and Latapy's compact-forward count; it also runs 280 random
 graphs, loops and parallel edges included (`uv run --quiet --no-project --with networkx==3.7
@@ -28,7 +28,7 @@ python3 ref.py`, about 80 s). `igprobe*.py` hold the python-igraph 1.0.0 values 
 
 | Not in phase 1 | Reason |
 |---|---|
-| Cliques, cores or clustering on `DirectedGraph` | The libraries disagree, and no two agree. NetworkX `find_cliques` and `triangles` raise on digraphs. igraph ignores directions with a warning. Boost's `bron_kerbosch_all_cliques` needs arcs in both directions. NetworkX `core_number` uses in-degree + out-degree, so a reciprocal pair counts twice. igraph `coreness(mode=)` offers all, in or out. Boost `core_numbers` uses in-degree. NetworkX `clustering` uses Fagiolo's directed triangles. `digraph.undirected.op()` already gives the "directions ignored" reading, which is igraph's, because the simple graph merges opposite arcs (CQ-501 – CQ-515). Phase 2: D-cores (Giatsidis–Thilikos–Vazirgiannis 2011, (k, l) in/out cores, cited by NetworkX's core.py) on `BidirectionalDirectedGraph`, and Fagiolo clustering if it is asked for. |
+| Cliques, cores or clustering on `DirectedGraph` | The libraries disagree, and no two agree. NetworkX `find_cliques` and `triangles` raise on digraphs. igraph ignores directions with a warning. Boost's `bron_kerbosch_all_cliques` needs arcs in both directions. NetworkX `core_number` uses in-degree + out-degree, so a reciprocal pair counts twice. igraph `coreness(mode=)` offers all, in or out. Boost `core_numbers` uses in-degree. NetworkX `clustering` uses Fagiolo's directed triangles. `digraph.undirectedView.op()` already gives the "directions ignored" reading, which is igraph's, because the simple graph merges opposite arcs (CQ-501 – CQ-515). Phase 2: D-cores (Giatsidis–Thilikos–Vazirgiannis 2011, (k, l) in/out cores, cited by NetworkX's core.py) on `BidirectionalDirectedGraph`, and Fagiolo clustering if it is asked for. |
 | A `Clique` result type (README) | A clique is a vertex set with no structure beyond its members. Unlike `Cycle`, it carries no edges: with parallel edges, the edges of a clique are not even determined. `[Vertex]` in `vertices` order is what `center()` and `articulationPoints()` return, and equal cliques give equal arrays. NetworkX and igraph return lists and JGraphT `Set<V>`. **Proposed README edit:** drop `Clique`. |
 | `minSize:` / `maxSize:` on `maximalCliques()` (igraph `min`/`max`, Boost `min`) | `.lazy.filter { $0.count >= k }` gives the same sequence. The only gain is pruning `|R| + |P| < k`. That is a phase 2 overload, added only if a benchmark shows a win. |
 | All cliques, not only maximal ones (NetworkX `enumerate_all_cliques`, igraph `cliques`) | Every clique is a subset of a maximal one. The output is far larger (4^8 = 65 536 cliques on `moon(8)` against 6 561 maximal ones), and its uses (motif counts) belong with a motif or census module. |
@@ -80,6 +80,7 @@ extension Graph {
 @frozen public struct CoreNumbers<G: Graph> {
     /// Precondition: `vertex` is a vertex.
     public func coreNumber(of vertex: G.Vertex) -> Int
+    public func coreNumber(checked vertex: G.Vertex) throws(VertexNotFound) -> Int  // Principle 6
     /// By vertex index (positions in `vertices` without vertex indices).  Precondition: in range.
     public func coreNumber(ofIndex index: Int) -> Int
     /// The greatest core number; 0 for the empty graph. O(1).
@@ -95,8 +96,10 @@ extension Graph {
 
 @frozen public struct ClusteringCoefficients<G: Graph> {
     public func clusteringCoefficient(of vertex: G.Vertex) -> Double
+    public func clusteringCoefficient(checked vertex: G.Vertex) throws(VertexNotFound) -> Double  // Principle 6
     public func clusteringCoefficient(ofIndex index: Int) -> Double
     public func triangleCount(of vertex: G.Vertex) -> Int
+    public func triangleCount(checked vertex: G.Vertex) throws(VertexNotFound) -> Int  // Principle 6
     public func triangleCount(ofIndex index: Int) -> Int
     public var triangleCount: Int { get }          // O(1): stored
     public var transitivity: Double { get }        // O(1): stored
@@ -330,7 +333,7 @@ K₁₂₀, `moon(8)` (6 561 cliques) and a 2 000-vertex random multigraph.
   equal the value's members, that `Set(maximalCliques())` matches the catalog as a set, and
   that every listed clique is a clique and maximal (`contains(edge:)` for each pair, no outside
   vertex adjacent to all). Check that `maximumClique().count == cliqueNumber()`, that
-  `cliqueNumber() <= degeneracy + 1`, and that `g.directed.undirected` gives the same values as
+  `cliqueNumber() <= degeneracy + 1`, and that `g.directedView.undirectedView` gives the same values as
   `g` (opposite arcs merge). Property tests (swift-property-based) do the same on random
   multigraphs with loops. `just diff` checks against NetworkX `find_cliques` (as sets),
   `core_number` on the simple graph, `triangles` and `clustering`. Benchmarks, not tests: the

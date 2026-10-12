@@ -35,6 +35,8 @@ struct FunctionalGraph.CycleDecomposition: Sendable
     cycles                                      // RandomAccessCollection of ArraySlice<Int>
     component(of:), root(of:), tailLength(of:), cycleLength(of:), preimages(of:), inDegree(of:),
         successor(of:steps:)
+    component(checked:), root(checked:), tailLength(checked:), cycleLength(checked:),
+        preimages(checked:), inDegree(checked:), successor(checked:steps:)  // throw VertexNotFound
 func floydCycleDetection(from:successor:) -> (tailLength: Int, cycleLength: Int, root: Vertex)
 func brentCycleDetection(from:successor:) -> (tailLength: Int, cycleLength: Int, root: Vertex)
 ```
@@ -52,8 +54,8 @@ func brentCycleDetection(from:successor:) -> (tailLength: Int, cycleLength: Int,
 | `successor(of:steps:)` | Any k from 0 to `Int.max`, on the graph and on the decomposition | FG-021 – FG-024, FG-032 – FG-034 |
 | Floyd and Brent | The formulations api.md pins, so call counts are exact: Floyd 3ν + 2μ + λ | FG-047 – FG-059 |
 | Codable | The bare successor array; decoding re-checks the range and throws `dataCorrupted` | FG-062 |
-| `checked:` spellings | The plain spelling's answer for a vertex; `VertexNotFound` off `0..<n`, `EdgeNotFound` for a position off `0..<n`; negative steps still trap | FG-063, FG-064 |
-| Traps | A successor off `0..<n`, a negative count, a non-vertex, negative steps | FG-007 – FG-010, FG-019, FG-020, FG-025, FG-043, FG-044, FG-064 |
+| `checked:` spellings | The plain spelling's answer for a vertex; `VertexNotFound` off `0..<n`, `EdgeNotFound` for a position off `0..<n`; negative steps still trap; the same on the cycle decomposition | FG-063 – FG-066 |
+| Traps | A successor off `0..<n`, a negative count, a non-vertex, negative steps | FG-007 – FG-010, FG-019, FG-020, FG-025, FG-043, FG-044, FG-064, FG-066 |
 
 ## How values are pinned
 

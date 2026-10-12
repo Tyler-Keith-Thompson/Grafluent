@@ -2,11 +2,11 @@
 // `ReferenceDirectedMultigraph` for rows already on it), a file-private conformer with no vertex or
 // edge indices, and, without a repeated edge, `CompressedSparseRow` and `AdjacencyMatrix` on the
 // vertex indices; undirected rows on `Pseudograph` (or `ReferencePseudograph`), the conformer, and,
-// without a repeated edge, `AdjacencyList.undirected` (each edge an arc as written) and
-// `AdjacencyMatrix.undirected`. CompressedSparseRow and AdjacencyMatrix number edges by row-major
-// cell, so there each catalog edge's position is looked up, a cut's edges are listed in that order,
-// and Edmonds–Karp's flow (which follows positions) was recomputed by swiftgen.py with ref.py's
-// model on those positions. Everything else is the catalog's. See README.md.
+// without a repeated edge, `AdjacencyList.undirectedView` (each edge an arc as written) and
+// `AdjacencyMatrix.undirectedView`. CompressedSparseRow and AdjacencyMatrix number edges by
+// row-major cell, so there each catalog edge's position is looked up, a cut's edges are listed in
+// that order, and Edmonds–Karp's flow (which follows positions) was recomputed by swiftgen.py with
+// ref.py's model on those positions. Everything else is the catalog's. See README.md.
 
 import AdjacencyListModule
 import AdjacencyMatrixModule
@@ -41,7 +41,7 @@ private struct UnindexedGraph<Vertex: Hashable>: Graph {
 
 @Suite("minimumVertexCut on every representation")
 struct MinimumVertexCutRepresentationTests {
-    @Test("FL-321 empty graph, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-321 empty graph, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl321() {
         // undirected V []; E []; minimumVertexCut()
         let pairs: [(Int, Int)] = []
@@ -54,19 +54,19 @@ struct MinimumVertexCutRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.minimumVertexCut() == [] as [Int])
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.minimumVertexCut() == [] as [Int])
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = []
-            let graph = AdjacencyMatrix(vertexCount: 0, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 0, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             #expect(graph.minimumVertexCut() == [] as [Int])
         }
     }
 
-    @Test("FL-324 one vertex, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-324 one vertex, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl324() {
         // undirected V [0]; E []; minimumVertexCut()
         let pairs: [(Int, Int)] = []
@@ -79,19 +79,19 @@ struct MinimumVertexCutRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.minimumVertexCut() == [] as [Int])
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.minimumVertexCut() == [] as [Int])
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = []
-            let graph = AdjacencyMatrix(vertexCount: 1, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 1, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             #expect(graph.minimumVertexCut() == [] as [Int])
         }
     }
 
-    @Test("FL-327 two isolated vertices, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-327 two isolated vertices, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl327() {
         // undirected V [0, 1]; E []; minimumVertexCut()
         let pairs: [(Int, Int)] = []
@@ -104,19 +104,19 @@ struct MinimumVertexCutRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.minimumVertexCut() == [] as [Int])
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.minimumVertexCut() == [] as [Int])
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = []
-            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             #expect(graph.minimumVertexCut() == [] as [Int])
         }
     }
 
-    @Test("FL-330 two isolated vertices, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-330 two isolated vertices, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl330() {
         // undirected V [0, 1]; E []; minimumVertexCut(from: 0, to: 1)
         let pairs: [(Int, Int)] = []
@@ -129,19 +129,19 @@ struct MinimumVertexCutRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.minimumVertexCut(from: 0, to: 1) == [] as [Int])
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.minimumVertexCut(from: 0, to: 1) == [] as [Int])
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = []
-            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             #expect(graph.minimumVertexCut(from: 0, to: 1) == [] as [Int])
         }
     }
 
-    @Test("FL-333 K(2): κ = n − 1: all but the first vertex, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-333 K(2): κ = n − 1: all but the first vertex, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl333() {
         // K(2); minimumVertexCut()
         let pairs: [(Int, Int)] = [(0, 1)]
@@ -154,19 +154,19 @@ struct MinimumVertexCutRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.minimumVertexCut() == [1] as [Int])
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.minimumVertexCut() == [1] as [Int])
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             #expect(graph.minimumVertexCut() == [1] as [Int])
         }
     }
 
-    @Test("FL-336 K(2): κ = n − 1: all but the first vertex, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-336 K(2): κ = n − 1: all but the first vertex, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl336() {
         // K(2); minimumVertexCut(from: 0, to: 1)
         let pairs: [(Int, Int)] = [(0, 1)]
@@ -179,13 +179,13 @@ struct MinimumVertexCutRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.minimumVertexCut(from: 0, to: 1) == nil)
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.minimumVertexCut(from: 0, to: 1) == nil)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             #expect(graph.minimumVertexCut(from: 0, to: 1) == nil)
         }
@@ -221,7 +221,7 @@ struct MinimumVertexCutRepresentationTests {
         }
     }
 
-    @Test("FL-345 self-loops ignored, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-345 self-loops ignored, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl345() {
         // undirected V [0, 1, 2]; E [0–0, 0–1, 1–2, 2–2]; minimumVertexCut()
         let pairs: [(Int, Int)] = [(0, 0), (0, 1), (1, 2), (2, 2)]
@@ -234,19 +234,19 @@ struct MinimumVertexCutRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.minimumVertexCut() == [1] as [Int])
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.minimumVertexCut() == [1] as [Int])
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 0), (0, 1), (1, 2), (2, 2)]
-            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             #expect(graph.minimumVertexCut() == [1] as [Int])
         }
     }
 
-    @Test("FL-348 self-loops ignored, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-348 self-loops ignored, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl348() {
         // undirected V [0, 1, 2]; E [0–0, 0–1, 1–2, 2–2]; minimumVertexCut(from: 0, to: 2)
         let pairs: [(Int, Int)] = [(0, 0), (0, 1), (1, 2), (2, 2)]
@@ -259,19 +259,19 @@ struct MinimumVertexCutRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.minimumVertexCut(from: 0, to: 2) == [1] as [Int])
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.minimumVertexCut(from: 0, to: 2) == [1] as [Int])
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 0), (0, 1), (1, 2), (2, 2)]
-            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             #expect(graph.minimumVertexCut(from: 0, to: 2) == [1] as [Int])
         }
     }
 
-    @Test("FL-351 path P(4), on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-351 path P(4), on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl351() {
         // P(4); minimumVertexCut()
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
@@ -284,19 +284,19 @@ struct MinimumVertexCutRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.minimumVertexCut() == [1] as [Int])
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.minimumVertexCut() == [1] as [Int])
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             #expect(graph.minimumVertexCut() == [1] as [Int])
         }
     }
 
-    @Test("FL-354 path P(4), on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-354 path P(4), on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl354() {
         // P(4); minimumVertexCut(from: 0, to: 3)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
@@ -309,19 +309,19 @@ struct MinimumVertexCutRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.minimumVertexCut(from: 0, to: 3) == [2] as [Int])
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.minimumVertexCut(from: 0, to: 3) == [2] as [Int])
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             #expect(graph.minimumVertexCut(from: 0, to: 3) == [2] as [Int])
         }
     }
 
-    @Test("FL-357 path P(4), on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-357 path P(4), on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl357() {
         // P(4); minimumVertexCut(from: 0, to: 1)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
@@ -334,19 +334,19 @@ struct MinimumVertexCutRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.minimumVertexCut(from: 0, to: 1) == nil)
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.minimumVertexCut(from: 0, to: 1) == nil)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             #expect(graph.minimumVertexCut(from: 0, to: 1) == nil)
         }
     }
 
-    @Test("FL-360 cycle C(5), on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-360 cycle C(5), on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl360() {
         // C(5); minimumVertexCut()
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
@@ -359,19 +359,19 @@ struct MinimumVertexCutRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.minimumVertexCut() == [1, 3] as [Int])
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.minimumVertexCut() == [1, 3] as [Int])
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             #expect(graph.minimumVertexCut() == [1, 3] as [Int])
         }
     }
 
-    @Test("FL-363 cycle C(5), on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-363 cycle C(5), on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl363() {
         // C(5); minimumVertexCut(from: 0, to: 2)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
@@ -384,19 +384,19 @@ struct MinimumVertexCutRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.minimumVertexCut(from: 0, to: 2) == [1, 3] as [Int])
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.minimumVertexCut(from: 0, to: 2) == [1, 3] as [Int])
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             #expect(graph.minimumVertexCut(from: 0, to: 2) == [1, 3] as [Int])
         }
     }
 
-    @Test("FL-366 K(5), on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-366 K(5), on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl366() {
         // K(5); minimumVertexCut()
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
@@ -409,19 +409,19 @@ struct MinimumVertexCutRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.minimumVertexCut() == [1, 2, 3, 4] as [Int])
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.minimumVertexCut() == [1, 2, 3, 4] as [Int])
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
-            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             #expect(graph.minimumVertexCut() == [1, 2, 3, 4] as [Int])
         }
     }
 
-    @Test("FL-369 K(5), on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-369 K(5), on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl369() {
         // K(5); minimumVertexCut(from: 0, to: 4)
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
@@ -434,19 +434,19 @@ struct MinimumVertexCutRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.minimumVertexCut(from: 0, to: 4) == nil)
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.minimumVertexCut(from: 0, to: 4) == nil)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
-            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             #expect(graph.minimumVertexCut(from: 0, to: 4) == nil)
         }
     }
 
-    @Test("FL-372 Kb(3,3), on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-372 Kb(3,3), on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl372() {
         // Kb(3,3); minimumVertexCut()
         let pairs: [(Int, Int)] = [(0, 3), (0, 4), (0, 5), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5)]
@@ -459,19 +459,19 @@ struct MinimumVertexCutRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.minimumVertexCut() == [3, 4, 5] as [Int])
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.minimumVertexCut() == [3, 4, 5] as [Int])
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 3), (0, 4), (0, 5), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5)]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             #expect(graph.minimumVertexCut() == [3, 4, 5] as [Int])
         }
     }
 
-    @Test("FL-375 Kb(3,3), on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-375 Kb(3,3), on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl375() {
         // Kb(3,3); minimumVertexCut(from: 0, to: 1)
         let pairs: [(Int, Int)] = [(0, 3), (0, 4), (0, 5), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5)]
@@ -484,19 +484,19 @@ struct MinimumVertexCutRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.minimumVertexCut(from: 0, to: 1) == [3, 4, 5] as [Int])
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.minimumVertexCut(from: 0, to: 1) == [3, 4, 5] as [Int])
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 3), (0, 4), (0, 5), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5)]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             #expect(graph.minimumVertexCut(from: 0, to: 1) == [3, 4, 5] as [Int])
         }
     }
 
-    @Test("FL-378 Kb(3,3), on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-378 Kb(3,3), on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl378() {
         // Kb(3,3); minimumVertexCut(from: 0, to: 3)
         let pairs: [(Int, Int)] = [(0, 3), (0, 4), (0, 5), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5)]
@@ -509,19 +509,19 @@ struct MinimumVertexCutRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.minimumVertexCut(from: 0, to: 3) == nil)
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.minimumVertexCut(from: 0, to: 3) == nil)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 3), (0, 4), (0, 5), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5)]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             #expect(graph.minimumVertexCut(from: 0, to: 3) == nil)
         }
     }
 
-    @Test("FL-381 wheel(5), on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-381 wheel(5), on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl381() {
         // wheel(5); minimumVertexCut()
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (2, 3), (3, 4), (4, 5), (5, 1)]
@@ -534,19 +534,19 @@ struct MinimumVertexCutRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.minimumVertexCut() == [0, 2, 4] as [Int])
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.minimumVertexCut() == [0, 2, 4] as [Int])
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (2, 3), (3, 4), (4, 5), (5, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             #expect(graph.minimumVertexCut() == [0, 2, 4] as [Int])
         }
     }
 
-    @Test("FL-384 wheel(5), on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-384 wheel(5), on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl384() {
         // wheel(5); minimumVertexCut(from: 1, to: 3)
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (2, 3), (3, 4), (4, 5), (5, 1)]
@@ -559,19 +559,19 @@ struct MinimumVertexCutRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.minimumVertexCut(from: 1, to: 3) == [0, 2, 4] as [Int])
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.minimumVertexCut(from: 1, to: 3) == [0, 2, 4] as [Int])
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (2, 3), (3, 4), (4, 5), (5, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             #expect(graph.minimumVertexCut(from: 1, to: 3) == [0, 2, 4] as [Int])
         }
     }
 
-    @Test("FL-387 two triangles sharing a vertex: κ 1, λ 2, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-387 two triangles sharing a vertex: κ 1, λ 2, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl387() {
         // undirected V [0, 1, 2, 3, 4]; E [0–1, 1–2, 0–2, 2–3, 3–4, 2–4]; minimumVertexCut()
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (0, 2), (2, 3), (3, 4), (2, 4)]
@@ -584,19 +584,19 @@ struct MinimumVertexCutRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.minimumVertexCut() == [2] as [Int])
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.minimumVertexCut() == [2] as [Int])
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (0, 2), (2, 3), (3, 4), (2, 4)]
-            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             #expect(graph.minimumVertexCut() == [2] as [Int])
         }
     }
 
-    @Test("FL-390 two triangles sharing a vertex: κ 1, λ 2, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-390 two triangles sharing a vertex: κ 1, λ 2, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl390() {
         // undirected V [0, 1, 2, 3, 4]; E [0–1, 1–2, 0–2, 2–3, 3–4, 2–4]; minimumVertexCut(from: 0, to: 4)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (0, 2), (2, 3), (3, 4), (2, 4)]
@@ -609,19 +609,19 @@ struct MinimumVertexCutRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.minimumVertexCut(from: 0, to: 4) == [2] as [Int])
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.minimumVertexCut(from: 0, to: 4) == [2] as [Int])
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (0, 2), (2, 3), (3, 4), (2, 4)]
-            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             #expect(graph.minimumVertexCut(from: 0, to: 4) == [2] as [Int])
         }
     }
 
-    @Test("FL-393 two K(4) joined by two edges, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-393 two K(4) joined by two edges, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl393() {
         // undirected V [0, 1, 2, 3, 4, 5, 6, 7]; E [0–1, 0–2, 0–3, 1–2, 1–3, 2–3, 4–5, 4–6, 4–7, 5–6, 5–7, 6–7, 0–4, 1–5]; minimumVertexCut()
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3), (4, 5), (4, 6), (4, 7), (5, 6), (5, 7), (6, 7), (0, 4), (1, 5)]
@@ -634,19 +634,19 @@ struct MinimumVertexCutRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.minimumVertexCut() == [1, 4] as [Int])
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.minimumVertexCut() == [1, 4] as [Int])
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3), (4, 5), (4, 6), (4, 7), (5, 6), (5, 7), (6, 7), (0, 4), (1, 5)]
-            let graph = AdjacencyMatrix(vertexCount: 8, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 8, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             #expect(graph.minimumVertexCut() == [1, 4] as [Int])
         }
     }
 
-    @Test("FL-396 two K(4) joined by two edges, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-396 two K(4) joined by two edges, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl396() {
         // undirected V [0, 1, 2, 3, 4, 5, 6, 7]; E [0–1, 0–2, 0–3, 1–2, 1–3, 2–3, 4–5, 4–6, 4–7, 5–6, 5–7, 6–7, 0–4, 1–5]; minimumVertexCut(from: 2, to: 6)
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3), (4, 5), (4, 6), (4, 7), (5, 6), (5, 7), (6, 7), (0, 4), (1, 5)]
@@ -659,19 +659,19 @@ struct MinimumVertexCutRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.minimumVertexCut(from: 2, to: 6) == [4, 5] as [Int])
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.minimumVertexCut(from: 2, to: 6) == [4, 5] as [Int])
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3), (4, 5), (4, 6), (4, 7), (5, 6), (5, 7), (6, 7), (0, 4), (1, 5)]
-            let graph = AdjacencyMatrix(vertexCount: 8, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 8, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             #expect(graph.minimumVertexCut(from: 2, to: 6) == [4, 5] as [Int])
         }
     }
 
-    @Test("FL-399 disconnected, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-399 disconnected, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl399() {
         // undirected V [0, 1, 2, 3]; E [0–1, 2–3]; minimumVertexCut()
         let pairs: [(Int, Int)] = [(0, 1), (2, 3)]
@@ -684,19 +684,19 @@ struct MinimumVertexCutRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.minimumVertexCut() == [] as [Int])
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.minimumVertexCut() == [] as [Int])
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (2, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             #expect(graph.minimumVertexCut() == [] as [Int])
         }
     }
 
-    @Test("FL-402 disconnected, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-402 disconnected, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl402() {
         // undirected V [0, 1, 2, 3]; E [0–1, 2–3]; minimumVertexCut(from: 0, to: 3)
         let pairs: [(Int, Int)] = [(0, 1), (2, 3)]
@@ -709,19 +709,19 @@ struct MinimumVertexCutRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.minimumVertexCut(from: 0, to: 3) == [] as [Int])
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.minimumVertexCut(from: 0, to: 3) == [] as [Int])
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (2, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             #expect(graph.minimumVertexCut(from: 0, to: 3) == [] as [Int])
         }
     }
 
-    @Test("FL-405 Petersen, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-405 Petersen, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl405() {
         // nx(petersen_graph); minimumVertexCut()
         let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
@@ -734,19 +734,19 @@ struct MinimumVertexCutRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.minimumVertexCut() == [1, 3, 7] as [Int])
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.minimumVertexCut() == [1, 3, 7] as [Int])
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
-            let graph = AdjacencyMatrix(vertexCount: 10, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 10, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             #expect(graph.minimumVertexCut() == [1, 3, 7] as [Int])
         }
     }
 
-    @Test("FL-408 Petersen, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-408 Petersen, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl408() {
         // nx(petersen_graph); minimumVertexCut(from: 0, to: 7)
         let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
@@ -759,19 +759,19 @@ struct MinimumVertexCutRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.minimumVertexCut(from: 0, to: 7) == [2, 5, 9] as [Int])
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.minimumVertexCut(from: 0, to: 7) == [2, 5, 9] as [Int])
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
-            let graph = AdjacencyMatrix(vertexCount: 10, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 10, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             #expect(graph.minimumVertexCut(from: 0, to: 7) == [2, 5, 9] as [Int])
         }
     }
 
-    @Test("FL-411 hypercube Q(3), on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-411 hypercube Q(3), on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl411() {
         // Q(3); minimumVertexCut()
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 4), (1, 3), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 6), (5, 7), (6, 7)]
@@ -784,19 +784,19 @@ struct MinimumVertexCutRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.minimumVertexCut() == [1, 2, 7] as [Int])
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.minimumVertexCut() == [1, 2, 7] as [Int])
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 4), (1, 3), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 6), (5, 7), (6, 7)]
-            let graph = AdjacencyMatrix(vertexCount: 8, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 8, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             #expect(graph.minimumVertexCut() == [1, 2, 7] as [Int])
         }
     }
 
-    @Test("FL-414 hypercube Q(3), on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-414 hypercube Q(3), on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl414() {
         // Q(3); minimumVertexCut(from: 0, to: 7)
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 4), (1, 3), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 6), (5, 7), (6, 7)]
@@ -809,19 +809,19 @@ struct MinimumVertexCutRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.minimumVertexCut(from: 0, to: 7) == [3, 5, 6] as [Int])
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.minimumVertexCut(from: 0, to: 7) == [3, 5, 6] as [Int])
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 4), (1, 3), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 6), (5, 7), (6, 7)]
-            let graph = AdjacencyMatrix(vertexCount: 8, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 8, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             #expect(graph.minimumVertexCut(from: 0, to: 7) == [3, 5, 6] as [Int])
         }
     }
 
-    @Test("FL-417 grid(3,4), on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-417 grid(3,4), on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl417() {
         // grid(3,4); minimumVertexCut()
         let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (9, 10), (10, 11)]
@@ -834,19 +834,19 @@ struct MinimumVertexCutRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.minimumVertexCut() == [1, 4] as [Int])
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.minimumVertexCut() == [1, 4] as [Int])
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (9, 10), (10, 11)]
-            let graph = AdjacencyMatrix(vertexCount: 12, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 12, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             #expect(graph.minimumVertexCut() == [1, 4] as [Int])
         }
     }
 
-    @Test("FL-420 grid(3,4), on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-420 grid(3,4), on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl420() {
         // grid(3,4); minimumVertexCut(from: 0, to: 11)
         let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (9, 10), (10, 11)]
@@ -859,19 +859,19 @@ struct MinimumVertexCutRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.minimumVertexCut(from: 0, to: 11) == [7, 10] as [Int])
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.minimumVertexCut(from: 0, to: 11) == [7, 10] as [Int])
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (9, 10), (10, 11)]
-            let graph = AdjacencyMatrix(vertexCount: 12, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 12, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             #expect(graph.minimumVertexCut(from: 0, to: 11) == [7, 10] as [Int])
         }
     }
 
-    @Test("FL-423 karate club, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-423 karate club, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl423() {
         // nx(karate_club_graph); minimumVertexCut()
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8), (0, 10), (0, 11), (0, 12), (0, 13), (0, 17), (0, 19), (0, 21), (0, 31), (1, 2), (1, 3), (1, 7), (1, 13), (1, 17), (1, 19), (1, 21), (1, 30), (2, 3), (2, 7), (2, 8), (2, 9), (2, 13), (2, 27), (2, 28), (2, 32), (3, 7), (3, 12), (3, 13), (4, 6), (4, 10), (5, 6), (5, 10), (5, 16), (6, 16), (8, 30), (8, 32), (8, 33), (9, 33), (13, 33), (14, 32), (14, 33), (15, 32), (15, 33), (18, 32), (18, 33), (19, 33), (20, 32), (20, 33), (22, 32), (22, 33), (23, 25), (23, 27), (23, 29), (23, 32), (23, 33), (24, 25), (24, 27), (24, 31), (25, 31), (26, 29), (26, 33), (27, 33), (28, 31), (28, 33), (29, 32), (29, 33), (30, 32), (30, 33), (31, 32), (31, 33), (32, 33)]
@@ -884,19 +884,19 @@ struct MinimumVertexCutRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.minimumVertexCut() == [0] as [Int])
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.minimumVertexCut() == [0] as [Int])
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8), (0, 10), (0, 11), (0, 12), (0, 13), (0, 17), (0, 19), (0, 21), (0, 31), (1, 2), (1, 3), (1, 7), (1, 13), (1, 17), (1, 19), (1, 21), (1, 30), (2, 3), (2, 7), (2, 8), (2, 9), (2, 13), (2, 27), (2, 28), (2, 32), (3, 7), (3, 12), (3, 13), (4, 6), (4, 10), (5, 6), (5, 10), (5, 16), (6, 16), (8, 30), (8, 32), (8, 33), (9, 33), (13, 33), (14, 32), (14, 33), (15, 32), (15, 33), (18, 32), (18, 33), (19, 33), (20, 32), (20, 33), (22, 32), (22, 33), (23, 25), (23, 27), (23, 29), (23, 32), (23, 33), (24, 25), (24, 27), (24, 31), (25, 31), (26, 29), (26, 33), (27, 33), (28, 31), (28, 33), (29, 32), (29, 33), (30, 32), (30, 33), (31, 32), (31, 33), (32, 33)]
-            let graph = AdjacencyMatrix(vertexCount: 34, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 34, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             #expect(graph.minimumVertexCut() == [0] as [Int])
         }
     }
 
-    @Test("FL-426 karate club, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-426 karate club, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl426() {
         // nx(karate_club_graph); minimumVertexCut(from: 0, to: 33)
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8), (0, 10), (0, 11), (0, 12), (0, 13), (0, 17), (0, 19), (0, 21), (0, 31), (1, 2), (1, 3), (1, 7), (1, 13), (1, 17), (1, 19), (1, 21), (1, 30), (2, 3), (2, 7), (2, 8), (2, 9), (2, 13), (2, 27), (2, 28), (2, 32), (3, 7), (3, 12), (3, 13), (4, 6), (4, 10), (5, 6), (5, 10), (5, 16), (6, 16), (8, 30), (8, 32), (8, 33), (9, 33), (13, 33), (14, 32), (14, 33), (15, 32), (15, 33), (18, 32), (18, 33), (19, 33), (20, 32), (20, 33), (22, 32), (22, 33), (23, 25), (23, 27), (23, 29), (23, 32), (23, 33), (24, 25), (24, 27), (24, 31), (25, 31), (26, 29), (26, 33), (27, 33), (28, 31), (28, 33), (29, 32), (29, 33), (30, 32), (30, 33), (31, 32), (31, 33), (32, 33)]
@@ -909,13 +909,13 @@ struct MinimumVertexCutRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.minimumVertexCut(from: 0, to: 33) == [2, 8, 13, 19, 30, 31] as [Int])
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.minimumVertexCut(from: 0, to: 33) == [2, 8, 13, 19, 30, 31] as [Int])
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8), (0, 10), (0, 11), (0, 12), (0, 13), (0, 17), (0, 19), (0, 21), (0, 31), (1, 2), (1, 3), (1, 7), (1, 13), (1, 17), (1, 19), (1, 21), (1, 30), (2, 3), (2, 7), (2, 8), (2, 9), (2, 13), (2, 27), (2, 28), (2, 32), (3, 7), (3, 12), (3, 13), (4, 6), (4, 10), (5, 6), (5, 10), (5, 16), (6, 16), (8, 30), (8, 32), (8, 33), (9, 33), (13, 33), (14, 32), (14, 33), (15, 32), (15, 33), (18, 32), (18, 33), (19, 33), (20, 32), (20, 33), (22, 32), (22, 33), (23, 25), (23, 27), (23, 29), (23, 32), (23, 33), (24, 25), (24, 27), (24, 31), (25, 31), (26, 29), (26, 33), (27, 33), (28, 31), (28, 33), (29, 32), (29, 33), (30, 32), (30, 33), (31, 32), (31, 33), (32, 33)]
-            let graph = AdjacencyMatrix(vertexCount: 34, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 34, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             #expect(graph.minimumVertexCut(from: 0, to: 33) == [2, 8, 13, 19, 30, 31] as [Int])
         }

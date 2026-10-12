@@ -113,7 +113,7 @@ struct CentralityNoConvergenceTests {
         let error = #expect(throws: NoConvergence.self) { try graph.katzCentrality(alpha: 0.4) }
         #expect(error?.iterations == 1_000)
         #expect(error.map { $0.residual > 1e60 } == true)
-        let directed = #expect(throws: NoConvergence.self) { try graph.directed.katzCentrality(alpha: 0.4, maxIterations: 2_000) }
+        let directed = #expect(throws: NoConvergence.self) { try graph.directedView.katzCentrality(alpha: 0.4, maxIterations: 2_000) }
         #expect(directed?.iterations == 2_000)
         #expect(directed.map { $0.residual > 1e60 } == true)
     }

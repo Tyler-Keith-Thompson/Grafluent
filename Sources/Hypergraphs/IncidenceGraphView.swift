@@ -10,7 +10,7 @@ extension Hypergraph {
     /// - Complexity: O(1) for `UndirectedIncidenceList`; O(m) otherwise, for the hyperedges'
     ///   first incidence numbers (from the cached sizes, for `IncidenceMatrix`).
     @inlinable
-    public var incidenceGraph: IncidenceGraphView<Self> { IncidenceGraphView(base: self) }
+    public var incidenceGraphView: IncidenceGraphView<Self> { IncidenceGraphView(base: self) }
 }
 
 /// An undirected hypergraph's incidence graph, read lazily from its storage: a `Graph` on
@@ -44,7 +44,7 @@ extension Hypergraph {
 /// `incidentEdges` finds its place in each of its hyperedges: O(d·⌈n/64⌉) on `IncidenceMatrix`,
 /// which counts bits, and O(Σ k) over them on a base without a faster `_memberRank`.
 ///
-/// `BipartiteGraph(h.incidenceGraph, left: 0 ..< h.vertexCount)` gives the bipartite structure,
+/// `BipartiteGraph(h.incidenceGraphView, left: 0 ..< h.vertexCount)` gives the bipartite structure,
 /// and the view's components restricted to `0 ..< n` are the hypergraph's.
 @frozen
 public struct IncidenceGraphView<Base: Hypergraph>: Graph {

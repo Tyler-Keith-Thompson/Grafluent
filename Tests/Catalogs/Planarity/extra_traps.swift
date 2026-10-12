@@ -62,3 +62,41 @@
         #expect(embedding.face(from: 1, alongEdgeAt: 1).vertices.first == 1)
         #expect(embedding.face(from: 0, alongEdgeAt: 0).vertices.first == 0)
     }
+
+    @Test("face(checkedFrom:alongEdgeAt:) and rightFace(checkedFrom:alongEdgeAt:) throw .vertex, then .edge, where the plain spellings trap")
+    func checkedFaces() throws {
+        // Edge 0 is a loop at 0, edge 1 joins 0 and 1, vertex 2 is isolated.
+        let graph = Pseudograph<Int>(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 0), UndirectedEdge(0, 1)])
+        let embedding = try #require(graph.planarEmbedding())
+        #expect(throws: ElementNotFound.vertex) { try embedding.face(checkedFrom: 9, alongEdgeAt: 0) }
+        #expect(throws: ElementNotFound.vertex) { try embedding.rightFace(checkedFrom: 9, alongEdgeAt: 0) }
+        // A missing vertex is reported first, even with a missing edge.
+        #expect(throws: ElementNotFound.vertex) { try embedding.face(checkedFrom: -1, alongEdgeAt: 7) }
+        #expect(throws: ElementNotFound.edge) { try embedding.face(checkedFrom: 0, alongEdgeAt: 2) }
+        #expect(throws: ElementNotFound.edge) { try embedding.rightFace(checkedFrom: 0, alongEdgeAt: -1) }
+        // An edge of the graph with no end at the vertex: no half-edge leaves it there.
+        #expect(throws: ElementNotFound.edge) { try embedding.face(checkedFrom: 1, alongEdgeAt: 0) }
+        #expect(throws: ElementNotFound.edge) { try embedding.rightFace(checkedFrom: 2, alongEdgeAt: 1) }
+        for (v, e) in [(0, 0), (0, 1), (1, 1)] {
+            let face = embedding.face(from: v, alongEdgeAt: e), checked = try embedding.face(checkedFrom: v, alongEdgeAt: e)
+            #expect(checked.vertices == face.vertices && checked.edges == face.edges)
+            #expect(try embedding.rightFace(checkedFrom: v, alongEdgeAt: e) == embedding.rightFace(from: v, alongEdgeAt: e))
+        }
+        // Without edge indices: positions are looked up in the embedding's own table.
+        struct Unindexed: Graph {
+            let vertices: [Int]
+            let edges: [UndirectedEdge<Int>]
+            func incidentEdges(of vertex: Int) -> [Int] {
+                edges.indices.flatMap { k in [edges[k].u, edges[k].v].filter { $0 == vertex }.map { _ in k } }
+            }
+            func neighbors(of vertex: Int) -> [Int] { incidentEdges(of: vertex).map { edges[$0].oppositeVertex(to: vertex) } }
+        }
+        let unindexed = Unindexed(vertices: [0, 1, 2], edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
+        #expect(unindexed.edgeIndexBound == nil)
+        let unindexedEmbedding = try #require(unindexed.planarEmbedding())
+        #expect(throws: ElementNotFound.vertex) { try unindexedEmbedding.face(checkedFrom: 3, alongEdgeAt: 0) }
+        #expect(throws: ElementNotFound.edge) { try unindexedEmbedding.face(checkedFrom: 0, alongEdgeAt: 2) }
+        #expect(throws: ElementNotFound.edge) { try unindexedEmbedding.rightFace(checkedFrom: 0, alongEdgeAt: 1) }
+        #expect(try unindexedEmbedding.face(checkedFrom: 2, alongEdgeAt: 1).vertices == unindexedEmbedding.face(from: 2, alongEdgeAt: 1).vertices)
+        #expect(try unindexedEmbedding.rightFace(checkedFrom: 1, alongEdgeAt: 0) == unindexedEmbedding.rightFace(from: 1, alongEdgeAt: 0))
+    }

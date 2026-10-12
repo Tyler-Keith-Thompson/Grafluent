@@ -29,6 +29,7 @@ struct EdgeColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.edgeColoring()
         let colors = graph.edges.indices.map { coloring.color(ofEdgeAt: $0) }
+        #expect(graph.edges.indices.map { (try? coloring.color(checkedEdgeAt: $0)) ?? -1 } == colors)
         #expect(colors == [])
         #expect(coloring.colorCount == 0)
         // Proper, checked here: the edges at each vertex have different colours.
@@ -59,6 +60,7 @@ struct EdgeColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.edgeColoring()
         let colors = graph.edges.indices.map { coloring.color(ofEdgeAt: $0) }
+        #expect(graph.edges.indices.map { (try? coloring.color(checkedEdgeAt: $0)) ?? -1 } == colors)
         #expect(colors == [])
         #expect(coloring.colorCount == 0)
         // Proper, checked here: the edges at each vertex have different colours.
@@ -89,6 +91,7 @@ struct EdgeColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.edgeColoring()
         let colors = graph.edges.indices.map { coloring.color(ofEdgeAt: $0) }
+        #expect(graph.edges.indices.map { (try? coloring.color(checkedEdgeAt: $0)) ?? -1 } == colors)
         #expect(colors == [0])
         #expect(coloring.colorCount == 1)
         // Proper, checked here: the edges at each vertex have different colours.
@@ -121,6 +124,7 @@ struct EdgeColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.edgeColoring()
         let colors = graph.edges.indices.map { coloring.color(ofEdgeAt: $0) }
+        #expect(graph.edges.indices.map { (try? coloring.color(checkedEdgeAt: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 0, 1])
         #expect(coloring.colorCount == 2)
         // Proper, checked here: the edges at each vertex have different colours.
@@ -153,6 +157,7 @@ struct EdgeColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.edgeColoring()
         let colors = graph.edges.indices.map { coloring.color(ofEdgeAt: $0) }
+        #expect(graph.edges.indices.map { (try? coloring.color(checkedEdgeAt: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 2])
         #expect(coloring.colorCount == 3)
         // Proper, checked here: the edges at each vertex have different colours.
@@ -183,6 +188,7 @@ struct EdgeColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.edgeColoring()
         let colors = graph.edges.indices.map { coloring.color(ofEdgeAt: $0) }
+        #expect(graph.edges.indices.map { (try? coloring.color(checkedEdgeAt: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 2, 3, 1, 0])
         #expect(coloring.colorCount == 4)
         // Proper, checked here: the edges at each vertex have different colours.
@@ -213,6 +219,7 @@ struct EdgeColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.edgeColoring()
         let colors = graph.edges.indices.map { coloring.color(ofEdgeAt: $0) }
+        #expect(graph.edges.indices.map { (try? coloring.color(checkedEdgeAt: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 2, 3, 4, 1, 2, 3, 0, 4])
         #expect(coloring.colorCount == 5)
         // Proper, checked here: the edges at each vertex have different colours.
@@ -243,6 +250,7 @@ struct EdgeColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.edgeColoring()
         let colors = graph.edges.indices.map { coloring.color(ofEdgeAt: $0) }
+        #expect(graph.edges.indices.map { (try? coloring.color(checkedEdgeAt: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 0, 1, 2])
         #expect(coloring.colorCount == 3)
         // Proper, checked here: the edges at each vertex have different colours.
@@ -273,6 +281,7 @@ struct EdgeColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.edgeColoring()
         let colors = graph.edges.indices.map { coloring.color(ofEdgeAt: $0) }
+        #expect(graph.edges.indices.map { (try? coloring.color(checkedEdgeAt: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 0, 1, 0, 1])
         #expect(coloring.colorCount == 2)
         // Proper, checked here: the edges at each vertex have different colours.
@@ -305,6 +314,7 @@ struct EdgeColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.edgeColoring()
         let colors = graph.edges.indices.map { coloring.color(ofEdgeAt: $0) }
+        #expect(graph.edges.indices.map { (try? coloring.color(checkedEdgeAt: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 2, 3, 4])
         #expect(coloring.colorCount == 5)
         // Proper, checked here: the edges at each vertex have different colours.
@@ -337,6 +347,7 @@ struct EdgeColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.edgeColoring()
         let colors = graph.edges.indices.map { coloring.color(ofEdgeAt: $0) }
+        #expect(graph.edges.indices.map { (try? coloring.color(checkedEdgeAt: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 2, 3, 4, 5, 0, 1, 0, 1])
         #expect(coloring.colorCount == 6)
         // Proper, checked here: the edges at each vertex have different colours.
@@ -367,6 +378,7 @@ struct EdgeColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.edgeColoring()
         let colors = graph.edges.indices.map { coloring.color(ofEdgeAt: $0) }
+        #expect(graph.edges.indices.map { (try? coloring.color(checkedEdgeAt: $0)) ?? -1 } == colors)
         #expect(colors == [2, 1, 0, 1, 0, 0, 2, 3, 1, 0, 1, 2, 3, 2, 3])
         #expect(coloring.colorCount == 4)
         // Proper, checked here: the edges at each vertex have different colours.
@@ -397,6 +409,7 @@ struct EdgeColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.edgeColoring()
         let colors = graph.edges.indices.map { coloring.color(ofEdgeAt: $0) }
+        #expect(graph.edges.indices.map { (try? coloring.color(checkedEdgeAt: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 1, 2, 0, 2, 1, 0, 2, 1, 3, 0, 3, 2, 0, 1, 0])
         #expect(coloring.colorCount == 4)
         // Proper, checked here: the edges at each vertex have different colours.
@@ -429,6 +442,7 @@ struct EdgeColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.edgeColoring()
         let colors = graph.edges.indices.map { coloring.color(ofEdgeAt: $0) }
+        #expect(graph.edges.indices.map { (try? coloring.color(checkedEdgeAt: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 2, 1, 2, 0, 2, 0, 1])
         #expect(coloring.colorCount == 3)
         // Proper, checked here: the edges at each vertex have different colours.
@@ -461,6 +475,7 @@ struct EdgeColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.edgeColoring()
         let colors = graph.edges.indices.map { coloring.color(ofEdgeAt: $0) }
+        #expect(graph.edges.indices.map { (try? coloring.color(checkedEdgeAt: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 2, 1, 2, 0, 2, 1, 2, 0, 2, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 2, 1, 0, 1, 0, 1, 0])
         #expect(coloring.colorCount == 3)
         // Proper, checked here: the edges at each vertex have different colours.
@@ -491,6 +506,7 @@ struct EdgeColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.edgeColoring()
         let colors = graph.edges.indices.map { coloring.color(ofEdgeAt: $0) }
+        #expect(graph.edges.indices.map { (try? coloring.color(checkedEdgeAt: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 16, 14, 13, 16, 1, 2, 3, 4, 13, 6, 7, 0, 8, 2, 3, 4, 5, 6, 7, 3, 4, 5, 0, 1, 16, 0, 1, 2, 0, 1, 3, 0, 16, 0, 1, 3, 2, 2, 4, 5, 4, 6, 5, 7, 0, 1, 2, 6, 8, 1, 0, 2, 3, 0, 9, 10, 0, 11, 8, 12, 9, 13, 10, 15, 14])
         #expect(coloring.colorCount == 17)
         // Proper, checked here: the edges at each vertex have different colours.
@@ -521,6 +537,7 @@ struct EdgeColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.edgeColoring()
         let colors = graph.edges.indices.map { coloring.color(ofEdgeAt: $0) }
+        #expect(graph.edges.indices.map { (try? coloring.color(checkedEdgeAt: $0)) ?? -1 } == colors)
         #expect(colors == [0, 0, 1, 1])
         #expect(coloring.colorCount == 2)
         // Proper, checked here: the edges at each vertex have different colours.
@@ -553,6 +570,7 @@ struct EdgeColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.edgeColoring()
         let colors = graph.edges.indices.map { coloring.color(ofEdgeAt: $0) }
+        #expect(graph.edges.indices.map { (try? coloring.color(checkedEdgeAt: $0)) ?? -1 } == colors)
         #expect(colors == [0, 0, 1, 1, 2, 0, 4, 3, 1, 1, 3, 3, 1, 2, 4, 3, 0, 4, 2, 5, 0, 2, 6, 5])
         #expect(coloring.colorCount == 7)
         // Proper, checked here: the edges at each vertex have different colours.
@@ -583,6 +601,7 @@ struct EdgeColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.edgeColoring()
         let colors = graph.edges.indices.map { coloring.color(ofEdgeAt: $0) }
+        #expect(graph.edges.indices.map { (try? coloring.color(checkedEdgeAt: $0)) ?? -1 } == colors)
         #expect(colors == [0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 2, 1, 3, 3, 1, 2, 1, 2, 2, 3, 0, 2, 2, 0, 3, 4, 2, 4, 3, 0, 5, 6, 2, 3, 4, 4, 5, 7, 5, 3, 7, 0, 6, 4, 6, 1, 5, 4, 6, 8])
         #expect(coloring.colorCount == 9)
         // Proper, checked here: the edges at each vertex have different colours.
@@ -613,6 +632,7 @@ struct EdgeColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.edgeColoring()
         let colors = graph.edges.indices.map { coloring.color(ofEdgeAt: $0) }
+        #expect(graph.edges.indices.map { (try? coloring.color(checkedEdgeAt: $0)) ?? -1 } == colors)
         #expect(colors == [0, 6, 1, 1, 1, 4, 0, 2, 1, 2, 0, 0, 3, 1, 3, 0, 0, 3, 3, 8, 4, 5, 4, 2, 0, 2, 5, 8, 1, 4, 2, 4, 1, 4, 6, 6, 1, 7, 8, 1, 4, 0, 0, 6, 1, 2, 2, 5, 3, 3, 3, 12, 7, 1, 6, 2, 6, 4, 8, 4, 0, 3, 8, 5, 5, 0, 6, 8, 1, 5, 9, 9, 10, 7, 3, 2, 6, 10, 2, 11, 9, 2, 5, 2, 9, 8, 7, 6, 7, 0])
         #expect(coloring.colorCount == 13)
         // Proper, checked here: the edges at each vertex have different colours.
@@ -643,6 +663,7 @@ struct EdgeColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.edgeColoring()
         let colors = graph.edges.indices.map { coloring.color(ofEdgeAt: $0) }
+        #expect(graph.edges.indices.map { (try? coloring.color(checkedEdgeAt: $0)) ?? -1 } == colors)
         #expect(colors == [0, 0, 1, 0, 2, 1, 2, 3, 0, 4, 0, 4, 3, 1, 3, 3, 5, 2, 1, 1, 4, 4, 5, 3, 4, 6, 2, 7, 5, 5])
         #expect(coloring.colorCount == 8)
         // Proper, checked here: the edges at each vertex have different colours.

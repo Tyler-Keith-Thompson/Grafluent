@@ -262,10 +262,10 @@ struct IncidenceListAlgorithmTests {
 
     @Test("DH-025 sources → hyperedge → targets: source incidences first, then target incidences (XGI directed to_bipartite_graph)")
     func dh025() {
-        // D V [a, b, c, d, e]; E [{a}→{b, c}, {b, c}→{d, e}, {c}→{c, e}, {}→{}, {a}→{b, c}] / incidenceGraph
+        // D V [a, b, c, d, e]; E [{a}→{b, c}, {b, c}→{d, e}, {c}→{c, e}, {}→{}, {a}→{b, c}] / incidenceGraphView
         let hypergraph = IncidenceList<String>(vertices: ["a", "b", "c", "d", "e"] as [String], hyperedges: [(sources: ["a"], targets: ["b", "c"]), (sources: ["b", "c"], targets: ["d", "e"]), (sources: ["c"], targets: ["c", "e"]), (sources: [], targets: []), (sources: ["a"], targets: ["b", "c"])] as [(sources: [String], targets: [String])])
         do {
-            let view = hypergraph.incidenceGraph
+            let view = hypergraph.incidenceGraphView
             #expect(view.vertices == 0 ..< 10)
             #expect(view.edges.map { [$0.source, $0.target] } == [[0, 5], [1, 6], [2, 6], [2, 7], [0, 9], [5, 1], [5, 2], [6, 3], [6, 4], [7, 2], [7, 4], [9, 1], [9, 2]])
             #expect(Array(view.edges.indices) == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
@@ -356,10 +356,10 @@ struct IncidenceListAlgorithmTests {
 
     @Test("DH-026 a vertex on both sides gives a 2-cycle through its hyperedge")
     func dh026() {
-        // D V []; E [{a}→{a, b}] / incidenceGraph
+        // D V []; E [{a}→{a, b}] / incidenceGraphView
         let hypergraph = IncidenceList<String>(vertices: [] as [String], hyperedges: [(sources: ["a"], targets: ["a", "b"])] as [(sources: [String], targets: [String])])
         do {
-            let view = hypergraph.incidenceGraph
+            let view = hypergraph.incidenceGraphView
             #expect(view.vertices == 0 ..< 3)
             #expect(view.edges.map { [$0.source, $0.target] } == [[0, 2], [2, 0], [2, 1]])
             #expect(Array(view.edges.indices) == [0, 1, 2])

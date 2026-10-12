@@ -190,7 +190,7 @@ extension DirectedHypergraph {
 
     /// The strongly connected components: `u` and `v` are together when each reaches the other
     /// along source → hyperedge → target steps (Gallo et al.'s "connected": a path in the
-    /// incidence graph). They are the strong components of `incidenceGraph` restricted to the
+    /// incidence graph). They are the strong components of `incidenceGraphView` restricted to the
     /// vertices, ordered by least vertex index, each in index order. Mutual B-connection
     /// (SimpleDirectedHypergraphs.jl's `get_strongly_connected_components`) is a different,
     /// finer relation.

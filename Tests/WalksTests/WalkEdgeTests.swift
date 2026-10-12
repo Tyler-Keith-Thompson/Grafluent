@@ -1,6 +1,6 @@
 // §4: edges and orientation. Edge i of an open walk joins self[i] and self[i + 1]; edge i of a
 // circuit joins self[i] and self[(i + 1) % count]. In an undirected graph the vertex sequence
-// orients each edge, so an edge may be crossed from either end; in `g.directed` the arc's
+// orients each edge, so an edge may be crossed from either end; in `g.directedView` the arc's
 // `reversed` flag must match. The step law is also checked on AdjacencyMatrix and
 // CompressedSparseRow, whose positions are not list indices. Case IDs (WK-nnn) refer to the
 // catalog; see README.md.
@@ -73,10 +73,10 @@ struct WalkEdgeTests {
         #expect(Walk(vertices: [0, 0], edges: [0], in: u) == nil)
     }
 
-    @Test("WK-405 in g.directed the arc's direction must match the step")
+    @Test("WK-405 in g.directedView the arc's direction must match the step")
     func directedViewArcs() {
         let u = ReferencePseudograph(edges: [(0, 1), (1, 2), (2, 0)].map { UndirectedEdge($0.0, $0.1) })
-        let g = u.directed
+        let g = u.directedView
         typealias Arc = DirectedView<ReferencePseudograph<Int>>.Edges.Index
         #expect(Walk(vertices: [0, 1], edges: [Arc(position: 0, reversed: true)], in: g) == nil)
         #expect(Walk(vertices: [0, 1], edges: [Arc(position: 0, reversed: false)], in: g) != nil)

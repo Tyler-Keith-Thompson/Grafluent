@@ -433,7 +433,7 @@ struct SemiringPreconditionTests {
         #expect(try #require(join.dagShortestDistances(from: [0, 1]) { CountingSemiring(sum[$0]) }).distance(to: 2).value == Int.max)
     }
 
-    @Test("A weight better than one traps in Dijkstra's single-target search, with a cutoff, over Double, and through .directed")
+    @Test("A weight better than one traps in Dijkstra's single-target search, with a cutoff, over Double, and through .directedView")
     func betterThanOneElsewhere() async {
         await #expect(processExitsWith: .failure) {
             let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
@@ -453,7 +453,7 @@ struct SemiringPreconditionTests {
         await #expect(processExitsWith: .failure) {
             let graph = Pseudograph(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
             let w = [3, -1]
-            _ = graph.directed.dijkstraShortestPaths(from: 0) { TropicalSemiring(w[$0.position]) }
+            _ = graph.directedView.dijkstraShortestPaths(from: 0) { TropicalSemiring(w[$0.position]) }
         }
         // Without the fault: zero weights are one, not better, and Dijkstra takes them.
         let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
@@ -464,7 +464,7 @@ struct SemiringPreconditionTests {
         #expect(graph.dijkstraShortestPaths(from: 0) { TropicalSemiring(halves[$0]) }.distance(to: 2)?.value == 0.5)
         let undirected = Pseudograph(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
         let positive = [3, 1]
-        #expect(undirected.directed.dijkstraShortestPaths(from: 0) { TropicalSemiring(positive[$0.position]) }.distance(to: 2)?.value == 4)
+        #expect(undirected.directedView.dijkstraShortestPaths(from: 0) { TropicalSemiring(positive[$0.position]) }.distance(to: 2)?.value == 4)
     }
 
     @Test("Index-space reads of the results trap out of range")

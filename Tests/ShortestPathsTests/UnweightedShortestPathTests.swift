@@ -32,7 +32,7 @@ struct UnweightedShortestPathTests {
     @Test("SP-86 the first discovery wins: in the undirected 4-cycle, 2 is found from 1")
     func firstDiscovery() {
         let cycle = UndirectedAdjacencyList(edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2), UndirectedEdge(2, 3), UndirectedEdge(3, 0)])
-        for tree in [cycle.shortestPaths(from: 0), cycle.directed.shortestPaths(from: 0)] {
+        for tree in [cycle.shortestPaths(from: 0), cycle.directedView.shortestPaths(from: 0)] {
             #expect((0 ..< 4).map { tree.distance(to: $0) } == [0, 1, 2, 1])
             #expect(tree.parent(of: 2) == 1)
             #expect(tree.parentEdge(of: 2) == .init(position: 1, reversed: false))

@@ -91,9 +91,9 @@ The representation files (one per catalog section) run every non-trap row (505) 
 on `DirectedPseudograph` (or `ReferenceDirectedMultigraph` for rows already on it), on a conformer with
 no vertex or edge indices, and, when no edge repeats, on `CompressedSparseRow` and `AdjacencyMatrix`
 over the vertex indices; undirected rows on `Pseudograph` (or `ReferencePseudograph`), the conformer,
-and, when no arc repeats, `AdjacencyList.undirected` (each edge an arc as written) and
-`AdjacencyMatrix.undirected`. Those last four list a vertex's edges in their own order
-(`AdjacencyList.undirected`: out-edges, then in-edges; the matrix and CSR: by neighbour), and the
+and, when no arc repeats, `AdjacencyList.undirectedView` (each edge an arc as written) and
+`AdjacencyMatrix.undirectedView`. Those last four list a vertex's edges in their own order
+(`AdjacencyList.undirectedView`: out-edges, then in-edges; the matrix and CSR: by neighbour), and the
 matrix and CSR number edges by row-major cell (each catalog edge's position is looked up there).
 `swiftgen.py` runs `ref.py`'s models on each representation's rows and positions: where they give the
 catalog's result (1,822 of 1,868 blocks), the test pins it exactly; otherwise (46 blocks in 27 rows:
@@ -167,7 +167,7 @@ tree's ties to the later position (13), Hierholzer on Christofides' multigraph f
 | `NearestNeighborTourTests.swift`, `ChristofidesTourTests.swift`, `TwoOptTourTests.swift`, `ShortestTourTests.swift` | 22, 21, 26, 45 | §NearestNeighborTour, §ChristofidesTour, §TwoOptTour and §TwoOptTourImproving, §ShortestTour and §ShortestTourDirected |
 | `ToursPreconditionTests.swift` | 34 | Exit tests: the 26 trap rows (TO-285 – TO-289, TO-397 – TO-399, TO-492 – TO-506, TO-529 – TO-531), then 8 written by hand: a vertex not in the graph in every entry point that takes one, also without indices; missing pairs beside parallel edges and loops; NaN in every tour; ±∞ in every tour and entry point; Christofides' infinity and matching bound; tours to improve with a wrong vertex count or a foreign vertex; Held–Karp's table limit on cycles, undirected and directed |
 | the ten `…RepresentationTests.swift` files | 65, 65, 76, 78, 61, 46, 22, 21, 26, 45 | Every non-trap row again on the other representations |
-| `ToursConformanceTests.swift` | 9 | Generic code, `String` and `Collider` vertices, Int8 / UInt8 / UInt / Int32 / Float weights, results as `Walks` values (and `Sendable`), the `directed` view, every edgeless graph, `improving:` reading only vertices, tours below three vertices, `weight` asked once |
+| `ToursConformanceTests.swift` | 9 | Generic code, `String` and `Collider` vertices, Int8 / UInt8 / UInt / Int32 / Float weights, results as `Walks` values (and `Sendable`), the `directedView` view, every edgeless graph, `improving:` reading only vertices, tours below three vertices, `weight` asked once |
 | `ToursPropertyTests.swift` | 9 | See above |
 | `Performance/ToursStressTests.swift` | 8 | See above |
 | `ToursRegressionTests.swift` | 7 | Inputs from planted-bug testing (`scripts/mutants/Tours.py`) and fuzzing (`FuzzTours`): a directed graph with ±1 vertices and ±2 vertices (no trail), a directed trail whose first vertex with an edge reaches nothing, Hierholzer on edges in two components (self-loops at two vertices); a Hamiltonian cycle through a cut vertex (K(5) and K(14), undirected and directed), which only the reachability prune makes fast; `twoOptTour(improving:)` against JGraphT's procedure written out on 400 seeded graphs of 9 to 16 vertices with weights 0 – 2 (tied moves); `improving:` below three vertices; Christofides' `Int8` bound at n = 3 (2 accepted, ±3 traps) |

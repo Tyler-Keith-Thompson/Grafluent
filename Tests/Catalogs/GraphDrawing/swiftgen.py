@@ -244,7 +244,7 @@ def circular_test(n):
     call = "circularLayout(%s)" % ", ".join(args)
     if g.directed:
         b += directed_graph(g, "") + graph_shape(g, "")
-        b += ["let layout = graph.undirected.%s" % call]
+        b += ["let layout = graph.undirectedView.%s" % call]
     else:
         b += undirected_graph(g, "") + graph_shape(g, "")
         b += ["let layout = graph.%s" % call]

@@ -470,8 +470,8 @@ struct UndirectedConnectivityPropertyTests {
                 #expect(g.isBiEdgeConnected == (n >= 2 && g.isConnected && !g.hasBridges), "\(raw)")
                 #expect(g.hasBridges == !g.bridges().isEmpty, "\(raw)")
                 // CN-360.
-                #expect(components == g.directed.weaklyConnectedComponents(), "\(raw)")
-                #expect(g.isConnected == g.directed.isStronglyConnected, "\(raw)")
+                #expect(components == g.directedView.weaklyConnectedComponents(), "\(raw)")
+                #expect(g.isConnected == g.directedView.isStronglyConnected, "\(raw)")
                 // CN-369: bi-edge-connected implies connected; biconnected with no K₂ component
                 // (two vertices and one edge between them) implies bi-edge-connected.
                 if g.isBiEdgeConnected { #expect(g.isConnected, "\(raw)") }

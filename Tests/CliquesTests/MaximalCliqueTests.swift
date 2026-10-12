@@ -3,7 +3,7 @@
 // is free; no clique may repeat. CQ-101 and CQ-102 also pin the sequence order, as api.md does
 // ("Order of maximal cliques": the degeneracy ordering decides it, so the pendant vertex's clique
 // comes first). Every listed clique is checked to be a clique (`contains(edge:)` for each pair) and
-// maximal (no outside vertex adjacent to all of it), and `graph.directed.undirected` must give the
+// maximal (no outside vertex adjacent to all of it), and `graph.directedView.undirectedView` must give the
 // same set. Graphs: a triangle with a pendant, K₄, K₅, C₄, C₅, P₅, stars with the centre first and
 // last, the bowtie, the diamond, the wheel W₆, K₃,₃ in two numberings, isolated vertices, loops and
 // parallel edges, String labels with `vertices` reversed, Petersen, the karate club (36 cliques)
@@ -67,7 +67,7 @@ struct MaximalCliqueTests {
             let extenders = graph.vertices.filter { w in !clique.contains(w) && clique.allSatisfy { graph.contains(edge: UndirectedEdge(w, $0)) } }
             #expect(extenders.isEmpty, "\(clique) is not maximal")
         }
-        let viaArcs = Array(graph.directed.undirected.maximalCliques())
+        let viaArcs = Array(graph.directedView.undirectedView.maximalCliques())
         #expect(Set(viaArcs) == Set(expected))
         #expect(viaArcs.count == expected.count)
     }
@@ -88,7 +88,7 @@ struct MaximalCliqueTests {
             let extenders = graph.vertices.filter { w in !clique.contains(w) && clique.allSatisfy { graph.contains(edge: UndirectedEdge(w, $0)) } }
             #expect(extenders.isEmpty, "\(clique) is not maximal")
         }
-        let viaArcs = Array(graph.directed.undirected.maximalCliques())
+        let viaArcs = Array(graph.directedView.undirectedView.maximalCliques())
         #expect(Set(viaArcs) == Set(expected))
         #expect(viaArcs.count == expected.count)
     }
@@ -108,7 +108,7 @@ struct MaximalCliqueTests {
             let extenders = graph.vertices.filter { w in !clique.contains(w) && clique.allSatisfy { graph.contains(edge: UndirectedEdge(w, $0)) } }
             #expect(extenders.isEmpty, "\(clique) is not maximal")
         }
-        let viaArcs = Array(graph.directed.undirected.maximalCliques())
+        let viaArcs = Array(graph.directedView.undirectedView.maximalCliques())
         #expect(Set(viaArcs) == Set(expected))
         #expect(viaArcs.count == expected.count)
     }
@@ -128,7 +128,7 @@ struct MaximalCliqueTests {
             let extenders = graph.vertices.filter { w in !clique.contains(w) && clique.allSatisfy { graph.contains(edge: UndirectedEdge(w, $0)) } }
             #expect(extenders.isEmpty, "\(clique) is not maximal")
         }
-        let viaArcs = Array(graph.directed.undirected.maximalCliques())
+        let viaArcs = Array(graph.directedView.undirectedView.maximalCliques())
         #expect(Set(viaArcs) == Set(expected))
         #expect(viaArcs.count == expected.count)
     }
@@ -148,7 +148,7 @@ struct MaximalCliqueTests {
             let extenders = graph.vertices.filter { w in !clique.contains(w) && clique.allSatisfy { graph.contains(edge: UndirectedEdge(w, $0)) } }
             #expect(extenders.isEmpty, "\(clique) is not maximal")
         }
-        let viaArcs = Array(graph.directed.undirected.maximalCliques())
+        let viaArcs = Array(graph.directedView.undirectedView.maximalCliques())
         #expect(Set(viaArcs) == Set(expected))
         #expect(viaArcs.count == expected.count)
     }
@@ -168,7 +168,7 @@ struct MaximalCliqueTests {
             let extenders = graph.vertices.filter { w in !clique.contains(w) && clique.allSatisfy { graph.contains(edge: UndirectedEdge(w, $0)) } }
             #expect(extenders.isEmpty, "\(clique) is not maximal")
         }
-        let viaArcs = Array(graph.directed.undirected.maximalCliques())
+        let viaArcs = Array(graph.directedView.undirectedView.maximalCliques())
         #expect(Set(viaArcs) == Set(expected))
         #expect(viaArcs.count == expected.count)
     }
@@ -188,7 +188,7 @@ struct MaximalCliqueTests {
             let extenders = graph.vertices.filter { w in !clique.contains(w) && clique.allSatisfy { graph.contains(edge: UndirectedEdge(w, $0)) } }
             #expect(extenders.isEmpty, "\(clique) is not maximal")
         }
-        let viaArcs = Array(graph.directed.undirected.maximalCliques())
+        let viaArcs = Array(graph.directedView.undirectedView.maximalCliques())
         #expect(Set(viaArcs) == Set(expected))
         #expect(viaArcs.count == expected.count)
     }
@@ -208,7 +208,7 @@ struct MaximalCliqueTests {
             let extenders = graph.vertices.filter { w in !clique.contains(w) && clique.allSatisfy { graph.contains(edge: UndirectedEdge(w, $0)) } }
             #expect(extenders.isEmpty, "\(clique) is not maximal")
         }
-        let viaArcs = Array(graph.directed.undirected.maximalCliques())
+        let viaArcs = Array(graph.directedView.undirectedView.maximalCliques())
         #expect(Set(viaArcs) == Set(expected))
         #expect(viaArcs.count == expected.count)
     }
@@ -228,7 +228,7 @@ struct MaximalCliqueTests {
             let extenders = graph.vertices.filter { w in !clique.contains(w) && clique.allSatisfy { graph.contains(edge: UndirectedEdge(w, $0)) } }
             #expect(extenders.isEmpty, "\(clique) is not maximal")
         }
-        let viaArcs = Array(graph.directed.undirected.maximalCliques())
+        let viaArcs = Array(graph.directedView.undirectedView.maximalCliques())
         #expect(Set(viaArcs) == Set(expected))
         #expect(viaArcs.count == expected.count)
     }
@@ -248,7 +248,7 @@ struct MaximalCliqueTests {
             let extenders = graph.vertices.filter { w in !clique.contains(w) && clique.allSatisfy { graph.contains(edge: UndirectedEdge(w, $0)) } }
             #expect(extenders.isEmpty, "\(clique) is not maximal")
         }
-        let viaArcs = Array(graph.directed.undirected.maximalCliques())
+        let viaArcs = Array(graph.directedView.undirectedView.maximalCliques())
         #expect(Set(viaArcs) == Set(expected))
         #expect(viaArcs.count == expected.count)
     }
@@ -268,7 +268,7 @@ struct MaximalCliqueTests {
             let extenders = graph.vertices.filter { w in !clique.contains(w) && clique.allSatisfy { graph.contains(edge: UndirectedEdge(w, $0)) } }
             #expect(extenders.isEmpty, "\(clique) is not maximal")
         }
-        let viaArcs = Array(graph.directed.undirected.maximalCliques())
+        let viaArcs = Array(graph.directedView.undirectedView.maximalCliques())
         #expect(Set(viaArcs) == Set(expected))
         #expect(viaArcs.count == expected.count)
     }
@@ -288,7 +288,7 @@ struct MaximalCliqueTests {
             let extenders = graph.vertices.filter { w in !clique.contains(w) && clique.allSatisfy { graph.contains(edge: UndirectedEdge(w, $0)) } }
             #expect(extenders.isEmpty, "\(clique) is not maximal")
         }
-        let viaArcs = Array(graph.directed.undirected.maximalCliques())
+        let viaArcs = Array(graph.directedView.undirectedView.maximalCliques())
         #expect(Set(viaArcs) == Set(expected))
         #expect(viaArcs.count == expected.count)
     }
@@ -308,7 +308,7 @@ struct MaximalCliqueTests {
             let extenders = graph.vertices.filter { w in !clique.contains(w) && clique.allSatisfy { graph.contains(edge: UndirectedEdge(w, $0)) } }
             #expect(extenders.isEmpty, "\(clique) is not maximal")
         }
-        let viaArcs = Array(graph.directed.undirected.maximalCliques())
+        let viaArcs = Array(graph.directedView.undirectedView.maximalCliques())
         #expect(Set(viaArcs) == Set(expected))
         #expect(viaArcs.count == expected.count)
     }
@@ -328,7 +328,7 @@ struct MaximalCliqueTests {
             let extenders = graph.vertices.filter { w in !clique.contains(w) && clique.allSatisfy { graph.contains(edge: UndirectedEdge(w, $0)) } }
             #expect(extenders.isEmpty, "\(clique) is not maximal")
         }
-        let viaArcs = Array(graph.directed.undirected.maximalCliques())
+        let viaArcs = Array(graph.directedView.undirectedView.maximalCliques())
         #expect(Set(viaArcs) == Set(expected))
         #expect(viaArcs.count == expected.count)
     }
@@ -348,7 +348,7 @@ struct MaximalCliqueTests {
             let extenders = graph.vertices.filter { w in !clique.contains(w) && clique.allSatisfy { graph.contains(edge: UndirectedEdge(w, $0)) } }
             #expect(extenders.isEmpty, "\(clique) is not maximal")
         }
-        let viaArcs = Array(graph.directed.undirected.maximalCliques())
+        let viaArcs = Array(graph.directedView.undirectedView.maximalCliques())
         #expect(Set(viaArcs) == Set(expected))
         #expect(viaArcs.count == expected.count)
     }
@@ -368,7 +368,7 @@ struct MaximalCliqueTests {
             let extenders = graph.vertices.filter { w in !clique.contains(w) && clique.allSatisfy { graph.contains(edge: UndirectedEdge(w, $0)) } }
             #expect(extenders.isEmpty, "\(clique) is not maximal")
         }
-        let viaArcs = Array(graph.directed.undirected.maximalCliques())
+        let viaArcs = Array(graph.directedView.undirectedView.maximalCliques())
         #expect(Set(viaArcs) == Set(expected))
         #expect(viaArcs.count == expected.count)
     }
@@ -388,7 +388,7 @@ struct MaximalCliqueTests {
             let extenders = graph.vertices.filter { w in !clique.contains(w) && clique.allSatisfy { graph.contains(edge: UndirectedEdge(w, $0)) } }
             #expect(extenders.isEmpty, "\(clique) is not maximal")
         }
-        let viaArcs = Array(graph.directed.undirected.maximalCliques())
+        let viaArcs = Array(graph.directedView.undirectedView.maximalCliques())
         #expect(Set(viaArcs) == Set(expected))
         #expect(viaArcs.count == expected.count)
     }
@@ -408,7 +408,7 @@ struct MaximalCliqueTests {
             let extenders = graph.vertices.filter { w in !clique.contains(w) && clique.allSatisfy { graph.contains(edge: UndirectedEdge(w, $0)) } }
             #expect(extenders.isEmpty, "\(clique) is not maximal")
         }
-        let viaArcs = Array(graph.directed.undirected.maximalCliques())
+        let viaArcs = Array(graph.directedView.undirectedView.maximalCliques())
         #expect(Set(viaArcs) == Set(expected))
         #expect(viaArcs.count == expected.count)
     }
@@ -428,7 +428,7 @@ struct MaximalCliqueTests {
             let extenders = graph.vertices.filter { w in !clique.contains(w) && clique.allSatisfy { graph.contains(edge: UndirectedEdge(w, $0)) } }
             #expect(extenders.isEmpty, "\(clique) is not maximal")
         }
-        let viaArcs = Array(graph.directed.undirected.maximalCliques())
+        let viaArcs = Array(graph.directedView.undirectedView.maximalCliques())
         #expect(Set(viaArcs) == Set(expected))
         #expect(viaArcs.count == expected.count)
     }
@@ -454,7 +454,7 @@ struct MaximalCliqueTests {
             let extenders = graph.vertices.filter { w in !clique.contains(w) && clique.allSatisfy { graph.contains(edge: UndirectedEdge(w, $0)) } }
             #expect(extenders.isEmpty, "\(clique) is not maximal")
         }
-        let viaArcs = Array(graph.directed.undirected.maximalCliques())
+        let viaArcs = Array(graph.directedView.undirectedView.maximalCliques())
         #expect(Set(viaArcs) == Set(expected))
         #expect(viaArcs.count == expected.count)
     }
@@ -490,7 +490,7 @@ struct MaximalCliqueTests {
             let extenders = graph.vertices.filter { w in !clique.contains(w) && clique.allSatisfy { graph.contains(edge: UndirectedEdge(w, $0)) } }
             #expect(extenders.isEmpty, "\(clique) is not maximal")
         }
-        let viaArcs = Array(graph.directed.undirected.maximalCliques())
+        let viaArcs = Array(graph.directedView.undirectedView.maximalCliques())
         #expect(Set(viaArcs) == Set(expected))
         #expect(viaArcs.count == expected.count)
     }
@@ -513,7 +513,7 @@ struct MaximalCliqueTests {
             let extenders = graph.vertices.filter { w in !clique.contains(w) && clique.allSatisfy { graph.contains(edge: UndirectedEdge(w, $0)) } }
             #expect(extenders.isEmpty, "\(clique) is not maximal")
         }
-        let viaArcs = Array(graph.directed.undirected.maximalCliques())
+        let viaArcs = Array(graph.directedView.undirectedView.maximalCliques())
         #expect(Set(viaArcs) == Set(expected))
         #expect(viaArcs.count == expected.count)
     }

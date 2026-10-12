@@ -48,6 +48,16 @@ public struct Eccentricities<G: DirectedGraph, Distance: Comparable & AdditiveAr
         return _values[_graph._requiredVertexIndex(of: vertex, "The vertex is not in the graph")]
     }
 
+    /// The eccentricity of `vertex`, throwing instead of trapping when it is not a vertex of the
+    /// graph: nil still means some vertex is not reachable from it.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the graph.
+    @inlinable
+    public func eccentricity(checked vertex: G.Vertex) throws(VertexNotFound) -> Distance? {
+        guard _graph.contains(vertex) else { throw VertexNotFound() }
+        return eccentricity(of: vertex)
+    }
+
     /// The eccentricity of the vertex at `index` (its vertex index, or its position in `vertices`
     /// when the graph has no vertex indices).
     ///

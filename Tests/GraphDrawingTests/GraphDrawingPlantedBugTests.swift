@@ -110,6 +110,21 @@ struct GraphDrawingPlantedBugTests {
         #expect(((exact[0] - p[0]) * (exact[0] - p[0])).sum() > 1e-6)
     }
 
+    @Test("Barnes–Hut's opening criterion is the ratio s/D, so it does not depend on the scale")
+    func barnesHutFarCellScaled() {
+        // The far-cell drawing above, shrunk by 64 (a power of two, so every quantity scales
+        // exactly), with k shrunk too. s/D is unchanged, so the cell still acts as one body; a
+        // criterion mixing s with D² would open it at this scale (s = 5/64 > D² = 104/4096).
+        let graph = Pseudograph<Int>(vertices: 0 ..< 3, edges: [] as [UndirectedEdge<Int>])
+        let start = Drawing(vertices: 0 ..< 3, positions: [SIMD2(0.0, 0.0), SIMD2(10.0 / 64, 0.0), SIMD2(10.0 / 64, 4.0 / 64)])
+        let k = 1.0 / 64
+        let p = graph.fruchtermanReingoldLayout(initial: start, iterations: 1, optimalDistance: k, barnesHutTheta: 1).positions
+        let delta = SIMD2(0.0, 0.0) - SIMD2(10.0 / 64, 2.0 / 64)
+        #expect(p[0] == delta * (2 * (k * k) / (104.0 / 4096)), "\(p)")
+        let exact = graph.fruchtermanReingoldLayout(initial: start, iterations: 1, optimalDistance: k).positions
+        #expect(((exact[0] - p[0]) * (exact[0] - p[0])).sum() > 1e-12)
+    }
+
     @Test("Barnes–Hut with θ = 0 is exactly the exact repulsion")
     func barnesHutThetaZero() {
         var rng = Xoshiro256StarStar(seed: 7)
@@ -200,7 +215,7 @@ struct GraphDrawingPlantedBugTests {
         // A stable graph with a removed vertex has no vertex indices.
         var stable = StableDirectedGraph<Int>(vertices: 0 ..< 5, edges: (pairs + [(3, 3), (0, 0), (2, 1)]).map { DirectedEdge(from: $0.0, to: $0.1) })
         _ = stable.remove(2)
-        let view = stable.undirected
+        let view = stable.undirectedView
         #expect(view.vertexIndexBound == nil && Array(view.vertices) == [0, 1, 3, 4])
 
         let length: (UndirectedEdge<Int>) -> Double = { $0.u == $0.v ? 1000 : Double(($0.u + $0.v) % 3) + 0.5 }

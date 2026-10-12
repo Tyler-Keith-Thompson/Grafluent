@@ -2,7 +2,7 @@ import GraphProtocols
 import Semirings
 import Walks
 
-// The semiring overloads on undirected graphs, through `directed` as the `Comparable &
+// The semiring overloads on undirected graphs, through `directedView` as the `Comparable &
 // AdditiveArithmetic` ones in Undirected.swift: each edge is two arcs sharing its position, so
 // both directions weigh the same. With vertex indices Dijkstra walks the graph's own rows. A
 // reachable edge better than `.one` makes a 2-cycle better than `.one` (w ⊗ w ⊑ w < 1̄ in a
@@ -15,7 +15,7 @@ extension Graph {
     ) -> ShortestPathTree<DirectedView<Self>, S>? {
         guard vertexIndexBound != nil else { return nil }
         precondition(cutoff.map { $0 == $0 } ?? true, "The cutoff is NaN")
-        let view = directed
+        let view = directedView
         let ids = view._numberedVertices()
         let (indices, listed) = view._sourceIndices(sources, ids)
         let t = target.map { view._index(of: $0, ids) } ?? -1
@@ -47,7 +47,7 @@ extension Graph {
         return false
     }
 
-    /// `directed.dijkstraShortestPaths(from:cutoff:weight:)` over a selective semiring, weighing
+    /// `directedView.dijkstraShortestPaths(from:cutoff:weight:)` over a selective semiring, weighing
     /// each arc by its edge.
     @inlinable
     public func dijkstraShortestPaths<S: SelectiveSemiring>(
@@ -56,17 +56,17 @@ extension Graph {
         dijkstraShortestPaths(from: CollectionOfOne(source), cutoff: cutoff, weight: weight)
     }
 
-    /// `directed.dijkstraShortestPaths(from:cutoff:weight:)` over a selective semiring, from
+    /// `directedView.dijkstraShortestPaths(from:cutoff:weight:)` over a selective semiring, from
     /// several sources.
     @inlinable
     public func dijkstraShortestPaths<S: SelectiveSemiring>(
         from sources: some Sequence<Vertex>, cutoff: S? = nil, weight: (Edges.Index) -> S
     ) -> ShortestPathTree<DirectedView<Self>, S> {
         if let tree = _undirectedSemiringDijkstra(sources: sources, target: nil, cutoff: cutoff, weight: weight) { return tree }
-        return directed.dijkstraShortestPaths(from: sources, cutoff: cutoff) { weight($0.position) }
+        return directedView.dijkstraShortestPaths(from: sources, cutoff: cutoff) { weight($0.position) }
     }
 
-    /// `directed.dijkstraShortestPath(from:to:weight:)` over a selective semiring, weighing each
+    /// `directedView.dijkstraShortestPath(from:to:weight:)` over a selective semiring, weighing each
     /// arc by its edge.
     @inlinable
     public func dijkstraShortestPath<S: SelectiveSemiring>(
@@ -75,10 +75,10 @@ extension Graph {
         if let tree = _undirectedSemiringDijkstra(sources: CollectionOfOne(source), target: target, cutoff: nil, weight: weight) {
             return tree.path(to: target).map { ($0, tree.distance(to: target)!) }
         }
-        return directed.dijkstraShortestPath(from: source, to: target) { weight($0.position) }
+        return directedView.dijkstraShortestPath(from: source, to: target) { weight($0.position) }
     }
 
-    /// `directed.bellmanFordShortestPaths(from:weight:)` over a selective semiring: `nil` when an
+    /// `directedView.bellmanFordShortestPaths(from:weight:)` over a selective semiring: `nil` when an
     /// edge better than `.one` is reachable, since it is a 2-cycle better than `.one`, found in one
     /// O(V + E) pass.
     @inlinable
@@ -88,7 +88,7 @@ extension Graph {
         bellmanFordShortestPaths(from: CollectionOfOne(source), weight: weight)
     }
 
-    /// `directed.bellmanFordShortestPaths(from:weight:)` over a selective semiring, from several
+    /// `directedView.bellmanFordShortestPaths(from:weight:)` over a selective semiring, from several
     /// sources.
     @inlinable
     public func bellmanFordShortestPaths<S: SelectiveSemiring>(
@@ -96,33 +96,33 @@ extension Graph {
     ) -> ShortestPathTree<DirectedView<Self>, S>? {
         let sources = Array(sources)
         guard !_reachableEdgeBetterThanOne(from: sources, weight: weight) else { return nil }
-        return directed.bellmanFordShortestPaths(from: sources) { weight($0.position) }
+        return directedView.bellmanFordShortestPaths(from: sources) { weight($0.position) }
     }
 
-    /// `directed.floydWarshallShortestPaths(weight:)`, weighing each arc by its edge: `nil` when
+    /// `directedView.floydWarshallShortestPaths(weight:)`, weighing each arc by its edge: `nil` when
     /// any edge is negative, since it is a negative 2-cycle.
     @inlinable
     public func floydWarshallShortestPaths<W: Comparable & AdditiveArithmetic>(
         weight: (Edges.Index) -> W
     ) -> DistanceMatrix<DirectedView<Self>, W>? {
-        directed.floydWarshallShortestPaths { weight($0.position) }
+        directedView.floydWarshallShortestPaths { weight($0.position) }
     }
 
-    /// `directed.floydWarshallShortestPaths(weight:)` over binary floating point, weighing each arc
+    /// `directedView.floydWarshallShortestPaths(weight:)` over binary floating point, weighing each arc
     /// by its edge: a weight of `.infinity` means "no edge"; `nil` when any edge is negative.
     @inlinable
     public func floydWarshallShortestPaths<W: _SemiringScalar & BinaryFloatingPoint>(
         weight: (Edges.Index) -> W
     ) -> DistanceMatrix<DirectedView<Self>, W>? {
-        directed.floydWarshallShortestPaths { weight($0.position) }
+        directedView.floydWarshallShortestPaths { weight($0.position) }
     }
 
-    /// `directed.floydWarshallShortestPaths(weight:)` over a selective semiring, weighing each arc
+    /// `directedView.floydWarshallShortestPaths(weight:)` over a selective semiring, weighing each arc
     /// by its edge: `nil` when any edge is better than `.one`.
     @inlinable
     public func floydWarshallShortestPaths<S: SelectiveSemiring>(
         weight: (Edges.Index) -> S
     ) -> DistanceMatrix<DirectedView<Self>, S>? {
-        directed.floydWarshallShortestPaths { weight($0.position) }
+        directedView.floydWarshallShortestPaths { weight($0.position) }
     }
 }

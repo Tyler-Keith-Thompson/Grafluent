@@ -106,7 +106,7 @@ struct DistanceConformanceTests {
         let path = try #require(m.path)
         #expect(path.vertices == [2, 1, 3, 5])
         #expect(path.edges == [0, 1, 4])
-        #expect(directedEccentricities(graph.directed) == [2, 3, 2, 2, 3])
+        #expect(directedEccentricities(graph.directedView) == [2, 3, 2, 2, 3])
     }
 
     @Test("DI-101 – DI-110 on a conformer without vertex or edge indices: eccentricity(ofIndex:) is by position in vertices")

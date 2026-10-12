@@ -63,7 +63,7 @@ struct ProductPropertyTests {
                         for u in layer { for w in product.neighborIndices(ofIndex: u) where seen.insert(w).inserted { next.append(w) } }
                         layer = next
                     }
-                    #expect(product.directed.breadthFirstLayers(from: product.vertex(atIndex: 0)) == layers.map { $0.map { product.vertex(atIndex: $0) } }, "\(kind): \(context)")
+                    #expect(product.directedView.breadthFirstLayers(from: product.vertex(atIndex: 0)) == layers.map { $0.map { product.vertex(atIndex: $0) } }, "\(kind): \(context)")
                 }
                 var label = [Int](repeating: -1, count: n), groups: [[Int]] = []
                 for s in 0 ..< n where label[s] < 0 {
@@ -128,25 +128,25 @@ struct ProductPropertyTests {
                 // Every edge once per end; a self-loop twice in its one row.
                 #expect(met.allSatisfy { $0 == 2 }, "\(kind): \(context)")
             }
-            check(cartesianProduct(g, h), cartesian, hasEdgeIndices: true, "cartesian")
-            check(tensorProduct(g, h), tensor, hasEdgeIndices: false, "tensor")
-            check(strongProduct(g, h), cartesian + tensor, hasEdgeIndices: false, "strong")
-            check(lexicographicProduct(g, h), lexicographic, hasEdgeIndices: false, "lexicographic")
+            check(cartesianProductView(g, h), cartesian, hasEdgeIndices: true, "cartesian")
+            check(tensorProductView(g, h), tensor, hasEdgeIndices: false, "tensor")
+            check(strongProductView(g, h), cartesian + tensor, hasEdgeIndices: false, "strong")
+            check(lexicographicProductView(g, h), lexicographic, hasEdgeIndices: false, "lexicographic")
             // The loop-free degree formulas, when neither factor has a self-loop.
             if gEdges.allSatisfy({ $0[0] != $0[1] }) && hEdges.allSatisfy({ $0[0] != $0[1] }) {
                 for i in 0 ..< nG * nH {
                     let dG = g.degree(of: i / nH), dH = h.degree(of: i % nH)
-                    #expect(cartesianProduct(g, h).degree(ofIndex: i) == dG + dH, "\(context)")
-                    #expect(tensorProduct(g, h).degree(ofIndex: i) == dG * dH, "\(context)")
-                    #expect(strongProduct(g, h).degree(ofIndex: i) == dG + dH + dG * dH, "\(context)")
-                    #expect(lexicographicProduct(g, h).degree(ofIndex: i) == dG * nH + dH, "\(context)")
+                    #expect(cartesianProductView(g, h).degree(ofIndex: i) == dG + dH, "\(context)")
+                    #expect(tensorProductView(g, h).degree(ofIndex: i) == dG * dH, "\(context)")
+                    #expect(strongProductView(g, h).degree(ofIndex: i) == dG + dH + dG * dH, "\(context)")
+                    #expect(lexicographicProductView(g, h).degree(ofIndex: i) == dG * nH + dH, "\(context)")
                 }
             }
             // The undirected counts: × has 2·mG·mH − (ℓG·mH + ℓH·mG − ℓG·ℓH) edges.
             let lG = gEdges.filter { $0[0] == $0[1] }.count, lH = hEdges.filter { $0[0] == $0[1] }.count
             let mG = gEdges.count, mH = hEdges.count
-            #expect(tensorProduct(g, h).edgeCount == 2 * mG * mH - (lG * mH + lH * mG - lG * lH), "\(context)")
-            #expect(lexicographicProduct(g, h).edgeCount == (mG - lG) * nH * nH + lG * nH * (nH + 1) / 2 + nG * mH, "\(context)")
+            #expect(tensorProductView(g, h).edgeCount == 2 * mG * mH - (lG * mH + lH * mG - lG * lH), "\(context)")
+            #expect(lexicographicProductView(g, h).edgeCount == (mG - lG) * nH * nH + lG * nH * (nH + 1) / 2 + nG * mH, "\(context)")
         }
     }
 
@@ -247,15 +247,15 @@ struct ProductPropertyTests {
                 // Each arc once in an out-row and once in an in-row.
                 #expect(out.allSatisfy { $0 == 1 } && into.allSatisfy { $0 == 1 }, "\(kind): \(context)")
             }
-            check(cartesianProduct(g, h), cartesian, "cartesian")
-            check(tensorProduct(g, h), tensor, "tensor")
-            check(strongProduct(g, h), cartesian + tensor, "strong")
-            check(lexicographicProduct(g, h), lexicographic, "lexicographic")
+            check(cartesianProductView(g, h), cartesian, "cartesian")
+            check(tensorProductView(g, h), tensor, "tensor")
+            check(strongProductView(g, h), cartesian + tensor, "strong")
+            check(lexicographicProductView(g, h), lexicographic, "lexicographic")
             for i in 0 ..< nG * nH {
                 let a = i / nH, b = i % nH
-                #expect(cartesianProduct(g, h).outDegree(ofIndex: i) == g.outDegree(of: a) + h.outDegree(of: b), "\(context)")
-                #expect(tensorProduct(g, h).inDegree(ofIndex: i) == g.inDegree(of: a) * h.inDegree(of: b), "\(context)")
-                #expect(lexicographicProduct(g, h).outDegree(ofIndex: i) == g.outDegree(of: a) * nH + h.outDegree(of: b), "\(context)")
+                #expect(cartesianProductView(g, h).outDegree(ofIndex: i) == g.outDegree(of: a) + h.outDegree(of: b), "\(context)")
+                #expect(tensorProductView(g, h).inDegree(ofIndex: i) == g.inDegree(of: a) * h.inDegree(of: b), "\(context)")
+                #expect(lexicographicProductView(g, h).outDegree(ofIndex: i) == g.outDegree(of: a) * nH + h.outDegree(of: b), "\(context)")
             }
         }
     }

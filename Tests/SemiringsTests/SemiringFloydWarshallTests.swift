@@ -124,11 +124,11 @@ struct SemiringFloydWarshallTests {
         #expect(graph.floydWarshallShortestPaths { TropicalSemiring(w[$0]) } == nil)
     }
 
-    @Test("SR-239 undirected through .directed (TropicalSemiring<Int>)")
+    @Test("SR-239 undirected through .directedView (TropicalSemiring<Int>)")
     func sr239() throws {
         // floydWarshallShortestPaths() → [0, 2, 9, 9; 2, 0, 7, 8; 9, 7, 0, 1; 9, 8, 1, 0]
         let graph = Pseudograph(vertices: 0 ..< 4, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2), UndirectedEdge(2, 3), UndirectedEdge(0, 3)])
-        let directed = graph.directed
+        let directed = graph.directedView
         let w: [Int] = [2, 7, 1, 9]
         let matrix = try #require(directed.floydWarshallShortestPaths { TropicalSemiring(w[$0.position]) })
         let expected: [[Int?]] = [
@@ -278,11 +278,11 @@ struct SemiringFloydWarshallTests {
         #expect(graph.floydWarshallShortestPaths { TropicalSemiring(w[$0]) } == nil)
     }
 
-    @Test("SR-262 undirected through .directed (TropicalSemiring<Double>)")
+    @Test("SR-262 undirected through .directedView (TropicalSemiring<Double>)")
     func sr262() throws {
         // floydWarshallShortestPaths() → [0.0, 2.0, 9.0, 9.0; 2.0, 0.0, 7.0, 8.0; 9.0, 7.0, 0.0, 1.0; 9.0, 8.0, 1.0, 0.0]
         let graph = Pseudograph(vertices: 0 ..< 4, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2), UndirectedEdge(2, 3), UndirectedEdge(0, 3)])
-        let directed = graph.directed
+        let directed = graph.directedView
         let w: [Double] = [2.0, 7.0, 1.0, 9.0]
         let matrix = try #require(directed.floydWarshallShortestPaths { TropicalSemiring(w[$0.position]) })
         let expected: [[Double?]] = [

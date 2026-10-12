@@ -48,7 +48,7 @@ struct LabeledGraph<Label: Hashable, Base>: DirectedGraph (Base: DirectedGraph<I
 | `init(_:labels:)` | Throws the first `LabelingError`: `.baseNotDenselyIndexed`, `.baseVerticesNotInIndexOrder`, `.labelCountMismatch`, `.duplicateLabel(position:)` | LG-018 – LG-023 |
 | Non-vertices | Label-space members trap; `checked:` spellings throw `VertexNotFound`, changing nothing; `contains(edge:)` answers false; `remove(edge:)` returns nil | LG-029 – LG-032, LG-076, LG-078, LG-098 |
 | Hashing | Index-space and whole-graph reads hash no label; a label-space read hashes once; algorithms hash at their inputs only | LG-054 – LG-057, LG-066 |
-| Undirected | `labeled.undirected`: neighbours are successors then predecessors; label-space reads hash twice | LG-062 – LG-068 |
+| Undirected | `labeled.undirectedView`: neighbours are successors then predecessors; label-space reads hash twice | LG-062 – LG-068 |
 | Mutation | A new label appends base vertex n; `insert(edge:)` inserts a missing source, then a missing target; `removeEdges` clears a row, a column or both, a self-loop counted once | LG-069 – LG-084 |
 | Builder | `init(vertices:edges:)` with the bare labels listed first, wherever they are written | LG-085, LG-086 |
 | Transpose | `transposed()` over CSR: every edge reversed, the same labels at the same indices, no hash | LG-087, LG-088 |
@@ -58,7 +58,7 @@ struct LabeledGraph<Label: Hashable, Base>: DirectedGraph (Base: DirectedGraph<I
 ## How values are pinned
 
 Each catalog row is written the way the catalog writes it: `LabeledGraph<String, Base>(vertices: V,
-edges: E)`, the base initializer, or `.undirected` on a matrix-based graph, then the calls in
+edges: E)`, the base initializer, or `.undirectedView` on a matrix-based graph, then the calls in
 order, each with its result checked. After a mutation that another mutation follows, the test
 checks the labels and the edges with their positions. The final state is written out in full:
 

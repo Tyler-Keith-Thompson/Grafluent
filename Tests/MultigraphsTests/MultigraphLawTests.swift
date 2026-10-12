@@ -331,8 +331,8 @@ struct MultigraphLawTests {
         let dm = arcs(directedMultigraph)
         #expect(dm.edges == 2 && dm.out == [2, 0] && dm.into == [0, 2])
         // The views: each undirected edge two arcs; each arc an undirected edge.
-        #expect(arcs(pseudograph.directed).edges == 6)
-        #expect(summary(digraph.undirected).degrees == [2, 4])
+        #expect(arcs(pseudograph.directedView).edges == 6)
+        #expect(summary(digraph.undirectedView).degrees == [2, 4])
         // contains(edge:) through the protocol answers as the type does.
         func has<G: Graph>(_ graph: G, _ edge: UndirectedEdge<Int>) -> Bool where G.Vertex == Int { graph.contains(edge: edge) }
         #expect(has(pseudograph, UndirectedEdge(1, 0)) && has(pseudograph, UndirectedEdge(1, 1)) && !has(pseudograph, UndirectedEdge(0, 0)))

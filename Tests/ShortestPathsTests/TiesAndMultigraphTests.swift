@@ -84,12 +84,12 @@ struct TiesAndMultigraphTests {
         // Undirected, both copies as edges of a pseudograph read through directed.
         let pseudograph = ReferencePseudograph(edges: [UndirectedEdge("a", "b"), UndirectedEdge("a", "b")])
         let copies = [100, 110]
-        let fromA = pseudograph.directed.dijkstraShortestPaths(from: "a") { copies[$0.position] }
+        let fromA = pseudograph.directedView.dijkstraShortestPaths(from: "a") { copies[$0.position] }
         #expect(fromA.distance(to: "a") == 0)
         #expect(fromA.distance(to: "b") == 100)
         #expect(fromA.parentEdge(of: "b") == .init(position: 0, reversed: false))
         let swapped = [110, 100]
-        let fromASwapped = pseudograph.directed.dijkstraShortestPaths(from: "a") { swapped[$0.position] }
+        let fromASwapped = pseudograph.directedView.dijkstraShortestPaths(from: "a") { swapped[$0.position] }
         #expect(fromASwapped.distance(to: "b") == 100)
         #expect(fromASwapped.parentEdge(of: "b") == .init(position: 1, reversed: false))
 
@@ -111,7 +111,7 @@ struct TiesAndMultigraphTests {
         ]
         let graph = ReferencePseudograph(edges: mxg4.map { UndirectedEdge($0.0, $0.1) })
         let weights = mxg4.map(\.2)
-        let tree = graph.directed.dijkstraShortestPaths(from: 0) { weights[$0.position] }
+        let tree = graph.directedView.dijkstraShortestPaths(from: 0) { weights[$0.position] }
         #expect((0 ..< 8).map { tree.distance(to: $0) } == [0, 2, 4, 5, 4, 3, 2, 1])
         #expect(tree.parentEdge(of: 1) == .init(position: 0, reversed: false))
         #expect(tree.parent(of: 2) == 1)
@@ -151,7 +151,7 @@ struct TiesAndMultigraphTests {
     @Test("SP-18 a tie between two predecessors at the same distance is in the candidate set")
     func undirectedFourCycle() {
         let cycle = UndirectedAdjacencyList(edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2), UndirectedEdge(2, 3), UndirectedEdge(3, 0)])
-        let tree = cycle.directed.dijkstraShortestPaths(from: 0) { _ in 1 }
+        let tree = cycle.directedView.dijkstraShortestPaths(from: 0) { _ in 1 }
         #expect((0 ..< 4).map { tree.distance(to: $0) } == [0, 1, 2, 1])
         #expect(tree.parent(of: 1) == 0)
         #expect(tree.parent(of: 3) == 0)
@@ -200,7 +200,7 @@ struct TiesAndMultigraphTests {
         ]
         let graph = UndirectedAdjacencyList(edges: xg.map { UndirectedEdge($0.0, $0.1) })
         let weights = xg.map(\.2)
-        let tree = graph.directed.dijkstraShortestPaths(from: "s") { weights[$0.position] }
+        let tree = graph.directedView.dijkstraShortestPaths(from: "s") { weights[$0.position] }
         #expect(["s", "u", "x", "v", "y"].map { tree.distance(to: $0) } == [0, 7, 5, 8, 7])
         #expect(tree.parent(of: "u") == "x")
         #expect(tree.parentEdge(of: "u") == .init(position: 3, reversed: true))

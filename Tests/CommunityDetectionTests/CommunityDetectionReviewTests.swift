@@ -58,7 +58,7 @@ struct CommunityDetectionReviewTests {
             let graph = UndirectedAdjacencyList(vertices: 0 ..< 9, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             let third = graph.louvainCommunities(weight: { _ in 1.0 / 3 })
             #expect(third == graph.louvainCommunities())
-            let directedThird = graph.directed.louvainCommunities(weight: { _ in 1.0 / 3 })
+            let directedThird = graph.directedView.louvainCommunities(weight: { _ in 1.0 / 3 })
             #expect(directedThird.map(Array.init) == third.map(Array.init))
         }.value
     }

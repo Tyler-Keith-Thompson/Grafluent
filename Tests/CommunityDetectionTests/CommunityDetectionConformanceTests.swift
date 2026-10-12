@@ -228,7 +228,7 @@ struct CommunityDetectionConformanceTests {
         #expect(abs(graph.modularity(of: reordered) - expected) <= 1e-12)
         let louvain = graph.louvainCommunities()
         #expect(abs(graph.modularity(of: louvain) - expected) <= 1e-12)
-        #expect(abs(graph.directed.modularity(of: louvain) - expected) <= 1e-12)
+        #expect(abs(graph.directedView.modularity(of: louvain) - expected) <= 1e-12)
         let quality = graph.partitionQuality(of: louvain)
         #expect(abs(quality.coverage - 0.8571428571428571) <= 1e-12)
         #expect(abs(quality.performance - 0.9333333333333333) <= 1e-12)

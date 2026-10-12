@@ -6,7 +6,7 @@ First runs ref.py's catalog with each case builder instrumented, so every row's 
 as structured values, and checks that the rendered catalog equals cases.md (the Checked cells that
 depend on igraph are normalized, since igraph may be absent). Then re-evaluates each row with
 ref.py's model functions, asserts each value matches its catalog cell, and writes one @Test per
-row. The representation rows (AdjacencyList and AdjacencyMatrix through `.undirected`) are
+row. The representation rows (AdjacencyList and AdjacencyMatrix through `.undirectedView`) are
 recomputed with the same models on those representations' rows and positions: successors then
 predecessors, arcs in insertion order (AdjacencyList) or at row-major cells (AdjacencyMatrix).
 """
@@ -132,7 +132,7 @@ def small(g):
 
 
 def adjlist_repr(g):
-    """AdjacencyList(arcs as written).undirected: positions are the arcs in order; each row is
+    """AdjacencyList(arcs as written).undirectedView: positions are the arcs in order; each row is
     out-arcs then in-arcs, each in insertion order. None if an arc repeats."""
     arcs = list(g.E)
     if len(set(arcs)) != len(arcs):
@@ -149,7 +149,7 @@ def adjlist_repr(g):
 
 
 def matrix_repr(g):
-    """AdjacencyMatrix(vertexCount: n, arcs).undirected for vertices 0..<n in order: positions are
+    """AdjacencyMatrix(vertexCount: n, arcs).undirectedView for vertices 0..<n in order: positions are
     the cells in row-major order; each row is successors ascending, then predecessors ascending."""
     if g.V != list(range(g.n)):
         return None
@@ -201,9 +201,9 @@ def build_graph(g, rep, T):
         L.append(f"let graph = UnindexedGraph<{T}>(vertices: {tarr(g.V, T)}, edges: pairs.map {{ UndirectedEdge($0.0, $0.1) }})")
         L.append("#expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)")
     elif rep == "al":
-        L.append(f"let graph = AdjacencyList<{T}>(vertices: {tarr(g.V, T)}, edges: pairs.map {{ DirectedEdge(from: $0.0, to: $0.1) }}).undirected")
+        L.append(f"let graph = AdjacencyList<{T}>(vertices: {tarr(g.V, T)}, edges: pairs.map {{ DirectedEdge(from: $0.0, to: $0.1) }}).undirectedView")
     elif rep == "am":
-        L.append(f"let graph = AdjacencyMatrix(vertexCount: {g.n}, edges: pairs.map {{ DirectedEdge(from: $0.0, to: $0.1) }}).undirected")
+        L.append(f"let graph = AdjacencyMatrix(vertexCount: {g.n}, edges: pairs.map {{ DirectedEdge(from: $0.0, to: $0.1) }}).undirectedView")
     else:
         raise ValueError(rep)
     L.append(f"#expect(graph.edgeCount == {len(g.E)})")
@@ -802,10 +802,10 @@ def rep_tests(cid, kind, args, kwargs):
     reps.append(("unindexed", "no indices", None))
     h = adjlist_repr(g)
     if h is not None:
-        reps.append(("al", "AdjacencyList.undirected", h))
+        reps.append(("al", "AdjacencyList.undirectedView", h))
     h = matrix_repr(g)
     if h is not None:
-        reps.append(("am", "AdjacencyMatrix.undirected", h))
+        reps.append(("am", "AdjacencyMatrix.undirectedView", h))
     body = [comment_input(cid)]
     for rep, label, hh in reps:
         lines = build_graph(g, rep, T) + rep_body(cid, kind, args, kwargs, g, T, rep, hh)
@@ -1026,10 +1026,10 @@ intro = ("The graph rows of the catalog again on other representations. Rows on 
          "again on `ReferencePseudograph`; `BipartiteGraph` rows on an `UndirectedAdjacencyList` and a "
          "`ReferencePseudograph` with the same vertices and edges; every row on a file-private conformer with no "
          "vertex or edge indices; all with the catalog's values, since their rows are in position order too. Then "
-         "on `AdjacencyList.undirected` with each edge an arc as written, and on `AdjacencyMatrix.undirected` with "
+         "on `AdjacencyList.undirectedView` with each edge an arc as written, and on `AdjacencyMatrix.undirectedView` with "
          "the arcs at their row-major cells (rows on 0..<n with no arc twice). Every vertex-set result is the "
          "catalog's on every representation (they depend on the vertex order and the adjacency only, or, for "
-         "`approximateMinimumVertexCover`, on the edge order, which `AdjacencyList` keeps). Through `.undirected` "
+         "`approximateMinimumVertexCover`, on the edge order, which `AdjacencyList` keeps). Through `.undirectedView` "
          "a row is successors, then predecessors, and matrix positions are cells: the edge covers there, and the "
          "vertex-cover approximation on the matrix, were computed by swiftgen.py with ref.py's models on those "
          "rows and positions. Matrix positions are compared as [source, target]. Matching rows run through "

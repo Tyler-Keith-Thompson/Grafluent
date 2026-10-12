@@ -1,10 +1,10 @@
 // Every recognition row (BP-001 – BP-084) again on the other representations: the package's
 // `UndirectedAdjacencyList` (stored index rows, so recognition reads `_withIncidentIndexRows`),
 // a file-private conformer with no vertex or edge indices (rows from `incidentEdges(of:)`,
-// `side(ofIndex:)` by position in `vertices`), `AdjacencyList.undirected` with each edge as an
-// arc as written, and `AdjacencyMatrix.undirected` with the arcs at their row-major cells, for
+// `side(ofIndex:)` by position in `vertices`), `AdjacencyList.undirectedView` with each edge as an
+// arc as written, and `AdjacencyMatrix.undirectedView` with the arcs at their row-major cells, for
 // rows on 0..<n with no arc twice. Rows with parallel edges run on the unindexed conformer only.
-// Through `.undirected` a row is successors, then predecessors, so the odd cycle those
+// Through `.undirectedView` a row is successors, then predecessors, so the odd cycle those
 // searches meet can differ from the catalog's: swiftgen.py computed each expected cycle with
 // ref.py's model on that representation's rows (sides do not depend on row order). Matrix
 // positions are cells, compared as [source, target]. See README.md.
@@ -30,7 +30,7 @@ private struct UnindexedGraph<Vertex: Hashable>: Graph {
 
 @Suite("Recognition on every representation")
 struct RecognitionRepresentationTests {
-    @Test("BP-001 empty graph, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-001 empty graph, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp001() throws {
         // V []; E []
         do { // UndirectedAdjacencyList: the catalog's values
@@ -71,9 +71,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = []
-            let graph = AdjacencyList(vertices: [] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -90,9 +90,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = []
-            let graph = AdjacencyMatrix(vertexCount: 0, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 0, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -111,7 +111,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-002 one vertex, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-002 one vertex, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp002() throws {
         // V [0]; E []
         do { // UndirectedAdjacencyList: the catalog's values
@@ -152,9 +152,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = []
-            let graph = AdjacencyList(vertices: [0] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -171,9 +171,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = []
-            let graph = AdjacencyMatrix(vertexCount: 1, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 1, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -192,7 +192,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-003 two isolated vertices, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-003 two isolated vertices, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp003() throws {
         // V [0, 1]; E []
         do { // UndirectedAdjacencyList: the catalog's values
@@ -233,9 +233,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = []
-            let graph = AdjacencyList(vertices: [0, 1] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -252,9 +252,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = []
-            let graph = AdjacencyMatrix(vertexCount: 2, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 2, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -273,7 +273,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-004 one edge, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-004 one edge, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp004() throws {
         // V [0, 1]; E [0–1]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -316,9 +316,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1)]
-            let graph = AdjacencyList(vertices: [0, 1] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -335,9 +335,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 2, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 2, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -356,7 +356,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-005 one edge, written 1–0, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-005 one edge, written 1–0, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp005() throws {
         // V [0, 1]; E [1–0]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -399,9 +399,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(1, 0)]
-            let graph = AdjacencyList(vertices: [0, 1] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -418,9 +418,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(1, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 2, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 2, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -439,7 +439,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-006 one edge, vertex order [1, 0], on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-006 one edge, vertex order [1, 0], on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp006() throws {
         // V [1, 0]; E [0–1]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -482,9 +482,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1)]
-            let graph = AdjacencyList(vertices: [1, 0] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [1, 0] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -501,9 +501,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 2, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 2, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -522,7 +522,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-007 self-loop alone, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-007 self-loop alone, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp007() throws {
         // V [0]; E [0–0]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -567,9 +567,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 0)]
-            let graph = AdjacencyList(vertices: [0] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -587,9 +587,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 1, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 1, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -609,7 +609,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-008 self-loop beside an edge, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-008 self-loop beside an edge, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp008() throws {
         // V [0, 1]; E [0–1, 1–1]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -654,9 +654,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (1, 1)]
-            let graph = AdjacencyList(vertices: [0, 1] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -674,9 +674,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (1, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 2, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 2, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -696,7 +696,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-009 self-loop on an isolated vertex of a bipartite graph, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-009 self-loop on an isolated vertex of a bipartite graph, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp009() throws {
         // V [0, 1, 2]; E [0–1, 2–2]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -741,9 +741,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (2, 2)]
-            let graph = AdjacencyList(vertices: [0, 1, 2] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -761,9 +761,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (2, 2)]
-            let graph = AdjacencyMatrix(vertexCount: 3, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 3, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -808,7 +808,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-011 parallel pair, second copy written 1–0, on no indices, AdjacencyMatrix.undirected")
+    @Test("BP-011 parallel pair, second copy written 1–0, on no indices, AdjacencyMatrix.undirectedView")
     func bp011() throws {
         // multigraph V [0, 1]; E [0–1, 1–0]
         do { // No vertex or edge indices: the catalog's values
@@ -831,9 +831,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (1, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 2, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 2, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -929,7 +929,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-015 path P3, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-015 path P3, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp015() throws {
         // V [0, 1, 2]; E [0–1, 1–2]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -972,9 +972,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (1, 2)]
-            let graph = AdjacencyList(vertices: [0, 1, 2] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -991,9 +991,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (1, 2)]
-            let graph = AdjacencyMatrix(vertexCount: 3, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 3, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -1012,7 +1012,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-016 path P4, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-016 path P4, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp016() throws {
         // V [0, 1, 2, 3]; E [0–1, 1–2, 2–3]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -1055,9 +1055,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -1074,9 +1074,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -1095,7 +1095,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-017 path P7, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-017 path P7, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp017() throws {
         // V [0, 1, 2, 3, 4, 5, 6]; E [0–1, 1–2, 2–3, 3–4, 4–5, 5–6]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -1138,9 +1138,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -1157,9 +1157,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)]
-            let graph = AdjacencyMatrix(vertexCount: 7, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 7, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -1178,7 +1178,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-018 path P5 listed from the middle, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-018 path P5 listed from the middle, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp018() throws {
         // V [2, 0, 1, 3, 4]; E [0–1, 1–2, 2–3, 3–4]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -1221,9 +1221,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
-            let graph = AdjacencyList(vertices: [2, 0, 1, 3, 4] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [2, 0, 1, 3, 4] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -1240,9 +1240,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
-            let graph = AdjacencyMatrix(vertexCount: 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -1261,7 +1261,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-019 triangle C3, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-019 triangle C3, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp019() throws {
         // V [0, 1, 2]; E [0–1, 1–2, 2–0]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -1306,9 +1306,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0)]
-            let graph = AdjacencyList(vertices: [0, 1, 2] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -1326,9 +1326,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 3, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 3, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -1348,7 +1348,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-020 triangle written backwards, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-020 triangle written backwards, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp020() throws {
         // V [0, 1, 2]; E [2–1, 1–0, 0–2]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -1393,9 +1393,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(2, 1), (1, 0), (0, 2)]
-            let graph = AdjacencyList(vertices: [0, 1, 2] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -1413,9 +1413,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(2, 1), (1, 0), (0, 2)]
-            let graph = AdjacencyMatrix(vertexCount: 3, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 3, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -1435,7 +1435,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-021 square C4, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-021 square C4, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp021() throws {
         // V [0, 1, 2, 3]; E [0–1, 1–2, 2–3, 3–0]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -1478,9 +1478,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 0)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -1497,9 +1497,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -1518,7 +1518,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-022 pentagon C5, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-022 pentagon C5, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp022() throws {
         // V [0, 1, 2, 3, 4]; E [0–1, 1–2, 2–3, 3–4, 4–0]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -1563,9 +1563,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -1583,9 +1583,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -1605,7 +1605,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-023 hexagon C6, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-023 hexagon C6, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp023() throws {
         // V [0, 1, 2, 3, 4, 5]; E [0–1, 1–2, 2–3, 3–4, 4–5, 5–0]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -1648,9 +1648,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -1667,9 +1667,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -1688,7 +1688,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-024 heptagon C7, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-024 heptagon C7, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp024() throws {
         // V [0, 1, 2, 3, 4, 5, 6]; E [0–1, 1–2, 2–3, 3–4, 4–5, 5–6, 6–0]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -1733,9 +1733,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 0)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -1753,9 +1753,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 7, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 7, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -1775,7 +1775,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-025 C9, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-025 C9, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp025() throws {
         // V [0, 1, 2, 3, 4, 5, 6, 7, 8]; E [0–1, 1–2, 2–3, 3–4, 4–5, 5–6, 6–7, 7–8, 8–0]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -1820,9 +1820,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 8), (8, 0)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -1840,9 +1840,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 8), (8, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 9, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 9, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -1862,7 +1862,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-026 C8, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-026 C8, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp026() throws {
         // V [0, 1, 2, 3, 4, 5, 6, 7]; E [0–1, 1–2, 2–3, 3–4, 4–5, 5–6, 6–7, 7–0]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -1905,9 +1905,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 0)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -1924,9 +1924,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 8, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 8, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -1945,7 +1945,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-027 C5 with vertex order reversed, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-027 C5 with vertex order reversed, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp027() throws {
         // V [4, 3, 2, 1, 0]; E [0–1, 1–2, 2–3, 3–4, 4–0]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -1990,9 +1990,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
-            let graph = AdjacencyList(vertices: [4, 3, 2, 1, 0] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [4, 3, 2, 1, 0] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -2010,9 +2010,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -2032,7 +2032,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-028 C5 with shuffled edge positions, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-028 C5 with shuffled edge positions, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp028() throws {
         // V [0, 1, 2, 3, 4]; E [3–4, 0–1, 4–0, 2–3, 1–2]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -2077,9 +2077,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(3, 4), (0, 1), (4, 0), (2, 3), (1, 2)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -2097,9 +2097,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(3, 4), (0, 1), (4, 0), (2, 3), (1, 2)]
-            let graph = AdjacencyMatrix(vertexCount: 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -2119,7 +2119,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-029 K4, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-029 K4, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp029() throws {
         // V [0, 1, 2, 3]; E [0–1, 0–2, 0–3, 1–2, 1–3, 2–3]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -2164,9 +2164,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -2184,9 +2184,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -2206,7 +2206,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-030 K5, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-030 K5, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp030() throws {
         // V [0, 1, 2, 3, 4]; E [0–1, 0–2, 0–3, 0–4, 1–2, 1–3, 1–4, 2–3, 2–4, 3–4]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -2251,9 +2251,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -2271,9 +2271,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
-            let graph = AdjacencyMatrix(vertexCount: 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -2293,7 +2293,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-031 star K1,4, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-031 star K1,4, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp031() throws {
         // V [0, 1, 2, 3, 4]; E [0–1, 0–2, 0–3, 0–4]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -2336,9 +2336,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -2355,9 +2355,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4)]
-            let graph = AdjacencyMatrix(vertexCount: 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -2376,7 +2376,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-032 star with centre last, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-032 star with centre last, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp032() throws {
         // V [0, 1, 2, 3, 4]; E [4–0, 4–1, 4–2, 4–3]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -2419,9 +2419,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(4, 0), (4, 1), (4, 2), (4, 3)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -2438,9 +2438,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(4, 0), (4, 1), (4, 2), (4, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -2459,7 +2459,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-033 K2,3, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-033 K2,3, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp033() throws {
         // V [0, 1, 2, 3, 4]; E [0–2, 0–3, 0–4, 1–2, 1–3, 1–4]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -2502,9 +2502,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -2521,9 +2521,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4)]
-            let graph = AdjacencyMatrix(vertexCount: 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -2542,7 +2542,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-034 K3,3, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-034 K3,3, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp034() throws {
         // V [0, 1, 2, 3, 4, 5]; E [0–3, 0–4, 0–5, 1–3, 1–4, 1–5, 2–3, 2–4, 2–5]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -2585,9 +2585,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 3), (0, 4), (0, 5), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -2604,9 +2604,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 3), (0, 4), (0, 5), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5)]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -2625,7 +2625,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-035 K3,3 plus one edge inside a side, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-035 K3,3 plus one edge inside a side, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp035() throws {
         // V [0, 1, 2, 3, 4, 5]; E [0–3, 0–4, 0–5, 1–3, 1–4, 1–5, 2–3, 2–4, 2–5, 0–1]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -2670,9 +2670,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 3), (0, 4), (0, 5), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5), (0, 1)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -2690,9 +2690,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 3), (0, 4), (0, 5), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5), (0, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -2712,7 +2712,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-036 K3,3 plus one edge inside the other side, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-036 K3,3 plus one edge inside the other side, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp036() throws {
         // V [0, 1, 2, 3, 4, 5]; E [0–3, 0–4, 0–5, 1–3, 1–4, 1–5, 2–3, 2–4, 2–5, 4–5]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -2757,9 +2757,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 3), (0, 4), (0, 5), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5), (4, 5)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -2777,9 +2777,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 3), (0, 4), (0, 5), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5), (4, 5)]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -2799,7 +2799,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-037 grid 3×3, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-037 grid 3×3, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp037() throws {
         // V [0, 1, 2, 3, 4, 5, 6, 7, 8]; E [0–1, 0–3, 1–2, 1–4, 2–5, 3–4, 3–6, 4–5, 4–7, 5–8, 6–7, 7–8]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -2842,9 +2842,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (0, 3), (1, 2), (1, 4), (2, 5), (3, 4), (3, 6), (4, 5), (4, 7), (5, 8), (6, 7), (7, 8)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -2861,9 +2861,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (0, 3), (1, 2), (1, 4), (2, 5), (3, 4), (3, 6), (4, 5), (4, 7), (5, 8), (6, 7), (7, 8)]
-            let graph = AdjacencyMatrix(vertexCount: 9, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 9, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -2882,7 +2882,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-038 grid 2×4, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-038 grid 2×4, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp038() throws {
         // V [0, 1, 2, 3, 4, 5, 6, 7]; E [0–1, 0–4, 1–2, 1–5, 2–3, 2–6, 3–7, 4–5, 5–6, 6–7]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -2925,9 +2925,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (5, 6), (6, 7)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -2944,9 +2944,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (5, 6), (6, 7)]
-            let graph = AdjacencyMatrix(vertexCount: 8, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 8, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -2965,7 +2965,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-039 grid 3×3 plus a diagonal, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-039 grid 3×3 plus a diagonal, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp039() throws {
         // V [0, 1, 2, 3, 4, 5, 6, 7, 8]; E [0–1, 0–3, 1–2, 1–4, 2–5, 3–4, 3–6, 4–5, 4–7, 5–8, 6–7, 7–8, 0–4]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -3010,9 +3010,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (0, 3), (1, 2), (1, 4), (2, 5), (3, 4), (3, 6), (4, 5), (4, 7), (5, 8), (6, 7), (7, 8), (0, 4)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -3030,9 +3030,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (0, 3), (1, 2), (1, 4), (2, 5), (3, 4), (3, 6), (4, 5), (4, 7), (5, 8), (6, 7), (7, 8), (0, 4)]
-            let graph = AdjacencyMatrix(vertexCount: 9, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 9, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -3052,7 +3052,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-040 hypercube Q3, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-040 hypercube Q3, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp040() throws {
         // V [0, 1, 2, 3, 4, 5, 6, 7]; E [0–1, 0–2, 0–4, 1–3, 1–5, 2–3, 2–6, 3–7, 4–5, 4–6, 5–7, 6–7]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -3095,9 +3095,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (0, 2), (0, 4), (1, 3), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 6), (5, 7), (6, 7)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -3114,9 +3114,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (0, 2), (0, 4), (1, 3), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 6), (5, 7), (6, 7)]
-            let graph = AdjacencyMatrix(vertexCount: 8, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 8, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -3135,7 +3135,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-041 Petersen graph, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-041 Petersen graph, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp041() throws {
         // V [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]; E [0–1, 0–4, 0–5, 1–2, 1–6, 2–3, 2–7, 3–4, 3–8, 4–9, 5–7, 5–8, 6–8, 6–9, 7–9]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -3180,9 +3180,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -3200,9 +3200,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
-            let graph = AdjacencyMatrix(vertexCount: 10, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 10, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -3222,7 +3222,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-042 wheel W5 (hub 0, rim C5), on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-042 wheel W5 (hub 0, rim C5), on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp042() throws {
         // V [0, 1, 2, 3, 4, 5]; E [0–1, 0–2, 0–3, 0–4, 0–5, 1–2, 2–3, 3–4, 4–5, 5–1]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -3267,9 +3267,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (2, 3), (3, 4), (4, 5), (5, 1)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -3287,9 +3287,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (2, 3), (3, 4), (4, 5), (5, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -3309,7 +3309,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-043 wheel W4 (hub 0, rim C4), on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-043 wheel W4 (hub 0, rim C4), on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp043() throws {
         // V [0, 1, 2, 3, 4]; E [0–1, 0–2, 0–3, 0–4, 1–2, 2–3, 3–4, 4–1]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -3354,9 +3354,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (2, 3), (3, 4), (4, 1)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -3374,9 +3374,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (2, 3), (3, 4), (4, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -3396,7 +3396,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-044 two triangles sharing a vertex (bowtie), on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-044 two triangles sharing a vertex (bowtie), on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp044() throws {
         // V [0, 1, 2, 3, 4]; E [0–1, 1–2, 2–0, 2–3, 3–4, 4–2]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -3441,9 +3441,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (2, 3), (3, 4), (4, 2)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -3461,9 +3461,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (2, 3), (3, 4), (4, 2)]
-            let graph = AdjacencyMatrix(vertexCount: 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -3483,7 +3483,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-045 triangle at the end of a path, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-045 triangle at the end of a path, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp045() throws {
         // V [0, 1, 2, 3, 4, 5]; E [0–1, 1–2, 2–3, 3–4, 4–5, 5–3]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -3528,9 +3528,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 3)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -3548,9 +3548,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -3570,7 +3570,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-046 C5 hanging off a long path, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-046 C5 hanging off a long path, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp046() throws {
         // V [0, 1, 2, 3, 4, 5, 6, 7]; E [0–1, 1–2, 2–3, 3–4, 4–5, 5–6, 6–7, 7–3]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -3615,9 +3615,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 3)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -3635,9 +3635,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 8, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 8, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -3657,7 +3657,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-047 theta graph: paths of length 2, 2, 4 between 0 and 1, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-047 theta graph: paths of length 2, 2, 4 between 0 and 1, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp047() throws {
         // V [0, 1, 2, 3, 4, 5, 6]; E [0–2, 2–1, 0–3, 3–1, 0–4, 4–5, 5–6, 6–1]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -3700,9 +3700,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 2), (2, 1), (0, 3), (3, 1), (0, 4), (4, 5), (5, 6), (6, 1)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -3719,9 +3719,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 2), (2, 1), (0, 3), (3, 1), (0, 4), (4, 5), (5, 6), (6, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 7, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 7, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -3740,7 +3740,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-048 theta graph: paths of length 1, 2, 3 (odd cycles), on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-048 theta graph: paths of length 1, 2, 3 (odd cycles), on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp048() throws {
         // V [0, 1, 2, 3, 4]; E [0–1, 0–2, 2–1, 0–3, 3–4, 4–1]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -3785,9 +3785,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (0, 2), (2, 1), (0, 3), (3, 4), (4, 1)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -3805,9 +3805,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (0, 2), (2, 1), (0, 3), (3, 4), (4, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -3827,7 +3827,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-049 C4 plus a chord, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-049 C4 plus a chord, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp049() throws {
         // V [0, 1, 2, 3]; E [0–1, 1–2, 2–3, 3–0, 0–2]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -3872,9 +3872,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 0), (0, 2)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -3892,9 +3892,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 0), (0, 2)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -3914,7 +3914,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-050 C6 plus a long chord (two C4s), on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-050 C6 plus a long chord (two C4s), on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp050() throws {
         // V [0, 1, 2, 3, 4, 5]; E [0–1, 1–2, 2–3, 3–4, 4–5, 5–0, 0–3]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -3957,9 +3957,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0), (0, 3)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -3976,9 +3976,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0), (0, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -3997,7 +3997,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-051 C6 plus a short chord (two odd cycles), on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-051 C6 plus a short chord (two odd cycles), on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp051() throws {
         // V [0, 1, 2, 3, 4, 5]; E [0–1, 1–2, 2–3, 3–4, 4–5, 5–0, 0–2]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -4042,9 +4042,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0), (0, 2)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -4062,9 +4062,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0), (0, 2)]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -4084,7 +4084,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-052 first conflict met is a C5 although a triangle exists, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-052 first conflict met is a C5 although a triangle exists, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp052() throws {
         // V [0, 1, 2, 3, 4, 5, 6]; E [0–1, 0–2, 1–3, 2–4, 3–4, 3–5, 5–6, 6–3]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -4129,9 +4129,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (0, 2), (1, 3), (2, 4), (3, 4), (3, 5), (5, 6), (6, 3)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -4149,9 +4149,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (0, 2), (1, 3), (2, 4), (3, 4), (3, 5), (5, 6), (6, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 7, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 7, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -4171,7 +4171,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-053 disconnected: edge, isolated vertex, path, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-053 disconnected: edge, isolated vertex, path, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp053() throws {
         // V [0, 1, 2, 3, 4, 5]; E [1–2, 3–4, 4–5]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -4214,9 +4214,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(1, 2), (3, 4), (4, 5)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -4233,9 +4233,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(1, 2), (3, 4), (4, 5)]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -4254,7 +4254,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-054 disconnected: least vertex of a component is not its first endpoint, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-054 disconnected: least vertex of a component is not its first endpoint, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp054() throws {
         // V [0, 1, 2, 3, 4, 5]; E [5–3, 3–1, 4–2]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -4297,9 +4297,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(5, 3), (3, 1), (4, 2)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -4316,9 +4316,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(5, 3), (3, 1), (4, 2)]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -4337,7 +4337,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-055 disconnected: bipartite component then triangle, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-055 disconnected: bipartite component then triangle, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp055() throws {
         // V [0, 1, 2, 3, 4, 5]; E [0–1, 2–3, 3–4, 4–2]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -4382,9 +4382,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (2, 3), (3, 4), (4, 2)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -4402,9 +4402,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (2, 3), (3, 4), (4, 2)]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -4424,7 +4424,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-056 disconnected: triangle in the second component, first is C4, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-056 disconnected: triangle in the second component, first is C4, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp056() throws {
         // V [0, 1, 2, 3, 4, 5, 6]; E [0–1, 1–2, 2–3, 3–0, 4–5, 5–6, 6–4]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -4469,9 +4469,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 0), (4, 5), (5, 6), (6, 4)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -4489,9 +4489,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 0), (4, 5), (5, 6), (6, 4)]
-            let graph = AdjacencyMatrix(vertexCount: 7, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 7, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -4511,7 +4511,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-057 disconnected: two triangles, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-057 disconnected: two triangles, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp057() throws {
         // V [0, 1, 2, 3, 4, 5]; E [0–1, 1–2, 2–0, 3–4, 4–5, 5–3]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -4556,9 +4556,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (3, 4), (4, 5), (5, 3)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -4576,9 +4576,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (3, 4), (4, 5), (5, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -4598,7 +4598,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-058 isolated vertices around a C4, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-058 isolated vertices around a C4, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp058() throws {
         // V [0, 1, 2, 3, 4, 5, 6]; E [1–2, 2–4, 4–5, 5–1]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -4641,9 +4641,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(1, 2), (2, 4), (4, 5), (5, 1)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -4660,9 +4660,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(1, 2), (2, 4), (4, 5), (5, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 7, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 7, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -4681,7 +4681,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-059 string vertices: a–x, b–x, b–y, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected")
+    @Test("BP-059 string vertices: a–x, b–x, b–y, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView")
     func bp059() throws {
         // V [a, b, x, y]; E [a–x, b–x, b–y]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -4724,9 +4724,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(String, String)] = [("a", "x"), ("b", "x"), ("b", "y")]
-            let graph = AdjacencyList(vertices: ["a", "b", "x", "y"] as [String], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: ["a", "b", "x", "y"] as [String], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -4745,7 +4745,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-060 string vertices: triangle a, b, c, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected")
+    @Test("BP-060 string vertices: triangle a, b, c, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView")
     func bp060() throws {
         // V [c, b, a]; E [a–b, b–c, c–a]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -4790,9 +4790,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(String, String)] = [("a", "b"), ("b", "c"), ("c", "a")]
-            let graph = AdjacencyList(vertices: ["c", "b", "a"] as [String], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: ["c", "b", "a"] as [String], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -4812,7 +4812,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-061 tree (caterpillar), on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-061 tree (caterpillar), on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp061() throws {
         // V [0, 1, 2, 3, 4, 5, 6, 7]; E [0–1, 1–2, 2–3, 1–4, 2–5, 3–6, 3–7]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -4855,9 +4855,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (1, 4), (2, 5), (3, 6), (3, 7)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -4874,9 +4874,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (1, 4), (2, 5), (3, 6), (3, 7)]
-            let graph = AdjacencyMatrix(vertexCount: 8, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 8, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -4895,7 +4895,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-062 Möbius ladder M8 (not bipartite), on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-062 Möbius ladder M8 (not bipartite), on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp062() throws {
         // V [0, 1, 2, 3, 4, 5, 6, 7]; E [0–1, 1–2, 2–3, 3–4, 4–5, 5–6, 6–7, 7–0, 0–4, 1–5, 2–6, 3–7]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -4940,9 +4940,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: rows successors then predecessors, so another cycle
+        do { // AdjacencyList.undirectedView, each edge an arc as written: rows successors then predecessors, so another cycle
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 0), (0, 4), (1, 5), (2, 6), (3, 7)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -4960,9 +4960,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 0), (0, 4), (1, 5), (2, 6), (3, 7)]
-            let graph = AdjacencyMatrix(vertexCount: 8, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 8, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -4982,7 +4982,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-063 Möbius ladder M6 = K3,3, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-063 Möbius ladder M6 = K3,3, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp063() throws {
         // V [0, 1, 2, 3, 4, 5]; E [0–1, 1–2, 2–3, 3–4, 4–5, 5–0, 0–3, 1–4, 2–5]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -5025,9 +5025,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0), (0, 3), (1, 4), (2, 5)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -5044,9 +5044,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0), (0, 3), (1, 4), (2, 5)]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -5065,7 +5065,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-064 prism C3 × K2, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-064 prism C3 × K2, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp064() throws {
         // V [0, 1, 2, 3, 4, 5]; E [0–1, 1–2, 2–0, 3–4, 4–5, 5–3, 0–3, 1–4, 2–5]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -5110,9 +5110,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (3, 4), (4, 5), (5, 3), (0, 3), (1, 4), (2, 5)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -5130,9 +5130,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (3, 4), (4, 5), (5, 3), (0, 3), (1, 4), (2, 5)]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -5152,7 +5152,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-065 cube with one edge subdivided twice, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-065 cube with one edge subdivided twice, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp065() throws {
         // V [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]; E [0–2, 0–4, 1–3, 1–5, 2–3, 2–6, 3–7, 4–5, 4–6, 5–7, 6–7, 0–8, 8–9, 9–1]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -5195,9 +5195,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 2), (0, 4), (1, 3), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 6), (5, 7), (6, 7), (0, 8), (8, 9), (9, 1)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -5214,9 +5214,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 2), (0, 4), (1, 3), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 6), (5, 7), (6, 7), (0, 8), (8, 9), (9, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 10, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 10, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -5235,7 +5235,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-066 cube with one edge subdivided once, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-066 cube with one edge subdivided once, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp066() throws {
         // V [0, 1, 2, 3, 4, 5, 6, 7, 8]; E [0–2, 0–4, 1–3, 1–5, 2–3, 2–6, 3–7, 4–5, 4–6, 5–7, 6–7, 0–8, 8–1]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -5280,9 +5280,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 2), (0, 4), (1, 3), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 6), (5, 7), (6, 7), (0, 8), (8, 1)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -5300,9 +5300,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 2), (0, 4), (1, 3), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 6), (5, 7), (6, 7), (0, 8), (8, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 9, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 9, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -5322,7 +5322,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-067 odd cycle deep in a BFS tree, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-067 odd cycle deep in a BFS tree, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp067() throws {
         // V [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]; E [0–1, 1–2, 2–3, 3–4, 4–5, 5–6, 6–7, 7–8, 8–9, 9–5]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -5367,9 +5367,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 8), (8, 9), (9, 5)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -5387,9 +5387,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 8), (8, 9), (9, 5)]
-            let graph = AdjacencyMatrix(vertexCount: 10, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 10, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -5409,7 +5409,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-068 two odd cycles; the one met first is later in vertex order, on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-068 two odd cycles; the one met first is later in vertex order, on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp068() throws {
         // V [0, 1, 2, 3, 4, 5, 6, 7]; E [0–7, 7–6, 6–0, 1–2, 2–3, 3–1, 0–1]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -5454,9 +5454,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 7), (7, 6), (6, 0), (1, 2), (2, 3), (3, 1), (0, 1)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -5474,9 +5474,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 7), (7, 6), (6, 0), (1, 2), (2, 3), (3, 1), (0, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 8, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 8, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -5496,12 +5496,12 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-069 directed path 0→1→2, on AdjacencyMatrix.undirected")
+    @Test("BP-069 directed path 0→1→2, on AdjacencyMatrix.undirectedView")
     func bp069() throws {
         // digraph V [0, 1, 2]; E [0–1, 1–2]
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (1, 2)]
-            let graph = AdjacencyMatrix(vertexCount: 3, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 3, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -5520,12 +5520,12 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-070 directed 2-cycle 0⇄1 (a parallel pair once undirected), on AdjacencyMatrix.undirected")
+    @Test("BP-070 directed 2-cycle 0⇄1 (a parallel pair once undirected), on AdjacencyMatrix.undirectedView")
     func bp070() throws {
         // digraph V [0, 1]; E [0–1, 1–0]
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (1, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 2, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 2, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -5544,12 +5544,12 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-071 directed triangle 0→1→2→0, on AdjacencyMatrix.undirected")
+    @Test("BP-071 directed triangle 0→1→2→0, on AdjacencyMatrix.undirectedView")
     func bp071() throws {
         // digraph V [0, 1, 2]; E [0–1, 1–2, 2–0]
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 3, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 3, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -5569,12 +5569,12 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-072 transitive triangle 0→1, 0→2, 1→2, on AdjacencyMatrix.undirected")
+    @Test("BP-072 transitive triangle 0→1, 0→2, 1→2, on AdjacencyMatrix.undirectedView")
     func bp072() throws {
         // digraph V [0, 1, 2]; E [0–1, 0–2, 1–2]
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
-            let graph = AdjacencyMatrix(vertexCount: 3, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 3, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -5594,12 +5594,12 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-073 directed self-loop, on AdjacencyMatrix.undirected")
+    @Test("BP-073 directed self-loop, on AdjacencyMatrix.undirectedView")
     func bp073() throws {
         // digraph V [0, 1]; E [0–1, 1–1]
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (1, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 2, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 2, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -5619,12 +5619,12 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-074 directed C4 with all arcs into 0 and 2, on AdjacencyMatrix.undirected")
+    @Test("BP-074 directed C4 with all arcs into 0 and 2, on AdjacencyMatrix.undirectedView")
     func bp074() throws {
         // digraph V [0, 1, 2, 3]; E [1–0, 3–0, 1–2, 3–2]
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(1, 0), (3, 0), (1, 2), (3, 2)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -5643,7 +5643,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-075 random bipartite #1 (seed 20261009), on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-075 random bipartite #1 (seed 20261009), on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp075() throws {
         // V [0, 1, 2, 3, 4, 5, 6]; E [3–1, 4–1, 6–1, 5–1, 6–2, 3–2, 5–2, 0–2, 0–1, 4–2]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -5686,9 +5686,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(3, 1), (4, 1), (6, 1), (5, 1), (6, 2), (3, 2), (5, 2), (0, 2), (0, 1), (4, 2)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -5705,9 +5705,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(3, 1), (4, 1), (6, 1), (5, 1), (6, 2), (3, 2), (5, 2), (0, 2), (0, 1), (4, 2)]
-            let graph = AdjacencyMatrix(vertexCount: 7, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 7, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -5726,7 +5726,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-076 random G(n, m) #1 (seed 20261009), on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-076 random G(n, m) #1 (seed 20261009), on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp076() throws {
         // V [0, 1, 2, 3, 4, 5, 6, 7, 8]; E [0–3, 6–7, 4–8, 3–8, 1–6, 1–8, 1–7, 0–7, 2–6, 2–4, 1–2]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -5771,9 +5771,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 3), (6, 7), (4, 8), (3, 8), (1, 6), (1, 8), (1, 7), (0, 7), (2, 6), (2, 4), (1, 2)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -5791,9 +5791,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 3), (6, 7), (4, 8), (3, 8), (1, 6), (1, 8), (1, 7), (0, 7), (2, 6), (2, 4), (1, 2)]
-            let graph = AdjacencyMatrix(vertexCount: 9, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 9, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -5813,7 +5813,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-077 random bipartite #2 (seed 20261009), on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-077 random bipartite #2 (seed 20261009), on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp077() throws {
         // V [0, 1, 2, 3, 4, 5, 6, 7]; E [0–7, 3–7, 1–2, 4–7, 3–2, 4–2, 6–7, 5–2, 1–7, 6–2, 0–2]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -5856,9 +5856,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 7), (3, 7), (1, 2), (4, 7), (3, 2), (4, 2), (6, 7), (5, 2), (1, 7), (6, 2), (0, 2)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -5875,9 +5875,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 7), (3, 7), (1, 2), (4, 7), (3, 2), (4, 2), (6, 7), (5, 2), (1, 7), (6, 2), (0, 2)]
-            let graph = AdjacencyMatrix(vertexCount: 8, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 8, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -5896,7 +5896,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-078 random G(n, m) #2 (seed 20261009), on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-078 random G(n, m) #2 (seed 20261009), on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp078() throws {
         // V [0, 1, 2, 3, 4, 5, 6, 7, 8]; E [0–1, 3–7, 4–6, 5–8, 1–6, 7–8, 2–4, 1–5, 2–8, 2–5, 2–6, 4–7]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -5941,9 +5941,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 1), (3, 7), (4, 6), (5, 8), (1, 6), (7, 8), (2, 4), (1, 5), (2, 8), (2, 5), (2, 6), (4, 7)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -5961,9 +5961,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 1), (3, 7), (4, 6), (5, 8), (1, 6), (7, 8), (2, 4), (1, 5), (2, 8), (2, 5), (2, 6), (4, 7)]
-            let graph = AdjacencyMatrix(vertexCount: 9, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 9, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -5983,7 +5983,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-079 random bipartite #3 (seed 20261009), on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-079 random bipartite #3 (seed 20261009), on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp079() throws {
         // V [0, 1, 2, 3, 4, 5]; E [3–2, 0–5, 0–1, 3–1]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -6026,9 +6026,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(3, 2), (0, 5), (0, 1), (3, 1)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -6045,9 +6045,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(3, 2), (0, 5), (0, 1), (3, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -6066,7 +6066,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-080 random G(n, m) #3 (seed 20261009), on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-080 random G(n, m) #3 (seed 20261009), on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp080() throws {
         // V [0, 1, 2, 3, 4, 5]; E [4–5, 0–5, 3–4, 2–3, 1–5, 0–2]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -6111,9 +6111,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(4, 5), (0, 5), (3, 4), (2, 3), (1, 5), (0, 2)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -6131,9 +6131,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(4, 5), (0, 5), (3, 4), (2, 3), (1, 5), (0, 2)]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -6153,7 +6153,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-081 random bipartite #4 (seed 20261009), on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-081 random bipartite #4 (seed 20261009), on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp081() throws {
         // V [0, 1, 2, 3, 4, 5]; E [2–1, 3–4, 5–1, 5–4]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -6196,9 +6196,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(2, 1), (3, 4), (5, 1), (5, 4)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -6215,9 +6215,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(2, 1), (3, 4), (5, 1), (5, 4)]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -6236,7 +6236,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-082 random G(n, m) #4 (seed 20261009), on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-082 random G(n, m) #4 (seed 20261009), on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp082() throws {
         // V [0, 1, 2, 3, 4, 5, 6, 7]; E [6–7, 1–6, 0–7, 1–2, 1–5, 1–7, 3–7, 2–7]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -6281,9 +6281,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(6, 7), (1, 6), (0, 7), (1, 2), (1, 5), (1, 7), (3, 7), (2, 7)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -6301,9 +6301,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(6, 7), (1, 6), (0, 7), (1, 2), (1, 5), (1, 7), (3, 7), (2, 7)]
-            let graph = AdjacencyMatrix(vertexCount: 8, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 8, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -6323,7 +6323,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-083 random bipartite #5 (seed 20261009), on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-083 random bipartite #5 (seed 20261009), on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp083() throws {
         // V [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]; E [5–0, 4–2, 4–1, 5–1, 8–1, 5–3, 8–0, 8–6, 8–3, 4–9, 8–2, 5–2, 8–9]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -6366,9 +6366,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(5, 0), (4, 2), (4, 1), (5, 1), (8, 1), (5, 3), (8, 0), (8, 6), (8, 3), (4, 9), (8, 2), (5, 2), (8, 9)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -6385,9 +6385,9 @@ struct RecognitionRepresentationTests {
             #expect(Array(bipartite.left) == left)
             #expect(Array(bipartite.right) == right)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(5, 0), (4, 2), (4, 1), (5, 1), (8, 1), (5, 3), (8, 0), (8, 6), (8, 3), (4, 9), (8, 2), (5, 2), (8, 9)]
-            let graph = AdjacencyMatrix(vertexCount: 10, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 10, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.isBipartite)
             #expect(graph.findOddCycle() == nil)
             let bipartition = try #require(graph.bipartition())
@@ -6406,7 +6406,7 @@ struct RecognitionRepresentationTests {
         }
     }
 
-    @Test("BP-084 random G(n, m) #5 (seed 20261009), on UndirectedAdjacencyList, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("BP-084 random G(n, m) #5 (seed 20261009), on UndirectedAdjacencyList, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func bp084() throws {
         // V [0, 1, 2, 3, 4, 5, 6, 7]; E [0–4, 0–1, 2–6, 3–5, 6–7, 1–4, 3–7, 0–5, 1–2, 2–5, 1–7]
         do { // UndirectedAdjacencyList: the catalog's values
@@ -6451,9 +6451,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyList.undirected, each edge an arc as written: the catalog's values
+        do { // AdjacencyList.undirectedView, each edge an arc as written: the catalog's values
             let arcs: [(Int, Int)] = [(0, 4), (0, 1), (2, 6), (3, 5), (6, 7), (1, 4), (3, 7), (0, 5), (1, 2), (2, 5), (1, 7)]
-            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)
@@ -6471,9 +6471,9 @@ struct RecognitionRepresentationTests {
             }
             #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil)
         }
-        do { // AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
+        do { // AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors
             let arcs: [(Int, Int)] = [(0, 4), (0, 1), (2, 6), (3, 5), (6, 7), (1, 4), (3, 7), (0, 5), (1, 2), (2, 5), (1, 7)]
-            let graph = AdjacencyMatrix(vertexCount: 8, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 8, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(!graph.isBipartite)
             #expect(graph.bipartition() == nil)
             #expect(BipartiteGraph(graph) == nil)

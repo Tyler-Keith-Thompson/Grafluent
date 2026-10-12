@@ -113,7 +113,7 @@ rendering and stay out.
 }
 extension Drawing: Equatable, Hashable (in order), Sendable where Vertex: Sendable, CustomStringConvertible
 
-extension Graph {   // DirectedGraph through `digraph.undirected`
+extension Graph {   // DirectedGraph through `digraph.undirectedView`
     public func circularLayout(radius: Double = 1, center: SIMD2<Double> = .zero) -> Drawing<Vertex>
 
     public func fruchtermanReingoldLayout(
@@ -141,6 +141,7 @@ extension Graph {   // DirectedGraph through `digraph.undirected`
 // The steppers, for animation: one `step()` is one iteration.
 @frozen public struct FruchtermanReingoldLayout<G: Graph> {
     public init(_ graph: G, iterations: Int = 50, …, using generator: inout some RandomNumberGenerator)  // draws the start here
+    public init(_ graph: G, iterations: Int = 50, …)  // the same from SystemRandomNumberGenerator
     public init(_ graph: G, initial: Drawing<G.Vertex>, iterations: Int = 50, …)
     public var drawing: Drawing<G.Vertex> { get }
     public var temperature: Double { get }
@@ -171,8 +172,10 @@ extension DirectedGraph {
 @frozen public struct LayeredDrawing<G: DirectedGraph> {
     public var drawing: Drawing<G.Vertex> { get }                    // y = layer, x ≥ 0, separation 1
     public func layer(of vertex: G.Vertex) -> Int                    // traps for a missing vertex
+    public func layer(checked vertex: G.Vertex) throws(VertexNotFound) -> Int  // throws instead (Principle 6)
     public var layerCount: Int { get }
     public func bends(ofEdgeAt position: G.Edges.Index) -> ArraySlice<SIMD2<Double>>  // source to target; empty for a one-layer edge
+    public func bends(checkedEdgeAt position: G.Edges.Index) throws(EdgeNotFound) -> ArraySlice<SIMD2<Double>>  // throws instead
     public var reversedEdges: [G.Edges.Index] { get }               // drawn against their direction, by position
     public var crossingCount: Int { get }                           // between adjacent layers, with dummies
 }

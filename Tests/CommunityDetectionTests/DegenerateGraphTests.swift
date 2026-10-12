@@ -8,7 +8,7 @@
 // partition row also checks `count`, `community(of:)` against membership, `community(ofIndex:)`
 // against `community(of:)`, and the modularity of the result (at the call's weight and resolution)
 // against ref.py's; undirected rows of the measures, Louvain and greedy modularity also run on
-// `graph.directed` (the same values). Case IDs (CD-nnn) refer to the catalog; see README.md.
+// `graph.directedView` (the same values). Case IDs (CD-nnn) refer to the catalog; see README.md.
 
 import CommunityDetection
 import GrafluentTestSupport
@@ -24,8 +24,8 @@ struct CommunityDegenerateGraphTests {
         let communities: [[Int]] = []
         let value = graph.modularity(of: communities)
         #expect(abs(value) <= 1e-12)
-        let arcs = graph.directed.modularity(of: communities)
-        #expect(abs(arcs) <= 1e-12, "graph.directed")
+        let arcs = graph.directedView.modularity(of: communities)
+        #expect(abs(arcs) <= 1e-12, "graph.directedView")
     }
 
     @Test("CD-002 U([]).partitionQuality(of: []).coverage is NaN: 0/0: NaN (NetworkX raises ZeroDivisionError)")
@@ -36,9 +36,9 @@ struct CommunityDegenerateGraphTests {
         let quality = graph.partitionQuality(of: communities)
         #expect(quality.coverage.isNaN)
         #expect(quality.performance.isNaN)
-        let arcs = graph.directed.partitionQuality(of: communities)
-        #expect(arcs.coverage.isNaN, "graph.directed")
-        #expect(arcs.performance.isNaN, "graph.directed")
+        let arcs = graph.directedView.partitionQuality(of: communities)
+        #expect(arcs.coverage.isNaN, "graph.directedView")
+        #expect(arcs.performance.isNaN, "graph.directedView")
     }
 
     @Test("CD-003 U([]).partitionQuality(of: []).performance is NaN: 0/0 pairs: NaN")
@@ -49,9 +49,9 @@ struct CommunityDegenerateGraphTests {
         let quality = graph.partitionQuality(of: communities)
         #expect(quality.coverage.isNaN)
         #expect(quality.performance.isNaN)
-        let arcs = graph.directed.partitionQuality(of: communities)
-        #expect(arcs.coverage.isNaN, "graph.directed")
-        #expect(arcs.performance.isNaN, "graph.directed")
+        let arcs = graph.directedView.partitionQuality(of: communities)
+        #expect(arcs.coverage.isNaN, "graph.directedView")
+        #expect(arcs.performance.isNaN, "graph.directedView")
     }
 
     @Test("CD-004 U([]).louvainCommunities() is []: Empty partition")
@@ -73,8 +73,8 @@ struct CommunityDegenerateGraphTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q) <= 1e-12)
-        let arcs = graph.directed.louvainCommunities()
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.louvainCommunities()
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-005 U([]).louvainCommunities().count is 0")
@@ -110,8 +110,8 @@ struct CommunityDegenerateGraphTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q) <= 1e-12)
-        let arcs = graph.directed.greedyModularityCommunities()
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.greedyModularityCommunities()
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-007 U([]).labelPropagationCommunities() is []")
@@ -185,8 +185,8 @@ struct CommunityDegenerateGraphTests {
         let communities: [[Int]] = [[0]]
         let value = graph.modularity(of: communities)
         #expect(abs(value) <= 1e-12)
-        let arcs = graph.directed.modularity(of: communities)
-        #expect(abs(arcs) <= 1e-12, "graph.directed")
+        let arcs = graph.directedView.modularity(of: communities)
+        #expect(abs(arcs) <= 1e-12, "graph.directedView")
     }
 
     @Test("CD-011 U([0]).louvainCommunities() is [[0]]: One vertex: one community")
@@ -209,8 +209,8 @@ struct CommunityDegenerateGraphTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q) <= 1e-12)
-        let arcs = graph.directed.louvainCommunities()
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.louvainCommunities()
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-012 U([0]).greedyModularityCommunities() is [[0]]")
@@ -233,8 +233,8 @@ struct CommunityDegenerateGraphTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q) <= 1e-12)
-        let arcs = graph.directed.greedyModularityCommunities()
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.greedyModularityCommunities()
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-013 U([0]).labelPropagationCommunities() is [[0]]")
@@ -290,9 +290,9 @@ struct CommunityDegenerateGraphTests {
         let quality = graph.partitionQuality(of: communities)
         #expect(quality.coverage.isNaN)
         #expect(quality.performance.isNaN)
-        let arcs = graph.directed.partitionQuality(of: communities)
-        #expect(arcs.coverage.isNaN, "graph.directed")
-        #expect(arcs.performance.isNaN, "graph.directed")
+        let arcs = graph.directedView.partitionQuality(of: communities)
+        #expect(arcs.coverage.isNaN, "graph.directedView")
+        #expect(arcs.performance.isNaN, "graph.directedView")
     }
 
     @Test("CD-016 U([0..3]).modularity(of: [[0, 1], [2, 3]]) is 0: Edgeless: m = 0, so 0 (NetworkX); igraph NaN")
@@ -303,8 +303,8 @@ struct CommunityDegenerateGraphTests {
         let communities: [[Int]] = [[0, 1], [2, 3]]
         let value = graph.modularity(of: communities)
         #expect(abs(value) <= 1e-12)
-        let arcs = graph.directed.modularity(of: communities)
-        #expect(abs(arcs) <= 1e-12, "graph.directed")
+        let arcs = graph.directedView.modularity(of: communities)
+        #expect(abs(arcs) <= 1e-12, "graph.directedView")
     }
 
     @Test("CD-017 U([0..3]).louvainCommunities() is [[0], [1], [2], [3]]: Edgeless: singletons")
@@ -327,8 +327,8 @@ struct CommunityDegenerateGraphTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q) <= 1e-12)
-        let arcs = graph.directed.louvainCommunities()
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.louvainCommunities()
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-018 U([0..3]).greedyModularityCommunities() is [[0], [1], [2], [3]]: Edgeless: singletons (NetworkX `if not G.size()`)")
@@ -351,8 +351,8 @@ struct CommunityDegenerateGraphTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q) <= 1e-12)
-        let arcs = graph.directed.greedyModularityCommunities()
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.greedyModularityCommunities()
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-019 U([0..3]).labelPropagationCommunities() is [[0], [1], [2], [3]]: No votes: every vertex keeps its own label")
@@ -408,9 +408,9 @@ struct CommunityDegenerateGraphTests {
         let quality = graph.partitionQuality(of: communities)
         #expect(quality.coverage.isNaN)
         #expect(abs(quality.performance - 0.6666666666666666) <= 1e-12 * max(1, abs(0.6666666666666666)))
-        let arcs = graph.directed.partitionQuality(of: communities)
-        #expect(arcs.coverage.isNaN, "graph.directed")
-        #expect(abs(arcs.performance - 0.6666666666666666) <= 1e-12 * max(1, abs(0.6666666666666666)), "graph.directed")
+        let arcs = graph.directedView.partitionQuality(of: communities)
+        #expect(arcs.coverage.isNaN, "graph.directedView")
+        #expect(abs(arcs.performance - 0.6666666666666666) <= 1e-12 * max(1, abs(0.6666666666666666)), "graph.directedView")
     }
 
     @Test("CD-022 U([0..3]).partitionQuality(of: [[0, 1], [2, 3]]).performance is 0.666666666667: 4 of 6 pairs are inter-community non-edges")
@@ -422,9 +422,9 @@ struct CommunityDegenerateGraphTests {
         let quality = graph.partitionQuality(of: communities)
         #expect(quality.coverage.isNaN)
         #expect(abs(quality.performance - 0.6666666666666666) <= 1e-12 * max(1, abs(0.6666666666666666)))
-        let arcs = graph.directed.partitionQuality(of: communities)
-        #expect(arcs.coverage.isNaN, "graph.directed")
-        #expect(abs(arcs.performance - 0.6666666666666666) <= 1e-12 * max(1, abs(0.6666666666666666)), "graph.directed")
+        let arcs = graph.directedView.partitionQuality(of: communities)
+        #expect(arcs.coverage.isNaN, "graph.directedView")
+        #expect(abs(arcs.performance - 0.6666666666666666) <= 1e-12 * max(1, abs(0.6666666666666666)), "graph.directedView")
     }
 
     @Test("CD-023 U(0-0).modularity(of: [[0]]) is 0: A loop alone: L = 1, d = 2, m = 1: 1 − 4/4 = 0")
@@ -435,8 +435,8 @@ struct CommunityDegenerateGraphTests {
         let communities: [[Int]] = [[0]]
         let value = graph.modularity(of: communities)
         #expect(abs(value) <= 1e-12)
-        let arcs = graph.directed.modularity(of: communities)
-        #expect(abs(arcs) <= 1e-12, "graph.directed")
+        let arcs = graph.directedView.modularity(of: communities)
+        #expect(abs(arcs) <= 1e-12, "graph.directedView")
     }
 
     @Test("CD-024 U(0-0, 1-1).modularity(of: [[0], [1]]) is 0.5: Two loops: 2 · (1/2 − 1/4)")
@@ -447,8 +447,8 @@ struct CommunityDegenerateGraphTests {
         let communities: [[Int]] = [[0], [1]]
         let value = graph.modularity(of: communities)
         #expect(abs(value - 0.5) <= 1e-12 * max(1, abs(0.5)))
-        let arcs = graph.directed.modularity(of: communities)
-        #expect(abs(arcs - 0.5) <= 1e-12 * max(1, abs(0.5)), "graph.directed")
+        let arcs = graph.directedView.modularity(of: communities)
+        #expect(abs(arcs - 0.5) <= 1e-12 * max(1, abs(0.5)), "graph.directedView")
     }
 
     @Test("CD-025 U(0-0, 1-1).louvainCommunities() is [[0], [1]]: Loops never join vertices")
@@ -471,8 +471,8 @@ struct CommunityDegenerateGraphTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.5) <= 1e-12 * max(1, abs(0.5)))
-        let arcs = graph.directed.louvainCommunities()
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.louvainCommunities()
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-026 U(0-0, 1-1).greedyModularityCommunities() is [[0], [1]]: No off-diagonal pair to merge")
@@ -495,8 +495,8 @@ struct CommunityDegenerateGraphTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.5) <= 1e-12 * max(1, abs(0.5)))
-        let arcs = graph.directed.greedyModularityCommunities()
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.greedyModularityCommunities()
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-027 U(0-0, 1-1).labelPropagationCommunities() is [[0], [1]]: Loops vote for nothing")
@@ -563,8 +563,8 @@ struct CommunityDegenerateGraphTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q) <= 1e-12)
-        let arcs = graph.directed.louvainCommunities()
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.louvainCommunities()
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-030 U(0-1).greedyModularityCommunities() is [[0, 1]]")
@@ -587,8 +587,8 @@ struct CommunityDegenerateGraphTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q) <= 1e-12)
-        let arcs = graph.directed.greedyModularityCommunities()
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.greedyModularityCommunities()
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-031 U(0-1).labelPropagationCommunities() is [[0, 1]]: Both adopt the greatest label, 1")

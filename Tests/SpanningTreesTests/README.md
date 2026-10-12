@@ -3,7 +3,7 @@
 `SpanningTrees`, phase 1: minimum and maximum spanning forests of undirected graphs (`Graph`),
 by Kruskal, Prim (over every component, or from one root) and Borůvka, an unweighted spanning
 forest, and the `SpanningForest` result. Nothing is offered on `DirectedGraph`; a bidirectional
-digraph is spanned through `.undirected`. The suite was written before the implementation, from
+digraph is spanned through `.undirectedView`. The suite was written before the implementation, from
 the proposed API, and uses only the public API. Each test is self-contained; shared material is
 the fixtures, the `ReferencePseudograph` test conformer and the seeded generator in
 `GrafluentTestSupport`.
@@ -35,7 +35,7 @@ extension Forest
 
 | Question | Choice | Why |
 |---|---|---|
-| Weights | A closure over edge positions, `(Edges.Index) -> W`. Tests keep weights in an array by position (`ReferencePseudograph`, `UndirectedAdjacencyList` and `AdjacencyList.undirected` built without repeated edges, so positions are the written order) or by cell (`AdjacencyMatrix.undirected`) | The only form that tells parallel edges apart and works on every representation |
+| Weights | A closure over edge positions, `(Edges.Index) -> W`. Tests keep weights in an array by position (`ReferencePseudograph`, `UndirectedAdjacencyList` and `AdjacencyList.undirectedView` built without repeated edges, so positions are the written order) or by cell (`AdjacencyMatrix.undirectedView`) | The only form that tells parallel edges apart and works on every representation |
 | The tie rule | The default, Kruskal, Borůvka and the maximum return the canonical forest under the strict order (weight, position); the maximum reverses the weight only. Prim's choice among equal weights is unspecified | api.md, "Ties" |
 | Edge order | Kruskal and the default: nondecreasing (weight, position). Maximum: nonincreasing weight, ties ascending position. Unweighted: ascending position. Prim: each edge joins a spanned vertex to a new one, trees started at the first unspanned vertex in `vertices` order. Borůvka: by round, unspecified within a round, so tests compare it as a set | api.md |
 | Disconnected graphs | A forest of n − c edges from every entry point but `from:`, which spans the root's component only | NetworkX, JGraphT, igraph; Boost for `from:` |
@@ -53,7 +53,7 @@ extension Forest
 | Canonical forests | Exact positions, in order, for the default, Kruskal and the maximum; Borůvka's as a set with the same count and weight |
 | Prim | The weight and the edge count always; the exact set where the optimum is unique (or, for ST-08, ST-09 and ST-27, membership in the enumerated optima); the order only where it is forced (a path from its end, a star with distinct weights from its center) and otherwise through the joining rule (ST-104) |
 | Totals | Exact. `Int` everywhere it can be; `Double` only with values exact in binary (ST-19's quarters, ST-48's path of ones) or with edge sets compared instead (ST-72) |
-| Representations | `ReferencePseudograph` (written order; the host for parallel edges, self-loops and `String` vertices), `UndirectedAdjacencyList` (insertion order), `AdjacencyList.undirected` (each arc an edge, so opposite arcs are parallel), `AdjacencyMatrix.undirected` (cells, row-major; vertex indices but no edge indices), and three conformers private to their files: `PlainGraph` (no indices), `VertexIndexedGraph` (vertex indices only) and `RowGraph` (dense rows built without hashing, for the stress tests) |
+| Representations | `ReferencePseudograph` (written order; the host for parallel edges, self-loops and `String` vertices), `UndirectedAdjacencyList` (insertion order), `AdjacencyList.undirectedView` (each arc an edge, so opposite arcs are parallel), `AdjacencyMatrix.undirectedView` (cells, row-major; vertex indices but no edge indices), and three conformers private to their files: `PlainGraph` (no indices), `VertexIndexedGraph` (vertex indices only) and `RowGraph` (dense rows built without hashing, for the stress tests) |
 
 Expected values come from the catalog's independent reference (`ref.py`: Kruskal with a stable
 sort, Borůvka with the same order, a lazy Prim, brute-force enumeration with optimum counts and a
@@ -78,7 +78,7 @@ optimality.
 | `SpanningTreeStressTests.swift` | §I: a long path, a grid, a star, a complete graph, equal weights on a sparse random graph, the real-world fixtures, inside a `Task` |
 | `SpanningTreeReviewTests.swift` | §K: cases added after planting bugs (`scripts/mutants/SpanningTrees.py`) and after the critical review, with file-private conformers with vertex indices only and with none |
 | `DensePrimAndForestTests.swift` | §L: the dense path (vertex indices, m ≥ n²/4): complete graphs with ties, all ties, a hidden lightest path, a decreasing key, a doubled K₉ with self-loops, disconnected dense graphs, vertex indices without edge indices, ±∞, NaN, a property test against a reference Kruskal; the heap path between the two thresholds; `Forest(_:in:)` |
-| `SpanningTreeConformanceTests.swift` | §J: preconditions (exit tests), value semantics, Equatable / Hashable / Sendable, existentials and generic code, weight-call counts per representation, no vertex hashing, digraphs through `.undirected` |
+| `SpanningTreeConformanceTests.swift` | §J: preconditions (exit tests), value semantics, Equatable / Hashable / Sendable, existentials and generic code, weight-call counts per representation, no vertex hashing, digraphs through `.undirectedView` |
 
 ## Case IDs
 
@@ -109,7 +109,7 @@ Where the tests differ from the catalog:
   5 · 10⁴ leaves (10⁶), K₄₅₀ (K₁₅₀₀), and G(5 · 10⁴, 10⁵) (G(10⁵, 5 · 10⁵)). The catalog's sizes
   belong to the benchmarks (ST-B01). They run on `RowGraph`, a conformer private to the file,
   because building an `UndirectedAdjacencyList` of that size dominates a debug run; ST-115 runs on
-  `AdjacencyList.undirected`.
+  `AdjacencyList.undirectedView`.
 - **ST-71 and ST-89** use 70 graphs per weight range (420 in all); ref.py's 400 trials are in
   Python. Brute force runs where a graph has at most 14 non-loop edges.
 - **ST-72** compares Prim's Double total with Kruskal's within 1e-9 besides the edge sets.
@@ -121,10 +121,10 @@ Where the tests differ from the catalog:
 - **ST-122 and ST-123** repeat ST-55 and ST-60 on `UndirectedAdjacencyList` for each entry point;
   ST-123 adds a `UInt8` maximum that overflows.
 - **ST-120** covers the six weighted entry points on `UndirectedAdjacencyList`, two on
-  `AdjacencyList.undirected` (ST-58's parallel NaN copy as opposite arcs) and two without indices.
+  `AdjacencyList.undirectedView` (ST-58's parallel NaN copy as opposite arcs) and two without indices.
 - **ST-128** expects zero vertex hashes from every entry point but `from:` (the catalog names
   Kruskal and Borůvka), following api.md's "no hashing on an indexed graph".
-- **CompressedSparseRow** is not used: it is a `DirectedGraph` only and has no `.undirected`.
+- **CompressedSparseRow** is not used: it is a `DirectedGraph` only and has no `.undirectedView`.
 
 Not tested here: that nothing is offered on `DirectedGraph` (ST-129's first half), which is a
 compile-time property; the law that with edge indices `edges` is in index order, which is

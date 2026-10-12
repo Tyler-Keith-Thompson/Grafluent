@@ -44,7 +44,7 @@ struct Eccentricities<G: DirectedGraph, Distance: Comparable & AdditiveArithmeti
 | Empty graph | No eccentricities; radius, diameter, path, average `nil`; sets empty; Wiener index 0; density 0 | DI-001 – DI-012 |
 | One vertex | Eccentricity 0, average 0, density 0 (loops or not), the trivial path | DI-013 – DI-024, DI-039 – DI-041 |
 | Diameter path | From the first vertex of `vertices` with eccentricity = diameter to the first vertex farthest from it; unweighted, the breadth-first parents (first discoverer, first edge in row order); weighted, endpoints and distance (paths pinned only where unique) | DI-110, DI-251, DI-252, DI-606 |
-| Wiener index, average | Unordered pairs undirected, ordered directed (so `graph.directed` doubles the index and keeps the average) | DI-438, DI-439 |
+| Wiener index, average | Unordered pairs undirected, ordered directed (so `graph.directedView` doubles the index and keeps the average) | DI-438, DI-439 |
 | Density | Every edge counts, loops once and parallel copies, so it can exceed 1; 0 when n ≤ 1 | DI-441, DI-504, DI-507 |
 | Weights | Read once per edge in position order before any search (never without edges); `+infinity` is a value; negative or NaN traps even out of any search's reach | DI-023, DI-629, DI-630 |
 | Trees | Every value equals TreeAlgorithms' `Tree` members, on the graph and on the `Tree` as a `Graph` | the `= TA-nnn` rows |
@@ -74,19 +74,19 @@ property tests write their oracles inside each test.
 | File | Tests | Covers |
 |---|---|---|
 | `DegenerateGraphTests.swift` | 42 | §A: the empty graph (both kinds), K₁ (weighted without calling the closure), two isolated vertices, K₂ both ways, a lone loop; K₁ and K₂ against `Tree` |
-| `UndirectedDistanceTests.swift` | 55 | §B: NetworkX's docstring graph and 4 × 4 grid, cycles of 5 and 6, K₅, K₃,₄, Petersen, the karate club, two triangles on a path, a path with 12 chords; each `eccentricities` row also checks every accessor, the one-shots against the value's members, and `graph.directed` |
+| `UndirectedDistanceTests.swift` | 55 | §B: NetworkX's docstring graph and 4 × 4 grid, cycles of 5 and 6, K₅, K₃,₄, Petersen, the karate club, two triangles on a path, a path with 12 chords; each `eccentricities` row also checks every accessor, the one-shots against the value's members, and `graph.directedView` |
 | `TreeAgreementTests.swift` | 44 | §C: `vertices` order over value order, NetworkX's trees, paths of 99 and 100, stars, kary(40, 3), the long-branch star (median ≠ center), F1 in two edge orders, String vertices, weighted centers and paths (`Int`, `Double`, zeros), row order deciding the path (`~rev`); each `= TA-nnn` row also on `Tree` and on the `Tree` as a `Graph` |
 | `DisconnectedGraphTests.swift` | 16 | §D: a path plus an edge, a path plus an isolated vertex: every measure's infinite answer, density, weighted diameter |
-| `DirectedDistanceTests.swift` | 45 | §E: the dipath (radius 2, diameter nil), directed cycles, a triangle with a chord, an arborescence, the acyclic tournament, an isolated vertex, both-way arcs, loops, a random digraph; `digraph.undirected` and `graph.directed` |
+| `DirectedDistanceTests.swift` | 45 | §E: the dipath (radius 2, diameter nil), directed cycles, a triangle with a chord, an arborescence, the acyclic tournament, an isolated vertex, both-way arcs, loops, a random digraph; `digraph.undirectedView` and `graph.directedView` |
 | `MultigraphDistanceTests.swift` | 10 | §F: loops and parallel edges change no distance, the path through the first copy, density above 1 |
 | `WeightedDistanceTests.swift` | 32 | §G: `Int` and `Double` weights, the lighter parallel copy, a zero loop, all-zero weights, dyadic weights, directed weights, a weighted grid, `+infinity` as a value |
 | `DoubleWeightTests.swift` | 46 | The `Int`-weighted rows of §C and §G again with `Double` weights and with `-0.0` for each zero |
 | `DistanceRepresentationTests.swift` | 63 | Every §A – §G row without parallel edges on `UndirectedAdjacencyList` / `AdjacencyList` (one test per graph), and every directed row on 0..<n on `CompressedSparseRow` with row-major positions |
-| `WeightReadingTests.swift` | 6 | The closure once per edge in position order for every weighted entry point: a pseudograph, a disconnected graph, a digraph, `graph.directed` (arc order), the adjacency list and CSR; never on K₁ or edgeless graphs |
+| `WeightReadingTests.swift` | 6 | The closure once per edge in position order for every weighted entry point: a pseudograph, a disconnected graph, a digraph, `graph.directedView` (arc order), the adjacency list and CSR; never on K₁ or edgeless graphs |
 | `DistanceConformanceTests.swift` | 6 | `Sendable` across a `Task`, the value holding a copy of the graph, generic code, conformers without indices (undirected and directed), `Collider` vertices |
 | `Performance/DistanceStressTests.swift` | 21 | §H inside a `Task` with a one-minute limit: the 10⁵ path (diameter, path, radius, center, periphery, eccentricities, density), the 10⁵ star, the 10⁴ cycle, the all-pairs rows at 10⁴, a 300 × 300 grid, K₄₀₀, a 10⁵ directed path on CSR, a weighted 10⁵ path and a disconnected weighted pair of paths |
 | `DistancePropertyTests.swift` | 7 | PropertyBased, shrinking: unweighted undirected and directed against BFS from every vertex (exact paths), `Int` weights against Floyd–Warshall (path validity, closure order), `Double` quarters (average included), the bounding shapes on `UndirectedAdjacencyList`, random trees against TreeAlgorithms, the views |
-| `DistancePreconditionTests.swift` | 10 | Exit tests: non-vertices on the graph and the value, both kinds, weighted too (DI-042); `eccentricity(ofIndex:)` out of range; negative and NaN weights on every weighted entry point (DI-240, DI-630 – DI-633), `Int` and `Double`, out of reach, on a loop, single-source, `-infinity`, `Int.min`, the least negative `Double`, through `graph.directed` |
+| `DistancePreconditionTests.swift` | 10 | Exit tests: non-vertices on the graph and the value, both kinds, weighted too (DI-042); `eccentricity(ofIndex:)` out of range; negative and NaN weights on every weighted entry point (DI-240, DI-630 – DI-633), `Int` and `Double`, out of reach, on a loop, single-source, `-infinity`, `Int.min`, the least negative `Double`, through `graph.directedView` |
 
 | `DistanceReviewTests.swift` | 2 | Added after the review (DI-1001, DI-1002): `AdjacencyMatrix` (vertex indices, positions that are not `Int`s) against `AdjacencyList` on every measure, with its diameter paths checked as paths of the matrix; a NaN weight on a directed edge no search reaches |
 
@@ -122,7 +122,7 @@ properties the catalog does not list.
 | DI-905, DI-909, DI-913, DI-914 at 10⁵ vertices | One search per vertex is 10¹⁰ steps (api.md's complexity table; the catalog calls DI-905 benchmark-only); they run at 10⁴ vertices with `ref.py`'s closed forms at that size |
 | Search counts (5 on the 10⁵ path, about n on cycles, the early exits) | Internal costs belong to the benchmarks; the stress tests bound them loosely (each shape within the time limit) |
 | `eccentricity(of: v)` against ShortestPaths' `shortestPaths(from: v)` (api.md, "Tests") | ShortestPaths is not a dependency of this target; the property tests use a breadth-first search and Floyd–Warshall written in the test instead |
-| `diameterPath` on `graph.directed` and `digraph.undirected` | The catalog does not pin it (arc positions); views are tested through every other measure |
+| `diameterPath` on `graph.directedView` and `digraph.undirectedView` | The catalog does not pin it (arc positions); views are tested through every other measure |
 | Which of several equally short weighted paths `diameterPath(weight:)` returns | api.md leaves it open; the catalog pins only unique paths, and the property test checks endpoints, distance and that the path is a path of that weight |
 | "Not `Equatable`", the negative half of `Sendable` | Not building is not expressible as a test; the positive `Sendable` half is tested |
 | Overflow of `Int` sums | "Sums must fit in `W`" is the caller's precondition and is not checked |

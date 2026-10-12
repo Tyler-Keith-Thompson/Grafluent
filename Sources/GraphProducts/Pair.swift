@@ -2,7 +2,7 @@
 /// and `h` one of the second (JGraphT's `Pair`, C++'s `std::pair`).
 ///
 /// Comparable lexicographically, as tuples compare, and printed as `(g, h)`. A nested product's
-/// vertices nest: `cartesianProduct(cartesianProduct(a, b), c)` has vertices
+/// vertices nest: `cartesianProductView(cartesianProductView(a, b), c)` has vertices
 /// `Pair<Pair<A, B>, C>`. Code with its own `Pair` type can write `GraphProducts.Pair`.
 @frozen
 public struct Pair<First: Hashable, Second: Hashable>: Hashable {

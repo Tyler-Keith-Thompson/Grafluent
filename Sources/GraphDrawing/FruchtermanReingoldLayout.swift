@@ -14,7 +14,7 @@ extension Graph {
     /// offsets, so a start with coincident vertices separates them deterministically. The run stops after `iterations` steps, or earlier once the moves'
     /// root-sum-square divided by n is below `threshold`. Self-loops are ignored; parallel edges
     /// add their weights. The drawing is in layout units (vertices end about k apart), not
-    /// rescaled. A directed graph is drawn through `undirected`.
+    /// rescaled. A directed graph is drawn through `undirectedView`.
     ///
     /// The start takes exactly 2n draws: x then y for each vertex in `vertices` order, each the
     /// top 53 bits of one `next()`. The same generator state gives the same drawing; positions are
@@ -113,6 +113,19 @@ public struct FruchtermanReingoldLayout<G: Graph> {
             positions.append(SIMD2(x, y))
         }
         self.init(_edges: edges, positions: positions, iterations: iterations, optimalDistance: optimalDistance, threshold: threshold, barnesHutTheta: barnesHutTheta)
+    }
+
+    /// A layout of `graph` whose start is drawn from the system's random number generator; see
+    /// `init(_:iterations:optimalDistance:threshold:barnesHutTheta:weight:using:)`.
+    @inlinable
+    public init(
+        _ graph: G, iterations: Int = 50, optimalDistance: Double? = nil, threshold: Double = 1e-4, barnesHutTheta: Double? = nil,
+        weight: (G.Edges.Index) -> Double = { _ in 1 }
+    ) {
+        var generator = SystemRandomNumberGenerator()
+        self.init(
+            graph, iterations: iterations, optimalDistance: optimalDistance, threshold: threshold, barnesHutTheta: barnesHutTheta,
+            weight: weight, using: &generator)
     }
 
     /// A layout of `graph` that starts from `initial`'s positions.

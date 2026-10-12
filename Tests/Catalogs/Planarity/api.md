@@ -56,7 +56,7 @@ harness (built with clang `-O2` against Boost 1.87; not compiled by the package)
 | Planar colouring (LEMON `PlanarColoring`: five-colouring) | Belongs to `ColoringModule`, which can take a `PlanarEmbedding`. |
 | Genus, crossing number, k-planarity, upward planarity | Each is a different problem: NP-hard (genus, crossing number), or specific to directed graphs (upward). OGDF covers them. |
 | Many Kuratowski subgraphs (Chimani–Mutzel–Schmidt 2008; OGDF `BoyerMyrvold::planarEmbed` with `kuratowskis`) | For branch and cut on crossing numbers. One witness is what every other library returns. |
-| `DirectedGraph` overloads | Planarity concerns the underlying undirected graph. `graph.undirected` (`UndirectedView`) gives it: each arc becomes an edge, and a 2-cycle becomes two parallel edges (PL-055 – PL-061, PL-168). NetworkX reads a `DiGraph` the same way. Boost and JGraphT take undirected graphs only. |
+| `DirectedGraph` overloads | Planarity concerns the underlying undirected graph. `graph.undirectedView` (`UndirectedView`) gives it: each arc becomes an edge, and a 2-cycle becomes two parallel edges (PL-055 – PL-061, PL-168). NetworkX reads a `DiGraph` the same way. Boost and JGraphT take undirected graphs only. |
 
 ## Summary
 
@@ -86,6 +86,10 @@ public struct PlanarEmbedding<G: Graph> {
     public func face(from vertex: G.Vertex, alongEdgeAt position: G.Edges.Index) -> Walk<G.Vertex, G.Edges.Index>
     // The position in `faces` of that face (OGDF rightFace): what the dual graph is built from.
     public func rightFace(from vertex: G.Vertex, alongEdgeAt position: G.Edges.Index) -> Int
+    // Principle 6: ElementNotFound.vertex for a non-vertex, else .edge for a position that is not
+    // an edge or whose edge has no end at the vertex.
+    public func face(checkedFrom vertex: G.Vertex, alongEdgeAt position: G.Edges.Index) throws(ElementNotFound) -> Walk<G.Vertex, G.Edges.Index>
+    public func rightFace(checkedFrom vertex: G.Vertex, alongEdgeAt position: G.Edges.Index) throws(ElementNotFound) -> Int
 
     // Phase 2
     public func dualGraph() -> Pseudograph<Int>
@@ -156,7 +160,7 @@ component, so equality means genus 0. Hence:
   never uses a loop and uses one copy of a parallel pair. Which copy is not pinned (PL-140).
 - **Disconnected graphs**: planar exactly when every component is; the Kuratowski subgraph lies in
   one block (PL-138, PL-150).
-- **Directed graphs** go through `graph.undirected` (Scope).
+- **Directed graphs** go through `graph.undirectedView` (Scope).
 - **Vertex labels**: results are in the graph's vertices and edge positions, never indices
   (PL-116, PL-151); `clockwiseNeighborIndices(ofIndex:)` is the index-space accessor. On a graph
   without vertex indices, index i is the i-th vertex of `vertices` (its position).

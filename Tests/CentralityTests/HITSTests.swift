@@ -1,11 +1,11 @@
 // §H: hubs and authorities from the uniform start, each summing to 1; the limit from the uniform
-// start where σ₁ is not simple; parallel arcs adding; weights; `graph.directed` on the karate club
+// start where σ₁ is not simple; parallel arcs adding; weights; `graph.directedView` on the karate club
 // (hubs = authorities); NoConvergence after one iteration. Each test also checks that the other
 // vector has one score per vertex.
 // Expected values are ref.py's model at full precision (the catalog cells are the same values
 // rounded to 12 digits); non-iterative rows compare within 1e-12 relative to max(1, |value|), the
 // iterative ones within the catalog's Tol of the limit. Undirected rows also run on
-// `graph.directed` (the same values; twice for degree and unnormalized betweenness).
+// `graph.directedView` (the same values; twice for degree and unnormalized betweenness).
 // Case IDs (CE-nnn) refer to the catalog; see README.md.
 
 import Centrality
@@ -252,7 +252,7 @@ struct HITSTests {
         #expect(abs(otherTotal - 1) <= 1e-12)
     }
 
-    @Test("CE-204 U(nx(karate_club)).directed.hits().hubs is 34 scores, [0.0714127288083, 0.0534272312355, …]: Symmetric A: hubs = authorities = eigenvector centrality rescaled to sum 1")
+    @Test("CE-204 U(nx(karate_club)).directedView.hits().hubs is 34 scores, [0.0714127288083, 0.0534272312355, …]: Symmetric A: hubs = authorities = eigenvector centrality rescaled to sum 1")
     func hits204() throws {
         // U: nx(karate_club)
         let pairs: [(Int, Int)] = [
@@ -267,7 +267,7 @@ struct HITSTests {
             (32, 33)
         ]
         let graph = ReferencePseudograph(vertices: 0 ..< 34, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let scores = try graph.directed.hits()
+        let scores = try graph.directedView.hits()
         let result = scores.hubs
         let expected: [Double] = [
             0.07141272880825182, 0.05342723123552988, 0.06371906455637473, 0.0424227371247089,
@@ -287,7 +287,7 @@ struct HITSTests {
         }
         let byIndex = result.scores.indices.map { result.score(ofIndex: $0) }
         #expect(byIndex == result.scores)
-        let byVertex = graph.directed.vertices.map { result.score(of: $0) }
+        let byVertex = graph.directedView.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
         let authorities = scores.authorities.scores
         #expect(authorities.count == expected.count)
@@ -298,7 +298,7 @@ struct HITSTests {
         #expect(abs(otherTotal - 1) <= 1e-12)
     }
 
-    @Test("CE-205 U(nx(karate_club)).directed.hits().authorities is 34 scores, [0.0714127288083, 0.0534272312355, …]")
+    @Test("CE-205 U(nx(karate_club)).directedView.hits().authorities is 34 scores, [0.0714127288083, 0.0534272312355, …]")
     func hits205() throws {
         // U: nx(karate_club)
         let pairs: [(Int, Int)] = [
@@ -313,7 +313,7 @@ struct HITSTests {
             (32, 33)
         ]
         let graph = ReferencePseudograph(vertices: 0 ..< 34, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let scores = try graph.directed.hits()
+        let scores = try graph.directedView.hits()
         let result = scores.authorities
         let expected: [Double] = [
             0.07141272880825178, 0.053427231235529844, 0.06371906455637472, 0.042422737124708856,
@@ -333,7 +333,7 @@ struct HITSTests {
         }
         let byIndex = result.scores.indices.map { result.score(ofIndex: $0) }
         #expect(byIndex == result.scores)
-        let byVertex = graph.directed.vertices.map { result.score(of: $0) }
+        let byVertex = graph.directedView.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
         let hubs = scores.hubs.scores
         #expect(hubs.count == expected.count)

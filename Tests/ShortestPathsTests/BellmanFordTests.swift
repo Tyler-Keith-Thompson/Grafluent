@@ -94,7 +94,7 @@ struct BellmanFordTests {
         ]
         let graph = UndirectedAdjacencyList(vertices: ["V1", "V2", "V3", "V4", "V5"], edges: jgrapht.map { UndirectedEdge($0.0, $0.1) })
         let weights = jgrapht.map(\.2)
-        let viewTree = graph.directed.bellmanFordShortestPaths(from: "V3") { weights[$0.position] }
+        let viewTree = graph.directedView.bellmanFordShortestPaths(from: "V3") { weights[$0.position] }
         let overloadTree = graph.bellmanFordShortestPaths(from: "V3") { weights[$0] }
         for tree in [viewTree, overloadTree] {
             #expect(["V1", "V2", "V3", "V4", "V5"].map { tree?.distance(to: $0) } == [3, 5, 0, 10, 15])
@@ -211,14 +211,14 @@ struct BellmanFordTests {
         for source in 0 ..< 5 { check(scipyGraph, from: source, weight: { scipy[$0].2 }, "scipy directed from \(source)") }
 
         let scipyUndirected: [(Int, Int, Int)] = [(0, 1, 3), (0, 2, 3), (0, 3, 1), (0, 4, 2), (1, 3, 2), (1, 4, 4), (3, 4, 2)]
-        let undirected = UndirectedAdjacencyList(vertices: 0 ..< 5, edges: scipyUndirected.map { UndirectedEdge($0.0, $0.1) }).directed
+        let undirected = UndirectedAdjacencyList(vertices: 0 ..< 5, edges: scipyUndirected.map { UndirectedEdge($0.0, $0.1) }).directedView
         for source in 0 ..< 5 { check(undirected, from: source, weight: { scipyUndirected[$0.position].2 }, "scipy undirected from \(source)") }
 
         let xg2: [(Int, Int, Int)] = [(1, 4, 1), (4, 5, 1), (5, 6, 1), (6, 3, 1), (1, 3, 50), (1, 2, 100), (2, 3, 100)]
         check(ReferenceDirectedMultigraph(edges: xg2.map { DirectedEdge(from: $0.0, to: $0.1) }), from: 1, weight: { xg2[$0].2 }, "XG2")
 
         let xg3: [(Int, Int, Int)] = [(0, 1, 2), (1, 2, 12), (2, 3, 1), (3, 4, 5), (4, 5, 1), (5, 0, 10)]
-        check(UndirectedAdjacencyList(edges: xg3.map { UndirectedEdge($0.0, $0.1) }).directed, from: 0, weight: { xg3[$0.position].2 }, "XG3")
+        check(UndirectedAdjacencyList(edges: xg3.map { UndirectedEdge($0.0, $0.1) }).directedView, from: 0, weight: { xg3[$0.position].2 }, "XG3")
     }
 
     @Test("SP-60 zero-weight cycles are not negative")

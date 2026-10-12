@@ -686,7 +686,7 @@ def conversion_tests():
         "    }"])
     n += 1
 
-    # MG-173: Pseudograph(digraph.undirected)
+    # MG-173: Pseudograph(digraph.undirectedView)
     g = model(DP, [], [(0, 1), (1, 0), (1, 1)])
     h = ref.copy_generic(g, P, edges=list(g.edges()))
     assert cell(n) == h.state()
@@ -694,10 +694,10 @@ def conversion_tests():
         "    func mg%03d() {" % n,
         "        // %s" % CELLS[n][3],
         "        let digraph = DirectedPseudograph<Int>(edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 0), DirectedEdge(from: 1, to: 1)])",
-        "        let graph = Pseudograph(digraph.undirected)"] + state_lines(h, t="Int") + ["    }"])
+        "        let graph = Pseudograph(digraph.undirectedView)"] + state_lines(h, t="Int") + ["    }"])
     n += 1
 
-    # MG-174: DirectedPseudograph(graph.directed)
+    # MG-174: DirectedPseudograph(graph.directedView)
     g = model(P, [], [(0, 1), (0, 1), (1, 1)])
     dirs = []
     for a, b in g.edges():
@@ -708,7 +708,7 @@ def conversion_tests():
         "    func mg%03d() {" % n,
         "        // %s" % CELLS[n][3],
         "        let pseudograph = Pseudograph<Int>(edges: [UndirectedEdge(0, 1), UndirectedEdge(0, 1), UndirectedEdge(1, 1)])",
-        "        let graph = DirectedPseudograph(pseudograph.directed)"] + state_lines(h, t="Int") + ["    }"])
+        "        let graph = DirectedPseudograph(pseudograph.directedView)"] + state_lines(h, t="Int") + ["    }"])
     n += 1
 
     # MG-175
@@ -717,10 +717,10 @@ def conversion_tests():
         "    func mg%03d() {" % n,
         "        // %s" % CELLS[n][3],
         "        let pseudograph = Pseudograph<Int>(edges: [UndirectedEdge(0, 1), UndirectedEdge(0, 1), UndirectedEdge(1, 1)])",
-        "        #expect(DirectedMultigraph(pseudograph.directed) == nil)",
+        "        #expect(DirectedMultigraph(pseudograph.directedView) == nil)",
         "        // Without the loop, each edge is two opposite arcs.",
         "        let loopless = Pseudograph<Int>(edges: [UndirectedEdge(0, 1), UndirectedEdge(0, 1)])",
-        "        #expect(DirectedMultigraph(loopless.directed)?.edges.map { [$0.source, $0.target] } == [[0, 1], [1, 0], [0, 1], [1, 0]])",
+        "        #expect(DirectedMultigraph(loopless.directedView)?.edges.map { [$0.source, $0.target] } == [[0, 1], [1, 0], [0, 1], [1, 0]])",
         "    }"])
     n += 1
 
@@ -873,8 +873,8 @@ FILES = [
     ("MultigraphConversionTests.swift", "Multigraphs conversions", range(160, 179),
      "Conversions (catalog MG-160 – MG-178): to the simple lists (each pair keeps its first copy by\n"
      "// position, in its orientation), from them (vertex order and positions kept, rows rebuilt in\n"
-     "// position order), between the multigraphs and the pseudographs, and through `.undirected` /\n"
-     "// `.directed`."),
+     "// position order), between the multigraphs and the pseudographs, and through `.undirectedView` /\n"
+     "// `.directedView`."),
     ("MultigraphCheckedTests.swift", "Multigraphs checked spellings", range(193, 212),
      "The `checked:` spellings (catalog MG-193 – MG-211, README Principle 6): `insert(checked:)` adds a\n"
      "// copy only between existing vertices, else throws `VertexNotFound` (the multigraphs:\n"

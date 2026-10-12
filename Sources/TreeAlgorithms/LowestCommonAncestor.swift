@@ -1,3 +1,4 @@
+import GraphProtocols
 import Trees
 
 /// The deepest common ancestor of two vertex numbers, a vertex counting as its own ancestor,
@@ -25,6 +26,16 @@ extension RootedTree {
     @inlinable
     public func lowestCommonAncestor(of a: Vertex, _ b: Vertex) -> Vertex {
         _layout.vertices[_climbingLowestCommonAncestor(_layout, _layout.number(of: a), _layout.number(of: b))]
+    }
+
+    /// `lowestCommonAncestor(of: a, b)`, throwing instead of trapping when either is not a vertex
+    /// (README Principle 6). O(depth(a) + depth(b)).
+    ///
+    /// - Throws: `VertexNotFound` when `a` or `b` is not a vertex of the tree.
+    @inlinable
+    public func lowestCommonAncestor(checked a: Vertex, _ b: Vertex) throws(VertexNotFound) -> Vertex {
+        let x = try _layout.checkedNumber(of: a), y = try _layout.checkedNumber(of: b)
+        return _layout.vertices[_climbingLowestCommonAncestor(_layout, x, y)]
     }
 }
 
@@ -60,6 +71,16 @@ extension Arborescence {
     @inlinable
     public func lowestCommonAncestor(of a: Vertex, _ b: Vertex) -> Vertex {
         _layout.vertices[_climbingLowestCommonAncestor(_layout, _layout.number(of: a), _layout.number(of: b))]
+    }
+
+    /// `lowestCommonAncestor(of: a, b)`, throwing instead of trapping when either is not a vertex
+    /// (README Principle 6). O(depth(a) + depth(b)).
+    ///
+    /// - Throws: `VertexNotFound` when `a` or `b` is not a vertex of the arborescence.
+    @inlinable
+    public func lowestCommonAncestor(checked a: Vertex, _ b: Vertex) throws(VertexNotFound) -> Vertex {
+        let x = try _layout.checkedNumber(of: a), y = try _layout.checkedNumber(of: b)
+        return _layout.vertices[_climbingLowestCommonAncestor(_layout, x, y)]
     }
 }
 
@@ -210,6 +231,26 @@ public struct LowestCommonAncestors<Vertex: Hashable> {
     @inlinable
     public func distance(from a: Vertex, to b: Vertex) -> Int {
         distance(fromIndex: _layout.number(of: a), toIndex: _layout.number(of: b))
+    }
+
+    /// `lowestCommonAncestor(of: a, b)`, throwing instead of trapping when either is not a vertex
+    /// (README Principle 6). O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `a` or `b` is not a vertex of the tree.
+    @inlinable
+    public func lowestCommonAncestor(checked a: Vertex, _ b: Vertex) throws(VertexNotFound) -> Vertex {
+        let x = try _layout.checkedNumber(of: a), y = try _layout.checkedNumber(of: b)
+        return _layout.vertices[lowestCommonAncestor(ofIndex: x, y)]
+    }
+
+    /// `distance(from: a, to: b)`, throwing instead of trapping when either is not a vertex.
+    /// O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `a` or `b` is not a vertex of the tree.
+    @inlinable
+    public func distance(checkedFrom a: Vertex, to b: Vertex) throws(VertexNotFound) -> Int {
+        let x = try _layout.checkedNumber(of: a), y = try _layout.checkedNumber(of: b)
+        return distance(fromIndex: x, toIndex: y)
     }
 }
 

@@ -110,7 +110,7 @@ TITLES = {
     "CN-293": "networkXIJK, String vertices: a loop at K",
     "CN-294": "petgraphUndirected, String vertices",
     "CN-295": "two loops and a parallel pair on two vertices",
-    "CN-296": "a digraph's opposite arcs through .undirected are parallel edges, so not bridges",
+    "CN-296": "a digraph's opposite arcs through .undirectedView are parallel edges, so not bridges",
     "CN-297": "doubling every edge of CN-238: no bridges, the same points, every block doubled",
     "CN-298": "a loop at every vertex of a path",
     "CN-299": "the loop written between a tree edge and its parallel copy",
@@ -326,7 +326,7 @@ def gen_case(cid, spec, src):
         if not has_repeats(es):
             graphs.append(f"UndirectedAdjacencyList({listed}edges: edges)")
         if cid == "CN-296":
-            graphs.append("AdjacencyList(edges: [(0, 1), (1, 0), (1, 2)].map { DirectedEdge(from: $0.0, to: $0.1) }).undirected")
+            graphs.append("AdjacencyList(edges: [(0, 1), (1, 0), (1, 2)].map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView")
     if len(es) > 48 and not spec.startswith(("fixture:", "realworld:")):
         # check the generated code reproduces the notation
         pass

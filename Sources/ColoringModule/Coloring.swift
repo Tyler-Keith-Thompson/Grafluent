@@ -59,6 +59,16 @@ public struct Coloring<G: Graph> {
         return _colors[_graph._requiredVertexIndex(of: vertex, "\(vertex) is not a vertex of the graph")]
     }
 
+    /// `color(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex of the
+    /// graph.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the graph.
+    @inlinable
+    public func color(checked vertex: G.Vertex) throws(VertexNotFound) -> Int {
+        guard _graph.contains(vertex) else { throw VertexNotFound() }
+        return color(of: vertex)
+    }
+
     /// The colour of the vertex at `index`: its vertex index, or its position in `vertices` when
     /// the graph has no vertex indices.
     ///

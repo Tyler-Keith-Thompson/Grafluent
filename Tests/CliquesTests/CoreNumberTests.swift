@@ -1,6 +1,6 @@
 // §D: core numbers, degeneracy, the degeneracy ordering, k-cores and k-shells (CQ-301 – CQ-349), all
 // on the simple graph: a parallel pair or a loop adds nothing (CQ-328 – CQ-333; igraph counts them,
-// NetworkX raises). Core numbers are checked by index, by vertex and on `graph.directed.undirected`;
+// NetworkX raises). Core numbers are checked by index, by vertex and on `graph.directedView.undirectedView`;
 // the degeneracy ordering exactly (api.md pins Batagelj–Zaversnik's removal order: a stable counting
 // sort by degree, neighbours in row order), together with its defining property (at most core(v)
 // neighbours after each v, core numbers nondecreasing along it). `~rev` rows use a conformer private
@@ -59,7 +59,7 @@ struct CoreNumberTests {
         let byVertex = graph.vertices.map { cores.coreNumber(of: $0) }
         #expect(byVertex == expected)
         #expect(cores.degeneracy == (expected.max() ?? 0))
-        let view = graph.directed.undirected.coreNumbers()
+        let view = graph.directedView.undirectedView.coreNumbers()
         let viaArcs = (0 ..< graph.vertexCount).map { view.coreNumber(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -74,7 +74,7 @@ struct CoreNumberTests {
         let byIndex = (0 ..< graph.vertexCount).map { cores.coreNumber(ofIndex: $0) }
         #expect((byIndex.max() ?? 0) == 2)
         #expect(graph.cliqueNumber() <= 2 + 1)
-        #expect(graph.directed.undirected.coreNumbers().degeneracy == 2)
+        #expect(graph.directedView.undirectedView.coreNumbers().degeneracy == 2)
     }
 
     @Test("CQ-303 U(K(0..2), 2-3).degeneracyOrdering is [3, 0, 1, 2]")
@@ -85,7 +85,7 @@ struct CoreNumberTests {
         let expected: [Int] = [3, 0, 1, 2]
         let cores = graph.coreNumbers()
         #expect(cores.degeneracyOrdering == expected)
-        #expect(graph.directed.undirected.coreNumbers().degeneracyOrdering == expected)
+        #expect(graph.directedView.undirectedView.coreNumbers().degeneracyOrdering == expected)
         // At most its own core number of neighbours after each vertex, and core numbers never decrease.
         for (i, v) in expected.enumerated() {
             let later = expected[(i + 1)...].filter { graph.contains(edge: UndirectedEdge(v, $0)) }
@@ -107,7 +107,7 @@ struct CoreNumberTests {
         let byVertex = graph.vertices.map { cores.coreNumber(of: $0) }
         #expect(byVertex == expected)
         #expect(cores.degeneracy == (expected.max() ?? 0))
-        let view = graph.directed.undirected.coreNumbers()
+        let view = graph.directedView.undirectedView.coreNumbers()
         let viaArcs = (0 ..< graph.vertexCount).map { view.coreNumber(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -122,7 +122,7 @@ struct CoreNumberTests {
         let byIndex = (0 ..< graph.vertexCount).map { cores.coreNumber(ofIndex: $0) }
         #expect((byIndex.max() ?? 0) == 1)
         #expect(graph.cliqueNumber() <= 1 + 1)
-        #expect(graph.directed.undirected.coreNumbers().degeneracy == 1)
+        #expect(graph.directedView.undirectedView.coreNumbers().degeneracy == 1)
     }
 
     @Test("CQ-306 U(P(0..4)).degeneracyOrdering is [0, 4, 1, 3, 2]")
@@ -133,7 +133,7 @@ struct CoreNumberTests {
         let expected: [Int] = [0, 4, 1, 3, 2]
         let cores = graph.coreNumbers()
         #expect(cores.degeneracyOrdering == expected)
-        #expect(graph.directed.undirected.coreNumbers().degeneracyOrdering == expected)
+        #expect(graph.directedView.undirectedView.coreNumbers().degeneracyOrdering == expected)
         // At most its own core number of neighbours after each vertex, and core numbers never decrease.
         for (i, v) in expected.enumerated() {
             let later = expected[(i + 1)...].filter { graph.contains(edge: UndirectedEdge(v, $0)) }
@@ -155,7 +155,7 @@ struct CoreNumberTests {
         let byVertex = graph.vertices.map { cores.coreNumber(of: $0) }
         #expect(byVertex == expected)
         #expect(cores.degeneracy == (expected.max() ?? 0))
-        let view = graph.directed.undirected.coreNumbers()
+        let view = graph.directedView.undirectedView.coreNumbers()
         let viaArcs = (0 ..< graph.vertexCount).map { view.coreNumber(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -170,7 +170,7 @@ struct CoreNumberTests {
         let byIndex = (0 ..< graph.vertexCount).map { cores.coreNumber(ofIndex: $0) }
         #expect((byIndex.max() ?? 0) == 2)
         #expect(graph.cliqueNumber() <= 2 + 1)
-        #expect(graph.directed.undirected.coreNumbers().degeneracy == 2)
+        #expect(graph.directedView.undirectedView.coreNumbers().degeneracy == 2)
     }
 
     @Test("CQ-309 U(C(0..4)).degeneracyOrdering is [0, 1, 2, 3, 4]")
@@ -181,7 +181,7 @@ struct CoreNumberTests {
         let expected: [Int] = [0, 1, 2, 3, 4]
         let cores = graph.coreNumbers()
         #expect(cores.degeneracyOrdering == expected)
-        #expect(graph.directed.undirected.coreNumbers().degeneracyOrdering == expected)
+        #expect(graph.directedView.undirectedView.coreNumbers().degeneracyOrdering == expected)
         // At most its own core number of neighbours after each vertex, and core numbers never decrease.
         for (i, v) in expected.enumerated() {
             let later = expected[(i + 1)...].filter { graph.contains(edge: UndirectedEdge(v, $0)) }
@@ -203,7 +203,7 @@ struct CoreNumberTests {
         let byVertex = graph.vertices.map { cores.coreNumber(of: $0) }
         #expect(byVertex == expected)
         #expect(cores.degeneracy == (expected.max() ?? 0))
-        let view = graph.directed.undirected.coreNumbers()
+        let view = graph.directedView.undirectedView.coreNumbers()
         let viaArcs = (0 ..< graph.vertexCount).map { view.coreNumber(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -218,7 +218,7 @@ struct CoreNumberTests {
         let byIndex = (0 ..< graph.vertexCount).map { cores.coreNumber(ofIndex: $0) }
         #expect((byIndex.max() ?? 0) == 1)
         #expect(graph.cliqueNumber() <= 1 + 1)
-        #expect(graph.directed.undirected.coreNumbers().degeneracy == 1)
+        #expect(graph.directedView.undirectedView.coreNumbers().degeneracy == 1)
     }
 
     @Test("CQ-312 U(S(0;1..4)).degeneracyOrdering is [1, 2, 3, 4, 0]")
@@ -229,7 +229,7 @@ struct CoreNumberTests {
         let expected: [Int] = [1, 2, 3, 4, 0]
         let cores = graph.coreNumbers()
         #expect(cores.degeneracyOrdering == expected)
-        #expect(graph.directed.undirected.coreNumbers().degeneracyOrdering == expected)
+        #expect(graph.directedView.undirectedView.coreNumbers().degeneracyOrdering == expected)
         // At most its own core number of neighbours after each vertex, and core numbers never decrease.
         for (i, v) in expected.enumerated() {
             let later = expected[(i + 1)...].filter { graph.contains(edge: UndirectedEdge(v, $0)) }
@@ -251,7 +251,7 @@ struct CoreNumberTests {
         let byVertex = graph.vertices.map { cores.coreNumber(of: $0) }
         #expect(byVertex == expected)
         #expect(cores.degeneracy == (expected.max() ?? 0))
-        let view = graph.directed.undirected.coreNumbers()
+        let view = graph.directedView.undirectedView.coreNumbers()
         let viaArcs = (0 ..< graph.vertexCount).map { view.coreNumber(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -266,7 +266,7 @@ struct CoreNumberTests {
         let byIndex = (0 ..< graph.vertexCount).map { cores.coreNumber(ofIndex: $0) }
         #expect((byIndex.max() ?? 0) == 3)
         #expect(graph.cliqueNumber() <= 3 + 1)
-        #expect(graph.directed.undirected.coreNumbers().degeneracy == 3)
+        #expect(graph.directedView.undirectedView.coreNumbers().degeneracy == 3)
     }
 
     @Test("CQ-315 U(K(4), 3-4, 4-5, 5-6, 6-4).degeneracyOrdering is [5, 6, 4, 1, 2, 0, 3]")
@@ -277,7 +277,7 @@ struct CoreNumberTests {
         let expected: [Int] = [5, 6, 4, 1, 2, 0, 3]
         let cores = graph.coreNumbers()
         #expect(cores.degeneracyOrdering == expected)
-        #expect(graph.directed.undirected.coreNumbers().degeneracyOrdering == expected)
+        #expect(graph.directedView.undirectedView.coreNumbers().degeneracyOrdering == expected)
         // At most its own core number of neighbours after each vertex, and core numbers never decrease.
         for (i, v) in expected.enumerated() {
             let later = expected[(i + 1)...].filter { graph.contains(edge: UndirectedEdge(v, $0)) }
@@ -299,7 +299,7 @@ struct CoreNumberTests {
         let byVertex = graph.vertices.map { cores.coreNumber(of: $0) }
         #expect(byVertex == expected)
         #expect(cores.degeneracy == (expected.max() ?? 0))
-        let view = graph.directed.undirected.coreNumbers()
+        let view = graph.directedView.undirectedView.coreNumbers()
         let viaArcs = (0 ..< graph.vertexCount).map { view.coreNumber(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -314,7 +314,7 @@ struct CoreNumberTests {
         let byIndex = (0 ..< graph.vertexCount).map { cores.coreNumber(ofIndex: $0) }
         #expect((byIndex.max() ?? 0) == 2)
         #expect(graph.cliqueNumber() <= 2 + 1)
-        #expect(graph.directed.undirected.coreNumbers().degeneracy == 2)
+        #expect(graph.directedView.undirectedView.coreNumbers().degeneracy == 2)
     }
 
     @Test("CQ-318 U(K(0..2), 1-3, 2-3).degeneracyOrdering is [0, 3, 1, 2]")
@@ -325,7 +325,7 @@ struct CoreNumberTests {
         let expected: [Int] = [0, 3, 1, 2]
         let cores = graph.coreNumbers()
         #expect(cores.degeneracyOrdering == expected)
-        #expect(graph.directed.undirected.coreNumbers().degeneracyOrdering == expected)
+        #expect(graph.directedView.undirectedView.coreNumbers().degeneracyOrdering == expected)
         // At most its own core number of neighbours after each vertex, and core numbers never decrease.
         for (i, v) in expected.enumerated() {
             let later = expected[(i + 1)...].filter { graph.contains(edge: UndirectedEdge(v, $0)) }
@@ -360,7 +360,7 @@ struct CoreNumberTests {
         let byVertex = graph.vertices.map { cores.coreNumber(of: $0) }
         #expect(byVertex == expected)
         #expect(cores.degeneracy == (expected.max() ?? 0))
-        let view = graph.directed.undirected.coreNumbers()
+        let view = graph.directedView.undirectedView.coreNumbers()
         let viaArcs = (0 ..< graph.vertexCount).map { view.coreNumber(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -385,7 +385,7 @@ struct CoreNumberTests {
         let byIndex = (0 ..< graph.vertexCount).map { cores.coreNumber(ofIndex: $0) }
         #expect((byIndex.max() ?? 0) == 4)
         #expect(graph.cliqueNumber() <= 4 + 1)
-        #expect(graph.directed.undirected.coreNumbers().degeneracy == 4)
+        #expect(graph.directedView.undirectedView.coreNumbers().degeneracy == 4)
     }
 
     @Test("CQ-321 U(nx(karate_club)).degeneracyOrdering is listed below")
@@ -409,7 +409,7 @@ struct CoreNumberTests {
         ]
         let cores = graph.coreNumbers()
         #expect(cores.degeneracyOrdering == expected)
-        #expect(graph.directed.undirected.coreNumbers().degeneracyOrdering == expected)
+        #expect(graph.directedView.undirectedView.coreNumbers().degeneracyOrdering == expected)
         // At most its own core number of neighbours after each vertex, and core numbers never decrease.
         for (i, v) in expected.enumerated() {
             let later = expected[(i + 1)...].filter { graph.contains(edge: UndirectedEdge(v, $0)) }
@@ -434,7 +434,7 @@ struct CoreNumberTests {
         let byVertex = graph.vertices.map { cores.coreNumber(of: $0) }
         #expect(byVertex == expected)
         #expect(cores.degeneracy == (expected.max() ?? 0))
-        let view = graph.directed.undirected.coreNumbers()
+        let view = graph.directedView.undirectedView.coreNumbers()
         let viaArcs = (0 ..< graph.vertexCount).map { view.coreNumber(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -452,7 +452,7 @@ struct CoreNumberTests {
         let byIndex = (0 ..< graph.vertexCount).map { cores.coreNumber(ofIndex: $0) }
         #expect((byIndex.max() ?? 0) == 3)
         #expect(graph.cliqueNumber() <= 3 + 1)
-        #expect(graph.directed.undirected.coreNumbers().degeneracy == 3)
+        #expect(graph.directedView.undirectedView.coreNumbers().degeneracy == 3)
     }
 
     @Test("CQ-324 U(nx(petersen)).degeneracyOrdering is [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]")
@@ -466,7 +466,7 @@ struct CoreNumberTests {
         let expected: [Int] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
         let cores = graph.coreNumbers()
         #expect(cores.degeneracyOrdering == expected)
-        #expect(graph.directed.undirected.coreNumbers().degeneracyOrdering == expected)
+        #expect(graph.directedView.undirectedView.coreNumbers().degeneracyOrdering == expected)
         // At most its own core number of neighbours after each vertex, and core numbers never decrease.
         for (i, v) in expected.enumerated() {
             let later = expected[(i + 1)...].filter { graph.contains(edge: UndirectedEdge(v, $0)) }
@@ -491,7 +491,7 @@ struct CoreNumberTests {
         let byVertex = graph.vertices.map { cores.coreNumber(of: $0) }
         #expect(byVertex == expected)
         #expect(cores.degeneracy == (expected.max() ?? 0))
-        let view = graph.directed.undirected.coreNumbers()
+        let view = graph.directedView.undirectedView.coreNumbers()
         let viaArcs = (0 ..< graph.vertexCount).map { view.coreNumber(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -509,7 +509,7 @@ struct CoreNumberTests {
         let byIndex = (0 ..< graph.vertexCount).map { cores.coreNumber(ofIndex: $0) }
         #expect((byIndex.max() ?? 0) == 2)
         #expect(graph.cliqueNumber() <= 2 + 1)
-        #expect(graph.directed.undirected.coreNumbers().degeneracy == 2)
+        #expect(graph.directedView.undirectedView.coreNumbers().degeneracy == 2)
     }
 
     @Test("CQ-327 U(grid(3,4)).degeneracyOrdering is [0, 3, 8, 11, 1, 4, 2, 7, 9, 10, 5, 6]")
@@ -523,7 +523,7 @@ struct CoreNumberTests {
         let expected: [Int] = [0, 3, 8, 11, 1, 4, 2, 7, 9, 10, 5, 6]
         let cores = graph.coreNumbers()
         #expect(cores.degeneracyOrdering == expected)
-        #expect(graph.directed.undirected.coreNumbers().degeneracyOrdering == expected)
+        #expect(graph.directedView.undirectedView.coreNumbers().degeneracyOrdering == expected)
         // At most its own core number of neighbours after each vertex, and core numbers never decrease.
         for (i, v) in expected.enumerated() {
             let later = expected[(i + 1)...].filter { graph.contains(edge: UndirectedEdge(v, $0)) }
@@ -545,7 +545,7 @@ struct CoreNumberTests {
         let byVertex = graph.vertices.map { cores.coreNumber(of: $0) }
         #expect(byVertex == expected)
         #expect(cores.degeneracy == (expected.max() ?? 0))
-        let view = graph.directed.undirected.coreNumbers()
+        let view = graph.directedView.undirectedView.coreNumbers()
         let viaArcs = (0 ..< graph.vertexCount).map { view.coreNumber(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -560,7 +560,7 @@ struct CoreNumberTests {
         let byIndex = (0 ..< graph.vertexCount).map { cores.coreNumber(ofIndex: $0) }
         #expect((byIndex.max() ?? 0) == 1)
         #expect(graph.cliqueNumber() <= 1 + 1)
-        #expect(graph.directed.undirected.coreNumbers().degeneracy == 1)
+        #expect(graph.directedView.undirectedView.coreNumbers().degeneracy == 1)
     }
 
     @Test("CQ-330 U([0, 1] 0-1, 0-1).degeneracyOrdering is [0, 1]")
@@ -571,7 +571,7 @@ struct CoreNumberTests {
         let expected: [Int] = [0, 1]
         let cores = graph.coreNumbers()
         #expect(cores.degeneracyOrdering == expected)
-        #expect(graph.directed.undirected.coreNumbers().degeneracyOrdering == expected)
+        #expect(graph.directedView.undirectedView.coreNumbers().degeneracyOrdering == expected)
         // At most its own core number of neighbours after each vertex, and core numbers never decrease.
         for (i, v) in expected.enumerated() {
             let later = expected[(i + 1)...].filter { graph.contains(edge: UndirectedEdge(v, $0)) }
@@ -593,7 +593,7 @@ struct CoreNumberTests {
         let byVertex = graph.vertices.map { cores.coreNumber(of: $0) }
         #expect(byVertex == expected)
         #expect(cores.degeneracy == (expected.max() ?? 0))
-        let view = graph.directed.undirected.coreNumbers()
+        let view = graph.directedView.undirectedView.coreNumbers()
         let viaArcs = (0 ..< graph.vertexCount).map { view.coreNumber(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -608,7 +608,7 @@ struct CoreNumberTests {
         let byIndex = (0 ..< graph.vertexCount).map { cores.coreNumber(ofIndex: $0) }
         #expect((byIndex.max() ?? 0) == 1)
         #expect(graph.cliqueNumber() <= 1 + 1)
-        #expect(graph.directed.undirected.coreNumbers().degeneracy == 1)
+        #expect(graph.directedView.undirectedView.coreNumbers().degeneracy == 1)
     }
 
     @Test("CQ-333 U([0, 1] 0-1, 0-0, 1-1).degeneracyOrdering is [0, 1]")
@@ -619,7 +619,7 @@ struct CoreNumberTests {
         let expected: [Int] = [0, 1]
         let cores = graph.coreNumbers()
         #expect(cores.degeneracyOrdering == expected)
-        #expect(graph.directed.undirected.coreNumbers().degeneracyOrdering == expected)
+        #expect(graph.directedView.undirectedView.coreNumbers().degeneracyOrdering == expected)
         // At most its own core number of neighbours after each vertex, and core numbers never decrease.
         for (i, v) in expected.enumerated() {
             let later = expected[(i + 1)...].filter { graph.contains(edge: UndirectedEdge(v, $0)) }
@@ -641,7 +641,7 @@ struct CoreNumberTests {
         let byVertex = graph.vertices.map { cores.coreNumber(of: $0) }
         #expect(byVertex == expected)
         #expect(cores.degeneracy == (expected.max() ?? 0))
-        let view = graph.directed.undirected.coreNumbers()
+        let view = graph.directedView.undirectedView.coreNumbers()
         let viaArcs = (0 ..< graph.vertexCount).map { view.coreNumber(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -656,7 +656,7 @@ struct CoreNumberTests {
         let byIndex = (0 ..< graph.vertexCount).map { cores.coreNumber(ofIndex: $0) }
         #expect((byIndex.max() ?? 0) == 1)
         #expect(graph.cliqueNumber() <= 1 + 1)
-        #expect(graph.directed.undirected.coreNumbers().degeneracy == 1)
+        #expect(graph.directedView.undirectedView.coreNumbers().degeneracy == 1)
     }
 
     @Test("CQ-336 U(S(0;1..4) ~rev).degeneracyOrdering is [1, 2, 3, 4, 0]")
@@ -667,7 +667,7 @@ struct CoreNumberTests {
         let expected: [Int] = [1, 2, 3, 4, 0]
         let cores = graph.coreNumbers()
         #expect(cores.degeneracyOrdering == expected)
-        #expect(graph.directed.undirected.coreNumbers().degeneracyOrdering == expected)
+        #expect(graph.directedView.undirectedView.coreNumbers().degeneracyOrdering == expected)
         // At most its own core number of neighbours after each vertex, and core numbers never decrease.
         for (i, v) in expected.enumerated() {
             let later = expected[(i + 1)...].filter { graph.contains(edge: UndirectedEdge(v, $0)) }
@@ -687,7 +687,7 @@ struct CoreNumberTests {
         #expect(cores.kCore(0) == expected)
         let byCore = graph.vertices.filter { cores.coreNumber(of: $0) >= 0 }
         #expect(byCore == expected)
-        #expect(graph.directed.undirected.coreNumbers().kCore(0) == expected)
+        #expect(graph.directedView.undirectedView.coreNumbers().kCore(0) == expected)
     }
 
     @Test("CQ-338 U(K(4), 3-4, 4-5, 5-6, 6-4).kCore(1) is [0, 1, 2, 3, 4, 5, 6]")
@@ -700,7 +700,7 @@ struct CoreNumberTests {
         #expect(cores.kCore(1) == expected)
         let byCore = graph.vertices.filter { cores.coreNumber(of: $0) >= 1 }
         #expect(byCore == expected)
-        #expect(graph.directed.undirected.coreNumbers().kCore(1) == expected)
+        #expect(graph.directedView.undirectedView.coreNumbers().kCore(1) == expected)
     }
 
     @Test("CQ-339 U(K(4), 3-4, 4-5, 5-6, 6-4).kCore(2) is [0, 1, 2, 3, 4, 5, 6]")
@@ -713,7 +713,7 @@ struct CoreNumberTests {
         #expect(cores.kCore(2) == expected)
         let byCore = graph.vertices.filter { cores.coreNumber(of: $0) >= 2 }
         #expect(byCore == expected)
-        #expect(graph.directed.undirected.coreNumbers().kCore(2) == expected)
+        #expect(graph.directedView.undirectedView.coreNumbers().kCore(2) == expected)
     }
 
     @Test("CQ-340 U(K(4), 3-4, 4-5, 5-6, 6-4).kCore(3) is [0, 1, 2, 3]")
@@ -726,7 +726,7 @@ struct CoreNumberTests {
         #expect(cores.kCore(3) == expected)
         let byCore = graph.vertices.filter { cores.coreNumber(of: $0) >= 3 }
         #expect(byCore == expected)
-        #expect(graph.directed.undirected.coreNumbers().kCore(3) == expected)
+        #expect(graph.directedView.undirectedView.coreNumbers().kCore(3) == expected)
     }
 
     @Test("CQ-341 U(K(4), 3-4, 4-5, 5-6, 6-4).kCore(4) is []")
@@ -739,7 +739,7 @@ struct CoreNumberTests {
         #expect(cores.kCore(4) == expected)
         let byCore = graph.vertices.filter { cores.coreNumber(of: $0) >= 4 }
         #expect(byCore == expected)
-        #expect(graph.directed.undirected.coreNumbers().kCore(4) == expected)
+        #expect(graph.directedView.undirectedView.coreNumbers().kCore(4) == expected)
     }
 
     @Test("CQ-342 U(K(4), 3-4, 4-5, 5-6, 6-4).kCore(5) is []")
@@ -752,7 +752,7 @@ struct CoreNumberTests {
         #expect(cores.kCore(5) == expected)
         let byCore = graph.vertices.filter { cores.coreNumber(of: $0) >= 5 }
         #expect(byCore == expected)
-        #expect(graph.directed.undirected.coreNumbers().kCore(5) == expected)
+        #expect(graph.directedView.undirectedView.coreNumbers().kCore(5) == expected)
     }
 
     @Test("CQ-343 U(K(4), 3-4, 4-5, 5-6, 6-4).kShell(0) is []")
@@ -765,7 +765,7 @@ struct CoreNumberTests {
         #expect(cores.kShell(0) == expected)
         let byCore = graph.vertices.filter { cores.coreNumber(of: $0) == 0 }
         #expect(byCore == expected)
-        #expect(graph.directed.undirected.coreNumbers().kShell(0) == expected)
+        #expect(graph.directedView.undirectedView.coreNumbers().kShell(0) == expected)
     }
 
     @Test("CQ-344 U(K(4), 3-4, 4-5, 5-6, 6-4).kShell(1) is []")
@@ -778,7 +778,7 @@ struct CoreNumberTests {
         #expect(cores.kShell(1) == expected)
         let byCore = graph.vertices.filter { cores.coreNumber(of: $0) == 1 }
         #expect(byCore == expected)
-        #expect(graph.directed.undirected.coreNumbers().kShell(1) == expected)
+        #expect(graph.directedView.undirectedView.coreNumbers().kShell(1) == expected)
     }
 
     @Test("CQ-345 U(K(4), 3-4, 4-5, 5-6, 6-4).kShell(2) is [4, 5, 6]")
@@ -791,7 +791,7 @@ struct CoreNumberTests {
         #expect(cores.kShell(2) == expected)
         let byCore = graph.vertices.filter { cores.coreNumber(of: $0) == 2 }
         #expect(byCore == expected)
-        #expect(graph.directed.undirected.coreNumbers().kShell(2) == expected)
+        #expect(graph.directedView.undirectedView.coreNumbers().kShell(2) == expected)
     }
 
     @Test("CQ-346 U(K(4), 3-4, 4-5, 5-6, 6-4).kShell(3) is [0, 1, 2, 3]")
@@ -804,7 +804,7 @@ struct CoreNumberTests {
         #expect(cores.kShell(3) == expected)
         let byCore = graph.vertices.filter { cores.coreNumber(of: $0) == 3 }
         #expect(byCore == expected)
-        #expect(graph.directed.undirected.coreNumbers().kShell(3) == expected)
+        #expect(graph.directedView.undirectedView.coreNumbers().kShell(3) == expected)
     }
 
     @Test("CQ-347 U(K(4), 3-4, 4-5, 5-6, 6-4).kShell(4) is []")
@@ -817,7 +817,7 @@ struct CoreNumberTests {
         #expect(cores.kShell(4) == expected)
         let byCore = graph.vertices.filter { cores.coreNumber(of: $0) == 4 }
         #expect(byCore == expected)
-        #expect(graph.directed.undirected.coreNumbers().kShell(4) == expected)
+        #expect(graph.directedView.undirectedView.coreNumbers().kShell(4) == expected)
     }
 
     @Test("CQ-348 U(nx(karate_club)).kCore(4) is [0, 1, 2, 3, 7, 8, 13, 30, 32, 33]: The main core")
@@ -840,7 +840,7 @@ struct CoreNumberTests {
         #expect(cores.kCore(4) == expected)
         let byCore = graph.vertices.filter { cores.coreNumber(of: $0) >= 4 }
         #expect(byCore == expected)
-        #expect(graph.directed.undirected.coreNumbers().kCore(4) == expected)
+        #expect(graph.directedView.undirectedView.coreNumbers().kCore(4) == expected)
     }
 
     @Test("CQ-349 U(nx(karate_club)).kShell(1) is [11]")
@@ -863,6 +863,6 @@ struct CoreNumberTests {
         #expect(cores.kShell(1) == expected)
         let byCore = graph.vertices.filter { cores.coreNumber(of: $0) == 1 }
         #expect(byCore == expected)
-        #expect(graph.directed.undirected.coreNumbers().kShell(1) == expected)
+        #expect(graph.directedView.undirectedView.coreNumbers().kShell(1) == expected)
     }
 }

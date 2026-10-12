@@ -105,7 +105,7 @@ let benchmarks: @Sendable () -> Void = {
 
     // The same graph as the undirected view of a directed adjacency list.
     let directed = AdjacencyList(vertices: 0 ..< n, edges: pairs.map { DirectedEdge(from: $0.u, to: $0.v) })
-    let view = directed.undirected
+    let view = directed.undirectedView
 
     // A 500 × 500 grid with weights 1…4, and the complete graph K₁₀₀₀.
     let side = 500
@@ -121,7 +121,7 @@ let benchmarks: @Sendable () -> Void = {
     let completeWeights = (0 ..< complete.edgeCount).map { _ in Int.random(in: 1 ... 1_000_000, using: &generator) }
     // K₁₀₀₀ again as the undirected view of a matrix: vertex indices, no edge indices, so ranks
     // come from walking `edges`. Weights by offset in `edges`.
-    let matrix = AdjacencyMatrix(vertexCount: k, edges: (0 ..< k).flatMap { u in (u + 1 ..< k).map { DirectedEdge(from: u, to: $0) } }).undirected
+    let matrix = AdjacencyMatrix(vertexCount: k, edges: (0 ..< k).flatMap { u in (u + 1 ..< k).map { DirectedEdge(from: u, to: $0) } }).undirectedView
     let matrixRank = Dictionary(uniqueKeysWithValues: matrix.edges.indices.enumerated().map { ($1, $0) })
     let matrixWeights = matrix.edges.indices.map { _ in Int.random(in: 1 ... 1_000_000, using: &generator) }
 
@@ -157,7 +157,7 @@ let benchmarks: @Sendable () -> Void = {
         for _ in benchmark.scaledIterations { blackHole(graph.minimumSpanningTree()) }
     }
     // ST-B02: through AdjacencyList.undirected (edge indices forwarded).
-    Benchmark("SpanningTrees: kruskalMinimumSpanningTree on AdjacencyList.undirected, G(10⁵, 10⁶)") { benchmark in
+    Benchmark("SpanningTrees: kruskalMinimumSpanningTree on AdjacencyList.undirectedView, G(10⁵, 10⁶)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(view.kruskalMinimumSpanningTree { weights[$0] }) }
     }
     // Grids and dense graphs.
@@ -173,10 +173,10 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("SpanningTrees: kruskalMinimumSpanningTree, K₁₀₀₀") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(complete.kruskalMinimumSpanningTree { completeWeights[$0] }) }
     }
-    Benchmark("SpanningTrees: minimumSpanningTree (canonical), K₁₀₀₀ as AdjacencyMatrix.undirected") { benchmark in
+    Benchmark("SpanningTrees: minimumSpanningTree (canonical), K₁₀₀₀ as AdjacencyMatrix.undirectedView") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(matrix.minimumSpanningTree { matrixWeights[matrixRank[$0]!] }) }
     }
-    Benchmark("SpanningTrees: primMinimumSpanningTree, K₁₀₀₀ as AdjacencyMatrix.undirected") { benchmark in
+    Benchmark("SpanningTrees: primMinimumSpanningTree, K₁₀₀₀ as AdjacencyMatrix.undirectedView") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(matrix.primMinimumSpanningTree { matrixWeights[matrixRank[$0]!] }) }
     }
     Benchmark("SpanningTrees: primMinimumSpanningTree, K₁₀₀₀") { benchmark in

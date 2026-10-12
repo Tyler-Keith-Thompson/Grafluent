@@ -574,7 +574,7 @@ enum FuzzSemirings {
     static func undirected(_ n: Int, _ sources: [Int], _ cutoff: Int, _ target: Int, _ raw: [(u: Int, v: Int, byte: Int)]) {
         let edges: [Arc] = raw.map { ($0.u, $0.v, $0.byte % 14 - 4) }
         let graph = Pseudograph(vertices: 0 ..< n, edges: edges.map { UndirectedEdge($0.u, $0.v) })
-        let view = graph.directed
+        let view = graph.directedView
         let vertices = Array(0 ..< n)
         let context = "undirected n \(n), sources \(sources): \(edges)"
         let nonnegative: (Int) -> TropicalSemiring<Int> = { TropicalSemiring(max(edges[$0].w, 0)) }
@@ -641,7 +641,7 @@ enum FuzzSemirings {
         let simple = firstWidth.flatMap { [($0.key.u, $0.key.v, $0.value), ($0.key.v, $0.key.u, $0.value)] }
         let simpleWidest = simplePaths(n, simple, sources, start: Int.max, fold: min, better: >).map { $0.map(BottleneckSemiring.init) }
         let namedTree = named.dijkstraShortestPaths(from: sources.map { names[$0] }, weight: namedWidth)
-        checkTree(namedTree, named.directed, names, sources.map { names[$0] }, { namedWidth($0.position) }, simpleWidest, "widest Dijkstra without indices, \(context)")
+        checkTree(namedTree, named.directedView, names, sources.map { names[$0] }, { namedWidth($0.position) }, simpleWidest, "widest Dijkstra without indices, \(context)")
         let namedSingle = named.dijkstraShortestPath(from: names[sources[0]], to: names[target], weight: namedWidth)
         check(namedSingle?.distance == simplePaths(n, simple, [sources[0]], start: Int.max, fold: min, better: >)[target].map(BottleneckSemiring.init), "widest single target without indices, \(context)")
         if let namedSingle {

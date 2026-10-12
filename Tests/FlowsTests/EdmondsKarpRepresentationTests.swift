@@ -2,11 +2,11 @@
 // `ReferenceDirectedMultigraph` for rows already on it), a file-private conformer with no vertex or
 // edge indices, and, without a repeated edge, `CompressedSparseRow` and `AdjacencyMatrix` on the
 // vertex indices; undirected rows on `Pseudograph` (or `ReferencePseudograph`), the conformer, and,
-// without a repeated edge, `AdjacencyList.undirected` (each edge an arc as written) and
-// `AdjacencyMatrix.undirected`. CompressedSparseRow and AdjacencyMatrix number edges by row-major
-// cell, so there each catalog edge's position is looked up, a cut's edges are listed in that order,
-// and Edmonds–Karp's flow (which follows positions) was recomputed by swiftgen.py with ref.py's
-// model on those positions. Everything else is the catalog's. See README.md.
+// without a repeated edge, `AdjacencyList.undirectedView` (each edge an arc as written) and
+// `AdjacencyMatrix.undirectedView`. CompressedSparseRow and AdjacencyMatrix number edges by
+// row-major cell, so there each catalog edge's position is looked up, a cut's edges are listed in
+// that order, and Edmonds–Karp's flow (which follows positions) was recomputed by swiftgen.py with
+// ref.py's model on those positions. Everything else is the catalog's. See README.md.
 
 import AdjacencyListModule
 import AdjacencyMatrixModule
@@ -1815,7 +1815,7 @@ struct EdmondsKarpRepresentationTests {
         }
     }
 
-    @Test("FL-165 undirected: one edge both ways: flow -5 on edge 0, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-165 undirected: one edge both ways: flow -5 on edge 0, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl165() {
         // undirected V [0, 1]; E [0–1 5]; edmondsKarpMaximumFlow(from: 1, to: 0, capacity:)
         let pairs: [(Int, Int)] = [(0, 1)]
@@ -1843,8 +1843,8 @@ struct EdmondsKarpRepresentationTests {
             #expect(cut.edges.map { "\($0.position)\($0.reversed ? "r" : "")" } == ["0r"] as [String])
             #expect(cut.value == 5)
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let flow = graph.edmondsKarpMaximumFlow(from: 1, to: 0, capacity: { capacities[$0] })
             #expect(flow.value == 5)
             #expect(pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: false)) - flow.flow(ofEdgeAt: .init(position: $0, reversed: true)) } == [-5] as [Int])
@@ -1854,9 +1854,9 @@ struct EdmondsKarpRepresentationTests {
             #expect(cut.edges.map { "\($0.position)\($0.reversed ? "r" : "")" } == ["0r"] as [String])
             #expect(cut.value == 5)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             let positionOfEdge = pairs.map { p in graph.edges.indices.first { graph.edges[$0].u == p.0 && graph.edges[$0].v == p.1 }! }
             let edgeOf = Dictionary(uniqueKeysWithValues: positionOfEdge.enumerated().map { ($1, $0) })
@@ -1871,7 +1871,7 @@ struct EdmondsKarpRepresentationTests {
         }
     }
 
-    @Test("FL-170 undirected path, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-170 undirected path, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl170() {
         // undirected V [0, 1, 2]; E [0–1 2, 1–2 3]; edmondsKarpMaximumFlow(from: 0, to: 2, capacity:)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
@@ -1899,8 +1899,8 @@ struct EdmondsKarpRepresentationTests {
             #expect(cut.edges.map { "\($0.position)\($0.reversed ? "r" : "")" } == ["0"] as [String])
             #expect(cut.value == 2)
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let flow = graph.edmondsKarpMaximumFlow(from: 0, to: 2, capacity: { capacities[$0] })
             #expect(flow.value == 2)
             #expect(pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: false)) - flow.flow(ofEdgeAt: .init(position: $0, reversed: true)) } == [2, 2] as [Int])
@@ -1910,9 +1910,9 @@ struct EdmondsKarpRepresentationTests {
             #expect(cut.edges.map { "\($0.position)\($0.reversed ? "r" : "")" } == ["0"] as [String])
             #expect(cut.value == 2)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
-            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             let positionOfEdge = pairs.map { p in graph.edges.indices.first { graph.edges[$0].u == p.0 && graph.edges[$0].v == p.1 }! }
             let edgeOf = Dictionary(uniqueKeysWithValues: positionOfEdge.enumerated().map { ($1, $0) })
@@ -1927,7 +1927,7 @@ struct EdmondsKarpRepresentationTests {
         }
     }
 
-    @Test("FL-175 undirected: an edge used against its order, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-175 undirected: an edge used against its order, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl175() {
         // undirected V [0, 1, 2, 3]; E [0–1 4, 2–1 4, 2–3 4, 0–2 1]; edmondsKarpMaximumFlow(from: 0, to: 3, capacity:)
         let pairs: [(Int, Int)] = [(0, 1), (2, 1), (2, 3), (0, 2)]
@@ -1955,8 +1955,8 @@ struct EdmondsKarpRepresentationTests {
             #expect(cut.edges.map { "\($0.position)\($0.reversed ? "r" : "")" } == ["2"] as [String])
             #expect(cut.value == 4)
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let flow = graph.edmondsKarpMaximumFlow(from: 0, to: 3, capacity: { capacities[$0] })
             #expect(flow.value == 4)
             #expect(pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: false)) - flow.flow(ofEdgeAt: .init(position: $0, reversed: true)) } == [3, -3, 4, 1] as [Int])
@@ -1966,9 +1966,9 @@ struct EdmondsKarpRepresentationTests {
             #expect(cut.edges.map { "\($0.position)\($0.reversed ? "r" : "")" } == ["2"] as [String])
             #expect(cut.value == 4)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (2, 1), (2, 3), (0, 2)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             let positionOfEdge = pairs.map { p in graph.edges.indices.first { graph.edges[$0].u == p.0 && graph.edges[$0].v == p.1 }! }
             let edgeOf = Dictionary(uniqueKeysWithValues: positionOfEdge.enumerated().map { ($1, $0) })
@@ -1983,7 +1983,7 @@ struct EdmondsKarpRepresentationTests {
         }
     }
 
-    @Test("FL-180 undirected: parallel edges and a loop, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-180 undirected: parallel edges and a loop, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl180() {
         // undirected V [0, 1, 2]; E [0–1 2, 1–0 2, 1–1 7, 1–2 9]; edmondsKarpMaximumFlow(from: 0, to: 2, capacity:)
         let pairs: [(Int, Int)] = [(0, 1), (1, 0), (1, 1), (1, 2)]
@@ -2011,8 +2011,8 @@ struct EdmondsKarpRepresentationTests {
             #expect(cut.edges.map { "\($0.position)\($0.reversed ? "r" : "")" } == ["0", "1r"] as [String])
             #expect(cut.value == 4)
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let flow = graph.edmondsKarpMaximumFlow(from: 0, to: 2, capacity: { capacities[$0] })
             #expect(flow.value == 4)
             #expect(pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: false)) - flow.flow(ofEdgeAt: .init(position: $0, reversed: true)) } == [2, -2, 0, 4] as [Int])
@@ -2022,9 +2022,9 @@ struct EdmondsKarpRepresentationTests {
             #expect(cut.edges.map { "\($0.position)\($0.reversed ? "r" : "")" } == ["0", "1r"] as [String])
             #expect(cut.value == 4)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 0), (1, 1), (1, 2)]
-            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             let positionOfEdge = pairs.map { p in graph.edges.indices.first { graph.edges[$0].u == p.0 && graph.edges[$0].v == p.1 }! }
             let edgeOf = Dictionary(uniqueKeysWithValues: positionOfEdge.enumerated().map { ($1, $0) })
@@ -2039,7 +2039,7 @@ struct EdmondsKarpRepresentationTests {
         }
     }
 
-    @Test("FL-185 undirected: flows meet head on, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-185 undirected: flows meet head on, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl185() {
         // undirected V [0, 1, 2, 3]; E [0–1 3, 0–2 3, 1–2 5, 1–3 1, 2–3 5]; edmondsKarpMaximumFlow(from: 0, to: 3, capacity:)
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (1, 3), (2, 3)]
@@ -2067,8 +2067,8 @@ struct EdmondsKarpRepresentationTests {
             #expect(cut.edges.map { "\($0.position)\($0.reversed ? "r" : "")" } == ["3", "4"] as [String])
             #expect(cut.value == 6)
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let flow = graph.edmondsKarpMaximumFlow(from: 0, to: 3, capacity: { capacities[$0] })
             #expect(flow.value == 6)
             #expect(pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: false)) - flow.flow(ofEdgeAt: .init(position: $0, reversed: true)) } == [3, 3, 2, 1, 5] as [Int])
@@ -2078,9 +2078,9 @@ struct EdmondsKarpRepresentationTests {
             #expect(cut.edges.map { "\($0.position)\($0.reversed ? "r" : "")" } == ["3", "4"] as [String])
             #expect(cut.value == 6)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (1, 3), (2, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             let positionOfEdge = pairs.map { p in graph.edges.indices.first { graph.edges[$0].u == p.0 && graph.edges[$0].v == p.1 }! }
             let edgeOf = Dictionary(uniqueKeysWithValues: positionOfEdge.enumerated().map { ($1, $0) })
@@ -2095,7 +2095,7 @@ struct EdmondsKarpRepresentationTests {
         }
     }
 
-    @Test("FL-190 undirected Stoer–Wagner paper graph, 1 to 8, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-190 undirected Stoer–Wagner paper graph, 1 to 8, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl190() {
         // undirected V [1, 2, 3, 4, 5, 6, 7, 8]; E [1–2 2, 1–5 3, 2–3 3, 2–5 2, 2–6 2, 3–4 4, 3–7 2, 4–7 2, 4–8 2, 5–6 3, 6–7 1, 7–8 3]; edmondsKarpMaximumFlow(from: 1, to: 8, capacity:)
         let pairs: [(Int, Int)] = [(1, 2), (1, 5), (2, 3), (2, 5), (2, 6), (3, 4), (3, 7), (4, 7), (4, 8), (5, 6), (6, 7), (7, 8)]
@@ -2123,8 +2123,8 @@ struct EdmondsKarpRepresentationTests {
             #expect(cut.edges.map { "\($0.position)\($0.reversed ? "r" : "")" } == ["2", "10"] as [String])
             #expect(cut.value == 4)
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4, 5, 6, 7, 8] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4, 5, 6, 7, 8] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let flow = graph.edmondsKarpMaximumFlow(from: 1, to: 8, capacity: { capacities[$0] })
             #expect(flow.value == 4)
             #expect(pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: false)) - flow.flow(ofEdgeAt: .init(position: $0, reversed: true)) } == [2, 2, 3, -1, 0, 2, 1, 0, 2, 1, 1, 2] as [Int])
@@ -2134,9 +2134,9 @@ struct EdmondsKarpRepresentationTests {
             #expect(cut.edges.map { "\($0.position)\($0.reversed ? "r" : "")" } == ["2", "10"] as [String])
             #expect(cut.value == 4)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 4), (1, 5), (2, 3), (2, 6), (3, 6), (3, 7), (4, 5), (5, 6), (6, 7)]
-            let graph = AdjacencyMatrix(vertexCount: 8, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 8, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             let positionOfEdge = pairs.map { p in graph.edges.indices.first { graph.edges[$0].u == p.0 && graph.edges[$0].v == p.1 }! }
             let edgeOf = Dictionary(uniqueKeysWithValues: positionOfEdge.enumerated().map { ($1, $0) })
@@ -2151,7 +2151,7 @@ struct EdmondsKarpRepresentationTests {
         }
     }
 
-    @Test("FL-195 undirected Wikipedia Gomory–Hu graph, 0 to 5, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-195 undirected Wikipedia Gomory–Hu graph, 0 to 5, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl195() {
         // undirected V [0, 1, 2, 3, 4, 5]; E [0–1 1, 0–2 7, 1–2 1, 1–3 3, 1–4 2, 2–4 4, 3–4 1, 3–5 6, 4–5 2]; edmondsKarpMaximumFlow(from: 0, to: 5, capacity:)
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (1, 3), (1, 4), (2, 4), (3, 4), (3, 5), (4, 5)]
@@ -2179,8 +2179,8 @@ struct EdmondsKarpRepresentationTests {
             #expect(cut.edges.map { "\($0.position)\($0.reversed ? "r" : "")" } == ["3", "6r", "8"] as [String])
             #expect(cut.value == 6)
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let flow = graph.edmondsKarpMaximumFlow(from: 0, to: 5, capacity: { capacities[$0] })
             #expect(flow.value == 6)
             #expect(pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: false)) - flow.flow(ofEdgeAt: .init(position: $0, reversed: true)) } == [1, 5, -1, 3, -1, 4, -1, 4, 2] as [Int])
@@ -2190,9 +2190,9 @@ struct EdmondsKarpRepresentationTests {
             #expect(cut.edges.map { "\($0.position)\($0.reversed ? "r" : "")" } == ["3", "6r", "8"] as [String])
             #expect(cut.value == 6)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (1, 3), (1, 4), (2, 4), (3, 4), (3, 5), (4, 5)]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             let positionOfEdge = pairs.map { p in graph.edges.indices.first { graph.edges[$0].u == p.0 && graph.edges[$0].v == p.1 }! }
             let edgeOf = Dictionary(uniqueKeysWithValues: positionOfEdge.enumerated().map { ($1, $0) })
@@ -2237,7 +2237,7 @@ struct EdmondsKarpRepresentationTests {
         }
     }
 
-    @Test("FL-209 undirected Double, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-209 undirected Double, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl209() {
         // Double undirected V [a, b, c]; E [a–b 0.5, b–c 1.5, a–c 0.25]; edmondsKarpMaximumFlow(from: a, to: c, capacity:)
         let pairs: [(String, String)] = [("a", "b"), ("b", "c"), ("a", "c")]
@@ -2265,8 +2265,8 @@ struct EdmondsKarpRepresentationTests {
             #expect(cut.edges.map { "\($0.position)\($0.reversed ? "r" : "")" } == ["0", "2"] as [String])
             #expect(cut.value == 0.75)
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<String>(vertices: ["a", "b", "c"] as [String], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<String>(vertices: ["a", "b", "c"] as [String], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let flow = graph.edmondsKarpMaximumFlow(from: "a", to: "c", capacity: { capacities[$0] })
             #expect(flow.value == 0.75)
             #expect(pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: false)) - flow.flow(ofEdgeAt: .init(position: $0, reversed: true)) } == [0.5, 0.5, 0.25] as [Double])
@@ -2276,9 +2276,9 @@ struct EdmondsKarpRepresentationTests {
             #expect(cut.edges.map { "\($0.position)\($0.reversed ? "r" : "")" } == ["0", "2"] as [String])
             #expect(cut.value == 0.75)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (0, 2)]
-            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             let positionOfEdge = pairs.map { p in graph.edges.indices.first { graph.edges[$0].u == p.0 && graph.edges[$0].v == p.1 }! }
             let edgeOf = Dictionary(uniqueKeysWithValues: positionOfEdge.enumerated().map { ($1, $0) })

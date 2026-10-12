@@ -582,10 +582,10 @@ struct StableGraphIndexTests {
 
     @Test("SG-076 undirected view keeps positions and nil bounds", .tags(.conformance))
     func sg076() {
-        // (V [0, 1, 2]; E [0→1, 1→2] / remove(edgeAt: 0)).undirected
+        // (V [0, 1, 2]; E [0→1, 1→2] / remove(edgeAt: 0)).undirectedView
         var graph = StableDirectedGraph<Int>(vertices: [0, 1, 2], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
         _ = graph.remove(edgeAt: 0)
-        let view = graph.undirected
+        let view = graph.undirectedView
         #expect(Array(view.edges.indices) == [1])
         #expect(view.edges.map { [$0.u, $0.v] } == [[1, 2]])
         #expect(Array(view.incidentEdges(of: 0)) == [] as [Int])

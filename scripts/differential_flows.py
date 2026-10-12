@@ -410,7 +410,7 @@ def compare_flows(case, mine):
     net = flow_net(case)
     m = net.m
     s, t = f["source"], f["sink"]
-    # Arcs of the minimum-cost problem: the digraph itself, or `directed` of an undirected one.
+    # Arcs of the minimum-cost problem: the digraph itself, or `directedView` of an undirected one.
     arcs = []
     for u, v, c, w in f["edges"]:
         arcs.append((u, v, c, w))

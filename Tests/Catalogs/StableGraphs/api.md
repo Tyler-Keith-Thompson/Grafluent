@@ -393,7 +393,7 @@ Wired in phase 1 (each keeps its hash path for other index-less graphs):
   and also with edge holes only.
 
 Not wired: the undirected helpers (`_vertexNumbering`, `_LazyIncidenceRows`, `_edgeNumbers`)
-serve `Graph`, reached only through the `undirected` view, which does not conform; SpanningTrees,
+serve `Graph`, reached only through the `undirectedView` view, which does not conform; SpanningTrees,
 Centrality, Tours, Distances, Cliques and the other undirected modules likewise. Directed modules
 with private numberings (Centrality's directed rows, Cycles' directed rows, Tours'
 `_DirectedTourRows`, CommunityDetection) still hash once per vertex and once per edge end while

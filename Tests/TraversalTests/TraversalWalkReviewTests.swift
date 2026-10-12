@@ -98,7 +98,7 @@ struct TraversalWalkReviewTests {
     @Test("WK-1219 findCycle through the directed view of an undirected graph with a self-loop is the loop's forward arc")
     func findCycleThroughDirectedView() {
         let graph = UndirectedAdjacencyList(edges: [UndirectedEdge(0, 0)])
-        let view = graph.directed
+        let view = graph.directedView
         let cycle = view.findCycle()
         #expect(cycle?.vertices == [0])
         #expect(cycle.map { Cycle(vertices: $0.vertices, edges: $0.edges, in: view) != nil } == true)

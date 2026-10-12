@@ -1,6 +1,6 @@
 // Dijkstra over a selective semiring (catalog Dijkstra rows): shortest paths (tropical), widest
 // paths (bottleneck, with a cutoff meaning at least this wide) and reachability (Boolean); an
-// edge of weight zero carries no path; undirected graphs through .directed.
+// edge of weight zero carries no path; undirected graphs through .directedView.
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import GraphProtocols
@@ -67,11 +67,11 @@ struct SemiringDijkstraTests {
         }
     }
 
-    @Test("SR-220 undirected through .directed (TropicalSemiring<Int>)")
+    @Test("SR-220 undirected through .directedView (TropicalSemiring<Int>)")
     func sr220() {
         // dijkstraShortestPaths(from: 0) → [0, 2, 9, 9]
         let graph = Pseudograph(vertices: 0 ..< 4, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2), UndirectedEdge(2, 3), UndirectedEdge(0, 3)])
-        let directed = graph.directed
+        let directed = graph.directedView
         let w: [Int] = [2, 7, 1, 9]
         let tree = directed.dijkstraShortestPaths(from: 0) { TropicalSemiring(w[$0.position]) }
         let expected: [Int?] = [0, 2, 9, 9]
@@ -264,11 +264,11 @@ struct SemiringDijkstraTests {
         }
     }
 
-    @Test("SR-243 undirected through .directed (TropicalSemiring<Double>)")
+    @Test("SR-243 undirected through .directedView (TropicalSemiring<Double>)")
     func sr243() {
         // dijkstraShortestPaths(from: 0) → [0.0, 2.0, 9.0, 9.0]
         let graph = Pseudograph(vertices: 0 ..< 4, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2), UndirectedEdge(2, 3), UndirectedEdge(0, 3)])
-        let directed = graph.directed
+        let directed = graph.directedView
         let w: [Double] = [2.0, 7.0, 1.0, 9.0]
         let tree = directed.dijkstraShortestPaths(from: 0) { TropicalSemiring(w[$0.position]) }
         let expected: [Double?] = [0.0, 2.0, 9.0, 9.0]
@@ -461,11 +461,11 @@ struct SemiringDijkstraTests {
         }
     }
 
-    @Test("SR-277 undirected through .directed (BottleneckSemiring<Int>)")
+    @Test("SR-277 undirected through .directedView (BottleneckSemiring<Int>)")
     func sr277() {
         // dijkstraShortestPaths(from: 0) → [Int.max, 2, 2, 9]
         let graph = Pseudograph(vertices: 0 ..< 4, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2), UndirectedEdge(2, 3), UndirectedEdge(0, 3)])
-        let directed = graph.directed
+        let directed = graph.directedView
         let w: [Int] = [2, 7, 1, 9]
         let tree = directed.dijkstraShortestPaths(from: 0) { BottleneckSemiring(w[$0.position]) }
         let expected: [Int?] = [Int.max, 2, 2, 9]
@@ -649,11 +649,11 @@ struct SemiringDijkstraTests {
         }
     }
 
-    @Test("SR-290 undirected through .directed (BottleneckSemiring<Double>)")
+    @Test("SR-290 undirected through .directedView (BottleneckSemiring<Double>)")
     func sr290() {
         // dijkstraShortestPaths(from: 0) → [.infinity, 2.0, 2.0, 9.0]
         let graph = Pseudograph(vertices: 0 ..< 4, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2), UndirectedEdge(2, 3), UndirectedEdge(0, 3)])
-        let directed = graph.directed
+        let directed = graph.directedView
         let w: [Double] = [2.0, 7.0, 1.0, 9.0]
         let tree = directed.dijkstraShortestPaths(from: 0) { BottleneckSemiring(w[$0.position]) }
         let expected: [Double?] = [Double.infinity, 2.0, 2.0, 9.0]

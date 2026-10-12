@@ -12,7 +12,7 @@
 // partition in canonical order whose `community(of:)` and `community(ofIndex:)` agree with it. With
 // integer weights the results are a function of the vertex numbering and the weighted edges alone:
 // the same on a second call, with rows and edge positions permuted, on the package's adjacency lists,
-// with every weight doubled, and (Louvain, greedy modularity, modularity) on `graph.directed`. With
+// with every weight doubled, and (Louvain, greedy modularity, modularity) on `graph.directedView`. With
 // γ = 0 Louvain and greedy modularity give the (weakly) connected components. See README.md.
 
 import AdjacencyListModule
@@ -97,7 +97,7 @@ private struct ShuffledDigraph: DirectedGraph {
 
 @Suite("Community detection properties against oracles, with shrinking", .tags(.randomized))
 struct CommunityDetectionPropertyTests {
-    @Test("Modularity equals the matrix definition (Newman–Girvan with γ undirected, an undirected loop A_vv = 2w; Leicht–Newman directed), weighted and unweighted; community order and empty communities do not matter; graph.directed agrees; γ = 0 is the coverage")
+    @Test("Modularity equals the matrix definition (Newman–Girvan with γ undirected, an undirected loop A_vv = 2w; Leicht–Newman directed), weighted and unweighted; community order and empty communities do not matter; graph.directedView agrees; γ = 0 is the coverage")
     func modularity() async {
         let triples = zip(Gen.int(in: 0 ... 7), Gen.int(in: 0 ... 7), Gen.int(in: 0 ... 3)).array(of: 0 ... 14)
         let labels = Gen.int(in: 0 ... 3).array(of: 8 ... 8)
@@ -144,8 +144,8 @@ struct CommunityDetectionPropertyTests {
                 values.append((graph.modularity(of: communities, resolution: gamma), oracle(ones), "unweighted"))
                 values.append((graph.modularity(of: communities, weight: { w[$0] }, resolution: gamma), oracle(w), "weighted"))
                 values.append((graph.modularity(of: shuffled, weight: { w[$0] }, resolution: gamma), oracle(w), "reordered"))
-                values.append((graph.directed.modularity(of: communities, resolution: gamma), oracle(ones), "graph.directed"))
-                values.append((graph.directed.modularity(of: communities, weight: { w[$0.position] }, resolution: gamma), oracle(w), "graph.directed, weighted"))
+                values.append((graph.directedView.modularity(of: communities, resolution: gamma), oracle(ones), "graph.directedView"))
+                values.append((graph.directedView.modularity(of: communities, weight: { w[$0.position] }, resolution: gamma), oracle(w), "graph.directedView, weighted"))
                 if !ends.isEmpty {
                     let coverage = graph.partitionQuality(of: communities).coverage
                     values.append((graph.modularity(of: communities, resolution: 0), coverage, "γ = 0 is the coverage"))
@@ -185,9 +185,9 @@ struct CommunityDetectionPropertyTests {
             } else {
                 let graph = ShuffledPseudograph(vertexCount: n, edges: ends.map { UndirectedEdge($0.0, $0.1) }, seed: seed)
                 quality = graph.partitionQuality(of: communities)
-                let arcs = graph.directed.partitionQuality(of: communities)
-                #expect(arcs.coverage.isNaN == coverage.isNaN && (coverage.isNaN || abs(arcs.coverage - coverage) <= 1e-12), "graph.directed coverage, \(ends)")
-                #expect(arcs.performance.isNaN == performance.isNaN && (performance.isNaN || abs(arcs.performance - performance) <= 1e-12), "graph.directed performance, \(ends)")
+                let arcs = graph.directedView.partitionQuality(of: communities)
+                #expect(arcs.coverage.isNaN == coverage.isNaN && (coverage.isNaN || abs(arcs.coverage - coverage) <= 1e-12), "graph.directedView coverage, \(ends)")
+                #expect(arcs.performance.isNaN == performance.isNaN && (performance.isNaN || abs(arcs.performance - performance) <= 1e-12), "graph.directedView performance, \(ends)")
             }
             let context = "\(ends), directed \(isDirected), labels \(label), seed \(seed)"
             #expect(quality.coverage.isNaN == coverage.isNaN, "coverage \(quality.coverage) vs \(coverage); \(context)")
@@ -399,10 +399,10 @@ struct CommunityDetectionPropertyTests {
                     #expect(first == second, "\(what): a second call; \(context)")
                     #expect(first == other, "\(what): rows and positions permuted; \(context)")
                 }
-                #expect(graph.directed.louvainCommunities().map { Array($0) } == calls[0].1, "louvain on graph.directed; \(context)")
-                #expect(graph.directed.louvainCommunities(weight: { w[$0.position] }).map { Array($0) } == calls[1].1, "louvain weighted on graph.directed; \(context)")
-                #expect(graph.directed.greedyModularityCommunities().map { Array($0) } == calls[2].1, "greedy on graph.directed; \(context)")
-                #expect(graph.directed.greedyModularityCommunities(weight: { w[$0.position] }).map { Array($0) } == calls[3].1, "greedy weighted on graph.directed; \(context)")
+                #expect(graph.directedView.louvainCommunities().map { Array($0) } == calls[0].1, "louvain on graph.directedView; \(context)")
+                #expect(graph.directedView.louvainCommunities(weight: { w[$0.position] }).map { Array($0) } == calls[1].1, "louvain weighted on graph.directedView; \(context)")
+                #expect(graph.directedView.greedyModularityCommunities().map { Array($0) } == calls[2].1, "greedy on graph.directedView; \(context)")
+                #expect(graph.directedView.greedyModularityCommunities(weight: { w[$0.position] }).map { Array($0) } == calls[3].1, "greedy weighted on graph.directedView; \(context)")
                 let reference = ReferencePseudograph(vertices: graph.vertices, edges: simple.map { UndirectedEdge($0.0, $0.1) })
                 let list = UndirectedAdjacencyList(vertices: graph.vertices, edges: simple.map { UndirectedEdge($0.0, $0.1) })
                 #expect(list.louvainCommunities(weight: { simpleWeights[$0] }).map { Array($0) } == reference.louvainCommunities(weight: { simpleWeights[$0] }).map { Array($0) }, "louvain on UndirectedAdjacencyList; \(context)")

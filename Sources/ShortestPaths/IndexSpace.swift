@@ -174,4 +174,13 @@ extension DirectedGraph {
         guard let id = ids.existingIdentifier(of: vertex) else { preconditionFailure("\(vertex) is not a vertex of the graph") }
         return id
     }
+
+    /// The index of `vertex`, for the `checked:` spellings of the results: throwing where
+    /// `_index(of:_:)` traps. The results' identifiers number every vertex, so a missing one is
+    /// not a vertex.
+    @inlinable
+    func _checkedIndex(of vertex: Vertex, _ ids: _VertexIdentifiers<Self>) throws(VertexNotFound) -> Int {
+        guard let id = ids.existingIdentifier(of: vertex) else { throw VertexNotFound() }
+        return id
+    }
 }

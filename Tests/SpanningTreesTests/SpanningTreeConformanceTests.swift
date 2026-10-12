@@ -1,6 +1,6 @@
 // Preconditions (exit tests), value semantics, Equatable, Hashable and Sendable, existentials and
 // generic code, weight-call counts on every representation, index-space dispatch (no vertex hashing
-// on an indexed adjacency list), and digraphs through `.undirected`. Case IDs (ST-nn) refer to the
+// on an indexed adjacency list), and digraphs through `.undirectedView`. Case IDs (ST-nn) refer to the
 // catalog; see README.md.
 
 import AdjacencyListModule
@@ -89,12 +89,12 @@ struct SpanningTreeConformanceTests {
         await #expect(processExitsWith: .failure) {
             let arcs = [DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 3, to: 2), DirectedEdge(from: 3, to: 1)]
             let weights: [Double] = [.nan, 3, 2, 4]
-            _ = AdjacencyList(edges: arcs).undirected.kruskalMinimumSpanningTree { weights[$0] }
+            _ = AdjacencyList(edges: arcs).undirectedView.kruskalMinimumSpanningTree { weights[$0] }
         }
         await #expect(processExitsWith: .failure) {
             let arcs = [DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 3, to: 2), DirectedEdge(from: 3, to: 1)]
             let weights: [Double] = [.nan, 3, 2, 4]
-            _ = AdjacencyList(edges: arcs).undirected.boruvkaMinimumSpanningTree { weights[$0] }
+            _ = AdjacencyList(edges: arcs).undirectedView.boruvkaMinimumSpanningTree { weights[$0] }
         }
         // Without vertex indices.
         await #expect(processExitsWith: .failure) {
@@ -121,10 +121,10 @@ struct SpanningTreeConformanceTests {
             _ = PlainGraph(vertices: [0, 1], edges: [UndirectedEdge(0, 1)]).primMinimumSpanningTree(from: 9) { _ in 1 }
         }
         await #expect(processExitsWith: .failure) {
-            _ = AdjacencyList(edges: [DirectedEdge(from: 0, to: 1)]).undirected.primMinimumSpanningTree(from: 9) { _ in 1 }
+            _ = AdjacencyList(edges: [DirectedEdge(from: 0, to: 1)]).undirectedView.primMinimumSpanningTree(from: 9) { _ in 1 }
         }
         await #expect(processExitsWith: .failure) {
-            _ = AdjacencyMatrix(vertexCount: 2, edges: [DirectedEdge(from: 0, to: 1)]).undirected.primMinimumSpanningTree(from: 2) { _ in 1 }
+            _ = AdjacencyMatrix(vertexCount: 2, edges: [DirectedEdge(from: 0, to: 1)]).undirectedView.primMinimumSpanningTree(from: 2) { _ in 1 }
         }
         await #expect(processExitsWith: .failure) {
             // An empty graph has no vertex to start from.
@@ -270,8 +270,8 @@ struct SpanningTreeConformanceTests {
             UndirectedAdjacencyList(edges: pairs.map { UndirectedEdge($0.0, $0.1) }),
             ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) }),
             PlainGraph(vertices: [0, 1, 2, 3], edges: pairs.map { UndirectedEdge($0.0, $0.1) }),
-            AdjacencyList(edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected,
-            AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected,
+            AdjacencyList(edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView,
+            AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView,
         ]
         for graph in graphs {
             let result = answers(graph)
@@ -319,8 +319,8 @@ struct SpanningTreeConformanceTests {
         check(UndirectedAdjacencyList(vertices: 0 ..< 5, edges: pairs.map { UndirectedEdge($0.0, $0.1) }), "UndirectedAdjacencyList")
         check(ReferencePseudograph(vertices: 0 ..< 5, edges: arcs.map { UndirectedEdge($0.0, $0.1) }), "ReferencePseudograph")
         check(PlainGraph(vertices: [0, 1, 2, 3, 4], edges: arcs.map { UndirectedEdge($0.0, $0.1) }), "PlainGraph")
-        check(AdjacencyList(vertices: 0 ..< 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected, "AdjacencyList.undirected")
-        check(AdjacencyMatrix(vertexCount: 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected, "AdjacencyMatrix.undirected")
+        check(AdjacencyList(vertices: 0 ..< 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView, "AdjacencyList.undirectedView")
+        check(AdjacencyMatrix(vertexCount: 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView, "AdjacencyMatrix.undirectedView")
     }
 
     @Test("ST-128 an indexed adjacency list is spanned in index space, without hashing vertices")
@@ -369,17 +369,17 @@ struct SpanningTreeConformanceTests {
         #expect(unweighted.edges.count == 6)
     }
 
-    @Test("ST-129 a digraph is spanned through .undirected, each arc an edge")
+    @Test("ST-129 a digraph is spanned through .undirectedView, each arc an edge")
     func digraphThroughUndirected() {
         // Nothing is offered on DirectedGraph itself; that is a compile-time property, documented in
         // the README rather than tested.
         let digraph = AdjacencyList(edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "a"), DirectedEdge(from: "b", to: "c")])
         let weights = [3, 1, 2]
-        let forest: SpanningForest<UndirectedView<AdjacencyList<String>>, Int> = digraph.undirected.minimumSpanningTree { weights[$0] }
+        let forest: SpanningForest<UndirectedView<AdjacencyList<String>>, Int> = digraph.undirectedView.minimumSpanningTree { weights[$0] }
         #expect(forest.edges == [1, 2])
         #expect(forest.weight == 3)
         #expect(forest.edges.map { digraph.edges[$0] } == [DirectedEdge(from: "b", to: "a"), DirectedEdge(from: "b", to: "c")])
-        let unweighted: SpanningForest<UndirectedView<AdjacencyList<String>>, Int> = digraph.undirected.minimumSpanningTree()
+        let unweighted: SpanningForest<UndirectedView<AdjacencyList<String>>, Int> = digraph.undirectedView.minimumSpanningTree()
         #expect(unweighted.edges == [0, 2])
     }
 }

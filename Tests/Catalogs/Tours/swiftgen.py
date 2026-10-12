@@ -10,7 +10,7 @@ Hamiltonian search, nearest neighbour, Christofides, 2-opt, Held–Karp), assert
 renders to its catalog cell exactly, and writes one @Test per row.
 
 The representation tests run the rows again on other representations. Each representation lists a
-vertex's edges in its own order (`AdjacencyList.undirected`: out-edges, then in-edges;
+vertex's edges in its own order (`AdjacencyList.undirectedView`: out-edges, then in-edges;
 `AdjacencyMatrix` and `CompressedSparseRow`: by neighbour) and some number edges by row-major cell.
 For each row and representation the same models run on that representation's rows and positions;
 where they give the catalog's walk (its vertices, and the same edges), the test pins it exactly,
@@ -137,7 +137,7 @@ REP_NAMES = {
     "al": "AdjacencyList", "dpseudo": "DirectedPseudograph", "refd": "ReferenceDirectedMultigraph",
     "unidx": "no indices", "csr": "CompressedSparseRow", "am": "AdjacencyMatrix",
     "ual": "UndirectedAdjacencyList", "pseudo": "Pseudograph", "refu": "ReferencePseudograph",
-    "unidxu": "no indices", "alu": "AdjacencyList.undirected", "amu": "AdjacencyMatrix.undirected",
+    "unidxu": "no indices", "alu": "AdjacencyList.undirectedView", "amu": "AdjacencyMatrix.undirectedView",
 }
 
 
@@ -356,8 +356,8 @@ def graph_line(g, rep):
         "pseudo": f"let graph = Pseudograph<{T}>(vertices: {V}, edges: {ue})",
         "refu": f"let graph = ReferencePseudograph<{T}>(vertices: {V}, edges: {ue})",
         "unidxu": f"let graph = UnindexedGraph<{T}>(vertices: {V}, edges: {ue})",
-        "alu": f"let graph = AdjacencyList<{T}>(vertices: {V}, edges: {de}).undirected",
-        "amu": f"let graph = AdjacencyMatrix(vertexCount: {n}, edges: {de}).undirected",
+        "alu": f"let graph = AdjacencyList<{T}>(vertices: {V}, edges: {de}).undirectedView",
+        "amu": f"let graph = AdjacencyMatrix(vertexCount: {n}, edges: {de}).undirectedView",
     }[rep]
 
 
@@ -1198,8 +1198,8 @@ REP_INTRO = ("The catalog's rows again on other representations: directed rows o
              "`ReferenceDirectedMultigraph` for rows already on it), a file-private conformer with no vertex or "
              "edge indices, and, without a repeated edge, `CompressedSparseRow` and `AdjacencyMatrix` on the vertex "
              "indices; undirected rows on `Pseudograph` (or `ReferencePseudograph`), the conformer, and, without a "
-             "repeated edge, `AdjacencyList.undirected` (each edge an arc as written; a vertex's row its out-edges, "
-             "then its in-edges) and `AdjacencyMatrix.undirected` (rows by neighbour). CompressedSparseRow and "
+             "repeated edge, `AdjacencyList.undirectedView` (each edge an arc as written; a vertex's row its out-edges, "
+             "then its in-edges) and `AdjacencyMatrix.undirectedView` (rows by neighbour). CompressedSparseRow and "
              "AdjacencyMatrix number edges by row-major cell, so there each catalog edge's position is looked up. "
              "The walks follow each vertex's row, and Christofides' ties follow positions: where ref.py's models, "
              "run by swiftgen.py on the representation's rows and positions, give the catalog's result, it is "

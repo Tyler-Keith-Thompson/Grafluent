@@ -34,10 +34,10 @@ struct HypergraphStressTests {
             let components = hypergraph.connectedComponents()
             #expect(components.count == 20 && components.allSatisfy { $0.count == 1_000 })
             #expect(components.map { $0.first! } == Array(stride(from: 0, to: n, by: 1_000)))
-            let view = hypergraph.incidenceGraph
+            let view = hypergraph.incidenceGraphView
             #expect(view.vertexCount == n + m + 20 && view.edgeCount == sizes)
             #expect(view.connectedComponents().count == 20)
-            let reached = view.directed.breadthFirstSearch(from: 0).reduce(0) { count, event in
+            let reached = view.directedView.breadthFirstSearch(from: 0).reduce(0) { count, event in
                 if case .discover = event { return count + 1 }
                 return count
             }
@@ -77,7 +77,7 @@ struct HypergraphStressTests {
             var hypergraph = IncidenceList<Int>(vertices: 0 ..< n)
             for i in 0 ..< n { hypergraph.insert(sources: [i], targets: [(i + 1) % n, (i + 7) % n]) }
             #expect(hypergraph.stronglyConnectedComponents().count == 1 && hypergraph.isStronglyConnected)
-            #expect(hypergraph.incidenceGraph.stronglyConnectedComponents().count == 1)
+            #expect(hypergraph.incidenceGraphView.stronglyConnectedComponents().count == 1)
             #expect(hypergraph.bConnectedVertices(from: 0).count == n)
             // Backwards, a hyperedge fires only once both its targets are reached.
             #expect(hypergraph.fConnectedVertices(to: 0) == hypergraph.reversed.bConnectedVertices(from: 0))
@@ -110,9 +110,9 @@ struct HypergraphStressTests {
             tally.hashes = 0
             #expect(undirected.connectedComponents().count == 1 && undirected.isConnected)
             #expect(undirected.sConnectedComponents(s: 2).count >= 1 && undirected.dual().vertexCount == n)
-            #expect(undirected.incidenceGraph.connectedComponents().count == 1)
+            #expect(undirected.incidenceGraphView.connectedComponents().count == 1)
             #expect(directed.stronglyConnectedComponents().count == 1 && directed.weaklyConnectedComponents().count == 1)
-            #expect(directed.incidenceGraph.stronglyConnectedComponents().count == 1)
+            #expect(directed.incidenceGraphView.stronglyConnectedComponents().count == 1)
             #expect(tally.hashes == 0)
             #expect(directed.bConnectedVertices(from: Counted(name: 0, tally: tally)).count == n)
             #expect(tally.hashes == 1)

@@ -35,9 +35,9 @@ struct IncidenceList<Vertex>: DirectedHypergraph, …               // the same 
     outHyperedges / inHyperedges(of: / ofIndex: / checked:), outDegree / inDegree / degree(of: / checked:),
     vertexIndex(of: / checked:), reversed
 extension Hypergraph: neighbors(of:), rank, isUniform(size:), degreeHistogram(), hyperedgeSizeHistogram(),
-    dual(), incidenceGraph, cliqueExpansion(), lineGraph(s:), connectedComponents(), isConnected,
+    dual(), incidenceGraphView, cliqueExpansion(), lineGraph(s:), connectedComponents(), isConnected,
     sConnectedComponents(s:)
-extension DirectedHypergraph: dual(), incidenceGraph, weaklyConnectedComponents(), isWeaklyConnected,
+extension DirectedHypergraph: dual(), incidenceGraphView, weaklyConnectedComponents(), isWeaklyConnected,
     stronglyConnectedComponents(), isStronglyConnected, bConnectedVertices(from:), isBConnected(from:to:),
     fConnectedVertices(to:), isFConnected(from:to:), isBHypergraph, isFHypergraph, isBFHypergraph,
     cliqueExpansion(), outDegreeHistogram(), inDegreeHistogram(), sourceSizeHistogram(), targetSizeHistogram()
@@ -81,7 +81,8 @@ second time on a vertex type, local to the test, whose `hash(into:)` and `==` co
 isolated vertices, because an `OrderedSet` hashes only from 16 elements.
 
 The catalog-row files are every file except `HypergraphConformanceTests.swift`,
-`HypergraphEdgeCaseTests.swift`, `HypergraphHashTests.swift`, `HypergraphPropertyTests.swift` and
+`HypergraphEdgeCaseTests.swift`, `HypergraphHashTests.swift`, `HypergraphPropertyTests.swift`,
+`IncidenceGraphViewCheckedTests.swift` (the incidence graph views' `checked:` lookups) and
 `Performance/HypergraphStressTests.swift`.
 `swiftgen.py`, which sits next to `ref.py`, generated them:
 

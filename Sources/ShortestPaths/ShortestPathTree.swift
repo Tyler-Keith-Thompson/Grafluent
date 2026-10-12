@@ -90,8 +90,12 @@ public struct ShortestPathTree<G: DirectedGraph, Distance: Comparable> {
     /// - Precondition: `vertex` is a vertex of the graph.
     @inlinable
     public func parentEdge(of vertex: G.Vertex) -> G.Edges.Index? {
-        let i = _index(of: vertex)
-        return _parent[i] >= 0 ? _parentEdge[i] : nil
+        _parentEdge(ofIndex: _index(of: vertex))
+    }
+
+    @inlinable
+    func _parentEdge(ofIndex i: Int) -> G.Edges.Index? {
+        _parent[i] >= 0 ? _parentEdge[i] : nil
     }
 
     /// A shortest path from a source to `vertex`, both included, with the edges it takes (which
@@ -101,7 +105,12 @@ public struct ShortestPathTree<G: DirectedGraph, Distance: Comparable> {
     /// - Precondition: `vertex` is a vertex of the graph.
     @inlinable
     public func path(to vertex: G.Vertex) -> Path<G.Vertex, G.Edges.Index>? {
-        var i = _index(of: vertex)
+        _path(toIndex: _index(of: vertex))
+    }
+
+    @inlinable
+    func _path(toIndex index: Int) -> Path<G.Vertex, G.Edges.Index>? {
+        var i = index
         guard _parent[i] != Self._unreached else { return nil }
         var vertices = [_ids.vertex(i)]
         var edges: [G.Edges.Index] = []
@@ -137,6 +146,60 @@ public struct ShortestPathTree<G: DirectedGraph, Distance: Comparable> {
     }
 }
 
+// MARK: - checked: lookups
+
+// README Principle 6: `VertexNotFound` for a vertex that is not in the graph, where the trapping
+// spellings are the fast path. Each makes the one lookup its trapping spelling makes; `try?` gives
+// an Optional. A nil the trapping spelling returns (unreached, or a source) is still nil; `try?`
+// flattens it with a missing vertex's, so a caller that must tell them apart catches.
+
+extension ShortestPathTree {
+    /// `distance(to: vertex)`, throwing instead of trapping when `vertex` is not a vertex of the
+    /// graph: nil still means no path reaches it.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the graph.
+    @inlinable
+    public func distance(checkedTo vertex: G.Vertex) throws(VertexNotFound) -> Distance? {
+        distance(toIndex: try _ids.graph._checkedIndex(of: vertex, _ids))
+    }
+
+    /// `hasPath(to: vertex)`, throwing instead of trapping when `vertex` is not a vertex of the
+    /// graph.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the graph.
+    @inlinable
+    public func hasPath(checkedTo vertex: G.Vertex) throws(VertexNotFound) -> Bool {
+        _parent[try _ids.graph._checkedIndex(of: vertex, _ids)] != Self._unreached
+    }
+
+    /// `parent(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex of the
+    /// graph: nil still means a source or a vertex not reached.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the graph.
+    @inlinable
+    public func parent(checked vertex: G.Vertex) throws(VertexNotFound) -> G.Vertex? {
+        parent(ofIndex: try _ids.graph._checkedIndex(of: vertex, _ids)).map { _ids.vertex($0) }
+    }
+
+    /// `parentEdge(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex of the
+    /// graph: nil still means a source or a vertex not reached.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the graph.
+    @inlinable
+    public func parentEdge(checked vertex: G.Vertex) throws(VertexNotFound) -> G.Edges.Index? {
+        _parentEdge(ofIndex: try _ids.graph._checkedIndex(of: vertex, _ids))
+    }
+
+    /// `path(to: vertex)`, throwing instead of trapping when `vertex` is not a vertex of the
+    /// graph: nil still means `vertex` is not reached. O(length).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the graph.
+    @inlinable
+    public func path(checkedTo vertex: G.Vertex) throws(VertexNotFound) -> Path<G.Vertex, G.Edges.Index>? {
+        _path(toIndex: try _ids.graph._checkedIndex(of: vertex, _ids))
+    }
+}
+
 extension Arborescence {
     /// The shortest-path tree of a one-source search, as an arborescence rooted at the source:
     /// every reached vertex, each with its `parent(of:)` as parent (the tree LEMON's `predMap`
@@ -158,6 +221,42 @@ extension Arborescence {
         let parent = tree._parent
         let unreached = ShortestPathTree<G, Distance>._unreached
         // Each reached index's number in the arborescence.
+        var number = [Int](repeating: -1, count: parent.count)
+        var vertices = ContiguousArray<Vertex>()
+        for i in parent.indices where parent[i] != unreached {
+            number[i] = vertices.count
+            vertices.append(tree._ids.vertex(i))
+        }
+        var parents = [Int](repeating: -1, count: vertices.count)
+        for i in parent.indices where parent[i] >= 0 { parents[number[i]] = number[parent[i]] }
+        self.init(vertices: vertices, parents: parents)
+    }
+
+    /// The shortest-path tree of a one-source search, as `init(_:)` builds it, throwing instead of
+    /// trapping when the search had several sources: a shortest-path forest is then not a tree.
+    /// `Forest(tree)` takes any number of sources. O(n).
+    ///
+    /// - Throws: `NotATree` unless `tree.sources.count == 1`.
+    @inlinable
+    public init<G: DirectedGraph, Distance>(checked tree: ShortestPathTree<G, Distance>) throws(NotATree) where G.Vertex == Vertex {
+        guard tree.sources.count == 1 else { throw NotATree() }
+        self.init(tree)
+    }
+}
+
+extension Forest {
+    /// The shortest-path forest of a search from any number of sources, with the edges'
+    /// directions and the roots dropped: every reached vertex, in the tree's index order as
+    /// `Arborescence(_:)` lists them (unreached ones left out), and one edge (parent, child) per
+    /// reached vertex with a parent, in that order. Edge positions are the forest's own: edge k
+    /// joins the k-th listed vertex with a parent to its parent; the graph's edge stays
+    /// `tree.parentEdge(of:)`. The tree holds a copy of its graph, so none is passed, unlike
+    /// `Forest(_:in:)` for a spanning forest. O(n); the vertices are hashed once, into the
+    /// forest's lookup table, unless they are the `Int`s `0..<k` in order.
+    @inlinable
+    public init<G: DirectedGraph, Distance>(_ tree: ShortestPathTree<G, Distance>) where G.Vertex == Vertex {
+        let parent = tree._parent
+        let unreached = ShortestPathTree<G, Distance>._unreached
         var number = [Int](repeating: -1, count: parent.count)
         var vertices = ContiguousArray<Vertex>()
         for i in parent.indices where parent[i] != unreached {

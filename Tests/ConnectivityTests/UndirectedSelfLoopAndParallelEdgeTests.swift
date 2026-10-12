@@ -500,8 +500,8 @@ struct UndirectedSelfLoopAndParallelEdgeTests {
         check(ReferencePseudograph(edges: edges))
     }
 
-    @Test("CN-296 a digraph's opposite arcs through .undirected are parallel edges, so not bridges")
-    func digraphOppositeArcsThroughUndirectedAre() {
+    @Test("CN-296 a digraph's opposite arcs through .undirectedView are parallel edges, so not bridges")
+    func digraphOppositeArcsThroughUndirectedViewAre() {
         // 0-1 1-0 1-2
         let edges = [(0, 1), (1, 0), (1, 2)].map { UndirectedEdge($0.0, $0.1) }
         func check<G: Graph<Int>>(_ g: G) where G.Edges.Index == Int {
@@ -529,7 +529,7 @@ struct UndirectedSelfLoopAndParallelEdgeTests {
             #expect(tree.articulationPoints.indices.map { Array(tree.blocks(ofArticulationPoint: $0)) } == [[0, 1]])
         }
         check(ReferencePseudograph(edges: edges))
-        check(AdjacencyList(edges: [(0, 1), (1, 0), (1, 2)].map { DirectedEdge(from: $0.0, to: $0.1) }).undirected)
+        check(AdjacencyList(edges: [(0, 1), (1, 0), (1, 2)].map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView)
     }
 
     @Test("CN-297 doubling every edge of CN-238: no bridges, the same points, every block doubled")

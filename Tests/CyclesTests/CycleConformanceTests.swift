@@ -227,25 +227,25 @@ struct CycleConformanceTests {
         #expect(counter.hashes == 0, "directed girth() hashed \(counter.hashes) times")
     }
 
-    @Test("CY-858 Graph.isAcyclic and DirectedGraph.isAcyclic differ on the views: g.directed is cyclic whenever g has an edge; digraph.undirected is the polytree test")
+    @Test("CY-858 Graph.isAcyclic and DirectedGraph.isAcyclic differ on the views: g.directedView is cyclic whenever g has an edge; digraph.undirectedView is the polytree test")
     func acyclicOnViews() {
         // A tree, a single edge, the empty graph and a lone vertex.
         let tree = ReferencePseudograph(edges: [(0, 1), (1, 2), (1, 3)].map { UndirectedEdge($0.0, $0.1) })
         #expect(tree.isAcyclic)
-        #expect(!tree.directed.isAcyclic)
+        #expect(!tree.directedView.isAcyclic)
         let edge = ReferencePseudograph(edges: [UndirectedEdge(0, 1)])
-        #expect(edge.isAcyclic && !edge.directed.isAcyclic)
+        #expect(edge.isAcyclic && !edge.directedView.isAcyclic)
         let empty = ReferencePseudograph<Int>(vertices: [0], edges: [])
-        #expect(empty.isAcyclic && empty.directed.isAcyclic)
+        #expect(empty.isAcyclic && empty.directedView.isAcyclic)
         // CY-039: D: 0>1 0>2 1>2 is acyclic as a digraph, not as a graph.
         let dag = ReferenceDirectedMultigraph(edges: [(0, 1), (0, 2), (1, 2)].map { DirectedEdge(from: $0.0, to: $0.1) })
         #expect(dag.isAcyclic)
-        #expect(!dag.undirected.isAcyclic)
-        #expect(dag.undirected.findCycle()?.vertices == [0, 1, 2])
-        #expect(dag.undirected.findCycle()?.edges == [0, 2, 1])
+        #expect(!dag.undirectedView.isAcyclic)
+        #expect(dag.undirectedView.findCycle()?.vertices == [0, 1, 2])
+        #expect(dag.undirectedView.findCycle()?.edges == [0, 2, 1])
         // A directed tree is a polytree: acyclic both ways.
         let polytree = ReferenceDirectedMultigraph(edges: [(1, 0), (1, 2), (3, 2)].map { DirectedEdge(from: $0.0, to: $0.1) })
-        #expect(polytree.isAcyclic && polytree.undirected.isAcyclic)
+        #expect(polytree.isAcyclic && polytree.undirectedView.isAcyclic)
     }
 
     @Test("CY-859 every returned Cycle survives a Codable round trip and equals and hashes like each of its rotations")

@@ -41,6 +41,8 @@ struct FullMatchingTests {
             #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
             #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
             #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+            #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+            #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
         }
         // Valid, checked here: no position twice, no self-loop, no endpoint shared.
         #expect(Set(matching.edges).count == matching.edges.count)
@@ -135,6 +137,8 @@ struct FullMatchingTests {
             #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
             #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
             #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+            #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+            #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
         }
         // Valid, checked here: no position twice, no self-loop, no endpoint shared.
         #expect(Set(matching.edges).count == matching.edges.count)
@@ -196,6 +200,8 @@ struct FullMatchingTests {
             #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
             #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
             #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+            #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+            #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
         }
         // Valid, checked here: no position twice, no self-loop, no endpoint shared.
         #expect(Set(matching.edges).count == matching.edges.count)
@@ -257,6 +263,8 @@ struct FullMatchingTests {
             #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
             #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
             #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+            #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+            #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
         }
         // Valid, checked here: no position twice, no self-loop, no endpoint shared.
         #expect(Set(matching.edges).count == matching.edges.count)
@@ -318,6 +326,8 @@ struct FullMatchingTests {
             #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
             #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
             #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+            #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+            #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
         }
         // Valid, checked here: no position twice, no self-loop, no endpoint shared.
         #expect(Set(matching.edges).count == matching.edges.count)
@@ -379,6 +389,8 @@ struct FullMatchingTests {
             #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
             #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
             #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+            #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+            #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
         }
         // Valid, checked here: no position twice, no self-loop, no endpoint shared.
         #expect(Set(matching.edges).count == matching.edges.count)
@@ -440,6 +452,8 @@ struct FullMatchingTests {
             #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
             #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
             #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+            #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+            #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
         }
         // Valid, checked here: no position twice, no self-loop, no endpoint shared.
         #expect(Set(matching.edges).count == matching.edges.count)
@@ -501,6 +515,8 @@ struct FullMatchingTests {
             #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
             #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
             #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+            #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+            #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
         }
         // Valid, checked here: no position twice, no self-loop, no endpoint shared.
         #expect(Set(matching.edges).count == matching.edges.count)
@@ -562,6 +578,8 @@ struct FullMatchingTests {
             #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
             #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
             #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+            #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+            #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
         }
         // Valid, checked here: no position twice, no self-loop, no endpoint shared.
         #expect(Set(matching.edges).count == matching.edges.count)
@@ -623,6 +641,8 @@ struct FullMatchingTests {
             #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
             #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
             #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+            #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+            #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
         }
         // Valid, checked here: no position twice, no self-loop, no endpoint shared.
         #expect(Set(matching.edges).count == matching.edges.count)
@@ -685,6 +705,8 @@ struct FullMatchingTests {
             #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
             #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
             #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+            #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+            #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
         }
         // Valid, checked here: no position twice, no self-loop, no endpoint shared.
         #expect(Set(matching.edges).count == matching.edges.count)
@@ -747,6 +769,8 @@ struct FullMatchingTests {
             #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
             #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
             #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+            #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+            #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
         }
         // Valid, checked here: no position twice, no self-loop, no endpoint shared.
         #expect(Set(matching.edges).count == matching.edges.count)
@@ -808,6 +832,8 @@ struct FullMatchingTests {
             #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
             #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
             #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+            #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+            #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
         }
         // Valid, checked here: no position twice, no self-loop, no endpoint shared.
         #expect(Set(matching.edges).count == matching.edges.count)
@@ -869,6 +895,8 @@ struct FullMatchingTests {
             #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
             #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
             #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+            #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+            #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
         }
         // Valid, checked here: no position twice, no self-loop, no endpoint shared.
         #expect(Set(matching.edges).count == matching.edges.count)

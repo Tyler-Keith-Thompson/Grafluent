@@ -61,8 +61,8 @@ def is_trap(n): return "**trap**" in cell(n)
 # ---------------------------------------------------------------------------------------------
 # Swift literals
 # ---------------------------------------------------------------------------------------------
-FUNC = {"cartesian": "cartesianProduct", "tensor": "tensorProduct", "strong": "strongProduct",
-        "lexicographic": "lexicographicProduct"}
+FUNC = {"cartesian": "cartesianProductView", "tensor": "tensorProductView", "strong": "strongProductView",
+        "lexicographic": "lexicographicProductView"}
 
 
 def s(x): return json.dumps(x, ensure_ascii=False)
@@ -293,7 +293,7 @@ def row_test(n):
         lines += [
             "        // Nesting: vertex ((i, j), k) has index (i·|H| + j)·2 + k.",
             "        let k2 = UndirectedAdjacencyList<String>(vertices: [\"0\", \"1\"], edges: [UndirectedEdge(\"0\", \"1\")])",
-            "        let cube = cartesianProduct(product, k2)",
+            "        let cube = cartesianProductView(product, k2)",
             "        #expect(cube.edgeCount == 12 && cube.vertexIndexBound == 8 && cube.edges.count == 12)",
             "        #expect(Array(cube.vertices) == [%s])" % ", ".join(vs),
             "        #expect(cube.vertices.map { cube.vertexIndex(of: $0) } == [0, 1, 2, 3, 4, 5, 6, 7])",
@@ -303,7 +303,7 @@ def row_test(n):
     if "swapped edgeCount" in cell(n):
         sw = ref.Product("lexicographic", h, g).edge_count()
         lines += ["        // Swapped: K2 ∘ P3.",
-                  "        let swapped = lexicographicProduct(h, g)",
+                  "        let swapped = lexicographicProductView(h, g)",
                   "        #expect(swapped.edgeCount == %d && swapped.edges.count == %d)" % (sw, sw)]
     if "vertex(atIndex: 5)" in cell(n):
         lines += ["        #expect(product.vertex(atIndex: 5) == Pair(\"c\", \"y\"))",
@@ -324,7 +324,7 @@ def trap_test(n):
             "            var g = StableDirectedGraph<String>(vertices: [\"a\", \"removed\"])",
             "            _ = g.remove(\"removed\")",
             "            let h = AdjacencyList<String>(vertices: [\"x\"])",
-            "            _ = cartesianProduct(g, h)",
+            "            _ = cartesianProductView(g, h)",
             "        }",
             "        // The factor has a hole, so no vertex indices.",
             "        var holed = StableDirectedGraph<String>(vertices: [\"a\", \"removed\"])",
@@ -333,7 +333,7 @@ def trap_test(n):
             "        // Without the removal: dense, and accepted.",
             "        let g = StableDirectedGraph<String>(vertices: [\"a\"])",
             "        let h = AdjacencyList<String>(vertices: [\"x\"])",
-            "        let product = cartesianProduct(g, h)",
+            "        let product = cartesianProductView(g, h)",
             "        #expect(Array(product.vertices) == [Pair(\"a\", \"x\")])",
             "        #expect(product.vertexIndexBound == 1 && product.edgeCount == 0)",
         ]
@@ -353,11 +353,11 @@ def trap_test(n):
         lines += ["        await #expect(processExitsWith: .failure) {",
                   "            // An edgeless graph on 0..<count, stored as its count."]
         lines += huge("            ")
-        lines += ["            _ = cartesianProduct(Huge(count: 1 << 32), Huge(count: 1 << 32))",
+        lines += ["            _ = cartesianProductView(Huge(count: 1 << 32), Huge(count: 1 << 32))",
                   "        }",
                   "        // 2^32 · 2^30 = 2^62 fits: accepted, and the last vertex is found by one division."]
         lines += huge("        ")
-        lines += ["        let product = cartesianProduct(Huge(count: 1 << 32), Huge(count: 1 << 30))",
+        lines += ["        let product = cartesianProductView(Huge(count: 1 << 32), Huge(count: 1 << 30))",
                   "        #expect(product.vertexIndexBound == 1 << 62 && product.edgeCount == 0)",
                   "        #expect(product.vertex(atIndex: (1 << 62) - 1) == Pair((1 << 32) - 1, (1 << 30) - 1))",
                   "        #expect(product.vertexIndex(of: Pair(5, 7)) == (5 << 30) + 7)"]
@@ -366,12 +366,12 @@ def trap_test(n):
             "        await #expect(processExitsWith: .failure) {",
             "            let g = UndirectedAdjacencyList<String>(vertices: [\"a\", \"b\"], edges: [UndirectedEdge(\"a\", \"b\")])",
             "            let h = UndirectedAdjacencyList<String>(vertices: [\"x\"], edges: [] as [UndirectedEdge<String>])",
-            "            _ = cartesianProduct(g, h).vertexIndex(of: Pair(\"a\", \"q\"))",
+            "            _ = cartesianProductView(g, h).vertexIndex(of: Pair(\"a\", \"q\"))",
             "        }",
             "        // Without the call: the pair is not a vertex, and contains(_:) says so without trapping.",
             "        let g = UndirectedAdjacencyList<String>(vertices: [\"a\", \"b\"], edges: [UndirectedEdge(\"a\", \"b\")])",
             "        let h = UndirectedAdjacencyList<String>(vertices: [\"x\"], edges: [] as [UndirectedEdge<String>])",
-            "        let product = cartesianProduct(g, h)",
+            "        let product = cartesianProductView(g, h)",
             "        #expect(!product.contains(Pair(\"a\", \"q\")) && !product.contains(Pair(\"q\", \"x\")))",
             "        #expect(product.contains(Pair(\"a\", \"x\")) && product.vertexIndex(of: Pair(\"b\", \"x\")) == 1)",
         ]

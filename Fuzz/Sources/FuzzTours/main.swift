@@ -512,7 +512,7 @@ enum FuzzTours {
         checkUndirectedEulerian(graph, order: Array(graph.vertices), labelled, context)
         checkUndirectedEulerian(net.plain(), order: net.labels, labelled, "plain " + context)
         // The undirected view of the directed graph: the same multigraph.
-        let view = net.directed().undirected
+        let view = net.directed().undirectedView
         checkUndirectedEulerian(view, order: Array(view.vertices), labelled, "view " + context)
         check(graph.isEulerian == net.plain().isEulerian && graph.hasEulerianTrail == view.hasEulerianTrail, "representations disagree: \(context)")
     }

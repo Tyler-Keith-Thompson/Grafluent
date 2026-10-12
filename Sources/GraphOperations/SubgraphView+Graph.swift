@@ -11,7 +11,7 @@ extension Graph {
     /// - Precondition: every listed vertex is a vertex of the graph, and the graph has vertex
     ///   indices.
     @inlinable
-    public func inducedSubgraph(on vertices: some Sequence<Vertex>) -> SubgraphView<Self> {
+    public func inducedSubgraphView(on vertices: some Sequence<Vertex>) -> SubgraphView<Self> {
         let (old, new, count) = _renumbering(bound: vertexIndexBound, vertices) { vertexIndex(of: $0) }
         return SubgraphView(
             base: self, old: old, new: new, vertexCount: count, edgeTest: nil, edgeCount: nil,
@@ -26,7 +26,7 @@ extension Graph {
     /// - Precondition: every listed position is an edge position of the graph, and the graph has
     ///   vertex indices.
     @inlinable
-    public func spanningSubgraph(edges: some Sequence<Edges.Index>) -> SubgraphView<Self> {
+    public func spanningSubgraphView(edges: some Sequence<Edges.Index>) -> SubgraphView<Self> {
         subgraph(keeping: nil as [Vertex]?, edges: edges)
     }
 
@@ -36,7 +36,7 @@ extension Graph {
     /// - Precondition: every listed vertex is a vertex of the graph, every listed position an edge
     ///   position of it, and the graph has vertex indices.
     @inlinable
-    public func subgraph(vertices: some Sequence<Vertex>, edges: some Sequence<Edges.Index>) -> SubgraphView<Self> {
+    public func subgraphView(vertices: some Sequence<Vertex>, edges: some Sequence<Edges.Index>) -> SubgraphView<Self> {
         subgraph(keeping: Array(vertices), edges: edges)
     }
 

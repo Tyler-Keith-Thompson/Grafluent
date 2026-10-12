@@ -84,7 +84,7 @@ struct IncidenceMatrixEdgeCaseTests {
         let oriented = OrientedIncidenceMatrix(vertexCount: 4, hyperedges: [
             (sources: [0, 2], targets: [1, 3]), (sources: [], targets: [0, 2, 3]), (sources: [3], targets: []), (sources: [1, 2], targets: [0, 1]),
         ])
-        let view = oriented.incidenceGraph
+        let view = oriented.incidenceGraphView
         let iterated = Array(view.edges)
         #expect(iterated.count == 12 && view.edgeCount == 12)
         for q in view.edges.indices {
@@ -92,6 +92,6 @@ struct IncidenceMatrixEdgeCaseTests {
             #expect(view.source(ofEdgeAt: q) == iterated[q].source && view.target(ofEdgeAt: q) == iterated[q].target)
         }
         let list = IncidenceList(oriented)
-        #expect(iterated == Array(list.incidenceGraph.edges))
+        #expect(iterated == Array(list.incidenceGraphView.edges))
     }
 }

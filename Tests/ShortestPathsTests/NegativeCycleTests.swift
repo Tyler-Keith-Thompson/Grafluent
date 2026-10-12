@@ -35,7 +35,7 @@ struct NegativeCycleTests {
         let weights = [1, -3, 1, 1, 1]
         #expect(cycle.bellmanFordShortestPaths(from: source) { weights[$0] } == nil)
         #expect(cycle.findNegativeCycle(from: source) { weights[$0] }?.vertices == [1, 2])
-        #expect(cycle.directed.findNegativeCycle(from: source) { weights[$0.position] }?.vertices == [1, 2])
+        #expect(cycle.directedView.findNegativeCycle(from: source) { weights[$0.position] }?.vertices == [1, 2])
         #expect(cycle.findNegativeCycle { weights[$0] }?.vertices == [1, 2])
     }
 

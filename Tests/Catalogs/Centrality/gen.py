@@ -142,7 +142,7 @@ def weight_decl(spec, m):
 def call(name, a, view, weight_access=None, part=None):
     """The Swift call text and the declarations it needs."""
     decls, args = [], []
-    target = "graph.directed" if view == "directed" else "graph"
+    target = "graph.directedView" if view == "directed" else "graph"
     for k in ARG_ORDER:
         if k not in a:
             continue
@@ -225,7 +225,7 @@ def emit_row_body(row, ind, kind="reference", override=None):
     if iterative and dflt is None:
         lines += no_convergence(ind, "failure", f"{target}.{text}", name, a)
         if view is None and not g.directed:
-            lines += no_convergence(ind, "directedFailure", f"graph.directed.{call(name, a, 'directed')[2]}", name, a)
+            lines += no_convergence(ind, "directedFailure", f"graph.directedView.{call(name, a, 'directed')[2]}", name, a)
         return lines, throws
     if "of" in a:
         lines.append(f"{ind}let value = {target}.{text}")
@@ -260,18 +260,18 @@ def emit_row_body(row, ind, kind="reference", override=None):
         lines.append(f"{ind}    let difference = abs(one - result.score(of: v))")
         lines.append(f"{ind}    #expect(difference <= {tol} * max(1, abs(one)), \"vertex \\(v)\")")
         lines.append(f"{ind}}}")
-    # graph.directed: the same values, or twice (degree; unnormalized betweenness).
+    # graph.directedView: the same values, or twice (degree; unnormalized betweenness).
     if view is None and not g.directed and kind != "skipview":
         twice = (name == "degreeCentrality" and g.n > 1) or (name == "betweennessCentrality" and a.get("normalized", True) is False)
         _, _, dtext = call(name, a, "directed")
         if iterative:
-            lines.append(f"{ind}let arcs = try graph.directed.{dtext}")
+            lines.append(f"{ind}let arcs = try graph.directedView.{dtext}")
         else:
-            lines.append(f"{ind}let arcs = graph.directed.{dtext}")
+            lines.append(f"{ind}let arcs = graph.directedView.{dtext}")
         factor = "2 * " if twice else ""
         lines.append(f"{ind}for (i, value) in expected.enumerated() {{")
         lines.append(f"{ind}    let error = abs(arcs.score(ofIndex: i) - {factor}value)")
-        lines.append(f"{ind}    #expect(error <= {tol} * max(1, abs({factor}value)), \"graph.directed, index \\(i)\")")
+        lines.append(f"{ind}    #expect(error <= {tol} * max(1, abs({factor}value)), \"graph.directedView, index \\(i)\")")
         lines.append(f"{ind}}}")
     return lines, throws
 
@@ -304,7 +304,7 @@ def test_for_row(row):
     graphline = gdesc(row["g"])
     opd = row["op"]
     if opd.startswith("directed > "):
-        graphline += ".directed"
+        graphline += ".directedView"
         opd = opd[len("directed > "):]
     if "(" not in opd.split(".")[0]:
         base, _, rest = opd.partition(".")
@@ -354,7 +354,7 @@ SECTIONS = {
     "B": ("DegreeCentralityTests.swift", "Degree", "DegreeCentralityTests", [
         "§B: degree(of: v)/(n − 1), so a self-loop counts 2 and each parallel copy counts (the score can",
         "exceed 1); directed: in + out, in, out, a directed loop one in-arc and one out-arc;",
-        "`graph.directed` doubles the undirected value.",
+        "`graph.directedView` doubles the undirected value.",
     ]),
     "C": ("ClosenessHarmonicTests.swift", "Closeness and harmonic", "ClosenessHarmonicTests", [
         "§C: closeness with and without the Wasserman–Faust factor, harmonic (not normalized), incoming",
@@ -383,7 +383,7 @@ SECTIONS = {
     ]),
     "H": ("HITSTests.swift", "HITS", "HITSTests", [
         "§H: hubs and authorities from the uniform start, each summing to 1; the limit from the uniform",
-        "start where σ₁ is not simple; parallel arcs adding; weights; `graph.directed` on the karate club",
+        "start where σ₁ is not simple; parallel arcs adding; weights; `graph.directedView` on the karate club",
         "(hubs = authorities); NoConvergence after one iteration. Each test also checks that the other",
         "vector has one score per vertex.",
     ]),
@@ -393,7 +393,7 @@ TOL_NOTE = [
     "Expected values are ref.py's model at full precision (the catalog cells are the same values",
     "rounded to 12 digits); non-iterative rows compare within 1e-12 relative to max(1, |value|), the",
     "iterative ones within the catalog's Tol of the limit. Undirected rows also run on",
-    "`graph.directed` (the same values; twice for degree and unnormalized betweenness).",
+    "`graph.directedView` (the same values; twice for degree and unnormalized betweenness).",
     "Case IDs (CE-nnn) refer to the catalog; see README.md.",
 ]
 

@@ -43,7 +43,7 @@ func materializedComplement(_ graph: CompressedSparseRow) -> CompressedSparseRow
 let complementInputs: (view: ComplementView<CompressedSparseRow>, copy: CompressedSparseRow) = {
     let count = 20_000
     let sparse = CompressedSparseRow(vertexCount: count, edges: Inputs.randomEdges(vertexCount: count, edgeCount: 60_000, seed: 3))
-    let view = sparse.complement
+    let view = sparse.complementView
     let copy = materializedComplement(sparse)
     precondition(view.edgeCount == copy.edgeCount)
     precondition(view.breadthFirstLayers(from: 0).map(\.count) == copy.breadthFirstLayers(from: 0).map(\.count))
@@ -62,64 +62,64 @@ let benchmarks: @Sendable () -> Void = {
     let undirectedEdges = arcs.filter { $0.source < $0.target }.map { UndirectedEdge($0.source, $0.target) }
     let undirected = UndirectedAdjacencyList<Int>(vertices: 0 ..< n, edges: undirectedEdges)
 
-    // MARK: reverseView vs AdjacencyList(g.reverseView), target ≤ 1.05×
+    // MARK: transposedView vs AdjacencyList(g.transposedView), target ≤ 1.05×
 
-    let reverse = list.reverseView
+    let reverse = list.transposedView
     let reversedCopy = AdjacencyList<Int>(reverse)
     precondition(reverse.breadthFirstLayers(from: 0) == reversedCopy.breadthFirstLayers(from: 0))
     precondition(reverse.stronglyConnectedComponents().count == reversedCopy.stronglyConnectedComponents().count)
 
-    Benchmark("GraphOperations: BASELINE breadthFirstLayers on AdjacencyList(g.reverseView)") { benchmark in
+    Benchmark("GraphOperations: BASELINE breadthFirstLayers on AdjacencyList(g.transposedView)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(reversedCopy.breadthFirstLayers(from: 0)) }
     }
-    Benchmark("GraphOperations: breadthFirstLayers on g.reverseView") { benchmark in
+    Benchmark("GraphOperations: breadthFirstLayers on g.transposedView") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(reverse.breadthFirstLayers(from: 0)) }
     }
-    Benchmark("GraphOperations: BASELINE stronglyConnectedComponents on AdjacencyList(g.reverseView)") { benchmark in
+    Benchmark("GraphOperations: BASELINE stronglyConnectedComponents on AdjacencyList(g.transposedView)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(reversedCopy.stronglyConnectedComponents().count) }
     }
-    Benchmark("GraphOperations: stronglyConnectedComponents on g.reverseView") { benchmark in
+    Benchmark("GraphOperations: stronglyConnectedComponents on g.transposedView") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(reverse.stronglyConnectedComponents().count) }
     }
 
-    // MARK: inducedSubgraph keeping 100% vs the base, target ≤ 1.2×
+    // MARK: inducedSubgraphView keeping 100% vs the base, target ≤ 1.2×
 
-    let all = list.inducedSubgraph(on: 0 ..< n)
-    let allUndirected = undirected.inducedSubgraph(on: 0 ..< n)
+    let all = list.inducedSubgraphView(on: 0 ..< n)
+    let allUndirected = undirected.inducedSubgraphView(on: 0 ..< n)
     precondition(all.edgeCount == list.edgeCount && allUndirected.edgeCount == undirected.edgeCount)
 
     Benchmark("GraphOperations: BASELINE breadthFirstLayers on AdjacencyList") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(list.breadthFirstLayers(from: 0)) }
     }
-    Benchmark("GraphOperations: breadthFirstLayers on AdjacencyList.inducedSubgraph (100%)") { benchmark in
+    Benchmark("GraphOperations: breadthFirstLayers on AdjacencyList.inducedSubgraphView (100%)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(all.breadthFirstLayers(from: 0)) }
     }
     Benchmark("GraphOperations: BASELINE weaklyConnectedComponents on AdjacencyList") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(list.weaklyConnectedComponents().count) }
     }
-    Benchmark("GraphOperations: weaklyConnectedComponents on AdjacencyList.inducedSubgraph (100%)") { benchmark in
+    Benchmark("GraphOperations: weaklyConnectedComponents on AdjacencyList.inducedSubgraphView (100%)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(all.weaklyConnectedComponents().count) }
     }
     Benchmark("GraphOperations: BASELINE breadthFirstLayers on UndirectedAdjacencyList") { benchmark in
-        for _ in benchmark.scaledIterations { blackHole(undirected.directed.breadthFirstLayers(from: 0)) }
+        for _ in benchmark.scaledIterations { blackHole(undirected.directedView.breadthFirstLayers(from: 0)) }
     }
-    Benchmark("GraphOperations: breadthFirstLayers on UndirectedAdjacencyList.inducedSubgraph (100%)") { benchmark in
-        for _ in benchmark.scaledIterations { blackHole(allUndirected.directed.breadthFirstLayers(from: 0)) }
+    Benchmark("GraphOperations: breadthFirstLayers on UndirectedAdjacencyList.inducedSubgraphView (100%)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(allUndirected.directedView.breadthFirstLayers(from: 0)) }
     }
     Benchmark("GraphOperations: BASELINE connectedComponents on UndirectedAdjacencyList") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(undirected.connectedComponents().count) }
     }
-    Benchmark("GraphOperations: connectedComponents on UndirectedAdjacencyList.inducedSubgraph (100%)") { benchmark in
+    Benchmark("GraphOperations: connectedComponents on UndirectedAdjacencyList.inducedSubgraphView (100%)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(allUndirected.connectedComponents().count) }
     }
 
-    // MARK: inducedSubgraph keeping 50% vs a materialized copy, target ≤ 1.2× with the build
+    // MARK: inducedSubgraphView keeping 50% vs a materialized copy, target ≤ 1.2× with the build
 
     var generator = SeededRandomNumberGenerator(seed: 11)
     let half = (0 ..< n).filter { _ in Bool.random(using: &generator) }
-    let halfView = list.inducedSubgraph(on: half)
+    let halfView = list.inducedSubgraphView(on: half)
     let halfCopy = CompressedSparseRow(vertexCount: half.count, edges: indexEdges(halfView))
-    let halfUndirectedView = undirected.inducedSubgraph(on: half)
+    let halfUndirectedView = undirected.inducedSubgraphView(on: half)
     let halfUndirectedCopy = UndirectedAdjacencyList<Int>(vertices: 0 ..< half.count, edges: indexEdges(halfUndirectedView))
     let start = half[0]
     precondition(halfView.breadthFirstLayers(from: start).map(\.count) == halfCopy.breadthFirstLayers(from: 0).map(\.count))
@@ -129,49 +129,49 @@ let benchmarks: @Sendable () -> Void = {
     // Both sides build what they walk: the copy is materialized each time, as the view is.
     Benchmark("GraphOperations: BASELINE materializing the 50% induced subgraph as CompressedSparseRow + breadthFirstLayers") { benchmark in
         for _ in benchmark.scaledIterations {
-            let copy = CompressedSparseRow(vertexCount: half.count, edges: indexEdges(list.inducedSubgraph(on: half)))
+            let copy = CompressedSparseRow(vertexCount: half.count, edges: indexEdges(list.inducedSubgraphView(on: half)))
             blackHole(copy.breadthFirstLayers(from: 0))
         }
     }
-    Benchmark("GraphOperations: AdjacencyList.inducedSubgraph (50%) built + breadthFirstLayers") { benchmark in
-        for _ in benchmark.scaledIterations { blackHole(list.inducedSubgraph(on: half).breadthFirstLayers(from: start)) }
+    Benchmark("GraphOperations: AdjacencyList.inducedSubgraphView (50%) built + breadthFirstLayers") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(list.inducedSubgraphView(on: half).breadthFirstLayers(from: start)) }
     }
     Benchmark("GraphOperations: BASELINE materializing the 50% induced subgraph as CompressedSparseRow + weaklyConnectedComponents") { benchmark in
         for _ in benchmark.scaledIterations {
-            let copy = CompressedSparseRow(vertexCount: half.count, edges: indexEdges(list.inducedSubgraph(on: half)))
+            let copy = CompressedSparseRow(vertexCount: half.count, edges: indexEdges(list.inducedSubgraphView(on: half)))
             blackHole(copy.weaklyConnectedComponents().count)
         }
     }
-    Benchmark("GraphOperations: AdjacencyList.inducedSubgraph (50%) built + weaklyConnectedComponents") { benchmark in
-        for _ in benchmark.scaledIterations { blackHole(list.inducedSubgraph(on: half).weaklyConnectedComponents().count) }
+    Benchmark("GraphOperations: AdjacencyList.inducedSubgraphView (50%) built + weaklyConnectedComponents") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(list.inducedSubgraphView(on: half).weaklyConnectedComponents().count) }
     }
     Benchmark("GraphOperations: BASELINE materializing the 50% induced subgraph as UndirectedAdjacencyList + connectedComponents") { benchmark in
         for _ in benchmark.scaledIterations {
-            let copy = UndirectedAdjacencyList<Int>(vertices: 0 ..< half.count, edges: indexEdges(undirected.inducedSubgraph(on: half)))
+            let copy = UndirectedAdjacencyList<Int>(vertices: 0 ..< half.count, edges: indexEdges(undirected.inducedSubgraphView(on: half)))
             blackHole(copy.connectedComponents().count)
         }
     }
-    Benchmark("GraphOperations: UndirectedAdjacencyList.inducedSubgraph (50%) built + connectedComponents") { benchmark in
-        for _ in benchmark.scaledIterations { blackHole(undirected.inducedSubgraph(on: half).connectedComponents().count) }
+    Benchmark("GraphOperations: UndirectedAdjacencyList.inducedSubgraphView (50%) built + connectedComponents") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(undirected.inducedSubgraphView(on: half).connectedComponents().count) }
     }
     Benchmark("GraphOperations: BASELINE materializing the 50% induced subgraph as CompressedSparseRow") { benchmark in
-        for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow(vertexCount: half.count, edges: indexEdges(list.inducedSubgraph(on: half)))) }
+        for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow(vertexCount: half.count, edges: indexEdges(list.inducedSubgraphView(on: half)))) }
     }
-    Benchmark("GraphOperations: building AdjacencyList.inducedSubgraph (50%), target ≤ 0.1× materializing") { benchmark in
-        for _ in benchmark.scaledIterations { blackHole(list.inducedSubgraph(on: half)) }
+    Benchmark("GraphOperations: building AdjacencyList.inducedSubgraphView (50%), target ≤ 0.1× materializing") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(list.inducedSubgraphView(on: half)) }
     }
 
-    // MARK: inducedSubgraph over CompressedSparseRow keeping 100%, target ≤ 1.3×
+    // MARK: inducedSubgraphView over CompressedSparseRow keeping 100%, target ≤ 1.3×
 
-    let allCSR = csr.inducedSubgraph(on: 0 ..< n)
+    let allCSR = csr.inducedSubgraphView(on: 0 ..< n)
     Benchmark("GraphOperations: BASELINE breadthFirstLayers on CompressedSparseRow") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(csr.breadthFirstLayers(from: 0)) }
     }
-    Benchmark("GraphOperations: breadthFirstLayers on CompressedSparseRow.inducedSubgraph (100%)") { benchmark in
+    Benchmark("GraphOperations: breadthFirstLayers on CompressedSparseRow.inducedSubgraphView (100%)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(allCSR.breadthFirstLayers(from: 0)) }
     }
 
-    // MARK: spanningSubgraph of a spanning forest's edges vs BFS on the base, target ≤ 1.2×
+    // MARK: spanningSubgraphView of a spanning forest's edges vs BFS on the base, target ≤ 1.2×
 
     // The view walks every base entry and tests the mask's words at the base's edge index, so the
     // baseline is BFS over the same base rows (the BASELINE on UndirectedAdjacencyList above).
@@ -192,12 +192,12 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
     let treeEdges = parentEdge.filter { $0 >= 0 }
-    let tree = undirected.spanningSubgraph(edges: treeEdges)
+    let tree = undirected.spanningSubgraphView(edges: treeEdges)
     precondition(tree.connectedComponents().count == undirected.connectedComponents().count)
-    precondition(tree.directed.breadthFirstLayers(from: 0).map(\.count) == undirected.directed.breadthFirstLayers(from: 0).map(\.count))
+    precondition(tree.directedView.breadthFirstLayers(from: 0).map(\.count) == undirected.directedView.breadthFirstLayers(from: 0).map(\.count))
 
-    Benchmark("GraphOperations: breadthFirstLayers on UndirectedAdjacencyList.spanningSubgraph (a spanning forest), against the base") { benchmark in
-        for _ in benchmark.scaledIterations { blackHole(tree.directed.breadthFirstLayers(from: 0)) }
+    Benchmark("GraphOperations: breadthFirstLayers on UndirectedAdjacencyList.spanningSubgraphView (a spanning forest), against the base") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(tree.directedView.breadthFirstLayers(from: 0)) }
     }
 
     // MARK: complement of a sparse graph (n = 20k) vs a materialized complement, target ≤ 1.5×
@@ -217,16 +217,16 @@ let benchmarks: @Sendable () -> Void = {
     // rescanned the row from its start, O(n³) for the walk (800× iterating at n = 2000).
     let walkCount = 2000
     let walkBase = CompressedSparseRow(vertexCount: walkCount, edges: Inputs.randomEdges(vertexCount: walkCount, edgeCount: 3 * walkCount, seed: 3))
-    let walkComplement = walkBase.complement
+    let walkComplement = walkBase.complementView
     precondition(walkComplement.edges.indices.count == walkComplement.edgeCount)
-    Benchmark("GraphOperations: BASELINE iterating CompressedSparseRow.complement.edges (n = 2000)") { benchmark in
+    Benchmark("GraphOperations: BASELINE iterating CompressedSparseRow.complementView.edges (n = 2000)") { benchmark in
         for _ in benchmark.scaledIterations {
             var count = 0
             for _ in walkComplement.edges { count &+= 1 }
             blackHole(count)
         }
     }
-    Benchmark("GraphOperations: walking CompressedSparseRow.complement.edges.indices (n = 2000)") { benchmark in
+    Benchmark("GraphOperations: walking CompressedSparseRow.complementView.edges.indices (n = 2000)") { benchmark in
         for _ in benchmark.scaledIterations {
             var count = 0
             for _ in walkComplement.edges.indices { count &+= 1 }

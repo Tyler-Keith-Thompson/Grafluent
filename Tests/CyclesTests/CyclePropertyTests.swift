@@ -421,7 +421,7 @@ struct CyclePropertyTests {
         }
     }
 
-    @Test("CY-759 g.directed has 2 cycles per undirected cycle of length >= 2, a digon per non-loop edge and two loops per loop")
+    @Test("CY-759 g.directedView has 2 cycles per undirected cycle of length >= 2, a digon per non-loop edge and two loops per loop")
     func directedViewCount() async {
         let edges = zip(Gen.int(in: 0 ... 4), Gen.int(in: 0 ... 4)).array(of: 0 ... 9)
         await propertyCheck(count: 300, input: edges) { raw in
@@ -433,7 +433,7 @@ struct CyclePropertyTests {
             let ones = cycles.filter { $0.length == 1 }.count
             #expect(ones == loops, "\(raw)")
             let expected = 2 * longer + 2 * digons + (raw.count - loops) + 2 * loops
-            #expect(Array(graph.directed.simpleCycles()).count == expected)
+            #expect(Array(graph.directedView.simpleCycles()).count == expected)
         }
     }
 

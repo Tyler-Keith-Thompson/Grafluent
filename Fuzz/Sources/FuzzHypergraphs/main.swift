@@ -175,7 +175,7 @@ enum FuzzHypergraphs {
         var stepwise = UndirectedIncidenceList<Int>(vertices: listed)
         for members in hyperedges { _ = stepwise.insert(hyperedge: members) }
         check(stepwise.vertices.elements == list.vertices.elements && stepwise == list && stepwise.hashValue == list.hashValue, "one call at a time")
-        check(UndirectedIncidenceList(list.incidenceGraph.base) == list, "init(_:) of itself")
+        check(UndirectedIncidenceList(list.incidenceGraphView.base) == list, "init(_:) of itself")
 
         for step in 0 ..< input.int(in: 0 ... 8) {
             switch input.int(below: 8) {
@@ -230,7 +230,7 @@ enum FuzzHypergraphs {
             check(list.contains(hyperedge: row.map { model.vertices[$0] }.reversed()), "contains(hyperedge:) of \(p) \(context)")
             incidence += row.count
         }
-        check(list.incidenceGraph.edgeCount == incidence, "incidence count \(context)")
+        check(list.incidenceGraphView.edgeCount == incidence, "incidence count \(context)")
         for (i, v) in model.vertices.enumerated() {
             let incident = model.incident(i)
             check(list.vertexIndex(of: v) == i && (try? list.vertexIndex(checked: v)) == i && list.vertex(atIndex: i) == v && list.contains(v), "index of \(v) \(context)")
@@ -312,7 +312,7 @@ enum FuzzHypergraphs {
 
     static func undirectedViews(_ list: UndirectedIncidenceList<Int>, _ model: Model) {
         let n = model.vertices.count, m = model.rows.count
-        let view = list.incidenceGraph
+        let view = list.incidenceGraphView
         let copy = UndirectedAdjacencyList<Int>(vertices: view.vertices, edges: view.edges)
         check(view.vertexCount == n + m && view.vertexIndexBound == n + m && view.edgeCount == model.rows.reduce(0) { $0 + $1.count }, "view counts")
         var q = 0
@@ -373,7 +373,7 @@ enum FuzzHypergraphs {
         check(UndirectedIncidenceList(matrix.transposed()) == list.dual(), "transposed() is the dual")
         check(matrix.transposed().transposed() == matrix, "transposed() twice")
         // The view over the matrix, through the protocol's computed incidence numbers.
-        let view = matrix.incidenceGraph, listView = list.incidenceGraph
+        let view = matrix.incidenceGraphView, listView = list.incidenceGraphView
         check(Array(view.edges) == Array(listView.edges), "matrix view edges")
         for x in 0 ..< n + m {
             check(Array(view.neighbors(of: x)) == Array(listView.neighbors(of: x)), "matrix view neighbors(of: \(x))")
@@ -435,7 +435,7 @@ enum FuzzHypergraphs {
 
     static func checkMatrix(_ matrix: IncidenceMatrix, _ n: Int, _ m: Int, _ cells: Set<[Int]>, _ context: String) {
         check(matrix.vertexCount == n && matrix.hyperedgeCount == m && matrix.vertices == 0 ..< n && matrix.hyperedges.count == m, "matrix shape \(context)")
-        check(matrix.incidenceGraph.edgeCount == cells.count, "matrix cell count \(context)")
+        check(matrix.incidenceGraphView.edgeCount == cells.count, "matrix cell count \(context)")
         for p in 0 ..< m {
             let column = (0 ..< n).filter { cells.contains([$0, p]) }
             check(Array(matrix.members(ofHyperedgeAt: p)) == column && Array(matrix.memberIndices(ofHyperedgeAt: p)) == column, "matrix column \(p) \(context)")
@@ -671,7 +671,7 @@ enum FuzzHypergraphs {
             offsets.0 += s.count
             offsets.1 += t.count
         }
-        check(list.incidenceGraph.edgeCount == offsets.0 + offsets.1, "incidence counts \(context)")
+        check(list.incidenceGraphView.edgeCount == offsets.0 + offsets.1, "incidence counts \(context)")
         for (i, v) in model.vertices.enumerated() {
             let out = model.outStar(i), into = model.inStar(i)
             check(list.vertexIndex(of: v) == i && (try? list.vertexIndex(checked: v)) == i && list.vertex(atIndex: i) == v && list.contains(v), "index of \(v) \(context)")
@@ -768,7 +768,7 @@ enum FuzzHypergraphs {
 
     static func directedView(_ list: IncidenceList<Int>, _ model: DirectedModel) {
         let n = model.vertices.count, m = model.sources.count
-        let view = list.incidenceGraph
+        let view = list.incidenceGraphView
         let copy = AdjacencyList<Int>(vertices: view.vertices, edges: view.edges)
         let sourceCount = model.sources.reduce(0) { $0 + $1.count }
         check(view.vertexCount == n + m && view.edgeCount == sourceCount + model.targets.reduce(0) { $0 + $1.count }, "view counts")
@@ -832,7 +832,7 @@ enum FuzzHypergraphs {
         check(IncidenceList(matrix.transposed()) == list.dual(), "transposed() is the dual")
         check(matrix.reversed == OrientedIncidenceMatrix(list.reversed) && matrix.reversed.reversed == matrix, "reversed")
         check(IncidenceMatrix(matrix) == IncidenceMatrix(list), "the unoriented union")
-        let view = matrix.incidenceGraph, listView = list.incidenceGraph
+        let view = matrix.incidenceGraphView, listView = list.incidenceGraphView
         check(Array(view.edges) == Array(listView.edges), "matrix view edges")
         for x in 0 ..< n + m {
             check(Array(view.successors(of: x)) == Array(listView.successors(of: x)) && Array(view.predecessors(of: x)) == Array(listView.predecessors(of: x)), "matrix view rows at \(x)")
@@ -911,7 +911,7 @@ enum FuzzHypergraphs {
 
     static func checkOriented(_ matrix: OrientedIncidenceMatrix, _ n: Int, _ m: Int, _ sourceCells: Set<[Int]>, _ targetCells: Set<[Int]>, _ context: String) {
         check(matrix.vertexCount == n && matrix.hyperedgeCount == m && matrix.vertices == 0 ..< n && matrix.hyperedges.count == m, "oriented shape \(context)")
-        check(matrix.incidenceGraph.edgeCount == sourceCells.count + targetCells.count, "oriented cell counts \(context)")
+        check(matrix.incidenceGraphView.edgeCount == sourceCells.count + targetCells.count, "oriented cell counts \(context)")
         for p in 0 ..< m {
             let s = (0 ..< n).filter { sourceCells.contains([$0, p]) }, t = (0 ..< n).filter { targetCells.contains([$0, p]) }
             check(Array(matrix.sources(ofHyperedgeAt: p)) == s && Array(matrix.sourceIndices(ofHyperedgeAt: p)) == s, "oriented sources of \(p) \(context)")

@@ -32,6 +32,7 @@ struct LexicographicallyFirstMinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.lexicographicallyFirstMinimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 0)
@@ -108,6 +109,7 @@ struct LexicographicallyFirstMinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.lexicographicallyFirstMinimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 1)
@@ -184,6 +186,7 @@ struct LexicographicallyFirstMinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.lexicographicallyFirstMinimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 1)
@@ -256,6 +259,7 @@ struct LexicographicallyFirstMinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.lexicographicallyFirstMinimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 0])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 1)
@@ -332,6 +336,7 @@ struct LexicographicallyFirstMinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.lexicographicallyFirstMinimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 2)
@@ -408,6 +413,7 @@ struct LexicographicallyFirstMinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.lexicographicallyFirstMinimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 0])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 2)
@@ -484,6 +490,7 @@ struct LexicographicallyFirstMinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.lexicographicallyFirstMinimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 2])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 3)
@@ -556,6 +563,7 @@ struct LexicographicallyFirstMinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.lexicographicallyFirstMinimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 2, 3, 4])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 5)
@@ -628,6 +636,7 @@ struct LexicographicallyFirstMinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.lexicographicallyFirstMinimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 0, 1, 0])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 2)
@@ -704,6 +713,7 @@ struct LexicographicallyFirstMinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.lexicographicallyFirstMinimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 0, 1, 2])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 3)
@@ -776,6 +786,7 @@ struct LexicographicallyFirstMinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.lexicographicallyFirstMinimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 0, 1, 0, 1, 2])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 3)
@@ -848,6 +859,7 @@ struct LexicographicallyFirstMinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.lexicographicallyFirstMinimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 2, 1, 2, 3])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 4)
@@ -920,6 +932,7 @@ struct LexicographicallyFirstMinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.lexicographicallyFirstMinimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 2, 1, 2, 1, 2])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 3)
@@ -992,6 +1005,7 @@ struct LexicographicallyFirstMinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.lexicographicallyFirstMinimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 0, 1, 2, 1, 0, 2, 2, 1])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 3)
@@ -1064,6 +1078,7 @@ struct LexicographicallyFirstMinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.lexicographicallyFirstMinimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 0, 1, 0, 1, 0, 1])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 2)
@@ -1140,6 +1155,7 @@ struct LexicographicallyFirstMinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.lexicographicallyFirstMinimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 0, 1, 2, 1, 2])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 3)
@@ -1212,6 +1228,7 @@ struct LexicographicallyFirstMinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.lexicographicallyFirstMinimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 1, 0, 0, 1, 2])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 3)
@@ -1284,6 +1301,7 @@ struct LexicographicallyFirstMinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.lexicographicallyFirstMinimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 2, 1])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 3)
@@ -1356,6 +1374,7 @@ struct LexicographicallyFirstMinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.lexicographicallyFirstMinimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 0, 1, 2, 0, 1, 0, 1, 2, 3])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 4)
@@ -1428,6 +1447,7 @@ struct LexicographicallyFirstMinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.lexicographicallyFirstMinimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 0, 1, 2, 0, 1, 0, 1, 2, 3, 3])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 4)
@@ -1500,6 +1520,7 @@ struct LexicographicallyFirstMinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.lexicographicallyFirstMinimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 2, 3, 4, 2, 3, 4, 0, 1, 4, 0, 1, 2, 3, 1, 2, 3, 4, 0, 3, 4, 0, 1, 2])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 5)
@@ -1572,6 +1593,7 @@ struct LexicographicallyFirstMinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.lexicographicallyFirstMinimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 0, 1, 0, 1, 2, 0, 2, 0, 1, 0, 1, 2, 1, 2, 0, 2, 1, 2])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 3)
@@ -1644,6 +1666,7 @@ struct LexicographicallyFirstMinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.lexicographicallyFirstMinimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 2, 0, 0])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 3)
@@ -1716,6 +1739,7 @@ struct LexicographicallyFirstMinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.lexicographicallyFirstMinimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 2, 3, 0])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 4)
@@ -1788,6 +1812,7 @@ struct LexicographicallyFirstMinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.lexicographicallyFirstMinimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 0, 0, 0, 1, 1, 2, 2, 2, 3, 1, 0])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 4)
@@ -1860,6 +1885,7 @@ struct LexicographicallyFirstMinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.lexicographicallyFirstMinimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 1, 1, 2, 3, 3, 3, 0, 0, 0, 3, 3, 2])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 4)
@@ -1932,6 +1958,7 @@ struct LexicographicallyFirstMinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.lexicographicallyFirstMinimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 1, 2, 0, 2, 1, 2, 3, 4, 4, 0, 3, 2, 1, 0])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 5)
@@ -2004,6 +2031,7 @@ struct LexicographicallyFirstMinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.lexicographicallyFirstMinimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 2, 0])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 3)

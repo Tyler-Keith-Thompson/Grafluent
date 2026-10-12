@@ -72,8 +72,8 @@ protocol Graph<Vertex>
     func degree(of:) -> Int                     // the length of neighbors: a self-loop counts 2
     var vertexIndexBound: Int?; func vertexIndex(of:), vertex(atIndex:), neighborIndices(ofIndex:)
 
-extension Graph { var directed: DirectedView<Self> }                         // each edge as two arcs
-extension BidirectionalDirectedGraph { var undirected: UndirectedView<Self> } // each arc as an edge
+extension Graph { var directedView: DirectedView<Self> }                         // each edge as two arcs
+extension BidirectionalDirectedGraph { var undirectedView: UndirectedView<Self> } // each arc as an edge
 ```
 
 The laws are written in the protocols' documentation. The directed laws are tested in each
@@ -90,8 +90,8 @@ conformer.
 | Type | `Graph` | Edge positions | Vertex indices | From any graph |
 |---|---|---|---|---|
 | `UndirectedAdjacencyList` | yes | `0..<edgeCount`; valid until mutated | the slots | `UndirectedAdjacencyList(_:)`: keeps isolated vertices, collapses parallel edges, keeps self-loops |
-| `DirectedView` (`graph.directed`) | no: a `BidirectionalDirectedGraph` | (base position, reversed) | the base's | `AdjacencyList(g.directed)` collapses a loop's two arcs into one |
-| `UndirectedView` (`digraph.undirected`) | yes | the base's own | the base's | reciprocal arcs stay two parallel edges; `UndirectedAdjacencyList(_:)` collapses them |
+| `DirectedView` (`graph.directedView`) | no: a `BidirectionalDirectedGraph` | (base position, reversed) | the base's | `AdjacencyList(g.directedView)` collapses a loop's two arcs into one |
+| `UndirectedView` (`digraph.undirectedView`) | yes | the base's own | the base's | reciprocal arcs stay two parallel edges; `UndirectedAdjacencyList(_:)` collapses them |
 | `ReferencePseudograph` (test support) | yes | `0..<edgeCount`, written order | written order | — |
 
 ## Conventions
@@ -113,7 +113,7 @@ conformer.
 | Self-loops in undirected neighborhoods | Once per end: `v` twice in `neighbors(of: v)`, the position twice in `incidentEdges(of: v)`, 2 to `degree` | `degree == neighbors.count` everywhere and the degrees sum to `2 · edgeCount`; it is what the undirected view of a directed loop gives | Boost `adjacency_list`, LEMON and igraph agree; NetworkX, JGraphT and petgraph list the loop once while counting it 2 in the degree |
 | Undirected edge identity | One position in `edges`, reached from both ends | A weight keyed by position is the same in both directions | Boost and petgraph orient each incidence instead |
 | Undirected and directed | Separate protocols; no type is both | `edges` cannot have both element types; the views cross over | LEMON's undirected graphs are also digraphs |
-| Traversal on undirected graphs | Through `directed`, the existing directed search | Breadth-first search is identical; edge-classifying searches (bridges, undirected DFS) need edge identity and are written over `incidentEdges` | Boost has a separate `undirected_dfs` |
+| Traversal on undirected graphs | Through `directedView`, the existing directed search | Breadth-first search is identical; edge-classifying searches (bridges, undirected DFS) need edge identity and are written over `incidentEdges` | Boost has a separate `undirected_dfs` |
 
 ## Files
 
@@ -131,9 +131,10 @@ conformer.
 | `GraphDefaultTests.swift` | The `Graph` defaults through minimal conformers (single-pass and collection neighborhoods), and that generic code, a second generic layer and existentials call a conformer's own members |
 | `GraphConformanceTests.swift` | Associated types, `some` and `any Graph`, `Sendable`, that no type is both a `Graph` and a `DirectedGraph`, the `GraphBuilder`, conditional `Comparable`, parallel edges told apart by position, vertex indices through generic layers |
 | `GraphAlgorithmTests.swift` | Breadth-first distances and layers, depth-first preorder, connected components, undirected edge classification, bridges, the Euler circuit condition and two-coloring, on both conformers and through existentials |
-| `GraphViewTests.swift` | The `directed` and `undirected` views: the directed laws on the two-arc view, its exact arcs, Kosaraju and Traversal's search through it, reciprocal arcs and loops in the undirected view, positions, round trips and conversions |
+| `GraphViewTests.swift` | The `directedView` and `undirectedView` views: the directed laws on the two-arc view, its exact arcs, Kosaraju and Traversal's search through it, reciprocal arcs and loops in the undirected view, positions, round trips and conversions |
+| `ViewCheckedLookupTests.swift` | The `checked:` lookups on `directedView` and `undirectedView` (GraphProtocols' defaults: `contains(_:)`, then the trapping read), and through generic code |
 | `GraphReviewTests.swift` | Added after the critical review: the edge-index laws (UG-L24) on the adjacency list and the pseudograph, and their absence on the undirected view; with edge indices, `edges` in index order (UG-L25); the directed view's predecessor indices and emptiness; the builder's `if` without `else` |
-| `DirectedEdgeIndexTests.swift` | Dense edge indices on `DirectedGraph`: one-to-one onto `0..<edgeCount` (DG-L29), out-edges by index (DG-L30), and `edges` in index order (DG-L31, so `undirected` keeps UG-L25), on the adjacency list and compressed sparse row; in-edges by index (DG-L32) on every bidirectional representation and the directed view, through removals |
+| `DirectedEdgeIndexTests.swift` | Dense edge indices on `DirectedGraph`: one-to-one onto `0..<edgeCount` (DG-L29), out-edges by index (DG-L30), and `edges` in index order (DG-L31, so `undirectedView` keeps UG-L25), on the adjacency list and compressed sparse row; in-edges by index (DG-L32) on every bidirectional representation and the directed view, through removals |
 
 Case IDs (DG-L01, DG-A09, …) refer to the protocol design catalog (`Tests/Catalogs/GraphProtocols/directed-graph.md`), which drew on Boost's graph
 concepts, petgraph's `visit` traits, JGraphT's `Graph`, LEMON's concepts and NetworkX.

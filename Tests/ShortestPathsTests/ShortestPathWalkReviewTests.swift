@@ -39,13 +39,13 @@ struct ShortestPathWalkReviewTests {
             for result in [graph.dijkstraShortestPath(from: s, to: t) { edges[$0].2 },
                            graph.aStarShortestPath(from: s, to: t, weight: { edges[$0].2 }, heuristic: { _ in 0 })] {
                 guard let result else { continue }
-                #expect(Path(vertices: result.path.vertices, edges: result.path.edges, in: graph.directed) != nil, "\(edges) \(s)→\(t)")
+                #expect(Path(vertices: result.path.vertices, edges: result.path.edges, in: graph.directedView) != nil, "\(edges) \(s)→\(t)")
                 #expect(result.path.weight { edges[$0.position].2 } == result.distance)
             }
             let tree = graph.dijkstraShortestPaths(from: s) { edges[$0].2 }
             for v in 0 ..< n {
                 guard let path = tree.path(to: v) else { continue }
-                #expect(Path(vertices: path.vertices, edges: path.edges, in: graph.directed) != nil, "\(edges) to \(v)")
+                #expect(Path(vertices: path.vertices, edges: path.edges, in: graph.directedView) != nil, "\(edges) to \(v)")
             }
         }
     }
@@ -56,7 +56,7 @@ struct ShortestPathWalkReviewTests {
         let cycle = graph.findNegativeCycle(from: 0) { [1, -2][$0] }
         #expect(cycle?.vertices == [1])
         #expect(cycle?.edges == [DirectedView<ReferencePseudograph<Int>>.Edges.Index(position: 1, reversed: false)])
-        #expect(cycle.map { Cycle(vertices: $0.vertices, edges: $0.edges, in: graph.directed) != nil } == true)
+        #expect(cycle.map { Cycle(vertices: $0.vertices, edges: $0.edges, in: graph.directedView) != nil } == true)
         #expect(cycle?.weight { [1, -2][$0.position] } == -2)
     }
 }

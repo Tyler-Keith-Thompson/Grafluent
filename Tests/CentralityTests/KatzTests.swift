@@ -3,7 +3,7 @@
 // Expected values are ref.py's model at full precision (the catalog cells are the same values
 // rounded to 12 digits); non-iterative rows compare within 1e-12 relative to max(1, |value|), the
 // iterative ones within the catalog's Tol of the limit. Undirected rows also run on
-// `graph.directed` (the same values; twice for degree and unnormalized betweenness).
+// `graph.directedView` (the same values; twice for degree and unnormalized betweenness).
 // Case IDs (CE-nnn) refer to the catalog; see README.md.
 
 import Centrality
@@ -31,10 +31,10 @@ struct KatzTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try graph.directed.katzCentrality()
+        let arcs = try graph.directedView.katzCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -56,10 +56,10 @@ struct KatzTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try graph.directed.katzCentrality()
+        let arcs = try graph.directedView.katzCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -101,10 +101,10 @@ struct KatzTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try graph.directed.katzCentrality()
+        let arcs = try graph.directedView.katzCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -126,7 +126,7 @@ struct KatzTests {
         let failure = #expect(throws: NoConvergence.self) { try graph.katzCentrality(alpha: 0.2) }
         #expect(failure?.iterations == 1000)
         #expect(failure.map { !($0.residual < 1e-06) } == true)
-        let directedFailure = #expect(throws: NoConvergence.self) { try graph.directed.katzCentrality(alpha: 0.2) }
+        let directedFailure = #expect(throws: NoConvergence.self) { try graph.directedView.katzCentrality(alpha: 0.2) }
         #expect(directedFailure?.iterations == 1000)
         #expect(directedFailure.map { !($0.residual < 1e-06) } == true)
     }
@@ -147,10 +147,10 @@ struct KatzTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = try graph.directed.katzCentrality(normalized: false)
+        let arcs = try graph.directedView.katzCentrality(normalized: false)
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -170,10 +170,10 @@ struct KatzTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = try graph.directed.katzCentrality(alpha: 0.5, beta: 2, normalized: false)
+        let arcs = try graph.directedView.katzCentrality(alpha: 0.5, beta: 2, normalized: false)
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -235,10 +235,10 @@ struct KatzTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try graph.directed.katzCentrality()
+        let arcs = try graph.directedView.katzCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -260,10 +260,10 @@ struct KatzTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try graph.directed.katzCentrality()
+        let arcs = try graph.directedView.katzCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -286,10 +286,10 @@ struct KatzTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try graph.directed.katzCentrality(weight: { w[$0.position] })
+        let arcs = try graph.directedView.katzCentrality(weight: { w[$0.position] })
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -301,7 +301,7 @@ struct KatzTests {
         let failure = #expect(throws: NoConvergence.self) { try graph.katzCentrality(alpha: 0.4) }
         #expect(failure?.iterations == 1000)
         #expect(failure.map { !($0.residual < 1e-06) } == true)
-        let directedFailure = #expect(throws: NoConvergence.self) { try graph.directed.katzCentrality(alpha: 0.4) }
+        let directedFailure = #expect(throws: NoConvergence.self) { try graph.directedView.katzCentrality(alpha: 0.4) }
         #expect(directedFailure?.iterations == 1000)
         #expect(directedFailure.map { !($0.residual < 1e-06) } == true)
     }

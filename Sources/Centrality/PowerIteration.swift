@@ -315,7 +315,7 @@ extension Graph {
         let rows = _centralityRows(readsEdges: false)
         let numbers = _vertexNumbering()?.numbers
         let scores = try rows.eigenvector(nil, tolerance: tolerance, maxIterations: maxIterations)
-        return CentralityScores(directed, numbers: numbers, scores: scores)
+        return CentralityScores(directedView, numbers: numbers, scores: scores)
     }
 
     /// Eigenvector centrality of the weighted adjacency matrix; `weight` is called once per edge.
@@ -331,7 +331,7 @@ extension Graph {
         let rows = _centralityRows(readsEdges: true)
         let numbers = _vertexNumbering()?.numbers
         let scores = try rows.eigenvector(rows.iterationWeights(_edgeWeights(weight, valid: { $0 >= .zero && $0.isFinite }, message: _iterationWeightMessage)), tolerance: tolerance, maxIterations: maxIterations)
-        return CentralityScores(directed, numbers: numbers, scores: scores)
+        return CentralityScores(directedView, numbers: numbers, scores: scores)
     }
 
     /// Katz centrality (NetworkX `katz_centrality`): the solution of x = αAx + β, with Euclidean
@@ -348,7 +348,7 @@ extension Graph {
         let rows = _centralityRows(readsEdges: false)
         let numbers = _vertexNumbering()?.numbers
         let scores = try rows.katz(nil, alpha: alpha, beta: beta, normalized: normalized, tolerance: tolerance, maxIterations: maxIterations)
-        return CentralityScores(directed, numbers: numbers, scores: scores)
+        return CentralityScores(directedView, numbers: numbers, scores: scores)
     }
 
     /// Katz centrality of the weighted adjacency matrix; `weight` is called once per edge.
@@ -364,7 +364,7 @@ extension Graph {
         let rows = _centralityRows(readsEdges: true)
         let numbers = _vertexNumbering()?.numbers
         let scores = try rows.katz(rows.iterationWeights(_edgeWeights(weight, valid: { $0 >= .zero && $0.isFinite }, message: _iterationWeightMessage)), alpha: alpha, beta: beta, normalized: normalized, tolerance: tolerance, maxIterations: maxIterations)
-        return CentralityScores(directed, numbers: numbers, scores: scores)
+        return CentralityScores(directedView, numbers: numbers, scores: scores)
     }
 
     /// PageRank (Brin and Page; NetworkX `pagerank`), each edge two arcs and a self-loop two loop
@@ -382,7 +382,7 @@ extension Graph {
         let rows = _centralityRows(readsEdges: false)
         let numbers = _vertexNumbering()?.numbers
         let scores = try rows.pageRank(nil, dampingFactor: dampingFactor, personalization: nil, tolerance: tolerance, maxIterations: maxIterations)
-        return CentralityScores(directed, numbers: numbers, scores: scores)
+        return CentralityScores(directedView, numbers: numbers, scores: scores)
     }
 
     /// Personalized PageRank: jumps, and the mass of vertices without arcs, go to each vertex in
@@ -401,7 +401,7 @@ extension Graph {
         let rows = _centralityRows(readsEdges: false)
         let numbers = _vertexNumbering()?.numbers
         let scores = try rows.pageRank(nil, dampingFactor: dampingFactor, personalization: p, tolerance: tolerance, maxIterations: maxIterations)
-        return CentralityScores(directed, numbers: numbers, scores: scores)
+        return CentralityScores(directedView, numbers: numbers, scores: scores)
     }
 
     /// Weighted PageRank: each arc is followed in proportion to its weight among its source's arcs;
@@ -418,7 +418,7 @@ extension Graph {
         let rows = _centralityRows(readsEdges: true)
         let numbers = _vertexNumbering()?.numbers
         let scores = try rows.pageRank(rows.iterationWeights(_edgeWeights(weight, valid: { $0 >= .zero && $0.isFinite }, message: _iterationWeightMessage)), dampingFactor: dampingFactor, personalization: nil, tolerance: tolerance, maxIterations: maxIterations)
-        return CentralityScores(directed, numbers: numbers, scores: scores)
+        return CentralityScores(directedView, numbers: numbers, scores: scores)
     }
 
     /// Weighted, personalized PageRank.
@@ -437,7 +437,7 @@ extension Graph {
         let weights = rows.iterationWeights(_edgeWeights(weight, valid: { $0 >= .zero && $0.isFinite }, message: _iterationWeightMessage))
         let p = _personalization(personalization)
         let scores = try rows.pageRank(weights, dampingFactor: dampingFactor, personalization: p, tolerance: tolerance, maxIterations: maxIterations)
-        return CentralityScores(directed, numbers: numbers, scores: scores)
+        return CentralityScores(directedView, numbers: numbers, scores: scores)
     }
 }
 

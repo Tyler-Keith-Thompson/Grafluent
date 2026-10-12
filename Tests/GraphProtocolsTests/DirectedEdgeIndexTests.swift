@@ -58,7 +58,7 @@ struct DirectedEdgeIndexTests {
         law(list)
         law(AdjacencyMatrix(vertexCount: n, edges: edges))
         law(ReferenceDirectedMultigraph(vertices: 0 ..< n, edges: edges))
-        law(UndirectedAdjacencyList(vertices: 0 ..< n, edges: edges.map { UndirectedEdge($0.source, $0.target) }).directed)
+        law(UndirectedAdjacencyList(vertices: 0 ..< n, edges: edges.map { UndirectedEdge($0.source, $0.target) }).directedView)
         // Removals move edges and slots; the stored in-edge rows follow.
         for _ in 0 ..< 10 { list.remove(edge: edges[Int.random(in: 0 ..< edges.count, using: &generator)]) }
         list.remove(Int.random(in: 0 ..< n, using: &generator))
@@ -109,6 +109,6 @@ struct DirectedEdgeIndexTests {
         check(AdjacencyMatrix(vertexCount: 3, edges: edges))
         check(CompressedSparseRow(vertexCount: 3, edges: edges))
         check(ReferenceDirectedMultigraph(edges: edges))
-        check(UndirectedAdjacencyList(edges: edges.map { UndirectedEdge($0.source, $0.target) }).directed)
+        check(UndirectedAdjacencyList(edges: edges.map { UndirectedEdge($0.source, $0.target) }).directedView)
     }
 }

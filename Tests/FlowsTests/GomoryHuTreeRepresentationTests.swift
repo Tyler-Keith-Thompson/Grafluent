@@ -2,11 +2,11 @@
 // `ReferenceDirectedMultigraph` for rows already on it), a file-private conformer with no vertex or
 // edge indices, and, without a repeated edge, `CompressedSparseRow` and `AdjacencyMatrix` on the
 // vertex indices; undirected rows on `Pseudograph` (or `ReferencePseudograph`), the conformer, and,
-// without a repeated edge, `AdjacencyList.undirected` (each edge an arc as written) and
-// `AdjacencyMatrix.undirected`. CompressedSparseRow and AdjacencyMatrix number edges by row-major
-// cell, so there each catalog edge's position is looked up, a cut's edges are listed in that order,
-// and Edmonds–Karp's flow (which follows positions) was recomputed by swiftgen.py with ref.py's
-// model on those positions. Everything else is the catalog's. See README.md.
+// without a repeated edge, `AdjacencyList.undirectedView` (each edge an arc as written) and
+// `AdjacencyMatrix.undirectedView`. CompressedSparseRow and AdjacencyMatrix number edges by
+// row-major cell, so there each catalog edge's position is looked up, a cut's edges are listed in
+// that order, and Edmonds–Karp's flow (which follows positions) was recomputed by swiftgen.py with
+// ref.py's model on those positions. Everything else is the catalog's. See README.md.
 
 import AdjacencyListModule
 import AdjacencyMatrixModule
@@ -30,7 +30,7 @@ private struct UnindexedGraph<Vertex: Hashable>: Graph {
 
 @Suite("gomoryHuTree on every representation")
 struct GomoryHuTreeRepresentationTests {
-    @Test("FL-258 empty graph, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-258 empty graph, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl258() {
         // undirected V []; E []; gomoryHuTree(capacity:)
         let pairs: [(Int, Int)] = []
@@ -46,14 +46,14 @@ struct GomoryHuTreeRepresentationTests {
             let result = graph.gomoryHuTree(capacity: { capacities[$0] })
             #expect(result == nil)
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let result = graph.gomoryHuTree(capacity: { capacities[$0] })
             #expect(result == nil)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = []
-            let graph = AdjacencyMatrix(vertexCount: 0, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 0, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             let positionOfEdge = pairs.map { p in graph.edges.indices.first { graph.edges[$0].u == p.0 && graph.edges[$0].v == p.1 }! }
             let edgeOf = Dictionary(uniqueKeysWithValues: positionOfEdge.enumerated().map { ($1, $0) })
@@ -62,7 +62,7 @@ struct GomoryHuTreeRepresentationTests {
         }
     }
 
-    @Test("FL-259 one vertex, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-259 one vertex, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl259() throws {
         // undirected V [0]; E []; gomoryHuTree(capacity:)
         let pairs: [(Int, Int)] = []
@@ -98,8 +98,8 @@ struct GomoryHuTreeRepresentationTests {
             }
             _ = (parents, treeCapacities)
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let result = graph.gomoryHuTree(capacity: { capacities[$0] })
             let gomoryHu = try #require(result)
             let vertexList = [0] as [Int]
@@ -113,9 +113,9 @@ struct GomoryHuTreeRepresentationTests {
             }
             _ = (parents, treeCapacities)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = []
-            let graph = AdjacencyMatrix(vertexCount: 1, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 1, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             let positionOfEdge = pairs.map { p in graph.edges.indices.first { graph.edges[$0].u == p.0 && graph.edges[$0].v == p.1 }! }
             let edgeOf = Dictionary(uniqueKeysWithValues: positionOfEdge.enumerated().map { ($1, $0) })
@@ -170,7 +170,7 @@ struct GomoryHuTreeRepresentationTests {
         }
     }
 
-    @Test("FL-261 disconnected: zero edges join the pieces, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-261 disconnected: zero edges join the pieces, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl261() throws {
         // undirected V [0, 1, 2]; E [1–2 4]; gomoryHuTree(capacity:)
         let pairs: [(Int, Int)] = [(1, 2)]
@@ -204,8 +204,8 @@ struct GomoryHuTreeRepresentationTests {
                 #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
             }
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let result = graph.gomoryHuTree(capacity: { capacities[$0] })
             let gomoryHu = try #require(result)
             let vertexList = [0, 1, 2] as [Int]
@@ -218,9 +218,9 @@ struct GomoryHuTreeRepresentationTests {
                 #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
             }
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(1, 2)]
-            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             let positionOfEdge = pairs.map { p in graph.edges.indices.first { graph.edges[$0].u == p.0 && graph.edges[$0].v == p.1 }! }
             let edgeOf = Dictionary(uniqueKeysWithValues: positionOfEdge.enumerated().map { ($1, $0) })
@@ -238,7 +238,7 @@ struct GomoryHuTreeRepresentationTests {
         }
     }
 
-    @Test("FL-262 path, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-262 path, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl262() throws {
         // undirected V [0, 1, 2, 3]; E [0–1 3, 1–2 1, 2–3 2]; gomoryHuTree(capacity:)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
@@ -272,8 +272,8 @@ struct GomoryHuTreeRepresentationTests {
                 #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
             }
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let result = graph.gomoryHuTree(capacity: { capacities[$0] })
             let gomoryHu = try #require(result)
             let vertexList = [0, 1, 2, 3] as [Int]
@@ -286,9 +286,9 @@ struct GomoryHuTreeRepresentationTests {
                 #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
             }
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             let positionOfEdge = pairs.map { p in graph.edges.indices.first { graph.edges[$0].u == p.0 && graph.edges[$0].v == p.1 }! }
             let edgeOf = Dictionary(uniqueKeysWithValues: positionOfEdge.enumerated().map { ($1, $0) })
@@ -306,7 +306,7 @@ struct GomoryHuTreeRepresentationTests {
         }
     }
 
-    @Test("FL-263 star, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-263 star, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl263() throws {
         // undirected V [0, 1, 2, 3]; E [0–1 3, 0–2 1, 0–3 2]; gomoryHuTree(capacity:)
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3)]
@@ -340,8 +340,8 @@ struct GomoryHuTreeRepresentationTests {
                 #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
             }
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let result = graph.gomoryHuTree(capacity: { capacities[$0] })
             let gomoryHu = try #require(result)
             let vertexList = [0, 1, 2, 3] as [Int]
@@ -354,9 +354,9 @@ struct GomoryHuTreeRepresentationTests {
                 #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
             }
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             let positionOfEdge = pairs.map { p in graph.edges.indices.first { graph.edges[$0].u == p.0 && graph.edges[$0].v == p.1 }! }
             let edgeOf = Dictionary(uniqueKeysWithValues: positionOfEdge.enumerated().map { ($1, $0) })
@@ -374,7 +374,7 @@ struct GomoryHuTreeRepresentationTests {
         }
     }
 
-    @Test("FL-264 triangle, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-264 triangle, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl264() throws {
         // undirected V [0, 1, 2]; E [0–1 1, 1–2 2, 0–2 3]; gomoryHuTree(capacity:)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (0, 2)]
@@ -408,8 +408,8 @@ struct GomoryHuTreeRepresentationTests {
                 #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
             }
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let result = graph.gomoryHuTree(capacity: { capacities[$0] })
             let gomoryHu = try #require(result)
             let vertexList = [0, 1, 2] as [Int]
@@ -422,9 +422,9 @@ struct GomoryHuTreeRepresentationTests {
                 #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
             }
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (0, 2)]
-            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             let positionOfEdge = pairs.map { p in graph.edges.indices.first { graph.edges[$0].u == p.0 && graph.edges[$0].v == p.1 }! }
             let edgeOf = Dictionary(uniqueKeysWithValues: positionOfEdge.enumerated().map { ($1, $0) })
@@ -442,7 +442,7 @@ struct GomoryHuTreeRepresentationTests {
         }
     }
 
-    @Test("FL-265 K(4), unit, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-265 K(4), unit, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl265() throws {
         // K(4); gomoryHuTree(capacity:)
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
@@ -476,8 +476,8 @@ struct GomoryHuTreeRepresentationTests {
                 #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
             }
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let result = graph.gomoryHuTree(capacity: { capacities[$0] })
             let gomoryHu = try #require(result)
             let vertexList = [0, 1, 2, 3] as [Int]
@@ -490,9 +490,9 @@ struct GomoryHuTreeRepresentationTests {
                 #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
             }
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             let positionOfEdge = pairs.map { p in graph.edges.indices.first { graph.edges[$0].u == p.0 && graph.edges[$0].v == p.1 }! }
             let edgeOf = Dictionary(uniqueKeysWithValues: positionOfEdge.enumerated().map { ($1, $0) })
@@ -510,7 +510,7 @@ struct GomoryHuTreeRepresentationTests {
         }
     }
 
-    @Test("FL-266 cycle C(5), unit, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-266 cycle C(5), unit, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl266() throws {
         // C(5); gomoryHuTree(capacity:)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
@@ -544,8 +544,8 @@ struct GomoryHuTreeRepresentationTests {
                 #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
             }
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let result = graph.gomoryHuTree(capacity: { capacities[$0] })
             let gomoryHu = try #require(result)
             let vertexList = [0, 1, 2, 3, 4] as [Int]
@@ -558,9 +558,9 @@ struct GomoryHuTreeRepresentationTests {
                 #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
             }
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             let positionOfEdge = pairs.map { p in graph.edges.indices.first { graph.edges[$0].u == p.0 && graph.edges[$0].v == p.1 }! }
             let edgeOf = Dictionary(uniqueKeysWithValues: positionOfEdge.enumerated().map { ($1, $0) })
@@ -578,7 +578,7 @@ struct GomoryHuTreeRepresentationTests {
         }
     }
 
-    @Test("FL-267 Wikipedia Gomory–Hu graph, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-267 Wikipedia Gomory–Hu graph, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl267() throws {
         // undirected V [0, 1, 2, 3, 4, 5]; E [0–1 1, 0–2 7, 1–2 1, 1–3 3, 1–4 2, 2–4 4, 3–4 1, 3–5 6, 4–5 2]; gomoryHuTree(capacity:)
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (1, 3), (1, 4), (2, 4), (3, 4), (3, 5), (4, 5)]
@@ -612,8 +612,8 @@ struct GomoryHuTreeRepresentationTests {
                 #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
             }
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let result = graph.gomoryHuTree(capacity: { capacities[$0] })
             let gomoryHu = try #require(result)
             let vertexList = [0, 1, 2, 3, 4, 5] as [Int]
@@ -626,9 +626,9 @@ struct GomoryHuTreeRepresentationTests {
                 #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
             }
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (1, 3), (1, 4), (2, 4), (3, 4), (3, 5), (4, 5)]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             let positionOfEdge = pairs.map { p in graph.edges.indices.first { graph.edges[$0].u == p.0 && graph.edges[$0].v == p.1 }! }
             let edgeOf = Dictionary(uniqueKeysWithValues: positionOfEdge.enumerated().map { ($1, $0) })
@@ -646,7 +646,7 @@ struct GomoryHuTreeRepresentationTests {
         }
     }
 
-    @Test("FL-268 Stoer–Wagner paper graph, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-268 Stoer–Wagner paper graph, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl268() throws {
         // undirected V [1, 2, 3, 4, 5, 6, 7, 8]; E [1–2 2, 1–5 3, 2–3 3, 2–5 2, 2–6 2, 3–4 4, 3–7 2, 4–7 2, 4–8 2, 5–6 3, 6–7 1, 7–8 3]; gomoryHuTree(capacity:)
         let pairs: [(Int, Int)] = [(1, 2), (1, 5), (2, 3), (2, 5), (2, 6), (3, 4), (3, 7), (4, 7), (4, 8), (5, 6), (6, 7), (7, 8)]
@@ -680,8 +680,8 @@ struct GomoryHuTreeRepresentationTests {
                 #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
             }
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4, 5, 6, 7, 8] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4, 5, 6, 7, 8] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let result = graph.gomoryHuTree(capacity: { capacities[$0] })
             let gomoryHu = try #require(result)
             let vertexList = [1, 2, 3, 4, 5, 6, 7, 8] as [Int]
@@ -694,9 +694,9 @@ struct GomoryHuTreeRepresentationTests {
                 #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
             }
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 4), (1, 5), (2, 3), (2, 6), (3, 6), (3, 7), (4, 5), (5, 6), (6, 7)]
-            let graph = AdjacencyMatrix(vertexCount: 8, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 8, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             let positionOfEdge = pairs.map { p in graph.edges.indices.first { graph.edges[$0].u == p.0 && graph.edges[$0].v == p.1 }! }
             let edgeOf = Dictionary(uniqueKeysWithValues: positionOfEdge.enumerated().map { ($1, $0) })
@@ -714,7 +714,7 @@ struct GomoryHuTreeRepresentationTests {
         }
     }
 
-    @Test("FL-269 igraph example: triangle with a pendant, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-269 igraph example: triangle with a pendant, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl269() throws {
         // undirected V [0, 1, 2, 3]; E [0–1 1, 1–2 1, 2–0 1, 2–3 1]; gomoryHuTree(capacity:)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (2, 3)]
@@ -748,8 +748,8 @@ struct GomoryHuTreeRepresentationTests {
                 #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
             }
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let result = graph.gomoryHuTree(capacity: { capacities[$0] })
             let gomoryHu = try #require(result)
             let vertexList = [0, 1, 2, 3] as [Int]
@@ -762,9 +762,9 @@ struct GomoryHuTreeRepresentationTests {
                 #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
             }
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (2, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             let positionOfEdge = pairs.map { p in graph.edges.indices.first { graph.edges[$0].u == p.0 && graph.edges[$0].v == p.1 }! }
             let edgeOf = Dictionary(uniqueKeysWithValues: positionOfEdge.enumerated().map { ($1, $0) })
@@ -782,7 +782,7 @@ struct GomoryHuTreeRepresentationTests {
         }
     }
 
-    @Test("FL-270 labels, not indices, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-270 labels, not indices, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl270() throws {
         // undirected V [d, b, a, c]; E [a–b 1, b–c 2, c–d 3, d–a 4, a–c 5]; gomoryHuTree(capacity:)
         let pairs: [(String, String)] = [("a", "b"), ("b", "c"), ("c", "d"), ("d", "a"), ("a", "c")]
@@ -816,8 +816,8 @@ struct GomoryHuTreeRepresentationTests {
                 #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
             }
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<String>(vertices: ["d", "b", "a", "c"] as [String], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<String>(vertices: ["d", "b", "a", "c"] as [String], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let result = graph.gomoryHuTree(capacity: { capacities[$0] })
             let gomoryHu = try #require(result)
             let vertexList = ["d", "b", "a", "c"] as [String]
@@ -830,9 +830,9 @@ struct GomoryHuTreeRepresentationTests {
                 #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
             }
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(2, 1), (1, 3), (3, 0), (0, 2), (2, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             let positionOfEdge = pairs.map { p in graph.edges.indices.first { graph.edges[$0].u == p.0 && graph.edges[$0].v == p.1 }! }
             let edgeOf = Dictionary(uniqueKeysWithValues: positionOfEdge.enumerated().map { ($1, $0) })
@@ -850,7 +850,7 @@ struct GomoryHuTreeRepresentationTests {
         }
     }
 
-    @Test("FL-271 self-loop and parallel edges, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-271 self-loop and parallel edges, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl271() throws {
         // undirected V [0, 1, 2]; E [0–0 5, 0–1 1, 1–0 1, 1–2 3]; gomoryHuTree(capacity:)
         let pairs: [(Int, Int)] = [(0, 0), (0, 1), (1, 0), (1, 2)]
@@ -884,8 +884,8 @@ struct GomoryHuTreeRepresentationTests {
                 #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
             }
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let result = graph.gomoryHuTree(capacity: { capacities[$0] })
             let gomoryHu = try #require(result)
             let vertexList = [0, 1, 2] as [Int]
@@ -898,9 +898,9 @@ struct GomoryHuTreeRepresentationTests {
                 #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
             }
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 0), (0, 1), (1, 0), (1, 2)]
-            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             let positionOfEdge = pairs.map { p in graph.edges.indices.first { graph.edges[$0].u == p.0 && graph.edges[$0].v == p.1 }! }
             let edgeOf = Dictionary(uniqueKeysWithValues: positionOfEdge.enumerated().map { ($1, $0) })
@@ -954,7 +954,7 @@ struct GomoryHuTreeRepresentationTests {
         }
     }
 
-    @Test("FL-273 Petersen, unit, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-273 Petersen, unit, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl273() throws {
         // nx(petersen_graph); gomoryHuTree(capacity:)
         let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
@@ -988,8 +988,8 @@ struct GomoryHuTreeRepresentationTests {
                 #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
             }
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let result = graph.gomoryHuTree(capacity: { capacities[$0] })
             let gomoryHu = try #require(result)
             let vertexList = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int]
@@ -1002,9 +1002,9 @@ struct GomoryHuTreeRepresentationTests {
                 #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
             }
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
-            let graph = AdjacencyMatrix(vertexCount: 10, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 10, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             let positionOfEdge = pairs.map { p in graph.edges.indices.first { graph.edges[$0].u == p.0 && graph.edges[$0].v == p.1 }! }
             let edgeOf = Dictionary(uniqueKeysWithValues: positionOfEdge.enumerated().map { ($1, $0) })
@@ -1058,7 +1058,7 @@ struct GomoryHuTreeRepresentationTests {
         }
     }
 
-    @Test("FL-496 UInt8 star, the centre's sum past 255, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-496 UInt8 star, the centre's sum past 255, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl496() throws {
         // UInt8 undirected V [0, 1, 2, 3]; E [0–1 200, 0–2 200, 0–3 200]; gomoryHuTree(capacity:)
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3)]
@@ -1092,8 +1092,8 @@ struct GomoryHuTreeRepresentationTests {
                 #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
             }
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let result = graph.gomoryHuTree(capacity: { capacities[$0] })
             let gomoryHu = try #require(result)
             let vertexList = [0, 1, 2, 3] as [Int]
@@ -1106,9 +1106,9 @@ struct GomoryHuTreeRepresentationTests {
                 #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
             }
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             let positionOfEdge = pairs.map { p in graph.edges.indices.first { graph.edges[$0].u == p.0 && graph.edges[$0].v == p.1 }! }
             let edgeOf = Dictionary(uniqueKeysWithValues: positionOfEdge.enumerated().map { ($1, $0) })
@@ -1126,7 +1126,7 @@ struct GomoryHuTreeRepresentationTests {
         }
     }
 
-    @Test("FL-527 Int.max path, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-527 Int.max path, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl527() throws {
         // undirected V [0, 1, 2]; E [0–1 9223372036854775807, 1–2 9223372036854775807]; gomoryHuTree(capacity:)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
@@ -1160,8 +1160,8 @@ struct GomoryHuTreeRepresentationTests {
                 #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
             }
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let result = graph.gomoryHuTree(capacity: { capacities[$0] })
             let gomoryHu = try #require(result)
             let vertexList = [0, 1, 2] as [Int]
@@ -1174,9 +1174,9 @@ struct GomoryHuTreeRepresentationTests {
                 #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
             }
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
-            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             let positionOfEdge = pairs.map { p in graph.edges.indices.first { graph.edges[$0].u == p.0 && graph.edges[$0].v == p.1 }! }
             let edgeOf = Dictionary(uniqueKeysWithValues: positionOfEdge.enumerated().map { ($1, $0) })

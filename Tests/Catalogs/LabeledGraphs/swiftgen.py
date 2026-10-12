@@ -384,7 +384,7 @@ def counted_lines(n, kind, g0, calls, ind="        "):
     lines.append("let pads = (0 ..< 16).map { \"pad\\($0)\" }")
     build = "LabeledGraph<Counted, %s>(vertices: (%s + pads).map(label), edges: %s.map { DirectedEdge(from: label($0[0]), to: label($0[1])) })" % (
         BASE[kind], strs(L), str_pairs([list(e) for e in E]))
-    lines.append("let counted = " + build + (".undirected" if view else ""))
+    lines.append("let counted = " + build + (".undirectedView" if view else ""))
     lines.append("tally.hashes = 0")
     lines.append("tally.comparisons = 0")
     later = []
@@ -524,7 +524,7 @@ def row_test(n):
     else:
         lines.append("        let graph = try " + BASE_INIT[n][1])
     if kind == "U":
-        lines.append("        let view = graph.undirected")
+        lines.append("        let view = graph.undirectedView")
     shown = []
     for i, c in enumerate(calls):
         r, ls = call_lines(g, kind, c)
@@ -568,13 +568,13 @@ def trap_test(n):
         lines.append("            " + cell_decl(p))
     lines.append("            " + construct(kind, V, E, False))
     if kind == "U":
-        lines.append("            let view = graph.undirected")
+        lines.append("            let view = graph.undirectedView")
     lines.append("            " + child_call(kind, last))
     lines.append("        }")
     lines.append("        // Without the call: the state the call would apply to.")
     lines.append("        " + construct(kind, V, E, False))
     if kind == "U":
-        lines.append("        let view = graph.undirected")
+        lines.append("        let view = graph.undirectedView")
     lines += state(g, kind)
     lines.append("    }")
     return lines
@@ -690,7 +690,7 @@ FILES = [
      "// index-space reads hash no label and a label-space read hashes one; topologicalSort and\n"
      "// descendants are the base's results through the labels."),
     ("LabeledGraphUndirectedTests.swift", "LabeledGraphs undirected view", ids("Undirected"),
-     "The undirected view (catalog LG-062 – LG-068): `labeled.undirected`, neighbours as successors then\n"
+     "The undirected view (catalog LG-062 – LG-068): `labeled.undirectedView`, neighbours as successors then\n"
      "// predecessors, opposite arcs parallel, a loop twice, label-space reads hashing twice."),
     ("LabeledGraphMutationTests.swift", "LabeledGraphs mutation", ids("Mutation"),
      "Mutation over AdjacencyMatrix (catalog LG-069 – LG-084, LG-097, LG-098): a new label appends base\n"

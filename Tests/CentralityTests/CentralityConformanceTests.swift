@@ -235,7 +235,7 @@ struct CentralityConformanceTests {
                 try g.eigenvectorCentrality().scores,
                 try g.katzCentrality().scores,
                 try g.pageRank().scores,
-                try g.directed.hits().hubs.scores
+                try g.directedView.hits().hubs.scores
             ]
         }
         let first = try all(reference)

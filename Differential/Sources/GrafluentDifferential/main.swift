@@ -277,7 +277,7 @@ func undirectedCentrality<G: Graph<Int>>(_ graph: G, _ n: Int, _ w: (G.Edges.Ind
     a.katz = (try? graph.katzCentrality())?.scores
     a.pageRank = (try? graph.pageRank())?.scores
     a.weightedPageRank = (try? graph.pageRank(weight: { Double(abs(w($0))) }))?.scores
-    let view = graph.directed
+    let view = graph.directedView
     a.consistent = (0 ..< n).allSatisfy { v in
         graph.closenessCentrality(of: v) == a.closeness[v] && graph.harmonicCentrality(of: v) == a.harmonic[v]
             && graph.closenessCentrality(of: v, weight: { Double(abs(w($0))) }) == a.weightedCloseness[v]
@@ -357,7 +357,7 @@ func undirectedCommunities<G: Graph<Int>>(_ graph: G, _ n: Int, _ w: @escaping (
     return a
 }
 
-/// Bipartiteness on the undirected graph (a directed case through `.undirected`): the canonical
+/// Bipartiteness on the undirected graph (a directed case through `.undirectedView`): the canonical
 /// side per vertex (0 left), the odd cycle (checked for validity by the script), and for bipartite
 /// graphs the projection onto the left side and the round trip through `BipartiteGraph`.
 struct BipartiteAnswers: Encodable {
@@ -387,7 +387,7 @@ func bipartiteAnswers<G: Graph<Int>>(_ graph: G, _ n: Int) -> BipartiteAnswers {
     return a
 }
 
-/// Matchings on the undirected graph (a directed case through `.undirected`), as endpoint pairs:
+/// Matchings on the undirected graph (a directed case through `.undirectedView`), as endpoint pairs:
 /// maximal, maximum (Edmonds), and on bipartite graphs Hopcroft–Karp and the minimum-weight full
 /// matching with |w| (nil when none); every result checked with `isMatching` and friends.
 struct MatchingAnswers: Encodable {
@@ -485,7 +485,7 @@ func coveringAnswers<G: Graph<Int>>(_ graph: G) -> CoveringAnswers {
     return a
 }
 
-/// Colouring on the undirected graph (a directed case through `.undirected`): every greedy
+/// Colouring on the undirected graph (a directed case through `.undirectedView`): every greedy
 /// strategy's colours, first fit in reverse vertex order, the exact colouring on small graphs,
 /// Misra–Gries on the simple graph (self-loops dropped, parallel copies once, first appearance
 /// order), König and the greedy edge colouring on the graph itself (parallel copies kept), igraph's
@@ -702,10 +702,10 @@ for c in cases {
         }
         if wants("centrality") { results[results.count - 1].centrality = directedCentrality(graph, c.n, w) }
         if wants("communities") { results[results.count - 1].communities = directedCommunities(graph, c.n, w) }
-        if wants("bipartite") { results[results.count - 1].bipartite = bipartiteAnswers(graph.undirected, c.n) }
-        if wants("matching") { results[results.count - 1].matching = matchingAnswers(graph.undirected, { weights[$0] }) }
-        if wants("covering") { results[results.count - 1].covering = coveringAnswers(graph.undirected) }
-        if wants("coloring") { results[results.count - 1].coloring = coloringAnswers(graph.undirected) }
+        if wants("bipartite") { results[results.count - 1].bipartite = bipartiteAnswers(graph.undirectedView, c.n) }
+        if wants("matching") { results[results.count - 1].matching = matchingAnswers(graph.undirectedView, { weights[$0] }) }
+        if wants("covering") { results[results.count - 1].covering = coveringAnswers(graph.undirectedView) }
+        if wants("coloring") { results[results.count - 1].coloring = coloringAnswers(graph.undirectedView) }
         if wants("flows"), let f = c.flow { results[results.count - 1].flows = flowAnswers(directed: true, n: c.n, f) }
         if wants("tours"), let t = c.tours { results[results.count - 1].tours = toursAnswers(directed: true, n: c.n, edges: c.edges, sources: c.sources, target: c.target, t) }
         if wants("dag") { results[results.count - 1].dag = directedAcyclicGraphAnswers(n: c.n, edges: c.edges, source: c.sources[0], target: c.target) }
@@ -716,7 +716,7 @@ for c in cases {
         for e in c.edges { byEdge[UndirectedEdge(e[0], e[1])] = e[2] }
         let weights = graph.edges.map { byEdge[$0]! }
         let w: (Int) -> Int = { weights[$0] }
-        let view = graph.directed
+        let view = graph.directedView
         var result = answer(view, c, { weights[$0.position] },
             { graph.dijkstraShortestPaths(from: c.sources, cutoff: c.cutoff, weight: w) },
             { graph.dijkstraShortestPath(from: c.sources[0], to: c.target, weight: w) },

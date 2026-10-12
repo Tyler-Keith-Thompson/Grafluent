@@ -10,7 +10,7 @@ extension Graph {
         let rows = _centralityRows(readsEdges: false)
         let numbers = _vertexNumbering()?.numbers
         var search = _UnweightedCentralitySearch(rows)
-        return CentralityScores(directed, numbers: numbers, scores: _closenessScores(&search, wfImproved: wfImproved))
+        return CentralityScores(directedView, numbers: numbers, scores: _closenessScores(&search, wfImproved: wfImproved))
     }
 
     /// The closeness centrality of `vertex` alone: one search, O(n + m).
@@ -34,7 +34,7 @@ extension Graph {
         let rows = _centralityRows(readsEdges: true)
         let numbers = _vertexNumbering()?.numbers
         var search = _weightedSearch(_IntegerConversion<W>.self, rows, _edgeWeights(weight, valid: { $0 >= .zero }, message: _integerWeightMessage))
-        return CentralityScores(directed, numbers: numbers, scores: _closenessScores(&search, wfImproved: wfImproved))
+        return CentralityScores(directedView, numbers: numbers, scores: _closenessScores(&search, wfImproved: wfImproved))
     }
 
     /// The weighted closeness centrality of `vertex` alone: one search, O(m log n).
@@ -58,7 +58,7 @@ extension Graph {
         let rows = _centralityRows(readsEdges: true)
         let numbers = _vertexNumbering()?.numbers
         var search = _weightedSearch(_FloatingConversion<W>.self, rows, _edgeWeights(weight, valid: { $0 >= .zero && !$0.isNaN }, message: _floatingWeightMessage))
-        return CentralityScores(directed, numbers: numbers, scores: _closenessScores(&search, wfImproved: wfImproved))
+        return CentralityScores(directedView, numbers: numbers, scores: _closenessScores(&search, wfImproved: wfImproved))
     }
 
     /// The weighted closeness centrality of `vertex` alone: one search, O(m log n).
@@ -79,7 +79,7 @@ extension Graph {
         let rows = _centralityRows(readsEdges: false)
         let numbers = _vertexNumbering()?.numbers
         var search = _UnweightedCentralitySearch(rows)
-        return CentralityScores(directed, numbers: numbers, scores: _harmonicScores(&search))
+        return CentralityScores(directedView, numbers: numbers, scores: _harmonicScores(&search))
     }
 
     /// The harmonic centrality of `vertex` alone: one search, O(n + m).
@@ -101,7 +101,7 @@ extension Graph {
         let rows = _centralityRows(readsEdges: true)
         let numbers = _vertexNumbering()?.numbers
         var search = _weightedSearch(_IntegerConversion<W>.self, rows, _edgeWeights(weight, valid: { $0 >= .zero }, message: _integerWeightMessage))
-        return CentralityScores(directed, numbers: numbers, scores: _harmonicScores(&search))
+        return CentralityScores(directedView, numbers: numbers, scores: _harmonicScores(&search))
     }
 
     /// The weighted harmonic centrality of `vertex` alone.
@@ -123,7 +123,7 @@ extension Graph {
         let rows = _centralityRows(readsEdges: true)
         let numbers = _vertexNumbering()?.numbers
         var search = _weightedSearch(_FloatingConversion<W>.self, rows, _edgeWeights(weight, valid: { $0 >= .zero && !$0.isNaN }, message: _floatingWeightMessage))
-        return CentralityScores(directed, numbers: numbers, scores: _harmonicScores(&search))
+        return CentralityScores(directedView, numbers: numbers, scores: _harmonicScores(&search))
     }
 
     /// The weighted harmonic centrality of `vertex` alone.

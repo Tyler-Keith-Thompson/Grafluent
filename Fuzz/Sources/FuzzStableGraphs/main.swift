@@ -346,10 +346,11 @@ enum FuzzStableGraphs {
                     do throws(ElementNotFound) {
                         if target { try graph.changeTarget(ofEdgeAt: p, checked: b) } else { try graph.changeSource(ofEdgeAt: p, checked: b) }
                         check(ok, "\(call) did not throw")
-                    } catch .edge {
-                        check(!isEdge, "\(call) threw ElementNotFound.edge")
-                    } catch .vertex {
-                        check(isEdge && !ok, "\(call) threw ElementNotFound.vertex")
+                    } catch {
+                        switch error {
+                        case .edge: check(!isEdge, "\(call) threw ElementNotFound.edge")
+                        case .vertex: check(isEdge && !ok, "\(call) threw ElementNotFound.vertex")
+                        }
                     }
                 } else if ok {
                     if target { graph.changeTarget(ofEdgeAt: p, to: b) } else { graph.changeSource(ofEdgeAt: p, to: b) }

@@ -41,7 +41,7 @@
 ///   `source(ofEdgeAt: e)` and `target(ofEdgeAt: e)`.
 /// - With edge indices, `edgeIndexBound == edgeCount` and `edgeIndex(of:)` is one-to-one onto
 ///   `0..<edgeIndexBound`, and `edges` is in index order: the `k`th position of `edges` has
-///   `edgeIndex` `k` (so `undirected`, which forwards both, keeps `Graph`'s law of the same name).
+///   `edgeIndex` `k` (so `undirectedView`, which forwards both, keeps `Graph`'s law of the same name).
 ///
 /// **Defaults.** Members with default implementations are requirements, not extension methods, so
 /// a representation's faster version is the one generic code calls. A type that wraps another

@@ -132,11 +132,11 @@ let benchmarks: @Sendable () -> Void = {
         for e in view.edges { sum &+= e.u }
         return sum
     }
-    Benchmark("IncidenceMatrix: BASELINE every row and edge of incidenceGraph on an UndirectedIncidenceList copy, 512 × 512") { benchmark in
-        for _ in benchmark.scaledIterations { blackHole(walk(denseList.incidenceGraph)) }
+    Benchmark("IncidenceMatrix: BASELINE every row and edge of incidenceGraphView on an UndirectedIncidenceList copy, 512 × 512") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(walk(denseList.incidenceGraphView)) }
     }
-    Benchmark("IncidenceMatrix: every row and edge of incidenceGraph, 512 × 512") { benchmark in
-        for _ in benchmark.scaledIterations { blackHole(walk(dense.incidenceGraph)) }
+    Benchmark("IncidenceMatrix: every row and edge of incidenceGraphView, 512 × 512") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(walk(dense.incidenceGraphView)) }
     }
 
     // MARK: Per-vertex and per-hyperedge allocation: the counts must match the list copies'

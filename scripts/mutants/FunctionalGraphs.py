@@ -27,7 +27,7 @@ K = "FunctionalGraph+Conformances.swift"
 
 MUTANTS = [
     # Decomposition queries.
-    Mutant("dcheck", D, "UInt(bitPattern: vertex) < UInt(bitPattern: _records.count)", "true"),
+    Mutant("dcheck", D, "UInt(bitPattern: vertex) < UInt(bitPattern: _records.count)", "true", nth=0),
     Mutant("dcomponent", D, "record.tail == 0 ? record.root : _records[record.root].root", "record.root"),
     Mutant("droot", D, "record.tail == 0 ? vertex : record.root", "record.root"),
     Mutant("dcyclelength", D, "_cycleStarts[c + 1] - _cycleStarts[c]", "_cycleStarts[c + 1] - _cycleStarts[0]"),
@@ -132,4 +132,16 @@ MUTANTS = [
     Mutant("ckvertexindex", G, "guard contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=3),
     Mutant("cksource", G, "guard contains(position) else { throw EdgeNotFound() }", "", mode="stmt", nth=0),
     Mutant("cktarget", G, "guard contains(position) else { throw EdgeNotFound() }", "", mode="stmt", nth=1),
+
+    # The decomposition's checked: spellings: each drops its range check, so the trapping
+    # spelling traps.
+    Mutant("dckcomponent", D, "guard UInt(bitPattern: vertex) < UInt(bitPattern: _records.count) else { throw VertexNotFound() }", "", mode="stmt", nth=0),
+    Mutant("dckroot", D, "guard UInt(bitPattern: vertex) < UInt(bitPattern: _records.count) else { throw VertexNotFound() }", "", mode="stmt", nth=1),
+    Mutant("dcktail", D, "guard UInt(bitPattern: vertex) < UInt(bitPattern: _records.count) else { throw VertexNotFound() }", "", mode="stmt", nth=2),
+    Mutant("dckcyclelength", D, "guard UInt(bitPattern: vertex) < UInt(bitPattern: _records.count) else { throw VertexNotFound() }", "", mode="stmt", nth=3),
+    Mutant("dckpreimages", D, "guard UInt(bitPattern: vertex) < UInt(bitPattern: _records.count) else { throw VertexNotFound() }", "", mode="stmt", nth=4),
+    Mutant("dckindegree", D, "guard UInt(bitPattern: vertex) < UInt(bitPattern: _records.count) else { throw VertexNotFound() }", "", mode="stmt", nth=5),
+    Mutant("dcksuccessor", D, "guard UInt(bitPattern: vertex) < UInt(bitPattern: _records.count) else { throw VertexNotFound() }", "", mode="stmt", nth=6),
+    Mutant("dckbound", D, "guard UInt(bitPattern: vertex) < UInt(bitPattern: _records.count) else { throw VertexNotFound() }", "guard UInt(bitPattern: vertex) <= UInt(bitPattern: _records.count) else { throw VertexNotFound() }", mode="stmt", nth=0),
+    Mutant("dckthrow", D, "guard UInt(bitPattern: vertex) < UInt(bitPattern: _records.count) else { throw VertexNotFound() }", "throw VertexNotFound()", mode="stmt", nth=6),
 ]

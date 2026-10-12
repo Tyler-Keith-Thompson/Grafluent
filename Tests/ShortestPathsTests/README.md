@@ -5,7 +5,7 @@ optional inclusive cutoff, a single-target query that stops when the target is s
 Bellman–Ford with negative-cycle detection and a witness, A* with reopening, unweighted
 (breadth-first) shortest paths, and the `ShortestPathTree` result. Everything is written once
 against `DirectedGraph`, with forwarding overloads on `Graph` that read an undirected graph
-through `directed`. The suite uses only the public API and is self-contained per test; shared
+through `directedView`. The suite uses only the public API and is self-contained per test; shared
 material is the fixtures, the `ReferenceDirectedMultigraph` and `ReferencePseudograph` test
 conformers and the seeded generator in `GrafluentTestSupport`.
 
@@ -22,8 +22,15 @@ struct ShortestPathTree<G: DirectedGraph, Distance: Comparable & AdditiveArithme
     func path(to:) -> Path<G.Vertex, G.Edges.Index>?   // from a source; Path(vertex: s) for a source
     func distance(toIndex:) -> Distance?
     func parent(ofIndex:) -> Int?
+    distance(checkedTo:), hasPath(checkedTo:), parent(checked:), parentEdge(checked:),
+    path(checkedTo:)                                   // throw VertexNotFound; nil keeps its meaning
+struct DistanceMatrix: distance(checkedFrom:to:), hasPath(checkedFrom:to:), path(checkedFrom:to:)
+struct ShortestDistances: distance(checkedTo:)        // throw VertexNotFound
 extension Arborescence
     init(_ tree: ShortestPathTree<G, D>)               // one source: reached vertices in index order
+    init(checked tree: ShortestPathTree<G, D>) throws(NotATree)  // throws unless one source
+extension Forest
+    init(_ tree: ShortestPathTree<G, D>)               // any number of sources: reached vertices, parent edges
 
 extension DirectedGraph
     func shortestPaths(from: Vertex | some Sequence<Vertex>) -> ShortestPathTree<Self, Int>
@@ -45,7 +52,7 @@ extension Graph                                        // weight over the base's
 
 | Question | Choice | Why |
 |---|---|---|
-| Weights | A closure over edge positions, `(Edges.Index) -> W`, called only for examined edges (SP-42, SP-130). Tests keep weights in an array by position (ReferenceDirectedMultigraph, AdjacencyList, CompressedSparseRow through `edgeIndices:`), by cell (`AdjacencyMatrix`), or by `$0.position` (undirected through `directed`) | The only form that tells parallel edges apart and works on every representation |
+| Weights | A closure over edge positions, `(Edges.Index) -> W`, called only for examined edges (SP-42, SP-130). Tests keep weights in an array by position (ReferenceDirectedMultigraph, AdjacencyList, CompressedSparseRow through `edgeIndices:`), by cell (`AdjacencyMatrix`), or by `$0.position` (undirected through `directedView`) | The only form that tells parallel edges apart and works on every representation |
 | Unreached | `distance(to:) == nil`, `parent(of:) == nil`, `path(to:) == nil`; no infinity sentinel, so `Int` sums up to `Int.max` are exact (SP-37) and `Double.infinity` is an ordinary weight (SP-39) | Nothing is ever added to a sentinel |
 | Negative weights in Dijkstra and A* | Trap on each examined edge, so an unexamined one never traps (SP-35, SP-36) | Boost's and gonum's rule |
 | NaN, overflow | NaN weights trap in Dijkstra and A*; a NaN sum traps in Bellman–Ford (+∞ meeting −∞ included); overflow traps (SP-38, SP-40) | Swift's checked arithmetic is the guard |
@@ -58,7 +65,7 @@ extension Graph                                        // weight over the base's
 | Zero-weight cycles | Not negative (SP-60) | Strict `<` |
 | A* | Reopens a vertex whose distance improves, so an admissible heuristic gives a shortest path even when inconsistent (SP-71); an inadmissible one gives some path (SP-80); source == target returns `(Path(vertex: s), 0)` (SP-81); the target's own estimate is taken as zero, so a negative one (still admissible) cannot end the search early (SP-132) | Boost, NetworkX, JGraphT |
 | Unweighted | Breadth-first, fully determined: first discovery in out-edge order (SP-86) | — |
-| Undirected graphs | Through `directed`, each edge two arcs sharing its position; the `Graph` overloads take weights by the base position and return the view's tree, whose parent edges are `(position, reversed)` arcs (SP-92) | Traversal's precedent |
+| Undirected graphs | Through `directedView`, each edge two arcs sharing its position; the `Graph` overloads take weights by the base position and return the view's tree, whose parent edges are `(position, reversed)` arcs (SP-92) | Traversal's precedent |
 | Results | Values holding a copy of the graph: mutating the original afterwards changes nothing (SP-126) | Connectivity's `Components` |
 | Index space | On an indexed adjacency list the algorithms hash only the source (and the target), not one vertex per step (SP-129) | Connectivity CN-136 |
 | Preconditions | A source, target or query vertex that is not a vertex, an empty source sequence, and `distance(toIndex:)` / `parent(ofIndex:)` outside `0..<vertexIndexBound` trap; tested with exit tests | — |
@@ -74,7 +81,7 @@ extension Graph                                        // weight over the base's
 | Bellman–Ford parents | Exact only where the shortest-path predecessor is unique, which holds in every Bellman–Ford case of §E; SP-59 compares parents only there |
 | Unweighted parents | Exact |
 | Witnesses | Exact where one simple negative cycle is reachable; otherwise the witness laws (SP-69a) |
-| Representations | `AdjacencyMatrix`, `CompressedSparseRow` (ascending rows), `ReferenceDirectedMultigraph` (written order, the only host for parallel edges and for `String` and non-`0..<n` vertices with exact positions), `AdjacencyList` (positions in insertion order, so a list built from a written edge list without repeats has the written positions), `UndirectedAdjacencyList` and `ReferencePseudograph` (parallel edges) through `directed`, and a conformer without vertex indices (`DictionaryGraph`, private to `RepresentationTests.swift`) |
+| Representations | `AdjacencyMatrix`, `CompressedSparseRow` (ascending rows), `ReferenceDirectedMultigraph` (written order, the only host for parallel edges and for `String` and non-`0..<n` vertices with exact positions), `AdjacencyList` (positions in insertion order, so a list built from a written edge list without repeats has the written positions), `UndirectedAdjacencyList` and `ReferencePseudograph` (parallel edges) through `directedView`, and a conformer without vertex indices (`DictionaryGraph`, private to `RepresentationTests.swift`) |
 
 Expected values come from the catalog's independent reference (`ref.py`: a lazy-deletion Dijkstra
 run with four tie orders, the tie rule computed from the distances, Bellman–Ford in LEMON's
@@ -91,22 +98,23 @@ breadth-first search, Johnson's reweighting).
 | `TiesAndMultigraphTests.swift` | §B: self-loops, parallel edges, NetworkX's multigraphs, zero weights, ties left open and ties decided by distance (every insertion order of an adjacency list) |
 | `TargetSourcesAndCutoffTests.swift` | §C: the single-target query, several sources, the inclusive cutoff, scipy's `limit` |
 | `WeightEdgeCaseTests.swift` | §D: negative weights (examined and not), sums at the limit, overflow, infinities and NaN, other weight types (`Double`, `Float`, `UInt8`, `Duration`, a user type), what the weight closure is asked |
-| `BellmanFordTests.swift` | §E: CLRS 24.4, negative edges, JGraphT, petgraph and Boost graphs, undirected through `directed`, unreachable negative cycles, Bellman–Ford against Dijkstra, zero-weight cycles, every vertex a source |
+| `BellmanFordTests.swift` | §E: CLRS 24.4, negative edges, JGraphT, petgraph and Boost graphs, undirected through `directedView`, unreachable negative cycles, Bellman–Ford against Dijkstra, zero-weight cycles, every vertex a source |
 | `NegativeCycleTests.swift` | §F: witnesses from every source, undirected 2-cycles, self-loops, barely negative cycles, cycles away from the source, ported examples, the whole-graph search, the witness laws |
 | `AStarTests.swift` | §G: the zero heuristic, an inconsistent admissible heuristic, re-expansion, grids, several optimal paths, an inadmissible heuristic, source == target, negative weights |
 | `UnweightedShortestPathTests.swift` | §H: first discovery, several sources, scipy's unweighted graph, agreement with unit-weight Dijkstra and Traversal's `breadthFirstLayers` |
-| `RepresentationTests.swift` | §I: the same answers on every representation, matrix cells, the `Graph` overloads, `AdjacencyList.undirected.directed`, a conformer without indices, CSR's `edgeIndices:` |
+| `RepresentationTests.swift` | §I: the same answers on every representation, matrix cells, the `Graph` overloads, `AdjacencyList.undirectedView.directedView`, a conformer without indices, CSR's `edgeIndices:` |
 | `ShortestPathPropertyTests.swift` | §J: seeded random graphs against oracles written in each test |
 | `ShortestPathStressTests.swift` | §K: a 10⁶-vertex path, a 1000 × 1000 grid, long negative cycles, a lasso, a negative path, wide graphs, the real-world fixtures, inside a `Task` |
 | `ShortestPathConformanceTests.swift` | §L: preconditions, index-space queries, value semantics, `Sendable`, existentials, index-space dispatch, lazy weight reads |
 | `ShortestPathReviewTests.swift` | §M: the critical review's cases, with conformers without vertex indices (`PlainDigraph`, `PlainGraph`, private to the file) |
 | `ShortestPathTreeArborescenceTests.swift` | Reuse pass: one-source trees of every search as `Arborescence` (index order, root, parents, depths, tree paths), `String` vertices, no vertex indices, a stable graph with holes, the several-sources trap |
+| `ShortestPathCheckedLookupTests.swift` | The results' `checked:` lookups (README Principle 6) on indexed, numbered and unindexed graphs; `Arborescence(checked:)`; `Forest(_: ShortestPathTree)` |
 | `ShortestPathWalkReviewTests.swift` | Walks migration, after the review (WK-1220 – WK-1222) |
 | `ShortestPathWalkTests.swift` | Walks migration: paths and witnesses as `Path` and `Cycle`, their edges between parallel copies and over undirected arcs, the trivial path, and the path and witness laws on random graphs |
 
 ## Case IDs
 
-Case IDs (SP-01 … SP-145) refer to the catalog of cases (`Tests/Catalogs/ShortestPaths/cases.md`, with `ref.py` and the scripts that print each `.out`) harvested from Boost, NetworkX,
+Case IDs (SP-01 … SP-154) refer to the catalog of cases (`Tests/Catalogs/ShortestPaths/cases.md`, with `ref.py` and the scripts that print each `.out`) harvested from Boost, NetworkX,
 petgraph, JGraphT, LEMON, igraph (behaviour only), gonum, rustworkx and scipy. Each test's name
 starts with its ID. WK-12nn cases are the Walks catalog's migration section (`Tests/WalksTests/README.md`); WK-1202 – WK-1205 and WK-1213 – WK-1215 are in Traversal's suite.
 
@@ -127,6 +135,7 @@ starts with its ID. WK-12nn cases are the Walks catalog's migration section (`Te
 | SP-131 | J. Properties with shrinking (PropertyBased) | `ShortestPathPropertyTests.swift` |
 | SP-132 – SP-137 | M. Review cases: A*'s target estimate, Bellman–Ford's super-source, parallel edges in paths and witnesses, undirected negative edges with and without indices, the native undirected path, the NaN cutoff | `ShortestPathReviewTests.swift` |
 | SP-138 – SP-145 | Reuse pass: `Arborescence(_: ShortestPathTree)` from one source, against the tree it comes from; several sources trap | `ShortestPathTreeArborescenceTests.swift` |
+| SP-146 – SP-154 | `checked:` lookups on `ShortestPathTree`, `DistanceMatrix` and `ShortestDistances`; `Arborescence(checked:)` (`NotATree` from two sources); `Forest(_: ShortestPathTree)` from one source, two, and a source improved by another | `ShortestPathCheckedLookupTests.swift` |
 | WK-1201, WK-1206 – WK-1212 | Walks catalog §12, migration: witnesses and paths as walks | `ShortestPathWalkTests.swift` |
 | WK-1220 – WK-1222 | Walks migration, after the review: a source improved by another, undirected paths as arcs of the directed view, an undirected negative self-loop | `ShortestPathWalkReviewTests.swift` |
 | SP-B01 – SP-B08 | Benchmarks | not tests; SP-115 and SP-116 assert only answers (and SP-115 that Bellman–Ford reads each weight about once on a path) |

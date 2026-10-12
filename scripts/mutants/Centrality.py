@@ -66,4 +66,8 @@ MUTANTS = [
     Mutant("hitsresidual", "PowerIteration.swift", "change / Double(n)", "change", nth=3),
     Mutant("hitslastchange", "PowerIteration.swift", "        change = step", "", mode="stmt"),
     Mutant("weightsread", "PowerIteration.swift", "edges.map { Double(weights[$0]) }", "edges.map { _ in 1.0 }"),
+
+    # The checked: lookups.
+    Mutant("scorechecked", "CentralityRows.swift", "guard _graph.contains(vertex) else { throw VertexNotFound() }", "guard true else { throw VertexNotFound() }", mode="stmt"),
+    Mutant("scorecheckedvalue", "CentralityRows.swift", "        return score(of: vertex)", "        return score(ofIndex: 0)", mode="stmt"),
 ]

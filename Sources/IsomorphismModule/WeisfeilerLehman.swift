@@ -47,6 +47,15 @@ extension WeisfeilerLehmanSubgraphHashes where G: Graph {
         }
         return hashes(ofIndex: graph._requiredVertexIndex(of: vertex, "\(vertex) is not a vertex of the graph"))
     }
+
+    /// The hashes of `vertex`, throwing instead of trapping when it is not a vertex of the graph.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the graph.
+    @inlinable
+    public func hashes(checked vertex: G.Vertex) throws(VertexNotFound) -> ArraySlice<Int> {
+        guard graph.contains(vertex) else { throw VertexNotFound() }
+        return hashes(of: vertex)
+    }
 }
 
 extension WeisfeilerLehmanSubgraphHashes where G: DirectedGraph {
@@ -60,6 +69,15 @@ extension WeisfeilerLehmanSubgraphHashes where G: DirectedGraph {
             return hashes(ofIndex: i)
         }
         return hashes(ofIndex: graph._requiredVertexIndex(of: vertex, "\(vertex) is not a vertex of the graph"))
+    }
+
+    /// The hashes of `vertex`, throwing instead of trapping when it is not a vertex of the graph.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the graph.
+    @inlinable
+    public func hashes(checked vertex: G.Vertex) throws(VertexNotFound) -> ArraySlice<Int> {
+        guard graph.contains(vertex) else { throw VertexNotFound() }
+        return hashes(of: vertex)
     }
 }
 

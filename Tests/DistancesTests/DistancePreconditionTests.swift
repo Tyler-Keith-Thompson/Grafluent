@@ -218,7 +218,7 @@ struct DistancePreconditionTests {
         }
     }
 
-    @Test("Extreme bad weights trap: -infinity, Int.min, -Double.leastNonzeroMagnitude, the bad weight last, and through graph.directed")
+    @Test("Extreme bad weights trap: -infinity, Int.min, -Double.leastNonzeroMagnitude, the bad weight last, and through graph.directedView")
     func extremeBadWeights() async {
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
@@ -238,7 +238,7 @@ struct DistancePreconditionTests {
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
             let w = [1, -1]
-            _ = graph.directed.diameter(weight: { w[$0.position] })
+            _ = graph.directedView.diameter(weight: { w[$0.position] })
         }
     }
 }

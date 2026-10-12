@@ -78,6 +78,9 @@ struct PlanarRotationTests {
                 let face = embedding.face(from: vertexList[i], alongEdgeAt: rotation[i][s])
                 #expect(face.vertices == vertices + [vertexList[i]] && face.edges == edges)
                 #expect(embedding.rightFace(from: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
+                let checkedFace = try embedding.face(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s])
+                #expect(checkedFace.vertices == face.vertices && checkedFace.edges == face.edges)
+                #expect(try embedding.rightFace(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
             }
         }
         // Unique up to mirror image: every clockwise order, read cyclically, is the model's or, at
@@ -165,6 +168,9 @@ struct PlanarRotationTests {
                 let face = embedding.face(from: vertexList[i], alongEdgeAt: rotation[i][s])
                 #expect(face.vertices == vertices + [vertexList[i]] && face.edges == edges)
                 #expect(embedding.rightFace(from: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
+                let checkedFace = try embedding.face(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s])
+                #expect(checkedFace.vertices == face.vertices && checkedFace.edges == face.edges)
+                #expect(try embedding.rightFace(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
             }
         }
         // Unique up to mirror image: every clockwise order, read cyclically, is the model's or, at
@@ -253,6 +259,9 @@ struct PlanarRotationTests {
                 let face = embedding.face(from: vertexList[i], alongEdgeAt: rotation[i][s])
                 #expect(face.vertices == vertices + [vertexList[i]] && face.edges == edges)
                 #expect(embedding.rightFace(from: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
+                let checkedFace = try embedding.face(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s])
+                #expect(checkedFace.vertices == face.vertices && checkedFace.edges == face.edges)
+                #expect(try embedding.rightFace(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
             }
         }
         // Unique up to mirror image: every clockwise order, read cyclically, is the model's or, at
@@ -341,6 +350,9 @@ struct PlanarRotationTests {
                 let face = embedding.face(from: vertexList[i], alongEdgeAt: rotation[i][s])
                 #expect(face.vertices == vertices + [vertexList[i]] && face.edges == edges)
                 #expect(embedding.rightFace(from: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
+                let checkedFace = try embedding.face(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s])
+                #expect(checkedFace.vertices == face.vertices && checkedFace.edges == face.edges)
+                #expect(try embedding.rightFace(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
             }
         }
         // Unique up to mirror image: every clockwise order, read cyclically, is the model's or, at
@@ -427,6 +439,9 @@ struct PlanarRotationTests {
                 let face = embedding.face(from: vertexList[i], alongEdgeAt: rotation[i][s])
                 #expect(face.vertices == vertices + [vertexList[i]] && face.edges == edges)
                 #expect(embedding.rightFace(from: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
+                let checkedFace = try embedding.face(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s])
+                #expect(checkedFace.vertices == face.vertices && checkedFace.edges == face.edges)
+                #expect(try embedding.rightFace(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
             }
         }
         // Unique up to mirror image: every clockwise order, read cyclically, is the model's or, at
@@ -510,6 +525,9 @@ struct PlanarRotationTests {
                 let face = embedding.face(from: vertexList[i], alongEdgeAt: rotation[i][s])
                 #expect(face.vertices == vertices + [vertexList[i]] && face.edges == edges)
                 #expect(embedding.rightFace(from: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
+                let checkedFace = try embedding.face(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s])
+                #expect(checkedFace.vertices == face.vertices && checkedFace.edges == face.edges)
+                #expect(try embedding.rightFace(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
             }
         }
         // Unique up to mirror image: every clockwise order, read cyclically, is the model's or, at
@@ -594,6 +612,9 @@ struct PlanarRotationTests {
                 let face = embedding.face(from: vertexList[i], alongEdgeAt: rotation[i][s])
                 #expect(face.vertices == vertices + [vertexList[i]] && face.edges == edges)
                 #expect(embedding.rightFace(from: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
+                let checkedFace = try embedding.face(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s])
+                #expect(checkedFace.vertices == face.vertices && checkedFace.edges == face.edges)
+                #expect(try embedding.rightFace(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
             }
         }
         // Unique up to mirror image: every clockwise order, read cyclically, is the model's or, at
@@ -680,6 +701,9 @@ struct PlanarRotationTests {
                 let face = embedding.face(from: vertexList[i], alongEdgeAt: rotation[i][s])
                 #expect(face.vertices == vertices + [vertexList[i]] && face.edges == edges)
                 #expect(embedding.rightFace(from: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
+                let checkedFace = try embedding.face(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s])
+                #expect(checkedFace.vertices == face.vertices && checkedFace.edges == face.edges)
+                #expect(try embedding.rightFace(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
             }
         }
         // Unique up to mirror image: every clockwise order, read cyclically, is the model's or, at
@@ -764,6 +788,9 @@ struct PlanarRotationTests {
                 let face = embedding.face(from: vertexList[i], alongEdgeAt: rotation[i][s])
                 #expect(face.vertices == vertices + [vertexList[i]] && face.edges == edges)
                 #expect(embedding.rightFace(from: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
+                let checkedFace = try embedding.face(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s])
+                #expect(checkedFace.vertices == face.vertices && checkedFace.edges == face.edges)
+                #expect(try embedding.rightFace(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
             }
         }
         // Unique up to mirror image: every clockwise order, read cyclically, is the model's or, at
@@ -848,6 +875,9 @@ struct PlanarRotationTests {
                 let face = embedding.face(from: vertexList[i], alongEdgeAt: rotation[i][s])
                 #expect(face.vertices == vertices + [vertexList[i]] && face.edges == edges)
                 #expect(embedding.rightFace(from: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
+                let checkedFace = try embedding.face(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s])
+                #expect(checkedFace.vertices == face.vertices && checkedFace.edges == face.edges)
+                #expect(try embedding.rightFace(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
             }
         }
         // Unique up to mirror image: every clockwise order, read cyclically, is the model's or, at
@@ -935,6 +965,9 @@ struct PlanarRotationTests {
                 let face = embedding.face(from: vertexList[i], alongEdgeAt: rotation[i][s])
                 #expect(face.vertices == vertices + [vertexList[i]] && face.edges == edges)
                 #expect(embedding.rightFace(from: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
+                let checkedFace = try embedding.face(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s])
+                #expect(checkedFace.vertices == face.vertices && checkedFace.edges == face.edges)
+                #expect(try embedding.rightFace(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
             }
         }
         // Unique up to mirror image: every clockwise order, read cyclically, is the model's or, at
@@ -1022,6 +1055,9 @@ struct PlanarRotationTests {
                 let face = embedding.face(from: vertexList[i], alongEdgeAt: rotation[i][s])
                 #expect(face.vertices == vertices + [vertexList[i]] && face.edges == edges)
                 #expect(embedding.rightFace(from: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
+                let checkedFace = try embedding.face(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s])
+                #expect(checkedFace.vertices == face.vertices && checkedFace.edges == face.edges)
+                #expect(try embedding.rightFace(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
             }
         }
         // Unique up to mirror image: every clockwise order, read cyclically, is the model's or, at
@@ -1111,6 +1147,9 @@ struct PlanarRotationTests {
                 let face = embedding.face(from: vertexList[i], alongEdgeAt: rotation[i][s])
                 #expect(face.vertices == vertices + [vertexList[i]] && face.edges == edges)
                 #expect(embedding.rightFace(from: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
+                let checkedFace = try embedding.face(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s])
+                #expect(checkedFace.vertices == face.vertices && checkedFace.edges == face.edges)
+                #expect(try embedding.rightFace(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
             }
         }
         // Unique up to mirror image: every clockwise order, read cyclically, is the model's or, at
@@ -1199,6 +1238,9 @@ struct PlanarRotationTests {
                 let face = embedding.face(from: vertexList[i], alongEdgeAt: rotation[i][s])
                 #expect(face.vertices == vertices + [vertexList[i]] && face.edges == edges)
                 #expect(embedding.rightFace(from: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
+                let checkedFace = try embedding.face(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s])
+                #expect(checkedFace.vertices == face.vertices && checkedFace.edges == face.edges)
+                #expect(try embedding.rightFace(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
             }
         }
         // Unique up to mirror image: every clockwise order, read cyclically, is the model's or, at
@@ -1283,6 +1325,9 @@ struct PlanarRotationTests {
                 let face = embedding.face(from: vertexList[i], alongEdgeAt: rotation[i][s])
                 #expect(face.vertices == vertices + [vertexList[i]] && face.edges == edges)
                 #expect(embedding.rightFace(from: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
+                let checkedFace = try embedding.face(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s])
+                #expect(checkedFace.vertices == face.vertices && checkedFace.edges == face.edges)
+                #expect(try embedding.rightFace(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
             }
         }
         // Unique up to mirror image: every clockwise order, read cyclically, is the model's or, at
@@ -1367,6 +1412,9 @@ struct PlanarRotationTests {
                 let face = embedding.face(from: vertexList[i], alongEdgeAt: rotation[i][s])
                 #expect(face.vertices == vertices + [vertexList[i]] && face.edges == edges)
                 #expect(embedding.rightFace(from: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
+                let checkedFace = try embedding.face(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s])
+                #expect(checkedFace.vertices == face.vertices && checkedFace.edges == face.edges)
+                #expect(try embedding.rightFace(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
             }
         }
         // Unique up to mirror image: every clockwise order, read cyclically, is the model's or, at
@@ -1450,6 +1498,9 @@ struct PlanarRotationTests {
                 let face = embedding.face(from: vertexList[i], alongEdgeAt: rotation[i][s])
                 #expect(face.vertices == vertices + [vertexList[i]] && face.edges == edges)
                 #expect(embedding.rightFace(from: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
+                let checkedFace = try embedding.face(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s])
+                #expect(checkedFace.vertices == face.vertices && checkedFace.edges == face.edges)
+                #expect(try embedding.rightFace(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
             }
         }
         // Unique up to mirror image: every clockwise order, read cyclically, is the model's or, at
@@ -1536,6 +1587,9 @@ struct PlanarRotationTests {
                 let face = embedding.face(from: vertexList[i], alongEdgeAt: rotation[i][s])
                 #expect(face.vertices == vertices + [vertexList[i]] && face.edges == edges)
                 #expect(embedding.rightFace(from: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
+                let checkedFace = try embedding.face(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s])
+                #expect(checkedFace.vertices == face.vertices && checkedFace.edges == face.edges)
+                #expect(try embedding.rightFace(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
             }
         }
         // Unique up to mirror image: every clockwise order, read cyclically, is the model's or, at
@@ -1626,6 +1680,9 @@ struct PlanarRotationTests {
                 let face = embedding.face(from: vertexList[i], alongEdgeAt: rotation[i][s])
                 #expect(face.vertices == vertices + [vertexList[i]] && face.edges == edges)
                 #expect(embedding.rightFace(from: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
+                let checkedFace = try embedding.face(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s])
+                #expect(checkedFace.vertices == face.vertices && checkedFace.edges == face.edges)
+                #expect(try embedding.rightFace(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
             }
         }
         // A second call gives the same embedding.
@@ -1706,6 +1763,9 @@ struct PlanarRotationTests {
                 let face = embedding.face(from: vertexList[i], alongEdgeAt: rotation[i][s])
                 #expect(face.vertices == vertices + [vertexList[i]] && face.edges == edges)
                 #expect(embedding.rightFace(from: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
+                let checkedFace = try embedding.face(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s])
+                #expect(checkedFace.vertices == face.vertices && checkedFace.edges == face.edges)
+                #expect(try embedding.rightFace(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
             }
         }
         // Unique up to mirror image: every clockwise order, read cyclically, is the model's or, at
@@ -1804,6 +1864,9 @@ struct PlanarRotationTests {
                 let face = embedding.face(from: vertexList[i], alongEdgeAt: rotation[i][s])
                 #expect(face.vertices == vertices + [vertexList[i]] && face.edges == edges)
                 #expect(embedding.rightFace(from: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
+                let checkedFace = try embedding.face(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s])
+                #expect(checkedFace.vertices == face.vertices && checkedFace.edges == face.edges)
+                #expect(try embedding.rightFace(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])
             }
         }
         // Unique up to mirror image: every clockwise order, read cyclically, is the model's or, at

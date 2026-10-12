@@ -39,6 +39,7 @@ struct EdmondsKarpTests {
         #expect(flow.source == 0 && flow.sink == 1)
         #expect(flow.value == 5)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [5] as [Int])
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
@@ -107,6 +108,7 @@ struct EdmondsKarpTests {
         #expect(flow.source == 0 && flow.sink == 1)
         #expect(flow.value == 0)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [] as [Int])
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
@@ -175,6 +177,7 @@ struct EdmondsKarpTests {
         #expect(flow.source == 0 && flow.sink == 1)
         #expect(flow.value == 0)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [0] as [Int])
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
@@ -243,6 +246,7 @@ struct EdmondsKarpTests {
         #expect(flow.source == 0 && flow.sink == 3)
         #expect(flow.value == 0)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [0, 0] as [Int])
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
@@ -311,6 +315,7 @@ struct EdmondsKarpTests {
         #expect(flow.source == 0 && flow.sink == 1)
         #expect(flow.value == 0)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [0] as [Int])
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
@@ -379,6 +384,7 @@ struct EdmondsKarpTests {
         #expect(flow.source == 0 && flow.sink == 2)
         #expect(flow.value == 0)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [0, 0] as [Int])
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
@@ -447,6 +453,7 @@ struct EdmondsKarpTests {
         #expect(flow.source == 0 && flow.sink == 3)
         #expect(flow.value == 2)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [2, 2, 2] as [Int])
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
@@ -515,6 +522,7 @@ struct EdmondsKarpTests {
         #expect(flow.source == 0 && flow.sink == 3)
         #expect(flow.value == 1)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [1, 1, 1] as [Int])
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
@@ -583,6 +591,7 @@ struct EdmondsKarpTests {
         #expect(flow.source == "s" && flow.sink == "t")
         #expect(flow.value == 2)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [2, 2] as [Int])
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
@@ -651,6 +660,7 @@ struct EdmondsKarpTests {
         #expect(flow.source == 0 && flow.sink == 2)
         #expect(flow.value == 3)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [3] as [Int])
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
@@ -719,6 +729,7 @@ struct EdmondsKarpTests {
         #expect(flow.source == 0 && flow.sink == 2)
         #expect(flow.value == 3)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [3, 0] as [Int])
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
@@ -787,6 +798,7 @@ struct EdmondsKarpTests {
         #expect(flow.source == 0 && flow.sink == 2)
         #expect(flow.value == 3)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [0, 3] as [Int])
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
@@ -855,6 +867,7 @@ struct EdmondsKarpTests {
         #expect(flow.source == 0 && flow.sink == 1)
         #expect(flow.value == 4)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [0, 4, 0] as [Int])
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
@@ -923,6 +936,7 @@ struct EdmondsKarpTests {
         #expect(flow.source == 0 && flow.sink == 2)
         #expect(flow.value == 5)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [2, 3, 1, 4] as [Int])
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
@@ -991,6 +1005,7 @@ struct EdmondsKarpTests {
         #expect(flow.source == 0 && flow.sink == 2)
         #expect(flow.value == 4)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [4, 0, 4] as [Int])
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
@@ -1059,6 +1074,7 @@ struct EdmondsKarpTests {
         #expect(flow.source == 0 && flow.sink == 3)
         #expect(flow.value == 6)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [3, 3, 2, 0, 1, 5] as [Int])
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
@@ -1127,6 +1143,7 @@ struct EdmondsKarpTests {
         #expect(flow.source == 0 && flow.sink == 2)
         #expect(flow.value == 2)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [0, 2, 0, 2, 0] as [Int])
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
@@ -1195,6 +1212,7 @@ struct EdmondsKarpTests {
         #expect(flow.source == "s" && flow.sink == "t")
         #expect(flow.value == 23)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [12, 11, 12, 0, 11, 0, 19, 7, 4] as [Int])
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
@@ -1263,6 +1281,7 @@ struct EdmondsKarpTests {
         #expect(flow.source == "s" && flow.sink == "t")
         #expect(flow.value == 23)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [12, 11, 0, 0, 12, 11, 0, 19, 7, 4] as [Int])
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
@@ -1331,6 +1350,7 @@ struct EdmondsKarpTests {
         #expect(flow.source == "s" && flow.sink == "t")
         #expect(flow.value == 2000)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [1000, 1000, 0, 1000, 1000] as [Int])
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
@@ -1399,6 +1419,7 @@ struct EdmondsKarpTests {
         #expect(flow.source == "x" && flow.sink == "y")
         #expect(flow.value == 3.0)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [2.0, 1.0, 2.0, 0.0, 1.0, 1.0, 2.0, 1.0] as [Double])
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
@@ -1467,6 +1488,7 @@ struct EdmondsKarpTests {
         #expect(flow.source == 0 && flow.sink == 3)
         #expect(flow.value == 2)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [1, 1, 1, 1] as [Int])
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
@@ -1535,6 +1557,7 @@ struct EdmondsKarpTests {
         #expect(flow.source == 0 && flow.sink == 5)
         #expect(flow.value == 2)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [1, 1, 1, 1, 1, 1, 0] as [Int])
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
@@ -1603,6 +1626,7 @@ struct EdmondsKarpTests {
         #expect(flow.source == "s" && flow.sink == "t")
         #expect(flow.value == 3)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1] as [Int])
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
@@ -1671,6 +1695,7 @@ struct EdmondsKarpTests {
         #expect(flow.source == 0 && flow.sink == 7)
         #expect(flow.value == 13)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 9, 0, 0, 0, 2, 2, 0, 0] as [Int])
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
@@ -1739,6 +1764,7 @@ struct EdmondsKarpTests {
         #expect(flow.source == 0 && flow.sink == 9)
         #expect(flow.value == 29)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [0, 0, 0, 10, 0, 5, 3, 5, 0, 12, 5, 3, 7, 0, 3, 0, 0, 0, 2, 5, 0, 2, 0, 2, 2, 0, 5, 0, 0, 0] as [Int])
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
@@ -1807,6 +1833,7 @@ struct EdmondsKarpTests {
         #expect(flow.source == 0 && flow.sink == 11)
         #expect(flow.value == 5)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [0, 0, 3, 3, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] as [Int])
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
@@ -1875,6 +1902,7 @@ struct EdmondsKarpTests {
         #expect(flow.source == 0 && flow.sink == 15)
         #expect(flow.value == 139)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [75, 0, 0, 15, 22, 0, 59, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 42, 0, 0, 0, 0, 0, 0, 22, 0, 0, 58, 0, 0, 75, 0, 0, 0, 0, 12, 0, 37, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 42, 0, 0, 0, 0, 0, 0, 0, 0] as [Int])
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
@@ -1943,6 +1971,7 @@ struct EdmondsKarpTests {
         #expect(flow.source == 0 && flow.sink == 3)
         #expect(flow.value == 1.125)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [0.375, 0.75, 0.25, 0.875, 0.125] as [Double])
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
@@ -2011,6 +2040,7 @@ struct EdmondsKarpTests {
         #expect(flow.source == 0 && flow.sink == 3)
         #expect(abs(flow.value - 3.0) <= 1e-12)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         let expectedFlows: [Double] = [1.2679491924311228, 1.7320508075688772, 0.2679491924311228, 1.0, 2.0]
         #expect(zip(flows, expectedFlows).allSatisfy { abs($0 - $1) <= 1e-12 }, "\(flows)")
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
@@ -2059,6 +2089,7 @@ struct EdmondsKarpTests {
         #expect(flow.source == 0 && flow.sink == 3)
         #expect(flow.value == 127)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [100, 27, 100, 27] as [Int8])
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
@@ -2127,6 +2158,7 @@ struct EdmondsKarpTests {
         #expect(flow.source == 0 && flow.sink == 2)
         #expect(flow.value == 9223372036854775807)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [4611686018427387904, 4611686018427387903, 4611686018427387904] as [Int])
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
@@ -2194,10 +2226,12 @@ struct EdmondsKarpTests {
         #expect(asked == pairs.indices.filter { ends[$0].0 != ends[$0].1 })
         #expect(flow.source == 1 && flow.sink == 0)
         #expect(flow.value == 5)
-        // The flow is over `directed`: an edge's flow along its stored order is on the forward arc, against
+        // The flow is over `directedView`: an edge's flow along its stored order is on the forward arc, against
         // it on the reversed arc; both at least zero, at most one nonzero, each at most the capacity.
         let forward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: false)) }
         let backward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: true)) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: false)) } == forward.map(Optional.some))
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: true)) } == backward.map(Optional.some))
         for k in pairs.indices {
             #expect(forward[k] >= 0 && backward[k] >= 0 && (forward[k] == 0 || backward[k] == 0), "edge \(k)")
             #expect(forward[k] <= capacities[k] && backward[k] <= capacities[k], "edge \(k)")
@@ -2271,10 +2305,12 @@ struct EdmondsKarpTests {
         #expect(asked == pairs.indices.filter { ends[$0].0 != ends[$0].1 })
         #expect(flow.source == 0 && flow.sink == 2)
         #expect(flow.value == 2)
-        // The flow is over `directed`: an edge's flow along its stored order is on the forward arc, against
+        // The flow is over `directedView`: an edge's flow along its stored order is on the forward arc, against
         // it on the reversed arc; both at least zero, at most one nonzero, each at most the capacity.
         let forward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: false)) }
         let backward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: true)) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: false)) } == forward.map(Optional.some))
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: true)) } == backward.map(Optional.some))
         for k in pairs.indices {
             #expect(forward[k] >= 0 && backward[k] >= 0 && (forward[k] == 0 || backward[k] == 0), "edge \(k)")
             #expect(forward[k] <= capacities[k] && backward[k] <= capacities[k], "edge \(k)")
@@ -2348,10 +2384,12 @@ struct EdmondsKarpTests {
         #expect(asked == pairs.indices.filter { ends[$0].0 != ends[$0].1 })
         #expect(flow.source == 0 && flow.sink == 3)
         #expect(flow.value == 4)
-        // The flow is over `directed`: an edge's flow along its stored order is on the forward arc, against
+        // The flow is over `directedView`: an edge's flow along its stored order is on the forward arc, against
         // it on the reversed arc; both at least zero, at most one nonzero, each at most the capacity.
         let forward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: false)) }
         let backward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: true)) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: false)) } == forward.map(Optional.some))
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: true)) } == backward.map(Optional.some))
         for k in pairs.indices {
             #expect(forward[k] >= 0 && backward[k] >= 0 && (forward[k] == 0 || backward[k] == 0), "edge \(k)")
             #expect(forward[k] <= capacities[k] && backward[k] <= capacities[k], "edge \(k)")
@@ -2425,10 +2463,12 @@ struct EdmondsKarpTests {
         #expect(asked == pairs.indices.filter { ends[$0].0 != ends[$0].1 })
         #expect(flow.source == 0 && flow.sink == 2)
         #expect(flow.value == 4)
-        // The flow is over `directed`: an edge's flow along its stored order is on the forward arc, against
+        // The flow is over `directedView`: an edge's flow along its stored order is on the forward arc, against
         // it on the reversed arc; both at least zero, at most one nonzero, each at most the capacity.
         let forward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: false)) }
         let backward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: true)) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: false)) } == forward.map(Optional.some))
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: true)) } == backward.map(Optional.some))
         for k in pairs.indices {
             #expect(forward[k] >= 0 && backward[k] >= 0 && (forward[k] == 0 || backward[k] == 0), "edge \(k)")
             #expect(forward[k] <= capacities[k] && backward[k] <= capacities[k], "edge \(k)")
@@ -2502,10 +2542,12 @@ struct EdmondsKarpTests {
         #expect(asked == pairs.indices.filter { ends[$0].0 != ends[$0].1 })
         #expect(flow.source == 0 && flow.sink == 3)
         #expect(flow.value == 6)
-        // The flow is over `directed`: an edge's flow along its stored order is on the forward arc, against
+        // The flow is over `directedView`: an edge's flow along its stored order is on the forward arc, against
         // it on the reversed arc; both at least zero, at most one nonzero, each at most the capacity.
         let forward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: false)) }
         let backward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: true)) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: false)) } == forward.map(Optional.some))
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: true)) } == backward.map(Optional.some))
         for k in pairs.indices {
             #expect(forward[k] >= 0 && backward[k] >= 0 && (forward[k] == 0 || backward[k] == 0), "edge \(k)")
             #expect(forward[k] <= capacities[k] && backward[k] <= capacities[k], "edge \(k)")
@@ -2579,10 +2621,12 @@ struct EdmondsKarpTests {
         #expect(asked == pairs.indices.filter { ends[$0].0 != ends[$0].1 })
         #expect(flow.source == 1 && flow.sink == 8)
         #expect(flow.value == 4)
-        // The flow is over `directed`: an edge's flow along its stored order is on the forward arc, against
+        // The flow is over `directedView`: an edge's flow along its stored order is on the forward arc, against
         // it on the reversed arc; both at least zero, at most one nonzero, each at most the capacity.
         let forward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: false)) }
         let backward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: true)) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: false)) } == forward.map(Optional.some))
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: true)) } == backward.map(Optional.some))
         for k in pairs.indices {
             #expect(forward[k] >= 0 && backward[k] >= 0 && (forward[k] == 0 || backward[k] == 0), "edge \(k)")
             #expect(forward[k] <= capacities[k] && backward[k] <= capacities[k], "edge \(k)")
@@ -2656,10 +2700,12 @@ struct EdmondsKarpTests {
         #expect(asked == pairs.indices.filter { ends[$0].0 != ends[$0].1 })
         #expect(flow.source == 0 && flow.sink == 5)
         #expect(flow.value == 6)
-        // The flow is over `directed`: an edge's flow along its stored order is on the forward arc, against
+        // The flow is over `directedView`: an edge's flow along its stored order is on the forward arc, against
         // it on the reversed arc; both at least zero, at most one nonzero, each at most the capacity.
         let forward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: false)) }
         let backward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: true)) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: false)) } == forward.map(Optional.some))
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: true)) } == backward.map(Optional.some))
         for k in pairs.indices {
             #expect(forward[k] >= 0 && backward[k] >= 0 && (forward[k] == 0 || backward[k] == 0), "edge \(k)")
             #expect(forward[k] <= capacities[k] && backward[k] <= capacities[k], "edge \(k)")
@@ -2733,10 +2779,12 @@ struct EdmondsKarpTests {
         #expect(asked == pairs.indices.filter { ends[$0].0 != ends[$0].1 })
         #expect(flow.source == 0 && flow.sink == 9)
         #expect(flow.value == 15)
-        // The flow is over `directed`: an edge's flow along its stored order is on the forward arc, against
+        // The flow is over `directedView`: an edge's flow along its stored order is on the forward arc, against
         // it on the reversed arc; both at least zero, at most one nonzero, each at most the capacity.
         let forward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: false)) }
         let backward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: true)) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: false)) } == forward.map(Optional.some))
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: true)) } == backward.map(Optional.some))
         for k in pairs.indices {
             #expect(forward[k] >= 0 && backward[k] >= 0 && (forward[k] == 0 || backward[k] == 0), "edge \(k)")
             #expect(forward[k] <= capacities[k] && backward[k] <= capacities[k], "edge \(k)")
@@ -2810,10 +2858,12 @@ struct EdmondsKarpTests {
         #expect(asked == pairs.indices.filter { ends[$0].0 != ends[$0].1 })
         #expect(flow.source == "a" && flow.sink == "c")
         #expect(flow.value == 0.75)
-        // The flow is over `directed`: an edge's flow along its stored order is on the forward arc, against
+        // The flow is over `directedView`: an edge's flow along its stored order is on the forward arc, against
         // it on the reversed arc; both at least zero, at most one nonzero, each at most the capacity.
         let forward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: false)) }
         let backward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: true)) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: false)) } == forward.map(Optional.some))
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: true)) } == backward.map(Optional.some))
         for k in pairs.indices {
             #expect(forward[k] >= 0 && backward[k] >= 0 && (forward[k] == 0 || backward[k] == 0), "edge \(k)")
             #expect(forward[k] <= capacities[k] && backward[k] <= capacities[k], "edge \(k)")

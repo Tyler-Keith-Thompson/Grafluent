@@ -57,7 +57,7 @@ struct TargetSourcesAndCutoffTests {
         let path: [(Int, Int, Int)] = [(0, 1, 1), (1, 2, 1), (2, 3, 10), (3, 4, 1)]
         let graph = UndirectedAdjacencyList(edges: path.map { UndirectedEdge($0.0, $0.1) })
         let weights = path.map(\.2)
-        let tree = graph.directed.dijkstraShortestPaths(from: [0, 4]) { weights[$0.position] }
+        let tree = graph.directedView.dijkstraShortestPaths(from: [0, 4]) { weights[$0.position] }
         #expect((0 ..< 5).map { tree.distance(to: $0) } == [0, 1, 2, 1, 0])
         #expect(tree.path(to: 1)?.vertices == [0, 1])
         #expect(tree.path(to: 2)?.vertices == [0, 1, 2])
@@ -117,7 +117,7 @@ struct TargetSourcesAndCutoffTests {
         ]
         let pseudograph = ReferencePseudograph(edges: mxg4.map { UndirectedEdge($0.0, $0.1) })
         let mxg4Weights = mxg4.map(\.2)
-        let near = pseudograph.directed.dijkstraShortestPaths(from: 0, cutoff: 2) { mxg4Weights[$0.position] }
+        let near = pseudograph.directedView.dijkstraShortestPaths(from: 0, cutoff: 2) { mxg4Weights[$0.position] }
         #expect((0 ..< 8).map { near.distance(to: $0) } == [0, 2, nil, nil, nil, nil, 2, 1])
         #expect(Set((0 ..< 8).filter { near.hasPath(to: $0) }) == [0, 1, 6, 7])
     }

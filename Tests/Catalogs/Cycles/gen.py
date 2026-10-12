@@ -273,7 +273,7 @@ def test_for(cid, src, spec, op, expected, note):
     elif op.startswith("directedCount"):
         fname = "directedViewCount"
         k = len(ref.brute_cycles(g.directed_view(), L))
-        call = "graph.directed.simpleCycles()" if L is None else "graph.directed.simpleCycles(maxLength: %d)" % L
+        call = "graph.directedView.simpleCycles()" if L is None else "graph.directedView.simpleCycles(maxLength: %d)" % L
         body.append(ind + "#expect(Array(%s).count == %d)" % (call, k))
     elif op == "girth":
         fname = "girth"
@@ -425,7 +425,7 @@ FILES = {
     "E": ("CycleMultigraphTests", "Cycles of multigraphs and self-loops",
           "// §E: parallel edges and self-loops. A loop is one 1-cycle per loop edge (though an undirected row\n"
           "// lists it twice), k parallel undirected edges give C(k, 2) 2-cycles, one undirected edge is no\n"
-          "// cycle, opposite arcs are one 2-cycle, and parallel arcs give one cycle per copy; `g.directed`\n"
+          "// cycle, opposite arcs are one 2-cycle, and parallel arcs give one cycle per copy; `g.directedView`\n"
           "// reads every edge as two arcs (Boost's undirected count). Graphs written as the catalog writes\n"
           "// them on the reference conformers, so positions are exact. Expected values come from the\n"
           "// catalog's reference (`ref.py`). Case IDs (CY-nnn) refer to the catalog; see README.md."),

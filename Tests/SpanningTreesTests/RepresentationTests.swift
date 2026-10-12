@@ -1,6 +1,6 @@
 // The same answers on every representation: UndirectedAdjacencyList (positions in insertion
 // order), ReferencePseudograph (parallel edges and self-loops), AdjacencyList and AdjacencyMatrix
-// read through `.undirected` (each arc an edge, the matrix weighed by cell and without edge
+// read through `.undirectedView` (each arc an edge, the matrix weighed by cell and without edge
 // indices), a conformer without vertex indices and one with vertex indices but no edge indices,
 // and String vertices. Case IDs (ST-nn) refer to the catalog; see README.md.
 
@@ -70,13 +70,13 @@ struct RepresentationTests {
         #expect(graph.minimumSpanningTree().edges == [0, 1, 2, 4, 7, 9])
     }
 
-    @Test("ST-91 parallel edges and self-loops on ReferencePseudograph and AdjacencyList.undirected", .tags(.selfLoops))
+    @Test("ST-91 parallel edges and self-loops on ReferencePseudograph and AdjacencyList.undirectedView", .tags(.selfLoops))
     func parallelEdgesAndLoops() {
         // ST-27: 1–4 at positions 2 (weight 2) and 7 (weight 1).
         let boost: [(Int, Int, Int)] = [(0, 2, 1), (1, 3, 1), (1, 4, 2), (2, 1, 7), (2, 3, 3), (3, 4, 1), (4, 0, 1), (4, 1, 1)]
         let pseudograph = ReferencePseudograph(vertices: 0 ..< 5, edges: boost.map { UndirectedEdge($0.0, $0.1) })
         // As arcs, 1→4 and 4→1 are distinct, so the view has the same parallel pair.
-        let arcs = AdjacencyList(vertices: 0 ..< 5, edges: boost.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let arcs = AdjacencyList(vertices: 0 ..< 5, edges: boost.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         #expect(arcs.edgeCount == 8)
         #expect(pseudograph.minimumSpanningTree { boost[$0].2 }.edges == [0, 1, 5, 6])
         #expect(arcs.minimumSpanningTree { boost[$0].2 }.edges == [0, 1, 5, 6])
@@ -88,7 +88,7 @@ struct RepresentationTests {
         // ST-31: self-loops lighter than the one edge.
         let loops: [(Int, Int, Int)] = [(0, 0, -100), (0, 1, 5), (1, 1, -1)]
         let loopy = ReferencePseudograph(vertices: 0 ..< 2, edges: loops.map { UndirectedEdge($0.0, $0.1) })
-        let loopArcs = AdjacencyList(vertices: 0 ..< 2, edges: loops.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let loopArcs = AdjacencyList(vertices: 0 ..< 2, edges: loops.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let trees = [loopy.minimumSpanningTree { loops[$0].2 }, loopy.primMinimumSpanningTree { loops[$0].2 }, loopy.boruvkaMinimumSpanningTree { loops[$0].2 }]
         for tree in trees {
             #expect(tree.edges == [1])
@@ -105,7 +105,7 @@ struct RepresentationTests {
     func digraphThroughUndirected() {
         let arcs: [(Int, Int, Int)] = [(0, 1, 3), (1, 0, 1), (1, 2, 2)]
         let list = AdjacencyList(edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        let graph = list.undirected
+        let graph = list.undirectedView
         let tree = graph.minimumSpanningTree { arcs[$0].2 }
         #expect(tree.edges == [1, 2])
         #expect(tree.weight == 3)
@@ -118,7 +118,7 @@ struct RepresentationTests {
         // The same arcs in a matrix, weighed by cell.
         var cells = [[Int]](repeating: [Int](repeating: 0, count: 3), count: 3)
         for (u, v, w) in arcs { cells[u][v] = w }
-        let matrix = AdjacencyMatrix(vertexCount: 3, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let matrix = AdjacencyMatrix(vertexCount: 3, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let matrixTree = matrix.minimumSpanningTree { cells[$0.source][$0.target] }
         #expect(matrixTree.edges.map { [$0.source, $0.target] } == [[1, 0], [1, 2]])
         #expect(matrixTree.weight == 3)
@@ -201,7 +201,7 @@ struct RepresentationTests {
         // row-major order, which for Wikipedia's graph is the written order.
         var cells = [[Int]](repeating: [Int](repeating: 0, count: 7), count: 7)
         for (u, v, w) in wiki { cells[u][v] = w }
-        let matrix = AdjacencyMatrix(vertexCount: 7, edges: wiki.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let matrix = AdjacencyMatrix(vertexCount: 7, edges: wiki.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         #expect(matrix.edgeIndexBound == nil)
         let matrixTree = matrix.minimumSpanningTree { cells[$0.source][$0.target] }
         #expect(matrixTree.edges.map { [$0.source, $0.target] } == [[0, 3], [2, 4], [3, 5], [0, 1], [1, 4], [4, 6]])

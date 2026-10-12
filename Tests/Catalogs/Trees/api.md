@@ -33,7 +33,7 @@ recomputed by `ref.py`.
 | `Branching` (a rooted forest; NetworkX `is_branching`) | Not in the README; needed with Chu–Liu/Edmonds (SpanningTrees phase 2) and multi-source BFS. Phase 2 |
 | In-trees (igraph `IGRAPH_IN`, "anti-arborescence") | `Arborescence(g.reversed)` once GraphOperations' `reversed` view exists |
 | `isForest` | It is Cycles' `isAcyclic` (and `Forest(g) != nil`); one name per concept, as the Cycles design decided |
-| `isTree` on a digraph (NetworkX: underlying graph is a tree, a "polytree") | `digraph.undirected.isTree` on a `BidirectionalDirectedGraph` |
+| `isTree` on a digraph (NetworkX: underlying graph is a tree, a "polytree") | `digraph.undirectedView.isTree` on a `BidirectionalDirectedGraph` |
 | Nested tuples (NetworkX `to_nested_tuple`), `join_trees`, `junction_tree`, igraph `unfold_tree` | One library each; nested heterogeneous tuples have no Swift type; junction trees belong with chordal graphs |
 | Result builder (`@GraphBuilder`) initializers | A failable result-builder initializer reads badly; `Tree(edges: [...])` covers it |
 

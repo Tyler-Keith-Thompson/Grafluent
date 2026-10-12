@@ -3,27 +3,27 @@ import GraphProtocols
 extension Graph {
     /// The connected components (NetworkX's, Boost's and igraph's `connected_components`): in
     /// the order of their first vertex in `vertices`, each listing its vertices in `vertices`
-    /// order. The same value as `directed.weaklyConnectedComponents()`, computed over each edge
+    /// order. The same value as `directedView.weaklyConnectedComponents()`, computed over each edge
     /// once from flat rows (`_withIncidentIndexRows`). Over a graph with vertex indices but without
-    /// them it is `directed.weaklyConnectedComponents()`: union–find over each row walked in place
+    /// them it is `directedView.weaklyConnectedComponents()`: union–find over each row walked in place
     /// (`_forEachNeighborIndex`), which a computed row (a product, a subgraph view) runs faster
     /// than copying the rows first. O(n + m α(n)).
     @inlinable
     public func connectedComponents() -> Components<DirectedView<Self>> {
         if vertexIndexBound != nil, _withIncidentIndexRows({ _, _, _, _ in () }) == nil {
-            return directed.weaklyConnectedComponents()
+            return directedView.weaklyConnectedComponents()
         }
         let (labels, count, _) = _runOnUndirectedRows(_UndirectedComponents())
-        return Components(vertices: _DenseVertices(directed), labels: labels, count: count)
+        return Components(vertices: _DenseVertices(directedView), labels: labels, count: count)
     }
 
     /// Whether the graph has exactly one connected component; false for the empty graph, as
     /// `isWeaklyConnected` (igraph, JGraphT; NetworkX raises). Stops as soon as n − 1 joins have
-    /// succeeded. Without flat rows, as `connectedComponents()`: `directed.isWeaklyConnected`.
+    /// succeeded. Without flat rows, as `connectedComponents()`: `directedView.isWeaklyConnected`.
     @inlinable
     public var isConnected: Bool {
         if vertexIndexBound != nil, _withIncidentIndexRows({ _, _, _, _ in () }) == nil {
-            return directed.isWeaklyConnected
+            return directedView.isWeaklyConnected
         }
         let n = vertexCount
         guard n > 0 else { return false }
@@ -60,7 +60,7 @@ extension Graph {
     @inlinable
     public func articulationPoints() -> [Vertex] {
         let search = _runOnUndirectedRows(_BiconnectivitySearch([]))
-        let numbering = _DenseVertices(directed)
+        let numbering = _DenseVertices(directedView)
         return search.isArticulationPoint.indices.filter { search.isArticulationPoint[$0] }.map { numbering.vertex($0) }
     }
 
@@ -82,7 +82,7 @@ extension Graph {
     public func biEdgeConnectedComponents() -> Components<DirectedView<Self>> {
         var search = _runOnUndirectedRows(_BiconnectivitySearch(.biEdgeComponents))
         _relabelByFirstAppearance(&search.biEdgeLabel, count: search.biEdgeCount)
-        return Components(vertices: _DenseVertices(directed), labels: search.biEdgeLabel, count: search.biEdgeCount)
+        return Components(vertices: _DenseVertices(directedView), labels: search.biEdgeLabel, count: search.biEdgeCount)
     }
 
     /// Whether the graph is bi-edge-connected (2-edge-connected; NetworkX's
@@ -189,7 +189,7 @@ public struct BiconnectedComponents<G: Graph>: RandomAccessCollection {
     init(_ graph: G) {
         let edgeNumbers = graph.edgeIndexBound != nil ? [:] : graph._edgeNumbers()
         let found = graph._runOnUndirectedRows(_Blocks(), edgeNumbers: edgeNumbers)
-        let vertices = _DenseVertices(graph.directed)
+        let vertices = _DenseVertices(graph.directedView)
         let positions = Array(graph.edges.indices)
         _graph = graph
         _vertices = vertices
@@ -260,6 +260,32 @@ public struct BiconnectedComponents<G: Graph>: RandomAccessCollection {
         precondition(_vertices.isIndexed, "\(G.self) has no vertex indices")
         precondition(index >= 0 && index + 1 < _vertexBlockOffsets.count, "Vertex index \(index) out of range")
         return _vertexBlocks[_vertexBlockOffsets[index] ..< _vertexBlockOffsets[index + 1]]
+    }
+
+    /// `component(ofEdgeAt: position)`, throwing instead of trapping when `position` is not an
+    /// edge position of the graph: nil still means a self-loop. The position is looked up once,
+    /// among the graph copy's `edges.indices` (O(1) for a range of positions) or in the position
+    /// numbers kept for a graph without edge indices, then the trapping spelling runs.
+    ///
+    /// - Throws: `EdgeNotFound` when `position` is not an edge position of the graph.
+    @inlinable
+    public func component(checkedEdgeAt position: G.Edges.Index) throws(EdgeNotFound) -> Int? {
+        if _graph.edgeIndexBound != nil {
+            guard _graph.edges.indices.contains(position) else { throw EdgeNotFound() }
+        } else {
+            guard _edgeNumbers[position] != nil else { throw EdgeNotFound() }
+        }
+        return component(ofEdgeAt: position)
+    }
+
+    /// `components(containing: vertex)`, throwing instead of trapping when `vertex` is not a
+    /// vertex of the graph: one `contains(_:)` on the graph's copy, then the trapping spelling.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the graph.
+    @inlinable
+    public func components(checkedContaining vertex: G.Vertex) throws(VertexNotFound) -> ArraySlice<Int> {
+        guard _graph.contains(vertex) else { throw VertexNotFound() }
+        return components(containing: vertex)
     }
 }
 
@@ -362,6 +388,16 @@ public struct BlockCutTree<G: Graph> {
         let v = blocks._vertices.number(of: vertex)
         if _pointNumber[v] >= 0 { return .articulationPoint(_pointNumber[v]) }
         return blocks.components(containing: vertex).first.map { .block($0) }
+    }
+
+    /// `node(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex of the
+    /// graph: nil still means a vertex in no block.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the graph.
+    @inlinable
+    public func node(checked vertex: G.Vertex) throws(VertexNotFound) -> Node? {
+        guard blocks._graph.contains(vertex) else { throw VertexNotFound() }
+        return node(of: vertex)
     }
 
     /// The number of tree edges: one per (block, articulation point in it).

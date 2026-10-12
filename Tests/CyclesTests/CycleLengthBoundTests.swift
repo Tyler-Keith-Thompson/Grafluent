@@ -438,7 +438,7 @@ struct CycleLengthBoundTests {
             (13, 10), (11, 1)
         ]
         let graph = ReferencePseudograph(vertices: 0 ... 19, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        #expect(Array(graph.directed.simpleCycles(maxLength: 3)).count == 26)
+        #expect(Array(graph.directedView.simpleCycles(maxLength: 3)).count == 26)
     }
 
     @Test("CY-487 simpleCycles(maxLength: 3): 3 cycles in order: the same graph, our undirected count, bound 3")

@@ -4,7 +4,7 @@
 // Expected values are ref.py's model at full precision (the catalog cells are the same values
 // rounded to 12 digits); non-iterative rows compare within 1e-12 relative to max(1, |value|), the
 // iterative ones within the catalog's Tol of the limit. Undirected rows also run on
-// `graph.directed` (the same values; twice for degree and unnormalized betweenness).
+// `graph.directedView` (the same values; twice for degree and unnormalized betweenness).
 // Case IDs (CE-nnn) refer to the catalog; see README.md.
 
 import Centrality
@@ -30,10 +30,10 @@ struct BetweennessTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = graph.directed.betweennessCentrality()
+        let arcs = graph.directedView.betweennessCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -53,10 +53,10 @@ struct BetweennessTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = graph.directed.betweennessCentrality(normalized: false)
+        let arcs = graph.directedView.betweennessCentrality(normalized: false)
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - 2 * value)
-            #expect(error <= 1e-12 * max(1, abs(2 * value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(2 * value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -76,10 +76,10 @@ struct BetweennessTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = graph.directed.betweennessCentrality(endpoints: true)
+        let arcs = graph.directedView.betweennessCentrality(endpoints: true)
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -99,10 +99,10 @@ struct BetweennessTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = graph.directed.betweennessCentrality(normalized: false, endpoints: true)
+        let arcs = graph.directedView.betweennessCentrality(normalized: false, endpoints: true)
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - 2 * value)
-            #expect(error <= 1e-12 * max(1, abs(2 * value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(2 * value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -122,10 +122,10 @@ struct BetweennessTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = graph.directed.betweennessCentrality()
+        let arcs = graph.directedView.betweennessCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -145,10 +145,10 @@ struct BetweennessTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = graph.directed.betweennessCentrality(normalized: false)
+        let arcs = graph.directedView.betweennessCentrality(normalized: false)
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - 2 * value)
-            #expect(error <= 1e-12 * max(1, abs(2 * value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(2 * value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -168,10 +168,10 @@ struct BetweennessTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = graph.directed.betweennessCentrality(normalized: false)
+        let arcs = graph.directedView.betweennessCentrality(normalized: false)
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - 2 * value)
-            #expect(error <= 1e-12 * max(1, abs(2 * value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(2 * value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -197,10 +197,10 @@ struct BetweennessTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = graph.directed.betweennessCentrality()
+        let arcs = graph.directedView.betweennessCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -232,10 +232,10 @@ struct BetweennessTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = graph.directed.betweennessCentrality()
+        let arcs = graph.directedView.betweennessCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -272,10 +272,10 @@ struct BetweennessTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = graph.directed.betweennessCentrality()
+        let arcs = graph.directedView.betweennessCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -302,10 +302,10 @@ struct BetweennessTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = graph.directed.betweennessCentrality()
+        let arcs = graph.directedView.betweennessCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -325,10 +325,10 @@ struct BetweennessTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = graph.directed.betweennessCentrality()
+        let arcs = graph.directedView.betweennessCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -404,12 +404,12 @@ struct BetweennessTests {
         #expect(byVertex == result.scores)
     }
 
-    @Test("CE-106 U(P(0,1,2)).directed.betweennessCentrality() is [0, 1, 0]: Normalized values agree with undirected")
+    @Test("CE-106 U(P(0,1,2)).directedView.betweennessCentrality() is [0, 1, 0]: Normalized values agree with undirected")
     func betweenness106() {
         // U: P(0,1,2)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
         let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let result = graph.directed.betweennessCentrality()
+        let result = graph.directedView.betweennessCentrality()
         let expected: [Double] = [0, 1, 0]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -418,16 +418,16 @@ struct BetweennessTests {
         }
         let byIndex = result.scores.indices.map { result.score(ofIndex: $0) }
         #expect(byIndex == result.scores)
-        let byVertex = graph.directed.vertices.map { result.score(of: $0) }
+        let byVertex = graph.directedView.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
     }
 
-    @Test("CE-107 U(P(0,1,2)).directed.betweennessCentrality(normalized: false) is [0, 2, 0]: Unnormalized: twice the undirected value (ordered pairs, not halved)")
+    @Test("CE-107 U(P(0,1,2)).directedView.betweennessCentrality(normalized: false) is [0, 2, 0]: Unnormalized: twice the undirected value (ordered pairs, not halved)")
     func betweenness107() {
         // U: P(0,1,2)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
         let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let result = graph.directed.betweennessCentrality(normalized: false)
+        let result = graph.directedView.betweennessCentrality(normalized: false)
         let expected: [Double] = [0, 2, 0]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -436,7 +436,7 @@ struct BetweennessTests {
         }
         let byIndex = result.scores.indices.map { result.score(ofIndex: $0) }
         #expect(byIndex == result.scores)
-        let byVertex = graph.directed.vertices.map { result.score(of: $0) }
+        let byVertex = graph.directedView.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
     }
 
@@ -458,10 +458,10 @@ struct BetweennessTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = graph.directed.betweennessCentrality(normalized: false)
+        let arcs = graph.directedView.betweennessCentrality(normalized: false)
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - 2 * value)
-            #expect(error <= 1e-12 * max(1, abs(2 * value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(2 * value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -481,10 +481,10 @@ struct BetweennessTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = graph.directed.betweennessCentrality()
+        let arcs = graph.directedView.betweennessCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -506,10 +506,10 @@ struct BetweennessTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = graph.directed.betweennessCentrality()
+        let arcs = graph.directedView.betweennessCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -531,10 +531,10 @@ struct BetweennessTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = graph.directed.betweennessCentrality()
+        let arcs = graph.directedView.betweennessCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -555,10 +555,10 @@ struct BetweennessTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = graph.directed.betweennessCentrality(weight: { w[$0.position] })
+        let arcs = graph.directedView.betweennessCentrality(weight: { w[$0.position] })
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -579,10 +579,10 @@ struct BetweennessTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = graph.directed.betweennessCentrality(weight: { w[$0.position] }, normalized: false)
+        let arcs = graph.directedView.betweennessCentrality(weight: { w[$0.position] }, normalized: false)
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - 2 * value)
-            #expect(error <= 1e-12 * max(1, abs(2 * value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(2 * value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -603,10 +603,10 @@ struct BetweennessTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = graph.directed.betweennessCentrality(weight: { w[$0.position] }, normalized: false)
+        let arcs = graph.directedView.betweennessCentrality(weight: { w[$0.position] }, normalized: false)
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - 2 * value)
-            #expect(error <= 1e-12 * max(1, abs(2 * value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(2 * value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -663,10 +663,10 @@ struct BetweennessTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = graph.directed.betweennessCentrality(weight: { w[$0.position] })
+        let arcs = graph.directedView.betweennessCentrality(weight: { w[$0.position] })
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -699,10 +699,10 @@ struct BetweennessTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = graph.directed.betweennessCentrality(endpoints: true)
+        let arcs = graph.directedView.betweennessCentrality(endpoints: true)
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 

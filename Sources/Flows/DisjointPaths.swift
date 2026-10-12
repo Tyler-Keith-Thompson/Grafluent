@@ -169,7 +169,7 @@ extension DirectedGraph {
 }
 
 extension Graph {
-    /// A largest set of edge-disjoint paths between `source` and `target`, over `directed` (each
+    /// A largest set of edge-disjoint paths between `source` and `target`, over `directedView` (each
     /// edge an arc in the direction the path uses it): as many as `edgeConnectivity(from:to:)`, no
     /// edge in two of them. See `DirectedGraph.edgeDisjointPaths(from:to:)`.
     ///
@@ -183,7 +183,7 @@ extension Graph {
     }
 
     /// A largest set of internally vertex-disjoint paths between `source` and `target`, over
-    /// `directed`: as many as `vertexConnectivity(from:to:)`; an edge between them is one path.
+    /// `directedView`: as many as `vertexConnectivity(from:to:)`; an edge between them is one path.
     /// See `DirectedGraph.vertexDisjointPaths(from:to:)`.
     ///
     /// - Precondition: `source` and `target` are distinct vertices.

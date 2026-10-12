@@ -124,7 +124,7 @@ extension BipartiteGraph where Vertex == Int {
 **The directed form.** Families with a natural orientation (path, cycle, star, wheel, and from
 phase 1 the balanced tree) get one arc per edge along it. Families without one (complete, complete
 bipartite, grid, hypercube, Petersen, and from phase 1 complete multipartite, Turán, the ladders,
-barbell and lollipop) get both arcs, which is `graph.directed` materialized. For complete bipartite
+barbell and lollipop) get both arcs, which is `graph.directedView` materialized. For complete bipartite
 and multipartite this is igraph's default (`Full_Bipartite(mode="all")`, `IGRAPH_ALL`); it keeps `completeMultipartite(partSizes:
 [a, b])` equal to `completeBipartite(leftCount: a, rightCount: b)` on every conformer, and n parts
 of size 1 equal to `complete(vertexCount: n)`. NetworkX raises for a directed ladder, circular ladder, barbell or lollipop;

@@ -4,7 +4,7 @@
 // and a path with 12 pseudo-random chords. Every `eccentricities` row also checks
 // `eccentricity(ofIndex:)`, `eccentricity(of:)` on the value and on the graph, that the one-shot
 // `radius()`, `diameter()`, `center()` and `periphery()` equal the value's members, and that
-// `graph.directed` gives the same eccentricities; every radius, diameter, center and periphery row
+// `graph.directedView` gives the same eccentricities; every radius, diameter, center and periphery row
 // checks the one-shot call and the `Eccentricities` member. `diameterPath()` pins the breadth-first
 // path from the first peripheral vertex (rows in position order). Literals are catalog cells.
 // Case IDs (DI-nnn) refer to the catalog; see README.md.
@@ -33,7 +33,7 @@ struct UndirectedDistanceTests {
         #expect(graph.diameter() == eccentricities.diameter)
         #expect(graph.center() == eccentricities.center)
         #expect(graph.periphery() == eccentricities.periphery)
-        let arcs = graph.directed.eccentricities()
+        let arcs = graph.directedView.eccentricities()
         let viaArcs = (0 ..< graph.vertexCount).map { arcs.eccentricity(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -134,7 +134,7 @@ struct UndirectedDistanceTests {
         #expect(graph.diameter() == eccentricities.diameter)
         #expect(graph.center() == eccentricities.center)
         #expect(graph.periphery() == eccentricities.periphery)
-        let arcs = graph.directed.eccentricities()
+        let arcs = graph.directedView.eccentricities()
         let viaArcs = (0 ..< graph.vertexCount).map { arcs.eccentricity(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -220,7 +220,7 @@ struct UndirectedDistanceTests {
         #expect(graph.diameter() == eccentricities.diameter)
         #expect(graph.center() == eccentricities.center)
         #expect(graph.periphery() == eccentricities.periphery)
-        let arcs = graph.directed.eccentricities()
+        let arcs = graph.directedView.eccentricities()
         let viaArcs = (0 ..< graph.vertexCount).map { arcs.eccentricity(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -290,7 +290,7 @@ struct UndirectedDistanceTests {
         #expect(graph.diameter() == eccentricities.diameter)
         #expect(graph.center() == eccentricities.center)
         #expect(graph.periphery() == eccentricities.periphery)
-        let arcs = graph.directed.eccentricities()
+        let arcs = graph.directedView.eccentricities()
         let viaArcs = (0 ..< graph.vertexCount).map { arcs.eccentricity(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -347,7 +347,7 @@ struct UndirectedDistanceTests {
         #expect(graph.diameter() == eccentricities.diameter)
         #expect(graph.center() == eccentricities.center)
         #expect(graph.periphery() == eccentricities.periphery)
-        let arcs = graph.directed.eccentricities()
+        let arcs = graph.directedView.eccentricities()
         let viaArcs = (0 ..< graph.vertexCount).map { arcs.eccentricity(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -391,7 +391,7 @@ struct UndirectedDistanceTests {
         #expect(graph.diameter() == eccentricities.diameter)
         #expect(graph.center() == eccentricities.center)
         #expect(graph.periphery() == eccentricities.periphery)
-        let arcs = graph.directed.eccentricities()
+        let arcs = graph.directedView.eccentricities()
         let viaArcs = (0 ..< graph.vertexCount).map { arcs.eccentricity(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -455,7 +455,7 @@ struct UndirectedDistanceTests {
         #expect(graph.diameter() == eccentricities.diameter)
         #expect(graph.center() == eccentricities.center)
         #expect(graph.periphery() == eccentricities.periphery)
-        let arcs = graph.directed.eccentricities()
+        let arcs = graph.directedView.eccentricities()
         let viaArcs = (0 ..< graph.vertexCount).map { arcs.eccentricity(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -637,7 +637,7 @@ struct UndirectedDistanceTests {
         #expect(graph.diameter() == eccentricities.diameter)
         #expect(graph.center() == eccentricities.center)
         #expect(graph.periphery() == eccentricities.periphery)
-        let arcs = graph.directed.eccentricities()
+        let arcs = graph.directedView.eccentricities()
         let viaArcs = (0 ..< graph.vertexCount).map { arcs.eccentricity(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -688,7 +688,7 @@ struct UndirectedDistanceTests {
         #expect(graph.diameter() == eccentricities.diameter)
         #expect(graph.center() == eccentricities.center)
         #expect(graph.periphery() == eccentricities.periphery)
-        let arcs = graph.directed.eccentricities()
+        let arcs = graph.directedView.eccentricities()
         let viaArcs = (0 ..< graph.vertexCount).map { arcs.eccentricity(ofIndex: $0) }
         #expect(viaArcs == expected)
     }

@@ -61,8 +61,12 @@ public struct DistanceMatrix<G: DirectedGraph, Distance> {
     /// - Precondition: `source` and `target` are vertices of the graph.
     @inlinable
     public func hasPath(from source: G.Vertex, to target: G.Vertex) -> Bool {
-        let i = _index(of: source), j = _index(of: target)
-        return i == j || _lastEdge[i * _count + j] != _placeholder
+        _hasPath(_index(of: source), _index(of: target))
+    }
+
+    @inlinable
+    func _hasPath(_ i: Int, _ j: Int) -> Bool {
+        i == j || _lastEdge[i * _count + j] != _placeholder
     }
 
     /// A best path from `source` to `target`, both included, with the edges it takes (which tell
@@ -72,8 +76,12 @@ public struct DistanceMatrix<G: DirectedGraph, Distance> {
     /// - Precondition: `source` and `target` are vertices of the graph.
     @inlinable
     public func path(from source: G.Vertex, to target: G.Vertex) -> Path<G.Vertex, G.Edges.Index>? {
-        let i = _index(of: source)
-        var j = _index(of: target)
+        _path(_index(of: source), _index(of: target))
+    }
+
+    @inlinable
+    func _path(_ i: Int, _ target: Int) -> Path<G.Vertex, G.Edges.Index>? {
+        var j = target
         let row = i * _count
         guard i == j || _lastEdge[row + j] != _placeholder else { return nil }
         var vertices = [_ids.vertex(j)]
@@ -89,6 +97,44 @@ public struct DistanceMatrix<G: DirectedGraph, Distance> {
         edges.reverse()
         // Only strict improvements are kept, so a best path never repeats a vertex.
         return Path(_uncheckedVertices: vertices, edges: edges)
+    }
+}
+
+// MARK: - checked: lookups
+
+// README Principle 6: `VertexNotFound` for a vertex that is not in the graph, where the trapping
+// spellings are the fast path; `try?` gives an Optional. A nil the trapping spelling returns (no
+// path) is still nil.
+
+extension DistanceMatrix {
+    /// `distance(from: source, to: target)`, throwing instead of trapping when either is not a
+    /// vertex of the graph: nil still means no path joins them.
+    ///
+    /// - Throws: `VertexNotFound` when `source` or `target` is not a vertex of the graph.
+    @inlinable
+    public func distance(checkedFrom source: G.Vertex, to target: G.Vertex) throws(VertexNotFound) -> Distance? {
+        let i = try _ids.graph._checkedIndex(of: source, _ids), j = try _ids.graph._checkedIndex(of: target, _ids)
+        return distance(fromIndex: i, toIndex: j)
+    }
+
+    /// `hasPath(from: source, to: target)`, throwing instead of trapping when either is not a
+    /// vertex of the graph.
+    ///
+    /// - Throws: `VertexNotFound` when `source` or `target` is not a vertex of the graph.
+    @inlinable
+    public func hasPath(checkedFrom source: G.Vertex, to target: G.Vertex) throws(VertexNotFound) -> Bool {
+        let i = try _ids.graph._checkedIndex(of: source, _ids), j = try _ids.graph._checkedIndex(of: target, _ids)
+        return _hasPath(i, j)
+    }
+
+    /// `path(from: source, to: target)`, throwing instead of trapping when either is not a vertex
+    /// of the graph: nil still means no path joins them. O(length) edge lookups.
+    ///
+    /// - Throws: `VertexNotFound` when `source` or `target` is not a vertex of the graph.
+    @inlinable
+    public func path(checkedFrom source: G.Vertex, to target: G.Vertex) throws(VertexNotFound) -> Path<G.Vertex, G.Edges.Index>? {
+        let i = try _ids.graph._checkedIndex(of: source, _ids), j = try _ids.graph._checkedIndex(of: target, _ids)
+        return _path(i, j)
     }
 }
 

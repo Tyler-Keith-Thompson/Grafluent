@@ -82,7 +82,7 @@ without `--with igraph` the igraph checks are skipped, so run `--write` with it)
 | Randomized `using:` overloads (as `louvainCommunities(using:)`) | Open question 5. The deterministic versions are what tests pin |
 | Enumeration: all maximal independent sets (igraph `maximal_independent_vertex_sets`), all largest ones, minimal dominating sets | Phase 2, as lazy sequences like `maximalCliques()` (maximal independent sets are maximal cliques of the complement) |
 | Independent and total domination, k-domination, edge domination, feedback vertex set | Phase 2 or other modules. Feedback sets belong with Cycles |
-| Directed graphs (out-domination, directed vertex cover) | A cover of a digraph's edges is the cover of `digraph.undirected`, which tests can use. Domination in a digraph (N⁺) is a different problem, so it waits for a caller |
+| Directed graphs (out-domination, directed vertex cover) | A cover of a digraph's edges is the cover of `digraph.undirectedView`, which tests can use. Domination in a digraph (N⁺) is a different problem, so it waits for a caller |
 | A `VertexSet` result type | Rejected (Result types) |
 | Certificates for the approximations (the local-ratio lower bound, the set-cover dual) | Open question 6 |
 

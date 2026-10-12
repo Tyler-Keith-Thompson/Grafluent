@@ -1,4 +1,4 @@
-// The undirected view (catalog LG-062 – LG-068): `labeled.undirected`, neighbours as successors then
+// The undirected view (catalog LG-062 – LG-068): `labeled.undirectedView`, neighbours as successors then
 // predecessors, opposite arcs parallel, a loop twice, label-space reads hashing twice.
 // Generated from cases.md by swiftgen.py; see README.md.
 
@@ -13,7 +13,7 @@ struct LabeledGraphUndirectedTests {
     func lg062() {
         // U V []; E [a→b, c→a, b→c] / neighbors(a) / incidentEdges(a) / degree(a) / neighborIndices(ofIndex: 0)
         let graph = LabeledGraph<String, AdjacencyMatrix>(vertices: [] as [String], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "c", to: "a"), DirectedEdge(from: "b", to: "c")])
-        let view = graph.undirected
+        let view = graph.undirectedView
         #expect(Array(view.neighbors(of: "a")) == ["b", "c"])
         #expect(view.incidentEdges(of: "a").map { [$0.source, $0.target] } == [[0, 1], [2, 0]])
         #expect(view.degree(of: "a") == 2)
@@ -101,7 +101,7 @@ struct LabeledGraphUndirectedTests {
         // U V []; E [a→b, c→a, b→c] / oppositeVertex(to: a, acrossEdgeAt: (0,1)) / oppositeVertex(to: b, acrossEdgeAt: (0,1))
         let cell01 = AdjacencyMatrix(vertexCount: 2, edges: [DirectedEdge(from: 0, to: 1)]).edges.startIndex
         let graph = LabeledGraph<String, AdjacencyMatrix>(vertices: [] as [String], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "c", to: "a"), DirectedEdge(from: "b", to: "c")])
-        let view = graph.undirected
+        let view = graph.undirectedView
         #expect(view.oppositeVertex(to: "a", acrossEdgeAt: cell01) == "b")
         #expect(view.oppositeVertex(to: "b", acrossEdgeAt: cell01) == "a")
         // Final state.
@@ -186,7 +186,7 @@ struct LabeledGraphUndirectedTests {
     func lg065() {
         // U V []; E [a→b, c→a, b→c] / contains(edge: b→a) / contains(edge: a→b) / contains(edge: a→q)
         let graph = LabeledGraph<String, AdjacencyMatrix>(vertices: [] as [String], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "c", to: "a"), DirectedEdge(from: "b", to: "c")])
-        let view = graph.undirected
+        let view = graph.undirectedView
         #expect(view.contains(edge: UndirectedEdge("b", "a")))
         #expect(view.contains(edge: UndirectedEdge("a", "b")))
         #expect(!view.contains(edge: UndirectedEdge("a", "q")))
@@ -272,7 +272,7 @@ struct LabeledGraphUndirectedTests {
     func lg066() {
         // U V []; E [a→b, c→a, b→c] / neighbors(b) / hashes() / neighborIndices(ofIndex: 1) / hashes()
         let graph = LabeledGraph<String, AdjacencyMatrix>(vertices: [] as [String], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "c", to: "a"), DirectedEdge(from: "b", to: "c")])
-        let view = graph.undirected
+        let view = graph.undirectedView
         #expect(Array(view.neighbors(of: "b")) == ["c", "a"])
         // hashes() is 2 here: see the counted copy below.
         #expect(Array(view.neighborIndices(ofIndex: 1)) == [2, 0])
@@ -375,7 +375,7 @@ struct LabeledGraphUndirectedTests {
         let tally = Tally()
         func label(_ name: String) -> Counted { Counted(name: name, tally: tally) }
         let pads = (0 ..< 16).map { "pad\($0)" }
-        let counted = LabeledGraph<Counted, AdjacencyMatrix>(vertices: (["a", "b", "c"] + pads).map(label), edges: [["a", "b"], ["b", "c"], ["c", "a"]].map { DirectedEdge(from: label($0[0]), to: label($0[1])) }).undirected
+        let counted = LabeledGraph<Counted, AdjacencyMatrix>(vertices: (["a", "b", "c"] + pads).map(label), edges: [["a", "b"], ["b", "c"], ["c", "a"]].map { DirectedEdge(from: label($0[0]), to: label($0[1])) }).undirectedView
         tally.hashes = 0
         tally.comparisons = 0
         let r1 = Array(counted.neighbors(of: label("b"))).map(\.name)
@@ -390,7 +390,7 @@ struct LabeledGraphUndirectedTests {
     func lg068() {
         // U V []; E [a→b, b→a, a→a] / neighbors(a) / degree(a) / degree(b)
         let graph = LabeledGraph<String, AdjacencyMatrix>(vertices: [] as [String], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "a"), DirectedEdge(from: "a", to: "a")])
-        let view = graph.undirected
+        let view = graph.undirectedView
         #expect(Array(view.neighbors(of: "a")) == ["a", "b", "a", "b"])
         #expect(view.degree(of: "a") == 4)
         #expect(view.degree(of: "b") == 2)

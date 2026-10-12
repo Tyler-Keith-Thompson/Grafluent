@@ -46,7 +46,7 @@ struct IncidenceMatrixConformanceTests {
             #expect(matrix.sConnectedComponents(s: s) == list.sConnectedComponents(s: s))
         }
         #expect(matrix.cliqueExpansion() == list.cliqueExpansion())
-        #expect(Array(matrix.incidenceGraph.edges) == Array(list.incidenceGraph.edges))
+        #expect(Array(matrix.incidenceGraphView.edges) == Array(list.incidenceGraphView.edges))
         // transposed() is the dual.
         #expect(matrix.transposed() == IncidenceMatrix(matrix.dual()))
         #expect(UndirectedIncidenceList<Int>(matrix.transposed()) == list.dual())
@@ -81,7 +81,7 @@ struct IncidenceMatrixConformanceTests {
         #expect(matrix.isBHypergraph == list.isBHypergraph && matrix.isFHypergraph == list.isFHypergraph && matrix.isBFHypergraph == list.isBFHypergraph)
         #expect(matrix.cliqueExpansion() == list.cliqueExpansion())
         #expect(matrix.outDegreeHistogram() == list.outDegreeHistogram() && matrix.sourceSizeHistogram() == list.sourceSizeHistogram())
-        #expect(Array(matrix.incidenceGraph.edges) == Array(list.incidenceGraph.edges))
+        #expect(Array(matrix.incidenceGraphView.edges) == Array(list.incidenceGraphView.edges))
         // transposed() is the dual, reversed the reversal, and the union matrix forgets the sides.
         #expect(matrix.transposed() == OrientedIncidenceMatrix(list.dual()))
         #expect(matrix.dual() == list.dual())
@@ -215,7 +215,7 @@ struct IncidenceMatrixConformanceTests {
         oriented.appendVertex()
         let union = IncidenceMatrix(oriented)
         #expect(union.vertexCount == n + 1 && union.hyperedgeCount == m)
-        #expect(union.incidenceGraph.edgeCount == cells.count)
+        #expect(union.incidenceGraphView.edgeCount == cells.count)
         for v in 0 ... n {
             #expect(Array(union.incidentHyperedges(of: v)) == (0 ..< m).filter { cells.contains([v, $0]) })
             #expect(union.degree(of: v) == (0 ..< m).filter { cells.contains([v, $0]) }.count)

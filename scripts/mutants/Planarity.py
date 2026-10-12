@@ -8,6 +8,11 @@
 # marking mutant proves its case is reached, since the witness then fails the subgraph checks.
 #
 # Known equivalent mutants (they survive by design):
+#   checkedfacerange, checkedfaceedge
+#                 the range checks in `_checkedSlot`: every representation tested maps an
+#                 out-of-range Int position to an out-of-range edge number without trapping, and
+#                 `_EmbeddingLayout.slot(at:ofEdge:)` finds no slot for one, so `.edge` is thrown
+#                 either way. Kept as guards against `edgeIndex(of:)` trapping on a foreign position.
 #   countingsort  always the two counting sorts instead of insertion sort on short rows: both
 #                 order each row by nesting depth, stable in edge number; time only.
 #   rightorder    `side > 0` as `>= 0` for the right edges: a resolved side is ±1, never 0.
@@ -162,4 +167,12 @@ MUTANTS = [
     # The witness's presentation.
     Mutant("k33sides", KS, "order = [first] + branch.filter { $0 != first && !across.contains($0) } + branch.filter { across.contains($0) }", "order = [first] + branch.filter { across.contains($0) } + branch.filter { $0 != first && !across.contains($0) }", mode="stmt"),
     Mutant("witnessorder", KS, "witness.map { simple.representative[$0] }.sorted()", "witness.map { simple.representative[$0] }"),
+
+    # The checked: face spellings.
+    Mutant("checkedfacevertex", "PlanarEmbedding.swift", "try? _vertices.number(checked: vertex)", "Optional((try? _vertices.number(checked: vertex)) ?? 0)"),
+    Mutant("checkedfacerange", "PlanarEmbedding.swift", "edges.startIndex <= position && position < edges.endIndex", "true"),
+    Mutant("checkedfacenumber", "PlanarEmbedding.swift", "_edgeNumbers[position]", "Optional(_edgeNumbers[position] ?? 0)", nth=1),
+    Mutant("checkedfaceedge", "PlanarEmbedding.swift", "e >= 0 && e < _layout.edgeCount", "true", nth=1),
+    Mutant("checkedfaceslot", "PlanarEmbedding.swift", "_layout.face(fromSlot: try _checkedSlot(from: vertex, alongEdgeAt: position))", "_layout.face(fromSlot: try _checkedSlot(from: vertex, alongEdgeAt: position) ^ 1)"),
+    Mutant("checkedrightface", "PlanarEmbedding.swift", "Int(_layout.faceOfSlot[try _checkedSlot(from: vertex, alongEdgeAt: position)])", "Int(_layout.faceOfSlot[0])"),
 ]

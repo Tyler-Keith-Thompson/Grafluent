@@ -2,7 +2,7 @@ import sys, math
 import networkx as nx
 from ref import *
 
-def und(edges):  # an undirected edge list as the arcs of `graph.directed`: u->v then v->u per edge
+def und(edges):  # an undirected edge list as the arcs of `graph.directedView`: u->v then v->u per edge
     out = []
     for u, v, w in edges:
         out.append((u, v, w))

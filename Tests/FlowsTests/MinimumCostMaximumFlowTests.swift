@@ -36,6 +36,7 @@ struct MinimumCostMaximumFlowTests {
         // The value is the maximum flow value.
         #expect(flowResult.value == graph.maximumFlowValue(from: 0, to: 1, capacity: { capacities[$0] }))
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [3] as [Int])
         // The supplies of a flow of that value from the source to the sink.
         var supplies = [Int](repeating: 0, count: n)
@@ -57,6 +58,7 @@ struct MinimumCostMaximumFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }
@@ -85,6 +87,7 @@ struct MinimumCostMaximumFlowTests {
         // The value is the maximum flow value.
         #expect(flowResult.value == graph.maximumFlowValue(from: 0, to: 2, capacity: { capacities[$0] }))
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [0] as [Int])
         // The supplies of a flow of that value from the source to the sink.
         var supplies = [Int](repeating: 0, count: n)
@@ -106,6 +109,7 @@ struct MinimumCostMaximumFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }
@@ -134,6 +138,7 @@ struct MinimumCostMaximumFlowTests {
         // The value is the maximum flow value.
         #expect(flowResult.value == graph.maximumFlowValue(from: 0, to: 3, capacity: { capacities[$0] }))
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [2, 2, 2, 2] as [Int])
         // The supplies of a flow of that value from the source to the sink.
         var supplies = [Int](repeating: 0, count: n)
@@ -155,6 +160,7 @@ struct MinimumCostMaximumFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }
@@ -183,6 +189,7 @@ struct MinimumCostMaximumFlowTests {
         // The value is the maximum flow value.
         #expect(flowResult.value == graph.maximumFlowValue(from: 0, to: 2, capacity: { capacities[$0] }))
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [1, 5, 5] as [Int])
         // The supplies of a flow of that value from the source to the sink.
         var supplies = [Int](repeating: 0, count: n)
@@ -204,6 +211,7 @@ struct MinimumCostMaximumFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }
@@ -232,6 +240,7 @@ struct MinimumCostMaximumFlowTests {
         // The value is the maximum flow value.
         #expect(flowResult.value == graph.maximumFlowValue(from: "s", to: "t", capacity: { capacities[$0] }))
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [12, 11, 12, 0, 11, 0, 19, 7, 4] as [Int])
         // The supplies of a flow of that value from the source to the sink.
         var supplies = [Int](repeating: 0, count: n)
@@ -253,6 +262,7 @@ struct MinimumCostMaximumFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }
@@ -281,6 +291,7 @@ struct MinimumCostMaximumFlowTests {
         // The value is the maximum flow value.
         #expect(flowResult.value == graph.maximumFlowValue(from: 0, to: 3, capacity: { capacities[$0] }))
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [1, 2, 2] as [Int])
         // The supplies of a flow of that value from the source to the sink.
         var supplies = [Int](repeating: 0, count: n)
@@ -302,6 +313,7 @@ struct MinimumCostMaximumFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }
@@ -330,6 +342,7 @@ struct MinimumCostMaximumFlowTests {
         // The value is the maximum flow value.
         #expect(flowResult.value == graph.maximumFlowValue(from: 0, to: 1, capacity: { capacities[$0] }))
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [2, 4] as [Int])
         // The supplies of a flow of that value from the source to the sink.
         var supplies = [Int](repeating: 0, count: n)
@@ -351,6 +364,7 @@ struct MinimumCostMaximumFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }
@@ -379,6 +393,7 @@ struct MinimumCostMaximumFlowTests {
         // The value is the maximum flow value.
         #expect(flowResult.value == graph.maximumFlowValue(from: 0, to: 2, capacity: { capacities[$0] }))
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [1, 2, 3] as [Int])
         // The supplies of a flow of that value from the source to the sink.
         var supplies = [Int](repeating: 0, count: n)
@@ -400,6 +415,7 @@ struct MinimumCostMaximumFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }
@@ -428,6 +444,7 @@ struct MinimumCostMaximumFlowTests {
         // The value is the maximum flow value.
         #expect(flowResult.value == graph.maximumFlowValue(from: 0, to: 3, capacity: { capacities[$0] }))
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [1, 1, 0, 1, 1] as [Int])
         // The supplies of a flow of that value from the source to the sink.
         var supplies = [Int](repeating: 0, count: n)
@@ -449,6 +466,7 @@ struct MinimumCostMaximumFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }
@@ -477,6 +495,7 @@ struct MinimumCostMaximumFlowTests {
         // The value is the maximum flow value.
         #expect(flowResult.value == graph.maximumFlowValue(from: 0, to: 7, capacity: { capacities[$0] }))
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [0, 0, 0, 5, 0, 2, 2, 0, 0, 2, 2, 2, 0, 2, 0, 0, 4, 4, 0, 2, 1, 0, 0, 0] as [Int])
         // The supplies of a flow of that value from the source to the sink.
         var supplies = [Int](repeating: 0, count: n)
@@ -498,6 +517,7 @@ struct MinimumCostMaximumFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }
@@ -526,6 +546,7 @@ struct MinimumCostMaximumFlowTests {
         // The value is the maximum flow value.
         #expect(flowResult.value == graph.maximumFlowValue(from: 0, to: 9, capacity: { capacities[$0] }))
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0] as [Int])
         // The supplies of a flow of that value from the source to the sink.
         var supplies = [Int](repeating: 0, count: n)
@@ -547,6 +568,7 @@ struct MinimumCostMaximumFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }
@@ -575,6 +597,7 @@ struct MinimumCostMaximumFlowTests {
         // The value is the maximum flow value.
         #expect(flowResult.value == graph.maximumFlowValue(from: 1, to: 0, capacity: { capacities[$0] }))
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [0, 9223372036854775807] as [Int])
         // The supplies of a flow of that value from the source to the sink.
         var supplies = [Int](repeating: 0, count: n)
@@ -596,6 +619,7 @@ struct MinimumCostMaximumFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }

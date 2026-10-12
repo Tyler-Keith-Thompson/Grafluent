@@ -16,7 +16,7 @@ extension Graph {
     /// The vertices evenly spaced on a circle, in `vertices` order counterclockwise from the
     /// positive x axis: vertex `i` of `n` at `center + radius · (cos 2πi/n, sin 2πi/n)`. A single
     /// vertex is at `center`. Edges are not read (NetworkX's `circular_layout`, igraph's
-    /// `layout_circle`). A directed graph is drawn through `undirected`.
+    /// `layout_circle`). A directed graph is drawn through `undirectedView`.
     ///
     /// O(n) time.
     ///

@@ -356,6 +356,16 @@ extension AutomorphismGroup where G: Graph {
         }
         return orbitNumbers[graph._requiredVertexIndex(of: vertex, "\(vertex) is not a vertex of the graph")]
     }
+
+    /// The position in `orbits` of the orbit holding `vertex`, throwing instead of trapping when
+    /// it is not a vertex of the graph.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the graph.
+    @inlinable
+    public func orbit(checked vertex: G.Vertex) throws(VertexNotFound) -> Int {
+        guard graph.contains(vertex) else { throw VertexNotFound() }
+        return orbit(of: vertex)
+    }
 }
 
 extension AutomorphismGroup where G: DirectedGraph {
@@ -376,6 +386,16 @@ extension AutomorphismGroup where G: DirectedGraph {
         }
         return orbitNumbers[graph._requiredVertexIndex(of: vertex, "\(vertex) is not a vertex of the graph")]
     }
+
+    /// The position in `orbits` of the orbit holding `vertex`, throwing instead of trapping when
+    /// it is not a vertex of the graph.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the graph.
+    @inlinable
+    public func orbit(checked vertex: G.Vertex) throws(VertexNotFound) -> Int {
+        guard graph.contains(vertex) else { throw VertexNotFound() }
+        return orbit(of: vertex)
+    }
 }
 
 extension CanonicalLabeling where G: Graph {
@@ -390,6 +410,16 @@ extension CanonicalLabeling where G: Graph {
         }
         return permutation[graph._requiredVertexIndex(of: vertex, "\(vertex) is not a vertex of the graph")]
     }
+
+    /// The canonical index of `vertex`, throwing instead of trapping when it is not a vertex of
+    /// the graph.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the graph.
+    @inlinable
+    public func canonicalIndex(checked vertex: G.Vertex) throws(VertexNotFound) -> Int {
+        guard graph.contains(vertex) else { throw VertexNotFound() }
+        return canonicalIndex(of: vertex)
+    }
 }
 
 extension CanonicalLabeling where G: DirectedGraph {
@@ -403,5 +433,15 @@ extension CanonicalLabeling where G: DirectedGraph {
             return permutation[i]
         }
         return permutation[graph._requiredVertexIndex(of: vertex, "\(vertex) is not a vertex of the graph")]
+    }
+
+    /// The canonical index of `vertex`, throwing instead of trapping when it is not a vertex of
+    /// the graph.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the graph.
+    @inlinable
+    public func canonicalIndex(checked vertex: G.Vertex) throws(VertexNotFound) -> Int {
+        guard graph.contains(vertex) else { throw VertexNotFound() }
+        return canonicalIndex(of: vertex)
     }
 }

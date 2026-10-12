@@ -624,6 +624,25 @@ def define():
         ("target(checkedEdgeAt: -1)", lambda g: g.checked(g.successor, -1, THROWS_EDGE))])
     graph_row("Traps", "successor(checked:steps:): negative steps still trap", FEAT, [
         ("successor(checked: 0, steps: -1)", lambda g: g.checked(lambda v: g.successor_steps(v, -1), 0))])
+    graph_row("Decomposition", "checked: decomposition queries answer a vertex as the plain ones do and throw for a "
+              "non-vertex", FEAT, [
+        ("component(checked: 8)", lambda g: g.checked(D(g).component, 8)),
+        ("root(checked: 2)", lambda g: g.checked(D(g).root_of, 2)),
+        ("tailLength(checked: 11)", lambda g: g.checked(D(g).tail_length, 11)),
+        ("cycleLength(checked: 0)", lambda g: g.checked(D(g).cycle_length, 0)),
+        ("preimages(checked: 3)", lambda g: g.checked(D(g).preimages_of, 3)),
+        ("inDegree(checked: 9)", lambda g: g.checked(D(g).in_degree, 9)),
+        ("successor(checked: 2, steps: 3)", lambda g: g.checked(lambda v: D(g).successor_steps(v, 3), 2)),
+        ("component(checked: 12)", lambda g: g.checked(D(g).component, 12)),
+        ("root(checked: -1)", lambda g: g.checked(D(g).root_of, -1)),
+        ("tailLength(checked: 12)", lambda g: g.checked(D(g).tail_length, 12)),
+        ("cycleLength(checked: -1)", lambda g: g.checked(D(g).cycle_length, -1)),
+        ("preimages(checked: 12)", lambda g: g.checked(D(g).preimages_of, 12)),
+        ("inDegree(checked: -1)", lambda g: g.checked(D(g).in_degree, -1)),
+        ("successor(checked: 12, steps: 1)", lambda g: g.checked(lambda v: D(g).successor_steps(v, 1), 12))])
+    graph_row("Traps", "decomposition successor(checked:steps:): negative steps still trap", FEAT, [
+        ("cycleDecomposition().successor(checked: 0, steps: -1)",
+         lambda g: g.checked(lambda v: D(g).successor_steps(v, -1), 0))])
 
 
 # ---------------------------------------------------------------- render, stress, main

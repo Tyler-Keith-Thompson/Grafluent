@@ -1,3 +1,5 @@
+import GraphProtocols
+
 extension FunctionalGraph {
     /// Every cycle of a functional graph, and for each vertex its tail and the cycle it reaches, in
     /// Flajolet and Odlyzko's terms: walking from `v`, the first vertex on a cycle is `root(of: v)`,
@@ -247,6 +249,82 @@ extension FunctionalGraph {
             // Both terms are below `length`, so the sum cannot overflow.
             let offset = (root.key - start + (steps - tail) % length) % length
             return _byDepth[start + offset]
+        }
+
+        // README Principle 6: `VertexNotFound` for a vertex outside `0..<vertexCount`, where the
+        // trapping spellings are the fast path. Each checks the range once, then calls its
+        // trapping spelling.
+
+        /// `component(of: vertex)`, throwing instead of trapping when `vertex` is not in
+        /// `0..<vertexCount`. O(1).
+        ///
+        /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
+        @inlinable
+        public func component(checked vertex: Int) throws(VertexNotFound) -> Int {
+            guard UInt(bitPattern: vertex) < UInt(bitPattern: _records.count) else { throw VertexNotFound() }
+            return component(of: vertex)
+        }
+
+        /// `root(of: vertex)`, throwing instead of trapping when `vertex` is not in
+        /// `0..<vertexCount`. O(1).
+        ///
+        /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
+        @inlinable
+        public func root(checked vertex: Int) throws(VertexNotFound) -> Int {
+            guard UInt(bitPattern: vertex) < UInt(bitPattern: _records.count) else { throw VertexNotFound() }
+            return root(of: vertex)
+        }
+
+        /// `tailLength(of: vertex)`, throwing instead of trapping when `vertex` is not in
+        /// `0..<vertexCount`. O(1).
+        ///
+        /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
+        @inlinable
+        public func tailLength(checked vertex: Int) throws(VertexNotFound) -> Int {
+            guard UInt(bitPattern: vertex) < UInt(bitPattern: _records.count) else { throw VertexNotFound() }
+            return tailLength(of: vertex)
+        }
+
+        /// `cycleLength(of: vertex)`, throwing instead of trapping when `vertex` is not in
+        /// `0..<vertexCount`. O(1).
+        ///
+        /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
+        @inlinable
+        public func cycleLength(checked vertex: Int) throws(VertexNotFound) -> Int {
+            guard UInt(bitPattern: vertex) < UInt(bitPattern: _records.count) else { throw VertexNotFound() }
+            return cycleLength(of: vertex)
+        }
+
+        /// `preimages(of: vertex)`, throwing instead of trapping when `vertex` is not in
+        /// `0..<vertexCount`. O(1).
+        ///
+        /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
+        @inlinable
+        public func preimages(checked vertex: Int) throws(VertexNotFound) -> ArraySlice<Int> {
+            guard UInt(bitPattern: vertex) < UInt(bitPattern: _records.count) else { throw VertexNotFound() }
+            return preimages(of: vertex)
+        }
+
+        /// `inDegree(of: vertex)`, throwing instead of trapping when `vertex` is not in
+        /// `0..<vertexCount`. O(1).
+        ///
+        /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
+        @inlinable
+        public func inDegree(checked vertex: Int) throws(VertexNotFound) -> Int {
+            guard UInt(bitPattern: vertex) < UInt(bitPattern: _records.count) else { throw VertexNotFound() }
+            return inDegree(of: vertex)
+        }
+
+        /// `successor(of: vertex, steps: steps)`, throwing instead of trapping when `vertex` is not
+        /// in `0..<vertexCount`. O(log n).
+        ///
+        /// - Precondition: `steps >= 0`: a negative count is a misuse, not a missing vertex, and
+        ///   still traps.
+        /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
+        @inlinable
+        public func successor(checked vertex: Int, steps: Int) throws(VertexNotFound) -> Int {
+            guard UInt(bitPattern: vertex) < UInt(bitPattern: _records.count) else { throw VertexNotFound() }
+            return successor(of: vertex, steps: steps)
         }
     }
 

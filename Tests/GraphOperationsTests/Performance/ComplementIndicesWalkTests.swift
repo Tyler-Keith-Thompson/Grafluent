@@ -27,7 +27,7 @@ struct ComplementIndicesWalkTests {
         var arcs = Set<[Int]>()
         while arcs.count < 3 * n { arcs.insert([Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng)]) }
         let base = CompressedSparseRow(vertexCount: n, edges: arcs.map { DirectedEdge(from: $0[0], to: $0[1]) })
-        let complement = base.complement
+        let complement = base.complementView
         var count = 0, previous: ComplementView<CompressedSparseRow>.Cell?
         var sources = 0, ascending = true
         for cell in complement.edges.indices {
@@ -48,13 +48,13 @@ struct ComplementIndicesWalkTests {
         let undirected = UndirectedAdjacencyList<Int>(vertices: 0 ..< n, edges: pairs.map { UndirectedEdge($0[0], $0[1]) })
         var cells = 0, upper = true
         var last: ComplementView<UndirectedAdjacencyList<Int>>.Cell?
-        for cell in undirected.complement.edges.indices {
+        for cell in undirected.complementView.edges.indices {
             if cell.source >= cell.target { upper = false }
             if let last, !(last < cell) { upper = false }
             last = cell
             cells += 1
         }
         #expect(upper)
-        #expect(cells == undirected.complement.edgeCount && cells == n * (n - 1) / 2 - pairs.count)
+        #expect(cells == undirected.complementView.edgeCount && cells == n * (n - 1) / 2 - pairs.count)
     }
 }

@@ -4,7 +4,7 @@
 // Expected values are ref.py's model at full precision (the catalog cells are the same values
 // rounded to 12 digits); non-iterative rows compare within 1e-12 relative to max(1, |value|), the
 // iterative ones within the catalog's Tol of the limit. Undirected rows also run on
-// `graph.directed` (the same values; twice for degree and unnormalized betweenness).
+// `graph.directedView` (the same values; twice for degree and unnormalized betweenness).
 // Case IDs (CE-nnn) refer to the catalog; see README.md.
 
 import Centrality
@@ -32,10 +32,10 @@ struct EigenvectorTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try graph.directed.eigenvectorCentrality()
+        let arcs = try graph.directedView.eigenvectorCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -57,10 +57,10 @@ struct EigenvectorTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try graph.directed.eigenvectorCentrality()
+        let arcs = try graph.directedView.eigenvectorCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -85,10 +85,10 @@ struct EigenvectorTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try graph.directed.eigenvectorCentrality()
+        let arcs = try graph.directedView.eigenvectorCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -112,10 +112,10 @@ struct EigenvectorTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try graph.directed.eigenvectorCentrality()
+        let arcs = try graph.directedView.eigenvectorCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -144,10 +144,10 @@ struct EigenvectorTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try graph.directed.eigenvectorCentrality()
+        let arcs = try graph.directedView.eigenvectorCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -189,10 +189,10 @@ struct EigenvectorTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try graph.directed.eigenvectorCentrality()
+        let arcs = try graph.directedView.eigenvectorCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -227,10 +227,10 @@ struct EigenvectorTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try graph.directed.eigenvectorCentrality()
+        let arcs = try graph.directedView.eigenvectorCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -255,10 +255,10 @@ struct EigenvectorTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try graph.directed.eigenvectorCentrality()
+        let arcs = try graph.directedView.eigenvectorCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -283,10 +283,10 @@ struct EigenvectorTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try graph.directed.eigenvectorCentrality()
+        let arcs = try graph.directedView.eigenvectorCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -308,10 +308,10 @@ struct EigenvectorTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try graph.directed.eigenvectorCentrality()
+        let arcs = try graph.directedView.eigenvectorCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -335,10 +335,10 @@ struct EigenvectorTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try graph.directed.eigenvectorCentrality()
+        let arcs = try graph.directedView.eigenvectorCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -411,10 +411,10 @@ struct EigenvectorTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try graph.directed.eigenvectorCentrality(weight: { w[$0.position] })
+        let arcs = try graph.directedView.eigenvectorCentrality(weight: { w[$0.position] })
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -436,7 +436,7 @@ struct EigenvectorTests {
         let failure = #expect(throws: NoConvergence.self) { try graph.eigenvectorCentrality(maxIterations: 5) }
         #expect(failure?.iterations == 5)
         #expect(failure.map { !($0.residual < 1e-06) } == true)
-        let directedFailure = #expect(throws: NoConvergence.self) { try graph.directed.eigenvectorCentrality(maxIterations: 5) }
+        let directedFailure = #expect(throws: NoConvergence.self) { try graph.directedView.eigenvectorCentrality(maxIterations: 5) }
         #expect(directedFailure?.iterations == 5)
         #expect(directedFailure.map { !($0.residual < 1e-06) } == true)
     }
@@ -479,19 +479,19 @@ struct EigenvectorTests {
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")
-        let arcs = try graph.directed.eigenvectorCentrality(tolerance: 1e-10)
+        let arcs = try graph.directedView.eigenvectorCentrality(tolerance: 1e-10)
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-8 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-8 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
-    @Test("CE-147 U(P(0,1,2)).directed.eigenvectorCentrality() is [0.5, 0.707106781187, 0.5]: Same as undirected")
+    @Test("CE-147 U(P(0,1,2)).directedView.eigenvectorCentrality() is [0.5, 0.707106781187, 0.5]: Same as undirected")
     func eigenvector147() throws {
         // U: P(0,1,2)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
         let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let result = try graph.directed.eigenvectorCentrality()
+        let result = try graph.directedView.eigenvectorCentrality()
         let expected: [Double] = [0.5, 0.7071067811865474, 0.5]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -500,7 +500,7 @@ struct EigenvectorTests {
         }
         let byIndex = result.scores.indices.map { result.score(ofIndex: $0) }
         #expect(byIndex == result.scores)
-        let byVertex = graph.directed.vertices.map { result.score(of: $0) }
+        let byVertex = graph.directedView.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
         let norm = result.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
         #expect(abs(norm - 1) <= 1e-12, "Euclidean norm 1")

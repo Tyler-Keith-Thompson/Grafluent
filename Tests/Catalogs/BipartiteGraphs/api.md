@@ -63,7 +63,7 @@ against `projected_graph`. Run `uv run --quiet --no-project --with networkx==3.7
 
 | Not in phase 1 | Reason |
 |---|---|
-| Recognition on `DirectedGraph` | NetworkX and igraph ignore direction. `digraph.undirected.isBipartite` covers bidirectional graphs (each arc an edge; a 2-cycle becomes a parallel pair, which is bipartite: BP-070). Compressed sparse row isn't bidirectional (open question 5) |
+| Recognition on `DirectedGraph` | NetworkX and igraph ignore direction. `digraph.undirectedView.isBipartite` covers bidirectional graphs (each arc an edge; a 2-cycle becomes a parallel pair, which is bipartite: BP-070). Compressed sparse row isn't bidirectional (open question 5) |
 | A bipartite multigraph (parallel edges kept) | `BipartiteGraph` is simple, like `UndirectedAdjacencyList`. König's edge-colouring theorem and transportation problems use multigraphs, but recognition here accepts them on any `Graph`. A multigraph type waits for the Multigraphs module (open question 1) |
 | Sides that change as edges arrive (online bipartiteness by union–find with parity) | A different structure: its sides are not fixed, so `side(of:)` could not be stable |
 | Shortest odd cycle (odd girth) | Needs a breadth-first search from every vertex. It belongs in Cycles next to `girth()` |
@@ -177,6 +177,8 @@ extension Graph {
     public func side(of vertex: G.Vertex) -> BipartiteSide
     /// By vertex index (position in `vertices` without vertex indices). Precondition: in range.
     public func side(ofIndex index: Int) -> BipartiteSide
+    /// As `side(of:)`, throwing `VertexNotFound` instead of trapping (README Principle 6).
+    public func side(checked vertex: G.Vertex) throws(VertexNotFound) -> BipartiteSide
 }
 extension Bipartition: Sendable where G: Sendable, G.Vertex: Sendable {}
 ```
@@ -270,7 +272,7 @@ on a `BipartiteGraph` only when someone asks a known answer, as `isAcyclic` does
   non-nil. The catalog's exact cycles are this API's documented output.
 * **Edge orientation and vertex labels** don't matter (BP-005, BP-020). Vertex order does
   (BP-006, BP-027): it numbers the vertices.
-* **Directed graphs** go through `.undirected` (BP-069 – BP-074): rows are successors, then
+* **Directed graphs** go through `.undirectedView` (BP-069 – BP-074): rows are successors, then
   predecessors. A directed 2-cycle is a parallel pair (BP-070).
 
 ### `BipartiteGraph`
@@ -403,7 +405,7 @@ n vertices, m edges; Δ_S the greatest degree on side S.
   the rest of the library.
 * **Tests** (public API only, self-contained): every catalog row. Rows marked `multigraph` need a
   small in-file `Graph` conformer with rows in position order, since every shipped undirected
-  representation is simple. Rows marked `digraph` use `AdjacencyList` and `.undirected`. Odd-cycle
+  representation is simple. Rows marked `digraph` use `AdjacencyList` and `.undirectedView`. Odd-cycle
   rows assert the exact cycle **and** validity. Properties with swift-property-based on random
   graphs: `isBipartite == (bipartition() != nil) == (findOddCycle() == nil) == (BipartiteGraph(g) != nil)`.
   Every edge of a bipartite graph crosses `bipartition()`. Every odd cycle returned is valid.
@@ -420,7 +422,7 @@ n vertices, m edges; Δ_S the greatest degree on side S.
 | Where | What | Catalog |
 |---|---|---|
 | Side of isolated vertices | NetworkX `color`: 0 (the side without each component's first vertex). igraph: False, the same side as every component's first vertex. Ours: left, like igraph | BP-002, BP-003, BP-053, BP-058, BP-091 |
-| Side assignment on directed input | NetworkX `color` skips a vertex with no successors when choosing a start (`len(G[n]) == 0` tests successors only), so its X side holds the first vertex with an out-arc. igraph ignores direction. Ours: least vertex left, through `.undirected` | BP-074 |
+| Side assignment on directed input | NetworkX `color` skips a vertex with no successors when choosing a start (`len(G[n]) == 0` tests successors only), so its X side holds the first vertex with an out-arc. igraph ignores direction. Ours: least vertex left, through `.undirectedView` | BP-074 |
 | Disconnected graphs | NetworkX `sets` raises `AmbiguousSolution`. Ours: the canonical assignment | BP-053 – BP-058 |
 | `is_bipartite_node_set` | NetworkX raises on repeated nodes (`AmbiguousSolution`), raises `NetworkXError` on a non-bipartite graph, raises `NetworkXNotImplemented` on a directed one, and accepts nodes not in G. Ours: a repeat is one vertex, the others nil | BP-099, BP-100, BP-104 |
 | Odd-cycle witness | Boost `find_odd_cycle`: depth-first, its own cycle. NetworkX, igraph, JGraphT, LEMON: none (failure only). Ours: breadth-first, canonical form; cross-library tests check validity | BP-007 – BP-084 (non-bipartite rows) |
@@ -473,7 +475,7 @@ n vertices, m edges; Δ_S the greatest degree on side S.
    caller needs it?
 5. **Directed recognition.** `isBipartite`, `bipartition()` and `findOddCycle()` on `DirectedGraph`
    with direction ignored (NetworkX and igraph do this) would serve compressed sparse row, which
-   has no `.undirected`. That needs predecessor rows, built by a counting sort, as Centrality
+   has no `.undirectedView`. That needs predecessor rows, built by a counting sort, as Centrality
    does. Wait for a caller?
 6. **Side-local indices.** Hopcroft–Karp and the Hungarian method index the left side 0..<|L| and
    the right 0..<|R| (LEMON has separate red and blue indices). A fresh `BipartiteGraph` built

@@ -85,6 +85,16 @@ public struct ClusteringCoefficients<G: Graph> {
         return _clustering(_triangles[v], _degrees[v])
     }
 
+    /// The local clustering coefficient of `vertex`, throwing instead of trapping when it is not a
+    /// vertex of the graph.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the graph.
+    @inlinable
+    public func clusteringCoefficient(checked vertex: G.Vertex) throws(VertexNotFound) -> Double {
+        guard _graph.contains(vertex) else { throw VertexNotFound() }
+        return clusteringCoefficient(of: vertex)
+    }
+
     /// The local clustering coefficient of the vertex at `index`.
     ///
     /// - Precondition: `index` is in `0..<vertexCount`.
@@ -99,6 +109,16 @@ public struct ClusteringCoefficients<G: Graph> {
     /// - Precondition: `vertex` is a vertex of the graph.
     @inlinable
     public func triangleCount(of vertex: G.Vertex) -> Int { _triangles[_graph._vertexNumber(of: vertex, _numbers, "The vertex is not in the graph")] }
+
+    /// The number of triangles through `vertex`, throwing instead of trapping when it is not a
+    /// vertex of the graph.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the graph.
+    @inlinable
+    public func triangleCount(checked vertex: G.Vertex) throws(VertexNotFound) -> Int {
+        guard _graph.contains(vertex) else { throw VertexNotFound() }
+        return triangleCount(of: vertex)
+    }
 
     /// The number of triangles through the vertex at `index`.
     ///

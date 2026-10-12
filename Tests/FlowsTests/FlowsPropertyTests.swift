@@ -219,7 +219,7 @@ struct FlowsPropertyTests {
             #expect(cutEdgesCross, "\(context)")
             let valueAgrees = graph.maximumFlowValue(from: listed[s], to: listed[t], capacity: { capacities[$0] }) == best
             #expect(valueAgrees, "\(context)")
-            let directedViewValue = graph.directed.maximumFlowValue(from: listed[s], to: listed[t], capacity: { capacities[$0.position] }) == best
+            let directedViewValue = graph.directedView.maximumFlowValue(from: listed[s], to: listed[t], capacity: { capacities[$0.position] }) == best
             #expect(directedViewValue, "\(context)")
             for (which, flow) in flows.enumerated() {
                 #expect(flow.value == best, "\(which) \(context)")

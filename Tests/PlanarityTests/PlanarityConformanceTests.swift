@@ -1,8 +1,8 @@
 // Conformance: the same answers on every representation and on relabelled copies. Graphs with the
 // same rows (`Pseudograph`, `Multigraph` when loop-free, `ReferencePseudograph`, and a file-private
 // conformer with no vertex or edge indices) give the same embedding and the same witness, position
-// for position. `UndirectedAdjacencyList` (parallel edges collapsed), `AdjacencyList.undirected`
-// (the second copy of a pair as the reverse arc) and `AdjacencyMatrix.undirected` (positions are
+// for position. `UndirectedAdjacencyList` (parallel edges collapsed), `AdjacencyList.undirectedView`
+// (the second copy of a pair as the reverse arc) and `AdjacencyMatrix.undirectedView` (positions are
 // cells) give the same yes/no answers, and each of their witnesses is checked against the
 // definitions in api.md. A copy whose vertices are Strings gives the same embedding through the
 // labels; a copy with its vertices listed and its edges inserted in another order gives the same
@@ -196,8 +196,8 @@ struct PlanarityConformanceTests {
             for (a, b) in pairs {
                 if arcSet.insert([a, b]).inserted { arcs.append(DirectedEdge(from: a, to: b)) } else if arcSet.insert([b, a]).inserted { arcs.append(DirectedEdge(from: b, to: a)) }
             }
-            try check(AdjacencyList<Int>(vertices: 0 ..< vertexTotal, edges: arcs).undirected, planar: planar, outerplanar: outerplanar, "AdjacencyList.undirected \(context)")
-            try check(AdjacencyMatrix(vertexCount: vertexTotal, edges: arcs).undirected, planar: planar, outerplanar: outerplanar, "AdjacencyMatrix.undirected \(context)")
+            try check(AdjacencyList<Int>(vertices: 0 ..< vertexTotal, edges: arcs).undirectedView, planar: planar, outerplanar: outerplanar, "AdjacencyList.undirectedView \(context)")
+            try check(AdjacencyMatrix(vertexCount: vertexTotal, edges: arcs).undirectedView, planar: planar, outerplanar: outerplanar, "AdjacencyMatrix.undirectedView \(context)")
         }
     }
 

@@ -1,6 +1,6 @@
 // How the weight closure is read (api.md: weights are read once per edge, in position order, and
 // checked there): every weighted entry point, on a pseudograph with a self-loop and parallel edges,
-// on `graph.directed` (each arc once, in its view's position order), on a directed multigraph, and on
+// on `graph.directedView` (each arc once, in its view's position order), on a directed multigraph, and on
 // `UndirectedAdjacencyList`, `CompressedSparseRow` and `AdjacencyMatrix` positions; nothing is read
 // on an edgeless graph. Weights of -0.0 are ≥ 0 and accepted, and a `Float` closure gives the
 // `Double` closure's values. Case IDs (CD-nnn) refer to the catalog; see README.md.
@@ -49,12 +49,12 @@ struct CommunityWeightReadingTests {
         #expect(reads == positions, "asynchronousLabelPropagationCommunities(using:)")
     }
 
-    @Test("CD-083 on graph.directed: each arc once, in the view's position order")
+    @Test("CD-083 on graph.directedView: each arc once, in the view's position order")
     func directedViewOrder() {
         // U: K(0..2), K(3..5), 2-3
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (3, 4), (3, 5), (4, 5), (2, 3)]
         let graph = ReferencePseudograph(vertices: 0 ..< 6, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let arcs = graph.directed
+        let arcs = graph.directedView
         let positions = Array(arcs.edges.indices)
         #expect(positions.count == 14)
         var reads: [DirectedView<ReferencePseudograph<Int>>.Edges.Index] = []

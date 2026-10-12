@@ -5,7 +5,7 @@
 // vertex, zeros included. Doubles are compared exactly: api.md computes each ratio as one integer
 // division converted once, and sums the average plainly in `vertices` order, and the catalog pins
 // those bits. Per-vertex values are checked by index, by vertex on the value, one vertex at a time
-// on the graph, and on `graph.directed.undirected`. Every literal is a catalog cell (`ref.py`:
+// on the graph, and on `graph.directedView.undirectedView`. Every literal is a catalog cell (`ref.py`:
 // marking, Latapy's compact-forward, NetworkX 3.7). CQ-466 (not a vertex) is an exit test in
 // `CliquePreconditionTests.swift`. Case IDs (CQ-nnn) refer to the catalog; see README.md.
 
@@ -26,7 +26,7 @@ struct TriangleClusteringTests {
         #expect(values.triangleCount == 1)
         let perVertex = (0 ..< graph.vertexCount).map { values.triangleCount(ofIndex: $0) }
         #expect(perVertex.reduce(0, +) == 3 * 1)
-        #expect(graph.directed.undirected.triangleCount() == 1)
+        #expect(graph.directedView.undirectedView.triangleCount() == 1)
     }
 
     @Test("CQ-402 U(K(0..2), 2-3).triangleCounts is [1, 1, 1, 0]")
@@ -43,7 +43,7 @@ struct TriangleClusteringTests {
         let oneByOne = graph.vertices.map { graph.triangleCount(of: $0) }
         #expect(oneByOne == expected)
         #expect(values.triangleCount * 3 == expected.reduce(0, +))
-        let view = graph.directed.undirected.clusteringCoefficients()
+        let view = graph.directedView.undirectedView.clusteringCoefficients()
         let viaArcs = (0 ..< graph.vertexCount).map { view.triangleCount(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -63,7 +63,7 @@ struct TriangleClusteringTests {
         #expect(oneByOne == expected)
         #expect(values.transitivity == graph.transitivity())
         #expect(values.averageClustering == graph.averageClustering())
-        let view = graph.directed.undirected.clusteringCoefficients()
+        let view = graph.directedView.undirectedView.clusteringCoefficients()
         let viaArcs = (0 ..< graph.vertexCount).map { view.clusteringCoefficient(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -75,7 +75,7 @@ struct TriangleClusteringTests {
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.transitivity() == 0.6)
         #expect(graph.clusteringCoefficients().transitivity == 0.6)
-        #expect(graph.directed.undirected.transitivity() == 0.6)
+        #expect(graph.directedView.undirectedView.transitivity() == 0.6)
     }
 
     @Test("CQ-405 U(K(0..2), 2-3).averageClustering is #0.5833333333333334: igraph `transitivity_avglocal_undirected`: 0.5833333333333334 with `mode=\"zero\"`, 0.7777777777777778 by default (degree < 2 left out)")
@@ -85,7 +85,7 @@ struct TriangleClusteringTests {
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.averageClustering() == 0.5833333333333334)
         #expect(graph.clusteringCoefficients().averageClustering == 0.5833333333333334)
-        #expect(graph.directed.undirected.averageClustering() == 0.5833333333333334)
+        #expect(graph.directedView.undirectedView.averageClustering() == 0.5833333333333334)
     }
 
     @Test("CQ-406 U(K(5)).triangleCount is #10: NetworkX docstring: 10 triangles, 6 per vertex")
@@ -98,7 +98,7 @@ struct TriangleClusteringTests {
         #expect(values.triangleCount == 10)
         let perVertex = (0 ..< graph.vertexCount).map { values.triangleCount(ofIndex: $0) }
         #expect(perVertex.reduce(0, +) == 3 * 10)
-        #expect(graph.directed.undirected.triangleCount() == 10)
+        #expect(graph.directedView.undirectedView.triangleCount() == 10)
     }
 
     @Test("CQ-407 U(K(5)).triangleCounts is [6, 6, 6, 6, 6]")
@@ -115,7 +115,7 @@ struct TriangleClusteringTests {
         let oneByOne = graph.vertices.map { graph.triangleCount(of: $0) }
         #expect(oneByOne == expected)
         #expect(values.triangleCount * 3 == expected.reduce(0, +))
-        let view = graph.directed.undirected.clusteringCoefficients()
+        let view = graph.directedView.undirectedView.clusteringCoefficients()
         let viaArcs = (0 ..< graph.vertexCount).map { view.triangleCount(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -135,7 +135,7 @@ struct TriangleClusteringTests {
         #expect(oneByOne == expected)
         #expect(values.transitivity == graph.transitivity())
         #expect(values.averageClustering == graph.averageClustering())
-        let view = graph.directed.undirected.clusteringCoefficients()
+        let view = graph.directedView.undirectedView.clusteringCoefficients()
         let viaArcs = (0 ..< graph.vertexCount).map { view.clusteringCoefficient(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -147,7 +147,7 @@ struct TriangleClusteringTests {
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.transitivity() == 1.0)
         #expect(graph.clusteringCoefficients().transitivity == 1.0)
-        #expect(graph.directed.undirected.transitivity() == 1.0)
+        #expect(graph.directedView.undirectedView.transitivity() == 1.0)
     }
 
     @Test("CQ-410 U(K(5)).averageClustering is #1.0")
@@ -157,7 +157,7 @@ struct TriangleClusteringTests {
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.averageClustering() == 1.0)
         #expect(graph.clusteringCoefficients().averageClustering == 1.0)
-        #expect(graph.directed.undirected.averageClustering() == 1.0)
+        #expect(graph.directedView.undirectedView.averageClustering() == 1.0)
     }
 
     @Test("CQ-411 U(K(0..2), K(2..4)).triangleCount is #2: Bowtie")
@@ -170,7 +170,7 @@ struct TriangleClusteringTests {
         #expect(values.triangleCount == 2)
         let perVertex = (0 ..< graph.vertexCount).map { values.triangleCount(ofIndex: $0) }
         #expect(perVertex.reduce(0, +) == 3 * 2)
-        #expect(graph.directed.undirected.triangleCount() == 2)
+        #expect(graph.directedView.undirectedView.triangleCount() == 2)
     }
 
     @Test("CQ-412 U(K(0..2), K(2..4)).triangleCounts is [1, 1, 2, 1, 1]")
@@ -187,7 +187,7 @@ struct TriangleClusteringTests {
         let oneByOne = graph.vertices.map { graph.triangleCount(of: $0) }
         #expect(oneByOne == expected)
         #expect(values.triangleCount * 3 == expected.reduce(0, +))
-        let view = graph.directed.undirected.clusteringCoefficients()
+        let view = graph.directedView.undirectedView.clusteringCoefficients()
         let viaArcs = (0 ..< graph.vertexCount).map { view.triangleCount(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -207,7 +207,7 @@ struct TriangleClusteringTests {
         #expect(oneByOne == expected)
         #expect(values.transitivity == graph.transitivity())
         #expect(values.averageClustering == graph.averageClustering())
-        let view = graph.directed.undirected.clusteringCoefficients()
+        let view = graph.directedView.undirectedView.clusteringCoefficients()
         let viaArcs = (0 ..< graph.vertexCount).map { view.clusteringCoefficient(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -219,7 +219,7 @@ struct TriangleClusteringTests {
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.transitivity() == 0.6)
         #expect(graph.clusteringCoefficients().transitivity == 0.6)
-        #expect(graph.directed.undirected.transitivity() == 0.6)
+        #expect(graph.directedView.undirectedView.transitivity() == 0.6)
     }
 
     @Test("CQ-415 U(K(0..2), K(2..4)).averageClustering is #0.8666666666666668")
@@ -229,7 +229,7 @@ struct TriangleClusteringTests {
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.averageClustering() == 0.8666666666666668)
         #expect(graph.clusteringCoefficients().averageClustering == 0.8666666666666668)
-        #expect(graph.directed.undirected.averageClustering() == 0.8666666666666668)
+        #expect(graph.directedView.undirectedView.averageClustering() == 0.8666666666666668)
     }
 
     @Test("CQ-416 U(K(0..2), 1-3, 2-3).triangleCount is #2: Diamond")
@@ -242,7 +242,7 @@ struct TriangleClusteringTests {
         #expect(values.triangleCount == 2)
         let perVertex = (0 ..< graph.vertexCount).map { values.triangleCount(ofIndex: $0) }
         #expect(perVertex.reduce(0, +) == 3 * 2)
-        #expect(graph.directed.undirected.triangleCount() == 2)
+        #expect(graph.directedView.undirectedView.triangleCount() == 2)
     }
 
     @Test("CQ-417 U(K(0..2), 1-3, 2-3).triangleCounts is [1, 2, 2, 1]")
@@ -259,7 +259,7 @@ struct TriangleClusteringTests {
         let oneByOne = graph.vertices.map { graph.triangleCount(of: $0) }
         #expect(oneByOne == expected)
         #expect(values.triangleCount * 3 == expected.reduce(0, +))
-        let view = graph.directed.undirected.clusteringCoefficients()
+        let view = graph.directedView.undirectedView.clusteringCoefficients()
         let viaArcs = (0 ..< graph.vertexCount).map { view.triangleCount(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -279,7 +279,7 @@ struct TriangleClusteringTests {
         #expect(oneByOne == expected)
         #expect(values.transitivity == graph.transitivity())
         #expect(values.averageClustering == graph.averageClustering())
-        let view = graph.directed.undirected.clusteringCoefficients()
+        let view = graph.directedView.undirectedView.clusteringCoefficients()
         let viaArcs = (0 ..< graph.vertexCount).map { view.clusteringCoefficient(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -291,7 +291,7 @@ struct TriangleClusteringTests {
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.transitivity() == 0.75)
         #expect(graph.clusteringCoefficients().transitivity == 0.75)
-        #expect(graph.directed.undirected.transitivity() == 0.75)
+        #expect(graph.directedView.undirectedView.transitivity() == 0.75)
     }
 
     @Test("CQ-420 U(K(0..2), 1-3, 2-3).averageClustering is #0.8333333333333333")
@@ -301,7 +301,7 @@ struct TriangleClusteringTests {
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.averageClustering() == 0.8333333333333333)
         #expect(graph.clusteringCoefficients().averageClustering == 0.8333333333333333)
-        #expect(graph.directed.undirected.averageClustering() == 0.8333333333333333)
+        #expect(graph.directedView.undirectedView.averageClustering() == 0.8333333333333333)
     }
 
     @Test("CQ-421 U(S(0;1..5), C(1..5)).triangleCount is #5: Wheel")
@@ -314,7 +314,7 @@ struct TriangleClusteringTests {
         #expect(values.triangleCount == 5)
         let perVertex = (0 ..< graph.vertexCount).map { values.triangleCount(ofIndex: $0) }
         #expect(perVertex.reduce(0, +) == 3 * 5)
-        #expect(graph.directed.undirected.triangleCount() == 5)
+        #expect(graph.directedView.undirectedView.triangleCount() == 5)
     }
 
     @Test("CQ-422 U(S(0;1..5), C(1..5)).triangleCounts is [5, 2, 2, 2, 2, 2]")
@@ -331,7 +331,7 @@ struct TriangleClusteringTests {
         let oneByOne = graph.vertices.map { graph.triangleCount(of: $0) }
         #expect(oneByOne == expected)
         #expect(values.triangleCount * 3 == expected.reduce(0, +))
-        let view = graph.directed.undirected.clusteringCoefficients()
+        let view = graph.directedView.undirectedView.clusteringCoefficients()
         let viaArcs = (0 ..< graph.vertexCount).map { view.triangleCount(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -354,7 +354,7 @@ struct TriangleClusteringTests {
         #expect(oneByOne == expected)
         #expect(values.transitivity == graph.transitivity())
         #expect(values.averageClustering == graph.averageClustering())
-        let view = graph.directed.undirected.clusteringCoefficients()
+        let view = graph.directedView.undirectedView.clusteringCoefficients()
         let viaArcs = (0 ..< graph.vertexCount).map { view.clusteringCoefficient(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -366,7 +366,7 @@ struct TriangleClusteringTests {
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.transitivity() == 0.6)
         #expect(graph.clusteringCoefficients().transitivity == 0.6)
-        #expect(graph.directed.undirected.transitivity() == 0.6)
+        #expect(graph.directedView.undirectedView.transitivity() == 0.6)
     }
 
     @Test("CQ-425 U(S(0;1..5), C(1..5)).averageClustering is #0.6388888888888887")
@@ -376,7 +376,7 @@ struct TriangleClusteringTests {
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.averageClustering() == 0.6388888888888887)
         #expect(graph.clusteringCoefficients().averageClustering == 0.6388888888888887)
-        #expect(graph.directed.undirected.averageClustering() == 0.6388888888888887)
+        #expect(graph.directedView.undirectedView.averageClustering() == 0.6388888888888887)
     }
 
     @Test("CQ-426 U(C(0..3)).triangleCount is #0: Square: no triangle")
@@ -389,7 +389,7 @@ struct TriangleClusteringTests {
         #expect(values.triangleCount == 0)
         let perVertex = (0 ..< graph.vertexCount).map { values.triangleCount(ofIndex: $0) }
         #expect(perVertex.reduce(0, +) == 3 * 0)
-        #expect(graph.directed.undirected.triangleCount() == 0)
+        #expect(graph.directedView.undirectedView.triangleCount() == 0)
     }
 
     @Test("CQ-427 U(C(0..3)).triangleCounts is [0, 0, 0, 0]")
@@ -406,7 +406,7 @@ struct TriangleClusteringTests {
         let oneByOne = graph.vertices.map { graph.triangleCount(of: $0) }
         #expect(oneByOne == expected)
         #expect(values.triangleCount * 3 == expected.reduce(0, +))
-        let view = graph.directed.undirected.clusteringCoefficients()
+        let view = graph.directedView.undirectedView.clusteringCoefficients()
         let viaArcs = (0 ..< graph.vertexCount).map { view.triangleCount(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -426,7 +426,7 @@ struct TriangleClusteringTests {
         #expect(oneByOne == expected)
         #expect(values.transitivity == graph.transitivity())
         #expect(values.averageClustering == graph.averageClustering())
-        let view = graph.directed.undirected.clusteringCoefficients()
+        let view = graph.directedView.undirectedView.clusteringCoefficients()
         let viaArcs = (0 ..< graph.vertexCount).map { view.clusteringCoefficient(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -438,7 +438,7 @@ struct TriangleClusteringTests {
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.transitivity() == 0.0)
         #expect(graph.clusteringCoefficients().transitivity == 0.0)
-        #expect(graph.directed.undirected.transitivity() == 0.0)
+        #expect(graph.directedView.undirectedView.transitivity() == 0.0)
     }
 
     @Test("CQ-430 U(C(0..3)).averageClustering is #0.0")
@@ -448,7 +448,7 @@ struct TriangleClusteringTests {
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.averageClustering() == 0.0)
         #expect(graph.clusteringCoefficients().averageClustering == 0.0)
-        #expect(graph.directed.undirected.averageClustering() == 0.0)
+        #expect(graph.directedView.undirectedView.averageClustering() == 0.0)
     }
 
     @Test("CQ-431 U(nx(petersen)).triangleCount is #0: Girth 5")
@@ -464,7 +464,7 @@ struct TriangleClusteringTests {
         #expect(values.triangleCount == 0)
         let perVertex = (0 ..< graph.vertexCount).map { values.triangleCount(ofIndex: $0) }
         #expect(perVertex.reduce(0, +) == 3 * 0)
-        #expect(graph.directed.undirected.triangleCount() == 0)
+        #expect(graph.directedView.undirectedView.triangleCount() == 0)
     }
 
     @Test("CQ-432 U(nx(petersen)).triangleCounts is [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]")
@@ -484,7 +484,7 @@ struct TriangleClusteringTests {
         let oneByOne = graph.vertices.map { graph.triangleCount(of: $0) }
         #expect(oneByOne == expected)
         #expect(values.triangleCount * 3 == expected.reduce(0, +))
-        let view = graph.directed.undirected.clusteringCoefficients()
+        let view = graph.directedView.undirectedView.clusteringCoefficients()
         let viaArcs = (0 ..< graph.vertexCount).map { view.triangleCount(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -507,7 +507,7 @@ struct TriangleClusteringTests {
         #expect(oneByOne == expected)
         #expect(values.transitivity == graph.transitivity())
         #expect(values.averageClustering == graph.averageClustering())
-        let view = graph.directed.undirected.clusteringCoefficients()
+        let view = graph.directedView.undirectedView.clusteringCoefficients()
         let viaArcs = (0 ..< graph.vertexCount).map { view.clusteringCoefficient(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -522,7 +522,7 @@ struct TriangleClusteringTests {
         let graph = ReferencePseudograph(vertices: 0 ..< 10, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.transitivity() == 0.0)
         #expect(graph.clusteringCoefficients().transitivity == 0.0)
-        #expect(graph.directed.undirected.transitivity() == 0.0)
+        #expect(graph.directedView.undirectedView.transitivity() == 0.0)
     }
 
     @Test("CQ-435 U(nx(petersen)).averageClustering is #0.0")
@@ -535,7 +535,7 @@ struct TriangleClusteringTests {
         let graph = ReferencePseudograph(vertices: 0 ..< 10, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.averageClustering() == 0.0)
         #expect(graph.clusteringCoefficients().averageClustering == 0.0)
-        #expect(graph.directed.undirected.averageClustering() == 0.0)
+        #expect(graph.directedView.undirectedView.averageClustering() == 0.0)
     }
 
     @Test("CQ-436 U(nx(karate_club)).triangleCount is #45")
@@ -558,7 +558,7 @@ struct TriangleClusteringTests {
         #expect(values.triangleCount == 45)
         let perVertex = (0 ..< graph.vertexCount).map { values.triangleCount(ofIndex: $0) }
         #expect(perVertex.reduce(0, +) == 3 * 45)
-        #expect(graph.directed.undirected.triangleCount() == 45)
+        #expect(graph.directedView.undirectedView.triangleCount() == 45)
     }
 
     @Test("CQ-437 U(nx(karate_club)).triangleCounts is listed below")
@@ -588,7 +588,7 @@ struct TriangleClusteringTests {
         let oneByOne = graph.vertices.map { graph.triangleCount(of: $0) }
         #expect(oneByOne == expected)
         #expect(values.triangleCount * 3 == expected.reduce(0, +))
-        let view = graph.directed.undirected.clusteringCoefficients()
+        let view = graph.directedView.undirectedView.clusteringCoefficients()
         let viaArcs = (0 ..< graph.vertexCount).map { view.triangleCount(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -624,7 +624,7 @@ struct TriangleClusteringTests {
         #expect(oneByOne == expected)
         #expect(values.transitivity == graph.transitivity())
         #expect(values.averageClustering == graph.averageClustering())
-        let view = graph.directed.undirected.clusteringCoefficients()
+        let view = graph.directedView.undirectedView.clusteringCoefficients()
         let viaArcs = (0 ..< graph.vertexCount).map { view.clusteringCoefficient(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -646,7 +646,7 @@ struct TriangleClusteringTests {
         let graph = ReferencePseudograph(vertices: 0 ..< 34, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.transitivity() == 0.2556818181818182)
         #expect(graph.clusteringCoefficients().transitivity == 0.2556818181818182)
-        #expect(graph.directed.undirected.transitivity() == 0.2556818181818182)
+        #expect(graph.directedView.undirectedView.transitivity() == 0.2556818181818182)
     }
 
     @Test("CQ-440 U(nx(karate_club)).averageClustering is #0.5706384782076823: igraph: the same with `mode=\"zero\"`, 0.5879305533048848 by default")
@@ -666,7 +666,7 @@ struct TriangleClusteringTests {
         let graph = ReferencePseudograph(vertices: 0 ..< 34, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.averageClustering() == 0.5706384782076823)
         #expect(graph.clusteringCoefficients().averageClustering == 0.5706384782076823)
-        #expect(graph.directed.undirected.averageClustering() == 0.5706384782076823)
+        #expect(graph.directedView.undirectedView.averageClustering() == 0.5706384782076823)
     }
 
     @Test("CQ-441 U(0-1, 1-2, 2-0, 0-1, 1-1).triangleCount is #1: Parallel edge and loop: as the triangle (JGraphT `getNumberOfTriangles`: 2)")
@@ -679,7 +679,7 @@ struct TriangleClusteringTests {
         #expect(values.triangleCount == 1)
         let perVertex = (0 ..< graph.vertexCount).map { values.triangleCount(ofIndex: $0) }
         #expect(perVertex.reduce(0, +) == 3 * 1)
-        #expect(graph.directed.undirected.triangleCount() == 1)
+        #expect(graph.directedView.undirectedView.triangleCount() == 1)
     }
 
     @Test("CQ-442 U(0-1, 1-2, 2-0, 0-1, 1-1).triangleCounts is [1, 1, 1]")
@@ -696,7 +696,7 @@ struct TriangleClusteringTests {
         let oneByOne = graph.vertices.map { graph.triangleCount(of: $0) }
         #expect(oneByOne == expected)
         #expect(values.triangleCount * 3 == expected.reduce(0, +))
-        let view = graph.directed.undirected.clusteringCoefficients()
+        let view = graph.directedView.undirectedView.clusteringCoefficients()
         let viaArcs = (0 ..< graph.vertexCount).map { view.triangleCount(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -716,7 +716,7 @@ struct TriangleClusteringTests {
         #expect(oneByOne == expected)
         #expect(values.transitivity == graph.transitivity())
         #expect(values.averageClustering == graph.averageClustering())
-        let view = graph.directed.undirected.clusteringCoefficients()
+        let view = graph.directedView.undirectedView.clusteringCoefficients()
         let viaArcs = (0 ..< graph.vertexCount).map { view.clusteringCoefficient(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -728,7 +728,7 @@ struct TriangleClusteringTests {
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.transitivity() == 1.0)
         #expect(graph.clusteringCoefficients().transitivity == 1.0)
-        #expect(graph.directed.undirected.transitivity() == 1.0)
+        #expect(graph.directedView.undirectedView.transitivity() == 1.0)
     }
 
     @Test("CQ-445 U(0-1, 1-2, 2-0, 0-1, 1-1).averageClustering is #1.0")
@@ -738,7 +738,7 @@ struct TriangleClusteringTests {
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.averageClustering() == 1.0)
         #expect(graph.clusteringCoefficients().averageClustering == 1.0)
-        #expect(graph.directed.undirected.averageClustering() == 1.0)
+        #expect(graph.directedView.undirectedView.averageClustering() == 1.0)
     }
 
     @Test("CQ-446 U([0, 1, 2, 3]).triangleCount is #0: Edgeless")
@@ -750,7 +750,7 @@ struct TriangleClusteringTests {
         #expect(values.triangleCount == 0)
         let perVertex = (0 ..< graph.vertexCount).map { values.triangleCount(ofIndex: $0) }
         #expect(perVertex.reduce(0, +) == 3 * 0)
-        #expect(graph.directed.undirected.triangleCount() == 0)
+        #expect(graph.directedView.undirectedView.triangleCount() == 0)
     }
 
     @Test("CQ-447 U([0, 1, 2, 3]).triangleCounts is [0, 0, 0, 0]")
@@ -766,7 +766,7 @@ struct TriangleClusteringTests {
         let oneByOne = graph.vertices.map { graph.triangleCount(of: $0) }
         #expect(oneByOne == expected)
         #expect(values.triangleCount * 3 == expected.reduce(0, +))
-        let view = graph.directed.undirected.clusteringCoefficients()
+        let view = graph.directedView.undirectedView.clusteringCoefficients()
         let viaArcs = (0 ..< graph.vertexCount).map { view.triangleCount(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -785,7 +785,7 @@ struct TriangleClusteringTests {
         #expect(oneByOne == expected)
         #expect(values.transitivity == graph.transitivity())
         #expect(values.averageClustering == graph.averageClustering())
-        let view = graph.directed.undirected.clusteringCoefficients()
+        let view = graph.directedView.undirectedView.clusteringCoefficients()
         let viaArcs = (0 ..< graph.vertexCount).map { view.clusteringCoefficient(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -796,7 +796,7 @@ struct TriangleClusteringTests {
         let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3], edges: [])
         #expect(graph.transitivity() == 0.0)
         #expect(graph.clusteringCoefficients().transitivity == 0.0)
-        #expect(graph.directed.undirected.transitivity() == 0.0)
+        #expect(graph.directedView.undirectedView.transitivity() == 0.0)
     }
 
     @Test("CQ-450 U([0, 1, 2, 3]).averageClustering is #0.0")
@@ -805,7 +805,7 @@ struct TriangleClusteringTests {
         let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3], edges: [])
         #expect(graph.averageClustering() == 0.0)
         #expect(graph.clusteringCoefficients().averageClustering == 0.0)
-        #expect(graph.directed.undirected.averageClustering() == 0.0)
+        #expect(graph.directedView.undirectedView.averageClustering() == 0.0)
     }
 
     @Test("CQ-451 U(P(0..2)).triangleCount is #0: No triangle: transitivity 0/1")
@@ -818,7 +818,7 @@ struct TriangleClusteringTests {
         #expect(values.triangleCount == 0)
         let perVertex = (0 ..< graph.vertexCount).map { values.triangleCount(ofIndex: $0) }
         #expect(perVertex.reduce(0, +) == 3 * 0)
-        #expect(graph.directed.undirected.triangleCount() == 0)
+        #expect(graph.directedView.undirectedView.triangleCount() == 0)
     }
 
     @Test("CQ-452 U(P(0..2)).triangleCounts is [0, 0, 0]")
@@ -835,7 +835,7 @@ struct TriangleClusteringTests {
         let oneByOne = graph.vertices.map { graph.triangleCount(of: $0) }
         #expect(oneByOne == expected)
         #expect(values.triangleCount * 3 == expected.reduce(0, +))
-        let view = graph.directed.undirected.clusteringCoefficients()
+        let view = graph.directedView.undirectedView.clusteringCoefficients()
         let viaArcs = (0 ..< graph.vertexCount).map { view.triangleCount(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -855,7 +855,7 @@ struct TriangleClusteringTests {
         #expect(oneByOne == expected)
         #expect(values.transitivity == graph.transitivity())
         #expect(values.averageClustering == graph.averageClustering())
-        let view = graph.directed.undirected.clusteringCoefficients()
+        let view = graph.directedView.undirectedView.clusteringCoefficients()
         let viaArcs = (0 ..< graph.vertexCount).map { view.clusteringCoefficient(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -867,7 +867,7 @@ struct TriangleClusteringTests {
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.transitivity() == 0.0)
         #expect(graph.clusteringCoefficients().transitivity == 0.0)
-        #expect(graph.directed.undirected.transitivity() == 0.0)
+        #expect(graph.directedView.undirectedView.transitivity() == 0.0)
     }
 
     @Test("CQ-455 U(P(0..2)).averageClustering is #0.0")
@@ -877,7 +877,7 @@ struct TriangleClusteringTests {
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.averageClustering() == 0.0)
         #expect(graph.clusteringCoefficients().averageClustering == 0.0)
-        #expect(graph.directed.undirected.averageClustering() == 0.0)
+        #expect(graph.directedView.undirectedView.averageClustering() == 0.0)
     }
 
     @Test("CQ-456 U([0, 1] 0-1, 2-3).triangleCount is #0: No connected triple: transitivity 0 (0/0; NetworkX 0, igraph NaN)")
@@ -890,7 +890,7 @@ struct TriangleClusteringTests {
         #expect(values.triangleCount == 0)
         let perVertex = (0 ..< graph.vertexCount).map { values.triangleCount(ofIndex: $0) }
         #expect(perVertex.reduce(0, +) == 3 * 0)
-        #expect(graph.directed.undirected.triangleCount() == 0)
+        #expect(graph.directedView.undirectedView.triangleCount() == 0)
     }
 
     @Test("CQ-457 U([0, 1] 0-1, 2-3).triangleCounts is [0, 0, 0, 0]")
@@ -907,7 +907,7 @@ struct TriangleClusteringTests {
         let oneByOne = graph.vertices.map { graph.triangleCount(of: $0) }
         #expect(oneByOne == expected)
         #expect(values.triangleCount * 3 == expected.reduce(0, +))
-        let view = graph.directed.undirected.clusteringCoefficients()
+        let view = graph.directedView.undirectedView.clusteringCoefficients()
         let viaArcs = (0 ..< graph.vertexCount).map { view.triangleCount(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -927,7 +927,7 @@ struct TriangleClusteringTests {
         #expect(oneByOne == expected)
         #expect(values.transitivity == graph.transitivity())
         #expect(values.averageClustering == graph.averageClustering())
-        let view = graph.directed.undirected.clusteringCoefficients()
+        let view = graph.directedView.undirectedView.clusteringCoefficients()
         let viaArcs = (0 ..< graph.vertexCount).map { view.clusteringCoefficient(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -939,7 +939,7 @@ struct TriangleClusteringTests {
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.transitivity() == 0.0)
         #expect(graph.clusteringCoefficients().transitivity == 0.0)
-        #expect(graph.directed.undirected.transitivity() == 0.0)
+        #expect(graph.directedView.undirectedView.transitivity() == 0.0)
     }
 
     @Test("CQ-460 U([0, 1] 0-1, 2-3).averageClustering is #0.0")
@@ -949,7 +949,7 @@ struct TriangleClusteringTests {
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.averageClustering() == 0.0)
         #expect(graph.clusteringCoefficients().averageClustering == 0.0)
-        #expect(graph.directed.undirected.averageClustering() == 0.0)
+        #expect(graph.directedView.undirectedView.averageClustering() == 0.0)
     }
 
     @Test("CQ-461 U(K(0..2), 2-3).triangleCount(of: 2) is #1")
@@ -959,7 +959,7 @@ struct TriangleClusteringTests {
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.triangleCount(of: 2) == 1)
         #expect(graph.clusteringCoefficients().triangleCount(of: 2) == 1)
-        #expect(graph.directed.undirected.triangleCount(of: 2) == 1)
+        #expect(graph.directedView.undirectedView.triangleCount(of: 2) == 1)
     }
 
     @Test("CQ-462 U(K(0..2), 2-3).clusteringCoefficient(of: 2) is #0.3333333333333333")
@@ -969,7 +969,7 @@ struct TriangleClusteringTests {
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.clusteringCoefficient(of: 2) == 0.3333333333333333)
         #expect(graph.clusteringCoefficients().clusteringCoefficient(of: 2) == 0.3333333333333333)
-        #expect(graph.directed.undirected.clusteringCoefficient(of: 2) == 0.3333333333333333)
+        #expect(graph.directedView.undirectedView.clusteringCoefficient(of: 2) == 0.3333333333333333)
     }
 
     @Test("CQ-463 U(K(0..2), 2-3).clusteringCoefficient(of: 3) is #0.0: Degree 1")
@@ -979,7 +979,7 @@ struct TriangleClusteringTests {
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.clusteringCoefficient(of: 3) == 0.0)
         #expect(graph.clusteringCoefficients().clusteringCoefficient(of: 3) == 0.0)
-        #expect(graph.directed.undirected.clusteringCoefficient(of: 3) == 0.0)
+        #expect(graph.directedView.undirectedView.clusteringCoefficient(of: 3) == 0.0)
     }
 
     @Test("CQ-464 U(nx(karate_club)).clusteringCoefficient(of: 0) is #0.15")
@@ -999,7 +999,7 @@ struct TriangleClusteringTests {
         let graph = ReferencePseudograph(vertices: 0 ..< 34, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.clusteringCoefficient(of: 0) == 0.15)
         #expect(graph.clusteringCoefficients().clusteringCoefficient(of: 0) == 0.15)
-        #expect(graph.directed.undirected.clusteringCoefficient(of: 0) == 0.15)
+        #expect(graph.directedView.undirectedView.clusteringCoefficient(of: 0) == 0.15)
     }
 
     @Test("CQ-465 U(nx(karate_club)).triangleCount(of: 33) is #15")
@@ -1019,6 +1019,6 @@ struct TriangleClusteringTests {
         let graph = ReferencePseudograph(vertices: 0 ..< 34, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.triangleCount(of: 33) == 15)
         #expect(graph.clusteringCoefficients().triangleCount(of: 33) == 15)
-        #expect(graph.directed.undirected.triangleCount(of: 33) == 15)
+        #expect(graph.directedView.undirectedView.triangleCount(of: 33) == 15)
     }
 }

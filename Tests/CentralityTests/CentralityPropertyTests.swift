@@ -90,7 +90,7 @@ private struct ShuffledDigraph: DirectedGraph {
 
 @Suite("Centrality properties against oracles, with shrinking", .tags(.randomized))
 struct CentralityPropertyTests {
-    @Test("Degree, in-degree and out-degree centrality equal the counts over the edge list ÷ (n − 1), loops twice undirected; graph.directed doubles them")
+    @Test("Degree, in-degree and out-degree centrality equal the counts over the edge list ÷ (n − 1), loops twice undirected; graph.directedView doubles them")
     func degree() async {
         let pairs = zip(Gen.int(in: 0 ... 8), Gen.int(in: 0 ... 8)).array(of: 0 ... 16)
         await propertyCheck(count: 200, input: pairs, Gen.int(in: 0 ... 9), Gen.bool, Gen.int(in: 0 ... 1_000_000)) { raw, n, isDirected, seed in
@@ -122,7 +122,7 @@ struct CentralityPropertyTests {
             } else {
                 let graph = ShuffledPseudograph(vertexCount: n, edges: ends.map { UndirectedEdge($0.0, $0.1) }, seed: seed)
                 let result = graph.degreeCentrality()
-                let arcs = graph.directed.degreeCentrality()
+                let arcs = graph.directedView.degreeCentrality()
                 #expect(result.scores.count == n)
                 for v in 0 ..< n {
                     let expected = scaled(outCount[v] + inCount[v])
@@ -130,7 +130,7 @@ struct CentralityPropertyTests {
                     #expect(error <= 1e-12, "\(ends), vertex \(v)")
                     let doubled = n == 1 ? 1 : 2 * expected
                     let arcError = abs(arcs.score(of: v) - doubled)
-                    #expect(arcError <= 1e-12, "graph.directed, vertex \(v)")
+                    #expect(arcError <= 1e-12, "graph.directedView, vertex \(v)")
                 }
                 let byIndex = graph.vertices.map { result.score(of: $0) }
                 #expect(byIndex == result.scores)
@@ -138,7 +138,7 @@ struct CentralityPropertyTests {
         }
     }
 
-    @Test("Unweighted closeness (both corrections) and harmonic equal breadth-first search over incoming distances, undirected and directed; the one-vertex forms and graph.directed agree")
+    @Test("Unweighted closeness (both corrections) and harmonic equal breadth-first search over incoming distances, undirected and directed; the one-vertex forms and graph.directedView agree")
     func closenessHarmonicUnweighted() async {
         let pairs = zip(Gen.int(in: 0 ... 8), Gen.int(in: 0 ... 8)).array(of: 0 ... 16)
         await propertyCheck(count: 200, input: pairs, Gen.int(in: 0 ... 9), Gen.bool, Gen.int(in: 0 ... 1_000_000)) { raw, n, isDirected, seed in
@@ -207,10 +207,10 @@ struct CentralityPropertyTests {
                 check((0 ..< n).map { graph.closenessCentrality(of: $0) }, closeness, "closeness(of:)")
                 check((0 ..< n).map { graph.harmonicCentrality(of: $0) }, harmonic, "harmonic(of:)")
                 check(graph.vertices.map { c.score(of: $0) }, c.scores, "score(of:) in vertices order")
-                let arcs = graph.directed.closenessCentrality()
-                check((0 ..< n).map { arcs.score(of: $0) }, closeness, "graph.directed closeness")
-                let arcsHarmonic = graph.directed.harmonicCentrality()
-                check((0 ..< n).map { arcsHarmonic.score(of: $0) }, harmonic, "graph.directed harmonic")
+                let arcs = graph.directedView.closenessCentrality()
+                check((0 ..< n).map { arcs.score(of: $0) }, closeness, "graph.directedView closeness")
+                let arcsHarmonic = graph.directedView.harmonicCentrality()
+                check((0 ..< n).map { arcsHarmonic.score(of: $0) }, harmonic, "graph.directedView harmonic")
             }
         }
     }
@@ -278,22 +278,22 @@ struct CentralityPropertyTests {
                     check((0 ..< n).map { c.score(of: $0) }, closeness, "closeness")
                     check((0 ..< n).map { h.score(of: $0) }, harmonic, "harmonic")
                     check((0 ..< n).map { graph.closenessCentrality(of: $0, weight: { wd[$0] }) }, closeness, "closeness(of:)")
-                    let arcs = graph.directed.harmonicCentrality(weight: { wd[$0.position] })
-                    check((0 ..< n).map { arcs.score(of: $0) }, harmonic, "graph.directed harmonic")
+                    let arcs = graph.directedView.harmonicCentrality(weight: { wd[$0.position] })
+                    check((0 ..< n).map { arcs.score(of: $0) }, harmonic, "graph.directedView harmonic")
                 } else {
                     let c = graph.closenessCentrality(weight: { w[$0] })
                     let h = graph.harmonicCentrality(weight: { w[$0] })
                     check((0 ..< n).map { c.score(of: $0) }, closeness, "closeness")
                     check((0 ..< n).map { h.score(of: $0) }, harmonic, "harmonic")
                     check((0 ..< n).map { graph.harmonicCentrality(of: $0, weight: { w[$0] }) }, harmonic, "harmonic(of:)")
-                    let arcs = graph.directed.closenessCentrality(weight: { w[$0.position] })
-                    check((0 ..< n).map { arcs.score(of: $0) }, closeness, "graph.directed closeness")
+                    let arcs = graph.directedView.closenessCentrality(weight: { w[$0.position] })
+                    check((0 ..< n).map { arcs.score(of: $0) }, closeness, "graph.directedView closeness")
                 }
             }
         }
     }
 
-    @Test("Betweenness equals Σ σ_sv·σ_vt/σ_st over ordered pairs with path counts over edge sequences (parallel copies distinct, loops on no path), unweighted, Int and Double weights, every rescaling, undirected and directed; graph.directed keeps the normalized values and doubles the others")
+    @Test("Betweenness equals Σ σ_sv·σ_vt/σ_st over ordered pairs with path counts over edge sequences (parallel copies distinct, loops on no path), unweighted, Int and Double weights, every rescaling, undirected and directed; graph.directedView keeps the normalized values and doubles the others")
     func betweennessDefinition() async {
         let triples = zip(Gen.int(in: 0 ... 6), Gen.int(in: 0 ... 6), Gen.int(in: 1 ... 3)).array(of: 0 ... 14)
         await propertyCheck(count: 300, input: triples, Gen.int(in: 0 ... 7), Gen.int(in: 0 ... 2), Gen.int(in: 0 ... 3), Gen.bool, Gen.int(in: 0 ... 1_000_000)) { raw, n, weighting, scaling, isDirected, seed in
@@ -375,17 +375,17 @@ struct CentralityPropertyTests {
                 let viaArcs: CentralityScores<DirectedView<ShuffledPseudograph>>
                 if weighting == 0 {
                     result = graph.betweennessCentrality(normalized: normalized, endpoints: endpoints)
-                    viaArcs = graph.directed.betweennessCentrality(normalized: normalized, endpoints: endpoints)
+                    viaArcs = graph.directedView.betweennessCentrality(normalized: normalized, endpoints: endpoints)
                 } else if weighting == 1 {
                     result = graph.betweennessCentrality(weight: { w[$0] }, normalized: normalized, endpoints: endpoints)
-                    viaArcs = graph.directed.betweennessCentrality(weight: { w[$0.position] }, normalized: normalized, endpoints: endpoints)
+                    viaArcs = graph.directedView.betweennessCentrality(weight: { w[$0.position] }, normalized: normalized, endpoints: endpoints)
                 } else {
                     result = graph.betweennessCentrality(weight: { Double(w[$0]) }, normalized: normalized, endpoints: endpoints)
-                    viaArcs = graph.directed.betweennessCentrality(weight: { Double(w[$0.position]) }, normalized: normalized, endpoints: endpoints)
+                    viaArcs = graph.directedView.betweennessCentrality(weight: { Double(w[$0.position]) }, normalized: normalized, endpoints: endpoints)
                 }
                 check((0 ..< n).map { result.score(of: $0) }, expected, "undirected")
                 let factor = normalized ? 1.0 : 2.0
-                check((0 ..< n).map { viaArcs.score(of: $0) }, expected.map { factor * $0 }, "graph.directed")
+                check((0 ..< n).map { viaArcs.score(of: $0) }, expected.map { factor * $0 }, "graph.directedView")
             }
         }
     }
@@ -433,13 +433,13 @@ struct CentralityPropertyTests {
                     ? try graph.eigenvectorCentrality(weight: { w[$0] }, tolerance: 1e-13, maxIterations: 100_000)
                     : try graph.eigenvectorCentrality(tolerance: 1e-13, maxIterations: 100_000)
                 let arcs = weighted
-                    ? try graph.directed.eigenvectorCentrality(weight: { w[$0.position] }, tolerance: 1e-13, maxIterations: 100_000)
-                    : try graph.directed.eigenvectorCentrality(tolerance: 1e-13, maxIterations: 100_000)
+                    ? try graph.directedView.eigenvectorCentrality(weight: { w[$0.position] }, tolerance: 1e-13, maxIterations: 100_000)
+                    : try graph.directedView.eigenvectorCentrality(tolerance: 1e-13, maxIterations: 100_000)
                 for v in 0 ..< n {
                     let error = abs(found.score(of: v) - x[v])
                     #expect(error <= 1e-7, "\(ends), weights \(w), vertex \(v)")
                     let arcError = abs(arcs.score(of: v) - x[v])
-                    #expect(arcError <= 1e-7, "graph.directed, vertex \(v)")
+                    #expect(arcError <= 1e-7, "graph.directedView, vertex \(v)")
                 }
                 let norm = found.scores.reduce(0) { $0 + $1 * $1 }.squareRoot()
                 #expect(abs(norm - 1) <= 1e-12)
@@ -481,12 +481,12 @@ struct CentralityPropertyTests {
             } else {
                 let graph = ShuffledPseudograph(vertexCount: n, edges: ends.map { UndirectedEdge($0.0, $0.1) }, seed: seed)
                 let undirected = try graph.katzCentrality(weight: { w[$0] }, alpha: alpha, beta: beta, normalized: normalized, tolerance: 1e-14)
-                let arcs = try graph.directed.katzCentrality(weight: { w[$0.position] }, alpha: alpha, beta: beta, normalized: normalized, tolerance: 1e-14)
+                let arcs = try graph.directedView.katzCentrality(weight: { w[$0.position] }, alpha: alpha, beta: beta, normalized: normalized, tolerance: 1e-14)
                 for v in 0 ..< n {
                     let error = abs(undirected.score(of: v) - x[v])
                     #expect(error <= 1e-9 * max(1, abs(x[v])), "\(ends), weights \(w), vertex \(v)")
                     let arcError = abs(arcs.score(of: v) - x[v])
-                    #expect(arcError <= 1e-9 * max(1, abs(x[v])), "graph.directed, vertex \(v)")
+                    #expect(arcError <= 1e-9 * max(1, abs(x[v])), "graph.directedView, vertex \(v)")
                 }
                 let unweighted = try graph.katzCentrality(alpha: 1e-9, beta: beta, normalized: normalized)
                 let uniform = normalized ? 1 / Double(n).squareRoot() : beta
@@ -549,10 +549,10 @@ struct CentralityPropertyTests {
                 let graph = ShuffledPseudograph(vertexCount: n, edges: ends.map { UndirectedEdge($0.0, $0.1) }, seed: seed)
                 if personalized {
                     viewResults.append(try graph.pageRank(weight: { w[$0] }, dampingFactor: damping, personalization: { p[$0] }, tolerance: 1e-14, maxIterations: 10_000))
-                    viewResults.append(try graph.directed.pageRank(weight: { w[$0.position] }, dampingFactor: damping, personalization: { p[$0] }, tolerance: 1e-14, maxIterations: 10_000))
+                    viewResults.append(try graph.directedView.pageRank(weight: { w[$0.position] }, dampingFactor: damping, personalization: { p[$0] }, tolerance: 1e-14, maxIterations: 10_000))
                 } else {
                     viewResults.append(try graph.pageRank(weight: { w[$0] }, dampingFactor: damping, tolerance: 1e-14, maxIterations: 10_000))
-                    viewResults.append(try graph.directed.pageRank(weight: { w[$0.position] }, dampingFactor: damping, tolerance: 1e-14, maxIterations: 10_000))
+                    viewResults.append(try graph.directedView.pageRank(weight: { w[$0.position] }, dampingFactor: damping, tolerance: 1e-14, maxIterations: 10_000))
                 }
             }
             let scoreLists: [[Double]] = results.map { s in (0 ..< n).map { s.score(of: $0) } }
@@ -568,7 +568,7 @@ struct CentralityPropertyTests {
         }
     }
 
-    @Test("HITS on graph.directed of a connected non-bipartite multigraph: hubs = authorities = eigenvector centrality rescaled to sum 1")
+    @Test("HITS on graph.directedView of a connected non-bipartite multigraph: hubs = authorities = eigenvector centrality rescaled to sum 1")
     func hitsSymmetric() async throws {
         let pairs = zip(Gen.int(in: 0 ... 7), Gen.int(in: 0 ... 7)).array(of: 0 ... 12)
         await propertyCheck(count: 150, input: pairs, Gen.int(in: 3 ... 8), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
@@ -576,7 +576,7 @@ struct CentralityPropertyTests {
             var ends: [(Int, Int)] = (0 ..< n - 1).map { ($0, $0 + 1) } + [(0, 2)]
             ends += raw.map { ($0.0 % n, $0.1 % n) }
             let graph = ShuffledPseudograph(vertexCount: n, edges: ends.map { UndirectedEdge($0.0, $0.1) }, seed: seed)
-            let hits = try graph.directed.hits(tolerance: 1e-13, maxIterations: 100_000)
+            let hits = try graph.directedView.hits(tolerance: 1e-13, maxIterations: 100_000)
             let eigenvector = try graph.eigenvectorCentrality(tolerance: 1e-13, maxIterations: 100_000)
             let total = eigenvector.scores.reduce(0, +)
             for v in 0 ..< n {

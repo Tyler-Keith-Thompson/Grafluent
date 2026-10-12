@@ -2,8 +2,8 @@
 // `ReferenceDirectedMultigraph` for rows already on it), a file-private conformer with no vertex or
 // edge indices, and, without a repeated edge, `CompressedSparseRow` and `AdjacencyMatrix` on the
 // vertex indices; undirected rows on `Pseudograph` (or `ReferencePseudograph`), the conformer, and,
-// without a repeated edge, `AdjacencyList.undirected` (each edge an arc as written; a vertex's row
-// its out-edges, then its in-edges) and `AdjacencyMatrix.undirected` (rows by neighbour).
+// without a repeated edge, `AdjacencyList.undirectedView` (each edge an arc as written; a vertex's
+// row its out-edges, then its in-edges) and `AdjacencyMatrix.undirectedView` (rows by neighbour).
 // CompressedSparseRow and AdjacencyMatrix number edges by row-major cell, so there each catalog
 // edge's position is looked up. The walks follow each vertex's row, and Christofides' ties follow
 // positions: where ref.py's models, run by swiftgen.py on the representation's rows and positions,
@@ -45,7 +45,7 @@ private struct UnindexedGraph<Vertex: Hashable>: Graph {
 
 @Suite("shortestTour on every representation")
 struct ShortestTourRepresentationTests {
-    @Test("TO-469 square: the perimeter, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-469 square: the perimeter, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to469() throws {
         // pts[(0,0),(0,1),(1,1),(1,0)]; shortestTour(weight:)
         do { // Pseudograph
@@ -129,10 +129,10 @@ struct ShortestTourRepresentationTests {
             // It starts at the first vertex.
             #expect(at[0] == 0)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
             let weights: [Int] = [1, 2, 1, 1, 2, 1]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
@@ -169,10 +169,10 @@ struct ShortestTourRepresentationTests {
             // It starts at the first vertex.
             #expect(at[0] == 0)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
             let weights: [Int] = [1, 2, 1, 1, 2, 1]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -214,7 +214,7 @@ struct ShortestTourRepresentationTests {
         }
     }
 
-    @Test("TO-470 square listed crosswise, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-470 square listed crosswise, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to470() throws {
         // pts[(0,0),(1,1),(0,1),(1,0)]; shortestTour(weight:)
         do { // Pseudograph
@@ -298,10 +298,10 @@ struct ShortestTourRepresentationTests {
             // It starts at the first vertex.
             #expect(at[0] == 0)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
             let weights: [Int] = [2, 1, 1, 1, 1, 2]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
@@ -338,10 +338,10 @@ struct ShortestTourRepresentationTests {
             // It starts at the first vertex.
             #expect(at[0] == 0)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
             let weights: [Int] = [2, 1, 1, 1, 1, 2]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -383,7 +383,7 @@ struct ShortestTourRepresentationTests {
         }
     }
 
-    @Test("TO-471 five points on a line, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-471 five points on a line, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to471() throws {
         // pts[(0,0),(3,0),(1,0),(4,0),(2,0)]; shortestTour(weight:)
         do { // Pseudograph
@@ -467,10 +467,10 @@ struct ShortestTourRepresentationTests {
             // It starts at the first vertex.
             #expect(at[0] == 0)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
             let weights: [Int] = [3, 1, 4, 2, 2, 1, 1, 3, 1, 2]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
@@ -507,10 +507,10 @@ struct ShortestTourRepresentationTests {
             // It starts at the first vertex.
             #expect(at[0] == 0)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
             let weights: [Int] = [3, 1, 4, 2, 2, 1, 1, 3, 1, 2]
-            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -552,7 +552,7 @@ struct ShortestTourRepresentationTests {
         }
     }
 
-    @Test("TO-472 all weights equal: K(5) weight 1, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-472 all weights equal: K(5) weight 1, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to472() throws {
         // K(5) weight 1; shortestTour(weight:)
         do { // Pseudograph
@@ -636,10 +636,10 @@ struct ShortestTourRepresentationTests {
             // It starts at the first vertex.
             #expect(at[0] == 0)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
             let weights: [Int] = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
@@ -676,10 +676,10 @@ struct ShortestTourRepresentationTests {
             // It starts at the first vertex.
             #expect(at[0] == 0)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
             let weights: [Int] = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -721,7 +721,7 @@ struct ShortestTourRepresentationTests {
         }
     }
 
-    @Test("TO-473 K(4) with weights 1..6, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-473 K(4) with weights 1..6, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to473() throws {
         // K(4) weights 1, 2, 3, 4, 5, 6 in edge order; shortestTour(weight:)
         do { // Pseudograph
@@ -805,10 +805,10 @@ struct ShortestTourRepresentationTests {
             // It starts at the first vertex.
             #expect(at[0] == 0)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
             let weights: [Int] = [1, 2, 3, 4, 5, 6]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
@@ -845,10 +845,10 @@ struct ShortestTourRepresentationTests {
             // It starts at the first vertex.
             #expect(at[0] == 0)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
             let weights: [Int] = [1, 2, 3, 4, 5, 6]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -890,7 +890,7 @@ struct ShortestTourRepresentationTests {
         }
     }
 
-    @Test("TO-474 lcgpts(6,1,10), on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-474 lcgpts(6,1,10), on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to474() throws {
         // lcgpts(6,1,10); shortestTour(weight:)
         do { // Pseudograph
@@ -974,10 +974,10 @@ struct ShortestTourRepresentationTests {
             // It starts at the first vertex.
             #expect(at[0] == 0)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5), (3, 4), (3, 5), (4, 5)]
             let weights: [Int] = [5, 2, 5, 8, 2, 7, 8, 9, 5, 7, 6, 4, 13, 3, 10]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
@@ -1014,10 +1014,10 @@ struct ShortestTourRepresentationTests {
             // It starts at the first vertex.
             #expect(at[0] == 0)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5), (3, 4), (3, 5), (4, 5)]
             let weights: [Int] = [5, 2, 5, 8, 2, 7, 8, 9, 5, 7, 6, 4, 13, 3, 10]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -1059,7 +1059,7 @@ struct ShortestTourRepresentationTests {
         }
     }
 
-    @Test("TO-475 lcgpts(8,2,20), on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-475 lcgpts(8,2,20), on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to475() throws {
         // lcgpts(8,2,20); shortestTour(weight:)
         do { // Pseudograph
@@ -1143,10 +1143,10 @@ struct ShortestTourRepresentationTests {
             // It starts at the first vertex.
             #expect(at[0] == 0)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (2, 3), (2, 4), (2, 5), (2, 6), (2, 7), (3, 4), (3, 5), (3, 6), (3, 7), (4, 5), (4, 6), (4, 7), (5, 6), (5, 7), (6, 7)]
             let weights: [Int] = [18, 32, 24, 5, 3, 26, 28, 16, 22, 13, 15, 12, 10, 8, 27, 29, 6, 6, 19, 21, 10, 12, 2, 21, 23, 23, 25, 2]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
@@ -1183,10 +1183,10 @@ struct ShortestTourRepresentationTests {
             // It starts at the first vertex.
             #expect(at[0] == 0)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (2, 3), (2, 4), (2, 5), (2, 6), (2, 7), (3, 4), (3, 5), (3, 6), (3, 7), (4, 5), (4, 6), (4, 7), (5, 6), (5, 7), (6, 7)]
             let weights: [Int] = [18, 32, 24, 5, 3, 26, 28, 16, 22, 13, 15, 12, 10, 8, 27, 29, 6, 6, 19, 21, 10, 12, 2, 21, 23, 23, 25, 2]
-            let graph = AdjacencyMatrix(vertexCount: 8, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 8, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -1228,7 +1228,7 @@ struct ShortestTourRepresentationTests {
         }
     }
 
-    @Test("TO-476 lcgpts(9,3,30), on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-476 lcgpts(9,3,30), on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to476() throws {
         // lcgpts(9,3,30); shortestTour(weight:)
         do { // Pseudograph
@@ -1312,10 +1312,10 @@ struct ShortestTourRepresentationTests {
             // It starts at the first vertex.
             #expect(at[0] == 0)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8), (2, 3), (2, 4), (2, 5), (2, 6), (2, 7), (2, 8), (3, 4), (3, 5), (3, 6), (3, 7), (3, 8), (4, 5), (4, 6), (4, 7), (4, 8), (5, 6), (5, 7), (5, 8), (6, 7), (6, 8), (7, 8)]
             let weights: [Int] = [39, 15, 12, 4, 17, 7, 9, 26, 24, 43, 43, 24, 40, 46, 13, 19, 19, 22, 16, 22, 19, 8, 19, 5, 3, 30, 19, 3, 5, 30, 16, 22, 11, 6, 27, 33]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
@@ -1352,10 +1352,10 @@ struct ShortestTourRepresentationTests {
             // It starts at the first vertex.
             #expect(at[0] == 0)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8), (2, 3), (2, 4), (2, 5), (2, 6), (2, 7), (2, 8), (3, 4), (3, 5), (3, 6), (3, 7), (3, 8), (4, 5), (4, 6), (4, 7), (4, 8), (5, 6), (5, 7), (5, 8), (6, 7), (6, 8), (7, 8)]
             let weights: [Int] = [39, 15, 12, 4, 17, 7, 9, 26, 24, 43, 43, 24, 40, 46, 13, 19, 19, 22, 16, 22, 19, 8, 19, 5, 3, 30, 19, 3, 5, 30, 16, 22, 11, 6, 27, 33]
-            let graph = AdjacencyMatrix(vertexCount: 9, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 9, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -1397,7 +1397,7 @@ struct ShortestTourRepresentationTests {
         }
     }
 
-    @Test("TO-477 lcgK(7,4,9): not metric, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-477 lcgK(7,4,9): not metric, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to477() throws {
         // lcgK(7,4,9); shortestTour(weight:)
         do { // Pseudograph
@@ -1481,10 +1481,10 @@ struct ShortestTourRepresentationTests {
             // It starts at the first vertex.
             #expect(at[0] == 0)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (2, 3), (2, 4), (2, 5), (2, 6), (3, 4), (3, 5), (3, 6), (4, 5), (4, 6), (5, 6)]
             let weights: [Int] = [3, 2, 2, 9, 9, 9, 5, 9, 9, 2, 8, 9, 9, 9, 6, 5, 1, 2, 4, 5, 9]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
@@ -1521,10 +1521,10 @@ struct ShortestTourRepresentationTests {
             // It starts at the first vertex.
             #expect(at[0] == 0)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (2, 3), (2, 4), (2, 5), (2, 6), (3, 4), (3, 5), (3, 6), (4, 5), (4, 6), (5, 6)]
             let weights: [Int] = [3, 2, 2, 9, 9, 9, 5, 9, 9, 2, 8, 9, 9, 9, 6, 5, 1, 2, 4, 5, 9]
-            let graph = AdjacencyMatrix(vertexCount: 7, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 7, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -1566,7 +1566,7 @@ struct ShortestTourRepresentationTests {
         }
     }
 
-    @Test("TO-478 lcgK(8,5,20): not metric, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-478 lcgK(8,5,20): not metric, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to478() throws {
         // lcgK(8,5,20); shortestTour(weight:)
         do { // Pseudograph
@@ -1650,10 +1650,10 @@ struct ShortestTourRepresentationTests {
             // It starts at the first vertex.
             #expect(at[0] == 0)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (2, 3), (2, 4), (2, 5), (2, 6), (2, 7), (3, 4), (3, 5), (3, 6), (3, 7), (4, 5), (4, 6), (4, 7), (5, 6), (5, 7), (6, 7)]
             let weights: [Int] = [13, 14, 15, 6, 16, 12, 20, 10, 11, 5, 16, 15, 9, 12, 14, 18, 9, 4, 3, 1, 11, 5, 9, 3, 2, 15, 2, 15]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
@@ -1690,10 +1690,10 @@ struct ShortestTourRepresentationTests {
             // It starts at the first vertex.
             #expect(at[0] == 0)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (2, 3), (2, 4), (2, 5), (2, 6), (2, 7), (3, 4), (3, 5), (3, 6), (3, 7), (4, 5), (4, 6), (4, 7), (5, 6), (5, 7), (6, 7)]
             let weights: [Int] = [13, 14, 15, 6, 16, 12, 20, 10, 11, 5, 16, 15, 9, 12, 14, 18, 9, 4, 3, 1, 11, 5, 9, 3, 2, 15, 2, 15]
-            let graph = AdjacencyMatrix(vertexCount: 8, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 8, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -1735,7 +1735,7 @@ struct ShortestTourRepresentationTests {
         }
     }
 
-    @Test("TO-479 lcgK(6,6,9,/4): Double weights, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-479 lcgK(6,6,9,/4): Double weights, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to479() throws {
         // lcgK(6,6,9,/4); shortestTour(weight:)
         do { // Pseudograph
@@ -1819,10 +1819,10 @@ struct ShortestTourRepresentationTests {
             // It starts at the first vertex.
             #expect(at[0] == 0)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5), (3, 4), (3, 5), (4, 5)]
             let weights: [Double] = [0.75, 2.25, 1.0, 1.0, 2.25, 0.75, 1.75, 1.0, 1.25, 1.0, 2.25, 1.25, 1.25, 2.0, 0.5]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
@@ -1859,10 +1859,10 @@ struct ShortestTourRepresentationTests {
             // It starts at the first vertex.
             #expect(at[0] == 0)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5), (3, 4), (3, 5), (4, 5)]
             let weights: [Double] = [0.75, 2.25, 1.0, 1.0, 2.25, 0.75, 1.75, 1.0, 1.25, 1.0, 2.25, 1.25, 1.25, 2.0, 0.5]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -1904,7 +1904,7 @@ struct ShortestTourRepresentationTests {
         }
     }
 
-    @Test("TO-480 negative weights, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-480 negative weights, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to480() throws {
         // K(4) weights -1, 2, -3, 4, 0, -2; shortestTour(weight:)
         do { // Pseudograph
@@ -1988,10 +1988,10 @@ struct ShortestTourRepresentationTests {
             // It starts at the first vertex.
             #expect(at[0] == 0)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
             let weights: [Int] = [-1, 2, -3, 4, 0, -2]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
@@ -2028,10 +2028,10 @@ struct ShortestTourRepresentationTests {
             // It starts at the first vertex.
             #expect(at[0] == 0)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
             let weights: [Int] = [-1, 2, -3, 4, 0, -2]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -2159,7 +2159,7 @@ struct ShortestTourRepresentationTests {
         }
     }
 
-    @Test("TO-482 self-loops ignored, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-482 self-loops ignored, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to482() throws {
         // multigraph V [0, 1, 2]; E [0-0 -9, 0-1 1, 1-2 2, 1-1 -9, 2-0 3]; shortestTour(weight:)
         do { // ReferencePseudograph
@@ -2243,10 +2243,10 @@ struct ShortestTourRepresentationTests {
             // It starts at the first vertex.
             #expect(at[0] == 0)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 0), (0, 1), (1, 2), (1, 1), (2, 0)]
             let weights: [Int] = [-9, 1, 2, -9, 3]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
@@ -2283,10 +2283,10 @@ struct ShortestTourRepresentationTests {
             // It starts at the first vertex.
             #expect(at[0] == 0)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 0), (0, 1), (1, 2), (1, 1), (2, 0)]
             let weights: [Int] = [-9, 1, 2, -9, 3]
-            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -2328,7 +2328,7 @@ struct ShortestTourRepresentationTests {
         }
     }
 
-    @Test("TO-483 vertex order, not label order, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-483 vertex order, not label order, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to483() throws {
         // V [d, a, c, b]; E [d-a 1, d-c 4, d-b 2, a-c 2, a-b 5, c-b 1]; shortestTour(weight:)
         do { // Pseudograph
@@ -2412,10 +2412,10 @@ struct ShortestTourRepresentationTests {
             // It starts at the first vertex.
             #expect(at[0] == 0)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(String, String)] = [("d", "a"), ("d", "c"), ("d", "b"), ("a", "c"), ("a", "b"), ("c", "b")]
             let weights: [Int] = [1, 4, 2, 2, 5, 1]
-            let graph = AdjacencyList<String>(vertices: ["d", "a", "c", "b"] as [String], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<String>(vertices: ["d", "a", "c", "b"] as [String], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == ["d", "a", "c", "b"] as [String])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
@@ -2452,10 +2452,10 @@ struct ShortestTourRepresentationTests {
             // It starts at the first vertex.
             #expect(at[0] == 0)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
             let weights: [Int] = [1, 4, 2, 2, 5, 1]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -2497,7 +2497,7 @@ struct ShortestTourRepresentationTests {
         }
     }
 
-    @Test("TO-484 one vertex: nil, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-484 one vertex: nil, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to484() {
         // V [0]; E []; shortestTour(weight:)
         do { // Pseudograph
@@ -2521,20 +2521,20 @@ struct ShortestTourRepresentationTests {
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.shortestTour(weight: { weights[$0] }) == nil)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = []
             let weights: [Int] = []
-            let graph = AdjacencyList<Int>(vertices: [0] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.shortestTour(weight: { weights[$0] }) == nil)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = []
             let weights: [Int] = []
-            let graph = AdjacencyMatrix(vertexCount: 1, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 1, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -2546,7 +2546,7 @@ struct ShortestTourRepresentationTests {
         }
     }
 
-    @Test("TO-485 two vertices: nil, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-485 two vertices: nil, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to485() {
         // V [0, 1]; E [0-1 3]; shortestTour(weight:)
         do { // Pseudograph
@@ -2570,20 +2570,20 @@ struct ShortestTourRepresentationTests {
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.shortestTour(weight: { weights[$0] }) == nil)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1)]
             let weights: [Int] = [3]
-            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.shortestTour(weight: { weights[$0] }) == nil)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1)]
             let weights: [Int] = [3]
-            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -2621,7 +2621,7 @@ struct ShortestTourRepresentationTests {
         }
     }
 
-    @Test("TO-487 empty graph: nil, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-487 empty graph: nil, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to487() {
         // V []; E []; shortestTour(weight:)
         do { // Pseudograph
@@ -2645,20 +2645,20 @@ struct ShortestTourRepresentationTests {
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.shortestTour(weight: { weights[$0] }) == nil)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = []
             let weights: [Int] = []
-            let graph = AdjacencyList<Int>(vertices: [] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.shortestTour(weight: { weights[$0] }) == nil)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = []
             let weights: [Int] = []
-            let graph = AdjacencyMatrix(vertexCount: 0, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 0, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -2670,7 +2670,7 @@ struct ShortestTourRepresentationTests {
         }
     }
 
-    @Test("TO-488 not complete: C(5) is its only tour, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-488 not complete: C(5) is its only tour, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to488() throws {
         // C(5) weights 1, 2, 3, 4, 5; shortestTour(weight:)
         do { // Pseudograph
@@ -2754,10 +2754,10 @@ struct ShortestTourRepresentationTests {
             // It starts at the first vertex.
             #expect(at[0] == 0)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
             let weights: [Int] = [1, 2, 3, 4, 5]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
@@ -2794,10 +2794,10 @@ struct ShortestTourRepresentationTests {
             // It starts at the first vertex.
             #expect(at[0] == 0)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
             let weights: [Int] = [1, 2, 3, 4, 5]
-            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -2839,7 +2839,7 @@ struct ShortestTourRepresentationTests {
         }
     }
 
-    @Test("TO-489 not complete, no Hamiltonian cycle: nil, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-489 not complete, no Hamiltonian cycle: nil, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to489() {
         // V [0, 1, 2, 3]; E [0-1 1, 0-2 1, 0-3 1, 1-2 1]; shortestTour(weight:)
         do { // Pseudograph
@@ -2863,20 +2863,20 @@ struct ShortestTourRepresentationTests {
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.shortestTour(weight: { weights[$0] }) == nil)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2)]
             let weights: [Int] = [1, 1, 1, 1]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.shortestTour(weight: { weights[$0] }) == nil)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2)]
             let weights: [Int] = [1, 1, 1, 1]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -2888,7 +2888,7 @@ struct ShortestTourRepresentationTests {
         }
     }
 
-    @Test("TO-490 Petersen weight 1: nil, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-490 Petersen weight 1: nil, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to490() {
         // nx(petersen_graph) weight 1; shortestTour(weight:)
         do { // Pseudograph
@@ -2912,20 +2912,20 @@ struct ShortestTourRepresentationTests {
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.shortestTour(weight: { weights[$0] }) == nil)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
             let weights: [Int] = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.shortestTour(weight: { weights[$0] }) == nil)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
             let weights: [Int] = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-            let graph = AdjacencyMatrix(vertexCount: 10, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 10, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -2937,7 +2937,7 @@ struct ShortestTourRepresentationTests {
         }
     }
 
-    @Test("TO-491 lcgpts(12,7,50), on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-491 lcgpts(12,7,50), on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to491() throws {
         // lcgpts(12,7,50); shortestTour(weight:)
         do { // Pseudograph
@@ -3021,10 +3021,10 @@ struct ShortestTourRepresentationTests {
             // It starts at the first vertex.
             #expect(at[0] == 0)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8), (0, 9), (0, 10), (0, 11), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8), (1, 9), (1, 10), (1, 11), (2, 3), (2, 4), (2, 5), (2, 6), (2, 7), (2, 8), (2, 9), (2, 10), (2, 11), (3, 4), (3, 5), (3, 6), (3, 7), (3, 8), (3, 9), (3, 10), (3, 11), (4, 5), (4, 6), (4, 7), (4, 8), (4, 9), (4, 10), (4, 11), (5, 6), (5, 7), (5, 8), (5, 9), (5, 10), (5, 11), (6, 7), (6, 8), (6, 9), (6, 10), (6, 11), (7, 8), (7, 9), (7, 10), (7, 11), (8, 9), (8, 10), (8, 11), (9, 10), (9, 11), (10, 11)]
             let weights: [Int] = [33, 29, 31, 16, 23, 5, 40, 41, 48, 20, 41, 46, 20, 49, 44, 36, 57, 28, 65, 53, 26, 36, 23, 6, 24, 11, 70, 19, 33, 70, 47, 42, 34, 37, 44, 45, 51, 44, 17, 13, 34, 47, 42, 10, 47, 18, 17, 64, 25, 27, 64, 35, 46, 43, 17, 46, 81, 14, 44, 81, 89, 37, 2, 52, 89, 37]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
@@ -3061,10 +3061,10 @@ struct ShortestTourRepresentationTests {
             // It starts at the first vertex.
             #expect(at[0] == 0)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8), (0, 9), (0, 10), (0, 11), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8), (1, 9), (1, 10), (1, 11), (2, 3), (2, 4), (2, 5), (2, 6), (2, 7), (2, 8), (2, 9), (2, 10), (2, 11), (3, 4), (3, 5), (3, 6), (3, 7), (3, 8), (3, 9), (3, 10), (3, 11), (4, 5), (4, 6), (4, 7), (4, 8), (4, 9), (4, 10), (4, 11), (5, 6), (5, 7), (5, 8), (5, 9), (5, 10), (5, 11), (6, 7), (6, 8), (6, 9), (6, 10), (6, 11), (7, 8), (7, 9), (7, 10), (7, 11), (8, 9), (8, 10), (8, 11), (9, 10), (9, 11), (10, 11)]
             let weights: [Int] = [33, 29, 31, 16, 23, 5, 40, 41, 48, 20, 41, 46, 20, 49, 44, 36, 57, 28, 65, 53, 26, 36, 23, 6, 24, 11, 70, 19, 33, 70, 47, 42, 34, 37, 44, 45, 51, 44, 17, 13, 34, 47, 42, 10, 47, 18, 17, 64, 25, 27, 64, 35, 46, 43, 17, 46, 81, 14, 44, 81, 89, 37, 2, 52, 89, 37]
-            let graph = AdjacencyMatrix(vertexCount: 12, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 12, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.

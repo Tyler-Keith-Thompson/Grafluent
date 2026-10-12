@@ -13,11 +13,11 @@ import Testing
 struct TensorProductTests {
     @Test("GP-015 empty factor: empty product")
     func gp015() {
-        // G = UL V []; E []; H = UL V [x, y]; E [x–y] / tensorProduct(G, H)
+        // G = UL V []; E []; H = UL V [x, y]; E [x–y] / tensorProductView(G, H)
         // → V []; E []; edgeCount 0; bounds 0/nil; rows []
         let g = UndirectedAdjacencyList<String>(vertices: [] as [String], edges: [] as [UndirectedEdge<String>])
         let h = UndirectedAdjacencyList<String>(vertices: ["x", "y"], edges: [UndirectedEdge("x", "y")])
-        let product = tensorProduct(g, h)
+        let product = tensorProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [] as [Pair<String, String>])
@@ -34,11 +34,11 @@ struct TensorProductTests {
 
     @Test("GP-016 K1 is the identity for vertices")
     func gp016() {
-        // G = UL V [a]; E []; H = UL V [x, y]; E [x–y] / tensorProduct(G, H)
+        // G = UL V [a]; E []; H = UL V [x, y]; E [x–y] / tensorProductView(G, H)
         // → V [(a,x)#0, (a,y)#1]; E []; edgeCount 0; bounds 2/nil; rows [(a,x): ; (a,y): ]
         let g = UndirectedAdjacencyList<String>(vertices: ["a"], edges: [] as [UndirectedEdge<String>])
         let h = UndirectedAdjacencyList<String>(vertices: ["x", "y"], edges: [UndirectedEdge("x", "y")])
-        let product = tensorProduct(g, h)
+        let product = tensorProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y")])
@@ -70,11 +70,11 @@ struct TensorProductTests {
 
     @Test("GP-017 K2 with K2")
     func gp017() {
-        // G = UL V [a, b]; E [a–b]; H = UL V [x, y]; E [x–y] / tensorProduct(G, H)
+        // G = UL V [a, b]; E [a–b]; H = UL V [x, y]; E [x–y] / tensorProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3]; E [G0×H0:(a,x)–(b,y), G0×H0':(a,y)–(b,x)]; edgeCount 2; bounds 4/nil; rows [(a,x): (b,y); (a,y): (b,x); (b,x): (a,y); (b,y): (a,x)]
         let g = UndirectedAdjacencyList<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b")])
         let h = UndirectedAdjacencyList<String>(vertices: ["x", "y"], edges: [UndirectedEdge("x", "y")])
-        let product = tensorProduct(g, h)
+        let product = tensorProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y")])
@@ -118,11 +118,11 @@ struct TensorProductTests {
 
     @Test("GP-018 P3 with K2")
     func gp018() {
-        // G = UL V [a, b, c]; E [a–b, b–c]; H = UL V [x, y]; E [x–y] / tensorProduct(G, H)
+        // G = UL V [a, b, c]; E [a–b, b–c]; H = UL V [x, y]; E [x–y] / tensorProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3, (c,x)#4, (c,y)#5]; E [G0×H0:(a,x)–(b,y), G0×H0':(a,y)–(b,x), G1×H0:(b,x)–(c,y), G1×H0':(b,y)–(c,x)]; edgeCount 4; bounds 6/nil
         let g = UndirectedAdjacencyList<String>(vertices: ["a", "b", "c"], edges: [UndirectedEdge("a", "b"), UndirectedEdge("b", "c")])
         let h = UndirectedAdjacencyList<String>(vertices: ["x", "y"], edges: [UndirectedEdge("x", "y")])
-        let product = tensorProduct(g, h)
+        let product = tensorProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y"), Pair("c", "x"), Pair("c", "y")])
@@ -178,11 +178,11 @@ struct TensorProductTests {
 
     @Test("GP-019 edgeless factors")
     func gp019() {
-        // G = UL V [a, b]; E []; H = UL V [x, y]; E [] / tensorProduct(G, H)
+        // G = UL V [a, b]; E []; H = UL V [x, y]; E [] / tensorProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3]; E []; edgeCount 0; bounds 4/nil
         let g = UndirectedAdjacencyList<String>(vertices: ["a", "b"], edges: [] as [UndirectedEdge<String>])
         let h = UndirectedAdjacencyList<String>(vertices: ["x", "y"], edges: [] as [UndirectedEdge<String>])
-        let product = tensorProduct(g, h)
+        let product = tensorProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y")])
@@ -226,11 +226,11 @@ struct TensorProductTests {
 
     @Test("GP-020 directed: K2 arc with K2 arc")
     func gp020() {
-        // G = AL V [a, b]; E [a→b]; H = AL V [x, y]; E [x→y] / tensorProduct(G, H)
+        // G = AL V [a, b]; E [a→b]; H = AL V [x, y]; E [x→y] / tensorProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3]; E [G0×H0:(a,x)→(b,y)]; edgeCount 1; bounds 4/1; rows [(a,x): (b,y); (a,y): ; (b,x): ; (b,y): ]
         let g = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
         let h = AdjacencyList<String>(vertices: ["x", "y"], edges: [DirectedEdge(from: "x", to: "y")])
-        let product = tensorProduct(g, h)
+        let product = tensorProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y")])
@@ -294,11 +294,11 @@ struct TensorProductTests {
 
     @Test("GP-021 directed: 2-cycle with an arc")
     func gp021() {
-        // G = AL V [a, b]; E [a→b, b→a]; H = AL V [x, y]; E [x→y] / tensorProduct(G, H)
+        // G = AL V [a, b]; E [a→b, b→a]; H = AL V [x, y]; E [x→y] / tensorProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3]; E [G0×H0:(a,x)→(b,y), G1×H0:(b,x)→(a,y)]; edgeCount 2; bounds 4/2
         let g = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "a")])
         let h = AdjacencyList<String>(vertices: ["x", "y"], edges: [DirectedEdge(from: "x", to: "y")])
-        let product = tensorProduct(g, h)
+        let product = tensorProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y")])
@@ -362,11 +362,11 @@ struct TensorProductTests {
 
     @Test("GP-022 directed: predecessors from the factors' in-rows")
     func gp022() {
-        // G = AL V [a, b]; E [a→b]; H = AL V [x, y]; E [x→y] / tensorProduct(G, H)
+        // G = AL V [a, b]; E [a→b]; H = AL V [x, y]; E [x→y] / tensorProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3]; edgeCount 1; bounds 4/1; predecessors(of: (b,y)) [(a,x)]
         let g = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
         let h = AdjacencyList<String>(vertices: ["x", "y"], edges: [DirectedEdge(from: "x", to: "y")])
-        let product = tensorProduct(g, h)
+        let product = tensorProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y")])
@@ -432,11 +432,11 @@ struct TensorProductTests {
 
     @Test("GP-023 undirected: self-loop in G")
     func gp023() {
-        // G = UL V [a, b]; E [a–a, a–b]; H = UL V [x, y]; E [x–y] / tensorProduct(G, H)
+        // G = UL V [a, b]; E [a–a, a–b]; H = UL V [x, y]; E [x–y] / tensorProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3]; E [G0×H0:(a,x)–(a,y), G1×H0:(a,x)–(b,y), G1×H0':(a,y)–(b,x)]; edgeCount 3; bounds 4/nil; rows [(a,x): (a,y) (b,y); (a,y): (a,x) (b,x); (b,x): (a,y); (b,y): (a,x)]
         let g = Pseudograph<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "a"), UndirectedEdge("a", "b")])
         let h = UndirectedAdjacencyList<String>(vertices: ["x", "y"], edges: [UndirectedEdge("x", "y")])
-        let product = tensorProduct(g, h)
+        let product = tensorProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y")])
@@ -480,11 +480,11 @@ struct TensorProductTests {
 
     @Test("GP-024 undirected: self-loop in H")
     func gp024() {
-        // G = UL V [a, b]; E [a–b]; H = UL V [x, y]; E [x–x, x–y] / tensorProduct(G, H)
+        // G = UL V [a, b]; E [a–b]; H = UL V [x, y]; E [x–x, x–y] / tensorProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3]; E [G0×H0:(a,x)–(b,x), G0×H1:(a,x)–(b,y), G0×H1':(a,y)–(b,x)]; edgeCount 3; bounds 4/nil; rows [(a,x): (b,x) (b,y); (a,y): (b,x); (b,x): (a,x) (a,y); (b,y): (a,x)]
         let g = UndirectedAdjacencyList<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b")])
         let h = Pseudograph<String>(vertices: ["x", "y"], edges: [UndirectedEdge("x", "x"), UndirectedEdge("x", "y")])
-        let product = tensorProduct(g, h)
+        let product = tensorProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y")])
@@ -528,11 +528,11 @@ struct TensorProductTests {
 
     @Test("GP-025 undirected: self-loops in both")
     func gp025() {
-        // G = UL V [a]; E [a–a]; H = UL V [x]; E [x–x] / tensorProduct(G, H)
+        // G = UL V [a]; E [a–a]; H = UL V [x]; E [x–x] / tensorProductView(G, H)
         // → V [(a,x)#0]; E [G0×H0:(a,x)–(a,x)]; edgeCount 1; bounds 1/nil; rows [(a,x): (a,x) (a,x)]
         let g = Pseudograph<String>(vertices: ["a"], edges: [UndirectedEdge("a", "a")])
         let h = Pseudograph<String>(vertices: ["x"], edges: [UndirectedEdge("x", "x")])
-        let product = tensorProduct(g, h)
+        let product = tensorProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x")])
@@ -558,11 +558,11 @@ struct TensorProductTests {
 
     @Test("GP-026 undirected: parallel edges in G")
     func gp026() {
-        // G = UL V [a, b]; E [a–b, b–a]; H = UL V [x, y]; E [x–y] / tensorProduct(G, H)
+        // G = UL V [a, b]; E [a–b, b–a]; H = UL V [x, y]; E [x–y] / tensorProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3]; E [G0×H0:(a,x)–(b,y), G0×H0':(a,y)–(b,x), G1×H0:(b,x)–(a,y), G1×H0':(b,y)–(a,x)]; edgeCount 4; bounds 4/nil
         let g = Pseudograph<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b"), UndirectedEdge("b", "a")])
         let h = UndirectedAdjacencyList<String>(vertices: ["x", "y"], edges: [UndirectedEdge("x", "y")])
-        let product = tensorProduct(g, h)
+        let product = tensorProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y")])
@@ -606,11 +606,11 @@ struct TensorProductTests {
 
     @Test("GP-027 directed: self-loop in G")
     func gp027() {
-        // G = AL V [a, b]; E [a→a, a→b]; H = AL V [x, y]; E [x→y] / tensorProduct(G, H)
+        // G = AL V [a, b]; E [a→a, a→b]; H = AL V [x, y]; E [x→y] / tensorProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3]; E [G0×H0:(a,x)→(a,y), G1×H0:(a,x)→(b,y)]; edgeCount 2; bounds 4/2
         let g = DirectedPseudograph<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "a"), DirectedEdge(from: "a", to: "b")])
         let h = AdjacencyList<String>(vertices: ["x", "y"], edges: [DirectedEdge(from: "x", to: "y")])
-        let product = tensorProduct(g, h)
+        let product = tensorProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y")])
@@ -674,11 +674,11 @@ struct TensorProductTests {
 
     @Test("GP-028 rows and lookups: index-space rows hash nothing, a pair lookup hashes twice")
     func gp028() {
-        // G = UL V [a, b, c]; E [a–b, b–c]; H = UL V [x, y]; E [x–y] / tensorProduct(G, H)
+        // G = UL V [a, b, c]; E [a–b, b–c]; H = UL V [x, y]; E [x–y] / tensorProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3, (c,x)#4, (c,y)#5]; edgeCount 4; bounds 6/nil; all rows: hashes 0; vertexIndex(of: (b,y)): hashes 2
         let g = UndirectedAdjacencyList<String>(vertices: ["a", "b", "c"], edges: [UndirectedEdge("a", "b"), UndirectedEdge("b", "c")])
         let h = UndirectedAdjacencyList<String>(vertices: ["x", "y"], edges: [UndirectedEdge("x", "y")])
-        let product = tensorProduct(g, h)
+        let product = tensorProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y"), Pair("c", "x"), Pair("c", "y")])
@@ -746,7 +746,7 @@ struct TensorProductTests {
         let tally = Tally()
         let countedG = UndirectedAdjacencyList<Counted>(vertices: ["a", "b", "c"].map { Counted(name: $0, tally: tally) }, edges: [UndirectedEdge(Counted(name: "a", tally: tally), Counted(name: "b", tally: tally)), UndirectedEdge(Counted(name: "b", tally: tally), Counted(name: "c", tally: tally))])
         let countedH = UndirectedAdjacencyList<Counted>(vertices: ["x", "y"].map { Counted(name: $0, tally: tally) }, edges: [UndirectedEdge(Counted(name: "x", tally: tally), Counted(name: "y", tally: tally))])
-        let counted = tensorProduct(countedG, countedH)
+        let counted = tensorProductView(countedG, countedH)
         tally.hashes = 0
         // Every index-space row, over every vertex.
         for i in 0 ..< 6 {

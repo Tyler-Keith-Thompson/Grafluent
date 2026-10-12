@@ -53,6 +53,7 @@ struct MinimumCostFlowTests {
         // The amount shipped: the sum of the positive supplies.
         #expect(flowResult.value == 5)
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [4, 1, 4, 1] as [Int])
         // Feasible, checked here: 0 ≤ flow ≤ capacity, and out − in = supply at every vertex.
         var balance = [Int](repeating: 0, count: n)
@@ -70,6 +71,7 @@ struct MinimumCostFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }
@@ -114,6 +116,7 @@ struct MinimumCostFlowTests {
         // The amount shipped: the sum of the positive supplies.
         #expect(flowResult.value == 0)
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [] as [Int])
         // Feasible, checked here: 0 ≤ flow ≤ capacity, and out − in = supply at every vertex.
         var balance = [Int](repeating: 0, count: n)
@@ -131,6 +134,7 @@ struct MinimumCostFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }
@@ -175,6 +179,7 @@ struct MinimumCostFlowTests {
         // The amount shipped: the sum of the positive supplies.
         #expect(flowResult.value == 0)
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [] as [Int])
         // Feasible, checked here: 0 ≤ flow ≤ capacity, and out − in = supply at every vertex.
         var balance = [Int](repeating: 0, count: n)
@@ -192,6 +197,7 @@ struct MinimumCostFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }
@@ -236,6 +242,7 @@ struct MinimumCostFlowTests {
         // The amount shipped: the sum of the positive supplies.
         #expect(flowResult.value == 0)
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [0, 0] as [Int])
         // Feasible, checked here: 0 ≤ flow ≤ capacity, and out − in = supply at every vertex.
         var balance = [Int](repeating: 0, count: n)
@@ -253,6 +260,7 @@ struct MinimumCostFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }
@@ -297,6 +305,7 @@ struct MinimumCostFlowTests {
         // The amount shipped: the sum of the positive supplies.
         #expect(flowResult.value == 0)
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [2, 2, 2] as [Int])
         // Feasible, checked here: 0 ≤ flow ≤ capacity, and out − in = supply at every vertex.
         var balance = [Int](repeating: 0, count: n)
@@ -314,6 +323,7 @@ struct MinimumCostFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }
@@ -358,6 +368,7 @@ struct MinimumCostFlowTests {
         // The amount shipped: the sum of the positive supplies.
         #expect(flowResult.value == 1)
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [3, 1] as [Int])
         // Feasible, checked here: 0 ≤ flow ≤ capacity, and out − in = supply at every vertex.
         var balance = [Int](repeating: 0, count: n)
@@ -375,6 +386,7 @@ struct MinimumCostFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }
@@ -419,6 +431,7 @@ struct MinimumCostFlowTests {
         // The amount shipped: the sum of the positive supplies.
         #expect(flowResult.value == 1)
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [0, 1] as [Int])
         // Feasible, checked here: 0 ≤ flow ≤ capacity, and out − in = supply at every vertex.
         var balance = [Int](repeating: 0, count: n)
@@ -436,6 +449,7 @@ struct MinimumCostFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }
@@ -480,6 +494,7 @@ struct MinimumCostFlowTests {
         // The amount shipped: the sum of the positive supplies.
         #expect(flowResult.value == 3)
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [3] as [Int])
         // Feasible, checked here: 0 ≤ flow ≤ capacity, and out − in = supply at every vertex.
         var balance = [Int](repeating: 0, count: n)
@@ -497,6 +512,7 @@ struct MinimumCostFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }
@@ -725,6 +741,7 @@ struct MinimumCostFlowTests {
         // The amount shipped: the sum of the positive supplies.
         #expect(flowResult.value == 4)
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [0, 4, 4] as [Int])
         // Feasible, checked here: 0 ≤ flow ≤ capacity, and out − in = supply at every vertex.
         var balance = [Int](repeating: 0, count: n)
@@ -742,6 +759,7 @@ struct MinimumCostFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }
@@ -786,6 +804,7 @@ struct MinimumCostFlowTests {
         // The amount shipped: the sum of the positive supplies.
         #expect(flowResult.value == 4)
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [2, 2, 2] as [Int])
         // Feasible, checked here: 0 ≤ flow ≤ capacity, and out − in = supply at every vertex.
         var balance = [Int](repeating: 0, count: n)
@@ -803,6 +822,7 @@ struct MinimumCostFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }
@@ -847,6 +867,7 @@ struct MinimumCostFlowTests {
         // The amount shipped: the sum of the positive supplies.
         #expect(flowResult.value == 2)
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         // One of several optima (catalog: [2, 0, 2, 0]): the flow itself is not pinned.
         // Feasible, checked here: 0 ≤ flow ≤ capacity, and out − in = supply at every vertex.
         var balance = [Int](repeating: 0, count: n)
@@ -864,6 +885,7 @@ struct MinimumCostFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }
@@ -908,6 +930,7 @@ struct MinimumCostFlowTests {
         // The amount shipped: the sum of the positive supplies.
         #expect(flowResult.value == 3)
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [0, 2, 1] as [Int])
         // Feasible, checked here: 0 ≤ flow ≤ capacity, and out − in = supply at every vertex.
         var balance = [Int](repeating: 0, count: n)
@@ -925,6 +948,7 @@ struct MinimumCostFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }
@@ -969,6 +993,7 @@ struct MinimumCostFlowTests {
         // The amount shipped: the sum of the positive supplies.
         #expect(flowResult.value == 2)
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [2, 0] as [Int])
         // Feasible, checked here: 0 ≤ flow ≤ capacity, and out − in = supply at every vertex.
         var balance = [Int](repeating: 0, count: n)
@@ -986,6 +1011,7 @@ struct MinimumCostFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }
@@ -1030,6 +1056,7 @@ struct MinimumCostFlowTests {
         // The amount shipped: the sum of the positive supplies.
         #expect(flowResult.value == 2)
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [2, 2, 0] as [Int])
         // Feasible, checked here: 0 ≤ flow ≤ capacity, and out − in = supply at every vertex.
         var balance = [Int](repeating: 0, count: n)
@@ -1047,6 +1074,7 @@ struct MinimumCostFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }
@@ -1091,6 +1119,7 @@ struct MinimumCostFlowTests {
         // The amount shipped: the sum of the positive supplies.
         #expect(flowResult.value == 1)
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [1, 2, 2] as [Int])
         // Feasible, checked here: 0 ≤ flow ≤ capacity, and out − in = supply at every vertex.
         var balance = [Int](repeating: 0, count: n)
@@ -1108,6 +1137,7 @@ struct MinimumCostFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }
@@ -1152,6 +1182,7 @@ struct MinimumCostFlowTests {
         // The amount shipped: the sum of the positive supplies.
         #expect(flowResult.value == 6)
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [6, 3, 3, 0] as [Int])
         // Feasible, checked here: 0 ≤ flow ≤ capacity, and out − in = supply at every vertex.
         var balance = [Int](repeating: 0, count: n)
@@ -1169,6 +1200,7 @@ struct MinimumCostFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }
@@ -1213,6 +1245,7 @@ struct MinimumCostFlowTests {
         // The amount shipped: the sum of the positive supplies.
         #expect(flowResult.value == 7)
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [3, 0, 2, 2] as [Int])
         // Feasible, checked here: 0 ≤ flow ≤ capacity, and out − in = supply at every vertex.
         var balance = [Int](repeating: 0, count: n)
@@ -1230,6 +1263,7 @@ struct MinimumCostFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }
@@ -1274,6 +1308,7 @@ struct MinimumCostFlowTests {
         // The amount shipped: the sum of the positive supplies.
         #expect(flowResult.value == 3)
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [0, 1, 0, 1, 0, 0, 0, 0, 1] as [Int])
         // Feasible, checked here: 0 ≤ flow ≤ capacity, and out − in = supply at every vertex.
         var balance = [Int](repeating: 0, count: n)
@@ -1291,6 +1326,7 @@ struct MinimumCostFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }
@@ -1427,6 +1463,7 @@ struct MinimumCostFlowTests {
         // The amount shipped: the sum of the positive supplies.
         #expect(flowResult.value == 1)
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [0, 1, 1] as [Int])
         // Feasible, checked here: 0 ≤ flow ≤ capacity, and out − in = supply at every vertex.
         var balance = [Int](repeating: 0, count: n)
@@ -1444,6 +1481,7 @@ struct MinimumCostFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }
@@ -1488,6 +1526,7 @@ struct MinimumCostFlowTests {
         // The amount shipped: the sum of the positive supplies.
         #expect(flowResult.value == 0)
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [4] as [Int])
         // Feasible, checked here: 0 ≤ flow ≤ capacity, and out − in = supply at every vertex.
         var balance = [Int](repeating: 0, count: n)
@@ -1505,6 +1544,7 @@ struct MinimumCostFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }
@@ -1549,6 +1589,7 @@ struct MinimumCostFlowTests {
         // The amount shipped: the sum of the positive supplies.
         #expect(flowResult.value == 4)
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         // One of several optima (catalog: [0, 0, 0, 0, 0, 4, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0]): the flow itself is not pinned.
         // Feasible, checked here: 0 ≤ flow ≤ capacity, and out − in = supply at every vertex.
         var balance = [Int](repeating: 0, count: n)
@@ -1566,6 +1607,7 @@ struct MinimumCostFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }
@@ -1610,6 +1652,7 @@ struct MinimumCostFlowTests {
         // The amount shipped: the sum of the positive supplies.
         #expect(flowResult.value == 3)
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [0, 2, 1, 0, 4, 0, 0, 2, 2, 2, 0, 0, 2, 0, 0, 1, 1, 4, 0, 0] as [Int])
         // Feasible, checked here: 0 ≤ flow ≤ capacity, and out − in = supply at every vertex.
         var balance = [Int](repeating: 0, count: n)
@@ -1627,6 +1670,7 @@ struct MinimumCostFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }
@@ -1671,6 +1715,7 @@ struct MinimumCostFlowTests {
         // The amount shipped: the sum of the positive supplies.
         #expect(flowResult.value == 0)
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0] as [Int])
         // Feasible, checked here: 0 ≤ flow ≤ capacity, and out − in = supply at every vertex.
         var balance = [Int](repeating: 0, count: n)
@@ -1688,6 +1733,7 @@ struct MinimumCostFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }
@@ -1732,6 +1778,7 @@ struct MinimumCostFlowTests {
         // The amount shipped: the sum of the positive supplies.
         #expect(flowResult.value == 9)
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [0, 2, 2, 0, 1, 0, 0, 0, 2, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 3, 0, 0, 0, 0] as [Int])
         // Feasible, checked here: 0 ≤ flow ≤ capacity, and out − in = supply at every vertex.
         var balance = [Int](repeating: 0, count: n)
@@ -1749,6 +1796,7 @@ struct MinimumCostFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }
@@ -1839,6 +1887,7 @@ struct MinimumCostFlowTests {
         // The amount shipped: the sum of the positive supplies.
         #expect(flowResult.value == 5)
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [9223372036854775807, 9223372036854775802] as [Int])
         // Feasible, checked here: 0 ≤ flow ≤ capacity, and out − in = supply at every vertex.
         var balance = [Int](repeating: 0, count: n)
@@ -1856,6 +1905,7 @@ struct MinimumCostFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }
@@ -1900,6 +1950,7 @@ struct MinimumCostFlowTests {
         // The amount shipped: the sum of the positive supplies.
         #expect(flowResult.value == 5)
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [9223372036854775807, 9223372036854775802] as [Int])
         // Feasible, checked here: 0 ≤ flow ≤ capacity, and out − in = supply at every vertex.
         var balance = [Int](repeating: 0, count: n)
@@ -1917,6 +1968,7 @@ struct MinimumCostFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }
@@ -1961,6 +2013,7 @@ struct MinimumCostFlowTests {
         // The amount shipped: the sum of the positive supplies.
         #expect(flowResult.value == 1)
         let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         #expect(flows == [1] as [Int8])
         // Feasible, checked here: 0 ≤ flow ≤ capacity, and out − in = supply at every vertex.
         var balance = [Int](repeating: 0, count: n)
@@ -1978,6 +2031,7 @@ struct MinimumCostFlowTests {
         // Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below
         // its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.
         let potentials = vertexList.map { Int(flowResult.potential(of: $0)) }
+        #expect(vertexList.map { try? Int(flowResult.potential(checked: $0)) } == potentials.map(Optional.some))
         for k in pairs.indices {
             let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]
             if flows[k] < capacities[k] { #expect(reduced >= 0, "edge \(k): reduced cost \(reduced)") }

@@ -33,7 +33,7 @@ the listed vertices, then vertices from generators, then endpoints by first appe
 | `nx(name)` | `networkx.<name>_graph()`: its `nodes` listed, then `edges()` in NetworkX's order |
 | `a..b` | every integer from a to b inclusive |
 
-**Op**: the API call on the graph; `undirected > op` runs op on `digraph.undirected` (each arc an
+**Op**: the API call on the graph; `undirected > op` runs op on `digraph.undirectedView` (each arc an
 edge). `maximalCliques` is the whole sequence in order; `.count` its length. `coreNumbers`,
 `triangleCounts`, `clusteringCoefficients` list the value's per-vertex answers in `vertices` order
 (`coreNumber(ofIndex: i)`, `triangleCount(ofIndex: i)`, `clusteringCoefficient(ofIndex: i)`);
@@ -308,9 +308,9 @@ Triangles of the simple graph; clustering 2T/(d(d−1)) with d the simple degree
 | CQ-465 | `U: nx(karate_club)` | `triangleCount(of: 33)` | `#15` |  |
 | CQ-466 | `U: K(0..2), 2-3` | `clusteringCoefficient(of: 9)` | `trap` | Not a vertex: precondition |
 
-## F. Directed graphs through `undirected`
+## F. Directed graphs through `undirectedView`
 
-`digraph.undirected` keeps opposite arcs as parallel edges; the simple graph collapses them, giving igraph's "directions ignored" values.
+`digraph.undirectedView` keeps opposite arcs as parallel edges; the simple graph collapses them, giving igraph's "directions ignored" values.
 
 | ID | Graph | Op | Expected | Notes |
 |---|---|---|---|---|

@@ -314,7 +314,7 @@ DV = []
 for (u, v) in U:
     DV += [(u, v), (v, u)]  # DirectedView order: (p, false) at 2p, (p, true) at 2p+1
 check("WK-605", is_cycle_storage([0, 1], [0, 1]) and is_closed_walk_in(DV, [0, 1], [0, 1], True),
-      "undirected negative edge 0-1 is a 2-cycle of g.directed: arcs (0,false),(0,true)")
+      "undirected negative edge 0-1 is a 2-cycle of g.directedView: arcs (0,false),(0,true)")
 # NetworkX: undirected cycles are distinct up to rotation and reversal; directed only rotation.
 check("WK-606", len(list(nx.simple_cycles(nx.cycle_graph(3)))) == 1, "undirected triangle: one simple cycle")
 check("WK-607", len(list(nx.simple_cycles(nx.DiGraph([(0, 1), (1, 2), (2, 0), (0, 2), (2, 1), (1, 0)])))) == 5,
@@ -415,9 +415,9 @@ check("WK-1004", ([0, 1] + [1][1:], [0] + []) == ([0, 1], [0]), "appending a tri
 check("WK-1005", reverse_walk([7], []) == ([7], []))
 check("WK-1006", reverse_cycle([0, 1], [0, 1]) == ([0, 1], [1, 0]) and not rot_equal(([0, 1], [0, 1]), ([0, 1], [1, 0])),
       "a digon reversed is a different cycle value")
-# Reversal of a walk in g.directed: reversing order alone gives arcs pointing backward.
+# Reversal of a walk in g.directedView: reversing order alone gives arcs pointing backward.
 check("WK-1007", is_walk(DV, [0, 1, 2], [0, 2], True) and not is_walk(DV, [2, 1, 0], [2, 0], True)
-      and is_walk(DV, [2, 1, 0], [3, 1], True), "flip each arc's reversed flag to stay in g.directed")
+      and is_walk(DV, [2, 1, 0], [3, 1], True), "flip each arc's reversed flag to stay in g.directedView")
 
 # ---------------------------------------------------------------- migration fixtures (existing tests)
 # SP-63: undirected negative edge 1-2 from cycle_graph(5): [1, 2] and arcs of edge {1,2}

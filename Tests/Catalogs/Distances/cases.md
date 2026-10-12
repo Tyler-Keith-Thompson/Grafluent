@@ -35,8 +35,8 @@ the listed vertices, then vertices from generators, then endpoints by first appe
 
 **Op**: the API call. `weight: [w0, w1, …]` is `{ w[$0] }` by edge position (`weight: k`: every edge
 weighs k; `weight: e%k+c`: edge e weighs e mod k + c); a list with a `.` is `Double`, otherwise `Int`.
-`directed > op` runs op on `graph.directed` (each edge two arcs), `undirected > op` on
-`digraph.undirected` (each arc an edge). `eccentricities` is the `Eccentricities` value read in
+`directed > op` runs op on `graph.directedView` (each edge two arcs), `undirected > op` on
+`digraph.undirectedView` (each arc an edge). `eccentricities` is the `Eccentricities` value read in
 `vertices` order (`eccentricity(ofIndex: i)` for each i); the one-shot calls (`radius`, `diameter`,
 `center`, `periphery`) must equal the same members of `eccentricities()`, which the Swift tests
 should assert for every case.
@@ -255,14 +255,14 @@ a path, `… #d` with the weighted distance; `trap` a precondition failure.
 | DI-425 | `D: [] K(4)` | `eccentricities` | `[1, nil, nil, nil]` | The acyclic tournament |
 | DI-426 | `D: [] K(4)` | `radius` | `#1` | |
 | DI-427 | `D: [] K(4)` | `periphery` | `[1, 2, 3]` | |
-| DI-428 | `D: [] K(4)` | `undirected > diameter` | `#1` | `digraph.undirected` is K₄ |
+| DI-428 | `D: [] K(4)` | `undirected > diameter` | `#1` | `digraph.undirectedView` is K₄ |
 | DI-429 | `D: [] K(4)` | `undirected > density` | `#1.0` | Each arc an edge: twice the directed density |
 | DI-430 | `D: [] K(4)` | `density` | `#0.5` | |
 | DI-431 | `D: [0..2] 0>1, 1>0` | `eccentricities` | `[nil, nil, nil]` | An isolated vertex |
 | DI-432 | `D: [0..2] 0>1, 1>0` | `center` | `[0, 1, 2]` | Every eccentricity infinite: every vertex |
 | DI-433 | `D: [] 0>1, 1>0, 1>2, 2>1` | `eccentricities` | `[2, 1, 2]` | Both directions: the undirected path's values |
 | DI-434 | `D: [] P(0..2)` | `undirected > eccentricities` | `[2, 1, 2]` | |
-| DI-435 | `U: [] 1-2, 1-3, 1-4, 3-4, 3-5, 4-5` | `directed > eccentricities` | `[2, 3, 2, 2, 3]` | `graph.directed`: the same values as DI-101 |
+| DI-435 | `U: [] 1-2, 1-3, 1-4, 3-4, 3-5, 4-5` | `directed > eccentricities` | `[2, 3, 2, 2, 3]` | `graph.directedView`: the same values as DI-101 |
 | DI-436 | `U: [] 1-2, 1-3, 1-4, 3-4, 3-5, 4-5` | `directed > center` | `[1, 3, 4]` | |
 | DI-437 | `U: [] 1-2, 1-3, 1-4, 3-4, 3-5, 4-5` | `directed > density` | `#0.6` | Twice the arcs, the same density as DI-109 |
 | DI-438 | `U: [] 1-2, 1-3, 1-4, 3-4, 3-5, 4-5` | `directed > wienerIndex` | `#30` | Ordered pairs: twice DI-107 |

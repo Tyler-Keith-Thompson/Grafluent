@@ -27,7 +27,8 @@ extension Graph {                       // partitions are Partition<DirectedView
 extension DirectedGraph {               // the same measures, Louvain and greedy modularity, returning Partition<Self>
 }
 struct Partition<G: DirectedGraph>: RandomAccessCollection, Equatable, CustomStringConvertible
-    // Element = ArraySlice<G.Vertex>; community(of:) traps on a non-vertex, community(ofIndex:) out of range
+    // Element = ArraySlice<G.Vertex>; community(of:) traps on a non-vertex, community(ofIndex:) out of range;
+    // community(checked:) throws VertexNotFound instead
 struct PartitionQuality: Hashable, Sendable   // coverage, performance; NaN where the ratio is 0/0
 // Partition is Sendable when G and G.Vertex are
 ```
@@ -37,13 +38,13 @@ struct PartitionQuality: Hashable, Sendable   // coverage, performance; NaN wher
 | Question | Choice | Cases |
 |---|---|---|
 | Canonical order | Communities by least vertex number (vertex index, or position in `vertices`), each in `vertices` order, whatever labels an algorithm used; `Equatable` compares communities, so equal partitions from different algorithms or graphs are equal | CD-090, every partition row, `CommunityDetectionConformanceTests.swift` |
-| Modularity | Σ_c [L_c/m − γ (d_c/2m)²]; an undirected loop is A_vv = 2w (inside its community, twice in the degree), parallel edges add; directed Σ_c [L_c/m − γ out_c in_c/m²], a loop one out- and one in-arc; `graph.directed` gives the undirected value; 0 when m = 0; empty communities contribute 0 | CD-001, CD-010, CD-016, CD-023, CD-024, CD-035 – CD-068 |
+| Modularity | Σ_c [L_c/m − γ (d_c/2m)²]; an undirected loop is A_vv = 2w (inside its community, twice in the degree), parallel edges add; directed Σ_c [L_c/m − γ out_c in_c/m²], a loop one out- and one in-arc; `graph.directedView` gives the undirected value; 0 when m = 0; empty communities contribute 0 | CD-001, CD-010, CD-016, CD-023, CD-024, CD-035 – CD-068 |
 | Partition quality | Coverage over edges, copies each counted, a loop inside, NaN without edges; performance over unordered (directed: ordered) pairs u ≠ v by adjacency ("at least one edge"), loops are not pairs, NaN with fewer than two vertices | CD-002, CD-003, CD-015, CD-021, CD-022, CD-069 – CD-082 |
 | Louvain | Vertices in index order; stay when the own community ties the best gain, other ties to the greatest community label; NetworkX's stop rule; parallel edges are weight, loops count in degrees and never move a vertex; Dugué–Perez gain on `DirectedGraph` | CD-083 – CD-114, CD-174 |
 | Greedy modularity | CNM: greatest ΔQ, ties to the least pair (i, j), i merged into j; merges with ΔQ = 0 continue; zero total weight gives singletons | CD-115 – CD-132, CD-173 |
 | Label propagation | Votes are the row: copies each vote, loops vote for nothing, weights add; keep the current label when it is among the most voted, else take the greatest. Semi-synchronous: largest-degree-first greedy coloring, classes in color order. Asynchronous: index order each sweep | CD-133 – CD-154 |
 | `using:` | Louvain shuffles each level's order, asynchronous propagation each sweep's order and its ties; the catalog's `using:` rows are graphs where every order gives the same partition; otherwise properties: a partition in canonical order, Louvain's Q at least the singletons', the stop condition, the same seed repeating, at least n − 1 draws, and orders that differ from index order | CD-112 – CD-114, CD-153, CD-154 |
-| Determinism | With integer weights a result is a function of the vertex numbering and the weighted edges: the same twice, with rows and positions permuted, on the adjacency lists, on a conformer without indices, and (Louvain, greedy) on `graph.directed` | `CommunityDetectionPropertyTests.swift`, `CommunityDetectionConformanceTests.swift` |
+| Determinism | With integer weights a result is a function of the vertex numbering and the weighted edges: the same twice, with rows and positions permuted, on the adjacency lists, on a conformer without indices, and (Louvain, greedy) on `graph.directedView` | `CommunityDetectionPropertyTests.swift`, `CommunityDetectionConformanceTests.swift` |
 | Weights | Read once per edge in position order, checked there: finite and ≥ 0 (-0.0 accepted); `Float` closures work as `Double` ones; nothing is read on an edgeless graph | CD-160 – CD-162, CD-167, CD-168, CD-170 – CD-172, `WeightReadingTests.swift` |
 
 ## How values are pinned
@@ -61,7 +62,7 @@ relative to max(1, |value|), partitions exactly in canonical order. Each partiti
 `count`, `community(of:)` against membership, `community(ofIndex:)` against `community(of:)`, and
 the modularity of the result at the call's weight and resolution against `ref.py`'s value; each
 undirected row of modularity, partition quality, Louvain and greedy modularity runs again on
-`graph.directed` (the values `ref.py` gives for `directed > op`, which are the same), and each
+`graph.directedView` (the values `ref.py` gives for `directed > op`, which are the same), and each
 `using:` row runs twice with the same seed. The `CompressedSparseRow` and `AdjacencyMatrix` rows
 rewrite the arcs in row-major order (undirected graphs without loops as symmetric digraphs) and were
 computed by `ref.py` on the rewritten graph. The stress literals were computed with `ref.py`'s model
@@ -84,16 +85,17 @@ resolution accepted. Each of these fails tests (from 2 to 100). The property tes
 | File | Tests | Covers |
 |---|---|---|
 | `DegenerateGraphTests.swift` | 34 | §A: the empty graph (both kinds), one vertex, four isolated vertices, lone loops, K₂, one arc: every entry point |
-| `ModularityTests.swift` | 34 | §B: P₃ with every split, empty communities and community order, K₄, two triangles at γ = 0, ½, 1, 2 and weighted (heavy, scaled, zero bridge), `connectedComponents()`, two K₅, barbell, ring of cliques, the karate club (observed split, weighted, `graph.directed`), parallel edges as weight, loops (weighted, `graph.directed`), Leicht–Newman on dipaths and two directed triangles, a directed loop, labeled vertices |
+| `ModularityTests.swift` | 34 | §B: P₃ with every split, empty communities and community order, K₄, two triangles at γ = 0, ½, 1, 2 and weighted (heavy, scaled, zero bridge), `connectedComponents()`, two K₅, barbell, ring of cliques, the karate club (observed split, weighted, `graph.directedView`), parallel edges as weight, loops (weighted, `graph.directedView`), Leicht–Newman on dipaths and two directed triangles, a directed loop, labeled vertices |
 | `PartitionQualityTests.swift` | 14 | §C: two triangles (split, singletons, components), the karate club, parallel edges, a loop, directed ordered pairs |
-| `LouvainTests.swift` | 33 | §D: cliques joined by edges, barbell, ring of cliques, caveman, the karate club (count, `community(of:)`, weighted, γ = 0, 0.5, 2, `threshold: 1`), Florentine families (`String` vertices), components, parallel edges, loops, a heavy bridge, path and cycle ties, a star, a grid, `lcg` graphs (also weighted), directed (two triangles, karate, `lcg`), `graph.directed`, `using:`; CD-174 |
+| `PartitionCheckedTests.swift` | 1 | `Partition.community(checked:)` on indexed, unindexed and directed graphs: agrees with `community(of:)`, throws `VertexNotFound` for a non-vertex |
+| `LouvainTests.swift` | 33 | §D: cliques joined by edges, barbell, ring of cliques, caveman, the karate club (count, `community(of:)`, weighted, γ = 0, 0.5, 2, `threshold: 1`), Florentine families (`String` vertices), components, parallel edges, loops, a heavy bridge, path and cycle ties, a star, a grid, `lcg` graphs (also weighted), directed (two triangles, karate, `lcg`), `graph.directedView`, `using:`; CD-174 |
 | `GreedyModularityTests.swift` | 21 | §E: the same families as §D, the karate club with igraph's Q, ties to the least pair, parallel edges and loops, γ = 0, directed; CD-173; two merges with ΔQ = 0 exactly (one arc; a zero-weight bridge at γ = 0), which continue |
 | `LabelPropagationTests.swift` | 22 | §F: semi-synchronous and asynchronous on cliques, ring of cliques (flooding in index order), the karate club (also weighted), paths, loops voting for nothing, parallel copies each voting, weights, `lcg`, `using:` |
 | `CommunityDetectionPreconditionTests.swift` | 48 | Exit tests: the catalog's 18 trap rows (CD-155 – CD-172); then `community(of:)` on a non-vertex (both kinds), `community(ofIndex:)` at −1, at the count and on an empty result, `partitionQuality(of:)` with a vertex twice or a non-vertex (both kinds), directed modularity with a vertex missing, an infinite or negative resolution, a non-vertex on the empty graph, NaN and infinite resolutions and thresholds for Louvain and greedy modularity (both kinds, also through `using:`), negative, NaN and ±infinite weights through every weighted overload not covered by the catalog (also `Float`) |
 | `CommunityDetectionRepresentationTests.swift` | 87 | Every §A – §G value row whose graph has no parallel edges on `UndirectedAdjacencyList` (28 graphs) or `AdjacencyList` (7), and the modularity, quality, Louvain and greedy rows of every graph on 0..<n without parallel edges on `CompressedSparseRow` (26) and `AdjacencyMatrix` (26), directed graphs with their arcs in row-major order and loop-free undirected graphs as symmetric digraphs; one test per graph, every row of that graph |
-| `WeightReadingTests.swift` | 7 | The weight closure once per edge in position order through every weighted entry point on a pseudograph with a loop and parallel edges, on `graph.directed`, on a directed multigraph, on `UndirectedAdjacencyList`, `CompressedSparseRow` and `AdjacencyMatrix`; nothing read when there are no edges; -0.0 accepted; `Float` weights |
+| `WeightReadingTests.swift` | 7 | The weight closure once per edge in position order through every weighted entry point on a pseudograph with a loop and parallel edges, on `graph.directedView`, on a directed multigraph, on `UndirectedAdjacencyList`, `CompressedSparseRow` and `AdjacencyMatrix`; nothing read when there are no edges; -0.0 accepted; `Float` weights |
 | `CommunityDetectionConformanceTests.swift` | 14 | `Sendable` across a `Task`, the result holding a copy of the graph, the result types, `RandomAccessCollection` (indices, slices keeping flat indices, reversal), `description`, `Equatable` across algorithms and graphs, generic code over `some Graph` / `some DirectedGraph`, any collection of vertex collections (sets, slices, lazy collections, `Components`, a `Partition`), conformers without indices (the `lcg` rows, vertices not in value order), `Collider` vertices, determinism across representations on the karate club, `using:` drawing from the generator and changing the order |
-| `CommunityDetectionPropertyTests.swift` | 9 | PropertyBased, shrinking, multigraphs with loops, shuffled rows and vertex orders: modularity against the matrix definition (both kinds, γ, weights, community order, `graph.directed`, γ = 0 as coverage); quality against pair counts; every overload returns a canonical partition; Louvain and greedy at least the singletons' Q, greedy locally optimal under merges; label propagation's stop condition; representation independence; weight scaling; γ = 0 gives the components; `using:` repeats |
+| `CommunityDetectionPropertyTests.swift` | 9 | PropertyBased, shrinking, multigraphs with loops, shuffled rows and vertex orders: modularity against the matrix definition (both kinds, γ, weights, community order, `graph.directedView`, γ = 0 as coverage); quality against pair counts; every overload returns a canonical partition; Louvain and greedy at least the singletons' Q, greedy locally optimal under merges; label propagation's stop condition; representation independence; weight scaling; γ = 0 gives the components; `using:` repeats |
 | `Performance/CommunityDetectionStressTests.swift` | 8 | Inside a `Task` with a one-minute limit: Louvain on 25,000 disjoint K₄ (also `using:`), a ring of 1000 K₅ and a 10⁵-vertex path; greedy modularity on a ring of 400 K₅; both propagations on a 10⁵-vertex path and 20,000 disjoint K₅; modularity and quality on a ring of 25,000 K₄; directed Louvain and greedy on disjoint 3-cycles on `CompressedSparseRow` |
 
 174 catalog rows (156 value rows, 18 trap rows) and their 87 representation tests, 30 more
@@ -122,7 +124,7 @@ representations, properties or conformance that the catalog does not list.
 
 Rows with parallel edges (CD-058, CD-076, CD-077, CD-098, CD-127, CD-140, CD-141, CD-149, CD-151)
 and the `lcg` rows (whose random pairs repeat) are not repeated on the adjacency lists, which cannot
-hold parallel edges; label propagation and `graph.directed` rows are not repeated on
+hold parallel edges; label propagation and `graph.directedView` rows are not repeated on
 `CompressedSparseRow` and `AdjacencyMatrix`, which are directed.
 
 ## Not tested

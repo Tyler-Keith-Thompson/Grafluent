@@ -210,9 +210,9 @@ Conventions:
 | MG-170 | Conversion | Multigraph(pseudograph), no loops | Pseudograph E [0–1, 0–1, 1–2] | V [0, 1, 2]; E [0–1, 0–1, 1–2]; rows 0:[1@0, 1@1] 1:[0@0, 0@1, 2@2] 2:[1@2] |
 | MG-171 | Conversion | Multigraph(pseudograph) with a loop is nil | Pseudograph E [0–1, 1–1] | nil |
 | MG-172 | Conversion | Pseudograph(multigraph): the same value | Multigraph V [7] E [0–1, 0–1] | V [7, 0, 1]; E [0–1, 0–1]; rows 7:[] 0:[1@0, 1@1] 1:[0@0, 0@1] |
-| MG-173 | Conversion | Pseudograph(digraph.undirected): opposite arcs become copies | DirectedPseudograph E [0→1, 1→0, 1→1] | V [0, 1]; E [0–1, 1–0, 1–1]; rows 0:[1@0, 1@1] 1:[0@0, 0@1, 1@2, 1@2] |
-| MG-174 | Conversion | DirectedPseudograph(graph.directed): two arcs per edge, a loop's two arcs | Pseudograph E [0–1, 0–1, 1–1] | V [0, 1]; E [0→1, 1→0, 0→1, 1→0, 1→1, 1→1]; out 0:[1@0, 1@2] 1:[0@1, 0@3, 1@4, 1@5]; in 0:[1@1, 1@3] 1:[0@0, 0@2, 1@4, 1@5] |
-| MG-175 | Conversion | DirectedMultigraph(graph.directed) with a loop is nil | Pseudograph E [0–1, 0–1, 1–1] | nil |
+| MG-173 | Conversion | Pseudograph(digraph.undirectedView): opposite arcs become copies | DirectedPseudograph E [0→1, 1→0, 1→1] | V [0, 1]; E [0–1, 1–0, 1–1]; rows 0:[1@0, 1@1] 1:[0@0, 0@1, 1@2, 1@2] |
+| MG-174 | Conversion | DirectedPseudograph(graph.directedView): two arcs per edge, a loop's two arcs | Pseudograph E [0–1, 0–1, 1–1] | V [0, 1]; E [0→1, 1→0, 0→1, 1→0, 1→1, 1→1]; out 0:[1@0, 1@2] 1:[0@1, 0@3, 1@4, 1@5]; in 0:[1@1, 1@3] 1:[0@0, 0@2, 1@4, 1@5] |
+| MG-175 | Conversion | DirectedMultigraph(graph.directedView) with a loop is nil | Pseudograph E [0–1, 0–1, 1–1] | nil |
 | MG-176 | Conversion | DirectedMultigraph(directedPseudograph) with a loop is nil | DirectedPseudograph E [0→1, 0→1, 1→1] | nil |
 | MG-177 | Conversion | DirectedPseudograph(directedMultigraph) | DirectedMultigraph E [0→1, 0→1] | V [0, 1]; E [0→1, 0→1]; out 0:[1@0, 1@1]; in 1:[0@0, 0@1] |
 | MG-178 | Conversion | Pseudograph(pseudograph) returns it unchanged (rows included) | Pseudograph E [0–1, 1–2, 0–1, 2–2] then remove(edgeAt: 0) | V [0, 1, 2]; E [2–2, 1–2, 0–1]; rows 0:[1@2] 1:[0@2, 2@1] 2:[1@1, 2@0, 2@0] |

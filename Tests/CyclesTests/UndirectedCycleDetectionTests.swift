@@ -184,7 +184,7 @@ struct UndirectedCycleDetectionTests {
 
     @Test("CY-015 findCycle() is [0,1,2]/[0,2,1]: NetworkX test_dag with orientation=\"ignore\"")
     func findCycle015() throws {
-        // NetworkX: [(0,1,F),(1,2,F),(0,2,R)]; in Grafluent digraph.undirected.findCycle()
+        // NetworkX: [(0,1,F),(1,2,F),(0,2,R)]; in Grafluent digraph.undirectedView.findCycle()
         // 0-1 0-2 1-2
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })

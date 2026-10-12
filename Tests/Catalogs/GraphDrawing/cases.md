@@ -73,7 +73,7 @@ the phase 2 entry points exist.
 | DR-027 | Circular | 6 vertices | `U: n=6; C(0,1,2,3,4,5)` | `circularLayout()` | [(1.0, 0.0), (0.5, 0.866025403784), (-0.5, 0.866025403784), (-1.0, 0.0), (-0.5, -0.866025403784), (0.5, -0.866025403784)] |
 | DR-028 | Circular | radius 2, centre (1, -1) | `U: n=4;` | `circularLayout(radius: 2, center: (1, -1))` | [(3.0, -1.0), (1.0, 1.0), (-1.0, -1.0), (1.0, -3.0)] |
 | DR-029 | Circular | edges do not matter: vertices order only | `U: n=3; 0-2, 2-1` | `circularLayout(center: (5, 5))` | [(6.0, 5.0), (4.5, 5.866025403784), (4.5, 4.133974596216)] |
-| DR-030 | Circular | directed graph through its undirected view | `D: n=3; 0>1` | `undirected.circularLayout()` | [(1.0, 0.0), (-0.5, 0.866025403784), (-0.5, -0.866025403784)] |
+| DR-030 | Circular | directed graph through its undirected view | `D: n=3; 0>1` | `undirectedView.circularLayout()` | [(1.0, 0.0), (-0.5, 0.866025403784), (-0.5, -0.866025403784)] |
 | DR-031 | Circular | negative radius | `U: n=3;` | `circularLayout(radius: -1)` | **trap** |
 | DR-032 | Circular | NaN centre | `U: n=3;` | `circularLayout(center: (.nan, 0))` | **trap** |
 | DR-033 | Tree | one vertex | `T: [nil]` | `reingoldTilfordLayout()` | [(0.0, 0.0)] |

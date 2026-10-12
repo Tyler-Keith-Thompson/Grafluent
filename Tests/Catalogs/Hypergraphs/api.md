@@ -65,7 +65,7 @@ To run it:
 | Counts | **`vertexCount`**, **`hyperedgeCount`** | README Terminology; XGI `num_nodes` / `num_edges` |
 | Greatest size, k-uniform | **`rank`**, **`isUniform(size:)`** (undirected) | Berge, *Hypergraphs* (1989); XGI `is_uniform` |
 | Vertices sharing a hyperedge | **`neighbors(of:)`** (undirected) | XGI `nodes.neighbors`, HyperNetX `neighbors` |
-| Bipartite vertex–hyperedge graph | **`incidenceGraph`**, a property, of type **`IncidenceGraphView<Self>`** / **`DirectedIncidenceGraphView<Self>`** | Levi graph (Berge); XGI `to_bipartite_graph` (directed for a `DiHypergraph`), SimpleHypergraphs `BipartiteView`; the repo's `undirected: UndirectedView<Self>` |
+| Bipartite vertex–hyperedge graph | **`incidenceGraphView`**, a property, of type **`IncidenceGraphView<Self>`** / **`DirectedIncidenceGraphView<Self>`** | Levi graph (Berge); XGI `to_bipartite_graph` (directed for a `DiHypergraph`), SimpleHypergraphs `BipartiteView`; the repo's `undirected: UndirectedView<Self>` |
 | Pairwise graph | **`cliqueExpansion()`**: undirected, and directed from every source to every target | XGI `to_graph` ("clique expansion"); SimpleHypergraphs and SimpleDirectedHypergraphs.jl `TwoSectionView` (2-section) |
 | Hyperedges joined by overlaps ≥ s | **`lineGraph(s:)`** (undirected) | XGI `to_line_graph(H, s)`, HyperNetX `get_linegraph`; Aksoy et al. (2020) |
 | Transpose | **`dual()`** | XGI and HyperNetX `dual()`, SimpleDirectedHypergraphs.jl `dual` (the transpose of each plane), Berge H* |
@@ -101,7 +101,7 @@ does for the graphs.
 
 ```swift
 /// An undirected hypergraph: vertices, and hyperedges that are sets of vertices of any size,
-/// the empty set included. Not a `Graph`: `incidenceGraph` reads it as one.
+/// the empty set included. Not a `Graph`: `incidenceGraphView` reads it as one.
 public protocol Hypergraph<Vertex> {
     associatedtype Vertex: Hashable
     associatedtype Vertices: Collection<Vertex>
@@ -147,7 +147,7 @@ public protocol Hypergraph<Vertex> {
 
 /// A directed hypergraph: each hyperedge is a pair of vertex sets, its sources and its targets
 /// (tail and head). Either side may be empty, and a vertex may be on both. Not a `DirectedGraph`:
-/// `incidenceGraph` reads it as one.
+/// `incidenceGraphView` reads it as one.
 public protocol DirectedHypergraph<Vertex> {
     associatedtype Vertex: Hashable
     associatedtype Vertices: Collection<Vertex>
@@ -364,7 +364,7 @@ HG-031, DH-015).
 | `isUniform(size:)` | `Bool`; vacuously true with no hyperedges; singletons and empty hyperedges count | O(m) | HG-046 – HG-050 |
 | `degreeHistogram()`, `hyperedgeSizeHistogram()` | `[Int]`: element d (k) counts the vertices of degree d (hyperedges of size k); `[]` when there are none (NetworkX's shape) | O(n), O(m) | HG-051 – HG-054 |
 | `dual()` | `UndirectedIncidenceList<Hyperedges.Index>`: vertices are the positions in order; hyperedge `i` is vertex `i`'s incidence row. `dual().dual()` is the original relabeled to indices | O(n + m + p) expected (m hashes) | HG-055 – HG-058 |
-| `incidenceGraph` | `IncidenceGraphView<Self>`, a lazy `Graph` (Views) | O(1) | HG-059 – HG-061 |
+| `incidenceGraphView` | `IncidenceGraphView<Self>`, a lazy `Graph` (Views) | O(1) | HG-059 – HG-061 |
 | `cliqueExpansion()` | `UndirectedAdjacencyList<Vertex>` with **every vertex, isolated ones too, in vertex-index order**; each pair sharing a hyperedge once, no self-loops, edges ascending by (index of u, index of v) | O(n + Σ k² + e log d). Building the result hashes each vertex once, n hashes whatever the edge count (none for the `Int`s `0..<n` in order), through a package bulk initializer of `UndirectedAdjacencyList`; through the public `init(vertices:edges:)` it would hash both ends of every edge, growing with the output | HG-062 – HG-064 |
 | `lineGraph(s:)` | `UndirectedAdjacencyList<Hyperedges.Index>` with **every position `0..<m`** as a vertex, an empty or unmatched hyperedge isolated; p–q (p < q) when they share at least s members; edges ascending by (p, q) | O(m + Σ_v d(v)²) | HG-065 – HG-068 |
 | `connectedComponents()`, `isConnected` | `[[Vertex]]` by least vertex index, each ascending; an isolated vertex alone; an empty hyperedge joins nothing. `isConnected` is **false for no vertices** (the repo's rule; XGI raises) | O(n + p α(n)) union–find | HG-069 – HG-073 |
@@ -378,9 +378,9 @@ HG-031, DH-015).
 |---|---|---|---|
 | `reversed` | On `IncidenceList` (and `OrientedIncidenceMatrix`): `Self` with every hyperedge's sources and targets swapped, Gallo's symmetric image. An involution | O(1): swaps the planes | DH-022 |
 | `dual()` | `IncidenceList<Hyperedges.Index>`: vertices are the positions; hyperedge `i` has sources `outHyperedges(ofIndex: i)` and targets `inHyperedges(ofIndex: i)`, the transpose of each plane (SimpleDirectedHypergraphs.jl's convention, and `OrientedIncidenceMatrix.transposed()`) | O(n + m + p) expected | DH-023, DH-024 |
-| `incidenceGraph` | `DirectedIncidenceGraphView<Self>`, a lazy `BidirectionalDirectedGraph` (Views) | O(1) | DH-025, DH-026 |
+| `incidenceGraphView` | `DirectedIncidenceGraphView<Self>`, a lazy `BidirectionalDirectedGraph` (Views) | O(1) | DH-025, DH-026 |
 | `weaklyConnectedComponents()`, `isWeaklyConnected` | `[[Vertex]]`: vertices joined through any side of a hyperedge, by least vertex index, each ascending. False for no vertices | O(n + p α(n)) union–find | DH-027, DH-030 |
-| `stronglyConnectedComponents()`, `isStronglyConnected` | `[[Vertex]]`: u and v together when each reaches the other along source → hyperedge → target steps (Gallo's "connected", a path in the incidence graph). The strong components of `incidenceGraph`, restricted to the vertices; same order. False for no vertices | O(n + m + p), Tarjan on the view's index rows | DH-028 – DH-030 |
+| `stronglyConnectedComponents()`, `isStronglyConnected` | `[[Vertex]]`: u and v together when each reaches the other along source → hyperedge → target steps (Gallo's "connected", a path in the incidence graph). The strong components of `incidenceGraphView`, restricted to the vertices; same order. False for no vertices | O(n + m + p), Tarjan on the view's index rows | DH-028 – DH-030 |
 | `bConnectedVertices(from: s)` | `[Vertex]`, ascending vertex index, `s` included: every vertex B-connected to `s`. Gallo's B-Visit: a hyperedge fires once **every** source has been reached, then reaches all its targets. A hyperedge with no sources is in no forward star and never fires | O(n + m + p): a counter per hyperedge | DH-031 – DH-034 |
 | `isBConnected(from:to:)` | `Bool` | B-Visit, stopping at `to` | DH-032 |
 | `fConnectedVertices(to: t)` | `[Vertex]`, ascending, `t` included: every `s` such that `t` is F-connected to `s`. Gallo: "the F-Visit must start from the destination of the F-paths to retain a linear time complexity"; it is B-Visit on the symmetric image, and `reversed.bConnectedVertices(from: t)` gives the same set | O(n + m + p) | DH-035, DH-037 |
@@ -457,10 +457,10 @@ vertices on the left, hyperedges on the right.
   rows lack the `+ n` shift: whole-graph algorithms (components, bridges) then run at an
   adjacency-list copy's speed, on the matrices too. The directed view offers no
   `_withSuccessorIndexRows`, whose contract needs edge positions in row order.
-- **`BipartiteGraph`.** `BipartiteGraph(h.incidenceGraph, left: 0 ..< h.vertexCount)` builds one
+- **`BipartiteGraph`.** `BipartiteGraph(h.incidenceGraphView, left: 0 ..< h.vertexCount)` builds one
   through the existing failable initializer. The undirected view is always simple.
 - **Reachability.** Plain directed reachability ("connected" in Gallo et al.) is
-  `h.incidenceGraph.descendants(of: i)` filtered to `0..<n`, so phase 1 adds no separate member.
+  `h.incidenceGraphView.descendants(of: i)` filtered to `0..<n`, so phase 1 adds no separate member.
 - **The expansions and the line graph are materialized**, not views. A lazy `neighbors(of:)` would
   need a scratch set per call; they are lossy and quadratic (one hyperedge of 10⁴ members is
   5·10⁷ edges).
@@ -520,7 +520,7 @@ references. Previous run on the development machine (Python 3.12):
 |---|---|
 | Build from nested arrays | ≤ 1.6× `CompressedSparseRow(edges:)` on p edges (retargeted from 1.3×, see below). At least 50× XGI's build |
 | `memberIndices`, `sourceIndices`, `incidentHyperedges(ofIndex:)`, `outHyperedges(ofIndex:)` | an `ArraySlice` and a lazy map over one: no allocation, no hashing |
-| BFS and components on `incidenceGraph` (both views) | ≤ 1.10× the same call on an adjacency-list copy of the view |
+| BFS and components on `incidenceGraphView` (both views) | ≤ 1.10× the same call on an adjacency-list copy of the view |
 | `connectedComponents()`, `weaklyConnectedComponents()` | ≤ 1.2× a bare union–find over the rows. At least 100× XGI |
 | `stronglyConnectedComponents()` | ≤ 1.2× `Connectivity`'s on a `CompressedSparseRow` copy of the view |
 | `bConnectedVertices(from:)` | one counter array of m `Int`s and one queue; O(n + m + p); at least 50× halp's `b_visit` |
@@ -601,7 +601,7 @@ in; measured 19 against 11 ms (1.7×) at load average 70, and 2.2× before them.
    (HIF has a directed form).
 10. **Components result type.** `Connectivity`'s `Components<G>` is tied to a graph.
    *Recommendation:* `[[Vertex]]` in phase 1, a shared partition type in the final reuse pass.
-   `h.incidenceGraph.stronglyConnectedComponents()` already gives `Components` today, hyperedge
+   `h.incidenceGraphView.stronglyConnectedComponents()` already gives `Components` today, hyperedge
    vertices included.
 11. **Dependencies.** `Hypergraphs` depends on `GraphProtocols`, `AdjacencyListModule` (`_RowPool`,
     and the adjacency lists the expansions return), `DisjointSetModule` and `OrderedCollections`.

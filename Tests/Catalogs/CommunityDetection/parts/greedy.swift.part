@@ -17,6 +17,6 @@
         let w: [Double] = [1, 1, 1, 1, 1, 1, 0]
         let result = graph.greedyModularityCommunities(weight: { w[$0] }, resolution: 0)
         #expect(result.map { Array($0) } == [[0, 1, 2, 3, 4, 5]])
-        let arcs = graph.directed.greedyModularityCommunities(weight: { w[$0.position] }, resolution: 0)
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.greedyModularityCommunities(weight: { w[$0.position] }, resolution: 0)
+        #expect(arcs == result, "graph.directedView")
     }

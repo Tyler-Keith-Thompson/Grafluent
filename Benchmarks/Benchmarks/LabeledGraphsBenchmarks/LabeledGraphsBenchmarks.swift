@@ -81,9 +81,9 @@ let benchmarks: @Sendable () -> Void = {
         ("matrix stronglyConnectedComponents", hashes { blackHole(countedMatrix.stronglyConnectedComponents().count) }),
         ("matrix weaklyConnectedComponents", hashes { blackHole(countedMatrix.weaklyConnectedComponents().count) }),
         ("matrix dijkstraShortestPaths", hashes { blackHole(countedMatrix.dijkstraShortestPaths(from: source, weight: cellWeight)) }),
-        ("matrix.undirected kruskalMinimumSpanningTree", hashes { blackHole(countedMatrix.undirected.kruskalMinimumSpanningTree(weight: cellWeight)) }),
-        ("matrix.undirected boruvkaMinimumSpanningTree", hashes { blackHole(countedMatrix.undirected.boruvkaMinimumSpanningTree(weight: cellWeight)) }),
-        ("matrix.undirected minimumSpanningTree", hashes { blackHole(countedMatrix.undirected.minimumSpanningTree()) }),
+        ("matrix.undirectedView kruskalMinimumSpanningTree", hashes { blackHole(countedMatrix.undirectedView.kruskalMinimumSpanningTree(weight: cellWeight)) }),
+        ("matrix.undirectedView boruvkaMinimumSpanningTree", hashes { blackHole(countedMatrix.undirectedView.boruvkaMinimumSpanningTree(weight: cellWeight)) }),
+        ("matrix.undirectedView minimumSpanningTree", hashes { blackHole(countedMatrix.undirectedView.minimumSpanningTree()) }),
     ] {
         precondition(count <= 4, "\(name) hashed \(count) labels")
     }
@@ -164,17 +164,17 @@ let benchmarks: @Sendable () -> Void = {
 
     // MARK: Spanning trees over the undirected view (no edge indices on the matrix)
 
-    Benchmark("LabeledGraphs: BASELINE kruskalMinimumSpanningTree on AdjacencyMatrix.undirected") { benchmark in
-        for _ in benchmark.scaledIterations { blackHole(matrix.undirected.kruskalMinimumSpanningTree(weight: cellWeight)) }
+    Benchmark("LabeledGraphs: BASELINE kruskalMinimumSpanningTree on AdjacencyMatrix.undirectedView") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(matrix.undirectedView.kruskalMinimumSpanningTree(weight: cellWeight)) }
     }
-    Benchmark("LabeledGraphs: kruskalMinimumSpanningTree on LabeledGraph<String, AdjacencyMatrix>.undirected") { benchmark in
-        for _ in benchmark.scaledIterations { blackHole(labeledMatrix.undirected.kruskalMinimumSpanningTree(weight: cellWeight)) }
+    Benchmark("LabeledGraphs: kruskalMinimumSpanningTree on LabeledGraph<String, AdjacencyMatrix>.undirectedView") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(labeledMatrix.undirectedView.kruskalMinimumSpanningTree(weight: cellWeight)) }
     }
-    Benchmark("LabeledGraphs: BASELINE boruvkaMinimumSpanningTree on AdjacencyMatrix.undirected") { benchmark in
-        for _ in benchmark.scaledIterations { blackHole(matrix.undirected.boruvkaMinimumSpanningTree(weight: cellWeight)) }
+    Benchmark("LabeledGraphs: BASELINE boruvkaMinimumSpanningTree on AdjacencyMatrix.undirectedView") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(matrix.undirectedView.boruvkaMinimumSpanningTree(weight: cellWeight)) }
     }
-    Benchmark("LabeledGraphs: boruvkaMinimumSpanningTree on LabeledGraph<String, AdjacencyMatrix>.undirected") { benchmark in
-        for _ in benchmark.scaledIterations { blackHole(labeledMatrix.undirected.boruvkaMinimumSpanningTree(weight: cellWeight)) }
+    Benchmark("LabeledGraphs: boruvkaMinimumSpanningTree on LabeledGraph<String, AdjacencyMatrix>.undirectedView") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(labeledMatrix.undirectedView.boruvkaMinimumSpanningTree(weight: cellWeight)) }
     }
 
     // MARK: Label-space neighbor reads

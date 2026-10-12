@@ -9,7 +9,7 @@
 // partition row also checks `count`, `community(of:)` against membership, `community(ofIndex:)`
 // against `community(of:)`, and the modularity of the result (at the call's weight and resolution)
 // against ref.py's; undirected rows of the measures, Louvain and greedy modularity also run on
-// `graph.directed` (the same values). Case IDs (CD-nnn) refer to the catalog; see README.md.
+// `graph.directedView` (the same values). Case IDs (CD-nnn) refer to the catalog; see README.md.
 
 import CommunityDetection
 import GrafluentTestSupport

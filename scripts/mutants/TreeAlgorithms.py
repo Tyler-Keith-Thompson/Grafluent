@@ -50,4 +50,17 @@ MUTANTS = [
     Mutant("decompfirst", "Centroid.swift", "centroid < 0 || x < centroid", "true"),
     Mutant("decomphalf", "Centroid.swift", "2 * largest <= m", "2 * largest <= m + 2"),
     Mutant("decomprest", "Centroid.swift", "m - size[x]", "0"),
+
+    # The checked: spellings: each one's own reading after the lookup (Trees' `checkednumber`
+    # covers the lookup).
+    Mutant("checkedclimbrooted", "LowestCommonAncestor.swift", "_climbingLowestCommonAncestor(_layout, x, y)", "_climbingLowestCommonAncestor(_layout, x, x)", nth=0),
+    Mutant("checkedclimbarb", "LowestCommonAncestor.swift", "_climbingLowestCommonAncestor(_layout, x, y)", "_climbingLowestCommonAncestor(_layout, y, y)", nth=1),
+    Mutant("checkedlcas", "LowestCommonAncestor.swift", "lowestCommonAncestor(ofIndex: x, y)", "lowestCommonAncestor(ofIndex: x, x)"),
+    Mutant("checkedlcasdistance", "LowestCommonAncestor.swift", "distance(fromIndex: x, toIndex: y)", "distance(fromIndex: x, toIndex: x)"),
+    Mutant("checkedheavy", "HeavyLightDecomposition.swift", "_layout.vertices[$0]", "_layout.vertices[0]", nth=1),
+    Mutant("checkedhead", "HeavyLightDecomposition.swift", "        _layout.vertices[_head[try _layout.checkedNumber(of: vertex)]]", "        _layout.vertices[try _layout.checkedNumber(of: vertex)]", mode="stmt"),
+    Mutant("checkedposition", "HeavyLightDecomposition.swift", "        _position[try _layout.checkedNumber(of: vertex)]", "        _head[try _layout.checkedNumber(of: vertex)]", mode="stmt"),
+    Mutant("checkedsubtree", "HeavyLightDecomposition.swift", "        subtree(ofIndex: try _layout.checkedNumber(of: vertex))", "        subtree(ofIndex: 0)", mode="stmt"),
+    Mutant("checkedhldlca", "HeavyLightDecomposition.swift", "lowestCommonAncestor(ofIndex: x, y)", "lowestCommonAncestor(ofIndex: y, y)"),
+    Mutant("checkedsegments", "HeavyLightDecomposition.swift", "        return segments(fromIndex: x, toIndex: y, includingCommonAncestor: includingCommonAncestor)", "        return segments(fromIndex: x, toIndex: y, includingCommonAncestor: true)", mode="stmt"),
 ]

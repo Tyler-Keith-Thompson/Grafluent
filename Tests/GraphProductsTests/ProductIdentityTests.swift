@@ -12,11 +12,11 @@ import Testing
 struct ProductIdentityTests {
     @Test("GP-057 P2 □ P3 is grid(2, 3): vertex (i, j) at i·3 + j")
     func gp057() {
-        // G = UL V [0, 1]; E [0–1]; H = UL V [0, 1, 2]; E [0–1, 1–2] / cartesianProduct(G, H)
+        // G = UL V [0, 1]; E [0–1]; H = UL V [0, 1, 2]; E [0–1, 1–2] / cartesianProductView(G, H)
         // → V [(0,0)#0, (0,1)#1, (0,2)#2, (1,0)#3, (1,1)#4, (1,2)#5]; edgeCount 7; bounds 6/7; rows [(0,0): (1,0) (0,1); (0,1): (1,1) (0,0) (0,2); (0,2): (1,2) (0,1); (1,0): (0,0) (1,1); (1,1): (0,1) (1,0) (1,2); (1,2): (0,2) (1,1)]; index-space edges equal NamedGraphs grid(dimensions: [2, 3]): true
         let g = UndirectedAdjacencyList<String>(vertices: ["0", "1"], edges: [UndirectedEdge("0", "1")])
         let h = UndirectedAdjacencyList<String>(vertices: ["0", "1", "2"], edges: [UndirectedEdge("0", "1"), UndirectedEdge("1", "2")])
-        let product = cartesianProduct(g, h)
+        let product = cartesianProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("0", "0"), Pair("0", "1"), Pair("0", "2"), Pair("1", "0"), Pair("1", "1"), Pair("1", "2")])
@@ -87,11 +87,11 @@ struct ProductIdentityTests {
 
     @Test("GP-058 K2 □ K2 □ K2 nests: Q3 has 12 edges (cube)")
     func gp058() {
-        // G = UL V [a, b]; E [a–b]; H = UL V [x, y]; E [x–y] / cartesianProduct(G, H)
+        // G = UL V [a, b]; E [a–b]; H = UL V [x, y]; E [x–y] / cartesianProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3]; edgeCount 4; bounds 4/4; nested with K2: edgeCount 12
         let g = UndirectedAdjacencyList<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b")])
         let h = UndirectedAdjacencyList<String>(vertices: ["x", "y"], edges: [UndirectedEdge("x", "y")])
-        let product = cartesianProduct(g, h)
+        let product = cartesianProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y")])
@@ -138,7 +138,7 @@ struct ProductIdentityTests {
         #expect(product.vertices.flatMap { u in product.vertices.map { v in product.contains(edge: UndirectedEdge(u, v)) } } == [false, true, true, false, true, false, false, true, true, false, false, true, false, true, true, false])
         // Nesting: vertex ((i, j), k) has index (i·|H| + j)·2 + k.
         let k2 = UndirectedAdjacencyList<String>(vertices: ["0", "1"], edges: [UndirectedEdge("0", "1")])
-        let cube = cartesianProduct(product, k2)
+        let cube = cartesianProductView(product, k2)
         #expect(cube.edgeCount == 12 && cube.vertexIndexBound == 8 && cube.edges.count == 12)
         #expect(Array(cube.vertices) == [Pair(Pair("a", "x"), "0"), Pair(Pair("a", "x"), "1"), Pair(Pair("a", "y"), "0"), Pair(Pair("a", "y"), "1"), Pair(Pair("b", "x"), "0"), Pair(Pair("b", "x"), "1"), Pair(Pair("b", "y"), "0"), Pair(Pair("b", "y"), "1")])
         #expect(cube.vertices.map { cube.vertexIndex(of: $0) } == [0, 1, 2, 3, 4, 5, 6, 7])
@@ -148,11 +148,11 @@ struct ProductIdentityTests {
 
     @Test("GP-059 K2 × C3 is C6 (bipartite double cover)")
     func gp059() {
-        // G = UL V [a, b]; E [a–b]; H = UL V [x, y, z]; E [x–y, y–z, z–x] / tensorProduct(G, H)
+        // G = UL V [a, b]; E [a–b]; H = UL V [x, y, z]; E [x–y, y–z, z–x] / tensorProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (a,z)#2, (b,x)#3, (b,y)#4, (b,z)#5]; E [G0×H0:(a,x)–(b,y), G0×H0':(a,y)–(b,x), G0×H1:(a,y)–(b,z), G0×H1':(a,z)–(b,y), G0×H2:(a,z)–(b,x), G0×H2':(a,x)–(b,z)]; edgeCount 6; bounds 6/nil; rows [(a,x): (b,y) (b,z); (a,y): (b,x) (b,z); (a,z): (b,y) (b,x); (b,x): (a,y) (a,z); (b,y): (a,x) (a,z); (b,z): (a,y) (a,x)]
         let g = UndirectedAdjacencyList<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b")])
         let h = UndirectedAdjacencyList<String>(vertices: ["x", "y", "z"], edges: [UndirectedEdge("x", "y"), UndirectedEdge("y", "z"), UndirectedEdge("z", "x")])
-        let product = tensorProduct(g, h)
+        let product = tensorProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("a", "z"), Pair("b", "x"), Pair("b", "y"), Pair("b", "z")])
@@ -208,11 +208,11 @@ struct ProductIdentityTests {
 
     @Test("GP-060 K2 × K2 is two disjoint edges")
     func gp060() {
-        // G = UL V [a, b]; E [a–b]; H = UL V [x, y]; E [x–y] / tensorProduct(G, H)
+        // G = UL V [a, b]; E [a–b]; H = UL V [x, y]; E [x–y] / tensorProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3]; E [G0×H0:(a,x)–(b,y), G0×H0':(a,y)–(b,x)]; edgeCount 2; bounds 4/nil
         let g = UndirectedAdjacencyList<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b")])
         let h = UndirectedAdjacencyList<String>(vertices: ["x", "y"], edges: [UndirectedEdge("x", "y")])
-        let product = tensorProduct(g, h)
+        let product = tensorProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y")])
@@ -256,11 +256,11 @@ struct ProductIdentityTests {
 
     @Test("GP-061 K2 ⊠ K2 is K4")
     func gp061() {
-        // G = UL V [a, b]; E [a–b]; H = UL V [x, y]; E [x–y] / strongProduct(G, H)
+        // G = UL V [a, b]; E [a–b]; H = UL V [x, y]; E [x–y] / strongProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3]; E [G0·0:(a,x)–(b,x), G0·1:(a,y)–(b,y), 0·H0:(a,x)–(a,y), 1·H0:(b,x)–(b,y), G0×H0:(a,x)–(b,y), G0×H0':(a,y)–(b,x)]; edgeCount 6; bounds 4/nil
         let g = UndirectedAdjacencyList<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b")])
         let h = UndirectedAdjacencyList<String>(vertices: ["x", "y"], edges: [UndirectedEdge("x", "y")])
-        let product = strongProduct(g, h)
+        let product = strongProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y")])
@@ -304,11 +304,11 @@ struct ProductIdentityTests {
 
     @Test("GP-062 K2 ∘ edgeless 2 is C4 (K2,2)")
     func gp062() {
-        // G = UL V [a, b]; E [a–b]; H = UL V [x, y]; E [] / lexicographicProduct(G, H)
+        // G = UL V [a, b]; E [a–b]; H = UL V [x, y]; E [] / lexicographicProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3]; E [G0·00:(a,x)–(b,x), G0·01:(a,x)–(b,y), G0·10:(a,y)–(b,x), G0·11:(a,y)–(b,y)]; edgeCount 4; bounds 4/nil; rows [(a,x): (b,x) (b,y); (a,y): (b,x) (b,y); (b,x): (a,x) (a,y); (b,y): (a,x) (a,y)]
         let g = UndirectedAdjacencyList<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b")])
         let h = UndirectedAdjacencyList<String>(vertices: ["x", "y"], edges: [] as [UndirectedEdge<String>])
-        let product = lexicographicProduct(g, h)
+        let product = lexicographicProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y")])
@@ -352,11 +352,11 @@ struct ProductIdentityTests {
 
     @Test("GP-063 edgeless 2 ∘ K2 is two disjoint edges")
     func gp063() {
-        // G = UL V [a, b]; E []; H = UL V [x, y]; E [x–y] / lexicographicProduct(G, H)
+        // G = UL V [a, b]; E []; H = UL V [x, y]; E [x–y] / lexicographicProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3]; E [0·H0:(a,x)–(a,y), 1·H0:(b,x)–(b,y)]; edgeCount 2; bounds 4/nil
         let g = UndirectedAdjacencyList<String>(vertices: ["a", "b"], edges: [] as [UndirectedEdge<String>])
         let h = UndirectedAdjacencyList<String>(vertices: ["x", "y"], edges: [UndirectedEdge("x", "y")])
-        let product = lexicographicProduct(g, h)
+        let product = lexicographicProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y")])
@@ -400,11 +400,11 @@ struct ProductIdentityTests {
 
     @Test("GP-064 lexicographic is not commutative: P3 ∘ K2 has 11 edges, K2 ∘ P3 has 13")
     func gp064() {
-        // G = UL V [a, b, c]; E [a–b, b–c]; H = UL V [x, y]; E [x–y] / lexicographicProduct(G, H)
+        // G = UL V [a, b, c]; E [a–b, b–c]; H = UL V [x, y]; E [x–y] / lexicographicProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3, (c,x)#4, (c,y)#5]; edgeCount 11; bounds 6/nil; swapped edgeCount 13
         let g = UndirectedAdjacencyList<String>(vertices: ["a", "b", "c"], edges: [UndirectedEdge("a", "b"), UndirectedEdge("b", "c")])
         let h = UndirectedAdjacencyList<String>(vertices: ["x", "y"], edges: [UndirectedEdge("x", "y")])
-        let product = lexicographicProduct(g, h)
+        let product = lexicographicProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y"), Pair("c", "x"), Pair("c", "y")])
@@ -457,7 +457,7 @@ struct ProductIdentityTests {
         // contains(edge:) for every ordered pair, row-major by index.
         #expect(product.vertices.flatMap { u in product.vertices.map { v in product.contains(edge: UndirectedEdge(u, v)) } } == [false, true, true, true, false, false, true, false, true, true, false, false, true, true, false, true, true, true, true, true, true, false, true, true, false, false, true, true, false, true, false, false, true, true, true, false])
         // Swapped: K2 ∘ P3.
-        let swapped = lexicographicProduct(h, g)
+        let swapped = lexicographicProductView(h, g)
         #expect(swapped.edgeCount == 13 && swapped.edges.count == 13)
     }
 }

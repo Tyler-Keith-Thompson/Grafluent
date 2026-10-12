@@ -12,7 +12,7 @@ extension Graph {
     /// Arcs keep the edge's identity: the arc at `(position, reversed: false)` goes from
     /// `edges[position].u` to `.v`, and `reversed: true` the other way.
     @inlinable
-    public var directed: DirectedView<Self> { DirectedView(base: self) }
+    public var directedView: DirectedView<Self> { DirectedView(base: self) }
 }
 
 extension BidirectionalDirectedGraph {
@@ -22,7 +22,7 @@ extension BidirectionalDirectedGraph {
     /// `UndirectedAdjacencyList` does), and a self-loop is a loop of degree 2. O(1); a value
     /// holding a copy of the graph.
     @inlinable
-    public var undirected: UndirectedView<Self> { UndirectedView(base: self) }
+    public var undirectedView: UndirectedView<Self> { UndirectedView(base: self) }
 }
 
 // MARK: - DirectedView

@@ -4,7 +4,7 @@
 // transitivity and average clustering 0 (NetworkX raises on the average; igraph gives NaN). An
 // isolated vertex is a clique of one; a loop and parallel copies are ignored by every op. Each
 // test also checks the one-shot calls against the members of the returned value and the same op on
-// `graph.directed.undirected` (every edge as two arcs, read back as two parallel edges). Every
+// `graph.directedView.undirectedView` (every edge as two arcs, read back as two parallel edges). Every
 // literal is a catalog cell (`ref.py`: api.md's model, brute force, NetworkX 3.7). CQ-068 and
 // CQ-069 (preconditions) are exit tests in `CliquePreconditionTests.swift`. Case IDs (CQ-nnn) refer
 // to the catalog; see README.md.
@@ -30,7 +30,7 @@ struct DegenerateGraphTests {
             let extenders = graph.vertices.filter { w in !clique.contains(w) && clique.allSatisfy { graph.contains(edge: UndirectedEdge(w, $0)) } }
             #expect(extenders.isEmpty, "\(clique) is not maximal")
         }
-        let viaArcs = Array(graph.directed.undirected.maximalCliques())
+        let viaArcs = Array(graph.directedView.undirectedView.maximalCliques())
         #expect(Set(viaArcs) == Set(expected))
         #expect(viaArcs.count == expected.count)
     }
@@ -42,7 +42,7 @@ struct DegenerateGraphTests {
         let expected: [Int] = []
         #expect(graph.maximumClique() == expected)
         #expect(graph.cliqueNumber() == expected.count)
-        #expect(graph.directed.undirected.maximumClique() == expected)
+        #expect(graph.directedView.undirectedView.maximumClique() == expected)
     }
 
     @Test("CQ-003 U([]).cliqueNumber is #0")
@@ -53,7 +53,7 @@ struct DegenerateGraphTests {
         #expect(graph.maximumClique().count == 0)
         let degeneracy = graph.coreNumbers().degeneracy
         #expect(0 <= degeneracy + 1)
-        #expect(graph.directed.undirected.cliqueNumber() == 0)
+        #expect(graph.directedView.undirectedView.cliqueNumber() == 0)
     }
 
     @Test("CQ-004 U([]).coreNumbers is []")
@@ -67,7 +67,7 @@ struct DegenerateGraphTests {
         let byVertex = graph.vertices.map { cores.coreNumber(of: $0) }
         #expect(byVertex == expected)
         #expect(cores.degeneracy == (expected.max() ?? 0))
-        let view = graph.directed.undirected.coreNumbers()
+        let view = graph.directedView.undirectedView.coreNumbers()
         let viaArcs = (0 ..< graph.vertexCount).map { view.coreNumber(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -81,7 +81,7 @@ struct DegenerateGraphTests {
         let byIndex = (0 ..< graph.vertexCount).map { cores.coreNumber(ofIndex: $0) }
         #expect((byIndex.max() ?? 0) == 0)
         #expect(graph.cliqueNumber() <= 0 + 1)
-        #expect(graph.directed.undirected.coreNumbers().degeneracy == 0)
+        #expect(graph.directedView.undirectedView.coreNumbers().degeneracy == 0)
     }
 
     @Test("CQ-006 U([]).degeneracyOrdering is []")
@@ -91,7 +91,7 @@ struct DegenerateGraphTests {
         let expected: [Int] = []
         let cores = graph.coreNumbers()
         #expect(cores.degeneracyOrdering == expected)
-        #expect(graph.directed.undirected.coreNumbers().degeneracyOrdering == expected)
+        #expect(graph.directedView.undirectedView.coreNumbers().degeneracyOrdering == expected)
         // At most its own core number of neighbours after each vertex, and core numbers never decrease.
         for (i, v) in expected.enumerated() {
             let later = expected[(i + 1)...].filter { graph.contains(edge: UndirectedEdge(v, $0)) }
@@ -110,7 +110,7 @@ struct DegenerateGraphTests {
         #expect(values.triangleCount == 0)
         let perVertex = (0 ..< graph.vertexCount).map { values.triangleCount(ofIndex: $0) }
         #expect(perVertex.reduce(0, +) == 3 * 0)
-        #expect(graph.directed.undirected.triangleCount() == 0)
+        #expect(graph.directedView.undirectedView.triangleCount() == 0)
     }
 
     @Test("CQ-008 U([]).clusteringCoefficients is []")
@@ -127,7 +127,7 @@ struct DegenerateGraphTests {
         #expect(oneByOne == expected)
         #expect(values.transitivity == graph.transitivity())
         #expect(values.averageClustering == graph.averageClustering())
-        let view = graph.directed.undirected.clusteringCoefficients()
+        let view = graph.directedView.undirectedView.clusteringCoefficients()
         let viaArcs = (0 ..< graph.vertexCount).map { view.clusteringCoefficient(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -138,7 +138,7 @@ struct DegenerateGraphTests {
         let graph = ReferencePseudograph<Int>(vertices: [], edges: [])
         #expect(graph.transitivity() == 0.0)
         #expect(graph.clusteringCoefficients().transitivity == 0.0)
-        #expect(graph.directed.undirected.transitivity() == 0.0)
+        #expect(graph.directedView.undirectedView.transitivity() == 0.0)
     }
 
     @Test("CQ-010 U([]).averageClustering is #0.0")
@@ -147,7 +147,7 @@ struct DegenerateGraphTests {
         let graph = ReferencePseudograph<Int>(vertices: [], edges: [])
         #expect(graph.averageClustering() == 0.0)
         #expect(graph.clusteringCoefficients().averageClustering == 0.0)
-        #expect(graph.directed.undirected.averageClustering() == 0.0)
+        #expect(graph.directedView.undirectedView.averageClustering() == 0.0)
     }
 
     @Test("CQ-011 U([0]).maximalCliques is [[0]]: K₁")
@@ -164,7 +164,7 @@ struct DegenerateGraphTests {
             let extenders = graph.vertices.filter { w in !clique.contains(w) && clique.allSatisfy { graph.contains(edge: UndirectedEdge(w, $0)) } }
             #expect(extenders.isEmpty, "\(clique) is not maximal")
         }
-        let viaArcs = Array(graph.directed.undirected.maximalCliques())
+        let viaArcs = Array(graph.directedView.undirectedView.maximalCliques())
         #expect(Set(viaArcs) == Set(expected))
         #expect(viaArcs.count == expected.count)
     }
@@ -176,7 +176,7 @@ struct DegenerateGraphTests {
         let expected: [Int] = [0]
         #expect(graph.maximumClique() == expected)
         #expect(graph.cliqueNumber() == expected.count)
-        #expect(graph.directed.undirected.maximumClique() == expected)
+        #expect(graph.directedView.undirectedView.maximumClique() == expected)
     }
 
     @Test("CQ-013 U([0]).cliqueNumber is #1")
@@ -187,7 +187,7 @@ struct DegenerateGraphTests {
         #expect(graph.maximumClique().count == 1)
         let degeneracy = graph.coreNumbers().degeneracy
         #expect(1 <= degeneracy + 1)
-        #expect(graph.directed.undirected.cliqueNumber() == 1)
+        #expect(graph.directedView.undirectedView.cliqueNumber() == 1)
     }
 
     @Test("CQ-014 U([0]).coreNumbers is [0]")
@@ -201,7 +201,7 @@ struct DegenerateGraphTests {
         let byVertex = graph.vertices.map { cores.coreNumber(of: $0) }
         #expect(byVertex == expected)
         #expect(cores.degeneracy == (expected.max() ?? 0))
-        let view = graph.directed.undirected.coreNumbers()
+        let view = graph.directedView.undirectedView.coreNumbers()
         let viaArcs = (0 ..< graph.vertexCount).map { view.coreNumber(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -215,7 +215,7 @@ struct DegenerateGraphTests {
         let byIndex = (0 ..< graph.vertexCount).map { cores.coreNumber(ofIndex: $0) }
         #expect((byIndex.max() ?? 0) == 0)
         #expect(graph.cliqueNumber() <= 0 + 1)
-        #expect(graph.directed.undirected.coreNumbers().degeneracy == 0)
+        #expect(graph.directedView.undirectedView.coreNumbers().degeneracy == 0)
     }
 
     @Test("CQ-016 U([0]).degeneracyOrdering is [0]")
@@ -225,7 +225,7 @@ struct DegenerateGraphTests {
         let expected: [Int] = [0]
         let cores = graph.coreNumbers()
         #expect(cores.degeneracyOrdering == expected)
-        #expect(graph.directed.undirected.coreNumbers().degeneracyOrdering == expected)
+        #expect(graph.directedView.undirectedView.coreNumbers().degeneracyOrdering == expected)
         // At most its own core number of neighbours after each vertex, and core numbers never decrease.
         for (i, v) in expected.enumerated() {
             let later = expected[(i + 1)...].filter { graph.contains(edge: UndirectedEdge(v, $0)) }
@@ -244,7 +244,7 @@ struct DegenerateGraphTests {
         #expect(values.triangleCount == 0)
         let perVertex = (0 ..< graph.vertexCount).map { values.triangleCount(ofIndex: $0) }
         #expect(perVertex.reduce(0, +) == 3 * 0)
-        #expect(graph.directed.undirected.triangleCount() == 0)
+        #expect(graph.directedView.undirectedView.triangleCount() == 0)
     }
 
     @Test("CQ-018 U([0]).clusteringCoefficients is [0.0]")
@@ -261,7 +261,7 @@ struct DegenerateGraphTests {
         #expect(oneByOne == expected)
         #expect(values.transitivity == graph.transitivity())
         #expect(values.averageClustering == graph.averageClustering())
-        let view = graph.directed.undirected.clusteringCoefficients()
+        let view = graph.directedView.undirectedView.clusteringCoefficients()
         let viaArcs = (0 ..< graph.vertexCount).map { view.clusteringCoefficient(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -272,7 +272,7 @@ struct DegenerateGraphTests {
         let graph = ReferencePseudograph<Int>(vertices: [0], edges: [])
         #expect(graph.transitivity() == 0.0)
         #expect(graph.clusteringCoefficients().transitivity == 0.0)
-        #expect(graph.directed.undirected.transitivity() == 0.0)
+        #expect(graph.directedView.undirectedView.transitivity() == 0.0)
     }
 
     @Test("CQ-020 U([0]).averageClustering is #0.0")
@@ -281,7 +281,7 @@ struct DegenerateGraphTests {
         let graph = ReferencePseudograph<Int>(vertices: [0], edges: [])
         #expect(graph.averageClustering() == 0.0)
         #expect(graph.clusteringCoefficients().averageClustering == 0.0)
-        #expect(graph.directed.undirected.averageClustering() == 0.0)
+        #expect(graph.directedView.undirectedView.averageClustering() == 0.0)
     }
 
     @Test("CQ-021 U([0] 0-0).maximalCliques is [[0]]: K₁ with a self-loop: the loop is ignored by every op")
@@ -299,7 +299,7 @@ struct DegenerateGraphTests {
             let extenders = graph.vertices.filter { w in !clique.contains(w) && clique.allSatisfy { graph.contains(edge: UndirectedEdge(w, $0)) } }
             #expect(extenders.isEmpty, "\(clique) is not maximal")
         }
-        let viaArcs = Array(graph.directed.undirected.maximalCliques())
+        let viaArcs = Array(graph.directedView.undirectedView.maximalCliques())
         #expect(Set(viaArcs) == Set(expected))
         #expect(viaArcs.count == expected.count)
     }
@@ -312,7 +312,7 @@ struct DegenerateGraphTests {
         let expected: [Int] = [0]
         #expect(graph.maximumClique() == expected)
         #expect(graph.cliqueNumber() == expected.count)
-        #expect(graph.directed.undirected.maximumClique() == expected)
+        #expect(graph.directedView.undirectedView.maximumClique() == expected)
     }
 
     @Test("CQ-023 U([0] 0-0).cliqueNumber is #1")
@@ -324,7 +324,7 @@ struct DegenerateGraphTests {
         #expect(graph.maximumClique().count == 1)
         let degeneracy = graph.coreNumbers().degeneracy
         #expect(1 <= degeneracy + 1)
-        #expect(graph.directed.undirected.cliqueNumber() == 1)
+        #expect(graph.directedView.undirectedView.cliqueNumber() == 1)
     }
 
     @Test("CQ-024 U([0] 0-0).coreNumbers is [0]")
@@ -339,7 +339,7 @@ struct DegenerateGraphTests {
         let byVertex = graph.vertices.map { cores.coreNumber(of: $0) }
         #expect(byVertex == expected)
         #expect(cores.degeneracy == (expected.max() ?? 0))
-        let view = graph.directed.undirected.coreNumbers()
+        let view = graph.directedView.undirectedView.coreNumbers()
         let viaArcs = (0 ..< graph.vertexCount).map { view.coreNumber(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -354,7 +354,7 @@ struct DegenerateGraphTests {
         let byIndex = (0 ..< graph.vertexCount).map { cores.coreNumber(ofIndex: $0) }
         #expect((byIndex.max() ?? 0) == 0)
         #expect(graph.cliqueNumber() <= 0 + 1)
-        #expect(graph.directed.undirected.coreNumbers().degeneracy == 0)
+        #expect(graph.directedView.undirectedView.coreNumbers().degeneracy == 0)
     }
 
     @Test("CQ-026 U([0] 0-0).degeneracyOrdering is [0]")
@@ -365,7 +365,7 @@ struct DegenerateGraphTests {
         let expected: [Int] = [0]
         let cores = graph.coreNumbers()
         #expect(cores.degeneracyOrdering == expected)
-        #expect(graph.directed.undirected.coreNumbers().degeneracyOrdering == expected)
+        #expect(graph.directedView.undirectedView.coreNumbers().degeneracyOrdering == expected)
         // At most its own core number of neighbours after each vertex, and core numbers never decrease.
         for (i, v) in expected.enumerated() {
             let later = expected[(i + 1)...].filter { graph.contains(edge: UndirectedEdge(v, $0)) }
@@ -385,7 +385,7 @@ struct DegenerateGraphTests {
         #expect(values.triangleCount == 0)
         let perVertex = (0 ..< graph.vertexCount).map { values.triangleCount(ofIndex: $0) }
         #expect(perVertex.reduce(0, +) == 3 * 0)
-        #expect(graph.directed.undirected.triangleCount() == 0)
+        #expect(graph.directedView.undirectedView.triangleCount() == 0)
     }
 
     @Test("CQ-028 U([0] 0-0).clusteringCoefficients is [0.0]")
@@ -403,7 +403,7 @@ struct DegenerateGraphTests {
         #expect(oneByOne == expected)
         #expect(values.transitivity == graph.transitivity())
         #expect(values.averageClustering == graph.averageClustering())
-        let view = graph.directed.undirected.clusteringCoefficients()
+        let view = graph.directedView.undirectedView.clusteringCoefficients()
         let viaArcs = (0 ..< graph.vertexCount).map { view.clusteringCoefficient(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -415,7 +415,7 @@ struct DegenerateGraphTests {
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.transitivity() == 0.0)
         #expect(graph.clusteringCoefficients().transitivity == 0.0)
-        #expect(graph.directed.undirected.transitivity() == 0.0)
+        #expect(graph.directedView.undirectedView.transitivity() == 0.0)
     }
 
     @Test("CQ-030 U([0] 0-0).averageClustering is #0.0")
@@ -425,7 +425,7 @@ struct DegenerateGraphTests {
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.averageClustering() == 0.0)
         #expect(graph.clusteringCoefficients().averageClustering == 0.0)
-        #expect(graph.directed.undirected.averageClustering() == 0.0)
+        #expect(graph.directedView.undirectedView.averageClustering() == 0.0)
     }
 
     @Test("CQ-031 U([0, 1]).maximalCliques is [[0], [1]]: Two isolated vertices")
@@ -442,7 +442,7 @@ struct DegenerateGraphTests {
             let extenders = graph.vertices.filter { w in !clique.contains(w) && clique.allSatisfy { graph.contains(edge: UndirectedEdge(w, $0)) } }
             #expect(extenders.isEmpty, "\(clique) is not maximal")
         }
-        let viaArcs = Array(graph.directed.undirected.maximalCliques())
+        let viaArcs = Array(graph.directedView.undirectedView.maximalCliques())
         #expect(Set(viaArcs) == Set(expected))
         #expect(viaArcs.count == expected.count)
     }
@@ -454,7 +454,7 @@ struct DegenerateGraphTests {
         let expected: [Int] = [0]
         #expect(graph.maximumClique() == expected)
         #expect(graph.cliqueNumber() == expected.count)
-        #expect(graph.directed.undirected.maximumClique() == expected)
+        #expect(graph.directedView.undirectedView.maximumClique() == expected)
     }
 
     @Test("CQ-033 U([0, 1]).cliqueNumber is #1")
@@ -465,7 +465,7 @@ struct DegenerateGraphTests {
         #expect(graph.maximumClique().count == 1)
         let degeneracy = graph.coreNumbers().degeneracy
         #expect(1 <= degeneracy + 1)
-        #expect(graph.directed.undirected.cliqueNumber() == 1)
+        #expect(graph.directedView.undirectedView.cliqueNumber() == 1)
     }
 
     @Test("CQ-034 U([0, 1]).coreNumbers is [0, 0]")
@@ -479,7 +479,7 @@ struct DegenerateGraphTests {
         let byVertex = graph.vertices.map { cores.coreNumber(of: $0) }
         #expect(byVertex == expected)
         #expect(cores.degeneracy == (expected.max() ?? 0))
-        let view = graph.directed.undirected.coreNumbers()
+        let view = graph.directedView.undirectedView.coreNumbers()
         let viaArcs = (0 ..< graph.vertexCount).map { view.coreNumber(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -493,7 +493,7 @@ struct DegenerateGraphTests {
         let byIndex = (0 ..< graph.vertexCount).map { cores.coreNumber(ofIndex: $0) }
         #expect((byIndex.max() ?? 0) == 0)
         #expect(graph.cliqueNumber() <= 0 + 1)
-        #expect(graph.directed.undirected.coreNumbers().degeneracy == 0)
+        #expect(graph.directedView.undirectedView.coreNumbers().degeneracy == 0)
     }
 
     @Test("CQ-036 U([0, 1]).degeneracyOrdering is [0, 1]")
@@ -503,7 +503,7 @@ struct DegenerateGraphTests {
         let expected: [Int] = [0, 1]
         let cores = graph.coreNumbers()
         #expect(cores.degeneracyOrdering == expected)
-        #expect(graph.directed.undirected.coreNumbers().degeneracyOrdering == expected)
+        #expect(graph.directedView.undirectedView.coreNumbers().degeneracyOrdering == expected)
         // At most its own core number of neighbours after each vertex, and core numbers never decrease.
         for (i, v) in expected.enumerated() {
             let later = expected[(i + 1)...].filter { graph.contains(edge: UndirectedEdge(v, $0)) }
@@ -522,7 +522,7 @@ struct DegenerateGraphTests {
         #expect(values.triangleCount == 0)
         let perVertex = (0 ..< graph.vertexCount).map { values.triangleCount(ofIndex: $0) }
         #expect(perVertex.reduce(0, +) == 3 * 0)
-        #expect(graph.directed.undirected.triangleCount() == 0)
+        #expect(graph.directedView.undirectedView.triangleCount() == 0)
     }
 
     @Test("CQ-038 U([0, 1]).clusteringCoefficients is [0.0, 0.0]")
@@ -539,7 +539,7 @@ struct DegenerateGraphTests {
         #expect(oneByOne == expected)
         #expect(values.transitivity == graph.transitivity())
         #expect(values.averageClustering == graph.averageClustering())
-        let view = graph.directed.undirected.clusteringCoefficients()
+        let view = graph.directedView.undirectedView.clusteringCoefficients()
         let viaArcs = (0 ..< graph.vertexCount).map { view.clusteringCoefficient(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -550,7 +550,7 @@ struct DegenerateGraphTests {
         let graph = ReferencePseudograph<Int>(vertices: [0, 1], edges: [])
         #expect(graph.transitivity() == 0.0)
         #expect(graph.clusteringCoefficients().transitivity == 0.0)
-        #expect(graph.directed.undirected.transitivity() == 0.0)
+        #expect(graph.directedView.undirectedView.transitivity() == 0.0)
     }
 
     @Test("CQ-040 U([0, 1]).averageClustering is #0.0")
@@ -559,7 +559,7 @@ struct DegenerateGraphTests {
         let graph = ReferencePseudograph<Int>(vertices: [0, 1], edges: [])
         #expect(graph.averageClustering() == 0.0)
         #expect(graph.clusteringCoefficients().averageClustering == 0.0)
-        #expect(graph.directed.undirected.averageClustering() == 0.0)
+        #expect(graph.directedView.undirectedView.averageClustering() == 0.0)
     }
 
     @Test("CQ-041 U(0-1).maximalCliques is [[0, 1]]: K₂")
@@ -577,7 +577,7 @@ struct DegenerateGraphTests {
             let extenders = graph.vertices.filter { w in !clique.contains(w) && clique.allSatisfy { graph.contains(edge: UndirectedEdge(w, $0)) } }
             #expect(extenders.isEmpty, "\(clique) is not maximal")
         }
-        let viaArcs = Array(graph.directed.undirected.maximalCliques())
+        let viaArcs = Array(graph.directedView.undirectedView.maximalCliques())
         #expect(Set(viaArcs) == Set(expected))
         #expect(viaArcs.count == expected.count)
     }
@@ -590,7 +590,7 @@ struct DegenerateGraphTests {
         let expected: [Int] = [0, 1]
         #expect(graph.maximumClique() == expected)
         #expect(graph.cliqueNumber() == expected.count)
-        #expect(graph.directed.undirected.maximumClique() == expected)
+        #expect(graph.directedView.undirectedView.maximumClique() == expected)
     }
 
     @Test("CQ-043 U(0-1).cliqueNumber is #2")
@@ -602,7 +602,7 @@ struct DegenerateGraphTests {
         #expect(graph.maximumClique().count == 2)
         let degeneracy = graph.coreNumbers().degeneracy
         #expect(2 <= degeneracy + 1)
-        #expect(graph.directed.undirected.cliqueNumber() == 2)
+        #expect(graph.directedView.undirectedView.cliqueNumber() == 2)
     }
 
     @Test("CQ-044 U(0-1).coreNumbers is [1, 1]")
@@ -617,7 +617,7 @@ struct DegenerateGraphTests {
         let byVertex = graph.vertices.map { cores.coreNumber(of: $0) }
         #expect(byVertex == expected)
         #expect(cores.degeneracy == (expected.max() ?? 0))
-        let view = graph.directed.undirected.coreNumbers()
+        let view = graph.directedView.undirectedView.coreNumbers()
         let viaArcs = (0 ..< graph.vertexCount).map { view.coreNumber(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -632,7 +632,7 @@ struct DegenerateGraphTests {
         let byIndex = (0 ..< graph.vertexCount).map { cores.coreNumber(ofIndex: $0) }
         #expect((byIndex.max() ?? 0) == 1)
         #expect(graph.cliqueNumber() <= 1 + 1)
-        #expect(graph.directed.undirected.coreNumbers().degeneracy == 1)
+        #expect(graph.directedView.undirectedView.coreNumbers().degeneracy == 1)
     }
 
     @Test("CQ-046 U(0-1).degeneracyOrdering is [0, 1]")
@@ -643,7 +643,7 @@ struct DegenerateGraphTests {
         let expected: [Int] = [0, 1]
         let cores = graph.coreNumbers()
         #expect(cores.degeneracyOrdering == expected)
-        #expect(graph.directed.undirected.coreNumbers().degeneracyOrdering == expected)
+        #expect(graph.directedView.undirectedView.coreNumbers().degeneracyOrdering == expected)
         // At most its own core number of neighbours after each vertex, and core numbers never decrease.
         for (i, v) in expected.enumerated() {
             let later = expected[(i + 1)...].filter { graph.contains(edge: UndirectedEdge(v, $0)) }
@@ -663,7 +663,7 @@ struct DegenerateGraphTests {
         #expect(values.triangleCount == 0)
         let perVertex = (0 ..< graph.vertexCount).map { values.triangleCount(ofIndex: $0) }
         #expect(perVertex.reduce(0, +) == 3 * 0)
-        #expect(graph.directed.undirected.triangleCount() == 0)
+        #expect(graph.directedView.undirectedView.triangleCount() == 0)
     }
 
     @Test("CQ-048 U(0-1).clusteringCoefficients is [0.0, 0.0]")
@@ -681,7 +681,7 @@ struct DegenerateGraphTests {
         #expect(oneByOne == expected)
         #expect(values.transitivity == graph.transitivity())
         #expect(values.averageClustering == graph.averageClustering())
-        let view = graph.directed.undirected.clusteringCoefficients()
+        let view = graph.directedView.undirectedView.clusteringCoefficients()
         let viaArcs = (0 ..< graph.vertexCount).map { view.clusteringCoefficient(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -693,7 +693,7 @@ struct DegenerateGraphTests {
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.transitivity() == 0.0)
         #expect(graph.clusteringCoefficients().transitivity == 0.0)
-        #expect(graph.directed.undirected.transitivity() == 0.0)
+        #expect(graph.directedView.undirectedView.transitivity() == 0.0)
     }
 
     @Test("CQ-050 U(0-1).averageClustering is #0.0")
@@ -703,7 +703,7 @@ struct DegenerateGraphTests {
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.averageClustering() == 0.0)
         #expect(graph.clusteringCoefficients().averageClustering == 0.0)
-        #expect(graph.directed.undirected.averageClustering() == 0.0)
+        #expect(graph.directedView.undirectedView.averageClustering() == 0.0)
     }
 
     @Test("CQ-051 U(0-1, 0-1, 1-0).maximalCliques is [[0, 1]]: K₂ as three parallel edges: one edge in the simple graph")
@@ -721,7 +721,7 @@ struct DegenerateGraphTests {
             let extenders = graph.vertices.filter { w in !clique.contains(w) && clique.allSatisfy { graph.contains(edge: UndirectedEdge(w, $0)) } }
             #expect(extenders.isEmpty, "\(clique) is not maximal")
         }
-        let viaArcs = Array(graph.directed.undirected.maximalCliques())
+        let viaArcs = Array(graph.directedView.undirectedView.maximalCliques())
         #expect(Set(viaArcs) == Set(expected))
         #expect(viaArcs.count == expected.count)
     }
@@ -734,7 +734,7 @@ struct DegenerateGraphTests {
         let expected: [Int] = [0, 1]
         #expect(graph.maximumClique() == expected)
         #expect(graph.cliqueNumber() == expected.count)
-        #expect(graph.directed.undirected.maximumClique() == expected)
+        #expect(graph.directedView.undirectedView.maximumClique() == expected)
     }
 
     @Test("CQ-053 U(0-1, 0-1, 1-0).cliqueNumber is #2")
@@ -746,7 +746,7 @@ struct DegenerateGraphTests {
         #expect(graph.maximumClique().count == 2)
         let degeneracy = graph.coreNumbers().degeneracy
         #expect(2 <= degeneracy + 1)
-        #expect(graph.directed.undirected.cliqueNumber() == 2)
+        #expect(graph.directedView.undirectedView.cliqueNumber() == 2)
     }
 
     @Test("CQ-054 U(0-1, 0-1, 1-0).coreNumbers is [1, 1]")
@@ -761,7 +761,7 @@ struct DegenerateGraphTests {
         let byVertex = graph.vertices.map { cores.coreNumber(of: $0) }
         #expect(byVertex == expected)
         #expect(cores.degeneracy == (expected.max() ?? 0))
-        let view = graph.directed.undirected.coreNumbers()
+        let view = graph.directedView.undirectedView.coreNumbers()
         let viaArcs = (0 ..< graph.vertexCount).map { view.coreNumber(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -776,7 +776,7 @@ struct DegenerateGraphTests {
         let byIndex = (0 ..< graph.vertexCount).map { cores.coreNumber(ofIndex: $0) }
         #expect((byIndex.max() ?? 0) == 1)
         #expect(graph.cliqueNumber() <= 1 + 1)
-        #expect(graph.directed.undirected.coreNumbers().degeneracy == 1)
+        #expect(graph.directedView.undirectedView.coreNumbers().degeneracy == 1)
     }
 
     @Test("CQ-056 U(0-1, 0-1, 1-0).degeneracyOrdering is [0, 1]")
@@ -787,7 +787,7 @@ struct DegenerateGraphTests {
         let expected: [Int] = [0, 1]
         let cores = graph.coreNumbers()
         #expect(cores.degeneracyOrdering == expected)
-        #expect(graph.directed.undirected.coreNumbers().degeneracyOrdering == expected)
+        #expect(graph.directedView.undirectedView.coreNumbers().degeneracyOrdering == expected)
         // At most its own core number of neighbours after each vertex, and core numbers never decrease.
         for (i, v) in expected.enumerated() {
             let later = expected[(i + 1)...].filter { graph.contains(edge: UndirectedEdge(v, $0)) }
@@ -807,7 +807,7 @@ struct DegenerateGraphTests {
         #expect(values.triangleCount == 0)
         let perVertex = (0 ..< graph.vertexCount).map { values.triangleCount(ofIndex: $0) }
         #expect(perVertex.reduce(0, +) == 3 * 0)
-        #expect(graph.directed.undirected.triangleCount() == 0)
+        #expect(graph.directedView.undirectedView.triangleCount() == 0)
     }
 
     @Test("CQ-058 U(0-1, 0-1, 1-0).clusteringCoefficients is [0.0, 0.0]")
@@ -825,7 +825,7 @@ struct DegenerateGraphTests {
         #expect(oneByOne == expected)
         #expect(values.transitivity == graph.transitivity())
         #expect(values.averageClustering == graph.averageClustering())
-        let view = graph.directed.undirected.clusteringCoefficients()
+        let view = graph.directedView.undirectedView.clusteringCoefficients()
         let viaArcs = (0 ..< graph.vertexCount).map { view.clusteringCoefficient(ofIndex: $0) }
         #expect(viaArcs == expected)
     }
@@ -837,7 +837,7 @@ struct DegenerateGraphTests {
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.transitivity() == 0.0)
         #expect(graph.clusteringCoefficients().transitivity == 0.0)
-        #expect(graph.directed.undirected.transitivity() == 0.0)
+        #expect(graph.directedView.undirectedView.transitivity() == 0.0)
     }
 
     @Test("CQ-060 U(0-1, 0-1, 1-0).averageClustering is #0.0")
@@ -847,7 +847,7 @@ struct DegenerateGraphTests {
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.averageClustering() == 0.0)
         #expect(graph.clusteringCoefficients().averageClustering == 0.0)
-        #expect(graph.directed.undirected.averageClustering() == 0.0)
+        #expect(graph.directedView.undirectedView.averageClustering() == 0.0)
     }
 
     @Test("CQ-061 U([]).kCore(0) is []")
@@ -859,7 +859,7 @@ struct DegenerateGraphTests {
         #expect(cores.kCore(0) == expected)
         let byCore = graph.vertices.filter { cores.coreNumber(of: $0) >= 0 }
         #expect(byCore == expected)
-        #expect(graph.directed.undirected.coreNumbers().kCore(0) == expected)
+        #expect(graph.directedView.undirectedView.coreNumbers().kCore(0) == expected)
     }
 
     @Test("CQ-062 U([0]).kCore(0) is [0]: Every vertex is in the 0-core")
@@ -871,7 +871,7 @@ struct DegenerateGraphTests {
         #expect(cores.kCore(0) == expected)
         let byCore = graph.vertices.filter { cores.coreNumber(of: $0) >= 0 }
         #expect(byCore == expected)
-        #expect(graph.directed.undirected.coreNumbers().kCore(0) == expected)
+        #expect(graph.directedView.undirectedView.coreNumbers().kCore(0) == expected)
     }
 
     @Test("CQ-063 U([0]).kCore(1) is []")
@@ -883,7 +883,7 @@ struct DegenerateGraphTests {
         #expect(cores.kCore(1) == expected)
         let byCore = graph.vertices.filter { cores.coreNumber(of: $0) >= 1 }
         #expect(byCore == expected)
-        #expect(graph.directed.undirected.coreNumbers().kCore(1) == expected)
+        #expect(graph.directedView.undirectedView.coreNumbers().kCore(1) == expected)
     }
 
     @Test("CQ-064 U([0] 0-0).kCore(1) is []: A loop adds no degree (igraph: coreness 2, NetworkX raises)")
@@ -896,7 +896,7 @@ struct DegenerateGraphTests {
         #expect(cores.kCore(1) == expected)
         let byCore = graph.vertices.filter { cores.coreNumber(of: $0) >= 1 }
         #expect(byCore == expected)
-        #expect(graph.directed.undirected.coreNumbers().kCore(1) == expected)
+        #expect(graph.directedView.undirectedView.coreNumbers().kCore(1) == expected)
     }
 
     @Test("CQ-065 U([0, 1]).kShell(0) is [0, 1]")
@@ -908,7 +908,7 @@ struct DegenerateGraphTests {
         #expect(cores.kShell(0) == expected)
         let byCore = graph.vertices.filter { cores.coreNumber(of: $0) == 0 }
         #expect(byCore == expected)
-        #expect(graph.directed.undirected.coreNumbers().kShell(0) == expected)
+        #expect(graph.directedView.undirectedView.coreNumbers().kShell(0) == expected)
     }
 
     @Test("CQ-066 U([0]).triangleCount(of: 0) is #0")
@@ -917,7 +917,7 @@ struct DegenerateGraphTests {
         let graph = ReferencePseudograph<Int>(vertices: [0], edges: [])
         #expect(graph.triangleCount(of: 0) == 0)
         #expect(graph.clusteringCoefficients().triangleCount(of: 0) == 0)
-        #expect(graph.directed.undirected.triangleCount(of: 0) == 0)
+        #expect(graph.directedView.undirectedView.triangleCount(of: 0) == 0)
     }
 
     @Test("CQ-067 U([0]).clusteringCoefficient(of: 0) is #0.0: Degree < 2: 0 (NetworkX, JGraphT, Boost; igraph NaN)")
@@ -926,6 +926,6 @@ struct DegenerateGraphTests {
         let graph = ReferencePseudograph<Int>(vertices: [0], edges: [])
         #expect(graph.clusteringCoefficient(of: 0) == 0.0)
         #expect(graph.clusteringCoefficients().clusteringCoefficient(of: 0) == 0.0)
-        #expect(graph.directed.undirected.clusteringCoefficient(of: 0) == 0.0)
+        #expect(graph.directedView.undirectedView.clusteringCoefficient(of: 0) == 0.0)
     }
 }

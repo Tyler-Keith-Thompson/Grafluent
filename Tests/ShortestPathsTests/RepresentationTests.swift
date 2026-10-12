@@ -149,9 +149,9 @@ struct RepresentationTests {
         let graph = UndirectedAdjacencyList(vertices: 0 ..< 5, edges: scipy.map { UndirectedEdge($0.0, $0.1) })
         let weights = scipy.map(\.2)
         for source in 0 ..< 5 {
-            let view = graph.directed.dijkstraShortestPaths(from: source) { weights[$0.position] }
+            let view = graph.directedView.dijkstraShortestPaths(from: source) { weights[$0.position] }
             let overload = graph.dijkstraShortestPaths(from: source) { weights[$0] }
-            let viewBF = graph.directed.bellmanFordShortestPaths(from: source) { weights[$0.position] }
+            let viewBF = graph.directedView.bellmanFordShortestPaths(from: source) { weights[$0.position] }
             let overloadBF = graph.bellmanFordShortestPaths(from: source) { weights[$0] }
             for v in 0 ..< 5 {
                 #expect(overload.distance(to: v) == view.distance(to: v))
@@ -165,20 +165,20 @@ struct RepresentationTests {
                 }
             }
             #expect(graph.dijkstraShortestPath(from: source, to: 2) { weights[$0] }?.distance == view.distance(to: 2))
-            #expect(graph.shortestPaths(from: source).distance(to: 2) == graph.directed.shortestPaths(from: source).distance(to: 2))
+            #expect(graph.shortestPaths(from: source).distance(to: 2) == graph.directedView.shortestPaths(from: source).distance(to: 2))
         }
     }
 
-    @Test("SP-93 AdjacencyList.undirected.directed: opposite arcs become parallel edges")
+    @Test("SP-93 AdjacencyList.undirectedView.directedView: opposite arcs become parallel edges")
     func listUndirectedDirected() {
         let list = AdjacencyList(edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 0)])
         let weights = [3, 5]
-        let tree = list.undirected.directed.dijkstraShortestPaths(from: 0) { weights[$0.position] }
+        let tree = list.undirectedView.directedView.dijkstraShortestPaths(from: 0) { weights[$0.position] }
         #expect(tree.distance(to: 1) == 3)
         #expect(tree.parentEdge(of: 1) == .init(position: 0, reversed: false))
-        let overload = list.undirected.dijkstraShortestPaths(from: 0) { weights[$0] }
+        let overload = list.undirectedView.dijkstraShortestPaths(from: 0) { weights[$0] }
         #expect(overload.distance(to: 1) == 3)
-        let fromOne = list.undirected.dijkstraShortestPaths(from: 1) { weights[$0] }
+        let fromOne = list.undirectedView.dijkstraShortestPaths(from: 1) { weights[$0] }
         #expect(fromOne.distance(to: 0) == 3)
         #expect(fromOne.parentEdge(of: 0) == .init(position: 0, reversed: true))
     }

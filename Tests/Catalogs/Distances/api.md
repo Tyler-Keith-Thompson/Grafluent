@@ -99,6 +99,8 @@ extension DirectedGraph {
     /// nil when some vertex is not reachable from `vertex` (the eccentricity is infinite).
     /// Precondition: `vertex` is a vertex.
     public func eccentricity(of vertex: G.Vertex) -> Distance?
+    /// nil as above; throws `VertexNotFound` for a non-vertex instead (Principle 6).
+    public func eccentricity(checked vertex: G.Vertex) throws(VertexNotFound) -> Distance?
     /// By vertex index (positions in `vertices` without vertex indices).  Precondition: in range.
     public func eccentricity(ofIndex index: Int) -> Distance?
     public var radius: Distance? { get }        // O(1): stored
@@ -210,13 +212,13 @@ in general it is neither the center (DI-213: [0] against center [7]) nor confine
 ### `wienerIndex()` and `averageShortestPathLength()`
 
 Wiener index: Σ d(u, v) over unordered pairs {u, v}, u ≠ v (undirected), or ordered pairs
-(directed), so `g.directed.wienerIndex() == 2 · g.wienerIndex()` (DI-438). `nil` when some pair is
+(directed), so `g.directedView.wienerIndex() == 2 · g.wienerIndex()` (DI-438). `nil` when some pair is
 unreachable (NetworkX `inf`), 0 for the empty graph and K₁ (DI-008; NetworkX raises on the null
 graph). Summation order, for reproducible floating-point results: sources in index order, each
 source's targets in index order (targets after the source when undirected), one running total.
 
 Average: the Wiener index over the number of pairs (n(n − 1)/2 undirected, n(n − 1) directed), so
-undirected and `directed` agree (DI-439). `nil` when not (strongly) connected or empty; **0 for
+undirected and `directedView` agree (DI-439). `nil` when not (strongly) connected or empty; **0 for
 one vertex** (NetworkX; igraph gives NaN). Weighted only for `W: BinaryFloatingPoint` (Swift has no
 division in `AdditiveArithmetic`); integer weights: `wienerIndex(weight:)` and divide.
 
@@ -226,8 +228,8 @@ Undirected 2m / (n(n − 1)), directed m / (n(n − 1)), with m = `edgeCount`: e
 self-loops (once) and parallel copies included, so it can exceed 1 (DI-504, DI-507, DI-441); 0
 when n ≤ 1 (DI-010, DI-022, DI-040). This is NetworkX's definition exactly (`ref.py` checks it on
 multigraphs). igraph's `loops=False` agrees except for n = 1 (NaN); its `loops=True` uses
-n² and n(n + 1)/2 instead. `g.directed.density == g.density` (twice the arcs, DI-437);
-`digraph.undirected.density` is twice `digraph.density` (DI-429).
+n² and n(n + 1)/2 instead. `g.directedView.density == g.density` (twice the arcs, DI-437);
+`digraph.undirectedView.density` is twice `digraph.density` (DI-429).
 
 ## Complexity
 
@@ -297,7 +299,7 @@ No entry point stores a distance matrix: every search reuses the same scratch ar
   still import ShortestPaths to cross-check `eccentricity(of: v)` against the greatest
   `shortestPaths(from: v)` distance.
 * **Tests** (public API only): every catalog row; for every case also `eccentricities()`'s
-  members equal the one-shot calls, `g.directed` gives the same eccentricities as `g`, and on every
+  members equal the one-shot calls, `g.directedView` gives the same eccentricities as `g`, and on every
   tree case the `Tree` methods equal the `Graph` ones. Benchmarks (not tests) count searches for the
   bounding cases and compare against BFS-from-every-vertex.
 

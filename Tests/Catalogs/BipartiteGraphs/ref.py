@@ -14,7 +14,7 @@ Index-space conventions modelled (api.md, Semantics):
 * A fixture graph is V (vertex order = vertex indices) and E (edge positions). Rows list edge ends
   in position order; a self-loop puts two consecutive ends in its row (UndirectedAdjacencyList
   built by inserting E in order; parallel edges need a multigraph conformer with the same rule).
-* A directed fixture is read through `.undirected`: row = successors (arc order), then
+* A directed fixture is read through `.undirectedView`: row = successors (arc order), then
   predecessors (arc order), as UndirectedView documents.
 * BipartiteGraph wraps UndirectedAdjacencyList, whose swap-remove mutation is modelled exactly.
 """
@@ -496,7 +496,7 @@ rec("odd cycle deep in a BFS tree", range(10), [(0, 1), (1, 2), (2, 3), (3, 4), 
 rec("two odd cycles; the one met first is later in vertex order", range(8),
     [(0, 7), (7, 6), (6, 0), (1, 2), (2, 3), (3, 1), (0, 1)])
 
-# Directed inputs, read through `.undirected` (each arc an edge).
+# Directed inputs, read through `.undirectedView` (each arc an edge).
 rec("directed path 0→1→2", range(3), [(0, 1), (1, 2)], directed=True)
 rec("directed 2-cycle 0⇄1 (a parallel pair once undirected)", range(2), [(0, 1), (1, 0)], directed=True)
 rec("directed triangle 0→1→2→0", range(3), cyc(3), directed=True)
@@ -938,7 +938,7 @@ Conventions:
   Rows list edge ends in position order (an `UndirectedAdjacencyList` built by inserting `E` in
   order). `multigraph` rows have parallel edges or several loops, so tests need a Graph conformer
   that keeps them (an in-file struct, rows in position order). `digraph` rows are a
-  `DirectedGraph` (an `AdjacencyList` with arcs inserted in order) read through `.undirected`:
+  `DirectedGraph` (an `AdjacencyList` with arcs inserted in order) read through `.undirectedView`:
   rows are successors, then predecessors.
 * `left` and `right` are `bipartition()!.left` / `.right` (and `BipartiteGraph(g)!.left`): the
   least vertex of each connected component is left; each side in `vertices` order.

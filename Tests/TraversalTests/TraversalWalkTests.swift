@@ -49,7 +49,7 @@ struct TraversalWalkTests {
         #expect(Cycle(vertices: [0, 1, 2], edges: [1, 4, 6], in: graph) != nil)
         #expect(Cycle(vertices: [0, 1, 2], edges: [1, 4, 5], in: graph) == nil)
         // In the directed view the first cycle found is the 2-cycle over one edge's two arcs.
-        #expect(graph.directed.findCycle()?.length == 2)
+        #expect(graph.directedView.findCycle()?.length == 2)
     }
 
     @Test("WK-1205 an orientation-ignoring cycle of a DAG is a cycle of its undirected view, not of the DAG")
@@ -57,7 +57,7 @@ struct TraversalWalkTests {
         // NetworkX find_cycle(orientation='ignore'): [(0, 1, forward), (1, 2, forward), (0, 2, reverse)].
         let dag = ReferenceDirectedMultigraph(edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 1, to: 2)])
         #expect(dag.findCycle() == nil)
-        #expect(Cycle(vertices: [0, 1, 2], edges: [0, 2, 1], in: dag.undirected) != nil)
+        #expect(Cycle(vertices: [0, 1, 2], edges: [0, 2, 1], in: dag.undirectedView) != nil)
         #expect(Cycle(vertices: [0, 1, 2], edges: [0, 2, 1], in: dag) == nil)
     }
 

@@ -59,7 +59,7 @@ checks every algorithm row against NetworkX, scipy or brute force. With `--phase
   same values. Order rows also check `a < b` against its definition (`a.plus(b) == a && a != b`).
 - **Arithmetic.** Both spellings, both operand orders. In the trap rows both spellings trap.
 - **Graphs.** Algorithm rows build a `DirectedPseudograph` from the listed edges in position order.
-  Undirected rows build a `Pseudograph` and read it through `.directed`. `w` holds the raw weights by
+  Undirected rows build a `Pseudograph` and read it through `.directedView`. `w` holds the raw weights by
   position, and the weight closure is `{ S(w[$0]) }`. `ladder(k)` and `grid(r, c)` are built by loops.
 - **Trees.** `distance(to:)`, `distance(toIndex:)`, `hasPath(to:)`, `sources`, and every
   `path(to:)` checked by the definition:
@@ -85,7 +85,7 @@ exit tests in `extra_traps.swift`:
 - tropical overflow in Bellman–Ford, the DAG entry points and Floyd–Warshall;
 - counting overflow along a path and across paths;
 - a weight better than one in the single-target search, with a cutoff, over `Double` and through
-  `.directed`;
+  `.directedView`;
 - out-of-range index reads;
 - results read at a non-vertex.
 
@@ -120,7 +120,7 @@ parenthesize them.
 
 **Undirected overloads** (`SemiringUndirectedTests.swift`, hand-written, 8 tests): the `Graph`
 overloads of Dijkstra (one source, several, a cutoff, the single-target search), Bellman–Ford and
-Floyd–Warshall against the same call on `.directed` and against the numeric overloads, on a
+Floyd–Warshall against the same call on `.directedView` and against the numeric overloads, on a
 `Pseudograph` (native search) and an `UndirectedAdjacencyList<String>` (through the view); `nil`
 exactly when an edge better than one is reachable (an edge at one is not); tree edges oriented the
 way they are taken, against the stored edge's order too; and the same traps as the directed calls.

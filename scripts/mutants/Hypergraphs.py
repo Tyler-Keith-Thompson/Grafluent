@@ -263,6 +263,11 @@ MUTANTS = [
     Mutant("windegreeedge", W, "return _sourceOffsets[h &+ 1] &- _sourceOffsets[h]", "return _targetOffsets[h &+ 1] &- _targetOffsets[h]", mode="stmt", nth=1),
     Mutant("wcontainsshift", W, "p == edge.target &- _n", "p == edge.target"),
     Mutant("wcontainsin", W, "base.inHyperedgeIndices(ofIndex: edge.target)", "base.outHyperedgeIndices(ofIndex: edge.target)"),
+    # The directed view's checked endpoint reads: the range guard dropped or off by one.
+    Mutant("wcheckedsourceguard", W, "guard UInt(bitPattern: position) < UInt(bitPattern: _sourceCount &+ _targetCount) else { throw EdgeNotFound() }", "", mode="stmt", nth=0),
+    Mutant("wcheckedtargetguard", W, "guard UInt(bitPattern: position) < UInt(bitPattern: _sourceCount &+ _targetCount) else { throw EdgeNotFound() }", "", mode="stmt", nth=1),
+    Mutant("wcheckedsourcebound", W, "UInt(bitPattern: position) < UInt(bitPattern: _sourceCount &+ _targetCount)", "UInt(bitPattern: position) <= UInt(bitPattern: _sourceCount &+ _targetCount)", nth=0),
+    Mutant("wcheckedtargetbound", W, "UInt(bitPattern: position) < UInt(bitPattern: _sourceCount &+ _targetCount)", "UInt(bitPattern: position) < UInt(bitPattern: _sourceCount)", nth=1),
 
     # Undirected algorithms.
     Mutant("neighborssort", A, "        found.sort()", "", mode="stmt", nth=0),

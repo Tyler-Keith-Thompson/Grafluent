@@ -98,6 +98,26 @@ public struct Matching<G: Graph, Weight: Comparable & AdditiveArithmetic> {
         return s < 0 ? nil : edges[s]
     }
 
+    /// `mate(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex of the
+    /// graph: nil still means `vertex` is free.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the graph.
+    @inlinable
+    public func mate(checked vertex: G.Vertex) throws(VertexNotFound) -> G.Vertex? {
+        guard _graph.contains(vertex) else { throw VertexNotFound() }
+        return mate(of: vertex)
+    }
+
+    /// `matchedEdge(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex of
+    /// the graph: nil still means `vertex` is free.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the graph.
+    @inlinable
+    public func matchedEdge(checked vertex: G.Vertex) throws(VertexNotFound) -> G.Edges.Index? {
+        guard _graph.contains(vertex) else { throw VertexNotFound() }
+        return matchedEdge(of: vertex)
+    }
+
     /// The mate of the vertex at `index` (its vertex index, or its position in `vertices` when the
     /// graph has no vertex indices), by the same numbering; nil when free.
     ///

@@ -35,9 +35,9 @@ def outin(n, arcs):
         inn = [k for k, (a, b) in enumerate(arcs) if b == v]
         rows.append(out + inn)
     return rows
-# matrix.undirected of K4 upper cells (positions = row-major cell order)
+# matrix.undirectedView of K4 upper cells (positions = row-major cell order)
 k4 = [(0,1),(0,2),(0,3),(1,2),(1,3),(2,3)]
-show("K4 upper cells .undirected", custom(range(4), k4, outin(4, k4)))
+show("K4 upper cells .undirectedView", custom(range(4), k4, outin(4, k4)))
 # matrix with sorted in-lists: for a general cell set, in-lists ascending by source == position order since row-major
 d708 = [(0,1),(1,0),(1,2),(2,0)]
 show("CY-708 view", custom([0,1,2], d708, outin(3, d708)))
@@ -45,8 +45,8 @@ d423 = [(0,1),(1,0),(1,0)]
 show("CY-423 view", custom([0,1], d423, outin(2, d423)))
 # CY-119 0-1 1-2 2-0 0-1 2-2 as digraph.undirected (arcs as written)
 d119 = [(0,1),(1,2),(2,0),(0,1),(2,2)]
-show("CY-119 as arcs .undirected", custom([0,1,2], d119, outin(3, d119)))
+show("CY-119 as arcs .undirectedView", custom([0,1,2], d119, outin(3, d119)))
 # matrix of a symmetric triangle with loop: cells row-major
 sym = sorted([(0,1),(1,0),(1,2),(2,1),(2,0),(0,2),(1,1)])
 print(sym)
-show("sym triangle+loop matrix.undirected", custom(range(3), sym, outin(3, sym)))
+show("sym triangle+loop matrix.undirectedView", custom(range(3), sym, outin(3, sym)))

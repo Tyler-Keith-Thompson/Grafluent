@@ -12,11 +12,11 @@ import Testing
 struct StrongProductTests {
     @Test("GP-029 empty factor: empty product")
     func gp029() {
-        // G = UL V []; E []; H = UL V [x, y]; E [x–y] / strongProduct(G, H)
+        // G = UL V []; E []; H = UL V [x, y]; E [x–y] / strongProductView(G, H)
         // → V []; E []; edgeCount 0; bounds 0/nil; rows []
         let g = UndirectedAdjacencyList<String>(vertices: [] as [String], edges: [] as [UndirectedEdge<String>])
         let h = UndirectedAdjacencyList<String>(vertices: ["x", "y"], edges: [UndirectedEdge("x", "y")])
-        let product = strongProduct(g, h)
+        let product = strongProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [] as [Pair<String, String>])
@@ -33,11 +33,11 @@ struct StrongProductTests {
 
     @Test("GP-030 K1 is the identity for vertices")
     func gp030() {
-        // G = UL V [a]; E []; H = UL V [x, y]; E [x–y] / strongProduct(G, H)
+        // G = UL V [a]; E []; H = UL V [x, y]; E [x–y] / strongProductView(G, H)
         // → V [(a,x)#0, (a,y)#1]; E [0·H0:(a,x)–(a,y)]; edgeCount 1; bounds 2/nil; rows [(a,x): (a,y); (a,y): (a,x)]
         let g = UndirectedAdjacencyList<String>(vertices: ["a"], edges: [] as [UndirectedEdge<String>])
         let h = UndirectedAdjacencyList<String>(vertices: ["x", "y"], edges: [UndirectedEdge("x", "y")])
-        let product = strongProduct(g, h)
+        let product = strongProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y")])
@@ -69,11 +69,11 @@ struct StrongProductTests {
 
     @Test("GP-031 K2 with K2")
     func gp031() {
-        // G = UL V [a, b]; E [a–b]; H = UL V [x, y]; E [x–y] / strongProduct(G, H)
+        // G = UL V [a, b]; E [a–b]; H = UL V [x, y]; E [x–y] / strongProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3]; E [G0·0:(a,x)–(b,x), G0·1:(a,y)–(b,y), 0·H0:(a,x)–(a,y), 1·H0:(b,x)–(b,y), G0×H0:(a,x)–(b,y), G0×H0':(a,y)–(b,x)]; edgeCount 6; bounds 4/nil; rows [(a,x): (b,x) (a,y) (b,y); (a,y): (b,y) (a,x) (b,x); (b,x): (a,x) (b,y) (a,y); (b,y): (a,y) (b,x) (a,x)]
         let g = UndirectedAdjacencyList<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b")])
         let h = UndirectedAdjacencyList<String>(vertices: ["x", "y"], edges: [UndirectedEdge("x", "y")])
-        let product = strongProduct(g, h)
+        let product = strongProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y")])
@@ -117,11 +117,11 @@ struct StrongProductTests {
 
     @Test("GP-032 P3 with K2")
     func gp032() {
-        // G = UL V [a, b, c]; E [a–b, b–c]; H = UL V [x, y]; E [x–y] / strongProduct(G, H)
+        // G = UL V [a, b, c]; E [a–b, b–c]; H = UL V [x, y]; E [x–y] / strongProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3, (c,x)#4, (c,y)#5]; E [G0·0:(a,x)–(b,x), G0·1:(a,y)–(b,y), G1·0:(b,x)–(c,x), G1·1:(b,y)–(c,y), 0·H0:(a,x)–(a,y), 1·H0:(b,x)–(b,y), 2·H0:(c,x)–(c,y), G0×H0:(a,x)–(b,y), G0×H0':(a,y)–(b,x), G1×H0:(b,x)–(c,y), G1×H0':(b,y)–(c,x)]; edgeCount 11; bounds 6/nil
         let g = UndirectedAdjacencyList<String>(vertices: ["a", "b", "c"], edges: [UndirectedEdge("a", "b"), UndirectedEdge("b", "c")])
         let h = UndirectedAdjacencyList<String>(vertices: ["x", "y"], edges: [UndirectedEdge("x", "y")])
-        let product = strongProduct(g, h)
+        let product = strongProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y"), Pair("c", "x"), Pair("c", "y")])
@@ -177,11 +177,11 @@ struct StrongProductTests {
 
     @Test("GP-033 edgeless factors")
     func gp033() {
-        // G = UL V [a, b]; E []; H = UL V [x, y]; E [] / strongProduct(G, H)
+        // G = UL V [a, b]; E []; H = UL V [x, y]; E [] / strongProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3]; E []; edgeCount 0; bounds 4/nil
         let g = UndirectedAdjacencyList<String>(vertices: ["a", "b"], edges: [] as [UndirectedEdge<String>])
         let h = UndirectedAdjacencyList<String>(vertices: ["x", "y"], edges: [] as [UndirectedEdge<String>])
-        let product = strongProduct(g, h)
+        let product = strongProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y")])
@@ -225,11 +225,11 @@ struct StrongProductTests {
 
     @Test("GP-034 directed: K2 arc with K2 arc")
     func gp034() {
-        // G = AL V [a, b]; E [a→b]; H = AL V [x, y]; E [x→y] / strongProduct(G, H)
+        // G = AL V [a, b]; E [a→b]; H = AL V [x, y]; E [x→y] / strongProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3]; E [G0·0:(a,x)→(b,x), G0·1:(a,y)→(b,y), 0·H0:(a,x)→(a,y), 1·H0:(b,x)→(b,y), G0×H0:(a,x)→(b,y)]; edgeCount 5; bounds 4/5; rows [(a,x): (b,x) (a,y) (b,y); (a,y): (b,y); (b,x): (b,y); (b,y): ]
         let g = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
         let h = AdjacencyList<String>(vertices: ["x", "y"], edges: [DirectedEdge(from: "x", to: "y")])
-        let product = strongProduct(g, h)
+        let product = strongProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y")])
@@ -293,11 +293,11 @@ struct StrongProductTests {
 
     @Test("GP-035 directed: 2-cycle with an arc")
     func gp035() {
-        // G = AL V [a, b]; E [a→b, b→a]; H = AL V [x, y]; E [x→y] / strongProduct(G, H)
+        // G = AL V [a, b]; E [a→b, b→a]; H = AL V [x, y]; E [x→y] / strongProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3]; E [G0·0:(a,x)→(b,x), G0·1:(a,y)→(b,y), G1·0:(b,x)→(a,x), G1·1:(b,y)→(a,y), 0·H0:(a,x)→(a,y), 1·H0:(b,x)→(b,y), G0×H0:(a,x)→(b,y), G1×H0:(b,x)→(a,y)]; edgeCount 8; bounds 4/8
         let g = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "a")])
         let h = AdjacencyList<String>(vertices: ["x", "y"], edges: [DirectedEdge(from: "x", to: "y")])
-        let product = strongProduct(g, h)
+        let product = strongProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y")])
@@ -361,11 +361,11 @@ struct StrongProductTests {
 
     @Test("GP-036 directed: predecessors from the factors' in-rows")
     func gp036() {
-        // G = AL V [a, b]; E [a→b]; H = AL V [x, y]; E [x→y] / strongProduct(G, H)
+        // G = AL V [a, b]; E [a→b]; H = AL V [x, y]; E [x→y] / strongProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3]; edgeCount 5; bounds 4/5; predecessors(of: (b,y)) [(a,y), (b,x), (a,x)]
         let g = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
         let h = AdjacencyList<String>(vertices: ["x", "y"], edges: [DirectedEdge(from: "x", to: "y")])
-        let product = strongProduct(g, h)
+        let product = strongProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y")])
@@ -431,11 +431,11 @@ struct StrongProductTests {
 
     @Test("GP-037 undirected: self-loop in G")
     func gp037() {
-        // G = UL V [a, b]; E [a–a, a–b]; H = UL V [x, y]; E [x–y] / strongProduct(G, H)
+        // G = UL V [a, b]; E [a–a, a–b]; H = UL V [x, y]; E [x–y] / strongProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3]; E [G0·0:(a,x)–(a,x), G0·1:(a,y)–(a,y), G1·0:(a,x)–(b,x), G1·1:(a,y)–(b,y), 0·H0:(a,x)–(a,y), 1·H0:(b,x)–(b,y), G0×H0:(a,x)–(a,y), G1×H0:(a,x)–(b,y), G1×H0':(a,y)–(b,x)]; edgeCount 9; bounds 4/nil; rows [(a,x): (a,x) (a,x) (b,x) (a,y) (a,y) (b,y); (a,y): (a,y) (a,y) (b,y) (a,x) (a,x) (b,x); (b,x): (a,x) (b,y) (a,y); (b,y): (a,y) (b,x) (a,x)]
         let g = Pseudograph<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "a"), UndirectedEdge("a", "b")])
         let h = UndirectedAdjacencyList<String>(vertices: ["x", "y"], edges: [UndirectedEdge("x", "y")])
-        let product = strongProduct(g, h)
+        let product = strongProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y")])
@@ -479,11 +479,11 @@ struct StrongProductTests {
 
     @Test("GP-038 undirected: self-loop in H")
     func gp038() {
-        // G = UL V [a, b]; E [a–b]; H = UL V [x, y]; E [x–x, x–y] / strongProduct(G, H)
+        // G = UL V [a, b]; E [a–b]; H = UL V [x, y]; E [x–x, x–y] / strongProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3]; E [G0·0:(a,x)–(b,x), G0·1:(a,y)–(b,y), 0·H0:(a,x)–(a,x), 0·H1:(a,x)–(a,y), 1·H0:(b,x)–(b,x), 1·H1:(b,x)–(b,y), G0×H0:(a,x)–(b,x), G0×H1:(a,x)–(b,y), G0×H1':(a,y)–(b,x)]; edgeCount 9; bounds 4/nil; rows [(a,x): (b,x) (a,x) (a,x) (a,y) (b,x) (b,y); (a,y): (b,y) (a,x) (b,x); (b,x): (a,x) (b,x) (b,x) (b,y) (a,x) (a,y); (b,y): (a,y) (b,x) (a,x)]
         let g = UndirectedAdjacencyList<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b")])
         let h = Pseudograph<String>(vertices: ["x", "y"], edges: [UndirectedEdge("x", "x"), UndirectedEdge("x", "y")])
-        let product = strongProduct(g, h)
+        let product = strongProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y")])
@@ -527,11 +527,11 @@ struct StrongProductTests {
 
     @Test("GP-039 undirected: self-loops in both")
     func gp039() {
-        // G = UL V [a]; E [a–a]; H = UL V [x]; E [x–x] / strongProduct(G, H)
+        // G = UL V [a]; E [a–a]; H = UL V [x]; E [x–x] / strongProductView(G, H)
         // → V [(a,x)#0]; E [G0·0:(a,x)–(a,x), 0·H0:(a,x)–(a,x), G0×H0:(a,x)–(a,x)]; edgeCount 3; bounds 1/nil (NetworkX MultiGraph: 2, merging coincident loop products); rows [(a,x): (a,x) (a,x) (a,x) (a,x) (a,x) (a,x)]
         let g = Pseudograph<String>(vertices: ["a"], edges: [UndirectedEdge("a", "a")])
         let h = Pseudograph<String>(vertices: ["x"], edges: [UndirectedEdge("x", "x")])
-        let product = strongProduct(g, h)
+        let product = strongProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         // NetworkX's MultiGraph merges coincident loop products; here each generating tuple is its own edge.
         let positions = Array(product.edges.indices)
@@ -558,11 +558,11 @@ struct StrongProductTests {
 
     @Test("GP-040 undirected: parallel edges in G")
     func gp040() {
-        // G = UL V [a, b]; E [a–b, b–a]; H = UL V [x, y]; E [x–y] / strongProduct(G, H)
+        // G = UL V [a, b]; E [a–b, b–a]; H = UL V [x, y]; E [x–y] / strongProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3]; E [G0·0:(a,x)–(b,x), G0·1:(a,y)–(b,y), G1·0:(b,x)–(a,x), G1·1:(b,y)–(a,y), 0·H0:(a,x)–(a,y), 1·H0:(b,x)–(b,y), G0×H0:(a,x)–(b,y), G0×H0':(a,y)–(b,x), G1×H0:(b,x)–(a,y), G1×H0':(b,y)–(a,x)]; edgeCount 10; bounds 4/nil
         let g = Pseudograph<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b"), UndirectedEdge("b", "a")])
         let h = UndirectedAdjacencyList<String>(vertices: ["x", "y"], edges: [UndirectedEdge("x", "y")])
-        let product = strongProduct(g, h)
+        let product = strongProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y")])
@@ -606,11 +606,11 @@ struct StrongProductTests {
 
     @Test("GP-041 directed: self-loop in G")
     func gp041() {
-        // G = AL V [a, b]; E [a→a, a→b]; H = AL V [x, y]; E [x→y] / strongProduct(G, H)
+        // G = AL V [a, b]; E [a→a, a→b]; H = AL V [x, y]; E [x→y] / strongProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3]; E [G0·0:(a,x)→(a,x), G0·1:(a,y)→(a,y), G1·0:(a,x)→(b,x), G1·1:(a,y)→(b,y), 0·H0:(a,x)→(a,y), 1·H0:(b,x)→(b,y), G0×H0:(a,x)→(a,y), G1×H0:(a,x)→(b,y)]; edgeCount 8; bounds 4/8
         let g = DirectedPseudograph<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "a"), DirectedEdge(from: "a", to: "b")])
         let h = AdjacencyList<String>(vertices: ["x", "y"], edges: [DirectedEdge(from: "x", to: "y")])
-        let product = strongProduct(g, h)
+        let product = strongProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y")])
@@ -674,11 +674,11 @@ struct StrongProductTests {
 
     @Test("GP-042 rows and lookups: index-space rows hash nothing, a pair lookup hashes twice")
     func gp042() {
-        // G = UL V [a, b, c]; E [a–b, b–c]; H = UL V [x, y]; E [x–y] / strongProduct(G, H)
+        // G = UL V [a, b, c]; E [a–b, b–c]; H = UL V [x, y]; E [x–y] / strongProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3, (c,x)#4, (c,y)#5]; edgeCount 11; bounds 6/nil; all rows: hashes 0; vertexIndex(of: (b,y)): hashes 2
         let g = UndirectedAdjacencyList<String>(vertices: ["a", "b", "c"], edges: [UndirectedEdge("a", "b"), UndirectedEdge("b", "c")])
         let h = UndirectedAdjacencyList<String>(vertices: ["x", "y"], edges: [UndirectedEdge("x", "y")])
-        let product = strongProduct(g, h)
+        let product = strongProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y"), Pair("c", "x"), Pair("c", "y")])
@@ -746,7 +746,7 @@ struct StrongProductTests {
         let tally = Tally()
         let countedG = UndirectedAdjacencyList<Counted>(vertices: ["a", "b", "c"].map { Counted(name: $0, tally: tally) }, edges: [UndirectedEdge(Counted(name: "a", tally: tally), Counted(name: "b", tally: tally)), UndirectedEdge(Counted(name: "b", tally: tally), Counted(name: "c", tally: tally))])
         let countedH = UndirectedAdjacencyList<Counted>(vertices: ["x", "y"].map { Counted(name: $0, tally: tally) }, edges: [UndirectedEdge(Counted(name: "x", tally: tally), Counted(name: "y", tally: tally))])
-        let counted = strongProduct(countedG, countedH)
+        let counted = strongProductView(countedG, countedH)
         tally.hashes = 0
         // Every index-space row, over every vertex.
         for i in 0 ..< 6 {

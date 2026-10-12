@@ -139,4 +139,27 @@ MUTANTS = [
     Mutant("pooledcursor", "DirectedGraph.swift",
            "position &+ targetRows[3 &* row &+ 1]",
            "targetRows[3 &* row &+ 1]", module="GraphProtocols"),
+
+    # The checked: result queries (README Principle 6): each drops its membership check, so the
+    # trapping spelling traps, or throws for a member.
+    Mutant("ckcomponent", "Components.swift", "guard _vertices.graph.contains(vertex) else { throw VertexNotFound() }", "", mode="stmt"),
+    Mutant("ckcomponentthrow", "Components.swift", "guard _vertices.graph.contains(vertex) else { throw VertexNotFound() }", "throw VertexNotFound()", mode="stmt"),
+    Mutant("ckidom", "Dominators.swift", "guard _vertices.graph.contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=0),
+    Mutant("ckidomthrow", "Dominators.swift", "guard _vertices.graph.contains(vertex) else { throw VertexNotFound() }", "throw VertexNotFound()", mode="stmt", nth=0),
+    Mutant("ckdominators", "Dominators.swift", "guard _vertices.graph.contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=1),
+    Mutant("ckstrict", "Dominators.swift", "guard _vertices.graph.contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=2),
+    Mutant("ckstrictthrow", "Dominators.swift", "guard _vertices.graph.contains(vertex) else { throw VertexNotFound() }", "throw VertexNotFound()", mode="stmt", nth=2),
+    Mutant("ckchildren", "Dominators.swift", "guard _vertices.graph.contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=3),
+    Mutant("ckfrontier", "Dominators.swift", "guard _vertices.graph.contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=4),
+    Mutant("ckfrontierthrow", "Dominators.swift", "guard _vertices.graph.contains(vertex) else { throw VertexNotFound() }", "throw VertexNotFound()", mode="stmt", nth=4),
+    Mutant("ckdominatesa", "Dominators.swift", "_vertices.graph.contains(a)", "true"),
+    Mutant("ckdominatesb", "Dominators.swift", "_vertices.graph.contains(b)", "true"),
+    Mutant("ckdominatesthrow", "Dominators.swift", "_vertices.graph.contains(b)", "false"),
+    Mutant("ckedgerange", "UndirectedConnectivity.swift", "guard _graph.edges.indices.contains(position) else { throw EdgeNotFound() }", "", mode="stmt"),
+    Mutant("ckedgenumbers", "UndirectedConnectivity.swift", "guard _edgeNumbers[position] != nil else { throw EdgeNotFound() }", "", mode="stmt"),
+    Mutant("ckedgebranch", "UndirectedConnectivity.swift", "_graph.edgeIndexBound != nil", "false", nth=1),
+    Mutant("ckcontaining", "UndirectedConnectivity.swift", "guard _graph.contains(vertex) else { throw VertexNotFound() }", "", mode="stmt"),
+    Mutant("ckcontainingthrow", "UndirectedConnectivity.swift", "guard _graph.contains(vertex) else { throw VertexNotFound() }", "throw VertexNotFound()", mode="stmt"),
+    Mutant("cknode", "UndirectedConnectivity.swift", "guard blocks._graph.contains(vertex) else { throw VertexNotFound() }", "", mode="stmt"),
+    Mutant("cknodethrow", "UndirectedConnectivity.swift", "guard blocks._graph.contains(vertex) else { throw VertexNotFound() }", "throw VertexNotFound()", mode="stmt"),
 ]

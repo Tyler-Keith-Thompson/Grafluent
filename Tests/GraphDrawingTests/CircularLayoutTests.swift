@@ -169,10 +169,10 @@ struct CircularLayoutTests {
 
     @Test("DR-030 directed graph through its undirected view")
     func dr030() {
-        // D: n=3; 0>1; undirected.circularLayout() → [(1.0, 0.0), (-0.5, 0.866025403784), (-0.5, -0.866025403784)]
+        // D: n=3; 0>1; undirectedView.circularLayout() → [(1.0, 0.0), (-0.5, 0.866025403784), (-0.5, -0.866025403784)]
         let graph = DirectedPseudograph<Int>(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1)])
         #expect(Array(graph.vertices) == Array(0 ..< 3) && graph.edgeCount == 1)
-        let layout = graph.undirected.circularLayout()
+        let layout = graph.undirectedView.circularLayout()
         #expect(Array(layout.vertices) == Array(0 ..< 3))
         let expected: [SIMD2<Double>] = [SIMD2(1.0, 0.0), SIMD2(-0.49999999999999983, 0.8660254037844387), SIMD2(-0.5000000000000004, -0.8660254037844384)]
         let got = layout.positions

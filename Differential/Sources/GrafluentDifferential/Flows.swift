@@ -43,7 +43,7 @@ struct FlowAnswers: Encodable {
     var dinic: FlowAnswer?
     var value: String?
     var cut: CutAnswer?
-    /// The same queries on `directed` of an undirected case (each edge two independent arcs).
+    /// The same queries on `directedView` of an undirected case (each edge two independent arcs).
     var viewValue: String?
     var viewCut: CutAnswer?
     var global: CutAnswer?
@@ -145,7 +145,7 @@ func flowAnswers(directed: Bool, n: Int, _ f: FlowCase) -> FlowAnswers {
         let graph = Pseudograph(vertices: 0 ..< n, edges: f.edges.map { UndirectedEdge($0[0], $0[1]) })
         let capacity: (Int) -> Int = { capacities[$0] }
         let name: (DirectedView<Pseudograph<Int>>.Edges.Index) -> String = { "\($0.position)\($0.reversed ? "r" : "")" }
-        let view = graph.directed
+        let view = graph.directedView
         if s != t {
             let maximum = graph.maximumFlow(from: s, to: t, capacity: capacity)
             a.maximum = undirectedFlowAnswer(maximum, graph)

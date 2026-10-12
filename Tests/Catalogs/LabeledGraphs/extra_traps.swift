@@ -22,17 +22,17 @@
         }
         await #expect(processExitsWith: .failure) {
             let graph = LabeledGraph<String, AdjacencyMatrix>(edges: [DirectedEdge(from: "a", to: "b")])
-            _ = graph.undirected.incidentEdges(of: "q")
+            _ = graph.undirectedView.incidentEdges(of: "q")
         }
         await #expect(processExitsWith: .failure) {
             let graph = LabeledGraph<String, AdjacencyMatrix>(edges: [DirectedEdge(from: "a", to: "b")])
-            _ = graph.undirected.degree(of: "q")
+            _ = graph.undirectedView.degree(of: "q")
         }
         // Without the calls: the same rows of a vertex answer, and the checked spellings throw.
         let graph = LabeledGraph<String, AdjacencyMatrix>(edges: [DirectedEdge(from: "a", to: "b")])
         #expect(graph.outEdges(of: "a").map { [$0.source, $0.target] } == [[0, 1]])
         #expect(graph.inDegree(of: "b") == 1 && graph.degree(of: "b") == 1)
-        #expect(graph.undirected.degree(of: "a") == 1)
+        #expect(graph.undirectedView.degree(of: "a") == 1)
         #expect(throws: VertexNotFound()) { try graph.inEdges(checked: "q") }
         #expect(throws: VertexNotFound()) { try graph.degree(checked: "q") }
     }

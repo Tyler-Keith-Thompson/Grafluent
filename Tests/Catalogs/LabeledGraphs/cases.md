@@ -9,7 +9,7 @@ Conventions:
 
 * `CSR V [...]; E [...]` is `LabeledGraph<String, CompressedSparseRow>(vertices: V, edges: E)`; `M` is
   the same with `Base == AdjacencyMatrix`; `U` is `LabeledGraph<String, AdjacencyMatrix>(vertices: V, edges: E)
-  .undirected`, an `UndirectedView` over the labeled graph (no `Graph` conformance of its own in phase 1).
+  .undirectedView`, an `UndirectedView` over the labeled graph (no `Graph` conformance of its own in phase 1).
   Calls follow, separated by `/`.
 * Expected lists each call's result, then `⇒` and the final state. State: `V [l#i, …]` is `vertices` with
   each label's index (`vertexIndex(of:)`, the base vertex it names); `E [p:s→t, …]` is `edges` with the

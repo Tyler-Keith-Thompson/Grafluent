@@ -4,7 +4,7 @@
 // round (CQ-205); the first vertex of an edgeless graph (CQ-207, where NetworkX's
 // `max_weight_clique` returns the last); [0, 1, 2, 3, 7] over [0, 1, 2, 3, 13] on the karate club
 // (CQ-211). Each test also checks `maximumClique().count == cliqueNumber()`, `cliqueNumber() <=
-// degeneracy + 1` and `graph.directed.undirected`. Every literal is a catalog cell (`ref.py`:
+// degeneracy + 1` and `graph.directedView.undirectedView`. Every literal is a catalog cell (`ref.py`:
 // brute force over the maximal cliques, NetworkX 3.7). Case IDs (CQ-nnn) refer to the catalog; see
 // README.md.
 
@@ -23,7 +23,7 @@ struct MaximumCliqueTests {
         let expected: [Int] = [0, 1, 2]
         #expect(graph.maximumClique() == expected)
         #expect(graph.cliqueNumber() == expected.count)
-        #expect(graph.directed.undirected.maximumClique() == expected)
+        #expect(graph.directedView.undirectedView.maximumClique() == expected)
     }
 
     @Test("CQ-202 U(K(0..2), K(3..5)).cliqueNumber is #3")
@@ -35,7 +35,7 @@ struct MaximumCliqueTests {
         #expect(graph.maximumClique().count == 3)
         let degeneracy = graph.coreNumbers().degeneracy
         #expect(3 <= degeneracy + 1)
-        #expect(graph.directed.undirected.cliqueNumber() == 3)
+        #expect(graph.directedView.undirectedView.cliqueNumber() == 3)
     }
 
     @Test("CQ-203 U([5, 4, 3, 2, 1, 0] K(0..2), K(3..5)).maximumClique is [5, 4, 3]: `vertices` reversed: [5, 4, 3] has indices [0, 1, 2]")
@@ -46,7 +46,7 @@ struct MaximumCliqueTests {
         let expected: [Int] = [5, 4, 3]
         #expect(graph.maximumClique() == expected)
         #expect(graph.cliqueNumber() == expected.count)
-        #expect(graph.directed.undirected.maximumClique() == expected)
+        #expect(graph.directedView.undirectedView.maximumClique() == expected)
     }
 
     @Test("CQ-204 U([5, 4, 3, 2, 1, 0] K(0..2), K(3..5)).cliqueNumber is #3")
@@ -58,7 +58,7 @@ struct MaximumCliqueTests {
         #expect(graph.maximumClique().count == 3)
         let degeneracy = graph.coreNumbers().degeneracy
         #expect(3 <= degeneracy + 1)
-        #expect(graph.directed.undirected.cliqueNumber() == 3)
+        #expect(graph.directedView.undirectedView.cliqueNumber() == 3)
     }
 
     @Test("CQ-205 U(K(3..5), K(0..2)).maximumClique is [3, 4, 5]: Edge order does not matter")
@@ -69,7 +69,7 @@ struct MaximumCliqueTests {
         let expected: [Int] = [3, 4, 5]
         #expect(graph.maximumClique() == expected)
         #expect(graph.cliqueNumber() == expected.count)
-        #expect(graph.directed.undirected.maximumClique() == expected)
+        #expect(graph.directedView.undirectedView.maximumClique() == expected)
     }
 
     @Test("CQ-206 U(K(3..5), K(0..2)).cliqueNumber is #3")
@@ -81,7 +81,7 @@ struct MaximumCliqueTests {
         #expect(graph.maximumClique().count == 3)
         let degeneracy = graph.coreNumbers().degeneracy
         #expect(3 <= degeneracy + 1)
-        #expect(graph.directed.undirected.cliqueNumber() == 3)
+        #expect(graph.directedView.undirectedView.cliqueNumber() == 3)
     }
 
     @Test("CQ-207 U([0, 1, 2]).maximumClique is [0]: Edgeless: the first vertex (NetworkX `max_weight_clique(weight=None)`: `[2]`, the last)")
@@ -91,7 +91,7 @@ struct MaximumCliqueTests {
         let expected: [Int] = [0]
         #expect(graph.maximumClique() == expected)
         #expect(graph.cliqueNumber() == expected.count)
-        #expect(graph.directed.undirected.maximumClique() == expected)
+        #expect(graph.directedView.undirectedView.maximumClique() == expected)
     }
 
     @Test("CQ-208 U([0, 1, 2]).cliqueNumber is #1")
@@ -102,7 +102,7 @@ struct MaximumCliqueTests {
         #expect(graph.maximumClique().count == 1)
         let degeneracy = graph.coreNumbers().degeneracy
         #expect(1 <= degeneracy + 1)
-        #expect(graph.directed.undirected.cliqueNumber() == 1)
+        #expect(graph.directedView.undirectedView.cliqueNumber() == 1)
     }
 
     @Test("CQ-209 U(KB(0..2;3..5)).maximumClique is [0, 3]: Bipartite: an edge, the least")
@@ -113,7 +113,7 @@ struct MaximumCliqueTests {
         let expected: [Int] = [0, 3]
         #expect(graph.maximumClique() == expected)
         #expect(graph.cliqueNumber() == expected.count)
-        #expect(graph.directed.undirected.maximumClique() == expected)
+        #expect(graph.directedView.undirectedView.maximumClique() == expected)
     }
 
     @Test("CQ-210 U(KB(0..2;3..5)).cliqueNumber is #2")
@@ -125,7 +125,7 @@ struct MaximumCliqueTests {
         #expect(graph.maximumClique().count == 2)
         let degeneracy = graph.coreNumbers().degeneracy
         #expect(2 <= degeneracy + 1)
-        #expect(graph.directed.undirected.cliqueNumber() == 2)
+        #expect(graph.directedView.undirectedView.cliqueNumber() == 2)
     }
 
     @Test("CQ-211 U(nx(karate_club)).maximumClique is [0, 1, 2, 3, 7]: Two 5-cliques, [0, 1, 2, 3, 7] and [0, 1, 2, 3, 13] (igraph `largest_cliques`: both)")
@@ -146,7 +146,7 @@ struct MaximumCliqueTests {
         let expected: [Int] = [0, 1, 2, 3, 7]
         #expect(graph.maximumClique() == expected)
         #expect(graph.cliqueNumber() == expected.count)
-        #expect(graph.directed.undirected.maximumClique() == expected)
+        #expect(graph.directedView.undirectedView.maximumClique() == expected)
     }
 
     @Test("CQ-212 U(nx(karate_club)).cliqueNumber is #5")
@@ -168,7 +168,7 @@ struct MaximumCliqueTests {
         #expect(graph.maximumClique().count == 5)
         let degeneracy = graph.coreNumbers().degeneracy
         #expect(5 <= degeneracy + 1)
-        #expect(graph.directed.undirected.cliqueNumber() == 5)
+        #expect(graph.directedView.undirectedView.cliqueNumber() == 5)
     }
 
     @Test("CQ-213 U(S(0;1..5), C(1..5)).maximumClique is [0, 1, 2]")
@@ -179,7 +179,7 @@ struct MaximumCliqueTests {
         let expected: [Int] = [0, 1, 2]
         #expect(graph.maximumClique() == expected)
         #expect(graph.cliqueNumber() == expected.count)
-        #expect(graph.directed.undirected.maximumClique() == expected)
+        #expect(graph.directedView.undirectedView.maximumClique() == expected)
     }
 
     @Test("CQ-214 U(S(0;1..5), C(1..5)).cliqueNumber is #3")
@@ -191,7 +191,7 @@ struct MaximumCliqueTests {
         #expect(graph.maximumClique().count == 3)
         let degeneracy = graph.coreNumbers().degeneracy
         #expect(3 <= degeneracy + 1)
-        #expect(graph.directed.undirected.cliqueNumber() == 3)
+        #expect(graph.directedView.undirectedView.cliqueNumber() == 3)
     }
 
     @Test("CQ-215 U(C(0..4), K(5..8)).maximumClique is [5, 6, 7, 8]")
@@ -204,7 +204,7 @@ struct MaximumCliqueTests {
         let expected: [Int] = [5, 6, 7, 8]
         #expect(graph.maximumClique() == expected)
         #expect(graph.cliqueNumber() == expected.count)
-        #expect(graph.directed.undirected.maximumClique() == expected)
+        #expect(graph.directedView.undirectedView.maximumClique() == expected)
     }
 
     @Test("CQ-216 U(C(0..4), K(5..8)).cliqueNumber is #4")
@@ -218,7 +218,7 @@ struct MaximumCliqueTests {
         #expect(graph.maximumClique().count == 4)
         let degeneracy = graph.coreNumbers().degeneracy
         #expect(4 <= degeneracy + 1)
-        #expect(graph.directed.undirected.cliqueNumber() == 4)
+        #expect(graph.directedView.undirectedView.cliqueNumber() == 4)
     }
 
     @Test("CQ-217 U(moon(3)).maximumClique is [0, 3, 6]")
@@ -233,7 +233,7 @@ struct MaximumCliqueTests {
         let expected: [Int] = [0, 3, 6]
         #expect(graph.maximumClique() == expected)
         #expect(graph.cliqueNumber() == expected.count)
-        #expect(graph.directed.undirected.maximumClique() == expected)
+        #expect(graph.directedView.undirectedView.maximumClique() == expected)
     }
 
     @Test("CQ-218 U(moon(3)).cliqueNumber is #3")
@@ -249,7 +249,7 @@ struct MaximumCliqueTests {
         #expect(graph.maximumClique().count == 3)
         let degeneracy = graph.coreNumbers().degeneracy
         #expect(3 <= degeneracy + 1)
-        #expect(graph.directed.undirected.cliqueNumber() == 3)
+        #expect(graph.directedView.undirectedView.cliqueNumber() == 3)
     }
 
     @Test("CQ-219 U(P(0..3), 3-3, 3-3).maximumClique is [0, 1]")
@@ -260,7 +260,7 @@ struct MaximumCliqueTests {
         let expected: [Int] = [0, 1]
         #expect(graph.maximumClique() == expected)
         #expect(graph.cliqueNumber() == expected.count)
-        #expect(graph.directed.undirected.maximumClique() == expected)
+        #expect(graph.directedView.undirectedView.maximumClique() == expected)
     }
 
     @Test("CQ-220 U(P(0..3), 3-3, 3-3).cliqueNumber is #2")
@@ -272,6 +272,6 @@ struct MaximumCliqueTests {
         #expect(graph.maximumClique().count == 2)
         let degeneracy = graph.coreNumbers().degeneracy
         #expect(2 <= degeneracy + 1)
-        #expect(graph.directed.undirected.cliqueNumber() == 2)
+        #expect(graph.directedView.undirectedView.cliqueNumber() == 2)
     }
 }

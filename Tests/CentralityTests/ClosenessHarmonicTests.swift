@@ -5,7 +5,7 @@
 // Expected values are ref.py's model at full precision (the catalog cells are the same values
 // rounded to 12 digits); non-iterative rows compare within 1e-12 relative to max(1, |value|), the
 // iterative ones within the catalog's Tol of the limit. Undirected rows also run on
-// `graph.directed` (the same values; twice for degree and unnormalized betweenness).
+// `graph.directedView` (the same values; twice for degree and unnormalized betweenness).
 // Case IDs (CE-nnn) refer to the catalog; see README.md.
 
 import Centrality
@@ -36,10 +36,10 @@ struct ClosenessHarmonicTests {
             let difference = abs(one - result.score(of: v))
             #expect(difference <= 1e-12 * max(1, abs(one)), "vertex \(v)")
         }
-        let arcs = graph.directed.closenessCentrality()
+        let arcs = graph.directedView.closenessCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -64,10 +64,10 @@ struct ClosenessHarmonicTests {
             let difference = abs(one - result.score(of: v))
             #expect(difference <= 1e-12 * max(1, abs(one)), "vertex \(v)")
         }
-        let arcs = graph.directed.closenessCentrality()
+        let arcs = graph.directedView.closenessCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -92,10 +92,10 @@ struct ClosenessHarmonicTests {
             let difference = abs(one - result.score(of: v))
             #expect(difference <= 1e-12 * max(1, abs(one)), "vertex \(v)")
         }
-        let arcs = graph.directed.closenessCentrality(wfImproved: false)
+        let arcs = graph.directedView.closenessCentrality(wfImproved: false)
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -120,10 +120,10 @@ struct ClosenessHarmonicTests {
             let difference = abs(one - result.score(of: v))
             #expect(difference <= 1e-12 * max(1, abs(one)), "vertex \(v)")
         }
-        let arcs = graph.directed.closenessCentrality()
+        let arcs = graph.directedView.closenessCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -223,10 +223,10 @@ struct ClosenessHarmonicTests {
             let difference = abs(one - result.score(of: v))
             #expect(difference <= 1e-12 * max(1, abs(one)), "vertex \(v)")
         }
-        let arcs = graph.directed.closenessCentrality()
+        let arcs = graph.directedView.closenessCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -263,10 +263,10 @@ struct ClosenessHarmonicTests {
             let difference = abs(one - result.score(of: v))
             #expect(difference <= 1e-12 * max(1, abs(one)), "vertex \(v)")
         }
-        let arcs = graph.directed.closenessCentrality()
+        let arcs = graph.directedView.closenessCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -309,10 +309,10 @@ struct ClosenessHarmonicTests {
             let difference = abs(one - result.score(of: v))
             #expect(difference <= 1e-12 * max(1, abs(one)), "vertex \(v)")
         }
-        let arcs = graph.directed.closenessCentrality()
+        let arcs = graph.directedView.closenessCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -338,10 +338,10 @@ struct ClosenessHarmonicTests {
             let difference = abs(one - result.score(of: v))
             #expect(difference <= 1e-12 * max(1, abs(one)), "vertex \(v)")
         }
-        let arcs = graph.directed.closenessCentrality(weight: { w[$0.position] })
+        let arcs = graph.directedView.closenessCentrality(weight: { w[$0.position] })
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -369,10 +369,10 @@ struct ClosenessHarmonicTests {
             let difference = abs(one - result.score(of: v))
             #expect(difference <= 1e-12 * max(1, abs(one)), "vertex \(v)")
         }
-        let arcs = graph.directed.closenessCentrality(weight: { w[$0.position] })
+        let arcs = graph.directedView.closenessCentrality(weight: { w[$0.position] })
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -398,10 +398,10 @@ struct ClosenessHarmonicTests {
             let difference = abs(one - result.score(of: v))
             #expect(difference <= 1e-12 * max(1, abs(one)), "vertex \(v)")
         }
-        let arcs = graph.directed.closenessCentrality(weight: { w[$0.position] })
+        let arcs = graph.directedView.closenessCentrality(weight: { w[$0.position] })
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -456,19 +456,19 @@ struct ClosenessHarmonicTests {
             let difference = abs(one - result.score(of: v))
             #expect(difference <= 1e-12 * max(1, abs(one)), "vertex \(v)")
         }
-        let arcs = graph.directed.closenessCentrality()
+        let arcs = graph.directedView.closenessCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
-    @Test("CE-068 U(P(0,1,2)).directed.closenessCentrality() is [0.666666666667, 1, 0.666666666667]: Same as undirected")
+    @Test("CE-068 U(P(0,1,2)).directedView.closenessCentrality() is [0.666666666667, 1, 0.666666666667]: Same as undirected")
     func closeness068() {
         // U: P(0,1,2)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
         let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let result = graph.directed.closenessCentrality()
+        let result = graph.directedView.closenessCentrality()
         let expected: [Double] = [0.6666666666666666, 1, 0.6666666666666666]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -477,10 +477,10 @@ struct ClosenessHarmonicTests {
         }
         let byIndex = result.scores.indices.map { result.score(ofIndex: $0) }
         #expect(byIndex == result.scores)
-        let byVertex = graph.directed.vertices.map { result.score(of: $0) }
+        let byVertex = graph.directedView.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        for v in graph.directed.vertices {
-            let one = graph.directed.closenessCentrality(of: v)
+        for v in graph.directedView.vertices {
+            let one = graph.directedView.closenessCentrality(of: v)
             let difference = abs(one - result.score(of: v))
             #expect(difference <= 1e-12 * max(1, abs(one)), "vertex \(v)")
         }
@@ -509,10 +509,10 @@ struct ClosenessHarmonicTests {
             let difference = abs(one - result.score(of: v))
             #expect(difference <= 1e-12 * max(1, abs(one)), "vertex \(v)")
         }
-        let arcs = graph.directed.harmonicCentrality()
+        let arcs = graph.directedView.harmonicCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -537,10 +537,10 @@ struct ClosenessHarmonicTests {
             let difference = abs(one - result.score(of: v))
             #expect(difference <= 1e-12 * max(1, abs(one)), "vertex \(v)")
         }
-        let arcs = graph.directed.harmonicCentrality()
+        let arcs = graph.directedView.harmonicCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -628,10 +628,10 @@ struct ClosenessHarmonicTests {
             let difference = abs(one - result.score(of: v))
             #expect(difference <= 1e-12 * max(1, abs(one)), "vertex \(v)")
         }
-        let arcs = graph.directed.harmonicCentrality()
+        let arcs = graph.directedView.harmonicCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -668,10 +668,10 @@ struct ClosenessHarmonicTests {
             let difference = abs(one - result.score(of: v))
             #expect(difference <= 1e-12 * max(1, abs(one)), "vertex \(v)")
         }
-        let arcs = graph.directed.harmonicCentrality()
+        let arcs = graph.directedView.harmonicCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -697,10 +697,10 @@ struct ClosenessHarmonicTests {
             let difference = abs(one - result.score(of: v))
             #expect(difference <= 1e-12 * max(1, abs(one)), "vertex \(v)")
         }
-        let arcs = graph.directed.harmonicCentrality(weight: { w[$0.position] })
+        let arcs = graph.directedView.harmonicCentrality(weight: { w[$0.position] })
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -726,10 +726,10 @@ struct ClosenessHarmonicTests {
             let difference = abs(one - result.score(of: v))
             #expect(difference <= 1e-12 * max(1, abs(one)), "vertex \(v)")
         }
-        let arcs = graph.directed.harmonicCentrality(weight: { w[$0.position] })
+        let arcs = graph.directedView.harmonicCentrality(weight: { w[$0.position] })
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 

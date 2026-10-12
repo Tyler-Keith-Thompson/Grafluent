@@ -47,7 +47,7 @@ extension Graph {
 | Greedy dominating set | Least w / k, the least index on ties; integers by cross-multiplication (exact), floating point by division | CV-148 – CV-166, `dominatingSets`, `exactIntegerRatios` |
 | Edge cover | The matching's edges, then each vertex still uncovered, in vertex order, takes its first `incidentEdges` entry; a vertex covered by an edge added earlier is skipped; nil when a vertex has no edge | CV-167 – CV-188, `edgeCovers`, `edgeCoverFromOtherMatchings` |
 | Checks | Definitions; repeats and order ignored; a non-vertex or non-position traps | CV-189 – CV-212, CV-217, CV-218, `checksAgainstDefinitions` |
-| Representations through `.undirected` | Rows are successors, then predecessors; matrix positions are row-major cells | `CoveringRepresentationTests.swift` |
+| Representations through `.undirectedView` | Rows are successors, then predecessors; matrix positions are row-major cells | `CoveringRepresentationTests.swift` |
 
 ## How values are pinned
 
@@ -87,11 +87,11 @@ positions depend on MatchingModule's documented Edmonds and Hopcroft–Karp outp
 In `CoveringRepresentationTests.swift` every non-trap row (CV-001 – CV-212) runs again: rows on
 `UndirectedAdjacencyList` on `ReferencePseudograph` (185), `BipartiteGraph` rows on an
 `UndirectedAdjacencyList` and a `ReferencePseudograph` with the same vertices and edges (17), every
-row on the unindexed conformer (212), on `AdjacencyList.undirected` with each edge an arc as written
-(211, all but the row with a repeated arc), and on `AdjacencyMatrix.undirected` for rows on `0..<n`
+row on the unindexed conformer (212), on `AdjacencyList.undirectedView` with each edge an arc as written
+(211, all but the row with a repeated arc), and on `AdjacencyMatrix.undirectedView` for rows on `0..<n`
 with no arc twice (206). The vertex-set results are the catalog's on all of them: they depend only
 on vertex order and adjacency, and the vertex-cover approximation on the edge order, which
-`AdjacencyList` keeps. The edge covers through `.undirected`, and the approximation on the matrix
+`AdjacencyList` keeps. The edge covers through `.undirectedView`, and the approximation on the matrix
 (whose positions are row-major cells), were computed by `swiftgen.py` with `ref.py`'s models on those
 rows and positions. Matching rows there go through `bipartition()`'s canonical sides.
 
@@ -134,8 +134,8 @@ domination by open neighbourhoods (77).
 | `MinimumEdgeCoverTests.swift` | 22 | §MinimumEC, CV-167 – CV-188: nil rows, loops, parallel copies, blossoms, `minimumEdgeCover(matching:)` with Hopcroft–Karp |
 | `CoveringCheckTests.swift` | 24 | §Checks, CV-189 – CV-212, in order, reversed and twice |
 | `CoveringPreconditionTests.swift` | 17 | Exit tests: CV-213 – CV-220; then a non-vertex to `isIndependentSet` and `isDominatingSet`, a negative position, a non-vertex after a valid seed, a NaN and a negative `Double` weight to the dominating-set approximation, a negative `Double` weight and a negative weight on an isolated vertex to the vertex-cover approximation, a bipartition that puts an edge inside a side |
-| `CoveringRepresentationTests.swift` | 212 | Every non-trap row again on `ReferencePseudograph`, `UndirectedAdjacencyList` (the `BipartiteGraph` rows), a conformer with no indices, `AdjacencyList.undirected` and `AdjacencyMatrix.undirected` |
-| `CoveringConformanceTests.swift` | 11 | `vertices` order with string vertices, generic code, `CompressedSparseRow` through `AdjacencyList(csr).undirected`, `graph.directed.undirected`, `Int32`, `UInt8`, `Float` and `Int8` weights, zero weights, the unit weights, `weight` read once per vertex, exact integer ratios beyond 2⁵³, any `Sequence`, edge covers from non-maximum, empty and `Double`-weighted matchings, König on a `BipartiteGraph`, edgeless graphs |
+| `CoveringRepresentationTests.swift` | 212 | Every non-trap row again on `ReferencePseudograph`, `UndirectedAdjacencyList` (the `BipartiteGraph` rows), a conformer with no indices, `AdjacencyList.undirectedView` and `AdjacencyMatrix.undirectedView` |
+| `CoveringConformanceTests.swift` | 11 | `vertices` order with string vertices, generic code, `CompressedSparseRow` through `AdjacencyList(csr).undirectedView`, `graph.directedView.undirectedView`, `Int32`, `UInt8`, `Float` and `Int8` weights, zero weights, the unit weights, `weight` read once per vertex, exact integer ratios beyond 2⁵³, any `Sequence`, edge covers from non-maximum, empty and `Double`-weighted matchings, König on a `BipartiteGraph`, edgeless graphs |
 | `CoveringPropertyTests.swift` | 7 | PropertyBased, shrinking, multigraphs with loops in shuffled vertex orders: the exact independent set and cover against brute force, α + τ = n, parallel edges collapsed; bipartite graphs with interleaved sides (the lattice) and König's cover against brute force and NetworkX's construction, on `UndirectedAdjacencyList` and `BipartiteGraph`; Bar-Yehuda–Even written out in `Int` and `Double`, its bound, the weight read once per vertex, the maximal-matching containment; the greedy and seeded maximal sets, nil exactly for dependent seeds; the exact dominating set against brute force and the greedy set cover written out in `Int`, `Double` and unweighted, with its H(Δ + 1) bound; edge covers against the construction, Gallai and brute force, from maximal and weighted matchings; the checks against their definitions |
 | `Performance/CoveringStressTests.swift` | 7 | Inside a `Task` with a one-minute limit: P₁₀₀₀₀₁ and C₁₀₀₀₀₀, a random tree of 10⁵ vertices, 20,000 bipartite gadgets, a planted perfect matching on 10⁵ vertices, 1,000 Petersen and P₇ copies and 2,000 stars, a dense 60-vertex branch and bound, the linear entry points on 10⁵ vertices and 3 · 10⁵ edges |
 

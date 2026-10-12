@@ -137,7 +137,7 @@ extension Graph {
         let listed = _listedVertices()
         let numbers = listed.map(_vertexNumbers)
         let labels = run(_labelPropagationRows(readsEdges: weights != nil))
-        return Partition(directed, numbers: numbers, listed: listed, labels: labels)
+        return Partition(directedView, numbers: numbers, listed: listed, labels: labels)
     }
 
     /// Label propagation communities, semi-synchronous (Cordasco and Gargano; NetworkX

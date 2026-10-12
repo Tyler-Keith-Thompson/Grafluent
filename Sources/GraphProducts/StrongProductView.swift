@@ -9,9 +9,9 @@ import GraphProtocols
 ///
 /// - Precondition: both factors have vertex indices, and |V(G)|·|V(H)| fits in an `Int`.
 @inlinable
-public func strongProduct<G: DirectedGraph, H: DirectedGraph>(_ g: G, _ h: H) -> StrongProduct<G, H> {
+public func strongProductView<G: DirectedGraph, H: DirectedGraph>(_ g: G, _ h: H) -> StrongProductView<G, H> {
     let (nG, nH) = _factorCounts(g.vertexIndexBound, h.vertexIndexBound)
-    return StrongProduct(first: g, second: h, firstCount: nG, secondCount: nH)
+    return StrongProductView(first: g, second: h, firstCount: nG, secondCount: nH)
 }
 
 /// The strong product G ⊠ H of two undirected graphs, as a lazy view: the edges of G □ H and of
@@ -19,21 +19,21 @@ public func strongProduct<G: DirectedGraph, H: DirectedGraph>(_ g: G, _ h: H) ->
 ///
 /// - Precondition: both factors have vertex indices, and |V(G)|·|V(H)| fits in an `Int`.
 @inlinable
-public func strongProduct<G: Graph, H: Graph>(_ g: G, _ h: H) -> StrongProduct<G, H> {
+public func strongProductView<G: Graph, H: Graph>(_ g: G, _ h: H) -> StrongProductView<G, H> {
     let (nG, nH) = _factorCounts(g.vertexIndexBound, h.vertexIndexBound)
-    return StrongProduct(first: g, second: h, firstCount: nG, secondCount: nH, factors: _Factors(first: g, second: h))
+    return StrongProductView(first: g, second: h, firstCount: nG, secondCount: nH, factors: _Factors(first: g, second: h))
 }
 
 /// The strong product G ⊠ H of two graphs, both directed or both undirected, as a lazy view: the
-/// Cartesian product's edges, then the tensor product's. Made by `strongProduct(_:_:)`.
+/// Cartesian product's edges, then the tensor product's. Made by `strongProductView(_:_:)`.
 ///
-/// Vertices and their indices are as in `CartesianProduct`. The row of (g, h) is the Cartesian
+/// Vertices and their indices are as in `CartesianProductView`. The row of (g, h) is the Cartesian
 /// row, then the tensor row. Positions are the Cartesian ones, `.first` and `.second`, then the
 /// tensor ones as `.both(first:second:reversed:)`, and `edges` lists them in that order. Directed,
 /// the product has edge indices when both factors do: the Cartesian ones, then
 /// `m_□ + index(e)·m_H + index(f)`. Undirected it has none, as for the tensor product.
 @frozen
-public struct StrongProduct<First, Second> {
+public struct StrongProductView<First, Second> {
     /// G, the first factor.
     public let first: First
     /// H, the second factor.
@@ -62,7 +62,7 @@ public struct StrongProduct<First, Second> {
         /// H's edge `edge`, at G's vertex index `vertexIndex`.
         case second(vertexIndex: Int, edge: SecondEdge)
         /// G's edge `first` with H's edge `second`; undirected, `reversed` as in
-        /// `TensorProduct.Position`.
+        /// `TensorProductView.Position`.
         case both(first: FirstEdge, second: SecondEdge, reversed: Bool)
 
         @inlinable
@@ -84,8 +84,8 @@ public struct StrongProduct<First, Second> {
     /// A row: the Cartesian row, then the tensor row.
     @frozen
     public struct IndexRow<FirstRow: Sequence<Int>, SecondRow: Sequence<Int>>: Sequence {
-        @usableFromInline let cartesian: CartesianProduct<First, Second>.IndexRow<FirstRow, SecondRow>
-        @usableFromInline let tensor: TensorProduct<First, Second>.IndexRow<FirstRow, SecondRow>
+        @usableFromInline let cartesian: CartesianProductView<First, Second>.IndexRow<FirstRow, SecondRow>
+        @usableFromInline let tensor: TensorProductView<First, Second>.IndexRow<FirstRow, SecondRow>
 
         @inlinable
         init(firstRow: FirstRow, secondRow: SecondRow, g: Int, h: Int, secondCount: Int) {
@@ -98,12 +98,12 @@ public struct StrongProduct<First, Second> {
 
         @frozen
         public struct Iterator: IteratorProtocol {
-            @usableFromInline var cartesian: CartesianProduct<First, Second>.IndexRow<FirstRow, SecondRow>.Iterator
-            @usableFromInline var tensor: TensorProduct<First, Second>.IndexRow<FirstRow, SecondRow>.Iterator
+            @usableFromInline var cartesian: CartesianProductView<First, Second>.IndexRow<FirstRow, SecondRow>.Iterator
+            @usableFromInline var tensor: TensorProductView<First, Second>.IndexRow<FirstRow, SecondRow>.Iterator
             @usableFromInline var inCartesian = true
 
             @inlinable
-            init(cartesian: CartesianProduct<First, Second>.IndexRow<FirstRow, SecondRow>.Iterator, tensor: TensorProduct<First, Second>.IndexRow<FirstRow, SecondRow>.Iterator) {
+            init(cartesian: CartesianProductView<First, Second>.IndexRow<FirstRow, SecondRow>.Iterator, tensor: TensorProductView<First, Second>.IndexRow<FirstRow, SecondRow>.Iterator) {
                 self.cartesian = cartesian
                 self.tensor = tensor
             }
@@ -123,8 +123,8 @@ public struct StrongProduct<First, Second> {
     @frozen
     public struct EdgeRow<FirstEdges: Sequence, SecondEdges: Sequence>: Sequence
     where FirstEdges.Element: Hashable & Comparable, SecondEdges.Element: Hashable & Comparable {
-        @usableFromInline let cartesian: CartesianProduct<First, Second>.EdgeRow<FirstEdges, SecondEdges>
-        @usableFromInline let tensor: TensorProduct<First, Second>.EdgeRow<FirstEdges, SecondEdges>
+        @usableFromInline let cartesian: CartesianProductView<First, Second>.EdgeRow<FirstEdges, SecondEdges>
+        @usableFromInline let tensor: TensorProductView<First, Second>.EdgeRow<FirstEdges, SecondEdges>
 
         @inlinable
         init(firstEdges: FirstEdges, secondEdges: SecondEdges, g: Int, h: Int) {
@@ -137,12 +137,12 @@ public struct StrongProduct<First, Second> {
 
         @frozen
         public struct Iterator: IteratorProtocol {
-            @usableFromInline var cartesian: CartesianProduct<First, Second>.EdgeRow<FirstEdges, SecondEdges>.Iterator
-            @usableFromInline var tensor: TensorProduct<First, Second>.EdgeRow<FirstEdges, SecondEdges>.Iterator
+            @usableFromInline var cartesian: CartesianProductView<First, Second>.EdgeRow<FirstEdges, SecondEdges>.Iterator
+            @usableFromInline var tensor: TensorProductView<First, Second>.EdgeRow<FirstEdges, SecondEdges>.Iterator
             @usableFromInline var inCartesian = true
 
             @inlinable
-            init(cartesian: CartesianProduct<First, Second>.EdgeRow<FirstEdges, SecondEdges>.Iterator, tensor: TensorProduct<First, Second>.EdgeRow<FirstEdges, SecondEdges>.Iterator) {
+            init(cartesian: CartesianProductView<First, Second>.EdgeRow<FirstEdges, SecondEdges>.Iterator, tensor: TensorProductView<First, Second>.EdgeRow<FirstEdges, SecondEdges>.Iterator) {
                 self.cartesian = cartesian
                 self.tensor = tensor
             }
@@ -160,14 +160,14 @@ public struct StrongProduct<First, Second> {
     }
 }
 
-extension StrongProduct: Sendable where First: Sendable, Second: Sendable {}
-extension StrongProduct.Position: Sendable where FirstEdge: Sendable, SecondEdge: Sendable {}
-extension StrongProduct.IndexRow: Sendable where FirstRow: Sendable, SecondRow: Sendable {}
-extension StrongProduct.EdgeRow: Sendable where FirstEdges: Sendable, SecondEdges: Sendable {}
+extension StrongProductView: Sendable where First: Sendable, Second: Sendable {}
+extension StrongProductView.Position: Sendable where FirstEdge: Sendable, SecondEdge: Sendable {}
+extension StrongProductView.IndexRow: Sendable where FirstRow: Sendable, SecondRow: Sendable {}
+extension StrongProductView.EdgeRow: Sendable where FirstEdges: Sendable, SecondEdges: Sendable {}
 
-extension StrongProduct.Position {
-    @usableFromInline typealias _Cartesian = CartesianProduct<First, Second>.Position<FirstEdge, SecondEdge>
-    @usableFromInline typealias _Tensor = TensorProduct<First, Second>.Position<FirstEdge, SecondEdge>
+extension StrongProductView.Position {
+    @usableFromInline typealias _Cartesian = CartesianProductView<First, Second>.Position<FirstEdge, SecondEdge>
+    @usableFromInline typealias _Tensor = TensorProductView<First, Second>.Position<FirstEdge, SecondEdge>
 
     @inlinable
     init(_ position: _Cartesian) {
@@ -222,15 +222,15 @@ extension StrongProduct.Position {
 
 // MARK: - Directed
 
-extension StrongProduct: DirectedGraph where First: DirectedGraph, Second: DirectedGraph {
+extension StrongProductView: DirectedGraph where First: DirectedGraph, Second: DirectedGraph {
     @inlinable
-    var _cartesian: CartesianProduct<First, Second> {
-        CartesianProduct(first: first, second: second, firstCount: _firstCount, secondCount: _secondCount)
+    var _cartesian: CartesianProductView<First, Second> {
+        CartesianProductView(first: first, second: second, firstCount: _firstCount, secondCount: _secondCount)
     }
 
     @inlinable
-    var _tensor: TensorProduct<First, Second> {
-        TensorProduct(first: first, second: second, firstCount: _firstCount, secondCount: _secondCount)
+    var _tensor: TensorProductView<First, Second> {
+        TensorProductView(first: first, second: second, firstCount: _firstCount, secondCount: _secondCount)
     }
 
     /// Every pair, row-major.
@@ -247,10 +247,10 @@ extension StrongProduct: DirectedGraph where First: DirectedGraph, Second: Direc
     /// The arcs of a directed strong product, in position order.
     @frozen
     public struct DirectedEdges: Collection {
-        @usableFromInline let product: StrongProduct
+        @usableFromInline let product: StrongProductView
 
         @inlinable
-        init(product: StrongProduct) { self.product = product }
+        init(product: StrongProductView) { self.product = product }
 
         @inlinable
         public var startIndex: Position<First.Edges.Index, Second.Edges.Index> {
@@ -421,7 +421,7 @@ extension StrongProduct: DirectedGraph where First: DirectedGraph, Second: Direc
     }
 }
 
-extension StrongProduct: BidirectionalDirectedGraph where First: BidirectionalDirectedGraph, Second: BidirectionalDirectedGraph {
+extension StrongProductView: BidirectionalDirectedGraph where First: BidirectionalDirectedGraph, Second: BidirectionalDirectedGraph {
     @inlinable
     public func predecessorIndices(ofIndex index: Int) -> IndexRow<First.PredecessorIndices, Second.PredecessorIndices> {
         _checkProductIndex(index, count: _firstCount &* _secondCount)
@@ -484,15 +484,15 @@ extension StrongProduct: BidirectionalDirectedGraph where First: BidirectionalDi
 
 // MARK: - Undirected
 
-extension StrongProduct: Graph where First: Graph, Second: Graph {
+extension StrongProductView: Graph where First: Graph, Second: Graph {
     @inlinable
-    var _undirectedCartesian: CartesianProduct<First, Second> {
-        CartesianProduct(first: first, second: second, firstCount: _firstCount, secondCount: _secondCount)
+    var _undirectedCartesian: CartesianProductView<First, Second> {
+        CartesianProductView(first: first, second: second, firstCount: _firstCount, secondCount: _secondCount)
     }
 
     @inlinable
-    var _undirectedTensor: TensorProduct<First, Second> {
-        TensorProduct(first: first, second: second, firstCount: _firstCount, secondCount: _secondCount, factors: _factors)
+    var _undirectedTensor: TensorProductView<First, Second> {
+        TensorProductView(first: first, second: second, firstCount: _firstCount, secondCount: _secondCount, factors: _factors)
     }
 
     /// An undirected row in index space, in the order of `UndirectedEdgeRow`, with a factor
@@ -531,11 +531,11 @@ extension StrongProduct: Graph where First: Graph, Second: Graph {
     /// An undirected row of positions, in the order of `UndirectedIndexRow`.
     @frozen
     public struct UndirectedEdgeRow: Sequence {
-        @usableFromInline let cartesian: CartesianProduct<First, Second>.EdgeRow<First.IncidentEdges, Second.IncidentEdges>
+        @usableFromInline let cartesian: CartesianProductView<First, Second>.EdgeRow<First.IncidentEdges, Second.IncidentEdges>
         @usableFromInline let tensor: _UndirectedTensorRows<First, Second>
 
         @inlinable
-        init(cartesian: CartesianProduct<First, Second>.EdgeRow<First.IncidentEdges, Second.IncidentEdges>, tensor: _UndirectedTensorRows<First, Second>) {
+        init(cartesian: CartesianProductView<First, Second>.EdgeRow<First.IncidentEdges, Second.IncidentEdges>, tensor: _UndirectedTensorRows<First, Second>) {
             self.cartesian = cartesian
             self.tensor = tensor
         }
@@ -545,12 +545,12 @@ extension StrongProduct: Graph where First: Graph, Second: Graph {
 
         @frozen
         public struct Iterator: IteratorProtocol {
-            @usableFromInline var cartesian: CartesianProduct<First, Second>.EdgeRow<First.IncidentEdges, Second.IncidentEdges>.Iterator
+            @usableFromInline var cartesian: CartesianProductView<First, Second>.EdgeRow<First.IncidentEdges, Second.IncidentEdges>.Iterator
             @usableFromInline var tensor: _UndirectedTensorRows<First, Second>
             @usableFromInline var inCartesian = true
 
             @inlinable
-            init(cartesian: CartesianProduct<First, Second>.EdgeRow<First.IncidentEdges, Second.IncidentEdges>.Iterator, tensor: _UndirectedTensorRows<First, Second>) {
+            init(cartesian: CartesianProductView<First, Second>.EdgeRow<First.IncidentEdges, Second.IncidentEdges>.Iterator, tensor: _UndirectedTensorRows<First, Second>) {
                 self.cartesian = cartesian
                 self.tensor = tensor
             }
@@ -580,10 +580,10 @@ extension StrongProduct: Graph where First: Graph, Second: Graph {
     /// The edges of an undirected strong product, in position order.
     @frozen
     public struct UndirectedEdges: Collection {
-        @usableFromInline let product: StrongProduct
+        @usableFromInline let product: StrongProductView
 
         @inlinable
-        init(product: StrongProduct) { self.product = product }
+        init(product: StrongProductView) { self.product = product }
 
         @inlinable
         public var startIndex: Position<First.Edges.Index, Second.Edges.Index> {
@@ -608,7 +608,7 @@ extension StrongProduct: Graph where First: Graph, Second: Graph {
             switch position {
             case let .first(edge, h): product._undirectedCartesian.edges[.first(edge: edge, vertexIndex: h)]
             case let .second(g, edge): product._undirectedCartesian.edges[.second(vertexIndex: g, edge: edge)]
-            case let .both(e, f, reversed): product._undirectedTensor.edges[TensorProduct.Position(first: e, second: f, reversed: reversed)]
+            case let .both(e, f, reversed): product._undirectedTensor.edges[TensorProductView.Position(first: e, second: f, reversed: reversed)]
             }
         }
     }
@@ -706,7 +706,7 @@ extension StrongProduct: Graph where First: Graph, Second: Graph {
         switch position {
         case let .first(edge, h): _undirectedCartesian.endpointIndices(ofEdgeAt: .first(edge: edge, vertexIndex: h))
         case let .second(g, edge): _undirectedCartesian.endpointIndices(ofEdgeAt: .second(vertexIndex: g, edge: edge))
-        case let .both(e, f, reversed): _undirectedTensor.endpointIndices(ofEdgeAt: TensorProduct.Position(first: e, second: f, reversed: reversed))
+        case let .both(e, f, reversed): _undirectedTensor.endpointIndices(ofEdgeAt: TensorProductView.Position(first: e, second: f, reversed: reversed))
         }
     }
 
@@ -730,5 +730,5 @@ extension StrongProduct: Graph where First: Graph, Second: Graph {
     }
 }
 
-extension StrongProduct.DirectedEdges: Sendable where First: Sendable, Second: Sendable {}
-extension StrongProduct.UndirectedEdges: Sendable where First: Sendable, Second: Sendable {}
+extension StrongProductView.DirectedEdges: Sendable where First: Sendable, Second: Sendable {}
+extension StrongProductView.UndirectedEdges: Sendable where First: Sendable, Second: Sendable {}

@@ -61,6 +61,16 @@ public struct GomoryHuTree<G: Graph, Capacity: Comparable & AdditiveArithmetic> 
         return _capacity[position + 1]
     }
 
+    /// `capacity(ofEdgeAt: position)`, throwing instead of trapping when `position` is not a tree
+    /// edge position. O(1).
+    ///
+    /// - Throws: `EdgeNotFound` when `position` is not in `0 ..< tree.edgeCount`.
+    @inlinable
+    public func capacity(checkedEdgeAt position: Int) throws(EdgeNotFound) -> Capacity {
+        guard position >= 0 && position < _capacity.count - 1 else { throw EdgeNotFound() }
+        return _capacity[position + 1]
+    }
+
     /// The tree edges on the path from `u` to `v` by the vertex number each joins to its parent,
     /// in order from `u`.
     @inlinable
@@ -100,8 +110,18 @@ public struct GomoryHuTree<G: Graph, Capacity: Comparable & AdditiveArithmetic> 
         return least
     }
 
+    /// `minimumCutValue(between: u, and: v)`, throwing instead of trapping when either is not a
+    /// vertex of the graph. Two equal vertices still trap. O(n).
+    ///
+    /// - Throws: `VertexNotFound` when `u` or `v` is not a vertex of the graph.
+    @inlinable
+    public func minimumCutValue(checkedBetween u: G.Vertex, and v: G.Vertex) throws(VertexNotFound) -> Capacity {
+        guard _graph.contains(u) && _graph.contains(v) else { throw VertexNotFound() }
+        return minimumCutValue(between: u, and: v)
+    }
+
     /// The split at the least edge on the tree path (the one nearest `u` among equals), `u` on
-    /// the source side, with the graph's crossing edges as arcs of `directed`, in position order.
+    /// the source side, with the graph's crossing edges as arcs of `directedView`, in position order.
     /// A minimum cut between `u` and `v`. O(n + m).
     ///
     /// - Precondition: `u` and `v` are distinct vertices of the graph.
@@ -136,6 +156,16 @@ public struct GomoryHuTree<G: Graph, Capacity: Comparable & AdditiveArithmetic> 
         let uBelow = below[a]
         let inSink = below.map { $0 != uBelow }
         return _graph._cut(_edges, _graphCapacities, _listed, inSink)
+    }
+
+    /// `minimumCut(between: u, and: v)`, throwing instead of trapping when either is not a vertex
+    /// of the graph. Two equal vertices still trap. O(n + m).
+    ///
+    /// - Throws: `VertexNotFound` when `u` or `v` is not a vertex of the graph.
+    @inlinable
+    public func minimumCut(checkedBetween u: G.Vertex, and v: G.Vertex) throws(VertexNotFound) -> Cut<DirectedView<G>, Capacity> {
+        guard _graph.contains(u) && _graph.contains(v) else { throw VertexNotFound() }
+        return minimumCut(between: u, and: v)
     }
 }
 

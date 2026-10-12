@@ -165,7 +165,7 @@ struct HypergraphEdgeCaseTests {
     @Test("Undirected view: membership of vertices and edges, opposite ends, and its trapping reads")
     func undirectedViewMembership() async {
         let hypergraph = UndirectedIncidenceList<String>(hyperedges: [["a", "b"], ["b", "c"], ["c"]])
-        let view = hypergraph.incidenceGraph
+        let view = hypergraph.incidenceGraphView
         let n = 3, m = 3
         #expect(!view.contains(-1) && !view.contains(n + m) && view.contains(0) && view.contains(n + m - 1))
         for q in view.edges.indices {
@@ -178,20 +178,20 @@ struct HypergraphEdgeCaseTests {
         #expect(!view.contains(edge: UndirectedEdge(0, 1)) && !view.contains(edge: UndirectedEdge(0, n + 2)))
         #expect(!view.contains(edge: UndirectedEdge(0, n + m)) && !view.contains(edge: UndirectedEdge(-1, n)))
         await #expect(processExitsWith: .failure) {
-            _ = UndirectedIncidenceList<String>(hyperedges: [["a"]]).incidenceGraph.vertexIndex(of: -1)
+            _ = UndirectedIncidenceList<String>(hyperedges: [["a"]]).incidenceGraphView.vertexIndex(of: -1)
         }
         await #expect(processExitsWith: .failure) {
-            _ = UndirectedIncidenceList<String>(hyperedges: [["a"]]).incidenceGraph.vertex(atIndex: 2)
+            _ = UndirectedIncidenceList<String>(hyperedges: [["a"]]).incidenceGraphView.vertex(atIndex: 2)
         }
         await #expect(processExitsWith: .failure) {
-            _ = UndirectedIncidenceList<String>(hyperedges: [["a"]]).incidenceGraph.edgeIndex(of: 1)
+            _ = UndirectedIncidenceList<String>(hyperedges: [["a"]]).incidenceGraphView.edgeIndex(of: 1)
         }
     }
 
     @Test("Directed view: membership of arcs both ways, and degree as out plus in")
     func directedViewMembership() {
         let hypergraph = IncidenceList<String>(hyperedges: [(sources: ["a"], targets: ["b", "c"]), (sources: ["b", "c"], targets: ["a", "b"])])
-        let view = hypergraph.incidenceGraph
+        let view = hypergraph.incidenceGraphView
         let n = 3, m = 2
         #expect(!view.contains(-1) && !view.contains(n + m))
         for q in view.edges.indices {
@@ -238,7 +238,7 @@ struct HypergraphEdgeCaseTests {
         let names = ["a", "b", "c", "d", "e"]
         let rows = Rows(names: names, rows: [["a", "b", "c"], [], ["c", "d"], ["d", "e"], ["a", "c", "d", "e"]])
         let list = UndirectedIncidenceList(rows)
-        let view = rows.incidenceGraph, listView = list.incidenceGraph
+        let view = rows.incidenceGraphView, listView = list.incidenceGraphView
         #expect(view.edgeCount == 11 && Array(view.edges) == Array(listView.edges))
         for q in view.edges.indices {
             #expect(view.edges[q] == listView.edges[q])
@@ -254,7 +254,7 @@ struct HypergraphEdgeCaseTests {
             (sources: [], targets: ["a", "e"]), (sources: ["d", "e"], targets: ["c", "d"]),
         ])
         let directed = IncidenceList(arcs)
-        let arcView = arcs.incidenceGraph, directedView = directed.incidenceGraph
+        let arcView = arcs.incidenceGraphView, directedView = directed.incidenceGraphView
         #expect(arcView.edgeCount == 12 && Array(arcView.edges) == Array(directedView.edges))
         for q in arcView.edges.indices {
             #expect(arcView.edges[q] == directedView.edges[q])

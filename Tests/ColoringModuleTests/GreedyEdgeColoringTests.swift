@@ -5,7 +5,7 @@
 // colour used, classes ascending, at most 2Δ − 1 colours (Δ counting edge ends), and the procedure
 // written out: edges by the number of other edges they share an end with (a parallel copy at both
 // ends, a self-loop once at its vertex), most first, ties by position, each taking the least colour
-// of no coloured edge it shares an end with. Then `digraph.undirected` with an antiparallel pair,
+// of no coloured edge it shares an end with. Then `digraph.undirectedView` with an antiparallel pair,
 // which `edgeColoring()` rejects; random multigraphs with loops against the procedure; and a
 // graph with no edge indices whose positions are not 0..<m. See README.md.
 
@@ -463,9 +463,9 @@ struct GreedyEdgeColoringTests {
         #expect(colors == expected)
     }
 
-    @Test("digraph.undirected with an antiparallel pair (AdjacencyList, arcs 0→1, 1→0, 1→2): [0, 1, 2], where edgeColoring() traps")
+    @Test("digraph.undirectedView with an antiparallel pair (AdjacencyList, arcs 0→1, 1→0, 1→2): [0, 1, 2], where edgeColoring() traps")
     func antiparallelArcs() {
-        let graph = AdjacencyList<Int>(vertices: [0, 1, 2], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 0), DirectedEdge(from: 1, to: 2)]).undirected
+        let graph = AdjacencyList<Int>(vertices: [0, 1, 2], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 0), DirectedEdge(from: 1, to: 2)]).undirectedView
         #expect(graph.edges.map { [$0.u, $0.v] } == [[0, 1], [1, 0], [1, 2]])
         let coloring = graph.greedyEdgeColoring()
         #expect(graph.edges.indices.map { coloring.color(ofEdgeAt: $0) } == [0, 1, 2])

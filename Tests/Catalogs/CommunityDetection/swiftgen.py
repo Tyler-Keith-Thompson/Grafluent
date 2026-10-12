@@ -69,7 +69,7 @@ COMMON = """// Expected values are ref.py's model at full precision (the catalog
 // partition row also checks `count`, `community(of:)` against membership, `community(ofIndex:)`
 // against `community(of:)`, and the modularity of the result (at the call's weight and resolution)
 // against ref.py's; undirected rows of the measures, Louvain and greedy modularity also run on
-// `graph.directed` (the same values). Case IDs (CD-nnn) refer to the catalog; see README.md."""
+// `graph.directedView` (the same values). Case IDs (CD-nnn) refer to the catalog; see README.md."""
 
 
 # ----------------------------------------------------------------------------------------------
@@ -257,7 +257,7 @@ def body_lines(row, indent, gname="graph", for_rep=False, rep_g=None, rep_eval=N
     vt = vtype(g)
     lines = []
     uses_conn = False
-    target = f"{gname}.directed" if view == "directed" else gname
+    target = f"{gname}.directedView" if view == "directed" else gname
     in_view = view == "directed"
     if name in ("modularity", "partitionQuality"):
         of = a["of"]
@@ -279,20 +279,20 @@ def body_lines(row, indent, gname="graph", for_rep=False, rep_g=None, rep_eval=N
             if not g.directed and view is None and not for_rep:
                 dg, _, da, _, _, _, _, dval = directed_eval(row)
                 dsetup, dargs = call_args(da, dg, True)
-                # weights on graph.directed: the edge's weight through each arc's position
+                # weights on graph.directedView: the edge's weight through each arc's position
                 ds, dclo = call_args(a, g, True)
                 dargs = ", " + dclo if dclo else ""
-                lines.append(f"{indent}let arcs = {gname}.directed.modularity(of: communities{dargs})")
-                lines += close(indent, "arcs", dval, "graph.directed")
+                lines.append(f"{indent}let arcs = {gname}.directedView.modularity(of: communities{dargs})")
+                lines += close(indent, "arcs", dval, "graph.directedView")
         else:
             lines.append(f"{indent}let quality = {target}.partitionQuality(of: communities)")
             lines += close(indent, "quality.coverage", val[0])
             lines += close(indent, "quality.performance", val[1])
             if not g.directed and view is None and not for_rep:
                 dval = directed_eval(row)[7]
-                lines.append(f"{indent}let arcs = {gname}.directed.partitionQuality(of: communities)")
-                lines += close(indent, "arcs.coverage", dval[0], "graph.directed")
-                lines += close(indent, "arcs.performance", dval[1], "graph.directed")
+                lines.append(f"{indent}let arcs = {gname}.directedView.partitionQuality(of: communities)")
+                lines += close(indent, "arcs.coverage", dval[0], "graph.directedView")
+                lines += close(indent, "arcs.performance", dval[1], "graph.directedView")
         return lines, uses_conn
     # A partition.
     setup, args = call_args(a, g, in_view)
@@ -344,13 +344,13 @@ def body_lines(row, indent, gname="graph", for_rep=False, rep_g=None, rep_eval=N
     elif not g.directed and view is None and name in ("louvainCommunities", "greedyModularityCommunities") and not for_rep:
         dval = directed_eval(row)[7]
         _, dargs = call_args(a, g, True)
-        lines.append(f"{indent}let arcs = {gname}.directed.{name}({dargs})")
+        lines.append(f"{indent}let arcs = {gname}.directedView.{name}({dargs})")
         if ref.canonical(dval) == groups:
-            lines.append(f'{indent}#expect(arcs == result, "graph.directed")')
+            lines.append(f'{indent}#expect(arcs == result, "graph.directedView")')
         else:
             dgroups = [[g.vertices[v] for v in c] for c in ref.canonical(dval)]
             lines += partition_lines("expectedArcs", dgroups, vt, indent)
-            lines.append(f'{indent}#expect(arcs.map {{ Array($0) }} == expectedArcs, "graph.directed")')
+            lines.append(f'{indent}#expect(arcs.map {{ Array($0) }} == expectedArcs, "graph.directedView")')
     return lines, uses_conn
 
 
@@ -362,7 +362,7 @@ def row_title(row, g):
     gtxt = f"{kind.strip()}({rest.strip()})"
     if view == "directed":
         op = re.sub(r"directed\s*>\s*", "", op)
-        gtxt += ".directed"
+        gtxt += ".directedView"
     exp = row["exp"]
     exp = exp[1:] if exp.startswith("#") else exp
     exp = "NaN" if exp == "nan" else exp

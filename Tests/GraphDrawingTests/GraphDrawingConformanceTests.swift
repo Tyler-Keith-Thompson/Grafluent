@@ -42,15 +42,15 @@ struct GraphDrawingConformanceTests {
 
         let circular = pseudograph.circularLayout(radius: 2, center: SIMD2(1, -1))
         #expect(list.circularLayout(radius: 2, center: SIMD2(1, -1)) == circular, "\(context)")
-        #expect(directedPseudograph.undirected.circularLayout(radius: 2, center: SIMD2(1, -1)) == circular, "\(context)")
-        #expect(adjacencyList.undirected.circularLayout(radius: 2, center: SIMD2(1, -1)) == circular, "\(context)")
-        #expect(matrix.undirected.circularLayout(radius: 2, center: SIMD2(1, -1)) == circular, "\(context)")
-        #expect(stable.undirected.circularLayout(radius: 2, center: SIMD2(1, -1)) == circular, "\(context)")
+        #expect(directedPseudograph.undirectedView.circularLayout(radius: 2, center: SIMD2(1, -1)) == circular, "\(context)")
+        #expect(adjacencyList.undirectedView.circularLayout(radius: 2, center: SIMD2(1, -1)) == circular, "\(context)")
+        #expect(matrix.undirectedView.circularLayout(radius: 2, center: SIMD2(1, -1)) == circular, "\(context)")
+        #expect(stable.undirectedView.circularLayout(radius: 2, center: SIMD2(1, -1)) == circular, "\(context)")
 
         let stress = pseudograph.stressMajorizationLayout()
-        for other in [list.stressMajorizationLayout(), directedPseudograph.undirected.stressMajorizationLayout(),
-                      adjacencyList.undirected.stressMajorizationLayout(), matrix.undirected.stressMajorizationLayout(),
-                      stable.undirected.stressMajorizationLayout()] {
+        for other in [list.stressMajorizationLayout(), directedPseudograph.undirectedView.stressMajorizationLayout(),
+                      adjacencyList.undirectedView.stressMajorizationLayout(), matrix.undirectedView.stressMajorizationLayout(),
+                      stable.undirectedView.stressMajorizationLayout()] {
             #expect(other.vertices == stress.vertices, "\(context)")
             for (a, b) in zip(other.positions, stress.positions) {
                 #expect(abs(a.x - b.x) <= 1e-9 && abs(a.y - b.y) <= 1e-9, "\(context): \(a) vs \(b)")
@@ -63,13 +63,13 @@ struct GraphDrawingConformanceTests {
         var g1 = Xoshiro256StarStar(seed: UInt64(seed))
         others.append(list.fruchtermanReingoldLayout(using: &g1))
         var g2 = Xoshiro256StarStar(seed: UInt64(seed))
-        others.append(directedPseudograph.undirected.fruchtermanReingoldLayout(using: &g2))
+        others.append(directedPseudograph.undirectedView.fruchtermanReingoldLayout(using: &g2))
         var g3 = Xoshiro256StarStar(seed: UInt64(seed))
-        others.append(adjacencyList.undirected.fruchtermanReingoldLayout(using: &g3))
+        others.append(adjacencyList.undirectedView.fruchtermanReingoldLayout(using: &g3))
         var g4 = Xoshiro256StarStar(seed: UInt64(seed))
-        others.append(matrix.undirected.fruchtermanReingoldLayout(using: &g4))
+        others.append(matrix.undirectedView.fruchtermanReingoldLayout(using: &g4))
         var g5 = Xoshiro256StarStar(seed: UInt64(seed))
-        others.append(stable.undirected.fruchtermanReingoldLayout(using: &g5))
+        others.append(stable.undirectedView.fruchtermanReingoldLayout(using: &g5))
         #expect([g1, g2, g3, g4, g5].allSatisfy { $0 == g0 }, "\(context)")
         for other in others {
             #expect(other.vertices == force.vertices, "\(context)")

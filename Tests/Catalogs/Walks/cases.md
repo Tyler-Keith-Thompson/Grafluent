@@ -88,7 +88,7 @@ whose out- and incident orders are position order). ✓ marks a case whose expec
 | WK-402 | each `i` of a `Cycle` `c` | edge `i` joins `c[i]` and `c[(i+1) % count]` |
 | WK-403 | `Walk(vertices: [0,1], edges: [0], in: U)` and `Walk(vertices: [1,0], edges: [0], in: U)` | both non-nil (edge 0 crossed from either end) |
 | WK-404 ✓ | `Walk(vertices: [0,2], edges: [0], in: U)` | nil |
-| WK-405 | `Walk(vertices: [0,1], edges: [DirectedView.Edges.Index(position: 0, reversed: true)], in: U.directed)` | nil (that arc goes 1→0); `reversed: false` non-nil |
+| WK-405 | `Walk(vertices: [0,1], edges: [DirectedView.Edges.Index(position: 0, reversed: true)], in: U.directedView)` | nil (that arc goes 1→0); `reversed: false` non-nil |
 
 ## 5. Multigraphs: parallel edges and self-loops (WK-5xx)
 
@@ -117,7 +117,7 @@ whose out- and incident orders are position order). ✓ marks a case whose expec
 | WK-601 ✓ | `Cycle([0,1,2], in: U)` and `Cycle([0,2,1], in: U)` | edges `[0,1,2]` and `[2,1,0]`; both valid |
 | WK-602 ✓ | WK-601 pair | `!=` (no reflection); `a == b.reversed()` |
 | WK-603 ✓ | `Walk(vertices: [0,1,0], edges: [0,0], in: U)` | non-nil Walk; `Trail(_)`, `Circuit(_)`, `Cycle(_)` all nil |
-| WK-604 ✓ | `Cycle(vertices: [0,1], edges: [(0,false),(0,true)], in: U.directed)` | non-nil (a 2-cycle of `g.directed`) |
+| WK-604 ✓ | `Cycle(vertices: [0,1], edges: [(0,false),(0,true)], in: U.directedView)` | non-nil (a 2-cycle of `g.directedView`) |
 | WK-605 ✓ | `Cycle([0,1], in: UP)` | edges `[0,1]` (parallel pair, NetworkX WK-609) |
 | WK-606 | `Cycle([0], in: UL)` | edges `[0]`; `Circuit([0,0], in: UL)` edges `[0,1]` |
 | WK-607 ✓ | NetworkX `simple_cycles(cycle_graph(3))` has 1 cycle; `DiGraph` bidirected triangle has 5 | documents the reflection difference that callers handle themselves |
@@ -180,7 +180,7 @@ whose out- and incident orders are position order). ✓ marks a case whose expec
 | WK-1004 ✓ | `w.appending(Walk(vertex: w.target)) == w` and `Walk(vertex: w.source).appending(w) == w` | true (JGraphT testConcatPathWithSingleton) |
 | WK-1005 ✓ | `Walk(vertex: 7).reversed()` | `== Walk(vertex: 7)` |
 | WK-1006 ✓ | `Cycle(vertices: [0,1], edges: [0,1]).reversed()` | vertices `[0,1]`, edges `[1,0]`; `!=` the original |
-| WK-1007 ✓ | a walk of `U.directed` with arcs `(0,false),(1,false)` over `[0,1,2]`, reversed | arcs `(1,false),(0,false)` over `[2,1,0]`: not a walk of `U.directed` (documented) |
+| WK-1007 ✓ | a walk of `U.directedView` with arcs `(0,false),(1,false)` over `[0,1,2]`, reversed | arcs `(1,false),(0,false)` over `[2,1,0]`: not a walk of `U.directedView` (documented) |
 | WK-1008 | `var w; w.append(x)` vs `w.appending(x)` | equal results; `append` does not copy a uniquely referenced buffer (benchmark, not a test) |
 | WK-1009 | `Path.reversed()`, `Trail.reversed()`, `Circuit.reversed()` | keep their type (`Self`) |
 | WK-1010 | `Cycle([0,1,2,3], in: D4)!.reversed()` | vertices `[0,3,2,1]`, edges `[3,2,1,0]` |
@@ -210,7 +210,7 @@ Each of these replaces an existing assertion. The vertex sequences stay the same
 | WK-1202 ✓ | TR-105: `findCycle()` cases like `== [0,3,5]` | `?.vertices == [0,3,5]`, and `==` any rotation built with the same edges |
 | WK-1203 ✓ | NetworkX TestFindCycle digraph `[(-1,0),(0,1),(1,0),(1,0),(2,1),(3,1)]` from `[0,1,2,3]` | NetworkX `[(0,1),(1,0)]`; Grafluent `findCycle(from: [0,1,2,3])?.vertices == [0,1]`, and its edges name the first 1→0 copy found by DFS |
 | WK-1204 ✓ | NetworkX undirected find_cycle plus 2–0 | NetworkX `[(0,1),(1,2),(2,0)]` (for the planned `Graph.cycle()`) |
-| WK-1205 ✓ | NetworkX `find_cycle(DAG, orientation='ignore')` | `[(0,1,fwd),(1,2,fwd),(0,2,rev)]`: equivalent to a cycle of `dag.undirected`, outside `Traversal`'s scope |
+| WK-1205 ✓ | NetworkX `find_cycle(DAG, orientation='ignore')` | `[(0,1,fwd),(1,2,fwd),(0,2,rev)]`: equivalent to a cycle of `dag.undirectedView`, outside `Traversal`'s scope |
 | WK-1206 ✓ | NetworkX `find_negative_cycle` on 0⇄1 at −1 | `[0,1,0]` (repeats the start; Grafluent does not) |
 | WK-1207 | `ShortestPathTree.path(to: source)` | `Path(vertex: source)` (`length 0`) |
 | WK-1208 | `path(to: unreached)` | nil |

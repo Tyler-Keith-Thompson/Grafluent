@@ -31,7 +31,7 @@ against its definition, and 3,500 random law triples. Run (about 2 s with `--str
 | `dagShortestPaths(from:weight:)` on `DirectedGraph` (optional) and `DirectedAcyclicGraph` | `S: SelectiveSemiring` | Boost's `dag_shortest_paths` over any selective semiring: widest paths in a DAG, reachability. |
 | `dagShortestDistances(from:weight:)` → `ShortestDistances<Self, S>` (optional on `DirectedGraph`, not on `DirectedAcyclicGraph`) | `S: Semiring` | Mohri's shortest distance: ⊕ over **every** path of the ⊗ of its weights, in topological order. Over `CountingSemiring` it is **path counting** (with weights, weighted path sums). It needs no idempotence, so it is the one entry point that takes `CountingSemiring`. |
 | `floydWarshallShortestPaths(weight:)` → `DistanceMatrix<Self, D>?`, with both the existing `W: Comparable & AdditiveArithmetic` overload and the `S: SelectiveSemiring` one | either | README already plans Floyd–Warshall and `DistanceMatrix`. Over a selective semiring it is the all-pairs case of the algebraic path problem: all-pairs widest paths, and over `BooleanSemiring` **Warshall's transitive closure** (reflexive: the diagonal is `.one`, the empty path; NetworkX `transitive_closure(reflexive=True)`). `nil` when a diagonal entry ends better than `.one` (scipy's `NegativeCycleError`, NetworkX's negative diagonal). A third overload, `W: _SemiringScalar & BinaryFloatingPoint`, runs the tropical loop for `Double`, `Float` and `Float16` (1.6× faster than the reached-flag loop), where a weight of +∞, or a path rounding to +∞, is no edge, as in scipy; integers and other `W` keep the reached flag (SR-353, SR-354). |
-| Undirected graphs | | Overloads on `Graph` mirroring the `W` ones in `Undirected.swift`: `dijkstraShortestPaths` (one source, several), `dijkstraShortestPath`, `bellmanFordShortestPaths` (one, several), and `floydWarshallShortestPaths` with both its `W` and `S` overloads. Each runs over `directed` (SR-220 and SR-239 call it directly), and Dijkstra walks the graph's own rows when it has vertex indices. A reachable edge better than `.one` is a 2-cycle better than `.one` (w ⊗ w ⊑ w < 1̄), so Bellman–Ford returns `nil` after one O(V + E) pass, as a negative edge does in the `W` overload. Tests: `SemiringUndirectedTests.swift`, written by hand. |
+| Undirected graphs | | Overloads on `Graph` mirroring the `W` ones in `Undirected.swift`: `dijkstraShortestPaths` (one source, several), `dijkstraShortestPath`, `bellmanFordShortestPaths` (one, several), and `floydWarshallShortestPaths` with both its `W` and `S` overloads. Each runs over `directedView` (SR-220 and SR-239 call it directly), and Dijkstra walks the graph's own rows when it has vertex indices. A reachable edge better than `.one` is a 2-cycle better than `.one` (w ⊗ w ⊑ w < 1̄), so Bellman–Ford returns `nil` after one O(V + E) pass, as a negative edge does in the `W` overload. Tests: `SemiringUndirectedTests.swift`, written by hand. |
 
 **Phase 2** (rows pinned now, SR-430 – SR-458)
 
@@ -117,7 +117,7 @@ extension DirectedGraph {
     // Phase 2
     public func kleeneClosure<S: ClosedSemiring>(weight: (Edges.Index) -> S) -> DistanceMatrix<Self, S>
 }
-extension Graph {   // through `directed`, as the W overloads in Undirected.swift
+extension Graph {   // through `directedView`, as the W overloads in Undirected.swift
     public func dijkstraShortestPaths<S: SelectiveSemiring>(from: Vertex / some Sequence<Vertex>, cutoff: S? = nil, weight: (Edges.Index) -> S) -> ShortestPathTree<DirectedView<Self>, S>
     public func dijkstraShortestPath<S: SelectiveSemiring>(from: Vertex, to: Vertex, weight: (Edges.Index) -> S) -> (path: Path<Vertex, DirectedView<Self>.Edges.Index>, distance: S)?
     public func bellmanFordShortestPaths<S: SelectiveSemiring>(from: Vertex / some Sequence<Vertex>, weight: (Edges.Index) -> S) -> ShortestPathTree<DirectedView<Self>, S>?
@@ -262,7 +262,7 @@ distances and never adds them. `ShortestDistances` (Mohri) and `DistanceMatrix` 
 (`d[i][k] == .zero` skips row i), then `nil` if any diagonal entry ends better than `.one`
 (a negative loop counts: SR-240). Paths are stored as the last edge into each target
 (`Edges.Index`, which tells parallel edges apart), as a predecessor-edge matrix, n² entries.
-Undirected graphs go through `.directed`. Ties are not pinned beyond the distances.
+Undirected graphs go through `.directedView`. Ties are not pinned beyond the distances.
 
 **D11. Preconditions the tests assume.** Empty sources trap only where a tree is returned
 (`dijkstraShortestPaths`, `bellmanFordShortestPaths`, `dagShortestPaths`, as the `W` overloads);

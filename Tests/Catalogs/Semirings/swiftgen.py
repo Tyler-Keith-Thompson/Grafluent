@@ -12,7 +12,7 @@ since phase 1 does not declare them; without the flag that file is removed.
 
 Each row is written the way the catalog writes it: `S(value)` operands for the law and
 arithmetic rows; for the algorithm rows a `DirectedPseudograph` (or a `Pseudograph` read through
-`.directed`) built from the listed edges in position order, `w` the raw weights by position, and
+`.directedView`) built from the listed edges in position order, `w` the raw weights by position, and
 `weight: { S(w[$0]) }`. A tree row checks `distance(to:)`, `distance(toIndex:)`, `hasPath(to:)`
 and `sources`, and every `path(to:)` by the definition: consecutive edges of the graph from a
 source, whose ⊗-product is the distance, ending in `parentEdge(of:)`. A matrix row checks
@@ -172,7 +172,7 @@ def graph_lines(n, ind):
     else:
         es = ["UndirectedEdge(%d, %d)" % (u, v) for u, v, _ in g.edges]
         out.append(ind + "let graph = Pseudograph(vertices: 0 ..< %d, edges: %s)" % (g.n, wrap(es, ind, 6)))
-        out.append(ind + "let directed = graph.directed")
+        out.append(ind + "let directed = graph.directedView")
         view, idx = "directed", "$0.position"
     out.append(ind + "let w: [%s] = %s" % (sc, wrap([vlit(s, x) for _, _, x in g.edges], ind, 12)))
     return out, view, idx
@@ -717,7 +717,7 @@ FILES = [
     ("SemiringDijkstraTests.swift", "Semirings: Dijkstra over a selective semiring", ids("Dijkstra"),
      "Dijkstra over a selective semiring (catalog Dijkstra rows): shortest paths (tropical), widest\n"
      "// paths (bottleneck, with a cutoff meaning at least this wide) and reachability (Boolean); an\n"
-     "// edge of weight zero carries no path; undirected graphs through .directed."),
+     "// edge of weight zero carries no path; undirected graphs through .directedView."),
     ("SemiringBellmanFordTests.swift", "Semirings: Bellman–Ford over a selective semiring", ids("Bellman–Ford"),
      "Bellman–Ford over a selective semiring (catalog Bellman–Ford rows): nil when a cycle better\n"
      "// than one is reachable, which only the tropical semiring has."),

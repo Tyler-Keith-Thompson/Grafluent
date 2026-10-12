@@ -404,7 +404,7 @@ through a mutable representation and converted (`CompressedSparseRow(adjacencyLi
   child gives the default. Exactly one `<graph>`, whose `edgedefault` is required (graphml.xsd:
   `use="required"`, GF-064). `<node id>` in document order; `<edge source target>` in document
   order, endpoints resolved after the whole graph is read (an edge may precede its nodes, GF-049).
-  An edge's `directed` attribute (an `xs:boolean`: `true`, `false`, `1`, `0`, surrounding
+  An edge's `directedView` attribute (an `xs:boolean`: `true`, `false`, `1`, `0`, surrounding
   whitespace collapsed, GF-241, GF-242) must equal `edgedefault` (phase 2 otherwise, GF-076);
   `edgedefault` is an enumeration of tokens, so whitespace around it is collapsed too (GF-243). `<data>`
   with element content (yEd graphics) is skipped (GF-055); unknown elements (`<desc>`, foreign

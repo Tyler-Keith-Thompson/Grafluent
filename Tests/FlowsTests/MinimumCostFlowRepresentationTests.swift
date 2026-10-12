@@ -2,11 +2,11 @@
 // `ReferenceDirectedMultigraph` for rows already on it), a file-private conformer with no vertex or
 // edge indices, and, without a repeated edge, `CompressedSparseRow` and `AdjacencyMatrix` on the
 // vertex indices; undirected rows on `Pseudograph` (or `ReferencePseudograph`), the conformer, and,
-// without a repeated edge, `AdjacencyList.undirected` (each edge an arc as written) and
-// `AdjacencyMatrix.undirected`. CompressedSparseRow and AdjacencyMatrix number edges by row-major
-// cell, so there each catalog edge's position is looked up, a cut's edges are listed in that order,
-// and Edmonds–Karp's flow (which follows positions) was recomputed by swiftgen.py with ref.py's
-// model on those positions. Everything else is the catalog's. See README.md.
+// without a repeated edge, `AdjacencyList.undirectedView` (each edge an arc as written) and
+// `AdjacencyMatrix.undirectedView`. CompressedSparseRow and AdjacencyMatrix number edges by
+// row-major cell, so there each catalog edge's position is looked up, a cut's edges are listed in
+// that order, and Edmonds–Karp's flow (which follows positions) was recomputed by swiftgen.py with
+// ref.py's model on those positions. Everything else is the catalog's. See README.md.
 
 import AdjacencyMatrixModule
 import CompressedSparseRowModule

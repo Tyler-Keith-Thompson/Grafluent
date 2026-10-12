@@ -2,8 +2,8 @@
 // `ReferenceDirectedMultigraph` for rows already on it), a file-private conformer with no vertex or
 // edge indices, and, without a repeated edge, `CompressedSparseRow` and `AdjacencyMatrix` on the
 // vertex indices; undirected rows on `Pseudograph` (or `ReferencePseudograph`), the conformer, and,
-// without a repeated edge, `AdjacencyList.undirected` (each edge an arc as written; a vertex's row
-// its out-edges, then its in-edges) and `AdjacencyMatrix.undirected` (rows by neighbour).
+// without a repeated edge, `AdjacencyList.undirectedView` (each edge an arc as written; a vertex's
+// row its out-edges, then its in-edges) and `AdjacencyMatrix.undirectedView` (rows by neighbour).
 // CompressedSparseRow and AdjacencyMatrix number edges by row-major cell, so there each catalog
 // edge's position is looked up. The walks follow each vertex's row, and Christofides' ties follow
 // positions: where ref.py's models, run by swiftgen.py on the representation's rows and positions,
@@ -44,7 +44,7 @@ private struct UnindexedGraph<Vertex: Hashable>: Graph {
 
 @Suite("hasEulerianTrail on every representation")
 struct HasEulerianTrailRepresentationTests {
-    @Test("TO-002 empty graph, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-002 empty graph, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to002() {
         // V []; E []; hasEulerianTrail
         do { // Pseudograph
@@ -66,18 +66,18 @@ struct HasEulerianTrailRepresentationTests {
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = []
-            let graph = AdjacencyList<Int>(vertices: [] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = []
-            let graph = AdjacencyMatrix(vertexCount: 0, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 0, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -89,7 +89,7 @@ struct HasEulerianTrailRepresentationTests {
         }
     }
 
-    @Test("TO-006 one vertex, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-006 one vertex, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to006() {
         // V [0]; E []; hasEulerianTrail
         do { // Pseudograph
@@ -111,18 +111,18 @@ struct HasEulerianTrailRepresentationTests {
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = []
-            let graph = AdjacencyList<Int>(vertices: [0] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = []
-            let graph = AdjacencyMatrix(vertexCount: 1, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 1, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -134,7 +134,7 @@ struct HasEulerianTrailRepresentationTests {
         }
     }
 
-    @Test("TO-010 two isolated vertices (isolated vertices ignored), on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-010 two isolated vertices (isolated vertices ignored), on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to010() {
         // V [0, 1]; E []; hasEulerianTrail
         do { // Pseudograph
@@ -156,18 +156,18 @@ struct HasEulerianTrailRepresentationTests {
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = []
-            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = []
-            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -179,7 +179,7 @@ struct HasEulerianTrailRepresentationTests {
         }
     }
 
-    @Test("TO-014 one self-loop, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-014 one self-loop, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to014() {
         // multigraph V [0]; E [0-0]; hasEulerianTrail
         do { // ReferencePseudograph
@@ -201,18 +201,18 @@ struct HasEulerianTrailRepresentationTests {
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 0)]
-            let graph = AdjacencyList<Int>(vertices: [0] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 1, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 1, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -248,7 +248,7 @@ struct HasEulerianTrailRepresentationTests {
         }
     }
 
-    @Test("TO-022 self-loop beside an isolated vertex, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-022 self-loop beside an isolated vertex, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to022() {
         // multigraph V [0, 1]; E [1-1]; hasEulerianTrail
         do { // ReferencePseudograph
@@ -270,18 +270,18 @@ struct HasEulerianTrailRepresentationTests {
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(1, 1)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(1, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -293,7 +293,7 @@ struct HasEulerianTrailRepresentationTests {
         }
     }
 
-    @Test("TO-026 self-loops at two vertices: two components with edges, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-026 self-loops at two vertices: two components with edges, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to026() {
         // multigraph V [0, 1]; E [0-0, 1-1]; hasEulerianTrail
         do { // ReferencePseudograph
@@ -315,18 +315,18 @@ struct HasEulerianTrailRepresentationTests {
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == false)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 0), (1, 1)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == false)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 0), (1, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -338,7 +338,7 @@ struct HasEulerianTrailRepresentationTests {
         }
     }
 
-    @Test("TO-030 one edge: a trail, no circuit, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-030 one edge: a trail, no circuit, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to030() {
         // V [0, 1]; E [0-1]; hasEulerianTrail
         do { // Pseudograph
@@ -360,18 +360,18 @@ struct HasEulerianTrailRepresentationTests {
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -431,7 +431,7 @@ struct HasEulerianTrailRepresentationTests {
         }
     }
 
-    @Test("TO-042 path P(3), on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-042 path P(3), on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to042() {
         // P(3); hasEulerianTrail
         do { // Pseudograph
@@ -453,18 +453,18 @@ struct HasEulerianTrailRepresentationTests {
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
-            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -476,7 +476,7 @@ struct HasEulerianTrailRepresentationTests {
         }
     }
 
-    @Test("TO-046 path P(4), on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-046 path P(4), on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to046() {
         // P(4); hasEulerianTrail
         do { // Pseudograph
@@ -498,18 +498,18 @@ struct HasEulerianTrailRepresentationTests {
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -521,7 +521,7 @@ struct HasEulerianTrailRepresentationTests {
         }
     }
 
-    @Test("TO-050 triangle C(3), on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-050 triangle C(3), on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to050() {
         // C(3); hasEulerianTrail
         do { // Pseudograph
@@ -543,18 +543,18 @@ struct HasEulerianTrailRepresentationTests {
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -566,7 +566,7 @@ struct HasEulerianTrailRepresentationTests {
         }
     }
 
-    @Test("TO-054 cycle C(5), on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-054 cycle C(5), on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to054() {
         // C(5); hasEulerianTrail
         do { // Pseudograph
@@ -588,18 +588,18 @@ struct HasEulerianTrailRepresentationTests {
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -611,7 +611,7 @@ struct HasEulerianTrailRepresentationTests {
         }
     }
 
-    @Test("TO-058 triangle beside an isolated vertex, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-058 triangle beside an isolated vertex, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to058() {
         // V [0, 1, 2, 3]; E [0-1, 1-2, 2-0]; hasEulerianTrail
         do { // Pseudograph
@@ -633,18 +633,18 @@ struct HasEulerianTrailRepresentationTests {
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -656,7 +656,7 @@ struct HasEulerianTrailRepresentationTests {
         }
     }
 
-    @Test("TO-062 isolated first vertex: the circuit starts at the first vertex with an edge, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-062 isolated first vertex: the circuit starts at the first vertex with an edge, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to062() {
         // V [0, 1, 2, 3]; E [1-2, 2-3, 3-1]; hasEulerianTrail
         do { // Pseudograph
@@ -678,18 +678,18 @@ struct HasEulerianTrailRepresentationTests {
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(1, 2), (2, 3), (3, 1)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(1, 2), (2, 3), (3, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -701,7 +701,7 @@ struct HasEulerianTrailRepresentationTests {
         }
     }
 
-    @Test("TO-066 two triangles apart, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-066 two triangles apart, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to066() {
         // V [0, 1, 2, 3, 4, 5]; E [0-1, 1-2, 2-0, 3-4, 4-5, 5-3]; hasEulerianTrail
         do { // Pseudograph
@@ -723,18 +723,18 @@ struct HasEulerianTrailRepresentationTests {
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == false)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (3, 4), (4, 5), (5, 3)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == false)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (3, 4), (4, 5), (5, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -746,7 +746,7 @@ struct HasEulerianTrailRepresentationTests {
         }
     }
 
-    @Test("TO-070 bowtie: two triangles at a shared vertex, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-070 bowtie: two triangles at a shared vertex, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to070() {
         // V [0, 1, 2, 3, 4]; E [0-1, 1-2, 2-0, 2-3, 3-4, 4-2]; hasEulerianTrail
         do { // Pseudograph
@@ -768,18 +768,18 @@ struct HasEulerianTrailRepresentationTests {
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (2, 3), (3, 4), (4, 2)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (2, 3), (3, 4), (4, 2)]
-            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -791,7 +791,7 @@ struct HasEulerianTrailRepresentationTests {
         }
     }
 
-    @Test("TO-074 triangle with a loop: loops add 2, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-074 triangle with a loop: loops add 2, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to074() {
         // multigraph V [0, 1, 2]; E [0-1, 0-0, 1-2, 2-0]; hasEulerianTrail
         do { // ReferencePseudograph
@@ -813,18 +813,18 @@ struct HasEulerianTrailRepresentationTests {
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 0), (1, 2), (2, 0)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 0), (1, 2), (2, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -836,7 +836,7 @@ struct HasEulerianTrailRepresentationTests {
         }
     }
 
-    @Test("TO-078 edge with a loop at the end: odd 0 and 1, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-078 edge with a loop at the end: odd 0 and 1, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to078() {
         // multigraph V [0, 1]; E [0-1, 1-1]; hasEulerianTrail
         do { // ReferencePseudograph
@@ -858,18 +858,18 @@ struct HasEulerianTrailRepresentationTests {
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 1)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -881,7 +881,7 @@ struct HasEulerianTrailRepresentationTests {
         }
     }
 
-    @Test("TO-082 loop at a vertex, an edge elsewhere: two components, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-082 loop at a vertex, an edge elsewhere: two components, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to082() {
         // multigraph V [0, 1, 2]; E [0-0, 1-2]; hasEulerianTrail
         do { // ReferencePseudograph
@@ -903,18 +903,18 @@ struct HasEulerianTrailRepresentationTests {
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == false)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 0), (1, 2)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == false)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 0), (1, 2)]
-            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -926,7 +926,7 @@ struct HasEulerianTrailRepresentationTests {
         }
     }
 
-    @Test("TO-086 star(3): four odd vertices, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-086 star(3): four odd vertices, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to086() {
         // V [0, 1, 2, 3]; E [0-1, 0-2, 0-3]; hasEulerianTrail
         do { // Pseudograph
@@ -948,18 +948,18 @@ struct HasEulerianTrailRepresentationTests {
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == false)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == false)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -971,7 +971,7 @@ struct HasEulerianTrailRepresentationTests {
         }
     }
 
-    @Test("TO-090 K(4): every degree 3, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-090 K(4): every degree 3, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to090() {
         // K(4); hasEulerianTrail
         do { // Pseudograph
@@ -993,18 +993,18 @@ struct HasEulerianTrailRepresentationTests {
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == false)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == false)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -1016,7 +1016,7 @@ struct HasEulerianTrailRepresentationTests {
         }
     }
 
-    @Test("TO-094 K(5): every degree 4, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-094 K(5): every degree 4, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to094() {
         // K(5); hasEulerianTrail
         do { // Pseudograph
@@ -1038,18 +1038,18 @@ struct HasEulerianTrailRepresentationTests {
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
-            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -1109,7 +1109,7 @@ struct HasEulerianTrailRepresentationTests {
         }
     }
 
-    @Test("TO-106 house: odd at the base, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-106 house: odd at the base, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to106() {
         // V [0, 1, 2, 3, 4]; E [0-1, 1-2, 2-3, 3-0, 2-4, 4-3]; hasEulerianTrail
         do { // Pseudograph
@@ -1131,18 +1131,18 @@ struct HasEulerianTrailRepresentationTests {
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 0), (2, 4), (4, 3)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 0), (2, 4), (4, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -1154,7 +1154,7 @@ struct HasEulerianTrailRepresentationTests {
         }
     }
 
-    @Test("TO-110 vertex order, not label order, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-110 vertex order, not label order, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to110() {
         // V [d, a, c, b]; E [a-c, c-b, b-a, d-a, d-c]; hasEulerianTrail
         do { // Pseudograph
@@ -1176,18 +1176,18 @@ struct HasEulerianTrailRepresentationTests {
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(String, String)] = [("a", "c"), ("c", "b"), ("b", "a"), ("d", "a"), ("d", "c")]
-            let graph = AdjacencyList<String>(vertices: ["d", "a", "c", "b"] as [String], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<String>(vertices: ["d", "a", "c", "b"] as [String], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == ["d", "a", "c", "b"] as [String])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(1, 2), (2, 3), (3, 1), (0, 1), (0, 2)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -1199,7 +1199,7 @@ struct HasEulerianTrailRepresentationTests {
         }
     }
 
-    @Test("TO-114 odd vertices last in the order, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-114 odd vertices last in the order, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to114() {
         // V [0, 1, 2, 3, 4]; E [4-3, 3-0, 0-1, 1-2, 2-0, 0-4, 4-1]; hasEulerianTrail
         do { // Pseudograph
@@ -1221,18 +1221,18 @@ struct HasEulerianTrailRepresentationTests {
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(4, 3), (3, 0), (0, 1), (1, 2), (2, 0), (0, 4), (4, 1)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(4, 3), (3, 0), (0, 1), (1, 2), (2, 0), (0, 4), (4, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -1244,7 +1244,7 @@ struct HasEulerianTrailRepresentationTests {
         }
     }
 
-    @Test("TO-118 grid(3,3): four odd corners' neighbours, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-118 grid(3,3): four odd corners' neighbours, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to118() {
         // grid(3,3); hasEulerianTrail
         do { // Pseudograph
@@ -1266,18 +1266,18 @@ struct HasEulerianTrailRepresentationTests {
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == false)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 3), (1, 2), (1, 4), (2, 5), (3, 4), (3, 6), (4, 5), (4, 7), (5, 8), (6, 7), (7, 8)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == false)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 3), (1, 2), (1, 4), (2, 5), (3, 4), (3, 6), (4, 5), (4, 7), (5, 8), (6, 7), (7, 8)]
-            let graph = AdjacencyMatrix(vertexCount: 9, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 9, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -1289,7 +1289,7 @@ struct HasEulerianTrailRepresentationTests {
         }
     }
 
-    @Test("TO-122 Petersen: every degree 3, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-122 Petersen: every degree 3, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to122() {
         // nx(petersen_graph); hasEulerianTrail
         do { // Pseudograph
@@ -1311,18 +1311,18 @@ struct HasEulerianTrailRepresentationTests {
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == false)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == false)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
-            let graph = AdjacencyMatrix(vertexCount: 10, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 10, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -1334,7 +1334,7 @@ struct HasEulerianTrailRepresentationTests {
         }
     }
 
-    @Test("TO-126 octahedral: every degree 4, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-126 octahedral: every degree 4, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to126() {
         // nx(octahedral_graph); hasEulerianTrail
         do { // Pseudograph
@@ -1356,18 +1356,18 @@ struct HasEulerianTrailRepresentationTests {
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 5), (2, 4), (2, 5), (3, 4), (3, 5), (4, 5)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 5), (2, 4), (2, 5), (3, 4), (3, 5), (4, 5)]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -1379,7 +1379,7 @@ struct HasEulerianTrailRepresentationTests {
         }
     }
 
-    @Test("TO-130 wheel(4): rim odd, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-130 wheel(4): rim odd, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to130() {
         // wheel(4); hasEulerianTrail
         do { // Pseudograph
@@ -1401,18 +1401,18 @@ struct HasEulerianTrailRepresentationTests {
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == false)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (2, 3), (3, 4), (4, 1)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == false)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (2, 3), (3, 4), (4, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -1424,7 +1424,7 @@ struct HasEulerianTrailRepresentationTests {
         }
     }
 
-    @Test("TO-134 K(3,3) less nothing: degree 3, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-134 K(3,3) less nothing: degree 3, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to134() {
         // Kb(3,3); hasEulerianTrail
         do { // Pseudograph
@@ -1446,18 +1446,18 @@ struct HasEulerianTrailRepresentationTests {
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == false)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 3), (0, 4), (0, 5), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == false)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 3), (0, 4), (0, 5), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5)]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -1469,7 +1469,7 @@ struct HasEulerianTrailRepresentationTests {
         }
     }
 
-    @Test("TO-138 Kb(2,4): even sides, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-138 Kb(2,4): even sides, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to138() {
         // Kb(2,4); hasEulerianTrail
         do { // Pseudograph
@@ -1491,18 +1491,18 @@ struct HasEulerianTrailRepresentationTests {
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (1, 3), (1, 4), (1, 5)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (1, 3), (1, 4), (1, 5)]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4, 5] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.
@@ -1514,7 +1514,7 @@ struct HasEulerianTrailRepresentationTests {
         }
     }
 
-    @Test("TO-142 rows decide: the first edge out of 0 is the second chord, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("TO-142 rows decide: the first edge out of 0 is the second chord, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func to142() {
         // V [0, 1, 2, 3, 4]; E [0-3, 0-1, 1-2, 2-0, 3-4, 4-0]; hasEulerianTrail
         do { // Pseudograph
@@ -1536,18 +1536,18 @@ struct HasEulerianTrailRepresentationTests {
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 3), (0, 1), (1, 2), (2, 0), (3, 4), (4, 0)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
             #expect(graph.edges.map { [$0.u, $0.v] } == pairs.map { [$0.0, $0.1] })
             // Each edge's ends as vertex indices (positions in `vertices`), by catalog edge.
             #expect(graph.hasEulerianTrail == true)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 3), (0, 1), (1, 2), (2, 0), (3, 4), (4, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let vertexList = Array(graph.vertices)
             #expect(vertexList == [0, 1, 2, 3, 4] as [Int])
             // Positions here are row-major cells: each catalog edge's position, and back.

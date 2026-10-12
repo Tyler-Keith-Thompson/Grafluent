@@ -1,6 +1,6 @@
 // Long, wide and dense graphs inside a Task: a long path, a grid, a star, a complete graph, a
 // sparse random graph with every weight equal, and the real-world fixtures through
-// AdjacencyList.undirected. Sizes are scaled so each test stays well under a few seconds in a debug
+// AdjacencyList.undirectedView. Sizes are scaled so each test stays well under a few seconds in a debug
 // build; the catalog's larger sizes are benchmarks (ST-B01). Only answers are asserted. Case IDs
 // (ST-nn) refer to the catalog; see README.md.
 
@@ -194,10 +194,10 @@ struct SpanningTreeStressTests {
         }.value
     }
 
-    @Test("ST-115 the real-world fixtures through AdjacencyList.undirected: three-way agreement, n − c edges", .tags(.fixture), arguments: DirectedFixture<Int>.realWorld)
+    @Test("ST-115 the real-world fixtures through AdjacencyList.undirectedView: three-way agreement, n − c edges", .tags(.fixture), arguments: DirectedFixture<Int>.realWorld)
     func realWorld(fixture: DirectedFixture<Int>) async {
         await Task {
-            let graph = AdjacencyList(vertices: fixture.vertices, edges: fixture.edges).undirected
+            let graph = AdjacencyList(vertices: fixture.vertices, edges: fixture.edges).undirectedView
             // A hash of the position as the weight.
             let weight: (Int) -> Int = { ($0 &* 2_654_435_761) % 1000 }
             let n = graph.vertexCount

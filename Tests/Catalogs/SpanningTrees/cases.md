@@ -121,7 +121,7 @@ force, the cycle-property uniqueness test, NetworkX 3.7 and scipy 1.18.1).
 |---|---|---|
 | ST-90 | `UndirectedAdjacencyList` built from `WIKI` in order (positions = insertion order) | ST-04's values |
 | ST-91 | `ReferencePseudograph` with ST-27 (parallel) and ST-31 (loops) | ST-27 and ST-31 |
-| ST-92 | `AdjacencyList` digraph `0→1 (3), 1→0 (1), 1→2 (2)` read through `.undirected` | {position 1, position 2}, 3: the arcs 0→1 and 1→0 become parallel edges and the lighter wins |
+| ST-92 | `AdjacencyList` digraph `0→1 (3), 1→0 (1), 1→2 (2)` read through `.undirectedView` | {position 1, position 2}, 3: the arcs 0→1 and 1→0 become parallel edges and the lighter wins |
 | ST-93 | A conformer without vertex indices (a dictionary graph private to the file) with `WIKI` and ST-43 | the same canonical edges and weights |
 | ST-94 | A conformer with vertex indices and no edge indices | the same canonical edges (the tie rule by `edges` order, through the fallback gathering path) |
 | ST-95 | `String` vertices (ST-05, ST-43, ST-44) | as listed |
@@ -150,7 +150,7 @@ Oracles are written inside each test (no shared helpers).
 | ST-112 | a star with 10⁶ leaves | every edge. Borůvka finishes in one round. Prim's queue grows to 10⁶ |
 | ST-113 | K₁₅₀₀ (≈ 1.12 M edges) with random weights | Prim, Kruskal and Borůvka agree (the dense case) |
 | ST-114 | G(10⁵, 5·10⁵), every weight equal | the canonical forest is the first forest in position order; equal to `minimumSpanningTree()` |
-| ST-115 | the real-world fixtures (gap4, graph500Scale8, ligraRMat) through `AdjacencyList(...).undirected`, with a hash of the position as the weight | three-way agreement; n − c edges |
+| ST-115 | the real-world fixtures (gap4, graph500Scale8, ligraRMat) through `AdjacencyList(...).undirectedView`, with a hash of the position as the weight | three-way agreement; n − c edges |
 | ST-116 | ST-111 inside a `Task` | the same result (Sendable) |
 
 ## J. Preconditions and conformance (ST-120 – ST-129)
@@ -166,7 +166,7 @@ Oracles are written inside each test (no shared helpers).
 | ST-126 | Through `any Graph<Int>` existentials, and generic code | the same answers |
 | ST-127 | Weight-call counts (ST-63) for every entry point, including `from:` | exactly once per non-loop edge read |
 | ST-128 | No hashing on an indexed graph: a counting-hash vertex type on `UndirectedAdjacencyList` sees 0 hash calls during Kruskal and Borůvka (and only the root's for `from:`) | 0 |
-| ST-129 | Not on `DirectedGraph` (compile-time: documented, not a test); `digraph.undirected` works (ST-92) | — |
+| ST-129 | Not on `DirectedGraph` (compile-time: documented, not a test); `digraph.undirectedView` works (ST-92) | — |
 
 ## Counts
 

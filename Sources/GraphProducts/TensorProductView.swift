@@ -7,9 +7,9 @@ import GraphProtocols
 ///
 /// - Precondition: both factors have vertex indices, and |V(G)|·|V(H)| fits in an `Int`.
 @inlinable
-public func tensorProduct<G: DirectedGraph, H: DirectedGraph>(_ g: G, _ h: H) -> TensorProduct<G, H> {
+public func tensorProductView<G: DirectedGraph, H: DirectedGraph>(_ g: G, _ h: H) -> TensorProductView<G, H> {
     let (nG, nH) = _factorCounts(g.vertexIndexBound, h.vertexIndexBound)
-    return TensorProduct(first: g, second: h, firstCount: nG, secondCount: nH)
+    return TensorProductView(first: g, second: h, firstCount: nG, secondCount: nH)
 }
 
 /// The tensor product G × H of two undirected graphs, as a lazy view: for every edge {a, b} of G
@@ -18,15 +18,15 @@ public func tensorProduct<G: DirectedGraph, H: DirectedGraph>(_ g: G, _ h: H) ->
 ///
 /// - Precondition: both factors have vertex indices, and |V(G)|·|V(H)| fits in an `Int`.
 @inlinable
-public func tensorProduct<G: Graph, H: Graph>(_ g: G, _ h: H) -> TensorProduct<G, H> {
+public func tensorProductView<G: Graph, H: Graph>(_ g: G, _ h: H) -> TensorProductView<G, H> {
     let (nG, nH) = _factorCounts(g.vertexIndexBound, h.vertexIndexBound)
-    return TensorProduct(first: g, second: h, firstCount: nG, secondCount: nH, factors: _Factors(first: g, second: h))
+    return TensorProductView(first: g, second: h, firstCount: nG, secondCount: nH, factors: _Factors(first: g, second: h))
 }
 
 /// The tensor product G × H of two graphs, both directed or both undirected, as a lazy view. Made
-/// by `tensorProduct(_:_:)`. Also called the direct, categorical or Kronecker product.
+/// by `tensorProductView(_:_:)`. Also called the direct, categorical or Kronecker product.
 ///
-/// Vertices and their indices are as in `CartesianProduct`. The row of (g, h) lists `(g′, h′)` for
+/// Vertices and their indices are as in `CartesianProductView`. The row of (g, h) lists `(g′, h′)` for
 /// each entry g′ of G's row of g and each entry h′ of H's row of h, G outer. Rows are computed from
 /// the factors' index rows and never hash.
 ///
@@ -39,7 +39,7 @@ public func tensorProduct<G: Graph, H: Graph>(_ g: G, _ h: H) -> TensorProduct<G
 /// `index(e)·m_H + index(f)` when both factors have them; undirected it has none, because a
 /// self-loop changes how many edges a factor pair gives.
 @frozen
-public struct TensorProduct<First, Second> {
+public struct TensorProductView<First, Second> {
     /// G, the first factor.
     public let first: First
     /// H, the second factor.
@@ -174,12 +174,12 @@ public struct TensorProduct<First, Second> {
     }
 }
 
-extension TensorProduct: Sendable where First: Sendable, Second: Sendable {}
-extension TensorProduct.Position: Sendable where FirstEdge: Sendable, SecondEdge: Sendable {}
-extension TensorProduct.IndexRow: Sendable where FirstRow: Sendable, SecondRow: Sendable {}
-extension TensorProduct.EdgeRow: Sendable where FirstEdges: Sendable, SecondEdges: Sendable {}
+extension TensorProductView: Sendable where First: Sendable, Second: Sendable {}
+extension TensorProductView.Position: Sendable where FirstEdge: Sendable, SecondEdge: Sendable {}
+extension TensorProductView.IndexRow: Sendable where FirstRow: Sendable, SecondRow: Sendable {}
+extension TensorProductView.EdgeRow: Sendable where FirstEdges: Sendable, SecondEdges: Sendable {}
 
-extension TensorProduct.Position {
+extension TensorProductView.Position {
     /// The first position of a tensor product's `edges`, or `end` when there is none.
     @inlinable
     static func _start<GE: Collection, HE: Collection>(_ firstEdges: GE, _ secondEdges: HE) -> Self
@@ -262,7 +262,7 @@ struct _UndirectedTensorRows<G: Graph, H: Graph> {
     }
 
     @inlinable
-    mutating func next() -> (index: Int, position: TensorProduct<G, H>.Position<G.Edges.Index, H.Edges.Index>)? {
+    mutating func next() -> (index: Int, position: TensorProductView<G, H>.Position<G.Edges.Index, H.Edges.Index>)? {
         while true {
             if hasCurrent {
                 while let entry = hEntries.next() {
@@ -274,7 +274,7 @@ struct _UndirectedTensorRows<G: Graph, H: Graph> {
                     }
                     return (
                         gNeighbor &* secondCount &+ entry.neighbor,
-                        TensorProduct<G, H>.Position(first: gEdge, second: entry.position, reversed: reversed)
+                        TensorProductView<G, H>.Position(first: gEdge, second: entry.position, reversed: reversed)
                     )
                 }
             }

@@ -198,13 +198,13 @@ struct DijkstraBasicsTests {
             [nil, 0, 0, 0, 0], [1, nil, 0, 1, 1], [2, 0, nil, 0, 0], [3, 3, 0, nil, 3], [4, 4, 0, 4, nil],
         ]
         for source in 0 ..< 5 {
-            let tree = graph.directed.dijkstraShortestPaths(from: source) { weights[$0.position] }
+            let tree = graph.directedView.dijkstraShortestPaths(from: source) { weights[$0.position] }
             #expect((0 ..< 5).map { tree.distance(to: $0) } == distances[source], "from \(source)")
             #expect((0 ..< 5).map { tree.parent(of: $0) } == parents[source], "from \(source)")
         }
         // From 1, vertex 0 is at 3 both directly and through 3; the parent with the smaller
         // distance (1 itself) wins, as in scipy.
-        let tree = graph.directed.dijkstraShortestPaths(from: 1) { weights[$0.position] }
+        let tree = graph.directedView.dijkstraShortestPaths(from: 1) { weights[$0.position] }
         #expect(tree.parentEdge(of: 0) == .init(position: 0, reversed: true))
         #expect(tree.parentEdge(of: 2) == .init(position: 1, reversed: false))
         #expect(tree.parentEdge(of: 3) == .init(position: 4, reversed: false))
@@ -232,7 +232,7 @@ struct DijkstraBasicsTests {
         let xg3: [(Int, Int, Int)] = [(0, 1, 2), (1, 2, 12), (2, 3, 1), (3, 4, 5), (4, 5, 1), (5, 0, 10)]
         let graph = UndirectedAdjacencyList(edges: xg3.map { UndirectedEdge($0.0, $0.1) })
         let weights = xg3.map(\.2)
-        let tree = graph.directed.dijkstraShortestPaths(from: 0) { weights[$0.position] }
+        let tree = graph.directedView.dijkstraShortestPaths(from: 0) { weights[$0.position] }
         #expect((0 ..< 6).map { tree.distance(to: $0) } == [0, 2, 14, 15, 11, 10])
         #expect(tree.path(to: 3)?.vertices == [0, 1, 2, 3])
         #expect(tree.parent(of: 4) == 5)

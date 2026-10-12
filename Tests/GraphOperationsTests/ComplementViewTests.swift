@@ -13,10 +13,10 @@ import Testing
 struct ComplementViewTests {
     @Test("GO-048 empty graph")
     func go048() {
-        // AL V []; E [] / .complement
+        // AL V []; E [] / .complementView
         // Expected: V []; E []; bounds 0/nil; rows []
         let graph = AdjacencyList<String>(vertices: [] as [String], edges: [] as [DirectedEdge<String>])
-        let view = graph.complement
+        let view = graph.complementView
         #expect(Array(view.vertices) == [] as [String])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [] as [Int])
         #expect((0 ..< 0).map { view.vertex(atIndex: $0) } == [] as [String])
@@ -28,10 +28,10 @@ struct ComplementViewTests {
 
     @Test("GO-049 one vertex: no self-loop")
     func go049() {
-        // AL V [a]; E [] / .complement
+        // AL V [a]; E [] / .complementView
         // Expected: V [a#0]; E []; bounds 1/nil; rows [a: ]
         let graph = AdjacencyList<String>(vertices: ["a"], edges: [] as [DirectedEdge<String>])
-        let view = graph.complement
+        let view = graph.complementView
         #expect(Array(view.vertices) == ["a"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0])
         #expect((0 ..< 1).map { view.vertex(atIndex: $0) } == ["a"])
@@ -56,10 +56,10 @@ struct ComplementViewTests {
 
     @Test("GO-050 edgeless on three: complete digraph")
     func go050() {
-        // AL V [a, b, c]; E [] / .complement
+        // AL V [a, b, c]; E [] / .complementView
         // Expected: V [a#0, b#1, c#2]; E [(0,1):a→b, (0,2):a→c, (1,0):b→a, (1,2):b→c, (2,0):c→a, (2,1):c→b]; bounds 3/nil; rows [a: b c; b: a c; c: a b]
         let graph = AdjacencyList<String>(vertices: ["a", "b", "c"], edges: [] as [DirectedEdge<String>])
-        let view = graph.complement
+        let view = graph.complementView
         #expect(Array(view.vertices) == ["a", "b", "c"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2])
         #expect((0 ..< 3).map { view.vertex(atIndex: $0) } == ["a", "b", "c"])
@@ -108,10 +108,10 @@ struct ComplementViewTests {
 
     @Test("GO-051 one arc: the other five")
     func go051() {
-        // AL V [a, b, c]; E [a→b] / .complement
+        // AL V [a, b, c]; E [a→b] / .complementView
         // Expected: V [a#0, b#1, c#2]; E [(0,2):a→c, (1,0):b→a, (1,2):b→c, (2,0):c→a, (2,1):c→b]; bounds 3/nil; rows [a: c; b: a c; c: a b]
         let graph = AdjacencyList<String>(vertices: ["a", "b", "c"], edges: [DirectedEdge(from: "a", to: "b")])
-        let view = graph.complement
+        let view = graph.complementView
         #expect(Array(view.vertices) == ["a", "b", "c"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2])
         #expect((0 ..< 3).map { view.vertex(atIndex: $0) } == ["a", "b", "c"])
@@ -160,10 +160,10 @@ struct ComplementViewTests {
 
     @Test("GO-052 complete digraph: no arcs")
     func go052() {
-        // AL V [a, b]; E [a→b, b→a] / .complement
+        // AL V [a, b]; E [a→b, b→a] / .complementView
         // Expected: V [a#0, b#1]; E []; bounds 2/nil; rows [a: ; b: ]
         let graph = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "a")])
-        let view = graph.complement
+        let view = graph.complementView
         #expect(Array(view.vertices) == ["a", "b"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1])
         #expect((0 ..< 2).map { view.vertex(atIndex: $0) } == ["a", "b"])
@@ -199,10 +199,10 @@ struct ComplementViewTests {
 
     @Test("GO-053 self-loop ignored")
     func go053() {
-        // AL V [a, b]; E [a→a] / .complement
+        // AL V [a, b]; E [a→a] / .complementView
         // Expected: V [a#0, b#1]; E [(0,1):a→b, (1,0):b→a]; bounds 2/nil; rows [a: b; b: a]
         let graph = DirectedPseudograph<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "a")])
-        let view = graph.complement
+        let view = graph.complementView
         #expect(Array(view.vertices) == ["a", "b"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1])
         #expect((0 ..< 2).map { view.vertex(atIndex: $0) } == ["a", "b"])
@@ -240,10 +240,10 @@ struct ComplementViewTests {
 
     @Test("GO-054 parallel arcs count as one")
     func go054() {
-        // AL V [a, b, c]; E [a→b, a→b] / .complement
+        // AL V [a, b, c]; E [a→b, a→b] / .complementView
         // Expected: V [a#0, b#1, c#2]; E [(0,2):a→c, (1,0):b→a, (1,2):b→c, (2,0):c→a, (2,1):c→b]; bounds 3/nil; rows [a: c; b: a c; c: a b]
         let graph = DirectedPseudograph<String>(vertices: ["a", "b", "c"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "a", to: "b")])
-        let view = graph.complement
+        let view = graph.complementView
         #expect(Array(view.vertices) == ["a", "b", "c"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2])
         #expect((0 ..< 3).map { view.vertex(atIndex: $0) } == ["a", "b", "c"])
@@ -292,10 +292,10 @@ struct ComplementViewTests {
 
     @Test("GO-055 rows ascending by index")
     func go055() {
-        // AL V [c, a, b]; E [c→b] / .complement
+        // AL V [c, a, b]; E [c→b] / .complementView
         // Expected: V [c#0, a#1, b#2]; E [(0,1):c→a, (1,0):a→c, (1,2):a→b, (2,0):b→c, (2,1):b→a]; bounds 3/nil; rows [c: a; a: c b; b: c a]
         let graph = AdjacencyList<String>(vertices: ["c", "a", "b"], edges: [DirectedEdge(from: "c", to: "b")])
-        let view = graph.complement
+        let view = graph.complementView
         #expect(Array(view.vertices) == ["c", "a", "b"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2])
         #expect((0 ..< 3).map { view.vertex(atIndex: $0) } == ["c", "a", "b"])
@@ -344,10 +344,10 @@ struct ComplementViewTests {
 
     @Test("GO-056 predecessors when the base is bidirectional")
     func go056() {
-        // AL V [a, b, c]; E [a→c] / .complement
+        // AL V [a, b, c]; E [a→c] / .complementView
         // Expected: V [a#0, b#1, c#2]; E [(0,1):a→b, (1,0):b→a, (1,2):b→c, (2,0):c→a, (2,1):c→b]; bounds 3/nil; predecessors(of: c) [b]
         let graph = AdjacencyList<String>(vertices: ["a", "b", "c"], edges: [DirectedEdge(from: "a", to: "c")])
-        let view = graph.complement
+        let view = graph.complementView
         #expect(Array(view.predecessors(of: "c")) == ["b"])
         #expect(Array(view.vertices) == ["a", "b", "c"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2])
@@ -397,10 +397,10 @@ struct ComplementViewTests {
 
     @Test("GO-057 complement twice is the simple loopless base only")
     func go057() {
-        // AL V [a, b]; E [a→a, a→b, a→b] / .complement.complement
+        // AL V [a, b]; E [a→a, a→b, a→b] / .complementView.complementView
         // Expected: V [a#0, b#1]; E [(0,1):a→b]; bounds 2/nil; rows [a: b; b: ]
         let graph = DirectedPseudograph<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "a"), DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "a", to: "b")])
-        let view = graph.complement.complement
+        let view = graph.complementView.complementView
         // The base of the outer complement is the inner one, whose base is the graph.
         #expect(view.base.base == graph)
         #expect(Array(view.vertices) == ["a", "b"])
@@ -440,10 +440,10 @@ struct ComplementViewTests {
 
     @Test("GO-058 undirected: path P4 to its complement P4")
     func go058() {
-        // UL V [a, b, c, d]; E [a–b, b–c, c–d] / .complement
+        // UL V [a, b, c, d]; E [a–b, b–c, c–d] / .complementView
         // Expected: V [a#0, b#1, c#2, d#3]; E [(0,2):a–c, (0,3):a–d, (1,3):b–d]; bounds 4/nil; rows [a: c d; b: d; c: a; d: a b]
         let graph = UndirectedAdjacencyList<String>(vertices: ["a", "b", "c", "d"], edges: [UndirectedEdge("a", "b"), UndirectedEdge("b", "c"), UndirectedEdge("c", "d")])
-        let view = graph.complement
+        let view = graph.complementView
         #expect(Array(view.vertices) == ["a", "b", "c", "d"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2, 3])
         #expect((0 ..< 4).map { view.vertex(atIndex: $0) } == ["a", "b", "c", "d"])
@@ -486,10 +486,10 @@ struct ComplementViewTests {
 
     @Test("GO-059 undirected: C5 is self-complementary (as a set of edges, a different C5)")
     func go059() {
-        // UL V [a, b, c, d, e]; E [a–b, b–c, c–d, d–e, e–a] / .complement
+        // UL V [a, b, c, d, e]; E [a–b, b–c, c–d, d–e, e–a] / .complementView
         // Expected: V [a#0, b#1, c#2, d#3, e#4]; E [(0,2):a–c, (0,3):a–d, (1,3):b–d, (1,4):b–e, (2,4):c–e]; bounds 5/nil; rows [a: c d; b: d e; c: a e; d: a b; e: b c]
         let graph = UndirectedAdjacencyList<String>(vertices: ["a", "b", "c", "d", "e"], edges: [UndirectedEdge("a", "b"), UndirectedEdge("b", "c"), UndirectedEdge("c", "d"), UndirectedEdge("d", "e"), UndirectedEdge("e", "a")])
-        let view = graph.complement
+        let view = graph.complementView
         #expect(Array(view.vertices) == ["a", "b", "c", "d", "e"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2, 3, 4])
         #expect((0 ..< 5).map { view.vertex(atIndex: $0) } == ["a", "b", "c", "d", "e"])
@@ -539,10 +539,10 @@ struct ComplementViewTests {
 
     @Test("GO-060 undirected: loop and parallel edges ignored")
     func go060() {
-        // UL V [a, b, c]; E [a–a, a–b, b–a] / .complement
+        // UL V [a, b, c]; E [a–a, a–b, b–a] / .complementView
         // Expected: V [a#0, b#1, c#2]; E [(0,2):a–c, (1,2):b–c]; bounds 3/nil; rows [a: c; b: c; c: a b]
         let graph = Pseudograph<String>(vertices: ["a", "b", "c"], edges: [UndirectedEdge("a", "a"), UndirectedEdge("a", "b"), UndirectedEdge("b", "a")])
-        let view = graph.complement
+        let view = graph.complementView
         #expect(Array(view.vertices) == ["a", "b", "c"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2])
         #expect((0 ..< 3).map { view.vertex(atIndex: $0) } == ["a", "b", "c"])
@@ -578,10 +578,10 @@ struct ComplementViewTests {
 
     @Test("GO-061 undirected: K4 has an empty complement")
     func go061() {
-        // UL V [a, b, c, d]; E [a–b, a–c, a–d, b–c, b–d, c–d] / .complement
+        // UL V [a, b, c, d]; E [a–b, a–c, a–d, b–c, b–d, c–d] / .complementView
         // Expected: V [a#0, b#1, c#2, d#3]; E []; bounds 4/nil
         let graph = UndirectedAdjacencyList<String>(vertices: ["a", "b", "c", "d"], edges: [UndirectedEdge("a", "b"), UndirectedEdge("a", "c"), UndirectedEdge("a", "d"), UndirectedEdge("b", "c"), UndirectedEdge("b", "d"), UndirectedEdge("c", "d")])
-        let view = graph.complement
+        let view = graph.complementView
         #expect(Array(view.vertices) == ["a", "b", "c", "d"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2, 3])
         #expect((0 ..< 4).map { view.vertex(atIndex: $0) } == ["a", "b", "c", "d"])
@@ -619,10 +619,10 @@ struct ComplementViewTests {
 
     @Test("GO-062 index-space rows hash nothing; contains(edge:) looks its vertices up, the base's negated")
     func go062() {
-        // AL V [a, b, c]; E [a→b] / .complement
+        // AL V [a, b, c]; E [a→b] / .complementView
         // Expected: V [a#0, b#1, c#2]; E [(0,2):a→c, (1,0):b→a, (1,2):b→c, (2,0):c→a, (2,1):c→b]; bounds 3/nil; outEdges(ofIndex: 0) [(0, 2)]; hashes 0; contains(edge: a→b) false (looks its vertices up); contains(edge: b→b) false (looks its vertices up)
         let graph = AdjacencyList<String>(vertices: ["a", "b", "c"], edges: [DirectedEdge(from: "a", to: "b")])
-        let view = graph.complement
+        let view = graph.complementView
         #expect(Array(view.vertices) == ["a", "b", "c"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2])
         #expect((0 ..< 3).map { view.vertex(atIndex: $0) } == ["a", "b", "c"])
@@ -686,7 +686,7 @@ struct ComplementViewTests {
             let tally = Tally()
             func label(_ name: String) -> Counted { Counted(name: name, tally: tally) }
             let counted = AdjacencyList<Counted>(vertices: ["a", "b", "c"].map(label), edges: [DirectedEdge(from: label("a"), to: label("b"))])
-            let complement = counted.complement
+            let complement = counted.complementView
             tally.hashes = 0
             let out = complement.outEdges(ofIndex: 0).map { [complement.sourceIndex(ofEdgeAt: $0), complement.targetIndex(ofEdgeAt: $0)] }
             let rows = (0 ..< 3).map { Array(complement.successorIndices(ofIndex: $0)) + Array(complement.predecessorIndices(ofIndex: $0)) }

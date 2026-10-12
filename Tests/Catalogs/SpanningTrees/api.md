@@ -139,7 +139,7 @@ extension Graph {
 ```
 
 There is nothing on `DirectedGraph`. To run these on a bidirectional directed graph, call
-`digraph.undirected.minimumSpanningTree(weight:)`. Each arc becomes an edge, so `u → v` and
+`digraph.undirectedView.minimumSpanningTree(weight:)`. Each arc becomes an edge, so `u → v` and
 `v → u` are parallel edges and the lighter one wins.
 
 ### Names, and who uses them
@@ -166,12 +166,12 @@ There is nothing on `DirectedGraph`. To run these on a bidirectional directed gr
 | Self-loops | Never in the forest, and never weighed | A self-loop can never join two components. Not reading it also means a NaN self-loop does not trap (ST-57), unlike NetworkX's Kruskal |
 | Parallel edges | The lightest copy wins; among equal copies, the first position (ST-28, ST-30) | Follows from the tie rule. NetworkX's Borůvka refuses multigraphs |
 | Negative and zero weights | Ordinary weights | Every MST algorithm uses only comparisons. Boost's Prim is the only exception in the survey |
-| NaN | Trap on every weight read (`precondition(w == w)`), so every non-loop edge is checked. No `ignore_nan` | ShortestPaths' rule. NetworkX raises by default and igraph errors. To drop NaN edges, filter them out with `spanningSubgraph(edges:)` once that view exists |
+| NaN | Trap on every weight read (`precondition(w == w)`), so every non-loop edge is checked. No `ignore_nan` | ShortestPaths' rule. NetworkX raises by default and igraph errors. To drop NaN edges, filter them out with `spanningSubgraphView(edges:)` once that view exists |
 | ±∞ | Ordinary weights: a `+∞` bridge is in the tree (ST-52). If the forest contains both `+∞` and `−∞`, the total is NaN and traps (ST-55) | No sentinel is ever compared, so nothing is dropped, unlike NetworkX's Borůvka and JGraphT's and Boost's Prim. A NaN sum traps, as in ShortestPaths' Bellman–Ford |
 | Total weight | Added up in `edges` order. Swift's checked arithmetic traps on overflow (ST-60). `Int.max` is exact (ST-59). Kruskal and Prim may add Doubles in different orders, so their Double totals can differ in the last ulp: tests compare edge sets, or use exact weights | `W: AdditiveArithmetic` provides `+` and `.zero`, which is all a sum needs |
 | Unweighted | `minimumSpanningTree()`: union–find in position order, `Weight == Int` (the edge count) | NetworkX's default weight is 1. igraph has an unweighted method. Free under the tie rule |
 | Maximum | A reversed comparison, never negation, so `UInt8` works (ST-61). Ties keep position order | NetworkX sorts with `reverse=True`, which is stable. igraph and LEMON tell users to negate |
-| Directed graphs | Not offered. Use `.undirected` | NetworkX refuses directed input, and treating it as undirected silently is how petgraph, igraph and scipy surprise their users. ShortestPaths goes the other way (undirected through `directed`), and this mirrors it |
+| Directed graphs | Not offered. Use `.undirectedView` | NetworkX refuses directed input, and treating it as undirected silently is how petgraph, igraph and scipy surprise their users. ShortestPaths goes the other way (undirected through `directedView`), and this mirrors it |
 | Vertex indices | With `vertexIndexBound`, every array is indexed by vertex. Without it, vertices are numbered once through a dictionary (`_numberedVertices`, as in ShortestPaths) | ShortestPaths' and Connectivity's precedent. The goal is no hashing on an indexed graph (ST-128) |
 | Edge indices | Not required. With `edgeIndexBound`, edges are gathered from the rows with no hashing. Without it, edges are walked in `edges` order and each endpoint is looked up once | Either way the edge list is a flat array of `(weight, rank, u, v)` |
 | Sendable / Equatable | Equatable is synthesized: two results are equal when their edge arrays and weights match. Sendable is conditional | Since the default is canonical, equality is meaningful there. For Prim it compares outputs, not correctness |

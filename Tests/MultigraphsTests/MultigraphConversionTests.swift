@@ -1,7 +1,7 @@
 // Conversions (catalog MG-160 – MG-178): to the simple lists (each pair keeps its first copy by
 // position, in its orientation), from them (vertex order and positions kept, rows rebuilt in
-// position order), between the multigraphs and the pseudographs, and through `.undirected` /
-// `.directed`.
+// position order), between the multigraphs and the pseudographs, and through `.undirectedView` /
+// `.directedView`.
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import AdjacencyListModule
@@ -292,11 +292,11 @@ struct MultigraphConversionTests {
         #expect(Multigraph(graph) == multigraph)
     }
 
-    @Test("MG-173 Pseudograph(digraph.undirected): opposite arcs become copies")
+    @Test("MG-173 Pseudograph(digraph.undirectedView): opposite arcs become copies")
     func mg173() {
         // DirectedPseudograph E [0→1, 1→0, 1→1]
         let digraph = DirectedPseudograph<Int>(edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 0), DirectedEdge(from: 1, to: 1)])
-        let graph = Pseudograph(digraph.undirected)
+        let graph = Pseudograph(digraph.undirectedView)
         #expect(Array(graph.vertices) == [0, 1])
         #expect(graph.edges.map { [$0.u, $0.v] } == [[0, 1], [1, 0], [1, 1]])
         #expect(graph.vertexCount == 2)
@@ -311,11 +311,11 @@ struct MultigraphConversionTests {
         #expect(graph.edgeCount(between: 1, and: 1) == 1)
     }
 
-    @Test("MG-174 DirectedPseudograph(graph.directed): two arcs per edge, a loop's two arcs")
+    @Test("MG-174 DirectedPseudograph(graph.directedView): two arcs per edge, a loop's two arcs")
     func mg174() {
         // Pseudograph E [0–1, 0–1, 1–1]
         let pseudograph = Pseudograph<Int>(edges: [UndirectedEdge(0, 1), UndirectedEdge(0, 1), UndirectedEdge(1, 1)])
-        let graph = DirectedPseudograph(pseudograph.directed)
+        let graph = DirectedPseudograph(pseudograph.directedView)
         #expect(Array(graph.vertices) == [0, 1])
         #expect(graph.edges.map { [$0.source, $0.target] } == [[0, 1], [1, 0], [0, 1], [1, 0], [1, 1], [1, 1]])
         #expect(graph.vertexCount == 2)
@@ -336,14 +336,14 @@ struct MultigraphConversionTests {
         #expect(graph.edgeCount(from: 1, to: 1) == 2)
     }
 
-    @Test("MG-175 DirectedMultigraph(graph.directed) with a loop is nil")
+    @Test("MG-175 DirectedMultigraph(graph.directedView) with a loop is nil")
     func mg175() {
         // Pseudograph E [0–1, 0–1, 1–1]
         let pseudograph = Pseudograph<Int>(edges: [UndirectedEdge(0, 1), UndirectedEdge(0, 1), UndirectedEdge(1, 1)])
-        #expect(DirectedMultigraph(pseudograph.directed) == nil)
+        #expect(DirectedMultigraph(pseudograph.directedView) == nil)
         // Without the loop, each edge is two opposite arcs.
         let loopless = Pseudograph<Int>(edges: [UndirectedEdge(0, 1), UndirectedEdge(0, 1)])
-        #expect(DirectedMultigraph(loopless.directed)?.edges.map { [$0.source, $0.target] } == [[0, 1], [1, 0], [0, 1], [1, 0]])
+        #expect(DirectedMultigraph(loopless.directedView)?.edges.map { [$0.source, $0.target] } == [[0, 1], [1, 0], [0, 1], [1, 0]])
     }
 
     @Test("MG-176 DirectedMultigraph(directedPseudograph) with a loop is nil")

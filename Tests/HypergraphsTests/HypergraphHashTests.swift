@@ -1,6 +1,6 @@
 // The hash law, through the public API: a vertex type local to each test counts its own
 // `hash(into:)` and `==` calls. Index-space members and whole-hypergraph algorithms touch no vertex
-// (no hash, no comparison), and so do the graph algorithms run on `incidenceGraph`; every
+// (no hash, no comparison), and so do the graph algorithms run on `incidenceGraphView`; every
 // vertex-space member hashes exactly once, checked spellings included, hit or miss; an algorithm that
 // takes vertices looks each up once; `contains(hyperedge:)` hashes each member once; hashing a
 // hypergraph hashes each vertex once; building is amortized O(1) hashes per incidence. Every
@@ -57,10 +57,10 @@ struct HypergraphHashTests {
         sink &+= hypergraph.connectedComponents().count &+ (hypergraph.isConnected ? 1 : 0)
         sink &+= hypergraph.lineGraph(s: 1).edgeCount &+ hypergraph.lineGraph(s: 2).edgeCount
         sink &+= hypergraph.sConnectedComponents(s: 1).count &+ hypergraph.dual().sConnectedComponents(s: 1).count
-        let view = hypergraph.incidenceGraph
+        let view = hypergraph.incidenceGraphView
         for x in view.vertices { sink &+= view.neighborIndices(ofIndex: x).reduce(0, &+) &+ view.incidentEdgeIndices(ofIndex: x).count }
         for q in view.edges.indices { sink &+= view.endpointIndices(ofEdgeAt: q).u &+ view.edges[q].v }
-        sink &+= view.connectedComponents().count &+ view.directed.breadthFirstSearch(from: 0).reduce(0) { n, _ in n + 1 }
+        sink &+= view.connectedComponents().count &+ view.directedView.breadthFirstSearch(from: 0).reduce(0) { n, _ in n + 1 }
         sink &+= view.bridges().count &+ view.articulationPoints().count
         #expect(tally.hashes == 0)
         #expect(tally.comparisons == 0)
@@ -110,7 +110,7 @@ struct HypergraphHashTests {
         sink &+= (hypergraph.isBHypergraph ? 1 : 0) &+ (hypergraph.isFHypergraph ? 1 : 0) &+ (hypergraph.isBFHypergraph ? 1 : 0)
         sink &+= hypergraph.outDegreeHistogram().count &+ hypergraph.inDegreeHistogram().count
         sink &+= hypergraph.sourceSizeHistogram().count &+ hypergraph.targetSizeHistogram().count
-        let view = hypergraph.incidenceGraph
+        let view = hypergraph.incidenceGraphView
         for x in view.vertices { sink &+= view.successorIndices(ofIndex: x).reduce(0, &+) &+ view.predecessorIndices(ofIndex: x).reduce(0, &+) }
         for q in view.edges.indices { sink &+= view.sourceIndex(ofEdgeAt: q) &+ view.targetIndex(ofEdgeAt: q) }
         sink &+= view.stronglyConnectedComponents().count &+ view.descendants(of: 0).count &+ (view.topologicalSort()?.count ?? 1)

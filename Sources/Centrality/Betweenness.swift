@@ -196,7 +196,7 @@ extension Graph {
     public func betweennessCentrality(normalized: Bool = true, endpoints: Bool = false) -> CentralityScores<DirectedView<Self>> {
         var scores = _betweenness(_centralityRows(readsEdges: false), endpoints: endpoints)
         _rescaleBetweenness(&scores, normalized: normalized, endpoints: endpoints, directed: false)
-        return CentralityScores(directed, numbers: _vertexNumbering()?.numbers, scores: scores)
+        return CentralityScores(directedView, numbers: _vertexNumbering()?.numbers, scores: scores)
     }
 
     /// Weighted betweenness centrality. Path lengths tie only when their sums are exactly equal, so
@@ -211,7 +211,7 @@ extension Graph {
         let weights = _edgeWeights(weight, valid: { $0 > .zero }, message: "Edge weights must be greater than zero")
         var scores = _betweenness(rows, slotWeights: rows.slotWeights(weights), endpoints: endpoints)
         _rescaleBetweenness(&scores, normalized: normalized, endpoints: endpoints, directed: false)
-        return CentralityScores(directed, numbers: _vertexNumbering()?.numbers, scores: scores)
+        return CentralityScores(directedView, numbers: _vertexNumbering()?.numbers, scores: scores)
     }
 }
 

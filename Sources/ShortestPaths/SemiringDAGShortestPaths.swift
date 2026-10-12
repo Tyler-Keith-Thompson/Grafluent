@@ -184,6 +184,15 @@ public struct ShortestDistances<G: DirectedGraph, Distance> {
         precondition(index >= 0 && index < _distance.count, "Index \(index) is out of range 0..<\(_distance.count)")
         return _distance[index]
     }
+
+    /// `distance(to: vertex)`, throwing instead of trapping when `vertex` is not a vertex of the
+    /// graph (README Principle 6): `.zero` still means no path reaches it.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the graph.
+    @inlinable
+    public func distance(checkedTo vertex: G.Vertex) throws(VertexNotFound) -> Distance {
+        _distance[try _ids.graph._checkedIndex(of: vertex, _ids)]
+    }
 }
 
 extension ShortestDistances: Sendable where G: Sendable, G.Vertex: Sendable, Distance: Sendable {}

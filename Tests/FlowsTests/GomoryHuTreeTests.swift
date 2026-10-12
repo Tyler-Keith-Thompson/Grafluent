@@ -69,6 +69,7 @@ struct GomoryHuTreeTests {
             let edge = tree.edges[k]
             #expect(Set([edge.u, edge.v]) == Set([vertexList[k + 1], vertexList[parent[k]]]), "tree edge \(k)")
             #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
+            #expect((try? gomoryHu.capacity(checkedEdgeAt: k)) == treeCapacities[k], "tree edge \(k)")
         }
         _ = (parent, treeCapacities, ends)
     }
@@ -104,6 +105,7 @@ struct GomoryHuTreeTests {
             let edge = tree.edges[k]
             #expect(Set([edge.u, edge.v]) == Set([vertexList[k + 1], vertexList[parent[k]]]), "tree edge \(k)")
             #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
+            #expect((try? gomoryHu.capacity(checkedEdgeAt: k)) == treeCapacities[k], "tree edge \(k)")
         }
         // Every ordered pair: the least capacity on the tree path is minimumCutValue(between:and:), and the
         // least cut by brute force; minimumCut(between:and:) is the split at the least tree edge nearest u,
@@ -120,6 +122,7 @@ struct GomoryHuTreeTests {
                 let firstLeast = pathChildren.first { treeCapacities[$0 - 1] == least }!
                 let minimum = gomoryHu.minimumCutValue(between: vertexList[u], and: vertexList[v])
                 #expect(minimum == least, "\(vertexList[u]), \(vertexList[v])")
+                #expect((try? gomoryHu.minimumCutValue(checkedBetween: vertexList[u], and: vertexList[v])) == minimum)
                 // The subtree below the least edge, and u's side of the split.
                 let below = (0 ..< n).map { x in
                     var y = x
@@ -128,6 +131,7 @@ struct GomoryHuTreeTests {
                 }
                 let inS = (0 ..< n).map { below[$0] == below[u] }
                 let cut = gomoryHu.minimumCut(between: vertexList[u], and: vertexList[v])
+                #expect((try? gomoryHu.minimumCut(checkedBetween: vertexList[u], and: vertexList[v])) == cut)
                 #expect(Array(cut.sourceSide) == (0 ..< n).filter { inS[$0] }.map { vertexList[$0] }, "\(vertexList[u]), \(vertexList[v])")
                 #expect(Array(cut.sinkSide) == (0 ..< n).filter { !inS[$0] }.map { vertexList[$0] }, "\(vertexList[u]), \(vertexList[v])")
                 let crossing = pairs.indices.filter { ends[$0].0 != ends[$0].1 && inS[ends[$0].0] != inS[ends[$0].1] }
@@ -179,6 +183,7 @@ struct GomoryHuTreeTests {
             let edge = tree.edges[k]
             #expect(Set([edge.u, edge.v]) == Set([vertexList[k + 1], vertexList[parent[k]]]), "tree edge \(k)")
             #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
+            #expect((try? gomoryHu.capacity(checkedEdgeAt: k)) == treeCapacities[k], "tree edge \(k)")
         }
         // Every ordered pair: the least capacity on the tree path is minimumCutValue(between:and:), and the
         // least cut by brute force; minimumCut(between:and:) is the split at the least tree edge nearest u,
@@ -195,6 +200,7 @@ struct GomoryHuTreeTests {
                 let firstLeast = pathChildren.first { treeCapacities[$0 - 1] == least }!
                 let minimum = gomoryHu.minimumCutValue(between: vertexList[u], and: vertexList[v])
                 #expect(minimum == least, "\(vertexList[u]), \(vertexList[v])")
+                #expect((try? gomoryHu.minimumCutValue(checkedBetween: vertexList[u], and: vertexList[v])) == minimum)
                 // The subtree below the least edge, and u's side of the split.
                 let below = (0 ..< n).map { x in
                     var y = x
@@ -203,6 +209,7 @@ struct GomoryHuTreeTests {
                 }
                 let inS = (0 ..< n).map { below[$0] == below[u] }
                 let cut = gomoryHu.minimumCut(between: vertexList[u], and: vertexList[v])
+                #expect((try? gomoryHu.minimumCut(checkedBetween: vertexList[u], and: vertexList[v])) == cut)
                 #expect(Array(cut.sourceSide) == (0 ..< n).filter { inS[$0] }.map { vertexList[$0] }, "\(vertexList[u]), \(vertexList[v])")
                 #expect(Array(cut.sinkSide) == (0 ..< n).filter { !inS[$0] }.map { vertexList[$0] }, "\(vertexList[u]), \(vertexList[v])")
                 let crossing = pairs.indices.filter { ends[$0].0 != ends[$0].1 && inS[ends[$0].0] != inS[ends[$0].1] }
@@ -254,6 +261,7 @@ struct GomoryHuTreeTests {
             let edge = tree.edges[k]
             #expect(Set([edge.u, edge.v]) == Set([vertexList[k + 1], vertexList[parent[k]]]), "tree edge \(k)")
             #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
+            #expect((try? gomoryHu.capacity(checkedEdgeAt: k)) == treeCapacities[k], "tree edge \(k)")
         }
         // Every ordered pair: the least capacity on the tree path is minimumCutValue(between:and:), and the
         // least cut by brute force; minimumCut(between:and:) is the split at the least tree edge nearest u,
@@ -270,6 +278,7 @@ struct GomoryHuTreeTests {
                 let firstLeast = pathChildren.first { treeCapacities[$0 - 1] == least }!
                 let minimum = gomoryHu.minimumCutValue(between: vertexList[u], and: vertexList[v])
                 #expect(minimum == least, "\(vertexList[u]), \(vertexList[v])")
+                #expect((try? gomoryHu.minimumCutValue(checkedBetween: vertexList[u], and: vertexList[v])) == minimum)
                 // The subtree below the least edge, and u's side of the split.
                 let below = (0 ..< n).map { x in
                     var y = x
@@ -278,6 +287,7 @@ struct GomoryHuTreeTests {
                 }
                 let inS = (0 ..< n).map { below[$0] == below[u] }
                 let cut = gomoryHu.minimumCut(between: vertexList[u], and: vertexList[v])
+                #expect((try? gomoryHu.minimumCut(checkedBetween: vertexList[u], and: vertexList[v])) == cut)
                 #expect(Array(cut.sourceSide) == (0 ..< n).filter { inS[$0] }.map { vertexList[$0] }, "\(vertexList[u]), \(vertexList[v])")
                 #expect(Array(cut.sinkSide) == (0 ..< n).filter { !inS[$0] }.map { vertexList[$0] }, "\(vertexList[u]), \(vertexList[v])")
                 let crossing = pairs.indices.filter { ends[$0].0 != ends[$0].1 && inS[ends[$0].0] != inS[ends[$0].1] }
@@ -329,6 +339,7 @@ struct GomoryHuTreeTests {
             let edge = tree.edges[k]
             #expect(Set([edge.u, edge.v]) == Set([vertexList[k + 1], vertexList[parent[k]]]), "tree edge \(k)")
             #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
+            #expect((try? gomoryHu.capacity(checkedEdgeAt: k)) == treeCapacities[k], "tree edge \(k)")
         }
         // Every ordered pair: the least capacity on the tree path is minimumCutValue(between:and:), and the
         // least cut by brute force; minimumCut(between:and:) is the split at the least tree edge nearest u,
@@ -345,6 +356,7 @@ struct GomoryHuTreeTests {
                 let firstLeast = pathChildren.first { treeCapacities[$0 - 1] == least }!
                 let minimum = gomoryHu.minimumCutValue(between: vertexList[u], and: vertexList[v])
                 #expect(minimum == least, "\(vertexList[u]), \(vertexList[v])")
+                #expect((try? gomoryHu.minimumCutValue(checkedBetween: vertexList[u], and: vertexList[v])) == minimum)
                 // The subtree below the least edge, and u's side of the split.
                 let below = (0 ..< n).map { x in
                     var y = x
@@ -353,6 +365,7 @@ struct GomoryHuTreeTests {
                 }
                 let inS = (0 ..< n).map { below[$0] == below[u] }
                 let cut = gomoryHu.minimumCut(between: vertexList[u], and: vertexList[v])
+                #expect((try? gomoryHu.minimumCut(checkedBetween: vertexList[u], and: vertexList[v])) == cut)
                 #expect(Array(cut.sourceSide) == (0 ..< n).filter { inS[$0] }.map { vertexList[$0] }, "\(vertexList[u]), \(vertexList[v])")
                 #expect(Array(cut.sinkSide) == (0 ..< n).filter { !inS[$0] }.map { vertexList[$0] }, "\(vertexList[u]), \(vertexList[v])")
                 let crossing = pairs.indices.filter { ends[$0].0 != ends[$0].1 && inS[ends[$0].0] != inS[ends[$0].1] }
@@ -404,6 +417,7 @@ struct GomoryHuTreeTests {
             let edge = tree.edges[k]
             #expect(Set([edge.u, edge.v]) == Set([vertexList[k + 1], vertexList[parent[k]]]), "tree edge \(k)")
             #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
+            #expect((try? gomoryHu.capacity(checkedEdgeAt: k)) == treeCapacities[k], "tree edge \(k)")
         }
         // Every ordered pair: the least capacity on the tree path is minimumCutValue(between:and:), and the
         // least cut by brute force; minimumCut(between:and:) is the split at the least tree edge nearest u,
@@ -420,6 +434,7 @@ struct GomoryHuTreeTests {
                 let firstLeast = pathChildren.first { treeCapacities[$0 - 1] == least }!
                 let minimum = gomoryHu.minimumCutValue(between: vertexList[u], and: vertexList[v])
                 #expect(minimum == least, "\(vertexList[u]), \(vertexList[v])")
+                #expect((try? gomoryHu.minimumCutValue(checkedBetween: vertexList[u], and: vertexList[v])) == minimum)
                 // The subtree below the least edge, and u's side of the split.
                 let below = (0 ..< n).map { x in
                     var y = x
@@ -428,6 +443,7 @@ struct GomoryHuTreeTests {
                 }
                 let inS = (0 ..< n).map { below[$0] == below[u] }
                 let cut = gomoryHu.minimumCut(between: vertexList[u], and: vertexList[v])
+                #expect((try? gomoryHu.minimumCut(checkedBetween: vertexList[u], and: vertexList[v])) == cut)
                 #expect(Array(cut.sourceSide) == (0 ..< n).filter { inS[$0] }.map { vertexList[$0] }, "\(vertexList[u]), \(vertexList[v])")
                 #expect(Array(cut.sinkSide) == (0 ..< n).filter { !inS[$0] }.map { vertexList[$0] }, "\(vertexList[u]), \(vertexList[v])")
                 let crossing = pairs.indices.filter { ends[$0].0 != ends[$0].1 && inS[ends[$0].0] != inS[ends[$0].1] }
@@ -479,6 +495,7 @@ struct GomoryHuTreeTests {
             let edge = tree.edges[k]
             #expect(Set([edge.u, edge.v]) == Set([vertexList[k + 1], vertexList[parent[k]]]), "tree edge \(k)")
             #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
+            #expect((try? gomoryHu.capacity(checkedEdgeAt: k)) == treeCapacities[k], "tree edge \(k)")
         }
         // Every ordered pair: the least capacity on the tree path is minimumCutValue(between:and:), and the
         // least cut by brute force; minimumCut(between:and:) is the split at the least tree edge nearest u,
@@ -495,6 +512,7 @@ struct GomoryHuTreeTests {
                 let firstLeast = pathChildren.first { treeCapacities[$0 - 1] == least }!
                 let minimum = gomoryHu.minimumCutValue(between: vertexList[u], and: vertexList[v])
                 #expect(minimum == least, "\(vertexList[u]), \(vertexList[v])")
+                #expect((try? gomoryHu.minimumCutValue(checkedBetween: vertexList[u], and: vertexList[v])) == minimum)
                 // The subtree below the least edge, and u's side of the split.
                 let below = (0 ..< n).map { x in
                     var y = x
@@ -503,6 +521,7 @@ struct GomoryHuTreeTests {
                 }
                 let inS = (0 ..< n).map { below[$0] == below[u] }
                 let cut = gomoryHu.minimumCut(between: vertexList[u], and: vertexList[v])
+                #expect((try? gomoryHu.minimumCut(checkedBetween: vertexList[u], and: vertexList[v])) == cut)
                 #expect(Array(cut.sourceSide) == (0 ..< n).filter { inS[$0] }.map { vertexList[$0] }, "\(vertexList[u]), \(vertexList[v])")
                 #expect(Array(cut.sinkSide) == (0 ..< n).filter { !inS[$0] }.map { vertexList[$0] }, "\(vertexList[u]), \(vertexList[v])")
                 let crossing = pairs.indices.filter { ends[$0].0 != ends[$0].1 && inS[ends[$0].0] != inS[ends[$0].1] }
@@ -554,6 +573,7 @@ struct GomoryHuTreeTests {
             let edge = tree.edges[k]
             #expect(Set([edge.u, edge.v]) == Set([vertexList[k + 1], vertexList[parent[k]]]), "tree edge \(k)")
             #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
+            #expect((try? gomoryHu.capacity(checkedEdgeAt: k)) == treeCapacities[k], "tree edge \(k)")
         }
         // Every ordered pair: the least capacity on the tree path is minimumCutValue(between:and:), and the
         // least cut by brute force; minimumCut(between:and:) is the split at the least tree edge nearest u,
@@ -570,6 +590,7 @@ struct GomoryHuTreeTests {
                 let firstLeast = pathChildren.first { treeCapacities[$0 - 1] == least }!
                 let minimum = gomoryHu.minimumCutValue(between: vertexList[u], and: vertexList[v])
                 #expect(minimum == least, "\(vertexList[u]), \(vertexList[v])")
+                #expect((try? gomoryHu.minimumCutValue(checkedBetween: vertexList[u], and: vertexList[v])) == minimum)
                 // The subtree below the least edge, and u's side of the split.
                 let below = (0 ..< n).map { x in
                     var y = x
@@ -578,6 +599,7 @@ struct GomoryHuTreeTests {
                 }
                 let inS = (0 ..< n).map { below[$0] == below[u] }
                 let cut = gomoryHu.minimumCut(between: vertexList[u], and: vertexList[v])
+                #expect((try? gomoryHu.minimumCut(checkedBetween: vertexList[u], and: vertexList[v])) == cut)
                 #expect(Array(cut.sourceSide) == (0 ..< n).filter { inS[$0] }.map { vertexList[$0] }, "\(vertexList[u]), \(vertexList[v])")
                 #expect(Array(cut.sinkSide) == (0 ..< n).filter { !inS[$0] }.map { vertexList[$0] }, "\(vertexList[u]), \(vertexList[v])")
                 let crossing = pairs.indices.filter { ends[$0].0 != ends[$0].1 && inS[ends[$0].0] != inS[ends[$0].1] }
@@ -629,6 +651,7 @@ struct GomoryHuTreeTests {
             let edge = tree.edges[k]
             #expect(Set([edge.u, edge.v]) == Set([vertexList[k + 1], vertexList[parent[k]]]), "tree edge \(k)")
             #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
+            #expect((try? gomoryHu.capacity(checkedEdgeAt: k)) == treeCapacities[k], "tree edge \(k)")
         }
         // Every ordered pair: the least capacity on the tree path is minimumCutValue(between:and:), and the
         // least cut by brute force; minimumCut(between:and:) is the split at the least tree edge nearest u,
@@ -645,6 +668,7 @@ struct GomoryHuTreeTests {
                 let firstLeast = pathChildren.first { treeCapacities[$0 - 1] == least }!
                 let minimum = gomoryHu.minimumCutValue(between: vertexList[u], and: vertexList[v])
                 #expect(minimum == least, "\(vertexList[u]), \(vertexList[v])")
+                #expect((try? gomoryHu.minimumCutValue(checkedBetween: vertexList[u], and: vertexList[v])) == minimum)
                 // The subtree below the least edge, and u's side of the split.
                 let below = (0 ..< n).map { x in
                     var y = x
@@ -653,6 +677,7 @@ struct GomoryHuTreeTests {
                 }
                 let inS = (0 ..< n).map { below[$0] == below[u] }
                 let cut = gomoryHu.minimumCut(between: vertexList[u], and: vertexList[v])
+                #expect((try? gomoryHu.minimumCut(checkedBetween: vertexList[u], and: vertexList[v])) == cut)
                 #expect(Array(cut.sourceSide) == (0 ..< n).filter { inS[$0] }.map { vertexList[$0] }, "\(vertexList[u]), \(vertexList[v])")
                 #expect(Array(cut.sinkSide) == (0 ..< n).filter { !inS[$0] }.map { vertexList[$0] }, "\(vertexList[u]), \(vertexList[v])")
                 let crossing = pairs.indices.filter { ends[$0].0 != ends[$0].1 && inS[ends[$0].0] != inS[ends[$0].1] }
@@ -704,6 +729,7 @@ struct GomoryHuTreeTests {
             let edge = tree.edges[k]
             #expect(Set([edge.u, edge.v]) == Set([vertexList[k + 1], vertexList[parent[k]]]), "tree edge \(k)")
             #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
+            #expect((try? gomoryHu.capacity(checkedEdgeAt: k)) == treeCapacities[k], "tree edge \(k)")
         }
         // Every ordered pair: the least capacity on the tree path is minimumCutValue(between:and:), and the
         // least cut by brute force; minimumCut(between:and:) is the split at the least tree edge nearest u,
@@ -720,6 +746,7 @@ struct GomoryHuTreeTests {
                 let firstLeast = pathChildren.first { treeCapacities[$0 - 1] == least }!
                 let minimum = gomoryHu.minimumCutValue(between: vertexList[u], and: vertexList[v])
                 #expect(minimum == least, "\(vertexList[u]), \(vertexList[v])")
+                #expect((try? gomoryHu.minimumCutValue(checkedBetween: vertexList[u], and: vertexList[v])) == minimum)
                 // The subtree below the least edge, and u's side of the split.
                 let below = (0 ..< n).map { x in
                     var y = x
@@ -728,6 +755,7 @@ struct GomoryHuTreeTests {
                 }
                 let inS = (0 ..< n).map { below[$0] == below[u] }
                 let cut = gomoryHu.minimumCut(between: vertexList[u], and: vertexList[v])
+                #expect((try? gomoryHu.minimumCut(checkedBetween: vertexList[u], and: vertexList[v])) == cut)
                 #expect(Array(cut.sourceSide) == (0 ..< n).filter { inS[$0] }.map { vertexList[$0] }, "\(vertexList[u]), \(vertexList[v])")
                 #expect(Array(cut.sinkSide) == (0 ..< n).filter { !inS[$0] }.map { vertexList[$0] }, "\(vertexList[u]), \(vertexList[v])")
                 let crossing = pairs.indices.filter { ends[$0].0 != ends[$0].1 && inS[ends[$0].0] != inS[ends[$0].1] }
@@ -779,6 +807,7 @@ struct GomoryHuTreeTests {
             let edge = tree.edges[k]
             #expect(Set([edge.u, edge.v]) == Set([vertexList[k + 1], vertexList[parent[k]]]), "tree edge \(k)")
             #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
+            #expect((try? gomoryHu.capacity(checkedEdgeAt: k)) == treeCapacities[k], "tree edge \(k)")
         }
         // Every ordered pair: the least capacity on the tree path is minimumCutValue(between:and:), and the
         // least cut by brute force; minimumCut(between:and:) is the split at the least tree edge nearest u,
@@ -795,6 +824,7 @@ struct GomoryHuTreeTests {
                 let firstLeast = pathChildren.first { treeCapacities[$0 - 1] == least }!
                 let minimum = gomoryHu.minimumCutValue(between: vertexList[u], and: vertexList[v])
                 #expect(minimum == least, "\(vertexList[u]), \(vertexList[v])")
+                #expect((try? gomoryHu.minimumCutValue(checkedBetween: vertexList[u], and: vertexList[v])) == minimum)
                 // The subtree below the least edge, and u's side of the split.
                 let below = (0 ..< n).map { x in
                     var y = x
@@ -803,6 +833,7 @@ struct GomoryHuTreeTests {
                 }
                 let inS = (0 ..< n).map { below[$0] == below[u] }
                 let cut = gomoryHu.minimumCut(between: vertexList[u], and: vertexList[v])
+                #expect((try? gomoryHu.minimumCut(checkedBetween: vertexList[u], and: vertexList[v])) == cut)
                 #expect(Array(cut.sourceSide) == (0 ..< n).filter { inS[$0] }.map { vertexList[$0] }, "\(vertexList[u]), \(vertexList[v])")
                 #expect(Array(cut.sinkSide) == (0 ..< n).filter { !inS[$0] }.map { vertexList[$0] }, "\(vertexList[u]), \(vertexList[v])")
                 let crossing = pairs.indices.filter { ends[$0].0 != ends[$0].1 && inS[ends[$0].0] != inS[ends[$0].1] }
@@ -854,6 +885,7 @@ struct GomoryHuTreeTests {
             let edge = tree.edges[k]
             #expect(Set([edge.u, edge.v]) == Set([vertexList[k + 1], vertexList[parent[k]]]), "tree edge \(k)")
             #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
+            #expect((try? gomoryHu.capacity(checkedEdgeAt: k)) == treeCapacities[k], "tree edge \(k)")
         }
         // Every ordered pair: the least capacity on the tree path is minimumCutValue(between:and:), and the
         // least cut by brute force; minimumCut(between:and:) is the split at the least tree edge nearest u,
@@ -870,6 +902,7 @@ struct GomoryHuTreeTests {
                 let firstLeast = pathChildren.first { treeCapacities[$0 - 1] == least }!
                 let minimum = gomoryHu.minimumCutValue(between: vertexList[u], and: vertexList[v])
                 #expect(minimum == least, "\(vertexList[u]), \(vertexList[v])")
+                #expect((try? gomoryHu.minimumCutValue(checkedBetween: vertexList[u], and: vertexList[v])) == minimum)
                 // The subtree below the least edge, and u's side of the split.
                 let below = (0 ..< n).map { x in
                     var y = x
@@ -878,6 +911,7 @@ struct GomoryHuTreeTests {
                 }
                 let inS = (0 ..< n).map { below[$0] == below[u] }
                 let cut = gomoryHu.minimumCut(between: vertexList[u], and: vertexList[v])
+                #expect((try? gomoryHu.minimumCut(checkedBetween: vertexList[u], and: vertexList[v])) == cut)
                 #expect(Array(cut.sourceSide) == (0 ..< n).filter { inS[$0] }.map { vertexList[$0] }, "\(vertexList[u]), \(vertexList[v])")
                 #expect(Array(cut.sinkSide) == (0 ..< n).filter { !inS[$0] }.map { vertexList[$0] }, "\(vertexList[u]), \(vertexList[v])")
                 let crossing = pairs.indices.filter { ends[$0].0 != ends[$0].1 && inS[ends[$0].0] != inS[ends[$0].1] }
@@ -929,6 +963,7 @@ struct GomoryHuTreeTests {
             let edge = tree.edges[k]
             #expect(Set([edge.u, edge.v]) == Set([vertexList[k + 1], vertexList[parent[k]]]), "tree edge \(k)")
             #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
+            #expect((try? gomoryHu.capacity(checkedEdgeAt: k)) == treeCapacities[k], "tree edge \(k)")
         }
         // Every ordered pair: the least capacity on the tree path is minimumCutValue(between:and:), and the
         // least cut by brute force; minimumCut(between:and:) is the split at the least tree edge nearest u,
@@ -945,6 +980,7 @@ struct GomoryHuTreeTests {
                 let firstLeast = pathChildren.first { treeCapacities[$0 - 1] == least }!
                 let minimum = gomoryHu.minimumCutValue(between: vertexList[u], and: vertexList[v])
                 #expect(minimum == least, "\(vertexList[u]), \(vertexList[v])")
+                #expect((try? gomoryHu.minimumCutValue(checkedBetween: vertexList[u], and: vertexList[v])) == minimum)
                 // The subtree below the least edge, and u's side of the split.
                 let below = (0 ..< n).map { x in
                     var y = x
@@ -953,6 +989,7 @@ struct GomoryHuTreeTests {
                 }
                 let inS = (0 ..< n).map { below[$0] == below[u] }
                 let cut = gomoryHu.minimumCut(between: vertexList[u], and: vertexList[v])
+                #expect((try? gomoryHu.minimumCut(checkedBetween: vertexList[u], and: vertexList[v])) == cut)
                 #expect(Array(cut.sourceSide) == (0 ..< n).filter { inS[$0] }.map { vertexList[$0] }, "\(vertexList[u]), \(vertexList[v])")
                 #expect(Array(cut.sinkSide) == (0 ..< n).filter { !inS[$0] }.map { vertexList[$0] }, "\(vertexList[u]), \(vertexList[v])")
                 let crossing = pairs.indices.filter { ends[$0].0 != ends[$0].1 && inS[ends[$0].0] != inS[ends[$0].1] }
@@ -1004,6 +1041,7 @@ struct GomoryHuTreeTests {
             let edge = tree.edges[k]
             #expect(Set([edge.u, edge.v]) == Set([vertexList[k + 1], vertexList[parent[k]]]), "tree edge \(k)")
             #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
+            #expect((try? gomoryHu.capacity(checkedEdgeAt: k)) == treeCapacities[k], "tree edge \(k)")
         }
         // Every ordered pair: the least capacity on the tree path is minimumCutValue(between:and:), and the
         // least cut by brute force; minimumCut(between:and:) is the split at the least tree edge nearest u,
@@ -1020,6 +1058,7 @@ struct GomoryHuTreeTests {
                 let firstLeast = pathChildren.first { treeCapacities[$0 - 1] == least }!
                 let minimum = gomoryHu.minimumCutValue(between: vertexList[u], and: vertexList[v])
                 #expect(minimum == least, "\(vertexList[u]), \(vertexList[v])")
+                #expect((try? gomoryHu.minimumCutValue(checkedBetween: vertexList[u], and: vertexList[v])) == minimum)
                 // The subtree below the least edge, and u's side of the split.
                 let below = (0 ..< n).map { x in
                     var y = x
@@ -1028,6 +1067,7 @@ struct GomoryHuTreeTests {
                 }
                 let inS = (0 ..< n).map { below[$0] == below[u] }
                 let cut = gomoryHu.minimumCut(between: vertexList[u], and: vertexList[v])
+                #expect((try? gomoryHu.minimumCut(checkedBetween: vertexList[u], and: vertexList[v])) == cut)
                 #expect(Array(cut.sourceSide) == (0 ..< n).filter { inS[$0] }.map { vertexList[$0] }, "\(vertexList[u]), \(vertexList[v])")
                 #expect(Array(cut.sinkSide) == (0 ..< n).filter { !inS[$0] }.map { vertexList[$0] }, "\(vertexList[u]), \(vertexList[v])")
                 let crossing = pairs.indices.filter { ends[$0].0 != ends[$0].1 && inS[ends[$0].0] != inS[ends[$0].1] }
@@ -1079,6 +1119,7 @@ struct GomoryHuTreeTests {
             let edge = tree.edges[k]
             #expect(Set([edge.u, edge.v]) == Set([vertexList[k + 1], vertexList[parent[k]]]), "tree edge \(k)")
             #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
+            #expect((try? gomoryHu.capacity(checkedEdgeAt: k)) == treeCapacities[k], "tree edge \(k)")
         }
         // Every ordered pair: the least capacity on the tree path is minimumCutValue(between:and:), and the
         // least cut by brute force; minimumCut(between:and:) is the split at the least tree edge nearest u,
@@ -1095,6 +1136,7 @@ struct GomoryHuTreeTests {
                 let firstLeast = pathChildren.first { treeCapacities[$0 - 1] == least }!
                 let minimum = gomoryHu.minimumCutValue(between: vertexList[u], and: vertexList[v])
                 #expect(minimum == least, "\(vertexList[u]), \(vertexList[v])")
+                #expect((try? gomoryHu.minimumCutValue(checkedBetween: vertexList[u], and: vertexList[v])) == minimum)
                 // The subtree below the least edge, and u's side of the split.
                 let below = (0 ..< n).map { x in
                     var y = x
@@ -1103,6 +1145,7 @@ struct GomoryHuTreeTests {
                 }
                 let inS = (0 ..< n).map { below[$0] == below[u] }
                 let cut = gomoryHu.minimumCut(between: vertexList[u], and: vertexList[v])
+                #expect((try? gomoryHu.minimumCut(checkedBetween: vertexList[u], and: vertexList[v])) == cut)
                 #expect(Array(cut.sourceSide) == (0 ..< n).filter { inS[$0] }.map { vertexList[$0] }, "\(vertexList[u]), \(vertexList[v])")
                 #expect(Array(cut.sinkSide) == (0 ..< n).filter { !inS[$0] }.map { vertexList[$0] }, "\(vertexList[u]), \(vertexList[v])")
                 let crossing = pairs.indices.filter { ends[$0].0 != ends[$0].1 && inS[ends[$0].0] != inS[ends[$0].1] }
@@ -1154,6 +1197,7 @@ struct GomoryHuTreeTests {
             let edge = tree.edges[k]
             #expect(Set([edge.u, edge.v]) == Set([vertexList[k + 1], vertexList[parent[k]]]), "tree edge \(k)")
             #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
+            #expect((try? gomoryHu.capacity(checkedEdgeAt: k)) == treeCapacities[k], "tree edge \(k)")
         }
         // Every ordered pair: the least capacity on the tree path is minimumCutValue(between:and:), and the
         // least cut by brute force; minimumCut(between:and:) is the split at the least tree edge nearest u,
@@ -1170,6 +1214,7 @@ struct GomoryHuTreeTests {
                 let firstLeast = pathChildren.first { treeCapacities[$0 - 1] == least }!
                 let minimum = gomoryHu.minimumCutValue(between: vertexList[u], and: vertexList[v])
                 #expect(minimum == least, "\(vertexList[u]), \(vertexList[v])")
+                #expect((try? gomoryHu.minimumCutValue(checkedBetween: vertexList[u], and: vertexList[v])) == minimum)
                 // The subtree below the least edge, and u's side of the split.
                 let below = (0 ..< n).map { x in
                     var y = x
@@ -1178,6 +1223,7 @@ struct GomoryHuTreeTests {
                 }
                 let inS = (0 ..< n).map { below[$0] == below[u] }
                 let cut = gomoryHu.minimumCut(between: vertexList[u], and: vertexList[v])
+                #expect((try? gomoryHu.minimumCut(checkedBetween: vertexList[u], and: vertexList[v])) == cut)
                 #expect(Array(cut.sourceSide) == (0 ..< n).filter { inS[$0] }.map { vertexList[$0] }, "\(vertexList[u]), \(vertexList[v])")
                 #expect(Array(cut.sinkSide) == (0 ..< n).filter { !inS[$0] }.map { vertexList[$0] }, "\(vertexList[u]), \(vertexList[v])")
                 let crossing = pairs.indices.filter { ends[$0].0 != ends[$0].1 && inS[ends[$0].0] != inS[ends[$0].1] }
@@ -1229,6 +1275,7 @@ struct GomoryHuTreeTests {
             let edge = tree.edges[k]
             #expect(Set([edge.u, edge.v]) == Set([vertexList[k + 1], vertexList[parent[k]]]), "tree edge \(k)")
             #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
+            #expect((try? gomoryHu.capacity(checkedEdgeAt: k)) == treeCapacities[k], "tree edge \(k)")
         }
         // Every ordered pair: the least capacity on the tree path is minimumCutValue(between:and:), and the
         // least cut by brute force; minimumCut(between:and:) is the split at the least tree edge nearest u,
@@ -1245,6 +1292,7 @@ struct GomoryHuTreeTests {
                 let firstLeast = pathChildren.first { treeCapacities[$0 - 1] == least }!
                 let minimum = gomoryHu.minimumCutValue(between: vertexList[u], and: vertexList[v])
                 #expect(minimum == least, "\(vertexList[u]), \(vertexList[v])")
+                #expect((try? gomoryHu.minimumCutValue(checkedBetween: vertexList[u], and: vertexList[v])) == minimum)
                 // The subtree below the least edge, and u's side of the split.
                 let below = (0 ..< n).map { x in
                     var y = x
@@ -1253,6 +1301,7 @@ struct GomoryHuTreeTests {
                 }
                 let inS = (0 ..< n).map { below[$0] == below[u] }
                 let cut = gomoryHu.minimumCut(between: vertexList[u], and: vertexList[v])
+                #expect((try? gomoryHu.minimumCut(checkedBetween: vertexList[u], and: vertexList[v])) == cut)
                 #expect(Array(cut.sourceSide) == (0 ..< n).filter { inS[$0] }.map { vertexList[$0] }, "\(vertexList[u]), \(vertexList[v])")
                 #expect(Array(cut.sinkSide) == (0 ..< n).filter { !inS[$0] }.map { vertexList[$0] }, "\(vertexList[u]), \(vertexList[v])")
                 let crossing = pairs.indices.filter { ends[$0].0 != ends[$0].1 && inS[ends[$0].0] != inS[ends[$0].1] }
@@ -1304,6 +1353,7 @@ struct GomoryHuTreeTests {
             let edge = tree.edges[k]
             #expect(Set([edge.u, edge.v]) == Set([vertexList[k + 1], vertexList[parent[k]]]), "tree edge \(k)")
             #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], "tree edge \(k)")
+            #expect((try? gomoryHu.capacity(checkedEdgeAt: k)) == treeCapacities[k], "tree edge \(k)")
         }
         // Every ordered pair: the least capacity on the tree path is minimumCutValue(between:and:), and the
         // least cut by brute force; minimumCut(between:and:) is the split at the least tree edge nearest u,
@@ -1320,6 +1370,7 @@ struct GomoryHuTreeTests {
                 let firstLeast = pathChildren.first { treeCapacities[$0 - 1] == least }!
                 let minimum = gomoryHu.minimumCutValue(between: vertexList[u], and: vertexList[v])
                 #expect(minimum == least, "\(vertexList[u]), \(vertexList[v])")
+                #expect((try? gomoryHu.minimumCutValue(checkedBetween: vertexList[u], and: vertexList[v])) == minimum)
                 // The subtree below the least edge, and u's side of the split.
                 let below = (0 ..< n).map { x in
                     var y = x
@@ -1328,6 +1379,7 @@ struct GomoryHuTreeTests {
                 }
                 let inS = (0 ..< n).map { below[$0] == below[u] }
                 let cut = gomoryHu.minimumCut(between: vertexList[u], and: vertexList[v])
+                #expect((try? gomoryHu.minimumCut(checkedBetween: vertexList[u], and: vertexList[v])) == cut)
                 #expect(Array(cut.sourceSide) == (0 ..< n).filter { inS[$0] }.map { vertexList[$0] }, "\(vertexList[u]), \(vertexList[v])")
                 #expect(Array(cut.sinkSide) == (0 ..< n).filter { !inS[$0] }.map { vertexList[$0] }, "\(vertexList[u]), \(vertexList[v])")
                 let crossing = pairs.indices.filter { ends[$0].0 != ends[$0].1 && inS[ends[$0].0] != inS[ends[$0].1] }

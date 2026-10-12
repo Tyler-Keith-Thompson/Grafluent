@@ -1,8 +1,8 @@
 // The semiring overloads on undirected graphs (Graph), which mirror the numeric ones: each runs
-// over `directed`, whose arcs share their edge's weight. Each test compares the overload with the
-// same call on `.directed` and, for the tropical semiring, with the numeric overload; a graph with
+// over `directedView`, whose arcs share their edge's weight. Each test compares the overload with the
+// same call on `.directedView` and, for the tropical semiring, with the numeric overload; a graph with
 // vertex indices (Pseudograph) takes the native search, one without (UndirectedAdjacencyList of
-// strings) the view. Hand-written: the catalog reaches undirected graphs through `.directed` only.
+// strings) the view. Hand-written: the catalog reaches undirected graphs through `.directedView` only.
 
 import AdjacencyListModule
 import GraphProtocols
@@ -13,7 +13,7 @@ import Testing
 
 @Suite("Semirings: overloads on undirected graphs")
 struct SemiringUndirectedTests {
-    @Test("Dijkstra on an undirected graph equals Dijkstra on .directed and the numeric overload, tropical Int")
+    @Test("Dijkstra on an undirected graph equals Dijkstra on .directedView and the numeric overload, tropical Int")
     func dijkstraTropical() {
         let graph = Pseudograph(vertices: 0 ..< 5, edges: [
             UndirectedEdge(0, 1), UndirectedEdge(1, 2), UndirectedEdge(2, 3), UndirectedEdge(0, 3), UndirectedEdge(3, 3),
@@ -21,14 +21,14 @@ struct SemiringUndirectedTests {
         ])
         let w: [Int] = [2, 7, 1, 9, 0, 5, 4]
         let tree = graph.dijkstraShortestPaths(from: 0) { TropicalSemiring(w[$0]) }
-        let viaView = graph.directed.dijkstraShortestPaths(from: 0) { TropicalSemiring(w[$0.position]) }
+        let viaView = graph.directedView.dijkstraShortestPaths(from: 0) { TropicalSemiring(w[$0.position]) }
         let numeric = graph.dijkstraShortestPaths(from: 0) { w[$0] }
         let expected: [Int?] = [0, 2, 7, 8, 12]
         #expect((0 ..< 5).map { tree.distance(to: $0)?.value } == expected)
         #expect((0 ..< 5).map { viaView.distance(to: $0)?.value } == expected)
         #expect((0 ..< 5).map { numeric.distance(to: $0) } == expected)
         // Every path: arcs of the directed view, oriented the way they are taken, product equal to the distance.
-        let directed = graph.directed
+        let directed = graph.directedView
         for v in 0 ..< 5 {
             guard let path = tree.path(to: v) else {
                 Issue.record("vertex \(v) not reached")
@@ -60,7 +60,7 @@ struct SemiringUndirectedTests {
         let route = try #require(graph.dijkstraShortestPath(from: 0, to: 1) { BottleneckSemiring(capacity[$0]) })
         #expect(route.distance.value == 5 && route.path.vertices == [0, 2, 1])
         #expect(route.path.edges.map(\.position) == [2, 1])
-        let viaView = try #require(graph.directed.dijkstraShortestPath(from: 0, to: 1) { BottleneckSemiring(capacity[$0.position]) })
+        let viaView = try #require(graph.directedView.dijkstraShortestPath(from: 0, to: 1) { BottleneckSemiring(capacity[$0.position]) })
         #expect(viaView.distance == route.distance && viaView.path.vertices == route.path.vertices)
         #expect(graph.dijkstraShortestPath(from: 0, to: 5) { BottleneckSemiring(capacity[$0]) } == nil)
     }
@@ -117,7 +117,7 @@ struct SemiringUndirectedTests {
         ]
         #expect((0 ..< 5).map { i in (0 ..< 5).map { matrix.distance(from: i, to: $0)?.value } } == expected)
         #expect((0 ..< 5).map { i in (0 ..< 5).map { numeric.distance(from: i, to: $0) } } == expected)
-        let directed = graph.directed
+        let directed = graph.directedView
         for i in 0 ..< 5 {
             for j in 0 ..< 5 {
                 let path = matrix.path(from: i, to: j)
@@ -170,7 +170,7 @@ struct SemiringUndirectedTests {
     func orientation() throws {
         // Stored as (0, 1) and (1, 2); searched from 2, so both are taken backwards.
         let graph = Pseudograph(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
-        let directed = graph.directed
+        let directed = graph.directedView
         let tree = graph.dijkstraShortestPaths(from: 2) { _ in TropicalSemiring(1) }
         let path = try #require(tree.path(to: 0))
         #expect(path.vertices == [2, 1, 0])

@@ -1,9 +1,9 @@
-    @Test("CY-702 AdjacencyMatrix.undirected with cells u < v: K₄ with positions as cells, rows out-edges then in-edges")
+    @Test("CY-702 AdjacencyMatrix.undirectedView with cells u < v: K₄ with positions as cells, rows out-edges then in-edges")
     func adjacencyMatrixUndirected() throws {
         // Cells (0,1) < (0,2) < (0,3) < (1,2) < (1,3) < (2,3). Vertex 1's row is (1,2), (1,3), then
         // (0,1), so the order is not K(4)'s (CY-330); the canonical forms are, cell for cell.
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
-        let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         #expect(graph.vertexIndexBound == 4 && graph.edgeIndexBound == nil)
         let cycles = Array(graph.simpleCycles())
         let expectedVertices: [[Int]] = [[0, 1, 2, 3], [0, 1, 2], [0, 1, 3], [0, 1, 3, 2], [0, 2, 3], [0, 2, 1, 3], [1, 2, 3]]
@@ -24,11 +24,11 @@
         #expect(!graph.isAcyclic)
     }
 
-    @Test("CY-702 AdjacencyList.undirected, one arc per edge: K₄ with the arcs' positions, rows out-edges then in-edges")
+    @Test("CY-702 AdjacencyList.undirectedView, one arc per edge: K₄ with the arcs' positions, rows out-edges then in-edges")
     func adjacencyListUndirected() throws {
         // The same rows as the matrix's above, positions 0..<6 in written order.
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
-        let graph = AdjacencyList(edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         #expect(graph.edgeCount == 6)
         let cycles = Array(graph.simpleCycles())
         let expectedVertices: [[Int]] = [[0, 1, 2, 3], [0, 1, 2], [0, 1, 3], [0, 1, 3, 2], [0, 2, 3], [0, 2, 1, 3], [1, 2, 3]]
@@ -123,13 +123,13 @@
         #expect(plain410.girth() == 2)
     }
 
-    @Test("CY-708 digraph.undirected: antiparallel arcs become a 2-cycle, rows out-edges then in-edges")
+    @Test("CY-708 digraph.undirectedView: antiparallel arcs become a 2-cycle, rows out-edges then in-edges")
     func undirectedViewOfDigraph() throws {
         // D: 0>1 1>0 1>2 2>0. Vertex 1's row is 1, 2 (out) then 0 (in); the catalog's position-order
         // row gives the same order here.
         let pairs: [(Int, Int)] = [(0, 1), (1, 0), (1, 2), (2, 0)]
         let digraph = ReferenceDirectedMultigraph(edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        let graph = digraph.undirected
+        let graph = digraph.undirectedView
         let cycles = Array(graph.simpleCycles())
         let expectedVertices: [[Int]] = [[0, 1], [0, 1, 2], [0, 1, 2]]
         let expectedEdges: [[Int]] = [[0, 1], [0, 2, 3], [1, 2, 3]]
@@ -150,10 +150,10 @@
         #expect(digraph.girth() == 2)
     }
 
-    @Test("CY-423 CY-708 the .undirected view of D: 0>1 1>0 1>0: three 2-cycles, one per pair of arcs")
+    @Test("CY-423 CY-708 the .undirectedView view of D: 0>1 1>0 1>0: three 2-cycles, one per pair of arcs")
     func undirectedViewOfParallelArcs() throws {
         let pairs: [(Int, Int)] = [(0, 1), (1, 0), (1, 0)]
-        let graph = ReferenceDirectedMultigraph(edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = ReferenceDirectedMultigraph(edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let cycles = Array(graph.simpleCycles())
         #expect(cycles.map(\.vertices) == [[0, 1], [0, 1], [0, 1]])
         #expect(cycles.map(\.edges) == [[0, 1], [0, 2], [1, 2]])
@@ -165,11 +165,11 @@
         #expect(graph.girth() == 2)
     }
 
-    @Test("CY-708 the .undirected view of CY-119 written as arcs: loops and parallel arcs keep their positions")
+    @Test("CY-708 the .undirectedView view of CY-119 written as arcs: loops and parallel arcs keep their positions")
     func undirectedViewWithLoop() throws {
         // D: 0>1 1>2 2>0 0>1 2>2. The view lists the loop at 2 once as an out-edge, once as an in-edge.
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (0, 1), (2, 2)]
-        let graph = ReferenceDirectedMultigraph(edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = ReferenceDirectedMultigraph(edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let cycles = Array(graph.simpleCycles())
         #expect(cycles.map(\.vertices) == [[0, 1, 2], [0, 1], [0, 2, 1], [2]])
         #expect(cycles.map(\.edges) == [[0, 1, 2], [0, 3], [2, 1, 3], [4]])
@@ -181,19 +181,19 @@
         #expect(graph.girth() == 1)
     }
 
-    @Test("CY-707 CY-858 g.directed reads every edge as two arcs: C₄ with a chord has 11 directed cycles and is not acyclic")
+    @Test("CY-707 CY-858 g.directedView reads every edge as two arcs: C₄ with a chord has 11 directed cycles and is not acyclic")
     func directedViewOfGraph() {
         // C(0..3) 0-2: 2 × 3 cycles of length ≥ 3 and 5 digons, one per edge.
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 0), (0, 2)]
         let graph = UndirectedAdjacencyList(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let arcs = Array(graph.directed.simpleCycles())
+        let arcs = Array(graph.directedView.simpleCycles())
         #expect(arcs.count == 11)
         #expect(arcs.filter { $0.length == 2 }.count == 5)
         #expect(arcs.filter { $0.length == 3 }.count == 4)
         #expect(arcs.filter { $0.length == 4 }.count == 2)
         // Every digon uses one edge's two arcs.
         #expect(arcs.filter { $0.length == 2 }.allSatisfy { $0.edges[0].position == $0.edges[1].position && $0.edges[0].reversed != $0.edges[1].reversed })
-        #expect(graph.directed.girth() == 2)
+        #expect(graph.directedView.girth() == 2)
         #expect(graph.girth() == 3)
     }
 

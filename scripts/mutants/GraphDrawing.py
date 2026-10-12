@@ -194,7 +194,7 @@ MUTANTS = [
     Mutant("rtpolarswap", RT, "SIMD2(p.y * cos(angle), p.y * sin(angle))", "SIMD2(p.y * sin(angle), p.y * cos(angle))"),
 
     # Sugiyama: the public layer.
-    Mutant("sgbendsearch", SG, "_positions[mid] < position", "_positions[mid] <= position"),
+    Mutant("sgbendsearch", SG, "_positions[mid] < position", "_positions[mid] <= position", nth=0),
     Mutant("sglayercheck", SG, "l >= 0", "true"),
     Mutant("sgiterations", SG, "maxIterations >= 0", "true", nth=0),
 
@@ -284,4 +284,12 @@ MUTANTS = [
     Mutant("nsthreadstem", NS, "thread[vIn] = uIn", "", mode="stmt"),
     Mutant("nsjoin", NS, "succNum[a] < succNum[b]", "succNum[a] > succNum[b]"),
     Mutant("nsstronglyroot", NS, "net[v] >= 0", "net[v] > 0", nth=1),
+
+    # The checked: lookups.
+    Mutant("layerchecked", "SugiyamaLayout.swift", "_drawing._offset(of: vertex)", "Optional(_drawing._offset(of: vertex) ?? 0)", nth=1),
+    Mutant("layercheckedvalue", "SugiyamaLayout.swift", "        return _layers[i]", "        return 0", mode="stmt", nth=1),
+    Mutant("bendscheckedrange", "SugiyamaLayout.swift", "lo < _positions.count", "true", nth=1),
+    Mutant("bendscheckedmatch", "SugiyamaLayout.swift", "_positions[lo] == position", "true", nth=1),
+    Mutant("bendscheckedsearch", "SugiyamaLayout.swift", "_positions[mid] < position", "_positions[mid] <= position", nth=1),
+    Mutant("bendscheckedvalue", "SugiyamaLayout.swift", "        return _bends[_bendStart[lo] ..< _bendStart[lo + 1]]", "        return _bends[_bendStart[lo] ..< _bendStart[lo]]", mode="stmt", nth=1),
 ]

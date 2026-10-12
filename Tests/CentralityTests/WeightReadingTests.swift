@@ -1,7 +1,7 @@
 // How the closures are read. Closeness, harmonic and betweenness read the weight closure once per
 // edge, in position order, before any search (api.md, "Weights" in Closeness and Betweenness): on a
 // pseudograph with a loop and parallel copies, on a disconnected graph where the queried vertex
-// reaches only part of the edges, on a digraph, on `graph.directed` (each arc once, in the view's
+// reaches only part of the edges, on a digraph, on `graph.directedView` (each arc once, in the view's
 // `edges` order), on `UndirectedAdjacencyList` and on `CompressedSparseRow`. The iterative measures
 // convert each weight once per edge (api.md, "Numerical policy"; the order is not specified, so the
 // tests compare the sorted positions). The personalization closure is called once per vertex, in
@@ -105,12 +105,12 @@ struct WeightReadingTests {
         #expect(hits.sorted() == order)
     }
 
-    @Test("graph.directed: each arc once, in the view's edges order")
+    @Test("graph.directedView: each arc once, in the view's edges order")
     func directedView() throws {
         // U: 0-1, 1-1, 1-2
         let pairs: [(Int, Int)] = [(0, 1), (1, 1), (1, 2)]
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let arcs = graph.directed
+        let arcs = graph.directedView
         typealias Arc = DirectedView<ReferencePseudograph<Int>>.Edges.Index
         func calls(_ run: (_ weight: (Arc) -> Int) throws -> Void) rethrows -> [Arc] {
             var seen: [Arc] = []
@@ -183,7 +183,7 @@ struct WeightReadingTests {
         #expect(try calls { _ = try digraph.pageRank(weight: { w[$0] }, personalization: $0) } == [2, 0, 1])
         #expect(try calls { _ = try graph.pageRank(dampingFactor: 0.5, personalization: $0) } == [2, 0, 1])
         #expect(try calls { _ = try graph.pageRank(weight: { w[$0] }, personalization: $0) } == [2, 0, 1])
-        #expect(try calls { _ = try graph.directed.pageRank(personalization: $0) } == [2, 0, 1])
+        #expect(try calls { _ = try graph.directedView.pageRank(personalization: $0) } == [2, 0, 1])
     }
 
     @Test("No closure is read on an edgeless graph (K₁, three isolated vertices): weights are read per edge")

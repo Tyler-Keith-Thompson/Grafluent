@@ -203,12 +203,12 @@ struct OuterplanarTests {
         #expect(graph.isOuterplanar == false)  // asking again
     }
 
-    @Test("PL-168 directed K4: undirected.isOuterplanar")
+    @Test("PL-168 directed K4: undirectedView.isOuterplanar")
     func pl168() {
-        // D: tt(4); undirected.isOuterplanar → false
+        // D: tt(4); undirectedView.isOuterplanar → false
         let graph = AdjacencyList<Int>(vertices: 0 ..< 4, edges: [DirectedEdge(from: 0, to: 1),
             DirectedEdge(from: 0, to: 2), DirectedEdge(from: 0, to: 3), DirectedEdge(from: 1, to: 2),
-            DirectedEdge(from: 1, to: 3), DirectedEdge(from: 2, to: 3)]).undirected
+            DirectedEdge(from: 1, to: 3), DirectedEdge(from: 2, to: 3)]).undirectedView
         #expect(graph.vertexCount == 4 && graph.edgeCount == 6)
         #expect(Array(graph.vertices) == [0, 1, 2, 3])
         #expect(graph.isOuterplanar == false)

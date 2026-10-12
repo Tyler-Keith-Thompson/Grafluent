@@ -1,8 +1,8 @@
 // Every entry point on the package's representations against the `ReferencePseudograph` and
 // `ReferenceDirectedMultigraph`: `Pseudograph`, `UndirectedAdjacencyList`, `AdjacencyList` through
-// `.undirected`, and a file-private conformer with String vertices and no indices (rows in
+// `.undirectedView`, and a file-private conformer with String vertices and no indices (rows in
 // `vertices` order); directed matrices on `AdjacencyList`, `CompressedSparseRow` and
-// `AdjacencyMatrix`; `graph.directed` and `digraph.undirected`. Random graphs come from a seeded
+// `AdjacencyMatrix`; `graph.directedView` and `digraph.undirectedView`. Random graphs come from a seeded
 // generator; weights are functions of an edge's endpoints in quarters, so every sum is exact and
 // matrices compare with ==. Then SparseMatrix's Equatable and Hashable, determinism, `tolerance:`,
 // Sendable, and how often each weighted entry point reads the weight closure. See README.md.
@@ -38,7 +38,7 @@ private struct UnindexedGraph: Graph {
 
 @Suite("SpectralGraphTheory on every representation", .tags(.conformance))
 struct SpectralConformanceTests {
-    @Test("Undirected: Pseudograph, UndirectedAdjacencyList, AdjacencyList.undirected and String vertices without indices agree with the reference", arguments: 0 ..< 40)
+    @Test("Undirected: Pseudograph, UndirectedAdjacencyList, AdjacencyList.undirectedView and String vertices without indices agree with the reference", arguments: 0 ..< 40)
     func undirectedRepresentations(seed: Int) throws {
         var rng = SeededRandomNumberGenerator(seed: UInt(seed))
         let n = Int.random(in: 1 ... 12, using: &rng)
@@ -57,7 +57,7 @@ struct SpectralConformanceTests {
         let reference = ReferencePseudograph(vertices: listed, edges: edgeList)
         let pseudograph = Pseudograph(vertices: listed, edges: edgeList)
         let adjacencyList = UndirectedAdjacencyList(vertices: listed, edges: edgeList)
-        let arcs = AdjacencyList(vertices: listed, edges: edgeList.map { DirectedEdge(from: $0.u, to: $0.v) }).undirected
+        let arcs = AdjacencyList(vertices: listed, edges: edgeList.map { DirectedEdge(from: $0.u, to: $0.v) }).undirectedView
         let strings = UnindexedGraph(vertices: listed.map { "v\($0)" }, edges: edgeList.map { UndirectedEdge("v\($0.u)", "v\($0.v)") })
         #expect(Array(pseudograph.vertices) == listed && Array(adjacencyList.vertices) == listed && Array(arcs.vertices) == listed)
         #expect(reference.vertexIndexBound == n && strings.vertexIndexBound == nil)
@@ -115,7 +115,7 @@ struct SpectralConformanceTests {
         }
         try check(pseudograph, "Pseudograph") { $0 }
         try check(adjacencyList, "UndirectedAdjacencyList") { $0 }
-        try check(arcs, "AdjacencyList.undirected") { $0 }
+        try check(arcs, "AdjacencyList.undirectedView") { $0 }
         try check(strings, "String vertices without indices") { "v\($0)" }
 
         // The weighted electrical quantities on each representation, by endpoint.
@@ -179,7 +179,7 @@ struct SpectralConformanceTests {
         }
     }
 
-    @Test("graph.directed has the same A and L as the graph, loops and parallel edges included", arguments: 0 ..< 30)
+    @Test("graph.directedView has the same A and L as the graph, loops and parallel edges included", arguments: 0 ..< 30)
     func directedView(seed: Int) {
         var rng = SeededRandomNumberGenerator(seed: UInt(seed) &+ 2_000)
         let n = Int.random(in: 1 ... 8, using: &rng)
@@ -188,11 +188,11 @@ struct SpectralConformanceTests {
         }
         let graph = ReferencePseudograph(vertices: Array(0 ..< n).shuffled(using: &rng), edges: edges)
         let context = "seed \(seed), edges \(edges.map { [$0.u, $0.v] })"
-        #expect(graph.directed.adjacencyMatrix() == graph.adjacencyMatrix(), "\(context)")
-        #expect(graph.directed.laplacianMatrix() == graph.laplacianMatrix(), "\(context)")
+        #expect(graph.directedView.adjacencyMatrix() == graph.adjacencyMatrix(), "\(context)")
+        #expect(graph.directedView.laplacianMatrix() == graph.laplacianMatrix(), "\(context)")
     }
 
-    @Test("digraph.undirected: the spectral quantities of the symmetrization, as an undirected multigraph of the arcs", arguments: 0 ..< 30)
+    @Test("digraph.undirectedView: the spectral quantities of the symmetrization, as an undirected multigraph of the arcs", arguments: 0 ..< 30)
     func undirectedView(seed: Int) throws {
         var rng = SeededRandomNumberGenerator(seed: UInt(seed) &+ 3_000)
         let n = Int.random(in: 2 ... 9, using: &rng)
@@ -204,7 +204,7 @@ struct SpectralConformanceTests {
         let edgeList = arcs.sorted { ($0[0], $0[1]) < ($1[0], $1[1]) }
         let digraph = AdjacencyList(vertices: Array(0 ..< n), edges: edgeList.map { DirectedEdge(from: $0[0], to: $0[1]) })
         let reference = ReferencePseudograph(vertices: Array(0 ..< n), edges: edgeList.map { UndirectedEdge($0[0], $0[1]) })
-        let view = digraph.undirected
+        let view = digraph.undirectedView
         let context = "seed \(seed), arcs \(edgeList)"
         // Both arcs of a pair are two parallel edges.
         #expect(view.laplacianMatrix() == reference.laplacianMatrix(), "\(context)")

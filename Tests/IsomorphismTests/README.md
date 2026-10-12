@@ -92,7 +92,7 @@ whose orbits are `orbits`.
 ## Hand-written files
 
 - **Conformance.** Seeded random graphs go through every representation that can hold them:
-  - undirected: `Pseudograph`, `UndirectedAdjacencyList`, `Multigraph`, and the `undirected` views
+  - undirected: `Pseudograph`, `UndirectedAdjacencyList`, `Multigraph`, and the `undirectedView` views
     of `AdjacencyMatrix`, `AdjacencyList` and `LabeledGraph<String, AdjacencyMatrix>`;
   - directed: `DirectedPseudograph`, `AdjacencyList`, `CompressedSparseRow`, `AdjacencyMatrix`,
     `DirectedMultigraph`, and `LabeledGraph<String, _>` over both bases.
@@ -100,7 +100,7 @@ whose orbits are `orbits`.
   Each representation is tried alone and mixed with others (pattern in one, target in another).
   Every problem's set of mappings, read back as indices, must equal the reference's, and the
   yes/no answers and first mappings must agree. Multigraphs with edge colours go through
-  `DirectedPseudograph.undirected` as well. An undirected graph's `directed` view must have the
+  `DirectedPseudograph.undirectedView` as well. An undirected graph's `directedView` view must have the
   same mappings. Relabelled copies (permuted vertices, shuffled edge positions, `String` names, a
   shuffled vertex order) move every mapping by the relabelling, and colours move with them.
   Weisfeiler–Leman hashes, whole and per vertex, must be equal across representations and copies.

@@ -161,7 +161,7 @@ REP_NAMES = {
     "al": "AdjacencyList", "dpseudo": "DirectedPseudograph", "refd": "ReferenceDirectedMultigraph",
     "unidx": "no indices", "csr": "CompressedSparseRow", "am": "AdjacencyMatrix",
     "ual": "UndirectedAdjacencyList", "pseudo": "Pseudograph", "refu": "ReferencePseudograph",
-    "unidxu": "no indices", "alu": "AdjacencyList.undirected", "amu": "AdjacencyMatrix.undirected",
+    "unidxu": "no indices", "alu": "AdjacencyList.undirectedView", "amu": "AdjacencyMatrix.undirectedView",
 }
 
 
@@ -207,9 +207,9 @@ def graph_line(net, rep):
     if rep == "unidxu":
         return f"let graph = UnindexedGraph<{T}>(vertices: {V}, edges: pairs.map {{ UndirectedEdge($0.0, $0.1) }})"
     if rep == "alu":
-        return f"let graph = AdjacencyList<{T}>(vertices: {V}, edges: pairs.map {{ DirectedEdge(from: $0.0, to: $0.1) }}).undirected"
+        return f"let graph = AdjacencyList<{T}>(vertices: {V}, edges: pairs.map {{ DirectedEdge(from: $0.0, to: $0.1) }}).undirectedView"
     if rep == "amu":
-        return f"let graph = AdjacencyMatrix(vertexCount: {n}, edges: pairs.map {{ DirectedEdge(from: $0.0, to: $0.1) }}).undirected"
+        return f"let graph = AdjacencyMatrix(vertexCount: {n}, edges: pairs.map {{ DirectedEdge(from: $0.0, to: $0.1) }}).undirectedView"
     raise ValueError(rep)
 
 
@@ -404,7 +404,8 @@ def flow_checks_directed(net, value, flows_exact=None):
     acc = "Double" if is_float(net) else "Int"
     conv = (lambda e: e) if is_float(net) else (lambda e: f"Int({e})")
     L = [value_expect(net, "flow.value", value),
-         "let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }"]
+         "let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }",
+         "#expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))"]
     if flows_exact is not None:
         if inexact(net):
             L.append(f"let expectedFlows: [{CT}] = {arr(flows_exact)}")
@@ -434,10 +435,12 @@ def flow_checks_directed(net, value, flows_exact=None):
 def flow_checks_undirected(net, value, flows_exact=None):
     CT = ctype(net)
     L = [value_expect(net, "flow.value", value),
-         "// The flow is over `directed`: an edge's flow along its stored order is on the forward arc, against",
+         "// The flow is over `directedView`: an edge's flow along its stored order is on the forward arc, against",
          "// it on the reversed arc; both at least zero, at most one nonzero, each at most the capacity.",
          "let forward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: false)) }",
          "let backward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: true)) }",
+         "#expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: false)) } == forward.map(Optional.some))",
+         "#expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: true)) } == backward.map(Optional.some))",
          "for k in pairs.indices {",
          "    #expect(forward[k] >= 0 && backward[k] >= 0 && (forward[k] == 0 || backward[k] == 0), \"edge \\(k)\")",
          "    #expect(forward[k] <= capacities[k] && backward[k] <= capacities[k], \"edge \\(k)\")",
@@ -727,6 +730,7 @@ def body_gh(cid, net):
           "    let edge = tree.edges[k]",
           "    #expect(Set([edge.u, edge.v]) == Set([vertexList[k + 1], vertexList[parent[k]]]), \"tree edge \\(k)\")",
           "    #expect(gomoryHu.capacity(ofEdgeAt: k) == treeCapacities[k], \"tree edge \\(k)\")",
+          "    #expect((try? gomoryHu.capacity(checkedEdgeAt: k)) == treeCapacities[k], \"tree edge \\(k)\")",
           "}"]
     if n <= 1:
         L += ["_ = (parent, treeCapacities, ends)"]
@@ -747,6 +751,7 @@ def body_gh(cid, net):
         "        let firstLeast = pathChildren.first { treeCapacities[$0 - 1] == least }!",
         "        let minimum = gomoryHu.minimumCutValue(between: vertexList[u], and: vertexList[v])",
         "        #expect(minimum == least, \"\\(vertexList[u]), \\(vertexList[v])\")",
+        "        #expect((try? gomoryHu.minimumCutValue(checkedBetween: vertexList[u], and: vertexList[v])) == minimum)",
         "        // The subtree below the least edge, and u's side of the split.",
         "        let below = (0 ..< n).map { x in",
         "            var y = x",
@@ -755,6 +760,7 @@ def body_gh(cid, net):
         "        }",
         "        let inS = (0 ..< n).map { below[$0] == below[u] }",
         "        let cut = gomoryHu.minimumCut(between: vertexList[u], and: vertexList[v])",
+        "        #expect((try? gomoryHu.minimumCut(checkedBetween: vertexList[u], and: vertexList[v])) == cut)",
         "        #expect(Array(cut.sourceSide) == (0 ..< n).filter { inS[$0] }.map { vertexList[$0] }, \"\\(vertexList[u]), \\(vertexList[v])\")",
         "        #expect(Array(cut.sinkSide) == (0 ..< n).filter { !inS[$0] }.map { vertexList[$0] }, \"\\(vertexList[u]), \\(vertexList[v])\")",
         "        let crossing = pairs.indices.filter { ends[$0].0 != ends[$0].1 && inS[ends[$0].0] != inS[ends[$0].1] }",
@@ -814,6 +820,7 @@ def mcf_feasibility_lines(supply_name="supplies", res="result"):
         "// Optimal, checked here (complementary slackness): with the potentials p, every edge with flow below",
         "// its capacity has reduced cost cost + p(u) − p(v) ≥ 0, and every edge with positive flow has ≤ 0.",
         f"let potentials = vertexList.map {{ Int({res}.potential(of: $0)) }}",
+        f"#expect(vertexList.map {{ try? Int({res}.potential(checked: $0)) }} == potentials.map(Optional.some))",
         "for k in pairs.indices {",
         "    let reduced = Int(costs[k]) + potentials[ends[k].0] - potentials[ends[k].1]",
         "    if flows[k] < capacities[k] { #expect(reduced >= 0, \"edge \\(k): reduced cost \\(reduced)\") }",
@@ -871,7 +878,8 @@ def body_mcf(cid, net):
           f"#expect(flowResult.cost == {cost})",
           "// The amount shipped: the sum of the positive supplies.",
           f"#expect(flowResult.value == {sum(x for x in sup if x > 0)})",
-          "let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }"]
+          "let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }",
+          "#expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))"]
     if uniq:
         L.append(f"#expect(flows == {arr(f)} as [{CT}])")
     else:
@@ -905,7 +913,8 @@ def body_mcmf(cid, net, si, ti):
           f"#expect(flowResult.cost == {cost})",
           "// The value is the maximum flow value.",
           f"#expect(flowResult.value == graph.maximumFlowValue(from: {S_lab}, to: {T_lab}, capacity: {{ capacities[$0] }}))",
-          "let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }"]
+          "let flows = pairs.indices.map { flowResult.flow(ofEdgeAt: $0) }",
+          "#expect(pairs.indices.map { try? flowResult.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))"]
     if uniq:
         L.append(f"#expect(flows == {arr(f)} as [{CT}])")
     else:
@@ -1650,7 +1659,8 @@ intro = ("Preconditions, as exit tests (catalog §Preconditions): the source as 
          "capacities for the global cut, Gomory–Hu and minimum-cost flow; a cost total past the cost type. Then "
          "the preconditions the catalog does not list (extra_traps.swift): each on the other entry points and "
          "kinds of graph, a terminal not in a graph without indices, `GomoryHuTree.minimumCut(between:and:)` "
-         "with u = v, a floating sum that overflows to infinity. Each exit test "
+         "with u = v, a floating sum that overflows to infinity; with them, in process, the results' `checked:` "
+         "spellings, which throw instead. Each exit test "
          "builds its inputs inside the closure. Generated from cases.md by swiftgen.py; see README.md.")
 L = header(wrap(intro), sorted(set(used_imports(body)) | {"AdjacencyListModule", "Multigraphs"}, key=str.lower),
            "Flows preconditions", "FlowsPreconditionTests", tags=".precondition", conformers=True, lines=body) + body
@@ -1676,7 +1686,7 @@ REP_INTRO = ("The catalog's rows again on other representations: directed rows o
              "`ReferenceDirectedMultigraph` for rows already on it), a file-private conformer with no vertex or "
              "edge indices, and, without a repeated edge, `CompressedSparseRow` and `AdjacencyMatrix` on the vertex "
              "indices; undirected rows on `Pseudograph` (or `ReferencePseudograph`), the conformer, and, without a "
-             "repeated edge, `AdjacencyList.undirected` (each edge an arc as written) and `AdjacencyMatrix.undirected`. "
+             "repeated edge, `AdjacencyList.undirectedView` (each edge an arc as written) and `AdjacencyMatrix.undirectedView`. "
              "CompressedSparseRow and AdjacencyMatrix number edges by row-major cell, so there each catalog edge's "
              "position is looked up, a cut's edges are listed in that order, and Edmonds–Karp's flow (which follows "
              "positions) was recomputed by swiftgen.py with ref.py's model on those positions. Everything else is "

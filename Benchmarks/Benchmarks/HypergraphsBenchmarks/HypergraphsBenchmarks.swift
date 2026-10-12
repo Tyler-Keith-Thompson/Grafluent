@@ -59,8 +59,8 @@ let benchmarks: @Sendable () -> Void = {
 
     let hypergraph = UndirectedIncidenceList(vertices: 0 ..< n, hyperedges: rows)
     let directed = IncidenceList(vertices: 0 ..< n, hyperedges: arcs)
-    let view = hypergraph.incidenceGraph
-    let directedView = directed.incidenceGraph
+    let view = hypergraph.incidenceGraphView
+    let directedView = directed.incidenceGraphView
     let viewCopy = UndirectedAdjacencyList<Int>(vertices: view.vertices, edges: view.edges)
     let directedCopy = CompressedSparseRow(directedView)
     let directedListCopy = AdjacencyList<Int>(vertices: directedView.vertices, edges: directedView.edges)
@@ -84,11 +84,11 @@ let benchmarks: @Sendable () -> Void = {
         ("lineGraph", hashes { blackHole(counted.lineGraph(s: 2).edgeCount) }),
         ("dual", hashes { blackHole(counted.dual().hyperedgeCount) }),
         ("degreeHistogram", hashes { blackHole(counted.degreeHistogram()) }),
-        ("incidenceGraph connectedComponents", hashes { blackHole(counted.incidenceGraph.connectedComponents().count) }),
-        ("incidenceGraph breadthFirstLayers", hashes { blackHole(counted.incidenceGraph.directed.breadthFirstLayers(from: 0)) }),
+        ("incidenceGraphView connectedComponents", hashes { blackHole(counted.incidenceGraphView.connectedComponents().count) }),
+        ("incidenceGraphView breadthFirstLayers", hashes { blackHole(counted.incidenceGraphView.directedView.breadthFirstLayers(from: 0)) }),
         ("weaklyConnectedComponents", hashes { blackHole(countedDirected.weaklyConnectedComponents().count) }),
         ("stronglyConnectedComponents", hashes { blackHole(countedDirected.stronglyConnectedComponents().count) }),
-        ("directed incidenceGraph stronglyConnectedComponents", hashes { blackHole(countedDirected.incidenceGraph.stronglyConnectedComponents().count) }),
+        ("directed incidenceGraphView stronglyConnectedComponents", hashes { blackHole(countedDirected.incidenceGraphView.stronglyConnectedComponents().count) }),
         ("reversed", hashes { blackHole(countedDirected.reversed.hyperedgeCount) }),
     ] {
         precondition(count == 0, "\(name) hashed \(count) vertices")
@@ -131,28 +131,28 @@ let benchmarks: @Sendable () -> Void = {
 
     // MARK: Graph algorithms on the views against adjacency-list copies
 
-    Benchmark("Hypergraphs: BASELINE breadthFirstLayers on an UndirectedAdjacencyList copy of incidenceGraph") { benchmark in
-        for _ in benchmark.scaledIterations { blackHole(viewCopy.directed.breadthFirstLayers(from: 0)) }
+    Benchmark("Hypergraphs: BASELINE breadthFirstLayers on an UndirectedAdjacencyList copy of incidenceGraphView") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(viewCopy.directedView.breadthFirstLayers(from: 0)) }
     }
-    Benchmark("Hypergraphs: breadthFirstLayers on incidenceGraph") { benchmark in
-        for _ in benchmark.scaledIterations { blackHole(view.directed.breadthFirstLayers(from: 0)) }
+    Benchmark("Hypergraphs: breadthFirstLayers on incidenceGraphView") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(view.directedView.breadthFirstLayers(from: 0)) }
     }
-    Benchmark("Hypergraphs: BASELINE connectedComponents on an UndirectedAdjacencyList copy of incidenceGraph") { benchmark in
+    Benchmark("Hypergraphs: BASELINE connectedComponents on an UndirectedAdjacencyList copy of incidenceGraphView") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(viewCopy.connectedComponents().count) }
     }
-    Benchmark("Hypergraphs: connectedComponents on incidenceGraph") { benchmark in
+    Benchmark("Hypergraphs: connectedComponents on incidenceGraphView") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(view.connectedComponents().count) }
     }
-    Benchmark("Hypergraphs: BASELINE breadthFirstLayers on an AdjacencyList copy of the directed incidenceGraph") { benchmark in
+    Benchmark("Hypergraphs: BASELINE breadthFirstLayers on an AdjacencyList copy of the directed incidenceGraphView") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(directedListCopy.breadthFirstLayers(from: 0)) }
     }
-    Benchmark("Hypergraphs: breadthFirstLayers on the directed incidenceGraph") { benchmark in
+    Benchmark("Hypergraphs: breadthFirstLayers on the directed incidenceGraphView") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(directedView.breadthFirstLayers(from: 0)) }
     }
-    Benchmark("Hypergraphs: BASELINE stronglyConnectedComponents on an AdjacencyList copy of the directed incidenceGraph") { benchmark in
+    Benchmark("Hypergraphs: BASELINE stronglyConnectedComponents on an AdjacencyList copy of the directed incidenceGraphView") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(directedListCopy.stronglyConnectedComponents().count) }
     }
-    Benchmark("Hypergraphs: stronglyConnectedComponents on the directed incidenceGraph") { benchmark in
+    Benchmark("Hypergraphs: stronglyConnectedComponents on the directed incidenceGraphView") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(directedView.stronglyConnectedComponents().count) }
     }
 
@@ -170,7 +170,7 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("Hypergraphs: weaklyConnectedComponents") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(directed.weaklyConnectedComponents().count) }
     }
-    Benchmark("Hypergraphs: BASELINE stronglyConnectedComponents on a CompressedSparseRow copy of the directed incidenceGraph") { benchmark in
+    Benchmark("Hypergraphs: BASELINE stronglyConnectedComponents on a CompressedSparseRow copy of the directed incidenceGraphView") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(directedCopy.stronglyConnectedComponents().count) }
     }
     Benchmark("Hypergraphs: stronglyConnectedComponents") { benchmark in

@@ -63,7 +63,7 @@ struct LabeledGraphHashTests {
         for v in csr.vertices { sink &+= v.name }
         sink &+= csr.vertexCount &+ csr.edgeCount &+ (csr.vertexIndexBound ?? 0) &+ (csr.edgeIndexBound ?? 0)
         sink &+= matrix.vertexCount &+ matrix.edgeCount &+ (matrix.vertexIndexBound ?? 0)
-        let view = matrix.undirected
+        let view = matrix.undirectedView
         for i in 0 ..< n { sink &+= view.neighborIndices(ofIndex: i).reduce(0, &+) &+ view.incidentEdges(ofIndex: i).count }
         #expect(tally.hashes == 0)
         #expect(tally.comparisons == 0)
@@ -123,8 +123,8 @@ struct LabeledGraphHashTests {
         #expect(hashes { _ = try? matrix.degree(checked: absent) } == 1)
         #expect(hashes { _ = matrix.contains(edge: DirectedEdge(from: label(3), to: hub)) } == 2)
         // The undirected view calls successors(of:) and predecessors(of:): two.
-        #expect(hashes { _ = Array(matrix.undirected.neighbors(of: hub)) } == 2)
-        #expect(hashes { _ = Array(matrix.undirected.incidentEdges(of: hub)) } == 2)
+        #expect(hashes { _ = Array(matrix.undirectedView.neighbors(of: hub)) } == 2)
+        #expect(hashes { _ = Array(matrix.undirectedView.incidentEdges(of: hub)) } == 2)
         // The values are the full rows.
         #expect(csr.outDegree(of: hub) == n - 1 && matrix.inDegree(of: hub) == n - 1)
     }
@@ -262,8 +262,8 @@ struct LabeledGraphHashTests {
         }
         edges += [DirectedEdge(from: label(3), to: label(3)), DirectedEdge(from: label(40), to: label(40))]
         let graph = LabeledGraph<Counted, AdjacencyMatrix>(vertices: (0 ..< n).map(label), edges: edges)
-        let view = graph.undirected
-        let bare = graph.base.undirected
+        let view = graph.undirectedView
+        let bare = graph.base.undirectedView
         #expect(view.edgeIndexBound == nil && view.vertexIndexBound == n)
         func weight(_ cell: AdjacencyMatrix.Edges.Index) -> Int { (cell.source &* 7 &+ cell.target &* 13) % 10 }
         func hashes(_ body: () -> Void) -> Int {
@@ -322,12 +322,12 @@ struct LabeledGraphHashTests {
         #expect(hashes { _ = csr.inDegreeCentrality() } == 0)
         #expect(hashes { _ = matrix.degreeCentrality() } == 0)
         #expect(hashes { _ = matrix.outDegreeCentrality() } == 0)
-        #expect(hashes { _ = matrix.undirected.degreeCentrality() } == 0)
+        #expect(hashes { _ = matrix.undirectedView.degreeCentrality() } == 0)
         // The base's scores, in index order.
         #expect(csr.degreeCentrality().scores == csr.base.degreeCentrality().scores)
         #expect(csr.outDegreeCentrality().scores == csr.base.outDegreeCentrality().scores)
         #expect(matrix.degreeCentrality().scores == matrix.base.degreeCentrality().scores)
-        #expect(matrix.undirected.degreeCentrality().scores == matrix.base.undirected.degreeCentrality().scores)
+        #expect(matrix.undirectedView.degreeCentrality().scores == matrix.base.undirectedView.degreeCentrality().scores)
         // A score by label: one lookup.
         let scores = csr.degreeCentrality()
         #expect(hashes { _ = scores.score(of: label(3)) } == 1)

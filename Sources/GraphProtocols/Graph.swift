@@ -1,6 +1,6 @@
 /// An undirected graph: a finite set of vertices and a finite collection of undirected edges
 /// between them. Kept apart from `DirectedGraph`: an undirected graph is not a symmetric directed
-/// one, and no type is both. `directed` views it as one when an algorithm needs arcs.
+/// one, and no type is both. `directedView` views it as one when an algorithm needs arcs.
 ///
 /// **Edges and their identity.** `edges` lists every edge once (each copy of a parallel edge, and
 /// each self-loop, once), and an edge's position in `edges` is its identity. The edge is reached

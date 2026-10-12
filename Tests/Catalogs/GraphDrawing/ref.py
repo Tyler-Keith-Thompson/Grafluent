@@ -1096,7 +1096,7 @@ def circular_rows():
     row(G_, "radius 2, centre (1, -1)", "`U: n=4;`", "circularLayout(radius: 2, center: (1, -1))", pts(got, 12))
     got = circular(3, 1.0, (5.0, 5.0))
     row(G_, "edges do not matter: vertices order only", "`U: n=3; 0-2, 2-1`", "circularLayout(center: (5, 5))", pts(got, 12))
-    row(G_, "directed graph through its undirected view", "`D: n=3; 0>1`", "undirected.circularLayout()", pts(circular(3), 12))
+    row(G_, "directed graph through its undirected view", "`D: n=3; 0>1`", "undirectedView.circularLayout()", pts(circular(3), 12))
     row(G_, "negative radius", "`U: n=3;`", "circularLayout(radius: -1)", "**trap**")
     row(G_, "NaN centre", "`U: n=3;`", "circularLayout(center: (.nan, 0))", "**trap**")
 

@@ -580,10 +580,10 @@ struct UndirectedIncidenceListAlgorithmTests {
 
     @Test("HG-059 vertices 0..<n then n + p; edge q is the q-th incidence (XGI to_bipartite_graph numbering)")
     func hg059() {
-        // U V [a, b, c, d, e, f]; E [{a, b, c}, {c, d}, {a, b, c}, {e}] / incidenceGraph
+        // U V [a, b, c, d, e, f]; E [{a, b, c}, {c, d}, {a, b, c}, {e}] / incidenceGraphView
         let hypergraph = UndirectedIncidenceList<String>(vertices: ["a", "b", "c", "d", "e", "f"] as [String], hyperedges: [["a", "b", "c"], ["c", "d"], ["a", "b", "c"], ["e"]] as [[String]])
         do {
-            let view = hypergraph.incidenceGraph
+            let view = hypergraph.incidenceGraphView
             #expect(view.vertices == 0 ..< 10)
             #expect(view.edges.map { [$0.u, $0.v] } == [[0, 6], [1, 6], [2, 6], [2, 7], [3, 7], [0, 8], [1, 8], [2, 8], [4, 9]])
             #expect(Array(view.edges.indices) == [0, 1, 2, 3, 4, 5, 6, 7, 8])
@@ -660,10 +660,10 @@ struct UndirectedIncidenceListAlgorithmTests {
 
     @Test("HG-060 an empty hyperedge is an isolated vertex")
     func hg060() {
-        // U V []; E [{a, b}, {}, {b, c}] / incidenceGraph
+        // U V []; E [{a, b}, {}, {b, c}] / incidenceGraphView
         let hypergraph = UndirectedIncidenceList<String>(vertices: [] as [String], hyperedges: [["a", "b"], [], ["b", "c"]] as [[String]])
         do {
-            let view = hypergraph.incidenceGraph
+            let view = hypergraph.incidenceGraphView
             #expect(view.vertices == 0 ..< 6)
             #expect(view.edges.map { [$0.u, $0.v] } == [[0, 3], [1, 3], [1, 5], [2, 5]])
             #expect(Array(view.edges.indices) == [0, 1, 2, 3])
@@ -717,10 +717,10 @@ struct UndirectedIncidenceListAlgorithmTests {
 
     @Test("HG-061 repeated hyperedges are distinct vertices; the view stays simple")
     func hg061() {
-        // U V []; E [{a, b}, {a, b}] / incidenceGraph
+        // U V []; E [{a, b}, {a, b}] / incidenceGraphView
         let hypergraph = UndirectedIncidenceList<String>(vertices: [] as [String], hyperedges: [["a", "b"], ["a", "b"]] as [[String]])
         do {
-            let view = hypergraph.incidenceGraph
+            let view = hypergraph.incidenceGraphView
             #expect(view.vertices == 0 ..< 4)
             #expect(view.edges.map { [$0.u, $0.v] } == [[0, 2], [1, 2], [0, 3], [1, 3]])
             #expect(Array(view.edges.indices) == [0, 1, 2, 3])

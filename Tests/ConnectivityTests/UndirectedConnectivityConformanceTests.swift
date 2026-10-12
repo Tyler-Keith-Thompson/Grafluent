@@ -1,6 +1,6 @@
 // §K: preconditions (exit tests), value semantics, Sendable and Equatable, index-space dispatch
 // (no vertex hashing on an indexed adjacency list), generic code and existentials, digraphs through
-// `.undirected`, the result type of connectedComponents(), and determinism. Case IDs (CN-nnn) refer
+// `.undirectedView`, the result type of connectedComponents(), and determinism. Case IDs (CN-nnn) refer
 // to the catalog; see README.md.
 
 import AdjacencyListModule
@@ -58,7 +58,7 @@ struct UndirectedConnectivityConformanceTests {
         let plain = PlainGraph(vertices: [0, 1, 2], edges: edges).biconnectedComponents()
         #expect(plain.component(ofEdgeAt: 1) == nil)
         #expect(plain.component(ofEdgeAt: 2) == 1)
-        let matrix = AdjacencyMatrix(vertexCount: 2, edges: [DirectedEdge(from: 0, to: 0), DirectedEdge(from: 0, to: 1)]).undirected
+        let matrix = AdjacencyMatrix(vertexCount: 2, edges: [DirectedEdge(from: 0, to: 0), DirectedEdge(from: 0, to: 1)]).undirectedView
         let cells = matrix.biconnectedComponents()
         #expect(matrix.edges.indices.map { cells.component(ofEdgeAt: $0) } == [nil, 0])
     }
@@ -197,15 +197,15 @@ struct UndirectedConnectivityConformanceTests {
         for g in graphs { #expect(summary(g) == expected) }
     }
 
-    @Test("CN-397 CN-296 a bidirectional digraph reaches the undirected half through .undirected, each arc an edge")
+    @Test("CN-397 CN-296 a bidirectional digraph reaches the undirected half through .undirectedView, each arc an edge")
     func digraphThroughUndirected() {
         let arcs = [(0, 1), (1, 0), (1, 2)].map { DirectedEdge(from: $0.0, to: $0.1) }
-        let list = AdjacencyList(edges: arcs).undirected
+        let list = AdjacencyList(edges: arcs).undirectedView
         #expect(list.bridges() == [2])
         #expect(list.articulationPoints() == [1])
         #expect(list.biconnectedComponents().map(Array.init) == [[0, 1], [2]])
         #expect(list.biEdgeConnectedComponents().map(Array.init) == [[0, 1], [2]])
-        let matrix = AdjacencyMatrix(vertexCount: 3, edges: arcs).undirected
+        let matrix = AdjacencyMatrix(vertexCount: 3, edges: arcs).undirectedView
         #expect(matrix.bridges().map { [$0.source, $0.target] } == [[1, 2]])
         #expect(matrix.articulationPoints() == [1])
         // The digraph's own weak components are the view's connected components.
@@ -218,7 +218,7 @@ struct UndirectedConnectivityConformanceTests {
     func componentsType() {
         let graph = UndirectedAdjacencyList(vertices: 0 ..< 6, edges: [(0, 3), (1, 4), (2, 5), (3, 0)].map { UndirectedEdge($0.0, $0.1) })
         let components: Components<DirectedView<UndirectedAdjacencyList<Int>>> = graph.connectedComponents()
-        #expect(components == graph.directed.weaklyConnectedComponents())
+        #expect(components == graph.directedView.weaklyConnectedComponents())
         #expect(components.map(Array.init) == [[0, 3], [1, 4], [2, 5]])
         #expect(components.component(of: 4) == 1)
         #expect(components.component(ofIndex: 5) == 2)

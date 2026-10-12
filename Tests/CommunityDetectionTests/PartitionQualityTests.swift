@@ -7,7 +7,7 @@
 // partition row also checks `count`, `community(of:)` against membership, `community(ofIndex:)`
 // against `community(of:)`, and the modularity of the result (at the call's weight and resolution)
 // against ref.py's; undirected rows of the measures, Louvain and greedy modularity also run on
-// `graph.directed` (the same values). Case IDs (CD-nnn) refer to the catalog; see README.md.
+// `graph.directedView` (the same values). Case IDs (CD-nnn) refer to the catalog; see README.md.
 
 import CommunityDetection
 import Connectivity
@@ -26,9 +26,9 @@ struct PartitionQualityTests {
         let quality = graph.partitionQuality(of: communities)
         #expect(abs(quality.coverage - 0.8571428571428571) <= 1e-12 * max(1, abs(0.8571428571428571)))
         #expect(abs(quality.performance - 0.9333333333333333) <= 1e-12 * max(1, abs(0.9333333333333333)))
-        let arcs = graph.directed.partitionQuality(of: communities)
-        #expect(abs(arcs.coverage - 0.8571428571428571) <= 1e-12 * max(1, abs(0.8571428571428571)), "graph.directed")
-        #expect(abs(arcs.performance - 0.9333333333333333) <= 1e-12 * max(1, abs(0.9333333333333333)), "graph.directed")
+        let arcs = graph.directedView.partitionQuality(of: communities)
+        #expect(abs(arcs.coverage - 0.8571428571428571) <= 1e-12 * max(1, abs(0.8571428571428571)), "graph.directedView")
+        #expect(abs(arcs.performance - 0.9333333333333333) <= 1e-12 * max(1, abs(0.9333333333333333)), "graph.directedView")
     }
 
     @Test("CD-070 U(K(0..2), K(3..5), 2-3).partitionQuality(of: [[0, 1, 2], [3, 4, 5]]).performance is 0.933333333333: (6 + 8)/15")
@@ -40,9 +40,9 @@ struct PartitionQualityTests {
         let quality = graph.partitionQuality(of: communities)
         #expect(abs(quality.coverage - 0.8571428571428571) <= 1e-12 * max(1, abs(0.8571428571428571)))
         #expect(abs(quality.performance - 0.9333333333333333) <= 1e-12 * max(1, abs(0.9333333333333333)))
-        let arcs = graph.directed.partitionQuality(of: communities)
-        #expect(abs(arcs.coverage - 0.8571428571428571) <= 1e-12 * max(1, abs(0.8571428571428571)), "graph.directed")
-        #expect(abs(arcs.performance - 0.9333333333333333) <= 1e-12 * max(1, abs(0.9333333333333333)), "graph.directed")
+        let arcs = graph.directedView.partitionQuality(of: communities)
+        #expect(abs(arcs.coverage - 0.8571428571428571) <= 1e-12 * max(1, abs(0.8571428571428571)), "graph.directedView")
+        #expect(abs(arcs.performance - 0.9333333333333333) <= 1e-12 * max(1, abs(0.9333333333333333)), "graph.directedView")
     }
 
     @Test("CD-071 U(K(0..2), K(3..5), 2-3).partitionQuality(of: [[0], [1], [2], [3], [4], [5]]).coverage is 0")
@@ -54,9 +54,9 @@ struct PartitionQualityTests {
         let quality = graph.partitionQuality(of: communities)
         #expect(abs(quality.coverage) <= 1e-12)
         #expect(abs(quality.performance - 0.5333333333333333) <= 1e-12 * max(1, abs(0.5333333333333333)))
-        let arcs = graph.directed.partitionQuality(of: communities)
-        #expect(abs(arcs.coverage) <= 1e-12, "graph.directed")
-        #expect(abs(arcs.performance - 0.5333333333333333) <= 1e-12 * max(1, abs(0.5333333333333333)), "graph.directed")
+        let arcs = graph.directedView.partitionQuality(of: communities)
+        #expect(abs(arcs.coverage) <= 1e-12, "graph.directedView")
+        #expect(abs(arcs.performance - 0.5333333333333333) <= 1e-12 * max(1, abs(0.5333333333333333)), "graph.directedView")
     }
 
     @Test("CD-072 U(K(0..2), K(3..5), 2-3).partitionQuality(of: [[0], [1], [2], [3], [4], [5]]).performance is 0.533333333333: Every non-edge pair is correct: 8/15")
@@ -68,9 +68,9 @@ struct PartitionQualityTests {
         let quality = graph.partitionQuality(of: communities)
         #expect(abs(quality.coverage) <= 1e-12)
         #expect(abs(quality.performance - 0.5333333333333333) <= 1e-12 * max(1, abs(0.5333333333333333)))
-        let arcs = graph.directed.partitionQuality(of: communities)
-        #expect(abs(arcs.coverage) <= 1e-12, "graph.directed")
-        #expect(abs(arcs.performance - 0.5333333333333333) <= 1e-12 * max(1, abs(0.5333333333333333)), "graph.directed")
+        let arcs = graph.directedView.partitionQuality(of: communities)
+        #expect(abs(arcs.coverage) <= 1e-12, "graph.directedView")
+        #expect(abs(arcs.performance - 0.5333333333333333) <= 1e-12 * max(1, abs(0.5333333333333333)), "graph.directedView")
     }
 
     @Test("CD-073 U(K(0..2), K(3..5), 2-3).partitionQuality(of: components).performance is 0.466666666667: One community: the density 7/15")
@@ -82,9 +82,9 @@ struct PartitionQualityTests {
         let quality = graph.partitionQuality(of: communities)
         #expect(abs(quality.coverage - 1) <= 1e-12 * max(1, abs(1)))
         #expect(abs(quality.performance - 0.4666666666666667) <= 1e-12 * max(1, abs(0.4666666666666667)))
-        let arcs = graph.directed.partitionQuality(of: communities)
-        #expect(abs(arcs.coverage - 1) <= 1e-12 * max(1, abs(1)), "graph.directed")
-        #expect(abs(arcs.performance - 0.4666666666666667) <= 1e-12 * max(1, abs(0.4666666666666667)), "graph.directed")
+        let arcs = graph.directedView.partitionQuality(of: communities)
+        #expect(abs(arcs.coverage - 1) <= 1e-12 * max(1, abs(1)), "graph.directedView")
+        #expect(abs(arcs.performance - 0.4666666666666667) <= 1e-12 * max(1, abs(0.4666666666666667)), "graph.directedView")
     }
 
     @Test("CD-074 U(nx(karate_club)).partitionQuality(of: […]).coverage is 0.858974358974")
@@ -104,9 +104,9 @@ struct PartitionQualityTests {
         let quality = graph.partitionQuality(of: communities)
         #expect(abs(quality.coverage - 0.8589743589743589) <= 1e-12 * max(1, abs(0.8589743589743589)))
         #expect(abs(quality.performance - 0.6149732620320856) <= 1e-12 * max(1, abs(0.6149732620320856)))
-        let arcs = graph.directed.partitionQuality(of: communities)
-        #expect(abs(arcs.coverage - 0.8589743589743589) <= 1e-12 * max(1, abs(0.8589743589743589)), "graph.directed")
-        #expect(abs(arcs.performance - 0.6149732620320856) <= 1e-12 * max(1, abs(0.6149732620320856)), "graph.directed")
+        let arcs = graph.directedView.partitionQuality(of: communities)
+        #expect(abs(arcs.coverage - 0.8589743589743589) <= 1e-12 * max(1, abs(0.8589743589743589)), "graph.directedView")
+        #expect(abs(arcs.performance - 0.6149732620320856) <= 1e-12 * max(1, abs(0.6149732620320856)), "graph.directedView")
     }
 
     @Test("CD-075 U(nx(karate_club)).partitionQuality(of: […]).performance is 0.614973262032")
@@ -126,9 +126,9 @@ struct PartitionQualityTests {
         let quality = graph.partitionQuality(of: communities)
         #expect(abs(quality.coverage - 0.8589743589743589) <= 1e-12 * max(1, abs(0.8589743589743589)))
         #expect(abs(quality.performance - 0.6149732620320856) <= 1e-12 * max(1, abs(0.6149732620320856)))
-        let arcs = graph.directed.partitionQuality(of: communities)
-        #expect(abs(arcs.coverage - 0.8589743589743589) <= 1e-12 * max(1, abs(0.8589743589743589)), "graph.directed")
-        #expect(abs(arcs.performance - 0.6149732620320856) <= 1e-12 * max(1, abs(0.6149732620320856)), "graph.directed")
+        let arcs = graph.directedView.partitionQuality(of: communities)
+        #expect(abs(arcs.coverage - 0.8589743589743589) <= 1e-12 * max(1, abs(0.8589743589743589)), "graph.directedView")
+        #expect(abs(arcs.performance - 0.6149732620320856) <= 1e-12 * max(1, abs(0.6149732620320856)), "graph.directedView")
     }
 
     @Test("CD-076 U(0-1, 0-1, 1-2).partitionQuality(of: [[0, 1], [2]]).coverage is 0.666666666667: Parallel edges each count: 2/3")
@@ -140,9 +140,9 @@ struct PartitionQualityTests {
         let quality = graph.partitionQuality(of: communities)
         #expect(abs(quality.coverage - 0.6666666666666666) <= 1e-12 * max(1, abs(0.6666666666666666)))
         #expect(abs(quality.performance - 0.6666666666666666) <= 1e-12 * max(1, abs(0.6666666666666666)))
-        let arcs = graph.directed.partitionQuality(of: communities)
-        #expect(abs(arcs.coverage - 0.6666666666666666) <= 1e-12 * max(1, abs(0.6666666666666666)), "graph.directed")
-        #expect(abs(arcs.performance - 0.6666666666666666) <= 1e-12 * max(1, abs(0.6666666666666666)), "graph.directed")
+        let arcs = graph.directedView.partitionQuality(of: communities)
+        #expect(abs(arcs.coverage - 0.6666666666666666) <= 1e-12 * max(1, abs(0.6666666666666666)), "graph.directedView")
+        #expect(abs(arcs.performance - 0.6666666666666666) <= 1e-12 * max(1, abs(0.6666666666666666)), "graph.directedView")
     }
 
     @Test("CD-077 U(0-1, 0-1, 1-2).partitionQuality(of: [[0, 1], [2]]).performance is 0.666666666667: Pairs by adjacency: 2/3; NetworkX returns −1 on multigraphs")
@@ -154,9 +154,9 @@ struct PartitionQualityTests {
         let quality = graph.partitionQuality(of: communities)
         #expect(abs(quality.coverage - 0.6666666666666666) <= 1e-12 * max(1, abs(0.6666666666666666)))
         #expect(abs(quality.performance - 0.6666666666666666) <= 1e-12 * max(1, abs(0.6666666666666666)))
-        let arcs = graph.directed.partitionQuality(of: communities)
-        #expect(abs(arcs.coverage - 0.6666666666666666) <= 1e-12 * max(1, abs(0.6666666666666666)), "graph.directed")
-        #expect(abs(arcs.performance - 0.6666666666666666) <= 1e-12 * max(1, abs(0.6666666666666666)), "graph.directed")
+        let arcs = graph.directedView.partitionQuality(of: communities)
+        #expect(abs(arcs.coverage - 0.6666666666666666) <= 1e-12 * max(1, abs(0.6666666666666666)), "graph.directedView")
+        #expect(abs(arcs.performance - 0.6666666666666666) <= 1e-12 * max(1, abs(0.6666666666666666)), "graph.directedView")
     }
 
     @Test("CD-078 U(0-1, 1-2, 1-1).partitionQuality(of: [[0, 1], [2]]).coverage is 0.666666666667: A loop is inside its community: 2/3")
@@ -168,9 +168,9 @@ struct PartitionQualityTests {
         let quality = graph.partitionQuality(of: communities)
         #expect(abs(quality.coverage - 0.6666666666666666) <= 1e-12 * max(1, abs(0.6666666666666666)))
         #expect(abs(quality.performance - 0.6666666666666666) <= 1e-12 * max(1, abs(0.6666666666666666)))
-        let arcs = graph.directed.partitionQuality(of: communities)
-        #expect(abs(arcs.coverage - 0.6666666666666666) <= 1e-12 * max(1, abs(0.6666666666666666)), "graph.directed")
-        #expect(abs(arcs.performance - 0.6666666666666666) <= 1e-12 * max(1, abs(0.6666666666666666)), "graph.directed")
+        let arcs = graph.directedView.partitionQuality(of: communities)
+        #expect(abs(arcs.coverage - 0.6666666666666666) <= 1e-12 * max(1, abs(0.6666666666666666)), "graph.directedView")
+        #expect(abs(arcs.performance - 0.6666666666666666) <= 1e-12 * max(1, abs(0.6666666666666666)), "graph.directedView")
     }
 
     @Test("CD-079 U(0-1, 1-2, 1-1).partitionQuality(of: [[0, 1], [2]]).performance is 0.666666666667: Loops are not pairs: 2/3 (NetworkX counts the loop: 1)")
@@ -182,9 +182,9 @@ struct PartitionQualityTests {
         let quality = graph.partitionQuality(of: communities)
         #expect(abs(quality.coverage - 0.6666666666666666) <= 1e-12 * max(1, abs(0.6666666666666666)))
         #expect(abs(quality.performance - 0.6666666666666666) <= 1e-12 * max(1, abs(0.6666666666666666)))
-        let arcs = graph.directed.partitionQuality(of: communities)
-        #expect(abs(arcs.coverage - 0.6666666666666666) <= 1e-12 * max(1, abs(0.6666666666666666)), "graph.directed")
-        #expect(abs(arcs.performance - 0.6666666666666666) <= 1e-12 * max(1, abs(0.6666666666666666)), "graph.directed")
+        let arcs = graph.directedView.partitionQuality(of: communities)
+        #expect(abs(arcs.coverage - 0.6666666666666666) <= 1e-12 * max(1, abs(0.6666666666666666)), "graph.directedView")
+        #expect(abs(arcs.performance - 0.6666666666666666) <= 1e-12 * max(1, abs(0.6666666666666666)), "graph.directedView")
     }
 
     @Test("CD-080 D(0>1, 1>2).partitionQuality(of: [[0, 1], [2]]).coverage is 0.5")

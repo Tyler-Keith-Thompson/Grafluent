@@ -28,7 +28,7 @@ struct CentralityReviewTests {
         let weights = [1.0, 1e-17, 1.0]
         let result = graph.betweennessCentrality(weight: { weights[$0] }, normalized: false)
         #expect(result.scores == [0, 2, 2, 0])
-        let arcs = graph.directed.betweennessCentrality(weight: { weights[$0.position] }, normalized: false)
+        let arcs = graph.directedView.betweennessCentrality(weight: { weights[$0.position] }, normalized: false)
         #expect(arcs.scores == [0, 4, 4, 0])
     }
 

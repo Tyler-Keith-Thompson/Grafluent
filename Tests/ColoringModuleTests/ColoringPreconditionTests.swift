@@ -4,11 +4,12 @@
 // an order with the right length that repeats one vertex and misses another, or swaps one for a
 // non-vertex; a negative index; a non-vertex on a graph without vertex indices, to `color(of:)` and
 // in an order; `minimumColoring().color(of:)`; `edgeColoring()` on parallel arcs through
-// `AdjacencyList.undirected`, on `graph.directed.undirected`, and on a self-loop away from the first
-// vertex; `color(ofEdgeAt:)` with a position the graph does not have, with and without edge indices;
-// a negative preset colour and two adjacent vertices preset alike. Each exit test builds its inputs
-// inside the closure. Generated from cases.md by swiftgen.py, the tests after CO-252 written by hand
-// (extra_traps.swift); see README.md.
+// `AdjacencyList.undirectedView`, on `graph.directedView.undirectedView`, and on a self-loop away
+// from the first vertex; `color(ofEdgeAt:)` with a position the graph does not have, with and
+// without edge indices; a negative preset colour and two adjacent vertices preset alike. The
+// `checked:` spellings of those lookups throw instead, checked in process after the exit tests. Each
+// exit test builds its inputs inside the closure. Generated from cases.md by swiftgen.py, the tests
+// after CO-252 written by hand (extra_traps.swift); see README.md.
 
 import AdjacencyListModule
 import ColoringModule
@@ -119,12 +120,16 @@ struct ColoringPreconditionTests {
         }
     }
 
-    @Test("color(of:) a non-vertex on a graph without vertex indices traps")
-    func unindexedNonVertex() async {
+    @Test("color(of:) a non-vertex on a graph without vertex indices traps; color(checked:) throws")
+    func unindexedNonVertex() async throws {
         await #expect(processExitsWith: .failure) {
             let graph = UnindexedGraph<String>(vertices: ["a", "b", "c"], edges: [UndirectedEdge("a", "b"), UndirectedEdge("b", "c")])
             _ = graph.greedyColoring(strategy: .saturationLargestFirst).color(of: "z")
         }
+        let graph = UnindexedGraph<String>(vertices: ["a", "b", "c"], edges: [UndirectedEdge("a", "b"), UndirectedEdge("b", "c")])
+        let coloring = graph.greedyColoring(strategy: .saturationLargestFirst)
+        #expect(throws: VertexNotFound()) { try coloring.color(checked: "z") }
+        #expect(try ["a", "b", "c"].map { try coloring.color(checked: $0) } == ["a", "b", "c"].map { coloring.color(of: $0) })
     }
 
     @Test("An order with a non-vertex on a graph without vertex indices traps")
@@ -135,27 +140,32 @@ struct ColoringPreconditionTests {
         }
     }
 
-    @Test("minimumColoring().color(of:) a non-vertex traps")
-    func minimumColoringNonVertex() async {
+    @Test("minimumColoring().color(of:) a non-vertex traps; color(checked:) throws")
+    func minimumColoringNonVertex() async throws {
         await #expect(processExitsWith: .failure) {
             let graph = UndirectedAdjacencyList<Int>(vertices: 0 ..< 5, edges: (0 ..< 5).map { UndirectedEdge($0, ($0 + 1) % 5) })
             _ = graph.minimumColoring().color(of: 5)
         }
+        let graph = UndirectedAdjacencyList<Int>(vertices: 0 ..< 5, edges: (0 ..< 5).map { UndirectedEdge($0, ($0 + 1) % 5) })
+        let coloring = graph.minimumColoring()
+        #expect(throws: VertexNotFound()) { try coloring.color(checked: 5) }
+        #expect(throws: VertexNotFound()) { try coloring.color(checked: -1) }
+        #expect(try (0 ..< 5).map { try coloring.color(checked: $0) } == (0 ..< 5).map { coloring.color(of: $0) })
     }
 
-    @Test("edgeColoring() on AdjacencyList.undirected with arcs 0→1 and 1→0 (parallel edges) traps")
+    @Test("edgeColoring() on AdjacencyList.undirectedView with arcs 0→1 and 1→0 (parallel edges) traps")
     func parallelArcs() async {
         await #expect(processExitsWith: .failure) {
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 1, to: 0)]).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 1, to: 0)]).undirectedView
             _ = graph.edgeColoring()
         }
     }
 
-    @Test("edgeColoring() on graph.directed.undirected (every edge a parallel pair) traps")
+    @Test("edgeColoring() on graph.directedView.undirected (every edge a parallel pair) traps")
     func directedUndirected() async {
         await #expect(processExitsWith: .failure) {
             let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1, 2], edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
-            _ = graph.directed.undirected.edgeColoring()
+            _ = graph.directedView.undirectedView.edgeColoring()
         }
     }
 
@@ -177,20 +187,31 @@ struct ColoringPreconditionTests {
         }
     }
 
-    @Test("color(ofEdgeAt:) with a position the graph does not have traps (edge indices)")
-    func foreignEdgePosition() async {
+    @Test("color(ofEdgeAt:) with a position the graph does not have traps (edge indices); color(checkedEdgeAt:) throws")
+    func foreignEdgePosition() async throws {
         await #expect(processExitsWith: .failure) {
             let graph = UndirectedAdjacencyList<Int>(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
             _ = graph.edgeColoring().color(ofEdgeAt: 7)
         }
+        let graph = UndirectedAdjacencyList<Int>(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
+        let coloring = graph.edgeColoring()
+        #expect(throws: EdgeNotFound()) { try coloring.color(checkedEdgeAt: 7) }
+        #expect(throws: EdgeNotFound()) { try coloring.color(checkedEdgeAt: 2) }
+        #expect(throws: EdgeNotFound()) { try coloring.color(checkedEdgeAt: -1) }
+        #expect(try [0, 1].map { try coloring.color(checkedEdgeAt: $0) } == [0, 1].map { coloring.color(ofEdgeAt: $0) })
     }
 
-    @Test("color(ofEdgeAt:) with a position the graph does not have traps (no edge indices: the binary search misses)")
-    func foreignEdgePositionUnindexed() async {
+    @Test("color(ofEdgeAt:) with a position the graph does not have traps (no edge indices: the binary search misses); color(checkedEdgeAt:) throws")
+    func foreignEdgePositionUnindexed() async throws {
         await #expect(processExitsWith: .failure) {
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2], edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
             _ = graph.greedyEdgeColoring().color(ofEdgeAt: 2)
         }
+        let graph = UnindexedGraph<Int>(vertices: [0, 1, 2], edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
+        let coloring = graph.greedyEdgeColoring()
+        #expect(throws: EdgeNotFound()) { try coloring.color(checkedEdgeAt: 2) }
+        #expect(throws: EdgeNotFound()) { try coloring.color(checkedEdgeAt: -1) }
+        #expect(try [0, 1].map { try coloring.color(checkedEdgeAt: $0) } == [0, 1].map { coloring.color(ofEdgeAt: $0) })
     }
 
     @Test("greedyColoring(strategy:presetColor:) with a negative preset colour traps")

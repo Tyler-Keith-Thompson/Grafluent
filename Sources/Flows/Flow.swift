@@ -5,7 +5,7 @@ import GraphProtocols
 /// `dinicMaximumFlow(from:to:capacity:)`.
 ///
 /// It keeps a copy of the graph to look positions up (copy-on-write, O(1) to make), as
-/// `Coloring` and `ShortestPathTree` do. On an undirected graph the flow is over `directed`: an
+/// `Coloring` and `ShortestPathTree` do. On an undirected graph the flow is over `directedView`: an
 /// edge's flow is on the arc of its direction, the other arc carries zero.
 @frozen
 public struct Flow<G: DirectedGraph, Capacity: Comparable & AdditiveArithmetic> {
@@ -34,13 +34,23 @@ public struct Flow<G: DirectedGraph, Capacity: Comparable & AdditiveArithmetic> 
     }
 
     /// The flow on the edge at `position`: zero on a self-loop. O(1) with edge indices, O(log m)
-    /// without (a binary search over the positions; the case for `directed` views of undirected
+    /// without (a binary search over the positions; the case for `directedView` views of undirected
     /// graphs).
     ///
     /// - Precondition: `position` is a position in the graph's `edges`.
     @inlinable
     public func flow(ofEdgeAt position: G.Edges.Index) -> Capacity {
         _edgeFlow(_graph, _positions, _flows, position)
+    }
+
+    /// `flow(ofEdgeAt: position)`, throwing instead of trapping when `position` is not an edge
+    /// position of the graph. O(1) with edge indices, O(log m) without.
+    ///
+    /// - Throws: `EdgeNotFound` when `position` is not a position in the graph's `edges`.
+    @inlinable
+    public func flow(checkedEdgeAt position: G.Edges.Index) throws(EdgeNotFound) -> Capacity {
+        guard let e = _edgeNumberIfPresent(_graph, _positions, _flows.count, position) else { throw EdgeNotFound() }
+        return _flows[e]
     }
 
     /// Every edge's flow, by edge position in `edges` order (LEMON `flowMap`, JGraphT
@@ -50,7 +60,7 @@ public struct Flow<G: DirectedGraph, Capacity: Comparable & AdditiveArithmetic> 
 }
 
 extension Flow {
-    /// The signed flow on the undirected edge at `position` of the graph `directed` was made
+    /// The signed flow on the undirected edge at `position` of the graph `directedView` was made
     /// from: positive along the edge's stored orientation (from its `u` to its `v`), negative
     /// against it (igraph's `Flow.flow` on an undirected graph, which is signed the same way).
     /// The flow on the arc `.init(position: position, reversed: false)` less the flow on the
@@ -60,6 +70,16 @@ extension Flow {
     @inlinable
     public func flow<Base: Graph>(ofEdgeAt position: Base.Edges.Index) -> Capacity where G == DirectedView<Base>, Capacity: SignedNumeric {
         flow(ofEdgeAt: .init(position: position, reversed: false)) - flow(ofEdgeAt: .init(position: position, reversed: true))
+    }
+
+    /// `flow(ofEdgeAt: position)` on the undirected graph, throwing instead of trapping when
+    /// `position` is not an edge position of that graph. O(log m).
+    ///
+    /// - Throws: `EdgeNotFound` when `position` is not a position in the undirected graph's
+    ///   `edges`.
+    @inlinable
+    public func flow<Base: Graph>(checkedEdgeAt position: Base.Edges.Index) throws(EdgeNotFound) -> Capacity where G == DirectedView<Base>, Capacity: SignedNumeric {
+        try flow(checkedEdgeAt: .init(position: position, reversed: false)) - flow(ofEdgeAt: .init(position: position, reversed: true))
     }
 }
 
@@ -79,6 +99,25 @@ func _edgeFlow<G: DirectedGraph, Value>(_ graph: G, _ positions: [G.Edges.Index]
     }
     precondition(low < positions.count && positions[low] == position, "\(position) is not an edge position of the graph")
     return flows[low]
+}
+
+/// The edge number of `position`, as `_edgeFlow` finds it, or nil when `position` is not an edge
+/// position of the graph. With edge indices a position outside `edges.startIndex ..< endIndex` is
+/// rejected before `edgeIndex(of:)`, which may trap on one.
+@inlinable
+func _edgeNumberIfPresent<G: DirectedGraph>(_ graph: G, _ positions: [G.Edges.Index], _ count: Int, _ position: G.Edges.Index) -> Int? {
+    if graph.edgeIndexBound != nil {
+        let edges = graph.edges
+        guard edges.startIndex <= position && position < edges.endIndex else { return nil }
+        let e = graph.edgeIndex(of: position)
+        return e >= 0 && e < count ? e : nil
+    }
+    var low = 0, high = positions.count
+    while low < high {
+        let mid = (low + high) >> 1
+        if positions[mid] < position { low = mid + 1 } else { high = mid }
+    }
+    return low < positions.count && positions[low] == position ? low : nil
 }
 
 /// Every edge's flow in a `Flow` or `MinimumCostFlow`, as a collection indexed by the graph's

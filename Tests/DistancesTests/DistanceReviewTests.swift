@@ -50,7 +50,7 @@ struct DistanceReviewTests {
         } else {
             #expect(wa.diameter == nil)
         }
-        let undirected = matrix.undirected
+        let undirected = matrix.undirectedView
         if let path = undirected.diameterPath() {
             #expect(Path(vertices: path.vertices, edges: path.edges, in: undirected) != nil, "seed \(seed): \(path)")
         }

@@ -48,13 +48,13 @@ struct KuratowskiSubgraph<G: Graph>: CustomStringConvertible
 | Witness edges | Ascending positions, no loop, one copy of a parallel pair | PL-139, PL-140 |
 | Branch vertices | K₅ in vertices order; K₃,₃ the side holding the first, then the other, each in vertices order | PL-133 – PL-151 |
 | Paths | One per pair, i < j lexicographic (K₃,₃ across the sides), from `branchVertices[i]` | PL-133 – PL-151 |
-| Directed graphs | Through `graph.undirected` | PL-055 – PL-061, PL-168 |
+| Directed graphs | Through `graph.undirectedView` | PL-055 – PL-061, PL-168 |
 | Non-vertices | The vertex-keyed accessors trap; the `checked:` spellings throw `VertexNotFound` | PL-117, PL-118 |
 
 ## How values are pinned
 
 Graphs are `Pseudograph<Int>` (Multigraphs) with every vertex of the row listed, so vertex order
-and edge positions are the catalog's. `D:` rows are `AdjacencyList<Int>(...).undirected`. Large
+and edge positions are the catalog's. `D:` rows are `AdjacencyList<Int>(...).undirectedView`. Large
 rows carry their edges as one flat array of ends.
 
 Every planar row checks the embedding against the definitions, written out in the test:
@@ -97,7 +97,7 @@ It first checks that `ref.py` reproduces `cases.md` byte for byte. Then it re-ev
 with `ref.py`'s functions (the enumeration oracle, the embedding NetworkX certifies, Whitney's
 theorem, the enumeration of Kuratowski subgraphs) and asserts that each value it writes matches
 the catalog cell. The precondition file also takes the hand-written exit tests in
-`extra_traps.swift`. The phase-2 rows (PL-178 – PL-188, `dualGraph()`) are written to
+`extra_traps.swift`, and the in-process tests of the `checked:` spellings there. The phase-2 rows (PL-178 – PL-188, `dualGraph()`) are written to
 `DualGraphTests.swift` only with `--phase2`. They check the vertex, edge and loop counts, the
 degrees, and that dual edge k joins the faces on the two sides of position k. The catalog's
 isomorphism to a named graph is not checked.
@@ -110,7 +110,7 @@ this process without the call, so the trap comes from the call and not from the 
 - **Conformance.** Graphs with the same rows give the same embedding and witness, position for
   position: `Pseudograph`, `Multigraph` (loop-free), `ReferencePseudograph`, and a file-private
   conformer with no vertex or edge indices. `UndirectedAdjacencyList` (parallel edges collapsed),
-  `AdjacencyList.undirected` and `AdjacencyMatrix.undirected` (whose positions are cells) give the
+  `AdjacencyList.undirectedView` and `AdjacencyMatrix.undirectedView` (whose positions are cells) give the
   same answers, and each embedding and witness meets the definitions. A copy with String vertices
   gives the same embedding through the labels. A copy with its vertices listed and its edges
   inserted in another order gives the same answers and face count. An embedding and a witness

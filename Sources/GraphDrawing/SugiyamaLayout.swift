@@ -123,6 +123,15 @@ public struct LayeredDrawing<G: DirectedGraph> {
         return _layers[i]
     }
 
+    /// The layer of `vertex`, throwing instead of trapping when it is not a vertex of the graph.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the graph.
+    @inlinable
+    public func layer(checked vertex: G.Vertex) throws(VertexNotFound) -> Int {
+        guard let i = _drawing._offset(of: vertex) else { throw VertexNotFound() }
+        return _layers[i]
+    }
+
     /// The number of layers: one more than the greatest layer, 0 for an empty graph.
     @inlinable
     public var layerCount: Int { _layerCount }
@@ -141,6 +150,21 @@ public struct LayeredDrawing<G: DirectedGraph> {
             if _positions[mid] < position { lo = mid + 1 } else { hi = mid }
         }
         precondition(lo < _positions.count && _positions[lo] == position, "The position is not an edge of the layered drawing's graph")
+        return _bends[_bendStart[lo] ..< _bendStart[lo + 1]]
+    }
+
+    /// The bend points of the edge at `position`, throwing instead of trapping when `position`
+    /// is not a position in the graph's `edges`. O(log m), as `bends(ofEdgeAt:)`.
+    ///
+    /// - Throws: `EdgeNotFound` when `position` is not a position in the graph's `edges`.
+    @inlinable
+    public func bends(checkedEdgeAt position: G.Edges.Index) throws(EdgeNotFound) -> ArraySlice<SIMD2<Double>> {
+        var lo = 0, hi = _positions.count
+        while lo < hi {
+            let mid = (lo + hi) / 2
+            if _positions[mid] < position { lo = mid + 1 } else { hi = mid }
+        }
+        guard lo < _positions.count && _positions[lo] == position else { throw EdgeNotFound() }
         return _bends[_bendStart[lo] ..< _bendStart[lo + 1]]
     }
 

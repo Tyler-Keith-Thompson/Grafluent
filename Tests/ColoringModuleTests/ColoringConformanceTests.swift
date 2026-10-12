@@ -1,10 +1,10 @@
 // Conventions the catalog rows do not isolate: the default strategy, the strategy enum, equality on
 // colour vectors (not graphs, not classes), generic code over `some Graph`, `CompressedSparseRow`
-// through `AdjacencyList(csr).undirected`, an undirected graph read as directed and back (every
+// through `AdjacencyList(csr).undirectedView`, an undirected graph read as directed and back (every
 // edge a parallel pair), string and hash-colliding vertices, the check closures called once per
 // vertex or edge even when the answer is false, any `Sequence` as an order (single-pass, lazy,
 // shuffled), `Sendable`, the result's own copy of the graph, the descriptions, edge-colouring
-// equality, isolated looped vertices, a directed graph coloured through `.undirected`, equality
+// equality, isolated looped vertices, a directed graph coloured through `.undirectedView`, equality
 // between colourings with the same class sizes, DSatur past 64 colours and with a neighbour colour
 // above a vertex's degree met twice, and χ below DSatur's count on a graph whose greedy clique is a
 // triangle. Expected values are worked out in each test's comments or are catalog rows. See
@@ -82,10 +82,10 @@ struct ColoringConformanceTests {
         #expect(concrete[10] == [2, 1, 0, 1, 0, 0, 2, 3, 1, 0, 1, 2, 3, 2, 3])
     }
 
-    @Test("CompressedSparseRow through AdjacencyList(csr).undirected: K3,3 with its arcs row-major")
+    @Test("CompressedSparseRow through AdjacencyList(csr).undirectedView: K3,3 with its arcs row-major")
     func compressedSparseRow() throws {
         let csr = CompressedSparseRow(vertexCount: 6, edges: [(0, 3), (0, 4), (0, 5), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5)].map { DirectedEdge(from: $0.0, to: $0.1) })
-        let graph = AdjacencyList(csr).undirected
+        let graph = AdjacencyList(csr).undirectedView
         #expect(graph.edges.map { [$0.u, $0.v] } == [[0, 3], [0, 4], [0, 5], [1, 3], [1, 4], [1, 5], [2, 3], [2, 4], [2, 5]])
         // The sides, χ = 2; the edge colourings of Kb(3,3) with the same positions (CO-208, CO-221).
         let minimum = graph.minimumColoring()
@@ -98,11 +98,11 @@ struct ColoringConformanceTests {
         #expect(graph.edges.indices.map { koenig.color(ofEdgeAt: $0) } == [2, 0, 1, 1, 2, 0, 0, 1, 2])
     }
 
-    @Test("graph.directed.undirected: every edge a parallel pair; vertex colourings as on the graph, König with 2Δ colours")
+    @Test("graph.directedView.undirectedView: every edge a parallel pair; vertex colourings as on the graph, König with 2Δ colours")
     func directedThenUndirected() throws {
         // C6 read as directed and back: each edge twice, so degree 4 counting parallel edges, 2 simple.
         let cycle = UndirectedAdjacencyList(vertices: 0 ..< 6, edges: (0 ..< 6).map { UndirectedEdge($0, ($0 + 1) % 6) })
-        let doubled = cycle.directed.undirected
+        let doubled = cycle.directedView.undirectedView
         #expect(doubled.edgeCount == 12)
         // Parallel edges count once, so the strategies that read degrees and adjacency only, the
         // chromatic number and the minimum colouring are the cycle's.
@@ -270,7 +270,7 @@ struct ColoringConformanceTests {
     @Test("A directed graph is coloured through .undirected: the DAG 0→1, 0→2, 1→2, 2→3 has χ = 3")
     func directedThroughUndirected() {
         let dag = AdjacencyList(vertices: 0 ..< 4, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 3)])
-        let graph = dag.undirected
+        let graph = dag.undirectedView
         #expect(graph.chromaticNumber() == 3)
         // Lexicographically first: 0 → 0, 1 → 1, 2 → 2, 3 (adjacent only to 2) → 0.
         let first = graph.lexicographicallyFirstMinimumColoring()

@@ -1,3 +1,4 @@
+import GraphProtocols
 import Trees
 
 /// The heavy–light decomposition of a rooted tree or arborescence: each vertex's heavy child is
@@ -193,6 +194,67 @@ public struct HeavyLightDecomposition<Vertex: Hashable> {
             if tail > 0 { (buffer.baseAddress! + front).moveInitialize(from: buffer.baseAddress! + back, count: tail) }
             initialized = front + tail
         }
+    }
+}
+
+// MARK: - checked: lookups
+
+// README Principle 6: `VertexNotFound` for a vertex that is not in the tree, where the trapping
+// spellings are the fast path. Each makes the one lookup per vertex its trapping spelling makes;
+// `try?` gives an Optional. `heavyChild(checked:)` still returns nil at a leaf.
+
+extension HeavyLightDecomposition {
+    /// `heavyChild(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex: nil
+    /// still means a leaf. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the tree.
+    @inlinable
+    public func heavyChild(checked vertex: Vertex) throws(VertexNotFound) -> Vertex? {
+        heavyChild(ofIndex: try _layout.checkedNumber(of: vertex)).map { _layout.vertices[$0] }
+    }
+
+    /// `head(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the tree.
+    @inlinable
+    public func head(checked vertex: Vertex) throws(VertexNotFound) -> Vertex {
+        _layout.vertices[_head[try _layout.checkedNumber(of: vertex)]]
+    }
+
+    /// `position(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the tree.
+    @inlinable
+    public func position(checked vertex: Vertex) throws(VertexNotFound) -> Int {
+        _position[try _layout.checkedNumber(of: vertex)]
+    }
+
+    /// `subtree(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the tree.
+    @inlinable
+    public func subtree(checked vertex: Vertex) throws(VertexNotFound) -> Range<Int> {
+        subtree(ofIndex: try _layout.checkedNumber(of: vertex))
+    }
+
+    /// `lowestCommonAncestor(of: a, b)`, throwing instead of trapping when either is not a
+    /// vertex. O(log n).
+    ///
+    /// - Throws: `VertexNotFound` when `a` or `b` is not a vertex of the tree.
+    @inlinable
+    public func lowestCommonAncestor(checked a: Vertex, _ b: Vertex) throws(VertexNotFound) -> Vertex {
+        let x = try _layout.checkedNumber(of: a), y = try _layout.checkedNumber(of: b)
+        return _layout.vertices[lowestCommonAncestor(ofIndex: x, y)]
+    }
+
+    /// `segments(from: source, to: target, includingCommonAncestor:)`, throwing instead of
+    /// trapping when either is not a vertex. O(log n), one allocation.
+    ///
+    /// - Throws: `VertexNotFound` when `source` or `target` is not a vertex of the tree.
+    @inlinable
+    public func segments(checkedFrom source: Vertex, to target: Vertex, includingCommonAncestor: Bool = true) throws(VertexNotFound) -> [Segment] {
+        let x = try _layout.checkedNumber(of: source), y = try _layout.checkedNumber(of: target)
+        return segments(fromIndex: x, toIndex: y, includingCommonAncestor: includingCommonAncestor)
     }
 }
 

@@ -2,15 +2,15 @@
 // run again on `ReferencePseudograph`; every graph row runs on a file-private conformer with no
 // vertex or edge indices (rows from `incidentEdges(of:)`, `mate(ofIndex:)` by position in
 // `vertices`); all with the catalog's values, since their rows are in position order too. Then on
-// `AdjacencyList.undirected` with each edge an arc as written, and on `AdjacencyMatrix.undirected`
-// with the arcs at their row-major cells (rows on 0..<n with no arc twice). Through `.undirected` a
-// row is successors, then predecessors, so the exact outputs of the row-order-dependent algorithms
-// differ from the catalog's: swiftgen.py computed each with ref.py's model on that representation's
-// rows, and the weighted rows with NetworkX 3.7 given that adjacency order. Matrix positions are
-// cells, compared as [source, target]. The `BipartiteGraph` rows run through `bipartition()`
-// (canonical sides) on the `BipartiteGraph` and on an `UndirectedAdjacencyList` with the same
-// vertices and edges. Weighted rows with parallel edges stay off the two views (the tie between
-// copies would follow their row order). See README.md.
+// `AdjacencyList.undirectedView` with each edge an arc as written, and on
+// `AdjacencyMatrix.undirectedView` with the arcs at their row-major cells (rows on 0..<n with no arc
+// twice). Through `.undirectedView` a row is successors, then predecessors, so the exact outputs of
+// the row-order-dependent algorithms differ from the catalog's: swiftgen.py computed each with
+// ref.py's model on that representation's rows, and the weighted rows with NetworkX 3.7 given that
+// adjacency order. Matrix positions are cells, compared as [source, target]. The `BipartiteGraph`
+// rows run through `bipartition()` (canonical sides) on the `BipartiteGraph` and on an
+// `UndirectedAdjacencyList` with the same vertices and edges. Weighted rows with parallel edges stay
+// off the two views (the tie between copies would follow their row order). See README.md.
 
 import AdjacencyListModule
 import AdjacencyMatrixModule
@@ -34,7 +34,7 @@ private struct UnindexedGraph<Vertex: Hashable>: Graph {
 
 @Suite("Catalog graph rows on every representation")
 struct MatchingRepresentationTests {
-    @Test("MA-001 empty graph, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-001 empty graph, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma001() {
         // V []; E []; maximalMatching()
         do { // ReferencePseudograph
@@ -54,6 +54,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -87,6 +89,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -102,9 +106,9 @@ struct MatchingRepresentationTests {
                 #expect(covered.contains(edge.u) || covered.contains(edge.v), "\(edge) could be added")
             }
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = []
-            let graph = AdjacencyList<Int>(vertices: [] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 0)
             let matching = graph.maximalMatching()
             #expect(matching.edges == [])
@@ -120,6 +124,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -135,9 +141,9 @@ struct MatchingRepresentationTests {
                 #expect(covered.contains(edge.u) || covered.contains(edge.v), "\(edge) could be added")
             }
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = []
-            let graph = AdjacencyMatrix(vertexCount: 0, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 0, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 0)
             let matching = graph.maximalMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [])
@@ -153,6 +159,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -170,7 +178,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-002 empty graph, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-002 empty graph, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma002() {
         // V []; E []; maximumMatching()
         do { // ReferencePseudograph
@@ -190,6 +198,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -225,6 +235,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -242,9 +254,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 0)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = []
-            let graph = AdjacencyList<Int>(vertices: [] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 0)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [])
@@ -260,6 +272,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -277,9 +291,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 0)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = []
-            let graph = AdjacencyMatrix(vertexCount: 0, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 0, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 0)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [])
@@ -295,6 +309,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -314,7 +330,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-003 one vertex, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-003 one vertex, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma003() {
         // V [0]; E []; maximalMatching()
         do { // ReferencePseudograph
@@ -334,6 +350,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -367,6 +385,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -382,9 +402,9 @@ struct MatchingRepresentationTests {
                 #expect(covered.contains(edge.u) || covered.contains(edge.v), "\(edge) could be added")
             }
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = []
-            let graph = AdjacencyList<Int>(vertices: [0] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 0)
             let matching = graph.maximalMatching()
             #expect(matching.edges == [])
@@ -400,6 +420,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -415,9 +437,9 @@ struct MatchingRepresentationTests {
                 #expect(covered.contains(edge.u) || covered.contains(edge.v), "\(edge) could be added")
             }
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = []
-            let graph = AdjacencyMatrix(vertexCount: 1, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 1, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 0)
             let matching = graph.maximalMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [])
@@ -433,6 +455,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -450,7 +474,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-004 one vertex, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-004 one vertex, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma004() {
         // V [0]; E []; maximumMatching()
         do { // ReferencePseudograph
@@ -470,6 +494,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -505,6 +531,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -522,9 +550,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 0)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = []
-            let graph = AdjacencyList<Int>(vertices: [0] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 0)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [])
@@ -540,6 +568,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -557,9 +587,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 0)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = []
-            let graph = AdjacencyMatrix(vertexCount: 1, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 1, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 0)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [])
@@ -575,6 +605,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -594,7 +626,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-005 one self-loop, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-005 one self-loop, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma005() {
         // V [0]; E [0-0]; maximalMatching()
         do { // ReferencePseudograph
@@ -614,6 +646,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -647,6 +681,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -662,9 +698,9 @@ struct MatchingRepresentationTests {
                 #expect(covered.contains(edge.u) || covered.contains(edge.v), "\(edge) could be added")
             }
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 0)]
-            let graph = AdjacencyList<Int>(vertices: [0] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
             let matching = graph.maximalMatching()
             #expect(matching.edges == [])
@@ -680,6 +716,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -695,9 +733,9 @@ struct MatchingRepresentationTests {
                 #expect(covered.contains(edge.u) || covered.contains(edge.v), "\(edge) could be added")
             }
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 1, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 1, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
             let matching = graph.maximalMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [])
@@ -713,6 +751,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -730,7 +770,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-006 one self-loop, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-006 one self-loop, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma006() {
         // V [0]; E [0-0]; maximumMatching()
         do { // ReferencePseudograph
@@ -750,6 +790,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -785,6 +827,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -802,9 +846,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 0)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 0)]
-            let graph = AdjacencyList<Int>(vertices: [0] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [])
@@ -820,6 +864,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -837,9 +883,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 0)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 1, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 1, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [])
@@ -855,6 +901,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -874,7 +922,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-007 one edge, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-007 one edge, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma007() {
         // V [0, 1]; E [0-1]; maximalMatching()
         do { // ReferencePseudograph
@@ -894,6 +942,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -927,6 +977,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -942,9 +994,9 @@ struct MatchingRepresentationTests {
                 #expect(covered.contains(edge.u) || covered.contains(edge.v), "\(edge) could be added")
             }
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
             let matching = graph.maximalMatching()
             #expect(matching.edges == [0])
@@ -960,6 +1012,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -975,9 +1029,9 @@ struct MatchingRepresentationTests {
                 #expect(covered.contains(edge.u) || covered.contains(edge.v), "\(edge) could be added")
             }
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
             let matching = graph.maximalMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 1]])
@@ -993,6 +1047,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -1010,7 +1066,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-008 one edge, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-008 one edge, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma008() {
         // V [0, 1]; E [0-1]; maximumMatching()
         do { // ReferencePseudograph
@@ -1030,6 +1086,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -1065,6 +1123,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -1082,9 +1142,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 1)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [0])
@@ -1100,6 +1160,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -1117,9 +1179,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 1)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 1]])
@@ -1135,6 +1197,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -1154,7 +1218,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-009 parallel pair, on no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-009 parallel pair, on no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma009() {
         // multigraph V [0, 1]; E [0-1, 1-0]; maximalMatching()
         do { // no indices
@@ -1175,6 +1239,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -1190,9 +1256,9 @@ struct MatchingRepresentationTests {
                 #expect(covered.contains(edge.u) || covered.contains(edge.v), "\(edge) could be added")
             }
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 0)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 2)
             let matching = graph.maximalMatching()
             #expect(matching.edges == [0])
@@ -1208,6 +1274,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -1223,9 +1291,9 @@ struct MatchingRepresentationTests {
                 #expect(covered.contains(edge.u) || covered.contains(edge.v), "\(edge) could be added")
             }
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 2)
             let matching = graph.maximalMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 1]])
@@ -1241,6 +1309,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -1258,7 +1328,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-010 parallel pair, on no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-010 parallel pair, on no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma010() {
         // multigraph V [0, 1]; E [0-1, 1-0]; maximumMatching()
         do { // no indices
@@ -1279,6 +1349,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -1296,9 +1368,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 1)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 0)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 2)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [0])
@@ -1314,6 +1386,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -1331,9 +1405,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 1)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 2)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 1]])
@@ -1349,6 +1423,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -1368,7 +1444,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-011 loops at both ends of an edge, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-011 loops at both ends of an edge, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma011() {
         // V [0, 1]; E [0-0, 0-1, 1-1]; maximalMatching()
         do { // ReferencePseudograph
@@ -1388,6 +1464,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -1421,6 +1499,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -1436,9 +1516,9 @@ struct MatchingRepresentationTests {
                 #expect(covered.contains(edge.u) || covered.contains(edge.v), "\(edge) could be added")
             }
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 0), (0, 1), (1, 1)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let matching = graph.maximalMatching()
             #expect(matching.edges == [1])
@@ -1454,6 +1534,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -1469,9 +1551,9 @@ struct MatchingRepresentationTests {
                 #expect(covered.contains(edge.u) || covered.contains(edge.v), "\(edge) could be added")
             }
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 0), (0, 1), (1, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let matching = graph.maximalMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 1]])
@@ -1487,6 +1569,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -1504,7 +1588,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-012 loops at both ends of an edge, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-012 loops at both ends of an edge, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma012() {
         // V [0, 1]; E [0-0, 0-1, 1-1]; maximumMatching()
         do { // ReferencePseudograph
@@ -1524,6 +1608,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -1559,6 +1645,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -1576,9 +1664,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 1)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 0), (0, 1), (1, 1)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [1])
@@ -1594,6 +1682,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -1611,9 +1701,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 1)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 0), (0, 1), (1, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 1]])
@@ -1629,6 +1719,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -1648,7 +1740,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-013 two isolated vertices, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-013 two isolated vertices, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma013() {
         // V [0, 1]; E []; maximalMatching()
         do { // ReferencePseudograph
@@ -1668,6 +1760,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -1701,6 +1795,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -1716,9 +1812,9 @@ struct MatchingRepresentationTests {
                 #expect(covered.contains(edge.u) || covered.contains(edge.v), "\(edge) could be added")
             }
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = []
-            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 0)
             let matching = graph.maximalMatching()
             #expect(matching.edges == [])
@@ -1734,6 +1830,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -1749,9 +1847,9 @@ struct MatchingRepresentationTests {
                 #expect(covered.contains(edge.u) || covered.contains(edge.v), "\(edge) could be added")
             }
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = []
-            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 0)
             let matching = graph.maximalMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [])
@@ -1767,6 +1865,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -1784,7 +1884,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-014 two isolated vertices, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-014 two isolated vertices, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma014() {
         // V [0, 1]; E []; maximumMatching()
         do { // ReferencePseudograph
@@ -1804,6 +1904,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -1839,6 +1941,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -1856,9 +1960,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 0)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = []
-            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 0)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [])
@@ -1874,6 +1978,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -1891,9 +1997,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 0)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = []
-            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 0)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [])
@@ -1909,6 +2015,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -1928,7 +2036,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-015 empty graph, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-015 empty graph, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma015() {
         // V []; E []; maximumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -1950,6 +2058,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -1984,6 +2094,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -1998,9 +2110,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = []
-            let graph = AdjacencyList<Int>(vertices: [] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 0)
             let weights: [Int?] = []
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -2018,6 +2130,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -2032,9 +2146,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = []
-            let graph = AdjacencyMatrix(vertexCount: 0, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 0, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 0)
             let weightTable: [[Int]: Int] = [:]
             func weightOf(_ e: AdjacencyMatrix.Edges.Index) -> Int { weightTable[[e.source, e.target]]! }
@@ -2052,6 +2166,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -2068,7 +2184,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-016 one self-loop, weight 5 (never weighed), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-016 one self-loop, weight 5 (never weighed), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma016() {
         // V [0]; E [0-0:5]; maximumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -2095,6 +2211,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -2134,6 +2252,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -2148,9 +2268,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 0)]
-            let graph = AdjacencyList<Int>(vertices: [0] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
             let weights: [Int?] = [nil]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -2173,6 +2293,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -2187,9 +2309,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 1, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 1, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
             let weightTable: [[Int]: Int] = [:]
             func weightOf(_ e: AdjacencyMatrix.Edges.Index) -> Int { weightTable[[e.source, e.target]]! }
@@ -2212,6 +2334,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -2228,7 +2352,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-017 one edge, negative weight, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-017 one edge, negative weight, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma017() {
         // V [0, 1]; E [0-1:-3]; maximumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -2250,6 +2374,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -2284,6 +2410,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -2298,9 +2426,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
             let weights: [Int?] = [-3]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -2318,6 +2446,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -2332,9 +2462,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
             let weightTable: [[Int]: Int] = [[0, 1]: -3]
             func weightOf(_ e: AdjacencyMatrix.Edges.Index) -> Int { weightTable[[e.source, e.target]]! }
@@ -2352,6 +2482,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -2368,7 +2500,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-018 one edge, negative weight, maximumCardinality, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-018 one edge, negative weight, maximumCardinality, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma018() {
         // V [0, 1]; E [0-1:-3]; maximumWeightMatching(weight:, maximumCardinality: true)
         do { // ReferencePseudograph
@@ -2390,6 +2522,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -2424,6 +2558,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -2438,9 +2574,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
             let weights: [Int?] = [-3]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -2458,6 +2594,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -2472,9 +2610,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
             let weightTable: [[Int]: Int] = [[0, 1]: -3]
             func weightOf(_ e: AdjacencyMatrix.Edges.Index) -> Int { weightTable[[e.source, e.target]]! }
@@ -2492,6 +2630,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -2508,7 +2648,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-019 one edge, zero weight (a zero-weight edge is taken: its slack is 0 from the start (NetworkX agrees)), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-019 one edge, zero weight (a zero-weight edge is taken: its slack is 0 from the start (NetworkX agrees)), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma019() {
         // V [0, 1]; E [0-1:0]; maximumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -2530,6 +2670,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -2564,6 +2706,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -2578,9 +2722,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
             let weights: [Int?] = [0]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -2598,6 +2742,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -2612,9 +2758,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
             let weightTable: [[Int]: Int] = [[0, 1]: 0]
             func weightOf(_ e: AdjacencyMatrix.Edges.Index) -> Int { weightTable[[e.source, e.target]]! }
@@ -2632,6 +2778,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -2671,6 +2819,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -2710,6 +2860,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -2726,7 +2878,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-022 empty graph, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-022 empty graph, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma022() {
         // V []; E []; minimumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -2748,6 +2900,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -2782,6 +2936,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -2796,9 +2952,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = []
-            let graph = AdjacencyList<Int>(vertices: [] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 0)
             let weights: [Int?] = []
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -2816,6 +2972,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -2830,9 +2988,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = []
-            let graph = AdjacencyMatrix(vertexCount: 0, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 0, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 0)
             let weightTable: [[Int]: Int] = [:]
             func weightOf(_ e: AdjacencyMatrix.Edges.Index) -> Int { weightTable[[e.source, e.target]]! }
@@ -2850,6 +3008,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -2866,7 +3026,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-023 one edge, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-023 one edge, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma023() {
         // V [0, 1]; E [0-1:9]; minimumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -2888,6 +3048,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -2922,6 +3084,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -2936,9 +3100,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
             let weights: [Int?] = [9]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -2956,6 +3120,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -2970,9 +3136,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
             let weightTable: [[Int]: Int] = [[0, 1]: 9]
             func weightOf(_ e: AdjacencyMatrix.Edges.Index) -> Int { weightTable[[e.source, e.target]]! }
@@ -2990,6 +3156,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -3006,7 +3174,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-024 NetworkX docstring graph, on ReferencePseudograph, no indices, AdjacencyList.undirected")
+    @Test("MA-024 NetworkX docstring graph, on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func ma024() {
         // V [1, 2, 3, 4, 5]; E [1-2, 1-3, 2-3, 2-4, 3-5, 4-5]; maximalMatching()
         do { // ReferencePseudograph
@@ -3026,6 +3194,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -3059,6 +3229,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -3074,9 +3246,9 @@ struct MatchingRepresentationTests {
                 #expect(covered.contains(edge.u) || covered.contains(edge.v), "\(edge) could be added")
             }
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(1, 2), (1, 3), (2, 3), (2, 4), (3, 5), (4, 5)]
-            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
             let matching = graph.maximalMatching()
             #expect(matching.edges == [0, 4])
@@ -3092,6 +3264,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -3109,7 +3283,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-025 path P4: greedy takes the middle edge first (maximal, not maximum: size 1 where 2 exists), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-025 path P4: greedy takes the middle edge first (maximal, not maximum: size 1 where 2 exists), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma025() {
         // V [0, 1, 2, 3]; E [1-2, 0-1, 2-3]; maximalMatching()
         do { // ReferencePseudograph
@@ -3129,6 +3303,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -3162,6 +3338,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -3177,9 +3355,9 @@ struct MatchingRepresentationTests {
                 #expect(covered.contains(edge.u) || covered.contains(edge.v), "\(edge) could be added")
             }
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(1, 2), (0, 1), (2, 3)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let matching = graph.maximalMatching()
             #expect(matching.edges == [0])
@@ -3195,6 +3373,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -3210,9 +3390,9 @@ struct MatchingRepresentationTests {
                 #expect(covered.contains(edge.u) || covered.contains(edge.v), "\(edge) could be added")
             }
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let matching = graph.maximalMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 1], [2, 3]])
@@ -3228,6 +3408,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -3245,7 +3427,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-026 path P4 in path order, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-026 path P4 in path order, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma026() {
         // P(4); maximalMatching()
         do { // ReferencePseudograph
@@ -3265,6 +3447,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -3298,6 +3482,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -3313,9 +3499,9 @@ struct MatchingRepresentationTests {
                 #expect(covered.contains(edge.u) || covered.contains(edge.v), "\(edge) could be added")
             }
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let matching = graph.maximalMatching()
             #expect(matching.edges == [0, 2])
@@ -3331,6 +3517,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -3346,9 +3534,9 @@ struct MatchingRepresentationTests {
                 #expect(covered.contains(edge.u) || covered.contains(edge.v), "\(edge) could be added")
             }
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let matching = graph.maximalMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 1], [2, 3]])
@@ -3364,6 +3552,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -3381,7 +3571,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-027 star S4, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-027 star S4, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma027() {
         // V [0, 1, 2, 3, 4]; E [0-1, 0-2, 0-3, 0-4]; maximalMatching()
         do { // ReferencePseudograph
@@ -3401,6 +3591,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -3434,6 +3626,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -3449,9 +3643,9 @@ struct MatchingRepresentationTests {
                 #expect(covered.contains(edge.u) || covered.contains(edge.v), "\(edge) could be added")
             }
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 4)
             let matching = graph.maximalMatching()
             #expect(matching.edges == [0])
@@ -3467,6 +3661,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -3482,9 +3678,9 @@ struct MatchingRepresentationTests {
                 #expect(covered.contains(edge.u) || covered.contains(edge.v), "\(edge) could be added")
             }
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4)]
-            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 4)
             let matching = graph.maximalMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 1]])
@@ -3500,6 +3696,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -3517,7 +3715,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-028 triangle, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-028 triangle, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma028() {
         // K(3); maximalMatching()
         do { // ReferencePseudograph
@@ -3537,6 +3735,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -3570,6 +3770,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -3585,9 +3787,9 @@ struct MatchingRepresentationTests {
                 #expect(covered.contains(edge.u) || covered.contains(edge.v), "\(edge) could be added")
             }
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let matching = graph.maximalMatching()
             #expect(matching.edges == [0])
@@ -3603,6 +3805,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -3618,9 +3822,9 @@ struct MatchingRepresentationTests {
                 #expect(covered.contains(edge.u) || covered.contains(edge.v), "\(edge) could be added")
             }
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
-            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let matching = graph.maximalMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 1]])
@@ -3636,6 +3840,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -3653,7 +3859,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-029 K5, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-029 K5, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma029() {
         // K(5); maximalMatching()
         do { // ReferencePseudograph
@@ -3673,6 +3879,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -3706,6 +3914,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -3721,9 +3931,9 @@ struct MatchingRepresentationTests {
                 #expect(covered.contains(edge.u) || covered.contains(edge.v), "\(edge) could be added")
             }
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 10)
             let matching = graph.maximalMatching()
             #expect(matching.edges == [0, 7])
@@ -3739,6 +3949,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -3754,9 +3966,9 @@ struct MatchingRepresentationTests {
                 #expect(covered.contains(edge.u) || covered.contains(edge.v), "\(edge) could be added")
             }
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
-            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 10)
             let matching = graph.maximalMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 1], [2, 3]])
@@ -3772,6 +3984,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -3789,7 +4003,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-030 loop first, then edges, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-030 loop first, then edges, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma030() {
         // V [0, 1, 2]; E [0-0, 0-1, 1-2]; maximalMatching()
         do { // ReferencePseudograph
@@ -3809,6 +4023,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -3842,6 +4058,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -3857,9 +4075,9 @@ struct MatchingRepresentationTests {
                 #expect(covered.contains(edge.u) || covered.contains(edge.v), "\(edge) could be added")
             }
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 0), (0, 1), (1, 2)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let matching = graph.maximalMatching()
             #expect(matching.edges == [1])
@@ -3875,6 +4093,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -3890,9 +4110,9 @@ struct MatchingRepresentationTests {
                 #expect(covered.contains(edge.u) || covered.contains(edge.v), "\(edge) could be added")
             }
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 0), (0, 1), (1, 2)]
-            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let matching = graph.maximalMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 1]])
@@ -3908,6 +4128,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -3946,6 +4168,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -3963,7 +4187,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-032 string vertices, edge stored v–u, on ReferencePseudograph, no indices, AdjacencyList.undirected")
+    @Test("MA-032 string vertices, edge stored v–u, on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func ma032() {
         // V [b, a, c]; E [a-b, c-b]; maximalMatching()
         do { // ReferencePseudograph
@@ -3983,6 +4207,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -4016,6 +4242,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -4031,9 +4259,9 @@ struct MatchingRepresentationTests {
                 #expect(covered.contains(edge.u) || covered.contains(edge.v), "\(edge) could be added")
             }
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(String, String)] = [("a", "b"), ("c", "b")]
-            let graph = AdjacencyList<String>(vertices: ["b", "a", "c"] as [String], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<String>(vertices: ["b", "a", "c"] as [String], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 2)
             let matching = graph.maximalMatching()
             #expect(matching.edges == [0])
@@ -4049,6 +4277,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -4066,7 +4296,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-033 grid 3×3, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-033 grid 3×3, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma033() {
         // grid(3,3); maximalMatching()
         do { // ReferencePseudograph
@@ -4086,6 +4316,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -4119,6 +4351,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -4134,9 +4368,9 @@ struct MatchingRepresentationTests {
                 #expect(covered.contains(edge.u) || covered.contains(edge.v), "\(edge) could be added")
             }
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 3), (1, 2), (1, 4), (2, 5), (3, 4), (3, 6), (4, 5), (4, 7), (5, 8), (6, 7), (7, 8)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 12)
             let matching = graph.maximalMatching()
             #expect(matching.edges == [0, 4, 5, 10])
@@ -4152,6 +4386,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -4167,9 +4403,9 @@ struct MatchingRepresentationTests {
                 #expect(covered.contains(edge.u) || covered.contains(edge.v), "\(edge) could be added")
             }
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 3), (1, 2), (1, 4), (2, 5), (3, 4), (3, 6), (4, 5), (4, 7), (5, 8), (6, 7), (7, 8)]
-            let graph = AdjacencyMatrix(vertexCount: 9, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 9, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 12)
             let matching = graph.maximalMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 1], [2, 5], [3, 4], [6, 7]])
@@ -4185,6 +4421,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -4202,7 +4440,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-034 random lcg(12,20,1), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-034 random lcg(12,20,1), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma034() {
         // lcg(12,20,1); maximalMatching()
         do { // ReferencePseudograph
@@ -4222,6 +4460,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -4255,6 +4495,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -4270,9 +4512,9 @@ struct MatchingRepresentationTests {
                 #expect(covered.contains(edge.u) || covered.contains(edge.v), "\(edge) could be added")
             }
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(2, 9), (0, 6), (6, 11), (2, 10), (9, 10), (3, 10), (2, 4), (10, 11), (4, 9), (7, 1), (2, 6), (9, 8), (0, 8), (0, 5), (6, 10), (4, 1), (11, 4), (0, 9), (6, 4), (8, 10)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 20)
             let matching = graph.maximalMatching()
             #expect(matching.edges == [0, 1, 5, 9, 16])
@@ -4288,6 +4530,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -4303,9 +4547,9 @@ struct MatchingRepresentationTests {
                 #expect(covered.contains(edge.u) || covered.contains(edge.v), "\(edge) could be added")
             }
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 5), (0, 6), (0, 8), (0, 9), (2, 4), (2, 6), (2, 9), (2, 10), (3, 10), (4, 1), (4, 9), (6, 4), (6, 10), (6, 11), (7, 1), (8, 10), (9, 8), (9, 10), (10, 11), (11, 4)]
-            let graph = AdjacencyMatrix(vertexCount: 12, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 12, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 20)
             let matching = graph.maximalMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 5], [2, 4], [3, 10], [6, 11], [7, 1], [9, 8]])
@@ -4321,6 +4565,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -4338,7 +4584,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-035 empty set on the empty graph, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-035 empty set on the empty graph, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma035() {
         // V []; E []; isMatching / isMaximalMatching / isPerfectMatching([])
         do { // ReferencePseudograph
@@ -4358,18 +4604,18 @@ struct MatchingRepresentationTests {
             #expect(graph.isMaximalMatching(candidate) == true)
             #expect(graph.isPerfectMatching(candidate) == true)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = []
-            let graph = AdjacencyList<Int>(vertices: [] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 0)
             let candidate: [Int] = []
             #expect(graph.isMatching(candidate) == true)
             #expect(graph.isMaximalMatching(candidate) == true)
             #expect(graph.isPerfectMatching(candidate) == true)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = []
-            let graph = AdjacencyMatrix(vertexCount: 0, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 0, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 0)
             let candidate: [AdjacencyMatrix.Edges.Index] = []
             #expect(graph.isMatching(candidate) == true)
@@ -4378,7 +4624,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-036 empty set on one edge (a matching, not maximal), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-036 empty set on one edge (a matching, not maximal), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma036() {
         // V [0, 1]; E [0-1]; isMatching / isMaximalMatching / isPerfectMatching([])
         do { // ReferencePseudograph
@@ -4398,18 +4644,18 @@ struct MatchingRepresentationTests {
             #expect(graph.isMaximalMatching(candidate) == false)
             #expect(graph.isPerfectMatching(candidate) == false)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
             let candidate: [Int] = []
             #expect(graph.isMatching(candidate) == true)
             #expect(graph.isMaximalMatching(candidate) == false)
             #expect(graph.isPerfectMatching(candidate) == false)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
             let candidate: [AdjacencyMatrix.Edges.Index] = []
             #expect(graph.isMatching(candidate) == true)
@@ -4418,7 +4664,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-037 one edge, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-037 one edge, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma037() {
         // V [0, 1]; E [0-1]; isMatching / isMaximalMatching / isPerfectMatching([0])
         do { // ReferencePseudograph
@@ -4438,18 +4684,18 @@ struct MatchingRepresentationTests {
             #expect(graph.isMaximalMatching(candidate) == true)
             #expect(graph.isPerfectMatching(candidate) == true)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
             let candidate: [Int] = [0]
             #expect(graph.isMatching(candidate) == true)
             #expect(graph.isMaximalMatching(candidate) == true)
             #expect(graph.isPerfectMatching(candidate) == true)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
             let cell = Dictionary(uniqueKeysWithValues: graph.edges.indices.map { ([$0.source, $0.target], $0) })
             let candidate: [AdjacencyMatrix.Edges.Index] = [cell[[0, 1]]!]
@@ -4459,7 +4705,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-038 P4 middle edge, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-038 P4 middle edge, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma038() {
         // P(4); isMatching / isMaximalMatching / isPerfectMatching([1])
         do { // ReferencePseudograph
@@ -4479,18 +4725,18 @@ struct MatchingRepresentationTests {
             #expect(graph.isMaximalMatching(candidate) == true)
             #expect(graph.isPerfectMatching(candidate) == false)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let candidate: [Int] = [1]
             #expect(graph.isMatching(candidate) == true)
             #expect(graph.isMaximalMatching(candidate) == true)
             #expect(graph.isPerfectMatching(candidate) == false)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let cell = Dictionary(uniqueKeysWithValues: graph.edges.indices.map { ([$0.source, $0.target], $0) })
             let candidate: [AdjacencyMatrix.Edges.Index] = [cell[[1, 2]]!]
@@ -4500,7 +4746,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-039 P4 outer edges, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-039 P4 outer edges, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma039() {
         // P(4); isMatching / isMaximalMatching / isPerfectMatching([0, 2])
         do { // ReferencePseudograph
@@ -4520,18 +4766,18 @@ struct MatchingRepresentationTests {
             #expect(graph.isMaximalMatching(candidate) == true)
             #expect(graph.isPerfectMatching(candidate) == true)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let candidate: [Int] = [0, 2]
             #expect(graph.isMatching(candidate) == true)
             #expect(graph.isMaximalMatching(candidate) == true)
             #expect(graph.isPerfectMatching(candidate) == true)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let cell = Dictionary(uniqueKeysWithValues: graph.edges.indices.map { ([$0.source, $0.target], $0) })
             let candidate: [AdjacencyMatrix.Edges.Index] = [cell[[0, 1]]!, cell[[2, 3]]!]
@@ -4541,7 +4787,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-040 P4 adjacent edges, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-040 P4 adjacent edges, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma040() {
         // P(4); isMatching / isMaximalMatching / isPerfectMatching([0, 1])
         do { // ReferencePseudograph
@@ -4561,18 +4807,18 @@ struct MatchingRepresentationTests {
             #expect(graph.isMaximalMatching(candidate) == false)
             #expect(graph.isPerfectMatching(candidate) == false)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let candidate: [Int] = [0, 1]
             #expect(graph.isMatching(candidate) == false)
             #expect(graph.isMaximalMatching(candidate) == false)
             #expect(graph.isPerfectMatching(candidate) == false)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let cell = Dictionary(uniqueKeysWithValues: graph.edges.indices.map { ([$0.source, $0.target], $0) })
             let candidate: [AdjacencyMatrix.Edges.Index] = [cell[[0, 1]]!, cell[[1, 2]]!]
@@ -4582,7 +4828,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-041 P4 all edges, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-041 P4 all edges, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma041() {
         // P(4); isMatching / isMaximalMatching / isPerfectMatching([0, 1, 2])
         do { // ReferencePseudograph
@@ -4602,18 +4848,18 @@ struct MatchingRepresentationTests {
             #expect(graph.isMaximalMatching(candidate) == false)
             #expect(graph.isPerfectMatching(candidate) == false)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let candidate: [Int] = [0, 1, 2]
             #expect(graph.isMatching(candidate) == false)
             #expect(graph.isMaximalMatching(candidate) == false)
             #expect(graph.isPerfectMatching(candidate) == false)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let cell = Dictionary(uniqueKeysWithValues: graph.edges.indices.map { ([$0.source, $0.target], $0) })
             let candidate: [AdjacencyMatrix.Edges.Index] = [cell[[0, 1]]!, cell[[1, 2]]!, cell[[2, 3]]!]
@@ -4623,7 +4869,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-042 self-loop alone (a self-loop is never in a matching (NetworkX agrees)), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-042 self-loop alone (a self-loop is never in a matching (NetworkX agrees)), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma042() {
         // V [0]; E [0-0]; isMatching / isMaximalMatching / isPerfectMatching([0])
         do { // ReferencePseudograph
@@ -4643,18 +4889,18 @@ struct MatchingRepresentationTests {
             #expect(graph.isMaximalMatching(candidate) == false)
             #expect(graph.isPerfectMatching(candidate) == false)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 0)]
-            let graph = AdjacencyList<Int>(vertices: [0] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
             let candidate: [Int] = [0]
             #expect(graph.isMatching(candidate) == false)
             #expect(graph.isMaximalMatching(candidate) == false)
             #expect(graph.isPerfectMatching(candidate) == false)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 1, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 1, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
             let cell = Dictionary(uniqueKeysWithValues: graph.edges.indices.map { ([$0.source, $0.target], $0) })
             let candidate: [AdjacencyMatrix.Edges.Index] = [cell[[0, 0]]!]
@@ -4664,7 +4910,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-043 self-loop with an edge, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-043 self-loop with an edge, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma043() {
         // V [0, 1, 2]; E [0-0, 1-2]; isMatching / isMaximalMatching / isPerfectMatching([0, 1])
         do { // ReferencePseudograph
@@ -4684,18 +4930,18 @@ struct MatchingRepresentationTests {
             #expect(graph.isMaximalMatching(candidate) == false)
             #expect(graph.isPerfectMatching(candidate) == false)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 0), (1, 2)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 2)
             let candidate: [Int] = [0, 1]
             #expect(graph.isMatching(candidate) == false)
             #expect(graph.isMaximalMatching(candidate) == false)
             #expect(graph.isPerfectMatching(candidate) == false)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 0), (1, 2)]
-            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 2)
             let cell = Dictionary(uniqueKeysWithValues: graph.edges.indices.map { ([$0.source, $0.target], $0) })
             let candidate: [AdjacencyMatrix.Edges.Index] = [cell[[0, 0]]!, cell[[1, 2]]!]
@@ -4705,7 +4951,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-044 loop graph, loops ignored for maximality (vertex 0 has only a loop; the matching is still maximal), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-044 loop graph, loops ignored for maximality (vertex 0 has only a loop; the matching is still maximal), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma044() {
         // V [0, 1, 2]; E [0-0, 1-2]; isMatching / isMaximalMatching / isPerfectMatching([1])
         do { // ReferencePseudograph
@@ -4725,18 +4971,18 @@ struct MatchingRepresentationTests {
             #expect(graph.isMaximalMatching(candidate) == true)
             #expect(graph.isPerfectMatching(candidate) == false)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 0), (1, 2)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 2)
             let candidate: [Int] = [1]
             #expect(graph.isMatching(candidate) == true)
             #expect(graph.isMaximalMatching(candidate) == true)
             #expect(graph.isPerfectMatching(candidate) == false)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 0), (1, 2)]
-            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 2)
             let cell = Dictionary(uniqueKeysWithValues: graph.edges.indices.map { ([$0.source, $0.target], $0) })
             let candidate: [AdjacencyMatrix.Edges.Index] = [cell[[1, 2]]!]
@@ -4746,7 +4992,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-045 repeated position (the same edge twice shares its endpoints), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-045 repeated position (the same edge twice shares its endpoints), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma045() {
         // V [0, 1]; E [0-1]; isMatching / isMaximalMatching / isPerfectMatching([0, 0])
         do { // ReferencePseudograph
@@ -4766,18 +5012,18 @@ struct MatchingRepresentationTests {
             #expect(graph.isMaximalMatching(candidate) == false)
             #expect(graph.isPerfectMatching(candidate) == false)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
             let candidate: [Int] = [0, 0]
             #expect(graph.isMatching(candidate) == false)
             #expect(graph.isMaximalMatching(candidate) == false)
             #expect(graph.isPerfectMatching(candidate) == false)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
             let cell = Dictionary(uniqueKeysWithValues: graph.edges.indices.map { ([$0.source, $0.target], $0) })
             let candidate: [AdjacencyMatrix.Edges.Index] = [cell[[0, 1]]!, cell[[0, 1]]!]
@@ -4787,7 +5033,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-046 parallel copies both listed, on no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-046 parallel copies both listed, on no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma046() {
         // multigraph V [0, 1]; E [0-1, 1-0]; isMatching / isMaximalMatching / isPerfectMatching([0, 1])
         do { // no indices
@@ -4799,18 +5045,18 @@ struct MatchingRepresentationTests {
             #expect(graph.isMaximalMatching(candidate) == false)
             #expect(graph.isPerfectMatching(candidate) == false)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 0)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 2)
             let candidate: [Int] = [0, 1]
             #expect(graph.isMatching(candidate) == false)
             #expect(graph.isMaximalMatching(candidate) == false)
             #expect(graph.isPerfectMatching(candidate) == false)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 2)
             let cell = Dictionary(uniqueKeysWithValues: graph.edges.indices.map { ([$0.source, $0.target], $0) })
             let candidate: [AdjacencyMatrix.Edges.Index] = [cell[[0, 1]]!, cell[[1, 0]]!]
@@ -4820,7 +5066,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-047 one parallel copy, on no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-047 one parallel copy, on no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma047() {
         // multigraph V [0, 1]; E [0-1, 1-0]; isMatching / isMaximalMatching / isPerfectMatching([1])
         do { // no indices
@@ -4832,18 +5078,18 @@ struct MatchingRepresentationTests {
             #expect(graph.isMaximalMatching(candidate) == true)
             #expect(graph.isPerfectMatching(candidate) == true)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 0)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 2)
             let candidate: [Int] = [1]
             #expect(graph.isMatching(candidate) == true)
             #expect(graph.isMaximalMatching(candidate) == true)
             #expect(graph.isPerfectMatching(candidate) == true)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 2)
             let cell = Dictionary(uniqueKeysWithValues: graph.edges.indices.map { ([$0.source, $0.target], $0) })
             let candidate: [AdjacencyMatrix.Edges.Index] = [cell[[1, 0]]!]
@@ -4853,7 +5099,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-048 K4 perfect, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-048 K4 perfect, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma048() {
         // K(4); isMatching / isMaximalMatching / isPerfectMatching([0, 5])
         do { // ReferencePseudograph
@@ -4873,18 +5119,18 @@ struct MatchingRepresentationTests {
             #expect(graph.isMaximalMatching(candidate) == true)
             #expect(graph.isPerfectMatching(candidate) == true)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
             let candidate: [Int] = [0, 5]
             #expect(graph.isMatching(candidate) == true)
             #expect(graph.isMaximalMatching(candidate) == true)
             #expect(graph.isPerfectMatching(candidate) == true)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
             let cell = Dictionary(uniqueKeysWithValues: graph.edges.indices.map { ([$0.source, $0.target], $0) })
             let candidate: [AdjacencyMatrix.Edges.Index] = [cell[[0, 1]]!, cell[[2, 3]]!]
@@ -4894,7 +5140,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-049 NetworkX valid_not_path (positions of 0–3, 2–5, 1–4), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-049 NetworkX valid_not_path (positions of 0–3, 2–5, 1–4), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma049() {
         // V [0, 1, 2, 3, 4, 5]; E [0-1, 0-3, 0-4, 1-2, 1-4, 2-5, 3-4, 4-5]; isMatching / isMaximalMatching / isPerfectMatching([1, 4, 5])
         do { // ReferencePseudograph
@@ -4914,18 +5160,18 @@ struct MatchingRepresentationTests {
             #expect(graph.isMaximalMatching(candidate) == true)
             #expect(graph.isPerfectMatching(candidate) == true)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 3), (0, 4), (1, 2), (1, 4), (2, 5), (3, 4), (4, 5)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 8)
             let candidate: [Int] = [1, 4, 5]
             #expect(graph.isMatching(candidate) == true)
             #expect(graph.isMaximalMatching(candidate) == true)
             #expect(graph.isPerfectMatching(candidate) == true)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 3), (0, 4), (1, 2), (1, 4), (2, 5), (3, 4), (4, 5)]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 8)
             let cell = Dictionary(uniqueKeysWithValues: graph.edges.indices.map { ([$0.source, $0.target], $0) })
             let candidate: [AdjacencyMatrix.Edges.Index] = [cell[[0, 3]]!, cell[[1, 4]]!, cell[[2, 5]]!]
@@ -4935,7 +5181,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-050 isolated vertex blocks perfection, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-050 isolated vertex blocks perfection, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma050() {
         // V [0, 1, 2]; E [0-1]; isMatching / isMaximalMatching / isPerfectMatching([0])
         do { // ReferencePseudograph
@@ -4955,18 +5201,18 @@ struct MatchingRepresentationTests {
             #expect(graph.isMaximalMatching(candidate) == true)
             #expect(graph.isPerfectMatching(candidate) == false)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
             let candidate: [Int] = [0]
             #expect(graph.isMatching(candidate) == true)
             #expect(graph.isMaximalMatching(candidate) == true)
             #expect(graph.isPerfectMatching(candidate) == false)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
             let cell = Dictionary(uniqueKeysWithValues: graph.edges.indices.map { ([$0.source, $0.target], $0) })
             let candidate: [AdjacencyMatrix.Edges.Index] = [cell[[0, 1]]!]
@@ -4976,7 +5222,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-051 unordered position list, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-051 unordered position list, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma051() {
         // K(4); isMatching / isMaximalMatching / isPerfectMatching([5, 0])
         do { // ReferencePseudograph
@@ -4996,18 +5242,18 @@ struct MatchingRepresentationTests {
             #expect(graph.isMaximalMatching(candidate) == true)
             #expect(graph.isPerfectMatching(candidate) == true)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
             let candidate: [Int] = [5, 0]
             #expect(graph.isMatching(candidate) == true)
             #expect(graph.isMaximalMatching(candidate) == true)
             #expect(graph.isPerfectMatching(candidate) == true)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
             let cell = Dictionary(uniqueKeysWithValues: graph.edges.indices.map { ([$0.source, $0.target], $0) })
             let candidate: [AdjacencyMatrix.Edges.Index] = [cell[[2, 3]]!, cell[[0, 1]]!]
@@ -5040,6 +5286,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -5088,6 +5336,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -5141,6 +5391,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -5189,6 +5441,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -5242,6 +5496,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -5290,6 +5546,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -5343,6 +5601,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -5391,6 +5651,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -5444,6 +5706,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -5492,6 +5756,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -5545,6 +5811,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -5593,6 +5861,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -5646,6 +5916,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -5694,6 +5966,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -5747,6 +6021,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -5795,6 +6071,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -5848,6 +6126,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -5896,6 +6176,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -5949,6 +6231,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -5997,6 +6281,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -6050,6 +6336,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -6098,6 +6386,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -6151,6 +6441,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -6199,6 +6491,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -6252,6 +6546,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -6300,6 +6596,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -6353,6 +6651,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -6401,6 +6701,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -6454,6 +6756,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -6502,6 +6806,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -6555,6 +6861,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -6603,6 +6911,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -6656,6 +6966,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -6704,6 +7016,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -6757,6 +7071,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -6805,6 +7121,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -6858,6 +7176,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -6906,6 +7226,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -6936,7 +7258,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-071 Graph: path P6 via canonical bipartition, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-071 Graph: path P6 via canonical bipartition, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma071() throws {
         // P(6); maximumBipartiteMatching(bipartition: bipartition()!)
         do { // ReferencePseudograph
@@ -6958,6 +7280,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -7006,6 +7330,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -7034,9 +7360,9 @@ struct MatchingRepresentationTests {
             #expect(cover.count == matching.edges.count)
             for edge in graph.edges { #expect(cover.contains(edge.u) || cover.contains(edge.v), "\(edge) uncovered") }
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 5)
             let bipartition = try #require(graph.bipartition())
             #expect(Array(bipartition.left) == [0, 2, 4] as [Int])
@@ -7054,6 +7380,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -7082,9 +7410,9 @@ struct MatchingRepresentationTests {
             #expect(cover.count == matching.edges.count)
             for edge in graph.edges { #expect(cover.contains(edge.u) || cover.contains(edge.v), "\(edge) uncovered") }
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5)]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 5)
             let bipartition = try #require(graph.bipartition())
             #expect(Array(bipartition.left) == [0, 2, 4] as [Int])
@@ -7102,6 +7430,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -7132,7 +7462,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-072 Graph: C6, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-072 Graph: C6, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma072() throws {
         // C(6); maximumBipartiteMatching(bipartition: bipartition()!)
         do { // ReferencePseudograph
@@ -7154,6 +7484,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -7202,6 +7534,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -7230,9 +7564,9 @@ struct MatchingRepresentationTests {
             #expect(cover.count == matching.edges.count)
             for edge in graph.edges { #expect(cover.contains(edge.u) || cover.contains(edge.v), "\(edge) uncovered") }
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
             let bipartition = try #require(graph.bipartition())
             #expect(Array(bipartition.left) == [0, 2, 4] as [Int])
@@ -7250,6 +7584,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -7278,9 +7614,9 @@ struct MatchingRepresentationTests {
             #expect(cover.count == matching.edges.count)
             for edge in graph.edges { #expect(cover.contains(edge.u) || cover.contains(edge.v), "\(edge) uncovered") }
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
             let bipartition = try #require(graph.bipartition())
             #expect(Array(bipartition.left) == [0, 2, 4] as [Int])
@@ -7298,6 +7634,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -7328,7 +7666,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-073 Graph: grid 3×4, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-073 Graph: grid 3×4, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma073() throws {
         // grid(3,4); maximumBipartiteMatching(bipartition: bipartition()!)
         do { // ReferencePseudograph
@@ -7350,6 +7688,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -7398,6 +7738,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -7426,9 +7768,9 @@ struct MatchingRepresentationTests {
             #expect(cover.count == matching.edges.count)
             for edge in graph.edges { #expect(cover.contains(edge.u) || cover.contains(edge.v), "\(edge) uncovered") }
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (9, 10), (10, 11)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 17)
             let bipartition = try #require(graph.bipartition())
             #expect(Array(bipartition.left) == [0, 2, 5, 7, 8, 10] as [Int])
@@ -7446,6 +7788,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -7474,9 +7818,9 @@ struct MatchingRepresentationTests {
             #expect(cover.count == matching.edges.count)
             for edge in graph.edges { #expect(cover.contains(edge.u) || cover.contains(edge.v), "\(edge) uncovered") }
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (9, 10), (10, 11)]
-            let graph = AdjacencyMatrix(vertexCount: 12, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 12, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 17)
             let bipartition = try #require(graph.bipartition())
             #expect(Array(bipartition.left) == [0, 2, 5, 7, 8, 10] as [Int])
@@ -7494,6 +7838,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -7524,7 +7870,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-074 Graph: two components, left = least vertex (vertices out of numeric order: left is [5, 0, 2]), on ReferencePseudograph, no indices, AdjacencyList.undirected")
+    @Test("MA-074 Graph: two components, left = least vertex (vertices out of numeric order: left is [5, 0, 2]), on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func ma074() throws {
         // V [5, 0, 1, 2, 3]; E [0-1, 2-3, 5-3]; maximumBipartiteMatching(bipartition: bipartition()!)
         do { // ReferencePseudograph
@@ -7546,6 +7892,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -7594,6 +7942,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -7622,9 +7972,9 @@ struct MatchingRepresentationTests {
             #expect(cover.count == matching.edges.count)
             for edge in graph.edges { #expect(cover.contains(edge.u) || cover.contains(edge.v), "\(edge) uncovered") }
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (2, 3), (5, 3)]
-            let graph = AdjacencyList<Int>(vertices: [5, 0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [5, 0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let bipartition = try #require(graph.bipartition())
             #expect(Array(bipartition.left) == [5, 0, 2] as [Int])
@@ -7642,6 +7992,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -7695,6 +8047,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -7725,7 +8079,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-076 Graph: even cycle with chords (K3,3 as a plain graph), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-076 Graph: even cycle with chords (K3,3 as a plain graph), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma076() throws {
         // V [0, 1, 2, 3, 4, 5]; E [0-3, 0-4, 0-5, 1-3, 1-4, 1-5, 2-3, 2-4, 2-5]; maximumBipartiteMatching(bipartition: bipartition()!)
         do { // ReferencePseudograph
@@ -7747,6 +8101,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -7795,6 +8151,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -7823,9 +8181,9 @@ struct MatchingRepresentationTests {
             #expect(cover.count == matching.edges.count)
             for edge in graph.edges { #expect(cover.contains(edge.u) || cover.contains(edge.v), "\(edge) uncovered") }
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 3), (0, 4), (0, 5), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 9)
             let bipartition = try #require(graph.bipartition())
             #expect(Array(bipartition.left) == [0, 1, 2] as [Int])
@@ -7843,6 +8201,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -7871,9 +8231,9 @@ struct MatchingRepresentationTests {
             #expect(cover.count == matching.edges.count)
             for edge in graph.edges { #expect(cover.contains(edge.u) || cover.contains(edge.v), "\(edge) uncovered") }
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 3), (0, 4), (0, 5), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5)]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 9)
             let bipartition = try #require(graph.bipartition())
             #expect(Array(bipartition.left) == [0, 1, 2] as [Int])
@@ -7891,6 +8251,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -7921,7 +8283,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-077 Hypercube Q3, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-077 Hypercube Q3, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma077() throws {
         // V [0, 1, 2, 3, 4, 5, 6, 7]; E [0-1, 0-2, 0-4, 1-3, 1-5, 2-3, 2-6, 3-7, 4-5, 4-6, 5-7, 6-7]; maximumBipartiteMatching(bipartition: bipartition()!)
         do { // ReferencePseudograph
@@ -7943,6 +8305,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -7991,6 +8355,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -8019,9 +8385,9 @@ struct MatchingRepresentationTests {
             #expect(cover.count == matching.edges.count)
             for edge in graph.edges { #expect(cover.contains(edge.u) || cover.contains(edge.v), "\(edge) uncovered") }
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 4), (1, 3), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 6), (5, 7), (6, 7)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 12)
             let bipartition = try #require(graph.bipartition())
             #expect(Array(bipartition.left) == [0, 3, 5, 6] as [Int])
@@ -8039,6 +8405,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -8067,9 +8435,9 @@ struct MatchingRepresentationTests {
             #expect(cover.count == matching.edges.count)
             for edge in graph.edges { #expect(cover.contains(edge.u) || cover.contains(edge.v), "\(edge) uncovered") }
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 4), (1, 3), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 6), (5, 7), (6, 7)]
-            let graph = AdjacencyMatrix(vertexCount: 8, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 8, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 12)
             let bipartition = try #require(graph.bipartition())
             #expect(Array(bipartition.left) == [0, 3, 5, 6] as [Int])
@@ -8087,6 +8455,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -8140,6 +8510,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -8188,6 +8560,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -8218,7 +8592,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-079 triangle, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-079 triangle, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma079() {
         // K(3); maximumMatching()
         do { // ReferencePseudograph
@@ -8238,6 +8612,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -8273,6 +8649,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -8290,9 +8668,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 1)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [0])
@@ -8308,6 +8686,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -8325,9 +8705,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 1)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
-            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 1]])
@@ -8343,6 +8723,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -8362,7 +8744,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-080 C5, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-080 C5, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma080() {
         // C(5); maximumMatching()
         do { // ReferencePseudograph
@@ -8382,6 +8764,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -8417,6 +8801,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -8434,9 +8820,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 2)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 5)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [0, 2])
@@ -8452,6 +8838,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -8469,9 +8857,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 2)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 5)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 1], [2, 3]])
@@ -8487,6 +8875,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -8506,7 +8896,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-081 C7, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-081 C7, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma081() {
         // C(7); maximumMatching()
         do { // ReferencePseudograph
@@ -8526,6 +8916,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -8561,6 +8953,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -8578,9 +8972,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 3)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 0)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 7)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [0, 2, 4])
@@ -8596,6 +8990,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -8613,9 +9009,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 3)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 7, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 7, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 7)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 1], [2, 3], [4, 5]])
@@ -8631,6 +9027,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -8650,7 +9048,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-082 K4, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-082 K4, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma082() {
         // K(4); maximumMatching()
         do { // ReferencePseudograph
@@ -8670,6 +9068,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -8705,6 +9105,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -8722,9 +9124,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 2)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [0, 5])
@@ -8740,6 +9142,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -8757,9 +9161,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 2)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 1], [2, 3]])
@@ -8775,6 +9179,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -8794,7 +9200,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-083 K5, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-083 K5, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma083() {
         // K(5); maximumMatching()
         do { // ReferencePseudograph
@@ -8814,6 +9220,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -8849,6 +9257,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -8866,9 +9276,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 2)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 10)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [0, 7])
@@ -8884,6 +9294,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -8901,9 +9313,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 2)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
-            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 10)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 1], [2, 3]])
@@ -8919,6 +9331,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -8938,7 +9352,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-084 K6, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-084 K6, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma084() {
         // K(6); maximumMatching()
         do { // ReferencePseudograph
@@ -8958,6 +9372,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -8993,6 +9409,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -9010,9 +9428,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 3)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5), (3, 4), (3, 5), (4, 5)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 15)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [0, 9, 14])
@@ -9028,6 +9446,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -9045,9 +9465,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 3)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5), (3, 4), (3, 5), (4, 5)]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 15)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 1], [2, 3], [4, 5]])
@@ -9063,6 +9483,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -9082,7 +9504,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-085 P5, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-085 P5, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma085() {
         // P(5); maximumMatching()
         do { // ReferencePseudograph
@@ -9102,6 +9524,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -9137,6 +9561,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -9154,9 +9580,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 2)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 4)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [0, 2])
@@ -9172,6 +9598,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -9189,9 +9617,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 2)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
-            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 4)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 1], [2, 3]])
@@ -9207,6 +9635,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -9226,7 +9656,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-086 star S5, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-086 star S5, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma086() {
         // V [0, 1, 2, 3, 4, 5]; E [0-1, 0-2, 0-3, 0-4, 0-5]; maximumMatching()
         do { // ReferencePseudograph
@@ -9246,6 +9676,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -9281,6 +9713,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -9298,9 +9732,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 1)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 5)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [0])
@@ -9316,6 +9750,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -9333,9 +9769,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 1)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5)]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 5)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 1]])
@@ -9351,6 +9787,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -9370,7 +9808,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-087 Petersen, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-087 Petersen, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma087() {
         // nx(petersen); maximumMatching()
         do { // ReferencePseudograph
@@ -9390,6 +9828,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -9425,6 +9865,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -9442,9 +9884,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 5)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 15)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [0, 5, 9, 10, 12])
@@ -9460,6 +9902,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -9477,9 +9921,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 5)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
-            let graph = AdjacencyMatrix(vertexCount: 10, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 10, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 15)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 1], [2, 3], [4, 9], [5, 7], [6, 8]])
@@ -9495,6 +9939,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -9514,7 +9960,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-088 triangle with a pendant: augmenting path through a blossom, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-088 triangle with a pendant: augmenting path through a blossom, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma088() {
         // V [0, 1, 2, 3]; E [0-1, 1-2, 2-0, 2-3]; maximumMatching()
         do { // ReferencePseudograph
@@ -9534,6 +9980,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -9569,6 +10017,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -9586,9 +10036,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 2)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (2, 3)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 4)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [0, 3])
@@ -9604,6 +10054,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -9621,9 +10073,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 2)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (2, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 4)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 1], [2, 3]])
@@ -9639,6 +10091,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -9658,7 +10112,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-089 blossom then stem: 0 free root, path enters C5 at its base, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-089 blossom then stem: 0 free root, path enters C5 at its base, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma089() {
         // V [0, 1, 2, 3, 4, 5, 6]; E [0-1, 1-2, 2-3, 3-4, 4-5, 5-1, 4-6]; maximumMatching()
         do { // ReferencePseudograph
@@ -9678,6 +10132,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -9713,6 +10169,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -9730,9 +10188,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 3)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 1), (4, 6)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 7)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [0, 2, 4])
@@ -9748,6 +10206,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -9765,9 +10225,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 3)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (4, 6), (5, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 7, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 7, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 7)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 1], [2, 3], [4, 5]])
@@ -9783,6 +10243,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -9802,7 +10264,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-090 flower: C5 with stem and an exit at the far side, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-090 flower: C5 with stem and an exit at the far side, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma090() {
         // V [0, 1, 2, 3, 4, 5, 6, 7]; E [6-0, 0-1, 1-2, 2-3, 3-4, 4-0, 2-7, 5-6]; maximumMatching()
         do { // ReferencePseudograph
@@ -9822,6 +10284,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -9857,6 +10321,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -9874,9 +10340,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 4)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(6, 0), (0, 1), (1, 2), (2, 3), (3, 4), (4, 0), (2, 7), (5, 6)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 8)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [1, 4, 6, 7])
@@ -9892,6 +10358,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -9909,9 +10377,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 4)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (2, 7), (3, 4), (4, 0), (5, 6), (6, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 8, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 8, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 8)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 1], [2, 7], [3, 4], [5, 6]])
@@ -9927,6 +10395,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -9946,7 +10416,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-091 nested blossoms (triangle inside C5), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-091 nested blossoms (triangle inside C5), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma091() {
         // V [0, 1, 2, 3, 4, 5, 6, 7, 8]; E [0-1, 1-2, 2-0, 2-3, 3-4, 4-5, 5-0, 5-6, 6-7, 7-8, 4-8]; maximumMatching()
         do { // ReferencePseudograph
@@ -9966,6 +10436,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -10001,6 +10473,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -10018,9 +10492,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 4)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (2, 3), (3, 4), (4, 5), (5, 0), (5, 6), (6, 7), (7, 8), (4, 8)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 11)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [0, 3, 5, 8])
@@ -10036,6 +10510,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -10053,9 +10529,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 4)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (2, 3), (3, 4), (4, 5), (4, 8), (5, 0), (5, 6), (6, 7), (7, 8)]
-            let graph = AdjacencyMatrix(vertexCount: 9, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 9, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 11)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 1], [2, 3], [4, 5], [6, 7]])
@@ -10071,6 +10547,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -10090,7 +10568,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-092 two triangles joined by an edge, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-092 two triangles joined by an edge, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma092() {
         // V [0, 1, 2, 3, 4, 5]; E [0-1, 1-2, 2-0, 3-4, 4-5, 5-3, 2-3]; maximumMatching()
         do { // ReferencePseudograph
@@ -10110,6 +10588,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -10145,6 +10625,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -10162,9 +10644,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 3)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (3, 4), (4, 5), (5, 3), (2, 3)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 7)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [0, 4, 6])
@@ -10180,6 +10662,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -10197,9 +10681,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 3)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (2, 3), (3, 4), (4, 5), (5, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 7)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 1], [2, 3], [4, 5]])
@@ -10215,6 +10699,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -10234,7 +10720,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-093 barbell K4–K4, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-093 barbell K4–K4, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma093() {
         // V [0, 1, 2, 3, 4, 5, 6, 7]; E [0-1, 0-2, 0-3, 1-2, 1-3, 2-3, 4-5, 4-6, 4-7, 5-6, 5-7, 6-7, 3-4]; maximumMatching()
         do { // ReferencePseudograph
@@ -10254,6 +10740,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -10289,6 +10777,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -10306,9 +10796,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 4)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3), (4, 5), (4, 6), (4, 7), (5, 6), (5, 7), (6, 7), (3, 4)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 13)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [0, 5, 6, 11])
@@ -10324,6 +10814,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -10341,9 +10833,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 4)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3), (3, 4), (4, 5), (4, 6), (4, 7), (5, 6), (5, 7), (6, 7)]
-            let graph = AdjacencyMatrix(vertexCount: 8, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 8, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 13)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 1], [2, 3], [4, 5], [6, 7]])
@@ -10359,6 +10851,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -10378,7 +10872,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-094 odd wheel W5, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-094 odd wheel W5, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma094() {
         // V [0, 1, 2, 3, 4, 5]; E [0-1, 0-2, 0-3, 0-4, 0-5, 1-2, 2-3, 3-4, 4-5, 5-1]; maximumMatching()
         do { // ReferencePseudograph
@@ -10398,6 +10892,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -10433,6 +10929,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -10450,9 +10948,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 3)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (2, 3), (3, 4), (4, 5), (5, 1)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 10)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [0, 6, 8])
@@ -10468,6 +10966,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -10485,9 +10985,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 3)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (2, 3), (3, 4), (4, 5), (5, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 10)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 1], [2, 3], [4, 5]])
@@ -10503,6 +11003,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -10522,7 +11024,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-095 vertex order matters: P3 numbered from the middle, on ReferencePseudograph, no indices, AdjacencyList.undirected")
+    @Test("MA-095 vertex order matters: P3 numbered from the middle, on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func ma095() {
         // V [1, 0, 2]; E [0-1, 1-2]; maximumMatching()
         do { // ReferencePseudograph
@@ -10542,6 +11044,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -10577,6 +11081,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -10594,9 +11100,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 1)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
-            let graph = AdjacencyList<Int>(vertices: [1, 0, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [1, 0, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 2)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [1])
@@ -10612,6 +11118,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -10631,7 +11139,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-096 multigraph: triangle with a doubled edge, on no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-096 multigraph: triangle with a doubled edge, on no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma096() {
         // multigraph V [0, 1, 2]; E [0-1, 1-0, 1-2, 2-0]; maximumMatching()
         do { // no indices
@@ -10652,6 +11160,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -10669,9 +11179,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 1)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 0), (1, 2), (2, 0)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 4)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [0])
@@ -10687,6 +11197,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -10704,9 +11216,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 1)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 0), (1, 2), (2, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 4)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 1]])
@@ -10722,6 +11234,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -10741,7 +11255,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-097 loops everywhere on a P4, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-097 loops everywhere on a P4, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma097() {
         // V [0, 1, 2, 3]; E [0-0, 0-1, 1-1, 1-2, 2-3, 3-3]; maximumMatching()
         do { // ReferencePseudograph
@@ -10761,6 +11275,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -10796,6 +11312,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -10813,9 +11331,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 2)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 0), (0, 1), (1, 1), (1, 2), (2, 3), (3, 3)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [1, 4])
@@ -10831,6 +11349,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -10848,9 +11368,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 2)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 0), (0, 1), (1, 1), (1, 2), (2, 3), (3, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 1], [2, 3]])
@@ -10866,6 +11386,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -10885,7 +11407,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-098 grid 3×3 (odd: one vertex free), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-098 grid 3×3 (odd: one vertex free), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma098() {
         // grid(3,3); maximumMatching()
         do { // ReferencePseudograph
@@ -10905,6 +11427,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -10940,6 +11464,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -10957,9 +11483,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 4)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 3), (1, 2), (1, 4), (2, 5), (3, 4), (3, 6), (4, 5), (4, 7), (5, 8), (6, 7), (7, 8)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 12)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [0, 4, 5, 10])
@@ -10975,6 +11501,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -10992,9 +11520,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 4)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 3), (1, 2), (1, 4), (2, 5), (3, 4), (3, 6), (4, 5), (4, 7), (5, 8), (6, 7), (7, 8)]
-            let graph = AdjacencyMatrix(vertexCount: 9, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 9, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 12)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 1], [2, 5], [3, 4], [6, 7]])
@@ -11010,6 +11538,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -11029,7 +11559,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-099 grid 4×4, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-099 grid 4×4, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma099() {
         // grid(4,4); maximumMatching()
         do { // ReferencePseudograph
@@ -11049,6 +11579,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -11084,6 +11616,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -11101,9 +11635,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 8)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (8, 12), (9, 10), (9, 13), (10, 11), (10, 14), (11, 15), (12, 13), (13, 14), (14, 15)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 24)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [0, 4, 7, 11, 14, 18, 21, 23])
@@ -11119,6 +11653,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -11136,9 +11672,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 8)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (8, 12), (9, 10), (9, 13), (10, 11), (10, 14), (11, 15), (12, 13), (13, 14), (14, 15)]
-            let graph = AdjacencyMatrix(vertexCount: 16, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 16, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 24)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9], [10, 11], [12, 13], [14, 15]])
@@ -11154,6 +11690,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -11194,6 +11732,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -11213,7 +11753,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-101 Tutte's example: no perfect matching (K1,3 of triangles), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-101 Tutte's example: no perfect matching (K1,3 of triangles), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma101() {
         // V [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]; E [0-1, 0-4, 0-7, 1-2, 2-3, 3-1, 4-5, 5-6, 6-4, 7-8, 8-9, 9-7]; maximumMatching()
         do { // ReferencePseudograph
@@ -11233,6 +11773,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -11268,6 +11810,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -11285,9 +11829,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 4)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 7), (1, 2), (2, 3), (3, 1), (4, 5), (5, 6), (6, 4), (7, 8), (8, 9), (9, 7)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 12)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [0, 4, 6, 9])
@@ -11303,6 +11847,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -11320,9 +11866,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 4)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 7), (1, 2), (2, 3), (3, 1), (4, 5), (5, 6), (6, 4), (7, 8), (8, 9), (9, 7)]
-            let graph = AdjacencyMatrix(vertexCount: 10, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 10, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 12)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 1], [2, 3], [4, 5], [7, 8]])
@@ -11338,6 +11884,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -11357,7 +11905,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-102 lcg(10,15,1), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-102 lcg(10,15,1), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma102() {
         // lcg(10,15,1); maximumMatching()
         do { // ReferencePseudograph
@@ -11377,6 +11925,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -11412,6 +11962,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -11429,9 +11981,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 5)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(4, 3), (6, 0), (4, 5), (0, 2), (9, 6), (3, 2), (4, 2), (0, 5), (2, 5), (9, 8), (1, 8), (7, 8), (8, 5), (6, 8), (1, 4)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 15)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [4, 5, 7, 11, 14])
@@ -11447,6 +11999,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -11464,9 +12018,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 5)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 2), (0, 5), (1, 4), (1, 8), (2, 5), (3, 2), (4, 2), (4, 3), (4, 5), (6, 0), (6, 8), (7, 8), (8, 5), (9, 6), (9, 8)]
-            let graph = AdjacencyMatrix(vertexCount: 10, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 10, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 15)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 5], [1, 4], [3, 2], [7, 8], [9, 6]])
@@ -11482,6 +12036,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -11501,7 +12057,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-103 lcg(12,18,7), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-103 lcg(12,18,7), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma103() {
         // lcg(12,18,7); maximumMatching()
         do { // ReferencePseudograph
@@ -11521,6 +12077,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -11556,6 +12114,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -11573,9 +12133,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 6)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(2, 11), (9, 5), (1, 11), (4, 0), (7, 10), (7, 3), (9, 10), (9, 3), (0, 11), (4, 1), (10, 6), (5, 0), (8, 5), (9, 4), (2, 7), (5, 11), (9, 7), (4, 2)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 18)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [7, 8, 9, 10, 12, 14])
@@ -11591,6 +12151,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -11608,9 +12170,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 6)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 11), (1, 11), (2, 7), (2, 11), (4, 0), (4, 1), (4, 2), (5, 0), (5, 11), (7, 3), (7, 10), (8, 5), (9, 3), (9, 4), (9, 5), (9, 7), (9, 10), (10, 6)]
-            let graph = AdjacencyMatrix(vertexCount: 12, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 12, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 18)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 11], [2, 7], [4, 1], [8, 5], [9, 3], [10, 6]])
@@ -11626,6 +12188,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -11645,7 +12209,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-104 lcg(14,21,3), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-104 lcg(14,21,3), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma104() {
         // lcg(14,21,3); maximumMatching()
         do { // ReferencePseudograph
@@ -11665,6 +12229,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -11700,6 +12266,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -11717,9 +12285,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 6)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(3, 13), (13, 2), (8, 3), (1, 11), (5, 0), (12, 3), (8, 11), (13, 1), (11, 4), (1, 4), (9, 7), (9, 5), (11, 2), (9, 0), (3, 9), (5, 8), (7, 11), (4, 9), (10, 7), (5, 2), (5, 11)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 21)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [1, 2, 3, 4, 17, 18])
@@ -11735,6 +12303,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -11752,9 +12322,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 6)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(1, 4), (1, 11), (3, 9), (3, 13), (4, 9), (5, 0), (5, 2), (5, 8), (5, 11), (7, 11), (8, 3), (8, 11), (9, 0), (9, 5), (9, 7), (10, 7), (11, 2), (11, 4), (12, 3), (13, 1), (13, 2)]
-            let graph = AdjacencyMatrix(vertexCount: 14, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 14, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 21)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[1, 4], [3, 9], [5, 0], [8, 11], [10, 7], [13, 2]])
@@ -11770,6 +12340,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -11789,7 +12361,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-105 lcg(15,30,9), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-105 lcg(15,30,9), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma105() {
         // lcg(15,30,9); maximumMatching()
         do { // ReferencePseudograph
@@ -11809,6 +12381,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -11844,6 +12418,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -11861,9 +12437,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 7)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(8, 6), (2, 5), (10, 2), (8, 7), (9, 1), (9, 7), (8, 4), (14, 8), (14, 0), (4, 9), (10, 12), (2, 8), (7, 2), (8, 3), (14, 9), (14, 4), (3, 12), (9, 12), (0, 7), (7, 3), (6, 12), (3, 4), (1, 6), (13, 1), (2, 12), (9, 6), (13, 9), (11, 8), (0, 8), (4, 13)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 30)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [1, 7, 10, 18, 21, 22, 26])
@@ -11879,6 +12455,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -11896,9 +12474,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 7)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 7), (0, 8), (1, 6), (2, 5), (2, 8), (2, 12), (3, 4), (3, 12), (4, 9), (4, 13), (6, 12), (7, 2), (7, 3), (8, 3), (8, 4), (8, 6), (8, 7), (9, 1), (9, 6), (9, 7), (9, 12), (10, 2), (10, 12), (11, 8), (13, 1), (13, 9), (14, 0), (14, 4), (14, 8), (14, 9)]
-            let graph = AdjacencyMatrix(vertexCount: 15, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 15, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 30)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 7], [1, 6], [2, 5], [3, 4], [10, 12], [11, 8], [13, 9]])
@@ -11914,6 +12492,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -11933,7 +12513,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-106 lcg(40,80,4) (size against NetworkX only), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-106 lcg(40,80,4) (size against NetworkX only), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma106() {
         // lcg(40,80,4); maximumMatching()
         do { // ReferencePseudograph
@@ -11953,6 +12533,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -11988,6 +12570,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -12005,9 +12589,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 20)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(26, 12), (14, 11), (25, 27), (1, 13), (34, 16), (15, 34), (6, 24), (11, 7), (4, 17), (8, 18), (18, 15), (10, 18), (37, 16), (6, 13), (27, 0), (19, 8), (9, 0), (30, 15), (33, 2), (8, 34), (5, 21), (20, 39), (26, 3), (8, 6), (7, 19), (36, 31), (4, 26), (3, 2), (37, 1), (12, 13), (39, 21), (33, 4), (11, 13), (37, 13), (6, 9), (4, 15), (8, 16), (23, 22), (16, 30), (4, 9), (26, 32), (29, 19), (10, 28), (22, 4), (29, 4), (12, 16), (12, 15), (17, 19), (25, 12), (35, 5), (26, 1), (37, 2), (36, 8), (15, 11), (38, 32), (39, 24), (15, 5), (1, 24), (27, 15), (33, 1), (19, 18), (39, 5), (17, 2), (16, 22), (35, 7), (32, 20), (3, 28), (31, 21), (38, 20), (8, 9), (35, 1), (20, 3), (16, 3), (16, 32), (5, 3), (33, 36), (29, 11), (25, 22), (8, 4), (29, 1)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 80)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [0, 1, 2, 3, 6, 8, 11, 12, 16, 17, 18, 19, 20, 21, 25, 37, 41, 54, 64, 66])
@@ -12023,6 +12607,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -12040,9 +12626,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 20)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(1, 13), (1, 24), (3, 2), (3, 28), (4, 9), (4, 15), (4, 17), (4, 26), (5, 3), (5, 21), (6, 9), (6, 13), (6, 24), (7, 19), (8, 4), (8, 6), (8, 9), (8, 16), (8, 18), (8, 34), (9, 0), (10, 18), (10, 28), (11, 7), (11, 13), (12, 13), (12, 15), (12, 16), (14, 11), (15, 5), (15, 11), (15, 34), (16, 3), (16, 22), (16, 30), (16, 32), (17, 2), (17, 19), (18, 15), (19, 8), (19, 18), (20, 3), (20, 39), (22, 4), (23, 22), (25, 12), (25, 22), (25, 27), (26, 1), (26, 3), (26, 12), (26, 32), (27, 0), (27, 15), (29, 1), (29, 4), (29, 11), (29, 19), (30, 15), (31, 21), (32, 20), (33, 1), (33, 2), (33, 4), (33, 36), (34, 16), (35, 1), (35, 5), (35, 7), (36, 8), (36, 31), (37, 1), (37, 2), (37, 13), (37, 16), (38, 20), (38, 32), (39, 5), (39, 21), (39, 24)]
-            let graph = AdjacencyMatrix(vertexCount: 40, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 40, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 80)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[3, 28], [6, 24], [7, 19], [8, 34], [9, 0], [10, 18], [14, 11], [16, 30], [17, 2], [23, 22], [25, 12], [26, 32], [27, 15], [29, 4], [33, 1], [35, 5], [36, 31], [37, 13], [38, 20], [39, 21]])
@@ -12058,6 +12644,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -12077,7 +12665,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-107 lcg(60,90,8) (size against NetworkX only), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-107 lcg(60,90,8) (size against NetworkX only), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma107() {
         // lcg(60,90,8); maximumMatching()
         do { // ReferencePseudograph
@@ -12097,6 +12685,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -12132,6 +12722,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -12149,9 +12741,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 29)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(4, 12), (32, 7), (14, 23), (10, 11), (55, 53), (15, 55), (2, 55), (31, 32), (30, 5), (18, 12), (41, 21), (52, 10), (9, 22), (4, 7), (35, 39), (22, 39), (36, 28), (18, 6), (21, 13), (12, 27), (5, 48), (32, 53), (31, 5), (33, 58), (5, 6), (57, 15), (28, 53), (40, 16), (56, 32), (59, 55), (40, 17), (17, 55), (33, 39), (40, 27), (18, 24), (6, 0), (35, 16), (31, 41), (47, 41), (20, 45), (6, 29), (51, 44), (19, 8), (36, 30), (14, 4), (29, 35), (8, 57), (48, 54), (18, 43), (4, 50), (17, 31), (54, 41), (33, 12), (36, 21), (40, 22), (21, 48), (52, 32), (33, 21), (55, 3), (42, 39), (58, 26), (11, 24), (49, 3), (44, 46), (54, 40), (56, 59), (57, 23), (54, 21), (58, 27), (47, 16), (46, 37), (45, 56), (42, 34), (57, 40), (4, 52), (36, 2), (4, 21), (12, 45), (50, 1), (29, 55), (18, 56), (35, 13), (16, 48), (11, 55), (32, 48), (26, 21), (9, 28), (36, 25), (35, 42), (44, 25)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 90)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [2, 8, 11, 12, 13, 18, 19, 25, 26, 27, 28, 29, 32, 35, 38, 39, 42, 45, 47, 48, 50, 60, 61, 62, 70, 72, 75, 78, 89])
@@ -12167,6 +12759,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -12184,9 +12778,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 29)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(2, 55), (4, 7), (4, 12), (4, 21), (4, 50), (4, 52), (5, 6), (5, 48), (6, 0), (6, 29), (8, 57), (9, 22), (9, 28), (10, 11), (11, 24), (11, 55), (12, 27), (12, 45), (14, 4), (14, 23), (15, 55), (16, 48), (17, 31), (17, 55), (18, 6), (18, 12), (18, 24), (18, 43), (18, 56), (19, 8), (20, 45), (21, 13), (21, 48), (22, 39), (26, 21), (28, 53), (29, 35), (29, 55), (30, 5), (31, 5), (31, 32), (31, 41), (32, 7), (32, 48), (32, 53), (33, 12), (33, 21), (33, 39), (33, 58), (35, 13), (35, 16), (35, 39), (35, 42), (36, 2), (36, 21), (36, 25), (36, 28), (36, 30), (40, 16), (40, 17), (40, 22), (40, 27), (41, 21), (42, 34), (42, 39), (44, 25), (44, 46), (45, 56), (46, 37), (47, 16), (47, 41), (48, 54), (49, 3), (50, 1), (51, 44), (52, 10), (52, 32), (54, 21), (54, 40), (54, 41), (55, 3), (55, 53), (56, 32), (56, 59), (57, 15), (57, 23), (57, 40), (58, 26), (58, 27), (59, 55)]
-            let graph = AdjacencyMatrix(vertexCount: 60, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 60, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 90)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[4, 7], [6, 0], [9, 22], [11, 24], [12, 27], [14, 23], [16, 48], [17, 31], [18, 43], [19, 8], [20, 45], [21, 13], [28, 53], [29, 35], [30, 5], [33, 39], [36, 2], [42, 34], [44, 25], [46, 37], [47, 41], [49, 3], [50, 1], [52, 10], [54, 40], [56, 32], [57, 15], [58, 26], [59, 55]])
@@ -12202,6 +12796,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -12221,7 +12817,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-108 stem into a blossom: the first free root augments only through the blossom (without contraction the search from r fails and f's search finds the other path: different edges, same size), on ReferencePseudograph, no indices, AdjacencyList.undirected")
+    @Test("MA-108 stem into a blossom: the first free root augments only through the blossom (without contraction the search from r fails and f's search finds the other path: different edges, same size), on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func ma108() {
         // V [s, t, a, b, c, d, r, f]; E [s-t, a-b, c-d, t-a, b-c, d-t, r-s, a-f]; maximumMatching()
         do { // ReferencePseudograph
@@ -12241,6 +12837,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -12276,6 +12874,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -12293,9 +12893,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 4)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(String, String)] = [("s", "t"), ("a", "b"), ("c", "d"), ("t", "a"), ("b", "c"), ("d", "t"), ("r", "s"), ("a", "f")]
-            let graph = AdjacencyList<String>(vertices: ["s", "t", "a", "b", "c", "d", "r", "f"] as [String], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<String>(vertices: ["s", "t", "a", "b", "c", "d", "r", "f"] as [String], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 8)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [4, 5, 6, 7])
@@ -12311,6 +12911,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -12330,7 +12932,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-109 lcg(10,13,6): needs a blossom (a search without blossom contraction returns a smaller matching), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-109 lcg(10,13,6): needs a blossom (a search without blossom contraction returns a smaller matching), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma109() {
         // lcg(10,13,6); maximumMatching()
         do { // ReferencePseudograph
@@ -12350,6 +12952,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -12385,6 +12989,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -12402,9 +13008,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 5)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(1, 2), (3, 9), (4, 5), (4, 9), (0, 6), (5, 0), (3, 1), (3, 4), (7, 9), (5, 6), (1, 6), (2, 4), (8, 0)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 13)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [0, 7, 8, 9, 12])
@@ -12420,6 +13026,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -12437,9 +13045,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 5)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 6), (1, 2), (1, 6), (2, 4), (3, 1), (3, 4), (3, 9), (4, 5), (4, 9), (5, 0), (5, 6), (7, 9), (8, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 10, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 10, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 13)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[1, 2], [3, 4], [5, 6], [7, 9], [8, 0]])
@@ -12455,6 +13063,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -12474,7 +13084,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-110 lcg(10,14,0): needs a blossom (a search without blossom contraction returns a smaller matching), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-110 lcg(10,14,0): needs a blossom (a search without blossom contraction returns a smaller matching), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma110() {
         // lcg(10,14,0); maximumMatching()
         do { // ReferencePseudograph
@@ -12494,6 +13104,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -12529,6 +13141,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -12546,9 +13160,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 5)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(7, 4), (7, 6), (5, 1), (4, 5), (4, 9), (3, 2), (2, 5), (0, 2), (5, 8), (1, 3), (7, 8), (1, 2), (0, 4), (9, 3)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 14)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [1, 4, 7, 8, 9])
@@ -12564,6 +13178,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -12581,9 +13197,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 5)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 2), (0, 4), (1, 2), (1, 3), (2, 5), (3, 2), (4, 5), (4, 9), (5, 1), (5, 8), (7, 4), (7, 6), (7, 8), (9, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 10, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 10, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 14)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 2], [1, 3], [4, 9], [5, 8], [7, 6]])
@@ -12599,6 +13215,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -12618,7 +13236,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-111 lcg(13,20,1): needs a blossom (a search without blossom contraction returns a smaller matching), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-111 lcg(13,20,1): needs a blossom (a search without blossom contraction returns a smaller matching), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma111() {
         // lcg(13,20,1); maximumMatching()
         do { // ReferencePseudograph
@@ -12638,6 +13256,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -12673,6 +13293,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -12690,9 +13312,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 6)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(12, 5), (10, 3), (11, 10), (8, 12), (8, 5), (4, 1), (12, 0), (3, 8), (4, 10), (1, 6), (4, 11), (2, 6), (1, 2), (8, 11), (3, 5), (5, 4), (6, 12), (10, 5), (10, 1), (10, 9)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 20)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [5, 6, 11, 13, 14, 19])
@@ -12708,6 +13330,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -12725,9 +13349,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 6)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(1, 2), (1, 6), (2, 6), (3, 5), (3, 8), (4, 1), (4, 10), (4, 11), (5, 4), (6, 12), (8, 5), (8, 11), (8, 12), (10, 1), (10, 3), (10, 5), (10, 9), (11, 10), (12, 0), (12, 5)]
-            let graph = AdjacencyMatrix(vertexCount: 13, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 13, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 20)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[2, 6], [3, 5], [4, 1], [8, 11], [10, 9], [12, 0]])
@@ -12743,6 +13367,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -12762,7 +13388,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-112 lcg(14,18,6): needs a blossom (a search without blossom contraction returns a smaller matching), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-112 lcg(14,18,6): needs a blossom (a search without blossom contraction returns a smaller matching), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma112() {
         // lcg(14,18,6); maximumMatching()
         do { // ReferencePseudograph
@@ -12782,6 +13408,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -12817,6 +13445,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -12834,9 +13464,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 7)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(11, 4), (13, 1), (4, 13), (10, 2), (7, 0), (12, 10), (5, 6), (1, 11), (3, 5), (11, 0), (1, 12), (7, 9), (3, 0), (3, 10), (11, 7), (8, 4), (4, 2), (3, 2)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 18)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [1, 5, 6, 9, 11, 15, 17])
@@ -12852,6 +13482,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -12869,9 +13501,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 7)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(1, 11), (1, 12), (3, 0), (3, 2), (3, 5), (3, 10), (4, 2), (4, 13), (5, 6), (7, 0), (7, 9), (8, 4), (10, 2), (11, 0), (11, 4), (11, 7), (12, 10), (13, 1)]
-            let graph = AdjacencyMatrix(vertexCount: 14, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 14, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 18)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[3, 2], [5, 6], [7, 9], [8, 4], [11, 0], [12, 10], [13, 1]])
@@ -12887,6 +13519,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -12906,7 +13540,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-113 lcg(14,23,2): needs a blossom (a search without blossom contraction returns a smaller matching), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-113 lcg(14,23,2): needs a blossom (a search without blossom contraction returns a smaller matching), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma113() {
         // lcg(14,23,2); maximumMatching()
         do { // ReferencePseudograph
@@ -12926,6 +13560,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -12961,6 +13597,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -12978,9 +13616,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 7)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(6, 8), (4, 2), (0, 10), (9, 2), (13, 4), (8, 0), (8, 1), (12, 1), (6, 10), (4, 10), (1, 6), (5, 8), (9, 3), (8, 10), (11, 12), (5, 11), (1, 10), (0, 12), (3, 12), (13, 3), (12, 4), (0, 4), (1, 7)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 23)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [0, 2, 3, 4, 15, 18, 22])
@@ -12996,6 +13634,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -13013,9 +13653,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 7)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 4), (0, 10), (0, 12), (1, 6), (1, 7), (1, 10), (3, 12), (4, 2), (4, 10), (5, 8), (5, 11), (6, 8), (6, 10), (8, 0), (8, 1), (8, 10), (9, 2), (9, 3), (11, 12), (12, 1), (12, 4), (13, 3), (13, 4)]
-            let graph = AdjacencyMatrix(vertexCount: 14, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 14, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 23)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[0, 4], [1, 7], [5, 8], [6, 10], [9, 2], [11, 12], [13, 3]])
@@ -13031,6 +13671,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -13050,7 +13692,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-114 blossom expansion on augmentation (C5 + two pendants), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-114 blossom expansion on augmentation (C5 + two pendants), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma114() {
         // V [0, 1, 2, 3, 4, 5, 6]; E [0-1, 1-2, 2-3, 3-4, 4-0, 1-5, 3-6]; maximumMatching()
         do { // ReferencePseudograph
@@ -13070,6 +13712,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -13105,6 +13749,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -13122,9 +13768,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 3)
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0), (1, 5), (3, 6)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 7)
             let matching = graph.maximumMatching()
             #expect(matching.edges == [2, 4, 5])
@@ -13140,6 +13786,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -13157,9 +13805,9 @@ struct MatchingRepresentationTests {
             #expect(graph.isMatching(matching.edges))
             #expect(matching.edges.count == 3)
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (1, 5), (2, 3), (3, 4), (3, 6), (4, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 7, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 7, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 7)
             let matching = graph.maximumMatching()
             #expect(matching.edges.map { [$0.source, $0.target] } == [[1, 5], [2, 3], [4, 0]])
@@ -13175,6 +13823,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -13194,7 +13844,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-115 NetworkX two_path, on ReferencePseudograph, no indices, AdjacencyList.undirected")
+    @Test("MA-115 NetworkX two_path, on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func ma115() {
         // V [one, two, three]; E [one-two:10, two-three:11]; maximumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -13216,6 +13866,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -13250,6 +13902,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -13264,9 +13918,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(String, String)] = [("one", "two"), ("two", "three")]
-            let graph = AdjacencyList<String>(vertices: ["one", "two", "three"] as [String], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<String>(vertices: ["one", "two", "three"] as [String], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 2)
             let weights: [Int?] = [10, 11]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -13284,6 +13938,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -13300,7 +13956,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-116 NetworkX path, on ReferencePseudograph, no indices, AdjacencyList.undirected")
+    @Test("MA-116 NetworkX path, on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func ma116() {
         // V [1, 2, 3, 4]; E [1-2:5, 2-3:11, 3-4:5]; maximumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -13322,6 +13978,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -13356,6 +14014,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -13370,9 +14030,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(1, 2), (2, 3), (3, 4)]
-            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let weights: [Int?] = [5, 11, 5]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -13390,6 +14050,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -13406,7 +14068,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-117 NetworkX path, maximumCardinality, on ReferencePseudograph, no indices, AdjacencyList.undirected")
+    @Test("MA-117 NetworkX path, maximumCardinality, on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func ma117() {
         // V [1, 2, 3, 4]; E [1-2:5, 2-3:11, 3-4:5]; maximumWeightMatching(weight:, maximumCardinality: true)
         do { // ReferencePseudograph
@@ -13428,6 +14090,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -13462,6 +14126,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -13476,9 +14142,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(1, 2), (2, 3), (3, 4)]
-            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let weights: [Int?] = [5, 11, 5]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -13496,6 +14162,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -13512,7 +14180,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-118 NetworkX square, on ReferencePseudograph, no indices, AdjacencyList.undirected")
+    @Test("MA-118 NetworkX square, on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func ma118() {
         // V [1, 4, 2, 3]; E [1-4:2, 2-3:2, 1-2:1, 3-4:4]; maximumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -13534,6 +14202,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -13568,6 +14238,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -13582,9 +14254,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(1, 4), (2, 3), (1, 2), (3, 4)]
-            let graph = AdjacencyList<Int>(vertices: [1, 4, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [1, 4, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 4)
             let weights: [Int?] = [2, 2, 1, 4]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -13602,6 +14274,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -13618,7 +14292,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-119 NetworkX floating-point weights, on ReferencePseudograph, no indices, AdjacencyList.undirected")
+    @Test("MA-119 NetworkX floating-point weights, on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func ma119() {
         // V [1, 2, 3, 4]; E [1-2:3.141592653589793, 2-3:2.718281828459045, 1-3:3.0, 1-4:1.4142135623730951]; maximumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -13640,6 +14314,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -13674,6 +14350,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -13688,9 +14366,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(1, 2), (2, 3), (1, 3), (1, 4)]
-            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 4)
             let weights: [Double?] = [3.141592653589793, 2.718281828459045, 3.0, 1.4142135623730951]
             func weightOf(_ e: Int) -> Double { weights[e]! }
@@ -13708,6 +14386,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -13724,7 +14404,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-120 NetworkX negative weights, on ReferencePseudograph, no indices, AdjacencyList.undirected")
+    @Test("MA-120 NetworkX negative weights, on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func ma120() {
         // V [1, 2, 3, 4]; E [1-2:2, 1-3:-2, 2-3:1, 2-4:-1, 3-4:-6]; maximumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -13746,6 +14426,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -13780,6 +14462,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -13794,9 +14478,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(1, 2), (1, 3), (2, 3), (2, 4), (3, 4)]
-            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 5)
             let weights: [Int?] = [2, -2, 1, -1, -6]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -13814,6 +14498,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -13830,7 +14516,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-121 NetworkX negative weights, maximumCardinality, on ReferencePseudograph, no indices, AdjacencyList.undirected")
+    @Test("MA-121 NetworkX negative weights, maximumCardinality, on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func ma121() {
         // V [1, 2, 3, 4]; E [1-2:2, 1-3:-2, 2-3:1, 2-4:-1, 3-4:-6]; maximumWeightMatching(weight:, maximumCardinality: true)
         do { // ReferencePseudograph
@@ -13852,6 +14538,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -13886,6 +14574,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -13900,9 +14590,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(1, 2), (1, 3), (2, 3), (2, 4), (3, 4)]
-            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 5)
             let weights: [Int?] = [2, -2, 1, -1, -6]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -13920,6 +14610,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -13936,7 +14628,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-122 NetworkX s_blossom, on ReferencePseudograph, no indices, AdjacencyList.undirected")
+    @Test("MA-122 NetworkX s_blossom, on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func ma122() {
         // V [1, 2, 3, 4]; E [1-2:8, 1-3:9, 2-3:10, 3-4:7]; maximumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -13958,6 +14650,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -13992,6 +14686,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -14006,9 +14702,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(1, 2), (1, 3), (2, 3), (3, 4)]
-            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 4)
             let weights: [Int?] = [8, 9, 10, 7]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -14026,6 +14722,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -14042,7 +14740,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-123 NetworkX s_blossom extended, on ReferencePseudograph, no indices, AdjacencyList.undirected")
+    @Test("MA-123 NetworkX s_blossom extended, on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func ma123() {
         // V [1, 2, 3, 4, 6, 5]; E [1-2:8, 1-3:9, 2-3:10, 3-4:7, 1-6:5, 4-5:6]; maximumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -14064,6 +14762,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -14098,6 +14798,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -14112,9 +14814,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(1, 2), (1, 3), (2, 3), (3, 4), (1, 6), (4, 5)]
-            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4, 6, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4, 6, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
             let weights: [Int?] = [8, 9, 10, 7, 5, 6]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -14132,6 +14834,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -14148,7 +14852,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-124 NetworkX s_t_blossom, on ReferencePseudograph, no indices, AdjacencyList.undirected")
+    @Test("MA-124 NetworkX s_t_blossom, on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func ma124() {
         // V [1, 2, 3, 4, 5, 6]; E [1-2:9, 1-3:8, 2-3:10, 1-4:5, 4-5:4, 1-6:3]; maximumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -14170,6 +14874,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -14204,6 +14910,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -14218,9 +14926,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(1, 2), (1, 3), (2, 3), (1, 4), (4, 5), (1, 6)]
-            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
             let weights: [Int?] = [9, 8, 10, 5, 4, 3]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -14238,6 +14946,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -14254,7 +14964,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-125 NetworkX s_t_blossom reweighted, on ReferencePseudograph, no indices, AdjacencyList.undirected")
+    @Test("MA-125 NetworkX s_t_blossom reweighted, on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func ma125() {
         // V [1, 2, 3, 4, 5, 6]; E [1-2:9, 1-3:8, 2-3:10, 1-4:5, 4-5:3, 1-6:4]; maximumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -14276,6 +14986,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -14310,6 +15022,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -14324,9 +15038,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(1, 2), (1, 3), (2, 3), (1, 4), (4, 5), (1, 6)]
-            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
             let weights: [Int?] = [9, 8, 10, 5, 3, 4]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -14344,6 +15058,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -14360,7 +15076,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-126 NetworkX s_t_blossom, 1–6 replaced by 3–6, on ReferencePseudograph, no indices, AdjacencyList.undirected")
+    @Test("MA-126 NetworkX s_t_blossom, 1–6 replaced by 3–6, on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func ma126() {
         // V [1, 2, 3, 4, 5, 6]; E [1-2:9, 1-3:8, 2-3:10, 1-4:5, 4-5:3, 3-6:4]; maximumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -14382,6 +15098,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -14416,6 +15134,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -14430,9 +15150,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(1, 2), (1, 3), (2, 3), (1, 4), (4, 5), (3, 6)]
-            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
             let weights: [Int?] = [9, 8, 10, 5, 3, 4]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -14450,6 +15170,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -14466,7 +15188,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-127 NetworkX nested_s_blossom, on ReferencePseudograph, no indices, AdjacencyList.undirected")
+    @Test("MA-127 NetworkX nested_s_blossom, on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func ma127() {
         // V [1, 2, 3, 4, 5, 6]; E [1-2:9, 1-3:9, 2-3:10, 2-4:8, 3-5:8, 4-5:10, 5-6:6]; maximumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -14488,6 +15210,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -14522,6 +15246,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -14536,9 +15262,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(1, 2), (1, 3), (2, 3), (2, 4), (3, 5), (4, 5), (5, 6)]
-            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 7)
             let weights: [Int?] = [9, 9, 10, 8, 8, 10, 6]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -14556,6 +15282,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -14572,7 +15300,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-128 NetworkX nested_s_blossom_relabel, on ReferencePseudograph, no indices, AdjacencyList.undirected")
+    @Test("MA-128 NetworkX nested_s_blossom_relabel, on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func ma128() {
         // V [1, 2, 7, 3, 4, 5, 6, 8]; E [1-2:10, 1-7:10, 2-3:12, 3-4:20, 3-5:20, 4-5:25, 5-6:10, 6-7:10, 7-8:8]; maximumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -14594,6 +15322,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -14628,6 +15358,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -14642,9 +15374,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(1, 2), (1, 7), (2, 3), (3, 4), (3, 5), (4, 5), (5, 6), (6, 7), (7, 8)]
-            let graph = AdjacencyList<Int>(vertices: [1, 2, 7, 3, 4, 5, 6, 8] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [1, 2, 7, 3, 4, 5, 6, 8] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 9)
             let weights: [Int?] = [10, 10, 12, 20, 20, 25, 10, 10, 8]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -14662,6 +15394,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -14678,7 +15412,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-129 NetworkX nested_s_blossom_expand, on ReferencePseudograph, no indices, AdjacencyList.undirected")
+    @Test("MA-129 NetworkX nested_s_blossom_expand, on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func ma129() {
         // V [1, 2, 3, 4, 5, 6, 7, 8]; E [1-2:8, 1-3:8, 2-3:10, 2-4:12, 3-5:12, 4-5:14, 4-6:12, 5-7:12, 6-7:14, 7-8:12]; maximumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -14700,6 +15434,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -14734,6 +15470,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -14748,9 +15486,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(1, 2), (1, 3), (2, 3), (2, 4), (3, 5), (4, 5), (4, 6), (5, 7), (6, 7), (7, 8)]
-            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4, 5, 6, 7, 8] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4, 5, 6, 7, 8] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 10)
             let weights: [Int?] = [8, 8, 10, 12, 12, 14, 12, 12, 14, 12]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -14768,6 +15506,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -14784,7 +15524,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-130 NetworkX s_blossom_relabel_expand, on ReferencePseudograph, no indices, AdjacencyList.undirected")
+    @Test("MA-130 NetworkX s_blossom_relabel_expand, on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func ma130() {
         // V [1, 2, 5, 6, 3, 4, 8, 7]; E [1-2:23, 1-5:22, 1-6:15, 2-3:25, 3-4:22, 4-5:25, 4-8:14, 5-7:13]; maximumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -14806,6 +15546,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -14840,6 +15582,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -14854,9 +15598,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(1, 2), (1, 5), (1, 6), (2, 3), (3, 4), (4, 5), (4, 8), (5, 7)]
-            let graph = AdjacencyList<Int>(vertices: [1, 2, 5, 6, 3, 4, 8, 7] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [1, 2, 5, 6, 3, 4, 8, 7] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 8)
             let weights: [Int?] = [23, 22, 15, 25, 22, 25, 14, 13]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -14874,6 +15618,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -14890,7 +15636,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-131 NetworkX nested_s_blossom_relabel_expand, on ReferencePseudograph, no indices, AdjacencyList.undirected")
+    @Test("MA-131 NetworkX nested_s_blossom_relabel_expand, on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func ma131() {
         // V [1, 2, 3, 8, 4, 5, 7, 6]; E [1-2:19, 1-3:20, 1-8:8, 2-3:25, 2-4:18, 3-5:18, 4-5:13, 4-7:7, 5-6:7]; maximumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -14912,6 +15658,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -14946,6 +15694,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -14960,9 +15710,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(1, 2), (1, 3), (1, 8), (2, 3), (2, 4), (3, 5), (4, 5), (4, 7), (5, 6)]
-            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 8, 4, 5, 7, 6] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 8, 4, 5, 7, 6] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 9)
             let weights: [Int?] = [19, 20, 8, 25, 18, 18, 13, 7, 7]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -14980,6 +15730,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -14996,7 +15748,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-132 NetworkX nasty_blossom1, on ReferencePseudograph, no indices, AdjacencyList.undirected")
+    @Test("MA-132 NetworkX nasty_blossom1, on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func ma132() {
         // V [1, 2, 5, 3, 4, 6, 9, 8, 7, 10]; E [1-2:45, 1-5:45, 2-3:50, 3-4:45, 4-5:50, 1-6:30, 3-9:35, 4-8:35, 5-7:26, 9-10:5]; maximumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -15018,6 +15770,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -15052,6 +15806,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -15066,9 +15822,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(1, 2), (1, 5), (2, 3), (3, 4), (4, 5), (1, 6), (3, 9), (4, 8), (5, 7), (9, 10)]
-            let graph = AdjacencyList<Int>(vertices: [1, 2, 5, 3, 4, 6, 9, 8, 7, 10] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [1, 2, 5, 3, 4, 6, 9, 8, 7, 10] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 10)
             let weights: [Int?] = [45, 45, 50, 45, 50, 30, 35, 35, 26, 5]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -15086,6 +15842,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -15102,7 +15860,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-133 NetworkX nasty_blossom2, on ReferencePseudograph, no indices, AdjacencyList.undirected")
+    @Test("MA-133 NetworkX nasty_blossom2, on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func ma133() {
         // V [1, 2, 5, 3, 4, 6, 9, 8, 7, 10]; E [1-2:45, 1-5:45, 2-3:50, 3-4:45, 4-5:50, 1-6:30, 3-9:35, 4-8:26, 5-7:40, 9-10:5]; maximumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -15124,6 +15882,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -15158,6 +15918,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -15172,9 +15934,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(1, 2), (1, 5), (2, 3), (3, 4), (4, 5), (1, 6), (3, 9), (4, 8), (5, 7), (9, 10)]
-            let graph = AdjacencyList<Int>(vertices: [1, 2, 5, 3, 4, 6, 9, 8, 7, 10] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [1, 2, 5, 3, 4, 6, 9, 8, 7, 10] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 10)
             let weights: [Int?] = [45, 45, 50, 45, 50, 30, 35, 26, 40, 5]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -15192,6 +15954,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -15208,7 +15972,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-134 NetworkX nasty_blossom_least_slack, on ReferencePseudograph, no indices, AdjacencyList.undirected")
+    @Test("MA-134 NetworkX nasty_blossom_least_slack, on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func ma134() {
         // V [1, 2, 5, 3, 4, 6, 9, 8, 7, 10]; E [1-2:45, 1-5:45, 2-3:50, 3-4:45, 4-5:50, 1-6:30, 3-9:35, 4-8:28, 5-7:26, 9-10:5]; maximumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -15230,6 +15994,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -15264,6 +16030,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -15278,9 +16046,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(1, 2), (1, 5), (2, 3), (3, 4), (4, 5), (1, 6), (3, 9), (4, 8), (5, 7), (9, 10)]
-            let graph = AdjacencyList<Int>(vertices: [1, 2, 5, 3, 4, 6, 9, 8, 7, 10] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [1, 2, 5, 3, 4, 6, 9, 8, 7, 10] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 10)
             let weights: [Int?] = [45, 45, 50, 45, 50, 30, 35, 28, 26, 5]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -15298,6 +16066,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -15314,7 +16084,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-135 NetworkX nasty_blossom_augmenting, on ReferencePseudograph, no indices, AdjacencyList.undirected")
+    @Test("MA-135 NetworkX nasty_blossom_augmenting, on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func ma135() {
         // V [1, 2, 7, 3, 4, 5, 6, 8, 11, 9, 10, 12]; E [1-2:45, 1-7:45, 2-3:50, 3-4:45, 4-5:95, 4-6:94, 5-6:94, 6-7:50, 1-8:30, 3-11:35, 5-9:36, 7-10:26, 11-12:5]; maximumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -15336,6 +16106,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -15370,6 +16142,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -15384,9 +16158,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(1, 2), (1, 7), (2, 3), (3, 4), (4, 5), (4, 6), (5, 6), (6, 7), (1, 8), (3, 11), (5, 9), (7, 10), (11, 12)]
-            let graph = AdjacencyList<Int>(vertices: [1, 2, 7, 3, 4, 5, 6, 8, 11, 9, 10, 12] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [1, 2, 7, 3, 4, 5, 6, 8, 11, 9, 10, 12] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 13)
             let weights: [Int?] = [45, 45, 50, 45, 95, 94, 94, 50, 30, 35, 36, 26, 5]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -15404,6 +16178,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -15420,7 +16196,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-136 NetworkX nasty_blossom_expand_recursively, on ReferencePseudograph, no indices, AdjacencyList.undirected")
+    @Test("MA-136 NetworkX nasty_blossom_expand_recursively, on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func ma136() {
         // V [1, 2, 3, 4, 5, 8, 7, 6, 10, 9]; E [1-2:40, 1-3:40, 2-3:60, 2-4:55, 3-5:55, 4-5:50, 1-8:15, 5-7:30, 7-6:10, 8-10:10, 4-9:30]; maximumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -15442,6 +16218,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -15476,6 +16254,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -15490,9 +16270,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(1, 2), (1, 3), (2, 3), (2, 4), (3, 5), (4, 5), (1, 8), (5, 7), (7, 6), (8, 10), (4, 9)]
-            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4, 5, 8, 7, 6, 10, 9] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4, 5, 8, 7, 6, 10, 9] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 11)
             let weights: [Int?] = [40, 40, 60, 55, 55, 50, 15, 30, 10, 10, 30]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -15510,6 +16290,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -15526,7 +16308,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-137 ties: unit-weight triangle, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-137 ties: unit-weight triangle, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma137() {
         // V [0, 1, 2]; E [0-1:1, 1-2:1, 2-0:1]; maximumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -15548,6 +16330,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -15582,6 +16366,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -15596,9 +16382,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let weights: [Int?] = [1, 1, 1]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -15616,6 +16402,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -15630,9 +16418,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let weightTable: [[Int]: Int] = [[0, 1]: 1, [1, 2]: 1, [2, 0]: 1]
             func weightOf(_ e: AdjacencyMatrix.Edges.Index) -> Int { weightTable[[e.source, e.target]]! }
@@ -15650,6 +16438,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -15666,7 +16456,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-138 ties: unit-weight C4 (two optimal matchings), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-138 ties: unit-weight C4 (two optimal matchings), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma138() {
         // V [0, 1, 2, 3]; E [0-1:1, 1-2:1, 2-3:1, 3-0:1]; maximumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -15688,6 +16478,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -15722,6 +16514,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -15736,9 +16530,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 0)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 4)
             let weights: [Int?] = [1, 1, 1, 1]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -15756,6 +16550,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -15770,9 +16566,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 4)
             let weightTable: [[Int]: Int] = [[0, 1]: 1, [1, 2]: 1, [2, 3]: 1, [3, 0]: 1]
             func weightOf(_ e: AdjacencyMatrix.Edges.Index) -> Int { weightTable[[e.source, e.target]]! }
@@ -15790,6 +16586,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -15806,7 +16604,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-139 ties: C4 listed from a different start, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-139 ties: C4 listed from a different start, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma139() {
         // V [0, 1, 2, 3]; E [1-2:1, 2-3:1, 3-0:1, 0-1:1]; maximumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -15828,6 +16626,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -15862,6 +16662,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -15876,9 +16678,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(1, 2), (2, 3), (3, 0), (0, 1)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 4)
             let weights: [Int?] = [1, 1, 1, 1]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -15896,6 +16698,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -15910,9 +16714,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 4)
             let weightTable: [[Int]: Int] = [[0, 1]: 1, [1, 2]: 1, [2, 3]: 1, [3, 0]: 1]
             func weightOf(_ e: AdjacencyMatrix.Edges.Index) -> Int { weightTable[[e.source, e.target]]! }
@@ -15930,6 +16734,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -15946,7 +16752,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-140 ties: K4 all weights 2, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-140 ties: K4 all weights 2, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma140() {
         // V [0, 1, 2, 3]; E [0-1:2, 0-2:2, 0-3:2, 1-2:2, 1-3:2, 2-3:2]; maximumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -15968,6 +16774,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -16002,6 +16810,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -16016,9 +16826,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
             let weights: [Int?] = [2, 2, 2, 2, 2, 2]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -16036,6 +16846,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -16050,9 +16862,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
             let weightTable: [[Int]: Int] = [[0, 1]: 2, [0, 2]: 2, [0, 3]: 2, [1, 2]: 2, [1, 3]: 2, [2, 3]: 2]
             func weightOf(_ e: AdjacencyMatrix.Edges.Index) -> Int { weightTable[[e.source, e.target]]! }
@@ -16070,6 +16882,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -16086,7 +16900,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-141 one heavy edge beats two light, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-141 one heavy edge beats two light, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma141() {
         // V [0, 1, 2, 3]; E [0-1:1, 1-2:3, 2-3:1]; maximumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -16108,6 +16922,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -16142,6 +16958,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -16156,9 +16974,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let weights: [Int?] = [1, 3, 1]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -16176,6 +16994,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -16190,9 +17010,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let weightTable: [[Int]: Int] = [[0, 1]: 1, [1, 2]: 3, [2, 3]: 1]
             func weightOf(_ e: AdjacencyMatrix.Edges.Index) -> Int { weightTable[[e.source, e.target]]! }
@@ -16210,6 +17030,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -16226,7 +17048,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-142 one heavy edge vs two light, maximumCardinality, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-142 one heavy edge vs two light, maximumCardinality, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma142() {
         // V [0, 1, 2, 3]; E [0-1:1, 1-2:3, 2-3:1]; maximumWeightMatching(weight:, maximumCardinality: true)
         do { // ReferencePseudograph
@@ -16248,6 +17070,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -16282,6 +17106,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -16296,9 +17122,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let weights: [Int?] = [1, 3, 1]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -16316,6 +17142,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -16330,9 +17158,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let weightTable: [[Int]: Int] = [[0, 1]: 1, [1, 2]: 3, [2, 3]: 1]
             func weightOf(_ e: AdjacencyMatrix.Edges.Index) -> Int { weightTable[[e.source, e.target]]! }
@@ -16350,6 +17178,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -16366,7 +17196,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-143 all weights negative, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-143 all weights negative, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma143() {
         // V [0, 1, 2, 3]; E [0-1:-1, 1-2:-2, 2-3:-1]; maximumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -16388,6 +17218,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -16422,6 +17254,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -16436,9 +17270,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let weights: [Int?] = [-1, -2, -1]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -16456,6 +17290,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -16470,9 +17306,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let weightTable: [[Int]: Int] = [[0, 1]: -1, [1, 2]: -2, [2, 3]: -1]
             func weightOf(_ e: AdjacencyMatrix.Edges.Index) -> Int { weightTable[[e.source, e.target]]! }
@@ -16490,6 +17326,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -16506,7 +17344,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-144 all weights negative, maximumCardinality, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-144 all weights negative, maximumCardinality, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma144() {
         // V [0, 1, 2, 3]; E [0-1:-1, 1-2:-2, 2-3:-1]; maximumWeightMatching(weight:, maximumCardinality: true)
         do { // ReferencePseudograph
@@ -16528,6 +17366,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -16562,6 +17402,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -16576,9 +17418,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let weights: [Int?] = [-1, -2, -1]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -16596,6 +17438,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -16610,9 +17454,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let weightTable: [[Int]: Int] = [[0, 1]: -1, [1, 2]: -2, [2, 3]: -1]
             func weightOf(_ e: AdjacencyMatrix.Edges.Index) -> Int { weightTable[[e.source, e.target]]! }
@@ -16630,6 +17474,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -16646,7 +17492,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-145 zero weights, maximumCardinality, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-145 zero weights, maximumCardinality, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma145() {
         // V [0, 1, 2, 3]; E [0-1:0, 1-2:0, 2-3:0]; maximumWeightMatching(weight:, maximumCardinality: true)
         do { // ReferencePseudograph
@@ -16668,6 +17514,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -16702,6 +17550,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -16716,9 +17566,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let weights: [Int?] = [0, 0, 0]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -16736,6 +17586,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -16750,9 +17602,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let weightTable: [[Int]: Int] = [[0, 1]: 0, [1, 2]: 0, [2, 3]: 0]
             func weightOf(_ e: AdjacencyMatrix.Edges.Index) -> Int { weightTable[[e.source, e.target]]! }
@@ -16770,6 +17622,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -16786,7 +17640,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-146 float halves (Double path, delta3 = slack/2), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-146 float halves (Double path, delta3 = slack/2), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma146() {
         // V [0, 1, 2, 3]; E [0-1:0.5, 1-2:1.5, 2-3:0.5, 3-0:1.25]; maximumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -16808,6 +17662,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -16842,6 +17698,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -16856,9 +17714,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 0)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 4)
             let weights: [Double?] = [0.5, 1.5, 0.5, 1.25]
             func weightOf(_ e: Int) -> Double { weights[e]! }
@@ -16876,6 +17734,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -16890,9 +17750,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 4)
             let weightTable: [[Int]: Double] = [[0, 1]: 0.5, [1, 2]: 1.5, [2, 3]: 0.5, [3, 0]: 1.25]
             func weightOf(_ e: AdjacencyMatrix.Edges.Index) -> Double { weightTable[[e.source, e.target]]! }
@@ -16910,6 +17770,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -16926,7 +17788,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-147 odd integer weights on a triangle plus pendant, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-147 odd integer weights on a triangle plus pendant, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma147() {
         // V [0, 1, 2, 3]; E [0-1:3, 1-2:5, 2-0:7, 2-3:1]; maximumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -16948,6 +17810,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -16982,6 +17846,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -16996,9 +17862,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (2, 3)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 4)
             let weights: [Int?] = [3, 5, 7, 1]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -17016,6 +17882,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -17030,9 +17898,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (2, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 4)
             let weightTable: [[Int]: Int] = [[0, 1]: 3, [1, 2]: 5, [2, 0]: 7, [2, 3]: 1]
             func weightOf(_ e: AdjacencyMatrix.Edges.Index) -> Int { weightTable[[e.source, e.target]]! }
@@ -17050,6 +17918,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -17066,7 +17936,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-148 loop heavier than every edge (never weighed), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-148 loop heavier than every edge (never weighed), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma148() {
         // V [0, 1, 2]; E [0-0:100, 0-1:2, 1-2:3]; maximumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -17093,6 +17963,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -17132,6 +18004,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -17146,9 +18020,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 0), (0, 1), (1, 2)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let weights: [Int?] = [nil, 2, 3]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -17171,6 +18045,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -17185,9 +18061,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 0), (0, 1), (1, 2)]
-            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let weightTable: [[Int]: Int] = [[0, 1]: 2, [1, 2]: 3]
             func weightOf(_ e: AdjacencyMatrix.Edges.Index) -> Int { weightTable[[e.source, e.target]]! }
@@ -17210,6 +18086,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -17249,6 +18127,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -17265,7 +18145,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-150 lcgw(10,20,1,9), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-150 lcgw(10,20,1,9), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma150() {
         // lcgw(10,20,1,9); maximumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -17287,6 +18167,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -17321,6 +18203,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -17335,9 +18219,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(4, 3), (0, 4), (0, 2), (6, 3), (4, 2), (5, 2), (6, 0), (8, 4), (1, 8), (5, 4), (6, 8), (9, 5), (1, 4), (1, 3), (6, 4), (0, 8), (7, 0), (2, 8), (1, 5), (6, 2)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 20)
             let weights: [Int?] = [4, 9, 4, 8, 2, 7, 4, 3, 3, 1, 5, 5, 4, 8, 8, 2, 4, 6, 8, 8]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -17355,6 +18239,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -17369,9 +18255,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 2), (0, 4), (0, 8), (1, 3), (1, 4), (1, 5), (1, 8), (2, 8), (4, 2), (4, 3), (5, 2), (5, 4), (6, 0), (6, 2), (6, 3), (6, 4), (6, 8), (7, 0), (8, 4), (9, 5)]
-            let graph = AdjacencyMatrix(vertexCount: 10, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 10, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 20)
             let weightTable: [[Int]: Int] = [[0, 2]: 4, [0, 4]: 9, [0, 8]: 2, [1, 3]: 8, [1, 4]: 4, [1, 5]: 8, [1, 8]: 3, [2, 8]: 6, [4, 2]: 2, [4, 3]: 4, [5, 2]: 7, [5, 4]: 1, [6, 0]: 4, [6, 2]: 8, [6, 3]: 8, [6, 4]: 8, [6, 8]: 5, [7, 0]: 4, [8, 4]: 3, [9, 5]: 5]
             func weightOf(_ e: AdjacencyMatrix.Edges.Index) -> Int { weightTable[[e.source, e.target]]! }
@@ -17389,6 +18275,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -17405,7 +18293,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-151 lcgw(12,25,2,5), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-151 lcgw(12,25,2,5), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma151() {
         // lcgw(12,25,2,5); maximumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -17427,6 +18315,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -17461,6 +18351,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -17475,9 +18367,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(4, 6), (8, 11), (0, 6), (2, 11), (6, 5), (7, 8), (8, 2), (6, 11), (11, 7), (4, 9), (3, 1), (4, 0), (3, 8), (7, 4), (10, 2), (1, 6), (8, 9), (6, 2), (2, 5), (4, 10), (1, 8), (9, 2), (3, 6), (10, 5), (7, 3)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 25)
             let weights: [Int?] = [2, 5, 1, 3, 2, 4, 1, 3, 4, 2, 3, 5, 1, 2, 3, 1, 2, 2, 1, 5, 5, 4, 4, 4, 5]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -17495,6 +18387,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -17509,9 +18403,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 6), (1, 6), (1, 8), (2, 5), (2, 11), (3, 1), (3, 6), (3, 8), (4, 0), (4, 6), (4, 9), (4, 10), (6, 2), (6, 5), (6, 11), (7, 3), (7, 4), (7, 8), (8, 2), (8, 9), (8, 11), (9, 2), (10, 2), (10, 5), (11, 7)]
-            let graph = AdjacencyMatrix(vertexCount: 12, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 12, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 25)
             let weightTable: [[Int]: Int] = [[0, 6]: 1, [1, 6]: 1, [1, 8]: 5, [2, 5]: 1, [2, 11]: 3, [3, 1]: 3, [3, 6]: 4, [3, 8]: 1, [4, 0]: 5, [4, 6]: 2, [4, 9]: 2, [4, 10]: 5, [6, 2]: 2, [6, 5]: 2, [6, 11]: 3, [7, 3]: 5, [7, 4]: 2, [7, 8]: 4, [8, 2]: 1, [8, 9]: 2, [8, 11]: 5, [9, 2]: 4, [10, 2]: 3, [10, 5]: 4, [11, 7]: 4]
             func weightOf(_ e: AdjacencyMatrix.Edges.Index) -> Int { weightTable[[e.source, e.target]]! }
@@ -17529,6 +18423,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -17545,7 +18441,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-152 lcgw(12,25,2,5), maximumCardinality, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-152 lcgw(12,25,2,5), maximumCardinality, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma152() {
         // lcgw(12,25,2,5); maximumWeightMatching(weight:, maximumCardinality: true)
         do { // ReferencePseudograph
@@ -17567,6 +18463,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -17601,6 +18499,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -17615,9 +18515,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(4, 6), (8, 11), (0, 6), (2, 11), (6, 5), (7, 8), (8, 2), (6, 11), (11, 7), (4, 9), (3, 1), (4, 0), (3, 8), (7, 4), (10, 2), (1, 6), (8, 9), (6, 2), (2, 5), (4, 10), (1, 8), (9, 2), (3, 6), (10, 5), (7, 3)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 25)
             let weights: [Int?] = [2, 5, 1, 3, 2, 4, 1, 3, 4, 2, 3, 5, 1, 2, 3, 1, 2, 2, 1, 5, 5, 4, 4, 4, 5]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -17635,6 +18535,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -17649,9 +18551,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 6), (1, 6), (1, 8), (2, 5), (2, 11), (3, 1), (3, 6), (3, 8), (4, 0), (4, 6), (4, 9), (4, 10), (6, 2), (6, 5), (6, 11), (7, 3), (7, 4), (7, 8), (8, 2), (8, 9), (8, 11), (9, 2), (10, 2), (10, 5), (11, 7)]
-            let graph = AdjacencyMatrix(vertexCount: 12, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 12, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 25)
             let weightTable: [[Int]: Int] = [[0, 6]: 1, [1, 6]: 1, [1, 8]: 5, [2, 5]: 1, [2, 11]: 3, [3, 1]: 3, [3, 6]: 4, [3, 8]: 1, [4, 0]: 5, [4, 6]: 2, [4, 9]: 2, [4, 10]: 5, [6, 2]: 2, [6, 5]: 2, [6, 11]: 3, [7, 3]: 5, [7, 4]: 2, [7, 8]: 4, [8, 2]: 1, [8, 9]: 2, [8, 11]: 5, [9, 2]: 4, [10, 2]: 3, [10, 5]: 4, [11, 7]: 4]
             func weightOf(_ e: AdjacencyMatrix.Edges.Index) -> Int { weightTable[[e.source, e.target]]! }
@@ -17669,6 +18571,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -17685,7 +18589,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-153 lcgw(14,30,6,3) many ties, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-153 lcgw(14,30,6,3) many ties, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma153() {
         // lcgw(14,30,6,3); maximumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -17707,6 +18611,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -17741,6 +18647,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -17755,9 +18663,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(11, 4), (1, 4), (10, 2), (13, 7), (12, 10), (6, 1), (3, 5), (0, 1), (7, 9), (0, 3), (11, 7), (2, 3), (6, 13), (3, 4), (7, 4), (4, 6), (0, 9), (6, 5), (8, 6), (8, 12), (7, 6), (2, 1), (7, 3), (12, 7), (5, 10), (8, 0), (6, 3), (8, 5), (10, 7), (4, 13)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 30)
             let weights: [Int?] = [1, 3, 2, 2, 2, 1, 2, 2, 1, 1, 1, 3, 1, 2, 1, 2, 2, 2, 1, 1, 1, 1, 2, 1, 2, 1, 2, 3, 2, 3]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -17775,6 +18683,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -17789,9 +18699,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 3), (0, 9), (1, 4), (2, 1), (2, 3), (3, 4), (3, 5), (4, 6), (4, 13), (5, 10), (6, 1), (6, 3), (6, 5), (6, 13), (7, 3), (7, 4), (7, 6), (7, 9), (8, 0), (8, 5), (8, 6), (8, 12), (10, 2), (10, 7), (11, 4), (11, 7), (12, 7), (12, 10), (13, 7)]
-            let graph = AdjacencyMatrix(vertexCount: 14, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 14, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 30)
             let weightTable: [[Int]: Int] = [[0, 1]: 2, [0, 3]: 1, [0, 9]: 2, [1, 4]: 3, [2, 1]: 1, [2, 3]: 3, [3, 4]: 2, [3, 5]: 2, [4, 6]: 2, [4, 13]: 3, [5, 10]: 2, [6, 1]: 1, [6, 3]: 2, [6, 5]: 2, [6, 13]: 1, [7, 3]: 2, [7, 4]: 1, [7, 6]: 1, [7, 9]: 1, [8, 0]: 1, [8, 5]: 3, [8, 6]: 1, [8, 12]: 1, [10, 2]: 2, [10, 7]: 2, [11, 4]: 1, [11, 7]: 1, [12, 7]: 1, [12, 10]: 2, [13, 7]: 2]
             func weightOf(_ e: AdjacencyMatrix.Edges.Index) -> Int { weightTable[[e.source, e.target]]! }
@@ -17809,6 +18719,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -17825,7 +18737,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-154 lcgw(40,100,3,50) (against NetworkX only), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-154 lcgw(40,100,3,50) (against NetworkX only), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma154() {
         // lcgw(40,100,3,50); maximumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -17847,6 +18759,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -17881,6 +18795,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -17895,9 +18811,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(19, 3), (18, 4), (15, 5), (9, 3), (16, 29), (25, 19), (7, 16), (6, 11), (21, 11), (3, 5), (29, 14), (39, 25), (1, 23), (19, 15), (20, 6), (17, 5), (29, 18), (26, 25), (26, 1), (26, 24), (11, 30), (5, 35), (11, 17), (19, 12), (19, 14), (20, 34), (27, 19), (15, 29), (4, 16), (23, 19), (30, 16), (25, 38), (25, 7), (8, 2), (25, 36), (5, 33), (36, 6), (37, 8), (6, 7), (35, 11), (33, 19), (16, 6), (26, 32), (38, 31), (0, 13), (1, 36), (28, 37), (38, 2), (38, 28), (24, 31), (23, 29), (37, 2), (36, 8), (37, 1), (3, 26), (20, 35), (26, 38), (17, 13), (27, 13), (27, 14), (34, 38), (6, 23), (12, 32), (14, 36), (26, 39), (12, 2), (20, 12), (9, 12), (34, 24), (8, 28), (35, 15), (33, 27), (10, 26), (15, 38), (19, 6), (18, 7), (32, 6), (33, 30), (24, 18), (17, 21), (14, 3), (39, 14), (32, 30), (31, 29), (6, 28), (4, 37), (20, 29), (32, 25), (11, 27), (18, 15), (18, 9), (29, 30), (30, 9), (31, 7), (13, 6), (35, 9), (32, 13), (8, 17), (23, 18), (32, 27)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 100)
             let weights: [Int?] = [16, 4, 40, 43, 39, 30, 16, 7, 34, 25, 22, 19, 19, 10, 1, 20, 22, 36, 16, 22, 38, 32, 50, 27, 4, 25, 19, 30, 46, 12, 20, 38, 6, 25, 38, 35, 39, 30, 48, 26, 36, 9, 27, 48, 39, 4, 16, 16, 4, 1, 1, 23, 3, 35, 43, 27, 50, 35, 7, 6, 10, 9, 42, 7, 17, 23, 1, 18, 9, 18, 33, 30, 18, 40, 24, 20, 6, 33, 43, 2, 36, 48, 14, 34, 40, 12, 20, 17, 50, 31, 25, 32, 47, 2, 15, 1, 37, 8, 42, 50]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -17915,6 +18831,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -17929,9 +18847,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 13), (1, 23), (1, 36), (3, 5), (3, 26), (4, 16), (4, 37), (5, 33), (5, 35), (6, 7), (6, 11), (6, 23), (6, 28), (7, 16), (8, 2), (8, 17), (8, 28), (9, 3), (9, 12), (10, 26), (11, 17), (11, 27), (11, 30), (12, 2), (12, 32), (13, 6), (14, 3), (14, 36), (15, 5), (15, 29), (15, 38), (16, 6), (16, 29), (17, 5), (17, 13), (17, 21), (18, 4), (18, 7), (18, 9), (18, 15), (19, 3), (19, 6), (19, 12), (19, 14), (19, 15), (20, 6), (20, 12), (20, 29), (20, 34), (20, 35), (21, 11), (23, 18), (23, 19), (23, 29), (24, 18), (24, 31), (25, 7), (25, 19), (25, 36), (25, 38), (26, 1), (26, 24), (26, 25), (26, 32), (26, 38), (26, 39), (27, 13), (27, 14), (27, 19), (28, 37), (29, 14), (29, 18), (29, 30), (30, 9), (30, 16), (31, 7), (31, 29), (32, 6), (32, 13), (32, 25), (32, 27), (32, 30), (33, 19), (33, 27), (33, 30), (34, 24), (34, 38), (35, 9), (35, 11), (35, 15), (36, 6), (36, 8), (37, 1), (37, 2), (37, 8), (38, 2), (38, 28), (38, 31), (39, 14), (39, 25)]
-            let graph = AdjacencyMatrix(vertexCount: 40, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 40, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 100)
             let weightTable: [[Int]: Int] = [[0, 13]: 39, [1, 23]: 19, [1, 36]: 4, [3, 5]: 25, [3, 26]: 43, [4, 16]: 46, [4, 37]: 12, [5, 33]: 35, [5, 35]: 32, [6, 7]: 48, [6, 11]: 7, [6, 23]: 9, [6, 28]: 40, [7, 16]: 16, [8, 2]: 25, [8, 17]: 8, [8, 28]: 18, [9, 3]: 43, [9, 12]: 18, [10, 26]: 18, [11, 17]: 50, [11, 27]: 50, [11, 30]: 38, [12, 2]: 23, [12, 32]: 42, [13, 6]: 15, [14, 3]: 36, [14, 36]: 7, [15, 5]: 40, [15, 29]: 30, [15, 38]: 40, [16, 6]: 9, [16, 29]: 39, [17, 5]: 20, [17, 13]: 35, [17, 21]: 2, [18, 4]: 4, [18, 7]: 20, [18, 9]: 25, [18, 15]: 31, [19, 3]: 16, [19, 6]: 24, [19, 12]: 27, [19, 14]: 4, [19, 15]: 10, [20, 6]: 1, [20, 12]: 1, [20, 29]: 20, [20, 34]: 25, [20, 35]: 27, [21, 11]: 34, [23, 18]: 42, [23, 19]: 12, [23, 29]: 1, [24, 18]: 43, [24, 31]: 1, [25, 7]: 6, [25, 19]: 30, [25, 36]: 38, [25, 38]: 38, [26, 1]: 16, [26, 24]: 22, [26, 25]: 36, [26, 32]: 27, [26, 38]: 50, [26, 39]: 17, [27, 13]: 7, [27, 14]: 6, [27, 19]: 19, [28, 37]: 16, [29, 14]: 22, [29, 18]: 22, [29, 30]: 32, [30, 9]: 47, [30, 16]: 20, [31, 7]: 2, [31, 29]: 34, [32, 6]: 6, [32, 13]: 37, [32, 25]: 17, [32, 27]: 50, [32, 30]: 14, [33, 19]: 36, [33, 27]: 30, [33, 30]: 33, [34, 24]: 9, [34, 38]: 10, [35, 9]: 1, [35, 11]: 26, [35, 15]: 33, [36, 6]: 39, [36, 8]: 3, [37, 1]: 35, [37, 2]: 23, [37, 8]: 30, [38, 2]: 16, [38, 28]: 4, [38, 31]: 48, [39, 14]: 48, [39, 25]: 19]
             func weightOf(_ e: AdjacencyMatrix.Edges.Index) -> Int { weightTable[[e.source, e.target]]! }
@@ -17949,6 +18867,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -17965,7 +18885,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-155 bipartite K3,3 weights i·j, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-155 bipartite K3,3 weights i·j, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma155() {
         // V [0, 1, 2, 3, 4, 5]; E [0-3:1, 0-4:2, 0-5:3, 1-3:2, 1-4:4, 1-5:6, 2-3:3, 2-4:6, 2-5:9]; maximumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -17987,6 +18907,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -18021,6 +18943,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -18035,9 +18959,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 3), (0, 4), (0, 5), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 9)
             let weights: [Int?] = [1, 2, 3, 2, 4, 6, 3, 6, 9]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -18055,6 +18979,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -18069,9 +18995,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 3), (0, 4), (0, 5), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5)]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 9)
             let weightTable: [[Int]: Int] = [[0, 3]: 1, [0, 4]: 2, [0, 5]: 3, [1, 3]: 2, [1, 4]: 4, [1, 5]: 6, [2, 3]: 3, [2, 4]: 6, [2, 5]: 9]
             func weightOf(_ e: AdjacencyMatrix.Edges.Index) -> Int { weightTable[[e.source, e.target]]! }
@@ -18089,6 +19015,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -18105,7 +19033,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-156 Petersen unit weights, maximumCardinality, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-156 Petersen unit weights, maximumCardinality, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma156() {
         // V [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]; E [0-1:1, 0-4:1, 0-5:1, 1-2:1, 1-6:1, 2-3:1, 2-7:1, 3-4:1, 3-8:1, 4-9:1, 5-7:1, 5-8:1, 6-8:1, 6-9:1, 7-9:1]; maximumWeightMatching(weight:, maximumCardinality: true)
         do { // ReferencePseudograph
@@ -18127,6 +19055,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -18161,6 +19091,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -18175,9 +19107,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 15)
             let weights: [Int?] = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -18195,6 +19127,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -18209,9 +19143,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
-            let graph = AdjacencyMatrix(vertexCount: 10, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 10, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 15)
             let weightTable: [[Int]: Int] = [[0, 1]: 1, [0, 4]: 1, [0, 5]: 1, [1, 2]: 1, [1, 6]: 1, [2, 3]: 1, [2, 7]: 1, [3, 4]: 1, [3, 8]: 1, [4, 9]: 1, [5, 7]: 1, [5, 8]: 1, [6, 8]: 1, [6, 9]: 1, [7, 9]: 1]
             func weightOf(_ e: AdjacencyMatrix.Edges.Index) -> Int { weightTable[[e.source, e.target]]! }
@@ -18229,6 +19163,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -18245,7 +19181,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-157 NetworkX two_path, on ReferencePseudograph, no indices, AdjacencyList.undirected")
+    @Test("MA-157 NetworkX two_path, on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func ma157() {
         // V [one, two, three]; E [one-two:10, two-three:11]; minimumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -18267,6 +19203,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -18301,6 +19239,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -18315,9 +19255,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(String, String)] = [("one", "two"), ("two", "three")]
-            let graph = AdjacencyList<String>(vertices: ["one", "two", "three"] as [String], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<String>(vertices: ["one", "two", "three"] as [String], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 2)
             let weights: [Int?] = [10, 11]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -18335,6 +19275,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -18351,7 +19293,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-158 NetworkX path, on ReferencePseudograph, no indices, AdjacencyList.undirected")
+    @Test("MA-158 NetworkX path, on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func ma158() {
         // V [1, 2, 3, 4]; E [1-2:5, 2-3:11, 3-4:5]; minimumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -18373,6 +19315,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -18407,6 +19351,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -18421,9 +19367,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(1, 2), (2, 3), (3, 4)]
-            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let weights: [Int?] = [5, 11, 5]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -18441,6 +19387,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -18457,7 +19405,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-159 NetworkX square, on ReferencePseudograph, no indices, AdjacencyList.undirected")
+    @Test("MA-159 NetworkX square, on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func ma159() {
         // V [1, 4, 2, 3]; E [1-4:2, 2-3:2, 1-2:1, 3-4:4]; minimumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -18479,6 +19427,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -18513,6 +19463,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -18527,9 +19479,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(1, 4), (2, 3), (1, 2), (3, 4)]
-            let graph = AdjacencyList<Int>(vertices: [1, 4, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [1, 4, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 4)
             let weights: [Int?] = [2, 2, 1, 4]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -18547,6 +19499,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -18563,7 +19517,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-160 NetworkX negative weights, on ReferencePseudograph, no indices, AdjacencyList.undirected")
+    @Test("MA-160 NetworkX negative weights, on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func ma160() {
         // V [1, 2, 3, 4]; E [1-2:2, 1-3:-2, 2-3:1, 2-4:-1, 3-4:-6]; minimumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -18585,6 +19539,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -18619,6 +19575,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -18633,9 +19591,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(1, 2), (1, 3), (2, 3), (2, 4), (3, 4)]
-            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 5)
             let weights: [Int?] = [2, -2, 1, -1, -6]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -18653,6 +19611,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -18669,7 +19629,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-161 NetworkX s_blossom, on ReferencePseudograph, no indices, AdjacencyList.undirected")
+    @Test("MA-161 NetworkX s_blossom, on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func ma161() {
         // V [1, 2, 3, 4]; E [1-2:8, 1-3:9, 2-3:10, 3-4:7]; minimumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -18691,6 +19651,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -18725,6 +19687,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -18739,9 +19703,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(1, 2), (1, 3), (2, 3), (3, 4)]
-            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 4)
             let weights: [Int?] = [8, 9, 10, 7]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -18759,6 +19723,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -18775,7 +19741,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-162 NetworkX min_weight_matching_max_cardinality, on ReferencePseudograph, no indices, AdjacencyList.undirected")
+    @Test("MA-162 NetworkX min_weight_matching_max_cardinality, on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func ma162() {
         // V [1, 2, 3, 4]; E [1-2:1000, 2-3:2, 3-4:3000]; minimumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -18797,6 +19763,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -18831,6 +19799,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -18845,9 +19815,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(1, 2), (2, 3), (3, 4)]
-            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let weights: [Int?] = [1000, 2, 3000]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -18865,6 +19835,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -18881,7 +19853,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-163 NetworkX floating-point weights, on ReferencePseudograph, no indices, AdjacencyList.undirected")
+    @Test("MA-163 NetworkX floating-point weights, on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func ma163() {
         // V [1, 2, 3, 4]; E [1-2:3.141592653589793, 2-3:2.718281828459045, 1-3:3.0, 1-4:1.4142135623730951]; minimumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -18903,6 +19875,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -18937,6 +19911,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -18951,9 +19927,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(1, 2), (2, 3), (1, 3), (1, 4)]
-            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 4)
             let weights: [Double?] = [3.141592653589793, 2.718281828459045, 3.0, 1.4142135623730951]
             func weightOf(_ e: Int) -> Double { weights[e]! }
@@ -18971,6 +19947,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -18987,7 +19965,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-164 isolated vertex first (NetworkX reorders vertices) (NetworkX builds a new graph from the edges, dropping isolated vertices and reordering), on ReferencePseudograph, no indices, AdjacencyList.undirected")
+    @Test("MA-164 isolated vertex first (NetworkX reorders vertices) (NetworkX builds a new graph from the edges, dropping isolated vertices and reordering), on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func ma164() {
         // V [9, 1, 2, 3, 4]; E [1-2:1, 2-3:1, 3-4:1, 4-1:1]; minimumWeightMatching(weight:)
         // The catalog cell lists edges [1, 3]: ref.py rebuilds the transformed graph in
@@ -19012,6 +19990,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -19046,6 +20026,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -19060,9 +20042,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(1, 2), (2, 3), (3, 4), (4, 1)]
-            let graph = AdjacencyList<Int>(vertices: [9, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [9, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 4)
             let weights: [Int?] = [1, 1, 1, 1]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -19080,6 +20062,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -19096,7 +20080,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-165 lcgw(10,20,4,7), on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-165 lcgw(10,20,4,7), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma165() {
         // lcgw(10,20,4,7); minimumWeightMatching(weight:)
         do { // ReferencePseudograph
@@ -19118,6 +20102,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -19152,6 +20138,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -19166,9 +20154,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(6, 2), (1, 5), (1, 3), (6, 5), (6, 4), (7, 4), (8, 5), (8, 7), (6, 3), (0, 9), (0, 5), (2, 8), (8, 6), (9, 6), (3, 2), (1, 2), (9, 1), (4, 1), (7, 3), (9, 4)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 20)
             let weights: [Int?] = [2, 5, 2, 2, 6, 7, 4, 2, 7, 3, 2, 7, 7, 3, 4, 7, 4, 4, 4, 7]
             func weightOf(_ e: Int) -> Int { weights[e]! }
@@ -19186,6 +20174,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -19200,9 +20190,9 @@ struct MatchingRepresentationTests {
             for e in matching.edges { sum += weightOf(e) }
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 5), (0, 9), (1, 2), (1, 3), (1, 5), (2, 8), (3, 2), (4, 1), (6, 2), (6, 3), (6, 4), (6, 5), (7, 3), (7, 4), (8, 5), (8, 6), (8, 7), (9, 1), (9, 4), (9, 6)]
-            let graph = AdjacencyMatrix(vertexCount: 10, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 10, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 20)
             let weightTable: [[Int]: Int] = [[0, 5]: 2, [0, 9]: 3, [1, 2]: 7, [1, 3]: 2, [1, 5]: 5, [2, 8]: 7, [3, 2]: 4, [4, 1]: 4, [6, 2]: 2, [6, 3]: 7, [6, 4]: 6, [6, 5]: 2, [7, 3]: 4, [7, 4]: 7, [8, 5]: 4, [8, 6]: 7, [8, 7]: 2, [9, 1]: 4, [9, 4]: 7, [9, 6]: 3]
             func weightOf(_ e: AdjacencyMatrix.Edges.Index) -> Int { weightTable[[e.source, e.target]]! }
@@ -19220,6 +20210,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -19261,6 +20253,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -19317,6 +20311,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -19358,6 +20354,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -19399,6 +20397,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -19440,6 +20440,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -19481,6 +20483,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -19522,6 +20526,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -19563,6 +20569,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -19604,6 +20612,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -19645,6 +20655,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -19661,7 +20673,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-177 Graph: path P4 via bipartition, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-177 Graph: path P4 via bipartition, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma177() throws {
         // V [0, 1, 2, 3]; E [0-1:5, 1-2:1, 2-3:5]; minimumWeightFullMatching(bipartition: bipartition()!, weight:)
         do { // ReferencePseudograph
@@ -19685,6 +20697,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -19722,6 +20736,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -19737,9 +20753,9 @@ struct MatchingRepresentationTests {
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
             #expect(matching.edges.count == 2, "full: covers the smaller side")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let bipartition = try #require(graph.bipartition())
             #expect(Array(bipartition.left) == [0, 2] as [Int])
@@ -19759,6 +20775,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -19774,9 +20792,9 @@ struct MatchingRepresentationTests {
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
             #expect(matching.edges.count == 2, "full: covers the smaller side")
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let bipartition = try #require(graph.bipartition())
             #expect(Array(bipartition.left) == [0, 2] as [Int])
@@ -19796,6 +20814,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -19813,7 +20833,7 @@ struct MatchingRepresentationTests {
         }
     }
 
-    @Test("MA-178 Graph: C6 weights by position, on ReferencePseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("MA-178 Graph: C6 weights by position, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func ma178() throws {
         // V [0, 1, 2, 3, 4, 5]; E [0-1:1, 1-2:2, 2-3:3, 3-4:4, 4-5:5, 5-0:6]; minimumWeightFullMatching(bipartition: bipartition()!, weight:)
         do { // ReferencePseudograph
@@ -19837,6 +20857,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -19874,6 +20896,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -19889,9 +20913,9 @@ struct MatchingRepresentationTests {
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
             #expect(matching.edges.count == 3, "full: covers the smaller side")
         }
-        do { // AdjacencyList.undirected
+        do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0)]
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
             let bipartition = try #require(graph.bipartition())
             #expect(Array(bipartition.left) == [0, 2, 4] as [Int])
@@ -19911,6 +20935,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -19926,9 +20952,9 @@ struct MatchingRepresentationTests {
             #expect(matching.weight == sum, "the weight is the sum in `edges` order")
             #expect(matching.edges.count == 3, "full: covers the smaller side")
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0)]
-            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
             let bipartition = try #require(graph.bipartition())
             #expect(Array(bipartition.left) == [0, 2, 4] as [Int])
@@ -19948,6 +20974,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v).map { [$0.source, $0.target] } == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)).map { [$0.source, $0.target] } == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -19990,6 +21018,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)
@@ -20031,6 +21061,8 @@ struct MatchingRepresentationTests {
                 #expect(matching.mate(of: v) == mates[i], "mate of \(v)")
                 #expect(matching.mate(ofIndex: i) == mateIndices[i], "mate of index \(i)")
                 #expect(matching.matchedEdge(of: v) == matchedEdges[i], "matched edge of \(v)")
+                #expect((try? matching.mate(checked: v)) == mates[i], "checked mate of \(v)")
+                #expect((try? matching.matchedEdge(checked: v)) == matchedEdges[i], "checked matched edge of \(v)")
             }
             // Valid, checked here: no position twice, no self-loop, no endpoint shared.
             #expect(Set(matching.edges).count == matching.edges.count)

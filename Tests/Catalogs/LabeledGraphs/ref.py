@@ -5,7 +5,7 @@ Run: uv run --quiet --no-project --with networkx==3.7 python3 Tests/Catalogs/Lab
 
 The model ports the proposed storage: an ordered set of labels (labels[i] names base vertex i, the
 array of an OrderedSet plus a dict standing in for its hash table) over a port of the base
-(CompressedSparseRow, AdjacencyMatrix, AdjacencyMatrix(...).undirected, or a generic base given by
+(CompressedSparseRow, AdjacencyMatrix, AdjacencyMatrix(...).undirectedView, or a generic base given by
 its vertices in index order). Every label lookup goes through `_find`, which counts hashes, so the
 laws can assert that index-space members never hash and label-space members hash once per call.
 
@@ -469,7 +469,7 @@ def first_appearance(vertices, edges):
 
 def build(kind, vertices, edges):
     """LabeledGraph<Label, Base>(vertices:edges:) for Base == CompressedSparseRow / AdjacencyMatrix,
-    and (for "U") the same over AdjacencyMatrix, then `.undirected` (UndirectedView over the labeled graph)."""
+    and (for "U") the same over AdjacencyMatrix, then `.undirectedView` (UndirectedView over the labeled graph)."""
     labels = first_appearance(vertices, edges)
     pos = {l: i for i, l in enumerate(labels)}
     ints = [(pos[a], pos[b]) for a, b in edges]
@@ -933,7 +933,7 @@ def render():
         "",
         "* `CSR V [...]; E [...]` is `LabeledGraph<String, CompressedSparseRow>(vertices: V, edges: E)`; `M` is",
         "  the same with `Base == AdjacencyMatrix`; `U` is `LabeledGraph<String, AdjacencyMatrix>(vertices: V, edges: E)",
-        "  .undirected`, an `UndirectedView` over the labeled graph (no `Graph` conformance of its own in phase 1).",
+        "  .undirectedView`, an `UndirectedView` over the labeled graph (no `Graph` conformance of its own in phase 1).",
         "  Calls follow, separated by `/`.",
         "* Expected lists each call's result, then `⇒` and the final state. State: `V [l#i, …]` is `vertices` with",
         "  each label's index (`vertexIndex(of:)`, the base vertex it names); `E [p:s→t, …]` is `edges` with the",

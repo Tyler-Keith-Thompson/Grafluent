@@ -170,7 +170,7 @@ can make. The rows are LG-027, LG-029, LG-037, LG-039 and LG-051.
 - an edge position that is not an edge (LG-046, LG-049);
 - the base's own `edgeIndex(of:)` trap (LG-048).
 
-**Undirected.** `labeled.undirected` is `UndirectedView<LabeledGraph<…>>`, a `Graph<Label>` for
+**Undirected.** `labeled.undirectedView` is `UndirectedView<LabeledGraph<…>>`, a `Graph<Label>` for
 free when the base is bidirectional. Its label-space reads hash twice, because the view calls
 `successors` and `predecessors`. Its index-space reads hash nothing. `oppositeVertex` compares
 labels with `==` (LG-062 – LG-068). Phase 1 has no `Graph` conformance of its own; see open
@@ -277,7 +277,7 @@ law catches it. The Swift suite needs one benchmark-only check with a counting `
      their `Int` vertices to slots (`_slots[vertex]`). Labeling them hashes twice at every
      boundary call. They should be used as `AdjacencyList<Label>` and so on directly, and are
      accepted only through `init(_:labels:)`.
-   - Undirected: phase 1 uses `labeled.undirected`. A `Graph` conformance of its own waits for an
+   - Undirected: phase 1 uses `labeled.undirectedView`. A `Graph` conformance of its own waits for an
      `Int`-only undirected representation (the `IncidenceMatrixModule` stub). `UndirectedAdjacencyList`
      and `Pseudograph` take labels already.
    - Implementation note for that later step: `LabeledGraph` cannot nest an `Edges` type in both

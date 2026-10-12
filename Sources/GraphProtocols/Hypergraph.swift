@@ -1,7 +1,7 @@
 /// An undirected hypergraph: a finite set of vertices and a finite collection of hyperedges, each a
 /// set of vertices of any size, the empty set included (Berge, *Hypergraphs*, 1989). Not a `Graph`,
 /// and no shared parent with one: a hyperedge is not an edge. The `Hypergraphs` module's
-/// `incidenceGraph` reads a hypergraph as its bipartite incidence graph (the Levi graph), which is
+/// `incidenceGraphView` reads a hypergraph as its bipartite incidence graph (the Levi graph), which is
 /// how the graph algorithms reach it.
 ///
 /// **Hyperedges and their identity.** `hyperedges` lists every hyperedge once, a repeated one at

@@ -20,7 +20,7 @@ extension Graph {
     /// scales every step's drawing by exactly that factor (the update is homogeneous), and any
     /// other factor up to rounding. (`neato -Gmode=major`, the like-for-like Graphviz run, starts
     /// from random positions.) Deterministic: no randomness anywhere. A directed graph is drawn
-    /// through `undirected`.
+    /// through `undirectedView`.
     ///
     /// - Gansner, Koren and North, "Graph drawing by stress majorization", Graph Drawing (GD
     ///   2004), LNCS 3383, 2005.

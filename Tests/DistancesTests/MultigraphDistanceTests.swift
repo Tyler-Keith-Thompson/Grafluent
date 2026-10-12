@@ -28,7 +28,7 @@ struct MultigraphDistanceTests {
         #expect(graph.diameter() == eccentricities.diameter)
         #expect(graph.center() == eccentricities.center)
         #expect(graph.periphery() == eccentricities.periphery)
-        let arcs = graph.directed.eccentricities()
+        let arcs = graph.directedView.eccentricities()
         let viaArcs = (0 ..< graph.vertexCount).map { arcs.eccentricity(ofIndex: $0) }
         #expect(viaArcs == expected)
     }

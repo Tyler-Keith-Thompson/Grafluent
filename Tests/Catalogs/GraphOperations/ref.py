@@ -153,12 +153,12 @@ def no_indices(base):
 # ---------------------------------------------------------------- views
 
 class ReverseView:
-    """`g.reverseView`: every arc reversed, positions and indices the base's."""
+    """`g.transposedView`: every arc reversed, positions and indices the base's."""
     directed = True
     bidirectional = True
 
     def __init__(self, base):
-        require(base.bidirectional, "reverseView needs a BidirectionalDirectedGraph")
+        require(base.bidirectional, "transposedView needs a BidirectionalDirectedGraph")
         self.base = base
 
     def __getattr__(self, name):  # vertex members, positions and edge indices forward
@@ -189,7 +189,7 @@ class ReverseView:
 
 
 def reverse_view(g):
-    # The reverse of a ReverseView is its base: `g.reverseView.reverseView` is `g`, O(1).
+    # The reverse of a TransposedView is its base: `g.transposedView.transposedView` is `g`, O(1).
     if isinstance(g, ReverseView):
         return g.base
     return ReverseView(g)
@@ -333,7 +333,7 @@ def subgraph(g, labels, positions):
 
 
 class ComplementView:
-    """`g.complement`: arcs (edges) exactly where the base has none, no self-loops; positions are
+    """`g.complementView`: arcs (edges) exactly where the base has none, no self-loops; positions are
     index pairs `(source, target)` (`(u, v)` with u < v undirected), in row-major order."""
 
     def __init__(self, base):
@@ -956,22 +956,22 @@ def hashes_then_lookups(calls, label_calls):
 
 
 def define():
-    # ---- reverseView
+    # ---- transposedView
     G = "Reverse"
-    view_case(G, "empty", AL("", ""), reverse_view, ".reverseView", spec_reverse)
-    view_case(G, "isolated vertices keep their order", AL("a b c", ""), reverse_view, ".reverseView", spec_reverse)
-    view_case(G, "path: arcs flip, positions kept", AL("a b c", "a>b b>c"), reverse_view, ".reverseView", spec_reverse, fmt_rows)
-    view_case(G, "self-loop stays a self-loop", AL("a", "a>a"), reverse_view, ".reverseView", spec_reverse, fmt_rows)
-    view_case(G, "parallel arcs keep both positions", AL("a b", "a>b a>b b>a"), reverse_view, ".reverseView", spec_reverse, fmt_rows)
+    view_case(G, "empty", AL("", ""), reverse_view, ".transposedView", spec_reverse)
+    view_case(G, "isolated vertices keep their order", AL("a b c", ""), reverse_view, ".transposedView", spec_reverse)
+    view_case(G, "path: arcs flip, positions kept", AL("a b c", "a>b b>c"), reverse_view, ".transposedView", spec_reverse, fmt_rows)
+    view_case(G, "self-loop stays a self-loop", AL("a", "a>a"), reverse_view, ".transposedView", spec_reverse, fmt_rows)
+    view_case(G, "parallel arcs keep both positions", AL("a b", "a>b a>b b>a"), reverse_view, ".transposedView", spec_reverse, fmt_rows)
     view_case(G, "successors are the base's predecessors in in-row order", AL("a b c d", "b>a c>a d>a a>b"), reverse_view,
-              ".reverseView", spec_reverse, fmt_rows)
-    view_case(G, "edge indices forwarded", AL("x y z", "x>y y>z z>x"), reverse_view, ".reverseView", spec_reverse,
+              ".transposedView", spec_reverse, fmt_rows)
+    view_case(G, "edge indices forwarded", AL("x y z", "x>y y>z z>x"), reverse_view, ".transposedView", spec_reverse,
               lambda v: f"edgeIndex(of: 2) {v.edge_index(2)}; sourceIndex(ofEdgeAt: 2) {v.src(2)}")
     b = AL("a b c", "a>b b>c")
     view_case(G, "reverse of the reverse is the base (same type, O(1))", b,
-              lambda g: reverse_view(reverse_view(g)), ".reverseView.reverseView",
+              lambda g: reverse_view(reverse_view(g)), ".transposedView.transposedView",
               None, lambda v: f"is the base: {sw(v is b[0])}")
-    view_case(G, "a vertex lookup hashes once, rows none", AL("a b c", "a>b c>b"), reverse_view, ".reverseView",
+    view_case(G, "a vertex lookup hashes once, rows none", AL("a b c", "a>b c>b"), reverse_view, ".transposedView",
               spec_reverse, hashes_after(None, [("outEdges(of: b)", lambda v: v.out_edges(v.vertex_index("b"))),
                                                   ("inEdges(ofIndex: 1)", lambda v: v.in_edges(1))]))
 
@@ -989,38 +989,38 @@ def define():
         ("isolated kept vertex", AL("a b c", "a>b"), ["c", "a"]),
     ]:
         view_case(G, title, (base[0], base[1]), lambda g, k=keep: induced_subgraph(g, k),
-                  f".inducedSubgraph(on: [{', '.join(keep)}])",
+                  f".inducedSubgraphView(on: [{', '.join(keep)}])",
                   lambda bb, v, k=keep: spec_subgraph(bb, v, "induced", labels=k), fmt_rows)
     view_case(G, "predecessors filtered too", AL("a b c d", "b>a c>a d>a"), lambda g: induced_subgraph(g, ["a", "c", "d"]),
-              ".inducedSubgraph(on: [a, c, d])", lambda bb, v: spec_subgraph(bb, v, "induced", labels=["a", "c", "d"]),
+              ".inducedSubgraphView(on: [a, c, d])", lambda bb, v: spec_subgraph(bb, v, "induced", labels=["a", "c", "d"]),
               lambda v: "predecessors(of: a) [" + ", ".join(v.label(v.src(p)) for p in v.in_edges(0)) + "]")
     view_case(G, "construction hashes once per listed vertex, rows none", AL("a b c d", "a>b b>c c>d"),
-              lambda g: induced_subgraph(g, ["b", "c", "d", "c"]), ".inducedSubgraph(on: [b, c, d, c])",
+              lambda g: induced_subgraph(g, ["b", "c", "d", "c"]), ".inducedSubgraphView(on: [b, c, d, c])",
               lambda bb, v: spec_subgraph(bb, v, "induced", labels=["b", "c", "d"]),
               lambda v: f"hashes at construction {v.hashes_at_build}; " + hashes_after(None, [
                   ("successorIndices(ofIndex: 0)", lambda w: [w.tgt(p) for p in w.out_edges(0)]),
                   ("edgeIndexBound", lambda w: w.edge_bound())])(v))
     view_case(G, "edgeCount counts kept arcs (O(Σ out-degree of kept vertices))", AL("a b c", "a>b b>c c>a a>c"),
-              lambda g: induced_subgraph(g, ["a", "c"]), ".inducedSubgraph(on: [a, c]) / .edgeCount",
+              lambda g: induced_subgraph(g, ["a", "c"]), ".inducedSubgraphView(on: [a, c]) / .edgeCount",
               lambda bb, v: spec_subgraph(bb, v, "induced", labels=["a", "c"]), lambda v: f"edgeCount {len(v.positions())}")
     view_case(G, "label not in base traps", AL("a b", "a>b"), lambda g: induced_subgraph(g, ["a", "z"]),
-              ".inducedSubgraph(on: [a, z])")
+              ".inducedSubgraphView(on: [a, z])")
     view_case(G, "base vertex outside the view: vertexIndex traps", AL("a b", "a>b"),
               lambda g: (lambda v: (v.vertex_index("b"), v)[1])(induced_subgraph(g, ["a"])),
-              ".inducedSubgraph(on: [a]) / .vertexIndex(of: b)")
+              ".inducedSubgraphView(on: [a]) / .vertexIndex(of: b)")
     view_case(G, "contains(_:) is false, no trap, for a dropped vertex", AL("a b", "a>b"),
-              lambda g: induced_subgraph(g, ["a"]), ".inducedSubgraph(on: [a]) / .contains(b)", None,
+              lambda g: induced_subgraph(g, ["a"]), ".inducedSubgraphView(on: [a]) / .contains(b)", None,
               lambda v: f"contains(b) {sw(v.contains('b'))}; contains(z) {sw(v.contains('z'))}")
     view_case(G, "base without vertex indices traps (phase 1)", (no_indices(DiBase(["a", "b"], [("a", "b")])), "Stable (with holes) V [a, b]; E [a→b]"),
-              lambda g: induced_subgraph(g, ["a"]), ".inducedSubgraph(on: [a])")
+              lambda g: induced_subgraph(g, ["a"]), ".inducedSubgraphView(on: [a])")
     view_case(G, "undirected: incident rows filtered", UL("a b c d", "a-b b-c c-d d-a a-c"),
-              lambda g: induced_subgraph(g, ["a", "b", "c"]), ".inducedSubgraph(on: [a, b, c])",
+              lambda g: induced_subgraph(g, ["a", "b", "c"]), ".inducedSubgraphView(on: [a, b, c])",
               lambda bb, v: spec_subgraph(bb, v, "induced", labels=["a", "b", "c"]), fmt_rows)
     view_case(G, "undirected: self-loop listed twice in its row", UL("a b", "a-a a-b"),
-              lambda g: induced_subgraph(g, ["a"]), ".inducedSubgraph(on: [a])",
+              lambda g: induced_subgraph(g, ["a"]), ".inducedSubgraphView(on: [a])",
               lambda bb, v: spec_subgraph(bb, v, "induced", labels=["a"]), fmt_rows)
     view_case(G, "undirected: parallel edges both kept", UL("a b c", "a-b b-a b-c"),
-              lambda g: induced_subgraph(g, ["b", "a"]), ".inducedSubgraph(on: [b, a])",
+              lambda g: induced_subgraph(g, ["b", "a"]), ".inducedSubgraphView(on: [b, a])",
               lambda bb, v: spec_subgraph(bb, v, "induced", labels=["a", "b"]), fmt_rows)
 
     # ---- spanning subgraph
@@ -1034,22 +1034,22 @@ def define():
         ("self-loop", AL("a b", "a>a a>b"), [0]),
     ]:
         view_case(G, title, base, lambda g, k=ps: spanning_subgraph(g, k),
-                  f".spanningSubgraph(edges: {ps})", lambda bb, v, k=ps: spec_subgraph(bb, v, "spanning", positions=k),
+                  f".spanningSubgraphView(edges: {ps})", lambda bb, v, k=ps: spec_subgraph(bb, v, "spanning", positions=k),
                   lambda v: fmt_rows(v) + "; edgeIndex [" + ", ".join(f"{p}: {v.edge_index(p)}" for p in v.positions()) + "]")
     view_case(G, "vertex indices are the base's (identity, no renumbering)", AL("a b c", "c>a"),
-              lambda g: spanning_subgraph(g, [0]), ".spanningSubgraph(edges: [0])",
+              lambda g: spanning_subgraph(g, [0]), ".spanningSubgraphView(edges: [0])",
               lambda bb, v: spec_subgraph(bb, v, "spanning", positions=[0]),
               lambda v: f"vertexIndex(of: c) {v.vertex_index('c')}")
     view_case(G, "position not in base traps", AL("a b", "a>b"), lambda g: spanning_subgraph(g, [0, 5]),
-              ".spanningSubgraph(edges: [0, 5])")
+              ".spanningSubgraphView(edges: [0, 5])")
     view_case(G, "undirected: tree of a cycle", UL("a b c d", "a-b b-c c-d d-a"),
-              lambda g: spanning_subgraph(g, [0, 1, 2]), ".spanningSubgraph(edges: [0, 1, 2])",
+              lambda g: spanning_subgraph(g, [0, 1, 2]), ".spanningSubgraphView(edges: [0, 1, 2])",
               lambda bb, v: spec_subgraph(bb, v, "spanning", positions=[0, 1, 2]), fmt_rows)
     view_case(G, "undirected: self-loop kept twice in its row", UL("a b", "a-a a-b"),
-              lambda g: spanning_subgraph(g, [0]), ".spanningSubgraph(edges: [0])",
+              lambda g: spanning_subgraph(g, [0]), ".spanningSubgraphView(edges: [0])",
               lambda bb, v: spec_subgraph(bb, v, "spanning", positions=[0]), fmt_rows)
 
-    # ---- subgraph(vertices:edges:)
+    # ---- subgraphView(vertices:edges:)
     G = "Subgraph"
     for title, base, vs, ps in [
         ("both filters", AL("a b c d", "a>b b>c c>d a>c"), ["a", "b", "c"], [0, 3]),
@@ -1058,20 +1058,20 @@ def define():
         ("no vertices", AL("a b", "a>b"), [], [0]),
     ]:
         view_case(G, title, base, lambda g, k=vs, q=ps: subgraph(g, k, q),
-                  f".subgraph(vertices: [{', '.join(vs)}], edges: {ps})",
+                  f".subgraphView(vertices: [{', '.join(vs)}], edges: {ps})",
                   lambda bb, v, k=vs, q=ps: spec_subgraph(bb, v, "both", labels=k, positions=q), fmt_rows)
     view_case(G, "undirected", UL("a b c d", "a-b b-c c-d d-a"), lambda g: subgraph(g, ["a", "b", "d"], [0, 3, 1]),
-              ".subgraph(vertices: [a, b, d], edges: [0, 3, 1])",
+              ".subgraphView(vertices: [a, b, d], edges: [0, 3, 1])",
               lambda bb, v: spec_subgraph(bb, v, "both", labels=["a", "b", "d"], positions=[0, 3, 1]), fmt_rows)
     view_case(G, "label not in base traps", AL("a b", "a>b"), lambda g: subgraph(g, ["q"], [0]),
-              ".subgraph(vertices: [q], edges: [0])")
+              ".subgraphView(vertices: [q], edges: [0])")
     view_case(G, "position not in base traps", AL("a b", "a>b"), lambda g: subgraph(g, ["a"], [3]),
-              ".subgraph(vertices: [a], edges: [3])")
+              ".subgraphView(vertices: [a], edges: [3])")
     view_case(G, "subgraph of a subgraph: positions still the base's", AL("a b c d", "a>b b>c c>d d>a"),
               lambda g: induced_subgraph(induced_subgraph(g, ["a", "b", "c"]), ["b", "c"]),
-              ".inducedSubgraph(on: [a, b, c]).inducedSubgraph(on: [b, c])", None, fmt_rows)
+              ".inducedSubgraphView(on: [a, b, c]).inducedSubgraphView(on: [b, c])", None, fmt_rows)
     view_case(G, "reverse of an induced subgraph", AL("a b c", "a>b b>c c>a"),
-              lambda g: reverse_view(induced_subgraph(g, ["a", "b"])), ".inducedSubgraph(on: [a, b]).reverseView",
+              lambda g: reverse_view(induced_subgraph(g, ["a", "b"])), ".inducedSubgraphView(on: [a, b]).transposedView",
               None, fmt_rows)
 
     # ---- complement
@@ -1086,27 +1086,27 @@ def define():
         ("parallel arcs count as one", AL("a b c", "a>b a>b")),
         ("rows ascending by index", AL("c a b", "c>b")),
     ]:
-        view_case(G, title, base, lambda g: ComplementView(g), ".complement", spec_complement, fmt_rows)
+        view_case(G, title, base, lambda g: ComplementView(g), ".complementView", spec_complement, fmt_rows)
     view_case(G, "predecessors when the base is bidirectional", AL("a b c", "a>c"), lambda g: ComplementView(g),
-              ".complement", spec_complement,
+              ".complementView", spec_complement,
               lambda v: "predecessors(of: c) [" + ", ".join(v.label(v.src(p)) for p in v.in_edges(2)) + "]")
     view_case(G, "complement twice is the simple loopless base only", AL("a b", "a>a a>b a>b"),
-              lambda g: ComplementView(ComplementView(g)), ".complement.complement", None, fmt_rows)
+              lambda g: ComplementView(ComplementView(g)), ".complementView.complementView", None, fmt_rows)
     view_case(G, "undirected: path P4 to its complement P4", UL("a b c d", "a-b b-c c-d"), lambda g: ComplementView(g),
-              ".complement", spec_complement, fmt_rows)
+              ".complementView", spec_complement, fmt_rows)
     view_case(G, "undirected: C5 is self-complementary (as a set of edges, a different C5)", UL("a b c d e", "a-b b-c c-d d-e e-a"),
-              lambda g: ComplementView(g), ".complement", spec_complement, fmt_rows)
+              lambda g: ComplementView(g), ".complementView", spec_complement, fmt_rows)
     view_case(G, "undirected: loop and parallel edges ignored", UL("a b c", "a-a a-b b-a"), lambda g: ComplementView(g),
-              ".complement", spec_complement, fmt_rows)
+              ".complementView", spec_complement, fmt_rows)
     view_case(G, "undirected: K4 has an empty complement", UL("a b c d", "a-b a-c a-d b-c b-d c-d"),
-              lambda g: ComplementView(g), ".complement", spec_complement)
+              lambda g: ComplementView(g), ".complementView", spec_complement)
     view_case(G, "index-space rows hash nothing; contains(edge:) looks its vertices up, the base's negated", AL("a b c", "a>b"),
-              lambda g: ComplementView(g), ".complement", spec_complement,
+              lambda g: ComplementView(g), ".complementView", spec_complement,
               hashes_then_lookups([("outEdges(ofIndex: 0)", lambda v: [p for p in v.out_edges(0)])],
                                   [("contains(edge: a→b)", lambda v: v.contains_edge(v.vertex_index("a"), v.vertex_index("b"))),
                                    ("contains(edge: b→b)", lambda v: v.contains_edge(v.vertex_index("b"), v.vertex_index("b")))]))
     view_case(G, "base without vertex indices traps (phase 1)", (no_indices(DiBase(["a", "b"], [])), "Stable (with holes) V [a, b]; E []"),
-              lambda g: ComplementView(g), ".complement")
+              lambda g: ComplementView(g), ".complementView")
 
     # ---- line graph
     G = "LineGraph"

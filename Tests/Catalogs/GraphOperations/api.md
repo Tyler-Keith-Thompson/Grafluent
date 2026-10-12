@@ -1,14 +1,14 @@
 # GraphOperations: proposed API (phase 1)
 
 The README's Operations section lists three kinds of operation. Unary operations whose rows can be
-computed from the base's rows are **lazy views**: `reverseView`, the three subgraph entry points,
-and `complement`. Each view is a value holding its base, conforms conditionally to the base's
+computed from the base's rows are **lazy views**: `transposedView`, the three subgraph entry points,
+and `complementView`. Each view is a value holding its base, conforms conditionally to the base's
 protocols, and copies nothing per edge. Operations whose result has a different vertex set, or
 edges no base row lists, are **materialized**: the line graph, the condensation as a
 `DirectedAcyclicGraph`, the quotient, the disjoint union and the join. They are built in one bulk
 step through the construction hooks `_DirectedGraphConstruction` / `_GraphConstruction`, the same
 way NamedGraphs' generators are. To materialize a view, pass it to a representation's initializer
-(`CompressedSparseRow(g.reverseView)`).
+(`CompressedSparseRow(g.transposedView)`).
 
 `cases.md` (GO-001 – GO-105, 105 rows) pins the values. `ref.py` ports two bases, an
 AdjacencyList-like directed pseudograph and its undirected counterpart, and implements every view
@@ -32,38 +32,38 @@ To run it:
 
 | Name | Decision | Source |
 |---|---|---|
-| Reversal view | **`reverseView`**, type **`ReverseView<Base>`**, on `BidirectionalDirectedGraph` only | NetworkX `reverse_view(G)` / `G.reverse(copy=False)`; Boost `reverse_graph` (also only over a `BidirectionalGraph`); LEMON `ReverseDigraph`; JGraphT `EdgeReversedGraph`; petgraph `Reversed`; Mathematica `ReverseGraph` |
+| Reversal view | **`transposedView`**, type **`TransposedView<Base>`**, on `BidirectionalDirectedGraph` only | NetworkX `reverse_view(G)` / `G.reverse(copy=False)`; Boost `reverse_graph` (also only over a `BidirectionalGraph`); LEMON `ReverseDigraph`; JGraphT `EdgeReversedGraph`; petgraph `Reversed`; Mathematica `ReverseGraph` |
 | Subgraph view | **`SubgraphView<Base>`**, one type for all three entry points and both protocols | NetworkX `subgraph_view`; JGraphT `AsSubgraph`; LEMON `SubDigraph` / `SubGraph`; Boost `filtered_graph` |
-| Induced subgraph | **`inducedSubgraph(on:)`** | igraph `induced_subgraph`; NetworkX `G.subgraph(nodes)` (induced); JGraphT `AsSubgraph(g, vertexSubset)` |
-| Spanning subgraph | **`spanningSubgraph(edges:)`**: every vertex, the given edges | Diestel, Bondy–Murty; igraph `subgraph_edges(edges, delete_vertices=False)`; LEMON `FilterArcs` |
-| Both filters | **`subgraph(vertices:edges:)`**: an edge is kept when given and both its ends are kept | JGraphT `AsSubgraph(g, vertexSubset, edgeSubset)`; Mathematica `Subgraph`; NetworkX `subgraph_view(filter_node, filter_edge)` |
-| Complement | **`complement`**, type **`ComplementView<Base>`** | NetworkX `complement`; igraph `complementer`; petgraph `complement`; Mathematica `GraphComplement` |
+| Induced subgraph | **`inducedSubgraphView(on:)`** | igraph `induced_subgraph`; NetworkX `G.subgraph(nodes)` (induced); JGraphT `AsSubgraph(g, vertexSubset)` |
+| Spanning subgraph | **`spanningSubgraphView(edges:)`**: every vertex, the given edges | Diestel, Bondy–Murty; igraph `subgraph_edges(edges, delete_vertices=False)`; LEMON `FilterArcs` |
+| Both filters | **`subgraphView(vertices:edges:)`**: an edge is kept when given and both its ends are kept | JGraphT `AsSubgraph(g, vertexSubset, edgeSubset)`; Mathematica `Subgraph`; NetworkX `subgraph_view(filter_node, filter_edge)` |
+| Complement | **`complementView`**, type **`ComplementView<Base>`** | NetworkX `complement`; igraph `complementer`; petgraph `complement`; Mathematica `GraphComplement` |
 | Line graph | **`Target.lineGraph(of:)`** | NetworkX `line_graph`; igraph `linegraph`; JGraphT `LineGraphConverter`; Mathematica `LineGraph` |
 | Condensation as a DAG | **`DirectedAcyclicGraph<Base>(_ condensation: Condensation<G>)`** | Connectivity's existing `condensation()` (NetworkX, petgraph); a conversion initializer, like `CompressedSparseRow(g)` |
 | Quotient | **`Target.quotient(of:by:)`**, the partition as a sequence of blocks | NetworkX `quotient_graph(G, partition)`; igraph `contract_vertices` + `simplify` |
 | Disjoint union | **`Target.disjointUnion(_:_:)`** | NetworkX `disjoint_union`; igraph `disjoint_union`; Mathematica `GraphDisjointUnion` |
 | Join | **`Target.join(_:_:)`** | Harary (G + H, Zykov's join); Mathematica `GraphJoin`; NetworkX `full_join` |
-| Underlying graph | **`undirected`** (`UndirectedView`, exists) | README open question 8 |
+| Underlying graph | **`undirectedView`** (`UndirectedView`, exists) | README open question 8 |
 | A view's base | **`base`**, read-only | `UndirectedView`/`DirectedView`; README open question 9 |
 
-There are no typealiases. "Converse" and "transpose" go in `ReverseView`'s doc comment.
+There are no typealiases. "Converse" and "transpose" go in `TransposedView`'s doc comment.
 "Vertex contraction" goes in `quotient`'s.
 
 ### Question 3: the `reversed` conflict
 
-**Decision: `reverseView`.** The README listed `reversed`. A protocol-extension property named
+**Decision: `transposedView`.** The README listed `reversed`. A protocol-extension property named
 `reversed` would read as the standard library's `reversed()` on any conformer that is also a
 `Sequence`, and on `Walk`, `Trail` and `Circuit` it already means the walk backwards. `EdgeList`
 uses `transposed()` for the materialized flip, and `CompressedSparseRow`, `AdjacencyMatrix` and
 `LabeledGraph` do the same. A lazy `transposed` property would collide with those `transposed()`
-methods on the very types that have them. `reverseView` is NetworkX's name for exactly this lazy
+methods on the very types that have them. `transposedView` is NetworkX's name for exactly this lazy
 view. It has the `View` suffix that `DirectedView` and `UndirectedView` already carry, and it
 cannot be mistaken for a sequence reversal. The README Terminology row "Every edge reversed"
-becomes `reverseView` (NetworkX `reverse_view`, Boost `reverse_graph`, LEMON `ReverseDigraph`),
+becomes `transposedView` (NetworkX `reverse_view`, Boost `reverse_graph`, LEMON `ReverseDigraph`),
 and `transposed()` stays the materialized row.
 
-`g.reverseView.reverseView` returns `g` itself: an overload on `ReverseView` gives back `base` in
-O(1) (GO-008), so double reversal adds no layer. `ReverseView` needs a
+`g.transposedView.transposedView` returns `g` itself: an overload on `TransposedView` gives back `base` in
+O(1) (GO-008), so double reversal adds no layer. `TransposedView` needs a
 `BidirectionalDirectedGraph`, as Boost's `reverse_graph` does. `CompressedSparseRow` has no
 in-rows and keeps `transposed()`.
 
@@ -87,7 +87,7 @@ A `SubgraphView` therefore keeps two `Int` arrays, built once:
 Then `vertexIndexBound` is the kept count and the laws hold unchanged.
 `successorIndices(ofIndex: k)` walks `base.successorIndices(ofIndex: _old[k])` and yields
 `_new[w]` where it is not −1: one array load and one predictable branch per edge, with no
-hashing (GO-020). `spanningSubgraph` keeps every vertex, leaves both arrays empty and forwards
+hashing (GO-020). `spanningSubgraphView` keeps every vertex, leaves both arrays empty and forwards
 `vertexIndex` (GO-035).
 
 Edges pass through. `Edges.Index` is `Base.Edges.Index`, so the base's weight closures and, later,
@@ -129,12 +129,12 @@ edges of the base are ignored (GO-053, GO-054, GO-060), as in NetworkX and igrap
 
 | Operation | Kind | Result | Why |
 |---|---|---|---|
-| `reverseView` | Lazy, O(1) to build | `ReverseView<Base>: BidirectionalDirectedGraph` | Rows are the base's in-rows |
-| `inducedSubgraph(on:)` | Lazy, O(n_base + listed) to build | `SubgraphView<Base>` | Rows are the base rows, filtered |
-| `spanningSubgraph(edges:)` | Lazy, O(m_base/64 + listed) | `SubgraphView<Base>` | Same |
-| `subgraph(vertices:edges:)` | Lazy, both costs | `SubgraphView<Base>` | Same |
-| `complement` | Lazy, O(1) | `ComplementView<Base>` | Rows are a function of base rows; a copy is Θ(n²) |
-| `undirected` | Lazy (exists) | `UndirectedView<Base>` | |
+| `transposedView` | Lazy, O(1) to build | `TransposedView<Base>: BidirectionalDirectedGraph` | Rows are the base's in-rows |
+| `inducedSubgraphView(on:)` | Lazy, O(n_base + listed) to build | `SubgraphView<Base>` | Rows are the base rows, filtered |
+| `spanningSubgraphView(edges:)` | Lazy, O(m_base/64 + listed) | `SubgraphView<Base>` | Same |
+| `subgraphView(vertices:edges:)` | Lazy, both costs | `SubgraphView<Base>` | Same |
+| `complementView` | Lazy, O(1) | `ComplementView<Base>` | Rows are a function of base rows; a copy is Θ(n²) |
+| `undirectedView` | Lazy (exists) | `UndirectedView<Base>` | |
 | `lineGraph(of:)` | Materialized | `Target` | The undirected rows need deduplication across both ends; the directed form could be lazy (phase 2) |
 | condensation | Materialized | `DirectedAcyclicGraph<Base>` | New vertex set |
 | `quotient(of:by:)` | Materialized | `Target` | New vertex set, deduplicated edges |
@@ -196,12 +196,12 @@ later component to an earlier one, so `topologicalOrder` is `[n−1, …, 0]`, s
 ```swift
 // MARK: Reversal
 extension BidirectionalDirectedGraph {
-    public var reverseView: ReverseView<Self> { get }                         // O(1)
+    public var transposedView: TransposedView<Self> { get }                         // O(1)
 }
-extension ReverseView {
-    public var reverseView: Base { get }                                      // the base, O(1)
+extension TransposedView {
+    public var transposedView: Base { get }                                      // the base, O(1)
 }
-@frozen public struct ReverseView<Base: BidirectionalDirectedGraph>: BidirectionalDirectedGraph {
+@frozen public struct TransposedView<Base: BidirectionalDirectedGraph>: BidirectionalDirectedGraph {
     public var base: Base { get }
     // Vertex, Vertices: the base's. Edges.Index == Base.Edges.Index, each edge flipped.
     // Successors == Base.Predecessors, OutEdges == Base.InEdges,
@@ -213,9 +213,9 @@ extension ReverseView {
 
 // MARK: Subgraphs
 extension DirectedGraph {
-    public func inducedSubgraph(on vertices: some Sequence<Vertex>) -> SubgraphView<Self>
-    public func spanningSubgraph(edges: some Sequence<Edges.Index>) -> SubgraphView<Self>
-    public func subgraph(vertices: some Sequence<Vertex>, edges: some Sequence<Edges.Index>) -> SubgraphView<Self>
+    public func inducedSubgraphView(on vertices: some Sequence<Vertex>) -> SubgraphView<Self>
+    public func spanningSubgraphView(edges: some Sequence<Edges.Index>) -> SubgraphView<Self>
+    public func subgraphView(vertices: some Sequence<Vertex>, edges: some Sequence<Edges.Index>) -> SubgraphView<Self>
 }
 extension Graph { /* the same three */ }
 
@@ -261,8 +261,8 @@ extension SubgraphView: Graph where Base: Graph
     // (each kept position's rank, or the base's row when the view keeps everything).
 
 // MARK: Complement
-extension DirectedGraph { public var complement: ComplementView<Self> { get } }  // O(1)
-extension Graph { public var complement: ComplementView<Self> { get } }
+extension DirectedGraph { public var complementView: ComplementView<Self> { get } }  // O(1)
+extension Graph { public var complementView: ComplementView<Self> { get } }
 @frozen public struct ComplementView<Base> {
     public let base: Base
     @frozen public struct Cell: Hashable, Comparable, Sendable {   // Edges.Index, both directions
@@ -306,14 +306,14 @@ Result numbering:
 
 | Case | Behaviour | Rows |
 |---|---|---|
-| `inducedSubgraph(on:)` / `subgraph` with a vertex not in the base | **Trap.** NetworkX's `subgraph` silently skips it, igraph raises. A `checked:` variant comes with the repo-wide pass (Principle 6) | GO-022, GO-044 |
+| `inducedSubgraphView(on:)` / `subgraph` with a vertex not in the base | **Trap.** NetworkX's `subgraph` silently skips it, igraph raises. A `checked:` variant comes with the repo-wide pass (Principle 6) | GO-022, GO-044 |
 | A position not in the base | **Trap** | GO-036, GO-045 |
 | Repeated vertex or position | Set semantics; the hash count still counts each listed occurrence | GO-014, GO-020, GO-032 |
-| `subgraph(vertices:edges:)` edge with an end outside the vertex set | Dropped, as in JGraphT's `AsSubgraph` and NetworkX's filters | GO-040, GO-041 |
+| `subgraphView(vertices:edges:)` edge with an end outside the vertex set | Dropped, as in JGraphT's `AsSubgraph` and NetworkX's filters | GO-040, GO-041 |
 | A base vertex outside the view | `contains` is false; `vertexIndex(of:)` and the rows trap | GO-023, GO-024 |
 | Base with `vertexIndexBound == nil` (`StableDirectedGraph` with holes) | **Trap** in phase 1, at construction | GO-025, GO-063 |
-| `ReverseView` over a non-bidirectional base | Does not compile | — |
-| `complement`: self-loops, parallel edges | Ignored; the complement is simple and loop-free | GO-053, GO-054, GO-060 |
+| `TransposedView` over a non-bidirectional base | Does not compile | — |
+| `complementView`: self-loops, parallel edges | Ignored; the complement is simple and loop-free | GO-053, GO-054, GO-060 |
 | Undirected self-loop in a subgraph | Listed twice in its row, as in the base | GO-027, GO-038 |
 | Directed line graph with a self-loop | **Trap** (phase 1) | GO-070 |
 | Undirected line graph with a self-loop | The loop is adjacent to the other edges at its vertex; no loop in L | GO-076 |
@@ -322,14 +322,14 @@ Result numbering:
 | `quotient`: edges inside a block | Dropped, with no self-loops, as in NetworkX | GO-086 |
 | `disjointUnion` / `join` with a self-loop | **Trap** (phase 1) | GO-099, GO-105 |
 | Mutating the base after making a view | Impossible: the view holds a copy (value semantics). Mutating the original never shows through | — |
-| `spanningSubgraph` / `subgraph` over a base without edge indices | The slower path: sorted kept positions, binary search per row entry and per rank; dense edge indices still | hand-written test |
+| `spanningSubgraphView` / `subgraph` over a base without edge indices | The slower path: sorted kept positions, binary search per row entry and per rank; dense edge indices still | hand-written test |
 | A materialized operation over a graph without vertex indices | **Trap** in phase 1, like the views | — |
 
 ## Complexity
 
 n and m are the base's counts, and k is the number of kept vertices.
 
-| Member | `ReverseView` | `SubgraphView` | `ComplementView` |
+| Member | `TransposedView` | `SubgraphView` | `ComplementView` |
 |---|---|---|---|
 | Build | O(1) | induced: O(n + listed), plus one hash per listed vertex; spanning: O(m/64 + listed); both: the sum | O(1) |
 | Row (`successorIndices`, `outEdges`, …) | the base's in-row | base row length; one load and a branch per entry | O(n/64 + output), one allocation of ⌈n/64⌉ words |
@@ -354,7 +354,7 @@ n and m are the base's counts, and k is the number of kept vertices.
   every call.
 - `_withSuccessorIndexRows` and `_withIncidentIndexRows` return `nil` on every view here, with one
   exception. Their contract forbids forwarding through a view that changes incidence, and a
-  `ReverseView`'s rows are not the base's out-rows. An induced subgraph that keeps every vertex
+  `TransposedView`'s rows are not the base's out-rows. An induced subgraph that keeps every vertex
   leaves `_old` and `_new` empty and has no edge set, so its rows, positions and edge indices are
   the base's, and it forwards `_withSuccessorIndexRows`, and undirected `_withIncidentIndexRows`,
   `edgeIndexBound`, `edgeIndex(of:)` and `incidentEdgeIndices(ofIndex:)` (so `connectedComponents()`
@@ -366,7 +366,7 @@ n and m are the base's counts, and k is the number of kept vertices.
   rule). A default chosen for the view would ignore the base's faster member.
 - Overflow guards are written as comparisons, not `multipliedReportingOverflow` with the product
   discarded. That form was miscompiled under -O in Flows.
-- Each view stores `base` as a `let` with a public getter, and positions pass through `ReverseView`
+- Each view stores `base` as a `let` with a public getter, and positions pass through `TransposedView`
   and `SubgraphView`. They slot into the planned adaptor protocol of README open question 9
   without change. That protocol is not built here: four views do not yet justify it, and its
   default forwarding is the open question's subject.
@@ -379,12 +379,12 @@ through a view, and the ratio includes that loss.
 
 | Benchmark | Target |
 |---|---|
-| BFS and `stronglyConnectedComponents()` on `g.reverseView` (AdjacencyList) vs on `AdjacencyList(g.reverseView)` | ≤ 1.05× |
-| BFS and `connectedComponents()` / `weaklyConnectedComponents()` on `inducedSubgraph` keeping 100% (AdjacencyList and UndirectedAdjacencyList) vs the base | ≤ 1.2× |
+| BFS and `stronglyConnectedComponents()` on `g.transposedView` (AdjacencyList) vs on `AdjacencyList(g.transposedView)` | ≤ 1.05× |
+| BFS and `connectedComponents()` / `weaklyConnectedComponents()` on `inducedSubgraphView` keeping 100% (AdjacencyList and UndirectedAdjacencyList) vs the base | ≤ 1.2× |
 | The same keeping 50% at random, vs a materialized `CompressedSparseRow` of the subgraph | ≤ 1.2× including the view's build; the build alone ≤ 0.1× of materializing |
-| BFS on `inducedSubgraph` over `CompressedSparseRow` keeping 100% vs the base (which uses flat rows) | ≤ 1.3×, flagged as the risk |
-| `spanningSubgraph` of a spanning tree's edges, BFS vs the base | ≤ 1.2× |
-| BFS on `complement` of a sparse graph (n = 20k) vs a materialized complement CSR | ≤ 1.5×; ≥ 10× faster than NetworkX `complement` + BFS |
+| BFS on `inducedSubgraphView` over `CompressedSparseRow` keeping 100% vs the base (which uses flat rows) | ≤ 1.3×, flagged as the risk |
+| `spanningSubgraphView` of a spanning tree's edges, BFS vs the base | ≤ 1.2× |
+| BFS on `complementView` of a sparse graph (n = 20k) vs a materialized complement CSR | ≤ 1.5×; ≥ 10× faster than NetworkX `complement` + BFS |
 | `CompressedSparseRow.lineGraph(of:)` | ≤ 1× igraph `linegraph`, ≥ 20× faster than NetworkX `line_graph` |
 | Condensation → DAG | ≤ 1.1× `condensation()` alone |
 | Hashes in any index-space member of a view | 0 (catalog rows; property-tested) |
@@ -399,13 +399,13 @@ through a view, and the ratio includes that loss.
   intersection), and edges as sets, as in NetworkX's simple graphs.
 - Sparsely indexed bases (`StableDirectedGraph` with holes) for the subgraph views and the
   complement: renumber from `vertexPosition` through `_PositionNumbers` instead of trapping.
-- Edge indices for `inducedSubgraph`, through an O(m) mask built on request.
+- Edge indices for `inducedSubgraphView`, through an O(m) mask built on request.
 - Predicate filters: `subgraph(where:)` over vertices and edges (NetworkX `subgraph_view`, LEMON
   `FilterNodes` / `FilterArcs`).
 - A nested `SubgraphView<SubgraphView<B>>` collapses to one level by composing the maps (GO-046
   shows the nested form, which works).
-- A fast path for `AdjacencyMatrix.complement`: word-wise NOT of the `BitSet` rows, and a
-  materialized `complement` on the matrix itself.
+- A fast path for `AdjacencyMatrix.complementView`: word-wise NOT of the `BitSet` rows, and a
+  materialized `complementView` on the matrix itself.
 - A lazy directed line graph: the rows are `outEdges(of: target(e))`, and the vertices are edge
   positions.
 - Self-loops through the construction hooks, which lifts GO-070, GO-099 and GO-105.

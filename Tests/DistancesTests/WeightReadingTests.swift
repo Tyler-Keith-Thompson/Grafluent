@@ -1,7 +1,7 @@
 // How the weight closure is read (api.md, "Weights"): once per edge, in position order, before any
 // search, by every weighted entry point: on a pseudograph with a loop and parallel copies (DI-501's
 // graph), on a disconnected graph where the first search already decides the answer (DI-301's
-// graph: still every edge is read), on a digraph, on `graph.directed` (each arc once, in the
+// graph: still every edge is read), on a digraph, on `graph.directedView` (each arc once, in the
 // view's `edges` order), on `UndirectedAdjacencyList` and on `CompressedSparseRow`; never on K₁ or
 // an edgeless graph (DI-023, DI-024). Each test records the positions the closure is called with
 // and compares them with the graph's own `edges.indices`. Case IDs (DI-nnn) refer to the catalog;
@@ -103,12 +103,12 @@ struct WeightReadingTests {
         #expect(doubleCalls { _ = graph.averageShortestPathLength(weight: $0) } == order)
     }
 
-    @Test("graph.directed reads each arc once, in the view's edges order (u→v, then v→u, edge by edge)")
+    @Test("graph.directedView reads each arc once, in the view's edges order (u→v, then v→u, edge by edge)")
     func directedView() {
         // U: [] 0-0, 0-1, 0-1, 1-2
         let pairs: [(Int, Int)] = [(0, 0), (0, 1), (0, 1), (1, 2)]
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let view = graph.directed
+        let view = graph.directedView
         typealias Arc = DirectedView<ReferencePseudograph<Int>>.Edges.Index
         func calls(_ run: (_ weight: (Arc) -> Int) -> Void) -> [Arc] {
             var seen: [Arc] = []

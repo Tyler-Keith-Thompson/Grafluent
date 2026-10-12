@@ -16,17 +16,17 @@ import Testing
 struct GraphOperationsPreconditionTests {
     @Test("GO-022 label not in base traps")
     func go022() async {
-        // AL V [a, b]; E [a→b] / .inducedSubgraph(on: [a, z]) → **trap** (z is not a vertex)
+        // AL V [a, b]; E [a→b] / .inducedSubgraphView(on: [a, z]) → **trap** (z is not a vertex)
         await #expect(processExitsWith: .failure) {
             let graph = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
-            _ = graph.inducedSubgraph(on: ["a", "z"])
+            _ = graph.inducedSubgraphView(on: ["a", "z"])
         }
         // Without the fault: the same setup, accepted.
         let graph = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
         #expect(Array(graph.vertices) == ["a", "b"])
         #expect(graph.edges.map { [$0.source, $0.target] } == [["a", "b"]])
         #expect(graph.vertexIndexBound == 2)
-        let view = graph.inducedSubgraph(on: ["a"])
+        let view = graph.inducedSubgraphView(on: ["a"])
         #expect(Array(view.vertices) == ["a"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0])
         #expect((0 ..< 1).map { view.vertex(atIndex: $0) } == ["a"])
@@ -51,10 +51,10 @@ struct GraphOperationsPreconditionTests {
 
     @Test("GO-023 base vertex outside the view: vertexIndex traps")
     func go023() async {
-        // AL V [a, b]; E [a→b] / .inducedSubgraph(on: [a]) / .vertexIndex(of: b) → **trap** (b is not a vertex of the subgraph)
+        // AL V [a, b]; E [a→b] / .inducedSubgraphView(on: [a]) / .vertexIndex(of: b) → **trap** (b is not a vertex of the subgraph)
         await #expect(processExitsWith: .failure) {
             let graph = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
-            let view = graph.inducedSubgraph(on: ["a"])
+            let view = graph.inducedSubgraphView(on: ["a"])
             _ = view.vertexIndex(of: "b")
         }
         // Without the fault: the same setup, accepted.
@@ -62,7 +62,7 @@ struct GraphOperationsPreconditionTests {
         #expect(Array(graph.vertices) == ["a", "b"])
         #expect(graph.edges.map { [$0.source, $0.target] } == [["a", "b"]])
         #expect(graph.vertexIndexBound == 2)
-        let view = graph.inducedSubgraph(on: ["a"])
+        let view = graph.inducedSubgraphView(on: ["a"])
         #expect(Array(view.vertices) == ["a"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0])
         #expect((0 ..< 1).map { view.vertex(atIndex: $0) } == ["a"])
@@ -87,16 +87,16 @@ struct GraphOperationsPreconditionTests {
 
     @Test("GO-025 base without vertex indices traps (phase 1)")
     func go025() async {
-        // Stable (with holes) V [a, b]; E [a→b] / .inducedSubgraph(on: [a]) → **trap** (the base has no vertex indices (vertexIndexBound is nil))
+        // Stable (with holes) V [a, b]; E [a→b] / .inducedSubgraphView(on: [a]) → **trap** (the base has no vertex indices (vertexIndexBound is nil))
         await #expect(processExitsWith: .failure) {
             var graph = StableDirectedGraph<String>(vertices: ["a", "b", "removed"], edges: [DirectedEdge(from: "a", to: "b")])
             _ = graph.remove("removed")
-            _ = graph.inducedSubgraph(on: ["a"])
+            _ = graph.inducedSubgraphView(on: ["a"])
         }
         // Without the removal the same base has vertex indices, and the call is accepted.
         let graph = StableDirectedGraph<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
         #expect(graph.vertexIndexBound == 2)
-        let view = graph.inducedSubgraph(on: ["a"])
+        let view = graph.inducedSubgraphView(on: ["a"])
         #expect(Array(view.vertices) == ["a"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0])
         #expect((0 ..< 1).map { view.vertex(atIndex: $0) } == ["a"])
@@ -125,17 +125,17 @@ struct GraphOperationsPreconditionTests {
 
     @Test("GO-036 position not in base traps")
     func go036() async {
-        // AL V [a, b]; E [a→b] / .spanningSubgraph(edges: [0, 5]) → **trap** (5 is not an edge position of the base)
+        // AL V [a, b]; E [a→b] / .spanningSubgraphView(edges: [0, 5]) → **trap** (5 is not an edge position of the base)
         await #expect(processExitsWith: .failure) {
             let graph = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
-            _ = graph.spanningSubgraph(edges: [0, 5])
+            _ = graph.spanningSubgraphView(edges: [0, 5])
         }
         // Without the fault: the same setup, accepted.
         let graph = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
         #expect(Array(graph.vertices) == ["a", "b"])
         #expect(graph.edges.map { [$0.source, $0.target] } == [["a", "b"]])
         #expect(graph.vertexIndexBound == 2)
-        let view = graph.spanningSubgraph(edges: [0])
+        let view = graph.spanningSubgraphView(edges: [0])
         #expect(Array(view.vertices) == ["a", "b"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1])
         #expect((0 ..< 2).map { view.vertex(atIndex: $0) } == ["a", "b"])
@@ -174,17 +174,17 @@ struct GraphOperationsPreconditionTests {
 
     @Test("GO-044 label not in base traps")
     func go044() async {
-        // AL V [a, b]; E [a→b] / .subgraph(vertices: [q], edges: [0]) → **trap** (q is not a vertex)
+        // AL V [a, b]; E [a→b] / .subgraphView(vertices: [q], edges: [0]) → **trap** (q is not a vertex)
         await #expect(processExitsWith: .failure) {
             let graph = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
-            _ = graph.subgraph(vertices: ["q"], edges: [0])
+            _ = graph.subgraphView(vertices: ["q"], edges: [0])
         }
         // Without the fault: the same setup, accepted.
         let graph = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
         #expect(Array(graph.vertices) == ["a", "b"])
         #expect(graph.edges.map { [$0.source, $0.target] } == [["a", "b"]])
         #expect(graph.vertexIndexBound == 2)
-        let view = graph.subgraph(vertices: ["a"], edges: [0])
+        let view = graph.subgraphView(vertices: ["a"], edges: [0])
         #expect(Array(view.vertices) == ["a"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0])
         #expect((0 ..< 1).map { view.vertex(atIndex: $0) } == ["a"])
@@ -209,17 +209,17 @@ struct GraphOperationsPreconditionTests {
 
     @Test("GO-045 position not in base traps")
     func go045() async {
-        // AL V [a, b]; E [a→b] / .subgraph(vertices: [a], edges: [3]) → **trap** (3 is not an edge position of the base)
+        // AL V [a, b]; E [a→b] / .subgraphView(vertices: [a], edges: [3]) → **trap** (3 is not an edge position of the base)
         await #expect(processExitsWith: .failure) {
             let graph = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
-            _ = graph.subgraph(vertices: ["a"], edges: [3])
+            _ = graph.subgraphView(vertices: ["a"], edges: [3])
         }
         // Without the fault: the same setup, accepted.
         let graph = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
         #expect(Array(graph.vertices) == ["a", "b"])
         #expect(graph.edges.map { [$0.source, $0.target] } == [["a", "b"]])
         #expect(graph.vertexIndexBound == 2)
-        let view = graph.subgraph(vertices: ["a"], edges: [0])
+        let view = graph.subgraphView(vertices: ["a"], edges: [0])
         #expect(Array(view.vertices) == ["a"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0])
         #expect((0 ..< 1).map { view.vertex(atIndex: $0) } == ["a"])
@@ -244,16 +244,16 @@ struct GraphOperationsPreconditionTests {
 
     @Test("GO-063 base without vertex indices traps (phase 1)")
     func go063() async {
-        // Stable (with holes) V [a, b]; E [] / .complement → **trap** (the base has no vertex indices (vertexIndexBound is nil))
+        // Stable (with holes) V [a, b]; E [] / .complementView → **trap** (the base has no vertex indices (vertexIndexBound is nil))
         await #expect(processExitsWith: .failure) {
             var graph = StableDirectedGraph<String>(vertices: ["a", "b", "removed"], edges: [] as [DirectedEdge<String>])
             _ = graph.remove("removed")
-            _ = graph.complement
+            _ = graph.complementView
         }
         // Without the removal the same base has vertex indices, and the call is accepted.
         let graph = StableDirectedGraph<String>(vertices: ["a", "b"], edges: [] as [DirectedEdge<String>])
         #expect(graph.vertexIndexBound == 2)
-        let view = graph.complement
+        let view = graph.complementView
         #expect(Array(view.vertices) == ["a", "b"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1])
         #expect((0 ..< 2).map { view.vertex(atIndex: $0) } == ["a", "b"])
@@ -411,72 +411,72 @@ struct GraphOperationsPreconditionTests {
     func subgraphOutsideVertices() async {
         await #expect(processExitsWith: .failure) {
             let graph = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
-            _ = Array(graph.inducedSubgraph(on: ["a"]).successors(of: "b"))
+            _ = Array(graph.inducedSubgraphView(on: ["a"]).successors(of: "b"))
         }
         await #expect(processExitsWith: .failure) {
             let graph = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
-            _ = Array(graph.inducedSubgraph(on: ["b"]).predecessors(of: "a"))
+            _ = Array(graph.inducedSubgraphView(on: ["b"]).predecessors(of: "a"))
         }
         await #expect(processExitsWith: .failure) {
             let graph = UndirectedAdjacencyList<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b")])
-            _ = Array(graph.inducedSubgraph(on: ["a"]).neighbors(of: "b"))
+            _ = Array(graph.inducedSubgraphView(on: ["a"]).neighbors(of: "b"))
         }
         await #expect(processExitsWith: .failure) {
             let graph = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
-            _ = graph.inducedSubgraph(on: ["a"]).vertex(atIndex: 1)
+            _ = graph.inducedSubgraphView(on: ["a"]).vertex(atIndex: 1)
         }
         // Without the faults: the kept vertex answers.
         let graph = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
-        let view = graph.inducedSubgraph(on: ["a"])
+        let view = graph.inducedSubgraphView(on: ["a"])
         #expect(Array(view.successors(of: "a")).isEmpty && view.vertex(atIndex: 0) == "a" && view.vertexIndexBound == 1)
         let undirected = UndirectedAdjacencyList<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b")])
-        #expect(Array(undirected.inducedSubgraph(on: ["a", "b"]).neighbors(of: "b")) == ["a"])
+        #expect(Array(undirected.inducedSubgraphView(on: ["a", "b"]).neighbors(of: "b")) == ["a"])
     }
 
     @Test("Undirected subgraph views trap on a label or a position the base does not have")
     func undirectedSubgraphFaults() async {
         await #expect(processExitsWith: .failure) {
             let graph = UndirectedAdjacencyList<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b")])
-            _ = graph.inducedSubgraph(on: ["a", "z"])
+            _ = graph.inducedSubgraphView(on: ["a", "z"])
         }
         await #expect(processExitsWith: .failure) {
             let graph = UndirectedAdjacencyList<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b")])
-            _ = graph.spanningSubgraph(edges: [1])
+            _ = graph.spanningSubgraphView(edges: [1])
         }
         await #expect(processExitsWith: .failure) {
             let graph = UndirectedAdjacencyList<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b")])
-            _ = graph.subgraph(vertices: ["a", "q"], edges: [0])
+            _ = graph.subgraphView(vertices: ["a", "q"], edges: [0])
         }
         // Without the faults.
         let graph = UndirectedAdjacencyList<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b")])
-        #expect(graph.inducedSubgraph(on: ["a", "b"]).edgeCount == 1)
-        #expect(graph.spanningSubgraph(edges: [0]).edgeIndexBound == 1)
-        #expect(graph.subgraph(vertices: ["a"], edges: [0]).edgeCount == 0)
+        #expect(graph.inducedSubgraphView(on: ["a", "b"]).edgeCount == 1)
+        #expect(graph.spanningSubgraphView(edges: [0]).edgeIndexBound == 1)
+        #expect(graph.subgraphView(vertices: ["a"], edges: [0]).edgeCount == 0)
     }
 
     @Test("edgeIndex(of:) on an induced subgraph that drops a vertex traps: it has no edge indices")
     func inducedHasNoEdgeIndices() async {
         await #expect(processExitsWith: .failure) {
             let graph = AdjacencyList<String>(vertices: ["a", "b", "c"], edges: [DirectedEdge(from: "a", to: "b")])
-            _ = graph.inducedSubgraph(on: ["a", "b"]).edgeIndex(of: 0)
+            _ = graph.inducedSubgraphView(on: ["a", "b"]).edgeIndex(of: 0)
         }
         // Without the fault: an edge set gives the same view edge indices, and so does keeping
         // every vertex (the base's).
         let graph = AdjacencyList<String>(vertices: ["a", "b", "c"], edges: [DirectedEdge(from: "a", to: "b")])
-        #expect(graph.inducedSubgraph(on: ["a", "b"]).edgeIndexBound == nil)
-        #expect(graph.subgraph(vertices: ["a", "b"], edges: [0]).edgeIndex(of: 0) == 0)
-        #expect(graph.inducedSubgraph(on: ["a", "b", "c"]).edgeIndex(of: 0) == 0)
+        #expect(graph.inducedSubgraphView(on: ["a", "b"]).edgeIndexBound == nil)
+        #expect(graph.subgraphView(vertices: ["a", "b"], edges: [0]).edgeIndex(of: 0) == 0)
+        #expect(graph.inducedSubgraphView(on: ["a", "b", "c"]).edgeIndex(of: 0) == 0)
     }
 
     @Test("incidentEdgeIndices(ofIndex:) on an undirected induced subgraph that drops a vertex traps")
     func undirectedInducedHasNoIncidentEdgeIndices() async {
         await #expect(processExitsWith: .failure) {
             let graph = UndirectedAdjacencyList<String>(vertices: ["a", "b", "c"], edges: [UndirectedEdge("a", "b")])
-            _ = Array(graph.inducedSubgraph(on: ["a", "b"]).incidentEdgeIndices(ofIndex: 0))
+            _ = Array(graph.inducedSubgraphView(on: ["a", "b"]).incidentEdgeIndices(ofIndex: 0))
         }
         // Without the fault: on every vertex the view lists the base's edge indices.
         let graph = UndirectedAdjacencyList<String>(vertices: ["a", "b", "c"], edges: [UndirectedEdge("a", "b")])
-        #expect(Array(graph.inducedSubgraph(on: ["a", "b", "c"]).incidentEdgeIndices(ofIndex: 0)) == [0])
+        #expect(Array(graph.inducedSubgraphView(on: ["a", "b", "c"]).incidentEdgeIndices(ofIndex: 0)) == [0])
     }
 
     @Test("Directed quotient traps on a vertex in two blocks, a missing vertex and a non-vertex")

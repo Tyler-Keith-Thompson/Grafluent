@@ -163,11 +163,11 @@ struct DistancePropertyTests {
             #expect(graph.wienerIndex() == wiener)
             #expect(graph.averageShortestPathLength() == average)
             #expect(graph.density == density)
-            let arcs = graph.directed.eccentricities()
+            let arcs = graph.directedView.eccentricities()
             let viaArcs = (0 ..< n).map { arcs.eccentricity(ofIndex: $0) }
             #expect(viaArcs == ecc)
-            #expect(graph.directed.wienerIndex() == wiener.map { 2 * $0 })
-            #expect(graph.directed.density == density)
+            #expect(graph.directedView.wienerIndex() == wiener.map { 2 * $0 })
+            #expect(graph.directedView.density == density)
             // diameterPath: from the first vertex of greatest eccentricity to the first vertex
             // farthest from it, along the breadth-first parents.
             if let diameter {
@@ -379,7 +379,7 @@ struct DistancePropertyTests {
                 #expect(graph.wienerIndex(weight: { w[$0] }) == wiener)
                 let one = listed.map { graph.eccentricity(of: $0, weight: { w[$0] }) }
                 #expect(one == ecc)
-                let arcs = graph.directed.eccentricities(weight: { w[$0.position] })
+                let arcs = graph.directedView.eccentricities(weight: { w[$0.position] })
                 let viaArcs = (0 ..< n).map { arcs.eccentricity(ofIndex: $0) }
                 #expect(viaArcs == ecc)
                 if let diameter {
@@ -596,30 +596,30 @@ struct DistancePropertyTests {
         }
     }
 
-    @Test("§E views: digraph.undirected has the eccentricities, Wiener index and density of the same arcs as edges; graph.directed has the eccentricities, average and density of graph and twice its Wiener index")
+    @Test("§E views: digraph.undirectedView has the eccentricities, Wiener index and density of the same arcs as edges; graph.directedView has the eccentricities, average and density of graph and twice its Wiener index")
     func views() async {
         let pairs = zip(Gen.int(in: 0 ... 6), Gen.int(in: 0 ... 6)).array(of: 0 ... 14)
         await propertyCheck(count: 300, input: pairs, Gen.int(in: 1 ... 7)) { raw, n in
             let arcs = raw.map { DirectedEdge(from: $0.0 % n, to: $0.1 % n) }
             let digraph = ReferenceDirectedMultigraph(vertices: 0 ..< n, edges: arcs)
             let graph = ReferencePseudograph(vertices: 0 ..< n, edges: arcs.map { UndirectedEdge($0.source, $0.target) })
-            let viaView = digraph.undirected.eccentricities()
+            let viaView = digraph.undirectedView.eccentricities()
             let direct = graph.eccentricities()
             let a = (0 ..< n).map { viaView.eccentricity(ofIndex: $0) }
             let b = (0 ..< n).map { direct.eccentricity(ofIndex: $0) }
             #expect(a == b, "\(arcs)")
-            #expect(digraph.undirected.wienerIndex() == graph.wienerIndex())
-            #expect(digraph.undirected.density == graph.density)
-            #expect(digraph.undirected.density == 2 * digraph.density)
-            let arcsView = graph.directed.eccentricities()
+            #expect(digraph.undirectedView.wienerIndex() == graph.wienerIndex())
+            #expect(digraph.undirectedView.density == graph.density)
+            #expect(digraph.undirectedView.density == 2 * digraph.density)
+            let arcsView = graph.directedView.eccentricities()
             let c = (0 ..< n).map { arcsView.eccentricity(ofIndex: $0) }
             #expect(c == b)
-            #expect(graph.directed.wienerIndex() == graph.wienerIndex().map { 2 * $0 })
-            #expect(graph.directed.averageShortestPathLength() == graph.averageShortestPathLength())
-            #expect(graph.directed.density == graph.density)
-            #expect(graph.directed.center() == graph.center())
-            #expect(graph.directed.periphery() == graph.periphery())
-            #expect(graph.directed.centroid() == graph.centroid())
+            #expect(graph.directedView.wienerIndex() == graph.wienerIndex().map { 2 * $0 })
+            #expect(graph.directedView.averageShortestPathLength() == graph.averageShortestPathLength())
+            #expect(graph.directedView.density == graph.density)
+            #expect(graph.directedView.center() == graph.center())
+            #expect(graph.directedView.periphery() == graph.periphery())
+            #expect(graph.directedView.centroid() == graph.centroid())
         }
     }
 }

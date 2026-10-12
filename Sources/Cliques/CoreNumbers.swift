@@ -28,6 +28,16 @@ public struct CoreNumbers<G: Graph> {
     @inlinable
     public func coreNumber(of vertex: G.Vertex) -> Int { _core[_graph._vertexNumber(of: vertex, _numbers, "The vertex is not in the graph")] }
 
+    /// The core number of `vertex`, throwing instead of trapping when it is not a vertex of the
+    /// graph.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the graph.
+    @inlinable
+    public func coreNumber(checked vertex: G.Vertex) throws(VertexNotFound) -> Int {
+        guard _graph.contains(vertex) else { throw VertexNotFound() }
+        return coreNumber(of: vertex)
+    }
+
     /// The core number of the vertex at `index` (its vertex index, or its position in `vertices`
     /// when the graph has no vertex indices).
     ///

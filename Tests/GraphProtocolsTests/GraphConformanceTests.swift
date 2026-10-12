@@ -32,7 +32,7 @@ struct GraphConformanceTests {
         let house = UndirectedFixture<Int>.house
         #expect(count(UndirectedAdjacencyList(edges: house.edges)) == 6)
         #expect(count(ReferencePseudograph(edges: house.edges)) == 6)
-        #expect(count(AdjacencyList(edges: DirectedFixture<Int>.house.edges).undirected) == 7)
+        #expect(count(AdjacencyList(edges: DirectedFixture<Int>.house.edges).undirectedView) == 7)
     }
 
     @Test("UG-T03 existentials hold every conformer")
@@ -42,7 +42,7 @@ struct GraphConformanceTests {
             UndirectedAdjacencyList(edges: house.edges),
             ReferencePseudograph(edges: house.edges),
             // Each edge's two arcs become two parallel edges.
-            AdjacencyList(UndirectedAdjacencyList(edges: house.edges).directed).undirected,
+            AdjacencyList(UndirectedAdjacencyList(edges: house.edges).directedView).undirectedView,
         ]
         #expect(graphs.map(\.edgeCount) == [6, 6, 12])
         for g in graphs {
@@ -74,10 +74,10 @@ struct GraphConformanceTests {
         #expect((AdjacencyList<Int>() as Any) is any DirectedGraph)
         #expect((ReferencePseudograph<Int>(edges: []) as Any) is any DirectedGraph == false)
         // The views cross over, each to the other protocol only.
-        #expect((UndirectedAdjacencyList<Int>().directed as Any) is any Graph == false)
-        #expect((UndirectedAdjacencyList<Int>().directed as Any) is any BidirectionalDirectedGraph)
-        #expect((AdjacencyList<Int>().undirected as Any) is any DirectedGraph == false)
-        #expect((AdjacencyList<Int>().undirected as Any) is any Graph)
+        #expect((UndirectedAdjacencyList<Int>().directedView as Any) is any Graph == false)
+        #expect((UndirectedAdjacencyList<Int>().directedView as Any) is any BidirectionalDirectedGraph)
+        #expect((AdjacencyList<Int>().undirectedView as Any) is any DirectedGraph == false)
+        #expect((AdjacencyList<Int>().undirectedView as Any) is any Graph)
     }
 
     @Test("UG-T08 the result builder: edges, bare vertices and for loops")

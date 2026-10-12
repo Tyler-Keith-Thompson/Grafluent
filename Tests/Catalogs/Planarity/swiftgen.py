@@ -21,7 +21,7 @@ every vertex. Every non-planar witness is checked to be a
 subdivision of its kind made of the graph's edges, with its branch vertices and internally disjoint
 paths in the documented order; a unique witness is pinned exactly. Graphs are `Pseudograph<Int>`
 (Multigraphs) with the row's vertices listed, so positions are the catalog's; `D:` rows are
-`AdjacencyList<Int>(...).undirected`. Trap rows go to the precondition file, with the hand-written
+`AdjacencyList<Int>(...).undirectedView`. Trap rows go to the precondition file, with the hand-written
 exit tests in extra_traps.swift. The scale rows (PlanarityScaleTests.swift) rely on speed, so they
 go to OUT_DIR/Performance, the PlanarityPerformanceTests target (scripts/modules.py).
 """
@@ -98,7 +98,7 @@ def construct(g, ind, checks=True):
     if g.directed:
         assert g.m <= 40
         es = ["DirectedEdge(from: %d, to: %d)" % e for e in names]
-        out += wrap("let graph = AdjacencyList<Int>(vertices: %s, edges: [" % vlit, es, ind, close="]).undirected")
+        out += wrap("let graph = AdjacencyList<Int>(vertices: %s, edges: [" % vlit, es, ind, close="]).undirectedView")
     elif g.m <= 30:
         es = ["UndirectedEdge(%d, %d)" % e for e in names]
         if es:
@@ -201,6 +201,11 @@ def embedding_block(g, ind, face_count, lengths=None, mirror=None, sample=1):
     a(ind + "        let face = embedding.face(from: vertexList[i], alongEdgeAt: rotation[i][s])")
     a(ind + "        #expect(face.vertices == vertices + [vertexList[i]] && face.edges == edges)")
     a(ind + "        #expect(embedding.rightFace(from: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])")
+    if sample == 1:
+        # The checked: spellings too, except on the sampled scale rows, which bound their time.
+        a(ind + "        let checkedFace = try embedding.face(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s])")
+        a(ind + "        #expect(checkedFace.vertices == face.vertices && checkedFace.edges == face.edges)")
+        a(ind + "        #expect(try embedding.rightFace(checkedFrom: vertexList[i], alongEdgeAt: rotation[i][s]) == faceOf[i][s])")
     a(ind + "    }")
     a(ind + "}")
     if lengths is not None:
@@ -321,8 +326,8 @@ def describe(n):
 def row_test(n):
     g = ref.parse_graph(gcell(n))
     o = op(n)
-    if o.startswith("undirected."):
-        o = o[len("undirected."):]
+    if o.startswith("undirectedView."):
+        o = o[len("undirectedView."):]
     c = cell(n)
     assert ref.evaluate(gcell(n), op(n), ROWS[n][5]) == c
     fname = "pl%03d" % n
@@ -531,7 +536,7 @@ FILES = [
      "// more edge, disjoint unions and blocks. Each row also checks that exactly one witness exists."),
     ("PlanarityInputTests.swift", "Planarity inputs", ids("Inputs"),
      "Inputs (catalog PL-049 – PL-061): self-loops and parallel edges never change the answer; directed\n"
-     "// graphs go through `undirected` (AdjacencyList, each arc an edge, a 2-cycle two parallel edges)."),
+     "// graphs go through `undirectedView` (AdjacencyList, each arc an edge, a 2-cycle two parallel edges)."),
     ("PlanarEmbeddingTests.swift", "planarEmbedding()", ids("Embedding"),
      "planarEmbedding() (catalog PL-062 – PL-096): nil for a non-planar graph; otherwise every edge position\n"
      "// embedded (loops and parallel edges too), checked against the definitions, with faceCount, the face\n"

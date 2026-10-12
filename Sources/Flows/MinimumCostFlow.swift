@@ -36,6 +36,16 @@ public struct MinimumCostFlow<G: DirectedGraph, Capacity: BinaryInteger, Cost: S
         _edgeFlow(_graph, _positions, _flows, position)
     }
 
+    /// `flow(ofEdgeAt: position)`, throwing instead of trapping when `position` is not an edge
+    /// position of the graph. O(1) with edge indices, O(log m) without.
+    ///
+    /// - Throws: `EdgeNotFound` when `position` is not a position in the graph's `edges`.
+    @inlinable
+    public func flow(checkedEdgeAt position: G.Edges.Index) throws(EdgeNotFound) -> Capacity {
+        guard let e = _edgeNumberIfPresent(_graph, _positions, _flows.count, position) else { throw EdgeNotFound() }
+        return _flows[e]
+    }
+
     /// Every edge's flow, by edge position in `edges` order (LEMON `NetworkSimplex::flowMap`): a
     /// collection over the result's own storage, no copy made.
     @inlinable
@@ -54,6 +64,16 @@ public struct MinimumCostFlow<G: DirectedGraph, Capacity: BinaryInteger, Cost: S
         let v = _graph._flowNumber(of: vertex, _vertices)
         guard let p = Cost(exactly: _potentials[v]) else { preconditionFailure("The potential does not fit in the cost type") }
         return p
+    }
+
+    /// `potential(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex of the
+    /// graph. A potential that does not fit in `Cost` still traps.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the graph.
+    @inlinable
+    public func potential(checked vertex: G.Vertex) throws(VertexNotFound) -> Cost {
+        guard _graph.contains(vertex) else { throw VertexNotFound() }
+        return potential(of: vertex)
     }
 }
 

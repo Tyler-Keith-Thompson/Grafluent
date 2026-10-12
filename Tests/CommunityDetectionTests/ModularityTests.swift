@@ -8,7 +8,7 @@
 // partition row also checks `count`, `community(of:)` against membership, `community(ofIndex:)`
 // against `community(of:)`, and the modularity of the result (at the call's weight and resolution)
 // against ref.py's; undirected rows of the measures, Louvain and greedy modularity also run on
-// `graph.directed` (the same values). Case IDs (CD-nnn) refer to the catalog; see README.md.
+// `graph.directedView` (the same values). Case IDs (CD-nnn) refer to the catalog; see README.md.
 
 import CommunityDetection
 import Connectivity
@@ -26,8 +26,8 @@ struct ModularityTests {
         let communities: [[Int]] = [[0, 1], [2]]
         let value = graph.modularity(of: communities)
         #expect(abs(value - -0.125) <= 1e-12 * max(1, abs(-0.125)))
-        let arcs = graph.directed.modularity(of: communities)
-        #expect(abs(arcs - -0.125) <= 1e-12 * max(1, abs(-0.125)), "graph.directed")
+        let arcs = graph.directedView.modularity(of: communities)
+        #expect(abs(arcs - -0.125) <= 1e-12 * max(1, abs(-0.125)), "graph.directedView")
     }
 
     @Test("CD-036 U(P(0,1,2)).modularity(of: [[0, 1, 2]]) is 0: One community: 1 − γ")
@@ -38,8 +38,8 @@ struct ModularityTests {
         let communities: [[Int]] = [[0, 1, 2]]
         let value = graph.modularity(of: communities)
         #expect(abs(value) <= 1e-12)
-        let arcs = graph.directed.modularity(of: communities)
-        #expect(abs(arcs) <= 1e-12, "graph.directed")
+        let arcs = graph.directedView.modularity(of: communities)
+        #expect(abs(arcs) <= 1e-12, "graph.directedView")
     }
 
     @Test("CD-037 U(P(0,1,2)).modularity(of: [[0], [1], [2]]) is -0.375: Singletons: −Σ(d/2m)²")
@@ -50,8 +50,8 @@ struct ModularityTests {
         let communities: [[Int]] = [[0], [1], [2]]
         let value = graph.modularity(of: communities)
         #expect(abs(value - -0.375) <= 1e-12 * max(1, abs(-0.375)))
-        let arcs = graph.directed.modularity(of: communities)
-        #expect(abs(arcs - -0.375) <= 1e-12 * max(1, abs(-0.375)), "graph.directed")
+        let arcs = graph.directedView.modularity(of: communities)
+        #expect(abs(arcs - -0.375) <= 1e-12 * max(1, abs(-0.375)), "graph.directedView")
     }
 
     @Test("CD-038 U(P(0,1,2)).modularity(of: [[2], [0, 1]]) is -0.125: Community order does not matter")
@@ -62,8 +62,8 @@ struct ModularityTests {
         let communities: [[Int]] = [[2], [0, 1]]
         let value = graph.modularity(of: communities)
         #expect(abs(value - -0.125) <= 1e-12 * max(1, abs(-0.125)))
-        let arcs = graph.directed.modularity(of: communities)
-        #expect(abs(arcs - -0.125) <= 1e-12 * max(1, abs(-0.125)), "graph.directed")
+        let arcs = graph.directedView.modularity(of: communities)
+        #expect(abs(arcs - -0.125) <= 1e-12 * max(1, abs(-0.125)), "graph.directedView")
     }
 
     @Test("CD-039 U(P(0,1,2)).modularity(of: [[0, 1], [], [2]]) is -0.125: An empty community contributes 0 (NetworkX `is_partition` accepts it)")
@@ -74,8 +74,8 @@ struct ModularityTests {
         let communities: [[Int]] = [[0, 1], [], [2]]
         let value = graph.modularity(of: communities)
         #expect(abs(value - -0.125) <= 1e-12 * max(1, abs(-0.125)))
-        let arcs = graph.directed.modularity(of: communities)
-        #expect(abs(arcs - -0.125) <= 1e-12 * max(1, abs(-0.125)), "graph.directed")
+        let arcs = graph.directedView.modularity(of: communities)
+        #expect(abs(arcs - -0.125) <= 1e-12 * max(1, abs(-0.125)), "graph.directedView")
     }
 
     @Test("CD-040 U(K(4)).modularity(of: [[0, 1, 2, 3]]) is 0")
@@ -86,8 +86,8 @@ struct ModularityTests {
         let communities: [[Int]] = [[0, 1, 2, 3]]
         let value = graph.modularity(of: communities)
         #expect(abs(value) <= 1e-12)
-        let arcs = graph.directed.modularity(of: communities)
-        #expect(abs(arcs) <= 1e-12, "graph.directed")
+        let arcs = graph.directedView.modularity(of: communities)
+        #expect(abs(arcs) <= 1e-12, "graph.directedView")
     }
 
     @Test("CD-041 U(K(4)).modularity(of: [[0, 1], [2, 3]]) is -0.166666666667")
@@ -98,8 +98,8 @@ struct ModularityTests {
         let communities: [[Int]] = [[0, 1], [2, 3]]
         let value = graph.modularity(of: communities)
         #expect(abs(value - -0.16666666666666669) <= 1e-12 * max(1, abs(-0.16666666666666669)))
-        let arcs = graph.directed.modularity(of: communities)
-        #expect(abs(arcs - -0.16666666666666669) <= 1e-12 * max(1, abs(-0.16666666666666669)), "graph.directed")
+        let arcs = graph.directedView.modularity(of: communities)
+        #expect(abs(arcs - -0.16666666666666669) <= 1e-12 * max(1, abs(-0.16666666666666669)), "graph.directedView")
     }
 
     @Test("CD-042 U(K(0..2), K(3..5), 2-3).modularity(of: [[0, 1, 2], [3, 4, 5]]) is 0.357142857143: Two triangles: 5/14 = 0.357…")
@@ -110,8 +110,8 @@ struct ModularityTests {
         let communities: [[Int]] = [[0, 1, 2], [3, 4, 5]]
         let value = graph.modularity(of: communities)
         #expect(abs(value - 0.35714285714285715) <= 1e-12 * max(1, abs(0.35714285714285715)))
-        let arcs = graph.directed.modularity(of: communities)
-        #expect(abs(arcs - 0.35714285714285715) <= 1e-12 * max(1, abs(0.35714285714285715)), "graph.directed")
+        let arcs = graph.directedView.modularity(of: communities)
+        #expect(abs(arcs - 0.35714285714285715) <= 1e-12 * max(1, abs(0.35714285714285715)), "graph.directedView")
     }
 
     @Test("CD-043 U(K(0..2), K(3..5), 2-3).modularity(of: [[0, 1, 2, 3, 4, 5]]) is 0")
@@ -122,8 +122,8 @@ struct ModularityTests {
         let communities: [[Int]] = [[0, 1, 2, 3, 4, 5]]
         let value = graph.modularity(of: communities)
         #expect(abs(value - 1.1102230246251565e-16) <= 1e-12 * max(1, abs(1.1102230246251565e-16)))
-        let arcs = graph.directed.modularity(of: communities)
-        #expect(abs(arcs - 1.1102230246251565e-16) <= 1e-12 * max(1, abs(1.1102230246251565e-16)), "graph.directed")
+        let arcs = graph.directedView.modularity(of: communities)
+        #expect(abs(arcs - 1.1102230246251565e-16) <= 1e-12 * max(1, abs(1.1102230246251565e-16)), "graph.directedView")
     }
 
     @Test("CD-044 U(K(0..2), K(3..5), 2-3).modularity(of: [[0, 1, 2], [3, 4, 5]], resolution: 0) is 0.857142857143: γ = 0: the coverage, 6/7")
@@ -134,8 +134,8 @@ struct ModularityTests {
         let communities: [[Int]] = [[0, 1, 2], [3, 4, 5]]
         let value = graph.modularity(of: communities, resolution: 0)
         #expect(abs(value - 0.8571428571428571) <= 1e-12 * max(1, abs(0.8571428571428571)))
-        let arcs = graph.directed.modularity(of: communities, resolution: 0)
-        #expect(abs(arcs - 0.8571428571428571) <= 1e-12 * max(1, abs(0.8571428571428571)), "graph.directed")
+        let arcs = graph.directedView.modularity(of: communities, resolution: 0)
+        #expect(abs(arcs - 0.8571428571428571) <= 1e-12 * max(1, abs(0.8571428571428571)), "graph.directedView")
     }
 
     @Test("CD-045 U(K(0..2), K(3..5), 2-3).modularity(of: [[0, 1, 2], [3, 4, 5]], resolution: 0.5) is 0.607142857143")
@@ -146,8 +146,8 @@ struct ModularityTests {
         let communities: [[Int]] = [[0, 1, 2], [3, 4, 5]]
         let value = graph.modularity(of: communities, resolution: 0.5)
         #expect(abs(value - 0.6071428571428571) <= 1e-12 * max(1, abs(0.6071428571428571)))
-        let arcs = graph.directed.modularity(of: communities, resolution: 0.5)
-        #expect(abs(arcs - 0.6071428571428571) <= 1e-12 * max(1, abs(0.6071428571428571)), "graph.directed")
+        let arcs = graph.directedView.modularity(of: communities, resolution: 0.5)
+        #expect(abs(arcs - 0.6071428571428571) <= 1e-12 * max(1, abs(0.6071428571428571)), "graph.directedView")
     }
 
     @Test("CD-046 U(K(0..2), K(3..5), 2-3).modularity(of: [[0, 1, 2], [3, 4, 5]], resolution: 2) is -0.142857142857")
@@ -158,8 +158,8 @@ struct ModularityTests {
         let communities: [[Int]] = [[0, 1, 2], [3, 4, 5]]
         let value = graph.modularity(of: communities, resolution: 2)
         #expect(abs(value - -0.1428571428571428) <= 1e-12 * max(1, abs(-0.1428571428571428)))
-        let arcs = graph.directed.modularity(of: communities, resolution: 2)
-        #expect(abs(arcs - -0.1428571428571428) <= 1e-12 * max(1, abs(-0.1428571428571428)), "graph.directed")
+        let arcs = graph.directedView.modularity(of: communities, resolution: 2)
+        #expect(abs(arcs - -0.1428571428571428) <= 1e-12 * max(1, abs(-0.1428571428571428)), "graph.directedView")
     }
 
     @Test("CD-047 U(K(0..2), K(3..5), 2-3).modularity(of: [[0, 1, 2], [3, 4, 5]], weight: [1, 1, 1, 1, 1, 1, 5]) is 0.0454545454545: A heavy bridge lowers Q")
@@ -171,8 +171,8 @@ struct ModularityTests {
         let w: [Double] = [1, 1, 1, 1, 1, 1, 5]
         let value = graph.modularity(of: communities, weight: { w[$0] })
         #expect(abs(value - 0.045454545454545414) <= 1e-12 * max(1, abs(0.045454545454545414)))
-        let arcs = graph.directed.modularity(of: communities, weight: { w[$0.position] })
-        #expect(abs(arcs - 0.045454545454545414) <= 1e-12 * max(1, abs(0.045454545454545414)), "graph.directed")
+        let arcs = graph.directedView.modularity(of: communities, weight: { w[$0.position] })
+        #expect(abs(arcs - 0.045454545454545414) <= 1e-12 * max(1, abs(0.045454545454545414)), "graph.directedView")
     }
 
     @Test("CD-048 U(K(0..2), K(3..5), 2-3).modularity(of: [[0, 1, 2], [3, 4, 5]], weight: [0.5, 0.5, 0.5, 0.5, 0… is 0.357142857143: Scaling every weight leaves Q unchanged")
@@ -184,8 +184,8 @@ struct ModularityTests {
         let w: [Double] = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
         let value = graph.modularity(of: communities, weight: { w[$0] })
         #expect(abs(value - 0.35714285714285715) <= 1e-12 * max(1, abs(0.35714285714285715)))
-        let arcs = graph.directed.modularity(of: communities, weight: { w[$0.position] })
-        #expect(abs(arcs - 0.35714285714285715) <= 1e-12 * max(1, abs(0.35714285714285715)), "graph.directed")
+        let arcs = graph.directedView.modularity(of: communities, weight: { w[$0.position] })
+        #expect(abs(arcs - 0.35714285714285715) <= 1e-12 * max(1, abs(0.35714285714285715)), "graph.directedView")
     }
 
     @Test("CD-049 U(K(0..2), K(3..5), 2-3).modularity(of: [[0, 1, 2], [3, 4, 5]], weight: [1, 1, 1, 1, 1, 1, 0]) is 0.5: A zero-weight bridge: two disjoint triangles, ½")
@@ -197,8 +197,8 @@ struct ModularityTests {
         let w: [Double] = [1, 1, 1, 1, 1, 1, 0]
         let value = graph.modularity(of: communities, weight: { w[$0] })
         #expect(abs(value - 0.5) <= 1e-12 * max(1, abs(0.5)))
-        let arcs = graph.directed.modularity(of: communities, weight: { w[$0.position] })
-        #expect(abs(arcs - 0.5) <= 1e-12 * max(1, abs(0.5)), "graph.directed")
+        let arcs = graph.directedView.modularity(of: communities, weight: { w[$0.position] })
+        #expect(abs(arcs - 0.5) <= 1e-12 * max(1, abs(0.5)), "graph.directedView")
     }
 
     @Test("CD-050 U(K(0..2), K(3..5), 2-3).modularity(of: components) is 0: `connectedComponents()` is a partition: one community here")
@@ -209,8 +209,8 @@ struct ModularityTests {
         let communities = graph.connectedComponents()
         let value = graph.modularity(of: communities)
         #expect(abs(value - 1.1102230246251565e-16) <= 1e-12 * max(1, abs(1.1102230246251565e-16)))
-        let arcs = graph.directed.modularity(of: communities)
-        #expect(abs(arcs - 1.1102230246251565e-16) <= 1e-12 * max(1, abs(1.1102230246251565e-16)), "graph.directed")
+        let arcs = graph.directedView.modularity(of: communities)
+        #expect(abs(arcs - 1.1102230246251565e-16) <= 1e-12 * max(1, abs(1.1102230246251565e-16)), "graph.directedView")
     }
 
     @Test("CD-051 U(K(0..2), K(3..5)).modularity(of: components) is 0.5: Two components: ½")
@@ -221,8 +221,8 @@ struct ModularityTests {
         let communities = graph.connectedComponents()
         let value = graph.modularity(of: communities)
         #expect(abs(value - 0.5) <= 1e-12 * max(1, abs(0.5)))
-        let arcs = graph.directed.modularity(of: communities)
-        #expect(abs(arcs - 0.5) <= 1e-12 * max(1, abs(0.5)), "graph.directed")
+        let arcs = graph.directedView.modularity(of: communities)
+        #expect(abs(arcs - 0.5) <= 1e-12 * max(1, abs(0.5)), "graph.directedView")
     }
 
     @Test("CD-052 U(K(0..4), K(5..9), 4-5).modularity(of: [[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]]) is 0.452380952381")
@@ -234,8 +234,8 @@ struct ModularityTests {
         let communities: [[Int]] = [[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]]
         let value = graph.modularity(of: communities)
         #expect(abs(value - 0.45238095238095233) <= 1e-12 * max(1, abs(0.45238095238095233)))
-        let arcs = graph.directed.modularity(of: communities)
-        #expect(abs(arcs - 0.45238095238095233) <= 1e-12 * max(1, abs(0.45238095238095233)), "graph.directed")
+        let arcs = graph.directedView.modularity(of: communities)
+        #expect(abs(arcs - 0.45238095238095233) <= 1e-12 * max(1, abs(0.45238095238095233)), "graph.directedView")
     }
 
     @Test("CD-053 U(nx(barbell,5,0)).modularity(of: [[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]]) is 0.452380952381: barbell(5, 0) is two K5 joined by an edge")
@@ -247,8 +247,8 @@ struct ModularityTests {
         let communities: [[Int]] = [[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]]
         let value = graph.modularity(of: communities)
         #expect(abs(value - 0.45238095238095233) <= 1e-12 * max(1, abs(0.45238095238095233)))
-        let arcs = graph.directed.modularity(of: communities)
-        #expect(abs(arcs - 0.45238095238095233) <= 1e-12 * max(1, abs(0.45238095238095233)), "graph.directed")
+        let arcs = graph.directedView.modularity(of: communities)
+        #expect(abs(arcs - 0.45238095238095233) <= 1e-12 * max(1, abs(0.45238095238095233)), "graph.directedView")
     }
 
     @Test("CD-054 U(nx(ring_of_cliques,4,4)).modularity(of: […]) is 0.607142857143")
@@ -261,8 +261,8 @@ struct ModularityTests {
         let communities: [[Int]] = [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]]
         let value = graph.modularity(of: communities)
         #expect(abs(value - 0.6071428571428571) <= 1e-12 * max(1, abs(0.6071428571428571)))
-        let arcs = graph.directed.modularity(of: communities)
-        #expect(abs(arcs - 0.6071428571428571) <= 1e-12 * max(1, abs(0.6071428571428571)), "graph.directed")
+        let arcs = graph.directedView.modularity(of: communities)
+        #expect(abs(arcs - 0.6071428571428571) <= 1e-12 * max(1, abs(0.6071428571428571)), "graph.directedView")
     }
 
     @Test("CD-055 U(nx(karate_club)).modularity(of: […]) is 0.358234714004: Zachary's observed split: 0.3582 (unweighted)")
@@ -281,8 +281,8 @@ struct ModularityTests {
             [9, 14, 15, 18, 20, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33]]
         let value = graph.modularity(of: communities)
         #expect(abs(value - 0.3582347140039448) <= 1e-12 * max(1, abs(0.3582347140039448)))
-        let arcs = graph.directed.modularity(of: communities)
-        #expect(abs(arcs - 0.3582347140039448) <= 1e-12 * max(1, abs(0.3582347140039448)), "graph.directed")
+        let arcs = graph.directedView.modularity(of: communities)
+        #expect(abs(arcs - 0.3582347140039448) <= 1e-12 * max(1, abs(0.3582347140039448)), "graph.directedView")
     }
 
     @Test("CD-056 U(nx(karate_club)).modularity(of: […], weight: […]) is 0.391437566762: NetworkX's karate `weight` attribute")
@@ -304,11 +304,11 @@ struct ModularityTests {
             3, 5, 4, 2, 3, 2, 7, 4, 2, 4, 2, 2, 4, 2, 3, 3, 4, 4, 5]
         let value = graph.modularity(of: communities, weight: { w[$0] })
         #expect(abs(value - 0.39143756676224206) <= 1e-12 * max(1, abs(0.39143756676224206)))
-        let arcs = graph.directed.modularity(of: communities, weight: { w[$0.position] })
-        #expect(abs(arcs - 0.39143756676224206) <= 1e-12 * max(1, abs(0.39143756676224206)), "graph.directed")
+        let arcs = graph.directedView.modularity(of: communities, weight: { w[$0.position] })
+        #expect(abs(arcs - 0.39143756676224206) <= 1e-12 * max(1, abs(0.39143756676224206)), "graph.directedView")
     }
 
-    @Test("CD-057 U(nx(karate_club)).directed.modularity(of: […]) is 0.358234714004: graph.directed (two arcs per edge) gives the same Q")
+    @Test("CD-057 U(nx(karate_club)).directedView.modularity(of: […]) is 0.358234714004: graph.directed (two arcs per edge) gives the same Q")
     func modularity057() {
         // U: nx(karate_club)
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8), (0, 10),
@@ -322,7 +322,7 @@ struct ModularityTests {
         let graph = ReferencePseudograph(vertices: 0 ..< 34, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         let communities: [[Int]] = [[0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 16, 17, 19, 21],
             [9, 14, 15, 18, 20, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33]]
-        let value = graph.directed.modularity(of: communities)
+        let value = graph.directedView.modularity(of: communities)
         #expect(abs(value - 0.3582347140039448) <= 1e-12 * max(1, abs(0.3582347140039448)))
     }
 
@@ -334,8 +334,8 @@ struct ModularityTests {
         let communities: [[Int]] = [[0, 1], [2, 3]]
         let value = graph.modularity(of: communities)
         #expect(abs(value - 0.21875) <= 1e-12 * max(1, abs(0.21875)))
-        let arcs = graph.directed.modularity(of: communities)
-        #expect(abs(arcs - 0.21875) <= 1e-12 * max(1, abs(0.21875)), "graph.directed")
+        let arcs = graph.directedView.modularity(of: communities)
+        #expect(abs(arcs - 0.21875) <= 1e-12 * max(1, abs(0.21875)), "graph.directedView")
     }
 
     @Test("CD-059 U(0-1, 1-2, 2-3).modularity(of: [[0, 1], [2, 3]], weight: [2, 1, 1]) is 0.21875: Equals the previous row")
@@ -347,8 +347,8 @@ struct ModularityTests {
         let w: [Double] = [2, 1, 1]
         let value = graph.modularity(of: communities, weight: { w[$0] })
         #expect(abs(value - 0.21875) <= 1e-12 * max(1, abs(0.21875)))
-        let arcs = graph.directed.modularity(of: communities, weight: { w[$0.position] })
-        #expect(abs(arcs - 0.21875) <= 1e-12 * max(1, abs(0.21875)), "graph.directed")
+        let arcs = graph.directedView.modularity(of: communities, weight: { w[$0.position] })
+        #expect(abs(arcs - 0.21875) <= 1e-12 * max(1, abs(0.21875)), "graph.directedView")
     }
 
     @Test("CD-060 U(0-1, 1-2, 1-1).modularity(of: [[0, 1], [2]]) is -0.0555555555556: A loop is A_11 = 2: d(1) = 4, L = 2 (NetworkX, igraph: −1/18)")
@@ -359,8 +359,8 @@ struct ModularityTests {
         let communities: [[Int]] = [[0, 1], [2]]
         let value = graph.modularity(of: communities)
         #expect(abs(value - -0.055555555555555566) <= 1e-12 * max(1, abs(-0.055555555555555566)))
-        let arcs = graph.directed.modularity(of: communities)
-        #expect(abs(arcs - -0.055555555555555566) <= 1e-12 * max(1, abs(-0.055555555555555566)), "graph.directed")
+        let arcs = graph.directedView.modularity(of: communities)
+        #expect(abs(arcs - -0.055555555555555566) <= 1e-12 * max(1, abs(-0.055555555555555566)), "graph.directedView")
     }
 
     @Test("CD-061 U(0-1, 1-2, 1-1).modularity(of: [[0, 1], [2]], weight: [1, 1, 3]) is -0.02: A weighted loop counts its weight twice in the degree")
@@ -372,17 +372,17 @@ struct ModularityTests {
         let w: [Double] = [1, 1, 3]
         let value = graph.modularity(of: communities, weight: { w[$0] })
         #expect(abs(value - -0.02000000000000001) <= 1e-12 * max(1, abs(-0.02000000000000001)))
-        let arcs = graph.directed.modularity(of: communities, weight: { w[$0.position] })
-        #expect(abs(arcs - -0.02000000000000001) <= 1e-12 * max(1, abs(-0.02000000000000001)), "graph.directed")
+        let arcs = graph.directedView.modularity(of: communities, weight: { w[$0.position] })
+        #expect(abs(arcs - -0.02000000000000001) <= 1e-12 * max(1, abs(-0.02000000000000001)), "graph.directedView")
     }
 
-    @Test("CD-062 U(0-1, 1-2, 1-1).directed.modularity(of: [[0, 1], [2]]) is -0.0555555555556: A loop is two loop arcs in graph.directed: the same Q")
+    @Test("CD-062 U(0-1, 1-2, 1-1).directedView.modularity(of: [[0, 1], [2]]) is -0.0555555555556: A loop is two loop arcs in graph.directedView: the same Q")
     func modularity062() {
         // U: 0-1, 1-2, 1-1
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (1, 1)]
         let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         let communities: [[Int]] = [[0, 1], [2]]
-        let value = graph.directed.modularity(of: communities)
+        let value = graph.directedView.modularity(of: communities)
         #expect(abs(value - -0.055555555555555566) <= 1e-12 * max(1, abs(-0.055555555555555566)))
     }
 
@@ -445,7 +445,7 @@ struct ModularityTests {
         let communities: [[String]] = [["a", "b"], ["c"]]
         let value = graph.modularity(of: communities)
         #expect(abs(value - -0.125) <= 1e-12 * max(1, abs(-0.125)))
-        let arcs = graph.directed.modularity(of: communities)
-        #expect(abs(arcs - -0.125) <= 1e-12 * max(1, abs(-0.125)), "graph.directed")
+        let arcs = graph.directedView.modularity(of: communities)
+        #expect(abs(arcs - -0.125) <= 1e-12 * max(1, abs(-0.125)), "graph.directedView")
     }
 }

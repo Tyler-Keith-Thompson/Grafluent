@@ -8,7 +8,7 @@
 // partition row also checks `count`, `community(of:)` against membership, `community(ofIndex:)`
 // against `community(of:)`, and the modularity of the result (at the call's weight and resolution)
 // against ref.py's; undirected rows of the measures, Louvain and greedy modularity also run on
-// `graph.directed` (the same values). Case IDs (CD-nnn) refer to the catalog; see README.md.
+// `graph.directedView` (the same values). Case IDs (CD-nnn) refer to the catalog; see README.md.
 
 import CommunityDetection
 import GrafluentTestSupport
@@ -37,8 +37,8 @@ struct GreedyModularityTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.35714285714285715) <= 1e-12 * max(1, abs(0.35714285714285715)))
-        let arcs = graph.directed.greedyModularityCommunities()
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.greedyModularityCommunities()
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-116 U(K(0..4), K(5..9), 4-5).greedyModularityCommunities() is [[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]]")
@@ -62,8 +62,8 @@ struct GreedyModularityTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.45238095238095233) <= 1e-12 * max(1, abs(0.45238095238095233)))
-        let arcs = graph.directed.greedyModularityCommunities()
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.greedyModularityCommunities()
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-117 U(nx(ring_of_cliques,4,4)).greedyModularityCommunities() is the catalog's partition (4 communities)")
@@ -88,8 +88,8 @@ struct GreedyModularityTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.6071428571428571) <= 1e-12 * max(1, abs(0.6071428571428571)))
-        let arcs = graph.directed.greedyModularityCommunities()
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.greedyModularityCommunities()
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-118 U(nx(connected_caveman,4,5)).greedyModularityCommunities() is the catalog's partition (4 communities)")
@@ -116,8 +116,8 @@ struct GreedyModularityTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.65) <= 1e-12 * max(1, abs(0.65)))
-        let arcs = graph.directed.greedyModularityCommunities()
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.greedyModularityCommunities()
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-119 U(nx(karate_club)).greedyModularityCommunities() is the catalog's partition (3 communities): Q = 0.3807; igraph `community_fastgreedy` reaches the same Q")
@@ -148,8 +148,8 @@ struct GreedyModularityTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.3806706114398422) <= 1e-12 * max(1, abs(0.3806706114398422)))
-        let arcs = graph.directed.greedyModularityCommunities()
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.greedyModularityCommunities()
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-120 U(nx(karate_club)).greedyModularityCommunities().count is 3")
@@ -205,8 +205,8 @@ struct GreedyModularityTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result, weight: { w[$0] })
         #expect(abs(q - 0.4345214669889994) <= 1e-12 * max(1, abs(0.4345214669889994)))
-        let arcs = graph.directed.greedyModularityCommunities(weight: { w[$0.position] })
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.greedyModularityCommunities(weight: { w[$0.position] })
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-122 U(nx(karate_club)).greedyModularityCommunities(resolution: 0.5) is the catalog's partition (2 communities)")
@@ -237,8 +237,8 @@ struct GreedyModularityTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result, resolution: 0.5)
         #expect(abs(q - 0.6158777120315582) <= 1e-12 * max(1, abs(0.6158777120315582)))
-        let arcs = graph.directed.greedyModularityCommunities(resolution: 0.5)
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.greedyModularityCommunities(resolution: 0.5)
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-123 U(nx(karate_club)).greedyModularityCommunities(resolution: 2) is the catalog's partition (7 communities)")
@@ -269,8 +269,8 @@ struct GreedyModularityTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result, resolution: 2)
         #expect(abs(q - 0.16354372123602892) <= 1e-12 * max(1, abs(0.16354372123602892)))
-        let arcs = graph.directed.greedyModularityCommunities(resolution: 2)
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.greedyModularityCommunities(resolution: 2)
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-124 U(nx(florentine_families)).greedyModularityCommunities() is the catalog's partition (3 communities)")
@@ -304,8 +304,8 @@ struct GreedyModularityTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.39874999999999994) <= 1e-12 * max(1, abs(0.39874999999999994)))
-        let arcs = graph.directed.greedyModularityCommunities()
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.greedyModularityCommunities()
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-125 U(P(0,1,2,3,4,5,6,7)).greedyModularityCommunities() is [[0, 1, 2, 3], [4, 5, 6, 7]]: Ties: the least pair (u, v), u merged into v")
@@ -328,8 +328,8 @@ struct GreedyModularityTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.35714285714285715) <= 1e-12 * max(1, abs(0.35714285714285715)))
-        let arcs = graph.directed.greedyModularityCommunities()
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.greedyModularityCommunities()
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-126 U(C(0,1,2,3,4,5,6,7,8,9)).greedyModularityCommunities() is [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9]]")
@@ -353,8 +353,8 @@ struct GreedyModularityTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.33999999999999997) <= 1e-12 * max(1, abs(0.33999999999999997)))
-        let arcs = graph.directed.greedyModularityCommunities()
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.greedyModularityCommunities()
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-127 U(K(0..2), K(3..5), 2-3, 2-3, 0-0).greedyModularityCommunities() is [[0, 1], [2, 3, 4, 5]]: Parallel edges and loops")
@@ -377,8 +377,8 @@ struct GreedyModularityTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.22222222222222227) <= 1e-12 * max(1, abs(0.22222222222222227)))
-        let arcs = graph.directed.greedyModularityCommunities()
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.greedyModularityCommunities()
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-128 U(K(0..2), K(3..5)).greedyModularityCommunities(resolution: 0) is [[0, 1, 2], [3, 4, 5]]: γ = 0: ΔQ ≥ 0 for every adjacent pair, so components")
@@ -401,8 +401,8 @@ struct GreedyModularityTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result, resolution: 0)
         #expect(abs(q - 1) <= 1e-12 * max(1, abs(1)))
-        let arcs = graph.directed.greedyModularityCommunities(resolution: 0)
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.greedyModularityCommunities(resolution: 0)
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-129 U(lcg(40,90,7)).greedyModularityCommunities() is the catalog's partition (5 communities)")
@@ -438,8 +438,8 @@ struct GreedyModularityTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.3493827160493827) <= 1e-12 * max(1, abs(0.3493827160493827)))
-        let arcs = graph.directed.greedyModularityCommunities()
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.greedyModularityCommunities()
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-130 U(lcg(30,60,3)).greedyModularityCommunities(weight: e%5+1) is the catalog's partition (5 communities)")
@@ -471,8 +471,8 @@ struct GreedyModularityTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result, weight: { Double($0 % 5 + 1) })
         #expect(abs(q - 0.41766975308641974) <= 1e-12 * max(1, abs(0.41766975308641974)))
-        let arcs = graph.directed.greedyModularityCommunities(weight: { Double($0.position % 5 + 1) })
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.greedyModularityCommunities(weight: { Double($0.position % 5 + 1) })
+        #expect(arcs == result, "graph.directedView")
     }
 
     @Test("CD-131 D(C(0,1,2), C(3,4,5), 2>3).greedyModularityCommunities() is [[0, 1, 2], [3, 4, 5]]: Directed")
@@ -554,8 +554,8 @@ struct GreedyModularityTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result, weight: { w[$0] })
         #expect(abs(q) <= 1e-12)
-        let arcs = graph.directed.greedyModularityCommunities(weight: { w[$0.position] })
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.greedyModularityCommunities(weight: { w[$0.position] })
+        #expect(arcs == result, "graph.directedView")
     }
 
     // MARK: - Merges with ΔQ = 0 continue (api.md; not a catalog row)
@@ -577,7 +577,7 @@ struct GreedyModularityTests {
         let w: [Double] = [1, 1, 1, 1, 1, 1, 0]
         let result = graph.greedyModularityCommunities(weight: { w[$0] }, resolution: 0)
         #expect(result.map { Array($0) } == [[0, 1, 2, 3, 4, 5]])
-        let arcs = graph.directed.greedyModularityCommunities(weight: { w[$0.position] }, resolution: 0)
-        #expect(arcs == result, "graph.directed")
+        let arcs = graph.directedView.greedyModularityCommunities(weight: { w[$0.position] }, resolution: 0)
+        #expect(arcs == result, "graph.directedView")
     }
 }

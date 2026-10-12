@@ -1,5 +1,5 @@
-// The views between the two protocols, `directed` (each edge as two opposite arcs) and
-// `undirected` (each arc as an edge), and conversions through them. Expected values come from
+// The views between the two protocols, `directedView` (each edge as two opposite arcs) and
+// `undirectedView` (each arc as an edge), and conversions through them. Expected values come from
 // NetworkX `to_directed` / `to_undirected` and JGraphT `AsUndirectedGraph`. Case IDs (UG-Cnn)
 // refer to the catalog in README.md.
 
@@ -51,10 +51,10 @@ struct GraphViewTests {
                     }
                 }
             }
-            laws(base.directed)
+            laws(base.directedView)
             // Every arc is its base edge or that edge reversed, and each base edge gives both.
             var arcs: [UndirectedEdge<B.Vertex>: [DirectedEdge<B.Vertex>]] = [:]
-            for arc in base.directed.edges { arcs[UndirectedEdge(arc.source, arc.target), default: []].append(arc) }
+            for arc in base.directedView.edges { arcs[UndirectedEdge(arc.source, arc.target), default: []].append(arc) }
             var expected: [UndirectedEdge<B.Vertex>: [DirectedEdge<B.Vertex>]] = [:]
             for e in base.edges {
                 expected[e, default: []] += [DirectedEdge(from: e.u, to: e.v), DirectedEdge(from: e.v, to: e.u)]
@@ -73,13 +73,13 @@ struct GraphViewTests {
         let graph = UndirectedAdjacencyList(edges: UndirectedFixture<Int>.loopAndPath.edges)
         func arcs<D: DirectedGraph<Int>>(_ g: D) -> [DirectedEdge<Int>] { Array(g.edges) }
         func count<D: DirectedGraph<Int>>(_ g: D) -> Int { g.edgeCount }
-        #expect(arcs(graph.directed) == [
+        #expect(arcs(graph.directedView) == [
             DirectedEdge(from: 0, to: 0), DirectedEdge(from: 0, to: 0), DirectedEdge(from: 0, to: 1),
             DirectedEdge(from: 1, to: 0), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 1),
         ])
-        #expect(count(graph.directed) == 6)
+        #expect(count(graph.directedView) == 6)
         // Materialized, the two loop arcs collapse: NetworkX to_directed() has 5 arcs.
-        let collapsed = AdjacencyList(graph.directed)
+        let collapsed = AdjacencyList(graph.directedView)
         #expect(collapsed.edgeCount == 5)
         #expect(Set(collapsed.edges) == [
             DirectedEdge(from: 0, to: 0), DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 0),
@@ -105,7 +105,7 @@ struct GraphViewTests {
                 }
                 #expect(seen == Set(g.edges.indices))
             }
-            bidirectional(base.directed)
+            bidirectional(base.directedView)
         }
         check(UndirectedAdjacencyList(vertices: fixture.vertices, edges: fixture.edges))
         check(ReferencePseudograph(vertices: fixture.vertices, edges: fixture.edges))
@@ -139,26 +139,26 @@ struct GraphViewTests {
             return result
         }
         let seven = UndirectedFixture<Int>.components7
-        #expect(strongComponents(UndirectedAdjacencyList(vertices: seven.vertices, edges: seven.edges).directed) == [[0, 1, 2], [3, 4], [5], [6]])
-        #expect(strongComponents(ReferencePseudograph(vertices: seven.vertices, edges: seven.edges).directed) == [[0, 1, 2], [3, 4], [5], [6]])
-        #expect(strongComponents(UndirectedAdjacencyList(edges: UndirectedFixture<Int>.petersen.edges).directed).count == 1)
-        #expect(strongComponents(UndirectedAdjacencyList(edges: UndirectedFixture<Int>.karate.edges).directed).count == 1)
+        #expect(strongComponents(UndirectedAdjacencyList(vertices: seven.vertices, edges: seven.edges).directedView) == [[0, 1, 2], [3, 4], [5], [6]])
+        #expect(strongComponents(ReferencePseudograph(vertices: seven.vertices, edges: seven.edges).directedView) == [[0, 1, 2], [3, 4], [5], [6]])
+        #expect(strongComponents(UndirectedAdjacencyList(edges: UndirectedFixture<Int>.petersen.edges).directedView).count == 1)
+        #expect(strongComponents(UndirectedAdjacencyList(edges: UndirectedFixture<Int>.karate.edges).directedView).count == 1)
     }
 
     @Test("UG-C04 Traversal's breadth-first search runs on an undirected graph through the directed view")
     func traversalThroughView() {
         var distance: [Int: Int] = [0: 0]
-        for case .treeEdge(let arc) in UndirectedAdjacencyList(edges: UndirectedFixture<Int>.petersen.edges).directed.breadthFirstSearch(from: 0) {
+        for case .treeEdge(let arc) in UndirectedAdjacencyList(edges: UndirectedFixture<Int>.petersen.edges).directedView.breadthFirstSearch(from: 0) {
             distance[arc.target] = distance[arc.source]! + 1
         }
         #expect(distance == [0: 0, 1: 1, 4: 1, 5: 1, 2: 2, 3: 2, 6: 2, 7: 2, 8: 2, 9: 2])
-        let layers = UndirectedAdjacencyList(edges: UndirectedFixture<Int>.cube.edges).directed.breadthFirstLayers(from: 0)
+        let layers = UndirectedAdjacencyList(edges: UndirectedFixture<Int>.cube.edges).directedView.breadthFirstLayers(from: 0)
         #expect(layers.map { Set($0) } == [[0], [1, 2, 4], [3, 5, 6], [7]])
     }
 
     @Test("UG-C05 the undirected view of a directed graph")
     func undirectedView() {
-        let view = AdjacencyList(edges: DirectedFixture<Int>.house.edges).undirected
+        let view = AdjacencyList(edges: DirectedFixture<Int>.house.edges).undirectedView
         func degrees<G: Graph<Int>>(_ g: G) -> [Int: Int] {
             Dictionary(uniqueKeysWithValues: g.vertices.map { ($0, g.degree(of: $0)) })
         }
@@ -210,7 +210,7 @@ struct GraphViewTests {
         func summary<G: Graph<Int>>(_ g: G) -> (edges: Int, degree: [Int: Int]) {
             (g.edgeCount, Dictionary(uniqueKeysWithValues: g.vertices.map { ($0, g.degree(of: $0)) }))
         }
-        let view = AdjacencyList(edges: DirectedFixture<Int>.triangleWithReciprocalEdge.edges).undirected
+        let view = AdjacencyList(edges: DirectedFixture<Int>.triangleWithReciprocalEdge.edges).undirectedView
         // JGraphT AsUndirectedGraph: a multigraph.
         #expect(summary(view).edges == 4)
         #expect(summary(view).degree == [1: 3, 2: 3, 3: 2])
@@ -224,7 +224,7 @@ struct GraphViewTests {
     @Test("UG-C07 a directed loop is a loop of degree 2 in the view", .tags(.selfLoops))
     func directedLoops() {
         let base = AdjacencyList(edges: DirectedFixture<Int>.selfLoopsAndDuplicates.edges)
-        let view = base.undirected
+        let view = base.undirectedView
         func degrees<G: Graph<Int>>(_ g: G) -> [Int: Int] {
             Dictionary(uniqueKeysWithValues: g.vertices.map { ($0, g.degree(of: $0)) })
         }
@@ -239,7 +239,7 @@ struct GraphViewTests {
     func viewPositions() {
         func positionType<G: Graph>(_: G) -> Any.Type { G.Edges.Index.self }
         let base = AdjacencyList(edges: DirectedFixture<Int>.house.edges)
-        let view = base.undirected
+        let view = base.undirectedView
         #expect(ObjectIdentifier(positionType(view)) == ObjectIdentifier(AdjacencyList<Int>.Edges.Index.self))
         var weight: [AdjacencyList<Int>.Edges.Index: Int] = [:]
         for (k, e) in base.edges.indices.enumerated() { weight[e] = 10 * (k + 1) }
@@ -258,10 +258,10 @@ struct GraphViewTests {
     @Test("UG-C09 round trips through both views give back the graph", .tags(.fixture), arguments: UndirectedFixture<Int>.all)
     func roundTrips(_ fixture: UndirectedFixture<Int>) {
         let graph = UndirectedAdjacencyList(vertices: fixture.vertices, edges: fixture.edges)
-        #expect(UndirectedAdjacencyList(AdjacencyList(graph.directed).undirected) == graph)
+        #expect(UndirectedAdjacencyList(AdjacencyList(graph.directedView).undirectedView) == graph)
         #expect(UndirectedAdjacencyList(graph) == graph)
-        #expect(UndirectedAdjacencyList(graph.directed.undirected) == graph)
-        #expect(AdjacencyList(graph.directed).edgeCount == 2 * graph.edgeCount - graph.edges.filter(\.isSelfLoop).count)
+        #expect(UndirectedAdjacencyList(graph.directedView.undirectedView) == graph)
+        #expect(AdjacencyList(graph.directedView).edgeCount == 2 * graph.edgeCount - graph.edges.filter(\.isSelfLoop).count)
     }
 
     @Test("UG-C10 converting a pseudograph collapses parallel edges and keeps loops")
@@ -281,7 +281,7 @@ struct GraphViewTests {
         let house = DirectedFixture<Int>.house
         let sparse = CompressedSparseRow(vertexCount: house.vertexCount, edges: house.edges)
         let mapped = UndirectedAdjacencyList(vertices: sparse.vertices, edges: sparse.edges.map { UndirectedEdge($0.source, $0.target) })
-        #expect(mapped == UndirectedAdjacencyList(AdjacencyList(edges: house.edges).undirected))
+        #expect(mapped == UndirectedAdjacencyList(AdjacencyList(edges: house.edges).undirectedView))
         #expect(mapped.edgeCount == 7)
         #expect(Set(mapped.neighbors(of: 2)) == [1, 3])
     }

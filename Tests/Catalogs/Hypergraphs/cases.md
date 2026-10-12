@@ -18,8 +18,8 @@ Conventions:
   `vertices` with each vertex's index; `E [p:…, …]` is `hyperedges` by position, each side in vertex-index
   order.
 * `dual()` and `reversed` print as states (the dual's vertices are the original's hyperedge positions).
-* `incidenceGraph`, `cliqueExpansion()` and `lineGraph(s:)` print `vertices …; edges […]` with the edges in
-  edge-position order (`–` undirected, `→` directed). In `incidenceGraph`, vertex index `i` is `i` and
+* `incidenceGraphView`, `cliqueExpansion()` and `lineGraph(s:)` print `vertices …; edges […]` with the edges in
+  edge-position order (`–` undirected, `→` directed). In `incidenceGraphView`, vertex index `i` is `i` and
   hyperedge `p` is `n + p`.
 * `hashes()` is the number of vertex lookups so far (a benchmark counter, not API: the Swift suite counts
   with a `Vertex` whose `hash(into:)` counts).
@@ -88,9 +88,9 @@ Conventions:
 | HG-056 | Dual | an isolated vertex becomes an empty hyperedge, an empty hyperedge an isolated vertex | U V []; E [{a, b}, {}, {b, c}, {d}] / insert(z) / dual() | (true, z); V [0#0, 1#1, 2#2, 3#3]; E [0:{0}, 1:{0, 2}, 2:{2}, 3:{3}, 4:{}] |
 | HG-057 | Dual | of the empty hypergraph | U V []; E [] / dual() | V []; E [] |
 | HG-058 | Dual | repeated hyperedges become vertices with equal incidence rows | U V []; E [{a, b}, {a, b}] / dual() | V [0#0, 1#1]; E [0:{0, 1}, 1:{0, 1}] |
-| HG-059 | Incidence graph | vertices 0..<n then n + p; edge q is the q-th incidence (XGI to_bipartite_graph numbering) | U V [a, b, c, d, e, f]; E [{a, b, c}, {c, d}, {a, b, c}, {e}] / incidenceGraph | vertices 0..<10; edges [0–6, 1–6, 2–6, 2–7, 3–7, 0–8, 1–8, 2–8, 4–9] |
-| HG-060 | Incidence graph | an empty hyperedge is an isolated vertex | U V []; E [{a, b}, {}, {b, c}] / incidenceGraph | vertices 0..<6; edges [0–3, 1–3, 1–5, 2–5] |
-| HG-061 | Incidence graph | repeated hyperedges are distinct vertices; the view stays simple | U V []; E [{a, b}, {a, b}] / incidenceGraph | vertices 0..<4; edges [0–2, 1–2, 0–3, 1–3] |
+| HG-059 | Incidence graph | vertices 0..<n then n + p; edge q is the q-th incidence (XGI to_bipartite_graph numbering) | U V [a, b, c, d, e, f]; E [{a, b, c}, {c, d}, {a, b, c}, {e}] / incidenceGraphView | vertices 0..<10; edges [0–6, 1–6, 2–6, 2–7, 3–7, 0–8, 1–8, 2–8, 4–9] |
+| HG-060 | Incidence graph | an empty hyperedge is an isolated vertex | U V []; E [{a, b}, {}, {b, c}] / incidenceGraphView | vertices 0..<6; edges [0–3, 1–3, 1–5, 2–5] |
+| HG-061 | Incidence graph | repeated hyperedges are distinct vertices; the view stays simple | U V []; E [{a, b}, {a, b}] / incidenceGraphView | vertices 0..<4; edges [0–2, 1–2, 0–3, 1–3] |
 | HG-062 | Clique expansion | every vertex, isolated ones too; each pair once, by index pair (XGI to_graph) | U V [a, b, c, d, e, f]; E [{a, b, c}, {c, d}, {a, b, c}, {e}] / cliqueExpansion() | vertices [a, b, c, d, e, f]; edges [a–b, a–c, b–c, c–d] |
 | HG-063 | Clique expansion | singletons and empty hyperedges add no edge; no self-loops | U V []; E [{a}, {}, {a, b}] / cliqueExpansion() | vertices [a, b]; edges [a–b] |
 | HG-064 | Clique expansion | a 4-member hyperedge is K4 | U V []; E [{a, b, c, d}] / cliqueExpansion() | vertices [a, b, c, d]; edges [a–b, a–c, a–d, b–c, b–d, c–d] |
@@ -148,8 +148,8 @@ Conventions:
 | DH-022 | Reversal | reversed swaps sources and targets (Gallo's symmetric image) | D V [a, b, c, d, e]; E [{a}→{b, c}, {b, c}→{d, e}, {c}→{c, e}, {}→{}, {a}→{b, c}] / reversed | V [a#0, b#1, c#2, d#3, e#4]; E [0:{b, c}→{a}, 1:{d, e}→{b, c}, 2:{c, e}→{c}, 3:{}→{}, 4:{b, c}→{a}] |
 | DH-023 | Dual | hyperedge i of the dual has sources = out-hyperedges of i, targets = in-hyperedges of i (the transpose) | D V [a, b, c, d, e]; E [{a}→{b, c}, {b, c}→{d, e}, {c}→{c, e}, {}→{}, {a}→{b, c}] / dual() | V [0#0, 1#1, 2#2, 3#3, 4#4]; E [0:{0, 4}→{}, 1:{1}→{0, 4}, 2:{1, 2}→{0, 2, 4}, 3:{}→{1}, 4:{}→{1, 2}] |
 | DH-024 | Dual | an isolated vertex becomes the empty hyperedge and back | D V [z]; E [{}→{}] / dual() | V [0#0]; E [0:{}→{}] |
-| DH-025 | Incidence graph | sources → hyperedge → targets: source incidences first, then target incidences (XGI directed to_bipartite_graph) | D V [a, b, c, d, e]; E [{a}→{b, c}, {b, c}→{d, e}, {c}→{c, e}, {}→{}, {a}→{b, c}] / incidenceGraph | vertices 0..<10; edges [0→5, 1→6, 2→6, 2→7, 0→9, 5→1, 5→2, 6→3, 6→4, 7→2, 7→4, 9→1, 9→2] |
-| DH-026 | Incidence graph | a vertex on both sides gives a 2-cycle through its hyperedge | D V []; E [{a}→{a, b}] / incidenceGraph | vertices 0..<3; edges [0→2, 2→0, 2→1] |
+| DH-025 | Incidence graph | sources → hyperedge → targets: source incidences first, then target incidences (XGI directed to_bipartite_graph) | D V [a, b, c, d, e]; E [{a}→{b, c}, {b, c}→{d, e}, {c}→{c, e}, {}→{}, {a}→{b, c}] / incidenceGraphView | vertices 0..<10; edges [0→5, 1→6, 2→6, 2→7, 0→9, 5→1, 5→2, 6→3, 6→4, 7→2, 7→4, 9→1, 9→2] |
+| DH-026 | Incidence graph | a vertex on both sides gives a 2-cycle through its hyperedge | D V []; E [{a}→{a, b}] / incidenceGraphView | vertices 0..<3; edges [0→2, 2→0, 2→1] |
 | DH-027 | Components | weak components join sources and targets; isolated vertices alone | D V [a, b, c, d, e, f, g]; E [{a, b}→{c}, {c}→{d}, {d, e}→{f}, {f}→{a}] / weaklyConnectedComponents() / isWeaklyConnected | [[a, b, c, d, e, f], [g]]; false |
 | DH-028 | Components | strong components through the incidence graph: a → c → d → f → a is a cycle, b and e are not on it | D V [a, b, c, d, e, f, g]; E [{a, b}→{c}, {c}→{d}, {d, e}→{f}, {f}→{a}] / stronglyConnectedComponents() / isStronglyConnected | [[a, c, d, f], [b], [e], [g]]; false |
 | DH-029 | Components | a two-way pair is strongly connected | D V []; E [{a}→{b}, {b}→{a}] / stronglyConnectedComponents() / isStronglyConnected | [[a, b]]; true |

@@ -7,7 +7,7 @@ strong and weak connectivity tests, condensation, attracting components, dominat
 `Graph`: connected components, bridges, articulation points, biconnected components (blocks),
 bi-edge-connected (2-edge-connected) components, the block–cut tree, and the predicates
 `isConnected`, `hasBridges`, `isBiconnected` and `isBiEdgeConnected`; a bidirectional digraph
-reaches it through `.undirected`. The undirected tests were written before the implementation,
+reaches it through `.undirectedView`. The undirected tests were written before the implementation,
 from the proposed API. The suite uses only the public API and is self-contained per test; shared
 material is the fixtures, the `ReferenceDirectedMultigraph` and `ReferencePseudograph` test
 conformers and the seeded generator in `GrafluentTestSupport`.
@@ -18,6 +18,7 @@ conformers and the seeded generator in `GrafluentTestSupport`.
 struct Components<G: DirectedGraph>: RandomAccessCollection, Equatable   // Element == ArraySlice<Vertex>
     func component(of: Vertex) -> Int                 // position in the collection, O(1)
     func component(ofIndex: Int) -> Int               // the same in index space
+    func component(checked: Vertex) throws(VertexNotFound) -> Int   // README Principle 6
 struct Condensation<G: DirectedGraph>
     let components: Components<G>
     let graph: CompressedSparseRow                    // vertex i is components[i]
@@ -28,10 +29,13 @@ struct DominatorTree<G: DirectedGraph>
     func strictDominators(of:) -> [Vertex]?
     func children(of:) -> ArraySlice<Vertex>          // in vertices order
     func dominates(_:_:) -> Bool                      // false when the second is unreachable
+    // immediateDominator(checked:), dominators(checked:), strictDominators(checked:),
+    // children(checked:), dominates(checked:_:): the same, throwing VertexNotFound for a non-vertex
 extension Arborescence
     init(_ tree: DominatorTree<G>)                    // reachable vertices in vertex order, idom as parent
 struct DominanceFrontiers<G: DirectedGraph>
     subscript(Vertex) -> ArraySlice<Vertex>?          // vertices order; nil if unreachable
+    subscript(checked: Vertex) -> ArraySlice<Vertex>? // throws VertexNotFound for a non-vertex
 
 extension DirectedGraph
     func stronglyConnectedComponents() -> Components<Self>
@@ -53,12 +57,14 @@ struct BiconnectedComponents<G: Graph>: RandomAccessCollection, Equatable  // El
     func vertices(ofComponentAt: Int) -> ArraySlice<Vertex>      // vertices order
     func component(ofEdgeAt: Edges.Index) -> Int?                // nil for a self-loop
     func components(containing: Vertex) -> ArraySlice<Int>       // ascending; empty when none
+    func component(checkedEdgeAt:), components(checkedContaining:) // throw EdgeNotFound / VertexNotFound
 struct BlockCutTree<G: Graph>: Equatable
     let blocks: BiconnectedComponents<G>
     let articulationPoints: [Vertex]                             // vertices order
     func articulationPoints(ofBlock: Int) -> ArraySlice<Int>     // places in articulationPoints, ascending
     func blocks(ofArticulationPoint: Int) -> ArraySlice<Int>     // block positions, ascending
     func node(of: Vertex) -> Node?                               // .articulationPoint(i), .block(b) or nil
+    func node(checked: Vertex) throws(VertexNotFound) -> Node?
     var edgeCount: Int
     enum Node: Hashable, Sendable { case block(Int), articulationPoint(Int) }
 
@@ -104,9 +110,9 @@ generator are in `Tests/Catalogs/Connectivity/`, `directed/` and `undirected/`):
 | Isolated vertices | Their own connected and 2-edge-connected component, in no block, no block–cut tree node; a block plus an isolated vertex is not biconnected (CN-269, CN-330) | All the libraries |
 | Parallel edges | Edges with identity: a parallel pair is never a bridge and both copies share a block; they never change articulation points (CN-281, CN-361). The search skips the parent edge, not the parent vertex (CN-291, CN-292) | igraph, LEMON; NetworkX, rustworkx and Boost differ |
 | Self-loops | Never a bridge, never make an articulation point, in no block: `component(ofEdgeAt:)` is `nil` (CN-280, CN-284 – CN-289) | igraph; LEMON makes a loop a block |
-| `.undirected` on a digraph | Each arc an edge, so opposite arcs are parallel and never bridges (CN-296) | JGraphT `AsUndirectedGraph` |
+| `.undirectedView` on a digraph | Each arc an edge, so opposite arcs are parallel and never bridges (CN-296) | JGraphT `AsUndirectedGraph` |
 | `isBiconnected`, `isBiEdgeConnected` | n ≥ 2, connected, and no articulation point (no bridge); not "one block", which isolated vertices break | NetworkX, igraph, JGraphT |
-| Results | `connectedComponents()` and `biEdgeConnectedComponents()` are `Components<DirectedView<Self>>`, `==` to `directed.weaklyConnectedComponents()` for the former (CN-360, CN-398); the results hold a copy of the graph; `==` compares blocks, their vertices and the tree in order, not the graph | api.md |
+| Results | `connectedComponents()` and `biEdgeConnectedComponents()` are `Components<DirectedView<Self>>`, `==` to `directedView.weaklyConnectedComponents()` for the former (CN-360, CN-398); the results hold a copy of the graph; `==` compares blocks, their vertices and the tree in order, not the graph | api.md |
 | Index space | On an indexed `UndirectedAdjacencyList` no entry point hashes a vertex; queries hash only their argument (CN-395) | As the directed half |
 | Preconditions | A query vertex or edge position not in the graph, and every position out of range, trap; tested with exit tests (CN-390 – CN-392) | — |
 
@@ -126,7 +132,7 @@ when no edge repeats, so positions and vertices order are the written ones and e
 exact: components, bridges, articulation points, blocks with their vertices, each edge's block,
 each vertex's blocks and node, 2-edge-connected components, the block–cut tree's adjacency and the
 predicates. Rows with repeats collapse on the adjacency list and are pinned there by CN-341.
-`AdjacencyList.undirected` (arcs as edges), `AdjacencyMatrix.undirected` (positions are cells,
+`AdjacencyList.undirectedView` (arcs as edges), `AdjacencyMatrix.undirectedView` (positions are cells,
 no edge indices) and two conformers private to `UndirectedRepresentationTests.swift` (`PlainGraph`
 without indices, `VertexIndexedGraph` with vertex indices only) are exact too (§H).
 
@@ -152,6 +158,7 @@ Randomized tests write their oracles inside the test.
 | `CondensationTests.swift` | §G – §H: condensation rows and laws, attracting components and their law |
 | `SelfLoopAndParallelEdgeTests.swift` | §I: parallel edges and self-loops on the ReferenceDirectedMultigraph |
 | `DominatorTests.swift` | §J – §M: immediate dominators (Boost's seven test sets, NetworkX, petgraph, fixtures), tree queries, dominance frontiers, post-dominators |
+| `CheckedQueryTests.swift` | The `checked:` result queries (README Principle 6) on indexed and unindexed graphs: each agrees with its trapping spelling, nil keeping its meaning, and throws `VertexNotFound` or `EdgeNotFound` for a non-member |
 | `DominatorArborescenceTests.swift` | Reuse pass: dominator and post-dominator trees as `Arborescence`: NetworkX's docstring graph, unreachable vertices, seeded random digraphs on three representations, `String` vertices |
 | `ConnectivityPropertyTests.swift` | §N: seeded random graphs through every representation against oracles written in each test |
 | `ConnectivityStressTests.swift` | §O: 100 000-vertex paths, cycles, a lasso and CHK's quadratic family inside a `Task`; wide graphs; the real-world fixtures |
@@ -160,15 +167,15 @@ Randomized tests write their oracles inside the test.
 | `UndirectedComponentsTests.swift` | §A: the empty graph, K₁, K₂, isolated vertices and small graphs from NetworkX, petgraph, rustworkx, Boost and LEMON, every entry point exact |
 | `BridgeTests.swift` | §B: bridges and 2-edge-connected components from NetworkX, igraph, rustworkx and JGraphT, multiedges included |
 | `BiconnectedComponentTests.swift` | §C: articulation points, blocks and the block–cut tree from NetworkX, JGraphT, petgraph, Boost, igraph, rustworkx and LEMON |
-| `UndirectedSelfLoopAndParallelEdgeTests.swift` | §D: parallel edges (the parent edge, not the parent vertex) and self-loops (in no block), a digraph through `.undirected` |
+| `UndirectedSelfLoopAndParallelEdgeTests.swift` | §D: parallel edges (the parent edge, not the parent vertex) and self-loops (in no block), a digraph through `.undirectedView` |
 | `UndirectedFamilyTests.swift` | §E: paths, cycles, stars, complete and complete bipartite graphs, grids, wheels, chains of blocks, the canonical block order |
 | `UndirectedFixtureTests.swift` | §F: the named `UndirectedFixture` graphs |
 | `UndirectedDisconnectedTests.swift` | §G: isolated vertices, loop-only components, interleaved components, gap4 as written |
-| `UndirectedRepresentationTests.swift` | §H: collapsed rows on `UndirectedAdjacencyList`, `AdjacencyList.undirected`, `AdjacencyMatrix.undirected`, conformers without indices and with vertex indices only, an adjacency list after removals, `Collider` vertices |
+| `UndirectedRepresentationTests.swift` | §H: collapsed rows on `UndirectedAdjacencyList`, `AdjacencyList.undirectedView`, `AdjacencyMatrix.undirectedView`, conformers without indices and with vertex indices only, an adjacency list after removals, `Collider` vertices |
 | `UndirectedConnectivityPropertyTests.swift` | §I: seeded random multigraphs with loops against oracles written in each test (removal, far-end connectivity, single-edge removals, the block–cut forest, invariances), Boost's G(100, 500), a PropertyBased check that shrinks, and `hasBridges`'s early exit on a row-counting conformer |
 | `UndirectedConnectivityStressTests.swift` | §J: deep paths, a cycle, a doubled path, a star, a grid, K₃₀₀, a lasso and a triangle chain inside a `Task`; the real-world fixtures read as undirected graphs |
 | `UndirectedConnectivityReviewTests.swift` | §L: added after the critical review: a conformer with edge indices but no vertex indices (file-private), `UndirectedAdjacencyList` after mutations that repack its rows, and index rows that break the laws trapping |
-| `UndirectedConnectivityConformanceTests.swift` | §K: self-loop queries, value semantics, `Sendable`, equality, index-space dispatch, generic code and existentials, digraphs through `.undirected`, the `Components` result type, determinism, preconditions |
+| `UndirectedConnectivityConformanceTests.swift` | §K: self-loop queries, value semantics, `Sendable`, equality, index-space dispatch, generic code and existentials, digraphs through `.undirectedView`, the `Components` result type, determinism, preconditions |
 
 ## Case IDs
 
@@ -212,5 +219,5 @@ only), gonum and rustworkx. Each test's name starts with its IDs.
 | CN-367 | Agreement with NetworkX | not a Swift test: `ref.py` checks every row and random graph against NetworkX 3.7 |
 | CN-370 – CN-382 | J. Stress and real-world fixtures | `UndirectedConnectivityStressTests.swift`, at half the catalog's sizes or less (a 50 000-vertex path, cycle and star, a 25 000-vertex doubled path and lasso, a 150 × 150 grid, 15 000 triangles) to keep each test well under two seconds in a debug build; the benchmarks run 10⁶ |
 | CN-400 – CN-404 | L. Review cases | `UndirectedConnectivityReviewTests.swift` |
-| CN-390 – CN-399 | K. Preconditions and conformance | `UndirectedConnectivityConformanceTests.swift`; CN-397's "nothing on `DirectedGraph`" is an absence, so only the `.undirected` route is tested |
+| CN-390 – CN-399 | K. Preconditions and conformance | `UndirectedConnectivityConformanceTests.swift`; CN-397's "nothing on `DirectedGraph`" is an absence, so only the `.undirectedView` route is tested |
 | CN-B10 – CN-B14 | Undirected benchmarks | not tests |

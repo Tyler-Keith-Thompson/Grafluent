@@ -86,7 +86,7 @@ enum FuzzCentrality {
         return p
     }
 
-    /// Checks every measure on `scores`-producing calls of one graph (`directed` picks the scaling).
+    /// Checks every measure on `scores`-producing calls of one graph (`directedView` picks the scaling).
     static func checkPaths(_ name: String, _ n: Int, _ arcs: [(Int, Int, Int)], directed: Bool,
                            closeness: [Double], plain: [Double], harmonic: [Double],
                            betweenness: [Double], raw: [Double], endpoints: [Double]) {

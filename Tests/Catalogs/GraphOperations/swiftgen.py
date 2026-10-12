@@ -133,7 +133,7 @@ def construct(spec, var="graph"):
 
 
 def swift_chain(call_text):
-    """A catalog call (`.inducedSubgraph(on: [a, b])`) in Swift, labels quoted."""
+    """A catalog call (`.inducedSubgraphView(on: [a, b])`) in Swift, labels quoted."""
     def quote(m):
         items = [x.strip() for x in m.group(2).split(",") if x.strip()]
         return m.group(1) + ("[" + ", ".join(s(x) for x in items) + "]" if items else "[] as [String]")
@@ -324,7 +324,7 @@ def counted_base(spec):
 def hash_lines(n, spec):
     lines = list(COUNTED) + [counted_base(spec)]
     if n == 9:
-        lines += ["let reversed = counted.reverseView",
+        lines += ["let reversed = counted.transposedView",
                   "tally.hashes = 0",
                   "let out = Array(reversed.outEdges(of: label(\"b\")))",
                   "#expect(tally.hashes == 1)",
@@ -335,7 +335,7 @@ def hash_lines(n, spec):
                   "#expect(out == [0, 1] && into == [] && row == [0, 2])"]
     elif n == 20:
         lines += ["tally.hashes = 0",
-                  "let induced = counted.inducedSubgraph(on: [\"b\", \"c\", \"d\", \"c\"].map(label))",
+                  "let induced = counted.inducedSubgraphView(on: [\"b\", \"c\", \"d\", \"c\"].map(label))",
                   "#expect(tally.hashes == 4)",
                   "tally.hashes = 0",
                   "let row = Array(induced.successorIndices(ofIndex: 0))",
@@ -346,7 +346,7 @@ def hash_lines(n, spec):
                   "#expect(row == [1] && bound == nil)",
                   "#expect(rows == [[1], [2, 0], [1]] && positions == [[1], [2, 1], [2]])"]
     elif n == 62:
-        lines += ["let complement = counted.complement",
+        lines += ["let complement = counted.complementView",
                   "tally.hashes = 0",
                   "let out = complement.outEdges(ofIndex: 0).map { [complement.sourceIndex(ofEdgeAt: $0), complement.targetIndex(ofEdgeAt: $0)] }",
                   "let rows = (0 ..< 3).map { Array(complement.successorIndices(ofIndex: $0)) + Array(complement.predecessorIndices(ofIndex: $0)) }",
@@ -376,7 +376,7 @@ def split_call(call_text):
 EXTRA = {
     7: ["#expect(view.edgeIndex(of: 2) == 2 && view.sourceIndex(ofEdgeAt: 2) == 0)"],
     8: ["// The reverse of a reverse is the base itself, of the base's type.",
-        "let back: %s = graph.reverseView.reverseView",
+        "let back: %s = graph.transposedView.transposedView",
         "#expect(back == graph)"],
     19: ["#expect(Array(view.predecessors(of: \"a\")) == [\"c\", \"d\"])"],
     21: ["#expect(view.edgeCount == 2)"],
@@ -466,14 +466,14 @@ def built_test(n):
 
 
 TRAP_CHILD = {
-    23: (".inducedSubgraph(on: [a])", "_ = view.vertexIndex(of: \"b\")"),
+    23: (".inducedSubgraphView(on: [a])", "_ = view.vertexIndex(of: \"b\")"),
 }
 TRAP_FIX = {  # the call without the fault, run in this process
-    22: ".inducedSubgraph(on: [a])",
-    23: ".inducedSubgraph(on: [a])",
-    36: ".spanningSubgraph(edges: [0])",
-    44: ".subgraph(vertices: [a], edges: [0])",
-    45: ".subgraph(vertices: [a], edges: [0])",
+    22: ".inducedSubgraphView(on: [a])",
+    23: ".inducedSubgraphView(on: [a])",
+    36: ".spanningSubgraphView(edges: [0])",
+    44: ".subgraphView(vertices: [a], edges: [0])",
+    45: ".subgraphView(vertices: [a], edges: [0])",
     92: [["a"], ["b"]],
     93: [["a", "b"], ["c"]],
     94: [["a", "b"]],
@@ -528,9 +528,9 @@ def trap_test(n):
             b = fresh(specs[0])
             m = re.match(r"\.(\w+)\(", fix)
             name = m.group(1)
-            if name == "inducedSubgraph":
+            if name == "inducedSubgraphView":
                 v = ref.induced_subgraph(b, ["a"])
-            elif name == "spanningSubgraph":
+            elif name == "spanningSubgraphView":
                 v = ref.spanning_subgraph(b, [0])
             else:
                 v = ref.subgraph(b, ["a"], [0])
@@ -562,8 +562,8 @@ def ids(*groups):
 
 TRAPS = [n for n in range(1, N + 1) if is_trap(n)]
 FILES = [
-    ("ReverseViewTests.swift", "GraphOperations reverseView", ids("Reverse"),
-     "reverseView (catalog GO-001 – GO-009): every arc flipped, vertices, indices and positions the\n"
+    ("TransposedViewTests.swift", "GraphOperations transposedView", ids("Reverse"),
+     "transposedView (catalog GO-001 – GO-009): every arc flipped, vertices, indices and positions the\n"
      "// base's; successors are the base's predecessors in its in-row order; the reverse of a reverse\n"
      "// is the base; a label-space row hashes once and an index-space row not at all."),
     ("SubgraphViewTests.swift", "GraphOperations subgraph views", ids("Induced", "Spanning", "Subgraph"),

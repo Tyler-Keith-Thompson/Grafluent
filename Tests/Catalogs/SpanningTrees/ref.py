@@ -421,7 +421,7 @@ CASES = [
     dict(id="ST-61", v=V(3), e=[(0, 1, 120), (1, 2, 100), (0, 2, 50)],
          min=dict(weight=150, edges=[2, 1], unique=True), max=dict(weight=220, edges=[0, 1], unique=True)),
 
-    # G. Representations: arcs 0→1 (3), 1→0 (1), 1→2 (2) read through `.undirected`
+    # G. Representations: arcs 0→1 (3), 1→0 (1), 1→2 (2) read through `.undirectedView`
     dict(id="ST-92", v=V(3), e=[(0, 1, 3), (1, 0, 1), (1, 2, 2)], min=dict(weight=3, edges=[1, 2], unique=True)),
 
     # F. Maximum (cases not already carrying a `max`) -----------------------------------------

@@ -15,7 +15,7 @@ where they are unique; larger blocks that are themselves a subdivision are uniqu
 
 ## Notation
 
-**Graph**: `U:` undirected, `D:` directed (the rows call `graph.undirected`: each arc is an
+**Graph**: `U:` undirected, `D:` directed (the rows call `graph.undirectedView`: each arc is an
 edge). An optional vertex list in brackets comes first, then edges in **position order**.
 `vertices` is the listed vertices, then the vertices of generators, then endpoints by first
 appearance. Vertices are `Int`s.
@@ -109,13 +109,13 @@ and its kind where only one kind exists. `**trap**` rows are preconditions.
 | PL-052 | Inputs | K5 with a loop at every vertex | `U: K(5), 0-0, 1-1, 2-2, 3-3, 4-4` | `isPlanar` | false |
 | PL-053 | Inputs | K3,3 with every edge doubled | `U: 0=3, 0=4, 0=5, 1=3, 1=4, 1=5, 2=3, 2=4, 2=5` | `isPlanar` | false |
 | PL-054 | Inputs | K4 with a loop and a parallel pair | `U: K(4), 0-0, 1=2` | `isPlanar` | true |
-| PL-055 | Inputs | directed K5 (transitive tournament) | `D: tt(5)` | `undirected.isPlanar` | false |
-| PL-056 | Inputs | directed K4 | `D: tt(4)` | `undirected.isPlanar` | true |
-| PL-057 | Inputs | a 2-cycle: two parallel edges underneath | `D: 0>1, 1>0` | `undirected.isPlanar` | true |
-| PL-058 | Inputs | directed K3,3 | `D: KB(0..2;3..5)` | `undirected.isPlanar` | false |
-| PL-059 | Inputs | directed K3,3, some arcs reversed | `D: 0>3, 4>0, 0>5, 3>1, 1>4, 5>1, 2>3, 2>4, 5>2` | `undirected.isPlanar` | false |
-| PL-060 | Inputs | directed: 2-cycle embedding | `D: 0>1, 1>0, 1>2` | `undirected.planarEmbedding()` | faceCount 2; face lengths {4, 2}; unique up to mirror image |
-| PL-061 | Inputs | directed K5: witness | `D: tt(5)` | `undirected.findKuratowskiSubgraph()` | K₅: edges [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]; branch vertices [0, 1, 2, 3, 4] |
+| PL-055 | Inputs | directed K5 (transitive tournament) | `D: tt(5)` | `undirectedView.isPlanar` | false |
+| PL-056 | Inputs | directed K4 | `D: tt(4)` | `undirectedView.isPlanar` | true |
+| PL-057 | Inputs | a 2-cycle: two parallel edges underneath | `D: 0>1, 1>0` | `undirectedView.isPlanar` | true |
+| PL-058 | Inputs | directed K3,3 | `D: KB(0..2;3..5)` | `undirectedView.isPlanar` | false |
+| PL-059 | Inputs | directed K3,3, some arcs reversed | `D: 0>3, 4>0, 0>5, 3>1, 1>4, 5>1, 2>3, 2>4, 5>2` | `undirectedView.isPlanar` | false |
+| PL-060 | Inputs | directed: 2-cycle embedding | `D: 0>1, 1>0, 1>2` | `undirectedView.planarEmbedding()` | faceCount 2; face lengths {4, 2}; unique up to mirror image |
+| PL-061 | Inputs | directed K5: witness | `D: tt(5)` | `undirectedView.findKuratowskiSubgraph()` | K₅: edges [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]; branch vertices [0, 1, 2, 3, 4] |
 | PL-062 | Embedding | empty graph | `U:` | `planarEmbedding()` | faceCount 0; no faces |
 | PL-063 | Embedding | one vertex | `U: [0]` | `planarEmbedding()` | faceCount 0; no faces |
 | PL-064 | Embedding | one edge | `U: 0-1` | `planarEmbedding()` | faceCount 1; face lengths {2}; unique up to mirror image |
@@ -222,7 +222,7 @@ and its kind where only one kind exists. `**trap**` rows are preconditions.
 | PL-165 | Outerplanar | K5: not planar either | `U: K(5)` | `isOuterplanar` | false |
 | PL-166 | Outerplanar | loops and parallel edges | `U: 0=1, 1-2, 2-0, 0-0` | `isOuterplanar` | true |
 | PL-167 | Outerplanar | K2,3 subdivided | `U: sd(KB(0..1;2..4))` | `isOuterplanar` | false |
-| PL-168 | Outerplanar | directed K4 | `D: tt(4)` | `undirected.isOuterplanar` | false |
+| PL-168 | Outerplanar | directed K4 | `D: tt(4)` | `undirectedView.isOuterplanar` | false |
 | PL-169 | Scale | grid 30 × 30 | `U: grid(30,30)` | `isPlanar` | true |
 | PL-170 | Scale | grid 30 × 30 | `U: grid(30,30)` | `planarEmbedding()` | faceCount 842; face lengths {116, 4×841}; unique up to mirror image |
 | PL-171 | Scale | stacked triangulation, 1,000 vertices | `U: tri(1000,3)` | `isPlanar` | true |

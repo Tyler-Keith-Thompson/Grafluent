@@ -47,7 +47,7 @@ struct UndirectedSimpleCycles<G: Graph>: Sequence           // the same shape
 | `findCycle()` | DFS, roots in `vertices` order (or the given roots in order, skipping reached ones), rows in order, skipping the edge it arrived by (not the parent vertex); the first edge to a vertex on the path closes the cycle; returned canonical; `nil` exactly when `isAcyclic` | §A, CY-756, CY-764 |
 | `cycleBasis()` | One cycle per non-tree edge of the BFS forest (loops and parallel copies included), in ascending position of that edge, canonical; m − n + c cycles, independent over GF(2) | §B, CY-757 |
 | `girth()` | Least cycle length; `nil` when acyclic (not inf, `Integer.MAX_VALUE` or 0) | §G, CY-758 |
-| Views | `g.directed` reads every edge as two arcs, so it has a digon per edge and two loops per loop (Boost's undirected count) and is never acyclic when g has an edge; `digraph.undirected` lists out-edges then in-edges, so antiparallel arcs are a 2-cycle and `isAcyclic` is the polytree test | CY-413 – CY-417, CY-707, CY-708, CY-759, CY-858 |
+| Views | `g.directedView` reads every edge as two arcs, so it has a digon per edge and two loops per loop (Boost's undirected count) and is never acyclic when g has an edge; `digraph.undirectedView` lists out-edges then in-edges, so antiparallel arcs are a 2-cycle and `isAcyclic` is the polytree test | CY-413 – CY-417, CY-707, CY-708, CY-759, CY-858 |
 
 ## How values are pinned
 
@@ -76,10 +76,10 @@ test.
 | `CycleBasisTests.swift` | 24 | §B: fundamental bases from igraph, NetworkX, rustworkx and JGraphT, multigraphs and loops, grids, wheels, rows reversed, a graph where Paton's basis is not fundamental |
 | `DirectedSimpleCycleTests.swift` | 53 | §C: NetworkX, rustworkx, JGraphT (with its pinned orders), igraph and Boost digraphs; complete digraphs with and without loops (A006231, JGraphT RESULTS); Johnson's figure 1; igraph's lost cycle (CY-252) |
 | `UndirectedSimpleCycleTests.swift` | 44 | §D: NetworkX, igraph and Boost graphs; complete graphs (A002807), rings, stars, wheels, grids, Petersen, K₃,₃; canonical form and order on K₄, rows reversed; cut vertices |
-| `CycleMultigraphTests.swift` | 24 | §E: loops, parallel pairs and triples, doubled sides, antiparallel copies, `g.directed` counts against Boost's undirected `hawick_circuits` |
+| `CycleMultigraphTests.swift` | 24 | §E: loops, parallel pairs and triples, doubled sides, antiparallel copies, `g.directedView` counts against Boost's undirected `hawick_circuits` |
 | `CycleLengthBoundTests.swift` | 49 | §F: bounds 0 … 9 and above n on NetworkX, igraph, Boost and JGraphT graphs; CY-491, the bounded search that must count other-orientation closures as found |
 | `GirthTests.swift` | 35 | §G: NetworkX's named graphs, JGraphT's GraphMetricsTest (pseudographs and multigraphs, both kinds), igraph, Boost, loops and parallel pairs |
-| `CycleRepresentationTests.swift` | 55 | §I: CY-701 rows on `UndirectedAdjacencyList` / `AdjacencyList`, CY-702 on `CompressedSparseRow` / `AdjacencyMatrix` and `.undirected` of each, CY-703 conformers without indices and with vertex indices only, CY-704 – CY-706 rows reversed and rotated, CY-707 `g.directed`, CY-708 `digraph.undirected`, CY-709 String and `Collider` vertices, CY-710 adjacency lists after removals |
+| `CycleRepresentationTests.swift` | 55 | §I: CY-701 rows on `UndirectedAdjacencyList` / `AdjacencyList`, CY-702 on `CompressedSparseRow` / `AdjacencyMatrix` and `.undirectedView` of each, CY-703 conformers without indices and with vertex indices only, CY-704 – CY-706 rows reversed and rotated, CY-707 `g.directedView`, CY-708 `digraph.undirectedView`, CY-709 String and `Collider` vertices, CY-710 adjacency lists after removals |
 | `CyclePropertyTests.swift` | 15 | §J (PropertyBased, shrinking): CY-750 – CY-754, CY-756 – CY-764 against oracles written in each test, rows shuffled by a shrinkable seed |
 | `Performance/CycleStressTests.swift` | 14 | §K inside a `Task` with a one-minute limit: Johnson's figure 1 (k ≤ 9 and k = 1000), 2³⁰ dead ends, 10⁵-deep directed and undirected cycles, a 10⁵ path, DKL(9), K₉, the first cycle of K₂₀₀, 10 000 chained triangles, a looped star of 10⁵ leaves, a bounded ladder, girth on a 2 000-cycle and a 100 × 100 grid |
 | `CycleConformanceTests.swift` | 8 | §L: `Sendable` (CY-852), value semantics (CY-853), not a `Collection` (CY-854), laziness on a row-counting conformer (CY-855), generic code (CY-856), no hashing on indexed adjacency lists (CY-857), `isAcyclic` on the views (CY-858), `Codable` and rotation equality (CY-859) |
@@ -104,7 +104,7 @@ Case IDs (CY-001 … CY-860) refer to the catalog (`cases.md`), harvested from N
 | CY-150 – CY-156 | B. Minimum cycle basis | not tested: phase 2 |
 | CY-200 – CY-252 | C. Directed simple cycles | `DirectedSimpleCycleTests.swift` |
 | CY-300 – CY-343 | D. Undirected simple cycles | `UndirectedSimpleCycleTests.swift` |
-| CY-400 – CY-423 | E. Multigraphs and self-loops | `CycleMultigraphTests.swift`; CY-423 also through `.undirected` in `CycleRepresentationTests.swift` |
+| CY-400 – CY-423 | E. Multigraphs and self-loops | `CycleMultigraphTests.swift`; CY-423 also through `.undirectedView` in `CycleRepresentationTests.swift` |
 | CY-450 – CY-498 | F. Length bounds | `CycleLengthBoundTests.swift` |
 | CY-500 – CY-534 | G. Girth | `GirthTests.swift` |
 | CY-600 – CY-607 | H. Chordless cycles | not tested: phase 2 |

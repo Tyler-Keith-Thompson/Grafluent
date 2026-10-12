@@ -33,9 +33,9 @@ struct GraphOperationsPropertyTests {
             let context = "arcs \(arcs), keep \(keep), positions \(positions)"
             // (view, kept vertices, kept positions, edge indices?)
             let cases: [(SubgraphView<DirectedPseudograph<String>>, [String], [Int], Bool)] = [
-                (base.inducedSubgraph(on: keep.reversed() + keep.prefix(2)), keep, arcs.indices.filter { keep.contains(arcs[$0][0]) && keep.contains(arcs[$0][1]) }, false),
-                (base.spanningSubgraph(edges: positions + positions.prefix(1)), names, arcs.indices.filter { positions.contains($0) }, true),
-                (base.subgraph(vertices: keep, edges: positions), keep, arcs.indices.filter { positions.contains($0) && keep.contains(arcs[$0][0]) && keep.contains(arcs[$0][1]) }, true),
+                (base.inducedSubgraphView(on: keep.reversed() + keep.prefix(2)), keep, arcs.indices.filter { keep.contains(arcs[$0][0]) && keep.contains(arcs[$0][1]) }, false),
+                (base.spanningSubgraphView(edges: positions + positions.prefix(1)), names, arcs.indices.filter { positions.contains($0) }, true),
+                (base.subgraphView(vertices: keep, edges: positions), keep, arcs.indices.filter { positions.contains($0) && keep.contains(arcs[$0][0]) && keep.contains(arcs[$0][1]) }, true),
             ]
             for (view, vertices, kept, indexed) in cases {
                 #expect(Array(view.vertices) == vertices, "\(context)")
@@ -81,9 +81,9 @@ struct GraphOperationsPropertyTests {
             let positions = listed.filter { $0 < ends.count }
             let context = "edges \(ends), keep \(keep), positions \(positions)"
             let cases: [(SubgraphView<Pseudograph<String>>, [String], [Int], Bool)] = [
-                (base.inducedSubgraph(on: keep), keep, ends.indices.filter { keep.contains(ends[$0][0]) && keep.contains(ends[$0][1]) }, false),
-                (base.spanningSubgraph(edges: positions), names, ends.indices.filter { positions.contains($0) }, true),
-                (base.subgraph(vertices: keep, edges: positions), keep, ends.indices.filter { positions.contains($0) && keep.contains(ends[$0][0]) && keep.contains(ends[$0][1]) }, true),
+                (base.inducedSubgraphView(on: keep), keep, ends.indices.filter { keep.contains(ends[$0][0]) && keep.contains(ends[$0][1]) }, false),
+                (base.spanningSubgraphView(edges: positions), names, ends.indices.filter { positions.contains($0) }, true),
+                (base.subgraphView(vertices: keep, edges: positions), keep, ends.indices.filter { positions.contains($0) && keep.contains(ends[$0][0]) && keep.contains(ends[$0][1]) }, true),
             ]
             for (view, vertices, kept, indexed) in cases {
                 #expect(Array(view.vertices) == vertices, "\(context)")
@@ -113,14 +113,14 @@ struct GraphOperationsPropertyTests {
         }
     }
 
-    @Test("reverseView flips every edge in place: rows are the base's in-rows, and reversing twice gives the base")
+    @Test("transposedView flips every edge in place: rows are the base's in-rows, and reversing twice gives the base")
     func reverseViewLaws() async {
         let input = zip(Gen.int(in: 0 ... 6), Gen.int(in: 0 ... 6)).array(of: 0 ... 24)
         await propertyCheck(count: 300, input: input) { raw in
             let names = (0 ..< 7).map { "r\($0)" }
             let base = DirectedPseudograph<String>(vertices: names, edges: raw.map { DirectedEdge(from: names[$0.0], to: names[$0.1]) })
-            let view = base.reverseView
-            #expect(view.base == base && view.reverseView == base, "\(raw)")
+            let view = base.transposedView
+            #expect(view.base == base && view.transposedView == base, "\(raw)")
             #expect(Array(view.edges.indices) == Array(base.edges.indices), "\(raw)")
             #expect(view.edges.map { $0 } == base.edges.map { DirectedEdge(from: $0.target, to: $0.source) }, "\(raw)")
             #expect(view.edgeIndexBound == base.edgeIndexBound && view.vertexIndexBound == base.vertexIndexBound, "\(raw)")
@@ -149,7 +149,7 @@ struct GraphOperationsPropertyTests {
             let directed = DirectedPseudograph<String>(vertices: names, edges: raw.map { DirectedEdge(from: names[$0.0], to: names[$0.1]) })
             let present = Set(raw.map { [$0.0, $0.1] })
             let missing = (0 ..< n).flatMap { i in (0 ..< n).filter { j in i != j && !present.contains([i, j]) }.map { [i, $0] } }
-            let view = directed.complement
+            let view = directed.complementView
             #expect(view.edges.indices.map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == missing, "\(raw)")
             #expect(view.edges.map { [$0.source, $0.target] } == missing.map { [names[$0[0]], names[$0[1]]] }, "\(raw)")
             #expect(view.edgeCount == missing.count && view.edgeIndexBound == nil && view.vertexIndexBound == n, "\(raw)")
@@ -163,14 +163,14 @@ struct GraphOperationsPropertyTests {
                     #expect(view.contains(edge: DirectedEdge(from: names[i], to: names[j])) == missing.contains([i, j]), "\(raw) \(i)→\(j)")
                 }
             }
-            let twice = directed.complement.complement
+            let twice = directed.complementView.complementView
             let simple = present.filter { $0[0] != $0[1] }.sorted { ($0[0], $0[1]) < ($1[0], $1[1]) }
             #expect(twice.edges.map { [names.firstIndex(of: $0.source)!, names.firstIndex(of: $0.target)!] } == simple, "\(raw)")
             // Undirected.
             let undirected = Pseudograph<String>(vertices: names, edges: raw.map { UndirectedEdge(names[$0.0], names[$0.1]) })
             let joined = Set(raw.map { Set([$0.0, $0.1]) })
             let pairs = (0 ..< n).flatMap { i in (i + 1 ..< n).filter { j in !joined.contains(Set([i, j])) }.map { [i, $0] } }
-            let complement = undirected.complement
+            let complement = undirected.complementView
             #expect(complement.edges.indices.map { [complement.endpointIndices(ofEdgeAt: $0).u, complement.endpointIndices(ofEdgeAt: $0).v] } == pairs, "\(raw)")
             #expect(complement.edges.map { [$0.u, $0.v] } == pairs.map { [names[$0[0]], names[$0[1]]] }, "\(raw)")
             #expect(complement.edgeCount == pairs.count && complement.edgeIndexBound == nil, "\(raw)")
@@ -197,8 +197,8 @@ struct GraphOperationsPropertyTests {
             #expect(line.vertexCount == arcs.count, "\(raw)")
             #expect(line.edges.map { [$0.source, $0.target] } == expected, "\(raw)")
             // Over a view without edge indices: vertex k is the k-th position of `edges`.
-            let complementLine = AdjacencyList<Int>.lineGraph(of: directed.complement)
-            let complementArcs = directed.complement.edges.map { [$0.source, $0.target] }
+            let complementLine = AdjacencyList<Int>.lineGraph(of: directed.complementView)
+            let complementArcs = directed.complementView.edges.map { [$0.source, $0.target] }
             var complementExpected: [[Int]] = []
             for e in complementArcs.indices { for f in complementArcs.indices where complementArcs[e][1] == complementArcs[f][0] { complementExpected.append([e, f]) } }
             #expect(complementLine.edges.map { [$0.source, $0.target] } == complementExpected, "\(raw)")
@@ -302,13 +302,13 @@ struct GraphOperationsPropertyTests {
             let directed = DirectedPseudograph<Counted>(vertices: names, edges: raw.map { DirectedEdge(from: names[$0.0], to: names[$0.1]) })
             let undirected = Pseudograph<Counted>(vertices: names, edges: raw.map { UndirectedEdge(names[$0.0], names[$0.1]) })
             let keep = names.filter { $0.name % 3 != 0 }
-            let reverse = directed.reverseView
-            let induced = directed.inducedSubgraph(on: keep)
-            let spanning = directed.spanningSubgraph(edges: directed.edges.indices.filter { $0 % 2 == 0 })
-            let both = directed.subgraph(vertices: keep, edges: directed.edges.indices.filter { $0 % 3 != 1 })
-            let complement = directed.complement
-            let undirectedInduced = undirected.inducedSubgraph(on: keep)
-            let undirectedComplement = undirected.complement
+            let reverse = directed.transposedView
+            let induced = directed.inducedSubgraphView(on: keep)
+            let spanning = directed.spanningSubgraphView(edges: directed.edges.indices.filter { $0 % 2 == 0 })
+            let both = directed.subgraphView(vertices: keep, edges: directed.edges.indices.filter { $0 % 3 != 1 })
+            let complement = directed.complementView
+            let undirectedInduced = undirected.inducedSubgraphView(on: keep)
+            let undirectedComplement = undirected.complementView
             // The reverse view forwards its degrees by index to the base, whose own read the stored rows.
             tally.hashes = 0
             var total = 0

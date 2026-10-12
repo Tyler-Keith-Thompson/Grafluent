@@ -159,7 +159,7 @@ class G:
         self.rows = rows
 
     def directed_view(self):
-        """graph.directed: arc 2p forward, 2p+1 reversed; rows from incidentEdges order."""
+        """graph.directedView: arc 2p forward, 2p+1 reversed; rows from incidentEdges order."""
         assert not self.directed
         ends = []
         for a, b in self.ends:

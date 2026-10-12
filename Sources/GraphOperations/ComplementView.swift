@@ -9,7 +9,7 @@ extension DirectedGraph {
     ///
     /// - Precondition: the graph has vertex indices.
     @inlinable
-    public var complement: ComplementView<Self> {
+    public var complementView: ComplementView<Self> {
         precondition(vertexIndexBound != nil, "The base has no vertex indices (vertexIndexBound is nil); a complement view needs them in phase 1")
         return ComplementView(base: self)
     }
@@ -21,13 +21,13 @@ extension Graph {
     ///
     /// - Precondition: the graph has vertex indices.
     @inlinable
-    public var complement: ComplementView<Self> {
+    public var complementView: ComplementView<Self> {
         precondition(vertexIndexBound != nil, "The base has no vertex indices (vertexIndexBound is nil); a complement view needs them in phase 1")
         return ComplementView(base: self)
     }
 }
 
-/// The complement of a graph, as a lazy view. Made by `complement`.
+/// The complement of a graph, as a lazy view. Made by `complementView`.
 ///
 /// The vertices and their indices are the base's. Row `i` lists every index `j ≠ i` that the
 /// base's row `i` lacks, ascending: the row iterator marks the base row in a mask of ⌈n/64⌉ words,

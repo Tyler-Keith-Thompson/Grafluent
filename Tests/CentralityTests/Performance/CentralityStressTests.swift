@@ -21,7 +21,7 @@ import Testing
 
 @Suite("Centrality on large graphs, without recursion")
 struct CentralityStressTests {
-    @Test("U(S(0;1..99999)).degreeCentrality() on UndirectedAdjacencyList: the hub 1, every leaf 1/(n − 1); graph.directed twice", .timeLimit(.minutes(1)))
+    @Test("U(S(0;1..99999)).degreeCentrality() on UndirectedAdjacencyList: the hub 1, every leaf 1/(n − 1); graph.directedView twice", .timeLimit(.minutes(1)))
     func starDegree() async {
         await Task {
             // U: [0..99999] S(0;1..99999)
@@ -33,7 +33,7 @@ struct CentralityStressTests {
             #expect(abs(result.score(of: 0) - 1) <= 1e-12)
             let worst = (1 ..< n).map { abs(result.score(of: $0) - leaf) }.max()!
             #expect(worst <= 1e-12 * leaf)
-            let arcs = graph.directed.degreeCentrality()
+            let arcs = graph.directedView.degreeCentrality()
             #expect(abs(arcs.score(of: 0) - 2) <= 1e-12)
             let arcLeaf = abs(arcs.score(of: n - 1) - 2 * leaf)
             #expect(arcLeaf <= 1e-12 * leaf)

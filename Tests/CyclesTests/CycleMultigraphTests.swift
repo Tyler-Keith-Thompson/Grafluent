@@ -1,6 +1,6 @@
 // §E: parallel edges and self-loops. A loop is one 1-cycle per loop edge (though an undirected row
 // lists it twice), k parallel undirected edges give C(k, 2) 2-cycles, one undirected edge is no
-// cycle, opposite arcs are one 2-cycle, and parallel arcs give one cycle per copy; `g.directed`
+// cycle, opposite arcs are one 2-cycle, and parallel arcs give one cycle per copy; `g.directedView`
 // reads every edge as two arcs (Boost's undirected count). Graphs written as the catalog writes
 // them on the reference conformers, so positions are exact. Expected values come from the
 // catalog's reference (`ref.py`). Case IDs (CY-nnn) refer to the catalog; see README.md.
@@ -216,20 +216,20 @@ struct CycleMultigraphTests {
 
     @Test("CY-413 directed.simpleCycles() emits 1: Boost probe \"U K2\" (bh#1)")
     func directedViewCount413() {
-        // In g.directed an edge is two arcs: a 2-cycle
+        // In g.directedView an edge is two arcs: a 2-cycle
         // 0-1
         let pairs: [(Int, Int)] = [(0, 1)]
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        #expect(Array(graph.directed.simpleCycles()).count == 1)
+        #expect(Array(graph.directedView.simpleCycles()).count == 1)
     }
 
     @Test("CY-414 directed.simpleCycles() emits 2: Boost probe \"U self-loop\" (bh#2)")
     func directedViewCount414() {
-        // g.directed lists a loop's two ends as two arcs
+        // g.directedView lists a loop's two ends as two arcs
         // 0-0
         let pairs: [(Int, Int)] = [(0, 0)]
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        #expect(Array(graph.directed.simpleCycles()).count == 2)
+        #expect(Array(graph.directedView.simpleCycles()).count == 2)
     }
 
     @Test("CY-415 directed.simpleCycles() emits 4: Boost probe \"U doubled K2\" (bh#4)")
@@ -237,7 +237,7 @@ struct CycleMultigraphTests {
         // 0-1 0-1
         let pairs: [(Int, Int)] = [(0, 1), (0, 1)]
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        #expect(Array(graph.directed.simpleCycles()).count == 4)
+        #expect(Array(graph.directedView.simpleCycles()).count == 4)
     }
 
     @Test("CY-416 directed.simpleCycles() emits 5: Boost probe \"U triangle\" (bh#5)")
@@ -246,12 +246,12 @@ struct CycleMultigraphTests {
         // C(0,1,2)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0)]
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        #expect(Array(graph.directed.simpleCycles()).count == 5)
+        #expect(Array(graph.directedView.simpleCycles()).count == 5)
     }
 
     @Test("CY-417 directed.simpleCycles() emits 30: Boost undirected ER(20, 0.1) (bh#30)")
     func directedViewCount417() {
-        // Boost's undirected count is our g.directed count
+        // Boost's undirected count is our g.directedView count
         // [0..19] 0-1 12-17 19-3 10-7 5-14 1-11 11-16 11-10 17-19 14-19 5-8 17-13 18-19 3-17 18-5 18-8 6-10 7-15 13-10 11-1
         let pairs: [(Int, Int)] = [
             (0, 1), (12, 17), (19, 3), (10, 7), (5, 14), (1, 11), (11, 16), (11, 10), (17, 19),
@@ -259,7 +259,7 @@ struct CycleMultigraphTests {
             (13, 10), (11, 1)
         ]
         let graph = ReferencePseudograph(vertices: 0 ... 19, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        #expect(Array(graph.directed.simpleCycles()).count == 30)
+        #expect(Array(graph.directedView.simpleCycles()).count == 30)
     }
 
     @Test("CY-418 simpleCycles() is [1]/[2]: loop on a vertex in no cycle")
@@ -322,7 +322,7 @@ struct CycleMultigraphTests {
         #expect(cycles.map(\.edges) == expectedEdges)
     }
 
-    @Test("CY-423 simpleCycles(): 3 cycles in order: .undirected of D: 0>1 1>0 1>0")
+    @Test("CY-423 simpleCycles(): 3 cycles in order: .undirectedView of D: 0>1 1>0 1>0")
     func simpleCycles423() {
         // 0-1 1-0 1-0
         let pairs: [(Int, Int)] = [(0, 1), (1, 0), (1, 0)]

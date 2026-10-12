@@ -37,7 +37,7 @@ rows; `ref.py --fill` computed Expected.
 | Leiden (Traag–Waltman–van Eck 2019; NetworkX 3.7 `leiden_communities`, igraph `community_leiden`) | Its refinement step is randomized by design: a vertex joins a sub-community with probability ∝ exp(ΔQ/θ), and that randomness is what gives Leiden its guarantee (γ-connected communities); a deterministic order would be a different algorithm. It needs `using:` only, and Louvain's level machinery plus a refinement pass. igraph's default objective is CPM, NetworkX's modularity; the choice of default needs its own catalog. **Phase 2** |
 | Louvain's levels (NetworkX `louvain_partitions`, `max_level`; igraph `return_levels`) | A lazy `Sequence` of partitions, or the `Dendrogram` above; decide with Girvan–Newman. Phase 2 |
 | Greedy modularity `cutoff`, `best_n` (NetworkX) | NetworkX-only; `best_n` continues merging past the optimum and, when the heap empties, merges the two largest communities by symmetric difference: a dendrogram cut is the clean form. Phase 2, with `Dendrogram` |
-| Directed label propagation | Libraries disagree on what a directed vote is: NetworkX `asyn_lpa_communities` counts successors only, `fast_label_propagation_communities` both directions, igraph `mode="out"` lets labels flow along arcs; `label_propagation_communities` refuses directed graphs. `graph.undirected.labelPropagationCommunities()` covers the common need. Revisit if asked |
+| Directed label propagation | Libraries disagree on what a directed vote is: NetworkX `asyn_lpa_communities` counts successors only, `fast_label_propagation_communities` both directions, igraph `mode="out"` lets labels flow along arcs; `label_propagation_communities` refuses directed graphs. `graph.undirectedView.labelPropagationCommunities()` covers the common need. Revisit if asked |
 | Fast label propagation (Traag–Šubelj 2023, NetworkX `fast_label_propagation_communities`) | Randomized queue-based variant; add with `using:` in phase 2 |
 | Fluid communities, k-clique percolation, Kernighan–Lin bisection, Lukes, Infomap, Walktrap, spinglass, leading eigenvector | NetworkX-only or igraph-only, or spectral (`SpectralGraphTheory`). k-clique communities would build on Cliques |
 | Modularity matrix (NetworkX `modularity_matrix`, igraph `modularity_matrix`) | Linear algebra: `SpectralGraphTheory` |
@@ -114,6 +114,8 @@ extension DirectedGraph {
     public func community(of vertex: G.Vertex) -> Int
     /// By vertex index (position in `vertices` without vertex indices). Precondition: in range.
     public func community(ofIndex index: Int) -> Int
+    /// As `community(of:)`, throwing `VertexNotFound` instead of trapping (README Principle 6).
+    public func community(checked vertex: G.Vertex) throws(VertexNotFound) -> Int
 }
 
 @frozen public struct PartitionQuality: Hashable, Sendable {
@@ -186,7 +188,7 @@ Louvain); `cases.md` compares in canonical order.
   (−1/18 on CD-060). Parallel edges add: CD-058 equals the weight-2 CD-059.
 * **Directed** (Leicht–Newman 2008, NetworkX and igraph's default): Q = Σ_c [L_c/m − γ out_c in_c/m²]
   with out_c, in_c the community's out- and in-weight. A directed loop is one out- and one in-arc
-  (CD-067). `graph.directed` (two arcs per edge, two loop arcs per loop) gives the same Q as the
+  (CD-067). `graph.directedView` (two arcs per edge, two loop arcs per loop) gives the same Q as the
   undirected graph (CD-057, CD-062).
 * **m = 0** (no edges, or every weight 0): **0** (NetworkX; CD-001, CD-010, CD-016). igraph returns
   NaN. Q is 0/0 there, so neither is derived; NetworkX is the README's reference for defaults,

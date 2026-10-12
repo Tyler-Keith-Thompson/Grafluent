@@ -31,7 +31,7 @@ position order, an undirected self-loop twice.
 
 **Op**: the API call with its arguments; omitted arguments take api.md's defaults. `weight: [w0, …]`
 is `{ w[$0] }` by edge position (`weight: e%k+c`: edge e weighs e mod k + c); `personalization:
-[p0, …]` is `{ p[vertexIndex($0)] }`. `directed > op` runs op on `graph.directed` (each edge two
+[p0, …]` is `{ p[vertexIndex($0)] }`. `directed > op` runs op on `graph.directedView` (each edge two
 arcs, a self-loop two loop arcs). `hits.hubs` / `hits.authorities` read the two members of
 `hits()`'s result; `of: v` is the one-vertex form, returning a scalar.
 
@@ -221,7 +221,7 @@ NetworkX where it applies, land within Tol.
 | CE-179 | `D: P(0,1,2)` | `pageRank(dampingFactor: 0.5)` | `[0.235294117647, 0.352941176471, 0.411764705882]` | 1e-4 | |
 | CE-180 | `U: nx(karate_club)` | `pageRank` | `[0.0969972853883, 0.0528769240611, 0.0570785094885, 0.0358598577864, 0.0219779523646, 0.0291111546784, 0.0291111546784, 0.0244904970353, 0.029766056081, 0.014309397129, 0.0219779523646, 0.00956474549214, 0.0146448920119, 0.0295364561519, 0.0145359939979, 0.0145359939979, 0.0167840054442, 0.014558677209, 0.0145359939979, 0.0196046363257, 0.0145359939979, 0.014558677209, 0.0145359939979, 0.0315225147767, 0.0210760335592, 0.0210061973945, 0.0150440380827, 0.0256397674828, 0.0195734594638, 0.0262885376951, 0.0245901552486, 0.0371580870691, 0.0716932260057, 0.100919182333]` | 1e-4 | Undirected: each edge two arcs |
 | CE-181 | `U: S(0;1..4)` | `pageRank` | `[0.475675675676, 0.131081081081, 0.131081081081, 0.131081081081, 0.131081081081]` | 1e-4 | |
-| CE-182 | `U: P(0,1,2), 1-1` | `pageRank` | `[0.184210526316, 0.631578947368, 0.184210526316]` | 1e-4 | The loop is two arcs 1 → 1 (`graph.directed`'s reading). igraph agrees ([0.1842, 0.6316, 0.1842]); NetworkX makes it one arc ([0.2128, 0.5745, 0.2128]) |
+| CE-182 | `U: P(0,1,2), 1-1` | `pageRank` | `[0.184210526316, 0.631578947368, 0.184210526316]` | 1e-4 | The loop is two arcs 1 → 1 (`graph.directedView`'s reading). igraph agrees ([0.1842, 0.6316, 0.1842]); NetworkX makes it one arc ([0.2128, 0.5745, 0.2128]) |
 | CE-183 | `D: 0>1, 0>1, 0>2, 2>0, 1>0` | `pageRank` | `[0.486486486486, 0.325675675676, 0.187837837838]` | 1e-4 | Parallel arcs add (NetworkX MultiDiGraph and igraph agree) |
 | CE-184 | `D: 0>1, 0>2, 1>0, 2>0` | `pageRank(weight: [1.0, 3.0, 1.0, 1.0])` | `[0.486486486486, 0.153378378378, 0.360135135135]` | 1e-4 | Out-weights normalized per row |
 | CE-185 | `D: 0>1, 1>2` | `pageRank(weight: [0.0, 1.0])` | `[0.25974025974, 0.25974025974, 0.480519480519]` | 1e-4 | Zero out-weight: vertex 0 is dangling |

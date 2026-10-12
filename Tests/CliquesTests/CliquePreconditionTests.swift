@@ -73,15 +73,15 @@ struct CliquePreconditionTests {
         }
     }
 
-    @Test("CQ-068 also through a view: digraph.undirected.triangleCount(of:) and clusteringCoefficient(of:) trap on a non-vertex")
+    @Test("CQ-068 also through a view: digraph.undirectedView.triangleCount(of:) and clusteringCoefficient(of:) trap on a non-vertex")
     func viewOnNonVertex() async {
         await #expect(processExitsWith: .failure) {
             let digraph = ReferenceDirectedMultigraph(edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
-            _ = digraph.undirected.triangleCount(of: 5)
+            _ = digraph.undirectedView.triangleCount(of: 5)
         }
         await #expect(processExitsWith: .failure) {
             let digraph = ReferenceDirectedMultigraph(edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
-            _ = digraph.undirected.clusteringCoefficient(of: 5)
+            _ = digraph.undirectedView.clusteringCoefficient(of: 5)
         }
     }
 

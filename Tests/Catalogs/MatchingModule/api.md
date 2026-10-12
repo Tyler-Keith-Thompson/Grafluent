@@ -73,7 +73,7 @@ with blossom contraction removed fails MA-109 – MA-113, so those rows guard th
 | Sparse full matching (scipy `min_weight_full_bipartite_matching`, LAPJVsp) | Faster on large sparse graphs, but its tie rule differs from `linear_sum_assignment`, which NetworkX and our full matching follow (open question 4) |
 | Maximum-weight bipartite matching by a bipartite algorithm (JGraphT `MaximumWeightBipartiteMatching`) | `maximumWeightMatching` covers it, at O(n³). A faster bipartite path is a benchmark decision |
 | b-matching, hospitals/residents (capacities), stable roommates (Irving), ties in preferences, online matching | Phase 2. Hospitals/residents is `stableMatching` with capacities; stable roommates is a different algorithm with no guaranteed solution |
-| Matching on `DirectedGraph` | A matching is a set of undirected edges. `digraph.undirected` covers bidirectional graphs |
+| Matching on `DirectedGraph` | A matching is a set of undirected edges. `digraph.undirectedView` covers bidirectional graphs |
 
 ## Summary
 
@@ -100,6 +100,9 @@ import BipartiteGraphs
     public func mate(of vertex: G.Vertex) -> G.Vertex?
     /// The matched edge at `vertex` (among parallel copies, the one in `edges`), or nil.
     public func matchedEdge(of vertex: G.Vertex) -> G.Edges.Index?
+    /// Principle 6: throw `VertexNotFound` for a non-vertex; nil still means free.
+    public func mate(checked vertex: G.Vertex) throws(VertexNotFound) -> G.Vertex?
+    public func matchedEdge(checked vertex: G.Vertex) throws(VertexNotFound) -> G.Edges.Index?
     /// By vertex index (position in `vertices` without vertex indices). Precondition: in range.
     public func mate(ofIndex index: Int) -> Int?
 }
@@ -191,6 +194,9 @@ public func stableMatching(proposerPreferences: [[Int]], reviewerPreferences: [[
     public func mate(ofProposer proposer: Int) -> Int?
     /// The proposer matched to `reviewer`, or nil. Precondition: in range.
     public func mate(ofReviewer reviewer: Int) -> Int?
+    /// Principle 6: throw `VertexNotFound` out of range; nil still means unmatched.
+    public func mate(checkedProposer proposer: Int) throws(VertexNotFound) -> Int?
+    public func mate(checkedReviewer reviewer: Int) throws(VertexNotFound) -> Int?
 }
 ```
 

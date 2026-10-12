@@ -3,7 +3,7 @@
 // adds UndirectedAdjacencyList and AdjacencyList built in written order (CY-701: rows without
 // repeats, so nothing collapses and positions are the written ones), CompressedSparseRow and
 // AdjacencyMatrix (CY-702: positions are the representation's own, cells on the matrix), the views
-// `.undirected` (arcs as edges, rows out-edges then in-edges) and `.directed` (two arcs per edge),
+// `.undirectedView` (arcs as edges, rows out-edges then in-edges) and `.directedView` (two arcs per edge),
 // conformers private to this file without indices and with vertex indices only (CY-703), rows out
 // of position order (CY-704 – CY-706), String and Collider vertices (CY-709), and adjacency lists
 // after removals, whose rows are no longer in position order, against a brute force over their own

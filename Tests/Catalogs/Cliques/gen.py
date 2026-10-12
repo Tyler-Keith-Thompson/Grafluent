@@ -94,9 +94,9 @@ def build_graph(cell, indent, ctor="ReferencePseudograph", rev_ctor="ReversedRow
     if g.directed:
         out.append(f"let arcs: [({T}, {T})] = {wrap_items(items, indent)}")
         if first_appearance(pairs) == labels:
-            out.append("let graph = ReferenceDirectedMultigraph(edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected")
+            out.append("let graph = ReferenceDirectedMultigraph(edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView")
         else:
-            out.append(f"let graph = ReferenceDirectedMultigraph(vertices: {vertices_expr(labels)}, edges: arcs.map {{ DirectedEdge(from: $0.0, to: $0.1) }}).undirected")
+            out.append(f"let graph = ReferenceDirectedMultigraph(vertices: {vertices_expr(labels)}, edges: arcs.map {{ DirectedEdge(from: $0.0, to: $0.1) }}).undirectedView")
         return out
     c = rev_ctor if rev else ctor
     if not pairs:
@@ -182,7 +182,7 @@ def body_for(rid, row, indent):
               "    let extenders = graph.vertices.filter { w in !clique.contains(w) && clique.allSatisfy { graph.contains(edge: UndirectedEdge(w, $0)) } }",
               '    #expect(extenders.isEmpty, "\\(clique) is not maximal")',
               "}",
-              "let viaArcs = Array(graph.directed.undirected.maximalCliques())",
+              "let viaArcs = Array(graph.directedView.undirectedView.maximalCliques())",
               "#expect(Set(viaArcs) == Set(expected))",
               "#expect(viaArcs.count == expected.count)"]
         return L
@@ -198,7 +198,7 @@ def body_for(rid, row, indent):
         L += [f"let expected: [{T}] = {vlist(label_list(g, exp))}",
               "#expect(graph.maximumClique() == expected)",
               "#expect(graph.cliqueNumber() == expected.count)",
-              "#expect(graph.directed.undirected.maximumClique() == expected)"]
+              "#expect(graph.directedView.undirectedView.maximumClique() == expected)"]
         return L
     if name == "cliqueNumber":
         k = parse_expected(g, exp)
@@ -206,7 +206,7 @@ def body_for(rid, row, indent):
               f"#expect(graph.maximumClique().count == {k})",
               "let degeneracy = graph.coreNumbers().degeneracy",
               f"#expect({k} <= degeneracy + 1)",
-              f"#expect(graph.directed.undirected.cliqueNumber() == {k})"]
+              f"#expect(graph.directedView.undirectedView.cliqueNumber() == {k})"]
         return L
     if name == "coreNumbers":
         L += [f"let expected: [Int] = {wrap_items([str(x) for x in num_list(exp)], indent)}",
@@ -216,7 +216,7 @@ def body_for(rid, row, indent):
               "let byVertex = graph.vertices.map { cores.coreNumber(of: $0) }",
               "#expect(byVertex == expected)",
               "#expect(cores.degeneracy == (expected.max() ?? 0))",
-              "let view = graph.directed.undirected.coreNumbers()",
+              "let view = graph.directedView.undirectedView.coreNumbers()",
               "let viaArcs = (0 ..< graph.vertexCount).map { view.coreNumber(ofIndex: $0) }",
               "#expect(viaArcs == expected)"]
         return L
@@ -227,13 +227,13 @@ def body_for(rid, row, indent):
               "let byIndex = (0 ..< graph.vertexCount).map { cores.coreNumber(ofIndex: $0) }",
               f"#expect((byIndex.max() ?? 0) == {k})",
               f"#expect(graph.cliqueNumber() <= {k} + 1)",
-              f"#expect(graph.directed.undirected.coreNumbers().degeneracy == {k})"]
+              f"#expect(graph.directedView.undirectedView.coreNumbers().degeneracy == {k})"]
         return L
     if name == "degeneracyOrdering":
         L += [f"let expected: [{T}] = {wrap_items([lit(x) for x in label_list(g, exp)], indent)}",
               "let cores = graph.coreNumbers()",
               "#expect(cores.degeneracyOrdering == expected)",
-              "#expect(graph.directed.undirected.coreNumbers().degeneracyOrdering == expected)",
+              "#expect(graph.directedView.undirectedView.coreNumbers().degeneracyOrdering == expected)",
               "// At most its own core number of neighbours after each vertex, and core numbers never decrease.",
               "for (i, v) in expected.enumerated() {",
               "    let later = expected[(i + 1)...].filter { graph.contains(edge: UndirectedEdge(v, $0)) }",
@@ -250,7 +250,7 @@ def body_for(rid, row, indent):
               f"#expect(cores.{name}({k}) == expected)",
               f"let byCore = graph.vertices.filter {{ cores.coreNumber(of: $0) {cmp} {k} }}",
               "#expect(byCore == expected)",
-              f"#expect(graph.directed.undirected.coreNumbers().{name}({k}) == expected)"]
+              f"#expect(graph.directedView.undirectedView.coreNumbers().{name}({k}) == expected)"]
         return L
     if name == "triangleCount" and arg is None:
         k = parse_expected(g, exp)
@@ -259,7 +259,7 @@ def body_for(rid, row, indent):
               f"#expect(values.triangleCount == {k})",
               "let perVertex = (0 ..< graph.vertexCount).map { values.triangleCount(ofIndex: $0) }",
               f"#expect(perVertex.reduce(0, +) == 3 * {k})",
-              f"#expect(graph.directed.undirected.triangleCount() == {k})"]
+              f"#expect(graph.directedView.undirectedView.triangleCount() == {k})"]
         return L
     if name == "triangleCounts":
         L += [f"let expected: [Int] = {wrap_items([str(x) for x in num_list(exp)], indent)}",
@@ -271,7 +271,7 @@ def body_for(rid, row, indent):
               "let oneByOne = graph.vertices.map { graph.triangleCount(of: $0) }",
               "#expect(oneByOne == expected)",
               "#expect(values.triangleCount * 3 == expected.reduce(0, +))",
-              "let view = graph.directed.undirected.clusteringCoefficients()",
+              "let view = graph.directedView.undirectedView.clusteringCoefficients()",
               "let viaArcs = (0 ..< graph.vertexCount).map { view.triangleCount(ofIndex: $0) }",
               "#expect(viaArcs == expected)"]
         return L
@@ -287,7 +287,7 @@ def body_for(rid, row, indent):
               "#expect(oneByOne == expected)",
               "#expect(values.transitivity == graph.transitivity())",
               "#expect(values.averageClustering == graph.averageClustering())",
-              "let view = graph.directed.undirected.clusteringCoefficients()",
+              "let view = graph.directedView.undirectedView.clusteringCoefficients()",
               "let viaArcs = (0 ..< graph.vertexCount).map { view.clusteringCoefficient(ofIndex: $0) }",
               "#expect(viaArcs == expected)"]
         return L
@@ -295,7 +295,7 @@ def body_for(rid, row, indent):
         x = repr(parse_expected(g, exp))
         L += [f"#expect(graph.{name}() == {x})",
               f"#expect(graph.clusteringCoefficients().{name} == {x})",
-              f"#expect(graph.directed.undirected.{name}() == {x})"]
+              f"#expect(graph.directedView.undirectedView.{name}() == {x})"]
         return L
     if name in ("triangleCount", "clusteringCoefficient"):
         v = lit(ref.vtok(arg.split(":", 1)[1]))
@@ -303,7 +303,7 @@ def body_for(rid, row, indent):
         xs = repr(x) if isinstance(x, float) else str(x)
         L += [f"#expect(graph.{name}(of: {v}) == {xs})",
               f"#expect(graph.clusteringCoefficients().{name}(of: {v}) == {xs})",
-              f"#expect(graph.directed.undirected.{name}(of: {v}) == {xs})"]
+              f"#expect(graph.directedView.undirectedView.{name}(of: {v}) == {xs})"]
         return L
     raise AssertionError((rid, op))
 
@@ -327,7 +327,7 @@ def test_for(rid, row):
         fname = "clusteringCoefficientOf"
     fname += rid.split("-")[1]
     shown = exp if len(exp) <= 90 else "listed below"
-    title = f"{rid} {graph_desc(cell)}.{op} is {shown}"
+    title = f"{rid} {graph_desc(cell)}.{op.replace('undirected > ', 'undirectedView > ', 1)} is {shown}"
     if notes.strip():
         title += ": " + notes.strip()
     ind = "        "
@@ -402,7 +402,7 @@ counts["DegenerateGraphTests.swift"] = section_file(
 // transitivity and average clustering 0 (NetworkX raises on the average; igraph gives NaN). An
 // isolated vertex is a clique of one; a loop and parallel copies are ignored by every op. Each
 // test also checks the one-shot calls against the members of the returned value and the same op on
-// `graph.directed.undirected` (every edge as two arcs, read back as two parallel edges). Every
+// `graph.directedView.undirectedView` (every edge as two arcs, read back as two parallel edges). Every
 // literal is a catalog cell (`ref.py`: api.md's model, brute force, NetworkX 3.7). CQ-068 and
 // CQ-069 (preconditions) are exit tests in `CliquePreconditionTests.swift`. Case IDs (CQ-nnn) refer
 // to the catalog; see README.md.""",
@@ -415,7 +415,7 @@ counts["MaximalCliqueTests.swift"] = section_file(
 // is free; no clique may repeat. CQ-101 and CQ-102 also pin the sequence order, as api.md does
 // ("Order of maximal cliques": the degeneracy ordering decides it, so the pendant vertex's clique
 // comes first). Every listed clique is checked to be a clique (`contains(edge:)` for each pair) and
-// maximal (no outside vertex adjacent to all of it), and `graph.directed.undirected` must give the
+// maximal (no outside vertex adjacent to all of it), and `graph.directedView.undirectedView` must give the
 // same set. Graphs: a triangle with a pendant, K₄, K₅, C₄, C₅, P₅, stars with the centre first and
 // last, the bowtie, the diamond, the wheel W₆, K₃,₃ in two numberings, isolated vertices, loops and
 // parallel edges, String labels with `vertices` reversed, Petersen, the karate club (36 cliques)
@@ -432,7 +432,7 @@ counts["MaximumCliqueTests.swift"] = section_file(
 // round (CQ-205); the first vertex of an edgeless graph (CQ-207, where NetworkX's
 // `max_weight_clique` returns the last); [0, 1, 2, 3, 7] over [0, 1, 2, 3, 13] on the karate club
 // (CQ-211). Each test also checks `maximumClique().count == cliqueNumber()`, `cliqueNumber() <=
-// degeneracy + 1` and `graph.directed.undirected`. Every literal is a catalog cell (`ref.py`:
+// degeneracy + 1` and `graph.directedView.undirectedView`. Every literal is a catalog cell (`ref.py`:
 // brute force over the maximal cliques, NetworkX 3.7). Case IDs (CQ-nnn) refer to the catalog; see
 // README.md.""",
     IMPORTS, "Maximum clique and clique number", "MaximumCliqueTests", ids_in(201, 299), set())
@@ -441,7 +441,7 @@ counts["CoreNumberTests.swift"] = section_file(
     "CoreNumberTests.swift",
     """// §D: core numbers, degeneracy, the degeneracy ordering, k-cores and k-shells (CQ-301 – CQ-349), all
 // on the simple graph: a parallel pair or a loop adds nothing (CQ-328 – CQ-333; igraph counts them,
-// NetworkX raises). Core numbers are checked by index, by vertex and on `graph.directed.undirected`;
+// NetworkX raises). Core numbers are checked by index, by vertex and on `graph.directedView.undirectedView`;
 // the degeneracy ordering exactly (api.md pins Batagelj–Zaversnik's removal order: a stable counting
 // sort by degree, neighbours in row order), together with its defining property (at most core(v)
 // neighbours after each v, core numbers nondecreasing along it). `~rev` rows use a conformer private
@@ -458,14 +458,14 @@ counts["TriangleClusteringTests.swift"] = section_file(
 // vertex, zeros included. Doubles are compared exactly: api.md computes each ratio as one integer
 // division converted once, and sums the average plainly in `vertices` order, and the catalog pins
 // those bits. Per-vertex values are checked by index, by vertex on the value, one vertex at a time
-// on the graph, and on `graph.directed.undirected`. Every literal is a catalog cell (`ref.py`:
+// on the graph, and on `graph.directedView.undirectedView`. Every literal is a catalog cell (`ref.py`:
 // marking, Latapy's compact-forward, NetworkX 3.7). CQ-466 (not a vertex) is an exit test in
 // `CliquePreconditionTests.swift`. Case IDs (CQ-nnn) refer to the catalog; see README.md.""",
     IMPORTS, "Triangles and clustering", "TriangleClusteringTests", ids_in(401, 499), {"CQ-466"})
 
 counts["DigraphUndirectedTests.swift"] = section_file(
     "DigraphUndirectedTests.swift",
-    """// §F: directed graphs through `digraph.undirected` (CQ-501 – CQ-515). The view keeps two opposite
+    """// §F: directed graphs through `digraph.undirectedView` (CQ-501 – CQ-515). The view keeps two opposite
 // arcs as two parallel edges; the simple graph merges them, which is igraph's "directions ignored"
 // reading (NetworkX raises for cliques and triangles on a DiGraph and counts in + out degree for
 // cores). Digraphs are `ReferenceDirectedMultigraph`s with arcs in written order. Every literal is
@@ -490,7 +490,7 @@ def simple_from_rows(rows):
 
 
 def rows_adjacency_list(g):
-    """AdjacencyList(vertices:edges:) of the arcs as written, read through `.undirected`: repeated
+    """AdjacencyList(vertices:edges:) of the arcs as written, read through `.undirectedView`: repeated
     arcs inserted once; each row out-neighbours then in-neighbours, both in insertion order."""
     arcs, seen = [], set()
     for a, b in g.ends:
@@ -506,7 +506,7 @@ def rows_adjacency_list(g):
 
 
 def rows_matrix(g):
-    """AdjacencyMatrix of the arcs as written, through `.undirected`: successors ascending, then
+    """AdjacencyMatrix of the arcs as written, through `.undirectedView`: successors ascending, then
     predecessors ascending."""
     arcs = set(g.ends)
     rows = []
@@ -623,7 +623,7 @@ def rep_test(kind, cell, ids, idx):
     elif kind == "al":
         name, title = "adjacencyListUndirected", "AdjacencyList.undirected (arcs as written; rows out-neighbours then in-neighbours)"
         L.append(f"let arcs: [({T}, {T})] = {wrap_items(items, ind)}")
-        L.append(f"let graph = AdjacencyList(vertices: {vx}, edges: arcs.map {{ DirectedEdge(from: $0.0, to: $0.1) }}).undirected")
+        L.append(f"let graph = AdjacencyList(vertices: {vx}, edges: arcs.map {{ DirectedEdge(from: $0.0, to: $0.1) }}).undirectedView")
         adj = rows_adjacency_list(g)
     elif kind == "csr":
         name, title = "compressedSparseRow", "CompressedSparseRow (each edge as two arcs; rows ascending)"
@@ -633,7 +633,7 @@ def rep_test(kind, cell, ids, idx):
     elif kind == "matrix":
         name, title = "adjacencyMatrixUndirected", "AdjacencyMatrix.undirected (arcs as written; successors then predecessors, ascending)"
         L.append(f"let arcs: [(Int, Int)] = {wrap_items(items, ind)}")
-        L.append(f"let graph = AdjacencyMatrix(vertexCount: {len(labels)}, edges: arcs.map {{ DirectedEdge(from: $0.0, to: $0.1) }}).undirected")
+        L.append(f"let graph = AdjacencyMatrix(vertexCount: {len(labels)}, edges: arcs.map {{ DirectedEdge(from: $0.0, to: $0.1) }}).undirectedView")
         adj = rows_matrix(g)
     else:
         raise AssertionError(kind)
@@ -686,12 +686,12 @@ def extra_test(kind, cell, ids, idx):
 
 
 REP_HEADER = """// The same answers on every representation. Every catalog test already runs on the
-// `ReferencePseudograph` as the catalog writes it, and on `graph.directed.undirected`; this file
+// `ReferencePseudograph` as the catalog writes it, and on `graph.directedView.undirectedView`; this file
 // runs each undirected catalog graph of §A – §E on `UndirectedAdjacencyList` (repeated edges
 // inserted once, which leaves the simple graph and its row order unchanged), on
-// `AdjacencyList.undirected` with each edge as one arc as written (rows: out-neighbours, then
+// `AdjacencyList.undirectedView` with each edge as one arc as written (rows: out-neighbours, then
 // in-neighbours), and, for graphs on 0..<n, on `CompressedSparseRow` holding each edge as two arcs
-// (read through a conformer private to this file, rows ascending) and on `AdjacencyMatrix.undirected`
+// (read through a conformer private to this file, rows ascending) and on `AdjacencyMatrix.undirectedView`
 // (successors, then predecessors, each ascending). It also runs a few graphs on conformers private to
 // this file: without indices, with vertex indices only, with rows reversed, and with `Collider`
 // vertices that all hash alike. Each test checks every entry point. Answers that do not depend on

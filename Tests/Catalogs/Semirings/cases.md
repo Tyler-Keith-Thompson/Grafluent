@@ -18,7 +18,7 @@ are phase 2.
 **Semiring** is the weight type `S`; the test passes `weight: { S(w[$0]) }` with `w` the raw
 values written in the graph, by edge position.
 
-**Graph**: `D[n]:` directed, `U[n]:` undirected (read through `.directed`, each edge u–v giving
+**Graph**: `D[n]:` directed, `U[n]:` undirected (read through `.directedView`, each edge u–v giving
 arcs u>v and v>u with the edge's position), vertices `0..<n` listed first, then edges in
 **position order** as `u>v:w` (`u-v:w`). Weights are raw values of the semiring's scalar:
 `Int.max`, `.infinity`, `true`. `Z` / `O` stand for the semiring's `zero` / `one` written out.
@@ -263,7 +263,7 @@ preconditions; "does not compile" rows are type checks (a `#if false` snippet, o
 | SR-217 | Arithmetic | Double counts round instead | `CountingSemiring<Double>` | `a = 9007199254740992.0, b = 1.0` | `a ⊕ b` | 9007199254740992.0 |
 | SR-218 | Dijkstra | small digraph, an isolated vertex | `TropicalSemiring<Int>` | `D[5]: 0>1:4, 0>2:1, 2>1:2, 1>3:1, 2>3:5` | `dijkstraShortestPaths(from: 0)` | [0, 3, 1, 4, —] |
 | SR-219 | Dijkstra | parallel edges, a loop and a cycle | `TropicalSemiring<Int>` | `D[3]: 0>1:5, 0>1:2, 1>1:3, 1>2:4, 2>0:1` | `dijkstraShortestPaths(from: 0)` | [0, 2, 6] |
-| SR-220 | Dijkstra | undirected through .directed | `TropicalSemiring<Int>` | `U[4]: 0-1:2, 1-2:7, 2-3:1, 0-3:9` | `dijkstraShortestPaths(from: 0)` | [0, 2, 9, 9] |
+| SR-220 | Dijkstra | undirected through .directedView | `TropicalSemiring<Int>` | `U[4]: 0-1:2, 1-2:7, 2-3:1, 0-3:9` | `dijkstraShortestPaths(from: 0)` | [0, 2, 9, 9] |
 | SR-221 | Dijkstra | several sources | `TropicalSemiring<Int>` | `D[5]: 0>1:4, 0>2:1, 2>1:2, 1>3:1, 2>3:5` | `dijkstraShortestPaths(from: [3, 2])` | [—, 2, 0, 0, —] |
 | SR-222 | Dijkstra | cutoff (not worse than) | `TropicalSemiring<Int>` | `D[5]: 0>1:4, 0>2:1, 2>1:2, 1>3:1, 2>3:5` | `dijkstraShortestPaths(from: 0, cutoff: 3)` | [0, 3, 1, —, —] |
 | SR-223 | Dijkstra | a negative examined weight traps | `TropicalSemiring<Int>` | `D[4]: 0>1:-2, 0>2:3, 1>2:4, 1>3:-1, 2>3:-6` | `dijkstraShortestPaths(from: 0)` | **trap** (a weight is better than one) |
@@ -282,11 +282,11 @@ preconditions; "does not compile" rows are type checks (a `#if false` snippet, o
 | SR-236 | Floyd–Warshall | parallel edges, a loop and a cycle | `TropicalSemiring<Int>` | `D[3]: 0>1:5, 0>1:2, 1>1:3, 1>2:4, 2>0:1` | `floydWarshallShortestPaths()` | [0, 2, 6; 5, 0, 4; 1, 3, 0] |
 | SR-237 | Floyd–Warshall | negative weights | `TropicalSemiring<Int>` | `D[4]: 0>1:-2, 0>2:3, 1>2:4, 1>3:-1, 2>3:-6` | `floydWarshallShortestPaths()` | [0, -2, 2, -4; —, 0, 4, -2; —, —, 0, -6; —, —, —, 0] |
 | SR-238 | Floyd–Warshall | a negative cycle | `TropicalSemiring<Int>` | `D[4]: 0>1:1, 1>2:-3, 2>1:1, 2>3:2` | `floydWarshallShortestPaths()` | nil |
-| SR-239 | Floyd–Warshall | undirected through .directed | `TropicalSemiring<Int>` | `U[4]: 0-1:2, 1-2:7, 2-3:1, 0-3:9` | `floydWarshallShortestPaths()` | [0, 2, 9, 9; 2, 0, 7, 8; 9, 7, 0, 1; 9, 8, 1, 0] |
+| SR-239 | Floyd–Warshall | undirected through .directedView | `TropicalSemiring<Int>` | `U[4]: 0-1:2, 1-2:7, 2-3:1, 0-3:9` | `floydWarshallShortestPaths()` | [0, 2, 9, 9; 2, 0, 7, 8; 9, 7, 0, 1; 9, 8, 1, 0] |
 | SR-240 | Floyd–Warshall | a negative loop | `TropicalSemiring<Int>` | `D[3]: 0>0:-1, 1>2:3` | `floydWarshallShortestPaths()` | nil |
 | SR-241 | Dijkstra | small digraph, an isolated vertex | `TropicalSemiring<Double>` | `D[5]: 0>1:4, 0>2:1, 2>1:2, 1>3:1, 2>3:5` | `dijkstraShortestPaths(from: 0)` | [0.0, 3.0, 1.0, 4.0, —] |
 | SR-242 | Dijkstra | parallel edges, a loop and a cycle | `TropicalSemiring<Double>` | `D[3]: 0>1:5, 0>1:2, 1>1:3, 1>2:4, 2>0:1` | `dijkstraShortestPaths(from: 0)` | [0.0, 2.0, 6.0] |
-| SR-243 | Dijkstra | undirected through .directed | `TropicalSemiring<Double>` | `U[4]: 0-1:2, 1-2:7, 2-3:1, 0-3:9` | `dijkstraShortestPaths(from: 0)` | [0.0, 2.0, 9.0, 9.0] |
+| SR-243 | Dijkstra | undirected through .directedView | `TropicalSemiring<Double>` | `U[4]: 0-1:2, 1-2:7, 2-3:1, 0-3:9` | `dijkstraShortestPaths(from: 0)` | [0.0, 2.0, 9.0, 9.0] |
 | SR-244 | Dijkstra | several sources | `TropicalSemiring<Double>` | `D[5]: 0>1:4, 0>2:1, 2>1:2, 1>3:1, 2>3:5` | `dijkstraShortestPaths(from: [3, 2])` | [—, 2.0, 0.0, 0.0, —] |
 | SR-245 | Dijkstra | cutoff (not worse than) | `TropicalSemiring<Double>` | `D[5]: 0>1:4, 0>2:1, 2>1:2, 1>3:1, 2>3:5` | `dijkstraShortestPaths(from: 0, cutoff: 3)` | [0.0, 3.0, 1.0, —, —] |
 | SR-246 | Dijkstra | a negative examined weight traps | `TropicalSemiring<Double>` | `D[4]: 0>1:-2, 0>2:3, 1>2:4, 1>3:-1, 2>3:-6` | `dijkstraShortestPaths(from: 0)` | **trap** (a weight is better than one) |
@@ -305,7 +305,7 @@ preconditions; "does not compile" rows are type checks (a `#if false` snippet, o
 | SR-259 | Floyd–Warshall | parallel edges, a loop and a cycle | `TropicalSemiring<Double>` | `D[3]: 0>1:5, 0>1:2, 1>1:3, 1>2:4, 2>0:1` | `floydWarshallShortestPaths()` | [0.0, 2.0, 6.0; 5.0, 0.0, 4.0; 1.0, 3.0, 0.0] |
 | SR-260 | Floyd–Warshall | negative weights | `TropicalSemiring<Double>` | `D[4]: 0>1:-2, 0>2:3, 1>2:4, 1>3:-1, 2>3:-6` | `floydWarshallShortestPaths()` | [0.0, -2.0, 2.0, -4.0; —, 0.0, 4.0, -2.0; —, —, 0.0, -6.0; —, —, —, 0.0] |
 | SR-261 | Floyd–Warshall | a negative cycle | `TropicalSemiring<Double>` | `D[4]: 0>1:1, 1>2:-3, 2>1:1, 2>3:2` | `floydWarshallShortestPaths()` | nil |
-| SR-262 | Floyd–Warshall | undirected through .directed | `TropicalSemiring<Double>` | `U[4]: 0-1:2, 1-2:7, 2-3:1, 0-3:9` | `floydWarshallShortestPaths()` | [0.0, 2.0, 9.0, 9.0; 2.0, 0.0, 7.0, 8.0; 9.0, 7.0, 0.0, 1.0; 9.0, 8.0, 1.0, 0.0] |
+| SR-262 | Floyd–Warshall | undirected through .directedView | `TropicalSemiring<Double>` | `U[4]: 0-1:2, 1-2:7, 2-3:1, 0-3:9` | `floydWarshallShortestPaths()` | [0.0, 2.0, 9.0, 9.0; 2.0, 0.0, 7.0, 8.0; 9.0, 7.0, 0.0, 1.0; 9.0, 8.0, 1.0, 0.0] |
 | SR-263 | Floyd–Warshall | a negative loop | `TropicalSemiring<Double>` | `D[3]: 0>0:-1, 1>2:3` | `floydWarshallShortestPaths()` | nil |
 | SR-264 | Agreement | the W overload gives the same distances | `TropicalSemiring<Int>` | `D[30]: lcg(30,120,1;0..20)` | `dijkstraShortestPaths(from: 0)` | [0, 18, 31, 19, 10, 16, 21, 23, 18, 11, 40, 19, 21, 7, 35, 31, 10, 22, 11, 19, 23, 9, 19, 27, 22, 28, 26, 19, 13, 23] |
 | SR-265 | Agreement | the W overload gives the same distances | `TropicalSemiring<Int>` | `D[30]: lcg(30,120,1;-3..20)` | `bellmanFordShortestPaths(from: 0)` | nil |
@@ -320,7 +320,7 @@ preconditions; "does not compile" rows are type checks (a `#if false` snippet, o
 | SR-274 | Overflow | Int.max weight is zero: no trap, not reached | `TropicalSemiring<Int>` | `D[3]: 0>1:5, 1>2:Int.max` | `dijkstraShortestPaths(from: 0)` | [0, 5, —] |
 | SR-275 | Dijkstra | widest paths | `BottleneckSemiring<Int>` | `D[5]: 0>1:5, 0>2:3, 1>2:4, 1>3:2, 2>3:6, 3>4:7, 2>4:1` | `dijkstraShortestPaths(from: 0)` | [Int.max, 5, 4, 4, 4] |
 | SR-276 | Dijkstra | parallel widths and a cycle | `BottleneckSemiring<Int>` | `D[4]: 0>1:3, 0>1:8, 1>2:2, 2>1:9, 1>3:5` | `dijkstraShortestPaths(from: 0)` | [Int.max, 8, 2, 5] |
-| SR-277 | Dijkstra | undirected through .directed | `BottleneckSemiring<Int>` | `U[4]: 0-1:2, 1-2:7, 2-3:1, 0-3:9` | `dijkstraShortestPaths(from: 0)` | [Int.max, 2, 2, 9] |
+| SR-277 | Dijkstra | undirected through .directedView | `BottleneckSemiring<Int>` | `U[4]: 0-1:2, 1-2:7, 2-3:1, 0-3:9` | `dijkstraShortestPaths(from: 0)` | [Int.max, 2, 2, 9] |
 | SR-278 | Dijkstra | an isolated vertex | `BottleneckSemiring<Int>` | `D[5]: 0>1:4, 0>2:1, 2>1:2, 1>3:1, 2>3:5` | `dijkstraShortestPaths(from: 0)` | [Int.max, 4, 1, 1, —] |
 | SR-279 | Dijkstra | cutoff: only paths at least this wide | `BottleneckSemiring<Int>` | `D[5]: 0>1:5, 0>2:3, 1>2:4, 1>3:2, 2>3:6, 3>4:7, 2>4:1` | `dijkstraShortestPaths(from: 0, cutoff: 5)` | [Int.max, 5, —, —, —] |
 | SR-280 | Dijkstra | negative widths are fine (one is +∞) | `BottleneckSemiring<Int>` | `D[4]: 0>1:-2, 0>2:3, 1>2:4, 1>3:-1, 2>3:-6` | `dijkstraShortestPaths(from: 0)` | [Int.max, -2, 3, -2] |
@@ -333,7 +333,7 @@ preconditions; "does not compile" rows are type checks (a `#if false` snippet, o
 | SR-287 | Floyd–Warshall | a 'negative' cycle is harmless | `BottleneckSemiring<Int>` | `D[4]: 0>1:1, 1>2:-3, 2>1:1, 2>3:2` | `floydWarshallShortestPaths()` | [Int.max, 1, -3, -3; —, Int.max, -3, -3; —, 1, Int.max, 2; —, —, —, Int.max] |
 | SR-288 | Dijkstra | widest paths | `BottleneckSemiring<Double>` | `D[5]: 0>1:5, 0>2:3, 1>2:4, 1>3:2, 2>3:6, 3>4:7, 2>4:1` | `dijkstraShortestPaths(from: 0)` | [.infinity, 5.0, 4.0, 4.0, 4.0] |
 | SR-289 | Dijkstra | parallel widths and a cycle | `BottleneckSemiring<Double>` | `D[4]: 0>1:3, 0>1:8, 1>2:2, 2>1:9, 1>3:5` | `dijkstraShortestPaths(from: 0)` | [.infinity, 8.0, 2.0, 5.0] |
-| SR-290 | Dijkstra | undirected through .directed | `BottleneckSemiring<Double>` | `U[4]: 0-1:2, 1-2:7, 2-3:1, 0-3:9` | `dijkstraShortestPaths(from: 0)` | [.infinity, 2.0, 2.0, 9.0] |
+| SR-290 | Dijkstra | undirected through .directedView | `BottleneckSemiring<Double>` | `U[4]: 0-1:2, 1-2:7, 2-3:1, 0-3:9` | `dijkstraShortestPaths(from: 0)` | [.infinity, 2.0, 2.0, 9.0] |
 | SR-291 | Dijkstra | an isolated vertex | `BottleneckSemiring<Double>` | `D[5]: 0>1:4, 0>2:1, 2>1:2, 1>3:1, 2>3:5` | `dijkstraShortestPaths(from: 0)` | [.infinity, 4.0, 1.0, 1.0, —] |
 | SR-292 | Dijkstra | cutoff: only paths at least this wide | `BottleneckSemiring<Double>` | `D[5]: 0>1:5, 0>2:3, 1>2:4, 1>3:2, 2>3:6, 3>4:7, 2>4:1` | `dijkstraShortestPaths(from: 0, cutoff: 5)` | [.infinity, 5.0, —, —, —] |
 | SR-293 | Dijkstra | negative widths are fine (one is +∞) | `BottleneckSemiring<Double>` | `D[4]: 0>1:-2, 0>2:3, 1>2:4, 1>3:-1, 2>3:-6` | `dijkstraShortestPaths(from: 0)` | [.infinity, -2.0, 3.0, -2.0] |

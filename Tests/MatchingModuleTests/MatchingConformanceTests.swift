@@ -3,7 +3,7 @@
 // hashing, its description, `Sendable` across a `Task`, the graph copy it keeps (a later mutation
 // of the original leaves it unchanged), unweighted entry points as `Matching<G, Int>` with
 // `weight == edges.count`, generic code over `some Graph`, `CompressedSparseRow` through
-// `AdjacencyList(csr).undirected`, an undirected graph read as directed and back (every edge a
+// `AdjacencyList(csr).undirectedView`, an undirected graph read as directed and back (every edge a
 // parallel pair), other weight types (`Int32`, `Float`), forbidden pairs under `maximize`,
 // `LinearSumAssignment` and `StableMatching` as values. Expected values are worked out in each
 // test's comments. See README.md.
@@ -133,10 +133,10 @@ struct MatchingConformanceTests {
         #expect(graph.maximumBipartiteMatching().edges == [1, 2])
     }
 
-    @Test("CompressedSparseRow through AdjacencyList(csr).undirected: K3,3 matched perfectly by every entry point")
+    @Test("CompressedSparseRow through AdjacencyList(csr).undirectedView: K3,3 matched perfectly by every entry point")
     func compressedSparseRow() throws {
         let csr = CompressedSparseRow(vertexCount: 6, edges: [(0, 3), (0, 4), (0, 5), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5)].map { DirectedEdge(from: $0.0, to: $0.1) })
-        let graph = AdjacencyList(csr).undirected
+        let graph = AdjacencyList(csr).undirectedView
         #expect(graph.edgeCount == 9)
         #expect(graph.maximumMatching().edges.count == 3)
         #expect(graph.maximalMatching().edges.count == 3)
@@ -158,7 +158,7 @@ struct MatchingConformanceTests {
     func directedAndBack() {
         // C5: a maximum matching has 2 edges; every edge is now two copies, (k, forward) then (k, reversed).
         let cycle = UndirectedAdjacencyList(vertices: 0 ..< 5, edges: (0 ..< 5).map { UndirectedEdge($0, ($0 + 1) % 5) })
-        let doubled = cycle.directed.undirected
+        let doubled = cycle.directedView.undirectedView
         #expect(doubled.edgeCount == 10)
         let maximum = doubled.maximumMatching()
         #expect(maximum.edges.count == 2 && doubled.isMatching(maximum.edges) && doubled.isMaximalMatching(maximum.edges))

@@ -219,7 +219,7 @@ struct UndirectedConnectivityRealWorldTests {
         }
         check(UndirectedAdjacencyList(vertices: 0 ..< 256, edges: edges))
         // As written, repeated arcs collapsed and opposite arcs parallel: the same counts.
-        check(AdjacencyList(vertices: 0 ..< 256, edges: fixture.edges).undirected)
+        check(AdjacencyList(vertices: 0 ..< 256, edges: fixture.edges).undirectedView)
         // Every arc, repeats included: bridges are arcs written once, so the count is the same.
         #expect(ReferencePseudograph(vertices: 0 ..< 256, edges: edges).bridges().count == 25)
     }
@@ -249,8 +249,8 @@ struct UndirectedConnectivityRealWorldTests {
         #expect(graph.biconnectedComponents().count == 6)
         #expect(graph.biEdgeConnectedComponents().count == 4)
         #expect(!graph.isBiEdgeConnected)
-        // The same arcs through AdjacencyList.undirected: the opposite arcs are parallel there too.
-        let view = AdjacencyList(vertices: 0 ..< 128, edges: fixture.edges).undirected
+        // The same arcs through AdjacencyList.undirectedView: the opposite arcs are parallel there too.
+        let view = AdjacencyList(vertices: 0 ..< 128, edges: fixture.edges).undirectedView
         #expect(view.bridges().isEmpty)
         #expect(view.articulationPoints() == [4, 72, 79, 80, 97])
         #expect(view.biEdgeConnectedComponents().count == 4)

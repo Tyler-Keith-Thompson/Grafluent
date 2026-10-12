@@ -52,4 +52,4 @@ D=nx.DiGraph(sl); print('selfloops digraph m',D.number_of_edges(),'deg',dict(sor
 print('loopAndPath to_directed', sorted(nx.Graph(F['loopAndPath'][1]).to_directed().edges()))
 K4=nx.complete_graph(4); print('nx undirected dfs K4', Counter(d for u,v,d in nx.dfs_labeled_edges(K4,0) if u!=v))
 # house directed as undirected: neighbors of 2 through views
-print('UAL(house).directed as AL edges', 2*6)
+print('UAL(house).directedView as AL edges', 2*6)

@@ -11,11 +11,11 @@ import Testing
 struct ProductIndexTests {
     @Test("GP-065 vertex(atIndex:) by one division; vertexIndex(of:) two factor lookups")
     func gp065() {
-        // G = UL V [a, b, c]; E [a–b]; H = UL V [x, y]; E [x–y] / cartesianProduct(G, H)
+        // G = UL V [a, b, c]; E [a–b]; H = UL V [x, y]; E [x–y] / cartesianProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3, (c,x)#4, (c,y)#5]; edgeCount 5; bounds 6/5; vertex(atIndex: 5) (c,y); vertexIndex(of: (b,x)) 2
         let g = UndirectedAdjacencyList<String>(vertices: ["a", "b", "c"], edges: [UndirectedEdge("a", "b")])
         let h = UndirectedAdjacencyList<String>(vertices: ["x", "y"], edges: [UndirectedEdge("x", "y")])
-        let product = cartesianProduct(g, h)
+        let product = cartesianProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y"), Pair("c", "x"), Pair("c", "y")])
@@ -80,11 +80,11 @@ struct ProductIndexTests {
 
     @Test("GP-066 edgeIndex: Cartesian G-part then H-part")
     func gp066() {
-        // G = AL V [a, b]; E [a→b]; H = AL V [x, y, z]; E [x→y, y→z] / cartesianProduct(G, H)
+        // G = AL V [a, b]; E [a→b]; H = AL V [x, y, z]; E [x→y, y→z] / cartesianProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (a,z)#2, (b,x)#3, (b,y)#4, (b,z)#5]; E [G0·0:(a,x)→(b,x), G0·1:(a,y)→(b,y), G0·2:(a,z)→(b,z), 0·H0:(a,x)→(a,y), 0·H1:(a,y)→(a,z), 1·H0:(b,x)→(b,y), 1·H1:(b,y)→(b,z)]; edgeCount 7; bounds 6/7; edgeIndex [G0·0: 0, G0·1: 1, G0·2: 2, 0·H0: 3, 0·H1: 4, 1·H0: 5, 1·H1: 6]
         let g = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
         let h = AdjacencyList<String>(vertices: ["x", "y", "z"], edges: [DirectedEdge(from: "x", to: "y"), DirectedEdge(from: "y", to: "z")])
-        let product = cartesianProduct(g, h)
+        let product = cartesianProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("a", "z"), Pair("b", "x"), Pair("b", "y"), Pair("b", "z")])
@@ -170,11 +170,11 @@ struct ProductIndexTests {
 
     @Test("GP-067 edgeIndex: directed strong is Cartesian then tensor")
     func gp067() {
-        // G = AL V [a, b]; E [a→b]; H = AL V [x, y]; E [x→y] / strongProduct(G, H)
+        // G = AL V [a, b]; E [a→b]; H = AL V [x, y]; E [x→y] / strongProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3]; E [G0·0:(a,x)→(b,x), G0·1:(a,y)→(b,y), 0·H0:(a,x)→(a,y), 1·H0:(b,x)→(b,y), G0×H0:(a,x)→(b,y)]; edgeCount 5; bounds 4/5; edgeIndex [G0·0: 0, G0·1: 1, 0·H0: 2, 1·H0: 3, G0×H0: 4]
         let g = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
         let h = AdjacencyList<String>(vertices: ["x", "y"], edges: [DirectedEdge(from: "x", to: "y")])
-        let product = strongProduct(g, h)
+        let product = strongProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y")])
@@ -238,11 +238,11 @@ struct ProductIndexTests {
 
     @Test("GP-068 undirected tensor has no edge indices")
     func gp068() {
-        // G = UL V [a, b]; E [a–b]; H = UL V [x, y]; E [x–y] / tensorProduct(G, H)
+        // G = UL V [a, b]; E [a–b]; H = UL V [x, y]; E [x–y] / tensorProductView(G, H)
         // → V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3]; edgeCount 2; bounds 4/nil
         let g = UndirectedAdjacencyList<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b")])
         let h = UndirectedAdjacencyList<String>(vertices: ["x", "y"], edges: [UndirectedEdge("x", "y")])
-        let product = tensorProduct(g, h)
+        let product = tensorProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y")])

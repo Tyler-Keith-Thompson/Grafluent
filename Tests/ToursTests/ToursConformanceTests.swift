@@ -1,7 +1,7 @@
 // Conventions the catalog rows do not isolate: generic code over `some Graph` and `some
 // DirectedGraph`; string and hash-colliding vertices; other weight types (Int8, UInt8, UInt, Int32,
 // Float); the results as `Walks` values (equal on equal inputs, the trail of an Eulerian graph the
-// circuit as a closed trail, `Sendable`); an undirected graph against its `directed` view; every
+// circuit as a closed trail, `Sendable`); an undirected graph against its `directedView` view; every
 // edgeless graph; `twoOptTour(improving:)` reading only the tour's vertices; tours below three
 // vertices nil before any other check; `weight` never asked for a self-loop and asked once per edge
 // by every tour. Expected values are catalog rows or worked out in each test's comments. See
@@ -151,7 +151,7 @@ struct ToursConformanceTests {
         // P(4): not Eulerian (two odd ends); its view is balanced and connected.
         let path = UndirectedAdjacencyList<Int>(vertices: 0 ..< 4, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2), UndirectedEdge(2, 3)])
         #expect(!path.isEulerian && path.hasEulerianTrail)
-        let view = path.directed
+        let view = path.directedView
         #expect(view.isEulerian)
         let circuit = try #require(view.eulerianCircuit())
         // Every arc once: 0→1, 1→2, 2→3, 3→2, 2→1, 1→0, the view's out-arcs in the base's row order.
@@ -160,7 +160,7 @@ struct ToursConformanceTests {
         // One edge has no Hamiltonian cycle; its two opposite arcs are one of length 2.
         let edge = UndirectedAdjacencyList<Int>(vertices: 0 ..< 2, edges: [UndirectedEdge(0, 1)])
         #expect(edge.hamiltonianCycle() == nil)
-        let twoArcs = try #require(edge.directed.hamiltonianCycle())
+        let twoArcs = try #require(edge.directedView.hamiltonianCycle())
         #expect(twoArcs.vertices == [0, 1])
         #expect(twoArcs.edges.map(\.reversed) == [false, true])
     }

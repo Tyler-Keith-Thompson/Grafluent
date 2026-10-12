@@ -74,7 +74,7 @@ force, Misra–Gries is proper within Δ + 1 colours, and König uses exactly Δ
 | Edge colouring of non-bipartite multigraphs (Shannon ⌊3Δ/2⌋, Vizing Δ + μ), greedy edge colouring (rustworkx `graph_greedy_edge_color`, at most 2Δ − 1) | Phase 2 (open question 3). Misra–Gries's fans need distinct neighbours |
 | Recursive largest first (Leighton's RLF), tabu search (TabuCol), JGraphT `ColorRefinementAlgorithm` | Phase 2 if asked. RLF is the usual next heuristic. Colour refinement is a different problem (the Weisfeiler–Leman 1-dimensional colouring) and belongs with `IsomorphismModule` |
 | List colouring, k-colourability with fixed vertices, precolouring | Phase 2: `minimumColoring`'s search already supports fixed vertices internally |
-| Directed graphs | Out. A colouring of a digraph is a colouring of `digraph.undirected` (README: `undirected` view), which tests use; its edges through `greedyEdgeColoring()`, which takes the antiparallel pairs `edgeColoring()` rejects |
+| Directed graphs | Out. A colouring of a digraph is a colouring of `digraph.undirectedView` (README: `undirectedView` view), which tests use; its edges through `greedyEdgeColoring()`, which takes the antiparallel pairs `edgeColoring()` rejects |
 | Planar 4- or 5-colouring (LEMON `Planarity` colorings) | Waits for `Planarity` |
 | Vertex-weighted or interval colouring, total colouring, distance-2 colouring (Jacobian compression, ColPack) | Phase 2 or never; ColPack's distance-2 colouring is the next candidate if sparse-Jacobian users appear |
 
@@ -164,6 +164,7 @@ public struct Coloring<G: Graph>: Equatable, CustomStringConvertible {
     public var colorCount: Int { get }
     /// The colour of `vertex`. O(1) after `vertexIndex(of:)`. Precondition: a vertex of the graph.
     public func color(of vertex: G.Vertex) -> Int
+    public func color(checked vertex: G.Vertex) throws(VertexNotFound) -> Int   // Principle 6
     /// The colour of the vertex at `index`. Precondition: `index` in `0..<vertexCount`.
     public func color(ofIndex index: Int) -> Int
     /// The vertices of each colour, by colour, each in `vertices` order (slices of one flat
@@ -180,6 +181,7 @@ public struct EdgeColoring<G: Graph>: Equatable, CustomStringConvertible {
     public var colorCount: Int { get }
     /// The colour of the edge at `position`: O(1) with edge indices, O(log m) without.
     public func color(ofEdgeAt position: G.Edges.Index) -> Int
+    public func color(checkedEdgeAt position: G.Edges.Index) throws(EdgeNotFound) -> Int   // Principle 6
     /// The edge positions of each colour, ascending. Each is a matching.
     public var colorClasses: [ArraySlice<G.Edges.Index>] { get }
 }
@@ -273,7 +275,7 @@ NetworkX `greedy_color`, rustworkx `graph_greedy_color` beside `graph_greedy_edg
   `bipartiteEdgeColoring()` accepts parallel edges.
 * **Isolated vertices** get colour 0 (CO-016, CO-170). The empty graph has `colorCount` 0 and no
   classes (CO-001 – CO-006, CO-167); an edgeless graph has χ = 1 (CO-132).
-* **Directed graphs**: not here. Colour `digraph.undirected`; for its edges use `greedyEdgeColoring()` (or `bipartiteEdgeColoring()`), since `edgeColoring()` traps on any antiparallel pair.
+* **Directed graphs**: not here. Colour `digraph.undirectedView`; for its edges use `greedyEdgeColoring()` (or `bipartiteEdgeColoring()`), since `edgeColoring()` traps on any antiparallel pair.
 
 ### Colour numbers
 
@@ -521,7 +523,7 @@ n vertices, m edges, Δ the greatest simple degree.
   `is_edge_coloring`).
 * **`greedyEdgeColoring()`**: rustworkx `graph_greedy_edge_color` (largest first on the line graph,
   ties by position), at most 2Δ − 1 colours, any graph: parallel edges, self-loops (one edge at their
-  vertex, as `isEdgeColoring` meets them) and so `digraph.undirected`, which `edgeColoring()` rejects
+  vertex, as `isEdgeColoring` meets them) and so `digraph.undirectedView`, which `edgeColoring()` rejects
   as soon as it has an antiparallel pair. The directed-graph guidance points at it.
 * **`greedyColoring(strategy:presetColor:)`**: rustworkx `graph_greedy_color(preset_color_fn=)`.
   Preset vertices keep their colours and are coloured first; static orders are the whole graph's

@@ -1,6 +1,12 @@
 # Planted bugs for ColoringModule; run with `just mutate ColoringModule`. See scripts/mutate.py.
 #
 # Known equivalent mutants:
+#   checked_edge_range, checked_edge_index
+#                        `color(checkedEdgeAt:)` with edge indices tests the position's range and
+#                        then the edge number's: on every undirected representation the edge index
+#                        is the position itself, so either test alone rejects every foreign
+#                        position. Both stay: `edgeIndex(of:)` may trap outside `edges`, and a
+#                        conformer may number its positions otherwise.
 #   order_twice, order_seen, order_missing, order_foreign
 #                        greedyColoring(order:) without its repeat or count check still traps: a
 #                        vertex left out keeps colour −1, which indexes out of range in Coloring's
@@ -116,7 +122,7 @@ MUTANTS = [
     # EdgeColoring
     Mutant("ec_classes", "EdgeColoring.swift", "order.map { positions[$0] }", "positions"),
     Mutant("ec_equal", "EdgeColoring.swift", "lhs._colors == rhs._colors", "lhs._offsets == rhs._offsets"),
-    Mutant("ec_search", "EdgeColoring.swift", "_positions[mid] < position", "_positions[mid] <= position"),
+    Mutant("ec_search", "EdgeColoring.swift", "_positions[mid] < position", "_positions[mid] <= position", nth=0),
     Mutant("ends_loop", "EdgeColoring.swift", '                precondition(w != v, "edgeColoring() requires a simple graph: the graph has a self-loop")', "", mode="stmt"),
     Mutant("ends_parallel", "EdgeColoring.swift", "                stamp[w] = v", "", mode="stmt"),
 
@@ -205,4 +211,12 @@ MUTANTS = [
     Mutant("lex_high", "ExactColoring.swift", "            high = max(high, chosen)", "", mode="stmt"),
     Mutant("lex_initial", "ExactColoring.swift", "        _restrictGrowth(&witness, from: 0, high: -1, scratch: &scratch)", "", mode="stmt"),
     Mutant("lex_keep", "ExactColoring.swift", "        if c <= high { continue }", "", mode="stmt"),
+
+    # The checked: spellings
+    Mutant("checked_color", "Coloring.swift", "        guard _graph.contains(vertex) else { throw VertexNotFound() }", "", mode="stmt"),
+    Mutant("checked_edge_range", "EdgeColoring.swift", "edges.startIndex <= position && position < edges.endIndex", "true"),
+    Mutant("checked_edge_index", "EdgeColoring.swift", "            guard e >= 0 && e < _colors.count else { throw EdgeNotFound() }", "", mode="stmt"),
+    Mutant("checked_edge_value", "EdgeColoring.swift", "            return _colors[e]", "            return _colors[0]", mode="stmt", nth=1),
+    Mutant("checked_edge_search", "EdgeColoring.swift", "low < _positions.count && _positions[low] == position", "low < _positions.count", nth=1),
+    Mutant("checked_edge_found", "EdgeColoring.swift", "        return _colors[low]", "        return _colors[0]", mode="stmt", nth=1),
 ]

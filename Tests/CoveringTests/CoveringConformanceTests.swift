@@ -1,6 +1,6 @@
 // Conventions the catalog rows do not isolate: results are plain arrays in `vertices` order (not
 // label order, not insertion order of the seeds), generic code over `some Graph`,
-// `CompressedSparseRow` through `AdjacencyList(csr).undirected`, an undirected graph read as directed
+// `CompressedSparseRow` through `AdjacencyList(csr).undirectedView`, an undirected graph read as directed
 // and back (every edge a parallel pair), other weight types (`Int32`, `UInt8`, `Float`, `Int8`),
 // the weight closure read once per vertex, integer ratios compared exactly where `Double` would tie,
 // the unweighted entry points as the unit weights, any `Sequence` for seeds and checks, an edge
@@ -48,10 +48,10 @@ struct CoveringConformanceTests {
         #expect(cycle.isVertexCover(concrete[4]))
     }
 
-    @Test("CompressedSparseRow through AdjacencyList(csr).undirected: K3,3")
+    @Test("CompressedSparseRow through AdjacencyList(csr).undirectedView: K3,3")
     func compressedSparseRow() throws {
         let csr = CompressedSparseRow(vertexCount: 6, edges: [(0, 3), (0, 4), (0, 5), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5)].map { DirectedEdge(from: $0.0, to: $0.1) })
-        let graph = AdjacencyList(csr).undirected
+        let graph = AdjacencyList(csr).undirectedView
         // Both sides are maximum independent sets; the lesser by index is {0, 1, 2} (CV-025).
         #expect(graph.maximumIndependentSet() == [0, 1, 2])
         #expect(graph.minimumVertexCover() == [3, 4, 5])
@@ -67,7 +67,7 @@ struct CoveringConformanceTests {
     func directedAndBack() throws {
         // The bull: triangle 0–1–2 with pendants 3 at 0 and 4 at 1 (NetworkX's bull_graph, CV-033).
         let bull = UndirectedAdjacencyList(vertices: 0 ..< 5, edges: [UndirectedEdge(0, 1), UndirectedEdge(0, 2), UndirectedEdge(1, 2), UndirectedEdge(1, 3), UndirectedEdge(2, 4)])
-        let doubled = bull.directed.undirected
+        let doubled = bull.directedView.undirectedView
         #expect(doubled.edgeCount == 10)
         #expect(doubled.maximumIndependentSet() == bull.maximumIndependentSet())
         #expect(bull.maximumIndependentSet() == [0, 3, 4])

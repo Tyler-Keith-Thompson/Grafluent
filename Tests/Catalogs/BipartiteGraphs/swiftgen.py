@@ -5,7 +5,7 @@
 First checks that ref.py's model reproduces cases.md exactly (ref.build_rows), then re-evaluates
 every row with the model's functions (structured values, not the printed cells), asserts each value
 matches its catalog cell, and writes one @Test per row. Representation rows (AdjacencyList and
-AdjacencyMatrix through `.undirected`) are recomputed with the model on those representations' row
+AdjacencyMatrix through `.undirectedView`) are recomputed with the model on those representations' row
 orders: successors then predecessors, arcs in insertion order (AdjacencyList) or row-major order
 (AdjacencyMatrix).
 """
@@ -194,7 +194,7 @@ def build_lines(c, kind):
     elif kind == "digraph":
         L.append(f"let arcs: [({T}, {T})] = {pairs_lit(E)}")
         L.append(f"let digraph = AdjacencyList(vertices: {arr(V)} as [{T}], edges: arcs.map {{ DirectedEdge(from: $0.0, to: $0.1) }})")
-        L.append("let graph = digraph.undirected")
+        L.append("let graph = digraph.undirectedView")
     return L
 
 CELLS_INPUT = {}
@@ -212,7 +212,7 @@ def gen_recognition():
         "`Cycle(vertices:edges:in:)` not nil). Undirected rows run on `ReferencePseudograph`, whose rows",
         "are in position order (a self-loop twice, consecutively; parallel edges kept), so vertex",
         "numbers and edge positions are the catalog's. `digraph` rows (BP-069 – BP-074) are an",
-        "`AdjacencyList` read through `.undirected`: rows are successors, then predecessors. Generated",
+        "`AdjacencyList` read through `.undirectedView`: rows are successors, then predecessors. Generated",
         "from cases.md by swiftgen.py, which re-evaluates each row with ref.py's model; see README.md.",
     ], ["AdjacencyListModule", "BipartiteGraphs", "GraphProtocols", "GrafluentTestSupport", "Testing", "Walks"],
         "Recognition: isBipartite, bipartition(), findOddCycle()", "RecognitionTests")
@@ -236,10 +236,10 @@ def gen_representations():
         "// Every recognition row (BP-001 – BP-084) again on the other representations: the package's",
         "// `UndirectedAdjacencyList` (stored index rows, so recognition reads `_withIncidentIndexRows`),",
         "// a file-private conformer with no vertex or edge indices (rows from `incidentEdges(of:)`,",
-        "// `side(ofIndex:)` by position in `vertices`), `AdjacencyList.undirected` with each edge as an",
-        "// arc as written, and `AdjacencyMatrix.undirected` with the arcs at their row-major cells, for",
+        "// `side(ofIndex:)` by position in `vertices`), `AdjacencyList.undirectedView` with each edge as an",
+        "// arc as written, and `AdjacencyMatrix.undirectedView` with the arcs at their row-major cells, for",
         "// rows on 0..<n with no arc twice. Rows with parallel edges run on the unindexed conformer only.",
-        "// Through `.undirected` a row is successors, then predecessors, so the odd cycle those",
+        "// Through `.undirectedView` a row is successors, then predecessors, so the odd cycle those",
         "// searches meet can differ from the catalog's: swiftgen.py computed each expected cycle with",
         "// ref.py's model on that representation's rows (sides do not depend on row order). Matrix",
         "// positions are cells, compared as [source, target]. See README.md.",
@@ -295,13 +295,13 @@ def gen_representations():
             b += recognition_checks(V, side, cyc, T, index_note="position in `vertices`")
             blocks.append(("No vertex or edge indices: the catalog's values", b))
             if not multi:
-                names.append("AdjacencyList.undirected")
+                names.append("AdjacencyList.undirectedView")
                 s2, c2 = model_recognition(V, E, True)
                 b = [f"let arcs: [({T}, {T})] = {pairs_lit(E)}",
-                     f"let graph = AdjacencyList(vertices: {arr(V)} as [{T}], edges: arcs.map {{ DirectedEdge(from: $0.0, to: $0.1) }}).undirected"]
+                     f"let graph = AdjacencyList(vertices: {arr(V)} as [{T}], edges: arcs.map {{ DirectedEdge(from: $0.0, to: $0.1) }}).undirectedView"]
                 b += recognition_checks(V, s2, c2, T)
                 note = "the catalog's values" if (s2, c2) == (side, cyc) else "rows successors then predecessors, so another cycle"
-                blocks.append((f"AdjacencyList.undirected, each edge an arc as written: {note}", b))
+                blocks.append((f"AdjacencyList.undirectedView, each edge an arc as written: {note}", b))
         else:
             side, cyc = model_recognition(V, E, True)
             check_against_cell(id_, V, side, cyc)
@@ -313,11 +313,11 @@ def gen_representations():
             sm, cm = model_recognition(Vm, arcs, True)
             if cm is not None:
                 cm = (cm[0], [arcs[e] for e in cm[1]])
-            names.append("AdjacencyMatrix.undirected")
+            names.append("AdjacencyMatrix.undirectedView")
             b = [f"let arcs: [(Int, Int)] = {pairs_lit(E)}",
-                 f"let graph = AdjacencyMatrix(vertexCount: {n}, edges: arcs.map {{ DirectedEdge(from: $0.0, to: $0.1) }}).undirected"]
+                 f"let graph = AdjacencyMatrix(vertexCount: {n}, edges: arcs.map {{ DirectedEdge(from: $0.0, to: $0.1) }}).undirectedView"]
             b += recognition_checks(Vm, sm, cm, "Int", edge_lit=True)
-            blocks.append(("AdjacencyMatrix.undirected: vertices 0..<n, arcs at row-major cells, rows successors then predecessors", b))
+            blocks.append(("AdjacencyMatrix.undirectedView: vertices 0..<n, arcs at row-major cells, rows successors then predecessors", b))
         if not blocks:
             continue
         count += 1

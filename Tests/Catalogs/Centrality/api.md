@@ -42,7 +42,7 @@ seconds). `probe.py` and `probe2.py` hold the python-igraph 1.0 values quoted be
 | `dangling=` (NetworkX-only: a separate distribution for dangling vertices) | NetworkX-only. Dangling vertices follow the personalization (NetworkX's default; igraph and JGraphT do the same with a uniform jump). Phase 2 if asked |
 | Per-vertex Katz β (NetworkX `beta` as a dict), Bonacich alpha/power centrality (igraph `alpha_centrality`, `power_centrality`, JGraphT `AlphaCentrality`) | The per-vertex β is NetworkX's exogenous term, which is Bonacich's alpha centrality; add as one overload `katzCentrality(alpha:beta: (Vertex) -> Double, …)` if asked |
 | Weighted degree ("strength", igraph `strength`) | `vertices.map { incidentEdges(of: $0).reduce(0) { $0 + w($1) } }`; NetworkX has no weighted degree centrality |
-| HITS on `Graph` | On a symmetric matrix hubs and authorities are equal, and both are the eigenvector centrality rescaled to sum 1 (igraph warns "These are the same as eigenvector centralities"; CE-204, CE-205). `graph.directed.hits()` gives it |
+| HITS on `Graph` | On a symmetric matrix hubs and authorities are equal, and both are the eigenvector centrality rescaled to sum 1 (igraph warns "These are the same as eigenvector centralities"; CE-204, CE-205). `graph.directedView.hits()` gives it |
 | Eccentricity centrality, centroid | `Distances` |
 | Group, percolation, trophic, VoteRank, closeness vitality, dispersion, reaching | NetworkX-only |
 | Parallel Brandes (one task per block of sources) | Sources are independent; worth an `async` overload once the library has a concurrency story. Combining per-task arrays changes the summation order, so it would document its own order |
@@ -86,7 +86,7 @@ extension Graph {
     func katzCentrality<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W, alpha: Double = 0.1, beta: Double = 1,
                         normalized: Bool = true, tolerance: Double = 1e-6, maxIterations: Int = 1000) throws(NoConvergence) -> CentralityScores<DirectedView<Self>>
 
-    /// Each edge is two arcs (`graph.directed`), a self-loop two loop arcs.
+    /// Each edge is two arcs (`graph.directedView`), a self-loop two loop arcs.
     func pageRank(dampingFactor: Double = 0.85, tolerance: Double = 1e-6, maxIterations: Int = 100) throws(NoConvergence) -> CentralityScores<DirectedView<Self>>
     func pageRank(dampingFactor: Double = 0.85, personalization: (Vertex) -> Double,
                   tolerance: Double = 1e-6, maxIterations: Int = 100) throws(NoConvergence) -> CentralityScores<DirectedView<Self>>
@@ -112,6 +112,8 @@ extension DirectedGraph {
 @frozen public struct CentralityScores<G: DirectedGraph> {
     /// Precondition: `vertex` is a vertex.
     public func score(of vertex: G.Vertex) -> Double
+    /// Throws `VertexNotFound` for a non-vertex instead (Principle 6).
+    public func score(checked vertex: G.Vertex) throws(VertexNotFound) -> Double
     /// By vertex index (position in `vertices` without vertex indices). Precondition: in range.
     public func score(ofIndex index: Int) -> Double
     /// Every score, in `vertices` order (by vertex index). O(1): stored.
@@ -166,7 +168,7 @@ degree(of: v)/(n − 1), so a self-loop counts 2 and each parallel copy counts (
 the value is the graph's `degree(of:)` scaled, and can exceed 1 on a multigraph, as in NetworkX.
 Directed: `degreeCentrality()` is (in + out)/(n − 1) (NetworkX), and a directed loop is one
 in-arc and one out-arc (CE-036). **One vertex scores 1** (NetworkX's rule, CE-009, CE-041), the
-empty graph gives an empty result. `g.directed.degreeCentrality()` is twice
+empty graph gives an empty result. `g.directedView.degreeCentrality()` is twice
 `g.degreeCentrality()` (CE-040).
 
 ### Closeness and harmonic
@@ -208,7 +210,7 @@ rescaling:
 | with `endpoints: true` | each reachable pair also credits s and t (+1 each), and n(n − 1) replaces (n − 1)(n − 2) | |
 
 No scaling when the divisor would be 0 (n ≤ 2, or n < 2 with endpoints; CE-013, CE-025, CE-026).
-`g.directed` gives the same normalized values and twice the unnormalized ones (CE-106, CE-107).
+`g.directedView` gives the same normalized values and twice the unnormalized ones (CE-106, CE-107).
 
 * **Paths are edge sequences.** In a multigraph each parallel copy is a distinct shortest path
   (CE-108: 0 → 2 has three shortest paths, two through vertex 1, so B(1) = ⅔). This is what Boost
@@ -237,7 +239,7 @@ The principal eigenvector of Aᵀ (in-arcs for a directed graph: a vertex is cen
 vertices point to it, NetworkX's "left" eigenvector; igraph and JGraphT the same), with A the
 graph's adjacency matrix **as its rows list it**: A_vw = Σ weights of the slots v → w, so parallel
 copies add (CE-140, CE-148) and an undirected self-loop contributes 2 to A_vv (CE-139), consistent
-with `degree(of:)`, `graph.directed`, and igraph. NetworkX counts an undirected loop once and its
+with `degree(of:)`, `graph.directedView`, and igraph. NetworkX counts an undirected loop once and its
 `eigenvector_centrality` refuses multigraphs (while `eigenvector_centrality_numpy` sums parallel
 copies).
 
@@ -265,7 +267,7 @@ x = d(Pᵀx + (dangling mass)·p) + (1 − d)p with P the row-normalized weight 
 over its source's out-weight), d the damping factor (0.85), p the personalization normalized to sum
 1 (uniform by default). A dangling vertex (no out-arcs, or out-weight 0: CE-185) sends its mass
 along p, as NetworkX does by default. x₀ uniform; scores sum to 1. On `Graph` each edge is two arcs
-and a self-loop two loop arcs (`graph.directed`'s reading; igraph agrees, CE-182; NetworkX's
+and a self-loop two loop arcs (`graph.directedView`'s reading; igraph agrees, CE-182; NetworkX's
 `to_directed` makes one loop arc). Parallel arcs add (NetworkX MultiDiGraph and igraph agree,
 CE-183). Preconditions: 0 ≤ d ≤ 1; personalization values finite and ≥ 0 with a positive sum
 (CE-187, CE-188); weights finite and ≥ 0 (CE-191). The personalization closure is called once per
@@ -383,7 +385,7 @@ Iterations to converge: geometric in |λ₂/λ₁| (eigenvector, with the shift 
   to `scripts/modules.py`:** `Centrality` depends on GraphProtocols, PriorityQueueModule. Tests
   import ShortestPaths to cross-check closeness against `shortestPaths(from:)` sums.
 * **Tests** (public API only): every catalog row; for each case also `closenessCentrality(of: v)`
-  equals `closenessCentrality().score(of: v)` (and harmonic), `g.directed` gives the documented
+  equals `closenessCentrality().score(of: v)` (and harmonic), `g.directedView` gives the documented
   relation (equal, or twice for unnormalized betweenness and degree), and `score(of:)` agrees with
   `scores` and `score(ofIndex:)`. Property tests: betweenness against the definition on small random
   multigraphs; PageRank sums to 1; eigenvector has norm 1; Katz with α → 0 tends to uniform.

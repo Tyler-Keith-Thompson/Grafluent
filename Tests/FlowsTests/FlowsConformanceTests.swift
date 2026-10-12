@@ -1,7 +1,7 @@
 // Conventions the catalog rows do not isolate: equality of the four results on their values,
 // `Sendable`, descriptions, each result's own copy of the graph, generic code over `some
 // DirectedGraph` and `some Graph`, string and hash-colliding vertices, other capacity types
-// (Int32, UInt16, Float), an undirected graph against its `directed` view (each edge two arcs of
+// (Int32, UInt16, Float), an undirected graph against its `directedView` view (each edge two arcs of
 // the same capacity: the same value, the same cut sides, the same global cut value and
 // connectivity), self-loops never asked for a capacity even when the closure would trap,
 // `minimumCostMaximumFlow` with zero costs, the Gomory–Hu tree's symmetric lookups, `flowMap`, the
@@ -177,7 +177,7 @@ struct FlowsConformanceTests {
         let pairs = [(0, 1), (0, 2), (1, 2), (1, 3), (1, 4), (2, 4), (3, 4), (3, 5), (4, 5)]
         let capacities = [1, 7, 1, 3, 2, 4, 1, 6, 2]
         let graph = UndirectedAdjacencyList<Int>(vertices: 0 ..< 6, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let view = graph.directed
+        let view = graph.directedView
         for s in 0 ..< 6 {
             for t in 0 ..< 6 where t != s {
                 let undirected = graph.minimumCut(from: s, to: t, capacity: { capacities[$0] })

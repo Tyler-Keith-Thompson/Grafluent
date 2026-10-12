@@ -64,4 +64,12 @@ MUTANTS = [
 
     # Preconditions
     Mutant("kcore", "CoreNumbers.swift", "precondition(k >= 0, \"k must be nonnegative\")", "precondition(true, \"k must be nonnegative\")", mode="stmt", nth=0),
+
+    # The checked: lookups.
+    Mutant("clusteringchecked", "Clustering.swift", "guard _graph.contains(vertex) else { throw VertexNotFound() }", "guard true else { throw VertexNotFound() }", mode="stmt", nth=0),
+    Mutant("clusteringcheckedvalue", "Clustering.swift", "        return clusteringCoefficient(of: vertex)", "        return clusteringCoefficient(ofIndex: 0)", mode="stmt"),
+    Mutant("trianglechecked", "Clustering.swift", "guard _graph.contains(vertex) else { throw VertexNotFound() }", "guard true else { throw VertexNotFound() }", mode="stmt", nth=1),
+    Mutant("trianglecheckedvalue", "Clustering.swift", "        return triangleCount(of: vertex)", "        return triangleCount(ofIndex: 3)", mode="stmt"),
+    Mutant("corechecked", "CoreNumbers.swift", "guard _graph.contains(vertex) else { throw VertexNotFound() }", "guard true else { throw VertexNotFound() }", mode="stmt"),
+    Mutant("corecheckedvalue", "CoreNumbers.swift", "        return coreNumber(of: vertex)", "        return coreNumber(ofIndex: 0)", mode="stmt"),
 ]

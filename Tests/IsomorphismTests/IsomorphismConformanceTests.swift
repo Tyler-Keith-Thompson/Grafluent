@@ -5,7 +5,7 @@
 // DirectedMultigraph and LabeledGraph over both bases), alone and mixed, and every problem's set of
 // mappings, read back as indices, must equal the one on the reference Pseudograph or
 // DirectedPseudograph. Relabelled copies (permuted vertices, shuffled edge positions, String names)
-// move every mapping by the relabelling; an undirected graph's `directed` view has the same
+// move every mapping by the relabelling; an undirected graph's `directedView` view has the same
 // mappings; Weisfeiler–Leman hashes are equal across representations and copies. Then the value
 // laws of Isomorphism and Isomorphisms, and how often the colour closures are read; laziness relies
 // on speed and is in Performance/IsomorphismLazinessTests.swift. See README.md.
@@ -67,19 +67,19 @@ struct IsomorphismConformanceTests {
                      UndirectedAdjacencyList(vertices: 0 ..< k, edges: patternPairs.map { UndirectedEdge($0[0], $0[1]) }))
         #expect(results(lists.0, lists.1, int)[0] == isomorphic[0], "\(context)")
         #expect(results(lists.2, lists.0, int) == embedded, "\(context)")
-        let matrices = (AdjacencyMatrix(vertexCount: n, edges: pairs.map { DirectedEdge(from: $0[0], to: $0[1]) }).undirected,
-                        AdjacencyMatrix(vertexCount: n, edges: copyPairs.map { DirectedEdge(from: $0[0], to: $0[1]) }).undirected,
-                        AdjacencyMatrix(vertexCount: k, edges: patternPairs.map { DirectedEdge(from: $0[0], to: $0[1]) }).undirected)
+        let matrices = (AdjacencyMatrix(vertexCount: n, edges: pairs.map { DirectedEdge(from: $0[0], to: $0[1]) }).undirectedView,
+                        AdjacencyMatrix(vertexCount: n, edges: copyPairs.map { DirectedEdge(from: $0[0], to: $0[1]) }).undirectedView,
+                        AdjacencyMatrix(vertexCount: k, edges: patternPairs.map { DirectedEdge(from: $0[0], to: $0[1]) }).undirectedView)
         #expect(results(matrices.0, matrices.1, int)[0] == isomorphic[0], "\(context)")
         #expect(results(matrices.2, matrices.0, int) == embedded, "\(context)")
-        let adjacency = (AdjacencyList(vertices: 0 ..< n, edges: pairs.map { DirectedEdge(from: $0[0], to: $0[1]) }).undirected,
-                         AdjacencyList(vertices: 0 ..< n, edges: copyPairs.map { DirectedEdge(from: $0[0], to: $0[1]) }).undirected,
-                         AdjacencyList(vertices: 0 ..< k, edges: patternPairs.map { DirectedEdge(from: $0[0], to: $0[1]) }).undirected)
+        let adjacency = (AdjacencyList(vertices: 0 ..< n, edges: pairs.map { DirectedEdge(from: $0[0], to: $0[1]) }).undirectedView,
+                         AdjacencyList(vertices: 0 ..< n, edges: copyPairs.map { DirectedEdge(from: $0[0], to: $0[1]) }).undirectedView,
+                         AdjacencyList(vertices: 0 ..< k, edges: patternPairs.map { DirectedEdge(from: $0[0], to: $0[1]) }).undirectedView)
         #expect(results(adjacency.0, adjacency.1, int)[0] == isomorphic[0], "\(context)")
         #expect(results(adjacency.2, adjacency.0, int) == embedded, "\(context)")
-        let labeled = (LabeledGraph<String, AdjacencyMatrix>(vertices: names, edges: pairs.map { DirectedEdge(from: names[$0[0]], to: names[$0[1]]) }).undirected,
-                       LabeledGraph<String, AdjacencyMatrix>(vertices: names, edges: copyPairs.map { DirectedEdge(from: names[$0[0]], to: names[$0[1]]) }).undirected,
-                       LabeledGraph<String, AdjacencyMatrix>(vertices: names.prefix(k), edges: patternPairs.map { DirectedEdge(from: names[$0[0]], to: names[$0[1]]) }).undirected)
+        let labeled = (LabeledGraph<String, AdjacencyMatrix>(vertices: names, edges: pairs.map { DirectedEdge(from: names[$0[0]], to: names[$0[1]]) }).undirectedView,
+                       LabeledGraph<String, AdjacencyMatrix>(vertices: names, edges: copyPairs.map { DirectedEdge(from: names[$0[0]], to: names[$0[1]]) }).undirectedView,
+                       LabeledGraph<String, AdjacencyMatrix>(vertices: names.prefix(k), edges: patternPairs.map { DirectedEdge(from: names[$0[0]], to: names[$0[1]]) }).undirectedView)
         #expect(results(labeled.0, labeled.1, label)[0] == isomorphic[0], "\(context)")
         #expect(results(labeled.2, labeled.0, label) == embedded, "\(context)")
         if let multigraphs = Multigraph(vertices: 0 ..< n, edges: pairs.map { UndirectedEdge($0[0], $0[1]) }),
@@ -173,7 +173,7 @@ struct IsomorphismConformanceTests {
         #expect(results(pattern, labeledMatrices.0, label) == embedded, "\(context)")
     }
 
-    @Test("Multigraphs: Pseudograph, DirectedPseudograph.undirected and Multigraph agree with parallel edges, self-loops and edge colours", .tags(.randomized), arguments: 0 ..< 16)
+    @Test("Multigraphs: Pseudograph, DirectedPseudograph.undirectedView and Multigraph agree with parallel edges, self-loops and edge colours", .tags(.randomized), arguments: 0 ..< 16)
     func multigraphRepresentations(seed: Int) {
         var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
         let n = 5, k = 3
@@ -198,9 +198,9 @@ struct IsomorphismConformanceTests {
         let graph = Pseudograph(vertices: 0 ..< n, edges: pairs.map { UndirectedEdge($0[0], $0[1]) })
         let copy = Pseudograph(vertices: 0 ..< n, edges: copyPairs.map { UndirectedEdge($0[0], $0[1]) })
         let pattern = Pseudograph(vertices: 0 ..< k, edges: patternPairs.map { UndirectedEdge($0[0], $0[1]) })
-        let views = (DirectedPseudograph(vertices: 0 ..< n, edges: pairs.map { DirectedEdge(from: $0[0], to: $0[1]) }).undirected,
-                     DirectedPseudograph(vertices: 0 ..< n, edges: copyPairs.map { DirectedEdge(from: $0[0], to: $0[1]) }).undirected,
-                     DirectedPseudograph(vertices: 0 ..< k, edges: patternPairs.map { DirectedEdge(from: $0[0], to: $0[1]) }).undirected)
+        let views = (DirectedPseudograph(vertices: 0 ..< n, edges: pairs.map { DirectedEdge(from: $0[0], to: $0[1]) }).undirectedView,
+                     DirectedPseudograph(vertices: 0 ..< n, edges: copyPairs.map { DirectedEdge(from: $0[0], to: $0[1]) }).undirectedView,
+                     DirectedPseudograph(vertices: 0 ..< k, edges: patternPairs.map { DirectedEdge(from: $0[0], to: $0[1]) }).undirectedView)
         // Without colours.
         let isomorphic = Set(graph.isomorphisms(to: copy).map { Array($0.images) })
         #expect(!isomorphic.isEmpty, "\(context)")
@@ -243,9 +243,9 @@ struct IsomorphismConformanceTests {
         let pattern = Pseudograph(vertices: 0 ..< k, edges: patternEdges)
         let isomorphic = Set(graph.isomorphisms(to: copy).map { Array($0.images) })
         #expect(isomorphic.contains(permutation), "\(context)")
-        #expect(Set(graph.directed.isomorphisms(to: copy.directed).map { Array($0.images) }) == isomorphic, "\(context)")
-        #expect(Set(pattern.directed.subgraphIsomorphisms(to: graph.directed).map { Array($0.images) }) == Set(pattern.subgraphIsomorphisms(to: graph).map { Array($0.images) }), "\(context)")
-        #expect(Set(pattern.directed.monomorphisms(to: graph.directed).map { Array($0.images) }) == Set(pattern.monomorphisms(to: graph).map { Array($0.images) }), "\(context)")
+        #expect(Set(graph.directedView.isomorphisms(to: copy.directedView).map { Array($0.images) }) == isomorphic, "\(context)")
+        #expect(Set(pattern.directedView.subgraphIsomorphisms(to: graph.directedView).map { Array($0.images) }) == Set(pattern.subgraphIsomorphisms(to: graph).map { Array($0.images) }), "\(context)")
+        #expect(Set(pattern.directedView.monomorphisms(to: graph.directedView).map { Array($0.images) }) == Set(pattern.monomorphisms(to: graph).map { Array($0.images) }), "\(context)")
     }
 
     @Test("Relabelled copies: renaming the target's vertices (as Strings) moves every mapping, renaming the pattern's reorders it; colours move along", .tags(.randomized), arguments: 0 ..< 16)
@@ -302,8 +302,8 @@ struct IsomorphismConformanceTests {
         let graph = Pseudograph(vertices: 0 ..< n, edges: pairs.map { UndirectedEdge($0[0], $0[1]) })
         let copy = Pseudograph(vertices: 0 ..< n, edges: pairs.shuffled(using: &rng).map { UndirectedEdge(permutation[$0[1]], permutation[$0[0]]) })
         let list = UndirectedAdjacencyList(vertices: 0 ..< n, edges: pairs.map { UndirectedEdge($0[0], $0[1]) })
-        let matrix = AdjacencyMatrix(vertexCount: n, edges: pairs.map { DirectedEdge(from: $0[0], to: $0[1]) }).undirected
-        let labeled = LabeledGraph<String, AdjacencyMatrix>(vertices: (0 ..< n).map { "v\($0)" }, edges: pairs.map { DirectedEdge(from: "v\($0[0])", to: "v\($0[1])") }).undirected
+        let matrix = AdjacencyMatrix(vertexCount: n, edges: pairs.map { DirectedEdge(from: $0[0], to: $0[1]) }).undirectedView
+        let labeled = LabeledGraph<String, AdjacencyMatrix>(vertices: (0 ..< n).map { "v\($0)" }, edges: pairs.map { DirectedEdge(from: "v\($0[0])", to: "v\($0[1])") }).undirectedView
         for k in 0 ... 3 {
             let hash = graph.weisfeilerLehmanGraphHash(iterations: k)
             #expect(copy.weisfeilerLehmanGraphHash(iterations: k) == hash, "k \(k), \(context)")

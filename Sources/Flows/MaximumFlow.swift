@@ -228,11 +228,11 @@ extension DirectedGraph {
 
 extension Graph {
     // The same maximum-flow and s–t cut entry points. Each edge carries up to its capacity in
-    // either direction (one capacity shared by both: |f| ≤ c). Results are over `directed`, as
+    // either direction (one capacity shared by both: |f| ≤ c). Results are over `directedView`, as
     // ShortestPaths' are: an edge's flow is on the arc of its direction, and a cut edge is the
     // arc from the source side to the sink side. `capacity` is called once per non-loop edge.
 
-    /// A maximum flow from `source` to `sink` over `directed`, by push–relabel (see
+    /// A maximum flow from `source` to `sink` over `directedView`, by push–relabel (see
     /// `DirectedGraph.maximumFlow(from:to:capacity:)`). Each edge is one residual pair with its
     /// capacity both ways.
     ///
@@ -248,7 +248,7 @@ extension Graph {
         _maximumFlow(from: source, to: sink, capacity: capacity, .pushRelabel)
     }
 
-    /// A maximum flow over `directed` by Edmonds–Karp, with the rows in edge-position order: the
+    /// A maximum flow over `directedView` by Edmonds–Karp, with the rows in edge-position order: the
     /// flow is pinned by the procedure.
     ///
     /// - Precondition: as for `maximumFlow(from:to:capacity:)`.
@@ -259,7 +259,7 @@ extension Graph {
         _maximumFlow(from: source, to: sink, capacity: capacity, .edmondsKarp)
     }
 
-    /// A maximum flow over `directed` by Dinic's blocking flows.
+    /// A maximum flow over `directedView` by Dinic's blocking flows.
     ///
     /// - Precondition: as for `maximumFlow(from:to:capacity:)`.
     @inlinable
@@ -283,7 +283,7 @@ extension Graph {
         return _runMaximumFlow(edges, capacities, from: s, to: t, .preflow, wantsCut: false).value
     }
 
-    /// The canonical minimum s–t cut over `directed`: the least sink side, each crossing edge
+    /// The canonical minimum s–t cut over `directedView`: the least sink side, each crossing edge
     /// once as the arc leaving the source side.
     ///
     /// - Precondition: as for `maximumFlow(from:to:capacity:)`.
@@ -315,6 +315,6 @@ extension Graph {
             flows.append(run.against[e])
         }
         let cut = _cut(edges, capacities, _flowListed(vertices), run.inSink)
-        return Flow(graph: directed, flows: flows, source: source, sink: sink, value: run.value, minimumCut: cut)
+        return Flow(graph: directedView, flows: flows, source: source, sink: sink, value: run.value, minimumCut: cut)
     }
 }

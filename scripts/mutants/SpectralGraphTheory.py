@@ -259,4 +259,8 @@ MUTANTS = [
     Mutant("sterfresidual", "SymmetricEigensolver.swift",
            "e[l].squareRoot() / (scale * norm)",
            "e[l].squareRoot()"),
+
+    # The checked: lookups.
+    Mutant("fiedlerchecked", "FiedlerVector.swift", "guard _graph.contains(vertex) else { throw VertexNotFound() }", "guard true else { throw VertexNotFound() }", mode="stmt"),
+    Mutant("fiedlercheckedvalue", "FiedlerVector.swift", "        return value(of: vertex)", "        return value(ofIndex: 0)", mode="stmt"),
 ]

@@ -118,6 +118,9 @@ needs it anyway. `_withSuccessorIndexRows` keeps the default (`nil`): the CSR ro
 `VertexNotFound` for a vertex outside `0..<n`; `source(checkedEdgeAt:)` and `target(checkedEdgeAt:)`
 throw `EdgeNotFound` for a position outside `0..<n` (FG-063). Each checks once and then calls the
 plain spelling. A negative step count is a misuse, not a missing vertex, and still traps (FG-064).
+The cycle decomposition has the same: `component(checked:)`, `root(checked:)`, `tailLength(checked:)`,
+`cycleLength(checked:)`, `preimages(checked:)`, `inDegree(checked:)` and `successor(checked:steps:)`
+throw `VertexNotFound` off `0..<n` (FG-065); negative steps still trap (FG-066).
 
 ```swift
 extension FunctionalGraph {

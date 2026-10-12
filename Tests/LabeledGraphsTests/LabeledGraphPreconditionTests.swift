@@ -847,12 +847,12 @@ struct LabeledGraphPreconditionTests {
         await #expect(processExitsWith: .failure) {
             let cell01 = AdjacencyMatrix(vertexCount: 2, edges: [DirectedEdge(from: 0, to: 1)]).edges.startIndex
             let graph = LabeledGraph<String, AdjacencyMatrix>(vertices: [] as [String], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "c", to: "a"), DirectedEdge(from: "b", to: "c")])
-            let view = graph.undirected
+            let view = graph.undirectedView
             _ = view.oppositeVertex(to: "c", acrossEdgeAt: cell01)
         }
         // Without the call: the state the call would apply to.
         let graph = LabeledGraph<String, AdjacencyMatrix>(vertices: [] as [String], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "c", to: "a"), DirectedEdge(from: "b", to: "c")])
-        let view = graph.undirected
+        let view = graph.undirectedView
         #expect(Array(graph.vertices) == ["a", "b", "c"])
         #expect(graph.edges.map { [$0.source, $0.target] } == [["a", "b"], ["b", "c"], ["c", "a"]])
         #expect(graph.edges.indices.map { [$0.source, $0.target] } == [[0, 1], [1, 2], [2, 0]])
@@ -935,12 +935,12 @@ struct LabeledGraphPreconditionTests {
         // U V []; E [a→b, c→a, b→c] / neighbors(q) → **trap** (q is not a vertex of the graph)
         await #expect(processExitsWith: .failure) {
             let graph = LabeledGraph<String, AdjacencyMatrix>(vertices: [] as [String], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "c", to: "a"), DirectedEdge(from: "b", to: "c")])
-            let view = graph.undirected
+            let view = graph.undirectedView
             _ = Array(view.neighbors(of: "q"))
         }
         // Without the call: the state the call would apply to.
         let graph = LabeledGraph<String, AdjacencyMatrix>(vertices: [] as [String], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "c", to: "a"), DirectedEdge(from: "b", to: "c")])
-        let view = graph.undirected
+        let view = graph.undirectedView
         #expect(Array(graph.vertices) == ["a", "b", "c"])
         #expect(graph.edges.map { [$0.source, $0.target] } == [["a", "b"], ["b", "c"], ["c", "a"]])
         #expect(graph.edges.indices.map { [$0.source, $0.target] } == [[0, 1], [1, 2], [2, 0]])
@@ -1042,17 +1042,17 @@ struct LabeledGraphPreconditionTests {
         }
         await #expect(processExitsWith: .failure) {
             let graph = LabeledGraph<String, AdjacencyMatrix>(edges: [DirectedEdge(from: "a", to: "b")])
-            _ = graph.undirected.incidentEdges(of: "q")
+            _ = graph.undirectedView.incidentEdges(of: "q")
         }
         await #expect(processExitsWith: .failure) {
             let graph = LabeledGraph<String, AdjacencyMatrix>(edges: [DirectedEdge(from: "a", to: "b")])
-            _ = graph.undirected.degree(of: "q")
+            _ = graph.undirectedView.degree(of: "q")
         }
         // Without the calls: the same rows of a vertex answer, and the checked spellings throw.
         let graph = LabeledGraph<String, AdjacencyMatrix>(edges: [DirectedEdge(from: "a", to: "b")])
         #expect(graph.outEdges(of: "a").map { [$0.source, $0.target] } == [[0, 1]])
         #expect(graph.inDegree(of: "b") == 1 && graph.degree(of: "b") == 1)
-        #expect(graph.undirected.degree(of: "a") == 1)
+        #expect(graph.undirectedView.degree(of: "a") == 1)
         #expect(throws: VertexNotFound()) { try graph.inEdges(checked: "q") }
         #expect(throws: VertexNotFound()) { try graph.degree(checked: "q") }
     }

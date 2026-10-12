@@ -335,13 +335,13 @@ struct CliquePropertyTests {
         }
     }
 
-    @Test("graph.directed.undirected (every edge as two arcs, read back as a parallel pair) gives the same answers, the degeneracy ordering included")
+    @Test("graph.directedView.undirected (every edge as two arcs, read back as a parallel pair) gives the same answers, the degeneracy ordering included")
     func directedThenUndirected() async {
         let edges = zip(Gen.int(in: 0 ... 7), Gen.int(in: 0 ... 7)).array(of: 0 ... 20)
         await propertyCheck(count: 200, input: Gen.int(in: 0 ... 8), edges, Gen.int(in: 0 ... 1_000_000)) { n, raw, seed in
             let pairs = n == 0 ? [] : raw.map { ($0.0 % n, $0.1 % n) }
             let graph = ShuffledPseudograph(vertexCount: n, edges: pairs.map { UndirectedEdge($0.0, $0.1) }, seed: seed)
-            let view = graph.directed.undirected
+            let view = graph.directedView.undirectedView
             let cliques = Array(graph.maximalCliques())
             let viewCliques = Array(view.maximalCliques())
             #expect(Set(viewCliques) == Set(cliques))

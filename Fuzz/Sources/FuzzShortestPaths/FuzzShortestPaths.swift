@@ -141,7 +141,7 @@ enum FuzzShortestPaths {
                 let closing = cycle.count == 1 ? UndirectedEdge(cycle[0], cycle[0]) : UndirectedEdge(cycle[0], cycle[1])
                 check(cycle.count <= 2 && cycle.vertices == cycle.vertices.sorted() && (undirected[closing] ?? 0) < 0, "undirected witness \(cycle)")
                 // A cycle of the directed view: its arcs, over one undirected edge.
-                check(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph.directed) != nil, "undirected witness \(cycle) is not a cycle of the directed view")
+                check(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph.directedView) != nil, "undirected witness \(cycle) is not a cycle of the directed view")
                 check(Set(cycle.edges.map(\.position)).count == 1, "undirected witness \(cycle) uses more than one edge")
             }
             check((graph.findNegativeCycle(weight: uw) != nil) == undirected.values.contains { $0 < 0 }, "undirected whole-graph witness")

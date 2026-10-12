@@ -214,7 +214,7 @@ class G:
         self.directed, self.n, self.edges = directed, n, list(edges)
 
     def arcs(self):
-        """The directed reading: an undirected edge u–v is u>v then v>u (`graph.directed`)."""
+        """The directed reading: an undirected edge u–v is u>v then v>u (`graph.directedView`)."""
         if self.directed:
             return [(u, v, w, p) for p, (u, v, w) in enumerate(self.edges)]
         out = []
@@ -845,10 +845,10 @@ def define():
     G4 = "D[4]: 0>1:1, 1>2:-3, 2>1:1, 2>3:2"                    # negative cycle 1→2→1
     W5 = "D[5]: 0>1:5, 0>2:3, 1>2:4, 1>3:2, 2>3:6, 3>4:7, 2>4:1"  # widest-path example
     W6 = "D[4]: 0>1:3, 0>1:8, 1>2:2, 2>1:9, 1>3:5"              # parallel widths, cycle
-    U7 = "U[4]: 0-1:2, 1-2:7, 2-3:1, 0-3:9"                     # undirected, via .directed
+    U7 = "U[4]: 0-1:2, 1-2:7, 2-3:1, 0-3:9"                     # undirected, via .directedView
     Z8 = "D[3]: 0>1:Z, 1>2:O"                                   # an edge of weight zero (Z) then one (O)
     for name in ["TropicalSemiring<Int>", "TropicalSemiring<Double>"]:
-        for gg, case in [(G1, "small digraph, an isolated vertex"), (G2, "parallel edges, a loop and a cycle"), (U7, "undirected through .directed")]:
+        for gg, case in [(G1, "small digraph, an isolated vertex"), (G2, "parallel edges, a loop and a cycle"), (U7, "undirected through .directedView")]:
             R("Dijkstra", case, name, gg, "dijkstraShortestPaths(from: 0)")
         R("Dijkstra", "several sources", name, G1, "dijkstraShortestPaths(from: [3, 2])")
         R("Dijkstra", "cutoff (not worse than)", name, G1, "dijkstraShortestPaths(from: 0, cutoff: 3)")
@@ -865,7 +865,7 @@ def define():
         R("DAG", "the maintained order (DirectedAcyclicGraph)", name, G3, "DirectedAcyclicGraph(g).dagShortestPaths(from: 1)")
         R("DAG distances", "a selective semiring: the same as dagShortestPaths, zero where unreached", name, G3, "dagShortestDistances(from: 1)")
         for gg, case in [(G1, "small digraph"), (G2, "parallel edges, a loop and a cycle"), (G3, "negative weights"),
-                         (G4, "a negative cycle"), (U7, "undirected through .directed"), ("D[3]: 0>0:-1, 1>2:3", "a negative loop")]:
+                         (G4, "a negative cycle"), (U7, "undirected through .directedView"), ("D[3]: 0>0:-1, 1>2:3", "a negative loop")]:
             R("Floyd–Warshall", case, name, gg, "floydWarshallShortestPaths()")
     for name in ["TropicalSemiring<Int>"]:
         for seed in (1, 2, 3):
@@ -879,7 +879,7 @@ def define():
     R("Overflow", "Int.max weight is zero: no trap, not reached", "TropicalSemiring<Int>", "D[3]: 0>1:5, 1>2:Int.max", "dijkstraShortestPaths(from: 0)")
 
     for name in ["BottleneckSemiring<Int>", "BottleneckSemiring<Double>"]:
-        for gg, case in [(W5, "widest paths"), (W6, "parallel widths and a cycle"), (U7, "undirected through .directed"), (G1, "an isolated vertex")]:
+        for gg, case in [(W5, "widest paths"), (W6, "parallel widths and a cycle"), (U7, "undirected through .directedView"), (G1, "an isolated vertex")]:
             R("Dijkstra", case, name, gg, "dijkstraShortestPaths(from: 0)")
         R("Dijkstra", "cutoff: only paths at least this wide", name, W5, "dijkstraShortestPaths(from: 0, cutoff: 5)")
         R("Dijkstra", "negative widths are fine (one is +∞)", name, G3, "dijkstraShortestPaths(from: 0)")
@@ -1157,7 +1157,7 @@ are phase 2.
 **Semiring** is the weight type `S`; the test passes `weight: {{ S(w[$0]) }}` with `w` the raw
 values written in the graph, by edge position.
 
-**Graph**: `D[n]:` directed, `U[n]:` undirected (read through `.directed`, each edge u–v giving
+**Graph**: `D[n]:` directed, `U[n]:` undirected (read through `.directedView`, each edge u–v giving
 arcs u>v and v>u with the edge's position), vertices `0..<n` listed first, then edges in
 **position order** as `u>v:w` (`u-v:w`). Weights are raw values of the semiring's scalar:
 `Int.max`, `.infinity`, `true`. `Z` / `O` stand for the semiring's `zero` / `one` written out.

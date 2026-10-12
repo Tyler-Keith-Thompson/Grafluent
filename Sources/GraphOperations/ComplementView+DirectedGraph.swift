@@ -119,6 +119,39 @@ extension ComplementView: DirectedGraph where Base: DirectedGraph {
     @inlinable
     public func target(ofEdgeAt position: Cell) -> Base.Vertex { base.vertex(atIndex: position.target) }
 
+    /// Whether `position` is an edge of the complement: two distinct vertex indices of the base
+    /// that the base does not join. The cost of the base's `contains(edge:)`.
+    @inlinable
+    func _isEdge(_ position: Cell) -> Bool {
+        let n = UInt(bitPattern: _n)
+        guard UInt(bitPattern: position.source) < n, UInt(bitPattern: position.target) < n,
+              position.source != position.target else { return false }
+        let edge = DirectedEdge(from: base.vertex(atIndex: position.source), to: base.vertex(atIndex: position.target))
+        return !base.contains(edge: edge)
+    }
+
+    /// `source(ofEdgeAt: position)`, throwing instead of trapping when `position` is not an edge
+    /// of the complement. The cost of the base's `contains(edge:)`.
+    ///
+    /// - Throws: `EdgeNotFound` when `position` is out of range, on the diagonal, or a cell the
+    ///   base joins.
+    @inlinable
+    public func source(checkedEdgeAt position: Cell) throws(EdgeNotFound) -> Base.Vertex {
+        guard _isEdge(position) else { throw EdgeNotFound() }
+        return source(ofEdgeAt: position)
+    }
+
+    /// `target(ofEdgeAt: position)`, throwing instead of trapping when `position` is not an edge
+    /// of the complement. The cost of the base's `contains(edge:)`.
+    ///
+    /// - Throws: `EdgeNotFound` when `position` is out of range, on the diagonal, or a cell the
+    ///   base joins.
+    @inlinable
+    public func target(checkedEdgeAt position: Cell) throws(EdgeNotFound) -> Base.Vertex {
+        guard _isEdge(position) else { throw EdgeNotFound() }
+        return target(ofEdgeAt: position)
+    }
+
     @inlinable public var vertexCount: Int { base.vertexCount }
 
     /// n(n − 1) less the distinct non-loop pairs of the base. O(n + m).

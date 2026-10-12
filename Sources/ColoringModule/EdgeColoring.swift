@@ -60,6 +60,29 @@ public struct EdgeColoring<G: Graph> {
         return _colors[low]
     }
 
+    /// `color(ofEdgeAt: position)`, throwing instead of trapping when `position` is not an edge
+    /// position of the graph. O(1) with edge indices, O(log m) without.
+    ///
+    /// - Throws: `EdgeNotFound` when `position` is not a position in the graph's `edges`.
+    @inlinable
+    public func color(checkedEdgeAt position: G.Edges.Index) throws(EdgeNotFound) -> Int {
+        if _graph.edgeIndexBound != nil {
+            // Range first: `edgeIndex(of:)` may trap on a position outside `edges`.
+            let edges = _graph.edges
+            guard edges.startIndex <= position && position < edges.endIndex else { throw EdgeNotFound() }
+            let e = _graph.edgeIndex(of: position)
+            guard e >= 0 && e < _colors.count else { throw EdgeNotFound() }
+            return _colors[e]
+        }
+        var low = 0, high = _positions.count
+        while low < high {
+            let mid = (low + high) >> 1
+            if _positions[mid] < position { low = mid + 1 } else { high = mid }
+        }
+        guard low < _positions.count && _positions[low] == position else { throw EdgeNotFound() }
+        return _colors[low]
+    }
+
     /// The edge positions of each colour, by colour, ascending: slices of one flat array. Each is
     /// a matching.
     @inlinable
@@ -447,7 +470,7 @@ extension Graph {
     /// graphs, Petersen), but sometimes Δ + 1 on class-1 graphs too (K(4)); on a bipartite graph
     /// `bipartiteEdgeColoring()` always gives Δ. O(m · (Δ² + n)) time: a fan has at most Δ
     /// vertices, each found among the edges at u, and a path at most n edges. O(n + m) memory.
-    /// For a multigraph (`digraph.undirected` with an antiparallel pair is one), use
+    /// For a multigraph (`digraph.undirectedView` with an antiparallel pair is one), use
     /// `greedyEdgeColoring()`.
     ///
     /// - Precondition: the graph is simple: no self-loops, no parallel edges.

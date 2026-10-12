@@ -32,6 +32,7 @@ struct GreedyLargestFirstTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.greedyColoring(strategy: .largestFirst)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 0)
@@ -80,6 +81,7 @@ struct GreedyLargestFirstTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.greedyColoring(strategy: .largestFirst)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 1)
@@ -128,6 +130,7 @@ struct GreedyLargestFirstTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.greedyColoring(strategy: .largestFirst)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 1)
@@ -176,6 +179,7 @@ struct GreedyLargestFirstTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.greedyColoring(strategy: .largestFirst)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 0])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 1)
@@ -224,6 +228,7 @@ struct GreedyLargestFirstTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.greedyColoring(strategy: .largestFirst)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 2)
@@ -272,6 +277,7 @@ struct GreedyLargestFirstTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.greedyColoring(strategy: .largestFirst)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [1, 0, 1])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 2)
@@ -320,6 +326,7 @@ struct GreedyLargestFirstTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.greedyColoring(strategy: .largestFirst)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [1, 2, 0, 1])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 3)
@@ -368,6 +375,7 @@ struct GreedyLargestFirstTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.greedyColoring(strategy: .largestFirst)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 2])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 3)
@@ -416,6 +424,7 @@ struct GreedyLargestFirstTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.greedyColoring(strategy: .largestFirst)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 2, 3, 4])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 5)
@@ -464,6 +473,7 @@ struct GreedyLargestFirstTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.greedyColoring(strategy: .largestFirst)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [1, 0, 1, 0, 1])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 2)
@@ -512,6 +522,7 @@ struct GreedyLargestFirstTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.greedyColoring(strategy: .largestFirst)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 0, 1, 2])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 3)
@@ -560,6 +571,7 @@ struct GreedyLargestFirstTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.greedyColoring(strategy: .largestFirst)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 0, 1, 0, 1])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 2)
@@ -608,6 +620,7 @@ struct GreedyLargestFirstTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.greedyColoring(strategy: .largestFirst)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 1, 1, 1])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 2)
@@ -656,6 +669,7 @@ struct GreedyLargestFirstTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.greedyColoring(strategy: .largestFirst)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 2, 1, 2, 3])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 4)
@@ -704,6 +718,7 @@ struct GreedyLargestFirstTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.greedyColoring(strategy: .largestFirst)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 2, 1, 2, 1, 2])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 3)
@@ -752,6 +767,7 @@ struct GreedyLargestFirstTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.greedyColoring(strategy: .largestFirst)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 0, 1, 2, 1, 0, 2, 2, 1])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 3)
@@ -800,6 +816,7 @@ struct GreedyLargestFirstTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.greedyColoring(strategy: .largestFirst)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 2)
@@ -848,6 +865,7 @@ struct GreedyLargestFirstTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.greedyColoring(strategy: .largestFirst)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 0, 1, 1, 1])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 2)
@@ -896,6 +914,7 @@ struct GreedyLargestFirstTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.greedyColoring(strategy: .largestFirst)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 0, 0, 0, 1, 1, 1, 1])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 2)
@@ -944,6 +963,7 @@ struct GreedyLargestFirstTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.greedyColoring(strategy: .largestFirst)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 0, 1, 1, 2, 2, 3, 3])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 4)
@@ -992,6 +1012,7 @@ struct GreedyLargestFirstTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.greedyColoring(strategy: .largestFirst)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 2, 1, 2])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 3)
@@ -1040,6 +1061,7 @@ struct GreedyLargestFirstTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.greedyColoring(strategy: .largestFirst)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 0, 1, 0, 1])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 2)
@@ -1088,6 +1110,7 @@ struct GreedyLargestFirstTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.greedyColoring(strategy: .largestFirst)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [2, 0, 1, 1, 0])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 3)
@@ -1136,6 +1159,7 @@ struct GreedyLargestFirstTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.greedyColoring(strategy: .largestFirst)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [2, 3, 0, 1, 2])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 4)
@@ -1184,6 +1208,7 @@ struct GreedyLargestFirstTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.greedyColoring(strategy: .largestFirst)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [2, 1, 3, 0, 3, 1, 2, 0, 1, 0])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 4)
@@ -1232,6 +1257,7 @@ struct GreedyLargestFirstTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.greedyColoring(strategy: .largestFirst)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 1, 2, 3, 1, 1, 2, 4, 3, 1, 2, 1, 1, 4, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 0, 1, 1, 1, 1, 3, 2, 2, 1, 0])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 5)
@@ -1280,6 +1306,7 @@ struct GreedyLargestFirstTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.greedyColoring(strategy: .largestFirst)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [1, 0, 1, 2, 0, 2, 1, 2, 1, 1, 0, 1, 0, 0, 1])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 3)
@@ -1328,6 +1355,7 @@ struct GreedyLargestFirstTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.greedyColoring(strategy: .largestFirst)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 2, 3, 1, 0, 1, 1, 1, 1, 2, 0, 2])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 4)
@@ -1376,6 +1404,7 @@ struct GreedyLargestFirstTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.greedyColoring(strategy: .largestFirst)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [2, 3, 0, 1, 0, 0, 2, 1, 1, 2, 0, 1, 1, 2, 3, 2, 0, 0, 2, 1])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 4)
@@ -1424,6 +1453,7 @@ struct GreedyLargestFirstTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.greedyColoring(strategy: .largestFirst)
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect(colors == [0, 0, 1, 1, 0, 3, 0, 3, 2, 2, 2, 2, 3, 2, 0, 0, 1, 1, 2, 1, 2, 0, 1, 2, 3, 0, 4, 2, 1, 1])
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 5)

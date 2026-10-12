@@ -18,8 +18,8 @@
 |---|---|
 | `minimumCycleBasis(weight:)` (Horton, de Pina, Kavitha et al.) | Phase 2. Needs weights and shortest paths (a ShortestPaths dependency) and a GF(2) linear-algebra kernel; only NetworkX and igraph have it. Cases CY-150 – CY-156 are already checked |
 | `chordlessCycles(maxLength:)` | Phase 2. Only NetworkX has it, its multigraph rules are its own (a loop is chordless unless doubled, a parallel pair unless tripled), and Dias et al. is a separate search. Cases CY-600 – CY-607 are checked on simple graphs |
-| NetworkX `find_cycle(orientation=)` | Views cover it: `g.undirected.findCycle()` (a bidirectional digraph) is `"ignore"` (CY-015); `"reverse"` finds the same cycles as `"original"`, reversed, and will be `g.reversed.findCycle()` once GraphOperations' `reversed` view exists |
-| A directed cycle basis | JGraphT computes an *undirected* basis of a digraph; that is `digraph.undirected.cycleBasis()` |
+| NetworkX `find_cycle(orientation=)` | Views cover it: `g.undirectedView.findCycle()` (a bidirectional digraph) is `"ignore"` (CY-015); `"reverse"` finds the same cycles as `"original"`, reversed, and will be `g.reversed.findCycle()` once GraphOperations' `reversed` view exists |
+| A directed cycle basis | JGraphT computes an *undirected* basis of a digraph; that is `digraph.undirectedView.cycleBasis()` |
 | `minCycleLength` (igraph `min_cycle_length`) | `simpleCycles().lazy.filter { $0.length >= k }`; unlike the upper bound it does not prune the search |
 | `max_results` (igraph) | `simpleCycles().prefix(k)`: the sequence is lazy |
 | Tiernan, Tarjan, Szwarcfiter–Lauer, Hawick–James as separate types (JGraphT) | They enumerate the same set; one algorithm, the best one, behind one name |
@@ -165,8 +165,8 @@ already joined, a self-loop included. Equivalent to `findCycle() == nil` and to
 (NetworkX's `is_forest` raises `NetworkXPointlessConcept` on it instead).
 
 `Graph.isAcyclic` and Traversal's `DirectedGraph.isAcyclic` never meet: no type conforms to both
-protocols. They differ on the views: `g.directed.isAcyclic` is false as soon as g has an edge
-(every edge is two opposite arcs), and `digraph.undirected.isAcyclic` is the polytree test
+protocols. They differ on the views: `g.directedView.isAcyclic` is false as soon as g has an edge
+(every edge is two opposite arcs), and `digraph.undirectedView.isAcyclic` is the polytree test
 (NetworkX's `find_cycle(orientation="ignore")`, CY-039).
 
 ### `cycleBasis()`
@@ -325,7 +325,7 @@ rotation-invariant, `digraph.findCycle()` compares equal to the matching element
 |---|---|---|
 | igraph 1.0 `simple_cycles` | Misses cycles in digraphs: `D: [0..5] 1>3 4>5 0>4 3>2 2>5 5>1` gives none (one exists); Boost's own ER test graph gives 111 for 113. Its "skip visited start vertices of degree < 3" shortcut is unsound for digraphs | CY-252, CY-244 |
 | NetworkX / rustworkx / JGraphT Paton `cycle_basis` | Not a fundamental basis in general (a cycle with no edge of its own); JGraphT says "weakly fundamental", NetworkX says nothing | CY-123 |
-| Boost `hawick_circuits`, undirected | Every edge is a 2-circuit, every cycle reported twice, each loop twice: the count of `g.directed`, not of g | CY-328, CY-413 – CY-417 |
+| Boost `hawick_circuits`, undirected | Every edge is a 2-circuit, every cycle reported twice, each loop twice: the count of `g.directedView`, not of g | CY-328, CY-413 – CY-417 |
 | Boost `tiernan_all_cycles` | Ignores self-loops; vertex sequences only; undirected cycles both ways | CY-200, CY-201, CY-328 |
 | Multiplicity | NetworkX, Boost `hawick_unique_circuits`, Tiernan count vertex sequences; igraph, Boost `hawick_circuits`, JGraphT (edge objects) and Grafluent count edge choices | CY-238, CY-243, CY-327, CY-403 |
 | Girth with loops / parallel edges | JGraphT 1 / 2 (ours); igraph ignores both; Boost ignores loops and undirected 2-cycles; NetworkX rejects multigraphs | CY-518, CY-520, CY-524 |

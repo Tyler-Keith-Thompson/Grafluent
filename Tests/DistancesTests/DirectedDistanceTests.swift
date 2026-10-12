@@ -2,8 +2,8 @@
 // radius when some vertex reaches every vertex (DI-402, DI-426: the dipath and the acyclic
 // tournament) and a nil diameter; its center is the vertices of least finite eccentricity and its
 // periphery the vertices that do not reach everything (DI-405, DI-427). The Wiener index sums
-// ordered pairs, so `graph.directed` doubles it (DI-438) and keeps the average and the density
-// (DI-437, DI-439); `digraph.undirected` reads each arc as an edge (DI-428, DI-429, DI-434). Loops
+// ordered pairs, so `graph.directedView` doubles it (DI-438) and keeps the average and the density
+// (DI-437, DI-439); `digraph.undirectedView` reads each arc as an edge (DI-428, DI-429, DI-434). Loops
 // count in the density (DI-441). Literals are catalog cells. Case IDs (DI-nnn) refer to the
 // catalog; see README.md.
 
@@ -302,22 +302,22 @@ struct DirectedDistanceTests {
         #expect(graph.eccentricities().periphery == [1, 2, 3])
     }
 
-    @Test("DI-428 D(K(4)).undirected.diameter() is #1: `digraph.undirected` is K₄")
+    @Test("DI-428 D(K(4)).undirectedView.diameter() is #1: `digraph.undirectedView` is K₄")
     func undirectedDiameter428() {
         // D: [] K(4)
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
         let graph = ReferenceDirectedMultigraph(edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        let view = graph.undirected
+        let view = graph.undirectedView
         #expect(view.diameter() == 1)
         #expect(view.eccentricities().diameter == 1)
     }
 
-    @Test("DI-429 D(K(4)).undirected.density is #1.0: Each arc an edge: twice the directed density")
+    @Test("DI-429 D(K(4)).undirectedView.density is #1.0: Each arc an edge: twice the directed density")
     func undirectedDensity429() {
         // D: [] K(4)
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
         let graph = ReferenceDirectedMultigraph(edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        let view = graph.undirected
+        let view = graph.undirectedView
         #expect(view.density == 1.0)
     }
 
@@ -376,12 +376,12 @@ struct DirectedDistanceTests {
         #expect(graph.periphery() == eccentricities.periphery)
     }
 
-    @Test("DI-434 D(P(0..2)).undirected.eccentricities() is [2, 1, 2]")
+    @Test("DI-434 D(P(0..2)).undirectedView.eccentricities() is [2, 1, 2]")
     func undirectedEccentricities434() {
         // D: [] P(0..2)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
         let graph = ReferenceDirectedMultigraph(edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        let view = graph.undirected
+        let view = graph.undirectedView
         let expected: [Int?] = [2, 1, 2]
         let eccentricities = view.eccentricities()
         let byIndex = (0 ..< view.vertexCount).map { eccentricities.eccentricity(ofIndex: $0) }
@@ -396,12 +396,12 @@ struct DirectedDistanceTests {
         #expect(view.periphery() == eccentricities.periphery)
     }
 
-    @Test("DI-435 U(1-2, 1-3, 1-4, 3-4, 3-5, 4-5).directed.eccentricities() is [2, 3, 2, 2, 3]: `graph.directed`: the same values as DI-101")
+    @Test("DI-435 U(1-2, 1-3, 1-4, 3-4, 3-5, 4-5).directedView.eccentricities() is [2, 3, 2, 2, 3]: `graph.directedView`: the same values as DI-101")
     func directedEccentricities435() {
         // U: [] 1-2, 1-3, 1-4, 3-4, 3-5, 4-5
         let pairs: [(Int, Int)] = [(1, 2), (1, 3), (1, 4), (3, 4), (3, 5), (4, 5)]
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let view = graph.directed
+        let view = graph.directedView
         let expected: [Int?] = [2, 3, 2, 2, 3]
         let eccentricities = view.eccentricities()
         let byIndex = (0 ..< view.vertexCount).map { eccentricities.eccentricity(ofIndex: $0) }
@@ -416,40 +416,40 @@ struct DirectedDistanceTests {
         #expect(view.periphery() == eccentricities.periphery)
     }
 
-    @Test("DI-436 U(1-2, 1-3, 1-4, 3-4, 3-5, 4-5).directed.center() is [1, 3, 4]")
+    @Test("DI-436 U(1-2, 1-3, 1-4, 3-4, 3-5, 4-5).directedView.center() is [1, 3, 4]")
     func directedCenter436() {
         // U: [] 1-2, 1-3, 1-4, 3-4, 3-5, 4-5
         let pairs: [(Int, Int)] = [(1, 2), (1, 3), (1, 4), (3, 4), (3, 5), (4, 5)]
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let view = graph.directed
+        let view = graph.directedView
         #expect(view.center() == [1, 3, 4])
         #expect(view.eccentricities().center == [1, 3, 4])
     }
 
-    @Test("DI-437 U(1-2, 1-3, 1-4, 3-4, 3-5, 4-5).directed.density is #0.6: Twice the arcs, the same density as DI-109")
+    @Test("DI-437 U(1-2, 1-3, 1-4, 3-4, 3-5, 4-5).directedView.density is #0.6: Twice the arcs, the same density as DI-109")
     func directedDensity437() {
         // U: [] 1-2, 1-3, 1-4, 3-4, 3-5, 4-5
         let pairs: [(Int, Int)] = [(1, 2), (1, 3), (1, 4), (3, 4), (3, 5), (4, 5)]
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let view = graph.directed
+        let view = graph.directedView
         #expect(view.density == 0.6)
     }
 
-    @Test("DI-438 U(1-2, 1-3, 1-4, 3-4, 3-5, 4-5).directed.wienerIndex() is #30: Ordered pairs: twice DI-107")
+    @Test("DI-438 U(1-2, 1-3, 1-4, 3-4, 3-5, 4-5).directedView.wienerIndex() is #30: Ordered pairs: twice DI-107")
     func directedWienerIndex438() {
         // U: [] 1-2, 1-3, 1-4, 3-4, 3-5, 4-5
         let pairs: [(Int, Int)] = [(1, 2), (1, 3), (1, 4), (3, 4), (3, 5), (4, 5)]
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let view = graph.directed
+        let view = graph.directedView
         #expect(view.wienerIndex() == 30)
     }
 
-    @Test("DI-439 U(1-2, 1-3, 1-4, 3-4, 3-5, 4-5).directed.averageShortestPathLength() is #1.5: The same as DI-108")
+    @Test("DI-439 U(1-2, 1-3, 1-4, 3-4, 3-5, 4-5).directedView.averageShortestPathLength() is #1.5: The same as DI-108")
     func directedAverageShortestPathLength439() {
         // U: [] 1-2, 1-3, 1-4, 3-4, 3-5, 4-5
         let pairs: [(Int, Int)] = [(1, 2), (1, 3), (1, 4), (3, 4), (3, 5), (4, 5)]
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let view = graph.directed
+        let view = graph.directedView
         #expect(view.averageShortestPathLength() == 1.5)
     }
 

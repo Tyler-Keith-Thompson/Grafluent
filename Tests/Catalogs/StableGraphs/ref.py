@@ -825,7 +825,7 @@ def define():
         show_state(_built([2, 0], [(2, 0), (0, 0), (2, 0)])))
     raw(P, "init(_:) from a StableDirectedGraph keeps holes", "StableDirectedGraph(g) where g = V [0, 1]; E [0→1, 1→0] / remove(edgeAt: 0)",
         show_state(_after([0, 1], [(0, 1), (1, 0)], [("removeAt", 0)])))
-    raw(P, "undirected view keeps positions and nil bounds", "(V [0, 1, 2]; E [0→1, 1→2] / remove(edgeAt: 0)).undirected",
+    raw(P, "undirected view keeps positions and nil bounds", "(V [0, 1, 2]; E [0→1, 1→2] / remove(edgeAt: 0)).undirectedView",
         "edges [1:1–2]; incidentEdges(of: 1) [1]; incidentEdges(of: 0) []; vertexIndexBound 3; edgeIndexBound nil")
     raw(P, "algorithms on a holed graph match the compacted copy", "for each of stronglyConnectedComponents, topologicalSort, shortestPaths (weights by position): on g and on DirectedPseudograph(g)",
         "equal results, edge positions mapped through the conversion's position list")

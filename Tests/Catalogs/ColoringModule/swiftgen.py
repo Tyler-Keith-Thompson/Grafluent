@@ -6,7 +6,7 @@ First runs ref.py's catalog with each case builder instrumented, so every row's 
 as structured values, and checks that the rendered catalog equals cases.md byte for byte. Then
 re-evaluates each row with ref.py's model functions, asserts each value matches its catalog cell,
 and writes one @Test per row. The representation rows (AdjacencyList and AdjacencyMatrix through
-`.undirected`) are recomputed with the same models on those representations' rows and positions:
+`.undirectedView`) are recomputed with the same models on those representations' rows and positions:
 successors then predecessors, arcs in insertion order (AdjacencyList) or at row-major cells
 (AdjacencyMatrix).
 """
@@ -151,7 +151,7 @@ def with_rows(g, ie, rows):
 
 
 def adjlist_repr(g):
-    """AdjacencyList(arcs as written).undirected: positions are the arcs in order; each row is
+    """AdjacencyList(arcs as written).undirectedView: positions are the arcs in order; each row is
     out-arcs then in-arcs, each in insertion order. None if an arc repeats."""
     if len(set(g.E)) != len(g.E):
         return None
@@ -167,7 +167,7 @@ def adjlist_repr(g):
 
 
 def matrix_repr(g):
-    """AdjacencyMatrix(vertexCount: n, arcs).undirected for vertices 0..<n in order: positions are
+    """AdjacencyMatrix(vertexCount: n, arcs).undirectedView for vertices 0..<n in order: positions are
     the cells in row-major order; each row is successors ascending, then predecessors ascending."""
     if g.V != list(range(g.n)) or len(set(g.E)) != len(g.E):
         return None
@@ -207,9 +207,9 @@ def build_graph(g, rep, T):
         L.append(f"let graph = UnindexedGraph<{T}>(vertices: {tarr(g.V, T)}, edges: pairs.map {{ UndirectedEdge($0.0, $0.1) }})")
         L.append("#expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)")
     elif rep == "al":
-        L.append(f"let graph = AdjacencyList<{T}>(vertices: {tarr(g.V, T)}, edges: pairs.map {{ DirectedEdge(from: $0.0, to: $0.1) }}).undirected")
+        L.append(f"let graph = AdjacencyList<{T}>(vertices: {tarr(g.V, T)}, edges: pairs.map {{ DirectedEdge(from: $0.0, to: $0.1) }}).undirectedView")
     elif rep == "am":
-        L.append(f"let graph = AdjacencyMatrix(vertexCount: {g.n}, edges: pairs.map {{ DirectedEdge(from: $0.0, to: $0.1) }}).undirected")
+        L.append(f"let graph = AdjacencyMatrix(vertexCount: {g.n}, edges: pairs.map {{ DirectedEdge(from: $0.0, to: $0.1) }}).undirectedView")
     else:
         raise ValueError(rep)
     L.append(f"#expect(graph.edgeCount == {len(g.E)})")
@@ -240,6 +240,7 @@ ADJ = [
 def vertex_checks(exp, k):
     return [
         "let colors = vertexList.map { coloring.color(of: $0) }",
+        "#expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)",
         f"#expect(colors == {arr(exp)})",
         "#expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)",
         f"#expect(coloring.colorCount == {k})",
@@ -578,6 +579,7 @@ FIRST_APPEARANCE = [
 def any_checks(g, chi):
     return [
         "let colors = vertexList.map { coloring.color(of: $0) }",
+        "#expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)",
         "#expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)",
         f"#expect(coloring.colorCount == {chi})",
         "#expect(coloring.colorCount == graph.chromaticNumber())",
@@ -611,6 +613,7 @@ def body_any(cid, g, T):
 def edge_checks(exp, k, exact_delta):
     L = [
         "let colors = graph.edges.indices.map { coloring.color(ofEdgeAt: $0) }",
+        "#expect(graph.edges.indices.map { (try? coloring.color(checkedEdgeAt: $0)) ?? -1 } == colors)",
         f"#expect(colors == {arr(exp)})",
         f"#expect(coloring.colorCount == {k})",
         "// Proper, checked here: the edges at each vertex have different colours.",
@@ -737,6 +740,7 @@ def rep_body(cid, kind, args, g, T, rep, h):
         else:
             L += [f"let coloring = try #require({call})"]
         L += [f"#expect(graph.edges.indices.map {{ coloring.color(ofEdgeAt: $0) }} == {arr(col)})",
+              "#expect(graph.edges.indices.map { (try? coloring.color(checkedEdgeAt: $0)) ?? -1 } == graph.edges.indices.map { coloring.color(ofEdgeAt: $0) })",
               f"#expect(coloring.colorCount == {ref.ncolors(col)})"]
         k = ref.ncolors(col)
         classes = [[e for e in range(len(col)) if col[e] == c] for c in range(k)]
@@ -848,10 +852,10 @@ def rep_tests(cid, kind, args):
     reps.append(("unindexed", "no indices", None))
     h = adjlist_repr(g)
     if h is not None:
-        reps.append(("al", "AdjacencyList.undirected", h))
+        reps.append(("al", "AdjacencyList.undirectedView", h))
     h = matrix_repr(g)
     if h is not None:
-        reps.append(("am", "AdjacencyMatrix.undirected", h))
+        reps.append(("am", "AdjacencyMatrix.undirectedView", h))
     body = [comment_input(cid)]
     for rep, label, hh in reps:
         lines = build_graph(g, rep, T) + rep_body(cid, kind, args, g, T, rep, hh)
@@ -1052,10 +1056,11 @@ intro = ("Preconditions, as exit tests (catalog CO-215, CO-216, CO-248 – CO-25
          "for a non-vertex or an index out of range. Then the preconditions the catalog does not list: an order "
          "with the right length that repeats one vertex and misses another, or swaps one for a non-vertex; a "
          "negative index; a non-vertex on a graph without vertex indices, to `color(of:)` and in an order; "
-         "`minimumColoring().color(of:)`; `edgeColoring()` on parallel arcs through `AdjacencyList.undirected`, "
-         "on `graph.directed.undirected`, and on a self-loop away from the first vertex; `color(ofEdgeAt:)` with a "
+         "`minimumColoring().color(of:)`; `edgeColoring()` on parallel arcs through `AdjacencyList.undirectedView`, "
+         "on `graph.directedView.undirectedView`, and on a self-loop away from the first vertex; `color(ofEdgeAt:)` with a "
          "position the graph does not have, with and without edge indices; a negative preset colour and two "
-         "adjacent vertices preset alike. Each exit test builds "
+         "adjacent vertices preset alike. The `checked:` spellings of those lookups throw instead, checked in process "
+         "after the exit tests. Each exit test builds "
          "its inputs inside the closure. Generated from cases.md by swiftgen.py, the tests after CO-252 written "
          "by hand (extra_traps.swift); see README.md.")
 L = header(wrap(intro), sorted(set(used_imports(body)) | {"AdjacencyListModule", "GrafluentTestSupport"}, key=str.lower),
@@ -1075,9 +1080,9 @@ intro = ("The catalog's rows again on other representations. Rows on `Undirected
          "`ReferencePseudograph`; `BipartiteGraph` rows on an `UndirectedAdjacencyList` and a "
          "`ReferencePseudograph` with the same vertices and edges; every row on a file-private conformer with no "
          "vertex or edge indices; all with the catalog's values, since their rows are in position order too. Then "
-         "on `AdjacencyList.undirected` with each edge an arc as written (rows with no arc twice), and on "
-         "`AdjacencyMatrix.undirected` with the arcs at their row-major cells (rows on 0..<n with no arc twice). "
-         "Through `.undirected` a row is successors, then predecessors, and matrix positions are cells, so the "
+         "on `AdjacencyList.undirectedView` with each edge an arc as written (rows with no arc twice), and on "
+         "`AdjacencyMatrix.undirectedView` with the arcs at their row-major cells (rows on 0..<n with no arc twice). "
+         "Through `.undirectedView` a row is successors, then predecessors, and matrix positions are cells, so the "
          "connected-sequential colourings (which follow rows) and the edge colourings (which follow positions) "
          "there were computed by swiftgen.py with ref.py's models on those rows and positions; the other vertex "
          "colourings depend only on vertex order and adjacency and are the catalog's. Matrix positions are "

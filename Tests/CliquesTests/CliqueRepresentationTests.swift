@@ -1,10 +1,10 @@
 // The same answers on every representation. Every catalog test already runs on the
-// `ReferencePseudograph` as the catalog writes it, and on `graph.directed.undirected`; this file
+// `ReferencePseudograph` as the catalog writes it, and on `graph.directedView.undirectedView`; this file
 // runs each undirected catalog graph of §A – §E on `UndirectedAdjacencyList` (repeated edges
 // inserted once, which leaves the simple graph and its row order unchanged), on
-// `AdjacencyList.undirected` with each edge as one arc as written (rows: out-neighbours, then
+// `AdjacencyList.undirectedView` with each edge as one arc as written (rows: out-neighbours, then
 // in-neighbours), and, for graphs on 0..<n, on `CompressedSparseRow` holding each edge as two arcs
-// (read through a conformer private to this file, rows ascending) and on `AdjacencyMatrix.undirected`
+// (read through a conformer private to this file, rows ascending) and on `AdjacencyMatrix.undirectedView`
 // (successors, then predecessors, each ascending). It also runs a few graphs on conformers private to
 // this file: without indices, with vertex indices only, with rows reversed, and with `Collider`
 // vertices that all hash alike. Each test checks every entry point. Answers that do not depend on
@@ -1965,7 +1965,7 @@ struct CliqueRepresentationTests {
     func adjacencyListUndirected01() {
         // U: []
         let arcs: [(Int, Int)] = []
-        let graph = AdjacencyList(vertices: [], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: [], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = []
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -2005,7 +2005,7 @@ struct CliqueRepresentationTests {
     func adjacencyListUndirected02() {
         // U: [0]
         let arcs: [(Int, Int)] = []
-        let graph = AdjacencyList(vertices: 0 ..< 1, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: 0 ..< 1, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -2046,7 +2046,7 @@ struct CliqueRepresentationTests {
     func adjacencyListUndirected03() {
         // U: [0] 0-0
         let arcs: [(Int, Int)] = [(0, 0)]
-        let graph = AdjacencyList(vertices: 0 ..< 1, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: 0 ..< 1, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -2087,7 +2087,7 @@ struct CliqueRepresentationTests {
     func adjacencyListUndirected04() {
         // U: [0, 1]
         let arcs: [(Int, Int)] = []
-        let graph = AdjacencyList(vertices: 0 ..< 2, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: 0 ..< 2, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0], [1]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -2128,7 +2128,7 @@ struct CliqueRepresentationTests {
     func adjacencyListUndirected05() {
         // U: 0-1
         let arcs: [(Int, Int)] = [(0, 1)]
-        let graph = AdjacencyList(vertices: 0 ..< 2, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: 0 ..< 2, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -2169,7 +2169,7 @@ struct CliqueRepresentationTests {
     func adjacencyListUndirected06() {
         // U: 0-1, 0-1, 1-0
         let arcs: [(Int, Int)] = [(0, 1), (0, 1), (1, 0)]
-        let graph = AdjacencyList(vertices: 0 ..< 2, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: 0 ..< 2, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -2210,7 +2210,7 @@ struct CliqueRepresentationTests {
     func adjacencyListUndirected07() {
         // U: K(0..2), 2-3
         let arcs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (2, 3)]
-        let graph = AdjacencyList(vertices: 0 ..< 4, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: 0 ..< 4, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[2, 3], [0, 1, 2]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -2251,7 +2251,7 @@ struct CliqueRepresentationTests {
     func adjacencyListUndirected08() {
         // U: K(4)
         let arcs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
-        let graph = AdjacencyList(vertices: 0 ..< 4, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: 0 ..< 4, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1, 2, 3]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -2292,7 +2292,7 @@ struct CliqueRepresentationTests {
     func adjacencyListUndirected09() {
         // U: K(5)
         let arcs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
-        let graph = AdjacencyList(vertices: 0 ..< 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: 0 ..< 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1, 2, 3, 4]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -2333,7 +2333,7 @@ struct CliqueRepresentationTests {
     func adjacencyListUndirected10() {
         // U: C(0..3)
         let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 0)]
-        let graph = AdjacencyList(vertices: 0 ..< 4, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: 0 ..< 4, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1], [0, 3], [1, 2], [2, 3]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -2374,7 +2374,7 @@ struct CliqueRepresentationTests {
     func adjacencyListUndirected11() {
         // U: C(0..4)
         let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
-        let graph = AdjacencyList(vertices: 0 ..< 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: 0 ..< 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1], [0, 4], [1, 2], [2, 3], [3, 4]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -2415,7 +2415,7 @@ struct CliqueRepresentationTests {
     func adjacencyListUndirected12() {
         // U: P(0..4)
         let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
-        let graph = AdjacencyList(vertices: 0 ..< 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: 0 ..< 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1], [3, 4], [1, 2], [2, 3]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -2456,7 +2456,7 @@ struct CliqueRepresentationTests {
     func adjacencyListUndirected13() {
         // U: S(0;1..4)
         let arcs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4)]
-        let graph = AdjacencyList(vertices: 0 ..< 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: 0 ..< 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1], [0, 2], [0, 3], [0, 4]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -2497,7 +2497,7 @@ struct CliqueRepresentationTests {
     func adjacencyListUndirected14() {
         // U: S(4;0..3)
         let arcs: [(Int, Int)] = [(4, 0), (4, 1), (4, 2), (4, 3)]
-        let graph = AdjacencyList(vertices: [4, 0, 1, 2, 3], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: [4, 0, 1, 2, 3], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[4, 0], [4, 1], [4, 2], [4, 3]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -2538,7 +2538,7 @@ struct CliqueRepresentationTests {
     func adjacencyListUndirected15() {
         // U: K(0..2), K(2..4)
         let arcs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (2, 3), (2, 4), (3, 4)]
-        let graph = AdjacencyList(vertices: 0 ..< 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: 0 ..< 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1, 2], [2, 3, 4]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -2579,7 +2579,7 @@ struct CliqueRepresentationTests {
     func adjacencyListUndirected16() {
         // U: K(0..2), 1-3, 2-3
         let arcs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (1, 3), (2, 3)]
-        let graph = AdjacencyList(vertices: 0 ..< 4, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: 0 ..< 4, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1, 2], [1, 2, 3]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -2620,7 +2620,7 @@ struct CliqueRepresentationTests {
     func adjacencyListUndirected17() {
         // U: S(0;1..5), C(1..5)
         let arcs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (2, 3), (3, 4), (4, 5), (5, 1)]
-        let graph = AdjacencyList(vertices: 0 ..< 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: 0 ..< 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1, 2], [0, 1, 5], [0, 2, 3], [0, 3, 4], [0, 4, 5]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -2664,7 +2664,7 @@ struct CliqueRepresentationTests {
     func adjacencyListUndirected18() {
         // U: KB(0..2;3..5)
         let arcs: [(Int, Int)] = [(0, 3), (0, 4), (0, 5), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5)]
-        let graph = AdjacencyList(vertices: [0, 3, 4, 5, 1, 2], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: [0, 3, 4, 5, 1, 2], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 3], [0, 4], [0, 5], [3, 1], [3, 2], [4, 1], [4, 2], [5, 1], [5, 2]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -2705,7 +2705,7 @@ struct CliqueRepresentationTests {
     func adjacencyListUndirected19() {
         // U: moon(2)
         let arcs: [(Int, Int)] = [(0, 3), (0, 4), (0, 5), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5)]
-        let graph = AdjacencyList(vertices: 0 ..< 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: 0 ..< 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 3], [0, 4], [0, 5], [1, 3], [1, 4], [1, 5], [2, 3], [2, 4], [2, 5]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -2746,7 +2746,7 @@ struct CliqueRepresentationTests {
     func adjacencyListUndirected20() {
         // U: [0, 1, 2] K(3..5)
         let arcs: [(Int, Int)] = [(3, 4), (3, 5), (4, 5)]
-        let graph = AdjacencyList(vertices: 0 ..< 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: 0 ..< 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0], [1], [2], [3, 4, 5]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -2787,7 +2787,7 @@ struct CliqueRepresentationTests {
     func adjacencyListUndirected21() {
         // U: [0] 0-0, 1-1, 1-2
         let arcs: [(Int, Int)] = [(0, 0), (1, 1), (1, 2)]
-        let graph = AdjacencyList(vertices: 0 ..< 3, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: 0 ..< 3, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0], [1, 2]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -2828,7 +2828,7 @@ struct CliqueRepresentationTests {
     func adjacencyListUndirected22() {
         // U: 0-1, 1-2, 2-0, 0-1, 2-2
         let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (0, 1), (2, 2)]
-        let graph = AdjacencyList(vertices: 0 ..< 3, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: 0 ..< 3, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1, 2]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -2869,7 +2869,7 @@ struct CliqueRepresentationTests {
     func adjacencyListUndirected23() {
         // U: a-b, b-c, c-a, c-d, d-e, e-c
         let arcs: [(String, String)] = [("a", "b"), ("b", "c"), ("c", "a"), ("c", "d"), ("d", "e"), ("e", "c")]
-        let graph = AdjacencyList(vertices: ["a", "b", "c", "d", "e"], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: ["a", "b", "c", "d", "e"], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[String]] = [["a", "b", "c"], ["c", "d", "e"]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -2910,7 +2910,7 @@ struct CliqueRepresentationTests {
     func adjacencyListUndirected24() {
         // U: [e, d, c, b, a] a-b, b-c, c-a, c-d, d-e, e-c
         let arcs: [(String, String)] = [("a", "b"), ("b", "c"), ("c", "a"), ("c", "d"), ("d", "e"), ("e", "c")]
-        let graph = AdjacencyList(vertices: ["e", "d", "c", "b", "a"], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: ["e", "d", "c", "b", "a"], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[String]] = [["e", "d", "c"], ["c", "b", "a"]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -2954,7 +2954,7 @@ struct CliqueRepresentationTests {
             (0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7),
             (5, 8), (6, 8), (6, 9), (7, 9)
         ]
-        let graph = AdjacencyList(vertices: 0 ..< 10, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: 0 ..< 10, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [
             [0, 1], [0, 4], [0, 5], [1, 2], [1, 6], [2, 3], [2, 7], [3, 4], [3, 8], [4, 9], [5, 7],
             [5, 8], [6, 8], [6, 9], [7, 9]
@@ -3008,7 +3008,7 @@ struct CliqueRepresentationTests {
             (27, 33), (28, 31), (28, 33), (29, 32), (29, 33), (30, 32), (30, 33), (31, 32), (31, 33),
             (32, 33)
         ]
-        let graph = AdjacencyList(vertices: 0 ..< 34, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: 0 ..< 34, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [
             [0, 11], [2, 9], [9, 33], [0, 3, 12], [14, 32, 33], [15, 32, 33], [5, 6, 16], [0, 1, 17],
             [18, 32, 33], [20, 32, 33], [0, 1, 21], [22, 32, 33], [26, 29, 33], [0, 4, 6], [0, 4, 10],
@@ -3073,7 +3073,7 @@ struct CliqueRepresentationTests {
             (0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3), (3, 4), (3, 5), (3, 6), (4, 5), (4, 6),
             (5, 6), (0, 6)
         ]
-        let graph = AdjacencyList(vertices: 0 ..< 7, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: 0 ..< 7, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1, 2, 3], [3, 4, 5, 6], [0, 3, 6]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -3120,7 +3120,7 @@ struct CliqueRepresentationTests {
             (4, 6), (4, 7), (4, 8), (4, 9), (4, 10), (4, 11), (5, 6), (5, 7), (5, 8), (5, 9), (5, 10),
             (5, 11), (6, 9), (6, 10), (6, 11), (7, 9), (7, 10), (7, 11), (8, 9), (8, 10), (8, 11)
         ]
-        let graph = AdjacencyList(vertices: 0 ..< 12, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: 0 ..< 12, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [
             [0, 3, 6, 9], [0, 3, 6, 10], [0, 3, 6, 11], [0, 3, 7, 9], [0, 3, 7, 10], [0, 3, 7, 11],
             [0, 3, 8, 9], [0, 3, 8, 10], [0, 3, 8, 11], [0, 4, 6, 9], [0, 4, 6, 10], [0, 4, 6, 11],
@@ -3176,7 +3176,7 @@ struct CliqueRepresentationTests {
     func adjacencyListUndirected29() {
         // U: K(0..2), K(3..5)
         let arcs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (3, 4), (3, 5), (4, 5)]
-        let graph = AdjacencyList(vertices: 0 ..< 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: 0 ..< 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1, 2], [3, 4, 5]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -3217,7 +3217,7 @@ struct CliqueRepresentationTests {
     func adjacencyListUndirected30() {
         // U: [5, 4, 3, 2, 1, 0] K(0..2), K(3..5)
         let arcs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (3, 4), (3, 5), (4, 5)]
-        let graph = AdjacencyList(vertices: [5, 4, 3, 2, 1, 0], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: [5, 4, 3, 2, 1, 0], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[5, 4, 3], [2, 1, 0]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -3258,7 +3258,7 @@ struct CliqueRepresentationTests {
     func adjacencyListUndirected31() {
         // U: K(3..5), K(0..2)
         let arcs: [(Int, Int)] = [(3, 4), (3, 5), (4, 5), (0, 1), (0, 2), (1, 2)]
-        let graph = AdjacencyList(vertices: [3, 4, 5, 0, 1, 2], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: [3, 4, 5, 0, 1, 2], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[3, 4, 5], [0, 1, 2]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -3299,7 +3299,7 @@ struct CliqueRepresentationTests {
     func adjacencyListUndirected32() {
         // U: [0, 1, 2]
         let arcs: [(Int, Int)] = []
-        let graph = AdjacencyList(vertices: 0 ..< 3, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: 0 ..< 3, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0], [1], [2]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -3342,7 +3342,7 @@ struct CliqueRepresentationTests {
         let arcs: [(Int, Int)] = [
             (0, 1), (1, 2), (2, 3), (3, 4), (4, 0), (5, 6), (5, 7), (5, 8), (6, 7), (6, 8), (7, 8)
         ]
-        let graph = AdjacencyList(vertices: [5, 6, 7, 8, 0, 1, 2, 3, 4], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: [5, 6, 7, 8, 0, 1, 2, 3, 4], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1], [0, 4], [1, 2], [2, 3], [3, 4], [5, 6, 7, 8]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -3387,7 +3387,7 @@ struct CliqueRepresentationTests {
             (1, 8), (2, 3), (2, 4), (2, 5), (2, 6), (2, 7), (2, 8), (3, 6), (3, 7), (3, 8), (4, 6),
             (4, 7), (4, 8), (5, 6), (5, 7), (5, 8)
         ]
-        let graph = AdjacencyList(vertices: 0 ..< 9, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: 0 ..< 9, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [
             [0, 3, 6], [0, 3, 7], [0, 3, 8], [0, 4, 6], [0, 4, 7], [0, 4, 8], [0, 5, 6], [0, 5, 7],
             [0, 5, 8], [1, 3, 6], [1, 3, 7], [1, 3, 8], [1, 4, 6], [1, 4, 7], [1, 4, 8], [1, 5, 6],
@@ -3433,7 +3433,7 @@ struct CliqueRepresentationTests {
     func adjacencyListUndirected35() {
         // U: P(0..3), 3-3, 3-3
         let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 3), (3, 3)]
-        let graph = AdjacencyList(vertices: 0 ..< 4, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: 0 ..< 4, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1], [2, 3], [1, 2]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -3474,7 +3474,7 @@ struct CliqueRepresentationTests {
     func adjacencyListUndirected36() {
         // U: K(4), 3-4, 4-5, 5-6, 6-4
         let arcs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3), (3, 4), (4, 5), (5, 6), (6, 4)]
-        let graph = AdjacencyList(vertices: 0 ..< 7, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: 0 ..< 7, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[4, 5, 6], [3, 4], [0, 1, 2, 3]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -3518,7 +3518,7 @@ struct CliqueRepresentationTests {
             (0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9),
             (6, 7), (6, 10), (7, 11), (8, 9), (9, 10), (10, 11)
         ]
-        let graph = AdjacencyList(vertices: 0 ..< 12, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: 0 ..< 12, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [
             [0, 1], [0, 4], [2, 3], [3, 7], [4, 8], [8, 9], [7, 11], [10, 11], [1, 2], [1, 5], [4, 5],
             [6, 7], [2, 6], [5, 9], [9, 10], [6, 10], [5, 6]
@@ -3562,7 +3562,7 @@ struct CliqueRepresentationTests {
     func adjacencyListUndirected38() {
         // U: [0, 1] 0-1, 0-1
         let arcs: [(Int, Int)] = [(0, 1), (0, 1)]
-        let graph = AdjacencyList(vertices: 0 ..< 2, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: 0 ..< 2, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -3603,7 +3603,7 @@ struct CliqueRepresentationTests {
     func adjacencyListUndirected39() {
         // U: [0, 1] 0-1, 0-0, 1-1
         let arcs: [(Int, Int)] = [(0, 1), (0, 0), (1, 1)]
-        let graph = AdjacencyList(vertices: 0 ..< 2, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: 0 ..< 2, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -3644,7 +3644,7 @@ struct CliqueRepresentationTests {
     func adjacencyListUndirected40() {
         // U: 0-1, 1-2, 2-0, 0-1, 1-1
         let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (0, 1), (1, 1)]
-        let graph = AdjacencyList(vertices: 0 ..< 3, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: 0 ..< 3, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1, 2]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -3685,7 +3685,7 @@ struct CliqueRepresentationTests {
     func adjacencyListUndirected41() {
         // U: [0, 1, 2, 3]
         let arcs: [(Int, Int)] = []
-        let graph = AdjacencyList(vertices: 0 ..< 4, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: 0 ..< 4, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0], [1], [2], [3]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -3726,7 +3726,7 @@ struct CliqueRepresentationTests {
     func adjacencyListUndirected42() {
         // U: P(0..2)
         let arcs: [(Int, Int)] = [(0, 1), (1, 2)]
-        let graph = AdjacencyList(vertices: 0 ..< 3, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: 0 ..< 3, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1], [1, 2]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -3767,7 +3767,7 @@ struct CliqueRepresentationTests {
     func adjacencyListUndirected43() {
         // U: [0, 1] 0-1, 2-3
         let arcs: [(Int, Int)] = [(0, 1), (2, 3)]
-        let graph = AdjacencyList(vertices: 0 ..< 4, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyList(vertices: 0 ..< 4, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1], [2, 3]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -5362,7 +5362,7 @@ struct CliqueRepresentationTests {
     func adjacencyMatrixUndirected01() {
         // U: []
         let arcs: [(Int, Int)] = []
-        let graph = AdjacencyMatrix(vertexCount: 0, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyMatrix(vertexCount: 0, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = []
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -5402,7 +5402,7 @@ struct CliqueRepresentationTests {
     func adjacencyMatrixUndirected02() {
         // U: [0]
         let arcs: [(Int, Int)] = []
-        let graph = AdjacencyMatrix(vertexCount: 1, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyMatrix(vertexCount: 1, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -5443,7 +5443,7 @@ struct CliqueRepresentationTests {
     func adjacencyMatrixUndirected03() {
         // U: [0] 0-0
         let arcs: [(Int, Int)] = [(0, 0)]
-        let graph = AdjacencyMatrix(vertexCount: 1, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyMatrix(vertexCount: 1, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -5484,7 +5484,7 @@ struct CliqueRepresentationTests {
     func adjacencyMatrixUndirected04() {
         // U: [0, 1]
         let arcs: [(Int, Int)] = []
-        let graph = AdjacencyMatrix(vertexCount: 2, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyMatrix(vertexCount: 2, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0], [1]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -5525,7 +5525,7 @@ struct CliqueRepresentationTests {
     func adjacencyMatrixUndirected05() {
         // U: 0-1
         let arcs: [(Int, Int)] = [(0, 1)]
-        let graph = AdjacencyMatrix(vertexCount: 2, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyMatrix(vertexCount: 2, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -5566,7 +5566,7 @@ struct CliqueRepresentationTests {
     func adjacencyMatrixUndirected06() {
         // U: 0-1, 0-1, 1-0
         let arcs: [(Int, Int)] = [(0, 1), (0, 1), (1, 0)]
-        let graph = AdjacencyMatrix(vertexCount: 2, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyMatrix(vertexCount: 2, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -5607,7 +5607,7 @@ struct CliqueRepresentationTests {
     func adjacencyMatrixUndirected07() {
         // U: K(0..2), 2-3
         let arcs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (2, 3)]
-        let graph = AdjacencyMatrix(vertexCount: 4, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyMatrix(vertexCount: 4, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[2, 3], [0, 1, 2]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -5648,7 +5648,7 @@ struct CliqueRepresentationTests {
     func adjacencyMatrixUndirected08() {
         // U: K(4)
         let arcs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
-        let graph = AdjacencyMatrix(vertexCount: 4, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyMatrix(vertexCount: 4, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1, 2, 3]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -5689,7 +5689,7 @@ struct CliqueRepresentationTests {
     func adjacencyMatrixUndirected09() {
         // U: K(5)
         let arcs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
-        let graph = AdjacencyMatrix(vertexCount: 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyMatrix(vertexCount: 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1, 2, 3, 4]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -5730,7 +5730,7 @@ struct CliqueRepresentationTests {
     func adjacencyMatrixUndirected10() {
         // U: C(0..3)
         let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 0)]
-        let graph = AdjacencyMatrix(vertexCount: 4, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyMatrix(vertexCount: 4, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1], [0, 3], [1, 2], [2, 3]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -5771,7 +5771,7 @@ struct CliqueRepresentationTests {
     func adjacencyMatrixUndirected11() {
         // U: C(0..4)
         let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
-        let graph = AdjacencyMatrix(vertexCount: 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyMatrix(vertexCount: 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1], [0, 4], [1, 2], [2, 3], [3, 4]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -5812,7 +5812,7 @@ struct CliqueRepresentationTests {
     func adjacencyMatrixUndirected12() {
         // U: P(0..4)
         let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
-        let graph = AdjacencyMatrix(vertexCount: 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyMatrix(vertexCount: 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1], [3, 4], [1, 2], [2, 3]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -5853,7 +5853,7 @@ struct CliqueRepresentationTests {
     func adjacencyMatrixUndirected13() {
         // U: S(0;1..4)
         let arcs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4)]
-        let graph = AdjacencyMatrix(vertexCount: 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyMatrix(vertexCount: 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1], [0, 2], [0, 3], [0, 4]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -5894,7 +5894,7 @@ struct CliqueRepresentationTests {
     func adjacencyMatrixUndirected14() {
         // U: K(0..2), K(2..4)
         let arcs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (2, 3), (2, 4), (3, 4)]
-        let graph = AdjacencyMatrix(vertexCount: 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyMatrix(vertexCount: 5, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1, 2], [2, 3, 4]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -5935,7 +5935,7 @@ struct CliqueRepresentationTests {
     func adjacencyMatrixUndirected15() {
         // U: K(0..2), 1-3, 2-3
         let arcs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (1, 3), (2, 3)]
-        let graph = AdjacencyMatrix(vertexCount: 4, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyMatrix(vertexCount: 4, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1, 2], [1, 2, 3]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -5976,7 +5976,7 @@ struct CliqueRepresentationTests {
     func adjacencyMatrixUndirected16() {
         // U: S(0;1..5), C(1..5)
         let arcs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (2, 3), (3, 4), (4, 5), (5, 1)]
-        let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1, 2], [0, 1, 5], [0, 2, 3], [0, 3, 4], [0, 4, 5]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -6020,7 +6020,7 @@ struct CliqueRepresentationTests {
     func adjacencyMatrixUndirected17() {
         // U: moon(2)
         let arcs: [(Int, Int)] = [(0, 3), (0, 4), (0, 5), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5)]
-        let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 3], [0, 4], [0, 5], [1, 3], [1, 4], [1, 5], [2, 3], [2, 4], [2, 5]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -6061,7 +6061,7 @@ struct CliqueRepresentationTests {
     func adjacencyMatrixUndirected18() {
         // U: [0, 1, 2] K(3..5)
         let arcs: [(Int, Int)] = [(3, 4), (3, 5), (4, 5)]
-        let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0], [1], [2], [3, 4, 5]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -6102,7 +6102,7 @@ struct CliqueRepresentationTests {
     func adjacencyMatrixUndirected19() {
         // U: [0] 0-0, 1-1, 1-2
         let arcs: [(Int, Int)] = [(0, 0), (1, 1), (1, 2)]
-        let graph = AdjacencyMatrix(vertexCount: 3, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyMatrix(vertexCount: 3, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0], [1, 2]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -6143,7 +6143,7 @@ struct CliqueRepresentationTests {
     func adjacencyMatrixUndirected20() {
         // U: 0-1, 1-2, 2-0, 0-1, 2-2
         let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (0, 1), (2, 2)]
-        let graph = AdjacencyMatrix(vertexCount: 3, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyMatrix(vertexCount: 3, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1, 2]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -6187,7 +6187,7 @@ struct CliqueRepresentationTests {
             (0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7),
             (5, 8), (6, 8), (6, 9), (7, 9)
         ]
-        let graph = AdjacencyMatrix(vertexCount: 10, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyMatrix(vertexCount: 10, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [
             [0, 1], [0, 4], [0, 5], [1, 2], [1, 6], [2, 3], [2, 7], [3, 4], [3, 8], [4, 9], [5, 7],
             [5, 8], [6, 8], [6, 9], [7, 9]
@@ -6241,7 +6241,7 @@ struct CliqueRepresentationTests {
             (27, 33), (28, 31), (28, 33), (29, 32), (29, 33), (30, 32), (30, 33), (31, 32), (31, 33),
             (32, 33)
         ]
-        let graph = AdjacencyMatrix(vertexCount: 34, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyMatrix(vertexCount: 34, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [
             [0, 11], [2, 9], [9, 33], [0, 3, 12], [14, 32, 33], [15, 32, 33], [5, 6, 16], [0, 1, 17],
             [18, 32, 33], [20, 32, 33], [0, 1, 21], [22, 32, 33], [26, 29, 33], [0, 4, 6], [0, 4, 10],
@@ -6306,7 +6306,7 @@ struct CliqueRepresentationTests {
             (0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3), (3, 4), (3, 5), (3, 6), (4, 5), (4, 6),
             (5, 6), (0, 6)
         ]
-        let graph = AdjacencyMatrix(vertexCount: 7, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyMatrix(vertexCount: 7, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1, 2, 3], [3, 4, 5, 6], [0, 3, 6]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -6353,7 +6353,7 @@ struct CliqueRepresentationTests {
             (4, 6), (4, 7), (4, 8), (4, 9), (4, 10), (4, 11), (5, 6), (5, 7), (5, 8), (5, 9), (5, 10),
             (5, 11), (6, 9), (6, 10), (6, 11), (7, 9), (7, 10), (7, 11), (8, 9), (8, 10), (8, 11)
         ]
-        let graph = AdjacencyMatrix(vertexCount: 12, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyMatrix(vertexCount: 12, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [
             [0, 3, 6, 9], [0, 3, 6, 10], [0, 3, 6, 11], [0, 3, 7, 9], [0, 3, 7, 10], [0, 3, 7, 11],
             [0, 3, 8, 9], [0, 3, 8, 10], [0, 3, 8, 11], [0, 4, 6, 9], [0, 4, 6, 10], [0, 4, 6, 11],
@@ -6409,7 +6409,7 @@ struct CliqueRepresentationTests {
     func adjacencyMatrixUndirected25() {
         // U: K(0..2), K(3..5)
         let arcs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (3, 4), (3, 5), (4, 5)]
-        let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyMatrix(vertexCount: 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1, 2], [3, 4, 5]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -6450,7 +6450,7 @@ struct CliqueRepresentationTests {
     func adjacencyMatrixUndirected26() {
         // U: [0, 1, 2]
         let arcs: [(Int, Int)] = []
-        let graph = AdjacencyMatrix(vertexCount: 3, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyMatrix(vertexCount: 3, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0], [1], [2]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -6495,7 +6495,7 @@ struct CliqueRepresentationTests {
             (1, 8), (2, 3), (2, 4), (2, 5), (2, 6), (2, 7), (2, 8), (3, 6), (3, 7), (3, 8), (4, 6),
             (4, 7), (4, 8), (5, 6), (5, 7), (5, 8)
         ]
-        let graph = AdjacencyMatrix(vertexCount: 9, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyMatrix(vertexCount: 9, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [
             [0, 3, 6], [0, 3, 7], [0, 3, 8], [0, 4, 6], [0, 4, 7], [0, 4, 8], [0, 5, 6], [0, 5, 7],
             [0, 5, 8], [1, 3, 6], [1, 3, 7], [1, 3, 8], [1, 4, 6], [1, 4, 7], [1, 4, 8], [1, 5, 6],
@@ -6541,7 +6541,7 @@ struct CliqueRepresentationTests {
     func adjacencyMatrixUndirected28() {
         // U: P(0..3), 3-3, 3-3
         let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 3), (3, 3)]
-        let graph = AdjacencyMatrix(vertexCount: 4, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyMatrix(vertexCount: 4, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1], [2, 3], [1, 2]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -6582,7 +6582,7 @@ struct CliqueRepresentationTests {
     func adjacencyMatrixUndirected29() {
         // U: K(4), 3-4, 4-5, 5-6, 6-4
         let arcs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3), (3, 4), (4, 5), (5, 6), (6, 4)]
-        let graph = AdjacencyMatrix(vertexCount: 7, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyMatrix(vertexCount: 7, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[4, 5, 6], [3, 4], [0, 1, 2, 3]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -6626,7 +6626,7 @@ struct CliqueRepresentationTests {
             (0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9),
             (6, 7), (6, 10), (7, 11), (8, 9), (9, 10), (10, 11)
         ]
-        let graph = AdjacencyMatrix(vertexCount: 12, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyMatrix(vertexCount: 12, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [
             [0, 1], [0, 4], [2, 3], [3, 7], [4, 8], [8, 9], [7, 11], [10, 11], [1, 2], [1, 5], [4, 5],
             [6, 7], [2, 6], [5, 9], [9, 10], [6, 10], [5, 6]
@@ -6670,7 +6670,7 @@ struct CliqueRepresentationTests {
     func adjacencyMatrixUndirected31() {
         // U: [0, 1] 0-1, 0-1
         let arcs: [(Int, Int)] = [(0, 1), (0, 1)]
-        let graph = AdjacencyMatrix(vertexCount: 2, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyMatrix(vertexCount: 2, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -6711,7 +6711,7 @@ struct CliqueRepresentationTests {
     func adjacencyMatrixUndirected32() {
         // U: [0, 1] 0-1, 0-0, 1-1
         let arcs: [(Int, Int)] = [(0, 1), (0, 0), (1, 1)]
-        let graph = AdjacencyMatrix(vertexCount: 2, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyMatrix(vertexCount: 2, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -6752,7 +6752,7 @@ struct CliqueRepresentationTests {
     func adjacencyMatrixUndirected33() {
         // U: 0-1, 1-2, 2-0, 0-1, 1-1
         let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (0, 1), (1, 1)]
-        let graph = AdjacencyMatrix(vertexCount: 3, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyMatrix(vertexCount: 3, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1, 2]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -6793,7 +6793,7 @@ struct CliqueRepresentationTests {
     func adjacencyMatrixUndirected34() {
         // U: [0, 1, 2, 3]
         let arcs: [(Int, Int)] = []
-        let graph = AdjacencyMatrix(vertexCount: 4, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyMatrix(vertexCount: 4, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0], [1], [2], [3]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -6834,7 +6834,7 @@ struct CliqueRepresentationTests {
     func adjacencyMatrixUndirected35() {
         // U: P(0..2)
         let arcs: [(Int, Int)] = [(0, 1), (1, 2)]
-        let graph = AdjacencyMatrix(vertexCount: 3, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyMatrix(vertexCount: 3, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1], [1, 2]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
@@ -6875,7 +6875,7 @@ struct CliqueRepresentationTests {
     func adjacencyMatrixUndirected36() {
         // U: [0, 1] 0-1, 2-3
         let arcs: [(Int, Int)] = [(0, 1), (2, 3)]
-        let graph = AdjacencyMatrix(vertexCount: 4, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let graph = AdjacencyMatrix(vertexCount: 4, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let expectedCliques: [[Int]] = [[0, 1], [2, 3]]
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))

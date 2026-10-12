@@ -131,11 +131,11 @@ enum FuzzSpanningTrees {
         var seenArcs = Set<DirectedEdge<Int>>()
         let arcs = raw.filter { seenArcs.insert(DirectedEdge(from: $0.0, to: $0.1)).inserted }
         let directed = AdjacencyList(vertices: 0 ..< n, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        let view = directed.undirected
+        let view = directed.undirectedView
         // The view's edges are the list's arcs in its position order.
         let viewEdges = view.edges.map { e in arcs.first { $0.0 == e.u && $0.1 == e.v }! }
         let viewRanks = Dictionary(uniqueKeysWithValues: view.edges.indices.enumerated().map { ($1, $0) })
-        checkAll(view, viewEdges, { viewRanks[$0]! }, "AdjacencyList.undirected")
+        checkAll(view, viewEdges, { viewRanks[$0]! }, "AdjacencyList.undirectedView")
 
         // The same multigraph without vertex indices.
         let plain = PlainGraph(vertices: Array(0 ..< n), edges: raw.map { UndirectedEdge($0.0, $0.1) })

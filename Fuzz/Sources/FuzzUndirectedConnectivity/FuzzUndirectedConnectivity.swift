@@ -169,10 +169,10 @@ enum FuzzUndirectedConnectivity {
 
         var seenArcs = Set<DirectedEdge<Int>>()
         let arcs = raw.filter { seenArcs.insert(DirectedEdge(from: $0.0, to: $0.1)).inserted }
-        let view = AdjacencyList(vertices: 0 ..< n, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let view = AdjacencyList(vertices: 0 ..< n, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         let viewEdges = view.edges.map { ($0.u, $0.v) }
         let viewRanks = Dictionary(uniqueKeysWithValues: view.edges.indices.enumerated().map { ($1, $0) })
-        checkAll(view, viewEdges, { viewRanks[$0]! }, "AdjacencyList.undirected")
+        checkAll(view, viewEdges, { viewRanks[$0]! }, "AdjacencyList.undirectedView")
 
         checkAll(PlainGraph(vertices: Array(0 ..< n), edges: raw.map { UndirectedEdge($0.0, $0.1) }), raw, { $0 }, "PlainGraph")
         checkAll(EdgeIndexedGraph(vertices: Array(0 ..< n), edges: raw.map { UndirectedEdge($0.0, $0.1) }), raw, { $0 }, "EdgeIndexedGraph")

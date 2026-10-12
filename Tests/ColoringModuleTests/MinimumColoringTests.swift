@@ -31,6 +31,7 @@ struct MinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.minimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 0)
         #expect(coloring.colorCount == graph.chromaticNumber())
@@ -64,6 +65,7 @@ struct MinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.minimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 1)
         #expect(coloring.colorCount == graph.chromaticNumber())
@@ -97,6 +99,7 @@ struct MinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.minimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 1)
         #expect(coloring.colorCount == graph.chromaticNumber())
@@ -130,6 +133,7 @@ struct MinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.minimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 1)
         #expect(coloring.colorCount == graph.chromaticNumber())
@@ -163,6 +167,7 @@ struct MinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.minimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 2)
         #expect(coloring.colorCount == graph.chromaticNumber())
@@ -200,6 +205,7 @@ struct MinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.minimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 2)
         #expect(coloring.colorCount == graph.chromaticNumber())
@@ -237,6 +243,7 @@ struct MinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.minimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 3)
         #expect(coloring.colorCount == graph.chromaticNumber())
@@ -270,6 +277,7 @@ struct MinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.minimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 5)
         #expect(coloring.colorCount == graph.chromaticNumber())
@@ -303,6 +311,7 @@ struct MinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.minimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 2)
         #expect(coloring.colorCount == graph.chromaticNumber())
@@ -340,6 +349,7 @@ struct MinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.minimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 3)
         #expect(coloring.colorCount == graph.chromaticNumber())
@@ -372,6 +382,7 @@ struct MinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.minimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 3)
         #expect(coloring.colorCount == graph.chromaticNumber())
@@ -404,6 +415,7 @@ struct MinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.minimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 4)
         #expect(coloring.colorCount == graph.chromaticNumber())
@@ -436,6 +448,7 @@ struct MinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.minimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 3)
         #expect(coloring.colorCount == graph.chromaticNumber())
@@ -469,6 +482,7 @@ struct MinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.minimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 3)
         #expect(coloring.colorCount == graph.chromaticNumber())
@@ -501,6 +515,7 @@ struct MinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.minimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 2)
         #expect(coloring.colorCount == graph.chromaticNumber())
@@ -538,6 +553,7 @@ struct MinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.minimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 3)
         #expect(coloring.colorCount == graph.chromaticNumber())
@@ -570,6 +586,7 @@ struct MinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.minimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 3)
         #expect(coloring.colorCount == graph.chromaticNumber())
@@ -602,6 +619,7 @@ struct MinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.minimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 3)
         #expect(coloring.colorCount == graph.chromaticNumber())
@@ -635,6 +653,7 @@ struct MinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.minimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 4)
         #expect(coloring.colorCount == graph.chromaticNumber())
@@ -667,6 +686,7 @@ struct MinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.minimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 4)
         #expect(coloring.colorCount == graph.chromaticNumber())
@@ -699,6 +719,7 @@ struct MinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.minimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 5)
         #expect(coloring.colorCount == graph.chromaticNumber())
@@ -731,6 +752,7 @@ struct MinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.minimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 3)
         #expect(coloring.colorCount == graph.chromaticNumber())
@@ -763,6 +785,7 @@ struct MinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.minimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 3)
         #expect(coloring.colorCount == graph.chromaticNumber())
@@ -795,6 +818,7 @@ struct MinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.minimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 4)
         #expect(coloring.colorCount == graph.chromaticNumber())
@@ -827,6 +851,7 @@ struct MinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.minimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 4)
         #expect(coloring.colorCount == graph.chromaticNumber())
@@ -859,6 +884,7 @@ struct MinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.minimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 4)
         #expect(coloring.colorCount == graph.chromaticNumber())
@@ -891,6 +917,7 @@ struct MinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.minimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 5)
         #expect(coloring.colorCount == graph.chromaticNumber())
@@ -923,6 +950,7 @@ struct MinimumColoringTests {
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
         let coloring = graph.minimumColoring()
         let colors = vertexList.map { coloring.color(of: $0) }
+        #expect(vertexList.map { (try? coloring.color(checked: $0)) ?? -1 } == colors)
         #expect((0 ..< n).map { coloring.color(ofIndex: $0) } == colors)
         #expect(coloring.colorCount == 3)
         #expect(coloring.colorCount == graph.chromaticNumber())

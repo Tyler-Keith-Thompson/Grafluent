@@ -374,4 +374,18 @@ MUTANTS = [
 
     # The subgraph search's copy.
     Mutant("subcopy", S, "        cursor.update(from: other.cursor, count: np)", "", mode="stmt"),
+
+    # The checked: lookups.
+    Mutant("orbitchecked", "AutomorphismGroup.swift", "guard graph.contains(vertex) else { throw VertexNotFound() }", "guard true else { throw VertexNotFound() }", mode="stmt", nth=0),
+    Mutant("orbitcheckeddirected", "AutomorphismGroup.swift", "guard graph.contains(vertex) else { throw VertexNotFound() }", "guard true else { throw VertexNotFound() }", mode="stmt", nth=1),
+    Mutant("canonicalchecked", "AutomorphismGroup.swift", "guard graph.contains(vertex) else { throw VertexNotFound() }", "guard true else { throw VertexNotFound() }", mode="stmt", nth=2),
+    Mutant("canonicalcheckeddirected", "AutomorphismGroup.swift", "guard graph.contains(vertex) else { throw VertexNotFound() }", "guard true else { throw VertexNotFound() }", mode="stmt", nth=3),
+    Mutant("orbitcheckedvalue", "AutomorphismGroup.swift", "        return orbit(of: vertex)", "        return 0", mode="stmt", nth=0),
+    Mutant("orbitcheckedvaluedirected", "AutomorphismGroup.swift", "        return orbit(of: vertex)", "        return 0", mode="stmt", nth=1),
+    Mutant("canonicalcheckedvalue", "AutomorphismGroup.swift", "        return canonicalIndex(of: vertex)", "        return 0", mode="stmt", nth=0),
+    Mutant("canonicalcheckedvaluedirected", "AutomorphismGroup.swift", "        return canonicalIndex(of: vertex)", "        return 0", mode="stmt", nth=1),
+    Mutant("hasheschecked", "WeisfeilerLehman.swift", "guard graph.contains(vertex) else { throw VertexNotFound() }", "guard true else { throw VertexNotFound() }", mode="stmt", nth=0),
+    Mutant("hashescheckeddirected", "WeisfeilerLehman.swift", "guard graph.contains(vertex) else { throw VertexNotFound() }", "guard true else { throw VertexNotFound() }", mode="stmt", nth=1),
+    Mutant("hashescheckedvalue", "WeisfeilerLehman.swift", "        return hashes(of: vertex)", "        return hashes(ofIndex: 0)", mode="stmt", nth=0),
+    Mutant("hashescheckedvaluedirected", "WeisfeilerLehman.swift", "        return hashes(of: vertex)", "        return hashes(ofIndex: 0)", mode="stmt", nth=1),
 ]

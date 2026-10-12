@@ -1,10 +1,10 @@
 // §B: degree(of: v)/(n − 1), so a self-loop counts 2 and each parallel copy counts (the score can
 // exceed 1); directed: in + out, in, out, a directed loop one in-arc and one out-arc;
-// `graph.directed` doubles the undirected value.
+// `graph.directedView` doubles the undirected value.
 // Expected values are ref.py's model at full precision (the catalog cells are the same values
 // rounded to 12 digits); non-iterative rows compare within 1e-12 relative to max(1, |value|), the
 // iterative ones within the catalog's Tol of the limit. Undirected rows also run on
-// `graph.directed` (the same values; twice for degree and unnormalized betweenness).
+// `graph.directedView` (the same values; twice for degree and unnormalized betweenness).
 // Case IDs (CE-nnn) refer to the catalog; see README.md.
 
 import Centrality
@@ -30,10 +30,10 @@ struct DegreeCentralityTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = graph.directed.degreeCentrality()
+        let arcs = graph.directedView.degreeCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - 2 * value)
-            #expect(error <= 1e-12 * max(1, abs(2 * value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(2 * value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -53,10 +53,10 @@ struct DegreeCentralityTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = graph.directed.degreeCentrality()
+        let arcs = graph.directedView.degreeCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - 2 * value)
-            #expect(error <= 1e-12 * max(1, abs(2 * value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(2 * value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -76,10 +76,10 @@ struct DegreeCentralityTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = graph.directed.degreeCentrality()
+        let arcs = graph.directedView.degreeCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - 2 * value)
-            #expect(error <= 1e-12 * max(1, abs(2 * value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(2 * value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -227,19 +227,19 @@ struct DegreeCentralityTests {
         #expect(byIndex == result.scores)
         let byVertex = graph.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
-        let arcs = graph.directed.degreeCentrality()
+        let arcs = graph.directedView.degreeCentrality()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - 2 * value)
-            #expect(error <= 1e-12 * max(1, abs(2 * value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-12 * max(1, abs(2 * value)), "graph.directedView, index \(i)")
         }
     }
 
-    @Test("CE-040 U(P(0,1,2)).directed.degreeCentrality() is [1, 2, 1]: Twice the undirected degree centrality ([0.5, 1, 0.5]): in + out over two arcs per edge")
+    @Test("CE-040 U(P(0,1,2)).directedView.degreeCentrality() is [1, 2, 1]: Twice the undirected degree centrality ([0.5, 1, 0.5]): in + out over two arcs per edge")
     func degree040() {
         // U: P(0,1,2)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
         let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let result = graph.directed.degreeCentrality()
+        let result = graph.directedView.degreeCentrality()
         let expected: [Double] = [1, 2, 1]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -248,7 +248,7 @@ struct DegreeCentralityTests {
         }
         let byIndex = result.scores.indices.map { result.score(ofIndex: $0) }
         #expect(byIndex == result.scores)
-        let byVertex = graph.directed.vertices.map { result.score(of: $0) }
+        let byVertex = graph.directedView.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
     }
 

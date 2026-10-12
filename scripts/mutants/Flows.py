@@ -1,6 +1,9 @@
 # Planted bugs for Flows; run with `just mutate Flows`. See scripts/mutate.py.
 #
 # Known equivalent mutants:
+#   ck_index_range      `e >= 0` in `_edgeNumberIfPresent`: the range test before it already keeps
+#                       a position inside `edges`, and every representation with edge indices maps
+#                       those onto 0..<edgeCount. Kept for a conformer that does not.
 #   di_room             the clamp to the cutoff: connectivity only compares the value with the best
 #                       so far, and any value at or past the cutoff loses that comparison.
 #   di_level_stop, di_back_last, di_kill, di_current, di_resume
@@ -153,8 +156,8 @@ MUTANTS = [
     Mutant("mf_arcs", "MaximumFlow.swift", "flows.append(run.along[e])\n            flows.append(run.against[e])", "flows.append(run.against[e])\n            flows.append(run.along[e])", mode="stmt"),
 
     # Flow and Cut
-    Mutant("fl_search", "Flow.swift", "positions[mid] < position", "positions[mid] <= position"),
-    Mutant("fl_found", "Flow.swift", "low < positions.count && positions[low] == position", "low < positions.count"),
+    Mutant("fl_search", "Flow.swift", "positions[mid] < position", "positions[mid] <= position", nth=0),
+    Mutant("fl_found", "Flow.swift", "low < positions.count && positions[low] == position", "low < positions.count", nth=0),
     Mutant("fl_map_order", "Flow.swift", "_graph.edges.index(after: i)", "_graph.edges.index(after: _graph.edges.index(after: i))"),
     Mutant("fl_signed", "Flow.swift", "flow(ofEdgeAt: .init(position: position, reversed: false)) - flow(ofEdgeAt: .init(position: position, reversed: true))", "flow(ofEdgeAt: .init(position: position, reversed: true)) - flow(ofEdgeAt: .init(position: position, reversed: false))"),
     Mutant("fl_equal", "Flow.swift", "lhs.value == rhs.value && lhs._flows == rhs._flows", "lhs.value == rhs.value"),
@@ -208,7 +211,7 @@ MUTANTS = [
     Mutant("gh_nearest", "GomoryHuTree.swift", "_capacity[x] < _capacity[chosen]", "_capacity[x] <= _capacity[chosen]"),
     Mutant("gh_subtree", "GomoryHuTree.swift", "below[children[k]] = true", "", mode="stmt"),
     Mutant("gh_side", "GomoryHuTree.swift", "below.map { $0 != uBelow }", "below"),
-    Mutant("gh_position", "GomoryHuTree.swift", "position >= 0 && position < _capacity.count - 1", "position < _capacity.count - 1"),
+    Mutant("gh_position", "GomoryHuTree.swift", "position >= 0 && position < _capacity.count - 1", "position < _capacity.count - 1", nth=0),
     Mutant("gh_equal", "GomoryHuTree.swift", "lhs._capacity.dropFirst() == rhs._capacity.dropFirst()", "true"),
 
     # Network simplex: start, pivot rule, leaving arc, flow change
@@ -306,4 +309,17 @@ MUTANTS = [
     Mutant("fe_indexed_directed", "FlowEdges.swift", "vertices.listed == nil ? nil : vertices.numbers", "vertices.numbers", nth=0),
     Mutant("fe_indexed_undirected", "FlowEdges.swift", "vertices.listed == nil ? nil : vertices.numbers", "vertices.numbers", nth=1),
     Mutant("fe_float_overflow", "FlowEdges.swift", "sum - sum != .zero", "false"),
+
+    # The checked: spellings of the results' lookups.
+    Mutant("ck_range", "Flow.swift", "edges.startIndex <= position && position < edges.endIndex", "true"),
+    Mutant("ck_index_range", "Flow.swift", "e >= 0 && e < count ? e : nil", "e < count ? e : nil"),
+    Mutant("ck_search", "Flow.swift", "low < positions.count && positions[low] == position ? low : nil", "low < positions.count ? low : nil"),
+    Mutant("ck_flow", "Flow.swift", "        return _flows[e]", "        return _flows[0]", mode="stmt"),
+    Mutant("ck_signed", "Flow.swift", "try flow(checkedEdgeAt: .init(position: position, reversed: false)) - flow(ofEdgeAt: .init(position: position, reversed: true))", "try flow(checkedEdgeAt: .init(position: position, reversed: false))"),
+    Mutant("ck_costflow", "MinimumCostFlow.swift", "        return _flows[e]", "        return _flows[0]", mode="stmt"),
+    Mutant("ck_potential", "MinimumCostFlow.swift", "        guard _graph.contains(vertex) else { throw VertexNotFound() }", "", mode="stmt"),
+    Mutant("ck_tree_low", "GomoryHuTree.swift", "position >= 0 && position < _capacity.count - 1", "position < _capacity.count - 1", nth=1),
+    Mutant("ck_tree_high", "GomoryHuTree.swift", "position >= 0 && position < _capacity.count - 1", "position >= 0 && position < _capacity.count", nth=1),
+    Mutant("ck_cutvalue_v", "GomoryHuTree.swift", "_graph.contains(u) && _graph.contains(v)", "_graph.contains(u)", nth=0),
+    Mutant("ck_cut_u", "GomoryHuTree.swift", "_graph.contains(u) && _graph.contains(v)", "_graph.contains(v)", nth=1),
 ]

@@ -92,7 +92,7 @@ struct TreePropertyTests {
                 #expect(arborescence.root == roots[0])
                 #expect(Array(arborescence.edges) == pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
                 // Read as undirected, an arborescence is a tree.
-                #expect(graph.undirected.isTree)
+                #expect(graph.undirectedView.isTree)
             }
         }
     }

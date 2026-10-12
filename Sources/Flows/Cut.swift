@@ -5,7 +5,7 @@ import GraphProtocols
 /// `getSinkPartition`, `getCutEdges`; igraph `Cut.partition`, `Cut.cut`). The result of
 /// `minimumCut(from:to:capacity:)`, `minimumCut(capacity:)` and `Flow.minimumCut`.
 ///
-/// On an undirected graph the cut is over `directed`: each crossing edge is listed once, as the
+/// On an undirected graph the cut is over `directedView`: each crossing edge is listed once, as the
 /// arc that leaves the source side.
 @frozen
 public struct Cut<G: DirectedGraph, Capacity: Comparable & AdditiveArithmetic> {
@@ -81,7 +81,7 @@ extension DirectedGraph {
 }
 
 extension Graph {
-    /// The cut with this sink side over `directed`: each edge between the sides once, as the arc
+    /// The cut with this sink side over `directedView`: each edge between the sides once, as the arc
     /// leaving the source side, in position order, and their capacities' sum.
     @inlinable
     func _cut<C: Comparable & AdditiveArithmetic>(_ edges: _FlowEdges, _ capacities: [C], _ listed: [Vertex], _ inSink: [Bool]) -> Cut<DirectedView<Self>, C> {

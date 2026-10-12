@@ -170,6 +170,26 @@ public struct PlanarEmbedding<G: Graph> {
         return slot
     }
 
+    /// `_slot(from:alongEdgeAt:)`, throwing `.vertex` when `vertex` is not a vertex, then `.edge`
+    /// when `position` is not an edge position or its edge is not incident to `vertex`.
+    @inlinable
+    func _checkedSlot(from vertex: G.Vertex, alongEdgeAt position: G.Edges.Index) throws(ElementNotFound) -> Int {
+        guard let v = try? _vertices.number(checked: vertex) else { throw .vertex }
+        let graph = _vertices.graph
+        let e: Int
+        if graph.edgeIndexBound != nil {
+            // Range first: `edgeIndex(of:)` may trap on a position outside `edges`.
+            let edges = graph.edges
+            guard edges.startIndex <= position && position < edges.endIndex else { throw .edge }
+            e = graph.edgeIndex(of: position)
+        } else {
+            guard let number = _edgeNumbers[position] else { throw .edge }
+            e = number
+        }
+        guard e >= 0 && e < _layout.edgeCount, let slot = _layout.slot(at: v, ofEdge: e) else { throw .edge }
+        return slot
+    }
+
     /// The face to the right of edge `position` crossed from `vertex` (NetworkX's
     /// `traverse_face(v, w)`): a closed walk starting and ending at `vertex`. For a self-loop, the
     /// end listed first in `clockwiseIncidentEdges(of: vertex)`. O(degree + face length).
@@ -178,6 +198,19 @@ public struct PlanarEmbedding<G: Graph> {
     @inlinable
     public func face(from vertex: G.Vertex, alongEdgeAt position: G.Edges.Index) -> Walk<G.Vertex, G.Edges.Index> {
         let found = _layout.face(fromSlot: _slot(from: vertex, alongEdgeAt: position))
+        return _walk(found.vertices, found.edges)
+    }
+
+    /// `face(from: vertex, alongEdgeAt: position)`, throwing instead of trapping when the pair
+    /// names no half-edge. An edge that is in the graph but has no end at `vertex` is `.edge`:
+    /// there is no edge at `position` leaving `vertex`. O(degree + face length).
+    ///
+    /// - Throws: `ElementNotFound.vertex` when `vertex` is not a vertex of the graph, and
+    ///   otherwise `.edge` when `position` is not an edge position of the graph or its edge is not
+    ///   incident to `vertex`.
+    @inlinable
+    public func face(checkedFrom vertex: G.Vertex, alongEdgeAt position: G.Edges.Index) throws(ElementNotFound) -> Walk<G.Vertex, G.Edges.Index> {
+        let found = _layout.face(fromSlot: try _checkedSlot(from: vertex, alongEdgeAt: position))
         return _walk(found.vertices, found.edges)
     }
 
@@ -190,6 +223,17 @@ public struct PlanarEmbedding<G: Graph> {
     @inlinable
     public func rightFace(from vertex: G.Vertex, alongEdgeAt position: G.Edges.Index) -> Int {
         Int(_layout.faceOfSlot[_slot(from: vertex, alongEdgeAt: position)])
+    }
+
+    /// `rightFace(from: vertex, alongEdgeAt: position)`, throwing instead of trapping when the
+    /// pair names no half-edge, as `face(checkedFrom:alongEdgeAt:)` does. O(degree).
+    ///
+    /// - Throws: `ElementNotFound.vertex` when `vertex` is not a vertex of the graph, and
+    ///   otherwise `.edge` when `position` is not an edge position of the graph or its edge is not
+    ///   incident to `vertex`.
+    @inlinable
+    public func rightFace(checkedFrom vertex: G.Vertex, alongEdgeAt position: G.Edges.Index) throws(ElementNotFound) -> Int {
+        Int(_layout.faceOfSlot[try _checkedSlot(from: vertex, alongEdgeAt: position)])
     }
 
     @inlinable

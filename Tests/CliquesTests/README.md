@@ -5,7 +5,7 @@ Eppstein–Löffler–Strash; lazy), finds the maximum clique and the clique num
 decomposition (core numbers, degeneracy, degeneracy ordering, k-cores and k-shells, Batagelj–Zaversnik)
 and counts triangles with the clustering coefficients built on them (local, transitivity, average).
 Everything is on `Graph` and reads the simple graph underneath it. Directed graphs reach it through
-`digraph.undirected`. The tests were written before the implementation, from the proposed API
+`digraph.undirectedView`. The tests were written before the implementation, from the proposed API
 (`api.md`, phase 1; it, the catalog and its generator are in `Tests/Catalogs/Cliques/`). The suite
 uses only the public API, and each test is self-contained. The shared material is the
 `ReferencePseudograph` and `ReferenceDirectedMultigraph` test conformers, `Collider`,
@@ -48,7 +48,7 @@ struct ClusteringCoefficients<G: Graph>
 | Degeneracy ordering | Batagelj–Zaversnik's removal order, pinned exactly: a counting sort by simple degree, stable in index order, then each vertex's neighbours in row order. Row order therefore changes it (`~rev`, the representations) | CQ-303, CQ-306, CQ-321, CQ-334 – CQ-336 |
 | Empty graph | No cliques, ω = 0, degeneracy 0, transitivity and average 0 (NetworkX raises for the average; igraph NaN) | CQ-001 – CQ-010 |
 | Ratios | Clustering is 0 when d < 2. Transitivity is 0 with no triangle, even with no connected triple. The average counts every vertex, zeros included. Doubles are compared exactly: each ratio is one integer division converted once, and the average is a plain sum in `vertices` order | CQ-067, CQ-405, CQ-459 |
-| Views | `graph.directed.undirected` gives the same answers as `graph` (every test). `digraph.undirected` merges opposite arcs in the simple graph, which is igraph's "directions ignored" reading | §F |
+| Views | `graph.directedView.undirectedView` gives the same answers as `graph` (every test). `digraph.undirectedView` merges opposite arcs in the simple graph, which is igraph's "directions ignored" reading | §F |
 
 ## How values are pinned
 
@@ -60,7 +60,7 @@ from `cases.md` by a script (`gen.py`) that re-evaluates each row with `ref.py` 
 equal the cell. `ref.py` holds api.md's model in index space, checked against brute force over vertex
 subsets, peeling, Latapy's compact-forward count and NetworkX 3.7. Each catalog test also checks
 the one-shot calls against the members of the returned value, and the same op on
-`graph.directed.undirected`. A `maximalCliques` test also checks that every listed clique is a
+`graph.directedView.undirectedView`. A `maximalCliques` test also checks that every listed clique is a
 clique and is maximal. Literals that are not catalog cells come from the same model: the
 representation rows (computed on the simple rows each representation stores) and the K₄ of the
 value-semantics test. The whole suite was run against an independent brute-force Swift model of
@@ -80,9 +80,9 @@ set. The property tests write their oracles inside each test.
 | `MaximumCliqueTests.swift` | 20 | §C: the least of two triangles (and with `vertices` reversed, edges reordered), edgeless, bipartite, karate's two 5-cliques, the wheel, C₅ + K₄, moon(3), a path with loops |
 | `CoreNumberTests.swift` | 49 | §D: core numbers, degeneracy and the exact degeneracy ordering on a triangle with a pendant, P₅, C₅, stars (rows reversed too), K₄ with a pendant triangle, the diamond, karate, Petersen, a 3 × 4 grid, parallel pairs and loops; k-cores and k-shells for k = 0 … 5 |
 | `TriangleClusteringTests.swift` | 65 | §E: per-vertex triangles, local clustering, transitivity and average on a triangle with a pendant, K₅, the bowtie, the diamond, the wheel, C₄, Petersen, karate, a triangle with a parallel edge and a loop, edgeless graphs, P₃, two disjoint edges; one-vertex queries |
-| `DigraphUndirectedTests.swift` | 15 | §F: a reciprocal pair, both orientations of a triangle, a triangle with a reciprocal pendant, through `digraph.undirected` |
-| `CliqueRepresentationTests.swift` | 181 | Every undirected catalog graph of §A – §E on `UndirectedAdjacencyList` and `AdjacencyList.undirected`, and on 0..<n on `CompressedSparseRow` (symmetric, via a file-private conformer) and `AdjacencyMatrix.undirected`. Seven graphs on conformers without indices, with vertex indices only, and with rows reversed. Karate and CQ-122 with `Collider` vertices. Every entry point in each test |
-| `CliquePropertyTests.swift` | 10 | PropertyBased, shrinking, multigraphs with loops and shuffled rows. Maximal cliques against every vertex subset. The maximum clique against every clique, also on dense graphs of 6 – 12 vertices, and on two graphs that pin the maximum clique's witness pass (a stale witness, the last vertex taken without a search). Core numbers, `kCore`, `kShell` and the ordering's defining property against peeling. The exact ordering against api.md's BZ replayed on the simple rows. Triangles, clustering, transitivity and average against vertex triples. `graph.directed.undirected`. 14-vertex simple graphs on `UndirectedAdjacencyList` |
+| `DigraphUndirectedTests.swift` | 15 | §F: a reciprocal pair, both orientations of a triangle, a triangle with a reciprocal pendant, through `digraph.undirectedView` |
+| `CliqueRepresentationTests.swift` | 181 | Every undirected catalog graph of §A – §E on `UndirectedAdjacencyList` and `AdjacencyList.undirectedView`, and on 0..<n on `CompressedSparseRow` (symmetric, via a file-private conformer) and `AdjacencyMatrix.undirectedView`. Seven graphs on conformers without indices, with vertex indices only, and with rows reversed. Karate and CQ-122 with `Collider` vertices. Every entry point in each test |
+| `CliquePropertyTests.swift` | 10 | PropertyBased, shrinking, multigraphs with loops and shuffled rows. Maximal cliques against every vertex subset. The maximum clique against every clique, also on dense graphs of 6 – 12 vertices, and on two graphs that pin the maximum clique's witness pass (a stale witness, the last vertex taken without a search). Core numbers, `kCore`, `kShell` and the ordering's defining property against peeling. The exact ordering against api.md's BZ replayed on the simple rows. Triangles, clustering, transitivity and average against vertex triples. `graph.directedView.undirectedView`. 14-vertex simple graphs on `UndirectedAdjacencyList` |
 | `Performance/CliqueStressTests.swift` | 6 | §G inside a `Task` with a one-minute limit: the 10⁵ path and star, a 300 × 300 grid, K₁₂₀, moon(8) (6 561 cliques), lcg(2000, 20000, 7) |
 | `CliqueConformanceTests.swift` | 6 | `Sendable` across a `Task` (sequence, iterator, both values). Value semantics after mutating the graph. Iterators that start over, and a copied iterator that resumes on its own. Laziness on a row-counting conformer, and a lazy filter by size. Not a `Collection`. Generic and existential code. No hashing on `UndirectedAdjacencyList` |
 | `CliquePreconditionTests.swift` | 8 | Exit tests: non-vertices on the graph, on both values and through a view (CQ-068, CQ-466); `kCore(-1)` and `kShell(-1)` (CQ-069); every `ofIndex:` member at n and at −1 |
@@ -108,7 +108,7 @@ conformance that the catalog does not list.
 | CQ-301 – CQ-349 | D. Core numbers and degeneracy | `CoreNumberTests.swift`; again in `CliqueRepresentationTests.swift` |
 | CQ-401 – CQ-465 | E. Triangles and clustering | `TriangleClusteringTests.swift`; again in `CliqueRepresentationTests.swift` |
 | CQ-466 | E. Not a vertex | `CliquePreconditionTests.swift` |
-| CQ-501 – CQ-515 | F. Directed graphs through `undirected` | `DigraphUndirectedTests.swift` |
+| CQ-501 – CQ-515 | F. Directed graphs through `undirectedView` | `DigraphUndirectedTests.swift` |
 | CQ-601 – CQ-633 | G. Large shapes | `Performance/CliqueStressTests.swift`, one test per graph (its rows named as a range) |
 
 ## Not tested
@@ -118,5 +118,5 @@ conformance that the catalog does not list.
 | The sequence order of `maximalCliques()` beyond CQ-101 and CQ-102 | The order is the algorithm's. Tests compare the sequence as a set of arrays, which still pins each clique's internal `vertices` order. CQ-101 and CQ-102 are the rows api.md cites for the order. The other catalog cells still record the full order |
 | Complexity bounds (BZ O(n + m), ELS O(d·n·3^{d/3}), compact-forward O(m^{3/2}), one-vertex queries without n-sized arrays) | Internal costs belong to the benchmarks. The stress tests bound them loosely (each shape within the time limit), and the laziness test checks only that no row is read before the first `next()` |
 | NetworkX and igraph values on random graphs (`just diff`) | Not Swift tests. `ref.py` checks every catalog row and 280 random graphs against NetworkX 3.7. The property tests use brute-force oracles instead |
-| Cliques, cores and clustering on `DirectedGraph` | Out of phase 1 (api.md, "Out"). Only `digraph.undirected` is tested (§F) |
+| Cliques, cores and clustering on `DirectedGraph` | Out of phase 1 (api.md, "Out"). Only `digraph.undirectedView` is tested (§F) |
 | "Not `Equatable`", the negative half of `Sendable` | A failure to build cannot be expressed as a test. The runtime `is any Collection` check and the positive `Sendable` half are tested |

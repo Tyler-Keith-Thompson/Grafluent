@@ -4,13 +4,13 @@ import GraphProtocols
 /// to (g′, h) for every arc g → g′ of G, and to (g, h′) for every arc h → h′ of H (NetworkX's
 /// `cartesian_product`, Mathematica's `GraphProduct[g, h, "Cartesian"]`).
 ///
-/// O(1). The product stores no edge; see `CartesianProduct`.
+/// O(1). The product stores no edge; see `CartesianProductView`.
 ///
 /// - Precondition: both factors have vertex indices, and |V(G)|·|V(H)| fits in an `Int`.
 @inlinable
-public func cartesianProduct<G: DirectedGraph, H: DirectedGraph>(_ g: G, _ h: H) -> CartesianProduct<G, H> {
+public func cartesianProductView<G: DirectedGraph, H: DirectedGraph>(_ g: G, _ h: H) -> CartesianProductView<G, H> {
     let (nG, nH) = _factorCounts(g.vertexIndexBound, h.vertexIndexBound)
-    return CartesianProduct(first: g, second: h, firstCount: nG, secondCount: nH)
+    return CartesianProductView(first: g, second: h, firstCount: nG, secondCount: nH)
 }
 
 /// The Cartesian product G □ H of two undirected graphs, as a lazy view: vertex (g, h) is
@@ -19,13 +19,13 @@ public func cartesianProduct<G: DirectedGraph, H: DirectedGraph>(_ g: G, _ h: H)
 ///
 /// - Precondition: both factors have vertex indices, and |V(G)|·|V(H)| fits in an `Int`.
 @inlinable
-public func cartesianProduct<G: Graph, H: Graph>(_ g: G, _ h: H) -> CartesianProduct<G, H> {
+public func cartesianProductView<G: Graph, H: Graph>(_ g: G, _ h: H) -> CartesianProductView<G, H> {
     let (nG, nH) = _factorCounts(g.vertexIndexBound, h.vertexIndexBound)
-    return CartesianProduct(first: g, second: h, firstCount: nG, secondCount: nH)
+    return CartesianProductView(first: g, second: h, firstCount: nG, secondCount: nH)
 }
 
 /// The Cartesian product G □ H of two graphs, both directed or both undirected, as a lazy view.
-/// Made by `cartesianProduct(_:_:)`.
+/// Made by `cartesianProductView(_:_:)`.
 ///
 /// **Vertices** are the pairs `Pair(g, h)`. Vertex (g, h) has index `index(g)·|V(H)| + index(h)`,
 /// row-major, the numbering of NamedGraphs' grids, so `vertex(atIndex:)` costs one division and
@@ -46,7 +46,7 @@ public func cartesianProduct<G: Graph, H: Graph>(_ g: G, _ h: H) -> CartesianPro
 /// To materialize it, pass it to a representation's initializer. Products are `Sendable` when both
 /// factors are.
 @frozen
-public struct CartesianProduct<First, Second> {
+public struct CartesianProductView<First, Second> {
     /// G, the first factor.
     public let first: First
     /// H, the second factor.
@@ -232,13 +232,13 @@ public struct CartesianProduct<First, Second> {
     }
 }
 
-extension CartesianProduct: Sendable where First: Sendable, Second: Sendable {}
-extension CartesianProduct.Position: Sendable where FirstEdge: Sendable, SecondEdge: Sendable {}
-extension CartesianProduct.IndexRow: Sendable where FirstRow: Sendable, SecondRow: Sendable {}
-extension CartesianProduct.EdgeRow: Sendable where FirstEdges: Sendable, SecondEdges: Sendable {}
-extension CartesianProduct.EdgeIndexRow: Sendable where FirstRow: Sendable, SecondRow: Sendable {}
+extension CartesianProductView: Sendable where First: Sendable, Second: Sendable {}
+extension CartesianProductView.Position: Sendable where FirstEdge: Sendable, SecondEdge: Sendable {}
+extension CartesianProductView.IndexRow: Sendable where FirstRow: Sendable, SecondRow: Sendable {}
+extension CartesianProductView.EdgeRow: Sendable where FirstEdges: Sendable, SecondEdges: Sendable {}
+extension CartesianProductView.EdgeIndexRow: Sendable where FirstRow: Sendable, SecondRow: Sendable {}
 
-extension CartesianProduct.Position {
+extension CartesianProductView.Position {
     /// The first position of the H-part at G-vertex index `g` or later, or the end.
     @inlinable
     static func _secondStart<HE: Collection>(_ secondEdges: HE, from g: Int, firstCount: Int) -> Self where HE.Index == SecondEdge {

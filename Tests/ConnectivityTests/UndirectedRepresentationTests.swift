@@ -1,7 +1,7 @@
 // §H: the same answers on every representation. Every test in §A – §G already runs on the
 // ReferencePseudograph (CN-340) and, when no edge repeats, on an UndirectedAdjacencyList built in
 // the same order (CN-341); this file adds the rows whose repeats collapse, AdjacencyList and
-// AdjacencyMatrix read through `.undirected` (positions are arcs, or cells without edge indices),
+// AdjacencyMatrix read through `.undirectedView` (positions are arcs, or cells without edge indices),
 // two conformers private to this file (no indices; vertex indices only), an adjacency list after
 // removals, and vertices whose hashes all collide. Expected values come from the catalog's
 // reference. Case IDs (CN-nnn) refer to the catalog; see README.md.
@@ -115,7 +115,7 @@ struct UndirectedRepresentationTests {
         #expect(pseudograph.bridges() == [4])
     }
 
-    @Test("CN-343 AdjacencyList.undirected: one arc per edge is CN-238 exactly, both arcs are CN-297")
+    @Test("CN-343 AdjacencyList.undirectedView: one arc per edge is CN-238 exactly, both arcs are CN-297")
     func adjacencyListUndirected() {
         // K(0..7) P(7..12) K(12..19) P(7,20,21,22) C(22,23,24,25), each edge one arc in written order.
         var pairs: [(Int, Int)] = []
@@ -124,7 +124,7 @@ struct UndirectedRepresentationTests {
         for u in 12 ..< 19 { for v in u + 1 ... 19 { pairs.append((u, v)) } }
         pairs += [(7, 20), (20, 21), (21, 22), (22, 23), (23, 24), (24, 25), (25, 22)]
         #expect(pairs.count == 68)
-        let once = AdjacencyList(edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let once = AdjacencyList(edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         #expect(once.edgeCount == 68)
         #expect(once.connectedComponents().map(Array.init) == [Array(0 ... 25)])
         #expect(once.bridges() == [28, 29, 30, 31, 32, 61, 62, 63])
@@ -139,7 +139,7 @@ struct UndirectedRepresentationTests {
         #expect(!once.isBiconnected && !once.isBiEdgeConnected)
 
         // Every forward arc, then every reverse arc: positions 68 ..< 136 repeat 0 ..< 68.
-        let both = AdjacencyList(edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) } + pairs.map { DirectedEdge(from: $0.1, to: $0.0) }).undirected
+        let both = AdjacencyList(edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) } + pairs.map { DirectedEdge(from: $0.1, to: $0.0) }).undirectedView
         #expect(both.edgeCount == 136)
         #expect(both.bridges().isEmpty)
         #expect(!both.hasBridges)
@@ -154,9 +154,9 @@ struct UndirectedRepresentationTests {
         #expect(bothBlocks.indices.map { tree.articulationPoints(ofBlock: $0).map { tree.articulationPoints[$0] } } == [[7], [7, 8], [8, 9], [9, 10], [10, 11], [11, 12], [12], [7, 20], [20, 21], [21, 22], [22]])
     }
 
-    @Test("CN-344 AdjacencyMatrix.undirected with cells u < v: vertex indices, no edge indices, positions are cells")
+    @Test("CN-344 AdjacencyMatrix.undirectedView with cells u < v: vertex indices, no edge indices, positions are cells")
     func matrixUpperCells() {
-        let matrix = AdjacencyMatrix(vertexCount: 4, edges: [(0, 1), (1, 2), (2, 3)].map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let matrix = AdjacencyMatrix(vertexCount: 4, edges: [(0, 1), (1, 2), (2, 3)].map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         #expect(matrix.vertexIndexBound == 4 && matrix.edgeIndexBound == nil)
         #expect(matrix.connectedComponents().map(Array.init) == [[0, 1, 2, 3]])
         #expect(matrix.isConnected)
@@ -177,10 +177,10 @@ struct UndirectedRepresentationTests {
         #expect(tree.edgeCount == 4)
     }
 
-    @Test("CN-345 AdjacencyMatrix.undirected of a symmetric matrix: both cells are edges, so no bridges")
+    @Test("CN-345 AdjacencyMatrix.undirectedView of a symmetric matrix: both cells are edges, so no bridges")
     func matrixSymmetricCells() {
         // Cells (0,1) < (1,0) < (1,2) < (2,1): the graph 0-1 1-0 1-2 2-1.
-        let matrix = AdjacencyMatrix(vertexCount: 3, edges: [(0, 1), (1, 0), (1, 2), (2, 1)].map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        let matrix = AdjacencyMatrix(vertexCount: 3, edges: [(0, 1), (1, 0), (1, 2), (2, 1)].map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         #expect(matrix.edgeCount == 4)
         #expect(matrix.connectedComponents().map(Array.init) == [[0, 1, 2]])
         #expect(matrix.bridges().isEmpty)

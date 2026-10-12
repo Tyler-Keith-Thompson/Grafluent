@@ -45,7 +45,7 @@ given as an array of vertex arrays; `of: components` is `connectedComponents()` 
 for `D:`). `weight: [w0, …]` is `{ w[$0] }` by edge position (`weight: e%k+c`: edge e weighs
 e mod k + c); `nan`, `inf` are `.nan`, `.infinity`. The karate `weight: […]` list is NetworkX's
 `weight` attribute in edge order. `using: rng(s)` passes a seeded generator (any generator: the
-rows are order-independent). `directed > op` runs op on `graph.directed`. `.count`,
+rows are order-independent). `directed > op` runs op on `graph.directedView`. `.count`,
 `.community(of: v)`, `.coverage`, `.performance` read members of the result.
 
 **Expected**: a partition in **canonical order** (communities by least vertex number, each in
@@ -125,7 +125,7 @@ Expected scalars are rounded to 12 digits.
 | CD-059 | `U: 0-1, 1-2, 2-3` | `modularity(of: [[0, 1], [2, 3]], weight: [2, 1, 1])` | `#0.21875` | exact | Equals the previous row |
 | CD-060 | `U: 0-1, 1-2, 1-1` | `modularity(of: [[0, 1], [2]])` | `#-0.0555555555556` | exact | A loop is A_11 = 2: d(1) = 4, L = 2 (NetworkX, igraph: −1/18) |
 | CD-061 | `U: 0-1, 1-2, 1-1` | `modularity(of: [[0, 1], [2]], weight: [1, 1, 3])` | `#-0.02` | exact | A weighted loop counts its weight twice in the degree |
-| CD-062 | `U: 0-1, 1-2, 1-1` | `directed > modularity(of: [[0, 1], [2]])` | `#-0.0555555555556` | exact | A loop is two loop arcs in graph.directed: the same Q |
+| CD-062 | `U: 0-1, 1-2, 1-1` | `directed > modularity(of: [[0, 1], [2]])` | `#-0.0555555555556` | exact | A loop is two loop arcs in graph.directedView: the same Q |
 | CD-063 | `D: 0>1, 1>2` | `modularity(of: [[0, 1], [2]])` | `#0` | exact | Leicht–Newman: (1/2 − 2·1/4) + (0 − 0·1/4) = 0; igraph with `directed=False`: −0.125 |
 | CD-064 | `D: 0>1, 1>0, 1>2` | `modularity(of: [[0, 1], [2]])` | `#0` | exact |  |
 | CD-065 | `D: C(0,1,2), C(3,4,5), 2>3` | `modularity(of: [[0, 1, 2], [3, 4, 5]])` | `#0.367346938776` | exact |  |
@@ -184,7 +184,7 @@ Expected scalars are rounded to 12 digits.
 | CD-108 | `D: C(0,1,2), C(3,4,5), 2>3` | `louvainCommunities()` | `[[0, 1, 2], [3, 4, 5]]` | exact | Directed (Dugué–Perez gain) |
 | CD-109 | `D: nx(karate_club)` | `louvainCommunities()` | `[[0, 1, 2, 3, 7, 9, 11, 12, 13, 17, 19, 21], [4, 5, 6, 10, 16], [8, 14, 15, 18, 20, 22, 26, 29, 30, 32, 33], [23, 24, 25, 27, 28, 31]]` | exact | Each edge as one arc u → v, u < v; the same communities as undirected here |
 | CD-110 | `D: lcg(40,100,5)` | `louvainCommunities()` | `[[32, 34, 5, 35, 33, 37, 21, 7, 31, 39, 27, 26], [13, 2, 20, 17, 22], [15, 29, 10, 24, 30, 25, 4, 16], [11, 19, 28, 23, 8, 1, 9, 12, 3, 18], [14, 38, 36, 0, 6]]` | exact |  |
-| CD-111 | `U: K(0..2), K(3..5), 2-3` | `directed > louvainCommunities()` | `[[0, 1, 2], [3, 4, 5]]` | exact | graph.directed: the same communities |
+| CD-111 | `U: K(0..2), K(3..5), 2-3` | `directed > louvainCommunities()` | `[[0, 1, 2], [3, 4, 5]]` | exact | graph.directedView: the same communities |
 | CD-112 | `U: K(0..4), K(5..9)` | `louvainCommunities(using: rng(1))` | `[[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]]` | exact | Disjoint cliques: every order gives this (ref.py: 200 orders, NetworkX 25 seeds) |
 | CD-113 | `U: nx(ring_of_cliques,4,4)` | `louvainCommunities(using: rng(2))` | `[[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]]` | exact | Every order gives one community per clique |
 | CD-114 | `U: K(0..4), K(5..9), 4-5` | `louvainCommunities(using: rng(3))` | `[[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]]` | exact |  |

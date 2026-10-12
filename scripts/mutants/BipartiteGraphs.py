@@ -52,4 +52,10 @@ MUTANTS = [
     Mutant("checkedincident", "BipartiteGraph.swift", "        try _graph.incidentEdges(checked: vertex)", "        _graph.incidentEdges(of: vertex)", mode="stmt"),
     Mutant("checkeddegree", "BipartiteGraph.swift", "        try _graph.degree(checked: vertex)", "        _graph.degree(of: vertex)", mode="stmt"),
     Mutant("checkedindex", "BipartiteGraph.swift", "        try _graph.vertexIndex(checked: vertex)", "        _graph.vertexIndex(of: vertex)", mode="stmt"),
+
+    # Bipartition.side(checked:)
+    Mutant("ckbipartitionlookup", "Recognition.swift", "_numbers[vertex]", "Optional(_numbers[vertex] ?? 0)", nth=1),
+    Mutant("ckbipartitionvalue", "Recognition.swift", "return _sides[v]", "return .left", mode="stmt", nth=1),
+    Mutant("ckbipartitionguard", "Recognition.swift", "guard _graph.contains(vertex) else { throw VertexNotFound() }", "", mode="stmt"),
+    Mutant("ckbipartitionthrow", "Recognition.swift", "guard _graph.contains(vertex) else { throw VertexNotFound() }", "throw VertexNotFound()", mode="stmt"),
 ]

@@ -797,7 +797,7 @@ struct CommunityDetectionRepresentationTests {
         }
         do {
             // CD-111: directed > louvainCommunities()
-            let result = graph.directed.louvainCommunities()
+            let result = graph.directedView.louvainCommunities()
             let expected: [[Int]] = [[0, 1, 2], [3, 4, 5]]
             #expect(result.map { Array($0) } == expected)
             #expect(result.count == expected.count)
@@ -806,11 +806,11 @@ struct CommunityDetectionRepresentationTests {
                     #expect(result.community(of: v) == c, "vertex \(v)")
                 }
             }
-            for (i, v) in graph.directed.vertices.enumerated() {
+            for (i, v) in graph.directedView.vertices.enumerated() {
                 #expect(result.community(ofIndex: i) == result.community(of: v), "index \(i)")
             }
             // The modularity of the result (ref.py's model).
-            let q = graph.directed.modularity(of: result)
+            let q = graph.directedView.modularity(of: result)
             #expect(abs(q - 0.35714285714285715) <= 1e-12 * max(1, abs(0.35714285714285715)))
         }
         do {
@@ -1203,7 +1203,7 @@ struct CommunityDetectionRepresentationTests {
             // CD-057: directed > modularity(of: […])
             let communities: [[Int]] = [[0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 16, 17, 19, 21],
                 [9, 14, 15, 18, 20, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33]]
-            let value = graph.directed.modularity(of: communities)
+            let value = graph.directedView.modularity(of: communities)
             #expect(abs(value - 0.3582347140039448) <= 1e-12 * max(1, abs(0.3582347140039448)))
         }
         do {
@@ -1578,7 +1578,7 @@ struct CommunityDetectionRepresentationTests {
         do {
             // CD-062: directed > modularity(of: [[0, 1], [2]])
             let communities: [[Int]] = [[0, 1], [2]]
-            let value = graph.directed.modularity(of: communities)
+            let value = graph.directedView.modularity(of: communities)
             #expect(abs(value - -0.055555555555555566) <= 1e-12 * max(1, abs(-0.055555555555555566)))
         }
         do {

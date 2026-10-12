@@ -1,8 +1,8 @@
 // `Bipartition` as a value and recognition through conversions and views the catalog does not
 // list: equality (sides compared by vertex), the description, the copy of the graph it holds,
-// generic code over `some Graph`; `CompressedSparseRow`, which has no `.undirected`, read through
-// `AdjacencyList(csr).undirected` (each arc an edge); an undirected graph read as directed and back
-// (`graph.directed.undirected`: each edge becomes a parallel pair, a loop two loops), which keeps
+// generic code over `some Graph`; `CompressedSparseRow`, which has no `.undirectedView`, read through
+// `AdjacencyList(csr).undirectedView` (each arc an edge); an undirected graph read as directed and back
+// (`graph.directedView.undirectedView`: each edge becomes a parallel pair, a loop two loops), which keeps
 // bipartiteness and the canonical sides; and `isBipartite`, `bipartition()`, `findOddCycle()`
 // agreeing on graphs whose answer is known in closed form. Expected values are the catalog's
 // (where a row is reused) or derived in each test. See README.md.
@@ -67,17 +67,17 @@ struct BipartitionTests {
         #expect(c.0 && c.1 == [0, 1] && c.2 == nil)
     }
 
-    @Test("CompressedSparseRow through AdjacencyList(csr).undirected: BP-034's K3,3 and BP-071's directed triangle")
+    @Test("CompressedSparseRow through AdjacencyList(csr).undirectedView: BP-034's K3,3 and BP-071's directed triangle")
     func compressedSparseRow() throws {
         let k33 = CompressedSparseRow(vertexCount: 6, edges: [(0, 3), (0, 4), (0, 5), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5)].map { DirectedEdge(from: $0.0, to: $0.1) })
-        let graph = AdjacencyList(k33).undirected
+        let graph = AdjacencyList(k33).undirectedView
         #expect(graph.isBipartite)
         let bipartition = try #require(graph.bipartition())
         #expect(Array(bipartition.left) == [0, 1, 2])
         #expect(Array(bipartition.right) == [3, 4, 5])
         #expect(graph.findOddCycle() == nil)
         let triangleCSR = CompressedSparseRow(vertexCount: 3, edges: [(0, 1), (1, 2), (2, 0)].map { DirectedEdge(from: $0.0, to: $0.1) })
-        let triangle = AdjacencyList(triangleCSR).undirected
+        let triangle = AdjacencyList(triangleCSR).undirectedView
         #expect(!triangle.isBipartite)
         #expect(triangle.bipartition() == nil)
         let cycle = try #require(triangle.findOddCycle())
@@ -91,11 +91,11 @@ struct BipartitionTests {
         #expect(Cycle(vertices: cycle.vertices, edges: cycle.edges, in: triangle) != nil)
     }
 
-    @Test("graph.directed.undirected doubles every edge into a parallel pair: the same bipartiteness and sides; an odd cycle uses one copy of each edge")
+    @Test("graph.directedView.undirectedView doubles every edge into a parallel pair: the same bipartiteness and sides; an odd cycle uses one copy of each edge")
     func directedThenUndirected() throws {
         // BP-053 (disconnected, bipartite) and BP-022 (C5).
         let disconnected = UndirectedAdjacencyList(vertices: 0 ..< 6, edges: [(1, 2), (3, 4), (4, 5)].map { UndirectedEdge($0.0, $0.1) })
-        let doubled = disconnected.directed.undirected
+        let doubled = disconnected.directedView.undirectedView
         #expect(doubled.edgeCount == 6)
         #expect(doubled.isBipartite)
         let bipartition = try #require(doubled.bipartition())
@@ -107,7 +107,7 @@ struct BipartitionTests {
         #expect(Array(bipartite.left) == [0, 1, 3, 5])
 
         let pentagon = UndirectedAdjacencyList(vertices: 0 ..< 5, edges: [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)].map { UndirectedEdge($0.0, $0.1) })
-        let doubledPentagon = pentagon.directed.undirected
+        let doubledPentagon = pentagon.directedView.undirectedView
         #expect(!doubledPentagon.isBipartite)
         #expect(BipartiteGraph(doubledPentagon) == nil)
         let cycle = try #require(doubledPentagon.findOddCycle())

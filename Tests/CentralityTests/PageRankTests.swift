@@ -4,7 +4,7 @@
 // Expected values are ref.py's model at full precision (the catalog cells are the same values
 // rounded to 12 digits); non-iterative rows compare within 1e-12 relative to max(1, |value|), the
 // iterative ones within the catalog's Tol of the limit. Undirected rows also run on
-// `graph.directed` (the same values; twice for degree and unnormalized betweenness).
+// `graph.directedView` (the same values; twice for degree and unnormalized betweenness).
 // Case IDs (CE-nnn) refer to the catalog; see README.md.
 
 import Centrality
@@ -155,10 +155,10 @@ struct PageRankTests {
         #expect(byVertex == result.scores)
         let total = result.scores.reduce(0, +)
         #expect(abs(total - 1) <= 1e-12, "scores sum to 1")
-        let arcs = try graph.directed.pageRank()
+        let arcs = try graph.directedView.pageRank()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -183,14 +183,14 @@ struct PageRankTests {
         #expect(byVertex == result.scores)
         let total = result.scores.reduce(0, +)
         #expect(abs(total - 1) <= 1e-12, "scores sum to 1")
-        let arcs = try graph.directed.pageRank()
+        let arcs = try graph.directedView.pageRank()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
-    @Test("CE-182 U(P(0,1,2), 1-1).pageRank() is [0.184210526316, 0.631578947368, 0.184210526316]: The loop is two arcs 1 → 1 (graph.directed's reading)")
+    @Test("CE-182 U(P(0,1,2), 1-1).pageRank() is [0.184210526316, 0.631578947368, 0.184210526316]: The loop is two arcs 1 → 1 (graph.directedView's reading)")
     func pageRank182() throws {
         // U: P(0,1,2), 1-1
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (1, 1)]
@@ -208,10 +208,10 @@ struct PageRankTests {
         #expect(byVertex == result.scores)
         let total = result.scores.reduce(0, +)
         #expect(abs(total - 1) <= 1e-12, "scores sum to 1")
-        let arcs = try graph.directed.pageRank()
+        let arcs = try graph.directedView.pageRank()
         for (i, value) in expected.enumerated() {
             let error = abs(arcs.score(ofIndex: i) - value)
-            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directed, index \(i)")
+            #expect(error <= 1e-4 * max(1, abs(value)), "graph.directedView, index \(i)")
         }
     }
 
@@ -295,7 +295,7 @@ struct PageRankTests {
         let failure = #expect(throws: NoConvergence.self) { try graph.pageRank(maxIterations: 3) }
         #expect(failure?.iterations == 3)
         #expect(failure.map { !($0.residual < 1e-06) } == true)
-        let directedFailure = #expect(throws: NoConvergence.self) { try graph.directed.pageRank(maxIterations: 3) }
+        let directedFailure = #expect(throws: NoConvergence.self) { try graph.directedView.pageRank(maxIterations: 3) }
         #expect(directedFailure?.iterations == 3)
         #expect(directedFailure.map { !($0.residual < 1e-06) } == true)
     }
@@ -320,12 +320,12 @@ struct PageRankTests {
         #expect(abs(total - 1) <= 1e-12, "scores sum to 1")
     }
 
-    @Test("CE-190 U(P(0,1,2)).directed.pageRank() is [0.256756756757, 0.486486486486, 0.256756756757]: Same as undirected")
+    @Test("CE-190 U(P(0,1,2)).directedView.pageRank() is [0.256756756757, 0.486486486486, 0.256756756757]: Same as undirected")
     func pageRank190() throws {
         // U: P(0,1,2)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
         let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let result = try graph.directed.pageRank()
+        let result = try graph.directedView.pageRank()
         let expected: [Double] = [0.256756756756757, 0.4864864864864858, 0.256756756756757]
         #expect(result.scores.count == expected.count)
         for (i, value) in expected.enumerated() {
@@ -334,7 +334,7 @@ struct PageRankTests {
         }
         let byIndex = result.scores.indices.map { result.score(ofIndex: $0) }
         #expect(byIndex == result.scores)
-        let byVertex = graph.directed.vertices.map { result.score(of: $0) }
+        let byVertex = graph.directedView.vertices.map { result.score(of: $0) }
         #expect(byVertex == result.scores)
         let total = result.scores.reduce(0, +)
         #expect(abs(total - 1) <= 1e-12, "scores sum to 1")

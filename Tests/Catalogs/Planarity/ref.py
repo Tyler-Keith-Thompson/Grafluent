@@ -64,7 +64,7 @@ class Trap(Exception):
 class G:
     """A graph in index space: vertex names in `vertices` order, edges (u, v) by index in
     position order. A `D:` graph is read through its underlying undirected graph (each arc an
-    edge), which is what `graph.undirected` gives."""
+    edge), which is what `graph.undirectedView` gives."""
 
     def __init__(self, directed, vertices, edges):
         self.directed = directed
@@ -692,9 +692,9 @@ def fmt_list(xs):
 
 def evaluate(cell, op, note):
     g = parse_graph(cell)
-    if op.startswith("undirected."):
+    if op.startswith("undirectedView."):
         assert g.directed
-        op = op[len("undirected."):]
+        op = op[len("undirectedView."):]
     planar, one, allr, unique = embedding_info(g)
     if not planar:
         w = extract_witness(g)
@@ -862,13 +862,13 @@ def define():
         ("K5 with a loop at every vertex", "U: K(5), 0-0, 1-1, 2-2, 3-3, 4-4", "isPlanar"),
         ("K3,3 with every edge doubled", "U: 0=3, 0=4, 0=5, 1=3, 1=4, 1=5, 2=3, 2=4, 2=5", "isPlanar"),
         ("K4 with a loop and a parallel pair", "U: K(4), 0-0, 1=2", "isPlanar"),
-        ("directed K5 (transitive tournament)", "D: tt(5)", "undirected.isPlanar"),
-        ("directed K4", "D: tt(4)", "undirected.isPlanar"),
-        ("a 2-cycle: two parallel edges underneath", "D: 0>1, 1>0", "undirected.isPlanar"),
-        ("directed K3,3", "D: KB(0..2;3..5)", "undirected.isPlanar"),
-        ("directed K3,3, some arcs reversed", "D: 0>3, 4>0, 0>5, 3>1, 1>4, 5>1, 2>3, 2>4, 5>2", "undirected.isPlanar"),
-        ("directed: 2-cycle embedding", "D: 0>1, 1>0, 1>2", "undirected.planarEmbedding()"),
-        ("directed K5: witness", "D: tt(5)", "undirected.findKuratowskiSubgraph()"),
+        ("directed K5 (transitive tournament)", "D: tt(5)", "undirectedView.isPlanar"),
+        ("directed K4", "D: tt(4)", "undirectedView.isPlanar"),
+        ("a 2-cycle: two parallel edges underneath", "D: 0>1, 1>0", "undirectedView.isPlanar"),
+        ("directed K3,3", "D: KB(0..2;3..5)", "undirectedView.isPlanar"),
+        ("directed K3,3, some arcs reversed", "D: 0>3, 4>0, 0>5, 3>1, 1>4, 5>1, 2>3, 2>4, 5>2", "undirectedView.isPlanar"),
+        ("directed: 2-cycle embedding", "D: 0>1, 1>0, 1>2", "undirectedView.planarEmbedding()"),
+        ("directed K5: witness", "D: tt(5)", "undirectedView.findKuratowskiSubgraph()"),
     ]:
         R(IN, case, gcell, op)
     # --- embeddings
@@ -997,7 +997,7 @@ def define():
         ("K2,3 subdivided", "U: sd(KB(0..1;2..4))"),
         ("directed K4", "D: tt(4)"),
     ]:
-        R(OU, case, gcell, "undirected.isOuterplanar" if gcell.startswith("D:") else "isOuterplanar")
+        R(OU, case, gcell, "undirectedView.isOuterplanar" if gcell.startswith("D:") else "isOuterplanar")
     # --- scale
     for case, gcell, op in [
         ("grid 30 × 30", "U: grid(30,30)", "isPlanar"),
@@ -1047,7 +1047,7 @@ where they are unique; larger blocks that are themselves a subdivision are uniqu
 
 ## Notation
 
-**Graph**: `U:` undirected, `D:` directed (the rows call `graph.undirected`: each arc is an
+**Graph**: `U:` undirected, `D:` directed (the rows call `graph.undirectedView`: each arc is an
 edge). An optional vertex list in brackets comes first, then edges in **position order**.
 `vertices` is the listed vertices, then the vertices of generators, then endpoints by first
 appearance. Vertices are `Int`s.

@@ -92,6 +92,17 @@ public struct Components<G: DirectedGraph>: RandomAccessCollection {
         return _labels[number]
     }
 
+    /// `component(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex of the
+    /// graph these components were computed from: one `contains(_:)` on the graph's copy, then
+    /// the trapping spelling.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the graph.
+    @inlinable
+    public func component(checked vertex: G.Vertex) throws(VertexNotFound) -> Int {
+        guard _vertices.graph.contains(vertex) else { throw VertexNotFound() }
+        return component(of: vertex)
+    }
+
     /// The position of the component containing the vertex at `index`, for algorithms working in
     /// index space.
     ///

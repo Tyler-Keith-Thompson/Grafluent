@@ -4,9 +4,10 @@
 // preconditions the catalog does not list: `mate(of:)` on a non-vertex, `mate(ofIndex:)` out of
 // range, `mate(ofProposer:)` and `mate(ofReviewer:)` out of range, a reviewer list naming a proposer
 // out of range or one twice, a position outside `edges` given to the other two checks, a NaN weight
-// to `minimumWeightMatching`, a negative column count, a NaN cost under `maximize`. Each exit test
-// builds its inputs inside the closure. Generated from cases.md by swiftgen.py, the tests after
-// MA-238 written by hand; see README.md.
+// to `minimumWeightMatching`, a negative column count, a NaN cost under `maximize`. Then, in
+// process, the `checked:` spellings of the four lookups, which throw instead and keep nil for a free
+// vertex or an unmatched agent. Each exit test builds its inputs inside the closure. Generated from
+// cases.md by swiftgen.py, the tests after MA-238 written by hand; see README.md.
 
 import AdjacencyListModule
 import BipartiteGraphs
@@ -210,5 +211,42 @@ struct MatchingPreconditionTests {
         await #expect(processExitsWith: .failure) {
             _ = linearSumAssignment(rowCount: 2, columnCount: 2, maximize: true) { (i: Int, j: Int) -> Double? in i == 1 && j == 0 ? .nan : 1 }
         }
+    }
+
+    @Test("mate(checked:) and matchedEdge(checked:) throw for a non-vertex and keep nil for a free vertex")
+    func checkedMateOfNonVertex() throws {
+        let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1, 2], edges: [UndirectedEdge(0, 1)])
+        let matching = graph.maximumMatching()
+        #expect(throws: VertexNotFound()) { try matching.mate(checked: 7) }
+        #expect(throws: VertexNotFound()) { try matching.matchedEdge(checked: -1) }
+        #expect(try matching.mate(checked: 0) == 1 && matching.mate(checked: 1) == 0)
+        #expect(try matching.mate(checked: 2) == nil && matching.matchedEdge(checked: 2) == nil)
+        #expect(try matching.matchedEdge(checked: 1) == 0)
+        // Without vertex indices: the lookup goes through the matching's own table.
+        struct Unindexed: Graph {
+            let vertices: [String]
+            let edges: [UndirectedEdge<String>]
+            func incidentEdges(of vertex: String) -> [Int] { edges.indices.filter { edges[$0].u == vertex || edges[$0].v == vertex } }
+            func neighbors(of vertex: String) -> [String] { incidentEdges(of: vertex).map { edges[$0].oppositeVertex(to: vertex) } }
+        }
+        let named = Unindexed(vertices: ["a", "b", "c"], edges: [UndirectedEdge("b", "c")])
+        #expect(named.vertexIndexBound == nil)
+        let namedMatching = named.maximumMatching()
+        #expect(throws: VertexNotFound()) { try namedMatching.mate(checked: "z") }
+        #expect(throws: VertexNotFound()) { try namedMatching.matchedEdge(checked: "z") }
+        #expect(try namedMatching.mate(checked: "b") == "c" && namedMatching.mate(checked: "a") == nil)
+        #expect(try namedMatching.matchedEdge(checked: "c") == namedMatching.matchedEdge(of: "c"))
+    }
+
+    @Test("mate(checkedProposer:) and mate(checkedReviewer:) throw out of range and keep nil for an unmatched agent")
+    func checkedStableMates() throws {
+        // Proposer 1 lists nobody; reviewer 1 is listed by nobody.
+        let result = stableMatching(proposerPreferences: [[0], []], reviewerPreferences: [[0], []])
+        #expect(throws: VertexNotFound()) { try result.mate(checkedProposer: 2) }
+        #expect(throws: VertexNotFound()) { try result.mate(checkedProposer: -1) }
+        #expect(throws: VertexNotFound()) { try result.mate(checkedReviewer: 2) }
+        #expect(throws: VertexNotFound()) { try result.mate(checkedReviewer: -1) }
+        #expect(try result.mate(checkedProposer: 0) == 0 && result.mate(checkedProposer: 1) == nil)
+        #expect(try result.mate(checkedReviewer: 0) == 0 && result.mate(checkedReviewer: 1) == nil)
     }
 }

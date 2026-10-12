@@ -57,7 +57,7 @@ func stableMatching(proposerPreferences:reviewerPreferences:) -> StableMatching 
 | Full matching, assignment | scipy 1.18.1's `linear_sum_assignment` (reversed column scan, an unassigned column preferred among equal costs, tall matrices transposed); nil when infeasible; the empty matching when a side is empty | MA-166 – MA-212 |
 | `stableMatching` | The proposer-optimal stable matching; a pair is acceptable only when each lists the other | MA-213 – MA-228 |
 | Checks | Definitions on positions: a repeat, a loop or a shared end is not a matching; loops ignored for maximality; an isolated vertex rules out perfection | MA-035 – MA-051 |
-| Representations through `.undirected` | Rows are successors, then predecessors; matrix positions are row-major cells | `MatchingRepresentationTests.swift` |
+| Representations through `.undirectedView` | Rows are successors, then predecessors; matrix positions are row-major cells | `MatchingRepresentationTests.swift` |
 
 ## How values are pinned
 
@@ -92,9 +92,9 @@ better in another (proposer-optimal), and all stable matchings match the same ag
 
 In `MatchingRepresentationTests.swift` every graph row (MA-001 – MA-181) runs again: rows on
 `UndirectedAdjacencyList` on `ReferencePseudograph` (136), every graph row on the unindexed
-conformer (147), all with the catalog's values; on `AdjacencyList.undirected` with each edge an arc
-as written (141), and on `AdjacencyMatrix.undirected` for rows on `0..<n` with no arc twice (106).
-Through `.undirected` a row is successors, then predecessors, so the outputs of the row-order
+conformer (147), all with the catalog's values; on `AdjacencyList.undirectedView` with each edge an arc
+as written (141), and on `AdjacencyMatrix.undirectedView` for rows on `0..<n` with no arc twice (106).
+Through `.undirectedView` a row is successors, then predecessors, so the outputs of the row-order
 algorithms differ from the catalog's: `swiftgen.py` computed each with `ref.py`'s model on that
 representation's rows, and the weighted rows with NetworkX 3.7 itself, given that adjacency order.
 Weighted rows with parallel edges stay off those two views (which of two equal copies is met first
@@ -141,9 +141,9 @@ bipartition (1), no NaN check on costs (2), and no check for a repeat in a prefe
 | `FullMatchingTests.swift` | 16 | §Full matching, MA-166 – MA-181: NetworkX's examples, transposition, negative weights, empty sides, ties, `Graph` rows through `bipartition()`, infeasible rows |
 | `LinearSumAssignmentTests.swift` | 31 | §Assignment, MA-182 – MA-212: scipy's examples, `maximize`, forbidden pairs, tall and empty matrices, ties, exact integers beyond 2⁵³ |
 | `StableMatchingTests.swift` | 16 | §Stable, MA-213 – MA-228: Gale–Shapley's example both ways, unequal sides, incomplete and one-sided lists, seeded random instances |
-| `MatchingPreconditionTests.swift` | 24 | Exit tests: MA-229 – MA-238; then `mate(of:)` and `matchedEdge(of:)` on a non-vertex, `mate(ofIndex:)` past the end and negative, `mate(ofProposer:)` and `mate(ofReviewer:)` out of range, a reviewer list naming a proposer out of range or twice, a negative reviewer index, out-of-range positions given to `isMaximalMatching` and `isPerfectMatching`, a NaN weight to `minimumWeightMatching`, a negative column count, a NaN cost under `maximize` |
-| `MatchingRepresentationTests.swift` | 181 | Every graph row again on `ReferencePseudograph`, a conformer with no indices, `AdjacencyList.undirected` and `AdjacencyMatrix.undirected`; the `BipartiteGraph` rows through `bipartition()` |
-| `MatchingConformanceTests.swift` | 12 | Equality and hashing, descriptions, `Matching<G, Int>` with `weight == edges.count`, the empty graph's perfect matching, `Sendable` across a `Task`, the graph copy a matching keeps, generic code, `CompressedSparseRow` through `AdjacencyList(csr).undirected`, `graph.directed.undirected`, `Int32`, `Float` and `Int8` weights, forbidden pairs under `maximize`, `LinearSumAssignment` and `StableMatching` as values |
+| `MatchingPreconditionTests.swift` | 26 | Exit tests: MA-229 – MA-238; then `mate(of:)` and `matchedEdge(of:)` on a non-vertex, `mate(ofIndex:)` past the end and negative, `mate(ofProposer:)` and `mate(ofReviewer:)` out of range, a reviewer list naming a proposer out of range or twice, a negative reviewer index, out-of-range positions given to `isMaximalMatching` and `isPerfectMatching`, a NaN weight to `minimumWeightMatching`, a negative column count, a NaN cost under `maximize`; then, in process, `mate(checked:)`, `matchedEdge(checked:)`, `mate(checkedProposer:)` and `mate(checkedReviewer:)` throwing `VertexNotFound` and keeping nil for a free vertex |
+| `MatchingRepresentationTests.swift` | 181 | Every graph row again on `ReferencePseudograph`, a conformer with no indices, `AdjacencyList.undirectedView` and `AdjacencyMatrix.undirectedView`; the `BipartiteGraph` rows through `bipartition()` |
+| `MatchingConformanceTests.swift` | 12 | Equality and hashing, descriptions, `Matching<G, Int>` with `weight == edges.count`, the empty graph's perfect matching, `Sendable` across a `Task`, the graph copy a matching keeps, generic code, `CompressedSparseRow` through `AdjacencyList(csr).undirectedView`, `graph.directedView.undirectedView`, `Int32`, `Float` and `Int8` weights, forbidden pairs under `maximize`, `LinearSumAssignment` and `StableMatching` as values |
 | `MatchingPropertyTests.swift` | 8 | PropertyBased, shrinking, multigraphs with loops in shuffled vertex orders: maximum size and the greedy scan against brute force; Edmonds' exact output against api.md's procedure written out; Hopcroft–Karp's size against Edmonds and the unit-weight matching, the König cover, its exact output against api.md's procedure, the same through `bipartition()` and with doubled edges; maximum- and minimum-weight matching against brute force in `Int`, `Double` and `Int32`, loops never weighed, no negative edge without `maximumCardinality`; `linearSumAssignment` against brute force (forbidden pairs, `maximize`, transposed, `Double`); the full matching against brute force and against `linearSumAssignment` on the biadjacency matrix, `weight` called once per edge; `stableMatching` stable, proposer-optimal, rural hospitals, and reviewer-optimal with the roles swapped; the checks against their definitions |
 | `Performance/MatchingStressTests.swift` | 11 | Inside a `Task` with a one-minute limit: Hopcroft–Karp on 10⁵ vertices with a planted perfect matching (and through `bipartition()`) and with unequal sides; Edmonds on C₁₀₀₀₀₁, P₁₀₀₀₀₀ and a chain of 10⁴ pentagons; the weighted path P₁₀₀₀ and 300 weighted triangles; 200 × 200 and 300 × 150 assignments and the constant matrix; the full matching of K₁₅₀,₁₅₀; weighted matchings with non-dyadic weights against the assignment on K₆₀,₆₀ and a subset program on 300 random graphs; 1000 × 1000 and 500 × 500 stable matchings |
 
@@ -179,7 +179,7 @@ catalog does not list.
 |---|---|---|
 | MA-164's edges | The catalog cell lists edges [1, 3]: `ref.py`'s minimum-weight model rebuilds the transformed graph in NetworkX's `G.edges()` order (as NetworkX's `min_weight_matching` does). api.md defines `minimumWeightMatching` as `maximumWeightMatching` on (1 + max) − w and says the graph is kept, so the transform runs on the same rows, which gives [0, 2]: the same size (2) and weight (2). The test pins [0, 2]; it is the only row where the two differ | MA-164 |
 | "Bipartition of P3" (MA-230) | A bipartition of the path 0–1–2–3 (three edges, four vertices) given to a three-vertex graph, so the vertex count differs as the row says | MA-230 |
-| "The earliest on ties" between parallel copies | The earliest position in `edges`; on `graph.directed.undirected` the forward copy of each edge | MA-021, `directedAndBack` |
+| "The earliest on ties" between parallel copies | The earliest position in `edges`; on `graph.directedView.undirectedView` the forward copy of each edge | MA-021, `directedAndBack` |
 | Parallel copies in `minimumWeightMatching` | The transform is applied per edge before copies collapse, so the lightest copy is kept (the brute-force minimum requires it); the catalog has no such row | `weightedAgainstBruteForce` |
 | How often `weight` is called by the full matching | Once per edge, as api.md's Complexity section says (at most once per edge when a side is empty) | `fullMatchingAgainstBruteForce` |
 | The description | `{0–1, 2–3}` for `Int` vertices, `{}` when empty, as `UndirectedEdge.description` writes each edge; for `String` vertices only the endpoints' presence is checked | `descriptions` |

@@ -90,6 +90,28 @@ public struct Forest<Vertex: Hashable> {
         self.init(_layout: layout)
     }
 
+    /// The forest on `vertices` (distinct) in which the k-th vertex's parent is the
+    /// `parents[k]`-th, or a negative entry for a root: one edge (parent, child) per non-root, in
+    /// vertex order. The forest-shaped results of other modules (shortest-path forests) convert
+    /// through it. Numbered without a table when the vertices are the `Int`s `0..<n` in order.
+    /// O(n).
+    ///
+    /// - Precondition: `parents` holds no cycle.
+    @inlinable
+    package init(vertices: ContiguousArray<Vertex>, parents: [Int]) {
+        let (slots, dense) = _TreeLayout.numbering(vertices)
+        var ends: [Int] = []
+        ends.reserveCapacity(2 * vertices.count)
+        for (v, p) in parents.enumerated() where p >= 0 {
+            ends.append(p)
+            ends.append(v)
+        }
+        guard let layout = _TreeLayout(vertices: vertices, slots: slots, dense: dense, ends: ends, root: nil) else {
+            preconditionFailure("The parents hold a cycle")
+        }
+        self.init(_layout: layout)
+    }
+
     /// The forest of one tree. O(1).
     @inlinable
     public init(_ tree: Tree<Vertex>) {

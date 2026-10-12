@@ -63,6 +63,8 @@ extension RootedTree {   // and the same two on Arborescence
     public func distance(from a: Vertex, to b: Vertex) -> Int
     public func lowestCommonAncestor(ofIndex a: Int, _ b: Int) -> Int
     public func distance(fromIndex a: Int, toIndex b: Int) -> Int
+    // README Principle 6: lowestCommonAncestor(checked:_:), distance(checkedFrom:to:) throw
+    // VertexNotFound; the same lowestCommonAncestor(checked:_:) on RootedTree and Arborescence.
 }
 
 @frozen public struct HeavyLightDecomposition<Vertex: Hashable> {
@@ -86,6 +88,8 @@ extension RootedTree {   // and the same two on Arborescence
     public func segments(from source: Vertex, to target: Vertex,
                          includingCommonAncestor: Bool = true) -> [Segment]
     public func lowestCommonAncestor(of a: Vertex, _ b: Vertex) -> Vertex   // O(log n)
+    // README Principle 6: heavyChild, head, position, subtree, lowestCommonAncestor (checked:)
+    // and segments(checkedFrom:to:includingCommonAncestor:) throw VertexNotFound.
 
     @frozen public struct Segment: Hashable, Sendable {
         public var positions: Range<Int>

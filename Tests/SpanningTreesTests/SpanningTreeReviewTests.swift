@@ -102,7 +102,7 @@ struct SpanningTreeReviewTests {
         // K₉, all weights equal: the canonical forest is the first forest in position order.
         let pairs = (0 ..< 9).flatMap { u in (u + 1 ..< 9).map { UndirectedEdge(u, $0) } }
 
-        let matrix = AdjacencyMatrix(vertexCount: 9, edges: pairs.map { DirectedEdge(from: $0.u, to: $0.v) }).undirected
+        let matrix = AdjacencyMatrix(vertexCount: 9, edges: pairs.map { DirectedEdge(from: $0.u, to: $0.v) }).undirectedView
         #expect(matrix.vertexIndexBound == 9 && matrix.edgeIndexBound == nil && matrix.edgeCount == 36)
         let fromMatrix = matrix.minimumSpanningTree { _ in 1 }
         #expect(fromMatrix == matrix.kruskalMinimumSpanningTree { _ in 1 })

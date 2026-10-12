@@ -60,4 +60,8 @@ MUTANTS = [
     Mutant("directeddensity", "DirectedMeasures.swift", "Double(edgeCount) / (Double(n) * Double(n - 1))", "2 * Double(edgeCount) / (Double(n) * Double(n - 1))"),
     Mutant("directedstop", "DirectedMeasures.swift", "_allEccentricities(rows, undirected: false, stopAtMiss: true)", "_allEccentricities(rows, undirected: false)", nth=0),
     Mutant("center", "Eccentricities.swift", "_matching(_values, _radius)", "_matching(_values, _diameter)"),
+
+    # The checked: lookups.
+    Mutant("eccentricitychecked", "Eccentricities.swift", "guard _graph.contains(vertex) else { throw VertexNotFound() }", "guard true else { throw VertexNotFound() }", mode="stmt"),
+    Mutant("eccentricitycheckedvalue", "Eccentricities.swift", "        return eccentricity(of: vertex)", "        return eccentricity(ofIndex: 0)", mode="stmt"),
 ]

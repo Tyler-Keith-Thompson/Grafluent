@@ -183,6 +183,6 @@ struct TreeConformanceTests {
         #expect(degreeSum(RootedTree(tree, root: 3)) == 12)
         #expect(degreeSum(Forest(tree)) == 12)
         #expect(inDegreeSum(Arborescence(RootedTree(tree, root: 3))) == 6)
-        #expect(degreeSum(Arborescence(RootedTree(tree, root: 3)).undirected) == 12)
+        #expect(degreeSum(Arborescence(RootedTree(tree, root: 3)).undirectedView) == 12)
     }
 }

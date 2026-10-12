@@ -529,8 +529,8 @@ def fmt_rows(p):
 # ---------------------------------------------------------------- cases
 
 ROWS = []
-NAMES = {"cartesian": "cartesianProduct", "tensor": "tensorProduct", "strong": "strongProduct",
-         "lexicographic": "lexicographicProduct"}
+NAMES = {"cartesian": "cartesianProductView", "tensor": "tensorProductView", "strong": "strongProductView",
+         "lexicographic": "lexicographicProductView"}
 
 
 def row(group, title, inp, exp):
@@ -619,7 +619,7 @@ def define():
             exp = "no trap"
         except Trap as t:
             exp = f"**trap** ({t})"
-        row(G, title, f"G = {gf[1]}; H = {hf[1]} / cartesianProduct(G, H)", exp)
+        row(G, title, f"G = {gf[1]}; H = {hf[1]} / cartesianProductView(G, H)", exp)
     p = Product("cartesian", *[f for f, _ in (UU("a b", "a-b"), UU("x", ""))])
     try:
         p.vertex_index(("a", "q"))
@@ -627,7 +627,7 @@ def define():
     except Trap as t:
         exp = f"**trap** ({t})"
     row(G, "a pair with a vertex not in its factor traps", "G = UL V [a, b]; E [a–b]; H = UL V [x]; E [] / "
-        "cartesianProduct(G, H).vertexIndex(of: Pair(a, q))", exp)
+        "cartesianProductView(G, H).vertexIndex(of: Pair(a, q))", exp)
 
 
 class _Mat(Factor):

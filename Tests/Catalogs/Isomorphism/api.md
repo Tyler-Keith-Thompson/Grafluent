@@ -54,7 +54,7 @@ several minutes):
 |---|---|
 | Predicate matching (Boost `vertex_equivalent`, NetworkX `node_match` with arbitrary functions, rustworkx `node_matcher`) | A colour (`Hashable` class) does everything an equivalence relation does, and VF2++'s ordering and cutting rules, the WL pre-refinement and phase 2's canonical form all need classes. A non-transitive predicate (NetworkX `numerical_node_match` with a tolerance) has no classes and no library can prune with it. Phase 3 only if asked for. |
 | A count entry point (igraph `count_isomorphisms_vf2`, `count_subisomorphisms_vf2`) | `isomorphisms(to:)` is lazy and its elements are small (one `[Int]`). A dedicated count could skip building them; add only if a benchmark shows it matters. The automorphism count is phase 2's `order`. |
-| Mixed kinds (an undirected pattern in a directed target) | Not one problem in any library; `graph.directed` gives the symmetric reading. |
+| Mixed kinds (an undirected pattern in a directed target) | Not one problem in any library; `graph.directedView` gives the symmetric reading. |
 | Tree isomorphism (NetworkX `tree_isomorphism`, AHU; JGraphT `AHURootedTreeIsomorphismInspector`) | Linear time on `Tree`/`RootedTree`; belongs with `TreeAlgorithms` or `Trees`. Colour refinement already decides isomorphism of trees, so phase 1's matcher never backtracks on them. |
 | Time-respecting matching (NetworkX `TimeRespectingGraphMatcher`), ISMAGS symmetry-broken subgraph enumeration, maximum common subgraph | NetworkX-only, or a different problem. |
 | `could_be_isomorphic` and its fast variants | NetworkX's degree/triangle/clique invariants; `weisfeilerLehmanGraphHash` subsumes the cheap ones. |
@@ -120,6 +120,7 @@ public struct WeisfeilerLehmanSubgraphHashes<G> {
     public var iterations: Int
     public func hashes(of vertex: G.Vertex) -> ArraySlice<Int>   // one per round, rounds 1...iterations
     public func hashes(ofIndex index: Int) -> ArraySlice<Int>
+    public func hashes(checked vertex: G.Vertex) throws(VertexNotFound) -> ArraySlice<Int>  // Principle 6
 }
 
 // Phase 2
@@ -127,11 +128,13 @@ public struct AutomorphismGroup<G> {
     public var generators: [Isomorphism<G, G>]          // a generating set, not pinned
     public var orbits: AutomorphismOrbits<G.Vertex>     // RandomAccessCollection of vertex slices
     public func orbit(of vertex: G.Vertex) -> Int       // index into orbits
+    public func orbit(checked vertex: G.Vertex) throws(VertexNotFound) -> Int  // Principle 6
     public var order: Double                            // nauty grpsize, bliss get_group_size_approx
     public var basicOrbitLengths: [Int]                 // the stabiliser chain the search found; product = the exact order
 }
 public struct CanonicalLabeling<G> {
     public func canonicalIndex(of vertex: G.Vertex) -> Int
+    public func canonicalIndex(checked vertex: G.Vertex) throws(VertexNotFound) -> Int  // Principle 6
     public var permutation: [Int]                       // igraph's convention: permutation[i] = canonical index of vertex i
     public var form: CanonicalForm                      // Hashable, Sendable; equal ⇔ isomorphic
 }

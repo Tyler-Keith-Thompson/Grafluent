@@ -19,6 +19,8 @@ struct StableMatchingTests {
         let expectedReviewerMates: [Int?] = [0, 1, 2]
         for p in 0 ..< 3 { #expect(result.mate(ofProposer: p) == expectedProposerMates[p], "proposer \(p)") }
         for r in 0 ..< 3 { #expect(result.mate(ofReviewer: r) == expectedReviewerMates[r], "reviewer \(r)") }
+        for p in 0 ..< 3 { #expect((try? result.mate(checkedProposer: p)) == expectedProposerMates[p], "checked proposer \(p)") }
+        for r in 0 ..< 3 { #expect((try? result.mate(checkedReviewer: r)) == expectedReviewerMates[r], "checked reviewer \(r)") }
         // Every matching over acceptable pairs, by brute force; the stable ones.
         func acceptable(_ p: Int, _ r: Int) -> Bool { proposers[p].contains(r) && reviewers[r].contains(p) }
         func isStable(_ m: [Int?]) -> Bool {
@@ -79,6 +81,8 @@ struct StableMatchingTests {
         let expectedReviewerMates: [Int?] = [2, 0, 1]
         for p in 0 ..< 3 { #expect(result.mate(ofProposer: p) == expectedProposerMates[p], "proposer \(p)") }
         for r in 0 ..< 3 { #expect(result.mate(ofReviewer: r) == expectedReviewerMates[r], "reviewer \(r)") }
+        for p in 0 ..< 3 { #expect((try? result.mate(checkedProposer: p)) == expectedProposerMates[p], "checked proposer \(p)") }
+        for r in 0 ..< 3 { #expect((try? result.mate(checkedReviewer: r)) == expectedReviewerMates[r], "checked reviewer \(r)") }
         // Every matching over acceptable pairs, by brute force; the stable ones.
         func acceptable(_ p: Int, _ r: Int) -> Bool { proposers[p].contains(r) && reviewers[r].contains(p) }
         func isStable(_ m: [Int?]) -> Bool {
@@ -139,6 +143,8 @@ struct StableMatchingTests {
         let expectedReviewerMates: [Int?] = [0, 1, 2]
         for p in 0 ..< 3 { #expect(result.mate(ofProposer: p) == expectedProposerMates[p], "proposer \(p)") }
         for r in 0 ..< 3 { #expect(result.mate(ofReviewer: r) == expectedReviewerMates[r], "reviewer \(r)") }
+        for p in 0 ..< 3 { #expect((try? result.mate(checkedProposer: p)) == expectedProposerMates[p], "checked proposer \(p)") }
+        for r in 0 ..< 3 { #expect((try? result.mate(checkedReviewer: r)) == expectedReviewerMates[r], "checked reviewer \(r)") }
         // Every matching over acceptable pairs, by brute force; the stable ones.
         func acceptable(_ p: Int, _ r: Int) -> Bool { proposers[p].contains(r) && reviewers[r].contains(p) }
         func isStable(_ m: [Int?]) -> Bool {
@@ -199,6 +205,8 @@ struct StableMatchingTests {
         let expectedReviewerMates: [Int?] = [0]
         for p in 0 ..< 1 { #expect(result.mate(ofProposer: p) == expectedProposerMates[p], "proposer \(p)") }
         for r in 0 ..< 1 { #expect(result.mate(ofReviewer: r) == expectedReviewerMates[r], "reviewer \(r)") }
+        for p in 0 ..< 1 { #expect((try? result.mate(checkedProposer: p)) == expectedProposerMates[p], "checked proposer \(p)") }
+        for r in 0 ..< 1 { #expect((try? result.mate(checkedReviewer: r)) == expectedReviewerMates[r], "checked reviewer \(r)") }
         // Every matching over acceptable pairs, by brute force; the stable ones.
         func acceptable(_ p: Int, _ r: Int) -> Bool { proposers[p].contains(r) && reviewers[r].contains(p) }
         func isStable(_ m: [Int?]) -> Bool {
@@ -259,6 +267,8 @@ struct StableMatchingTests {
         let expectedReviewerMates: [Int?] = [nil, nil]
         for p in 0 ..< 0 { #expect(result.mate(ofProposer: p) == expectedProposerMates[p], "proposer \(p)") }
         for r in 0 ..< 2 { #expect(result.mate(ofReviewer: r) == expectedReviewerMates[r], "reviewer \(r)") }
+        for p in 0 ..< 0 { #expect((try? result.mate(checkedProposer: p)) == expectedProposerMates[p], "checked proposer \(p)") }
+        for r in 0 ..< 2 { #expect((try? result.mate(checkedReviewer: r)) == expectedReviewerMates[r], "checked reviewer \(r)") }
         // Every matching over acceptable pairs, by brute force; the stable ones.
         func acceptable(_ p: Int, _ r: Int) -> Bool { proposers[p].contains(r) && reviewers[r].contains(p) }
         func isStable(_ m: [Int?]) -> Bool {
@@ -319,6 +329,8 @@ struct StableMatchingTests {
         let expectedReviewerMates: [Int?] = []
         for p in 0 ..< 2 { #expect(result.mate(ofProposer: p) == expectedProposerMates[p], "proposer \(p)") }
         for r in 0 ..< 0 { #expect(result.mate(ofReviewer: r) == expectedReviewerMates[r], "reviewer \(r)") }
+        for p in 0 ..< 2 { #expect((try? result.mate(checkedProposer: p)) == expectedProposerMates[p], "checked proposer \(p)") }
+        for r in 0 ..< 0 { #expect((try? result.mate(checkedReviewer: r)) == expectedReviewerMates[r], "checked reviewer \(r)") }
         // Every matching over acceptable pairs, by brute force; the stable ones.
         func acceptable(_ p: Int, _ r: Int) -> Bool { proposers[p].contains(r) && reviewers[r].contains(p) }
         func isStable(_ m: [Int?]) -> Bool {
@@ -379,6 +391,8 @@ struct StableMatchingTests {
         let expectedReviewerMates: [Int?] = [nil, nil]
         for p in 0 ..< 2 { #expect(result.mate(ofProposer: p) == expectedProposerMates[p], "proposer \(p)") }
         for r in 0 ..< 2 { #expect(result.mate(ofReviewer: r) == expectedReviewerMates[r], "reviewer \(r)") }
+        for p in 0 ..< 2 { #expect((try? result.mate(checkedProposer: p)) == expectedProposerMates[p], "checked proposer \(p)") }
+        for r in 0 ..< 2 { #expect((try? result.mate(checkedReviewer: r)) == expectedReviewerMates[r], "checked reviewer \(r)") }
         // Every matching over acceptable pairs, by brute force; the stable ones.
         func acceptable(_ p: Int, _ r: Int) -> Bool { proposers[p].contains(r) && reviewers[r].contains(p) }
         func isStable(_ m: [Int?]) -> Bool {
@@ -439,6 +453,8 @@ struct StableMatchingTests {
         let expectedReviewerMates: [Int?] = [nil]
         for p in 0 ..< 1 { #expect(result.mate(ofProposer: p) == expectedProposerMates[p], "proposer \(p)") }
         for r in 0 ..< 1 { #expect(result.mate(ofReviewer: r) == expectedReviewerMates[r], "reviewer \(r)") }
+        for p in 0 ..< 1 { #expect((try? result.mate(checkedProposer: p)) == expectedProposerMates[p], "checked proposer \(p)") }
+        for r in 0 ..< 1 { #expect((try? result.mate(checkedReviewer: r)) == expectedReviewerMates[r], "checked reviewer \(r)") }
         // Every matching over acceptable pairs, by brute force; the stable ones.
         func acceptable(_ p: Int, _ r: Int) -> Bool { proposers[p].contains(r) && reviewers[r].contains(p) }
         func isStable(_ m: [Int?]) -> Bool {
@@ -499,6 +515,8 @@ struct StableMatchingTests {
         let expectedReviewerMates: [Int?] = [2, 1]
         for p in 0 ..< 3 { #expect(result.mate(ofProposer: p) == expectedProposerMates[p], "proposer \(p)") }
         for r in 0 ..< 2 { #expect(result.mate(ofReviewer: r) == expectedReviewerMates[r], "reviewer \(r)") }
+        for p in 0 ..< 3 { #expect((try? result.mate(checkedProposer: p)) == expectedProposerMates[p], "checked proposer \(p)") }
+        for r in 0 ..< 2 { #expect((try? result.mate(checkedReviewer: r)) == expectedReviewerMates[r], "checked reviewer \(r)") }
         // Every matching over acceptable pairs, by brute force; the stable ones.
         func acceptable(_ p: Int, _ r: Int) -> Bool { proposers[p].contains(r) && reviewers[r].contains(p) }
         func isStable(_ m: [Int?]) -> Bool {
@@ -559,6 +577,8 @@ struct StableMatchingTests {
         let expectedReviewerMates: [Int?] = [0, nil, 1]
         for p in 0 ..< 2 { #expect(result.mate(ofProposer: p) == expectedProposerMates[p], "proposer \(p)") }
         for r in 0 ..< 3 { #expect(result.mate(ofReviewer: r) == expectedReviewerMates[r], "reviewer \(r)") }
+        for p in 0 ..< 2 { #expect((try? result.mate(checkedProposer: p)) == expectedProposerMates[p], "checked proposer \(p)") }
+        for r in 0 ..< 3 { #expect((try? result.mate(checkedReviewer: r)) == expectedReviewerMates[r], "checked reviewer \(r)") }
         // Every matching over acceptable pairs, by brute force; the stable ones.
         func acceptable(_ p: Int, _ r: Int) -> Bool { proposers[p].contains(r) && reviewers[r].contains(p) }
         func isStable(_ m: [Int?]) -> Bool {
@@ -619,6 +639,8 @@ struct StableMatchingTests {
         let expectedReviewerMates: [Int?] = [1, 2]
         for p in 0 ..< 3 { #expect(result.mate(ofProposer: p) == expectedProposerMates[p], "proposer \(p)") }
         for r in 0 ..< 2 { #expect(result.mate(ofReviewer: r) == expectedReviewerMates[r], "reviewer \(r)") }
+        for p in 0 ..< 3 { #expect((try? result.mate(checkedProposer: p)) == expectedProposerMates[p], "checked proposer \(p)") }
+        for r in 0 ..< 2 { #expect((try? result.mate(checkedReviewer: r)) == expectedReviewerMates[r], "checked reviewer \(r)") }
         // Every matching over acceptable pairs, by brute force; the stable ones.
         func acceptable(_ p: Int, _ r: Int) -> Bool { proposers[p].contains(r) && reviewers[r].contains(p) }
         func isStable(_ m: [Int?]) -> Bool {
@@ -679,6 +701,8 @@ struct StableMatchingTests {
         let expectedReviewerMates: [Int?] = [0, 1, 2]
         for p in 0 ..< 3 { #expect(result.mate(ofProposer: p) == expectedProposerMates[p], "proposer \(p)") }
         for r in 0 ..< 3 { #expect(result.mate(ofReviewer: r) == expectedReviewerMates[r], "reviewer \(r)") }
+        for p in 0 ..< 3 { #expect((try? result.mate(checkedProposer: p)) == expectedProposerMates[p], "checked proposer \(p)") }
+        for r in 0 ..< 3 { #expect((try? result.mate(checkedReviewer: r)) == expectedReviewerMates[r], "checked reviewer \(r)") }
         // Every matching over acceptable pairs, by brute force; the stable ones.
         func acceptable(_ p: Int, _ r: Int) -> Bool { proposers[p].contains(r) && reviewers[r].contains(p) }
         func isStable(_ m: [Int?]) -> Bool {
@@ -739,6 +763,8 @@ struct StableMatchingTests {
         let expectedReviewerMates: [Int?] = [1, 0, 2, 3]
         for p in 0 ..< 4 { #expect(result.mate(ofProposer: p) == expectedProposerMates[p], "proposer \(p)") }
         for r in 0 ..< 4 { #expect(result.mate(ofReviewer: r) == expectedReviewerMates[r], "reviewer \(r)") }
+        for p in 0 ..< 4 { #expect((try? result.mate(checkedProposer: p)) == expectedProposerMates[p], "checked proposer \(p)") }
+        for r in 0 ..< 4 { #expect((try? result.mate(checkedReviewer: r)) == expectedReviewerMates[r], "checked reviewer \(r)") }
         // Every matching over acceptable pairs, by brute force; the stable ones.
         func acceptable(_ p: Int, _ r: Int) -> Bool { proposers[p].contains(r) && reviewers[r].contains(p) }
         func isStable(_ m: [Int?]) -> Bool {
@@ -799,6 +825,8 @@ struct StableMatchingTests {
         let expectedReviewerMates: [Int?] = [2, 0, 4, 3, 1]
         for p in 0 ..< 5 { #expect(result.mate(ofProposer: p) == expectedProposerMates[p], "proposer \(p)") }
         for r in 0 ..< 5 { #expect(result.mate(ofReviewer: r) == expectedReviewerMates[r], "reviewer \(r)") }
+        for p in 0 ..< 5 { #expect((try? result.mate(checkedProposer: p)) == expectedProposerMates[p], "checked proposer \(p)") }
+        for r in 0 ..< 5 { #expect((try? result.mate(checkedReviewer: r)) == expectedReviewerMates[r], "checked reviewer \(r)") }
         // Every matching over acceptable pairs, by brute force; the stable ones.
         func acceptable(_ p: Int, _ r: Int) -> Bool { proposers[p].contains(r) && reviewers[r].contains(p) }
         func isStable(_ m: [Int?]) -> Bool {
@@ -859,6 +887,8 @@ struct StableMatchingTests {
         let expectedReviewerMates: [Int?] = [4, 1, 3, 2, 5, 0]
         for p in 0 ..< 6 { #expect(result.mate(ofProposer: p) == expectedProposerMates[p], "proposer \(p)") }
         for r in 0 ..< 6 { #expect(result.mate(ofReviewer: r) == expectedReviewerMates[r], "reviewer \(r)") }
+        for p in 0 ..< 6 { #expect((try? result.mate(checkedProposer: p)) == expectedProposerMates[p], "checked proposer \(p)") }
+        for r in 0 ..< 6 { #expect((try? result.mate(checkedReviewer: r)) == expectedReviewerMates[r], "checked reviewer \(r)") }
         // Every matching over acceptable pairs, by brute force; the stable ones.
         func acceptable(_ p: Int, _ r: Int) -> Bool { proposers[p].contains(r) && reviewers[r].contains(p) }
         func isStable(_ m: [Int?]) -> Bool {
@@ -919,6 +949,8 @@ struct StableMatchingTests {
         let expectedReviewerMates: [Int?] = [3, 4, 1, 0]
         for p in 0 ..< 5 { #expect(result.mate(ofProposer: p) == expectedProposerMates[p], "proposer \(p)") }
         for r in 0 ..< 4 { #expect(result.mate(ofReviewer: r) == expectedReviewerMates[r], "reviewer \(r)") }
+        for p in 0 ..< 5 { #expect((try? result.mate(checkedProposer: p)) == expectedProposerMates[p], "checked proposer \(p)") }
+        for r in 0 ..< 4 { #expect((try? result.mate(checkedReviewer: r)) == expectedReviewerMates[r], "checked reviewer \(r)") }
         // Every matching over acceptable pairs, by brute force; the stable ones.
         func acceptable(_ p: Int, _ r: Int) -> Bool { proposers[p].contains(r) && reviewers[r].contains(p) }
         func isStable(_ m: [Int?]) -> Bool {

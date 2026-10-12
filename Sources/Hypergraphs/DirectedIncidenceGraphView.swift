@@ -11,7 +11,7 @@ extension DirectedHypergraph {
     /// - Complexity: O(1) for `IncidenceList`; O(m) otherwise, for each side's first incidence
     ///   numbers (from the cached side sizes, for `OrientedIncidenceMatrix`).
     @inlinable
-    public var incidenceGraph: DirectedIncidenceGraphView<Self> { DirectedIncidenceGraphView(base: self) }
+    public var incidenceGraphView: DirectedIncidenceGraphView<Self> { DirectedIncidenceGraphView(base: self) }
 }
 
 /// A directed hypergraph's incidence graph, read lazily from its storage: a
@@ -407,6 +407,26 @@ public struct DirectedIncidenceGraphView<Base: DirectedHypergraph>: Bidirectiona
 
     @inlinable
     public func target(ofEdgeAt position: Int) -> Int { targetIndex(ofEdgeAt: position) }
+
+    /// `source(ofEdgeAt: position)`, throwing instead of trapping when no arc is at `position`.
+    /// The cost of `source(ofEdgeAt:)`.
+    ///
+    /// - Throws: `EdgeNotFound` when `position` is not in `0 ..< edgeCount`.
+    @inlinable
+    public func source(checkedEdgeAt position: Int) throws(EdgeNotFound) -> Int {
+        guard UInt(bitPattern: position) < UInt(bitPattern: _sourceCount &+ _targetCount) else { throw EdgeNotFound() }
+        return source(ofEdgeAt: position)
+    }
+
+    /// `target(ofEdgeAt: position)`, throwing instead of trapping when no arc is at `position`.
+    /// The cost of `target(ofEdgeAt:)`.
+    ///
+    /// - Throws: `EdgeNotFound` when `position` is not in `0 ..< edgeCount`.
+    @inlinable
+    public func target(checkedEdgeAt position: Int) throws(EdgeNotFound) -> Int {
+        guard UInt(bitPattern: position) < UInt(bitPattern: _sourceCount &+ _targetCount) else { throw EdgeNotFound() }
+        return target(ofEdgeAt: position)
+    }
 
     /// The base's out-degree of a vertex, or the number of targets of a hyperedge.
     @inlinable

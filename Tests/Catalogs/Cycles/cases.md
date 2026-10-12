@@ -42,7 +42,7 @@ brackets comes first, then edges in **position order** (position `k` is the `k`t
 **Op** names the call: `isAcyclic`; `findCycle`, `findCycle(from: [r, …])`; `cycleBasis`;
 `basisCount` (`cycleBasis().count`); `simpleCycles`, `simpleCycles(maxLength: k)` (every cycle,
 in emitted order); `count`, `count(maxLength: k)` (the number of cycles emitted);
-`directedCount` (`graph.directed.simpleCycles().count`, the undirected graph read as two arcs per
+`directedCount` (`graph.directedView.simpleCycles().count`, the undirected graph read as two arcs per
 edge); `girth`; deferred: `chordlessCycles`, `chordlessCount`, `minimumCycleBasisLengths`.
 
 **Expected** cells:
@@ -106,7 +106,7 @@ and NetworkX agree with brute force on both, and `ref.py` reports them as known.
 | CY-012 | NetworkX `test_graph_nocycle` | `-1-0 0-1 2-1 3-1` | `findCycle(from: [0,1,2,3])` | `nil` |  |
 | CY-013 | NetworkX `test_multigraph` (`nx.MultiGraph`) | `-1-0 0-1 1-0 1-0 2-1 3-1` | `findCycle(from: [0,1,2,3])` | `[0,1]/[1,2]` | NetworkX: `[(0,1,0),(1,0,1)]` "or (1,0,2)"; ours is pinned: the second copy |
 | CY-014 | NetworkX `test_graph_cycle` | `-1-0 0-1 2-1 3-1 2-0` | `findCycle(from: [0,1,2,3])` | `[0,1,2]/[1,2,4]` | NetworkX: `[(0,1),(1,2),(2,0)]` |
-| CY-015 | NetworkX `test_dag` with `orientation="ignore"` | `0-1 0-2 1-2` | `findCycle` | `[0,1,2]/[0,2,1]` | NetworkX: `[(0,1,F),(1,2,F),(0,2,R)]`; in Grafluent `digraph.undirected.findCycle()` |
+| CY-015 | NetworkX `test_dag` with `orientation="ignore"` | `0-1 0-2 1-2` | `findCycle` | `[0,1,2]/[0,2,1]` | NetworkX: `[(0,1,F),(1,2,F),(0,2,R)]`; in Grafluent `digraph.undirectedView.findCycle()` |
 | CY-016 | forest, then a cycle | `P(0,1,2) C(3,4,5)` | `findCycle(from: [0])` | `nil` | Only 0's component is searched |
 | CY-017 |  | `P(0,1,2) C(3,4,5)` | `findCycle(from: [0,3])` | `[3,4,5]/[2,3,4]` |  |
 | CY-018 |  | `P(0,1,2) C(3,4,5)` | `findCycle` | `[3,4,5]/[2,3,4]` |  |
@@ -292,17 +292,17 @@ and NetworkX agree with brute force on both, and `ref.py` reports them as known.
 | CY-410 | 2 × 2 antiparallel copies | `D: 0>1 1>0 1>0 0>1` | `simpleCycles` | `[0,1]/[0,1]; [0,1]/[0,2]; [0,1]/[3,1]; [0,1]/[3,2]` |  |
 | CY-411 | igraph cycle of 4 with a multi-edge, undirected (ig#3 nx#2) | `[0..4] 1-2 2-3 2-3 3-4 4-1` | `simpleCycles` | `[1,2,3,4]/[0,1,3,4]; [1,2,3,4]/[0,2,3,4]; [2,3]/[1,2]` |  |
 | CY-412 | two doubled sides of C₄ | `C(0..3) 0-1 2-3` | `simpleCycles` | `[0,1,2,3]/[0,1,2,3]; [0,1,2,3]/[0,1,5,3]; [0,1]/[0,4]; [0,3,2,1]/[3,2,1,4]; [0,3,2,1]/[3,5,1,4]; [2,3]/[2,5]` | 2 × 2 four-cycles and two 2-cycles |
-| CY-413 | Boost probe "U K2" (bh#1) | `0-1` | `directedCount` | `#1` | In `g.directed` an edge is two arcs: a 2-cycle |
-| CY-414 | Boost probe "U self-loop" (bh#2) | `0-0` | `directedCount` | `#2` | `g.directed` lists a loop's two ends as two arcs |
+| CY-413 | Boost probe "U K2" (bh#1) | `0-1` | `directedCount` | `#1` | In `g.directedView` an edge is two arcs: a 2-cycle |
+| CY-414 | Boost probe "U self-loop" (bh#2) | `0-0` | `directedCount` | `#2` | `g.directedView` lists a loop's two ends as two arcs |
 | CY-415 | Boost probe "U doubled K2" (bh#4) | `0-1 0-1` | `directedCount` | `#4` |  |
 | CY-416 | Boost probe "U triangle" (bh#5) | `C(0,1,2)` | `directedCount` | `#5` | Three digons and both orientations |
-| CY-417 | Boost undirected ER(20, 0.1) (bh#30) | `[0..19] 0-1 12-17 19-3 10-7 5-14 1-11 11-16 11-10 17-19 14-19 5-8 17-13 18-19 3-17 18-5 18-8 6-10 7-15 13-10 11-1` | `directedCount` | `#30` | Boost's undirected count is our `g.directed` count |
+| CY-417 | Boost undirected ER(20, 0.1) (bh#30) | `[0..19] 0-1 12-17 19-3 10-7 5-14 1-11 11-16 11-10 17-19 14-19 5-8 17-13 18-19 3-17 18-5 18-8 6-10 7-15 13-10 11-1` | `directedCount` | `#30` | Boost's undirected count is our `g.directedView` count |
 | CY-418 | loop on a vertex in no cycle | `P(0,1,2) 1-1` | `simpleCycles` | `[1]/[2]` |  |
 | CY-419 | bridge with loops at both ends | `0-0 0-1 1-1` | `simpleCycles` | `[0]/[0]; [1]/[2]` |  |
 | CY-420 | NetworkX `test_chordless_cycles_multigraph_self_loops` graph (nx#3) | `1-1 2-2 1-2 1-2` | `simpleCycles` | `[1]/[0]; [1,2]/[2,3]; [2]/[1]` |  |
 | CY-421 | the same plus a doubled pendant | `1-1 2-2 1-2 1-2 2-3 3-4 3-4 1-3` | `simpleCycles` | `[1]/[0]; [1,2]/[2,3]; [1,2,3]/[2,4,7]; [1,2,3]/[3,4,7]; [2]/[1]; [3,4]/[5,6]` |  |
 | CY-422 | rows reversed: orientation still by position | `0-1 0-1 1-2 2-0 ~rev` | `simpleCycles` | `[0,1,2]/[1,2,3]; [0,1,2]/[0,2,3]; [0,1]/[0,1]` |  |
-| CY-423 | `.undirected` of `D: 0>1 1>0 1>0` | `0-1 1-0 1-0` | `simpleCycles` | `[0,1]/[0,1]; [0,1]/[0,2]; [0,1]/[1,2]` |  |
+| CY-423 | `.undirectedView` of `D: 0>1 1>0 1>0` | `0-1 1-0 1-0` | `simpleCycles` | `[0,1]/[0,1]; [0,1]/[0,2]; [0,1]/[1,2]` |  |
 
 ## F. Length bounds (CY-450 – CY-499)
 
@@ -428,8 +428,8 @@ Rows with a Graph cell are checked by `ref.py`; the others name a test to write.
 | CY-704 | rows reversed | `K(4) ~rev` | `simpleCycles` | `[0,2,3]/[1,5,2]; [0,2,1,3]/[1,3,4,2]; [0,1,3,2]/[0,4,5,1]; [0,1,3]/[0,4,2]; [0,1,2,3]/[0,3,5,2]; [0,1,2]/[0,3,1]; [1,2,3]/[3,5,4]` | = CY-331 |
 | CY-705 | rows rotated | `K(4) ~rot` | `simpleCycles` | `[0,2,1,3]/[1,3,4,2]; [0,2,3]/[1,5,2]; [0,1,2,3]/[0,3,5,2]; [0,1,2]/[0,3,1]; [0,1,3,2]/[0,4,5,1]; [0,1,3]/[0,4,2]; [1,2,3]/[3,5,4]` |  |
 | CY-706 | rows rotated, directed | `D: DK(3) ~rot` | `simpleCycles` | `[0,2,1]/[1,5,2]; [0,2]/[1,4]; [0,1,2]/[0,3,4]; [0,1]/[0,2]; [1,2]/[3,5]` |  |
-| CY-707 | `g.directed` of an undirected graph | `C(0..3) 0-2` | `directedCount` | `#11` | 2 × 3 cycles + 5 digons |
-| CY-708 | `digraph.undirected` (bidirectional): antiparallel arcs become a 2-cycle | `0-1 1-0 1-2 2-0` | `simpleCycles` | `[0,1]/[0,1]; [0,1,2]/[0,2,3]; [0,1,2]/[1,2,3]` | Written as the undirected view's edges, arcs at their own positions |
+| CY-707 | `g.directedView` of an undirected graph | `C(0..3) 0-2` | `directedCount` | `#11` | 2 × 3 cycles + 5 digons |
+| CY-708 | `digraph.undirectedView` (bidirectional): antiparallel arcs become a 2-cycle | `0-1 1-0 1-2 2-0` | `simpleCycles` | `[0,1]/[0,1]; [0,1,2]/[0,2,3]; [0,1,2]/[1,2,3]` | Written as the undirected view's edges, arcs at their own positions |
 | CY-709 | `String`, `Collider` vertices (hash collisions) | — | — | — | Same results as `Int` relabelled |
 | CY-710 | an `UndirectedAdjacencyList` after removals (rows no longer in position order) against a `ReferencePseudograph` written in its own incidence order | — | — | — | As Connectivity's CN-401 |
 
@@ -449,13 +449,13 @@ with shuffled rows, and every catalog row; the Swift tests write each oracle ins
 | CY-756 | `isAcyclic == (findCycle() == nil) == cycleBasis().isEmpty == simpleCycles().first == nil == (edgeCount == vertexCount − components)` |
 | CY-757 | `cycleBasis().count == m − n + c`; its edge sets are independent over GF(2); every simple cycle lies in their span |
 | CY-758 | `girth() == simpleCycles().map(\.length).min()` |
-| CY-759 | `g.directed.simpleCycles().count == 2·(cycles of length ≥ 3) + 2·(2-cycles) + (non-loop edges) + 2·(loops)` |
+| CY-759 | `g.directedView.simpleCycles().count == 2·(cycles of length ≥ 3) + 2·(2-cycles) + (non-loop edges) + 2·(loops)` |
 | CY-760 | Directed: the converse graph's cycles are the reversed cycles (same edge sets) |
 | CY-761 | Shuffling rows changes order only: the set of canonical cycles is invariant (CY-331) |
 | CY-762 | Relabelling vertices (permuting `vertices`) maps cycles to cycles; only canonical starts and order change |
 | CY-763 | Two iterations of the same sequence give equal arrays (the sequence restarts) |
 | CY-764 | `findCycle(from: roots)` is nil exactly when no cycle is in the roots' components |
-| CY-765 | Boost: `hawick_circuits` count is ours (directed) or `g.directed`'s (undirected); `hawick_unique_circuits` is the collapsed count |
+| CY-765 | Boost: `hawick_circuits` count is ours (directed) or `g.directedView`'s (undirected); `hawick_unique_circuits` is the collapsed count |
 
 ## K. Stress (CY-800 – CY-829)
 
@@ -493,6 +493,6 @@ debug build; the benchmarks take the big sizes.
 | CY-855 | Laziness: `first` on a row-counting conformer reads only the rows one search reaches |
 | CY-856 | Generic code over `some Graph` and `some DirectedGraph` gets the same results |
 | CY-857 | Index space: on an indexed `UndirectedAdjacencyList` / `AdjacencyList` no vertex is hashed (counting `Collider`) |
-| CY-858 | `Graph.isAcyclic` and `DirectedGraph.isAcyclic` never meet: no type conforms to both; `g.directed.isAcyclic` is false whenever g has an edge |
+| CY-858 | `Graph.isAcyclic` and `DirectedGraph.isAcyclic` never meet: no type conforms to both; `g.directedView.isAcyclic` is false whenever g has an edge |
 | CY-859 | Every returned `Cycle` survives `Codable` round trip and `==`/`hash` up to rotation |
 | CY-860 | Rows that break the index laws trap (the unchecked buffers are checked once), as Connectivity's CN-404 |

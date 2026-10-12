@@ -132,7 +132,7 @@ struct LabeledGraphConformanceTests {
             }
         }
         // The undirected view: components and neighbourhoods are the base's view, through the labels.
-        let view = graph.undirected, baseView = base.undirected
+        let view = graph.undirectedView, baseView = base.undirectedView
         #expect(view.connectedComponents().map { Array($0) } == baseView.connectedComponents().map { $0.map { labels[$0] } })
         for (i, v) in labels.enumerated() {
             #expect(Array(view.neighbors(of: v)) == baseView.neighbors(of: i).map { labels[$0] })

@@ -76,7 +76,7 @@ for line in TEXT.splitlines():
         parts = [p.strip().replace("\\|", "|") for p in line.strip().strip("|").split(" | ")]
         CELLS[int(parts[0][3:])] = parts
 N = len(CELLS)
-assert N == 64 and sorted(RECORD) == list(range(1, N + 1))
+assert N == 66 and sorted(RECORD) == list(range(1, N + 1))
 
 
 def group(n): return CELLS[n][1]
@@ -173,11 +173,11 @@ def call_line(n, text, v, ind="        "):
     if m:
         if v in (ref.THROWS_VERTEX, ref.THROWS_EDGE):
             error = v.split()[1]
-            return "\n".join(["#expect(throws: %s.self) { try graph.%s }" % (error, text),
-                               ind + "#expect((try? graph.%s) == nil)" % text])
-        if m.group(1) in ("successors", "outEdges"):
-            return "#expect(try Array(graph.%s) == %s)" % (text, ints(v))
-        return "#expect(try graph.%s == %d)" % (text, v)
+            return "\n".join(["#expect(throws: %s.self) { try %s.%s }" % (error, obj, text),
+                               ind + "#expect((try? %s.%s) == nil)" % (obj, text)])
+        if m.group(1) in ("successors", "outEdges", "preimages"):
+            return "#expect(try Array(%s.%s) == %s)" % (obj, text, ints(v))
+        return "#expect(try %s.%s == %d)" % (obj, text, v)
     if text == "vertices":
         return "#expect(Array(graph.vertices) == %s)" % ints(v)
     if text == "edges":
@@ -442,9 +442,9 @@ FILES = [
      "f^k on the stored graph (catalog FG-021 – FG-024): a walk for k <= n, and past n the tail and\n"
      "// cycle by Brent's algorithm, up to Int.max steps."),
     ("FunctionalGraphDecompositionTests.swift", "FunctionalGraphs cycle decomposition", ids("Decomposition"),
-     "The cycle decomposition (catalog FG-026 – FG-042): cycles from their least vertex and in order\n"
-     "// of least vertex, component, root, tail and cycle lengths, ascending preimages, and f^k by\n"
-     "// level ancestor in the trees and by position on the cycle."),
+     "The cycle decomposition (catalog FG-026 – FG-042, FG-065): cycles from their least vertex and in\n"
+     "// order of least vertex, component, root, tail and cycle lengths, ascending preimages, f^k by\n"
+     "// level ancestor in the trees and by position on the cycle, and the checked: spellings."),
     ("FunctionalGraphGenericTests.swift", "FunctionalGraphs generic algorithms", ids("Generic"),
      "Generic algorithms (catalog FG-045, FG-046): Connectivity's components agree with the\n"
      "// decomposition, compared as sets since their order is Connectivity's rule."),

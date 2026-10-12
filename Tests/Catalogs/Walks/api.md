@@ -54,7 +54,7 @@ cannot tell parallel edges apart.
   graph.
 - **Undirected graphs need no orientation flag.** The stored vertex sequence orients each edge: the
   edge at step i is crossed from `vertices[i]` to `vertices[i+1]`. So `Walk<V, G.Edges.Index>`
-  serves a `Graph` and a `DirectedGraph` alike. A walk of `g.directed` uses
+  serves a `Graph` and a `DirectedGraph` alike. A walk of `g.directedView` uses
   `DirectedView<G>.Edges.Index` (position and `reversed`), and then u→v→u over one undirected edge
   is a 2-cycle of distinct arcs (WK-605). That is how the existing undirected `findNegativeCycle`
   result types (WK-1206).
@@ -177,7 +177,7 @@ public func weight<W: AdditiveArithmetic, E: Error>(_ weight: (Edge) throws(E) -
   graph (JGraphT reverses undirected walks the same way). Over a `DirectedGraph` it is a walk of
   `graph.reversed`, the converse. JGraphT instead swaps each arc for an arbitrary `getEdge(v,u)`,
   which is not well-defined with parallel arcs, so that form is not offered. A walk of
-  `g.directed` reversed this way names the original arcs, which point backward in `g.directed`
+  `g.directedView` reversed this way names the original arcs, which point backward in `g.directedView`
   (WK-1007). Document it, and keep orientation-flipping for a later `Walk` over `DirectedView`
   if it is ever needed.
 - **`weight(_:)`** (NetworkX `path_weight`, JGraphT `getWeight`) adds `weight(e)` from `.zero`, in
@@ -234,7 +234,7 @@ depends on them in the other direction, so no cycle forms.
 | `dijkstraShortestPath(from:to:weight:) -> (path: [Vertex], edges: [Edges.Index], distance: W)?` | `-> (path: Path<Vertex, Edges.Index>, distance: W)?` | same for `aStarShortestPath` |
 | `Graph.dijkstraShortestPath` / `aStarShortestPath` `(path, edges: [DirectedView<Self>.Edges.Index], distance)` | `-> (path: Path<Vertex, DirectedView<Self>.Edges.Index>, distance: W)?` | stays consistent with `ShortestPathTree<DirectedView<Self>>` |
 | `DirectedGraph.findNegativeCycle(...) -> [Vertex]?` (3 overloads) | `-> Cycle<Vertex, Edges.Index>?` | edges from Bellman–Ford's `parentEdge`, which also fixes "between parallel edges the cycle does not say which was taken". Rotation stays: first vertex in `vertices` order |
-| `Graph.findNegativeCycle(...) -> [Vertex]?` | `-> Cycle<Vertex, DirectedView<Self>.Edges.Index>?` | `[u, v]` becomes arcs `(p, r)` and `(p, !r)`, a genuine 2-cycle of `g.directed`. A negative self-loop is `[u]` with arc `(p, false)`. Over the undirected graph it would only be a closed walk that repeats an edge (WK-604), so the arc form is the honest type |
+| `Graph.findNegativeCycle(...) -> [Vertex]?` | `-> Cycle<Vertex, DirectedView<Self>.Edges.Index>?` | `[u, v]` becomes arcs `(p, r)` and `(p, !r)`, a genuine 2-cycle of `g.directedView`. A negative self-loop is `[u]` with arc `(p, false)`. Over the undirected graph it would only be a closed walk that repeats an edge (WK-604), so the arc form is the honest type |
 | `findCycle() -> [Vertex]?`, `findCycle(from:)` | `-> Cycle<Vertex, Edges.Index>?` | `IndexSpaceSearch` must record the parent edge and the back edge's position (one more `[Edges.Index]` per search, paid only by `findCycle`). The rotation stays at the back edge's target, as today (TR-105) |
 | `bidirectionalShortestPath(from:to:) -> [Vertex]?` | `-> Path<Vertex, Edges.Index>?` | both frontiers keep parent edges (out-edges forward, in-edges backward) |
 | `isAcyclic`, `topologicalSort()`, `topologicalGenerations()`, `lexicographicalTopologicalSort` | unchanged | orders, not walks |

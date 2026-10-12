@@ -4,7 +4,7 @@ Scope: connected components of an undirected `Graph`, bridges, articulation poin
 components (blocks), bi-edge-connected (2-edge-connected) components, the block–cut tree, and the
 predicates `isConnected`, `hasBridges`, `isBiconnected`, `isBiEdgeConnected`. Everything is on
 `Graph`; nothing new is on `DirectedGraph` (it already has `weaklyConnectedComponents()`). A
-bidirectional digraph reaches all of it through `.undirected`.
+bidirectional digraph reaches all of it through `.undirectedView`.
 
 Out of scope, and where it goes: vertex and edge connectivity κ(G), λ(G), k-connectivity tests,
 minimum vertex and edge cuts, `k_edge_components` for k ≥ 3, Gomory–Hu trees (all **Flows**:
@@ -48,6 +48,8 @@ struct BiconnectedComponents<G: Graph>: RandomAccessCollection   // Index == Int
     func vertices(ofComponentAt position: Int) -> ArraySlice<G.Vertex>   // vertices order
     func component(ofEdgeAt position: G.Edges.Index) -> Int?      // nil for a self-loop
     func components(containing vertex: G.Vertex) -> ArraySlice<Int>     // ascending; empty when none
+    func component(checkedEdgeAt position: G.Edges.Index) throws(EdgeNotFound) -> Int?   // README Principle 6
+    func components(checkedContaining vertex: G.Vertex) throws(VertexNotFound) -> ArraySlice<Int>
 
 @frozen
 struct BlockCutTree<G: Graph>
@@ -57,6 +59,7 @@ struct BlockCutTree<G: Graph>
     func articulationPoints(ofBlock block: Int) -> ArraySlice<Int>       // indices into articulationPoints, ascending
     func blocks(ofArticulationPoint point: Int) -> ArraySlice<Int>       // block positions, ascending
     func node(of vertex: G.Vertex) -> Node?
+    func node(checked vertex: G.Vertex) throws(VertexNotFound) -> Node?
     var edgeCount: Int
     @frozen enum Node: Hashable, Sendable { case block(Int), articulationPoint(Int) }
 ```
@@ -98,7 +101,7 @@ Both are vertex partitions, which is exactly what `Components` is: a `RandomAcce
 vertex slices with an O(1) `component(of:)` that uses the graph's own vertex indices. `Components`
 is generic over a `DirectedGraph`; `DirectedView<Self>` has the same vertices and forwards
 `vertexIndexBound`, `vertexIndex(of:)` and `vertex(atIndex:)`, so the result keeps an O(1) copy of
-`self.directed` and looks vertices up exactly as the directed results do. Precedent: the `Graph`
+`self.directedView` and looks vertices up exactly as the directed results do. Precedent: the `Graph`
 overloads in ShortestPaths return `ShortestPathTree<DirectedView<Self>, W>`.
 
 - `connectedComponents() == directed.weaklyConnectedComponents()`, order included (CN-360,
@@ -141,7 +144,7 @@ edge is listed once from each side, and `edgeCount` is their common total.
   components as the graph", silently assumes there is none (CN-358 states the corrected law).
 - Not a `Graph` conformer: its node type would be an enum, and nothing in the library needs to
   traverse it yet. When `Trees` exists, it can offer a `Forest` view. Not a `CompressedSparseRow`
-  either (CSR is directed-only and has no `.undirected`).
+  either (CSR is directed-only and has no `.undirectedView`).
 - `node(of: v)` is `.articulationPoint(i)` for an articulation point, `.block(b)` for a vertex in
   exactly one block, and `nil` for a vertex in none. Path questions ("which articulation points
   separate u and v") are a walk between `node(of: u)` and `node(of: v)`.
@@ -156,7 +159,7 @@ edge is listed once from each side, and `edgeCount` is their common total.
 | Isolated vertices | Their own connected and 2-edge-connected component; **in no block**, so not a block–cut tree node; a graph with one block and an isolated vertex is not biconnected (CN-269, CN-330) | NetworkX, Boost, igraph (documented), LEMON (counts 0 blocks for K₁), JGraphT (no block is built when the edge stack is empty), rustworkx: all agree |
 | Parallel edges | Edges with identity: a parallel pair is never a bridge, and both copies are in the same block. A bundle of parallel edges between two vertices with no other edges is one block on two vertices, biconnected and bi-edge-connected (CN-281). They never change articulation points (CN-361) | igraph and LEMON (bi-edge) track the incoming edge, as here. NetworkX `bridges` collapses to a simple graph and drops multi-edges afterwards; JGraphT post-filters bridges by multiplicity; **rustworkx reports both copies of a doubled edge as bridges**; **Boost never labels the parallel copy of a tree edge** (probe: `0-1 0-1` gives labels `0, unset`); NetworkX's block functions see only the collapsed graph |
 | Self-loops | Never a bridge; never make (or unmake) an articulation point; **in no block**: `component(ofEdgeAt:)` is `nil`, and the blocks partition the non-loop edges. A vertex whose only edges are loops is in no block (CN-280, CN-284 – CN-289) | igraph: in no block (`component_edges` keeps `nei < vert`). **LEMON: a loop is a block of its own and its vertex a cut node** (probe: `0-0 0-1` gives 2 blocks, 1 cut node, not biNodeConnected; a lone loop is "1 cut node"), Bondy–Murty's "separating vertex". NetworkX and rustworkx: in the block of the tree edge that entered the vertex, so search-dependent. JGraphT: blocks are induced subgraphs, so the loop is in every block at its vertex. Boost: labelled with the next block popped, or never labelled at a search root (probe). The choice here is the only one that is search-independent and keeps "every block is biconnected" and "articulation point ⇔ in two blocks" true |
-| `.undirected` on a digraph | Each arc is an edge, so opposite arcs are parallel and never bridges (CN-296). For NetworkX's `to_undirected` reading (opposite arcs merged), build an `UndirectedAdjacencyList`, which collapses repeats | JGraphT `AsUndirectedGraph` keeps both, as here |
+| `.undirectedView` on a digraph | Each arc is an edge, so opposite arcs are parallel and never bridges (CN-296). For NetworkX's `to_undirected` reading (opposite arcs merged), build an `UndirectedAdjacencyList`, which collapses repeats | JGraphT `AsUndirectedGraph` keeps both, as here |
 | `isBiconnected` | n ≥ 2, connected, no articulation point. Not `biconnectedComponents().count == 1`, which isolated vertices break (igraph says the same) | NetworkX, igraph, JGraphT |
 | `isBiEdgeConnected` | n ≥ 2, connected, no bridge: λ(G) ≥ 2. So a doubled K₂ is, K₂ and K₁ are not. A bowtie is bi-edge-connected but not biconnected (CN-305); a biconnected graph is bi-edge-connected unless it is a K₂ (CN-369) | NetworkX `is_k_edge_connected(G, 2)`; LEMON says K₁ is |
 
@@ -220,10 +223,10 @@ self-loop is never pushed, which is the "in no block" convention for free.
 **Index space.** With vertex indices (every representation but plain conformers), the state is
 arrays by vertex index: `disc`, `low`, `parentEdge`, an articulation bit, and the frame stack of
 `(v, Zip2Sequence<NeighborIndices, IncidentEdgeIndices>.Iterator)`. With edge indices too
-(`UndirectedAdjacencyList`, `ReferencePseudograph`, `AdjacencyList.undirected`), `parentEdge`,
+(`UndirectedAdjacencyList`, `ReferencePseudograph`, `AdjacencyList.undirectedView`), `parentEdge`,
 the edge stack, bridge bits and block labels are `Int` edge indices, so nothing is hashed and
 results map back to positions through one `positions[edgeIndex]` array gathered from the rows
-(as SpanningTrees' `_rankedEdges` does). With vertex indices only (`AdjacencyMatrix.undirected`,
+(as SpanningTrees' `_rankedEdges` does). With vertex indices only (`AdjacencyMatrix.undirectedView`,
 whose positions are cells), the rows are `neighborIndices(ofIndex:)` zipped with
 `incidentEdges(ofIndex:)`: `parentEdge` holds positions (`Edges.Index?`), compared with `==`,
 and block labels go in a `[Edges.Index: Int]`. Without vertex indices, vertices are numbered by

@@ -40,6 +40,7 @@ struct MaximumFlowTests {
         #expect(flow.source == 0 && flow.sink == 1)
         #expect(flow.value == 5)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
         var excess = [Int](repeating: 0, count: n)
@@ -107,6 +108,7 @@ struct MaximumFlowTests {
         #expect(flow.source == 0 && flow.sink == 1)
         #expect(flow.value == 0)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
         var excess = [Int](repeating: 0, count: n)
@@ -174,6 +176,7 @@ struct MaximumFlowTests {
         #expect(flow.source == 0 && flow.sink == 1)
         #expect(flow.value == 0)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
         var excess = [Int](repeating: 0, count: n)
@@ -241,6 +244,7 @@ struct MaximumFlowTests {
         #expect(flow.source == 0 && flow.sink == 3)
         #expect(flow.value == 0)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
         var excess = [Int](repeating: 0, count: n)
@@ -308,6 +312,7 @@ struct MaximumFlowTests {
         #expect(flow.source == 0 && flow.sink == 1)
         #expect(flow.value == 0)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
         var excess = [Int](repeating: 0, count: n)
@@ -375,6 +380,7 @@ struct MaximumFlowTests {
         #expect(flow.source == 0 && flow.sink == 2)
         #expect(flow.value == 0)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
         var excess = [Int](repeating: 0, count: n)
@@ -442,6 +448,7 @@ struct MaximumFlowTests {
         #expect(flow.source == 0 && flow.sink == 3)
         #expect(flow.value == 2)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
         var excess = [Int](repeating: 0, count: n)
@@ -509,6 +516,7 @@ struct MaximumFlowTests {
         #expect(flow.source == 0 && flow.sink == 3)
         #expect(flow.value == 1)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
         var excess = [Int](repeating: 0, count: n)
@@ -576,6 +584,7 @@ struct MaximumFlowTests {
         #expect(flow.source == "s" && flow.sink == "t")
         #expect(flow.value == 2)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
         var excess = [Int](repeating: 0, count: n)
@@ -643,6 +652,7 @@ struct MaximumFlowTests {
         #expect(flow.source == 0 && flow.sink == 2)
         #expect(flow.value == 3)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
         var excess = [Int](repeating: 0, count: n)
@@ -710,6 +720,7 @@ struct MaximumFlowTests {
         #expect(flow.source == 0 && flow.sink == 2)
         #expect(flow.value == 3)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
         var excess = [Int](repeating: 0, count: n)
@@ -777,6 +788,7 @@ struct MaximumFlowTests {
         #expect(flow.source == 0 && flow.sink == 2)
         #expect(flow.value == 3)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
         var excess = [Int](repeating: 0, count: n)
@@ -844,6 +856,7 @@ struct MaximumFlowTests {
         #expect(flow.source == 0 && flow.sink == 1)
         #expect(flow.value == 4)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
         var excess = [Int](repeating: 0, count: n)
@@ -911,6 +924,7 @@ struct MaximumFlowTests {
         #expect(flow.source == 0 && flow.sink == 2)
         #expect(flow.value == 5)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
         var excess = [Int](repeating: 0, count: n)
@@ -978,6 +992,7 @@ struct MaximumFlowTests {
         #expect(flow.source == 0 && flow.sink == 2)
         #expect(flow.value == 4)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
         var excess = [Int](repeating: 0, count: n)
@@ -1045,6 +1060,7 @@ struct MaximumFlowTests {
         #expect(flow.source == 0 && flow.sink == 3)
         #expect(flow.value == 6)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
         var excess = [Int](repeating: 0, count: n)
@@ -1112,6 +1128,7 @@ struct MaximumFlowTests {
         #expect(flow.source == 0 && flow.sink == 2)
         #expect(flow.value == 2)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
         var excess = [Int](repeating: 0, count: n)
@@ -1179,6 +1196,7 @@ struct MaximumFlowTests {
         #expect(flow.source == "s" && flow.sink == "t")
         #expect(flow.value == 23)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
         var excess = [Int](repeating: 0, count: n)
@@ -1246,6 +1264,7 @@ struct MaximumFlowTests {
         #expect(flow.source == "s" && flow.sink == "t")
         #expect(flow.value == 23)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
         var excess = [Int](repeating: 0, count: n)
@@ -1313,6 +1332,7 @@ struct MaximumFlowTests {
         #expect(flow.source == "s" && flow.sink == "t")
         #expect(flow.value == 2000)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
         var excess = [Int](repeating: 0, count: n)
@@ -1380,6 +1400,7 @@ struct MaximumFlowTests {
         #expect(flow.source == "x" && flow.sink == "y")
         #expect(flow.value == 3.0)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
         var excess = [Double](repeating: 0, count: n)
@@ -1447,6 +1468,7 @@ struct MaximumFlowTests {
         #expect(flow.source == 0 && flow.sink == 3)
         #expect(flow.value == 2)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
         var excess = [Int](repeating: 0, count: n)
@@ -1514,6 +1536,7 @@ struct MaximumFlowTests {
         #expect(flow.source == 0 && flow.sink == 5)
         #expect(flow.value == 2)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
         var excess = [Int](repeating: 0, count: n)
@@ -1581,6 +1604,7 @@ struct MaximumFlowTests {
         #expect(flow.source == "s" && flow.sink == "t")
         #expect(flow.value == 3)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
         var excess = [Int](repeating: 0, count: n)
@@ -1648,6 +1672,7 @@ struct MaximumFlowTests {
         #expect(flow.source == 0 && flow.sink == 7)
         #expect(flow.value == 13)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
         var excess = [Int](repeating: 0, count: n)
@@ -1715,6 +1740,7 @@ struct MaximumFlowTests {
         #expect(flow.source == 0 && flow.sink == 9)
         #expect(flow.value == 29)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
         var excess = [Int](repeating: 0, count: n)
@@ -1782,6 +1808,7 @@ struct MaximumFlowTests {
         #expect(flow.source == 0 && flow.sink == 11)
         #expect(flow.value == 5)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
         var excess = [Int](repeating: 0, count: n)
@@ -1849,6 +1876,7 @@ struct MaximumFlowTests {
         #expect(flow.source == 0 && flow.sink == 15)
         #expect(flow.value == 139)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
         var excess = [Int](repeating: 0, count: n)
@@ -1916,6 +1944,7 @@ struct MaximumFlowTests {
         #expect(flow.source == 0 && flow.sink == 29)
         #expect(flow.value == 32)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
         var excess = [Int](repeating: 0, count: n)
@@ -1983,6 +2012,7 @@ struct MaximumFlowTests {
         #expect(flow.source == 29 && flow.sink == 0)
         #expect(flow.value == 100)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
         var excess = [Int](repeating: 0, count: n)
@@ -2050,6 +2080,7 @@ struct MaximumFlowTests {
         #expect(flow.source == 0 && flow.sink == 3)
         #expect(flow.value == 1.125)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
         var excess = [Double](repeating: 0, count: n)
@@ -2117,6 +2148,7 @@ struct MaximumFlowTests {
         #expect(flow.source == 0 && flow.sink == 2)
         #expect(abs(flow.value - 0.3) <= 1e-12)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
         var excess = [Double](repeating: 0, count: n)
@@ -2163,6 +2195,7 @@ struct MaximumFlowTests {
         #expect(flow.source == 0 && flow.sink == 3)
         #expect(abs(flow.value - 3.0) <= 1e-12)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
         var excess = [Double](repeating: 0, count: n)
@@ -2209,6 +2242,7 @@ struct MaximumFlowTests {
         #expect(flow.source == 0 && flow.sink == 3)
         #expect(flow.value == 127)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
         var excess = [Int](repeating: 0, count: n)
@@ -2276,6 +2310,7 @@ struct MaximumFlowTests {
         #expect(flow.source == 0 && flow.sink == 2)
         #expect(flow.value == 55)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
         var excess = [Int](repeating: 0, count: n)
@@ -2343,6 +2378,7 @@ struct MaximumFlowTests {
         #expect(flow.source == 0 && flow.sink == 2)
         #expect(flow.value == 9223372036854775807)
         let flows = pairs.indices.map { flow.flow(ofEdgeAt: $0) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))
         // Capacity and conservation, checked here: 0 ≤ flow ≤ capacity and nothing on a self-loop; inflow
         // equals outflow at every vertex but the ends; the value is the net flow out of the source.
         var excess = [Int](repeating: 0, count: n)
@@ -2409,10 +2445,12 @@ struct MaximumFlowTests {
         #expect(asked == pairs.indices.filter { ends[$0].0 != ends[$0].1 })
         #expect(flow.source == 1 && flow.sink == 0)
         #expect(flow.value == 5)
-        // The flow is over `directed`: an edge's flow along its stored order is on the forward arc, against
+        // The flow is over `directedView`: an edge's flow along its stored order is on the forward arc, against
         // it on the reversed arc; both at least zero, at most one nonzero, each at most the capacity.
         let forward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: false)) }
         let backward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: true)) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: false)) } == forward.map(Optional.some))
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: true)) } == backward.map(Optional.some))
         for k in pairs.indices {
             #expect(forward[k] >= 0 && backward[k] >= 0 && (forward[k] == 0 || backward[k] == 0), "edge \(k)")
             #expect(forward[k] <= capacities[k] && backward[k] <= capacities[k], "edge \(k)")
@@ -2485,10 +2523,12 @@ struct MaximumFlowTests {
         #expect(asked == pairs.indices.filter { ends[$0].0 != ends[$0].1 })
         #expect(flow.source == 0 && flow.sink == 2)
         #expect(flow.value == 2)
-        // The flow is over `directed`: an edge's flow along its stored order is on the forward arc, against
+        // The flow is over `directedView`: an edge's flow along its stored order is on the forward arc, against
         // it on the reversed arc; both at least zero, at most one nonzero, each at most the capacity.
         let forward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: false)) }
         let backward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: true)) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: false)) } == forward.map(Optional.some))
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: true)) } == backward.map(Optional.some))
         for k in pairs.indices {
             #expect(forward[k] >= 0 && backward[k] >= 0 && (forward[k] == 0 || backward[k] == 0), "edge \(k)")
             #expect(forward[k] <= capacities[k] && backward[k] <= capacities[k], "edge \(k)")
@@ -2561,10 +2601,12 @@ struct MaximumFlowTests {
         #expect(asked == pairs.indices.filter { ends[$0].0 != ends[$0].1 })
         #expect(flow.source == 0 && flow.sink == 3)
         #expect(flow.value == 4)
-        // The flow is over `directed`: an edge's flow along its stored order is on the forward arc, against
+        // The flow is over `directedView`: an edge's flow along its stored order is on the forward arc, against
         // it on the reversed arc; both at least zero, at most one nonzero, each at most the capacity.
         let forward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: false)) }
         let backward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: true)) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: false)) } == forward.map(Optional.some))
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: true)) } == backward.map(Optional.some))
         for k in pairs.indices {
             #expect(forward[k] >= 0 && backward[k] >= 0 && (forward[k] == 0 || backward[k] == 0), "edge \(k)")
             #expect(forward[k] <= capacities[k] && backward[k] <= capacities[k], "edge \(k)")
@@ -2637,10 +2679,12 @@ struct MaximumFlowTests {
         #expect(asked == pairs.indices.filter { ends[$0].0 != ends[$0].1 })
         #expect(flow.source == 0 && flow.sink == 2)
         #expect(flow.value == 4)
-        // The flow is over `directed`: an edge's flow along its stored order is on the forward arc, against
+        // The flow is over `directedView`: an edge's flow along its stored order is on the forward arc, against
         // it on the reversed arc; both at least zero, at most one nonzero, each at most the capacity.
         let forward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: false)) }
         let backward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: true)) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: false)) } == forward.map(Optional.some))
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: true)) } == backward.map(Optional.some))
         for k in pairs.indices {
             #expect(forward[k] >= 0 && backward[k] >= 0 && (forward[k] == 0 || backward[k] == 0), "edge \(k)")
             #expect(forward[k] <= capacities[k] && backward[k] <= capacities[k], "edge \(k)")
@@ -2713,10 +2757,12 @@ struct MaximumFlowTests {
         #expect(asked == pairs.indices.filter { ends[$0].0 != ends[$0].1 })
         #expect(flow.source == 0 && flow.sink == 3)
         #expect(flow.value == 6)
-        // The flow is over `directed`: an edge's flow along its stored order is on the forward arc, against
+        // The flow is over `directedView`: an edge's flow along its stored order is on the forward arc, against
         // it on the reversed arc; both at least zero, at most one nonzero, each at most the capacity.
         let forward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: false)) }
         let backward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: true)) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: false)) } == forward.map(Optional.some))
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: true)) } == backward.map(Optional.some))
         for k in pairs.indices {
             #expect(forward[k] >= 0 && backward[k] >= 0 && (forward[k] == 0 || backward[k] == 0), "edge \(k)")
             #expect(forward[k] <= capacities[k] && backward[k] <= capacities[k], "edge \(k)")
@@ -2789,10 +2835,12 @@ struct MaximumFlowTests {
         #expect(asked == pairs.indices.filter { ends[$0].0 != ends[$0].1 })
         #expect(flow.source == 1 && flow.sink == 8)
         #expect(flow.value == 4)
-        // The flow is over `directed`: an edge's flow along its stored order is on the forward arc, against
+        // The flow is over `directedView`: an edge's flow along its stored order is on the forward arc, against
         // it on the reversed arc; both at least zero, at most one nonzero, each at most the capacity.
         let forward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: false)) }
         let backward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: true)) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: false)) } == forward.map(Optional.some))
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: true)) } == backward.map(Optional.some))
         for k in pairs.indices {
             #expect(forward[k] >= 0 && backward[k] >= 0 && (forward[k] == 0 || backward[k] == 0), "edge \(k)")
             #expect(forward[k] <= capacities[k] && backward[k] <= capacities[k], "edge \(k)")
@@ -2865,10 +2913,12 @@ struct MaximumFlowTests {
         #expect(asked == pairs.indices.filter { ends[$0].0 != ends[$0].1 })
         #expect(flow.source == 0 && flow.sink == 5)
         #expect(flow.value == 6)
-        // The flow is over `directed`: an edge's flow along its stored order is on the forward arc, against
+        // The flow is over `directedView`: an edge's flow along its stored order is on the forward arc, against
         // it on the reversed arc; both at least zero, at most one nonzero, each at most the capacity.
         let forward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: false)) }
         let backward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: true)) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: false)) } == forward.map(Optional.some))
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: true)) } == backward.map(Optional.some))
         for k in pairs.indices {
             #expect(forward[k] >= 0 && backward[k] >= 0 && (forward[k] == 0 || backward[k] == 0), "edge \(k)")
             #expect(forward[k] <= capacities[k] && backward[k] <= capacities[k], "edge \(k)")
@@ -2941,10 +2991,12 @@ struct MaximumFlowTests {
         #expect(asked == pairs.indices.filter { ends[$0].0 != ends[$0].1 })
         #expect(flow.source == 0 && flow.sink == 9)
         #expect(flow.value == 15)
-        // The flow is over `directed`: an edge's flow along its stored order is on the forward arc, against
+        // The flow is over `directedView`: an edge's flow along its stored order is on the forward arc, against
         // it on the reversed arc; both at least zero, at most one nonzero, each at most the capacity.
         let forward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: false)) }
         let backward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: true)) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: false)) } == forward.map(Optional.some))
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: true)) } == backward.map(Optional.some))
         for k in pairs.indices {
             #expect(forward[k] >= 0 && backward[k] >= 0 && (forward[k] == 0 || backward[k] == 0), "edge \(k)")
             #expect(forward[k] <= capacities[k] && backward[k] <= capacities[k], "edge \(k)")
@@ -3017,10 +3069,12 @@ struct MaximumFlowTests {
         #expect(asked == pairs.indices.filter { ends[$0].0 != ends[$0].1 })
         #expect(flow.source == 0 && flow.sink == 15)
         #expect(flow.value == 2)
-        // The flow is over `directed`: an edge's flow along its stored order is on the forward arc, against
+        // The flow is over `directedView`: an edge's flow along its stored order is on the forward arc, against
         // it on the reversed arc; both at least zero, at most one nonzero, each at most the capacity.
         let forward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: false)) }
         let backward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: true)) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: false)) } == forward.map(Optional.some))
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: true)) } == backward.map(Optional.some))
         for k in pairs.indices {
             #expect(forward[k] >= 0 && backward[k] >= 0 && (forward[k] == 0 || backward[k] == 0), "edge \(k)")
             #expect(forward[k] <= capacities[k] && backward[k] <= capacities[k], "edge \(k)")
@@ -3093,10 +3147,12 @@ struct MaximumFlowTests {
         #expect(asked == pairs.indices.filter { ends[$0].0 != ends[$0].1 })
         #expect(flow.source == "a" && flow.sink == "c")
         #expect(flow.value == 0.75)
-        // The flow is over `directed`: an edge's flow along its stored order is on the forward arc, against
+        // The flow is over `directedView`: an edge's flow along its stored order is on the forward arc, against
         // it on the reversed arc; both at least zero, at most one nonzero, each at most the capacity.
         let forward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: false)) }
         let backward = pairs.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: true)) }
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: false)) } == forward.map(Optional.some))
+        #expect(pairs.indices.map { try? flow.flow(checkedEdgeAt: .init(position: $0, reversed: true)) } == backward.map(Optional.some))
         for k in pairs.indices {
             #expect(forward[k] >= 0 && backward[k] >= 0 && (forward[k] == 0 || backward[k] == 0), "edge \(k)")
             #expect(forward[k] <= capacities[k] && backward[k] <= capacities[k], "edge \(k)")

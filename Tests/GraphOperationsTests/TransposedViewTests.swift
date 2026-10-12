@@ -1,4 +1,4 @@
-// reverseView (catalog GO-001 – GO-009): every arc flipped, vertices, indices and positions the
+// transposedView (catalog GO-001 – GO-009): every arc flipped, vertices, indices and positions the
 // base's; successors are the base's predecessors in its in-row order; the reverse of a reverse
 // is the base; a label-space row hashes once and an index-space row not at all.
 // Generated from cases.md by swiftgen.py; see README.md.
@@ -9,14 +9,14 @@ import GraphProtocols
 import Multigraphs
 import Testing
 
-@Suite("GraphOperations reverseView")
-struct ReverseViewTests {
+@Suite("GraphOperations transposedView")
+struct TransposedViewTests {
     @Test("GO-001 empty")
     func go001() {
-        // AL V []; E [] / .reverseView
+        // AL V []; E [] / .transposedView
         // Expected: V []; E []; bounds 0/0
         let graph = AdjacencyList<String>(vertices: [] as [String], edges: [] as [DirectedEdge<String>])
-        let view = graph.reverseView
+        let view = graph.transposedView
         #expect(Array(view.vertices) == [] as [String])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [] as [Int])
         #expect((0 ..< 0).map { view.vertex(atIndex: $0) } == [] as [String])
@@ -28,10 +28,10 @@ struct ReverseViewTests {
 
     @Test("GO-002 isolated vertices keep their order")
     func go002() {
-        // AL V [a, b, c]; E [] / .reverseView
+        // AL V [a, b, c]; E [] / .transposedView
         // Expected: V [a#0, b#1, c#2]; E []; bounds 3/0
         let graph = AdjacencyList<String>(vertices: ["a", "b", "c"], edges: [] as [DirectedEdge<String>])
-        let view = graph.reverseView
+        let view = graph.transposedView
         #expect(Array(view.vertices) == ["a", "b", "c"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2])
         #expect((0 ..< 3).map { view.vertex(atIndex: $0) } == ["a", "b", "c"])
@@ -78,10 +78,10 @@ struct ReverseViewTests {
 
     @Test("GO-003 path: arcs flip, positions kept")
     func go003() {
-        // AL V [a, b, c]; E [a→b, b→c] / .reverseView
+        // AL V [a, b, c]; E [a→b, b→c] / .transposedView
         // Expected: V [a#0, b#1, c#2]; E [0:b→a, 1:c→b]; bounds 3/2; rows [a: ; b: a; c: b]
         let graph = AdjacencyList<String>(vertices: ["a", "b", "c"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "c")])
-        let view = graph.reverseView
+        let view = graph.transposedView
         #expect(Array(view.vertices) == ["a", "b", "c"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2])
         #expect((0 ..< 3).map { view.vertex(atIndex: $0) } == ["a", "b", "c"])
@@ -131,10 +131,10 @@ struct ReverseViewTests {
 
     @Test("GO-004 self-loop stays a self-loop")
     func go004() {
-        // AL V [a]; E [a→a] / .reverseView
+        // AL V [a]; E [a→a] / .transposedView
         // Expected: V [a#0]; E [0:a→a]; bounds 1/1; rows [a: a]
         let graph = DirectedPseudograph<String>(vertices: ["a"], edges: [DirectedEdge(from: "a", to: "a")])
-        let view = graph.reverseView
+        let view = graph.transposedView
         #expect(Array(view.vertices) == ["a"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0])
         #expect((0 ..< 1).map { view.vertex(atIndex: $0) } == ["a"])
@@ -162,10 +162,10 @@ struct ReverseViewTests {
 
     @Test("GO-005 parallel arcs keep both positions")
     func go005() {
-        // AL V [a, b]; E [a→b, a→b, b→a] / .reverseView
+        // AL V [a, b]; E [a→b, a→b, b→a] / .transposedView
         // Expected: V [a#0, b#1]; E [0:b→a, 1:b→a, 2:a→b]; bounds 2/3; rows [a: b; b: a a]
         let graph = DirectedPseudograph<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "a")])
-        let view = graph.reverseView
+        let view = graph.transposedView
         #expect(Array(view.vertices) == ["a", "b"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1])
         #expect((0 ..< 2).map { view.vertex(atIndex: $0) } == ["a", "b"])
@@ -204,10 +204,10 @@ struct ReverseViewTests {
 
     @Test("GO-006 successors are the base's predecessors in in-row order")
     func go006() {
-        // AL V [a, b, c, d]; E [b→a, c→a, d→a, a→b] / .reverseView
+        // AL V [a, b, c, d]; E [b→a, c→a, d→a, a→b] / .transposedView
         // Expected: V [a#0, b#1, c#2, d#3]; E [0:a→b, 1:a→c, 2:a→d, 3:b→a]; bounds 4/4; rows [a: b c d; b: a; c: ; d: ]
         let graph = AdjacencyList<String>(vertices: ["a", "b", "c", "d"], edges: [DirectedEdge(from: "b", to: "a"), DirectedEdge(from: "c", to: "a"), DirectedEdge(from: "d", to: "a"), DirectedEdge(from: "a", to: "b")])
-        let view = graph.reverseView
+        let view = graph.transposedView
         #expect(Array(view.vertices) == ["a", "b", "c", "d"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2, 3])
         #expect((0 ..< 4).map { view.vertex(atIndex: $0) } == ["a", "b", "c", "d"])
@@ -268,10 +268,10 @@ struct ReverseViewTests {
 
     @Test("GO-007 edge indices forwarded")
     func go007() {
-        // AL V [x, y, z]; E [x→y, y→z, z→x] / .reverseView
+        // AL V [x, y, z]; E [x→y, y→z, z→x] / .transposedView
         // Expected: V [x#0, y#1, z#2]; E [0:y→x, 1:z→y, 2:x→z]; bounds 3/3; edgeIndex(of: 2) 2; sourceIndex(ofEdgeAt: 2) 0
         let graph = AdjacencyList<String>(vertices: ["x", "y", "z"], edges: [DirectedEdge(from: "x", to: "y"), DirectedEdge(from: "y", to: "z"), DirectedEdge(from: "z", to: "x")])
-        let view = graph.reverseView
+        let view = graph.transposedView
         #expect(view.edgeIndex(of: 2) == 2 && view.sourceIndex(ofEdgeAt: 2) == 0)
         #expect(Array(view.vertices) == ["x", "y", "z"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2])
@@ -322,12 +322,12 @@ struct ReverseViewTests {
 
     @Test("GO-008 reverse of the reverse is the base (same type, O(1))")
     func go008() {
-        // AL V [a, b, c]; E [a→b, b→c] / .reverseView.reverseView
+        // AL V [a, b, c]; E [a→b, b→c] / .transposedView.transposedView
         // Expected: V [a#0, b#1, c#2]; E [0:a→b, 1:b→c]; bounds 3/2; is the base: true
         let graph = AdjacencyList<String>(vertices: ["a", "b", "c"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "c")])
-        let view = graph.reverseView.reverseView
+        let view = graph.transposedView.transposedView
         // The reverse of a reverse is the base itself, of the base's type.
-        let back: AdjacencyList<String> = graph.reverseView.reverseView
+        let back: AdjacencyList<String> = graph.transposedView.transposedView
         #expect(back == graph)
         #expect(Array(view.vertices) == ["a", "b", "c"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2])
@@ -378,10 +378,10 @@ struct ReverseViewTests {
 
     @Test("GO-009 a vertex lookup hashes once, rows none")
     func go009() {
-        // AL V [a, b, c]; E [a→b, c→b] / .reverseView
+        // AL V [a, b, c]; E [a→b, c→b] / .transposedView
         // Expected: V [a#0, b#1, c#2]; E [0:b→a, 1:b→c]; bounds 3/2; outEdges(of: b) [0, 1]; inEdges(ofIndex: 1) []; hashes 1
         let graph = AdjacencyList<String>(vertices: ["a", "b", "c"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "c", to: "b")])
-        let view = graph.reverseView
+        let view = graph.transposedView
         #expect(Array(view.vertices) == ["a", "b", "c"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2])
         #expect((0 ..< 3).map { view.vertex(atIndex: $0) } == ["a", "b", "c"])
@@ -446,7 +446,7 @@ struct ReverseViewTests {
             let tally = Tally()
             func label(_ name: String) -> Counted { Counted(name: name, tally: tally) }
             let counted = AdjacencyList<Counted>(vertices: ["a", "b", "c"].map(label), edges: [DirectedEdge(from: label("a"), to: label("b")), DirectedEdge(from: label("c"), to: label("b"))])
-            let reversed = counted.reverseView
+            let reversed = counted.transposedView
             tally.hashes = 0
             let out = Array(reversed.outEdges(of: label("b")))
             #expect(tally.hashes == 1)

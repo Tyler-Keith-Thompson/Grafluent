@@ -1,5 +1,5 @@
 // Algorithms see through the views. Traversal, Connectivity and ShortestPaths run on seeded random
-// views (reverseView, the three subgraph entry points and complement, over directed and undirected
+// views (transposedView, the three subgraph entry points and complement, over directed and undirected
 // pseudographs, and over CompressedSparseRow and AdjacencyMatrix bases), and every result must be
 // exactly the same algorithm's result on a materialized copy of the view: `DirectedPseudograph(view)`
 // or `Pseudograph(view)`, which keeps the vertices in order and puts the view's k-th edge (in `edges`
@@ -83,26 +83,26 @@ struct GraphOperationsConformanceTests {
             }
         }
 
-        check(base.reverseView, "reverseView")
-        check(base.inducedSubgraph(on: keep), "inducedSubgraph")
-        check(base.spanningSubgraph(edges: positions), "spanningSubgraph")
-        check(base.subgraph(vertices: keep, edges: positions), "subgraph")
-        check(base.complement, "complement")
-        check(base.inducedSubgraph(on: keep).reverseView, "inducedSubgraph.reverseView")
-        check(base.complement.reverseView, "complement.reverseView")
-        check(base.reverseView.inducedSubgraph(on: keep).complement, "reverseView.inducedSubgraph.complement")
-        check(base.inducedSubgraph(on: names), "inducedSubgraph on every vertex")
-        check(base.inducedSubgraph(on: keep).reverseView.reverseView, "inducedSubgraph.reverseView.reverseView")
+        check(base.transposedView, "transposedView")
+        check(base.inducedSubgraphView(on: keep), "inducedSubgraphView")
+        check(base.spanningSubgraphView(edges: positions), "spanningSubgraphView")
+        check(base.subgraphView(vertices: keep, edges: positions), "subgraph")
+        check(base.complementView, "complement")
+        check(base.inducedSubgraphView(on: keep).transposedView, "inducedSubgraphView.transposedView")
+        check(base.complementView.transposedView, "complement.transposedView")
+        check(base.transposedView.inducedSubgraphView(on: keep).complementView, "transposedView.inducedSubgraphView.complementView")
+        check(base.inducedSubgraphView(on: names), "inducedSubgraphView on every vertex")
+        check(base.inducedSubgraphView(on: keep).transposedView.transposedView, "inducedSubgraphView.transposedView.transposedView")
         // The subgraph and reverse views' positions are the base's: the weight of base position p is
         // the weight the view sees at p.
-        let view = base.subgraph(vertices: keep, edges: positions)
-        let baseTree = base.spanningSubgraph(edges: view.edges.indices).dijkstraShortestPaths(from: keep.first ?? names[0]) { $0 % 5 + 1 }
+        let view = base.subgraphView(vertices: keep, edges: positions)
+        let baseTree = base.spanningSubgraphView(edges: view.edges.indices).dijkstraShortestPaths(from: keep.first ?? names[0]) { $0 % 5 + 1 }
         let viewTree = view.dijkstraShortestPaths(from: keep.first ?? names[0]) { $0 % 5 + 1 }
         for target in view.vertices {
             #expect(viewTree.distance(to: target) == baseTree.distance(to: target))
             #expect(viewTree.parentEdge(of: target) == baseTree.parentEdge(of: target))
         }
-        let reversedTree = base.reverseView.dijkstraShortestPaths(from: names[0]) { $0 % 7 + 1 }
+        let reversedTree = base.transposedView.dijkstraShortestPaths(from: names[0]) { $0 % 7 + 1 }
         for target in names {
             if let p = reversedTree.parentEdge(of: target) {
                 #expect(base.edges[p] == DirectedEdge(from: target, to: reversedTree.parent(of: target)!))
@@ -139,9 +139,9 @@ struct GraphOperationsConformanceTests {
             #expect(view.articulationPoints() == copy.articulationPoints(), "\(what)")
             #expect(view.biEdgeConnectedComponents().map { Array($0) } == copy.biEdgeConnectedComponents().map { Array($0) }, "\(what)")
             for source in view.vertices {
-                #expect(Array(view.directed.breadthFirstSearch(from: source)) == Array(copy.directed.breadthFirstSearch(from: source)), "\(what) from \(source)")
-                #expect(Array(view.directed.depthFirstSearch(from: source)) == Array(copy.directed.depthFirstSearch(from: source)), "\(what) from \(source)")
-                #expect(view.directed.descendants(of: source) == copy.directed.descendants(of: source), "\(what) from \(source)")
+                #expect(Array(view.directedView.breadthFirstSearch(from: source)) == Array(copy.directedView.breadthFirstSearch(from: source)), "\(what) from \(source)")
+                #expect(Array(view.directedView.depthFirstSearch(from: source)) == Array(copy.directedView.depthFirstSearch(from: source)), "\(what) from \(source)")
+                #expect(view.directedView.descendants(of: source) == copy.directedView.descendants(of: source), "\(what) from \(source)")
                 let tree = view.dijkstraShortestPaths(from: source) { weight[ordinal[$0]!] }
                 let copyTree = copy.dijkstraShortestPaths(from: source) { weight[$0] }
                 let hops = view.shortestPaths(from: source), copyHops = copy.shortestPaths(from: source)
@@ -155,22 +155,22 @@ struct GraphOperationsConformanceTests {
             }
         }
 
-        check(base.inducedSubgraph(on: keep), "inducedSubgraph")
-        check(base.spanningSubgraph(edges: positions), "spanningSubgraph")
-        check(base.subgraph(vertices: keep, edges: positions), "subgraph")
-        check(base.complement, "complement")
-        check(base.inducedSubgraph(on: keep).complement, "inducedSubgraph.complement")
-        check(base.spanningSubgraph(edges: positions).inducedSubgraph(on: keep), "spanningSubgraph.inducedSubgraph")
-        check(base.inducedSubgraph(on: names), "inducedSubgraph on every vertex")
+        check(base.inducedSubgraphView(on: keep), "inducedSubgraphView")
+        check(base.spanningSubgraphView(edges: positions), "spanningSubgraphView")
+        check(base.subgraphView(vertices: keep, edges: positions), "subgraph")
+        check(base.complementView, "complement")
+        check(base.inducedSubgraphView(on: keep).complementView, "inducedSubgraphView.complementView")
+        check(base.spanningSubgraphView(edges: positions).inducedSubgraphView(on: keep), "spanningSubgraphView.inducedSubgraphView")
+        check(base.inducedSubgraphView(on: names), "inducedSubgraphView on every vertex")
         // On every vertex the view forwards the base's flat rows and edge indices, which
         // UndirectedAdjacencyList keeps (and Pseudograph does not).
         var pairs = Set<[String]>()
         for e in edges where e.u != e.v { pairs.insert([Swift.min(e.u, e.v), Swift.max(e.u, e.v)]) }
         let simple = UndirectedAdjacencyList<String>(vertices: names, edges: pairs.sorted { $0.lexicographicallyPrecedes($1) }.map { UndirectedEdge($0[0], $0[1]) })
-        check(simple.inducedSubgraph(on: names), "UndirectedAdjacencyList.inducedSubgraph on every vertex")
-        check(simple.inducedSubgraph(on: keep), "UndirectedAdjacencyList.inducedSubgraph")
-        check(simple.spanningSubgraph(edges: simple.edges.indices.filter { _ in Bool.random(using: &rng) }), "UndirectedAdjacencyList.spanningSubgraph")
-        let allView = simple.inducedSubgraph(on: names)
+        check(simple.inducedSubgraphView(on: names), "UndirectedAdjacencyList.inducedSubgraphView on every vertex")
+        check(simple.inducedSubgraphView(on: keep), "UndirectedAdjacencyList.inducedSubgraphView")
+        check(simple.spanningSubgraphView(edges: simple.edges.indices.filter { _ in Bool.random(using: &rng) }), "UndirectedAdjacencyList.spanningSubgraphView")
+        let allView = simple.inducedSubgraphView(on: names)
         #expect(allView.edgeIndexBound == simple.edgeIndexBound)
         for i in 0 ..< n {
             #expect(Array(allView.incidentEdgeIndices(ofIndex: i)) == Array(simple.incidentEdgeIndices(ofIndex: i)))
@@ -180,19 +180,19 @@ struct GraphOperationsConformanceTests {
         let directed = DirectedPseudograph<String>(vertices: names, edges: edges.map { DirectedEdge(from: $0.u, to: $0.v) })
         // The undirected view of a directed view walks the out-row, then the in-row, in place: its
         // rows are ordered differently from a copy's, so components and layers are compared.
-        let undirectedCopy = Pseudograph<String>(directed.undirected)
-        #expect(directed.undirected.connectedComponents().map { Array($0) } == undirectedCopy.connectedComponents().map { Array($0) })
-        #expect(directed.reverseView.undirected.connectedComponents().map { Array($0) } == undirectedCopy.connectedComponents().map { Array($0) })
-        #expect(directed.undirected.isConnected == undirectedCopy.isConnected)
+        let undirectedCopy = Pseudograph<String>(directed.undirectedView)
+        #expect(directed.undirectedView.connectedComponents().map { Array($0) } == undirectedCopy.connectedComponents().map { Array($0) })
+        #expect(directed.transposedView.undirectedView.connectedComponents().map { Array($0) } == undirectedCopy.connectedComponents().map { Array($0) })
+        #expect(directed.undirectedView.isConnected == undirectedCopy.isConnected)
         for source in names {
-            let layers = undirectedCopy.directed.breadthFirstLayers(from: source).map { Set($0) }
-            #expect(directed.undirected.directed.breadthFirstLayers(from: source).map { Set($0) } == layers)
-            #expect(directed.reverseView.undirected.directed.breadthFirstLayers(from: source).map { Set($0) } == layers)
+            let layers = undirectedCopy.directedView.breadthFirstLayers(from: source).map { Set($0) }
+            #expect(directed.undirectedView.directedView.breadthFirstLayers(from: source).map { Set($0) } == layers)
+            #expect(directed.transposedView.undirectedView.directedView.breadthFirstLayers(from: source).map { Set($0) } == layers)
         }
-        let inducedUndirected = directed.inducedSubgraph(on: keep).undirected
+        let inducedUndirected = directed.inducedSubgraphView(on: keep).undirectedView
         #expect(inducedUndirected.connectedComponents().map { Array($0) } == Pseudograph<String>(inducedUndirected).connectedComponents().map { Array($0) })
-        let flipped = Pseudograph<String>(directed.reverseView.undirected)
-        #expect(flipped.edges.map { [$0.v, $0.u] } == Pseudograph<String>(directed.undirected).edges.map { [$0.u, $0.v] })
+        let flipped = Pseudograph<String>(directed.transposedView.undirectedView)
+        #expect(flipped.edges.map { [$0.v, $0.u] } == Pseudograph<String>(directed.undirectedView).edges.map { [$0.u, $0.v] })
     }
 
     @Test("A view with an edge set walks the same rows before and after it builds its kept rows")
@@ -206,7 +206,7 @@ struct GraphOperationsConformanceTests {
         let directed = DirectedPseudograph<Int>(vertices: 0 ..< n, edges: arcs)
         let kept = directed.edges.indices.filter { _ in Int.random(in: 0 ..< 3, using: &rng) == 0 }
         let keep = (0 ..< n).filter { _ in Int.random(in: 0 ..< 5, using: &rng) != 0 }
-        for view in [directed.spanningSubgraph(edges: kept), directed.subgraph(vertices: keep, edges: kept)] {
+        for view in [directed.spanningSubgraphView(edges: kept), directed.subgraphView(vertices: keep, edges: kept)] {
             let copy = DirectedPseudograph<Int>(view)
             // The first few searches stay below the threshold; the components walk every row.
             for source in 0 ..< 3 {
@@ -232,18 +232,18 @@ struct GraphOperationsConformanceTests {
             let copy = Pseudograph<Int>(view)
             for source in 0 ..< 3 {
                 let s = view.vertex(atIndex: source)
-                #expect(view.directed.breadthFirstLayers(from: s) == copy.directed.breadthFirstLayers(from: s))
+                #expect(view.directedView.breadthFirstLayers(from: s) == copy.directedView.breadthFirstLayers(from: s))
             }
             #expect(view.connectedComponents().map { Array($0) } == copy.connectedComponents().map { Array($0) })
             for source in [0, 7, 99] {
                 let s = view.vertex(atIndex: source)
-                #expect(view.directed.breadthFirstLayers(from: s) == copy.directed.breadthFirstLayers(from: s))
+                #expect(view.directedView.breadthFirstLayers(from: s) == copy.directedView.breadthFirstLayers(from: s))
             }
         }
-        check(undirected.spanningSubgraph(edges: undirected.edges.indices.filter { $0 % 3 == 0 }))
-        check(undirected.subgraph(vertices: keep, edges: undirected.edges.indices.filter { $0 % 2 == 0 }))
-        check(simple.spanningSubgraph(edges: simpleKept))
-        check(simple.subgraph(vertices: keep, edges: simpleKept))
+        check(undirected.spanningSubgraphView(edges: undirected.edges.indices.filter { $0 % 3 == 0 }))
+        check(undirected.subgraphView(vertices: keep, edges: undirected.edges.indices.filter { $0 % 2 == 0 }))
+        check(simple.spanningSubgraphView(edges: simpleKept))
+        check(simple.subgraphView(vertices: keep, edges: simpleKept))
     }
 
     @Test("Views over CompressedSparseRow and AdjacencyMatrix bases equal their copies", arguments: [1, 2, 3, 4])
@@ -280,23 +280,23 @@ struct GraphOperationsConformanceTests {
             }
         }
 
-        check(csr.inducedSubgraph(on: keep), "CSR inducedSubgraph")
-        check(csr.spanningSubgraph(edges: csr.edges.indices.filter { $0 % 2 == 0 }), "CSR spanningSubgraph")
-        check(csr.complement, "CSR complement")
-        check(matrix.reverseView, "matrix reverseView")
-        check(matrix.inducedSubgraph(on: keep), "matrix inducedSubgraph")
-        check(matrix.complement, "matrix complement")
-        check(matrix.complement.complement, "matrix complement twice")
+        check(csr.inducedSubgraphView(on: keep), "CSR inducedSubgraphView")
+        check(csr.spanningSubgraphView(edges: csr.edges.indices.filter { $0 % 2 == 0 }), "CSR spanningSubgraphView")
+        check(csr.complementView, "CSR complement")
+        check(matrix.transposedView, "matrix transposedView")
+        check(matrix.inducedSubgraphView(on: keep), "matrix inducedSubgraphView")
+        check(matrix.complementView, "matrix complement")
+        check(matrix.complementView.complementView, "matrix complement twice")
         // A view materializes into CompressedSparseRow when its vertices are 0..<n: the reverse and
         // the complement of a CSR are its transpose and its complement relation.
-        let reversed = CompressedSparseRow(matrix.reverseView)
+        let reversed = CompressedSparseRow(matrix.transposedView)
         #expect(Set(reversed.edges) == Set(arcs.map { DirectedEdge(from: $0.target, to: $0.source) }))
-        let complement = CompressedSparseRow(csr.complement)
+        let complement = CompressedSparseRow(csr.complementView)
         let present = Set(arcs)
         var expected = Set<DirectedEdge<Int>>()
         for s in 0 ..< n { for t in 0 ..< n where s != t && !present.contains(DirectedEdge(from: s, to: t)) { expected.insert(DirectedEdge(from: s, to: t)) } }
         #expect(Set(complement.edges) == expected)
-        #expect(complement.edgeCount == csr.complement.edgeCount)
+        #expect(complement.edgeCount == csr.complementView.edgeCount)
     }
 
     @Test("An edge set over a base without edge indices keeps its sorted positions: dense edge indices by rank, filtered rows")
@@ -310,7 +310,7 @@ struct GraphOperationsConformanceTests {
         let cells = Array(matrix.edges.indices)
         #expect(matrix.edges.map { [$0.source, $0.target] } == [[0, 1], [0, 2], [1, 2], [2, 3], [3, 0]])
         // Listed out of order and with a repeat: kept once, in base order, ranked 0, 1, 2.
-        let spanning = matrix.spanningSubgraph(edges: [cells[3], cells[0], cells[3], cells[1]])
+        let spanning = matrix.spanningSubgraphView(edges: [cells[3], cells[0], cells[3], cells[1]])
         #expect(spanning.edgeIndexBound == 3 && spanning.edgeCount == 3)
         #expect(Array(spanning.edges.indices) == [cells[0], cells[1], cells[3]])
         #expect(spanning.edges.indices.map { spanning.edgeIndex(of: $0) } == [0, 1, 2])
@@ -319,17 +319,17 @@ struct GraphOperationsConformanceTests {
         #expect(Array(spanning.predecessorIndices(ofIndex: 2)) == [0] && spanning.inDegree(ofIndex: 2) == 1)
         #expect(spanning.contains(edge: DirectedEdge(from: 0, to: 2)) && !spanning.contains(edge: DirectedEdge(from: 1, to: 2)))
         // Both filters: a listed edge with a dropped end is not kept, and the rest are ranked.
-        let both = matrix.subgraph(vertices: [3, 0, 2], edges: cells)
+        let both = matrix.subgraphView(vertices: [3, 0, 2], edges: cells)
         #expect(Array(both.vertices) == [0, 2, 3] && both.edgeIndexBound == 3)
         #expect(both.edges.map { [$0.source, $0.target] } == [[0, 2], [2, 3], [3, 0]])
         #expect(both.edges.indices.map { both.edgeIndex(of: $0) } == [0, 1, 2])
         #expect(Array(both.successorIndices(ofIndex: 0)) == [1] && Array(both.predecessorIndices(ofIndex: 0)) == [2])
         // An undirected complement has no edge indices either; a spanning subgraph of it does.
         let path = UndirectedAdjacencyList<String>(vertices: ["a", "b", "c", "d"], edges: [UndirectedEdge("a", "b"), UndirectedEdge("b", "c"), UndirectedEdge("c", "d")])
-        let complement = path.complement
+        let complement = path.complementView
         let pairs = Array(complement.edges.indices)
         #expect(complement.edgeIndexBound == nil && complement.edges.map { [$0.u, $0.v] } == [["a", "c"], ["a", "d"], ["b", "d"]])
-        let kept = complement.spanningSubgraph(edges: [pairs[2], pairs[0]])
+        let kept = complement.spanningSubgraphView(edges: [pairs[2], pairs[0]])
         #expect(kept.edgeIndexBound == 2 && kept.edges.map { [$0.u, $0.v] } == [["a", "c"], ["b", "d"]])
         #expect(Array(kept.neighborIndices(ofIndex: 0)) == [2] && Array(kept.incidentEdgeIndices(ofIndex: 3)) == [1])
         #expect((0 ..< 4).map { kept.degree(ofIndex: $0) } == [1, 1, 1, 1])

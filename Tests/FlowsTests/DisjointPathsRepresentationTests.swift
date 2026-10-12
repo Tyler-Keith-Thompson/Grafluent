@@ -2,11 +2,11 @@
 // `ReferenceDirectedMultigraph` for rows already on it), a file-private conformer with no vertex or
 // edge indices, and, without a repeated edge, `CompressedSparseRow` and `AdjacencyMatrix` on the
 // vertex indices; undirected rows on `Pseudograph` (or `ReferencePseudograph`), the conformer, and,
-// without a repeated edge, `AdjacencyList.undirected` (each edge an arc as written) and
-// `AdjacencyMatrix.undirected`. CompressedSparseRow and AdjacencyMatrix number edges by row-major
-// cell, so there each catalog edge's position is looked up, a cut's edges are listed in that order,
-// and Edmonds–Karp's flow (which follows positions) was recomputed by swiftgen.py with ref.py's
-// model on those positions. Everything else is the catalog's. See README.md.
+// without a repeated edge, `AdjacencyList.undirectedView` (each edge an arc as written) and
+// `AdjacencyMatrix.undirectedView`. CompressedSparseRow and AdjacencyMatrix number edges by
+// row-major cell, so there each catalog edge's position is looked up, a cut's edges are listed in
+// that order, and Edmonds–Karp's flow (which follows positions) was recomputed by swiftgen.py with
+// ref.py's model on those positions. Everything else is the catalog's. See README.md.
 
 import AdjacencyListModule
 import AdjacencyMatrixModule
@@ -119,7 +119,7 @@ struct DisjointPathsRepresentationTests {
         }
     }
 
-    @Test("FL-504 no path, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-504 no path, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl504() {
         // undirected V [0, 1, 2, 3]; E [0–1, 2–3]; edgeDisjointPaths(from: 0, to: 3)
         let pairs: [(Int, Int)] = [(0, 1), (2, 3)]
@@ -138,16 +138,16 @@ struct DisjointPathsRepresentationTests {
             #expect(paths.allSatisfy { $0.vertices.first == 0 && $0.vertices.last == 3 })
             #expect(Set(paths.flatMap(\.edges)).count == paths.reduce(0) { $0 + $1.edges.count })
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let paths = graph.edgeDisjointPaths(from: 0, to: 3)
             #expect(paths.count == 0)
             #expect(paths.allSatisfy { $0.vertices.first == 0 && $0.vertices.last == 3 })
             #expect(Set(paths.flatMap(\.edges)).count == paths.reduce(0) { $0 + $1.edges.count })
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (2, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             let paths = graph.edgeDisjointPaths(from: 0, to: 3)
             #expect(paths.count == 0)
@@ -156,7 +156,7 @@ struct DisjointPathsRepresentationTests {
         }
     }
 
-    @Test("FL-505 no path, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-505 no path, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl505() {
         // undirected V [0, 1, 2, 3]; E [0–1, 2–3]; vertexDisjointPaths(from: 0, to: 3)
         let pairs: [(Int, Int)] = [(0, 1), (2, 3)]
@@ -175,16 +175,16 @@ struct DisjointPathsRepresentationTests {
             #expect(paths.allSatisfy { $0.vertices.first == 0 && $0.vertices.last == 3 })
             #expect(Set(paths.flatMap { $0.vertices.dropFirst().dropLast() }).count == paths.reduce(0) { $0 + $1.vertices.count - 2 })
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let paths = graph.vertexDisjointPaths(from: 0, to: 3)
             #expect(paths.count == 0)
             #expect(paths.allSatisfy { $0.vertices.first == 0 && $0.vertices.last == 3 })
             #expect(Set(paths.flatMap { $0.vertices.dropFirst().dropLast() }).count == paths.reduce(0) { $0 + $1.vertices.count - 2 })
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (2, 3)]
-            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             let paths = graph.vertexDisjointPaths(from: 0, to: 3)
             #expect(paths.count == 0)
@@ -355,7 +355,7 @@ struct DisjointPathsRepresentationTests {
         }
     }
 
-    @Test("FL-512 two triangles sharing a vertex: 2 edge paths, 1 vertex path, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-512 two triangles sharing a vertex: 2 edge paths, 1 vertex path, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl512() {
         // undirected V [0, 1, 2, 3, 4]; E [0–1, 1–2, 0–2, 2–3, 3–4, 2–4]; edgeDisjointPaths(from: 0, to: 4)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (0, 2), (2, 3), (3, 4), (2, 4)]
@@ -374,16 +374,16 @@ struct DisjointPathsRepresentationTests {
             #expect(paths.allSatisfy { $0.vertices.first == 0 && $0.vertices.last == 4 })
             #expect(Set(paths.flatMap(\.edges)).count == paths.reduce(0) { $0 + $1.edges.count })
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let paths = graph.edgeDisjointPaths(from: 0, to: 4)
             #expect(paths.count == 2)
             #expect(paths.allSatisfy { $0.vertices.first == 0 && $0.vertices.last == 4 })
             #expect(Set(paths.flatMap(\.edges)).count == paths.reduce(0) { $0 + $1.edges.count })
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (0, 2), (2, 3), (3, 4), (2, 4)]
-            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             let paths = graph.edgeDisjointPaths(from: 0, to: 4)
             #expect(paths.count == 2)
@@ -392,7 +392,7 @@ struct DisjointPathsRepresentationTests {
         }
     }
 
-    @Test("FL-513 two triangles sharing a vertex: 2 edge paths, 1 vertex path, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-513 two triangles sharing a vertex: 2 edge paths, 1 vertex path, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl513() {
         // undirected V [0, 1, 2, 3, 4]; E [0–1, 1–2, 0–2, 2–3, 3–4, 2–4]; vertexDisjointPaths(from: 0, to: 4)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (0, 2), (2, 3), (3, 4), (2, 4)]
@@ -411,16 +411,16 @@ struct DisjointPathsRepresentationTests {
             #expect(paths.allSatisfy { $0.vertices.first == 0 && $0.vertices.last == 4 })
             #expect(Set(paths.flatMap { $0.vertices.dropFirst().dropLast() }).count == paths.reduce(0) { $0 + $1.vertices.count - 2 })
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let paths = graph.vertexDisjointPaths(from: 0, to: 4)
             #expect(paths.count == 1)
             #expect(paths.allSatisfy { $0.vertices.first == 0 && $0.vertices.last == 4 })
             #expect(Set(paths.flatMap { $0.vertices.dropFirst().dropLast() }).count == paths.reduce(0) { $0 + $1.vertices.count - 2 })
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (0, 2), (2, 3), (3, 4), (2, 4)]
-            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             let paths = graph.vertexDisjointPaths(from: 0, to: 4)
             #expect(paths.count == 1)
@@ -507,7 +507,7 @@ struct DisjointPathsRepresentationTests {
         }
     }
 
-    @Test("FL-516 Petersen, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-516 Petersen, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl516() {
         // nx(petersen_graph); edgeDisjointPaths(from: 0, to: 7)
         let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
@@ -526,16 +526,16 @@ struct DisjointPathsRepresentationTests {
             #expect(paths.allSatisfy { $0.vertices.first == 0 && $0.vertices.last == 7 })
             #expect(Set(paths.flatMap(\.edges)).count == paths.reduce(0) { $0 + $1.edges.count })
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let paths = graph.edgeDisjointPaths(from: 0, to: 7)
             #expect(paths.count == 3)
             #expect(paths.allSatisfy { $0.vertices.first == 0 && $0.vertices.last == 7 })
             #expect(Set(paths.flatMap(\.edges)).count == paths.reduce(0) { $0 + $1.edges.count })
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
-            let graph = AdjacencyMatrix(vertexCount: 10, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 10, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             let paths = graph.edgeDisjointPaths(from: 0, to: 7)
             #expect(paths.count == 3)
@@ -544,7 +544,7 @@ struct DisjointPathsRepresentationTests {
         }
     }
 
-    @Test("FL-517 Petersen, on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-517 Petersen, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl517() {
         // nx(petersen_graph); vertexDisjointPaths(from: 0, to: 7)
         let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
@@ -563,16 +563,16 @@ struct DisjointPathsRepresentationTests {
             #expect(paths.allSatisfy { $0.vertices.first == 0 && $0.vertices.last == 7 })
             #expect(Set(paths.flatMap { $0.vertices.dropFirst().dropLast() }).count == paths.reduce(0) { $0 + $1.vertices.count - 2 })
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let paths = graph.vertexDisjointPaths(from: 0, to: 7)
             #expect(paths.count == 3)
             #expect(paths.allSatisfy { $0.vertices.first == 0 && $0.vertices.last == 7 })
             #expect(Set(paths.flatMap { $0.vertices.dropFirst().dropLast() }).count == paths.reduce(0) { $0 + $1.vertices.count - 2 })
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
-            let graph = AdjacencyMatrix(vertexCount: 10, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 10, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             let paths = graph.vertexDisjointPaths(from: 0, to: 7)
             #expect(paths.count == 3)
@@ -581,7 +581,7 @@ struct DisjointPathsRepresentationTests {
         }
     }
 
-    @Test("FL-518 grid(3,4), on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-518 grid(3,4), on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl518() {
         // grid(3,4); edgeDisjointPaths(from: 0, to: 11)
         let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (9, 10), (10, 11)]
@@ -600,16 +600,16 @@ struct DisjointPathsRepresentationTests {
             #expect(paths.allSatisfy { $0.vertices.first == 0 && $0.vertices.last == 11 })
             #expect(Set(paths.flatMap(\.edges)).count == paths.reduce(0) { $0 + $1.edges.count })
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let paths = graph.edgeDisjointPaths(from: 0, to: 11)
             #expect(paths.count == 2)
             #expect(paths.allSatisfy { $0.vertices.first == 0 && $0.vertices.last == 11 })
             #expect(Set(paths.flatMap(\.edges)).count == paths.reduce(0) { $0 + $1.edges.count })
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (9, 10), (10, 11)]
-            let graph = AdjacencyMatrix(vertexCount: 12, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 12, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             let paths = graph.edgeDisjointPaths(from: 0, to: 11)
             #expect(paths.count == 2)
@@ -618,7 +618,7 @@ struct DisjointPathsRepresentationTests {
         }
     }
 
-    @Test("FL-519 grid(3,4), on Pseudograph, no indices, AdjacencyList.undirected, AdjacencyMatrix.undirected")
+    @Test("FL-519 grid(3,4), on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl519() {
         // grid(3,4); vertexDisjointPaths(from: 0, to: 11)
         let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (9, 10), (10, 11)]
@@ -637,16 +637,16 @@ struct DisjointPathsRepresentationTests {
             #expect(paths.allSatisfy { $0.vertices.first == 0 && $0.vertices.last == 11 })
             #expect(Set(paths.flatMap { $0.vertices.dropFirst().dropLast() }).count == paths.reduce(0) { $0 + $1.vertices.count - 2 })
         }
-        do { // AdjacencyList.undirected
-            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+        do { // AdjacencyList.undirectedView
+            let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             let paths = graph.vertexDisjointPaths(from: 0, to: 11)
             #expect(paths.count == 2)
             #expect(paths.allSatisfy { $0.vertices.first == 0 && $0.vertices.last == 11 })
             #expect(Set(paths.flatMap { $0.vertices.dropFirst().dropLast() }).count == paths.reduce(0) { $0 + $1.vertices.count - 2 })
         }
-        do { // AdjacencyMatrix.undirected
+        do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (9, 10), (10, 11)]
-            let graph = AdjacencyMatrix(vertexCount: 12, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirected
+            let graph = AdjacencyMatrix(vertexCount: 12, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             // Positions here are row-major cells: each catalog edge's position, and back.
             let paths = graph.vertexDisjointPaths(from: 0, to: 11)
             #expect(paths.count == 2)

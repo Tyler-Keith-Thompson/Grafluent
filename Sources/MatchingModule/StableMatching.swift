@@ -1,3 +1,5 @@
+import GraphProtocols
+
 /// The proposer-optimal stable matching (Gale and Shapley's deferred acceptance). Each list ranks
 /// the other side's indices, best first; a pair is acceptable when each lists the other. Unequal
 /// sides and incomplete lists are allowed. The result is unique, so the order of proposals does
@@ -90,6 +92,26 @@ public struct StableMatching: Hashable, Sendable, CustomStringConvertible {
         precondition(reviewer >= 0 && reviewer < _reviewerMates.count, "Reviewer \(reviewer) is out of range")
         let m = _reviewerMates[reviewer]
         return m < 0 ? nil : m
+    }
+
+    /// `mate(ofProposer: proposer)`, throwing instead of trapping when `proposer` is out of range:
+    /// nil still means `proposer` is unmatched.
+    ///
+    /// - Throws: `VertexNotFound` when `proposer` is not a proposer index.
+    @inlinable
+    public func mate(checkedProposer proposer: Int) throws(VertexNotFound) -> Int? {
+        guard proposer >= 0 && proposer < _proposerMates.count else { throw VertexNotFound() }
+        return mate(ofProposer: proposer)
+    }
+
+    /// `mate(ofReviewer: reviewer)`, throwing instead of trapping when `reviewer` is out of range:
+    /// nil still means `reviewer` is unmatched.
+    ///
+    /// - Throws: `VertexNotFound` when `reviewer` is not a reviewer index.
+    @inlinable
+    public func mate(checkedReviewer reviewer: Int) throws(VertexNotFound) -> Int? {
+        guard reviewer >= 0 && reviewer < _reviewerMates.count else { throw VertexNotFound() }
+        return mate(ofReviewer: reviewer)
     }
 
     /// `{0–2, 1–0}`: each matched proposer with its reviewer, by proposer.

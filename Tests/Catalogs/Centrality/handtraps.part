@@ -57,7 +57,7 @@
         }
     }
 
-    @Test("Closeness and harmonic weights: negative or NaN traps even on an edge no search from the queried vertex reaches, Int.min, -infinity, directed, through graph.directed")
+    @Test("Closeness and harmonic weights: negative or NaN traps even on an edge no search from the queried vertex reaches, Int.min, -infinity, directed, through graph.directedView")
     func closenessWeights() async {
         await #expect(processExitsWith: .failure) {
             // U: P(0,1,2), 3-4: the bad weight is on 3-4, out of vertex 0's reach.
@@ -96,11 +96,11 @@
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
             let w = [1, -1]
-            _ = graph.directed.closenessCentrality(weight: { w[$0.position] })
+            _ = graph.directedView.closenessCentrality(weight: { w[$0.position] })
         }
     }
 
-    @Test("Betweenness weights: zero (also -0.0), negative and NaN trap, on an edge out of reach, directed, through graph.directed")
+    @Test("Betweenness weights: zero (also -0.0), negative and NaN trap, on an edge out of reach, directed, through graph.directedView")
     func betweennessWeights() async {
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
@@ -127,7 +127,7 @@
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
             let w = [1, 0]
-            _ = graph.directed.betweennessCentrality(weight: { w[$0.position] })
+            _ = graph.directedView.betweennessCentrality(weight: { w[$0.position] })
         }
     }
 
@@ -176,7 +176,7 @@
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
             let w: [Double] = [1, .nan]
-            _ = try graph.directed.hits(weight: { w[$0.position] })
+            _ = try graph.directedView.hits(weight: { w[$0.position] })
         }
     }
 

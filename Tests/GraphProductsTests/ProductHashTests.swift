@@ -35,7 +35,7 @@ struct ProductHashTests {
             edges: [["x", "y"], ["y", "z"], ["z", "x"], ["z", "w"]].map { UndirectedEdge(Counted(name: $0[0], tally: tally), Counted(name: $0[1], tally: tally)) })
         let probe = Pair(Counted(name: "b", tally: tally), Counted(name: "z", tally: tally))
 
-        let cartesian = cartesianProduct(g, h)
+        let cartesian = cartesianProductView(g, h)
         tally.hashes = 0
         for i in 0 ..< 12 {
             _ = Array(cartesian.neighborIndices(ofIndex: i))
@@ -53,7 +53,7 @@ struct ProductHashTests {
         _ = Array(cartesian.neighbors(of: probe))
         #expect(tally.hashes == 2)
 
-        let tensor = tensorProduct(g, h)
+        let tensor = tensorProductView(g, h)
         tally.hashes = 0
         for i in 0 ..< 12 {
             _ = Array(tensor.neighborIndices(ofIndex: i))
@@ -68,7 +68,7 @@ struct ProductHashTests {
         _ = Array(tensor.incidentEdges(of: probe))
         #expect(tally.hashes == 2)
 
-        let strong = strongProduct(g, h)
+        let strong = strongProductView(g, h)
         tally.hashes = 0
         for i in 0 ..< 12 {
             _ = Array(strong.neighborIndices(ofIndex: i))
@@ -80,7 +80,7 @@ struct ProductHashTests {
         #expect(tally.hashes == 0)
         #expect(strong.vertexIndex(of: probe) == 6 && tally.hashes == 2)
 
-        let lexicographic = lexicographicProduct(g, h)
+        let lexicographic = lexicographicProductView(g, h)
         tally.hashes = 0
         for i in 0 ..< 12 {
             _ = Array(lexicographic.neighborIndices(ofIndex: i))
@@ -116,7 +116,7 @@ struct ProductHashTests {
             edges: [["x", "y"], ["y", "x"], ["y", "y"]].map { DirectedEdge(from: Counted(name: $0[0], tally: tally), to: Counted(name: $0[1], tally: tally)) })
         let probe = Pair(Counted(name: "c", tally: tally), Counted(name: "y", tally: tally))
 
-        let cartesian = cartesianProduct(g, h)
+        let cartesian = cartesianProductView(g, h)
         tally.hashes = 0
         for i in 0 ..< 6 {
             _ = Array(cartesian.successorIndices(ofIndex: i))
@@ -133,7 +133,7 @@ struct ProductHashTests {
         _ = Array(cartesian.successors(of: probe))
         #expect(tally.hashes == 2)
 
-        let tensor = tensorProduct(g, h)
+        let tensor = tensorProductView(g, h)
         tally.hashes = 0
         for i in 0 ..< 6 {
             _ = Array(tensor.successorIndices(ofIndex: i))
@@ -145,7 +145,7 @@ struct ProductHashTests {
         _ = (tensor.edgeCount, tensor.edgeIndexBound)
         #expect(tally.hashes == 0)
 
-        let strong = strongProduct(g, h)
+        let strong = strongProductView(g, h)
         tally.hashes = 0
         for i in 0 ..< 6 {
             _ = Array(strong.successorIndices(ofIndex: i))
@@ -157,7 +157,7 @@ struct ProductHashTests {
         _ = (strong.edgeCount, strong.edgeIndexBound)
         #expect(tally.hashes == 0)
 
-        let lexicographic = lexicographicProduct(g, h)
+        let lexicographic = lexicographicProductView(g, h)
         tally.hashes = 0
         for i in 0 ..< 6 {
             _ = Array(lexicographic.successorIndices(ofIndex: i))
@@ -198,7 +198,7 @@ struct ProductHashTests {
             vertices: ["x", "y"].map { Counted(name: $0, tally: tally) },
             edges: [DirectedEdge(from: Counted(name: "x", tally: tally), to: Counted(name: "y", tally: tally))])
         let source = Pair(Counted(name: "a", tally: tally), Counted(name: "x", tally: tally))
-        let sparse = strongProduct(path, k2), dense = strongProduct(complete, k2)
+        let sparse = strongProductView(path, k2), dense = strongProductView(complete, k2)
         #expect(dense.edgeCount > 4 * sparse.edgeCount)
         tally.hashes = 0
         let sparseReached = Array(sparse.breadthFirstSearch(from: source)).count

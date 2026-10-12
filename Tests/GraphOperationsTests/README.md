@@ -1,14 +1,14 @@
 # GraphOperations test suite
 
-`GraphOperations` has two kinds of operation. The lazy views (`reverseView`, the subgraph views and
-`complement`) hold their base and compute every row from the base's rows. The materialized results
+`GraphOperations` has two kinds of operation. The lazy views (`transposedView`, the subgraph views and
+`complementView`) hold their base and compute every row from the base's rows. The materialized results
 (the line graph, the condensation as a `DirectedAcyclicGraph`, the quotient, the disjoint union and
 the join) are built in one step through the construction hooks, on a target type the caller picks.
 The tests come from the proposed API (`api.md` in
 [`Tests/Catalogs/GraphOperations/`](../Catalogs/GraphOperations/), phase 1), with its open questions
 decided as recommended:
 
-- the reversal view is `reverseView` (`ReverseView<Base>`), and it needs a bidirectional base;
+- the reversal view is `transposedView` (`TransposedView<Base>`), and it needs a bidirectional base;
 - the subgraph views renumber the kept vertices densely in base order and keep the base's positions;
 - the materialized operations are static factories on any `_DirectedGraphConstruction` or
   `_GraphConstruction` target;
@@ -21,9 +21,9 @@ the seeded generator and the tags in `GrafluentTestSupport`.
 ## API under test
 
 ```swift
-g.reverseView -> ReverseView<G>                     // G: BidirectionalDirectedGraph; .reverseView gives G back
-g.inducedSubgraph(on:), g.spanningSubgraph(edges:), g.subgraph(vertices:edges:) -> SubgraphView<G>
-g.complement -> ComplementView<G>                   // DirectedGraph and Graph bases
+g.transposedView -> TransposedView<G>                     // G: BidirectionalDirectedGraph; .transposedView gives G back
+g.inducedSubgraphView(on:), g.spanningSubgraphView(edges:), g.subgraphView(vertices:edges:) -> SubgraphView<G>
+g.complementView -> ComplementView<G>                   // DirectedGraph and Graph bases
 view.base
 Target.lineGraph(of:), Target.quotient(of:by:), Target.disjointUnion(_:_:), Target.join(_:_:)
 DirectedAcyclicGraph<Base>(_ condensation: Condensation<G>)
@@ -34,7 +34,7 @@ DirectedAcyclicGraph<Base>(_ condensation: Condensation<G>)
 | Question | Choice | Cases |
 |---|---|---|
 | Reverse positions | The base's, each edge flipped; rows are the base's in-rows in order | GO-003 – GO-007 |
-| Double reversal | `g.reverseView.reverseView` is `g`, of `g`'s type | GO-008 |
+| Double reversal | `g.transposedView.transposedView` is `g`, of `g`'s type | GO-008 |
 | Subgraph numbering | Kept vertices in base index order, whatever the listed order; repeats once | GO-013, GO-014 |
 | Subgraph positions | The base's, in base `edges` order | GO-017, GO-031 |
 | Edge indices | None for an induced subgraph; with an edge set, the rank in base index order among edges whose ends are kept | GO-012, GO-031, GO-041 |
@@ -75,8 +75,8 @@ this process without the fault (the listed vertices or positions that the base h
 partition, or the Stable base without its removal), and its state is checked, so the trap comes
 from the call and not from the setup.
 
-The catalog-row files are every file except `GraphOperationsConformanceTests.swift` and
-`GraphOperationsPropertyTests.swift`. `swiftgen.py` generated them from `cases.md`; it sits next to
+The catalog-row files are every file except `GraphOperationsConformanceTests.swift`,
+`GraphOperationsPropertyTests.swift` and `ViewCheckedLookupTests.swift` (the views' `checked:` lookups). `swiftgen.py` generated them from `cases.md`; it sits next to
 `ref.py` and `cases.md` in [`Tests/Catalogs/GraphOperations/`](../Catalogs/GraphOperations/):
 
 ```
@@ -104,7 +104,7 @@ catalog cell, and writes the test. The precondition file also takes the hand-wri
   over `Pseudograph` and over `UndirectedAdjacencyList` (whose flat rows and edge indices it
   forwards), and the undirected views of directed views get the same checks; the latter's rows are
   ordered out-row first, so components and layers (as sets) are compared. Walking
-  `complement.edges.indices` on 1500 vertices, directed and undirected, must finish within a minute
+  `complementView.edges.indices` on 1500 vertices, directed and undirected, must finish within a minute
   and list every cell once, ascending (it was O(n³) before). The materialized operations must agree
   across `CompressedSparseRow`, `AdjacencyList<Int>`, `AdjacencyMatrix` and `StableDirectedGraph<Int>`
   targets, and the condensation DAG over two bases.
@@ -124,11 +124,11 @@ workspace, and it caught every one.
 
 | Planted bug | Caught by |
 |---|---|
-| `reverseView`'s index rows are the base's out-rows | GO-003, GO-005 – GO-007, GO-009; conformance (crash) |
-| `reverseView`'s `contains(edge:)` not flipped | GO-003, GO-006, GO-007, GO-009, GO-047 |
-| `inducedSubgraph(on:)` hashing each listed vertex twice | GO-020 |
+| `transposedView`'s index rows are the base's out-rows | GO-003, GO-005 – GO-007, GO-009; conformance (crash) |
+| `transposedView`'s `contains(edge:)` not flipped | GO-003, GO-006, GO-007, GO-009, GO-047 |
+| `inducedSubgraphView(on:)` hashing each listed vertex twice | GO-020 |
 | Directed subgraph rows ignoring the edge set | GO-029, GO-039, properties |
-| `subgraph(vertices:edges:)` ranking edges whose ends are dropped | GO-040 – GO-042, properties, conformance |
+| `subgraphView(vertices:edges:)` ranking edges whose ends are dropped | GO-040 – GO-042, properties, conformance |
 | An induced subgraph that drops a vertex reporting edge indices | GO-011, GO-013 – GO-028, properties |
 | An undirected subgraph listing a self-loop once | properties |
 | A subgraph's `vertexIndex(of:)` accepting a dropped vertex | GO-023 |

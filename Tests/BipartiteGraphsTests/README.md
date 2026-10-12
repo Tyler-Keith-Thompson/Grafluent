@@ -38,7 +38,7 @@ extension Graph {
     func bipartition() -> Bipartition<Self>?                       // each component's least vertex left
     func findOddCycle() -> Cycle<Vertex, Edges.Index>?             // first BFS conflict, Cycles' canonical form
 }
-struct Bipartition<G: Graph>: Equatable, CustomStringConvertible  // left, right (ArraySlice), side(of:), side(ofIndex:); Sendable when G and G.Vertex are
+struct Bipartition<G: Graph>: Equatable, CustomStringConvertible  // left, right (ArraySlice), side(of:), side(ofIndex:), side(checked:) (throws VertexNotFound); Sendable when G and G.Vertex are
 ```
 
 ## Conventions
@@ -48,7 +48,7 @@ struct Bipartition<G: Graph>: Equatable, CustomStringConvertible  // left, right
 | Canonical sides | In each connected component the least vertex number (vertex index, or position in `vertices`) is left and the rest alternate, so isolated vertices are left; each side in `vertices` order | BP-001 – BP-084, BP-085 – BP-092, `RecognitionPropertyTests.swift` |
 | Self-loops and parallel edges | A loop is an odd cycle of length 1; parallel edges do not affect bipartiteness, and the witness uses one copy | BP-007 – BP-014, BP-073 |
 | The odd cycle | The first conflict of a breadth-first two-colouring (roots in vertex-number order, rows in `incidentEdges` order), closed through the lowest common ancestor, rotated to its least vertex number and turned to leave through the lesser edge; not necessarily a shortest one | every non-bipartite row, BP-052, `exactCycle` |
-| Directed input | Through `.undirected`: rows are successors, then predecessors; a 2-cycle is a parallel pair | BP-069 – BP-074 |
+| Directed input | Through `.undirectedView`: rows are successors, then predecessors; a 2-cycle is a parallel pair | BP-069 – BP-074 |
 | `BipartiteGraph(graph)` | The graph's vertex order; edges in position order (so, without parallel edges, at the graph's positions), each repeat dropped; stored left endpoint first | BP-085 – BP-092 |
 | `BipartiteGraph(graph, left:)` | Repeats in `left` are one vertex; a non-vertex gives nil; each component either way | BP-093 – BP-104 |
 | `BipartiteGraph(left:right:edges:)` | `left` then `right` in `vertices` order, repeats within a side dropped; endpoints are never inserted implicitly | BP-105 – BP-118 |
@@ -61,7 +61,7 @@ struct Bipartition<G: Graph>: Equatable, CustomStringConvertible  // left, right
 Every catalog row is written as the catalog writes it: recognition rows on `ReferencePseudograph`
 with the listed vertices and the edges in written order (rows in position order, a self-loop's
 position twice, parallel edges kept), so every vertex number and edge position is exact; `digraph`
-rows on `AdjacencyList` read through `.undirected`; the `BipartiteGraph` rows through the
+rows on `AdjacencyList` read through `.undirectedView`; the `BipartiteGraph` rows through the
 initializers named in the row. The catalog-row files (`RecognitionTests.swift`,
 `RecognitionRepresentationTests.swift`, `BipartiteGraphFromGraphTests.swift`,
 `BipartiteGraphSideInitializerTests.swift`, `BipartiteGraphMutationTests.swift`,
@@ -79,9 +79,9 @@ literally, with every intermediate result as the model gives it.
 
 In `RecognitionRepresentationTests.swift` each recognition row runs again on
 `UndirectedAdjacencyList` (stored rows, so recognition goes through `_withIncidentIndexRows`) and on
-the unindexed conformer, both with the catalog's values; on `AdjacencyList.undirected` with each
-edge as an arc as written; and on `AdjacencyMatrix.undirected` for rows on `0..<n` with no arc
-twice. Through `.undirected` a row is successors then predecessors, and the matrix's arcs sit at
+the unindexed conformer, both with the catalog's values; on `AdjacencyList.undirectedView` with each
+edge as an arc as written; and on `AdjacencyMatrix.undirectedView` for rows on `0..<n` with no arc
+twice. Through `.undirectedView` a row is successors then predecessors, and the matrix's arcs sit at
 row-major cells, so the cycle met first can differ: `swiftgen.py` computed those expected values
 with `ref.py`'s model on that representation's rows (the sides do not depend on row order). Matrix
 positions are compared as `[source, target]`.
@@ -112,8 +112,8 @@ edge as given instead of as stored (5), and the moved slot not renamed after a v
 
 | File | Tests | Covers |
 |---|---|---|
-| `RecognitionTests.swift` | 84 | §Recognition, BP-001 – BP-084: the empty graph, K₁, isolated vertices, orientation and vertex order, loops, parallel edges, paths, cycles C₃ – C₉, K₄, K₅, stars, Kₘ,ₙ, grids, Q₃, Petersen, wheels, bowtie, theta graphs, chords, the C₅ met before a triangle, disconnected graphs, `String` vertices, Möbius ladders, prism, subdivided cubes, deep odd cycles, digraphs through `.undirected`, seeded random graphs |
-| `RecognitionRepresentationTests.swift` | 84 | Every recognition row again on `UndirectedAdjacencyList`, a conformer with no indices, `AdjacencyList.undirected` and `AdjacencyMatrix.undirected` |
+| `RecognitionTests.swift` | 84 | §Recognition, BP-001 – BP-084: the empty graph, K₁, isolated vertices, orientation and vertex order, loops, parallel edges, paths, cycles C₃ – C₉, K₄, K₅, stars, Kₘ,ₙ, grids, Q₃, Petersen, wheels, bowtie, theta graphs, chords, the C₅ met before a triangle, disconnected graphs, `String` vertices, Möbius ladders, prism, subdivided cubes, deep odd cycles, digraphs through `.undirectedView`, seeded random graphs |
+| `RecognitionRepresentationTests.swift` | 84 | Every recognition row again on `UndirectedAdjacencyList`, a conformer with no indices, `AdjacencyList.undirectedView` and `AdjacencyMatrix.undirectedView` |
 | `BipartiteGraphFromGraphTests.swift` | 20 | BP-085 – BP-104: `BipartiteGraph(graph)` and `BipartiteGraph(graph, left:)`, on `ReferencePseudograph` and (without parallel edges) `UndirectedAdjacencyList` |
 | `BipartiteGraphSideInitializerTests.swift` | 14 | BP-105 – BP-118: `BipartiteGraph(left:right:)` and `(left:right:edges:)` |
 | `BipartiteGraphMutationTests.swift` | 33 | BP-119 – BP-145, BP-167 – BP-172: insertions, removals, slot and side-list moves, re-insertion on the other side, `side(of:)` after moves, projection after mutation, the seeded 37-operation sequence; `BipartitionError` from `insert(_:on:)` and `insert(edge:)`, and `insert(checked:)`, each throw with the graph unchanged |
@@ -122,7 +122,8 @@ edge as given instead of as stored (5), and the moved slot not renamed after a v
 | `BipartiteGraphEqualityTests.swift` | 5 | BP-162 – BP-166: equality and hashing |
 | `BipartiteGraphLawTests.swift` | 4 | `Graph`'s laws (counts, index maps, rows against `edges`, `oppositeVertex`, degrees, `contains(edge:)`, edge indices, `_withIncidentIndexRows` read back against the index-space rows) and the side invariant on seven graphs, fresh and after removals; the `checked:` lookups against the trapping ones, and `VertexNotFound` for non-vertices and a removed vertex; generic code; stored sides that are not the canonical ones |
 | `BipartiteGraphConformanceTests.swift` | 9 | Codable round trips (JSON, property lists; orders and positions kept), invalid payloads throwing `dataCorrupted` or another error but never trapping, Hashable (orders ignored, edges and sides seen), `Sendable` across a `Task`, descriptions (16-item limit, `String` vertices), `SideVertices` as a value, copy-on-write, capacity calls, `BipartiteSide` |
-| `BipartitionTests.swift` | 6 | `Bipartition` equality and description, the copy of the graph it holds, generic code, `CompressedSparseRow` through `AdjacencyList(csr).undirected`, `graph.directed.undirected` (every edge a parallel pair), closed forms on paths, cycles, Kₙ and Kₐ,ₙ₋ₐ for n ≤ 9 |
+| `BipartitionTests.swift` | 6 | `Bipartition` equality and description, the copy of the graph it holds, generic code, `CompressedSparseRow` through `AdjacencyList(csr).undirectedView`, `graph.directedView.undirectedView` (every edge a parallel pair), closed forms on paths, cycles, Kₙ and Kₐ,ₙ₋ₐ for n ≤ 9 |
+| `BipartitionCheckedTests.swift` | 1 | `Bipartition.side(checked:)` on an indexed and an unindexed graph: agrees with `side(of:)`, throws `VertexNotFound` for a non-vertex |
 | `RecognitionPropertyTests.swift` | 2 | PropertyBased, shrinking, multigraphs with loops in shuffled vertex orders on both kinds of rows: the four equivalences and the canonical sides against brute force over every two-colouring, `BipartiteGraph(g)`'s edges and orientation, `left:` with random subsets and a non-vertex, the swapped sides, odd-cycle validity and canonical form; the exact cycle against api.md's search written out |
 | `BipartiteGraphPropertyTests.swift` | 2 | PropertyBased, shrinking: random operation sequences against a model of sides and edges (results, sets, sides, orientation, index rows, the `checked:` lookups over every candidate vertex, equality and hash with a rebuilt graph after every step; Codable and the initializers from a graph at the end); projections after random removals against the definition and the documented order |
 | `Performance/BipartiteStressTests.swift` | 5 | Inside a `Task` with a one-minute limit: the 10⁵-vertex path on both kinds of rows, C₁₀₀₀₀₁ and C₁₀₀₀₀₂, the 300 × 300 grid with and without a diagonal, a 10⁵-vertex `BipartiteGraph` built by insertion and half removed, the projections of K₁,₄₀₀ and of the 10⁵-vertex path |
@@ -176,5 +177,5 @@ exactly `0..<n` (BP-059, BP-060) or that have an arc twice are not repeated on t
 | `Bipartition` equality across different graphs with the same sides | api.md: "compares sides by vertex, as `Components` compares groups"; the tests compare bipartitions of one graph, of the same graph rebuilt with edges in another order, and of graphs with different sides |
 | `debugDescription`, `customMirror`, `Bipartition.description` | Formats unspecified; checked non-empty |
 | Complexity (O(1) `side(of:)`, recognition reading `_withIncidentIndexRows` without hashing, a rejected `insert(edge:)` not copying, no recursion) | Benchmarks; the stress tests bound costs loosely and run on a `Task`'s small stack |
-| Recognition on `CompressedSparseRow` and `DirectedGraph` directly | Out of phase 1 (open question 5): recognition is on `Graph`, and compressed sparse row has no `.undirected`; it is tested through `AdjacencyList(csr).undirected` |
+| Recognition on `CompressedSparseRow` and `DirectedGraph` directly | Out of phase 1 (open question 5): recognition is on `Graph`, and compressed sparse row has no `.undirectedView`; it is tested through `AdjacencyList(csr).undirectedView` |
 | NetworkX and igraph on random graphs (`just diff`) | Not Swift tests; `ref.py` checks every catalog row against NetworkX 3.7, and the property tests use definition oracles |

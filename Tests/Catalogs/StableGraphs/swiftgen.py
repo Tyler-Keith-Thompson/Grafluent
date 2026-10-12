@@ -459,7 +459,7 @@ def raw_076():
     assert exp == cell(n), (exp, cell(n))
     lines = header(n, [".conformance"]) + ["    func sg076() {", "        // %s" % inp(n)]
     lines += setup_lines([0, 1, 2], [(0, 1), (1, 2)], [("removeAt", 0)], "Int")
-    lines.append("        let view = graph.undirected")
+    lines.append("        let view = graph.undirectedView")
     lines.append("        #expect(Array(view.edges.indices) == %s)" % arr([p for p, _, _ in E], "Int"))
     lines.append("        #expect(view.edges.map { [$0.u, $0.v] } == %s)" % nested([[a, b] for _, a, b in E], "Int"))
     for v, _ in V:

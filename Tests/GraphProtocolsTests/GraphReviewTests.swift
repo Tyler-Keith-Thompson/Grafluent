@@ -31,7 +31,7 @@ struct GraphReviewTests {
     @Test("UG-L24 the undirected view forwards its base's edge indices, or their absence", .tags(.precondition))
     func viewEdgeIndices() async {
         let list = AdjacencyList(edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 0), DirectedEdge(from: 1, to: 1)])
-        let view = list.undirected
+        let view = list.undirectedView
         #expect(view.edgeIndexBound == 3)
         #expect(view.edges.indices.map { view.edgeIndex(of: $0) } == list.edges.indices.map { list.edgeIndex(of: $0) })
         for v in view.vertices {
@@ -39,10 +39,10 @@ struct GraphReviewTests {
             #expect(Array(view.incidentEdges(ofIndex: i)) == Array(view.incidentEdges(of: v)))
             #expect(Array(view.incidentEdgeIndices(ofIndex: i)) == view.incidentEdges(of: v).map { view.edgeIndex(of: $0) })
         }
-        let matrixView = AdjacencyMatrix(vertexCount: 2, edges: [DirectedEdge(from: 0, to: 1)]).undirected
+        let matrixView = AdjacencyMatrix(vertexCount: 2, edges: [DirectedEdge(from: 0, to: 1)]).undirectedView
         #expect(matrixView.edgeIndexBound == nil)
         await #expect(processExitsWith: .failure) {
-            let view = AdjacencyMatrix(vertexCount: 2, edges: [DirectedEdge(from: 0, to: 1)]).undirected
+            let view = AdjacencyMatrix(vertexCount: 2, edges: [DirectedEdge(from: 0, to: 1)]).undirectedView
             _ = view.edgeIndex(of: view.edges.startIndex)
         }
     }
@@ -59,12 +59,12 @@ struct GraphReviewTests {
         law(UndirectedAdjacencyList(vertices: fixture.vertices, edges: fixture.edges))
         law(ReferencePseudograph(vertices: fixture.vertices, edges: fixture.edges))
         let list = AdjacencyList(vertices: fixture.vertices, edges: fixture.edges.map { DirectedEdge(from: $0.u, to: $0.v) })
-        law(list.undirected)
+        law(list.undirectedView)
     }
 
     @Test("UG-C03 the directed view's predecessor indices are its predecessors mapped", .tags(.fixture), arguments: UndirectedFixture<Int>.all)
     func directedViewPredecessorIndices(_ fixture: UndirectedFixture<Int>) {
-        let view = UndirectedAdjacencyList(vertices: fixture.vertices, edges: fixture.edges).directed
+        let view = UndirectedAdjacencyList(vertices: fixture.vertices, edges: fixture.edges).directedView
         for v in view.vertices {
             let i = view.vertexIndex(of: v)
             #expect(Array(view.predecessorIndices(ofIndex: i)) == view.predecessors(of: v).map { view.vertexIndex(of: $0) })
@@ -74,11 +74,11 @@ struct GraphReviewTests {
 
     @Test("UG-C01 the directed view's edges are empty exactly when the graph has no edges")
     func directedViewIsEmpty() {
-        #expect(UndirectedAdjacencyList<Int>(vertices: [0, 1]).directed.edges.isEmpty)
-        #expect(UndirectedAdjacencyList<Int>().directed.edges.isEmpty)
-        #expect(!UndirectedAdjacencyList(edges: [UndirectedEdge(0, 0)]).directed.edges.isEmpty)
-        #expect(UndirectedAdjacencyList(edges: [UndirectedEdge(0, 0)]).directed.edges.count == 2)
-        #expect(AdjacencyList<Int>(vertices: [0]).undirected.edges.isEmpty)
+        #expect(UndirectedAdjacencyList<Int>(vertices: [0, 1]).directedView.edges.isEmpty)
+        #expect(UndirectedAdjacencyList<Int>().directedView.edges.isEmpty)
+        #expect(!UndirectedAdjacencyList(edges: [UndirectedEdge(0, 0)]).directedView.edges.isEmpty)
+        #expect(UndirectedAdjacencyList(edges: [UndirectedEdge(0, 0)]).directedView.edges.count == 2)
+        #expect(AdjacencyList<Int>(vertices: [0]).undirectedView.edges.isEmpty)
     }
 
     @Test("UG-T08 the result builder keeps an if without an else, and either branch of an if–else")

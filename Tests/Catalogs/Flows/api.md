@@ -133,7 +133,7 @@ algorithms; no surveyed library except Boost (residual capacity maps) exposes on
 | Boykov–Kolmogorov, shortest augmenting path, MPM | Phase 2 if benchmarks or users ask (vision grids) |
 | Capacity scaling, cost scaling, cycle cancelling, successive shortest paths as named min-cost functions | Phase 2. Network simplex is LEMON's recommendation and NetworkX's default; cost scaling wins only on large sparse instances (Király–Kovács 2012) |
 | Floating-point capacities or costs in minimum-cost flow | Phase 2 (open question 4). Network simplex is exact only in exact arithmetic; NetworkX warns that floats may fail; OR-Tools takes only integers |
-| Minimum-cost flow on `Graph` | Out, as NetworkX (`not_implemented_for("undirected")`) and LEMON. `graph.directed` gives each edge two independent arcs of capacity c, which is the usual reduction only when costs are nonnegative |
+| Minimum-cost flow on `Graph` | Out, as NetworkX (`not_implemented_for("undirected")`) and LEMON. `graph.directedView` gives each edge two independent arcs of capacity c, which is the usual reduction only when costs are nonnegative |
 | Lower bounds on edges (LEMON `lowerMap`), circulations (LEMON `Circulation`) | Phase 2. A lower bound l on u→v is supply(u) − l, supply(v) + l and capacity c − l, written in the doc comment |
 | Vertex capacities | A recipe, not an API (no surveyed library has one): split v into v_in → v_out with capacity cap(v). `vertexConnectivity` does it internally |
 | Unbounded min-cost problems | Cannot occur: capacities are finite by precondition. NetworkX's `NetworkXUnbounded` comes from infinite capacities |
@@ -248,7 +248,7 @@ extension DirectedGraph {
 extension Graph {
     // The same maximum-flow, s–t cut and connectivity entry points. Each edge carries up to its
     // capacity in either direction (one capacity shared by both: |f| ≤ c). Results are over
-    // `directed` (`DirectedView`), as ShortestPaths' are: an edge's flow is on the arc of its
+    // `directedView` (`DirectedView`), as ShortestPaths' are: an edge's flow is on the arc of its
     // direction, and a cut edge is the arc from the source side to the sink side.
     public func maximumFlow<C: Comparable & AdditiveArithmetic>(
         from source: Vertex, to sink: Vertex, capacity: (Edges.Index) -> C) -> Flow<DirectedView<Self>, C>
@@ -281,7 +281,7 @@ extension Graph {
     public func vertexConnectivity(from source: Vertex, to target: Vertex) -> Int
     public func minimumVertexCut() -> [Vertex]
     public func minimumVertexCut(from source: Vertex, to target: Vertex) -> [Vertex]?
-    /// Over `directed`: each edge an arc in the direction the path uses it.
+    /// Over `directedView`: each edge an arc in the direction the path uses it.
     public func edgeDisjointPaths(from source: Vertex, to target: Vertex) -> [Path<Vertex, DirectedView<Self>.Edges.Index>]
     public func vertexDisjointPaths(from source: Vertex, to target: Vertex) -> [Path<Vertex, DirectedView<Self>.Edges.Index>]
 }
@@ -296,14 +296,17 @@ public struct Flow<G: DirectedGraph, Capacity: Comparable & AdditiveArithmetic>:
     public var value: Capacity { get }
     /// The flow on the edge at `position`: O(1) with edge indices. Zero on a self-loop.
     public func flow(ofEdgeAt position: G.Edges.Index) -> Capacity
+    public func flow(checkedEdgeAt position: G.Edges.Index) throws(EdgeNotFound) -> Capacity   // Principle 6
     /// The canonical minimum cut, from this flow's residual network (computed with the flow).
     public var minimumCut: Cut<G, Capacity> { get }
     /// Every edge's flow by position, in `edges` order (LEMON `flowMap`, JGraphT `getFlowMap`),
     /// over the flow's own storage.
     public var flowMap: FlowMap<G, Capacity> { get }
-    /// On a flow over `directed`: the signed flow of the undirected edge at `position`, positive
+    /// On a flow over `directedView`: the signed flow of the undirected edge at `position`, positive
     /// along its stored orientation (igraph's signed `Flow.flow` on undirected graphs).
     public func flow<Base: Graph>(ofEdgeAt position: Base.Edges.Index) -> Capacity
+        where G == DirectedView<Base>, Capacity: SignedNumeric
+    public func flow<Base: Graph>(checkedEdgeAt position: Base.Edges.Index) throws(EdgeNotFound) -> Capacity
         where G == DirectedView<Base>, Capacity: SignedNumeric
 }
 
@@ -336,11 +339,14 @@ public struct GomoryHuTree<G: Graph, Capacity: Comparable & AdditiveArithmetic> 
     public var tree: Tree<G.Vertex> { get }
     /// The capacity of the tree edge at `position`: the minimum cut value between its ends.
     public func capacity(ofEdgeAt position: Int) -> Capacity
+    public func capacity(checkedEdgeAt position: Int) throws(EdgeNotFound) -> Capacity   // Principle 6
     /// The least capacity on the tree path, the minimum cut value between `u` and `v`. O(n).
     public func minimumCutValue(between u: G.Vertex, and v: G.Vertex) -> Capacity
+    public func minimumCutValue(checkedBetween u: G.Vertex, and v: G.Vertex) throws(VertexNotFound) -> Capacity
     /// The split at the least edge on the tree path (nearest `u` among equals), `u` on the source
     /// side, with the graph's crossing edges. O(n + m). Precondition: u ≠ v.
     public func minimumCut(between u: G.Vertex, and v: G.Vertex) -> Cut<DirectedView<G>, Capacity>
+    public func minimumCut(checkedBetween u: G.Vertex, and v: G.Vertex) throws(VertexNotFound) -> Cut<DirectedView<G>, Capacity>
 }
 
 /// A minimum-cost flow (LEMON `NetworkSimplex`: `flow`, `totalCost`, `potential`).
@@ -352,6 +358,7 @@ public struct MinimumCostFlow<G: DirectedGraph, Capacity: BinaryInteger, Cost: S
     /// maximum flow value.
     public var value: Capacity { get }
     public func flow(ofEdgeAt position: G.Edges.Index) -> Capacity
+    public func flow(checkedEdgeAt position: G.Edges.Index) throws(EdgeNotFound) -> Capacity
     public var flowMap: FlowMap<G, Capacity> { get }
     /// The optimal dual: every edge with positive residual has reduced cost
     /// cost + potential(u) − potential(v) ≥ 0 forward (and ≤ 0 for flow it can give back), the
@@ -359,6 +366,7 @@ public struct MinimumCostFlow<G: DirectedGraph, Capacity: BinaryInteger, Cost: S
     /// big M = (n + 1)(the greatest |cost| + 1): O(n × the greatest |cost|); traps when it does
     /// not fit in Cost.
     public func potential(of vertex: G.Vertex) -> Cost
+    public func potential(checked vertex: G.Vertex) throws(VertexNotFound) -> Cost
 }
 ```
 
@@ -558,7 +566,7 @@ minimum cut, not only its value. `Tree`'s edge order is by child index (FL-270 s
   edges distinct; NetworkX's auxiliary digraph collapses them, FL-506); `vertexDisjointPaths`
   returns κ(s, t) paths, no inner vertex in two, an edge from s to t one path whatever its
   multiplicity (NetworkX's count, FL-509). Each is a simple path; flow cycles in the unit flow are
-  dropped while decomposing. Which paths is not pinned. Over `directed` on `Graph`.
+  dropped while decomposing. Which paths is not pinned. Over `directedView` on `Graph`.
 * **Vertex connectivity** follows NetworkX and igraph on simple graphs: κ(K_n) = n − 1 (FL-365),
   κ = 0 below two vertices or when not (strongly) connected (FL-320, FL-398, FL-464). Local
   κ(s, t) splits every other vertex v into v_in → v_out of capacity 1; an edge s → t counts as one

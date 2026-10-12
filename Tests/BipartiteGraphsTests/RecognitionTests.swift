@@ -6,7 +6,7 @@
 // `Cycle(vertices:edges:in:)` not nil). Undirected rows run on `ReferencePseudograph`, whose rows
 // are in position order (a self-loop twice, consecutively; parallel edges kept), so vertex
 // numbers and edge positions are the catalog's. `digraph` rows (BP-069 – BP-074) are an
-// `AdjacencyList` read through `.undirected`: rows are successors, then predecessors. Generated
+// `AdjacencyList` read through `.undirectedView`: rows are successors, then predecessors. Generated
 // from cases.md by swiftgen.py, which re-evaluates each row with ref.py's model; see README.md.
 
 import AdjacencyListModule
@@ -1552,7 +1552,7 @@ struct RecognitionTests {
         // digraph V [0, 1, 2]; E [0–1, 1–2]
         let arcs: [(Int, Int)] = [(0, 1), (1, 2)]
         let digraph = AdjacencyList(vertices: [0, 1, 2] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        let graph = digraph.undirected
+        let graph = digraph.undirectedView
         #expect(graph.isBipartite)
         #expect(graph.findOddCycle() == nil)
         let bipartition = try #require(graph.bipartition())
@@ -1575,7 +1575,7 @@ struct RecognitionTests {
         // digraph V [0, 1]; E [0–1, 1–0]
         let arcs: [(Int, Int)] = [(0, 1), (1, 0)]
         let digraph = AdjacencyList(vertices: [0, 1] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        let graph = digraph.undirected
+        let graph = digraph.undirectedView
         #expect(graph.isBipartite)
         #expect(graph.findOddCycle() == nil)
         let bipartition = try #require(graph.bipartition())
@@ -1598,7 +1598,7 @@ struct RecognitionTests {
         // digraph V [0, 1, 2]; E [0–1, 1–2, 2–0]
         let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0)]
         let digraph = AdjacencyList(vertices: [0, 1, 2] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        let graph = digraph.undirected
+        let graph = digraph.undirectedView
         #expect(!graph.isBipartite)
         #expect(graph.bipartition() == nil)
         #expect(BipartiteGraph(graph) == nil)
@@ -1622,7 +1622,7 @@ struct RecognitionTests {
         // digraph V [0, 1, 2]; E [0–1, 0–2, 1–2]
         let arcs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
         let digraph = AdjacencyList(vertices: [0, 1, 2] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        let graph = digraph.undirected
+        let graph = digraph.undirectedView
         #expect(!graph.isBipartite)
         #expect(graph.bipartition() == nil)
         #expect(BipartiteGraph(graph) == nil)
@@ -1646,7 +1646,7 @@ struct RecognitionTests {
         // digraph V [0, 1]; E [0–1, 1–1]
         let arcs: [(Int, Int)] = [(0, 1), (1, 1)]
         let digraph = AdjacencyList(vertices: [0, 1] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        let graph = digraph.undirected
+        let graph = digraph.undirectedView
         #expect(!graph.isBipartite)
         #expect(graph.bipartition() == nil)
         #expect(BipartiteGraph(graph) == nil)
@@ -1670,7 +1670,7 @@ struct RecognitionTests {
         // digraph V [0, 1, 2, 3]; E [1–0, 3–0, 1–2, 3–2]
         let arcs: [(Int, Int)] = [(1, 0), (3, 0), (1, 2), (3, 2)]
         let digraph = AdjacencyList(vertices: [0, 1, 2, 3] as [Int], edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        let graph = digraph.undirected
+        let graph = digraph.undirectedView
         #expect(graph.isBipartite)
         #expect(graph.findOddCycle() == nil)
         let bipartition = try #require(graph.bipartition())
