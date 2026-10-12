@@ -3,12 +3,13 @@
 # parser and Schubfach, and the bulk hooks in AdjacencyListModule and Multigraphs the line readers
 # build through. Run with `just mutate GraphFormats`; see scripts/mutate.py.
 #
-# `--all` (2026-10-11): 89 of 91 caught. Known equivalent mutants (they survive by design):
-# - undirectedreserve: no reader reserves an incremental undirected target (Matrix Market, the one
-#   reader that reserves from a count, builds through the bulk target), so emptying
-#   `_UndirectedTarget.reserve` changes nothing observable.
-# - sfinteger: sends the doubles in [1, 2) that are integers (only 1.0) through Schubfach's general
-#   path, which gives the same shortest digits as the integer shortcut.
+# Removed as equivalent or dead (2026-10-11):
+# - undirectedreserve: `_ReadTarget.reserve` was only ever called on `_BulkTarget`; removed from the
+#   protocol and from `_DirectedTarget`/`_UndirectedTarget`.
+# - sfinteger (`q > -53` → `q > -52`): only q = -52 changes, i.e. [1, 2), whose one integer is 1.0;
+#   the general path gives it the same shortest digits.
+# - sfcount: a significand is below 9.1 × 10¹⁶, so `_decimalDigitCount` never sees 10⁹; its last
+#   comparison was dropped.
 
 TESTS = ["GraphFormatsTests"]
 
@@ -83,7 +84,6 @@ MUTANTS = [
     Mutant("bulkalias", RT, "keys[vertex] = existing\n            return (existing, false)", "return (key, false)", mode="stmt"),
     Mutant("bulkreplay", RT, "body(positions[Int(head >> 24)], names[Int(head >> 2 & 0x3F_FFFF)], value)", "body(positions[0], names[Int(head >> 2 & 0x3F_FFFF)], value)", mode="stmt"),
     Mutant("bulkpositions", RT, "for (edge, value) in dense.enumerated() { body(positions[edge], name, .double(value)) }", "for (_, value) in dense.enumerated() { body(positions[0], name, .double(value)) }", mode="stmt"),
-    Mutant("undirectedreserve", RT, "graph.reserveCapacity(vertexCount: vertexCount, edgeCount: edgeCount)", "", mode="stmt", nth=1),
 
     # Rows built by counting sort (AdjacencyListModule, Multigraphs).
     Mutant("arcrowsoutedge", FO, "outEdgeStorage[o] = p", "outEdgeStorage[o] = o", mode="stmt", module="AdjacencyListModule"),
@@ -158,10 +158,8 @@ MUTANTS = [
     Mutant("sfshorter", DF, "if upin != wpin { return (upin ? sp10 : tp10, k) }", "", mode="stmt"),
     Mutant("sfpower2", DF, "cbl = cb &- 1\n        k = _floorLog10ThreeQuartersPow2(q)", "cbl = cb &- 2\n        k = _floorLog10Pow2(q)", mode="stmt"),
     Mutant("sfodd", DF, "c & 1", "0"),
-    Mutant("sfinteger", DF, "q < 0 && q > -53", "q < 0 && q > -52"),
     Mutant("sfsticky", DF, "vbp | (((z & 0x7FFF_FFFF_FFFF_FFFF) &+ 0x7FFF_FFFF_FFFF_FFFF) >> 63)", "vbp"),
     Mutant("sfpairs", DF, "out[k &+ 1] = pairs[r &+ 1]", "out[k &+ 1] = pairs[r]", mode="stmt"),
-    Mutant("sfcount", DF, "return v < 1_000_000_000 ? 9 : 10", "return 9", mode="stmt"),
     Mutant("pyexponent", DF, "e < -4 || e >= 16", "e < -4 || e >= 15"),
     Mutant("pyexpdigits", DF, "magnitude / 10 % 10", "magnitude / 10"),
     Mutant("scipyexp", DF, "d.exponent != 0", "true"),

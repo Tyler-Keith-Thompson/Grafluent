@@ -93,6 +93,30 @@ struct GraphFormatsFastPathTests {
         #expect(expected.indices.allSatisfy { weights[$0]?.bitPattern == expected[$0].2.bitPattern })
     }
 
+    @Test("Matrix Market skew-symmetric entries the fast path leaves to the general one still mirror negated")
+    func matrixMarketSkewGeneralPath() throws {
+        // `inf` is not a number the fast path scans, and a 19-digit index is past its 18; both
+        // lines are read by the general path, which must negate the mirrored weight too.
+        let input = "%%MatrixMarket matrix coordinate real skew-symmetric\n3 3 2\n2 1 inf\n0000000000000000003 1 2.5\n"
+        var weights: [Int: Double] = [:]
+        let graph = try DirectedPseudograph<Int>(matrixMarket: input.utf8, edgeAttribute: { p, _, v in
+            if case .double(let d) = v { weights[p] = d }
+        })
+        #expect(graph.edges.map { [$0.source, $0.target] } == [[1, 0], [0, 1], [2, 0], [0, 2]])
+        #expect(weights == [0: .infinity, 1: -.infinity, 2: 2.5, 3: -2.5])
+    }
+
+    @Test("Node-link: a keyless parallel edge takes NetworkX's new_edge_key, the number of keys between the pair")
+    func nodeLinkNewEdgeKey() throws {
+        // NetworkX gives the keyless edge key 2 (two keys, "x" and "y", are taken), so key 1 is
+        // a fourth edge: [('a', 'b', 'x'), ('a', 'b', 'y'), ('a', 'b', 2, {'w': 3}), ('a', 'b', 1, {'w': 4})].
+        let input = "{\"directed\": true, \"multigraph\": true, \"nodes\": [{\"id\": \"a\"}, {\"id\": \"b\"}], \"edges\": [{\"source\": \"a\", \"target\": \"b\", \"key\": \"x\"}, {\"source\": \"a\", \"target\": \"b\", \"key\": \"y\"}, {\"source\": \"a\", \"target\": \"b\", \"w\": 3}, {\"source\": \"a\", \"target\": \"b\", \"key\": 1, \"w\": 4}]}"
+        var log: [String] = []
+        let graph = try DirectedPseudograph<String>(nodeLinkJSON: input.utf8, edgeAttribute: { p, k, v in log.append("\(p) \(k) \(v)") })
+        #expect(graph.edgeCount == 4)
+        #expect(log == ["2 w 3", "3 w 4"])
+    }
+
     @Test("Node-link edges report their first error in document order, whatever its kind")
     func nodeLinkErrorOrder() {
         let nodes = "\"nodes\": [{\"id\": \"a\"}, {\"id\": \"b\"}]"

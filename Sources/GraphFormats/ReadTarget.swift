@@ -18,9 +18,6 @@ import GraphProtocols
     /// Inserts an edge (stored `u` first) and returns its position: on a simple target, an
     /// existing edge's position.
     mutating func insertEdge(_ u: Int, _ v: Int) -> Position
-
-    /// Reserves room for at least this many vertices and edges.
-    mutating func reserve(vertexCount: Int, edgeCount: Int)
 }
 
 /// A directed target.
@@ -41,10 +38,6 @@ import GraphProtocols
     @inlinable func contains(_ vertex: Base.Vertex) -> Bool { graph._key(of: vertex) != nil }
 
     @inlinable mutating func insertEdge(_ u: Int, _ v: Int) -> Base.Edges.Index { graph._insertEdge(fromKey: u, toKey: v) }
-
-    @inlinable mutating func reserve(vertexCount: Int, edgeCount: Int) {
-        graph.reserveCapacity(vertexCount: vertexCount, edgeCount: edgeCount)
-    }
 }
 
 /// An undirected target.
@@ -65,10 +58,6 @@ import GraphProtocols
     @inlinable func contains(_ vertex: Base.Vertex) -> Bool { graph._key(of: vertex) != nil }
 
     @inlinable mutating func insertEdge(_ u: Int, _ v: Int) -> Base.Edges.Index { graph._insertEdge(fromKey: u, toKey: v) }
-
-    @inlinable mutating func reserve(vertexCount: Int, edgeCount: Int) {
-        graph.reserveCapacity(vertexCount: vertexCount, edgeCount: edgeCount)
-    }
 }
 
 /// Which kind a `_BulkTarget` builds.
@@ -127,6 +116,7 @@ import GraphProtocols
         return firsts.count &- 1
     }
 
+    /// Reserves room for at least this many vertices and edges.
     @inlinable mutating func reserve(vertexCount: Int, edgeCount: Int) {
         vertices.reserveCapacity(vertexCount)
         firsts.reserveCapacity(edgeCount)

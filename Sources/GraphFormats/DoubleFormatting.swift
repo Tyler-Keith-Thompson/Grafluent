@@ -106,7 +106,10 @@
 @usableFromInline internal let _digitPairs: StaticString =
     "00010203040506070809101112131415161718192021222324252627282930313233343536373839404142434445464748495051525354555657585960616263646566676869707172737475767778798081828384858687888990919293949596979899"
 
-/// The number of decimal digits of `v`, which is below 10¹⁰ (by comparisons, at most four).
+/// The number of decimal digits of `v`, which is below 10⁹ (by comparisons, at most three).
+/// `_shortestDigits` passes a significand below 10⁸ or one's digits above the last eight; a
+/// significand is below 9.1 × 10¹⁶ (`c` < 2⁵³ times 2^q / 10^k < 10, or < 40/3 for a power of two
+/// with `c` = 2⁵²), so those are below 10⁹.
 @inline(__always)
 @inlinable func _decimalDigitCount(_ v: UInt64) -> Int {
     if v < 10_000 {
@@ -117,7 +120,7 @@
         if v < 1_000_000 { return v < 100_000 ? 5 : 6 }
         return v < 10_000_000 ? 7 : 8
     }
-    return v < 1_000_000_000 ? 9 : 10
+    return 9
 }
 
 /// Writes the last `count` decimal digits of `v`, zero-padded, to `out[0 ..< count]`, two at a time.
