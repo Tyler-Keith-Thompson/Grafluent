@@ -58,7 +58,7 @@ MODULES = [
     ("SpanningTrees", "Algorithms", "Minimum and maximum spanning forests by Kruskal, Prim and Borůvka; later Chu–Liu/Edmonds and Steiner tree approximation.", ["GraphProtocols", "DisjointSetModule", "PriorityQueueModule", "Trees"]),
     ("Connectivity", "Algorithms", "Strong and weak components, condensation, attracting components, dominators; connected components, bridges, articulation points, biconnected and bi-edge-connected components and the block–cut tree of undirected graphs.", ["GraphProtocols", "CompressedSparseRowModule", "Trees"]),
     ("Cycles", "Algorithms", "Cycle detection, cycle bases, elementary circuits, girth.", ["GraphProtocols", "Walks", "DisjointSetModule", "Connectivity"]),
-    ("Tours", "Algorithms", "Eulerian trails and circuits, Hamiltonian paths and cycles, travelling salesman heuristics.", ["GraphProtocols", "Walks", "MatchingModule"]),
+    ("Tours", "Algorithms", "Eulerian trails and circuits, Hamiltonian paths and cycles, travelling salesman heuristics.", ["GraphProtocols", "Walks", "MatchingModule", "SpanningTrees"]),
     ("Flows", "Algorithms", "Maximum flow (push–relabel, Dinic, Edmonds–Karp), minimum cuts (s–t, Nagamochi–Ibaraki, Hao–Orlin), Gomory–Hu trees, minimum-cost flow (network simplex), edge and vertex connectivity, disjoint paths.", ["GraphProtocols", "Trees", "Walks"]),
     ("MatchingModule", "Algorithms", "Matching: Hopcroft–Karp, Hungarian, Edmonds' blossom, Gale–Shapley.", ["GraphProtocols", "BipartiteGraphs"]),
     ("ColoringModule", "Algorithms", "Vertex coloring (greedy strategies, exact chromatic number), edge coloring (Misra–Gries, König, greedy).", ["GraphProtocols", "BipartiteGraphs"]),

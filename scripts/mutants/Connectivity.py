@@ -123,4 +123,20 @@ MUTANTS = [
     Mutant("nodeorder", "UndirectedConnectivity.swift",
            "        if _pointNumber[v] >= 0 { return .articulationPoint(_pointNumber[v]) }",
            "", mode="stmt"),
+
+    # reuse pass (D): Arborescence(_: DominatorTree)
+    Mutant("da_reached", "DominatorTree+Arborescence.swift",
+           "tree._enter[v] >= 0",
+           "true"),
+    Mutant("da_parent", "DominatorTree+Arborescence.swift",
+           "parents[number[v]] = number[tree._idom[v]]",
+           "parents[number[v]] = tree._idom[v]"),
+    Mutant("da_dense", "DominatorTree+Arborescence.swift",
+           "v as! Int != k",
+           "false"),
+
+    # reuse pass (C)
+    Mutant("pooledcursor", "DirectedGraph.swift",
+           "position &+ targetRows[3 &* row &+ 1]",
+           "targetRows[3 &* row &+ 1]", module="GraphProtocols"),
 ]

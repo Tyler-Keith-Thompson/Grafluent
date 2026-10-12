@@ -22,6 +22,8 @@ struct ShortestPathTree<G: DirectedGraph, Distance: Comparable & AdditiveArithme
     func path(to:) -> Path<G.Vertex, G.Edges.Index>?   // from a source; Path(vertex: s) for a source
     func distance(toIndex:) -> Distance?
     func parent(ofIndex:) -> Int?
+extension Arborescence
+    init(_ tree: ShortestPathTree<G, D>)               // one source: reached vertices in index order
 
 extension DirectedGraph
     func shortestPaths(from: Vertex | some Sequence<Vertex>) -> ShortestPathTree<Self, Int>
@@ -98,12 +100,13 @@ breadth-first search, Johnson's reweighting).
 | `ShortestPathStressTests.swift` | §K: a 10⁶-vertex path, a 1000 × 1000 grid, long negative cycles, a lasso, a negative path, wide graphs, the real-world fixtures, inside a `Task` |
 | `ShortestPathConformanceTests.swift` | §L: preconditions, index-space queries, value semantics, `Sendable`, existentials, index-space dispatch, lazy weight reads |
 | `ShortestPathReviewTests.swift` | §M: the critical review's cases, with conformers without vertex indices (`PlainDigraph`, `PlainGraph`, private to the file) |
+| `ShortestPathTreeArborescenceTests.swift` | Reuse pass: one-source trees of every search as `Arborescence` (index order, root, parents, depths, tree paths), `String` vertices, no vertex indices, a stable graph with holes, the several-sources trap |
 | `ShortestPathWalkReviewTests.swift` | Walks migration, after the review (WK-1220 – WK-1222) |
 | `ShortestPathWalkTests.swift` | Walks migration: paths and witnesses as `Path` and `Cycle`, their edges between parallel copies and over undirected arcs, the trivial path, and the path and witness laws on random graphs |
 
 ## Case IDs
 
-Case IDs (SP-01 … SP-137) refer to the catalog of cases (`Tests/Catalogs/ShortestPaths/cases.md`, with `ref.py` and the scripts that print each `.out`) harvested from Boost, NetworkX,
+Case IDs (SP-01 … SP-145) refer to the catalog of cases (`Tests/Catalogs/ShortestPaths/cases.md`, with `ref.py` and the scripts that print each `.out`) harvested from Boost, NetworkX,
 petgraph, JGraphT, LEMON, igraph (behaviour only), gonum, rustworkx and scipy. Each test's name
 starts with its ID. WK-12nn cases are the Walks catalog's migration section (`Tests/WalksTests/README.md`); WK-1202 – WK-1205 and WK-1213 – WK-1215 are in Traversal's suite.
 
@@ -123,6 +126,7 @@ starts with its ID. WK-12nn cases are the Walks catalog's migration section (`Te
 | SP-125 – SP-130 | L. Preconditions, value semantics, dispatch | `ShortestPathConformanceTests.swift` |
 | SP-131 | J. Properties with shrinking (PropertyBased) | `ShortestPathPropertyTests.swift` |
 | SP-132 – SP-137 | M. Review cases: A*'s target estimate, Bellman–Ford's super-source, parallel edges in paths and witnesses, undirected negative edges with and without indices, the native undirected path, the NaN cutoff | `ShortestPathReviewTests.swift` |
+| SP-138 – SP-145 | Reuse pass: `Arborescence(_: ShortestPathTree)` from one source, against the tree it comes from; several sources trap | `ShortestPathTreeArborescenceTests.swift` |
 | WK-1201, WK-1206 – WK-1212 | Walks catalog §12, migration: witnesses and paths as walks | `ShortestPathWalkTests.swift` |
 | WK-1220 – WK-1222 | Walks migration, after the review: a source improved by another, undirected paths as arcs of the directed view, an undirected negative self-loop | `ShortestPathWalkReviewTests.swift` |
 | SP-B01 – SP-B08 | Benchmarks | not tests; SP-115 and SP-116 assert only answers (and SP-115 that Bellman–Ford reads each weight about once on a path) |

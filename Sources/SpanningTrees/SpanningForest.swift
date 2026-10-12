@@ -1,4 +1,5 @@
 import GraphProtocols
+import Trees
 
 /// A spanning forest of an undirected graph: one spanning tree per connected component, as edge
 /// positions in the graph's `edges`, with the sum of their weights (JGraphT's `SpanningTree`,
@@ -34,6 +35,26 @@ public struct SpanningForest<G: Graph, Weight: Comparable & AdditiveArithmetic> 
 extension SpanningForest: Equatable {}
 extension SpanningForest: Hashable where Weight: Hashable {}
 extension SpanningForest: Sendable where G.Edges.Index: Sendable, Weight: Sendable {}
+
+extension Forest {
+    /// The spanning forest as a `Forest` of the graph it came from: every vertex of `graph`, in
+    /// `vertices` order (an isolated vertex is a one-vertex tree), and the forest's edges, in
+    /// `forest.edges` order, each as `graph.edges` holds it. The edge at position k is
+    /// `graph.edges[forest.edges[k]]`. SpanningForest keeps no copy of the graph, so it is passed
+    /// here; NetworkX's `minimum_spanning_tree` returns this graph directly. O(n) expected: each
+    /// vertex and each edge end is hashed once, unless the vertices are the `Int`s `0..<n` in
+    /// order, when nothing is.
+    ///
+    /// - Precondition: `forest` is a spanning forest of `graph` as it is now: its positions are
+    ///   valid, and its edges hold no cycle.
+    @inlinable
+    public init<G: Graph, W>(_ forest: SpanningForest<G, W>, in graph: G) where G.Vertex == Vertex {
+        guard let built = Forest(vertices: graph.vertices, edges: forest.edges.lazy.map { graph.edges[$0] }) else {
+            preconditionFailure("The spanning forest's edges hold a cycle in this graph")
+        }
+        self = built
+    }
+}
 
 /// The graph's edges by rank (their offset in `edges`): endpoints as vertex identifiers, `u == -1`
 /// for a self-loop, which is never weighed; positions; and each non-loop edge's (weight, rank),

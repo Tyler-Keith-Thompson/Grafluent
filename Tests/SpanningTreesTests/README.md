@@ -24,6 +24,9 @@ extension Graph
     func primMinimumSpanningTree(weight:) -> SpanningForest<Self, W>                         // a forest; restarts in vertices order; ties unspecified
     func primMinimumSpanningTree(from root: Vertex, weight:) -> SpanningForest<Self, W>      // root's component only
     func boruvkaMinimumSpanningTree(weight:) -> SpanningForest<Self, W>                      // canonical edge set, by round
+
+extension Forest
+    init(_ forest: SpanningForest<G, W>, in graph: G)                                        // graph's vertices in order, forest's edges in order
 ```
 
 `W` is `Comparable & AdditiveArithmetic` throughout.
@@ -74,11 +77,12 @@ optimality.
 | `SpanningTreePropertyTests.swift` | §H: seeded random graphs against oracles written in each test, and ST-107 with PropertyBased shrinking |
 | `SpanningTreeStressTests.swift` | §I: a long path, a grid, a star, a complete graph, equal weights on a sparse random graph, the real-world fixtures, inside a `Task` |
 | `SpanningTreeReviewTests.swift` | §K: cases added after planting bugs (`scripts/mutants/SpanningTrees.py`) and after the critical review, with file-private conformers with vertex indices only and with none |
+| `DensePrimAndForestTests.swift` | §L: the dense path (vertex indices, m ≥ n²/4): complete graphs with ties, all ties, a hidden lightest path, a decreasing key, a doubled K₉ with self-loops, disconnected dense graphs, vertex indices without edge indices, ±∞, NaN, a property test against a reference Kruskal; the heap path between the two thresholds; `Forest(_:in:)` |
 | `SpanningTreeConformanceTests.swift` | §J: preconditions (exit tests), value semantics, Equatable / Hashable / Sendable, existentials and generic code, weight-call counts per representation, no vertex hashing, digraphs through `.undirected` |
 
 ## Case IDs
 
-Case IDs (ST-01 … ST-134) refer to the catalog of cases (`Tests/Catalogs/SpanningTrees/cases.md`, with `ref.py` and `api.md`) harvested from NetworkX, Boost, petgraph,
+Case IDs (ST-01 … ST-149) refer to the catalog of cases (`Tests/Catalogs/SpanningTrees/cases.md`, with `ref.py` and `api.md`) harvested from NetworkX, Boost, petgraph,
 JGraphT, LEMON, igraph and scipy. Each test's name starts with its ID; ST-56 and ST-58 each have a
 trapping test and a filtered one.
 
@@ -95,6 +99,7 @@ trapping test and a filtered one.
 | ST-110 – ST-116 | I. Stress | `SpanningTreeStressTests.swift` |
 | ST-120 – ST-129 | J. Preconditions and conformance | `SpanningTreeConformanceTests.swift` |
 | ST-130 – ST-134 | K. Added after planting bugs and after the critical review: a NaN weight on an edge never taken still traps on every path that reads weights; the default's total is added up in the listed order (no overflow Kruskal would not have); the dense path's tie rule on conformers with both indices, vertex indices only, and none; its Double total bit for bit; Prim from a root on a disconnected graph | `SpanningTreeReviewTests.swift` |
+| ST-135 – ST-149 | L. Added in the reuse pass: dense Prim (ST-135 – ST-144), `Forest(_:in:)` (ST-145 – ST-148), and the heap's canonical Prim between 4n and n²/4 edges (ST-149), which the dense path took over from above | `DensePrimAndForestTests.swift` |
 | ST-B01 – ST-B04 | Benchmarks | not tests |
 
 Where the tests differ from the catalog:

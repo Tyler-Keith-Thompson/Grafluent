@@ -38,4 +38,25 @@ MUTANTS = [
     Mutant("ancestorscheckedvalue", "Reachability.swift",
            "        return ancestors(of: vertex)",
            "        return []", mode="stmt"),
+
+    # reuse pass (D): search trees
+    Mutant("st_parent", "SearchTrees.swift",
+           "search.discovery[p]",
+           "p"),
+    Mutant("st_dense", "SearchTrees.swift",
+           "v as! Int != k",
+           "false"),
+    # The search's depthLimit argument: the 6th and 12th `depthLimit` in the file.
+    Mutant("st_bfs_limit", "SearchTrees.swift",
+           "depthLimit",
+           "nil", nth=5),
+    Mutant("st_dfs_limit", "SearchTrees.swift",
+           "depthLimit",
+           "nil", nth=11),
+    Mutant("st_bfs_negative", "SearchTrees.swift",
+           '        precondition(depthLimit.map { $0 >= 0 } ?? true, "A depth limit cannot be negative")',
+           "", mode="stmt", nth=0),
+    Mutant("st_dfs_negative", "SearchTrees.swift",
+           '        precondition(depthLimit.map { $0 >= 0 } ?? true, "A depth limit cannot be negative")',
+           "", mode="stmt", nth=1),
 ]

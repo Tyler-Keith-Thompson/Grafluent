@@ -1,5 +1,6 @@
 import GraphProtocols
 import MatchingModule
+import SpanningTrees
 import Walks
 
 /// Rows held as flat arrays, for Hierholzer on the tree-and-matching multigraph.
@@ -28,8 +29,8 @@ struct _FlatIncidenceRows: _IncidenceRowSource {
 }
 
 /// Christofides' order, each piece pinned: the canonical minimum spanning tree of the simple
-/// graph (Prim on the matrix under the strict order (weight, edge number), whose tree is the
-/// unique one Kruskal gives under it, SpanningTrees' `minimumSpanningTree(weight:)`); its
+/// graph (SpanningTrees' dense Prim on the matrix under the strict order (weight, edge number),
+/// whose tree is the unique one Kruskal gives under it, `minimumSpanningTree(weight:)`); its
 /// odd-degree vertices in vertex order; the minimum-weight perfect matching on their complete
 /// graph (pairs i < j lexicographic) by MatchingModule's Galil blossom, NetworkX's
 /// `min_weight_matching`; the multigraph of the tree edges in edge order, then the matched pairs
@@ -38,35 +39,15 @@ struct _FlatIncidenceRows: _IncidenceRowSource {
 func _christofidesOrder<W: SignedNumeric & Comparable>(_ matrix: _TourMatrix<W>, half: (W) -> W) -> [Int] {
     let n = matrix.n
     let d = matrix.weights, numbers = matrix.edges
-    // Dense Prim from vertex 0: each outside vertex's lightest edge to the tree.
-    var inTree = [Bool](repeating: false, count: n)
-    var key = [W](repeating: .zero, count: n), keyEdge = [Int](repeating: -1, count: n), parent = [Int](repeating: 0, count: n)
-    inTree[0] = true
-    for v in 1 ..< n {
-        key[v] = d[v]
-        keyEdge[v] = numbers[v]
+    // SpanningTrees' dense Prim on the matrix: a matrix slot is a position, its edge number the rank.
+    let taken = _densePrim(count: n, placeholder: 0, weight: { d[$0] }, rank: { numbers[$0] }) { u in
+        (0 ..< n).lazy.map { [row = u * n] v in (v, row + v) }.makeIterator()
     }
-    var treeEdges: [(edge: Int, u: Int, v: Int)] = []
-    treeEdges.reserveCapacity(n - 1)
+    var treeEdges: [(edge: Int, u: Int, v: Int)] = taken.map { ($0.rank, $0.parent, $0.child) }
     var degree = [Int](repeating: 0, count: n)
-    for _ in 1 ..< n {
-        var best = -1
-        for v in 1 ..< n where !inTree[v] {
-            if best < 0 || key[v] < key[best] || (!(key[best] < key[v]) && keyEdge[v] < keyEdge[best]) { best = v }
-        }
-        inTree[best] = true
-        treeEdges.append((keyEdge[best], parent[best], best))
-        degree[best] += 1
-        degree[parent[best]] += 1
-        let row = best * n
-        for v in 1 ..< n where !inTree[v] {
-            let w = d[row + v], e = numbers[row + v]
-            if w < key[v] || (!(key[v] < w) && e < keyEdge[v]) {
-                key[v] = w
-                keyEdge[v] = e
-                parent[v] = best
-            }
-        }
+    for e in treeEdges {
+        degree[e.u] += 1
+        degree[e.v] += 1
     }
     treeEdges.sort { $0.edge < $1.edge }
     var odd: [Int] = []

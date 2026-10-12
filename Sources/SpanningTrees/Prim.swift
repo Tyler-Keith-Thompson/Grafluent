@@ -37,10 +37,13 @@ extension Graph {
 
     /// Prim with the strict order (weight, rank), so its forest is the canonical one, sorted into
     /// that order and added up in it: the forest of `minimumSpanningTree(weight:)`, exactly as
-    /// Kruskal gives it, total included.
+    /// Kruskal gives it, total included. With vertex indices and at least n²/4 edges, Prim scans
+    /// an array of keys instead of a heap (`_densePrim`), O(n² + m); the forest is the same, as it
+    /// is unique under the order.
     @inlinable
     func _canonicalPrim<W: Comparable & AdditiveArithmetic>(_ weight: (Edges.Index) -> W) -> SpanningForest<Self, W> {
-        var (edges, _) = _prim(root: nil, weight, ranked: true, key: { w, rank in _RankedWeight(w, rank) })
+        var edges = _prefersDensePrim ? _densePrim(weight)
+            : _prim(root: nil, weight, ranked: true, key: { w, rank in _RankedWeight(w, rank) }).edges
         edges.sort { $0.weight < $1.weight || (!($1.weight < $0.weight) && $0.rank < $1.rank) }
         var total = W.zero
         for e in edges { total += e.weight }

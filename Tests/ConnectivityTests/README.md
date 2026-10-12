@@ -28,6 +28,8 @@ struct DominatorTree<G: DirectedGraph>
     func strictDominators(of:) -> [Vertex]?
     func children(of:) -> ArraySlice<Vertex>          // in vertices order
     func dominates(_:_:) -> Bool                      // false when the second is unreachable
+extension Arborescence
+    init(_ tree: DominatorTree<G>)                    // reachable vertices in vertex order, idom as parent
 struct DominanceFrontiers<G: DirectedGraph>
     subscript(Vertex) -> ArraySlice<Vertex>?          // vertices order; nil if unreachable
 
@@ -150,6 +152,7 @@ Randomized tests write their oracles inside the test.
 | `CondensationTests.swift` | §G – §H: condensation rows and laws, attracting components and their law |
 | `SelfLoopAndParallelEdgeTests.swift` | §I: parallel edges and self-loops on the ReferenceDirectedMultigraph |
 | `DominatorTests.swift` | §J – §M: immediate dominators (Boost's seven test sets, NetworkX, petgraph, fixtures), tree queries, dominance frontiers, post-dominators |
+| `DominatorArborescenceTests.swift` | Reuse pass: dominator and post-dominator trees as `Arborescence`: NetworkX's docstring graph, unreachable vertices, seeded random digraphs on three representations, `String` vertices |
 | `ConnectivityPropertyTests.swift` | §N: seeded random graphs through every representation against oracles written in each test |
 | `ConnectivityStressTests.swift` | §O: 100 000-vertex paths, cycles, a lasso and CHK's quadratic family inside a `Task`; wide graphs; the real-world fixtures |
 | `ConnectivityConformanceTests.swift` | §P: index-space dispatch, conformers without indices, existentials, value semantics, `Sendable`, equality, preconditions |
@@ -169,7 +172,7 @@ Randomized tests write their oracles inside the test.
 
 ## Case IDs
 
-Case IDs (CN-01 … CN-146 for the directed half, CN-200 … CN-404 for the undirected half) refer to
+Case IDs (CN-01 … CN-151 for the directed half, CN-200 … CN-404 for the undirected half) refer to
 the catalogs of cases harvested from NetworkX, petgraph, Boost, JGraphT, LEMON, igraph (behaviour
 only), gonum and rustworkx. Each test's name starts with its IDs.
 
@@ -194,6 +197,7 @@ only), gonum and rustworkx. Each test's name starts with its IDs.
 | CN-127 – CN-135 | O. Stress and real-world fixtures | `ConnectivityStressTests.swift` |
 | CN-136 – CN-143 | P. Dispatch, existentials, value semantics, preconditions | `ConnectivityConformanceTests.swift` |
 | CN-144 – CN-146 | Review additions: slots that moved, post-dominators by brute force, deep `dominates` | `ConnectivityReferenceTests.swift` |
+| CN-147 – CN-151 | Reuse pass: `Arborescence(_: DominatorTree)`, against the tree it comes from, post-dominators included | `DominatorArborescenceTests.swift` |
 | CN-B01 – CN-B07 | Benchmarks | not tests; CN-130 asserts only the answer, its time is CN-B05's |
 | CN-200 – CN-219 | A. Undirected basics | `UndirectedComponentsTests.swift` |
 | CN-220 – CN-234 | B. Bridges and 2-edge-connected components | `BridgeTests.swift` |

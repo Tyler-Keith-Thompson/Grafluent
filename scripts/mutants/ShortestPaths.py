@@ -106,7 +106,7 @@ MUTANTS = [
            "seen.insert(i).inserted",
            "seen.insert(i).inserted || true"),
     Mutant("emptysrc", "ShortestPathTree.swift",
-           '        precondition(!indices.isEmpty, "A shortest-path search needs at least one source")',
+           '        precondition(allowsEmpty || !indices.isEmpty, "A shortest-path search needs at least one source")',
            "", mode="stmt"),
     Mutant("treepathedges", "ShortestPathTree.swift",
            "            edges.append(_parentEdge[i])",
@@ -117,4 +117,26 @@ MUTANTS = [
     Mutant("treepath", "ShortestPathTree.swift",
            "        guard _parent[i] != Self._unreached else { return nil }",
            "", mode="stmt"),
+
+    # reuse pass (C)
+    Mutant("pooledpos", "IndexSpace.swift",
+           "unsafeBitCast(edges[k], to: Index.self)",
+           "unsafeBitCast(targets[k], to: Index.self)", nth=0),
+    Mutant("pooledstart", "IndexSpace.swift",
+           "(edges.baseAddress ?? placeholder) + edgeRows[3 &* row]",
+           "(edges.baseAddress ?? placeholder) + 0"),
+
+    # reuse pass (D): Arborescence(_: ShortestPathTree)
+    Mutant("sa_sources", "ShortestPathTree.swift",
+           "tree.sources.count == 1",
+           "tree.sources.count >= 1", nth=1),
+    Mutant("sa_reached", "ShortestPathTree.swift",
+           "parent[i] != unreached",
+           "true"),
+    Mutant("sa_parent", "ShortestPathTree.swift",
+           "parents[number[i]] = number[parent[i]]",
+           "parents[number[i]] = parent[i]"),
+    Mutant("sa_dense", "ShortestPathTree.swift",
+           "v as! Int != k",
+           "false"),
 ]

@@ -171,7 +171,7 @@ MUTANTS = [
     Mutant("dagreached", DAG, "!reached[v]", "true", module=SP),
     Mutant("dagkahnsources", DAG, "for s in sources where indegree[s] == 0 { queue.append(s) }", "for s in sources { queue.append(s) }", mode="stmt", module=SP),
     Mutant("dagacyclic", DAG, "queue.count == reachable", "true", module=SP),
-    Mutant("dagdistinct", DAG, "seen.insert(i).inserted", "true", module=SP),
+    Mutant("dagdistinct", "ShortestPathTree.swift", "seen.insert(i).inserted", "true", module=SP),
     Mutant("dagtoindex", DAG, 'precondition(index >= 0 && index < _distance.count, "Index \\(index) is out of range 0..<\\(_distance.count)")', "", mode="stmt", module=SP),
     Mutant("dagrows", DAG, "keys.map { rows.numbers[$0] }", "Array(keys)", module=SP),
     Mutant("dagorderpaths", DAG, "_semiringOrder(ids)", "Array((0 ..< ids.count).reversed())", nth=0, module=SP),

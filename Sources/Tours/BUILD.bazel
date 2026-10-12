@@ -12,6 +12,7 @@ swift_library(
         "//Sources/GraphProtocols",
         "//Sources/Walks",
         "//Sources/MatchingModule",
+        "//Sources/SpanningTrees",
     ],
     visibility = ["//visibility:public"],
 )
@@ -25,6 +26,7 @@ docc_archive(
         "//Sources/GraphProtocols:GraphProtocolsDocumentation",
         "//Sources/Walks:WalksDocumentation",
         "//Sources/MatchingModule:MatchingModuleDocumentation",
+        "//Sources/SpanningTrees:SpanningTreesDocumentation",
     ],
     tags = ["manual"],
     visibility = ["//visibility:public"],

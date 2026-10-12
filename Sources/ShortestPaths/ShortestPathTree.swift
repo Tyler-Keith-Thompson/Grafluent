@@ -1,4 +1,5 @@
 import GraphProtocols
+import Trees
 import Walks
 
 /// Shortest paths from one or more sources: for each reached vertex, its distance, its parent and
@@ -136,19 +137,76 @@ public struct ShortestPathTree<G: DirectedGraph, Distance: Comparable> {
     }
 }
 
+extension Arborescence {
+    /// The shortest-path tree of a one-source search, as an arborescence rooted at the source:
+    /// every reached vertex, each with its `parent(of:)` as parent (the tree LEMON's `predMap`
+    /// encodes).
+    ///
+    /// Vertices are listed in the tree's index order (the indices of `distance(toIndex:)`, the
+    /// graph's vertex indices when it has them), unreached ones left out, so the source need not
+    /// come first. Edge positions are the arborescence's own, in vertex order: edge k leads to
+    /// the k-th listed vertex other than the root, counting from 0. The graph's edge into a
+    /// vertex stays `tree.parentEdge(of:)`. O(n); the vertices are hashed once, into the
+    /// arborescence's lookup table, unless they are the `Int`s `0..<k` in order.
+    ///
+    /// - Precondition: `tree.sources.count == 1`. Several sources make a rooted forest, which
+    ///   Trees has no type for; the source count is the caller's own argument to the search, so
+    ///   asking for one root with several is a programming error, not a lookup that may miss.
+    @inlinable
+    public init<G: DirectedGraph, Distance>(_ tree: ShortestPathTree<G, Distance>) where G.Vertex == Vertex {
+        precondition(tree.sources.count == 1, "An arborescence has one root; the shortest-path tree has \(tree.sources.count) sources")
+        let parent = tree._parent
+        let unreached = ShortestPathTree<G, Distance>._unreached
+        // Each reached index's number in the arborescence.
+        var number = [Int](repeating: -1, count: parent.count)
+        var vertices = ContiguousArray<Vertex>()
+        for i in parent.indices where parent[i] != unreached {
+            number[i] = vertices.count
+            vertices.append(tree._ids.vertex(i))
+        }
+        var parents = [Int](repeating: -1, count: vertices.count)
+        for i in parent.indices where parent[i] >= 0 { parents[number[i]] = number[parent[i]] }
+        self = _arborescence(vertices, parents: parents)
+    }
+}
+
+/// The arborescence on `vertices` in which the k-th vertex's parent is the `parents[k]`-th (-1 for
+/// the root), numbered without a table when the vertices are the `Int`s `0..<n` in order.
+///
+/// - Precondition: `parents` is a tree with one root.
+@inlinable
+func _arborescence<Vertex: Hashable>(_ vertices: ContiguousArray<Vertex>, parents: [Int]) -> Arborescence<Vertex> {
+    var dense = Vertex.self == Int.self
+    if dense {
+        for (k, v) in vertices.enumerated() where v as! Int != k {
+            dense = false
+            break
+        }
+    }
+    var slots: [Vertex: Int] = [:]
+    if !dense {
+        slots.reserveCapacity(vertices.count)
+        for (k, v) in vertices.enumerated() { slots[v] = k }
+    }
+    guard let layout = _TreeLayout.fromParents(vertices: vertices, slots: slots, dense: dense, parents: parents) else {
+        preconditionFailure("The parents do not form a tree with one root")
+    }
+    return Arborescence(RootedTree(_layout: layout))
+}
+
 extension ShortestPathTree: Sendable where G: Sendable, G.Vertex: Sendable, G.Edges.Index: Sendable, Distance: Sendable {}
 
 extension DirectedGraph {
-    /// The distinct source indices, in the order given.
+    /// The distinct source indices, in the order given; empty when `sources` is and `allowsEmpty`.
     ///
-    /// - Precondition: `sources` is not empty, and each is a vertex.
+    /// - Precondition: each source is a vertex; `sources` is not empty unless `allowsEmpty`.
     @inlinable
-    func _sourceIndices(_ sources: some Sequence<Vertex>, _ ids: _VertexIdentifiers<Self>) -> (indices: [Int], vertices: [Vertex]) {
-        var indices: [Int] = []
-        var listed: [Vertex] = []
+    func _sourceIndices(_ sources: some Sequence<Vertex>, _ ids: _VertexIdentifiers<Self>, allowsEmpty: Bool = false) -> (indices: [Int], vertices: [Vertex]) {
         if let only = sources as? CollectionOfOne<Vertex> {
             return ([_index(of: only.first!, ids)], [only.first!])
         }
+        var indices: [Int] = []
+        var listed: [Vertex] = []
         var seen = Set<Int>()
         for s in sources {
             let i = _index(of: s, ids)
@@ -157,7 +215,7 @@ extension DirectedGraph {
                 listed.append(s)
             }
         }
-        precondition(!indices.isEmpty, "A shortest-path search needs at least one source")
+        precondition(allowsEmpty || !indices.isEmpty, "A shortest-path search needs at least one source")
         return (indices, listed)
     }
 }

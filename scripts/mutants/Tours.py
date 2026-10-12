@@ -226,11 +226,11 @@ MUTANTS = [
     Mutant("hk_lost", "HeldKarp.swift", "    precondition(order.count == n, \"Held–Karp's reconstruction lost the tour\")", "", mode="stmt"),
     Mutant("hk_size_strict", "HeldKarp.swift", "Swift.max(MemoryLayout<W>.stride, 1) + 1", "Swift.max(MemoryLayout<W>.stride, 1) + 4"),
     # Christofides: Prim on the dense matrix
-    Mutant("ch_prim_pick_tie", "Christofides.swift", "key[v] < key[best] || (!(key[best] < key[v]) && keyEdge[v] < keyEdge[best])", "key[v] < key[best]"),
-    Mutant("ch_prim_key_tie", "Christofides.swift", "w < key[v] || (!(key[v] < w) && e < keyEdge[v])", "w < key[v]"),
-    Mutant("ch_prim_key_max", "Christofides.swift", "w < key[v] || (!(key[v] < w) && e < keyEdge[v])", "key[v] < w", nth=0),
-    Mutant("ch_prim_parent", "Christofides.swift", "                parent[v] = best", "", mode="stmt"),
-    Mutant("ch_degree_parent", "Christofides.swift", "        degree[parent[best]] += 1", "", mode="stmt"),
+    Mutant("ch_prim_rank", "Christofides.swift", "numbers[$0]", "0"),
+    Mutant("ch_prim_row", "Christofides.swift", "(v, row + v)", "(v, v)"),
+    Mutant("ch_prim_weight", "Christofides.swift", "d[$0]", ".zero"),
+    Mutant("ch_prim_parent", "DensePrim.swift", "                                keyParent[v] = u", "", mode="stmt", module="SpanningTrees"),
+    Mutant("ch_degree_parent", "Christofides.swift", "        degree[e.u] += 1", "", mode="stmt"),
     Mutant("ch_tree_sort", "Christofides.swift", "    treeEdges.sort { $0.edge < $1.edge }", "", mode="stmt"),
     # Christofides: the odd vertices and the matching
     Mutant("ch_pair_weight", "Christofides.swift", "d[odd[a] * n + odd[b]]", "d[odd[a] * n + odd[a]]"),

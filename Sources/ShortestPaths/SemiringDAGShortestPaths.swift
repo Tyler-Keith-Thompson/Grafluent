@@ -189,24 +189,6 @@ public struct ShortestDistances<G: DirectedGraph, Distance> {
 extension ShortestDistances: Sendable where G: Sendable, G.Vertex: Sendable, Distance: Sendable {}
 
 extension DirectedGraph {
-    /// The distinct source indices, in the order given; empty when `sources` is.
-    ///
-    /// - Precondition: each source is a vertex.
-    @inlinable
-    func _distinctSourceIndices(_ sources: some Sequence<Vertex>, _ ids: _VertexIdentifiers<Self>) -> (indices: [Int], vertices: [Vertex]) {
-        var indices: [Int] = []
-        var listed: [Vertex] = []
-        var seen = Set<Int>()
-        for s in sources {
-            let i = _index(of: s, ids)
-            if seen.insert(i).inserted {
-                indices.append(i)
-                listed.append(s)
-            }
-        }
-        return (indices, listed)
-    }
-
     /// Best paths from `source` over a selective semiring in a graph with no cycle reachable from
     /// it (Boost's `dag_shortest_paths` over any selective semiring: widest paths in a DAG,
     /// reachability), or `nil` when a cycle is reachable from `source`, whatever its weights. A
@@ -266,7 +248,7 @@ extension DirectedGraph {
         from sources: some Sequence<Vertex>, weight: (Edges.Index) -> S
     ) -> ShortestDistances<Self, S>? {
         let ids = _numberedVertices()
-        let (indices, listed) = _distinctSourceIndices(sources, ids)
+        let (indices, listed) = _sourceIndices(sources, ids, allowsEmpty: true)
         let result = _runInIndexSpace(_SemiringDAGPaths<Self, _Accumulate<S>>(sources: indices, placeholder: edges.endIndex, order: nil), ids, weight: weight)
         guard result.acyclic else { return nil }
         return ShortestDistances(ids: ids, distance: result.distance, sources: listed)
@@ -328,7 +310,7 @@ extension DirectedAcyclicGraph {
         from sources: some Sequence<Vertex>, weight: (Edges.Index) -> S
     ) -> ShortestDistances<Self, S> {
         let ids = _numberedVertices()
-        let (indices, listed) = _distinctSourceIndices(sources, ids)
+        let (indices, listed) = _sourceIndices(sources, ids, allowsEmpty: true)
         let result = _runInIndexSpace(_SemiringDAGPaths<Self, _Accumulate<S>>(sources: indices, placeholder: edges.endIndex, order: _semiringOrder(ids)), ids, weight: weight)
         return ShortestDistances(ids: ids, distance: result.distance, sources: listed)
     }

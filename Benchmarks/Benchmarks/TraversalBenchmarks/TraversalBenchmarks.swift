@@ -106,6 +106,12 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("Traversal: breadthFirstLayers on CompressedSparseRow") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(sparse.breadthFirstLayers(from: 0)) }
     }
+    Benchmark("Traversal: breadthFirstTree on CompressedSparseRow") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(sparse.breadthFirstTree(from: 0)) }
+    }
+    Benchmark("Traversal: depthFirstTree on CompressedSparseRow") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(sparse.depthFirstTree(from: 0)) }
+    }
     Benchmark("Traversal: descendants on AdjacencyList") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(list.descendants(of: 0)) }
     }

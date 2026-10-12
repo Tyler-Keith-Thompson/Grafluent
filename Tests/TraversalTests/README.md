@@ -20,6 +20,8 @@ extension DirectedGraph
     func depthFirstSearch(from: Vertex | some Sequence<Vertex>, depthLimit: Int? = nil)
     func depthFirstSearch(depthLimit: Int? = nil)                 // the whole graph
     func breadthFirstLayers(from:) -> [[Vertex]]                   // NetworkX bfs_layers
+    func breadthFirstTree(from:depthLimit:) -> Arborescence<Vertex> // NetworkX bfs_tree; discovery order
+    func depthFirstTree(from:depthLimit:) -> Arborescence<Vertex>   // NetworkX dfs_tree with a source; preorder
     func descendants(of:) -> Set<Vertex>
     func hasPath(from:to:) -> Bool
     func topologicalSort() -> [Vertex]?                            // DFS reverse postorder; nil on a cycle
@@ -66,6 +68,7 @@ readable afterwards. It is what `Connectivity`, `Flows` and `ShortestPaths` will
 | File | Covers |
 |---|---|
 | `SearchTranscriptTests.swift` | Exact event transcripts: breadth-first (Boost order) and depth-first (CLRS classes) on NetworkX, petgraph, LEMON, JGraphT and Boost graphs, multigraphs, self-loops, multiple sources and depth limits. Generated from the catalog by `Tests/Catalogs/Traversal/gen.py`, which reproduces it byte for byte |
+| `SearchTreeTests.swift` | Reuse pass: `breadthFirstTree` and `depthFirstTree` as `Arborescence`: NetworkX's `bfs_tree` / `dfs_tree` answers, discovery order and tree edges against the searches on every fixture, depth limits, `String` vertices and `Int` vertices out of order, the preconditions |
 | `SearchOrderTests.swift` | Layers, breadth-first trees, preorder and postorder, depth-limited orders, pruning, early exit |
 | `TopologicalAndReachabilityTests.swift` | The three topological sorts, cycle witnesses, descendants and ancestors, `hasPath`, bidirectional search, iterative deepening, and the closure-based searches |
 | `SearchReferenceTests.swift` | Transcripts on random graphs against a reference written in the test (recursive DFS, queue BFS), pulled and pushed, with and without vertex indices, with spread-out Int and String vertices, after vertex removals; topological, cycle and reachability answers against a reachability reference; `forEach` errors; deep closure searches; `findCycle(from:)` |
@@ -73,7 +76,7 @@ readable afterwards. It is what `Connectivity`, `Flows` and `ShortestPaths` will
 | `TraversalWalkTests.swift` | Walks migration: `findCycle` and `bidirectionalShortestPath` as `Cycle` and `Path`, rotation, parallel copies, self-loops, NetworkX's `find_cycle` answers as cycles of the graph or its undirected view |
 | `SearchPropertyTests.swift` | Random graphs through every representation (shortest distances, parenthesis theorem, consistent classification, every edge once, back edge iff cycle, topological validity and minimality), real-world fixtures, deep and wide graphs, index-space dispatch, value semantics, preconditions |
 
-Case IDs (TR-01 … TR-183) refer to the catalog of cases (`Tests/Catalogs/Traversal/cases.md`) harvested from NetworkX, petgraph, Boost,
+Case IDs (TR-01 … TR-191) refer to the catalog of cases (`Tests/Catalogs/Traversal/cases.md`) harvested from NetworkX, petgraph, Boost,
 JGraphT, LEMON, igraph and the Rust `pathfinding` crate. Expected transcripts were computed by an
 independent reference (`ref.py` there) checked against NetworkX on every fixture (`check.py`). WK-1202 – WK-1205 and
 WK-1213 – WK-1215 are the Walks catalog's migration cases (`Tests/WalksTests/README.md`), in

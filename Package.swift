@@ -98,7 +98,7 @@ let targets: [Target] = [
     .target(name: "SpanningTrees", dependencies: ["GraphProtocols", "DisjointSetModule", "PriorityQueueModule", "Trees"], exclude: bazelFiles),
     .target(name: "Connectivity", dependencies: ["GraphProtocols", "CompressedSparseRowModule", "Trees"], exclude: bazelFiles),
     .target(name: "Cycles", dependencies: ["GraphProtocols", "Walks", "DisjointSetModule", "Connectivity"], exclude: bazelFiles),
-    .target(name: "Tours", dependencies: ["GraphProtocols", "Walks", "MatchingModule"], exclude: bazelFiles),
+    .target(name: "Tours", dependencies: ["GraphProtocols", "Walks", "MatchingModule", "SpanningTrees"], exclude: bazelFiles),
     .target(name: "Flows", dependencies: ["GraphProtocols", "Trees", "Walks"], exclude: bazelFiles),
     .target(name: "MatchingModule", dependencies: ["GraphProtocols", "BipartiteGraphs"], exclude: bazelFiles),
     .target(name: "ColoringModule", dependencies: ["GraphProtocols", "BipartiteGraphs"], exclude: bazelFiles),
