@@ -24,17 +24,17 @@ struct DirectedAcyclicGraphStressTests {
         let n = 20_000
         var graph = DirectedAcyclicGraph<AdjacencyList<Int>>()
         for i in 0 ..< n - 1 {
-            #expect(graph.insert(edge: DirectedEdge(from: i, to: i + 1)) == i)
+            #expect(try graph.insert(edge: DirectedEdge(from: i, to: i + 1)) == i)
         }
         #expect(Array(graph.topologicalOrder) == Array(0 ..< n) && graph.edgeCount == n - 1)
-        #expect(graph.insert(edge: DirectedEdge(from: n - 1, to: 0)) == nil)
-        #expect(graph.insert(edge: DirectedEdge(from: n / 2, to: n / 4)) == nil)
+        #expect(throws: AcyclicEdgeError.cycle) { try graph.insert(edge: DirectedEdge(from: n - 1, to: 0)) }
+        #expect(throws: AcyclicEdgeError.cycle) { try graph.insert(edge: DirectedEdge(from: n / 2, to: n / 4)) }
         let witness = try #require(graph.bidirectionalShortestPath(from: 0, to: n - 1))
         #expect(witness.vertices == Array(0 ..< n) && witness.edges == Array(0 ..< n - 1))
         #expect(graph.hasPath(from: 0, to: n - 1) && !graph.hasPath(from: n - 1, to: 0))
         #expect(graph.edgeCount == n - 1 && Array(graph.topologicalOrder) == Array(0 ..< n))
         // A shortcut is forward and changes nothing in the order.
-        #expect(graph.insert(edge: DirectedEdge(from: 0, to: n - 1)) == n - 1)
+        #expect(try graph.insert(edge: DirectedEdge(from: 0, to: n - 1)) == n - 1)
         #expect(graph.longestPath()?.length == n - 1)
         // Each removal from the front closes a gap at place 0, shifting the whole order.
         let cut = 300
@@ -52,17 +52,17 @@ struct DirectedAcyclicGraphStressTests {
         var graph = DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: 0 ..< n)
         let links = Array(0 ..< n - 1).shuffled(using: &rng)
         for (k, i) in links.enumerated() {
-            #expect(graph.insert(edge: DirectedEdge(from: i, to: i + 1)) == k)
+            #expect(try graph.insert(edge: DirectedEdge(from: i, to: i + 1)) == k)
         }
         #expect(Array(graph.topologicalOrder) == Array(0 ..< n))
         #expect(graph.edges.allSatisfy { graph.topologicalPosition(of: $0.source) < graph.topologicalPosition(of: $0.target) })
-        #expect(graph.insert(edge: DirectedEdge(from: n - 1, to: 0)) == nil)
+        #expect(throws: AcyclicEdgeError.cycle) { try graph.insert(edge: DirectedEdge(from: n - 1, to: 0)) }
         let witness = try #require(graph.bidirectionalShortestPath(from: 0, to: n - 1))
         #expect(witness.length == n - 1 && witness.vertices == Array(0 ..< n))
         #expect(witness.edges.indices.allSatisfy { graph.source(ofEdgeAt: witness.edges[$0]) == $0 && graph.target(ofEdgeAt: witness.edges[$0]) == $0 + 1 })
         // Parallel copies along the chain are accepted and keep the order.
         for i in stride(from: 0, to: n - 1, by: 100) {
-            #expect(graph.insert(edge: DirectedEdge(from: i, to: i + 1)) != nil)
+            #expect((try? graph.insert(edge: DirectedEdge(from: i, to: i + 1))) != nil)
         }
         #expect(Array(graph.topologicalOrder) == Array(0 ..< n) && graph.edgeCount == n - 1 + (n - 1 + 99) / 100)
         #expect(graph.longestPath()?.length == n - 1)
@@ -73,14 +73,14 @@ struct DirectedAcyclicGraphStressTests {
         let n = 20_000
         var graph = DirectedAcyclicGraph<StableDirectedGraph<Int>>(vertices: 0 ..< n)
         for i in 0 ..< n - 1 {
-            #expect(graph.insert(edge: DirectedEdge(from: i, to: i + 1)) == i)
+            #expect(try graph.insert(edge: DirectedEdge(from: i, to: i + 1)) == i)
         }
         // Cut the chain in the middle, then join its halves the other way round.
         #expect(graph.remove(edgeAt: n / 2 - 1) == DirectedEdge(from: n / 2 - 1, to: n / 2))
-        #expect(graph.insert(edge: DirectedEdge(from: n - 1, to: 0)) == n - 1)
+        #expect(try graph.insert(edge: DirectedEdge(from: n - 1, to: 0)) == n - 1)
         let expected = Array(n / 2 ..< n) + Array(0 ..< n / 2)
         #expect(Array(graph.topologicalOrder) == expected)
-        #expect(graph.insert(edge: DirectedEdge(from: n / 2 - 1, to: n / 2)) == nil)
+        #expect(throws: AcyclicEdgeError.cycle) { try graph.insert(edge: DirectedEdge(from: n / 2 - 1, to: n / 2)) }
         let witness = try #require(graph.bidirectionalShortestPath(from: n / 2, to: n / 2 - 1))
         #expect(witness.length == n - 1)
         #expect(witness.edges.indices.allSatisfy { graph.source(ofEdgeAt: witness.edges[$0]) == witness.vertices[$0] && graph.target(ofEdgeAt: witness.edges[$0]) == witness.vertices[$0 + 1] })
@@ -91,7 +91,7 @@ struct DirectedAcyclicGraphStressTests {
     }
 
     @Test("Adversarial: reversing a chain one edge at a time moves the whole prefix on every insert")
-    func reverseChain() {
+    func reverseChain() throws {
         let n = 1_000
         for base in 0 ..< 3 {
             let result: [Int]
@@ -99,27 +99,27 @@ struct DirectedAcyclicGraphStressTests {
             case 0:
                 var graph = DirectedAcyclicGraph<AdjacencyList<Int>>(vertices: 0 ..< n)
                 for i in 1 ..< n {
-                    #expect(graph.insert(edge: DirectedEdge(from: i, to: i - 1)) == i - 1)
+                    #expect(try graph.insert(edge: DirectedEdge(from: i, to: i - 1)) == i - 1)
                     // After i -> i-1 the order begins i, i-1, ..., 0.
                     #expect(graph.topologicalOrder[0] == i && graph.topologicalOrder[i] == 0)
                 }
-                #expect(graph.insert(edge: DirectedEdge(from: 0, to: n - 1)) == nil)
+                #expect(throws: AcyclicEdgeError.cycle) { try graph.insert(edge: DirectedEdge(from: 0, to: n - 1)) }
                 result = Array(graph.topologicalOrder)
             case 1:
                 var graph = DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: 0 ..< n)
                 for i in 1 ..< n {
-                    #expect(graph.insert(edge: DirectedEdge(from: i, to: i - 1)) == i - 1)
+                    #expect(try graph.insert(edge: DirectedEdge(from: i, to: i - 1)) == i - 1)
                     #expect(graph.topologicalOrder[0] == i && graph.topologicalOrder[i] == 0)
                 }
-                #expect(graph.insert(edge: DirectedEdge(from: 0, to: n - 1)) == nil)
+                #expect(throws: AcyclicEdgeError.cycle) { try graph.insert(edge: DirectedEdge(from: 0, to: n - 1)) }
                 result = Array(graph.topologicalOrder)
             default:
                 var graph = DirectedAcyclicGraph<StableDirectedGraph<Int>>(vertices: 0 ..< n)
                 for i in 1 ..< n {
-                    #expect(graph.insert(edge: DirectedEdge(from: i, to: i - 1)) == i - 1)
+                    #expect(try graph.insert(edge: DirectedEdge(from: i, to: i - 1)) == i - 1)
                     #expect(graph.topologicalOrder[0] == i && graph.topologicalOrder[i] == 0)
                 }
-                #expect(graph.insert(edge: DirectedEdge(from: 0, to: n - 1)) == nil)
+                #expect(throws: AcyclicEdgeError.cycle) { try graph.insert(edge: DirectedEdge(from: 0, to: n - 1)) }
                 result = Array(graph.topologicalOrder)
             }
             #expect(result == Array((0 ..< n).reversed()), "base \(base)")
@@ -138,7 +138,7 @@ struct DirectedAcyclicGraphStressTests {
             if u == v { continue }
             if rank[u] > rank[v] { swap(&u, &v) }
             // Every edge goes up the hidden order, so none is rejected.
-            #expect(graph.insert(edge: DirectedEdge(from: u, to: v)) != nil)
+            #expect((try? graph.insert(edge: DirectedEdge(from: u, to: v))) != nil)
             accepted += 1
         }
         #expect(graph.edgeCount == accepted)
@@ -150,7 +150,7 @@ struct DirectedAcyclicGraphStressTests {
             let u = Int.random(in: 0 ..< n, using: &rng), v = Int.random(in: 0 ..< n, using: &rng)
             guard rank[u] > rank[v] else { continue }
             let closes = graph.base.hasPath(from: v, to: u)
-            let result = graph.insert(edge: DirectedEdge(from: u, to: v))
+            let result = try? graph.insert(edge: DirectedEdge(from: u, to: v))
             #expect((result == nil) == closes)
             if result == nil { rejected += 1 }
             #expect(graph.hasPath(from: u, to: v) == graph.base.hasPath(from: u, to: v))
@@ -180,7 +180,7 @@ struct DirectedAcyclicGraphStressTests {
                         next += 1
                         if let old {
                             let edge = roll.isMultiple(of: 2) ? DirectedEdge(from: new, to: old) : DirectedEdge(from: old, to: new)
-                            #expect(graph.insert(edge: edge) != nil, "\(context)")
+                            #expect((try? graph.insert(edge: edge)) != nil, "\(context)")
                             if edge.source == new { #expect(graph.topologicalPosition(of: new) == 0, "\(context)") }
                             else { #expect(graph.topologicalPosition(of: new) == graph.vertexCount - 1, "\(context)") }
                         } else {
@@ -190,7 +190,7 @@ struct DirectedAcyclicGraphStressTests {
                     } else if roll < 7 {
                         let u = live.randomElement(using: &rng)!, v = live.randomElement(using: &rng)!
                         let closes = u == v || graph.base.hasPath(from: v, to: u)
-                        #expect((graph.insert(edge: DirectedEdge(from: u, to: v)) == nil) == closes, "\(context)")
+                        #expect(((try? graph.insert(edge: DirectedEdge(from: u, to: v))) == nil) == closes, "\(context)")
                     } else {
                         let k = Int.random(in: 0 ..< live.count, using: &rng)
                         #expect(graph.remove(live[k]) == live[k], "\(context)")
@@ -221,8 +221,8 @@ struct DirectedAcyclicGraphStressTests {
         for v in 0 ..< 1024 { _ = stable.remove(v) }
         for v in 2048 ..< 4096 { stable.insert(v) }
         // One backward edge per page, so Pearce–Kelly reads the labels of each.
-        #expect(stable.insert(edge: DirectedEdge(from: 4095, to: 1024)) != nil)
-        #expect(stable.insert(edge: DirectedEdge(from: 3000, to: 2100)) != nil)
+        #expect((try? stable.insert(edge: DirectedEdge(from: 4095, to: 1024))) != nil)
+        #expect((try? stable.insert(edge: DirectedEdge(from: 3000, to: 2100))) != nil)
         var order = Array(stable.topologicalOrder)
         #expect(order.count == 3072 && Set(order) == Set(1024 ..< 4096))
         #expect(order.indices.allSatisfy { stable.topologicalPosition(of: order[$0]) == $0 && stable.topologicalOrder[$0] == order[$0] })
@@ -230,7 +230,7 @@ struct DirectedAcyclicGraphStressTests {
         #expect(stable.topologicalPosition(of: 3000) < stable.topologicalPosition(of: 2100))
         // Positions start again at 0 after removeAll.
         stable.removeAll()
-        #expect(stable.insert(edge: DirectedEdge(from: 1, to: 0)) == 0)
+        #expect(try stable.insert(edge: DirectedEdge(from: 1, to: 0)) == 0)
         #expect(Array(stable.topologicalOrder) == [1, 0] && stable.topologicalPosition(of: 0) == 1)
 
         // AdjacencyList: keys are dense. Removing the last 2000 vertices empties two pages; growing
@@ -238,8 +238,8 @@ struct DirectedAcyclicGraphStressTests {
         var dense = DirectedAcyclicGraph<AdjacencyList<Int>>(vertices: 0 ..< 3000)
         for v in (1000 ..< 3000).reversed() { _ = dense.remove(v) }
         for v in 3000 ..< 6500 { dense.insert(v) }
-        #expect(dense.insert(edge: DirectedEdge(from: 6499, to: 0)) != nil)
-        #expect(dense.insert(edge: DirectedEdge(from: 5000, to: 3500)) != nil)
+        #expect((try? dense.insert(edge: DirectedEdge(from: 6499, to: 0))) != nil)
+        #expect((try? dense.insert(edge: DirectedEdge(from: 5000, to: 3500))) != nil)
         order = Array(dense.topologicalOrder)
         #expect(order.count == 4500 && Set(order) == Set(0 ..< 1000).union(3000 ..< 6500))
         #expect(order.indices.allSatisfy { dense.topologicalPosition(of: order[$0]) == $0 })

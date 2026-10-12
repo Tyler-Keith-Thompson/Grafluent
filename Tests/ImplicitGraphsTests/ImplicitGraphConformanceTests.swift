@@ -89,7 +89,7 @@ struct ImplicitGraphConformanceTests {
     }
 
     @Test("A LabeledGraph over an implicit grid names its cells")
-    func labeledGrid() {
+    func labeledGrid() throws {
         struct Cell: Hashable {
             var row, column: Int
         }
@@ -100,7 +100,7 @@ struct ImplicitGraphConformanceTests {
             let (r, c) = (v / width, v % width)
             return [r > 0 ? v - width : -1, c > 0 ? v - 1 : -1, c < width - 1 ? v + 1 : -1, r < height - 1 ? v + width : -1].filter { $0 >= 0 }
         })
-        let labeled = LabeledGraph(grid, labels: cells)
+        let labeled = try LabeledGraph(grid, labels: cells)
         #expect(Array(labeled.vertices) == cells)
         #expect(Array(labeled.successors(of: Cell(row: 0, column: 0))) == [Cell(row: 0, column: 1), Cell(row: 1, column: 0)])
         #expect(labeled.outDegree(of: Cell(row: 2, column: 2)) == 4)

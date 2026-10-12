@@ -1,7 +1,8 @@
-// Construction (catalog LG-001 – LG-017, LG-024, LG-085 – LG-088): listed labels first (a repeat
+// Construction (catalog LG-001 – LG-024, LG-085 – LG-088): listed labels first (a repeat
 // once), then new endpoints in first-appearance order; parallel edges collapse; positions are the
 // base's; every initializer that fits gives the same state; `init(_:labels:)` names base vertex i
-// by labels[i]; the result builder lists its bare labels first; `transposed()` keeps the labels.
+// by labels[i], and throws the first `LabelingError` it finds; the result builder lists its bare
+// labels first; `transposed()` keeps the labels.
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import AdjacencyListModule
@@ -10,12 +11,13 @@ import CompressedSparseRowModule
 import GraphProtocols
 import LabeledGraphs
 import Multigraphs
+import StableGraphs
 import Testing
 
 @Suite("LabeledGraphs construction")
 struct LabeledGraphConstructionTests {
     @Test("LG-001 CSR: empty")
-    func lg001() {
+    func lg001() throws {
         // CSR V []; E []
         let graph = LabeledGraph<String, CompressedSparseRow>(vertices: [] as [String], edges: [] as [DirectedEdge<String>])
         // Final state.
@@ -63,7 +65,7 @@ struct LabeledGraphConstructionTests {
             #expect(built == graph)
         }
         do {
-            let built = LabeledGraph(graph.base, labels: graph.vertices)
+            let built = try LabeledGraph(graph.base, labels: graph.vertices)
             #expect(Array(built.vertices) == [] as [String])
             #expect(built.edges.map { [$0.source, $0.target] } == [] as [[String]])
             #expect(Array(built.edges.indices) == [] as [Int])
@@ -73,7 +75,7 @@ struct LabeledGraphConstructionTests {
     }
 
     @Test("LG-002 CSR: isolated vertices in listed order")
-    func lg002() {
+    func lg002() throws {
         // CSR V [a, b, c]; E []
         let graph = LabeledGraph<String, CompressedSparseRow>(vertices: ["a", "b", "c"], edges: [] as [DirectedEdge<String>])
         // Final state.
@@ -123,7 +125,7 @@ struct LabeledGraphConstructionTests {
             #expect(built == graph)
         }
         do {
-            let built = LabeledGraph(graph.base, labels: graph.vertices)
+            let built = try LabeledGraph(graph.base, labels: graph.vertices)
             #expect(Array(built.vertices) == ["a", "b", "c"])
             #expect(built.edges.map { [$0.source, $0.target] } == [] as [[String]])
             #expect(Array(built.edges.indices) == [] as [Int])
@@ -133,7 +135,7 @@ struct LabeledGraphConstructionTests {
     }
 
     @Test("LG-003 CSR: labels in first-appearance order")
-    func lg003() {
+    func lg003() throws {
         // CSR V []; E [c→a, b→c]
         let graph = LabeledGraph<String, CompressedSparseRow>(vertices: [] as [String], edges: [DirectedEdge(from: "c", to: "a"), DirectedEdge(from: "b", to: "c")])
         // Final state.
@@ -188,7 +190,7 @@ struct LabeledGraphConstructionTests {
             #expect(built == graph)
         }
         do {
-            let built = LabeledGraph(graph.base, labels: graph.vertices)
+            let built = try LabeledGraph(graph.base, labels: graph.vertices)
             #expect(Array(built.vertices) == ["c", "a", "b"])
             #expect(built.edges.map { [$0.source, $0.target] } == [["c", "a"], ["b", "c"]])
             #expect(Array(built.edges.indices) == [0, 1])
@@ -198,7 +200,7 @@ struct LabeledGraphConstructionTests {
     }
 
     @Test("LG-004 CSR: listed vertices first, then new endpoints")
-    func lg004() {
+    func lg004() throws {
         // CSR V [z]; E [x→z, z→y]
         let graph = LabeledGraph<String, CompressedSparseRow>(vertices: ["z"], edges: [DirectedEdge(from: "x", to: "z"), DirectedEdge(from: "z", to: "y")])
         // Final state.
@@ -245,7 +247,7 @@ struct LabeledGraphConstructionTests {
             #expect(built == graph)
         }
         do {
-            let built = LabeledGraph(graph.base, labels: graph.vertices)
+            let built = try LabeledGraph(graph.base, labels: graph.vertices)
             #expect(Array(built.vertices) == ["z", "x", "y"])
             #expect(built.edges.map { [$0.source, $0.target] } == [["z", "y"], ["x", "z"]])
             #expect(Array(built.edges.indices) == [0, 1])
@@ -255,7 +257,7 @@ struct LabeledGraphConstructionTests {
     }
 
     @Test("LG-005 CSR: repeated label and repeated edge stored once")
-    func lg005() {
+    func lg005() throws {
         // CSR V [a, a, b]; E [a→b, a→b]
         let graph = LabeledGraph<String, CompressedSparseRow>(vertices: ["a", "a", "b"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "a", to: "b")])
         // Final state.
@@ -295,7 +297,7 @@ struct LabeledGraphConstructionTests {
             #expect(built == graph)
         }
         do {
-            let built = LabeledGraph(graph.base, labels: graph.vertices)
+            let built = try LabeledGraph(graph.base, labels: graph.vertices)
             #expect(Array(built.vertices) == ["a", "b"])
             #expect(built.edges.map { [$0.source, $0.target] } == [["a", "b"]])
             #expect(Array(built.edges.indices) == [0])
@@ -305,7 +307,7 @@ struct LabeledGraphConstructionTests {
     }
 
     @Test("LG-006 CSR: self-loop kept")
-    func lg006() {
+    func lg006() throws {
         // CSR V []; E [a→a, a→b]
         let graph = LabeledGraph<String, CompressedSparseRow>(vertices: [] as [String], edges: [DirectedEdge(from: "a", to: "a"), DirectedEdge(from: "a", to: "b")])
         // Final state.
@@ -354,7 +356,7 @@ struct LabeledGraphConstructionTests {
             #expect(built == graph)
         }
         do {
-            let built = LabeledGraph(graph.base, labels: graph.vertices)
+            let built = try LabeledGraph(graph.base, labels: graph.vertices)
             #expect(Array(built.vertices) == ["a", "b"])
             #expect(built.edges.map { [$0.source, $0.target] } == [["a", "a"], ["a", "b"]])
             #expect(Array(built.edges.indices) == [0, 1])
@@ -364,7 +366,7 @@ struct LabeledGraphConstructionTests {
     }
 
     @Test("LG-007 M: empty")
-    func lg007() {
+    func lg007() throws {
         // M V []; E []
         let graph = LabeledGraph<String, AdjacencyMatrix>(vertices: [] as [String], edges: [] as [DirectedEdge<String>])
         // Final state.
@@ -412,7 +414,7 @@ struct LabeledGraphConstructionTests {
             #expect(built == graph)
         }
         do {
-            let built = LabeledGraph(graph.base, labels: graph.vertices)
+            let built = try LabeledGraph(graph.base, labels: graph.vertices)
             #expect(Array(built.vertices) == [] as [String])
             #expect(built.edges.map { [$0.source, $0.target] } == [] as [[String]])
             #expect(built.edges.indices.map { [$0.source, $0.target] } == [] as [[Int]])
@@ -422,7 +424,7 @@ struct LabeledGraphConstructionTests {
     }
 
     @Test("LG-008 M: isolated vertices in listed order")
-    func lg008() {
+    func lg008() throws {
         // M V [a, b, c]; E []
         let graph = LabeledGraph<String, AdjacencyMatrix>(vertices: ["a", "b", "c"], edges: [] as [DirectedEdge<String>])
         // Final state.
@@ -487,7 +489,7 @@ struct LabeledGraphConstructionTests {
             #expect(built == graph)
         }
         do {
-            let built = LabeledGraph(graph.base, labels: graph.vertices)
+            let built = try LabeledGraph(graph.base, labels: graph.vertices)
             #expect(Array(built.vertices) == ["a", "b", "c"])
             #expect(built.edges.map { [$0.source, $0.target] } == [] as [[String]])
             #expect(built.edges.indices.map { [$0.source, $0.target] } == [] as [[Int]])
@@ -497,7 +499,7 @@ struct LabeledGraphConstructionTests {
     }
 
     @Test("LG-009 M: labels in first-appearance order")
-    func lg009() {
+    func lg009() throws {
         // M V []; E [c→a, b→c]
         let graph = LabeledGraph<String, AdjacencyMatrix>(vertices: [] as [String], edges: [DirectedEdge(from: "c", to: "a"), DirectedEdge(from: "b", to: "c")])
         // Final state.
@@ -566,7 +568,7 @@ struct LabeledGraphConstructionTests {
             #expect(built == graph)
         }
         do {
-            let built = LabeledGraph(graph.base, labels: graph.vertices)
+            let built = try LabeledGraph(graph.base, labels: graph.vertices)
             #expect(Array(built.vertices) == ["c", "a", "b"])
             #expect(built.edges.map { [$0.source, $0.target] } == [["c", "a"], ["b", "c"]])
             #expect(built.edges.indices.map { [$0.source, $0.target] } == [[0, 1], [2, 0]])
@@ -576,7 +578,7 @@ struct LabeledGraphConstructionTests {
     }
 
     @Test("LG-010 M: listed vertices first, then new endpoints")
-    func lg010() {
+    func lg010() throws {
         // M V [z]; E [x→z, z→y]
         let graph = LabeledGraph<String, AdjacencyMatrix>(vertices: ["z"], edges: [DirectedEdge(from: "x", to: "z"), DirectedEdge(from: "z", to: "y")])
         // Final state.
@@ -637,7 +639,7 @@ struct LabeledGraphConstructionTests {
             #expect(built == graph)
         }
         do {
-            let built = LabeledGraph(graph.base, labels: graph.vertices)
+            let built = try LabeledGraph(graph.base, labels: graph.vertices)
             #expect(Array(built.vertices) == ["z", "x", "y"])
             #expect(built.edges.map { [$0.source, $0.target] } == [["z", "y"], ["x", "z"]])
             #expect(built.edges.indices.map { [$0.source, $0.target] } == [[0, 2], [1, 0]])
@@ -647,7 +649,7 @@ struct LabeledGraphConstructionTests {
     }
 
     @Test("LG-011 M: repeated label and repeated edge stored once")
-    func lg011() {
+    func lg011() throws {
         // M V [a, a, b]; E [a→b, a→b]
         let graph = LabeledGraph<String, AdjacencyMatrix>(vertices: ["a", "a", "b"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "a", to: "b")])
         // Final state.
@@ -696,7 +698,7 @@ struct LabeledGraphConstructionTests {
             #expect(built == graph)
         }
         do {
-            let built = LabeledGraph(graph.base, labels: graph.vertices)
+            let built = try LabeledGraph(graph.base, labels: graph.vertices)
             #expect(Array(built.vertices) == ["a", "b"])
             #expect(built.edges.map { [$0.source, $0.target] } == [["a", "b"]])
             #expect(built.edges.indices.map { [$0.source, $0.target] } == [[0, 1]])
@@ -706,7 +708,7 @@ struct LabeledGraphConstructionTests {
     }
 
     @Test("LG-012 M: self-loop kept")
-    func lg012() {
+    func lg012() throws {
         // M V []; E [a→a, a→b]
         let graph = LabeledGraph<String, AdjacencyMatrix>(vertices: [] as [String], edges: [DirectedEdge(from: "a", to: "a"), DirectedEdge(from: "a", to: "b")])
         // Final state.
@@ -764,7 +766,7 @@ struct LabeledGraphConstructionTests {
             #expect(built == graph)
         }
         do {
-            let built = LabeledGraph(graph.base, labels: graph.vertices)
+            let built = try LabeledGraph(graph.base, labels: graph.vertices)
             #expect(Array(built.vertices) == ["a", "b"])
             #expect(built.edges.map { [$0.source, $0.target] } == [["a", "a"], ["a", "b"]])
             #expect(built.edges.indices.map { [$0.source, $0.target] } == [[0, 0], [0, 1]])
@@ -774,7 +776,7 @@ struct LabeledGraphConstructionTests {
     }
 
     @Test("LG-013 CSR: positions are row-major in index order, not input order")
-    func lg013() {
+    func lg013() throws {
         // CSR V []; E [d→a, b→c, a→d, c→b]
         let graph = LabeledGraph<String, CompressedSparseRow>(vertices: [] as [String], edges: [DirectedEdge(from: "d", to: "a"), DirectedEdge(from: "b", to: "c"), DirectedEdge(from: "a", to: "d"), DirectedEdge(from: "c", to: "b")])
         // Final state.
@@ -837,7 +839,7 @@ struct LabeledGraphConstructionTests {
             #expect(built == graph)
         }
         do {
-            let built = LabeledGraph(graph.base, labels: graph.vertices)
+            let built = try LabeledGraph(graph.base, labels: graph.vertices)
             #expect(Array(built.vertices) == ["d", "a", "b", "c"])
             #expect(built.edges.map { [$0.source, $0.target] } == [["d", "a"], ["a", "d"], ["b", "c"], ["c", "b"]])
             #expect(Array(built.edges.indices) == [0, 1, 2, 3])
@@ -847,7 +849,7 @@ struct LabeledGraphConstructionTests {
     }
 
     @Test("LG-014 M: positions are (source, target) cells, row-major")
-    func lg014() {
+    func lg014() throws {
         // M V []; E [d→a, b→c, a→d, c→b]
         let graph = LabeledGraph<String, AdjacencyMatrix>(vertices: [] as [String], edges: [DirectedEdge(from: "d", to: "a"), DirectedEdge(from: "b", to: "c"), DirectedEdge(from: "a", to: "d"), DirectedEdge(from: "c", to: "b")])
         // Final state.
@@ -929,7 +931,7 @@ struct LabeledGraphConstructionTests {
             #expect(built == graph)
         }
         do {
-            let built = LabeledGraph(graph.base, labels: graph.vertices)
+            let built = try LabeledGraph(graph.base, labels: graph.vertices)
             #expect(Array(built.vertices) == ["d", "a", "b", "c"])
             #expect(built.edges.map { [$0.source, $0.target] } == [["d", "a"], ["a", "d"], ["b", "c"], ["c", "b"]])
             #expect(built.edges.indices.map { [$0.source, $0.target] } == [[0, 1], [1, 0], [2, 3], [3, 2]])
@@ -939,7 +941,7 @@ struct LabeledGraphConstructionTests {
     }
 
     @Test("LG-015 CSR(_ graph:): vertices in graph.vertices order, parallel edges collapsed")
-    func lg015() {
+    func lg015() throws {
         // CSR(_ DirectedPseudograph(vertices: [p, q, r], edges: [r→p, q→r, r→p]))
         let graph = LabeledGraph<String, CompressedSparseRow>(DirectedPseudograph<String>(vertices: ["p", "q", "r"], edges: [DirectedEdge(from: "r", to: "p"), DirectedEdge(from: "q", to: "r"), DirectedEdge(from: "r", to: "p")]))
         // Final state.
@@ -994,7 +996,7 @@ struct LabeledGraphConstructionTests {
             #expect(built == graph)
         }
         do {
-            let built = LabeledGraph(graph.base, labels: graph.vertices)
+            let built = try LabeledGraph(graph.base, labels: graph.vertices)
             #expect(Array(built.vertices) == ["p", "q", "r"])
             #expect(built.edges.map { [$0.source, $0.target] } == [["q", "r"], ["r", "p"]])
             #expect(Array(built.edges.indices) == [0, 1])
@@ -1004,9 +1006,9 @@ struct LabeledGraphConstructionTests {
     }
 
     @Test("LG-016 CSR base, labels name indices")
-    func lg016() {
+    func lg016() throws {
         // LabeledGraph(CompressedSparseRow(vertexCount: 3, edges: [0→1, 1→2]), labels: [x, y, z])
-        let graph = LabeledGraph(CompressedSparseRow(vertexCount: 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)]), labels: ["x", "y", "z"])
+        let graph = try LabeledGraph(CompressedSparseRow(vertexCount: 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)]), labels: ["x", "y", "z"])
         // Final state.
         #expect(Array(graph.vertices) == ["x", "y", "z"])
         #expect(graph.edges.map { [$0.source, $0.target] } == [["x", "y"], ["y", "z"]])
@@ -1044,9 +1046,9 @@ struct LabeledGraphConstructionTests {
     }
 
     @Test("LG-017 matrix base")
-    func lg017() {
+    func lg017() throws {
         // LabeledGraph(AdjacencyMatrix(vertexCount: 2, edges: [1→0]), labels: [u, v])
-        let graph = LabeledGraph(AdjacencyMatrix(vertexCount: 2, edges: [DirectedEdge(from: 1, to: 0)]), labels: ["u", "v"])
+        let graph = try LabeledGraph(AdjacencyMatrix(vertexCount: 2, edges: [DirectedEdge(from: 1, to: 0)]), labels: ["u", "v"])
         // Final state.
         #expect(Array(graph.vertices) == ["u", "v"])
         #expect(graph.edges.map { [$0.source, $0.target] } == [["v", "u"]])
@@ -1085,10 +1087,85 @@ struct LabeledGraphConstructionTests {
         #expect(graph.contains(edge: DirectedEdge(from: "v", to: "u")))
     }
 
+    @Test("LG-018 too few labels")
+    func lg018() throws {
+        // LabeledGraph(CompressedSparseRow(vertexCount: 3), labels: [x, y]) → throws LabelingError.labelCountMismatch(labelCount: 2, vertexCount: 3)
+        #expect(throws: LabelingError.labelCountMismatch(labelCount: 2, vertexCount: 3)) { try LabeledGraph(CompressedSparseRow(vertexCount: 3), labels: ["x", "y"]) }
+        // Without the fault: accepted.
+        let graph = try LabeledGraph(CompressedSparseRow(vertexCount: 3), labels: ["x", "y", "z"])
+        #expect(Array(graph.vertices) == ["x", "y", "z"])
+        #expect(graph.vertices.map { graph.vertexIndex(of: $0) } == [0, 1, 2])
+        #expect((0 ..< 3).map { graph.vertex(atIndex: $0) } == ["x", "y", "z"])
+        #expect(graph.vertexIndexBound == 3 && graph.edgeCount == 0)
+    }
+
+    @Test("LG-019 too many labels")
+    func lg019() throws {
+        // LabeledGraph(CompressedSparseRow(vertexCount: 1), labels: [x, y]) → throws LabelingError.labelCountMismatch(labelCount: 2, vertexCount: 1)
+        #expect(throws: LabelingError.labelCountMismatch(labelCount: 2, vertexCount: 1)) { try LabeledGraph(CompressedSparseRow(vertexCount: 1), labels: ["x", "y"]) }
+        // Without the fault: accepted.
+        let graph = try LabeledGraph(CompressedSparseRow(vertexCount: 1), labels: ["x"])
+        #expect(Array(graph.vertices) == ["x"])
+        #expect(graph.vertices.map { graph.vertexIndex(of: $0) } == [0])
+        #expect((0 ..< 1).map { graph.vertex(atIndex: $0) } == ["x"])
+        #expect(graph.vertexIndexBound == 1 && graph.edgeCount == 0)
+    }
+
+    @Test("LG-020 duplicate label")
+    func lg020() throws {
+        // LabeledGraph(CompressedSparseRow(vertexCount: 2), labels: [x, x]) → throws LabelingError.duplicateLabel(position: 1)
+        #expect(throws: LabelingError.duplicateLabel(position: 1)) { try LabeledGraph(CompressedSparseRow(vertexCount: 2), labels: ["x", "x"]) }
+        // Without the fault: accepted.
+        let graph = try LabeledGraph(CompressedSparseRow(vertexCount: 2), labels: ["x", "y"])
+        #expect(Array(graph.vertices) == ["x", "y"])
+        #expect(graph.vertices.map { graph.vertexIndex(of: $0) } == [0, 1])
+        #expect((0 ..< 2).map { graph.vertex(atIndex: $0) } == ["x", "y"])
+        #expect(graph.vertexIndexBound == 2 && graph.edgeCount == 0)
+    }
+
+    @Test("LG-021 base vertices not 0..<n")
+    func lg021() throws {
+        // LabeledGraph(AdjacencyList<Int>(vertices: [5, 6]), labels: [x, y]) → throws LabelingError.baseVerticesNotInIndexOrder
+        #expect(throws: LabelingError.baseVerticesNotInIndexOrder) { try LabeledGraph(AdjacencyList<Int>(vertices: [5, 6]), labels: ["x", "y"]) }
+        // Without the fault: accepted.
+        let graph = try LabeledGraph(AdjacencyList<Int>(vertices: [0, 1]), labels: ["x", "y"])
+        #expect(Array(graph.vertices) == ["x", "y"])
+        #expect(graph.vertices.map { graph.vertexIndex(of: $0) } == [0, 1])
+        #expect((0 ..< 2).map { graph.vertex(atIndex: $0) } == ["x", "y"])
+        #expect(graph.vertexIndexBound == 2 && graph.edgeCount == 0)
+    }
+
+    @Test("LG-022 base vertices 0..<n out of index order")
+    func lg022() throws {
+        // LabeledGraph(AdjacencyList<Int>(vertices: [1, 0]), labels: [x, y]) → throws LabelingError.baseVerticesNotInIndexOrder
+        #expect(throws: LabelingError.baseVerticesNotInIndexOrder) { try LabeledGraph(AdjacencyList<Int>(vertices: [1, 0]), labels: ["x", "y"]) }
+        // Without the fault: accepted.
+        let graph = try LabeledGraph(AdjacencyList<Int>(vertices: [0, 1]), labels: ["x", "y"])
+        #expect(Array(graph.vertices) == ["x", "y"])
+        #expect(graph.vertices.map { graph.vertexIndex(of: $0) } == [0, 1])
+        #expect((0 ..< 2).map { graph.vertex(atIndex: $0) } == ["x", "y"])
+        #expect(graph.vertexIndexBound == 2 && graph.edgeCount == 0)
+    }
+
+    @Test("LG-023 base with holes (vertexIndexBound nil)")
+    func lg023() throws {
+        // LabeledGraph(StableDirectedGraph<Int> after remove(1) of [0, 1, 2], labels: [x, y]) → throws LabelingError.baseNotDenselyIndexed
+        var holed = StableDirectedGraph<Int>(vertices: [0, 1, 2])
+        _ = holed.remove(1)
+        #expect(throws: LabelingError.baseNotDenselyIndexed) { try LabeledGraph(holed, labels: ["x", "y"]) }
+        // Without the removal: dense, and accepted.
+        let base = StableDirectedGraph<Int>(vertices: [0, 1, 2])
+        #expect(base.vertexIndexBound == 3)
+        let graph = try LabeledGraph(base, labels: ["x", "y", "z"])
+        #expect(Array(graph.vertices) == ["x", "y", "z"])
+        #expect(graph.vertices.map { graph.vertexIndex(of: $0) } == [0, 1, 2])
+        #expect(graph.vertexIndexBound == 3 && graph.edgeCount == 0)
+    }
+
     @Test("LG-024 empty base, no labels")
-    func lg024() {
+    func lg024() throws {
         // LabeledGraph(AdjacencyMatrix(), labels: [])
-        let graph = LabeledGraph(AdjacencyMatrix(), labels: [] as [String])
+        let graph = try LabeledGraph(AdjacencyMatrix(), labels: [] as [String])
         // Final state.
         #expect(Array(graph.vertices) == [] as [String])
         #expect(graph.edges.map { [$0.source, $0.target] } == [] as [[String]])

@@ -215,11 +215,11 @@ class DAG:
         k = self.b.add_vertex(v); self.ord[k] = len(self.order); self.order.append(k)
         return (True, v)
 
-    def insert_edge(self, u, v, safe=False):
+    def insert_edge(self, u, v, checked=False):
         """The new edge's position (the existing one's on a simple base), or None: the edge would close
-        a cycle (a self-loop included, checked first so that nothing is inserted), or, with safe=True,
-        an endpoint is missing. A rejected edge changes nothing."""
-        if safe and (self.b.key(u) is None or self.b.key(v) is None): return None
+        a cycle (a self-loop included, checked first so that nothing is inserted), or, with checked=True,
+        an endpoint is missing. A rejected edge changes nothing; `rejection` names the error thrown."""
+        if checked and (self.b.key(u) is None or self.b.key(v) is None): return None
         if u == v: return None
         if self.b.key(u) is None and self.b.key(v) is not None:
             # a new source to an existing target is placed first: the edge goes forward
@@ -291,7 +291,7 @@ class DAG:
     def topological_order(self): return [self.b.vertex(k) for k in self.order]
     def position(self, v): return self.ord[self._need_vertex(v)]
 
-    def position_safe(self, v):
+    def position_checked(self, v):
         k = self.b.key(v); return None if k is None else self.ord[k]
 
     def has_path(self, a, b):
@@ -542,6 +542,20 @@ def lst(xs): return "[" + ", ".join(map(fmt, xs)) + "]"
 def show_path(vs, ps): return f"{lst(vs)} via {ps}"
 
 
+def rejection(g, op):
+    """The error a rejected call throws (its result was None; a rejection changes nothing, so the
+    membership checked here is the one before the call)."""
+    if op[0] == "positionChecked": return "VertexNotFound"
+    if op[0] == "checked" and (g.b.key(op[1]) is None or g.b.key(op[2]) is None): return ".missingEndpoint"
+    return ".selfLoop" if op[1] == op[2] else ".cycle"
+
+
+def show_call_result(g, op, r):
+    """A call's result as the catalog shows it: a throwing call that threw shows `throws` and the error."""
+    if r is None and op[0] in ("edge", "checked", "positionChecked"): return "throws " + rejection(g, op)
+    return show_result(r)
+
+
 def show_result(r):
     if r is None: return "nil"
     if isinstance(r, bool): return "true" if r else "false"
@@ -583,14 +597,14 @@ def show_op(op):
     k = op[0]
     if k == "insert": return f"insert({fmt(op[1])})"
     if k == "edge": return f"insert(edge: {fmt(op[1])}→{fmt(op[2])})"
-    if k == "safe": return f"insert(safe: {fmt(op[1])}→{fmt(op[2])})"
+    if k == "checked": return f"insert(checked: {fmt(op[1])}→{fmt(op[2])})"
     if k == "remove": return f"remove({fmt(op[1])})"
     if k == "removeEdge": return f"remove(edge: {fmt(op[1])}→{fmt(op[2])})"
     if k == "removeAt": return f"remove(edgeAt: {op[1]})"
     if k == "removeAll": return "removeAll()"
     if k == "removeAllEdges": return "removeAllEdges()"
     if k == "position": return f"topologicalPosition(of: {fmt(op[1])})"
-    if k == "positionSafe": return f"topologicalPosition(safe: {fmt(op[1])})"
+    if k == "positionChecked": return f"topologicalPosition(checked: {fmt(op[1])})"
     if k == "order": return "topologicalOrder"
     if k == "hasPath": return f"hasPath(from: {fmt(op[1])}, to: {fmt(op[2])})"
     if k == "witness": return f"bidirectionalShortestPath(from: {fmt(op[1])}, to: {fmt(op[2])})"
@@ -608,14 +622,14 @@ def apply(g, op):
     k = op[0]
     if k == "insert": return g.insert_vertex(op[1])
     if k == "edge": return g.insert_edge(op[1], op[2])
-    if k == "safe": return g.insert_edge(op[1], op[2], safe=True)
+    if k == "checked": return g.insert_edge(op[1], op[2], checked=True)
     if k == "remove": return g.remove_vertex(op[1])
     if k == "removeEdge": return g.remove_edge(op[1], op[2])
     if k == "removeAt": return g.remove_edge_at(op[1])
     if k == "removeAll": g.remove_all(); return "()"
     if k == "removeAllEdges": g.remove_all_edges(); return "()"
     if k == "position": return g.position(op[1])
-    if k == "positionSafe": return g.position_safe(op[1])
+    if k == "positionChecked": return g.position_checked(op[1])
     if k == "order": return g.topological_order()
     if k == "orderAt":
         o = g.topological_order(); need(0 <= op[1] < len(o), "index out of range"); return fmt(o[op[1]])
@@ -647,9 +661,9 @@ def run(kind, V, E, ops):
             return res, True, g
         check_laws(g)
         if isinstance(r, tuple) and r and r[0] == "graph": check_laws(r[1])
-        if op[0] in ("edge", "safe") and r is None and g.b.key(op[1]) is not None and g.b.key(op[2]) is not None:
+        if op[0] in ("edge", "checked") and r is None and g.b.key(op[1]) is not None and g.b.key(op[2]) is not None:
             assert g.has_path(op[2], op[1]) and witness(g, op[1], op[2])[1], "a rejected edge has a witness"
-        res.append(show_result(r))
+        res.append(show_call_result(g, op, r))
     return res, False, g
 
 
@@ -721,7 +735,7 @@ def define():
     case(P, "incremental build, then the edge closing a five-cycle", "AL", [], [], [("edge", 2, 3), ("edge", 0, 1), ("edge", 3, 0), ("edge", 1, 4), ("edge", 4, 2), ("witness", 2, 4)])
 
     Y = "Cycle witness"
-    case(Y, "self-loop: nil, nothing inserted; the witness is the trivial path", "DP", [0], [], [("edge", 0, 0), ("witness", 0, 0)])
+    case(Y, "self-loop: throws .selfLoop, nothing inserted; the witness is the trivial path", "DP", [0], [], [("edge", 0, 0), ("witness", 0, 0)])
     case(Y, "self-loop on a non-vertex inserts nothing", "AL", [0], [], [("edge", 9, 9)])
     case(Y, "two-cycle: the existing edge", "DP", [0, 1], [(0, 1)], [("edge", 1, 0), ("witness", 0, 1)])
     case(Y, "long cycle: the path from target to source", "DP", [], chain(5), [("edge", 4, 0), ("witness", 0, 4)])
@@ -733,12 +747,12 @@ def define():
     case(Y, "rejected edge changes nothing; later insert works", "AL", [0, 1, 2], [(0, 1), (1, 2)], [("edge", 2, 0), ("edge", 0, 2)])
     case(Y, "rejection found through vertices placed between the endpoints only", "DP", [0, 1, 2, 3], [(1, 2), (0, 3), (2, 3)], [("edge", 2, 1), ("witness", 1, 2), ("edge", 3, 0), ("witness", 0, 3)])
 
-    S = "insert(safe:)"
-    case(S, "both endpoints present: as insert(edge:)", "DP", [0, 1], [], [("safe", 1, 0)])
-    case(S, "missing endpoint: nil, nothing inserted", "DP", [0], [], [("safe", 0, 1), ("safe", 2, 0)])
-    case(S, "cycle: nil, nothing changes", "AL", [0, 1], [(0, 1)], [("safe", 1, 0), ("witness", 0, 1)])
-    case(S, "self-loop on a vertex and on a non-vertex: nil", "SG", [0], [], [("safe", 0, 0), ("safe", 3, 3)])
-    case(S, "existing edge on AdjacencyList: its position", "AL", [0, 1], [(0, 1)], [("safe", 0, 1)])
+    S = "insert(checked:)"
+    case(S, "both endpoints present: as insert(edge:)", "DP", [0, 1], [], [("checked", 1, 0)])
+    case(S, "missing endpoint: throws .missingEndpoint, nothing inserted", "DP", [0], [], [("checked", 0, 1), ("checked", 2, 0)])
+    case(S, "cycle: throws .cycle, nothing changes", "AL", [0, 1], [(0, 1)], [("checked", 1, 0), ("witness", 0, 1)])
+    case(S, "self-loop: .selfLoop on a vertex, .missingEndpoint on a non-vertex", "SG", [0], [], [("checked", 0, 0), ("checked", 3, 3)])
+    case(S, "existing edge on AdjacencyList: its position", "AL", [0, 1], [(0, 1)], [("checked", 0, 1)])
 
     R = "Removal"
     case(R, "remove(edge:) keeps the order", "DP", [0, 1, 2], [(1, 0), (0, 2)], [("removeEdge", 1, 0)])
@@ -751,7 +765,7 @@ def define():
     case(R, "after the swap-remove, reordering uses the moved vertex's new slot", "AL", [0, 1, 2, 3], [(0, 1)], [("remove", 0), ("edge", 3, 1), ("edge", 2, 3)])
     case(R, "remove(_:) on Stable: holes, nothing renamed", "SG", [0, 1, 2], [(2, 0), (0, 1)], [("remove", 2), ("insert", 2)])
     case(R, "remove(_:) absent: nil", "AL", [0], [], [("remove", 4)])
-    case(R, "remove(_:) in the middle: a hole; places count past it", "DP", [0, 1, 2, 3, 4, 5], [], [("remove", 2), ("position", 1), ("position", 3), ("position", 5), ("orderAt", 2), ("orderAt", 4), ("positionSafe", 2)])
+    case(R, "remove(_:) in the middle: a hole; places count past it", "DP", [0, 1, 2, 3, 4, 5], [], [("remove", 2), ("position", 1), ("position", 3), ("position", 5), ("orderAt", 2), ("orderAt", 4), ("positionChecked", 2)])
     case(R, "reordering across holes", "DP", [0, 1, 2, 3, 4, 5, 6], [(1, 3)], [("remove", 2), ("remove", 4), ("edge", 5, 1), ("position", 5), ("position", 3), ("edge", 6, 0)])
     case(R, "removing the first and last vertices trims the holes they uncover", "DP", [0, 1, 2, 3, 4], [], [("remove", 1), ("remove", 0), ("remove", 3), ("remove", 4), ("position", 2), ("edge", 9, 2), ("edge", 2, 8)])
     case(R, "holes outnumbering the vertices: the slots are compacted", "DP", [0, 1, 2, 3, 4, 5, 6, 7], [(0, 7)], [("remove", 1), ("remove", 2), ("remove", 3), ("remove", 4), ("remove", 5), ("position", 6), ("position", 7), ("edge", 7, 6), ("edge", 9, 0), ("orderAt", 0)])
@@ -766,7 +780,7 @@ def define():
     O = "Order queries"
     case(O, "topologicalPosition(of:)", "DP", [0, 1, 2], [(2, 0)], [("position", 2), ("position", 0), ("position", 1)])
     case(O, "topologicalPosition(of:) non-vertex traps", "DP", [0], [], [("position", 9)])
-    case(O, "topologicalPosition(safe:)", "AL", [0, 1], [(1, 0)], [("positionSafe", 1), ("positionSafe", 9)])
+    case(O, "topologicalPosition(checked:)", "AL", [0, 1], [(1, 0)], [("positionChecked", 1), ("positionChecked", 9)])
     case(O, "topologicalOrder subscript", "DP", [0, 1, 2], [(2, 1)], [("orderAt", 0), ("orderAt", 2)])
     case(O, "topologicalOrder subscript out of range traps", "DP", [0], [], [("orderAt", 1)])
     case(O, "hasPath: same vertex true", "DP", [0], [], [("hasPath", 0, 0)])
@@ -863,8 +877,10 @@ Conventions:
 * Bulk construction orders by Kahn's algorithm (FIFO, roots in `vertices` order): Traversal's
   `topologicalGenerations()` flattened. Later inserts maintain the order by Pearce–Kelly, a deterministic
   function of the order and the reachability sets, so it does not depend on row order.
-* `insert(edge:)` returns the edge's position `p`, or `nil` when the edge would close a cycle (a self-loop
-  included); `insert(safe:)` also returns `nil` when an endpoint is missing. A rejected edge changes nothing.
+* `insert(edge:)` returns the edge's position `p`, or throws `AcyclicEdgeError` (`throws .cycle`, or
+  `throws .selfLoop`) when the edge would close a cycle; `insert(checked:)` also throws `.missingEndpoint` when
+  an endpoint is missing, checked first. A rejected edge changes nothing. A `checked:` query on a non-vertex
+  throws `VertexNotFound`.
   The witness for a rejected u→v is Traversal's `bidirectionalShortestPath(from: v, to: u)`, a `Path`
   (`[vertices] via [edge positions]`); where several shortest paths tie, the cell lists each (`… or …`).
 * `transitiveClosure()` / `transitiveReduction()` results are shown in braces with their own state.
@@ -898,7 +914,7 @@ def stress():
                 if k < 0.55:
                     op = ("edge", u, v)
                 elif k < 0.62:
-                    op = ("safe", u, v)
+                    op = ("checked", u, v)
                 elif k < 0.67:
                     op = ("insert", u)
                 elif k < 0.80:
@@ -913,8 +929,8 @@ def stress():
                     op = ("removeAll",)
                 r = apply(g, op)
                 check_laws(g)
-                if op[0] in ("edge", "safe"):
-                    if op[0] == "safe" and (u not in spec.G or v not in spec.G):
+                if op[0] in ("edge", "checked"):
+                    if op[0] == "checked" and (u not in spec.G or v not in spec.G):
                         assert r is None, (seed, op, r)
                     else:
                         ok = spec.insert_edge(u, v)

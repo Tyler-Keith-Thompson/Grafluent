@@ -153,7 +153,7 @@ import AdjacencyListModule   // shared row storage and view types; the simple li
 
 /// An undirected graph with parallel edges and no self-loops (JGraphT's and Harary's
 /// `Multigraph`). The same storage and costs as `Pseudograph`, which it wraps. Initializers from
-/// unchecked input are failable, and inserting a self-loop traps.
+/// unchecked input are failable, and inserting a self-loop throws `SelfLoopError`.
 @frozen public struct Multigraph<Vertex: Hashable> {
     public init()
     public init(vertices: some Sequence<Vertex>)
@@ -163,6 +163,8 @@ import AdjacencyListModule   // shared row storage and view types; the simple li
     public init?(@GraphBuilder<Vertex> _ content: () -> GraphBuilder<Vertex>.Content)
     /// nil when the graph has a self-loop. From a `Multigraph`: itself, O(1).
     public init?(_ graph: some Graph<Vertex>)
+    /// Throws `SelfLoopError`, before inserting either endpoint, for a self-loop.
+    @discardableResult public mutating func insert(edge: UndirectedEdge<Vertex>) throws(SelfLoopError) -> Int
     /// Precondition: `!edge.isSelfLoop`. Checked before anything is inserted.
     @discardableResult
     public mutating func insert(edge: UndirectedEdge<Vertex>) -> Int
@@ -209,7 +211,8 @@ import AdjacencyListModule   // shared row storage and view types; the simple li
 }
 
 /// A directed graph with parallel edges and no self-loops (JGraphT's `DirectedMultigraph`).
-/// Wraps `DirectedPseudograph`; failable initializers, and `insert(edge:)` traps on a loop.
+/// Wraps `DirectedPseudograph`; failable initializers, and `insert(edge:)` throws `SelfLoopError`
+/// on a loop.
 @frozen public struct DirectedMultigraph<Vertex: Hashable> { /* as Multigraph, directed */ }
 
 extension Pseudograph: Graph {}                        // + vertex/edge indices, _withIncidentIndexRows
@@ -218,6 +221,9 @@ extension DirectedPseudograph: BidirectionalDirectedGraph {}  // + vertex/edge i
 extension DirectedMultigraph: BidirectionalDirectedGraph {}   // every requirement forwarded
 // All four: Equatable, Hashable, Sendable (when Vertex is), Codable (when Vertex is),
 // CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable.
+
+/// The error both multigraphs' `insert(edge:)` throw for a self-loop: payload-free, `Sendable`.
+public struct SelfLoopError: Error, Hashable, Sendable { public init() }
 ```
 
 The existing generic initializers convert to the simple lists:
@@ -302,8 +308,8 @@ arcs, a loop included (MG-174).
 
 * **Invariant: no self-loop.** `init?(edges:)`, `init?(vertices:edges:)`, the builder init,
   `init?(_ graph:)` and decoding all reject a loop (MG-011, MG-012, MG-139, MG-168, MG-171, MG-175,
-  MG-176). `insert(edge:)` traps on one (MG-032 – MG-034), and checks before inserting either
-  endpoint, so a caught trap never leaves a stray vertex and never copies shared storage.
+  MG-176). `insert(edge:)` throws `SelfLoopError` for one (MG-032 – MG-034), and checks before inserting
+  either endpoint, so a rejected loop never leaves a stray vertex and never copies shared storage.
   Opposite arcs are fine in `DirectedMultigraph` (MG-013).
 * `init?(_ graph:)` from a loop-free graph keeps positions (MG-169, MG-170). `Pseudograph(m)` and
   `DirectedPseudograph(dm)` are O(1): the wrapped storage (MG-172, MG-177).
@@ -354,8 +360,9 @@ items of each, then `…` (MG-154 – MG-159). `debugDescription` is
 Non-vertex arguments to `neighbors`, `incidentEdges`, `degree`, `successors`, `predecessors`,
 `outDegree` / `inDegree`, `vertexIndex(of:)`; positions out of range in `edges[p]`,
 `remove(edgeAt:)`, `oppositeVertex(to:acrossEdgeAt:)`, `source(ofEdgeAt:)`; a non-endpoint in
-`oppositeVertex`; negative capacities; a self-loop in the multigraphs' `insert(edge:)`
-(MG-032 – MG-034, MG-039, MG-040, MG-075 – MG-077, MG-080, MG-179 – MG-192). The queries
+`oppositeVertex`; negative capacities (MG-039, MG-040, MG-075 – MG-077, MG-080, MG-179 – MG-192).
+A self-loop in the multigraphs' `insert(edge:)` is not a trap: it throws `SelfLoopError`
+(MG-032 – MG-034). The queries
 `contains`, `contains(edge:)`, `edges(between:)`, `edgeCount(between:)`, `remove(_:)` and
 `remove(edge:)` never trap.
 
@@ -418,7 +425,7 @@ simple lists use about 64 bytes plus one entry per edge.
   question 10).
 * **Copy-on-write**: every field is a standard-library buffer, as in the simple lists. A
   mutation that changes nothing (`remove(edge:)` of an absent pair, `removeAllEdges(between:)`
-  returning 0, a trapping `insert(edge:)` on a multigraph) checks before writing, so it never
+  returning 0, a self-loop rejected by a multigraph's `insert(edge:)`) checks before writing, so it never
   copies shared storage.
 * **`EdgesConnecting`** holds the links buffer (one retain), the first position and the count. Its
   index is `(ordinal, position)`, `Comparable` by ordinal, so it is a forward `Collection` with O(1)
@@ -461,7 +468,7 @@ simple lists use about 64 bytes plus one entry per edge.
   representations."
 * **Structures table**: replace the two rows with:
   `Multigraph<Vertex>` / `DirectedMultigraph<Vertex>` | Parallel edges allowed, no self-loop |
-  "Invariant: initializers from unchecked input are failable, `insert(edge:)` traps on a loop" |
+  "Invariant: initializers from unchecked input are failable, `insert(edge:)` throws `SelfLoopError` on a loop" |
   "`Graph` / `BidirectionalDirectedGraph`, mutable, copy-on-write, wrapping the pseudograph";
   `Pseudograph<Vertex>` / `DirectedPseudograph<Vertex>` | Parallel edges and self-loops | n/a |
   "`UndirectedAdjacencyList`'s / `AdjacencyList`'s storage with a parallel class per vertex pair:

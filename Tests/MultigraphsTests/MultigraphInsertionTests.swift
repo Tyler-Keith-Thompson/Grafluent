@@ -119,8 +119,8 @@ struct MultigraphInsertionTests {
     func mg052() throws {
         // Multigraph V []; E []; insert(edge: UndirectedEdge(0, 1)) / insert(edge: UndirectedEdge(1, 0))
         var graph = try #require(Multigraph<Int>(vertices: [] as [Int], edges: [] as [UndirectedEdge<Int>]))
-        #expect(graph.insert(edge: UndirectedEdge(0, 1)) == 0)
-        #expect(graph.insert(edge: UndirectedEdge(1, 0)) == 1)
+        #expect(try graph.insert(edge: UndirectedEdge(0, 1)) == 0)
+        #expect(try graph.insert(edge: UndirectedEdge(1, 0)) == 1)
         // Final state.
         #expect(Array(graph.vertices) == [0, 1])
         #expect(graph.edges.map { [$0.u, $0.v] } == [[0, 1], [1, 0]])
@@ -138,8 +138,8 @@ struct MultigraphInsertionTests {
     func mg053() throws {
         // DirectedMultigraph V []; E []; insert(edge: DirectedEdge(from: 0, to: 1)) / insert(edge: DirectedEdge(from: 0, to: 1))
         var graph = try #require(DirectedMultigraph<Int>(vertices: [] as [Int], edges: [] as [DirectedEdge<Int>]))
-        #expect(graph.insert(edge: DirectedEdge(from: 0, to: 1)) == 0)
-        #expect(graph.insert(edge: DirectedEdge(from: 0, to: 1)) == 1)
+        #expect(try graph.insert(edge: DirectedEdge(from: 0, to: 1)) == 0)
+        #expect(try graph.insert(edge: DirectedEdge(from: 0, to: 1)) == 1)
         // Final state.
         #expect(Array(graph.vertices) == [0, 1])
         #expect(graph.edges.map { [$0.source, $0.target] } == [[0, 1], [0, 1]])

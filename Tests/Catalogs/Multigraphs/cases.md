@@ -22,7 +22,9 @@ Conventions:
   the hole and each row's last entry into its hole; removing a vertex moves the last slot into
   its place (UndirectedAdjacencyList's and AdjacencyList's rules).
 * `degrees(v)` (directed) is `outDegree`, `inDegree`, `degree`.
-* `trap` rows are preconditions, run as exit tests (`#expect(processExitsWith:)`).
+* `trap` rows are preconditions, run as exit tests (`#expect(processExitsWith:)`). `throws E` is a call
+  that threw `E` and changed nothing: a self-loop inserted into a Multigraph / DirectedMultigraph
+  throws `SelfLoopError`.
 * Codable payloads are `{"vertices": […], "edges": [u0, v0, u1, v1, …]}` (indices into vertices),
   the simple lists' format; errors are `DecodingError` cases with their debug description.
 
@@ -60,9 +62,9 @@ Conventions:
 | MG-029 | Loops | loop on an isolated listed vertex | Pseudograph V [0, 1]; E [1–1]; degree(of: 0) / degree(of: 1) | 0 / 2 ⇒ V [0, 1]; E [1–1]; rows 0:[] 1:[1@0, 1@0] |
 | MG-030 | Loops | directed loop: once out, once in | DirectedPseudograph V []; E [0→0]; degrees(0) / edges(from: 0, to: 0) | out 1 in 1 degree 2 / [0] ⇒ V [0]; E [0→0]; out 0:[0@0]; in 0:[0@0] |
 | MG-031 | Loops | directed two loops and an arc | DirectedPseudograph V []; E [0→0, 0→1, 0→0]; degrees(0) / degrees(1) / edgeCount(from: 0, to: 0) | out 3 in 2 degree 5 / out 0 in 1 degree 1 / 2 ⇒ V [0, 1]; E [0→0, 0→1, 0→0]; out 0:[0@0, 1@1, 0@2]; in 0:[0@0, 0@2] 1:[0@1] |
-| MG-032 | Loops | multigraph insert loop traps | Multigraph V [0]; E []; insert(edge: UndirectedEdge(0, 0)) | trap (self-loop in a Multigraph) |
-| MG-033 | Loops | multigraph insert loop with new vertex traps | Multigraph V []; E []; insert(edge: UndirectedEdge(5, 5)) | trap (self-loop in a Multigraph) |
-| MG-034 | Loops | directed multigraph insert loop traps | DirectedMultigraph V [0, 1]; E [0→1]; insert(edge: DirectedEdge(from: 1, to: 1)) | trap (self-loop in a DirectedMultigraph) |
+| MG-032 | Loops | multigraph insert loop throws, nothing changes | Multigraph V [0]; E []; insert(edge: UndirectedEdge(0, 0)) | throws SelfLoopError ⇒ V [0]; E []; rows 0:[] |
+| MG-033 | Loops | multigraph insert loop with new vertex throws, nothing inserted | Multigraph V []; E []; insert(edge: UndirectedEdge(5, 5)) | throws SelfLoopError ⇒ V []; E []; rows - |
+| MG-034 | Loops | directed multigraph insert loop throws, nothing changes | DirectedMultigraph V [0, 1]; E [0→1]; insert(edge: DirectedEdge(from: 1, to: 1)) | throws SelfLoopError ⇒ V [0, 1]; E [0→1]; out 0:[1@0]; in 1:[0@0] |
 | MG-035 | Degrees | degrees count copies | Pseudograph V []; E [0–1, 0–1, 0–2]; degree(of: 0) / degree(of: 1) / degree(of: 2) | 3 / 2 / 1 ⇒ V [0, 1, 2]; E [0–1, 0–1, 0–2]; rows 0:[1@0, 1@1, 2@2] 1:[0@0, 0@1] 2:[0@2] |
 | MG-036 | Degrees | sum is twice the edge count with loops | Pseudograph V []; E [0–0, 0–1, 1–1, 1–1]; degree(of: 0) / degree(of: 1) | 3 / 5 ⇒ V [0, 1]; E [0–0, 0–1, 1–1, 1–1]; rows 0:[0@0, 0@0, 1@1] 1:[0@1, 1@2, 1@2, 1@3, 1@3] |
 | MG-037 | Degrees | isolated vertex 0 | Pseudograph V [0, 1]; E []; degree(of: 0) | 0 ⇒ V [0, 1]; E []; rows 0:[] 1:[] |

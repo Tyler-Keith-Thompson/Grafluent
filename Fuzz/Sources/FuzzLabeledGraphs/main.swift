@@ -3,10 +3,10 @@
 // before target) and the set of index pairs. A build step reads listed labels and labeled edges
 // (repeats included) and builds both bases through every initializer that fits, the matrix also by
 // inserting the same vertices and edges one at a time; a mutation step runs a random sequence of
-// matrix insertions (`insert(_:)`, `insert(edge:)`, `insert(safe:)`), removals and resets. After
+// matrix insertions (`insert(_:)`, `insert(edge:)`, `insert(checked:)`), removals and resets. After
 // each step: the labels both ways, counts, edges in row-major index order with their positions'
 // ends, every row by label and by index, degrees, membership of every pair (non-vertices
-// included), and the `safe:` spellings (nil exactly for a non-vertex). Every few steps, the
+// included), and the `checked:` spellings (`VertexNotFound` exactly for a non-vertex). Every few steps, the
 // algorithms agree with the base mapped through the labels: breadth-first layers from every
 // vertex, strong and weak components, and Dijkstra with weights by position. Equality: a graph
 // equals its rebuild with the labels listed in another order, and not one with an edge more;
@@ -116,23 +116,23 @@ enum FuzzLabeledGraphs {
         }
         check(k == expected.count, "edge positions \(context)")
         for (i, v) in model.labels.enumerated() {
-            check(graph.vertexIndex(of: v) == i && graph.vertexIndex(safe: v) == i && graph.vertex(atIndex: i) == v, "index of \(v) \(context)")
+            check(graph.vertexIndex(of: v) == i && (try? graph.vertexIndex(checked: v)) == i && graph.vertex(atIndex: i) == v, "index of \(v) \(context)")
             check(graph.contains(v), "contains(\(v)) \(context)")
             let row = model.sortedEdges.filter { $0[0] == i }.map { $0[1] }
             check(Array(graph.successors(of: v)) == row.map { model.labels[$0] }, "successors(of: \(v)) \(context)")
-            check(graph.successors(safe: v).map { Array($0) } == row.map { model.labels[$0] }, "successors(safe: \(v)) \(context)")
+            check((try? graph.successors(checked: v)).map { Array($0) } == row.map { model.labels[$0] }, "successors(checked: \(v)) \(context)")
             check(Array(graph.successorIndices(ofIndex: i)) == row, "successorIndices(ofIndex: \(i)) \(context)")
-            check(graph.outDegree(of: v) == row.count && graph.outDegree(safe: v) == row.count, "outDegree(of: \(v)) \(context)")
+            check(graph.outDegree(of: v) == row.count && (try? graph.outDegree(checked: v)) == row.count, "outDegree(of: \(v)) \(context)")
             check(graph.outEdges(of: v).map { graph.target(ofEdgeAt: $0) } == row.map { model.labels[$0] }, "outEdges(of: \(v)) \(context)")
-            check(graph.outEdges(safe: v).map { $0.map { graph.source(ofEdgeAt: $0) } } == row.map { _ in v }, "outEdges(safe: \(v)) \(context)")
+            check((try? graph.outEdges(checked: v)).map { $0.map { graph.source(ofEdgeAt: $0) } } == row.map { _ in v }, "outEdges(checked: \(v)) \(context)")
             check(graph.outEdges(ofIndex: i).map { graph.base.target(ofEdgeAt: $0) } == row, "outEdges(ofIndex: \(i)) \(context)")
         }
         let probes = model.labels + [outsider, label(40)]
         for a in probes {
             let ia = model.index(of: a)
             if ia == nil {
-                check(!graph.contains(a) && graph.vertexIndex(safe: a) == nil, "non-vertex \(a) \(context)")
-                check(graph.successors(safe: a) == nil && graph.outEdges(safe: a) == nil && graph.outDegree(safe: a) == nil, "safe: on \(a) \(context)")
+                check(!graph.contains(a) && (try? graph.vertexIndex(checked: a)) == nil, "non-vertex \(a) \(context)")
+                check((try? graph.successors(checked: a)) == nil && (try? graph.outEdges(checked: a)) == nil && (try? graph.outDegree(checked: a)) == nil, "checked: on \(a) \(context)")
             }
             for b in probes {
                 let present = ia != nil && model.index(of: b) != nil && model.edges.contains([ia!, model.index(of: b)!])
@@ -148,17 +148,17 @@ enum FuzzLabeledGraphs {
             let column = model.sortedEdges.filter { $0[1] == i }.map { $0[0] }.sorted()
             let out = model.edges.filter { $0[0] == i }.count
             check(Array(graph.predecessors(of: v)) == column.map { model.labels[$0] }, "predecessors(of: \(v)) \(context)")
-            check(graph.predecessors(safe: v).map { Array($0) } == column.map { model.labels[$0] }, "predecessors(safe: \(v)) \(context)")
+            check((try? graph.predecessors(checked: v)).map { Array($0) } == column.map { model.labels[$0] }, "predecessors(checked: \(v)) \(context)")
             check(Array(graph.predecessorIndices(ofIndex: i)) == column, "predecessorIndices(ofIndex: \(i)) \(context)")
-            check(graph.inDegree(of: v) == column.count && graph.inDegree(safe: v) == column.count, "inDegree(of: \(v)) \(context)")
-            check(graph.degree(of: v) == column.count + out && graph.degree(safe: v) == column.count + out, "degree(of: \(v)) \(context)")
+            check(graph.inDegree(of: v) == column.count && (try? graph.inDegree(checked: v)) == column.count, "inDegree(of: \(v)) \(context)")
+            check(graph.degree(of: v) == column.count + out && (try? graph.degree(checked: v)) == column.count + out, "degree(of: \(v)) \(context)")
             check(graph.inEdges(of: v).map { graph.source(ofEdgeAt: $0) } == column.map { model.labels[$0] }, "inEdges(of: \(v)) \(context)")
-            check(graph.inEdges(safe: v).map { $0.map { graph.target(ofEdgeAt: $0) } } == column.map { _ in v }, "inEdges(safe: \(v)) \(context)")
+            check((try? graph.inEdges(checked: v)).map { $0.map { graph.target(ofEdgeAt: $0) } } == column.map { _ in v }, "inEdges(checked: \(v)) \(context)")
             check(graph.inEdges(ofIndex: i).map { graph.base.source(ofEdgeAt: $0) } == column, "inEdges(ofIndex: \(i)) \(context)")
         }
         for a in [outsider, label(41)] where model.index(of: a) == nil {
-            check(graph.predecessors(safe: a) == nil && graph.inEdges(safe: a) == nil, "safe: in-rows on \(a) \(context)")
-            check(graph.inDegree(safe: a) == nil && graph.degree(safe: a) == nil, "safe: degrees on \(a) \(context)")
+            check((try? graph.predecessors(checked: a)) == nil && (try? graph.inEdges(checked: a)) == nil, "checked: in-rows on \(a) \(context)")
+            check((try? graph.inDegree(checked: a)) == nil && (try? graph.degree(checked: a)) == nil, "checked: degrees on \(a) \(context)")
         }
     }
 
@@ -289,7 +289,7 @@ enum FuzzLabeledGraphs {
                 let s = labels.firstIndex(of: model.labels[e[0]])!, t = labels.firstIndex(of: model.labels[e[1]])!
                 for _ in 0 ..< c { base.insert(edge: DirectedEdge(from: s, to: t)) }
             }
-            return LabeledGraph(base, labels: labels)
+            return try! LabeledGraph(base, labels: labels)
         }
         let left = pseudograph(model.labels, counts), right = pseudograph(order, counts)
         check(left == right && right == left, "pseudograph reordered not equal \(context)")
@@ -337,7 +337,7 @@ enum FuzzLabeledGraphs {
         let list = AdjacencyList<Int>(vertices: listed, edges: pairs)
         checkCommon(LabeledGraph<Int, CompressedSparseRow>(list), model, "csr from list \(context)")
         checkMatrix(LabeledGraph<Int, AdjacencyMatrix>(list), model, "matrix from list \(context)")
-        checkCommon(LabeledGraph(csr.base, labels: csr.vertices), model, "init(_:labels:) \(context)")
+        checkCommon(try! LabeledGraph(csr.base, labels: csr.vertices), model, "init(_:labels:) \(context)")
         // The same graph by insertion, one call at a time.
         var inserted = LabeledGraph<Int, AdjacencyMatrix>()
         for v in listed { inserted.insert(v) }
@@ -372,14 +372,15 @@ enum FuzzLabeledGraphs {
                 check(result.inserted == new && result.memberAfterInsert == DirectedEdge(from: a, to: b), "insert(edge: \(a)→\(b)) result")
                 log.append("insert(edge: \(a)→\(b))")
             case 8 ..< 10:
-                let result = graph.insert(safe: DirectedEdge(from: a, to: b))
+                // `VertexNotFound` is the only error, so `try?` giving nil is that throw.
+                let result = try? graph.insert(checked: DirectedEdge(from: a, to: b))
                 if let s = model.index(of: a), let t = model.index(of: b) {
                     let new = model.edges.insert([s, t]).inserted
-                    check(result?.inserted == new && result?.memberAfterInsert == DirectedEdge(from: a, to: b), "insert(safe: \(a)→\(b)) result")
+                    check(result?.inserted == new && result?.memberAfterInsert == DirectedEdge(from: a, to: b), "insert(checked: \(a)→\(b)) result")
                 } else {
-                    check(result == nil, "insert(safe: \(a)→\(b)) with a non-vertex did not return nil")
+                    check(result == nil, "insert(checked: \(a)→\(b)) with a non-vertex did not throw")
                 }
-                log.append("insert(safe: \(a)→\(b))")
+                log.append("insert(checked: \(a)→\(b))")
             case 10 ..< 13:
                 let result = graph.remove(edge: DirectedEdge(from: a, to: b))
                 var removed = false

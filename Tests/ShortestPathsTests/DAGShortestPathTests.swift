@@ -143,7 +143,7 @@ struct DAGShortestPathTests {
         // 0 → 1 and 0 → 2 tie at 3. The rows list 1 first, so Kahn's algorithm relaxes 1 first;
         // the graph's own order places 2 first, so 2 relaxes 3 first and keeps it.
         var dag = DirectedAcyclicGraph<AdjacencyList<Int>>(vertices: [0, 2, 1, 3])
-        for (u, v) in [(0, 1), (0, 2), (1, 3), (2, 3)] { _ = dag.insert(edge: DirectedEdge(from: u, to: v)) }
+        for (u, v) in [(0, 1), (0, 2), (1, 3), (2, 3)] { try dag.insert(edge: DirectedEdge(from: u, to: v)) }
         #expect(Array(dag.topologicalOrder) == [0, 2, 1, 3])
         let tree = dag.dagShortestPaths(from: 0) { _ in 1 }
         #expect(tree.distance(to: 3) == 2 && tree.parent(of: 3) == 2)

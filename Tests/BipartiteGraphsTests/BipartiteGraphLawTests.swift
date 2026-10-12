@@ -26,18 +26,18 @@ struct BipartiteGraphLawTests {
         afterEdgeRemoval.remove(edge: UndirectedEdge("a", "x"))
         afterEdgeRemoval.remove(edge: UndirectedEdge("b", "y"))
         var withIsolated = path
-        withIsolated.insert("q", on: .right)
-        withIsolated.insert("p", on: .left)
+        try withIsolated.insert("q", on: .right)
+        try withIsolated.insert("p", on: .left)
         withIsolated.remove("b")
         var rebuilt = BipartiteGraph<String>()
-        rebuilt.insert("x", on: .right)
-        rebuilt.insert("a", on: .left)
-        rebuilt.insert(edge: UndirectedEdge("x", "a"))
+        try rebuilt.insert("x", on: .right)
+        try rebuilt.insert("a", on: .left)
+        try rebuilt.insert(edge: UndirectedEdge("x", "a"))
         rebuilt.remove("x")
-        rebuilt.insert("x", on: .left)
-        rebuilt.insert("w", on: .right)
-        rebuilt.insert(edge: UndirectedEdge("w", "x"))
-        rebuilt.insert(edge: UndirectedEdge("a", "w"))
+        try rebuilt.insert("x", on: .left)
+        try rebuilt.insert("w", on: .right)
+        try rebuilt.insert(edge: UndirectedEdge("w", "x"))
+        try rebuilt.insert(edge: UndirectedEdge("a", "w"))
         let graphs = [BipartiteGraph<String>(), path, k33, afterVertexRemoval, afterEdgeRemoval, withIsolated, rebuilt]
 
         for graph in graphs {
@@ -142,8 +142,8 @@ struct BipartiteGraphLawTests {
         #expect(Array(graph.vertices) == ["a", "x"])
         var moved = graph
         moved.remove("a")
-        moved.insert("a", on: .left)
-        moved.insert(edge: UndirectedEdge("a", "x"))
+        try moved.insert("a", on: .left)
+        try moved.insert(edge: UndirectedEdge("a", "x"))
         #expect(Array(moved.vertices) == ["x", "a"])
         #expect(moved.side(of: "x") == .right)
         let bipartition = try #require(moved.bipartition())

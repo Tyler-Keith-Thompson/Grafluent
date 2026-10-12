@@ -129,6 +129,11 @@ class Trap(Exception):
     pass
 
 
+class Thrown(Exception):
+    """A typed throw (a `BipartitionError` case): the call changes nothing."""
+    pass
+
+
 class UAL:
     def __init__(self):
         self.verts = []; self.slots = {}
@@ -305,15 +310,19 @@ class BG:
     def insert_vertex(self, x, s):
         if x in self.g.slots:
             if self.side[self.g.slots[x]] != s:
-                raise Trap("the vertex is on the other side")
+                raise Thrown(f".onOtherSide({SIDE_NAME[self.side[self.g.slots[x]]]})")
             return False
         self._append(x, s); return True
 
-    def insert_edge(self, p, q):
+    def insert_edge(self, p, q, checked=False):
+        """`insert(edge:)`, or `insert(checked:)`, which throws for a missing endpoint where
+        `insert(edge:)` traps."""
         if p not in self.g.slots or q not in self.g.slots:
+            if checked:
+                raise Thrown(".missingEndpoint")
             raise Trap("an endpoint is not a vertex")
         if self.side[self.g.slots[p]] == self.side[self.g.slots[q]]:
-            raise Trap("both endpoints are on one side")
+            raise Thrown(f".sameSide({SIDE_NAME[self.side[self.g.slots[p]]]})")
         return self._insert_edge_unchecked(p, q)
 
     def remove_edge(self, p, q):
@@ -587,15 +596,33 @@ mut("side(of:) after the slot moved", E0, [("rv", "b"), ("side", "y"), ("side", 
 mut("projection still correct after mutation", E0, [("rv", "b"), ("iv", "d", LEFT), ("ie", "d", "x"), ("ie", "d", "y"), ("proj", LEFT)])
 mut("long random sequence (seed 7)", ([], [], None), "random7")
 
+# Rejected mutations: a typed throw, and nothing changes.
+REJ = []
+def rej(name, init, ops):
+    REJ.append(dict(name=name, init=init, ops=ops))
+
+rej("insert a vertex on the other side", E0, [("iv", "a", RIGHT)])
+rej("insert an edge inside left", E0, [("ie", "a", "b")])
+rej("insert an edge inside right", E0, [("ie", "x", "y")])
+rej("insert a self-loop", E0, [("ie", "a", "a")])
+
+# insert(checked:): a missing endpoint throws instead of trapping.
+CHECKED = []
+def checked(name, init, ops):
+    CHECKED.append(dict(name=name, init=init, ops=ops))
+
+checked("insert(checked:) an edge across: as insert(edge:)", E0, [("iec", "y", "a")])
+checked("insert(checked:) an existing edge: not inserted", E0, [("iec", "x", "b")])
+checked("insert(checked:) with a missing endpoint", E0, [("iec", "a", "z")])
+checked("insert(checked:) with both endpoints missing", E0, [("iec", "p", "q")])
+checked("insert(checked:) inside a side", E0, [("iec", "x", "y")])
+checked("insert(checked:) a self-loop on a vertex, then on a non-vertex", E0, [("iec", "b", "b"), ("iec", "z", "z")])
+
 # Traps (preconditions)
 TRAP = []
 def trap(name, init, ops):
     TRAP.append(dict(name=name, init=init, ops=ops))
 
-trap("insert a vertex on the other side", E0, [("iv", "a", RIGHT)])
-trap("insert an edge inside left", E0, [("ie", "a", "b")])
-trap("insert an edge inside right", E0, [("ie", "x", "y")])
-trap("insert a self-loop", E0, [("ie", "a", "a")])
 trap("insert an edge with a missing endpoint", E0, [("ie", "a", "z")])
 trap("insert an edge with both endpoints missing", E0, [("ie", "p", "q")])
 trap("side(of:) a non-vertex", E0, [("side", "z")])
@@ -765,6 +792,7 @@ def fmt_op(op):
     k = op[0]
     if k == "iv": return f"insert({op[1]!r}, on: {SIDE_NAME[op[2]]})".replace("'", '"')
     if k == "ie": return f"insert(edge: {op[1]}–{op[2]})"
+    if k == "iec": return f"insert(checked: {op[1]}–{op[2]})"
     if k == "re": return f"remove(edge: {op[1]}–{op[2]})"
     if k == "rv": return f"remove({op[1]!r})".replace("'", '"')
     if k == "rae": return "removeAllEdges()"
@@ -785,8 +813,8 @@ def apply_ops(init, ops, trap_ok=False):
             if k == "iv":
                 r = b.insert_vertex(op[1], op[2]); results.append(f"inserted {str(r).lower()}")
                 assert r == (op[1] not in G); G.add_node(op[1]); sides[op[1]] = op[2]
-            elif k == "ie":
-                r, m = b.insert_edge(op[1], op[2]); results.append(f"inserted {str(r).lower()}, {m[0]}–{m[1]}")
+            elif k in ("ie", "iec"):
+                r, m = b.insert_edge(op[1], op[2], checked=k == "iec"); results.append(f"inserted {str(r).lower()}, {m[0]}–{m[1]}")
                 assert r == (not G.has_edge(op[1], op[2])); G.add_edge(op[1], op[2])
             elif k == "re":
                 r = b.remove_edge(op[1], op[2]); results.append("nil" if r is None else f"{r[0]}–{r[1]}")
@@ -812,6 +840,9 @@ def apply_ops(init, ops, trap_ok=False):
             assert trap_ok
             results.append(f"trap ({t})")
             return b, G, sides, results, True
+        except Thrown as t:
+            # Nothing changed: the independent graph is not updated either.
+            results.append(f"throws {t}")
     # Independent state check.
     assert set(b.vertices()) == set(G.nodes())
     assert set(map(frozenset, b.edges())) == set(map(frozenset, G.edges()))
@@ -859,6 +890,11 @@ def build_rows():
         else:
             call = fmt_init(c["init"]) + "; " + "; ".join(fmt_op(o) for o in ops)
             rows.append(("Mutation", c["name"], call, " / ".join(res) + f"; final {b.describe()}"))
+    for c in REJ:
+        b, G, sides, res, _ = apply_ops(c["init"], c["ops"])
+        assert all(r.startswith("throws ") for r in res), c["name"]
+        call = fmt_init(c["init"]) + "; " + "; ".join(fmt_op(o) for o in c["ops"])
+        rows.append(("Rejection", c["name"], call, " / ".join(res) + f"; final {b.describe()}"))
     for c in TRAP:
         b, G, sides, res, trapped = apply_ops(c["init"], c["ops"], trap_ok=True)
         assert trapped, c["name"]
@@ -883,6 +919,10 @@ def build_rows():
             return (frozenset(G.nodes()), frozenset(map(frozenset, G.edges())), frozenset(t[0]))
         assert r == (nxk(c["a"]) == nxk(c["b"]))
         rows.append(("Equality", c["name"], f"({fmt_init(c['a'])}) == ({fmt_init(c['b'])})", str(r).lower()))
+    for c in CHECKED:
+        b, G, sides, res, _ = apply_ops(c["init"], c["ops"])
+        call = fmt_init(c["init"]) + "; " + "; ".join(fmt_op(o) for o in c["ops"])
+        rows.append(("insert(checked:)", c["name"], call, " / ".join(res) + f"; final {b.describe()}"))
     return rows
 
 
@@ -910,6 +950,7 @@ Conventions:
 * `BipartiteGraph` rows print `V` (`vertices` order), `L` (`left`), `R` (`right`), `E` (`edges`
   by position, each left endpoint first). Mutation rows list each call's result, separated by `/`.
 * `trap` rows are preconditions: tests run them as exit tests (`#expect(processExitsWith:)`).
+  `throws .case` is a call that threw that `BipartitionError` case and changed nothing.
 
 | ID | Group | Case | Input / call | Expected |
 |---|---|---|---|---|

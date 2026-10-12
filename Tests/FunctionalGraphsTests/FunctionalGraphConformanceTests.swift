@@ -104,10 +104,10 @@ struct FunctionalGraphConformanceTests {
     }
 
     @Test("A LabeledGraph over a FunctionalGraph forwards to it")
-    func labeled() {
+    func labeled() throws {
         let graph = FunctionalGraph(successors: [3, 0, 1, 5, 3, 6, 3, 7, 9, 10, 9, 8])
         let names = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"]
-        let labeled = LabeledGraph(graph, labels: names)
+        let labeled = try LabeledGraph(graph, labels: names)
         #expect(labeled.base == graph)
         #expect(labeled.vertices.map { Array(labeled.successors(of: $0)) } == (0 ..< 12).map { [names[graph.successor(of: $0)]] })
         #expect(labeled.edges.map { [$0.source, $0.target] } == (0 ..< 12).map { [names[$0], names[graph.successor(of: $0)]] })

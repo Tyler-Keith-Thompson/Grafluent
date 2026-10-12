@@ -153,7 +153,7 @@ let benchmarks: @Sendable () -> Void = {
         let edges = Array(DirectedAcyclicGraph<AdjacencyList<Int>>.erdosRenyi(vertexCount: 100_000, edgeProbability: 1e-4, using: &g).edges)
         for _ in benchmark.scaledIterations {
             var dag = DirectedAcyclicGraph<AdjacencyList<Int>>(vertices: 0 ..< 100_000)
-            for edge in edges { blackHole(dag.insert(edge: edge)) }
+            for edge in edges { blackHole(try? dag.insert(edge: edge)) }
             blackHole(dag)
         }
     }

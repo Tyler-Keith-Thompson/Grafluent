@@ -4,8 +4,11 @@
 // moves the last slot into its place (as `UndirectedAdjacencyList` does) and the side's last
 // vertex into its place in `left` or `right`; removing an edge moves the last edge into its
 // position. A vertex keeps its side when its edges go. BP-141 is ref.py's `random_ops(7)`
-// written out, with every intermediate result as the model gives it. Generated from cases.md
-// by swiftgen.py; see README.md.
+// written out, with every intermediate result as the model gives it. Then the rejected
+// mutations (BP-142 – BP-145): `BipartitionError.onOtherSide` from `insert(_:on:)`,
+// `.sameSide` from `insert(edge:)` (a self-loop included), and nothing changes; and
+// `insert(checked:)` (BP-167 – BP-172), which throws `.missingEndpoint`
+// where `insert(edge:)` traps. Generated from cases.md by swiftgen.py; see README.md.
 
 import AdjacencyListModule
 import BipartiteGraphs
@@ -18,7 +21,7 @@ struct BipartiteGraphMutationTests {
     func bp119() throws {
         // left [], right []; insert("a", on: .left)
         var graph = BipartiteGraph<String>()
-        do { let result = graph.insert("a", on: .left); #expect(result.inserted); #expect(result.memberAfterInsert == "a") }
+        do { let result = try graph.insert("a", on: .left); #expect(result.inserted); #expect(result.memberAfterInsert == "a") }
         // Final state.
         #expect(Array(graph.vertices) == ["a"] as [String])
         #expect(Array(graph.left) == ["a"] as [String])
@@ -32,9 +35,9 @@ struct BipartiteGraphMutationTests {
     func bp120() throws {
         // left [], right []; insert("a", on: .left); insert("x", on: .right); insert(edge: a–x)
         var graph = BipartiteGraph<String>()
-        do { let result = graph.insert("a", on: .left); #expect(result.inserted); #expect(result.memberAfterInsert == "a") }
-        do { let result = graph.insert("x", on: .right); #expect(result.inserted); #expect(result.memberAfterInsert == "x") }
-        do { let result = graph.insert(edge: UndirectedEdge("a", "x")); #expect(result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == ["a", "x"]) }
+        do { let result = try graph.insert("a", on: .left); #expect(result.inserted); #expect(result.memberAfterInsert == "a") }
+        do { let result = try graph.insert("x", on: .right); #expect(result.inserted); #expect(result.memberAfterInsert == "x") }
+        do { let result = try graph.insert(edge: UndirectedEdge("a", "x")); #expect(result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == ["a", "x"]) }
         // Final state.
         #expect(Array(graph.vertices) == ["a", "x"] as [String])
         #expect(Array(graph.left) == ["a"] as [String])
@@ -48,9 +51,9 @@ struct BipartiteGraphMutationTests {
     func bp121() throws {
         // left [], right []; insert("a", on: .left); insert("x", on: .right); insert(edge: x–a)
         var graph = BipartiteGraph<String>()
-        do { let result = graph.insert("a", on: .left); #expect(result.inserted); #expect(result.memberAfterInsert == "a") }
-        do { let result = graph.insert("x", on: .right); #expect(result.inserted); #expect(result.memberAfterInsert == "x") }
-        do { let result = graph.insert(edge: UndirectedEdge("x", "a")); #expect(result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == ["a", "x"]) }
+        do { let result = try graph.insert("a", on: .left); #expect(result.inserted); #expect(result.memberAfterInsert == "a") }
+        do { let result = try graph.insert("x", on: .right); #expect(result.inserted); #expect(result.memberAfterInsert == "x") }
+        do { let result = try graph.insert(edge: UndirectedEdge("x", "a")); #expect(result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == ["a", "x"]) }
         // Final state.
         #expect(Array(graph.vertices) == ["a", "x"] as [String])
         #expect(Array(graph.left) == ["a"] as [String])
@@ -64,7 +67,7 @@ struct BipartiteGraphMutationTests {
     func bp122() throws {
         // left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; insert("a", on: .left)
         var graph = try #require(BipartiteGraph<String>(left: ["a", "b", "c"] as [String], right: ["x", "y"] as [String], edges: [("a", "x"), ("b", "x"), ("b", "y"), ("c", "y")].map { UndirectedEdge<String>($0.0, $0.1) }))
-        do { let result = graph.insert("a", on: .left); #expect(!result.inserted); #expect(result.memberAfterInsert == "a") }
+        do { let result = try graph.insert("a", on: .left); #expect(!result.inserted); #expect(result.memberAfterInsert == "a") }
         // Final state.
         #expect(Array(graph.vertices) == ["a", "b", "c", "x", "y"] as [String])
         #expect(Array(graph.left) == ["a", "b", "c"] as [String])
@@ -78,7 +81,7 @@ struct BipartiteGraphMutationTests {
     func bp123() throws {
         // left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; insert(edge: x–a)
         var graph = try #require(BipartiteGraph<String>(left: ["a", "b", "c"] as [String], right: ["x", "y"] as [String], edges: [("a", "x"), ("b", "x"), ("b", "y"), ("c", "y")].map { UndirectedEdge<String>($0.0, $0.1) }))
-        do { let result = graph.insert(edge: UndirectedEdge("x", "a")); #expect(!result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == ["a", "x"]) }
+        do { let result = try graph.insert(edge: UndirectedEdge("x", "a")); #expect(!result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == ["a", "x"]) }
         // Final state.
         #expect(Array(graph.vertices) == ["a", "b", "c", "x", "y"] as [String])
         #expect(Array(graph.left) == ["a", "b", "c"] as [String])
@@ -205,8 +208,8 @@ struct BipartiteGraphMutationTests {
         // left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; remove("a"); insert("a", on: .right); insert(edge: a–b)
         var graph = try #require(BipartiteGraph<String>(left: ["a", "b", "c"] as [String], right: ["x", "y"] as [String], edges: [("a", "x"), ("b", "x"), ("b", "y"), ("c", "y")].map { UndirectedEdge<String>($0.0, $0.1) }))
         #expect(graph.remove("a") == "a")
-        do { let result = graph.insert("a", on: .right); #expect(result.inserted); #expect(result.memberAfterInsert == "a") }
-        do { let result = graph.insert(edge: UndirectedEdge("a", "b")); #expect(result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == ["b", "a"]) }
+        do { let result = try graph.insert("a", on: .right); #expect(result.inserted); #expect(result.memberAfterInsert == "a") }
+        do { let result = try graph.insert(edge: UndirectedEdge("a", "b")); #expect(result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == ["b", "a"]) }
         // Final state.
         #expect(Array(graph.vertices) == ["y", "b", "c", "x", "a"] as [String])
         #expect(Array(graph.left) == ["c", "b"] as [String])
@@ -282,7 +285,7 @@ struct BipartiteGraphMutationTests {
         // left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; remove(edge: b–y); insert(edge: y–b)
         var graph = try #require(BipartiteGraph<String>(left: ["a", "b", "c"] as [String], right: ["x", "y"] as [String], edges: [("a", "x"), ("b", "x"), ("b", "y"), ("c", "y")].map { UndirectedEdge<String>($0.0, $0.1) }))
         do { let removed = graph.remove(edge: UndirectedEdge("b", "y")); #expect(removed.map { [$0.u, $0.v] } == ["b", "y"]) }
-        do { let result = graph.insert(edge: UndirectedEdge("y", "b")); #expect(result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == ["b", "y"]) }
+        do { let result = try graph.insert(edge: UndirectedEdge("y", "b")); #expect(result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == ["b", "y"]) }
         // Final state.
         #expect(Array(graph.vertices) == ["a", "b", "c", "x", "y"] as [String])
         #expect(Array(graph.left) == ["a", "b", "c"] as [String])
@@ -328,9 +331,9 @@ struct BipartiteGraphMutationTests {
         // left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; remove("b"); insert("d", on: .left); insert(edge: d–x); insert(edge: d–y); projectedGraph(onto: .left)
         var graph = try #require(BipartiteGraph<String>(left: ["a", "b", "c"] as [String], right: ["x", "y"] as [String], edges: [("a", "x"), ("b", "x"), ("b", "y"), ("c", "y")].map { UndirectedEdge<String>($0.0, $0.1) }))
         #expect(graph.remove("b") == "b")
-        do { let result = graph.insert("d", on: .left); #expect(result.inserted); #expect(result.memberAfterInsert == "d") }
-        do { let result = graph.insert(edge: UndirectedEdge("d", "x")); #expect(result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == ["d", "x"]) }
-        do { let result = graph.insert(edge: UndirectedEdge("d", "y")); #expect(result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == ["d", "y"]) }
+        do { let result = try graph.insert("d", on: .left); #expect(result.inserted); #expect(result.memberAfterInsert == "d") }
+        do { let result = try graph.insert(edge: UndirectedEdge("d", "x")); #expect(result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == ["d", "x"]) }
+        do { let result = try graph.insert(edge: UndirectedEdge("d", "y")); #expect(result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == ["d", "y"]) }
         let projection = graph.projectedGraph(onto: .left)
         #expect(Array(projection.vertices) == ["a", "c", "d"] as [String])
         #expect(projection.edges.map { [$0.u, $0.v] } == [["a", "d"], ["c", "d"]] as [[String]])
@@ -347,48 +350,189 @@ struct BipartiteGraphMutationTests {
     func bp141() throws {
         // from empty, 37 random operations (ref.py `random_ops(7)`)
         var graph = BipartiteGraph<Int>()
-        do { let result = graph.insert(6, on: .left); #expect(result.inserted); #expect(result.memberAfterInsert == 6) }
-        do { let result = graph.insert(8, on: .left); #expect(result.inserted); #expect(result.memberAfterInsert == 8) }
-        do { let result = graph.insert(8, on: .left); #expect(!result.inserted); #expect(result.memberAfterInsert == 8) }
-        do { let result = graph.insert(1, on: .right); #expect(result.inserted); #expect(result.memberAfterInsert == 1) }
-        do { let result = graph.insert(edge: UndirectedEdge(6, 1)); #expect(result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [6, 1]) }
-        do { let result = graph.insert(edge: UndirectedEdge(1, 6)); #expect(!result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [6, 1]) }
+        do { let result = try graph.insert(6, on: .left); #expect(result.inserted); #expect(result.memberAfterInsert == 6) }
+        do { let result = try graph.insert(8, on: .left); #expect(result.inserted); #expect(result.memberAfterInsert == 8) }
+        do { let result = try graph.insert(8, on: .left); #expect(!result.inserted); #expect(result.memberAfterInsert == 8) }
+        do { let result = try graph.insert(1, on: .right); #expect(result.inserted); #expect(result.memberAfterInsert == 1) }
+        do { let result = try graph.insert(edge: UndirectedEdge(6, 1)); #expect(result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [6, 1]) }
+        do { let result = try graph.insert(edge: UndirectedEdge(1, 6)); #expect(!result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [6, 1]) }
         do { let removed = graph.remove(edge: UndirectedEdge(1, 6)); #expect(removed.map { [$0.u, $0.v] } == [6, 1]) }
-        do { let result = graph.insert(edge: UndirectedEdge(1, 8)); #expect(result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [8, 1]) }
-        do { let result = graph.insert(8, on: .left); #expect(!result.inserted); #expect(result.memberAfterInsert == 8) }
-        do { let result = graph.insert(edge: UndirectedEdge(1, 8)); #expect(!result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [8, 1]) }
-        do { let result = graph.insert(edge: UndirectedEdge(8, 1)); #expect(!result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [8, 1]) }
-        do { let result = graph.insert(edge: UndirectedEdge(6, 1)); #expect(result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [6, 1]) }
+        do { let result = try graph.insert(edge: UndirectedEdge(1, 8)); #expect(result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [8, 1]) }
+        do { let result = try graph.insert(8, on: .left); #expect(!result.inserted); #expect(result.memberAfterInsert == 8) }
+        do { let result = try graph.insert(edge: UndirectedEdge(1, 8)); #expect(!result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [8, 1]) }
+        do { let result = try graph.insert(edge: UndirectedEdge(8, 1)); #expect(!result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [8, 1]) }
+        do { let result = try graph.insert(edge: UndirectedEdge(6, 1)); #expect(result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [6, 1]) }
         do { let removed = graph.remove(edge: UndirectedEdge(6, 1)); #expect(removed.map { [$0.u, $0.v] } == [6, 1]) }
-        do { let result = graph.insert(edge: UndirectedEdge(1, 6)); #expect(result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [6, 1]) }
-        do { let result = graph.insert(edge: UndirectedEdge(1, 8)); #expect(!result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [8, 1]) }
-        do { let result = graph.insert(edge: UndirectedEdge(8, 1)); #expect(!result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [8, 1]) }
-        do { let result = graph.insert(11, on: .left); #expect(result.inserted); #expect(result.memberAfterInsert == 11) }
-        do { let result = graph.insert(9, on: .right); #expect(result.inserted); #expect(result.memberAfterInsert == 9) }
-        do { let result = graph.insert(edge: UndirectedEdge(9, 8)); #expect(result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [8, 9]) }
-        do { let result = graph.insert(edge: UndirectedEdge(11, 1)); #expect(result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [11, 1]) }
-        do { let result = graph.insert(edge: UndirectedEdge(6, 9)); #expect(result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [6, 9]) }
-        do { let result = graph.insert(edge: UndirectedEdge(1, 8)); #expect(!result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [8, 1]) }
-        do { let result = graph.insert(8, on: .left); #expect(!result.inserted); #expect(result.memberAfterInsert == 8) }
-        do { let result = graph.insert(edge: UndirectedEdge(9, 11)); #expect(result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [11, 9]) }
-        do { let result = graph.insert(edge: UndirectedEdge(1, 8)); #expect(!result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [8, 1]) }
-        do { let result = graph.insert(edge: UndirectedEdge(8, 1)); #expect(!result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [8, 1]) }
+        do { let result = try graph.insert(edge: UndirectedEdge(1, 6)); #expect(result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [6, 1]) }
+        do { let result = try graph.insert(edge: UndirectedEdge(1, 8)); #expect(!result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [8, 1]) }
+        do { let result = try graph.insert(edge: UndirectedEdge(8, 1)); #expect(!result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [8, 1]) }
+        do { let result = try graph.insert(11, on: .left); #expect(result.inserted); #expect(result.memberAfterInsert == 11) }
+        do { let result = try graph.insert(9, on: .right); #expect(result.inserted); #expect(result.memberAfterInsert == 9) }
+        do { let result = try graph.insert(edge: UndirectedEdge(9, 8)); #expect(result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [8, 9]) }
+        do { let result = try graph.insert(edge: UndirectedEdge(11, 1)); #expect(result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [11, 1]) }
+        do { let result = try graph.insert(edge: UndirectedEdge(6, 9)); #expect(result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [6, 9]) }
+        do { let result = try graph.insert(edge: UndirectedEdge(1, 8)); #expect(!result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [8, 1]) }
+        do { let result = try graph.insert(8, on: .left); #expect(!result.inserted); #expect(result.memberAfterInsert == 8) }
+        do { let result = try graph.insert(edge: UndirectedEdge(9, 11)); #expect(result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [11, 9]) }
+        do { let result = try graph.insert(edge: UndirectedEdge(1, 8)); #expect(!result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [8, 1]) }
+        do { let result = try graph.insert(edge: UndirectedEdge(8, 1)); #expect(!result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [8, 1]) }
         do { let removed = graph.remove(edge: UndirectedEdge(1, 11)); #expect(removed.map { [$0.u, $0.v] } == [11, 1]) }
-        do { let result = graph.insert(edge: UndirectedEdge(9, 11)); #expect(!result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [11, 9]) }
-        do { let result = graph.insert(edge: UndirectedEdge(6, 9)); #expect(!result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [6, 9]) }
-        do { let result = graph.insert(edge: UndirectedEdge(6, 9)); #expect(!result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [6, 9]) }
+        do { let result = try graph.insert(edge: UndirectedEdge(9, 11)); #expect(!result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [11, 9]) }
+        do { let result = try graph.insert(edge: UndirectedEdge(6, 9)); #expect(!result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [6, 9]) }
+        do { let result = try graph.insert(edge: UndirectedEdge(6, 9)); #expect(!result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [6, 9]) }
         #expect(graph.remove(8) == 8)
-        do { let result = graph.insert(edge: UndirectedEdge(11, 9)); #expect(!result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [11, 9]) }
-        do { let result = graph.insert(edge: UndirectedEdge(9, 11)); #expect(!result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [11, 9]) }
+        do { let result = try graph.insert(edge: UndirectedEdge(11, 9)); #expect(!result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [11, 9]) }
+        do { let result = try graph.insert(edge: UndirectedEdge(9, 11)); #expect(!result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [11, 9]) }
         #expect(graph.remove(11) == 11)
         #expect(graph.remove(edge: UndirectedEdge(1, 9)) == nil)
         do { let removed = graph.remove(edge: UndirectedEdge(1, 6)); #expect(removed.map { [$0.u, $0.v] } == [6, 1]) }
-        do { let result = graph.insert(1, on: .right); #expect(!result.inserted); #expect(result.memberAfterInsert == 1) }
+        do { let result = try graph.insert(1, on: .right); #expect(!result.inserted); #expect(result.memberAfterInsert == 1) }
         // Final state.
         #expect(Array(graph.vertices) == [6, 9, 1] as [Int])
         #expect(Array(graph.left) == [6] as [Int])
         #expect(Array(graph.right) == [1, 9] as [Int])
         #expect(graph.edges.map { [$0.u, $0.v] } == [[6, 9]] as [[Int]])
+        for v in graph.left { #expect(graph.side(of: v) == .left) }
+        for v in graph.right { #expect(graph.side(of: v) == .right) }
+    }
+
+    @Test("BP-142 insert a vertex on the other side")
+    func bp142() throws {
+        // left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; insert("a", on: .right)
+        var graph = try #require(BipartiteGraph<String>(left: ["a", "b", "c"] as [String], right: ["x", "y"] as [String], edges: [("a", "x"), ("b", "x"), ("b", "y"), ("c", "y")].map { UndirectedEdge<String>($0.0, $0.1) }))
+        #expect(throws: BipartitionError.onOtherSide(.left)) { try graph.insert("a", on: .right) }
+        // Final state.
+        #expect(Array(graph.vertices) == ["a", "b", "c", "x", "y"] as [String])
+        #expect(Array(graph.left) == ["a", "b", "c"] as [String])
+        #expect(Array(graph.right) == ["x", "y"] as [String])
+        #expect(graph.edges.map { [$0.u, $0.v] } == [["a", "x"], ["b", "x"], ["b", "y"], ["c", "y"]] as [[String]])
+        for v in graph.left { #expect(graph.side(of: v) == .left) }
+        for v in graph.right { #expect(graph.side(of: v) == .right) }
+    }
+
+    @Test("BP-143 insert an edge inside left")
+    func bp143() throws {
+        // left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; insert(edge: a–b)
+        var graph = try #require(BipartiteGraph<String>(left: ["a", "b", "c"] as [String], right: ["x", "y"] as [String], edges: [("a", "x"), ("b", "x"), ("b", "y"), ("c", "y")].map { UndirectedEdge<String>($0.0, $0.1) }))
+        #expect(throws: BipartitionError.sameSide(.left)) { try graph.insert(edge: UndirectedEdge("a", "b")) }
+        // Final state.
+        #expect(Array(graph.vertices) == ["a", "b", "c", "x", "y"] as [String])
+        #expect(Array(graph.left) == ["a", "b", "c"] as [String])
+        #expect(Array(graph.right) == ["x", "y"] as [String])
+        #expect(graph.edges.map { [$0.u, $0.v] } == [["a", "x"], ["b", "x"], ["b", "y"], ["c", "y"]] as [[String]])
+        for v in graph.left { #expect(graph.side(of: v) == .left) }
+        for v in graph.right { #expect(graph.side(of: v) == .right) }
+    }
+
+    @Test("BP-144 insert an edge inside right")
+    func bp144() throws {
+        // left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; insert(edge: x–y)
+        var graph = try #require(BipartiteGraph<String>(left: ["a", "b", "c"] as [String], right: ["x", "y"] as [String], edges: [("a", "x"), ("b", "x"), ("b", "y"), ("c", "y")].map { UndirectedEdge<String>($0.0, $0.1) }))
+        #expect(throws: BipartitionError.sameSide(.right)) { try graph.insert(edge: UndirectedEdge("x", "y")) }
+        // Final state.
+        #expect(Array(graph.vertices) == ["a", "b", "c", "x", "y"] as [String])
+        #expect(Array(graph.left) == ["a", "b", "c"] as [String])
+        #expect(Array(graph.right) == ["x", "y"] as [String])
+        #expect(graph.edges.map { [$0.u, $0.v] } == [["a", "x"], ["b", "x"], ["b", "y"], ["c", "y"]] as [[String]])
+        for v in graph.left { #expect(graph.side(of: v) == .left) }
+        for v in graph.right { #expect(graph.side(of: v) == .right) }
+    }
+
+    @Test("BP-145 insert a self-loop")
+    func bp145() throws {
+        // left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; insert(edge: a–a)
+        var graph = try #require(BipartiteGraph<String>(left: ["a", "b", "c"] as [String], right: ["x", "y"] as [String], edges: [("a", "x"), ("b", "x"), ("b", "y"), ("c", "y")].map { UndirectedEdge<String>($0.0, $0.1) }))
+        #expect(throws: BipartitionError.sameSide(.left)) { try graph.insert(edge: UndirectedEdge("a", "a")) }
+        // Final state.
+        #expect(Array(graph.vertices) == ["a", "b", "c", "x", "y"] as [String])
+        #expect(Array(graph.left) == ["a", "b", "c"] as [String])
+        #expect(Array(graph.right) == ["x", "y"] as [String])
+        #expect(graph.edges.map { [$0.u, $0.v] } == [["a", "x"], ["b", "x"], ["b", "y"], ["c", "y"]] as [[String]])
+        for v in graph.left { #expect(graph.side(of: v) == .left) }
+        for v in graph.right { #expect(graph.side(of: v) == .right) }
+    }
+
+    @Test("BP-167 insert(checked:) an edge across: as insert(edge:)")
+    func bp167() throws {
+        // left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; insert(checked: y–a)
+        var graph = try #require(BipartiteGraph<String>(left: ["a", "b", "c"] as [String], right: ["x", "y"] as [String], edges: [("a", "x"), ("b", "x"), ("b", "y"), ("c", "y")].map { UndirectedEdge<String>($0.0, $0.1) }))
+        do { let result = try graph.insert(checked: UndirectedEdge("y", "a")); #expect(result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == ["a", "y"]) }
+        // Final state.
+        #expect(Array(graph.vertices) == ["a", "b", "c", "x", "y"] as [String])
+        #expect(Array(graph.left) == ["a", "b", "c"] as [String])
+        #expect(Array(graph.right) == ["x", "y"] as [String])
+        #expect(graph.edges.map { [$0.u, $0.v] } == [["a", "x"], ["b", "x"], ["b", "y"], ["c", "y"], ["a", "y"]] as [[String]])
+        for v in graph.left { #expect(graph.side(of: v) == .left) }
+        for v in graph.right { #expect(graph.side(of: v) == .right) }
+    }
+
+    @Test("BP-168 insert(checked:) an existing edge: not inserted")
+    func bp168() throws {
+        // left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; insert(checked: x–b)
+        var graph = try #require(BipartiteGraph<String>(left: ["a", "b", "c"] as [String], right: ["x", "y"] as [String], edges: [("a", "x"), ("b", "x"), ("b", "y"), ("c", "y")].map { UndirectedEdge<String>($0.0, $0.1) }))
+        do { let result = try graph.insert(checked: UndirectedEdge("x", "b")); #expect(!result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == ["b", "x"]) }
+        // Final state.
+        #expect(Array(graph.vertices) == ["a", "b", "c", "x", "y"] as [String])
+        #expect(Array(graph.left) == ["a", "b", "c"] as [String])
+        #expect(Array(graph.right) == ["x", "y"] as [String])
+        #expect(graph.edges.map { [$0.u, $0.v] } == [["a", "x"], ["b", "x"], ["b", "y"], ["c", "y"]] as [[String]])
+        for v in graph.left { #expect(graph.side(of: v) == .left) }
+        for v in graph.right { #expect(graph.side(of: v) == .right) }
+    }
+
+    @Test("BP-169 insert(checked:) with a missing endpoint")
+    func bp169() throws {
+        // left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; insert(checked: a–z)
+        var graph = try #require(BipartiteGraph<String>(left: ["a", "b", "c"] as [String], right: ["x", "y"] as [String], edges: [("a", "x"), ("b", "x"), ("b", "y"), ("c", "y")].map { UndirectedEdge<String>($0.0, $0.1) }))
+        #expect(throws: BipartitionError.missingEndpoint) { try graph.insert(checked: UndirectedEdge("a", "z")) }
+        // Final state.
+        #expect(Array(graph.vertices) == ["a", "b", "c", "x", "y"] as [String])
+        #expect(Array(graph.left) == ["a", "b", "c"] as [String])
+        #expect(Array(graph.right) == ["x", "y"] as [String])
+        #expect(graph.edges.map { [$0.u, $0.v] } == [["a", "x"], ["b", "x"], ["b", "y"], ["c", "y"]] as [[String]])
+        for v in graph.left { #expect(graph.side(of: v) == .left) }
+        for v in graph.right { #expect(graph.side(of: v) == .right) }
+    }
+
+    @Test("BP-170 insert(checked:) with both endpoints missing")
+    func bp170() throws {
+        // left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; insert(checked: p–q)
+        var graph = try #require(BipartiteGraph<String>(left: ["a", "b", "c"] as [String], right: ["x", "y"] as [String], edges: [("a", "x"), ("b", "x"), ("b", "y"), ("c", "y")].map { UndirectedEdge<String>($0.0, $0.1) }))
+        #expect(throws: BipartitionError.missingEndpoint) { try graph.insert(checked: UndirectedEdge("p", "q")) }
+        // Final state.
+        #expect(Array(graph.vertices) == ["a", "b", "c", "x", "y"] as [String])
+        #expect(Array(graph.left) == ["a", "b", "c"] as [String])
+        #expect(Array(graph.right) == ["x", "y"] as [String])
+        #expect(graph.edges.map { [$0.u, $0.v] } == [["a", "x"], ["b", "x"], ["b", "y"], ["c", "y"]] as [[String]])
+        for v in graph.left { #expect(graph.side(of: v) == .left) }
+        for v in graph.right { #expect(graph.side(of: v) == .right) }
+    }
+
+    @Test("BP-171 insert(checked:) inside a side")
+    func bp171() throws {
+        // left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; insert(checked: x–y)
+        var graph = try #require(BipartiteGraph<String>(left: ["a", "b", "c"] as [String], right: ["x", "y"] as [String], edges: [("a", "x"), ("b", "x"), ("b", "y"), ("c", "y")].map { UndirectedEdge<String>($0.0, $0.1) }))
+        #expect(throws: BipartitionError.sameSide(.right)) { try graph.insert(checked: UndirectedEdge("x", "y")) }
+        // Final state.
+        #expect(Array(graph.vertices) == ["a", "b", "c", "x", "y"] as [String])
+        #expect(Array(graph.left) == ["a", "b", "c"] as [String])
+        #expect(Array(graph.right) == ["x", "y"] as [String])
+        #expect(graph.edges.map { [$0.u, $0.v] } == [["a", "x"], ["b", "x"], ["b", "y"], ["c", "y"]] as [[String]])
+        for v in graph.left { #expect(graph.side(of: v) == .left) }
+        for v in graph.right { #expect(graph.side(of: v) == .right) }
+    }
+
+    @Test("BP-172 insert(checked:) a self-loop on a vertex, then on a non-vertex")
+    func bp172() throws {
+        // left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; insert(checked: b–b); insert(checked: z–z)
+        var graph = try #require(BipartiteGraph<String>(left: ["a", "b", "c"] as [String], right: ["x", "y"] as [String], edges: [("a", "x"), ("b", "x"), ("b", "y"), ("c", "y")].map { UndirectedEdge<String>($0.0, $0.1) }))
+        #expect(throws: BipartitionError.sameSide(.left)) { try graph.insert(checked: UndirectedEdge("b", "b")) }
+        #expect(throws: BipartitionError.missingEndpoint) { try graph.insert(checked: UndirectedEdge("z", "z")) }
+        // Final state.
+        #expect(Array(graph.vertices) == ["a", "b", "c", "x", "y"] as [String])
+        #expect(Array(graph.left) == ["a", "b", "c"] as [String])
+        #expect(Array(graph.right) == ["x", "y"] as [String])
+        #expect(graph.edges.map { [$0.u, $0.v] } == [["a", "x"], ["b", "x"], ["b", "y"], ["c", "y"]] as [[String]])
         for v in graph.left { #expect(graph.side(of: v) == .left) }
         for v in graph.right { #expect(graph.side(of: v) == .right) }
     }

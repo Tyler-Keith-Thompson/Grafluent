@@ -32,6 +32,17 @@ class Trap(Exception):
     pass
 
 
+class Thrown(Exception):
+    """A typed throw from an initializer (a `LabelingError` case)."""
+    pass
+
+
+class Throws:
+    """A `checked:` call's typed throw, as a result: the call changes nothing, and the row goes on."""
+    def __init__(self, error):
+        self.error = error
+
+
 def require(cond, msg):
     if not cond:
         raise Trap(msg)
@@ -206,14 +217,16 @@ class Generic:
 class Labeled:
     def __init__(self, base, labels):
         labels = list(labels)
-        require(base.vertex_index_bound is not None,
-                "base is not densely indexed (vertexIndexBound is nil)")
-        require(all(v == i for i, v in enumerate(base.vertices)),
-                "base vertices are not 0..<vertexCount in index order")
-        require(len(labels) == base.n, f"{len(labels)} labels for {base.n} vertices")
+        if base.vertex_index_bound is None:
+            raise Thrown("LabelingError.baseNotDenselyIndexed")
+        if not all(v == i for i, v in enumerate(base.vertices)):
+            raise Thrown("LabelingError.baseVerticesNotInIndexOrder")
+        if len(labels) != base.n:
+            raise Thrown(f"LabelingError.labelCountMismatch(labelCount: {len(labels)}, vertexCount: {base.n})")
         self.labels, self.index = [], {}
-        for l in labels:
-            require(l not in self.index, f"duplicate label {l}")
+        for position, l in enumerate(labels):
+            if l in self.index:
+                raise Thrown(f"LabelingError.duplicateLabel(position: {position})")
             self.index[l] = len(self.labels)
             self.labels.append(l)
         self.base = base
@@ -233,8 +246,9 @@ class Labeled:
     def vertex_index(self, label):
         return self._need(label)
 
-    def vertex_index_safe(self, label):
-        return self._find(label)
+    def vertex_index_checked(self, label):
+        i = self._find(label)
+        return Throws("VertexNotFound") if i is None else i
 
     def vertex(self, i):
         require(0 <= i < len(self.labels), f"index {i} out of range")
@@ -302,9 +316,9 @@ class Labeled:
         i, j = self._find(a), self._find(b)
         return i is not None and j is not None and self.base.contains_edge(i, j)
 
-    def safe(self, f, l):
+    def checked(self, f, l):
         if self._find(l) is None:
-            return None
+            return Throws("VertexNotFound")
         self.hashes -= 1  # the trapping member hashes again; the Swift spelling hashes once
         return f(l)
 
@@ -357,11 +371,11 @@ class Labeled:
         self.base.cells.add((i, j))
         return (True, (a, b))
 
-    def insert_safe(self, a, b):
+    def insert_checked(self, a, b):
         self._mutable()
         i, j = self._find(a), self._find(b)
         if i is None or j is None:
-            return None
+            return Throws("VertexNotFound")
         inserted = (i, j) not in self.base.cells
         self.base.cells.add((i, j))
         return (inserted, (a, b))
@@ -373,6 +387,13 @@ class Labeled:
             return None
         self.base.cells.discard((i, j))
         return (a, b)
+
+    def remove_edges_checked(self, l, ends):
+        self._mutable()
+        if self._find(l) is None:
+            return Throws("VertexNotFound")
+        self.hashes -= 1  # the trapping member hashes again; the Swift spelling hashes once
+        return self.remove_edges_where(l, ends)
 
     def remove_edges_where(self, l, ends):
         self._mutable()
@@ -566,6 +587,8 @@ def fmt_state(g):
 
 
 def fmt(x):
+    if isinstance(x, Throws):
+        return "throws " + x.error
     if x is None:
         return "nil"
     if x is VOID:
@@ -603,7 +626,7 @@ def run_call(g, call):
         "contains": lambda l: g.contains(l),
         "contains(edge:)": lambda a, b: g.contains_edge(a, b),
         "vertexIndex": lambda l: g.vertex_index(l),
-        "vertexIndex(safe:)": lambda l: g.vertex_index_safe(l),
+        "vertexIndex(checked:)": lambda l: g.vertex_index_checked(l),
         "vertex(atIndex:)": lambda i: g.vertex(i),
         "successorIndices(ofIndex:)": lambda i: g.successor_indices(i),
         "predecessorIndices(ofIndex:)": lambda i: g.predecessor_indices(i),
@@ -612,24 +635,27 @@ def run_call(g, call):
         "source": lambda p: g.edge_at(p)[0],
         "target": lambda p: g.edge_at(p)[1],
         "edgeIndex": lambda p: g.base.edge_index(p),
-        "successors(safe:)": lambda l: g.safe(g.successors, l),
-        "outEdges(safe:)": lambda l: g.safe(g.out_edges, l),
-        "outDegree(safe:)": lambda l: g.safe(g.out_degree, l),
-        "predecessors(safe:)": lambda l: g.safe(g.predecessors, l),
-        "inEdges(safe:)": lambda l: g.safe(g.in_edges, l),
-        "inDegree(safe:)": lambda l: g.safe(g.in_degree, l),
-        "degree(safe:)": lambda l: g.safe(g.degree, l),
-        "neighbors(safe:)": lambda l: g.safe(g.neighbors, l),
-        "incidentEdges(safe:)": lambda l: g.safe(g.incident_edges, l),
+        "successors(checked:)": lambda l: g.checked(g.successors, l),
+        "outEdges(checked:)": lambda l: g.checked(g.out_edges, l),
+        "outDegree(checked:)": lambda l: g.checked(g.out_degree, l),
+        "predecessors(checked:)": lambda l: g.checked(g.predecessors, l),
+        "inEdges(checked:)": lambda l: g.checked(g.in_edges, l),
+        "inDegree(checked:)": lambda l: g.checked(g.in_degree, l),
+        "degree(checked:)": lambda l: g.checked(g.degree, l),
+        "neighbors(checked:)": lambda l: g.checked(g.neighbors, l),
+        "incidentEdges(checked:)": lambda l: g.checked(g.incident_edges, l),
         "descendants": lambda l: g.descendants(l),
         "topologicalSort": lambda: g.topological_sort(),
         "insert": lambda l: g.insert(l),
         "insert(edge:)": lambda a, b: g.insert_edge(a, b),
-        "insert(safe:)": lambda a, b: g.insert_safe(a, b),
+        "insert(checked:)": lambda a, b: g.insert_checked(a, b),
         "remove(edge:)": lambda a, b: g.remove_edge(a, b),
         "removeEdges(from:)": lambda l: g.remove_edges_where(l, (0,)),
         "removeEdges(to:)": lambda l: g.remove_edges_where(l, (1,)),
         "removeEdges(incidentTo:)": lambda l: g.remove_edges_where(l, (0, 1)),
+        "removeEdges(checkedFrom:)": lambda l: g.remove_edges_checked(l, (0,)),
+        "removeEdges(checkedTo:)": lambda l: g.remove_edges_checked(l, (1,)),
+        "removeEdges(checkedIncidentTo:)": lambda l: g.remove_edges_checked(l, (0, 1)),
         "transposed": lambda: (g.transposed(), VOID)[1],
         "removeAllEdges": lambda: (g.remove_all_edges(), VOID)[1],
         "removeAll": lambda: (g.remove_all(), VOID)[1],
@@ -640,7 +666,7 @@ def run_call(g, call):
 
 def call_text(call):
     name, *args = call
-    if name in ("contains(edge:)", "insert(edge:)", "insert(safe:)", "remove(edge:)"):
+    if name in ("contains(edge:)", "insert(edge:)", "insert(checked:)", "remove(edge:)"):
         return f"{name[:-2]}: {args[0]}→{args[1]})"
     if name == "oppositeVertex":
         return f"oppositeVertex(to: {args[0]}, acrossEdgeAt: {fmt_pos(args[1])})"
@@ -670,6 +696,10 @@ def case(group, title, make, input_text, calls=(), show_state=True):
             check(g)
     except Trap as t:
         trapped = str(t)
+    except Thrown as t:
+        assert g is None, "only an initializer throws"
+        results.append(f"throws {t}")
+        show_state = False
     exp = "; ".join(results)
     if trapped is not None:
         exp = (exp + "; " if exp else "") + f"**trap** ({trapped})"
@@ -754,12 +784,12 @@ def define():
              [("contains", "a"), ("contains", "q"), ("contains(edge:)", "a", "b"), ("contains(edge:)", "b", "a"),
               ("contains(edge:)", "a", "q"), ("contains(edge:)", "q", "q")])
         case("Reads", f"{kind}: index conversions", mk, t,
-             [("vertexIndex", "c"), ("vertex(atIndex:)", 1), ("vertexIndex(safe:)", "q"), ("vertexIndex(safe:)", "b")])
+             [("vertexIndex", "c"), ("vertex(atIndex:)", 1), ("vertexIndex(checked:)", "q"), ("vertexIndex(checked:)", "b")])
         case("Reads", f"{kind}: successorIndices(ofIndex:) forwards the base", mk, t,
              [("successorIndices(ofIndex:)", 0), ("successorIndices(ofIndex:)", 2)])
-        case("Reads", f"{kind}: safe variants", mk, t,
-             [("successors(safe:)", "q"), ("outEdges(safe:)", "q"), ("outDegree(safe:)", "q"),
-              ("successors(safe:)", "c"), ("outDegree(safe:)", "a")])
+        case("Reads", f"{kind}: checked variants", mk, t,
+             [("successors(checked:)", "q"), ("outEdges(checked:)", "q"), ("outDegree(checked:)", "q"),
+              ("successors(checked:)", "c"), ("outEdges(checked:)", "a"), ("outDegree(checked:)", "a")])
         case("Traps", f"{kind}: successors of a non-vertex", mk, t, [("successors", "q")])
         case("Traps", f"{kind}: outDegree of a non-vertex", mk, t, [("outDegree", "q")])
         case("Traps", f"{kind}: vertexIndex of a non-vertex", mk, t, [("vertexIndex", "q")])
@@ -777,9 +807,9 @@ def define():
     case("Reads", "M: predecessors, inEdges, degrees", mk, t,
          [("predecessors", "c"), ("inEdges", "c"), ("inDegree", "c"), ("degree", "c"),
           ("predecessorIndices(ofIndex:)", 2)])
-    case("Reads", "M: bidirectional safe variants", mk, t,
-         [("predecessors(safe:)", "q"), ("inEdges(safe:)", "q"), ("inDegree(safe:)", "q"), ("degree(safe:)", "q"),
-          ("inDegree(safe:)", "a")])
+    case("Reads", "M: bidirectional checked variants", mk, t,
+         [("predecessors(checked:)", "q"), ("inEdges(checked:)", "q"), ("inDegree(checked:)", "q"), ("degree(checked:)", "q"),
+          ("predecessors(checked:)", "c"), ("inEdges(checked:)", "c"), ("inDegree(checked:)", "a"), ("degree(checked:)", "c")])
     case("Traps", "M: predecessors of a non-vertex", mk, t, [("predecessors", "q")])
     mk, t = labeled("M", "", "a>a a>b")
     case("Reads", "M: a self-loop counts in both rows", mk, t,
@@ -826,9 +856,9 @@ def define():
     case("Mutation", "insert(edge:) repeated", mk, t, [("insert(edge:)", "a", "b")])
     case("Mutation", "insert(edge:) inserts missing endpoints, source first", mk, t, [("insert(edge:)", "d", "c")])
     case("Mutation", "insert(edge:) self-loop on a new label", mk, t, [("insert(edge:)", "z", "z")])
-    case("Mutation", "insert(safe:) with both endpoints", mk, t, [("insert(safe:)", "b", "b")])
-    case("Mutation", "insert(safe:) with a missing endpoint changes nothing", mk, t,
-         [("insert(safe:)", "a", "q"), ("insert(safe:)", "q", "a")])
+    case("Mutation", "insert(checked:) with both endpoints", mk, t, [("insert(checked:)", "b", "b")])
+    case("Mutation", "insert(checked:) with a missing endpoint throws, changing nothing", mk, t,
+         [("insert(checked:)", "a", "q"), ("insert(checked:)", "q", "a")])
     case("Mutation", "remove(edge:)", mk, t, [("remove(edge:)", "a", "b"), ("remove(edge:)", "a", "b")])
     case("Mutation", "remove(edge:) with a missing endpoint returns nil", mk, t, [("remove(edge:)", "a", "q")])
     case("Mutation", "removeAllEdges keeps labels", mk, t, [("removeAllEdges",)])
@@ -882,6 +912,13 @@ def define():
     hash_case("matrix, opposite arcs, different index assignment", labeled("M", "b", "a>b b>a a>a"), labeled("M", "a", "b>a a>b a>a"))
     hash_case("different edges", labeled("CSR", "a b", "a>b"), labeled("CSR", "a b", "b>a"))
 
+    # ---- checked bulk edge removal (appended, so the rows above keep their numbers)
+    mk, t = labeled("M", "a b c", "a>b a>c b>a a>a c>b")
+    case("Mutation", "removeEdges(checkedFrom:) / (checkedTo:) / (checkedIncidentTo:) as the trapping ones", mk, t,
+         [("removeEdges(checkedFrom:)", "b"), ("removeEdges(checkedTo:)", "b"), ("removeEdges(checkedIncidentTo:)", "c")])
+    case("Mutation", "removeEdges(checkedFrom:) / (checkedTo:) / (checkedIncidentTo:) of a missing label throw, changing nothing", mk, t,
+         [("removeEdges(checkedFrom:)", "q"), ("removeEdges(checkedTo:)", "q"), ("removeEdges(checkedIncidentTo:)", "q")])
+
 
 def render():
     out = [
@@ -906,7 +943,8 @@ def render():
         "  hashes its elements on top of these). It is a benchmark counter, not API: the Swift suite checks it",
         "  with a `Label` whose `hash(into:)` counts.",
         "* `**trap**` rows are preconditions, run as exit tests (`#expect(processExitsWith:)`); results before",
-        "  the trap are listed.",
+        "  the trap are listed. `throws E` is a typed throw: from `init(_:labels:)`, a `LabelingError` (no state",
+        "  follows); from a `checked:` call on a label that is not a vertex, `VertexNotFound`, changing nothing.",
         "",
         "| ID | Group | Case | Input / call | Expected |",
         "|---|---|---|---|---|",
@@ -936,12 +974,12 @@ def stress():
                 assert r[0] == (not spec.has_edge(a, b))
                 spec.add_edge(a, b)
             elif op < 0.65:
-                r = g.insert_safe(a, b)
+                r = g.insert_checked(a, b)
                 if a in spec and b in spec:
                     assert r == (not spec.has_edge(a, b), (a, b))
                     spec.add_edge(a, b)
                 else:
-                    assert r is None
+                    assert isinstance(r, Throws)
             elif op < 0.9:
                 r = g.remove_edge(a, b)
                 assert (r is not None) == spec.has_edge(a, b)

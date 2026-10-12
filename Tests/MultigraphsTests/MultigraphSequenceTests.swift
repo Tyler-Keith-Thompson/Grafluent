@@ -211,7 +211,7 @@ struct MultigraphSequenceTests {
         // DirectedMultigraph V []; E [0→1, 1→0, 0→1]; remove(edgeAt: 0) / insert(edge: DirectedEdge(from: 2, to: 0)) / remove(1) / edges(from: 2, to: 0)
         var graph = try #require(DirectedMultigraph<Int>(vertices: [] as [Int], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 0), DirectedEdge(from: 0, to: 1)]))
         do { let removed = graph.remove(edgeAt: 0); #expect([removed.source, removed.target] == [0, 1]) }
-        #expect(graph.insert(edge: DirectedEdge(from: 2, to: 0)) == 2)
+        #expect(try graph.insert(edge: DirectedEdge(from: 2, to: 0)) == 2)
         #expect(graph.remove(1) == 1)
         #expect(Array(graph.edges(from: 2, to: 0)) == [0])
         #expect(graph.edges(from: 2, to: 0).count == 1)
@@ -237,7 +237,7 @@ struct MultigraphSequenceTests {
         // Multigraph V []; E [0–1, 1–2, 2–0, 0–1]; removeAllEdges(between: 0, and: 1) / insert(edge: UndirectedEdge(0, 2)) / remove(2)
         var graph = try #require(Multigraph<Int>(vertices: [] as [Int], edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2), UndirectedEdge(2, 0), UndirectedEdge(0, 1)]))
         #expect(graph.removeAllEdges(between: 0, and: 1) == 2)
-        #expect(graph.insert(edge: UndirectedEdge(0, 2)) == 2)
+        #expect(try graph.insert(edge: UndirectedEdge(0, 2)) == 2)
         #expect(graph.remove(2) == 2)
         // Final state.
         #expect(Array(graph.vertices) == [0, 1])

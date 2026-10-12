@@ -37,7 +37,7 @@ func directedAcyclicGraphAnswers(n: Int, edges: [[Int]], source: Int, target: In
     // Accepted edges take positions 0, 1, … in order, so their weights are listed in that order.
     var weights: [Int] = []
     for e in edges {
-        let accepted = dag.insert(edge: DirectedEdge(from: e[0], to: e[1])) != nil
+        let accepted = (try? dag.insert(edge: DirectedEdge(from: e[0], to: e[1]))) != nil
         a.accepted.append(accepted)
         if accepted { weights.append(e[2]) }
     }

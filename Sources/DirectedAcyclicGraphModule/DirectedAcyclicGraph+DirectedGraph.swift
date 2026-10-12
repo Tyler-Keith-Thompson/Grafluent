@@ -71,46 +71,70 @@ extension DirectedAcyclicGraph: SparselyIndexedDirectedGraph where Base: Sparsel
     }
 }
 
-// MARK: - safe: lookups
+// MARK: - checked: lookups
 
-// README Principle 6: `nil` for a vertex that is not in the graph. Each is one hash and then the
-// base's row, for every base, including one without `safe:` members of its own.
+// README Principle 6: `VertexNotFound` for a vertex that is not in the graph. Each is one hash and
+// then the base's row, for every base, including one without `checked:` members of its own.
 
 extension DirectedAcyclicGraph {
-    /// `successors(of: vertex)`, or `nil` when `vertex` is not a vertex. One hash.
+    /// `successors(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. One
+    /// hash.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
     @inlinable
-    public func successors(safe vertex: Vertex) -> Base.Successors? {
-        _base._key(of: vertex).map { _base._successors(ofKey: $0) }
+    public func successors(checked vertex: Vertex) throws(VertexNotFound) -> Base.Successors {
+        guard let key = _base._key(of: vertex) else { throw VertexNotFound() }
+        return _base._successors(ofKey: key)
     }
 
-    /// `predecessors(of: vertex)`, or `nil` when `vertex` is not a vertex. One hash.
+    /// `predecessors(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. One
+    /// hash.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
     @inlinable
-    public func predecessors(safe vertex: Vertex) -> Base.Predecessors? {
-        _base._key(of: vertex).map { _base._predecessors(ofKey: $0) }
+    public func predecessors(checked vertex: Vertex) throws(VertexNotFound) -> Base.Predecessors {
+        guard let key = _base._key(of: vertex) else { throw VertexNotFound() }
+        return _base._predecessors(ofKey: key)
     }
 
-    /// `outEdges(of: vertex)`, or `nil` when `vertex` is not a vertex. One hash.
+    /// `outEdges(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. One
+    /// hash.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
     @inlinable
-    public func outEdges(safe vertex: Vertex) -> Base.OutEdges? {
-        _base._key(of: vertex).map { _base._outEdges(ofKey: $0) }
+    public func outEdges(checked vertex: Vertex) throws(VertexNotFound) -> Base.OutEdges {
+        guard let key = _base._key(of: vertex) else { throw VertexNotFound() }
+        return _base._outEdges(ofKey: key)
     }
 
-    /// `inEdges(of: vertex)`, or `nil` when `vertex` is not a vertex. One hash.
+    /// `inEdges(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. One
+    /// hash.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
     @inlinable
-    public func inEdges(safe vertex: Vertex) -> Base.InEdges? {
-        _base._key(of: vertex).map { _base._inEdges(ofKey: $0) }
+    public func inEdges(checked vertex: Vertex) throws(VertexNotFound) -> Base.InEdges {
+        guard let key = _base._key(of: vertex) else { throw VertexNotFound() }
+        return _base._inEdges(ofKey: key)
     }
 
-    /// `outDegree(of: vertex)`, or `nil` when `vertex` is not a vertex. One hash.
+    /// `outDegree(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. One
+    /// hash.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
     @inlinable
-    public func outDegree(safe vertex: Vertex) -> Int? {
-        _base._key(of: vertex).map { _base._outDegree(ofKey: $0) }
+    public func outDegree(checked vertex: Vertex) throws(VertexNotFound) -> Int {
+        guard let key = _base._key(of: vertex) else { throw VertexNotFound() }
+        return _base._outDegree(ofKey: key)
     }
 
-    /// `inDegree(of: vertex)`, or `nil` when `vertex` is not a vertex. One hash.
+    /// `inDegree(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. One
+    /// hash.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
     @inlinable
-    public func inDegree(safe vertex: Vertex) -> Int? {
-        _base._key(of: vertex).map { _base._inDegree(ofKey: $0) }
+    public func inDegree(checked vertex: Vertex) throws(VertexNotFound) -> Int {
+        guard let key = _base._key(of: vertex) else { throw VertexNotFound() }
+        return _base._inDegree(ofKey: key)
     }
 }
 
@@ -139,10 +163,14 @@ extension DirectedAcyclicGraph {
         return _position(ofKey: key)
     }
 
-    /// `topologicalPosition(of: vertex)`, or `nil` when `vertex` is not a vertex.
+    /// `topologicalPosition(of: vertex)`, throwing instead of trapping when `vertex` is not a
+    /// vertex.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
     @inlinable
-    public func topologicalPosition(safe vertex: Vertex) -> Int? {
-        _base._key(of: vertex).map { _position(ofKey: $0) }
+    public func topologicalPosition(checked vertex: Vertex) throws(VertexNotFound) -> Int {
+        guard let key = _base._key(of: vertex) else { throw VertexNotFound() }
+        return _position(ofKey: key)
     }
 
     /// The vertices in topological order: `topologicalOrder[i]` is the vertex at place `i`

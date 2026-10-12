@@ -7,9 +7,10 @@ read member forwards to the base. The tests come from the proposed API (`api.md`
 [`Tests/Catalogs/DirectedAcyclicGraph/`](../Catalogs/DirectedAcyclicGraph/), phase 1). Its open
 questions are decided as recommended, with these exceptions:
 
-- **No `EdgeInsertion` type.** `insert(edge:) -> Edges.Index?` returns the new position, or `nil`
-  when the edge would close a cycle. `insert(safe:)` also returns `nil`, changing nothing, when an
-  endpoint is missing.
+- **No `EdgeInsertion` type.** `insert(edge:) throws(AcyclicEdgeError) -> Edges.Index` returns the
+  new position, or throws `.cycle` when the edge would close a cycle and `.selfLoop` for a
+  self-loop. `insert(checked:)` also throws `.missingEndpoint`, changing nothing, when an endpoint
+  is missing.
 - **The witness for a rejected u→v** is Traversal's existing query
   `bidirectionalShortestPath(from: v, to: u)`. The tests check that it exists and is a genuine
   shortest path. They do not pin a particular depth-first path.
@@ -29,10 +30,10 @@ struct DirectedAcyclicGraph<Base: MutableDirectedGraph>: BidirectionalDirectedGr
     init(), init(vertices:)                                          // order = vertices order
     init?(edges:), init?(vertices:edges:), init?(_ base: Base), init?(_ graph:), init?(@DirectedGraphBuilder _:)
     var base: Base; var topologicalOrder: TopologicalOrder           // RandomAccessCollection, Index 0..<n
-    topologicalPosition(of:), topologicalPosition(safe:)
-    successors(safe:), predecessors(safe:), outEdges(safe:), inEdges(safe:), outDegree(safe:), inDegree(safe:)
+    topologicalPosition(of:), topologicalPosition(checked:)                 // checked: throws(VertexNotFound)
+    successors(checked:), predecessors(checked:), outEdges(checked:), inEdges(checked:), outDegree(checked:), inDegree(checked:)
     insert(_:) -> (inserted:, memberAfterInsert:)                    // placed last
-    insert(edge:) -> Edges.Index?, insert(safe:) -> Edges.Index?     // nil: would close a cycle (or missing, safe:);
+    insert(edge:), insert(checked:) throws(AcyclicEdgeError) -> Edges.Index  // .cycle, .selfLoop (.missingEndpoint, checked:);
                                                                      // a new source to an old target placed first
     remove(_:), remove(edge:), remove(edgeAt:) (DirectedPseudograph, StableDirectedGraph),
         removeAll(keepingCapacity:), removeAllEdges(keepingCapacity:), reserveCapacity(vertexCount:edgeCount:)
@@ -52,8 +53,8 @@ struct DirectedAcyclicGraph<Base: MutableDirectedGraph>: BidirectionalDirectedGr
 | New vertex | Placed last | DAG-012 |
 | Forward edge | Inserted with no reordering. A missing endpoint is inserted first, source then target. A new source whose target is already a vertex is placed first, any other new endpoint last, so an edge with a new endpoint goes forward and never reorders; the free front slots grow as sources arrive | DAG-013 – DAG-022 |
 | Backward edge | Pearce–Kelly. B (u and its ancestors placed after v), then F (v and its descendants placed before u), each by old place, take the pooled places. Nothing else moves | DAG-023 – DAG-032 |
-| Rejected edge | `nil`, a self-loop included (even on a non-vertex), and nothing changes. The witness is `bidirectionalShortestPath(from: target, to: source)`, one of the shortest paths the cell lists | DAG-032 – DAG-043 |
-| `insert(safe:)` | `nil` for a missing endpoint or a rejected edge, otherwise `insert(edge:)` | DAG-044 – DAG-048 |
+| Rejected edge | Throws `.cycle`, or `.selfLoop` (even on a non-vertex), and nothing changes. The witness is `bidirectionalShortestPath(from: target, to: source)`, one of the shortest paths the cell lists | DAG-032 – DAG-043 |
+| `insert(checked:)` | Throws `.missingEndpoint` for a missing endpoint (checked first), otherwise as `insert(edge:)` | DAG-044 – DAG-048 |
 | Removal | Keeps the order. `remove(_:)` leaves a hole in the vertex's slot (trimmed at either end; the slots are compacted once holes outnumber vertices), places count past the holes, and a swap-removed base's moved vertex keeps its slot; `removeAllEdges()` keeps the order; `removeAll()` clears it | DAG-049 – DAG-069 |
 | Order queries | `topologicalPosition`, the order's subscript, and an order-pruned `hasPath` (true for the same vertex) | DAG-070 – DAG-078 |
 | Equality | The base's: the order is history and does not count | DAG-079, DAG-080 |
@@ -68,11 +69,11 @@ that another mutation follows, the test checks the order, the vertices and the e
 positions. The final state is written out in full:
 
 - the order, its count and its indices;
-- every vertex's place, through `topologicalPosition(of:)`, `topologicalPosition(safe:)` and
+- every vertex's place, through `topologicalPosition(of:)`, `topologicalPosition(checked:)` and
   `topologicalOrder.firstIndex(of:)`;
 - every row by vertex, out and in, with positions and degrees, through both the plain and the
-  `safe:` spellings;
-- a non-vertex answering `nil` through every `safe:` member;
+  `checked:` spellings;
+- a non-vertex throwing `VertexNotFound` through every `checked:` member;
 - every position's ends;
 - the base's vertices and edges.
 
@@ -141,8 +142,8 @@ not from the setup.
   (README Q9); `remove(_:)` as a `MutableDirectedGraph` requirement, from generic code; vertex
   removal through the wrapper hashing as the bare base's removal does (one more on the stable
   base, whose removal finds and drops the vertex in one dictionary operation), compared between
-  two copies of one base since a dictionary removal rehashes the entries it shifts; the two
-  causes of `insert(safe:)`'s nil.
+  two copies of one base since a dictionary removal rehashes the entries it shifts; the three
+  errors of `insert(checked:)`, each with nothing changed.
 - **ShortestPaths** (`Tests/ShortestPathsTests/DAGShortestPathTests.swift`): `dagShortestPaths`
   on every representation, `nil` exactly when a cycle is reachable, several sources, ties, and
   random DAGs with holes against Bellman–Ford.
@@ -161,7 +162,7 @@ order survive, because every closure row had the two orders equal; DAG-075 was a
 |---|---|
 | A self-loop accepted | DAG-030, DAG-031, DAG-044, conformance, properties |
 | Missing endpoints inserted target first | DAG-014, DAG-029, DAG-057 |
-| `insert(safe:)` inserting missing endpoints | DAG-042, properties |
+| `insert(checked:)` inserting missing endpoints | DAG-045, properties |
 | A backward edge inserted without the reorder | 45 tests: reordering rows, conformance, properties, stress |
 | F placed before B | DAG-014, DAG-016, 27 more |
 | B and F each placed in reverse old order | DAG-014, DAG-016, DAG-023, DAG-027, DAG-028 |

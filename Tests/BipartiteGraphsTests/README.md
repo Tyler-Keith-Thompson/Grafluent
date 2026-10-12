@@ -6,7 +6,8 @@ vertex inserted on a side and kept there, every edge across, stored left endpoin
 `UndirectedAdjacencyList` and mutable like it; `isBipartite`, `bipartition()` and `findOddCycle()`
 on any `Graph`; and `projectedGraph(onto:)`. The tests were written before the implementation, from
 the proposed API (`api.md` in [`Tests/Catalogs/BipartiteGraphs/`](../Catalogs/BipartiteGraphs/), phase 1, with the open questions decided: `BipartiteGraph` is simple,
-`insert(edge:)` traps on a same-side edge with no non-trapping variant, no `density`, no
+`insert(edge:)` throws `BipartitionError` on a same-side edge (decided later, replacing a trap),
+no `density`, no
 `isBipartition(left:)`, recognition on `Graph` only, no side-local indices, no moving a vertex
 between sides). The suite uses only the public API, and each test is self-contained. The shared
 material is the `ReferencePseudograph` test conformer, the seeded generator and the tags in
@@ -25,7 +26,8 @@ struct BipartiteGraph<Vertex: Hashable>: Graph, Hashable, Codable (Vertex: Codab
     init?(_ graph: some Graph<Vertex>, left: some Sequence<Vertex>)// nil: an edge not across, or a non-vertex in left
     var left: SideVertices, right: SideVertices                    // RandomAccessCollection, Int indices from 0, a value
     func side(of:) -> BipartiteSide                                // traps on a non-vertex
-    insert(_:on:), insert(edge:)                                   // trap: other side; endpoints missing or on one side
+    insert(_:on:), insert(edge:), insert(checked:)                 // throws(BipartitionError): .onOtherSide, .sameSide;
+                                                                   // a missing endpoint traps (edge:) or throws .missingEndpoint (checked:)
     remove(_:), remove(edge:), removeAll(keepingCapacity:), removeAllEdges(keepingCapacity:), reserveCapacity(vertexCount:edgeCount:)
     func projectedGraph(onto: BipartiteSide) -> UndirectedAdjacencyList<Vertex>
 
@@ -112,8 +114,8 @@ edge as given instead of as stored (5), and the moved slot not renamed after a v
 | `RecognitionRepresentationTests.swift` | 84 | Every recognition row again on `UndirectedAdjacencyList`, a conformer with no indices, `AdjacencyList.undirected` and `AdjacencyMatrix.undirected` |
 | `BipartiteGraphFromGraphTests.swift` | 20 | BP-085 – BP-104: `BipartiteGraph(graph)` and `BipartiteGraph(graph, left:)`, on `ReferencePseudograph` and (without parallel edges) `UndirectedAdjacencyList` |
 | `BipartiteGraphSideInitializerTests.swift` | 14 | BP-105 – BP-118: `BipartiteGraph(left:right:)` and `(left:right:edges:)` |
-| `BipartiteGraphMutationTests.swift` | 23 | BP-119 – BP-141: insertions, removals, slot and side-list moves, re-insertion on the other side, `side(of:)` after moves, projection after mutation, the seeded 37-operation sequence |
-| `BipartiteGraphPreconditionTests.swift` | 10 | Exit tests: BP-142 – BP-149; then `side(of:)` and `insert(edge:)` on the empty graph, `Bipartition.side(of:)` on a non-vertex and `side(ofIndex:)` out of range |
+| `BipartiteGraphMutationTests.swift` | 33 | BP-119 – BP-145, BP-167 – BP-172: insertions, removals, slot and side-list moves, re-insertion on the other side, `side(of:)` after moves, projection after mutation, the seeded 37-operation sequence; `BipartitionError` from `insert(_:on:)` and `insert(edge:)`, and `insert(checked:)`, each throw with the graph unchanged |
+| `BipartiteGraphPreconditionTests.swift` | 6 | Exit tests: BP-146 – BP-149; then `side(of:)` and `insert(edge:)` on the empty graph, `Bipartition.side(of:)` on a non-vertex and `side(ofIndex:)` out of range |
 | `ProjectionTests.swift` | 12 | BP-150 – BP-161: `projectedGraph(onto:)` |
 | `BipartiteGraphEqualityTests.swift` | 5 | BP-162 – BP-166: equality and hashing |
 | `BipartiteGraphLawTests.swift` | 3 | `Graph`'s laws (counts, index maps, rows against `edges`, `oppositeVertex`, degrees, `contains(edge:)`, edge indices, `_withIncidentIndexRows` read back against the index-space rows) and the side invariant on seven graphs, fresh and after removals; generic code; stored sides that are not the canonical ones |
@@ -123,8 +125,8 @@ edge as given instead of as stored (5), and the moved slot not renamed after a v
 | `BipartiteGraphPropertyTests.swift` | 2 | PropertyBased, shrinking: random operation sequences against a model of sides and edges (results, sets, sides, orientation, index rows, equality and hash with a rebuilt graph after every step; Codable and the initializers from a graph at the end); projections after random removals against the definition and the documented order |
 | `BipartiteStressTests.swift` | 5 | Inside a `Task` with a one-minute limit: the 10⁵-vertex path on both kinds of rows, C₁₀₀₀₀₁ and C₁₀₀₀₀₂, the 300 × 300 grid with and without a diagonal, a 10⁵-vertex `BipartiteGraph` built by insertion and half removed, the projections of K₁,₄₀₀ and of the 10⁵-vertex path |
 
-166 catalog rows (158 value rows, 8 trap rows), their 84 representation tests, and 29 more tests
-(2 precondition, 3 laws, 9 conformance, 6 bipartition and view, 4 property, 5 stress): 279 tests in
+172 catalog rows (168 value rows, 4 trap rows), their 84 representation tests, and 29 more tests
+(2 precondition, 3 laws, 9 conformance, 6 bipartition and view, 4 property, 5 stress): 285 tests in
 all.
 
 ## Case IDs
@@ -141,9 +143,11 @@ representations, properties or conformance that the catalog does not list.
 | BP-085 – BP-104 | `BipartiteGraph(graph)`, `BipartiteGraph(graph, left:)` | `BipartiteGraphFromGraphTests.swift` |
 | BP-105 – BP-118 | `BipartiteGraph(left:right:)` | `BipartiteGraphSideInitializerTests.swift` |
 | BP-119 – BP-141 | Mutation | `BipartiteGraphMutationTests.swift` |
-| BP-142 – BP-149 | Preconditions (traps) | `BipartiteGraphPreconditionTests.swift` |
+| BP-142 – BP-145 | Rejection (`BipartitionError`) | `BipartiteGraphMutationTests.swift` |
+| BP-146 – BP-149 | Preconditions (traps) | `BipartiteGraphPreconditionTests.swift` |
 | BP-150 – BP-161 | Projection | `ProjectionTests.swift` |
 | BP-162 – BP-166 | Equality | `BipartiteGraphEqualityTests.swift` |
+| BP-167 – BP-172 | `insert(checked:)` | `BipartiteGraphMutationTests.swift` |
 
 Rows with parallel edges (BP-010 – BP-014, BP-089) are not repeated on the adjacency lists or the
 matrix, which cannot hold them; they run on the unindexed conformer. Rows whose vertices are not
@@ -169,6 +173,6 @@ exactly `0..<n` (BP-059, BP-060) or that have an arc twice are not repeated on t
 | Decoding a repeated edge, or a vertex repeated within one side | api.md does not say whether decoding rejects them (as `UndirectedAdjacencyList` does) or drops them (as `init?(left:right:edges:)` does) |
 | `Bipartition` equality across different graphs with the same sides | api.md: "compares sides by vertex, as `Components` compares groups"; the tests compare bipartitions of one graph, of the same graph rebuilt with edges in another order, and of graphs with different sides |
 | `debugDescription`, `customMirror`, `Bipartition.description` | Formats unspecified; checked non-empty |
-| Complexity (O(1) `side(of:)`, recognition reading `_withIncidentIndexRows` without hashing, a trapping `insert(edge:)` not copying, no recursion) | Benchmarks; the stress tests bound costs loosely and run on a `Task`'s small stack |
+| Complexity (O(1) `side(of:)`, recognition reading `_withIncidentIndexRows` without hashing, a rejected `insert(edge:)` not copying, no recursion) | Benchmarks; the stress tests bound costs loosely and run on a `Task`'s small stack |
 | Recognition on `CompressedSparseRow` and `DirectedGraph` directly | Out of phase 1 (open question 5): recognition is on `Graph`, and compressed sparse row has no `.undirected`; it is tested through `AdjacencyList(csr).undirected` |
 | NetworkX and igraph on random graphs (`just diff`) | Not Swift tests; `ref.py` checks every catalog row against NetworkX 3.7, and the property tests use definition oracles |

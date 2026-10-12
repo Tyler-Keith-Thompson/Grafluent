@@ -92,13 +92,14 @@ struct DirectedAcyclicGraphPropertyTests {
                     #expect(result.inserted == !vertices.contains(x) && result.memberAfterInsert == x, "\(context)")
                     if vertices.insert(x).inserted { order.append(x) }
                 case 1, 2, 3, 4, 5, 6:
-                    let safe = kind == 6
-                    let result = safe ? graph.insert(safe: edge) : graph.insert(edge: edge)
-                    if safe && !(vertices.contains(x) && vertices.contains(y)) {
-                        #expect(result == nil, "\(context)")
+                    let checked = kind == 6
+                    let result = Result { () throws(AcyclicEdgeError) in try checked ? graph.insert(checked: edge) : graph.insert(edge: edge) }
+                    if checked && !(vertices.contains(x) && vertices.contains(y)) {
+                        #expect(result == .failure(.missingEndpoint), "\(context)")
+                        #expect(graph == before && Array(graph.topologicalOrder) == Array(before.topologicalOrder), "\(context)")
                     } else if x == y || (vertices.contains(x) && vertices.contains(y) && distance(from: y, to: x) != nil) {
-                        // Rejected: nil, and nothing changes, not even a missing endpoint.
-                        #expect(result == nil, "\(context)")
+                        // Rejected: thrown, and nothing changes, not even a missing endpoint.
+                        #expect(result == .failure(x == y ? .selfLoop : .cycle), "\(context)")
                         #expect(graph == before && Array(graph.topologicalOrder) == Array(before.topologicalOrder), "\(context)")
                         #expect(Array(graph.edges) == Array(before.edges) && Array(graph.edges.indices) == Array(before.edges.indices), "\(context)")
                         if x != y, let witness = graph.bidirectionalShortestPath(from: y, to: x) {
@@ -116,7 +117,7 @@ struct DirectedAcyclicGraphPropertyTests {
                             order.insert(x, at: 0)
                         }
                         for w in [x, y] where vertices.insert(w).inserted { order.append(w) }
-                        if let position = result {
+                        if case .success(let position) = result {
                             #expect(graph.source(ofEdgeAt: position) == x && graph.target(ofEdgeAt: position) == y, "\(context)")
                         } else {
                             Issue.record("rejected an acyclic edge: \(context)")
@@ -164,7 +165,7 @@ struct DirectedAcyclicGraphPropertyTests {
                 #expect(Array(graph.topologicalOrder) == order, "\(context)")
                 // The laws: every edge goes forward, and the places agree with the order.
                 #expect(graph.edges.allSatisfy { graph.topologicalPosition(of: $0.source) < graph.topologicalPosition(of: $0.target) }, "\(context)")
-                #expect(order.indices.allSatisfy { graph.topologicalPosition(of: order[$0]) == $0 && graph.topologicalPosition(safe: order[$0]) == $0 }, "\(context)")
+                #expect(order.indices.allSatisfy { graph.topologicalPosition(of: order[$0]) == $0 && (try? graph.topologicalPosition(checked: order[$0])) == $0 }, "\(context)")
                 #expect(graph.isAcyclic, "\(context)")
             }
         }
@@ -237,13 +238,14 @@ struct DirectedAcyclicGraphPropertyTests {
                     #expect(result.inserted == !vertices.contains(x) && result.memberAfterInsert == x, "\(context)")
                     if vertices.insert(x).inserted { order.append(x) }
                 case 1, 2, 3, 4, 5, 6:
-                    let safe = kind == 6
-                    let result = safe ? graph.insert(safe: edge) : graph.insert(edge: edge)
-                    if safe && !(vertices.contains(x) && vertices.contains(y)) {
-                        #expect(result == nil, "\(context)")
+                    let checked = kind == 6
+                    let result = Result { () throws(AcyclicEdgeError) in try checked ? graph.insert(checked: edge) : graph.insert(edge: edge) }
+                    if checked && !(vertices.contains(x) && vertices.contains(y)) {
+                        #expect(result == .failure(.missingEndpoint), "\(context)")
+                        #expect(graph == before && Array(graph.topologicalOrder) == Array(before.topologicalOrder), "\(context)")
                     } else if x == y || (vertices.contains(x) && vertices.contains(y) && distance(from: y, to: x) != nil) {
-                        // Rejected: nil, and nothing changes, not even a missing endpoint.
-                        #expect(result == nil, "\(context)")
+                        // Rejected: thrown, and nothing changes, not even a missing endpoint.
+                        #expect(result == .failure(x == y ? .selfLoop : .cycle), "\(context)")
                         #expect(graph == before && Array(graph.topologicalOrder) == Array(before.topologicalOrder), "\(context)")
                         #expect(Array(graph.edges) == Array(before.edges) && Array(graph.edges.indices) == Array(before.edges.indices), "\(context)")
                         if x != y, let witness = graph.bidirectionalShortestPath(from: y, to: x) {
@@ -261,7 +263,7 @@ struct DirectedAcyclicGraphPropertyTests {
                             order.insert(x, at: 0)
                         }
                         for w in [x, y] where vertices.insert(w).inserted { order.append(w) }
-                        if let position = result {
+                        if case .success(let position) = result {
                             #expect(graph.source(ofEdgeAt: position) == x && graph.target(ofEdgeAt: position) == y, "\(context)")
                         } else {
                             Issue.record("rejected an acyclic edge: \(context)")
@@ -312,7 +314,7 @@ struct DirectedAcyclicGraphPropertyTests {
                 #expect(Array(graph.topologicalOrder) == order, "\(context)")
                 // The laws: every edge goes forward, and the places agree with the order.
                 #expect(graph.edges.allSatisfy { graph.topologicalPosition(of: $0.source) < graph.topologicalPosition(of: $0.target) }, "\(context)")
-                #expect(order.indices.allSatisfy { graph.topologicalPosition(of: order[$0]) == $0 && graph.topologicalPosition(safe: order[$0]) == $0 }, "\(context)")
+                #expect(order.indices.allSatisfy { graph.topologicalPosition(of: order[$0]) == $0 && (try? graph.topologicalPosition(checked: order[$0])) == $0 }, "\(context)")
                 #expect(graph.isAcyclic, "\(context)")
             }
         }
@@ -385,13 +387,14 @@ struct DirectedAcyclicGraphPropertyTests {
                     #expect(result.inserted == !vertices.contains(x) && result.memberAfterInsert == x, "\(context)")
                     if vertices.insert(x).inserted { order.append(x) }
                 case 1, 2, 3, 4, 5, 6:
-                    let safe = kind == 6
-                    let result = safe ? graph.insert(safe: edge) : graph.insert(edge: edge)
-                    if safe && !(vertices.contains(x) && vertices.contains(y)) {
-                        #expect(result == nil, "\(context)")
+                    let checked = kind == 6
+                    let result = Result { () throws(AcyclicEdgeError) in try checked ? graph.insert(checked: edge) : graph.insert(edge: edge) }
+                    if checked && !(vertices.contains(x) && vertices.contains(y)) {
+                        #expect(result == .failure(.missingEndpoint), "\(context)")
+                        #expect(graph == before && Array(graph.topologicalOrder) == Array(before.topologicalOrder), "\(context)")
                     } else if x == y || (vertices.contains(x) && vertices.contains(y) && distance(from: y, to: x) != nil) {
-                        // Rejected: nil, and nothing changes, not even a missing endpoint.
-                        #expect(result == nil, "\(context)")
+                        // Rejected: thrown, and nothing changes, not even a missing endpoint.
+                        #expect(result == .failure(x == y ? .selfLoop : .cycle), "\(context)")
                         #expect(graph == before && Array(graph.topologicalOrder) == Array(before.topologicalOrder), "\(context)")
                         #expect(Array(graph.edges) == Array(before.edges) && Array(graph.edges.indices) == Array(before.edges.indices), "\(context)")
                         if x != y, let witness = graph.bidirectionalShortestPath(from: y, to: x) {
@@ -409,7 +412,7 @@ struct DirectedAcyclicGraphPropertyTests {
                             order.insert(x, at: 0)
                         }
                         for w in [x, y] where vertices.insert(w).inserted { order.append(w) }
-                        if let position = result {
+                        if case .success(let position) = result {
                             #expect(graph.source(ofEdgeAt: position) == x && graph.target(ofEdgeAt: position) == y, "\(context)")
                         } else {
                             Issue.record("rejected an acyclic edge: \(context)")
@@ -460,7 +463,7 @@ struct DirectedAcyclicGraphPropertyTests {
                 #expect(Array(graph.topologicalOrder) == order, "\(context)")
                 // The laws: every edge goes forward, and the places agree with the order.
                 #expect(graph.edges.allSatisfy { graph.topologicalPosition(of: $0.source) < graph.topologicalPosition(of: $0.target) }, "\(context)")
-                #expect(order.indices.allSatisfy { graph.topologicalPosition(of: order[$0]) == $0 && graph.topologicalPosition(safe: order[$0]) == $0 }, "\(context)")
+                #expect(order.indices.allSatisfy { graph.topologicalPosition(of: order[$0]) == $0 && (try? graph.topologicalPosition(checked: order[$0])) == $0 }, "\(context)")
                 #expect(graph.isAcyclic, "\(context)")
             }
         }
@@ -520,7 +523,7 @@ struct DirectedAcyclicGraphPropertyTests {
             var graph = DirectedAcyclicGraph<StableDirectedGraph<Int>>()
             for (kind, x, y) in operations {
                 switch kind {
-                case 0, 1: _ = graph.insert(edge: DirectedEdge(from: x, to: y))
+                case 0, 1: _ = try? graph.insert(edge: DirectedEdge(from: x, to: y))
                 case 2: _ = graph.remove(x)
                 default: _ = graph.remove(edge: DirectedEdge(from: x, to: y))
                 }
@@ -531,7 +534,7 @@ struct DirectedAcyclicGraphPropertyTests {
                 #expect(Array(again.edges.indices) == Array(graph.edges.indices) && Array(again.vertices) == Array(graph.vertices), "\(operations)")
                 var dense = DirectedAcyclicGraph<DirectedPseudograph<Int>>()
                 for v in graph.topologicalOrder { dense.insert(v) }
-                for e in graph.edges { _ = dense.insert(edge: e) }
+                for e in graph.edges { try dense.insert(edge: e) }
                 let denseAgain = try JSONDecoder().decode(DirectedAcyclicGraph<DirectedPseudograph<Int>>.self, from: try JSONEncoder().encode(dense))
                 #expect(denseAgain == dense && Array(denseAgain.topologicalOrder) == Array(graph.topologicalOrder), "\(operations)")
             } catch {

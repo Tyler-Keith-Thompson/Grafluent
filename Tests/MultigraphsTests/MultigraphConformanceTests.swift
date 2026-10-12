@@ -389,7 +389,7 @@ struct MultigraphConformanceTests {
         let multigraph = try #require(Multigraph<Int>(edges: [UndirectedEdge(0, 1), UndirectedEdge(0, 1)]))
         var multigraphCopy = multigraph
         multigraphCopy.remove(edge: UndirectedEdge(0, 1))
-        multigraphCopy.insert(edge: UndirectedEdge(2, 3))
+        try multigraphCopy.insert(edge: UndirectedEdge(2, 3))
         #expect(multigraph.edgeCount == 2 && multigraph.vertexCount == 2)
         let directedMultigraph = try #require(DirectedMultigraph<Int>(edges: [DirectedEdge(from: 0, to: 1)]))
         var directedMultigraphCopy = directedMultigraph
@@ -427,7 +427,7 @@ struct MultigraphConformanceTests {
         var multigraph = Multigraph<Int>()
         multigraph.reserveCapacity(vertexCount: 0, edgeCount: 0)
         multigraph.reserveCapacity(vertexCount: 10, edgeCount: 10)
-        #expect(multigraph.insert(edge: UndirectedEdge(0, 1)) == 0)
+        #expect(try multigraph.insert(edge: UndirectedEdge(0, 1)) == 0)
         multigraph.removeAllEdges()
         #expect(multigraph.vertexCount == 2)
         multigraph.removeAll()
@@ -441,6 +441,6 @@ struct MultigraphConformanceTests {
         var directedMultigraph = try #require(DirectedMultigraph<Int>(edges: [DirectedEdge(from: 0, to: 1)]))
         directedMultigraph.removeAll(keepingCapacity: true)
         #expect(directedMultigraph.vertexCount == 0)
-        #expect(directedMultigraph.insert(edge: DirectedEdge(from: 4, to: 5)) == 0)
+        #expect(try directedMultigraph.insert(edge: DirectedEdge(from: 4, to: 5)) == 0)
     }
 }

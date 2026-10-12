@@ -91,19 +91,23 @@ extension LabeledGraph: Codable where Label: Codable, Base: DirectedGraph<Int> &
         try container.encode(_base, forKey: .base)
     }
 
-    /// Decodes and re-checks the preconditions of `init(_:labels:)`. A broken one is a
+    /// Decodes and re-checks the requirements of `init(_:labels:)`. A `LabelingError` becomes a
     /// `DecodingError.dataCorrupted` at `labels` (a count mismatch or a repeated label) or at
     /// `base` (vertices that are not `0..<vertexCount` in index order).
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: _CodingKeys.self)
         let labels = try container.decode([Label].self, forKey: .labels)
         let base = try container.decode(Base.self, forKey: .base)
-        switch Self._validated(base, labels: labels) {
-        case .success(let set):
-            self.init(_labels: set, _base: base)
-        case .failure(let failure):
-            let key: _CodingKeys = failure.inBase ? .base : .labels
-            throw DecodingError.dataCorruptedError(forKey: key, in: container, debugDescription: failure.message)
+        do throws(LabelingError) {
+            self = try Self(base, labels: labels)
+        } catch {
+            let (key, message): (_CodingKeys, String) = switch error {
+            case .baseNotDenselyIndexed: (.base, "base is not densely indexed (vertexIndexBound is nil)")
+            case .baseVerticesNotInIndexOrder: (.base, "base vertices are not 0..<vertexCount in index order")
+            case .labelCountMismatch(let labelCount, let vertexCount): (.labels, "\(labelCount) labels for \(vertexCount) vertices")
+            case .duplicateLabel(let position): (.labels, "duplicate label \(labels[position])")
+            }
+            throw DecodingError.dataCorruptedError(forKey: key, in: container, debugDescription: message)
         }
     }
 }

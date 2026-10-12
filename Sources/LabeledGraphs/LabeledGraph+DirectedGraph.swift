@@ -308,24 +308,30 @@ extension LabeledGraph: DirectedGraph where Base: DirectedGraph<Int> {
 }
 
 extension LabeledGraph where Base: DirectedGraph<Int> {
-    /// `successors(of:)`, or `nil` when `label` is not a vertex. One hash.
+    /// `successors(of:)`, throwing instead of trapping when `label` is not a vertex. One hash.
+    ///
+    /// - Throws: `VertexNotFound` when `label` is not a vertex.
     @inlinable
-    public func successors(safe label: Label) -> Successors? {
-        guard let index = _labels.firstIndex(of: label) else { return nil }
+    public func successors(checked label: Label) throws(VertexNotFound) -> Successors {
+        guard let index = _labels.firstIndex(of: label) else { throw VertexNotFound() }
         return _successors(ofIndex: index)
     }
 
-    /// `outEdges(of:)`, or `nil` when `label` is not a vertex. One hash.
+    /// `outEdges(of:)`, throwing instead of trapping when `label` is not a vertex. One hash.
+    ///
+    /// - Throws: `VertexNotFound` when `label` is not a vertex.
     @inlinable
-    public func outEdges(safe label: Label) -> Base.OutEdges? {
-        guard let index = _labels.firstIndex(of: label) else { return nil }
+    public func outEdges(checked label: Label) throws(VertexNotFound) -> Base.OutEdges {
+        guard let index = _labels.firstIndex(of: label) else { throw VertexNotFound() }
         return _base.outEdges(ofIndex: index)
     }
 
-    /// `outDegree(of:)`, or `nil` when `label` is not a vertex. One hash.
+    /// `outDegree(of:)`, throwing instead of trapping when `label` is not a vertex. One hash.
+    ///
+    /// - Throws: `VertexNotFound` when `label` is not a vertex.
     @inlinable
-    public func outDegree(safe label: Label) -> Int? {
-        guard let index = _labels.firstIndex(of: label) else { return nil }
+    public func outDegree(checked label: Label) throws(VertexNotFound) -> Int {
+        guard let index = _labels.firstIndex(of: label) else { throw VertexNotFound() }
         return _base.outDegree(of: index)
     }
 }
@@ -508,31 +514,39 @@ extension LabeledGraph.Predecessors: Sendable where Label: Sendable, Base.Predec
 extension LabeledGraph.Predecessors.Iterator: Sendable where Label: Sendable, Base.PredecessorIndices.Iterator: Sendable {}
 
 extension LabeledGraph where Base: BidirectionalDirectedGraph<Int> {
-    /// `predecessors(of:)`, or `nil` when `label` is not a vertex. One hash.
+    /// `predecessors(of:)`, throwing instead of trapping when `label` is not a vertex. One hash.
+    ///
+    /// - Throws: `VertexNotFound` when `label` is not a vertex.
     @inlinable
-    public func predecessors(safe label: Label) -> Predecessors? {
-        guard let index = _labels.firstIndex(of: label) else { return nil }
+    public func predecessors(checked label: Label) throws(VertexNotFound) -> Predecessors {
+        guard let index = _labels.firstIndex(of: label) else { throw VertexNotFound() }
         return _predecessors(ofIndex: index)
     }
 
-    /// `inEdges(of:)`, or `nil` when `label` is not a vertex. One hash.
+    /// `inEdges(of:)`, throwing instead of trapping when `label` is not a vertex. One hash.
+    ///
+    /// - Throws: `VertexNotFound` when `label` is not a vertex.
     @inlinable
-    public func inEdges(safe label: Label) -> Base.InEdges? {
-        guard let index = _labels.firstIndex(of: label) else { return nil }
+    public func inEdges(checked label: Label) throws(VertexNotFound) -> Base.InEdges {
+        guard let index = _labels.firstIndex(of: label) else { throw VertexNotFound() }
         return _base.inEdges(ofIndex: index)
     }
 
-    /// `inDegree(of:)`, or `nil` when `label` is not a vertex. One hash.
+    /// `inDegree(of:)`, throwing instead of trapping when `label` is not a vertex. One hash.
+    ///
+    /// - Throws: `VertexNotFound` when `label` is not a vertex.
     @inlinable
-    public func inDegree(safe label: Label) -> Int? {
-        guard let index = _labels.firstIndex(of: label) else { return nil }
+    public func inDegree(checked label: Label) throws(VertexNotFound) -> Int {
+        guard let index = _labels.firstIndex(of: label) else { throw VertexNotFound() }
         return _base.inDegree(of: index)
     }
 
-    /// `degree(of:)`, or `nil` when `label` is not a vertex. One hash.
+    /// `degree(of:)`, throwing instead of trapping when `label` is not a vertex. One hash.
+    ///
+    /// - Throws: `VertexNotFound` when `label` is not a vertex.
     @inlinable
-    public func degree(safe label: Label) -> Int? {
-        guard let index = _labels.firstIndex(of: label) else { return nil }
+    public func degree(checked label: Label) throws(VertexNotFound) -> Int {
+        guard let index = _labels.firstIndex(of: label) else { throw VertexNotFound() }
         return _base.degree(of: index)
     }
 }

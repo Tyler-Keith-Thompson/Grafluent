@@ -29,23 +29,40 @@ struct BipartiteGraphPropertyTests {
                 let context = "step \(step) of \(operations)"
                 switch kind {
                 case 0, 1, 2:
-                    // Insert a vertex, on its own side when it already has one (the other side traps).
+                    // Insert a vertex, on its own side when it already has one; the other side
+                    // throws and changes nothing.
                     let side: BipartiteSide = sides[a] ?? (onLeft ? .left : .right)
-                    let result = graph.insert(a, on: side)
+                    if let existing = sides[a] {
+                        let before = graph
+                        #expect(throws: BipartitionError.onOtherSide(existing), "\(context)") {
+                            try graph.insert(a, on: existing == .left ? .right : .left)
+                        }
+                        #expect(graph == before && Array(graph.vertices) == Array(before.vertices), "\(context)")
+                    }
+                    let result = try graph.insert(a, on: side)
                     #expect(result.inserted == (sides[a] == nil), "\(context)")
                     #expect(result.memberAfterInsert == a)
                     sides[a] = side
                 case 3, 4, 5:
                     // Insert an edge when it is legal; otherwise ask for it.
                     if let sa = sides[a], let sb = sides[b], sa != sb {
-                        let result = graph.insert(edge: UndirectedEdge(a, b))
+                        let result = try graph.insert(edge: UndirectedEdge(a, b))
                         #expect(result.inserted == !edges.contains(UndirectedEdge(a, b)), "\(context)")
                         let leftEnd = sa == .left ? a : b
                         #expect(result.memberAfterInsert.u == leftEnd, "\(context)")
                         #expect(result.memberAfterInsert == UndirectedEdge(a, b))
                         edges.insert(UndirectedEdge(a, b))
                     } else {
+                        // Otherwise it throws, changing nothing: a missing endpoint only from the
+                        // checked spelling, which tests it first.
                         #expect(graph.contains(edge: UndirectedEdge(a, b)) == false)
+                        let before = graph
+                        let expected: BipartitionError = if let sa = sides[a], sides[b] != nil { .sameSide(sa) } else { .missingEndpoint }
+                        #expect(throws: expected, "\(context)") { try graph.insert(checked: UndirectedEdge(a, b)) }
+                        if expected != .missingEndpoint {
+                            #expect(throws: expected, "\(context)") { try graph.insert(edge: UndirectedEdge(a, b)) }
+                        }
+                        #expect(graph == before && Array(graph.edges) == Array(before.edges), "\(context)")
                     }
                 case 6, 7:
                     let removed = graph.remove(edge: UndirectedEdge(a, b))

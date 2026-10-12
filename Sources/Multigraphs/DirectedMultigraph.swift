@@ -6,7 +6,7 @@ import GraphProtocols
 /// its identity. Opposite edges, `u→v` and `v→u`, are allowed.
 ///
 /// The invariant is the type: every initializer from unchecked input is failable, and inserting a
-/// self-loop traps. Storage, costs and the order rules are `DirectedPseudograph`'s, which it
+/// self-loop throws `SelfLoopError`. Storage, costs and the order rules are `DirectedPseudograph`'s, which it
 /// wraps: `DirectedPseudograph(directedMultigraph)` is O(1).
 @frozen
 public struct DirectedMultigraph<Vertex: Hashable> {
@@ -160,11 +160,12 @@ extension DirectedMultigraph {
     /// amortized.
     ///
     /// - Returns: The new copy's position in `edges`, which is the old `edgeCount`.
-    /// - Precondition: `!edge.isSelfLoop`. Checked before anything is inserted.
+    /// - Throws: `SelfLoopError` when `edge` is a self-loop, checked before anything is inserted;
+    ///   then nothing changes.
     @inlinable
     @discardableResult
-    public mutating func insert(edge: DirectedEdge<Vertex>) -> Int {
-        precondition(!edge.isSelfLoop, "A DirectedMultigraph has no self-loops: \(edge)")
+    public mutating func insert(edge: DirectedEdge<Vertex>) throws(SelfLoopError) -> Int {
+        if edge.isSelfLoop { throw SelfLoopError() }
         return _base.insert(edge: edge)
     }
 

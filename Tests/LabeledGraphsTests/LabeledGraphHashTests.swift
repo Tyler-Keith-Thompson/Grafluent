@@ -70,7 +70,7 @@ struct LabeledGraphHashTests {
         #expect(sink != 0)
     }
 
-    @Test("Every label-space member hashes once (contains(edge:) once per endpoint), safe spellings hit or miss")
+    @Test("Every label-space member hashes once (contains(edge:) once per endpoint), checked spellings hit or miss")
     func labelSpaceMembersHashOnce() {
         final class Tally {
             var hashes = 0
@@ -103,11 +103,11 @@ struct LabeledGraphHashTests {
         #expect(hashes { _ = csr.contains(hub) } == 1)
         #expect(hashes { _ = csr.contains(absent) } == 1)
         #expect(hashes { _ = csr.vertexIndex(of: hub) } == 1)
-        #expect(hashes { _ = csr.vertexIndex(safe: absent) } == 1)
-        #expect(hashes { _ = csr.successors(safe: hub).map { Array($0) } } == 1)
-        #expect(hashes { _ = csr.successors(safe: absent) } == 1)
-        #expect(hashes { _ = csr.outEdges(safe: hub).map { Array($0) } } == 1)
-        #expect(hashes { _ = csr.outDegree(safe: absent) } == 1)
+        #expect(hashes { _ = try? csr.vertexIndex(checked: absent) } == 1)
+        #expect(hashes { _ = (try? csr.successors(checked: hub)).map { Array($0) } } == 1)
+        #expect(hashes { _ = try? csr.successors(checked: absent) } == 1)
+        #expect(hashes { _ = (try? csr.outEdges(checked: hub)).map { Array($0) } } == 1)
+        #expect(hashes { _ = try? csr.outDegree(checked: absent) } == 1)
         #expect(hashes { _ = csr.contains(edge: DirectedEdge(from: hub, to: label(5))) } == 2)
         #expect(hashes { _ = Array(matrix.successors(of: hub)) } == 1)
         #expect(hashes { _ = Array(matrix.predecessors(of: hub)) } == 1)
@@ -115,12 +115,12 @@ struct LabeledGraphHashTests {
         #expect(hashes { _ = Array(matrix.inEdges(of: hub)) } == 1)
         #expect(hashes { _ = matrix.inDegree(of: hub) } == 1)
         #expect(hashes { _ = matrix.degree(of: hub) } == 1)
-        #expect(hashes { _ = matrix.predecessors(safe: hub).map { Array($0) } } == 1)
-        #expect(hashes { _ = matrix.predecessors(safe: absent) } == 1)
-        #expect(hashes { _ = matrix.inEdges(safe: absent) } == 1)
-        #expect(hashes { _ = matrix.inDegree(safe: hub) } == 1)
-        #expect(hashes { _ = matrix.degree(safe: hub) } == 1)
-        #expect(hashes { _ = matrix.degree(safe: absent) } == 1)
+        #expect(hashes { _ = (try? matrix.predecessors(checked: hub)).map { Array($0) } } == 1)
+        #expect(hashes { _ = try? matrix.predecessors(checked: absent) } == 1)
+        #expect(hashes { _ = try? matrix.inEdges(checked: absent) } == 1)
+        #expect(hashes { _ = try? matrix.inDegree(checked: hub) } == 1)
+        #expect(hashes { _ = try? matrix.degree(checked: hub) } == 1)
+        #expect(hashes { _ = try? matrix.degree(checked: absent) } == 1)
         #expect(hashes { _ = matrix.contains(edge: DirectedEdge(from: label(3), to: hub)) } == 2)
         // The undirected view calls successors(of:) and predecessors(of:): two.
         #expect(hashes { _ = Array(matrix.undirected.neighbors(of: hub)) } == 2)

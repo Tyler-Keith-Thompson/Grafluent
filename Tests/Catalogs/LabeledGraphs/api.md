@@ -35,7 +35,7 @@ To run it:
 | Module | **`LabeledGraphs`** (exists as a stub) | README package layout |
 | Label ↔ index | **`vertexIndex(of:)` / `vertex(atIndex:)`**, the existing `DirectedGraph` members. The label *is* the vertex, so there is no `label(of:)` and no `index(of:)` alias | GraphProtocols |
 | Base access | **`base`** (read-only), as `UndirectedView`/`DirectedView` name it and BGL's `labeled_graph::graph()` provides | README open question 9; BGL |
-| Non-trapping | **`vertexIndex(safe:)`**, plus the `safe:` row lookups of Principle 6 | README Principle 6 |
+| Non-trapping | **`vertexIndex(checked:)`**, plus the `checked:` row lookups of Principle 6, throwing `VertexNotFound` | README Principle 6 |
 
 ## Storage
 
@@ -76,7 +76,7 @@ n = vertices, m = edges, d = the row's degree. "Expected" means hashing.
 ```swift
 extension LabeledGraph where Base: DirectedGraph<Int> {
     /// labels[i] names base vertex i.
-    public init(_ base: Base, labels: some Sequence<Label>)            // O(n) expected
+    public init(_ base: Base, labels: some Sequence<Label>) throws(LabelingError)   // O(n) expected
 }
 extension LabeledGraph where Base == CompressedSparseRow {
     public init()
@@ -97,11 +97,16 @@ extension LabeledGraph where Base == AdjacencyMatrix {
 - **Parallel edges** collapse, because both bases store a set (LG-005, LG-011, LG-015).
 - **Positions are the base's.** CSR's are `Int`s in row-major order of the *indices*, not of the
   input (LG-013). The matrix's are `(source, target)` cells (LG-014).
-- **Traps in `init(_:labels:)`:**
-  - the label count differs from `base.vertexCount` (LG-018, LG-019);
-  - a label repeats (LG-020);
-  - the base vertices are not `0..<n` in index order (LG-021, LG-022);
-  - `base.vertexIndexBound == nil`, as on a `StableDirectedGraph` with holes (LG-023).
+- **`init(_:labels:)` throws `LabelingError`** (decided 2026-10-11, replacing traps; the shape of
+  `CompressedSparseRow.ValidationError`), the first requirement broken, checked in this order:
+  - `.baseNotDenselyIndexed`: `base.vertexIndexBound == nil`, as on a `StableDirectedGraph` with
+    holes (LG-023);
+  - `.baseVerticesNotInIndexOrder`: the base vertices are not `0..<n` in index order (LG-021,
+    LG-022);
+  - `.labelCountMismatch(labelCount:vertexCount:)`: the label count differs from
+    `base.vertexCount` (LG-018, LG-019);
+  - `.duplicateLabel(position:)`: the label at that offset repeats an earlier one (LG-020).
+  Decoding reports the same failures as `DecodingError.dataCorrupted`.
 
 ### Reads (`Base: DirectedGraph<Int>`)
 
@@ -147,15 +152,15 @@ Every label-space member looks the label up once and then reads the base by inde
 (`_labels.firstIndex(of:)`, trapping with "`\(label)` is not a vertex of the graph"). Results
 come back in the base's row order: ascending index for both bases (LG-025, LG-035, LG-050).
 
-**`safe:` variants (Principle 6).** Each returns `nil` for a label that is not a vertex and costs
-the one hash of its trapping spelling:
+**`checked:` variants (Principle 6).** Each throws `VertexNotFound` for a label that is not a
+vertex and costs the one hash of its trapping spelling:
 
-- `vertexIndex(safe:) -> Int?`;
-- `successors(safe:)`, `outEdges(safe:)`, `outDegree(safe:)`;
-- with a bidirectional base: `predecessors(safe:)`, `inEdges(safe:)`, `inDegree(safe:)` and
-  `degree(safe:)`.
+- `vertexIndex(checked:) throws(VertexNotFound) -> Int`;
+- `successors(checked:)`, `outEdges(checked:)`, `outDegree(checked:)`;
+- with a bidirectional base: `predecessors(checked:)`, `inEdges(checked:)`, `inDegree(checked:)`
+  and `degree(checked:)`.
 
-`vertex(atIndex:)` has no `safe:` spelling, because `0..<vertexCount` is a range check the caller
+`vertex(atIndex:)` has no `checked:` spelling, because `0..<vertexCount` is a range check the caller
 can make. The rows are LG-027, LG-029, LG-037, LG-039 and LG-051.
 
 **Traps.** These are preconditions:
@@ -179,10 +184,13 @@ extension LabeledGraph where Base == AdjacencyMatrix {
         // appends base vertex n: amortized O(n / 64) (the base's appendVertex) + O(1) expected
     @discardableResult public mutating func insert(edge: DirectedEdge<Label>) -> (inserted: Bool, memberAfterInsert: DirectedEdge<Label>)
         // inserts a missing endpoint, source first (NetworkX add_edge; README row "Incremental")
-    @discardableResult public mutating func insert(safe edge: DirectedEdge<Label>) -> (inserted: Bool, memberAfterInsert: DirectedEdge<Label>)?
-        // nil and no change unless both endpoints are vertices
+    @discardableResult public mutating func insert(checked edge: DirectedEdge<Label>) throws(VertexNotFound) -> (inserted: Bool, memberAfterInsert: DirectedEdge<Label>)
+        // throws, changing nothing, unless both endpoints are vertices
     @discardableResult public mutating func remove(edge: DirectedEdge<Label>) -> DirectedEdge<Label>?
         // nil for a non-edge, including a non-vertex endpoint (the base's remove(edge:) contract)
+    @discardableResult public mutating func removeEdges(from: Label) -> Int          // also (to:), (incidentTo:); trap on a non-vertex
+    @discardableResult public mutating func removeEdges(checkedFrom: Label) throws(VertexNotFound) -> Int
+        // also (checkedTo:), (checkedIncidentTo:): throw, changing nothing, for a non-vertex (LG-097, LG-098)
     public mutating func removeAllEdges(keepingCapacity: Bool = false)   // labels kept
     public mutating func removeAll(keepingCapacity: Bool = false)        // labels and base cleared
     public mutating func reserveCapacity(vertexCount: Int)
@@ -262,7 +270,7 @@ law catches it. The Swift suite needs one benchmark-only check with a counting `
 ## Open questions (with recommendations)
 
 1. **Which bases?** *Recommendation:* conform for any `Base: DirectedGraph<Int>` whose vertices
-   are `0..<n` in index order (trapped at init), and give construction and mutation for
+   are `0..<n` in index order (`LabelingError` at init), and give construction and mutation for
    `CompressedSparseRow` and `AdjacencyMatrix` only. Those are the representations that cannot
    take labels themselves.
    - `AdjacencyList<Int>`, `DirectedPseudograph<Int>` and `StableDirectedGraph<Int>` already hash
@@ -296,7 +304,7 @@ law catches it. The Swift suite needs one benchmark-only check with a counting `
      matters;
    - `LabeledGraph<Label, AdjacencyMatrix>` for dense graphs.
 3. **Surface.** *Recommendation:* as above. The label is the vertex, conversions are the existing
-   `vertexIndex(of:)` / `vertex(atIndex:)` plus `vertexIndex(safe:)`, and `base` is read-only.
+   `vertexIndex(of:)` / `vertex(atIndex:)` plus `vertexIndex(checked:)`, and `base` is read-only.
    No public `labels` property, since `vertices` is the `OrderedSet`.
 4. **Performance.** *Recommendation:* forward the index-space members and bind the index
    associated types to the base's. This is the whole mechanism, so there is no special case in

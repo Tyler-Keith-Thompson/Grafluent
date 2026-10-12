@@ -2,7 +2,8 @@
 // self-loops (bipartite iff some assignment of sides puts every edge across; every returned odd
 // cycle valid and canonical; sides canonical: each component's least vertex left), and random
 // mutation sequences on BipartiteGraph against a model (a side per vertex and a set of edges),
-// checking the invariant, the Graph laws that matter (counts, degrees, rows parallel), `left` and
+// including rejected ones (`BipartitionError`, from `insert(_:on:)`, `insert(edge:)` and
+// `insert(checked:)`, which then change nothing), checking the invariant, the Graph laws that matter (counts, degrees, rows parallel), `left` and
 // `right` against the model, equality, hashing and the `init(_:left:)` round trip (Codable is the test suite's: the fuzzing
 // toolchain has no JSON coders).
 
@@ -84,18 +85,32 @@ enum FuzzBipartiteGraphs {
             switch input.int(below: 5) {
             case 0, 1:
                 let s: BipartiteSide = v % 2 == 0 ? .left : .right
-                if side[v] == nil || side[v] == s {
-                    let inserted = graph.insert(v, on: s).inserted
-                    check(inserted == (side[v] == nil), "insert vertex result")
+                let result = Result { () throws(BipartitionError) in try graph.insert(v, on: s).inserted }
+                if let existing = side[v], existing != s {
+                    check(result == .failure(.onOtherSide(existing)), "insert vertex on the other side: \(result)")
+                } else {
+                    check(result == .success(side[v] == nil), "insert vertex result")
                     side[v] = s
                 }
             case 2:
+                let edge = UndirectedEdge(v, w)
+                let checked = input.int(below: 2) == 0
                 if let a = side[v], let b = side[w], a != b {
-                    let edge = UndirectedEdge(v, w)
-                    let (inserted, member) = graph.insert(edge: edge)
+                    let result = Result { () throws(BipartitionError) in try checked ? graph.insert(checked: edge) : graph.insert(edge: edge) }
+                    guard case .success(let (inserted, member)) = result else {
+                        check(false, "a legal edge was rejected: \(result)")
+                        break
+                    }
                     check(inserted == !edges.contains(edge), "insert edge result")
                     check(graph.side(of: member.u) == .left, "edge not stored left endpoint first")
                     edges.insert(edge)
+                } else if let a = side[v], side[w] != nil {
+                    let result = Result { () throws(BipartitionError) in try checked ? graph.insert(checked: edge) : graph.insert(edge: edge) }.map(\.inserted)
+                    check(result == .failure(.sameSide(a)), "an edge inside a side: \(result)")
+                } else {
+                    // A missing endpoint: insert(edge:) traps, insert(checked:) throws.
+                    let result = Result { () throws(BipartitionError) in try graph.insert(checked: edge) }.map(\.inserted)
+                    check(result == .failure(.missingEndpoint), "an edge with a missing endpoint: \(result)")
                 }
             case 3:
                 check((graph.remove(v) != nil) == (side[v] != nil), "remove vertex result")

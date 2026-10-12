@@ -22,6 +22,7 @@ Conventions:
 * `BipartiteGraph` rows print `V` (`vertices` order), `L` (`left`), `R` (`right`), `E` (`edges`
   by position, each left endpoint first). Mutation rows list each call's result, separated by `/`.
 * `trap` rows are preconditions: tests run them as exit tests (`#expect(processExitsWith:)`).
+  `throws .case` is a call that threw that `BipartitionError` case and changed nothing.
 
 | ID | Group | Case | Input / call | Expected |
 |---|---|---|---|---|
@@ -166,10 +167,10 @@ Conventions:
 | BP-139 | Mutation | side(of:) after the slot moved | left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; remove("b"); side(of: "y"); side(of: "c") | b / .right / .left; final V [a, y, c, x]; L [a, c]; R [x, y]; E [a–x, c–y] |
 | BP-140 | Mutation | projection still correct after mutation | left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; remove("b"); insert("d", on: .left); insert(edge: d–x); insert(edge: d–y); projectedGraph(onto: .left) | b / inserted true / inserted true, d–x / inserted true, d–y / V [a, c, d]; E [a–d, c–d]; final V [a, y, c, x, d]; L [a, c, d]; R [x, y]; E [a–x, c–y, d–x, d–y] |
 | BP-141 | Mutation | long random sequence (seed 7) | from empty, 37 random operations (ref.py `random_ops(7)`) | final V [6, 9, 1]; L [6]; R [1, 9]; E [6–9] |
-| BP-142 | Preconditions | insert a vertex on the other side | left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; insert("a", on: .right) | trap (the vertex is on the other side) |
-| BP-143 | Preconditions | insert an edge inside left | left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; insert(edge: a–b) | trap (both endpoints are on one side) |
-| BP-144 | Preconditions | insert an edge inside right | left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; insert(edge: x–y) | trap (both endpoints are on one side) |
-| BP-145 | Preconditions | insert a self-loop | left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; insert(edge: a–a) | trap (both endpoints are on one side) |
+| BP-142 | Rejection | insert a vertex on the other side | left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; insert("a", on: .right) | throws .onOtherSide(.left); final V [a, b, c, x, y]; L [a, b, c]; R [x, y]; E [a–x, b–x, b–y, c–y] |
+| BP-143 | Rejection | insert an edge inside left | left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; insert(edge: a–b) | throws .sameSide(.left); final V [a, b, c, x, y]; L [a, b, c]; R [x, y]; E [a–x, b–x, b–y, c–y] |
+| BP-144 | Rejection | insert an edge inside right | left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; insert(edge: x–y) | throws .sameSide(.right); final V [a, b, c, x, y]; L [a, b, c]; R [x, y]; E [a–x, b–x, b–y, c–y] |
+| BP-145 | Rejection | insert a self-loop | left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; insert(edge: a–a) | throws .sameSide(.left); final V [a, b, c, x, y]; L [a, b, c]; R [x, y]; E [a–x, b–x, b–y, c–y] |
 | BP-146 | Preconditions | insert an edge with a missing endpoint | left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; insert(edge: a–z) | trap (an endpoint is not a vertex) |
 | BP-147 | Preconditions | insert an edge with both endpoints missing | left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; insert(edge: p–q) | trap (an endpoint is not a vertex) |
 | BP-148 | Preconditions | side(of:) a non-vertex | left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; side(of: "z") | trap (not a vertex) |
@@ -191,3 +192,9 @@ Conventions:
 | BP-164 | Equality | same sides, different edges | (left [a, b], right [x], edges [a–x]) == (left [a, b], right [x], edges [b–x]) | false |
 | BP-165 | Equality | an extra isolated vertex | (left [a], right [x], edges [a–x]) == (left [a, b], right [x], edges [a–x]) | false |
 | BP-166 | Equality | empty and empty | (left [], right []) == (left [], right []) | true |
+| BP-167 | insert(checked:) | insert(checked:) an edge across: as insert(edge:) | left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; insert(checked: y–a) | inserted true, a–y; final V [a, b, c, x, y]; L [a, b, c]; R [x, y]; E [a–x, b–x, b–y, c–y, a–y] |
+| BP-168 | insert(checked:) | insert(checked:) an existing edge: not inserted | left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; insert(checked: x–b) | inserted false, b–x; final V [a, b, c, x, y]; L [a, b, c]; R [x, y]; E [a–x, b–x, b–y, c–y] |
+| BP-169 | insert(checked:) | insert(checked:) with a missing endpoint | left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; insert(checked: a–z) | throws .missingEndpoint; final V [a, b, c, x, y]; L [a, b, c]; R [x, y]; E [a–x, b–x, b–y, c–y] |
+| BP-170 | insert(checked:) | insert(checked:) with both endpoints missing | left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; insert(checked: p–q) | throws .missingEndpoint; final V [a, b, c, x, y]; L [a, b, c]; R [x, y]; E [a–x, b–x, b–y, c–y] |
+| BP-171 | insert(checked:) | insert(checked:) inside a side | left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; insert(checked: x–y) | throws .sameSide(.right); final V [a, b, c, x, y]; L [a, b, c]; R [x, y]; E [a–x, b–x, b–y, c–y] |
+| BP-172 | insert(checked:) | insert(checked:) a self-loop on a vertex, then on a non-vertex | left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; insert(checked: b–b); insert(checked: z–z) | throws .sameSide(.left) / throws .missingEndpoint; final V [a, b, c, x, y]; L [a, b, c]; R [x, y]; E [a–x, b–x, b–y, c–y] |

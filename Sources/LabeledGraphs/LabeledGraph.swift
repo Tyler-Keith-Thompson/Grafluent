@@ -34,8 +34,8 @@ import OrderedCollections
 /// them would hash twice at every boundary call; use them with the labels directly.
 ///
 /// **Missing labels.** The label-space members trap on a label that is not a vertex, like an
-/// `Array` subscript. `vertexIndex(safe:)`, `successors(safe:)` and the other `safe:` spellings
-/// return `nil` instead, at the cost of the same single lookup.
+/// `Array` subscript. `vertexIndex(checked:)`, `successors(checked:)` and the other `checked:`
+/// spellings throw `VertexNotFound` instead, at the cost of the same single lookup.
 ///
 /// Copy-on-write comes from the two stored values. `base` is read-only, so the labels and the base
 /// cannot fall out of step.
@@ -69,71 +69,41 @@ extension LabeledGraph where Base: DirectedGraph<Int> {
     /// expected (each label hashed once, and the base's vertices read once). The base is stored,
     /// not copied.
     ///
-    /// - Precondition: `base.vertexIndexBound` is not `nil`; `base.vertices` is exactly
-    ///   `0..<base.vertexCount` in index order (so `base.vertexIndex(of: i) == i`); `labels` has
-    ///   `base.vertexCount` elements; and no label repeats.
+    /// - Throws: `LabelingError`, for the first requirement broken, in this order:
+    ///   `base.vertexIndexBound` is not `nil`; `base.vertices` is exactly `0..<base.vertexCount` in
+    ///   index order (so `base.vertexIndex(of: i) == i`); `labels` has `base.vertexCount` elements;
+    ///   and no label repeats.
     @inlinable
-    public init(_ base: Base, labels: some Sequence<Label>) {
-        switch Self._validated(base, labels: labels) {
-        case .success(let labels): self.init(_labels: labels, _base: base)
-        case .failure(let failure): preconditionFailure(failure.message)
-        }
-    }
-
-    /// Why a base and its labels cannot form a `LabeledGraph`: the preconditions of
-    /// `init(_:labels:)`, checked in order, without trapping, for `init(_:labels:)` and decoding.
-    @inlinable
-    internal static func _validated(_ base: Base, labels: some Sequence<Label>) -> Result<OrderedSet<Label>, _LabelingFailure> {
-        guard let n = base.vertexIndexBound else {
-            return .failure(_LabelingFailure(inBase: true, "base is not densely indexed (vertexIndexBound is nil)"))
-        }
+    public init(_ base: Base, labels: some Sequence<Label>) throws(LabelingError) {
+        guard let n = base.vertexIndexBound else { throw .baseNotDenselyIndexed }
         var expected = 0
         for v in base.vertices {
-            guard v == expected, base.vertexIndex(of: v) == expected else {
-                return .failure(_LabelingFailure(inBase: true, "base vertices are not 0..<vertexCount in index order"))
-            }
+            guard v == expected, base.vertexIndex(of: v) == expected else { throw .baseVerticesNotInIndexOrder }
             expected += 1
         }
-        guard expected == n else {
-            return .failure(_LabelingFailure(inBase: true, "base vertices are not 0..<vertexCount in index order"))
-        }
+        guard expected == n else { throw .baseVerticesNotInIndexOrder }
         let given = Array(labels)
-        guard given.count == n else {
-            return .failure(_LabelingFailure(inBase: false, "\(given.count) labels for \(n) vertices"))
-        }
+        guard given.count == n else { throw .labelCountMismatch(labelCount: given.count, vertexCount: n) }
         var set = OrderedSet<Label>(minimumCapacity: n)
-        for label in given {
-            guard set.append(label).inserted else {
-                return .failure(_LabelingFailure(inBase: false, "duplicate label \(label)"))
-            }
+        for (position, label) in given.enumerated() {
+            guard set.append(label).inserted else { throw .duplicateLabel(position: position) }
         }
-        return .success(set)
+        self.init(_labels: set, _base: base)
     }
 }
 
 extension LabeledGraph: Sendable where Label: Sendable, Base: Sendable {}
 
-/// A broken precondition of `LabeledGraph.init(_:labels:)`: its message, and whether the base
-/// (rather than the labels) is at fault.
-@usableFromInline
-internal struct _LabelingFailure: Error {
-    @usableFromInline let inBase: Bool
-    @usableFromInline let message: String
-
-    @inlinable
-    init(inBase: Bool, _ message: String) {
-        self.inBase = inBase
-        self.message = message
-    }
-}
-
 // MARK: - Index conversions
 
 extension LabeledGraph {
-    /// The index of `label`, or `nil` when it is not a vertex. One hash.
+    /// The index of `label`, throwing instead of trapping when it is not a vertex. One hash.
+    ///
+    /// - Throws: `VertexNotFound` when `label` is not a vertex.
     @inlinable
-    public func vertexIndex(safe label: Label) -> Int? {
-        _labels.firstIndex(of: label)
+    public func vertexIndex(checked label: Label) throws(VertexNotFound) -> Int {
+        guard let index = _labels.firstIndex(of: label) else { throw VertexNotFound() }
+        return index
     }
 
     /// The index of `label`, trapping when it is not a vertex. One hash.

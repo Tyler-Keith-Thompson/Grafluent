@@ -113,13 +113,17 @@ import AdjacencyListModule
     public func side(of vertex: Vertex) -> BipartiteSide
 
     /// Inserts `vertex` on `side` with no edges. (false, existing) when it is already on `side`.
-    /// Precondition: it is not a vertex on the other side.
+    /// Throws `.onOtherSide(s)` when it is a vertex on the other side `s`.
     @discardableResult
-    public mutating func insert(_ vertex: Vertex, on side: BipartiteSide) -> (inserted: Bool, memberAfterInsert: Vertex)
+    public mutating func insert(_ vertex: Vertex, on side: BipartiteSide) throws(BipartitionError) -> (inserted: Bool, memberAfterInsert: Vertex)
     /// Inserts `edge`, stored left endpoint first. (false, existing) when it is already an edge.
-    /// Precondition: both endpoints are vertices, on different sides.
+    /// Throws `.sameSide(s)` when both endpoints are on side `s`. Precondition: both endpoints are
+    /// vertices.
     @discardableResult
-    public mutating func insert(edge: UndirectedEdge<Vertex>) -> (inserted: Bool, memberAfterInsert: UndirectedEdge<Vertex>)
+    public mutating func insert(edge: UndirectedEdge<Vertex>) throws(BipartitionError) -> (inserted: Bool, memberAfterInsert: UndirectedEdge<Vertex>)
+    /// As `insert(edge:)`, throwing `.missingEndpoint` (checked first) instead of trapping.
+    @discardableResult
+    public mutating func insert(checked edge: UndirectedEdge<Vertex>) throws(BipartitionError) -> (inserted: Bool, memberAfterInsert: UndirectedEdge<Vertex>)
     /// Removes `vertex` and its edges; nil if it was not a vertex.
     @discardableResult public mutating func remove(_ vertex: Vertex) -> Vertex?
     /// Removes `edge`, in either orientation; nil if it was not an edge.
@@ -181,14 +185,16 @@ lose the mutation that matching workloads need. Trees made the same choice: `Tre
 graph half is code that has already been tested, fuzzed and benchmarked. **Proposed edit to
 `scripts/modules.py`:** BipartiteGraphs depends on GraphProtocols, Walks, AdjacencyListModule.
 
-**Why sides are fixed and edges trap instead of failing.** The defining property is local: an edge
+**Why sides are fixed and a same-side edge throws.** The defining property is local: an edge
 is legal iff its endpoints are on different sides, an O(1) test the caller can make with
-`side(of:)`. So `insert(edge:)` has a precondition, like an array index, and the initializers from
-unchecked input (another graph, decoded data, a list of edges) are failable, as in Trees. `DirectedAcyclicGraph`
-is the other case. Its cycle test is global and the caller cannot make it cheaply, so its
-insertion fails and returns the witness. A `Bool`-returning `insert(edge:)` that refused a same-side
-edge would be ignored under `@discardableResult` and conflated with "already present". Open
-question 2 asks whether a non-trapping form is wanted anyway.
+`side(of:)`, and the initializers from unchecked input (another graph, decoded data, a list of
+edges) are failable, as in Trees. **Decided (2026-10-11):** a mutation that would break the
+bipartition throws `BipartitionError` (`.sameSide(s)` from `insert(edge:)`, `.onOtherSide(s)`
+from `insert(_:on:)`) and changes nothing, as `DirectedAcyclicGraph.insert(edge:)` throws
+`AcyclicEdgeError`; `try!` is the trapping form. A typed throw cannot be dropped silently, which a
+`Bool`-returning `insert(edge:)` under `@discardableResult` could, and it is not conflated with
+"already present". A missing endpoint is membership, not the invariant: it still traps in
+`insert(edge:)`, and `insert(checked:)` throws `.missingEndpoint` instead (README Principle 6).
 
 **Why both `Bipartition` and `BipartiteGraph(graph)`.** They are not synonyms. `Bipartition` is the
 result of an algorithm on any graph: O(n) memory, no hashing on index-based graphs, read-only
@@ -267,7 +273,7 @@ on a `BipartiteGraph` only when someone asks a known answer, as `isAcyclic` does
 
 * **Invariant.** Every vertex has a side. Every edge has one endpoint on each side, so there are
   no self-loops. At most one edge joins two vertices. Every initializer from unchecked input is
-  failable. Mutations trap on violations.
+  failable. A mutation that would break it throws `BipartitionError` and changes nothing.
 * **Orders.** `vertices` follows insertion order (for `init?(left:right:…)`, `left` then `right`:
   BP-118, so a freshly built graph numbers the left side 0..<|L|). `left` and `right` follow
   insertion order within the side. Removing a vertex moves the last slot into its place (as in
@@ -297,9 +303,11 @@ on a `BipartiteGraph` only when someone asks a known answer, as `isAcyclic` does
   departure from `UndirectedAdjacencyList(vertices:edges:)`. Repeats within a side are dropped
   (BP-109), and a repeated edge in either orientation is inserted once (BP-110).
 * **`insert(_:on:)`** returns `(false, existing)` when the vertex is already on that side (BP-122),
-  and traps when it is on the other one (BP-142). Moving a vertex between sides is not offered:
+  and throws `.onOtherSide(s)` when it is on the other one, `s` (BP-142). Moving a vertex between sides is not offered:
   remove it and insert it again (BP-132).
-* **`insert(edge:)`** requires both endpoints to be vertices, on different sides (BP-143 – BP-147).
+* **`insert(edge:)`** throws `.sameSide(s)` for an edge inside side `s`, a self-loop included
+  (BP-143 – BP-145), and traps when an endpoint is not a vertex (BP-146, BP-147);
+  `insert(checked:)` throws `.missingEndpoint` instead (BP-167 – BP-172).
   An existing edge, in either orientation, returns `(false, existing)` (BP-123).
 * **`remove(_:)`, `remove(edge:)`** return nil for an absent vertex or edge, and never trap
   (BP-126, BP-127, BP-131). A vertex keeps its side when its edges go (BP-138).
@@ -373,7 +381,7 @@ n vertices, m edges; Δ_S the greatest degree on side S.
   value.
 * **Copy-on-write**: four arrays and the inner graph. Each mutation checks uniqueness once (the
   arrays are uniquely held whenever the struct is). `insert(edge:)` checks sides before touching
-  storage, so a trapping insertion never copies.
+  storage, so a rejected insertion never copies.
 * **`init?(_ graph:)`**: one bipartition run in index space, then
   `reserveCapacity(vertexCount: n, edgeCount: m)`, vertices in order, and edges in position
   order with endpoints swapped to put the left one first. A fast path when the source is an
@@ -418,7 +426,7 @@ n vertices, m edges; Δ_S the greatest degree on side S.
   `BipartiteGraph<Vertex>` | V = L ⊔ R, every edge between L and R (so no self-loop), simple |
   "Invariant: every initializer from unchecked input is failable (`BipartiteGraph(graph)`,
   `BipartiteGraph(graph, left:)`, `BipartiteGraph(left:right:edges:)`), and `insert(edge:)`
-  requires the endpoints on different sides; the witness is `findOddCycle()`. `isBipartite` and
+  throws `BipartitionError.sameSide` for an edge inside one side; the witness is `findOddCycle()`. `isBipartite` and
   `bipartition()` on any `Graph`" | "`Graph`, mutable as `UndirectedAdjacencyList` (which it is
   built on), with `insert(_:on:)`; `left`, `right`, `side(of:)`; each edge stored left endpoint
   first; `projectedGraph(onto:)`".
@@ -445,8 +453,8 @@ n vertices, m edges; Δ_S the greatest degree on side S.
    wait for the Multigraphs module? König's edge-colouring theorem (Δ colours on a bipartite
    multigraph, ColoringModule) and b-matching want them. Matching and projection don't. Phase 1
    is simple, matching `UndirectedAdjacencyList`. Recognition accepts multigraphs.
-2. **Trapping `insert(edge:)`.** The precondition is argued above. Is a non-trapping variant
-   wanted for untrusted streams? The failable initializers already cover bulk untrusted input.
+2. **Trapping `insert(edge:)`.** **Decided (2026-10-11):** a same-side edge or a vertex on the
+   other side throws `BipartitionError`; `insert(checked:)` also reports a missing endpoint.
 3. **`density`.** NetworkX `bipartite.density` is |E| / (|L||R|). A `BipartiteGraph.density`
    member would shadow Distances' `density` on `Graph` with a different number. Options: leave it
    out (it is one line), or give it a distinct established name. NetworkX's is only distinct by

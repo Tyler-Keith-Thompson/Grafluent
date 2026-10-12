@@ -151,13 +151,19 @@ def call_lines(g, op, t, indent="        "):
     kind = g.kind
     sh = SHADOW[id(g)]
     name = op[0]
-    result = ref.apply(g, sh, op)
+    try:
+        result = ref.apply(g, sh, op)
+    except ref.Thrown as e:
+        # A throw changes nothing; the state checks that follow show it.
+        assert name == "ins" and str(e) == "SelfLoopError"
+        return [indent + "#expect(throws: SelfLoopError()) { try graph.insert(edge: %s) }" % edge_lit(kind, op[1], op[2])]
     f, s = pair_label(kind)
     if name == "insV":
         ok = result == "inserted true"
         return [indent + "do { let result = graph.insert(%s); #expect(%sresult.inserted); #expect(result.memberAfterInsert == %s) }" % (lit(op[1]), "" if ok else "!", lit(op[1]))]
     if name == "ins":
-        return [indent + "#expect(graph.insert(edge: %s) == %s)" % (edge_lit(kind, op[1], op[2]), result)]
+        # Multigraph and DirectedMultigraph throw SelfLoopError; the pseudographs never throw.
+        return [indent + "#expect(%sgraph.insert(edge: %s) == %s)" % ("" if g.loops else "try ", edge_lit(kind, op[1], op[2]), result)]
     if name in ("rm", "rmAt"):
         call = "graph.remove(edge: %s)" % edge_lit(kind, op[1], op[2]) if name == "rm" else "graph.remove(edgeAt: %d)" % op[1]
         if result == "nil":
@@ -279,10 +285,10 @@ def trap_case_test(n):
     *setup, last = ops
     assert not setup
     # Built from vertices and insertions, so the child never unwraps a failable initializer.
-    inserts = ["graph.insert(edge: %s)" % edge_lit(kind, a, b) for a, b in E]
+    inserts = ["%sgraph.insert(edge: %s)" % ("try " if kind in (ref.M, ref.DM) else "", edge_lit(kind, a, b)) for a, b in E]
     name = last[0]
     if name == "ins":
-        calls = ["graph.insert(edge: %s)" % edge_lit(kind, last[1], last[2])]
+        calls = ["%sgraph.insert(edge: %s)" % ("try " if kind in (ref.M, ref.DM) else "", edge_lit(kind, last[1], last[2]))]
     elif name == "rmAt":
         calls = ["graph.remove(edgeAt: %d)" % last[1]]
     elif name == "deg" and is_directed(kind):
@@ -307,6 +313,8 @@ def trap_case_test(n):
         lines.append("        " + b)
     lines += state_lines(g, t=t)
     lines.append("    }")
+    if any("try " in l for l in lines):
+        lines[len(test_header(n))] = "    func mg%03d() async throws {" % n
     return lines
 
 
@@ -731,7 +739,7 @@ TRAPS = {
     189: ["let graph = DirectedPseudograph<Int>(edges: [DirectedEdge(from: 0, to: 1)])", "_ = graph.inDegree(of: 5)"],
     190: ["var graph = Pseudograph<Int>()", "graph.reserveCapacity(vertexCount: -1, edgeCount: 0)"],
     191: ["var graph = DirectedMultigraph<Int>()", "graph.reserveCapacity(vertexCount: 0, edgeCount: -1)"],
-    192: ["var graph = DirectedMultigraph<Int>(vertices: [0, 1])", "graph.insert(edge: DirectedEdge(from: 0, to: 1))", "graph.insert(edge: DirectedEdge(from: 0, to: 1))", "graph.remove(edgeAt: 2)"],
+    192: ["var graph = DirectedMultigraph<Int>(vertices: [0, 1])", "try graph.insert(edge: DirectedEdge(from: 0, to: 1))", "try graph.insert(edge: DirectedEdge(from: 0, to: 1))", "graph.remove(edgeAt: 2)"],
 }
 # The same calls, one step short of the precondition: they must not trap.
 TRAP_CONTROLS = {
@@ -748,14 +756,14 @@ TRAP_CONTROLS = {
     189: ["let graph = DirectedPseudograph<Int>(edges: [DirectedEdge(from: 0, to: 1)])", "#expect(graph.inDegree(of: 1) == 1)"],
     190: ["var graph = Pseudograph<Int>()", "graph.reserveCapacity(vertexCount: 0, edgeCount: 0)", "#expect(graph.vertexCount == 0)"],
     191: ["var graph = DirectedMultigraph<Int>()", "graph.reserveCapacity(vertexCount: 0, edgeCount: 0)", "#expect(graph.edgeCount == 0)"],
-    192: ["var graph = DirectedMultigraph<Int>(vertices: [0, 1])", "graph.insert(edge: DirectedEdge(from: 0, to: 1))", "graph.insert(edge: DirectedEdge(from: 0, to: 1))", "#expect(graph.remove(edgeAt: 1) == DirectedEdge(from: 0, to: 1))"],
+    192: ["var graph = DirectedMultigraph<Int>(vertices: [0, 1])", "try graph.insert(edge: DirectedEdge(from: 0, to: 1))", "try graph.insert(edge: DirectedEdge(from: 0, to: 1))", "#expect(graph.remove(edgeAt: 1) == DirectedEdge(from: 0, to: 1))"],
 }
 
 
 def trap_row_test(n):
     assert cell(n) == "trap"
     lines = test_header(n)
-    lines.append("    func mg%03d() async {" % n)
+    lines.append("    func mg%03d() async%s {" % (n, " throws" if any("try " in l for l in TRAPS[n] + TRAP_CONTROLS[n]) else ""))
     lines.append("        // %s → trap" % CELLS[n][3])
     lines.append("        await #expect(processExitsWith: .failure) {")
     for l in TRAPS[n]:
@@ -779,11 +787,12 @@ FILES = [
      "// 0, 1, … in its given orientation; the multigraphs' failable initializers returning nil on a\n"
      "// self-loop; the builder."),
     ("MultigraphQueryTests.swift", "Multigraphs queries: copies, loops, degrees, rows", range(15, 47),
-     "Queries (catalog MG-015 – MG-046, without the trap rows MG-032 – MG-034, MG-039, MG-040, which are\n"
-     "// in MultigraphPreconditionTests.swift): `edges(between:and:)` / `edges(from:to:)` oldest copy\n"
+     "Queries (catalog MG-015 – MG-046, without the trap rows MG-039, MG-040, which are in\n"
+     "// MultigraphPreconditionTests.swift): `edges(between:and:)` / `edges(from:to:)` oldest copy\n"
      "// first, `edgeCount(between:and:)`, `contains(edge:)` (false, never a trap, for a non-vertex),\n"
-     "// self-loops twice in an undirected row and once in each directed row, degrees counting copies and\n"
-     "// a loop twice, and the rows of a freshly built graph (each edge appended at u, then at v)."),
+     "// self-loops twice in an undirected row and once in each directed row, `SelfLoopError` from a\n"
+     "// multigraph's `insert(edge:)` with nothing changed, degrees counting copies and a loop twice, and\n"
+     "// the rows of a freshly built graph (each edge appended at u, then at v)."),
     ("MultigraphInsertionTests.swift", "Multigraphs insertion", range(47, 55),
      "Insertion (catalog MG-047 – MG-054): `insert(edge:)` always adds a copy and returns its position,\n"
      "// the old `edgeCount`; `insert(_:)` inserts a vertex once."),
@@ -819,12 +828,12 @@ FILES = [
      "// position order), between the multigraphs and the pseudographs, and through `.undirected` /\n"
      "// `.directed`."),
     ("MultigraphPreconditionTests.swift", "Multigraphs preconditions", None,
-     "Preconditions (catalog MG-032 – MG-034, MG-039, MG-040, MG-075 – MG-077, MG-080, MG-179 – MG-192):\n"
+     "Preconditions (catalog MG-039, MG-040, MG-075 – MG-077, MG-080, MG-179 – MG-192):\n"
      "// each trapping call runs in a child process (exit test). The same setup then runs in this process\n"
      "// one step short of the precondition, so the trap is the call's and not the setup's."),
 ]
 
-TRAP_IDS = [32, 33, 34, 39, 40, 75, 76, 77, 80] + list(range(179, 193))
+TRAP_IDS = [39, 40, 75, 76, 77, 80] + list(range(179, 193))
 
 
 def write(fname, suite, ids, comment):

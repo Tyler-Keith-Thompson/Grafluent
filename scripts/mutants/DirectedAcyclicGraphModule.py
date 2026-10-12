@@ -128,18 +128,22 @@ MUTANTS = [
     Mutant("insertexisting", M, "return (false, _base._vertex(atKey: key))", "return (true, vertex)", mode="stmt"),
     Mutant("appendlabel", M, "_table.insert(key, label: _order.slots.count)", "_table.insert(key, label: _order.slots.count &+ 1)"),
     Mutant("appendorder", M, "        _order.slots.append(key)", "", mode="stmt"),
-    Mutant("prependlast", M, "return _insertEdge(_prependVertex(edge.source), target)", "return _insertEdge(_appendVertex(edge.source), target)", mode="stmt"),
+    Mutant("prependlast", M, "return try _insertEdge(_prependVertex(edge.source), target)", "return try _insertEdge(_appendVertex(edge.source), target)", mode="stmt"),
     Mutant("prependgrow", M, "        if _order.first == 0 { _growFront() }", "", mode="stmt"),
     Mutant("prependlabel", M, "_table.insert(key, label: _order.first)", "_table.insert(key, label: _order.first &+ 1)"),
 
     # Edge insertion.
-    Mutant("selfloop", M, "if edge.source == edge.target { return nil }", "", mode="stmt"),
-    Mutant("safeselfloop", M, "source != target", "true"),
-    Mutant("safemissingsource", M, "_base._key(of: edge.source)", "Optional(_base._key(of: edge.source) ?? 0)", nth=1),
-    Mutant("safemissingtarget", M, "_base._key(of: edge.target)", "Optional(_base._key(of: edge.target) ?? 0)", nth=2),
+    Mutant("selfloop", M, "if edge.source == edge.target { throw .selfLoop }", "", mode="stmt"),
+    Mutant("selfloopcase", M, "if edge.source == edge.target { throw .selfLoop }", "if edge.source == edge.target { throw .cycle }", mode="stmt"),
+    Mutant("checkedselfloop", M, "if source == target { throw .selfLoop }", "", mode="stmt"),
+    Mutant("checkedselfloopcase", M, "if source == target { throw .selfLoop }", "if source == target { throw .cycle }", mode="stmt"),
+    Mutant("checkedmissingsource", M, "_base._key(of: edge.source)", "Optional(_base._key(of: edge.source) ?? 0)", nth=1),
+    Mutant("checkedmissingtarget", M, "_base._key(of: edge.target)", "Optional(_base._key(of: edge.target) ?? 0)", nth=2),
+    Mutant("checkedmissingcase", M, "throw .missingEndpoint", "throw .cycle", mode="stmt"),
     Mutant("forwardtest", M, "_table.label(source) > _table.label(target)", "_table.label(source) < _table.label(target)"),
     Mutant("forwardskip", M, "_table.label(source) > _table.label(target)", "false"),
-    Mutant("rejectignored", M, "guard _reorder(source: source, target: target) else { return nil }", "_ = _reorder(source: source, target: target)", mode="stmt"),
+    Mutant("rejectignored", M, "guard _reorder(source: source, target: target) else { throw .cycle }", "_ = _reorder(source: source, target: target)", mode="stmt"),
+    Mutant("cyclecase", M, "guard _reorder(source: source, target: target) else { throw .cycle }", "guard _reorder(source: source, target: target) else { throw .selfLoop }", mode="stmt"),
 
     # Pearce–Kelly: the forward search.
     Mutant("stamp", M, "        _stamp &+= 2", "", mode="stmt"),
@@ -244,16 +248,16 @@ MUTANTS = [
     Mutant("equality", C, "lhs._base == rhs._base", "true"),
     Mutant("hashing", C, "_base.hash(into: &hasher)", "()"),
 
-    # The order view and safe: lookups.
-    Mutant("positionsafe", D, "_base._key(of: vertex).map { _position(ofKey: $0) }", "Optional(0)"),
+    # The order view and checked: lookups.
+    Mutant("positionchecked", D, "return _position(ofKey: key)", "return 0", nth=1, mode="stmt"),
     Mutant("orderfirstindex", D, "base._key(of: element).map { order.place(ofSlot: table.label($0)) }", "base._key(of: element).map { _ in 0 }"),
     Mutant("ordersubscriptcheck", D, '            precondition(UInt(bitPattern: position) < UInt(bitPattern: order.count), "Index out of range")', "", mode="stmt"),
     Mutant("orderiteratorholes", D, "                    if key >= 0 { return base._vertex(atKey: key) }", "                    return base._vertex(atKey: key)", mode="stmt"),
     Mutant("orderiteratorstart", D, "Iterator(base: base, slots: order.slots, slot: order.first)", "Iterator(base: base, slots: order.slots, slot: 0)"),
     Mutant("ordercontains", D, "base._key(of: element) != nil", "true"),
-    Mutant("safesuccessors", D, "_base._key(of: vertex).map { _base._successors(ofKey: $0) }", "Optional<Base.Successors>.none"),
-    Mutant("safeoutedges", D, "_base._key(of: vertex).map { _base._outEdges(ofKey: $0) }", "Optional<Base.OutEdges>.none"),
-    Mutant("safeindegree", D, "_base._key(of: vertex).map { _base._inDegree(ofKey: $0) }", "_base._key(of: vertex).map { _base._outDegree(ofKey: $0) }"),
+    Mutant("checkedsuccessors", D, "return _base._successors(ofKey: key)", "throw VertexNotFound()", mode="stmt"),
+    Mutant("checkedoutedges", D, "return _base._outEdges(ofKey: key)", "throw VertexNotFound()", mode="stmt"),
+    Mutant("checkedindegree", D, "return _base._inDegree(ofKey: key)", "return _base._outDegree(ofKey: key)", mode="stmt"),
 
     # ShortestPaths: dagShortestPaths, in the maintained order or by Kahn's algorithm.
     Mutant("spsources", SP, "        for s in sources { parent[s] = -1 }", "", mode="stmt", module="ShortestPaths"),
@@ -312,8 +316,8 @@ MUTANTS = [
     Mutant("stinedges", ST, "_inEdges(slot: key)", "_inEdges(slot: _vertexBase)", module="StableGraphs"),
     Mutant("stindegree", ST, "_inDegree(key)", "_outDegree(key)", module="StableGraphs"),
     Mutant("stoutdegree", ST, "_outDegree(key)", "_inDegree(key)", nth=0, module="StableGraphs"),
-    Mutant("stsourcekey", ST, "_liveRecord(position).source", "_liveRecord(position).target", module="StableGraphs"),
-    Mutant("sttargetkey", ST, "_liveRecord(position).target", "_liveRecord(position).source", nth=1, module="StableGraphs"),
+    Mutant("stsourcekey", ST, "_liveRecord(position).source", "_liveRecord(position).target", nth=1, module="StableGraphs"),
+    Mutant("sttargetkey", ST, "_liveRecord(position).target", "_liveRecord(position).source", nth=2, module="StableGraphs"),
     Mutant("stinsertedge", ST, "_insertEdge(slots: source, target)", "_insertEdge(slots: target, source)", module="StableGraphs"),
     Mutant("stmoved", ST, "        _ = _removeSlot(key)\n        return nil", "        _ = _removeSlot(key)\n        return 0", mode="stmt", module="StableGraphs"),
     Mutant("stremovelookup", ST, "        _slots.removeValue(forKey: _vertex(atSlot: key))", "", mode="stmt", module="StableGraphs"),

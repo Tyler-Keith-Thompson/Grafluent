@@ -6,7 +6,8 @@ import GraphProtocols
 /// endpoint first, so `edges[e].u` is its left end.
 ///
 /// The invariant is the type: every initializer from unchecked input is failable, and a mutation
-/// that would break it traps (whether an edge may be inserted is an O(1) test with `side(of:)`).
+/// that would break it throws `BipartitionError` and changes nothing (whether an edge may be
+/// inserted is an O(1) test with `side(of:)`).
 /// Storage and mutation costs are `UndirectedAdjacencyList`'s: vertex indices are slots
 /// (`vertices` order), edge indices are positions, and a removal moves the last slot or edge into
 /// the hole, so orders and positions change after a removal. Equality compares vertex sets, edge
@@ -37,10 +38,13 @@ public struct BipartiteGraph<Vertex: Hashable> {
     @inlinable
     public init?(left: some Sequence<Vertex>, right: some Sequence<Vertex>) {
         self.init()
-        for v in left { insert(v, on: .left) }
+        for v in left where _graph._slotIfPresent(of: v) == nil { _appendVertex(v, on: .left) }
         for v in right {
-            if let slot = _graph._slotIfPresent(of: v), _side[slot] == .left { return nil }
-            insert(v, on: .right)
+            if let slot = _graph._slotIfPresent(of: v) {
+                if _side[slot] == .left { return nil }
+            } else {
+                _appendVertex(v, on: .right)
+            }
         }
     }
 
@@ -85,7 +89,7 @@ public struct BipartiteGraph<Vertex: Hashable> {
         }
         self.init()
         reserveCapacity(vertexCount: graph.vertexCount, edgeCount: graph.edgeCount)
-        for (k, v) in graph.vertices.enumerated() { insert(v, on: sides[k] == 0 ? .left : .right) }
+        for (k, v) in graph.vertices.enumerated() { _appendVertex(v, on: sides[k] == 0 ? .left : .right) }
         // Numbered as `vertices`, so the slots are the vertex numbers: with vertex indices, which
         // follow `vertices` order, the graph's own ends without a lookup.
         let indexed = graph.vertexIndexBound != nil
@@ -113,10 +117,10 @@ public struct BipartiteGraph<Vertex: Hashable> {
         }
         self.init()
         reserveCapacity(vertexCount: graph.vertexCount, edgeCount: graph.edgeCount)
-        for v in graph.vertices { insert(v, on: leftSet.contains(v) ? .left : .right) }
+        for v in graph.vertices { _appendVertex(v, on: leftSet.contains(v) ? .left : .right) }
         for edge in graph.edges {
             guard leftSet.contains(edge.u) != leftSet.contains(edge.v) else { return nil }
-            insert(edge: edge)
+            _insertCrossEdge(_graph.vertexIndex(of: edge.u), _graph.vertexIndex(of: edge.v))
         }
     }
 
@@ -141,14 +145,22 @@ public struct BipartiteGraph<Vertex: Hashable> {
     ///
     /// - Returns: Whether it was inserted, and the vertex now in the graph (the existing one when it
     ///   was already on `side`).
-    /// - Precondition: `vertex` is not a vertex on the other side.
+    /// - Throws: `BipartitionError.onOtherSide(s)` when `vertex` is already a vertex on the other
+    ///   side `s`; then nothing changes.
     @inlinable
     @discardableResult
-    public mutating func insert(_ vertex: Vertex, on side: BipartiteSide) -> (inserted: Bool, memberAfterInsert: Vertex) {
+    public mutating func insert(_ vertex: Vertex, on side: BipartiteSide) throws(BipartitionError) -> (inserted: Bool, memberAfterInsert: Vertex) {
         if let slot = _graph._slotIfPresent(of: vertex) {
-            precondition(_side[slot] == side, "\(vertex) is already a vertex on the other side")
+            guard _side[slot] == side else { throw .onOtherSide(_side[slot]) }
             return (false, _graph.vertex(atIndex: slot))
         }
+        _appendVertex(vertex, on: side)
+        return (true, vertex)
+    }
+
+    /// Appends `vertex`, which is not a vertex, on `side`.
+    @inlinable
+    internal mutating func _appendVertex(_ vertex: Vertex, on side: BipartiteSide) {
         _graph.insert(vertex)
         let slot = _side.count
         _side.append(side)
@@ -159,22 +171,47 @@ public struct BipartiteGraph<Vertex: Hashable> {
             _sideOffset.append(_right.count)
             _right.append(slot)
         }
-        return (true, vertex)
     }
 
     /// Inserts `edge`, stored left endpoint first.
     ///
     /// - Returns: Whether it was inserted, and the edge now in the graph, left endpoint first (the
     ///   existing one when it was already an edge, in either orientation).
-    /// - Precondition: Both endpoints are vertices, on different sides.
+    /// - Throws: `BipartitionError.sameSide(s)` when both endpoints are on side `s`, a self-loop
+    ///   included; then nothing changes.
+    /// - Precondition: Both endpoints are vertices. `insert(checked:)` throws instead.
     @inlinable
     @discardableResult
-    public mutating func insert(edge: UndirectedEdge<Vertex>) -> (inserted: Bool, memberAfterInsert: UndirectedEdge<Vertex>) {
+    public mutating func insert(edge: UndirectedEdge<Vertex>) throws(BipartitionError) -> (inserted: Bool, memberAfterInsert: UndirectedEdge<Vertex>) {
         guard let u = _graph._slotIfPresent(of: edge.u), let v = _graph._slotIfPresent(of: edge.v) else {
             preconditionFailure("An endpoint of \(edge) is not a vertex")
         }
-        precondition(_side[u] != _side[v], "Both endpoints of \(edge) are on the same side")
-        return _side[u] == .left ? _graph._insertEdge(slots: u, v) : _graph._insertEdge(slots: v, u)
+        guard _side[u] != _side[v] else { throw .sameSide(_side[u]) }
+        return _insertCrossEdge(u, v)
+    }
+
+    /// Inserts `edge`, stored left endpoint first, when both endpoints are vertices on different
+    /// sides. The `checked:` spelling of README Principle 6: JGraphT's `addEdge` throws
+    /// `IllegalArgumentException` for a missing endpoint. Costs as `insert(edge:)`.
+    ///
+    /// - Returns: As `insert(edge:)`.
+    /// - Throws: `BipartitionError.missingEndpoint` when an endpoint is not a vertex (checked
+    ///   first), then `.sameSide(s)` as `insert(edge:)` does. Nothing changes when it throws.
+    @inlinable
+    @discardableResult
+    public mutating func insert(checked edge: UndirectedEdge<Vertex>) throws(BipartitionError) -> (inserted: Bool, memberAfterInsert: UndirectedEdge<Vertex>) {
+        guard let u = _graph._slotIfPresent(of: edge.u), let v = _graph._slotIfPresent(of: edge.v) else {
+            throw .missingEndpoint
+        }
+        guard _side[u] != _side[v] else { throw .sameSide(_side[u]) }
+        return _insertCrossEdge(u, v)
+    }
+
+    /// Inserts the edge between slots `u` and `v`, which are on different sides, left one first.
+    @inlinable
+    @discardableResult
+    internal mutating func _insertCrossEdge(_ u: Int, _ v: Int) -> (inserted: Bool, memberAfterInsert: UndirectedEdge<Vertex>) {
+        _side[u] == .left ? _graph._insertEdge(slots: u, v) : _graph._insertEdge(slots: v, u)
     }
 
     /// Removes `vertex` and its edges. O(degree), plus the degree of the vertex that moves into its
@@ -410,11 +447,11 @@ extension BipartiteGraph: Decodable where Vertex: Decodable {
         reserveCapacity(vertexCount: leftVertices.count + rightVertices.count, edgeCount: pairs.count / 2)
         for v in leftVertices {
             guard !contains(v) else { throw DecodingError.dataCorruptedError(forKey: .left, in: container, debugDescription: "Repeated vertex") }
-            insert(v, on: .left)
+            _appendVertex(v, on: .left)
         }
         for v in rightVertices {
             guard !contains(v) else { throw DecodingError.dataCorruptedError(forKey: .right, in: container, debugDescription: "Repeated vertex or a vertex on both sides") }
-            insert(v, on: .right)
+            _appendVertex(v, on: .right)
         }
         let all = leftVertices + rightVertices
         for i in stride(from: 0, to: pairs.count, by: 2) {
@@ -424,7 +461,7 @@ extension BipartiteGraph: Decodable where Vertex: Decodable {
             guard (pairs[i] < leftVertices.count) != (pairs[i + 1] < leftVertices.count) else {
                 throw DecodingError.dataCorruptedError(forKey: .edges, in: container, debugDescription: "Edge inside a side")
             }
-            guard insert(edge: UndirectedEdge(all[pairs[i]], all[pairs[i + 1]])).inserted else {
+            guard _insertCrossEdge(_graph.vertexIndex(of: all[pairs[i]]), _graph.vertexIndex(of: all[pairs[i + 1]])).inserted else {
                 throw DecodingError.dataCorruptedError(forKey: .edges, in: container, debugDescription: "Repeated edge")
             }
         }

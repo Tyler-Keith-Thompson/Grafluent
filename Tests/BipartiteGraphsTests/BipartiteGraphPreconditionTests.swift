@@ -1,6 +1,5 @@
-// Preconditions, as exit tests (catalog BP-142 – BP-149): `insert(_:on:)` with a vertex already
-// on the other side; `insert(edge:)` inside a side, a self-loop, or with an endpoint that is not
-// a vertex; `side(of:)` on a non-vertex, also one just removed. Then the same preconditions
+// Preconditions, as exit tests (catalog BP-146 – BP-149): `insert(edge:)` with an
+// endpoint that is not a vertex; `side(of:)` on a non-vertex, also one just removed. Then the same preconditions
 // the catalog does not list: `side(of:)` on the empty graph, `insert(edge:)` on the empty
 // graph, and `Bipartition.side(of:)` on a non-vertex and `side(ofIndex:)` out of range. Each
 // exit test builds its inputs inside the closure. Generated from cases.md by swiftgen.py, the
@@ -14,48 +13,12 @@ import Testing
 
 @Suite("BipartiteGraph preconditions", .tags(.precondition))
 struct BipartiteGraphPreconditionTests {
-    @Test("BP-142 insert a vertex on the other side traps: the vertex is on the other side")
-    func bp142() async {
-        // left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; insert("a", on: .right)
-        await #expect(processExitsWith: .failure) {
-            var graph = BipartiteGraph<String>(left: ["a", "b", "c"] as [String], right: ["x", "y"] as [String], edges: [("a", "x"), ("b", "x"), ("b", "y"), ("c", "y")].map { UndirectedEdge<String>($0.0, $0.1) })!
-            graph.insert("a", on: .right)
-        }
-    }
-
-    @Test("BP-143 insert an edge inside left traps: both endpoints are on one side")
-    func bp143() async {
-        // left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; insert(edge: a–b)
-        await #expect(processExitsWith: .failure) {
-            var graph = BipartiteGraph<String>(left: ["a", "b", "c"] as [String], right: ["x", "y"] as [String], edges: [("a", "x"), ("b", "x"), ("b", "y"), ("c", "y")].map { UndirectedEdge<String>($0.0, $0.1) })!
-            graph.insert(edge: UndirectedEdge("a", "b"))
-        }
-    }
-
-    @Test("BP-144 insert an edge inside right traps: both endpoints are on one side")
-    func bp144() async {
-        // left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; insert(edge: x–y)
-        await #expect(processExitsWith: .failure) {
-            var graph = BipartiteGraph<String>(left: ["a", "b", "c"] as [String], right: ["x", "y"] as [String], edges: [("a", "x"), ("b", "x"), ("b", "y"), ("c", "y")].map { UndirectedEdge<String>($0.0, $0.1) })!
-            graph.insert(edge: UndirectedEdge("x", "y"))
-        }
-    }
-
-    @Test("BP-145 insert a self-loop traps: both endpoints are on one side")
-    func bp145() async {
-        // left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; insert(edge: a–a)
-        await #expect(processExitsWith: .failure) {
-            var graph = BipartiteGraph<String>(left: ["a", "b", "c"] as [String], right: ["x", "y"] as [String], edges: [("a", "x"), ("b", "x"), ("b", "y"), ("c", "y")].map { UndirectedEdge<String>($0.0, $0.1) })!
-            graph.insert(edge: UndirectedEdge("a", "a"))
-        }
-    }
-
     @Test("BP-146 insert an edge with a missing endpoint traps: an endpoint is not a vertex")
     func bp146() async {
         // left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; insert(edge: a–z)
         await #expect(processExitsWith: .failure) {
             var graph = BipartiteGraph<String>(left: ["a", "b", "c"] as [String], right: ["x", "y"] as [String], edges: [("a", "x"), ("b", "x"), ("b", "y"), ("c", "y")].map { UndirectedEdge<String>($0.0, $0.1) })!
-            graph.insert(edge: UndirectedEdge("a", "z"))
+            _ = try? graph.insert(edge: UndirectedEdge("a", "z"))
         }
     }
 
@@ -64,7 +27,7 @@ struct BipartiteGraphPreconditionTests {
         // left [a, b, c], right [x, y], edges [a–x, b–x, b–y, c–y]; insert(edge: p–q)
         await #expect(processExitsWith: .failure) {
             var graph = BipartiteGraph<String>(left: ["a", "b", "c"] as [String], right: ["x", "y"] as [String], edges: [("a", "x"), ("b", "x"), ("b", "y"), ("c", "y")].map { UndirectedEdge<String>($0.0, $0.1) })!
-            graph.insert(edge: UndirectedEdge("p", "q"))
+            _ = try? graph.insert(edge: UndirectedEdge("p", "q"))
         }
     }
 
@@ -94,13 +57,13 @@ struct BipartiteGraphPreconditionTests {
         }
         await #expect(processExitsWith: .failure) {
             var graph = BipartiteGraph<Int>()
-            graph.insert(edge: UndirectedEdge(0, 1))
+            _ = try? graph.insert(edge: UndirectedEdge(0, 1))
         }
         await #expect(processExitsWith: .failure) {
             // One endpoint present, on the left; the other missing.
             var graph = BipartiteGraph<Int>()
-            graph.insert(0, on: .left)
-            graph.insert(edge: UndirectedEdge(0, 1))
+            _ = try? graph.insert(0, on: .left)
+            _ = try? graph.insert(edge: UndirectedEdge(0, 1))
         }
     }
 

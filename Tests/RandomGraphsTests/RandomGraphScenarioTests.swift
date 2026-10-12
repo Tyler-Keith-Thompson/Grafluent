@@ -104,7 +104,7 @@ struct RandomGraphScenarioTests {
             // The same edges inserted one at a time into an empty DAG give the same graph as edges.
             var incremental = DirectedAcyclicGraph<AdjacencyList<Int>>()
             for v in 0 ..< n { incremental.insert(v) }
-            for edge in built.edges { #expect(incremental.insert(edge: edge) != nil, "seed \(seed)") }
+            for edge in built.edges { #expect((try? incremental.insert(edge: edge)) != nil, "seed \(seed)") }
             #expect(Set(incremental.edges.map { [$0.source, $0.target] }) == edges, "seed \(seed)")
 
             var script = Xoshiro256StarStar(seed: seed &+ 1000)
@@ -116,9 +116,9 @@ struct RandomGraphScenarioTests {
                 case 0 ..< 5:
                     // Insert u → v: rejected exactly when it closes a cycle (a self-loop included).
                     let closes = u == v || (vertices.contains(u) && vertices.contains(v) && reaches(v, u))
-                    let a = adjacencyList.insert(edge: DirectedEdge(from: u, to: v))
-                    let b = stable.insert(edge: DirectedEdge(from: u, to: v))
-                    let c = pseudograph.insert(edge: DirectedEdge(from: u, to: v))
+                    let a = try? adjacencyList.insert(edge: DirectedEdge(from: u, to: v))
+                    let b = try? stable.insert(edge: DirectedEdge(from: u, to: v))
+                    let c = try? pseudograph.insert(edge: DirectedEdge(from: u, to: v))
                     #expect((a == nil) == closes && (b == nil) == closes, "\(label): insert \(u) → \(v)")
                     // The pseudograph keeps parallel copies; the model counts edges as a set.
                     #expect((c == nil) == closes, "\(label): insert \(u) → \(v) on DirectedPseudograph")

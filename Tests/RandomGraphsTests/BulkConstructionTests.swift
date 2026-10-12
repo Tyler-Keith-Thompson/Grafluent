@@ -99,7 +99,7 @@ struct BulkConstructionTests {
             var generator = Xoshiro256StarStar(seed: UInt64(seed))
             var bulk = DirectedMultigraph<Int>.erdosRenyi(vertexCount: n, edgeProbability: 0.3, using: &generator)
             var built = DirectedMultigraph<Int>(vertices: 0 ..< n)
-            for e in Array(bulk.edges) { built.insert(edge: e) }
+            for e in Array(bulk.edges) { try built.insert(edge: e) }
             #expect(bulk == built && Array(bulk.edges).map { [$0.source, $0.target] } == Array(built.edges).map { [$0.source, $0.target] }, "seed \(seed)")
             var next = n
             for step in 0 ..< 80 {
@@ -110,8 +110,8 @@ struct BulkConstructionTests {
                     let u = vertices[Int(generator.next() % UInt64(vertices.count))]
                     let v = vertices[Int(generator.next() % UInt64(vertices.count))]
                     if u == v { continue }
-                    bulk.insert(edge: DirectedEdge(from: u, to: v))
-                    built.insert(edge: DirectedEdge(from: u, to: v))
+                    try bulk.insert(edge: DirectedEdge(from: u, to: v))
+                    try built.insert(edge: DirectedEdge(from: u, to: v))
                 case 2:
                     let edges = Array(bulk.edges)
                     guard !edges.isEmpty else { continue }
@@ -252,7 +252,7 @@ struct BulkConstructionTests {
             var generator = Xoshiro256StarStar(seed: UInt64(seed))
             var bulk = Multigraph<Int>.erdosRenyi(vertexCount: n, edgeProbability: 0.3, using: &generator)
             var built = Multigraph<Int>(vertices: 0 ..< n)
-            for e in Array(bulk.edges) { built.insert(edge: e) }
+            for e in Array(bulk.edges) { try built.insert(edge: e) }
             #expect(bulk == built && Array(bulk.edges).map { [$0.u, $0.v] } == Array(built.edges).map { [$0.u, $0.v] }, "seed \(seed)")
             var next = n
             for step in 0 ..< 80 {
@@ -263,8 +263,8 @@ struct BulkConstructionTests {
                     let u = vertices[Int(generator.next() % UInt64(vertices.count))]
                     let v = vertices[Int(generator.next() % UInt64(vertices.count))]
                     if u == v { continue }
-                    bulk.insert(edge: UndirectedEdge(u, v))
-                    built.insert(edge: UndirectedEdge(u, v))
+                    try bulk.insert(edge: UndirectedEdge(u, v))
+                    try built.insert(edge: UndirectedEdge(u, v))
                 case 2:
                     let edges = Array(bulk.edges)
                     guard !edges.isEmpty else { continue }

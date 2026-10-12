@@ -30,7 +30,7 @@ struct Pseudograph<Vertex: Hashable>: Graph, Hashable, Codable (Vertex: Codable)
     removeAll(keepingCapacity:), removeAllEdges(keepingCapacity:), reserveCapacity(vertexCount:edgeCount:)
 struct Multigraph<Vertex: Hashable>                                // the same; init?(edges:), init?(vertices:edges:),
                                                                    // init?(builder), init?(_ graph:) nil on a loop;
-                                                                   // insert(edge:) traps on a loop
+                                                                   // insert(edge:) throws SelfLoopError on a loop
 struct DirectedPseudograph<Vertex: Hashable>: BidirectionalDirectedGraph, …   // edges(from:to:), edgeCount(from:to:),
                                                                    // removeAllEdges(from:to:)
 struct DirectedMultigraph<Vertex: Hashable>                        // as Multigraph, directed
@@ -47,7 +47,7 @@ struct DirectedMultigraph<Vertex: Hashable>                        // as Multigr
 | `removeAllEdges(between:and:)` | Repeated `remove(edge:)`; returns the count; both vertices stay; directed: one direction | MG-084 – MG-089 |
 | Vertex removal | Its edges detached last row entry first (out row, then in row), then the last slot moves into its place | MG-090 – MG-104 |
 | Loops and degrees | Undirected: twice in the row, degree 2, once in `edges(between: v, and: v)`; directed: once out, once in, degree 2 | MG-026 – MG-031, MG-036 |
-| No-loop invariant | Failable initializers and decoding reject a loop; `insert(edge:)` traps | MG-011 – MG-013, MG-032 – MG-034, MG-139, MG-140, MG-168, MG-171, MG-175, MG-176 |
+| No-loop invariant | Failable initializers and decoding reject a loop; `insert(edge:)` throws `SelfLoopError` and changes nothing | MG-011 – MG-013, MG-032 – MG-034, MG-139, MG-140, MG-168, MG-171, MG-175, MG-176 |
 | Equality | Equal vertex sets and equal edge multisets (orientation ignored for the undirected types) | MG-115 – MG-128 |
 | Codable | The simple lists' format; vertex order and positions kept, rows rebuilt in position order | MG-129 – MG-153 |
 | Conversions | To the simple lists: each pair's first copy by position, in its orientation. From any graph: vertices in order, then every edge in `edges` order. From the same type: unchanged, rows included | MG-160 – MG-178 |

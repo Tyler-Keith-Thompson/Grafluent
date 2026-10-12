@@ -19,7 +19,8 @@ Conventions:
   hashes its elements on top of these). It is a benchmark counter, not API: the Swift suite checks it
   with a `Label` whose `hash(into:)` counts.
 * `**trap**` rows are preconditions, run as exit tests (`#expect(processExitsWith:)`); results before
-  the trap are listed.
+  the trap are listed. `throws E` is a typed throw: from `init(_:labels:)`, a `LabelingError` (no state
+  follows); from a `checked:` call on a label that is not a vertex, `VertexNotFound`, changing nothing.
 
 | ID | Group | Case | Input / call | Expected |
 |---|---|---|---|---|
@@ -40,18 +41,18 @@ Conventions:
 | LG-015 | Construction | CSR(_ graph:): vertices in graph.vertices order, parallel edges collapsed | CSR(_ DirectedPseudograph(vertices: [p, q, r], edges: [r→p, q→r, r→p])) | V [p#0, q#1, r#2]; E [0:q→r, 1:r→p]; bounds 3/2 |
 | LG-016 | Base init | CSR base, labels name indices | LabeledGraph(CompressedSparseRow(vertexCount: 3, edges: [0→1, 1→2]), labels: [x, y, z]) | V [x#0, y#1, z#2]; E [0:x→y, 1:y→z]; bounds 3/2 |
 | LG-017 | Base init | matrix base | LabeledGraph(AdjacencyMatrix(vertexCount: 2, edges: [1→0]), labels: [u, v]) | V [u#0, v#1]; E [(1,0):v→u]; bounds 2/nil |
-| LG-018 | Base init | too few labels | LabeledGraph(CompressedSparseRow(vertexCount: 3), labels: [x, y]) | **trap** (2 labels for 3 vertices) |
-| LG-019 | Base init | too many labels | LabeledGraph(CompressedSparseRow(vertexCount: 1), labels: [x, y]) | **trap** (2 labels for 1 vertices) |
-| LG-020 | Base init | duplicate label | LabeledGraph(CompressedSparseRow(vertexCount: 2), labels: [x, x]) | **trap** (duplicate label x) |
-| LG-021 | Base init | base vertices not 0..<n | LabeledGraph(AdjacencyList<Int>(vertices: [5, 6]), labels: [x, y]) | **trap** (base vertices are not 0..<vertexCount in index order) |
-| LG-022 | Base init | base vertices 0..<n out of index order | LabeledGraph(AdjacencyList<Int>(vertices: [1, 0]), labels: [x, y]) | **trap** (base vertices are not 0..<vertexCount in index order) |
-| LG-023 | Base init | base with holes (vertexIndexBound nil) | LabeledGraph(StableDirectedGraph<Int> after remove(1) of [0, 1, 2], labels: [x, y]) | **trap** (base is not densely indexed (vertexIndexBound is nil)) |
+| LG-018 | Base init | too few labels | LabeledGraph(CompressedSparseRow(vertexCount: 3), labels: [x, y]) | throws LabelingError.labelCountMismatch(labelCount: 2, vertexCount: 3) |
+| LG-019 | Base init | too many labels | LabeledGraph(CompressedSparseRow(vertexCount: 1), labels: [x, y]) | throws LabelingError.labelCountMismatch(labelCount: 2, vertexCount: 1) |
+| LG-020 | Base init | duplicate label | LabeledGraph(CompressedSparseRow(vertexCount: 2), labels: [x, x]) | throws LabelingError.duplicateLabel(position: 1) |
+| LG-021 | Base init | base vertices not 0..<n | LabeledGraph(AdjacencyList<Int>(vertices: [5, 6]), labels: [x, y]) | throws LabelingError.baseVerticesNotInIndexOrder |
+| LG-022 | Base init | base vertices 0..<n out of index order | LabeledGraph(AdjacencyList<Int>(vertices: [1, 0]), labels: [x, y]) | throws LabelingError.baseVerticesNotInIndexOrder |
+| LG-023 | Base init | base with holes (vertexIndexBound nil) | LabeledGraph(StableDirectedGraph<Int> after remove(1) of [0, 1, 2], labels: [x, y]) | throws LabelingError.baseNotDenselyIndexed |
 | LG-024 | Base init | empty base, no labels | LabeledGraph(AdjacencyMatrix(), labels: []) | V []; E []; bounds 0/nil |
 | LG-025 | Reads | CSR: successors and outEdges in index order | CSR V []; E [a→b, a→c, b→c, c→a] / successors(a) / outEdges(a) / outDegree(a) / successors(b) | [b, c]; [0, 1]; 2; [c] ⇒ V [a#0, b#1, c#2]; E [0:a→b, 1:a→c, 2:b→c, 3:c→a]; bounds 3/4 |
 | LG-026 | Reads | CSR: contains | CSR V []; E [a→b, a→c, b→c, c→a] / contains(a) / contains(q) / contains(edge: a→b) / contains(edge: b→a) / contains(edge: a→q) / contains(edge: q→q) | true; false; true; false; false; false ⇒ V [a#0, b#1, c#2]; E [0:a→b, 1:a→c, 2:b→c, 3:c→a]; bounds 3/4 |
-| LG-027 | Reads | CSR: index conversions | CSR V []; E [a→b, a→c, b→c, c→a] / vertexIndex(c) / vertex(atIndex: 1) / vertexIndex(safe: q) / vertexIndex(safe: b) | 2; b; nil; 1 ⇒ V [a#0, b#1, c#2]; E [0:a→b, 1:a→c, 2:b→c, 3:c→a]; bounds 3/4 |
+| LG-027 | Reads | CSR: index conversions | CSR V []; E [a→b, a→c, b→c, c→a] / vertexIndex(c) / vertex(atIndex: 1) / vertexIndex(checked: q) / vertexIndex(checked: b) | 2; b; throws VertexNotFound; 1 ⇒ V [a#0, b#1, c#2]; E [0:a→b, 1:a→c, 2:b→c, 3:c→a]; bounds 3/4 |
 | LG-028 | Reads | CSR: successorIndices(ofIndex:) forwards the base | CSR V []; E [a→b, a→c, b→c, c→a] / successorIndices(ofIndex: 0) / successorIndices(ofIndex: 2) | [1, 2]; [0] ⇒ V [a#0, b#1, c#2]; E [0:a→b, 1:a→c, 2:b→c, 3:c→a]; bounds 3/4 |
-| LG-029 | Reads | CSR: safe variants | CSR V []; E [a→b, a→c, b→c, c→a] / successors(safe: q) / outEdges(safe: q) / outDegree(safe: q) / successors(safe: c) / outDegree(safe: a) | nil; nil; nil; [a]; 2 ⇒ V [a#0, b#1, c#2]; E [0:a→b, 1:a→c, 2:b→c, 3:c→a]; bounds 3/4 |
+| LG-029 | Reads | CSR: checked variants | CSR V []; E [a→b, a→c, b→c, c→a] / successors(checked: q) / outEdges(checked: q) / outDegree(checked: q) / successors(checked: c) / outEdges(checked: a) / outDegree(checked: a) | throws VertexNotFound; throws VertexNotFound; throws VertexNotFound; [a]; [0, 1]; 2 ⇒ V [a#0, b#1, c#2]; E [0:a→b, 1:a→c, 2:b→c, 3:c→a]; bounds 3/4 |
 | LG-030 | Traps | CSR: successors of a non-vertex | CSR V []; E [a→b, a→c, b→c, c→a] / successors(q) | **trap** (q is not a vertex of the graph) |
 | LG-031 | Traps | CSR: outDegree of a non-vertex | CSR V []; E [a→b, a→c, b→c, c→a] / outDegree(q) | **trap** (q is not a vertex of the graph) |
 | LG-032 | Traps | CSR: vertexIndex of a non-vertex | CSR V []; E [a→b, a→c, b→c, c→a] / vertexIndex(q) | **trap** (q is not a vertex of the graph) |
@@ -59,9 +60,9 @@ Conventions:
 | LG-034 | Traps | CSR: vertex(atIndex:) negative | CSR V []; E [a→b, a→c, b→c, c→a] / vertex(atIndex: -1) | **trap** (index -1 out of range) |
 | LG-035 | Reads | M: successors and outEdges in index order | M V []; E [a→b, a→c, b→c, c→a] / successors(a) / outEdges(a) / outDegree(a) / successors(b) | [b, c]; [(0,1), (0,2)]; 2; [c] ⇒ V [a#0, b#1, c#2]; E [(0,1):a→b, (0,2):a→c, (1,2):b→c, (2,0):c→a]; bounds 3/nil |
 | LG-036 | Reads | M: contains | M V []; E [a→b, a→c, b→c, c→a] / contains(a) / contains(q) / contains(edge: a→b) / contains(edge: b→a) / contains(edge: a→q) / contains(edge: q→q) | true; false; true; false; false; false ⇒ V [a#0, b#1, c#2]; E [(0,1):a→b, (0,2):a→c, (1,2):b→c, (2,0):c→a]; bounds 3/nil |
-| LG-037 | Reads | M: index conversions | M V []; E [a→b, a→c, b→c, c→a] / vertexIndex(c) / vertex(atIndex: 1) / vertexIndex(safe: q) / vertexIndex(safe: b) | 2; b; nil; 1 ⇒ V [a#0, b#1, c#2]; E [(0,1):a→b, (0,2):a→c, (1,2):b→c, (2,0):c→a]; bounds 3/nil |
+| LG-037 | Reads | M: index conversions | M V []; E [a→b, a→c, b→c, c→a] / vertexIndex(c) / vertex(atIndex: 1) / vertexIndex(checked: q) / vertexIndex(checked: b) | 2; b; throws VertexNotFound; 1 ⇒ V [a#0, b#1, c#2]; E [(0,1):a→b, (0,2):a→c, (1,2):b→c, (2,0):c→a]; bounds 3/nil |
 | LG-038 | Reads | M: successorIndices(ofIndex:) forwards the base | M V []; E [a→b, a→c, b→c, c→a] / successorIndices(ofIndex: 0) / successorIndices(ofIndex: 2) | [1, 2]; [0] ⇒ V [a#0, b#1, c#2]; E [(0,1):a→b, (0,2):a→c, (1,2):b→c, (2,0):c→a]; bounds 3/nil |
-| LG-039 | Reads | M: safe variants | M V []; E [a→b, a→c, b→c, c→a] / successors(safe: q) / outEdges(safe: q) / outDegree(safe: q) / successors(safe: c) / outDegree(safe: a) | nil; nil; nil; [a]; 2 ⇒ V [a#0, b#1, c#2]; E [(0,1):a→b, (0,2):a→c, (1,2):b→c, (2,0):c→a]; bounds 3/nil |
+| LG-039 | Reads | M: checked variants | M V []; E [a→b, a→c, b→c, c→a] / successors(checked: q) / outEdges(checked: q) / outDegree(checked: q) / successors(checked: c) / outEdges(checked: a) / outDegree(checked: a) | throws VertexNotFound; throws VertexNotFound; throws VertexNotFound; [a]; [(0,1), (0,2)]; 2 ⇒ V [a#0, b#1, c#2]; E [(0,1):a→b, (0,2):a→c, (1,2):b→c, (2,0):c→a]; bounds 3/nil |
 | LG-040 | Traps | M: successors of a non-vertex | M V []; E [a→b, a→c, b→c, c→a] / successors(q) | **trap** (q is not a vertex of the graph) |
 | LG-041 | Traps | M: outDegree of a non-vertex | M V []; E [a→b, a→c, b→c, c→a] / outDegree(q) | **trap** (q is not a vertex of the graph) |
 | LG-042 | Traps | M: vertexIndex of a non-vertex | M V []; E [a→b, a→c, b→c, c→a] / vertexIndex(q) | **trap** (q is not a vertex of the graph) |
@@ -73,7 +74,7 @@ Conventions:
 | LG-048 | Traps | M: edgeIndex (matrix has no edge indices) | M V []; E [a→b, a→c, b→c, c→a] / edgeIndex(of: (0,1)) | **trap** (AdjacencyMatrix has no edge indices; check edgeIndexBound first) |
 | LG-049 | Traps | M: edge position that is not an edge | M V []; E [a→b, a→c, b→c, c→a] / source(ofEdgeAt: (1,0)) | **trap** (no edge at position) |
 | LG-050 | Reads | M: predecessors, inEdges, degrees | M V []; E [a→b, a→c, b→c, c→a] / predecessors(c) / inEdges(c) / inDegree(c) / degree(c) / predecessorIndices(ofIndex: 2) | [a, b]; [(0,2), (1,2)]; 2; 3; [0, 1] ⇒ V [a#0, b#1, c#2]; E [(0,1):a→b, (0,2):a→c, (1,2):b→c, (2,0):c→a]; bounds 3/nil |
-| LG-051 | Reads | M: bidirectional safe variants | M V []; E [a→b, a→c, b→c, c→a] / predecessors(safe: q) / inEdges(safe: q) / inDegree(safe: q) / degree(safe: q) / inDegree(safe: a) | nil; nil; nil; nil; 1 ⇒ V [a#0, b#1, c#2]; E [(0,1):a→b, (0,2):a→c, (1,2):b→c, (2,0):c→a]; bounds 3/nil |
+| LG-051 | Reads | M: bidirectional checked variants | M V []; E [a→b, a→c, b→c, c→a] / predecessors(checked: q) / inEdges(checked: q) / inDegree(checked: q) / degree(checked: q) / predecessors(checked: c) / inEdges(checked: c) / inDegree(checked: a) / degree(checked: c) | throws VertexNotFound; throws VertexNotFound; throws VertexNotFound; throws VertexNotFound; [a, b]; [(0,2), (1,2)]; 1; 3 ⇒ V [a#0, b#1, c#2]; E [(0,1):a→b, (0,2):a→c, (1,2):b→c, (2,0):c→a]; bounds 3/nil |
 | LG-052 | Traps | M: predecessors of a non-vertex | M V []; E [a→b, a→c, b→c, c→a] / predecessors(q) | **trap** (q is not a vertex of the graph) |
 | LG-053 | Reads | M: a self-loop counts in both rows | M V []; E [a→a, a→b] / successors(a) / predecessors(a) / degree(a) | [a, b]; [a]; 3 ⇒ V [a#0, b#1]; E [(0,0):a→a, (0,1):a→b]; bounds 2/nil |
 | LG-054 | Boundary | index-space reads do not hash | CSR V []; E [a→b, b→c, c→d, d→e] / successorIndices(ofIndex: 0) / vertex(atIndex: 4) / edges[3] / hashes() | [1]; e; d→e; 0 ⇒ V [a#0, b#1, c#2, d#3, e#4]; E [0:a→b, 1:b→c, 2:c→d, 3:d→e]; bounds 5/4 |
@@ -97,8 +98,8 @@ Conventions:
 | LG-072 | Mutation | insert(edge:) repeated | M V [a, b]; E [a→b] / insert(edge: a→b) | (false, a→b) ⇒ V [a#0, b#1]; E [(0,1):a→b]; bounds 2/nil |
 | LG-073 | Mutation | insert(edge:) inserts missing endpoints, source first | M V [a, b]; E [a→b] / insert(edge: d→c) | (true, d→c) ⇒ V [a#0, b#1, d#2, c#3]; E [(0,1):a→b, (2,3):d→c]; bounds 4/nil |
 | LG-074 | Mutation | insert(edge:) self-loop on a new label | M V [a, b]; E [a→b] / insert(edge: z→z) | (true, z→z) ⇒ V [a#0, b#1, z#2]; E [(0,1):a→b, (2,2):z→z]; bounds 3/nil |
-| LG-075 | Mutation | insert(safe:) with both endpoints | M V [a, b]; E [a→b] / insert(safe: b→b) | (true, b→b) ⇒ V [a#0, b#1]; E [(0,1):a→b, (1,1):b→b]; bounds 2/nil |
-| LG-076 | Mutation | insert(safe:) with a missing endpoint changes nothing | M V [a, b]; E [a→b] / insert(safe: a→q) / insert(safe: q→a) | nil; nil ⇒ V [a#0, b#1]; E [(0,1):a→b]; bounds 2/nil |
+| LG-075 | Mutation | insert(checked:) with both endpoints | M V [a, b]; E [a→b] / insert(checked: b→b) | (true, b→b) ⇒ V [a#0, b#1]; E [(0,1):a→b, (1,1):b→b]; bounds 2/nil |
+| LG-076 | Mutation | insert(checked:) with a missing endpoint throws, changing nothing | M V [a, b]; E [a→b] / insert(checked: a→q) / insert(checked: q→a) | throws VertexNotFound; throws VertexNotFound ⇒ V [a#0, b#1]; E [(0,1):a→b]; bounds 2/nil |
 | LG-077 | Mutation | remove(edge:) | M V [a, b]; E [a→b] / remove(edge: a→b) / remove(edge: a→b) | a→b; nil ⇒ V [a#0, b#1]; E []; bounds 2/nil |
 | LG-078 | Mutation | remove(edge:) with a missing endpoint returns nil | M V [a, b]; E [a→b] / remove(edge: a→q) | nil ⇒ V [a#0, b#1]; E [(0,1):a→b]; bounds 2/nil |
 | LG-079 | Mutation | removeAllEdges keeps labels | M V [a, b]; E [a→b] / removeAllEdges() | () ⇒ V [a#0, b#1]; E []; bounds 2/nil |
@@ -119,3 +120,5 @@ Conventions:
 | LG-094 | Hashing | same labeled graph, different index assignment | Set([CSR V [c, b, a]; E [a→b, b→c], CSR V [b]; E [b→c, a→b]]).count | 1 |
 | LG-095 | Hashing | matrix, opposite arcs, different index assignment | Set([M V [b]; E [a→b, b→a, a→a], M V [a]; E [b→a, a→b, a→a]]).count | 1 |
 | LG-096 | Hashing | different edges | Set([CSR V [a, b]; E [a→b], CSR V [a, b]; E [b→a]]).count | 2 |
+| LG-097 | Mutation | removeEdges(checkedFrom:) / (checkedTo:) / (checkedIncidentTo:) as the trapping ones | M V [a, b, c]; E [a→b, a→c, b→a, a→a, c→b] / removeEdges(checkedFrom: b) / removeEdges(checkedTo: b) / removeEdges(checkedIncidentTo: c) | 1; 2; 1 ⇒ V [a#0, b#1, c#2]; E [(0,0):a→a]; bounds 3/nil |
+| LG-098 | Mutation | removeEdges(checkedFrom:) / (checkedTo:) / (checkedIncidentTo:) of a missing label throw, changing nothing | M V [a, b, c]; E [a→b, a→c, b→a, a→a, c→b] / removeEdges(checkedFrom: q) / removeEdges(checkedTo: q) / removeEdges(checkedIncidentTo: q) | throws VertexNotFound; throws VertexNotFound; throws VertexNotFound ⇒ V [a#0, b#1, c#2]; E [(0,0):a→a, (0,1):a→b, (0,2):a→c, (1,0):b→a, (2,1):c→b]; bounds 3/nil |

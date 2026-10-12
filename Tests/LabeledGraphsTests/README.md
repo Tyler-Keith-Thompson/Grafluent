@@ -29,11 +29,12 @@ struct LabeledGraph<Label: Hashable, Base>: DirectedGraph (Base: DirectedGraph<I
     transposed()                                                    // Base == CSR
     var base: Base; var vertices: OrderedSet<Label>; var edges: Edges   // Edges.Index == Base.Edges.Index
     successors(of:), outEdges(of:), outDegree(of:), predecessors(of:), inEdges(of:), inDegree(of:), degree(of:)
-    successors(safe:), outEdges(safe:), outDegree(safe:), predecessors(safe:), inEdges(safe:), inDegree(safe:),
-        degree(safe:), vertexIndex(safe:)
+    successors(checked:), outEdges(checked:), outDegree(checked:), predecessors(checked:), inEdges(checked:),
+        inDegree(checked:), degree(checked:), vertexIndex(checked:)   // throws(VertexNotFound)
     vertexIndex(of:), vertex(atIndex:), successorIndices(ofIndex:), predecessorIndices(ofIndex:), …  // the base's
-    insert(_:), insert(edge:), insert(safe:), remove(edge:), removeEdges(from:), removeEdges(to:),
-        removeEdges(incidentTo:), removeAllEdges(keepingCapacity:), removeAll(keepingCapacity:),
+    insert(_:), insert(edge:), insert(checked:), remove(edge:), removeEdges(from:), removeEdges(to:),
+        removeEdges(incidentTo:), removeEdges(checkedFrom:), removeEdges(checkedTo:),
+        removeEdges(checkedIncidentTo:), removeAllEdges(keepingCapacity:), removeAll(keepingCapacity:),
         reserveCapacity(vertexCount:)                               // Base == AdjacencyMatrix
 ```
 
@@ -44,8 +45,8 @@ struct LabeledGraph<Label: Hashable, Base>: DirectedGraph (Base: DirectedGraph<I
 | Index assignment | Listed labels first (a repeat once), then new endpoints in first-appearance order | LG-003 – LG-005, LG-009 – LG-011 |
 | Positions | The base's: CSR `Int`s in row-major index order, matrix `(source, target)` cells | LG-013, LG-014, LG-045, LG-047 |
 | Row order | Ascending index, the base's order | LG-025, LG-035, LG-050 |
-| `init(_:labels:)` | Traps on a count mismatch, a repeat, base vertices not `0..<n` in order, or `vertexIndexBound == nil` | LG-018 – LG-023 |
-| Non-vertices | Label-space members trap; `safe:` spellings and `contains(edge:)` answer nil or false; `remove(edge:)` returns nil | LG-029 – LG-032, LG-076, LG-078 |
+| `init(_:labels:)` | Throws the first `LabelingError`: `.baseNotDenselyIndexed`, `.baseVerticesNotInIndexOrder`, `.labelCountMismatch`, `.duplicateLabel(position:)` | LG-018 – LG-023 |
+| Non-vertices | Label-space members trap; `checked:` spellings throw `VertexNotFound`, changing nothing; `contains(edge:)` answers false; `remove(edge:)` returns nil | LG-029 – LG-032, LG-076, LG-078, LG-098 |
 | Hashing | Index-space and whole-graph reads hash no label; a label-space read hashes once; algorithms hash at their inputs only | LG-054 – LG-057, LG-066 |
 | Undirected | `labeled.undirected`: neighbours are successors then predecessors; label-space reads hash twice | LG-062 – LG-068 |
 | Mutation | A new label appends base vertex n; `insert(edge:)` inserts a missing source, then a missing target; `removeEdges` clears a row, a column or both, a self-loop counted once | LG-069 – LG-084 |
@@ -109,7 +110,7 @@ not from the setup.
   `init(_ graph:)` across bases, Sendable, and `init(_:labels:)` over a renumbered base.
 - **Hash law.** A counting label on graphs of at least 16 labels:
   - index-space and whole-graph reads cause no hash and no comparison;
-  - every label-space member hashes once, `contains(edge:)` twice, and the `safe:` spellings once,
+  - every label-space member hashes once, `contains(edge:)` twice, and the `checked:` spellings once,
     hit or miss;
   - algorithms hash the same on a sparse graph and on one with eight times the edges and the same
     reachability;
@@ -131,14 +132,14 @@ equivalent, because `OrderedSet`'s subscript traps anyway.
 | Planted bug | Caught by |
 |---|---|
 | A double lookup in `successors(of:)` | hash law, LG-055, LG-066 |
-| `contains(_:)` or `vertexIndex(safe:)` scanning linearly | hash law, LG-056 |
+| `contains(_:)` or `vertexIndex(checked:)` scanning linearly | hash law, LG-056 |
 | CSR build numbering the target before the source | LG-025 and most CSR rows |
 | `insert(edge:)` inserting the target first | LG-073, properties |
 | Equality ignoring edges, or the fast path skipping the base | LG-092, properties |
 | `init(_:labels:)` without the repeat or count check | LG-019, LG-020, Codable |
-| `insert(safe:)` inserting missing endpoints | LG-076, properties |
+| `insert(checked:)` inserting missing endpoints | LG-076, properties |
 | `removeAll()` keeping the labels | LG-080, copy-on-write, resets |
 | `inDegree` reading the out-row | matrix rows, stress |
-| `outDegree(safe:)` giving 0 for a non-vertex | LG-029, LG-039 |
+| `outDegree(checked:)` giving 0 for a non-vertex | LG-029, LG-039 |
 | The edge iterator, or `source(ofEdgeAt:)`, swapping the ends | construction rows |
 | Decoding without validation | Codable |

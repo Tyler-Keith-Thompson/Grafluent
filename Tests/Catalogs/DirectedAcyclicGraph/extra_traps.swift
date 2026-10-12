@@ -22,13 +22,16 @@
             let graph = DirectedAcyclicGraph<DirectedPseudograph<Int>>()
             _ = graph.topologicalPosition(of: 0)
         }
-        // Without the calls: the vertices that remain answer, and the safe spelling answers nil.
+        // Without the calls: the vertices that remain answer, and the checked spelling throws
+        // VertexNotFound.
         var stable = DirectedAcyclicGraph<StableDirectedGraph<Int>>(vertices: [0, 1, 2])
         _ = stable.remove(1)
-        #expect(stable.topologicalPosition(of: 2) == 1 && stable.topologicalPosition(safe: 1) == nil)
+        #expect(stable.topologicalPosition(of: 2) == 1)
+        #expect(throws: VertexNotFound()) { try stable.topologicalPosition(checked: 1) }
         var dense = DirectedAcyclicGraph<AdjacencyList<Int>>(vertices: [0, 1, 2])
         _ = dense.remove(0)
-        #expect(dense.topologicalPosition(of: 2) == 1 && dense.topologicalPosition(safe: 0) == nil)
+        #expect(dense.topologicalPosition(of: 2) == 1)
+        #expect(throws: VertexNotFound()) { try dense.topologicalPosition(checked: 0) }
     }
 
     @Test("hasPath(from:to:) traps for a non-vertex at either end, even when the other end decides the answer")
@@ -78,7 +81,7 @@
         await #expect(processExitsWith: .failure) {
             // A source placed first: free slots lie before place 0.
             var graph = DirectedAcyclicGraph<AdjacencyList<Int>>(vertices: [0])
-            _ = graph.insert(edge: DirectedEdge(from: 5, to: 0))
+            _ = try! graph.insert(edge: DirectedEdge(from: 5, to: 0))
             _ = graph.topologicalOrder[-1]
         }
         // Without the calls: the last place answers.
@@ -88,7 +91,7 @@
         _ = holed.remove(1)
         #expect(holed.topologicalOrder[2] == 3 && holed.topologicalOrder.count == 3)
         var prepended = DirectedAcyclicGraph<AdjacencyList<Int>>(vertices: [0])
-        _ = prepended.insert(edge: DirectedEdge(from: 5, to: 0))
+        _ = try prepended.insert(edge: DirectedEdge(from: 5, to: 0))
         #expect(prepended.topologicalOrder[0] == 5 && prepended.topologicalOrder[1] == 0)
     }
 

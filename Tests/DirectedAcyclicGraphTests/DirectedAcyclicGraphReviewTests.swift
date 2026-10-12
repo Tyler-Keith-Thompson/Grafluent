@@ -1,8 +1,8 @@
 // Findings of the critical review, each pinned through the public API: the attached maps of a
 // StableDirectedGraph base work through the wrapper (README Q9); `remove(_:)` is a
 // MutableDirectedGraph requirement, so generic code removes a vertex; removing a vertex through
-// the wrapper hashes it once to find it and then only as the base must; `insert(safe:)`'s two
-// causes of nil are told apart by `contains`. See README.md.
+// the wrapper hashes it once to find it and then only as the base must; `insert(checked:)` throws
+// a distinct error for each of its causes. See README.md.
 
 import AdjacencyListModule
 import DirectedAcyclicGraphModule
@@ -32,8 +32,8 @@ struct DirectedAcyclicGraphReviewTests {
         // Reading a non-vertex is nil.
         #expect(graph[label, of: "z"] == nil)
         // A reordering keeps every position, so the values stay with their edges.
-        #expect(graph.insert(edge: DirectedEdge(from: "c", to: "d")) == 2)
-        #expect(graph.insert(edge: DirectedEdge(from: "x", to: "a")) == 3)
+        #expect(try graph.insert(edge: DirectedEdge(from: "c", to: "d")) == 2)
+        #expect(try graph.insert(edge: DirectedEdge(from: "x", to: "a")) == 3)
         #expect(Array(graph.topologicalOrder) == ["x", "a", "b", "c", "d"])
         graph[weight, ofEdgeAt: 3] = 1
         #expect(graph[weight, ofEdgeAt: 0] == 5 && graph[weight, ofEdgeAt: 3] == 1)
@@ -139,13 +139,16 @@ struct DirectedAcyclicGraphReviewTests {
         #expect(wrappedPseudograph.base == barePseudograph && wrappedStable.base == bareStable)
     }
 
-    @Test("insert(safe:) returns nil for a missing endpoint or a cycle; contains tells which")
-    func safeInsertCauses() throws {
+    @Test("insert(checked:) throws a different error for a missing endpoint, a self-loop and a cycle, and changes nothing")
+    func checkedInsertCauses() throws {
         var graph = try #require(DirectedAcyclicGraph<AdjacencyList<Int>>(edges: [DirectedEdge(from: 0, to: 1)]))
-        let missing = DirectedEdge(from: 1, to: 2), cycle = DirectedEdge(from: 1, to: 0)
-        #expect(graph.insert(safe: missing) == nil && graph.insert(safe: cycle) == nil)
-        #expect(!(graph.contains(missing.source) && graph.contains(missing.target)))
-        #expect(graph.contains(cycle.source) && graph.contains(cycle.target))
+        let missing = DirectedEdge(from: 1, to: 2), loop = DirectedEdge(from: 1, to: 1), cycle = DirectedEdge(from: 1, to: 0)
+        #expect(throws: AcyclicEdgeError.missingEndpoint) { try graph.insert(checked: missing) }
+        #expect(throws: AcyclicEdgeError.missingEndpoint) { try graph.insert(checked: DirectedEdge(from: 2, to: 2)) }
+        #expect(throws: AcyclicEdgeError.selfLoop) { try graph.insert(checked: loop) }
+        #expect(throws: AcyclicEdgeError.cycle) { try graph.insert(checked: cycle) }
+        #expect(Array(graph.vertices) == [0, 1] && Array(graph.edges) == [DirectedEdge(from: 0, to: 1)])
+        #expect(Array(graph.topologicalOrder) == [0, 1])
         let path = try #require(graph.bidirectionalShortestPath(from: cycle.target, to: cycle.source))
         #expect(path.edges == [0])
     }

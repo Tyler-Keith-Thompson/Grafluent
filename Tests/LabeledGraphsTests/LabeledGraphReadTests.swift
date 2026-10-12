@@ -1,6 +1,6 @@
 // Reads (catalog LG-025 – LG-053): rows in the base's (ascending index) order, membership, the index
-// conversions both ways, the index-space rows forwarded from the base, positions, and the `safe:`
-// lookups, nil for a label that is not a vertex.
+// conversions both ways, the index-space rows forwarded from the base, positions, and the `checked:`
+// lookups, which throw `VertexNotFound` for a label that is not a vertex.
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import AdjacencyMatrixModule
@@ -106,13 +106,13 @@ struct LabeledGraphReadTests {
     }
 
     @Test("LG-027 CSR: index conversions")
-    func lg027() {
-        // CSR V []; E [a→b, a→c, b→c, c→a] / vertexIndex(c) / vertex(atIndex: 1) / vertexIndex(safe: q) / vertexIndex(safe: b)
+    func lg027() throws {
+        // CSR V []; E [a→b, a→c, b→c, c→a] / vertexIndex(c) / vertex(atIndex: 1) / vertexIndex(checked: q) / vertexIndex(checked: b)
         let graph = LabeledGraph<String, CompressedSparseRow>(vertices: [] as [String], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "a", to: "c"), DirectedEdge(from: "b", to: "c"), DirectedEdge(from: "c", to: "a")])
         #expect(graph.vertexIndex(of: "c") == 2)
         #expect(graph.vertex(atIndex: 1) == "b")
-        #expect(graph.vertexIndex(safe: "q") == nil)
-        #expect(graph.vertexIndex(safe: "b") == 1)
+        #expect(throws: VertexNotFound()) { try graph.vertexIndex(checked: "q") }
+        #expect(try graph.vertexIndex(checked: "b") == 1)
         // Final state.
         #expect(Array(graph.vertices) == ["a", "b", "c"])
         #expect(graph.edges.map { [$0.source, $0.target] } == [["a", "b"], ["a", "c"], ["b", "c"], ["c", "a"]])
@@ -195,15 +195,16 @@ struct LabeledGraphReadTests {
         #expect(graph.edges.indices.map { graph.edgeIndex(of: $0) } == [0, 1, 2, 3])
     }
 
-    @Test("LG-029 CSR: safe variants")
-    func lg029() {
-        // CSR V []; E [a→b, a→c, b→c, c→a] / successors(safe: q) / outEdges(safe: q) / outDegree(safe: q) / successors(safe: c) / outDegree(safe: a)
+    @Test("LG-029 CSR: checked variants")
+    func lg029() throws {
+        // CSR V []; E [a→b, a→c, b→c, c→a] / successors(checked: q) / outEdges(checked: q) / outDegree(checked: q) / successors(checked: c) / outEdges(checked: a) / outDegree(checked: a)
         let graph = LabeledGraph<String, CompressedSparseRow>(vertices: [] as [String], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "a", to: "c"), DirectedEdge(from: "b", to: "c"), DirectedEdge(from: "c", to: "a")])
-        #expect(graph.successors(safe: "q").map { Array($0) } == nil)
-        #expect(graph.outEdges(safe: "q").map { Array($0) } == nil)
-        #expect(graph.outDegree(safe: "q") == nil)
-        #expect(graph.successors(safe: "c").map { Array($0) } == ["a"])
-        #expect(graph.outDegree(safe: "a") == 2)
+        #expect(throws: VertexNotFound()) { try graph.successors(checked: "q") }
+        #expect(throws: VertexNotFound()) { try graph.outEdges(checked: "q") }
+        #expect(throws: VertexNotFound()) { try graph.outDegree(checked: "q") }
+        #expect(try Array(graph.successors(checked: "c")) == ["a"])
+        #expect(try Array(graph.outEdges(checked: "a")) == [0, 1])
+        #expect(try graph.outDegree(checked: "a") == 2)
         // Final state.
         #expect(Array(graph.vertices) == ["a", "b", "c"])
         #expect(graph.edges.map { [$0.source, $0.target] } == [["a", "b"], ["a", "c"], ["b", "c"], ["c", "a"]])
@@ -365,13 +366,13 @@ struct LabeledGraphReadTests {
     }
 
     @Test("LG-037 M: index conversions")
-    func lg037() {
-        // M V []; E [a→b, a→c, b→c, c→a] / vertexIndex(c) / vertex(atIndex: 1) / vertexIndex(safe: q) / vertexIndex(safe: b)
+    func lg037() throws {
+        // M V []; E [a→b, a→c, b→c, c→a] / vertexIndex(c) / vertex(atIndex: 1) / vertexIndex(checked: q) / vertexIndex(checked: b)
         let graph = LabeledGraph<String, AdjacencyMatrix>(vertices: [] as [String], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "a", to: "c"), DirectedEdge(from: "b", to: "c"), DirectedEdge(from: "c", to: "a")])
         #expect(graph.vertexIndex(of: "c") == 2)
         #expect(graph.vertex(atIndex: 1) == "b")
-        #expect(graph.vertexIndex(safe: "q") == nil)
-        #expect(graph.vertexIndex(safe: "b") == 1)
+        #expect(throws: VertexNotFound()) { try graph.vertexIndex(checked: "q") }
+        #expect(try graph.vertexIndex(checked: "b") == 1)
         // Final state.
         #expect(Array(graph.vertices) == ["a", "b", "c"])
         #expect(graph.edges.map { [$0.source, $0.target] } == [["a", "b"], ["a", "c"], ["b", "c"], ["c", "a"]])
@@ -482,15 +483,16 @@ struct LabeledGraphReadTests {
         #expect(graph.contains(edge: DirectedEdge(from: "c", to: "a")))
     }
 
-    @Test("LG-039 M: safe variants")
-    func lg039() {
-        // M V []; E [a→b, a→c, b→c, c→a] / successors(safe: q) / outEdges(safe: q) / outDegree(safe: q) / successors(safe: c) / outDegree(safe: a)
+    @Test("LG-039 M: checked variants")
+    func lg039() throws {
+        // M V []; E [a→b, a→c, b→c, c→a] / successors(checked: q) / outEdges(checked: q) / outDegree(checked: q) / successors(checked: c) / outEdges(checked: a) / outDegree(checked: a)
         let graph = LabeledGraph<String, AdjacencyMatrix>(vertices: [] as [String], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "a", to: "c"), DirectedEdge(from: "b", to: "c"), DirectedEdge(from: "c", to: "a")])
-        #expect(graph.successors(safe: "q").map { Array($0) } == nil)
-        #expect(graph.outEdges(safe: "q").map { $0.map { [$0.source, $0.target] } } == nil)
-        #expect(graph.outDegree(safe: "q") == nil)
-        #expect(graph.successors(safe: "c").map { Array($0) } == ["a"])
-        #expect(graph.outDegree(safe: "a") == 2)
+        #expect(throws: VertexNotFound()) { try graph.successors(checked: "q") }
+        #expect(throws: VertexNotFound()) { try graph.outEdges(checked: "q") }
+        #expect(throws: VertexNotFound()) { try graph.outDegree(checked: "q") }
+        #expect(try Array(graph.successors(checked: "c")) == ["a"])
+        #expect(try graph.outEdges(checked: "a").map { [$0.source, $0.target] } == [[0, 1], [0, 2]])
+        #expect(try graph.outDegree(checked: "a") == 2)
         // Final state.
         #expect(Array(graph.vertices) == ["a", "b", "c"])
         #expect(graph.edges.map { [$0.source, $0.target] } == [["a", "b"], ["a", "c"], ["b", "c"], ["c", "a"]])
@@ -711,15 +713,18 @@ struct LabeledGraphReadTests {
         #expect(graph.contains(edge: DirectedEdge(from: "c", to: "a")))
     }
 
-    @Test("LG-051 M: bidirectional safe variants")
-    func lg051() {
-        // M V []; E [a→b, a→c, b→c, c→a] / predecessors(safe: q) / inEdges(safe: q) / inDegree(safe: q) / degree(safe: q) / inDegree(safe: a)
+    @Test("LG-051 M: bidirectional checked variants")
+    func lg051() throws {
+        // M V []; E [a→b, a→c, b→c, c→a] / predecessors(checked: q) / inEdges(checked: q) / inDegree(checked: q) / degree(checked: q) / predecessors(checked: c) / inEdges(checked: c) / inDegree(checked: a) / degree(checked: c)
         let graph = LabeledGraph<String, AdjacencyMatrix>(vertices: [] as [String], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "a", to: "c"), DirectedEdge(from: "b", to: "c"), DirectedEdge(from: "c", to: "a")])
-        #expect(graph.predecessors(safe: "q").map { Array($0) } == nil)
-        #expect(graph.inEdges(safe: "q").map { $0.map { [$0.source, $0.target] } } == nil)
-        #expect(graph.inDegree(safe: "q") == nil)
-        #expect(graph.degree(safe: "q") == nil)
-        #expect(graph.inDegree(safe: "a") == 1)
+        #expect(throws: VertexNotFound()) { try graph.predecessors(checked: "q") }
+        #expect(throws: VertexNotFound()) { try graph.inEdges(checked: "q") }
+        #expect(throws: VertexNotFound()) { try graph.inDegree(checked: "q") }
+        #expect(throws: VertexNotFound()) { try graph.degree(checked: "q") }
+        #expect(try Array(graph.predecessors(checked: "c")) == ["a", "b"])
+        #expect(try graph.inEdges(checked: "c").map { [$0.source, $0.target] } == [[0, 2], [1, 2]])
+        #expect(try graph.inDegree(checked: "a") == 1)
+        #expect(try graph.degree(checked: "c") == 3)
         // Final state.
         #expect(Array(graph.vertices) == ["a", "b", "c"])
         #expect(graph.edges.map { [$0.source, $0.target] } == [["a", "b"], ["a", "c"], ["b", "c"], ["c", "a"]])

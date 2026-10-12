@@ -30,7 +30,7 @@ B = "LabeledGraph+Construction.swift"
 D = "LabeledGraph+DirectedGraph.swift"
 U = "LabeledGraph+Mutation.swift"
 
-SAFE = "Optional(_labels.firstIndex(of: label) ?? 0)"
+SAFE = "Optional(_labels.firstIndex(of: label) ?? 0)"  # a lookup that never misses
 
 MUTANTS = [
     # init(_:labels:) validation, shared with decoding.
@@ -40,15 +40,16 @@ MUTANTS = [
     Mutant("validcount", L, "expected == n", "true"),
     Mutant("labelcount", L, "given.count == n", "true"),
     Mutant("labelrepeat", L, "set.append(label).inserted", "true"),
-    Mutant("inbasecount", L, '_LabelingFailure(inBase: true, "base vertices are not 0..<vertexCount in index order")', '_LabelingFailure(inBase: false, "base vertices are not 0..<vertexCount in index order")', nth=1),
-    Mutant("inbaseorder", L, '_LabelingFailure(inBase: true, "base vertices are not 0..<vertexCount in index order")', '_LabelingFailure(inBase: false, "base vertices are not 0..<vertexCount in index order")', nth=0),
-    Mutant("inbasebound", L, '_LabelingFailure(inBase: true, "base is not densely indexed (vertexIndexBound is nil)")', '_LabelingFailure(inBase: false, "base is not densely indexed (vertexIndexBound is nil)")'),
-    Mutant("inlabels", L, '_LabelingFailure(inBase: false, "\\(given.count) labels for \\(n) vertices")', '_LabelingFailure(inBase: true, "\\(given.count) labels for \\(n) vertices")'),
-    Mutant("inrepeat", L, '_LabelingFailure(inBase: false, "duplicate label \\(label)")', '_LabelingFailure(inBase: true, "duplicate label \\(label)")'),
+    # The LabelingError case and payload thrown.
+    Mutant("caseorder", L, ".baseVerticesNotInIndexOrder", ".baseNotDenselyIndexed", nth=0),
+    Mutant("casecount", L, ".baseVerticesNotInIndexOrder", ".baseNotDenselyIndexed", nth=1),
+    Mutant("casebound", L, ".baseNotDenselyIndexed", ".baseVerticesNotInIndexOrder", nth=0),
+    Mutant("countpayload", L, ".labelCountMismatch(labelCount: given.count, vertexCount: n)", ".labelCountMismatch(labelCount: n, vertexCount: given.count)"),
+    Mutant("repeatpayload", L, ".duplicateLabel(position: position)", ".duplicateLabel(position: 0)"),
 
     # Index conversions.
     Mutant("indextrap", L, "_labels.firstIndex(of: label)", SAFE, nth=1),
-    Mutant("indexsafe", L, "_labels.firstIndex(of: label)", SAFE, nth=0),
+    Mutant("indexchecked", L, "_labels.firstIndex(of: label)", SAFE, nth=0),
 
     # First-appearance numbering of labeled edges.
     Mutant("numbertargetfirst", L, "labels.append(edge.source).index", "{ _ = labels.append(edge.target); return labels.append(edge.source).index }()"),
@@ -96,37 +97,43 @@ MUTANTS = [
     Mutant("inedgesindex", D, "_base.inEdges(ofIndex: index)", "_base.inEdges(ofIndex: _labels.count - 1 - index)", nth=0),
     Mutant("rows", D, "_base._withSuccessorIndexRows(body)", "nil"),
 
-    # safe: lookups.
-    Mutant("safedegree", D, "_labels.firstIndex(of: label)", SAFE, nth=6),
-    Mutant("safeindegree", D, "_labels.firstIndex(of: label)", SAFE, nth=5),
-    Mutant("safeinedges", D, "_labels.firstIndex(of: label)", SAFE, nth=4),
-    Mutant("safepredecessors", D, "_labels.firstIndex(of: label)", SAFE, nth=3),
-    Mutant("safeoutdegree", D, "_labels.firstIndex(of: label)", SAFE, nth=2),
-    Mutant("safeoutedges", D, "_labels.firstIndex(of: label)", SAFE, nth=1),
-    Mutant("safesuccessors", D, "_labels.firstIndex(of: label)", SAFE, nth=0),
-    Mutant("safeoutdegreevalue", D, "return _base.outDegree(of: index)", "return _base.outDegree(of: _labels.count - 1 - index)", mode="stmt"),
-    Mutant("safeindegreevalue", D, "return _base.inDegree(of: index)", "return _base.inDegree(of: _labels.count - 1 - index)", mode="stmt"),
-    Mutant("safedegreevalue", D, "return _base.degree(of: index)", "return _base.degree(of: _labels.count - 1 - index)", mode="stmt"),
-    Mutant("safeoutedgesvalue", D, "return _base.outEdges(ofIndex: index)", "return _base.outEdges(ofIndex: _labels.count - 1 - index)", mode="stmt"),
-    Mutant("safeinedgesvalue", D, "return _base.inEdges(ofIndex: index)", "return _base.inEdges(ofIndex: _labels.count - 1 - index)", mode="stmt"),
+    # checked: lookups.
+    Mutant("checkeddegree", D, "_labels.firstIndex(of: label)", SAFE, nth=6),
+    Mutant("checkedindegree", D, "_labels.firstIndex(of: label)", SAFE, nth=5),
+    Mutant("checkedinedges", D, "_labels.firstIndex(of: label)", SAFE, nth=4),
+    Mutant("checkedpredecessors", D, "_labels.firstIndex(of: label)", SAFE, nth=3),
+    Mutant("checkedoutdegree", D, "_labels.firstIndex(of: label)", SAFE, nth=2),
+    Mutant("checkedoutedges", D, "_labels.firstIndex(of: label)", SAFE, nth=1),
+    Mutant("checkedsuccessors", D, "_labels.firstIndex(of: label)", SAFE, nth=0),
+    Mutant("checkedoutdegreevalue", D, "return _base.outDegree(of: index)", "return _base.outDegree(of: _labels.count - 1 - index)", mode="stmt"),
+    Mutant("checkedindegreevalue", D, "return _base.inDegree(of: index)", "return _base.inDegree(of: _labels.count - 1 - index)", mode="stmt"),
+    Mutant("checkeddegreevalue", D, "return _base.degree(of: index)", "return _base.degree(of: _labels.count - 1 - index)", mode="stmt"),
+    Mutant("checkedoutedgesvalue", D, "return _base.outEdges(ofIndex: index)", "return _base.outEdges(ofIndex: _labels.count - 1 - index)", mode="stmt"),
+    Mutant("checkedinedgesvalue", D, "return _base.inEdges(ofIndex: index)", "return _base.inEdges(ofIndex: _labels.count - 1 - index)", mode="stmt"),
 
     # Mutation over the matrix.
     Mutant("insertappend", U, "if inserted { _base.appendVertex() }", "_base.appendVertex()", mode="stmt"),
     Mutant("insertflag", U, "return (inserted, _labels[index])", "return (true, _labels[index])", mode="stmt"),
-    Mutant("safeflag", U, "return (inserted, DirectedEdge(from: _labels[source], to: _labels[target]))", "return (true, DirectedEdge(from: _labels[source], to: _labels[target]))", mode="stmt", nth=1),
+    Mutant("checkedflag", U, "return (inserted, DirectedEdge(from: _labels[source], to: _labels[target]))", "return (true, DirectedEdge(from: _labels[source], to: _labels[target]))", mode="stmt", nth=1),
     Mutant("edgeflag", U, "return (inserted, DirectedEdge(from: _labels[source], to: _labels[target]))", "return (true, DirectedEdge(from: _labels[source], to: _labels[target]))", mode="stmt", nth=0),
     Mutant("edgetargetfirst", U, "_insert(edge.source).index", "{ _ = _insert(edge.target); return _insert(edge.source).index }()"),
-    Mutant("safeswap", U, "_base.insert(edge: DirectedEdge(from: source, to: target))", "_base.insert(edge: DirectedEdge(from: target, to: source))", nth=1),
+    Mutant("checkedswap", U, "_base.insert(edge: DirectedEdge(from: source, to: target))", "_base.insert(edge: DirectedEdge(from: target, to: source))", nth=1),
     Mutant("edgeswap", U, "_base.insert(edge: DirectedEdge(from: source, to: target))", "_base.insert(edge: DirectedEdge(from: target, to: source))", nth=0),
     Mutant("removesource", U, "_labels.firstIndex(of: edge.source)", "Optional(_labels.firstIndex(of: edge.source) ?? 0)", nth=1),
     Mutant("removetarget", U, "_labels.firstIndex(of: edge.target)", "Optional(_labels.firstIndex(of: edge.target) ?? 0)", nth=1),
-    Mutant("safesource", U, "_labels.firstIndex(of: edge.source)", "Optional(_labels.firstIndex(of: edge.source) ?? 0)", nth=0),
-    Mutant("safetarget", U, "_labels.firstIndex(of: edge.target)", "Optional(_labels.firstIndex(of: edge.target) ?? 0)", nth=0),
+    Mutant("checkedsource", U, "_labels.firstIndex(of: edge.source)", "Optional(_labels.firstIndex(of: edge.source) ?? 0)", nth=0),
+    Mutant("checkedtarget", U, "_labels.firstIndex(of: edge.target)", "Optional(_labels.firstIndex(of: edge.target) ?? 0)", nth=0),
     Mutant("removeresult", U, "_base.remove(edge: DirectedEdge(from: source, to: target)) != nil", "true"),
     Mutant("removeswap", U, "_base.remove(edge: DirectedEdge(from: source, to: target))", "_base.remove(edge: DirectedEdge(from: target, to: source))"),
     Mutant("removeedgesto", U, "_base.removeEdges(to: _index(of: label))", "_base.removeEdges(from: _index(of: label))"),
     Mutant("removeedgesfrom", U, "_base.removeEdges(from: _index(of: label))", "_base.removeEdges(to: _index(of: label))", nth=0),
     Mutant("removeedgesincident", U, "_base.removeEdges(incidentTo: _index(of: label))", "_base.removeEdges(from: _index(of: label))"),
+    Mutant("checkedremovefrom", U, "_base.removeEdges(from: index)", "_base.removeEdges(to: index)"),
+    Mutant("checkedremoveto", U, "_base.removeEdges(to: index)", "_base.removeEdges(from: index)", nth=1),
+    Mutant("checkedremoveincident", U, "_base.removeEdges(incidentTo: index)", "_base.removeEdges(from: index)"),
+    Mutant("checkedremovefromlookup", U, "_labels.firstIndex(of: label)", SAFE, nth=0),
+    Mutant("checkedremovetolookup", U, "_labels.firstIndex(of: label)", SAFE, nth=1),
+    Mutant("checkedremoveincidentlookup", U, "_labels.firstIndex(of: label)", SAFE, nth=2),
     Mutant("removealllabels", U, "        _labels.removeAll(keepingCapacity: keepingCapacity)", "", mode="stmt"),
     Mutant("removeallbase", U, "        _base.removeAll(keepingCapacity: keepingCapacity)", "", mode="stmt"),
     Mutant("removealledges", U, "        _base.removeAllEdges(keepingCapacity: keepingCapacity)", "", mode="stmt"),
@@ -153,9 +160,11 @@ MUTANTS = [
     Mutant("hashcounts", C, "        hasher.combine(_base.edgeCount)", "", mode="stmt"),
 
     # Codable.
-    Mutant("decodekey", C, "failure.inBase ? .base : .labels", ".labels"),
-    Mutant("decodekeybase", C, "failure.inBase ? .base : .labels", ".base"),
-    Mutant("decodenocheck", C, "Self._validated(base, labels: labels)", "Result<OrderedSet<Label>, _LabelingFailure>.success(OrderedSet(labels))"),
+    Mutant("decodekeybound", C, '(.base, "base is not densely indexed (vertexIndexBound is nil)")', '(.labels, "base is not densely indexed (vertexIndexBound is nil)")'),
+    Mutant("decodekeyorder", C, '(.base, "base vertices are not 0..<vertexCount in index order")', '(.labels, "base vertices are not 0..<vertexCount in index order")'),
+    Mutant("decodekeycount", C, '(.labels, "\\(labelCount) labels for \\(vertexCount) vertices")', '(.base, "\\(labelCount) labels for \\(vertexCount) vertices")'),
+    Mutant("decodekeyrepeat", C, '(.labels, "duplicate label \\(labels[position])")', '(.base, "duplicate label \\(labels[position])")'),
+    Mutant("decodenocheck", C, "            self = try Self(base, labels: labels)", "            self = Self(_labels: OrderedSet(labels), _base: base)", mode="stmt"),
 
     # GraphProtocols: requiredIdentifier on an indexed graph.
     Mutant("requiredlow", "VertexIdentifiers.swift", "index >= 0 && index < count && graph.vertex(atIndex: index) == vertex", "index < count && graph.vertex(atIndex: index) == vertex", module="GraphProtocols"),

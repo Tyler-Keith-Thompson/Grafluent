@@ -1,6 +1,7 @@
-// Mutation over AdjacencyMatrix (catalog LG-069 – LG-084): a new label appends base vertex n;
-// `insert(edge:)` inserts missing endpoints, source first; `insert(safe:)` and `remove(edge:)`
-// change nothing for a non-vertex; the two resets; `removeEdges` by row, column or both.
+// Mutation over AdjacencyMatrix (catalog LG-069 – LG-084, LG-097, LG-098): a new label appends base
+// vertex n; `insert(edge:)` inserts missing endpoints, source first; `insert(checked:)` throws
+// `VertexNotFound` and `remove(edge:)` returns nil, changing nothing, for a non-vertex; the two
+// resets; `removeEdges` by row, column or both, and its `checked` spellings.
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import AdjacencyMatrixModule
@@ -339,14 +340,14 @@ struct LabeledGraphMutationTests {
         #expect(graph.contains(edge: DirectedEdge(from: "z", to: "z")))
     }
 
-    @Test("LG-075 insert(safe:) with both endpoints")
-    func lg075() {
-        // M V [a, b]; E [a→b] / insert(safe: b→b)
+    @Test("LG-075 insert(checked:) with both endpoints")
+    func lg075() throws {
+        // M V [a, b]; E [a→b] / insert(checked: b→b)
         var graph = LabeledGraph<String, AdjacencyMatrix>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
         do {
-            let result = graph.insert(safe: DirectedEdge(from: "b", to: "b"))
-            #expect(result?.inserted == true)
-            #expect(result?.memberAfterInsert == DirectedEdge(from: "b", to: "b"))
+            let result = try graph.insert(checked: DirectedEdge(from: "b", to: "b"))
+            #expect(result.inserted == true)
+            #expect(result.memberAfterInsert == DirectedEdge(from: "b", to: "b"))
         }
         // Final state.
         #expect(Array(graph.vertices) == ["a", "b"])
@@ -387,16 +388,16 @@ struct LabeledGraphMutationTests {
         #expect(graph.contains(edge: DirectedEdge(from: "b", to: "b")))
     }
 
-    @Test("LG-076 insert(safe:) with a missing endpoint changes nothing")
-    func lg076() {
-        // M V [a, b]; E [a→b] / insert(safe: a→q) / insert(safe: q→a)
+    @Test("LG-076 insert(checked:) with a missing endpoint throws, changing nothing")
+    func lg076() throws {
+        // M V [a, b]; E [a→b] / insert(checked: a→q) / insert(checked: q→a)
         var graph = LabeledGraph<String, AdjacencyMatrix>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
-        #expect(graph.insert(safe: DirectedEdge(from: "a", to: "q")) == nil)
-        // After insert(safe: a→q).
+        #expect(throws: VertexNotFound()) { try graph.insert(checked: DirectedEdge(from: "a", to: "q")) }
+        // After insert(checked: a→q).
         #expect(Array(graph.vertices) == ["a", "b"])
         #expect(graph.edges.map { [$0.source, $0.target] } == [["a", "b"]])
         #expect(graph.edges.indices.map { [$0.source, $0.target] } == [[0, 1]])
-        #expect(graph.insert(safe: DirectedEdge(from: "q", to: "a")) == nil)
+        #expect(throws: VertexNotFound()) { try graph.insert(checked: DirectedEdge(from: "q", to: "a")) }
         // Final state.
         #expect(Array(graph.vertices) == ["a", "b"])
         #expect(graph.edges.map { [$0.source, $0.target] } == [["a", "b"]])
@@ -852,5 +853,137 @@ struct LabeledGraphMutationTests {
         #expect(graph.inDegree(of: "c") == 0 && graph.degree(of: "c") == 0)
         #expect(Array(graph.predecessorIndices(ofIndex: 2)) == [] as [Int])
         #expect(graph.inEdges(ofIndex: 2).map { [$0.source, $0.target] } == [] as [[Int]])
+    }
+
+    @Test("LG-097 removeEdges(checkedFrom:) / (checkedTo:) / (checkedIncidentTo:) as the trapping ones")
+    func lg097() throws {
+        // M V [a, b, c]; E [a→b, a→c, b→a, a→a, c→b] / removeEdges(checkedFrom: b) / removeEdges(checkedTo: b) / removeEdges(checkedIncidentTo: c)
+        var graph = LabeledGraph<String, AdjacencyMatrix>(vertices: ["a", "b", "c"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "a", to: "c"), DirectedEdge(from: "b", to: "a"), DirectedEdge(from: "a", to: "a"), DirectedEdge(from: "c", to: "b")])
+        #expect(try graph.removeEdges(checkedFrom: "b") == 1)
+        // After removeEdges(checkedFrom: b).
+        #expect(Array(graph.vertices) == ["a", "b", "c"])
+        #expect(graph.edges.map { [$0.source, $0.target] } == [["a", "a"], ["a", "b"], ["a", "c"], ["c", "b"]])
+        #expect(graph.edges.indices.map { [$0.source, $0.target] } == [[0, 0], [0, 1], [0, 2], [2, 1]])
+        #expect(try graph.removeEdges(checkedTo: "b") == 2)
+        // After removeEdges(checkedTo: b).
+        #expect(Array(graph.vertices) == ["a", "b", "c"])
+        #expect(graph.edges.map { [$0.source, $0.target] } == [["a", "a"], ["a", "c"]])
+        #expect(graph.edges.indices.map { [$0.source, $0.target] } == [[0, 0], [0, 2]])
+        #expect(try graph.removeEdges(checkedIncidentTo: "c") == 1)
+        // Final state.
+        #expect(Array(graph.vertices) == ["a", "b", "c"])
+        #expect(graph.edges.map { [$0.source, $0.target] } == [["a", "a"]])
+        #expect(graph.edges.indices.map { [$0.source, $0.target] } == [[0, 0]])
+        #expect(graph.vertexCount == 3 && graph.edgeCount == 1 && graph.edges.count == 1)
+        #expect(graph.vertexIndexBound == 3)
+        #expect(graph.edgeIndexBound == nil)
+        #expect(graph.vertices.map { graph.vertexIndex(of: $0) } == [0, 1, 2])
+        #expect((0 ..< 3).map { graph.vertex(atIndex: $0) } == ["a", "b", "c"])
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [["a", "a"]])
+        #expect(graph.edges.indices.map { graph.edges[$0] } == [DirectedEdge(from: "a", to: "a")])
+        #expect(graph.base.vertexCount == 3)
+        #expect(Array(graph.base.edges) == [DirectedEdge(from: 0, to: 0)])
+        #expect(graph.contains("a"))
+        #expect(Array(graph.successors(of: "a")) == ["a"])
+        #expect(graph.outEdges(of: "a").map { [$0.source, $0.target] } == [[0, 0]])
+        #expect(graph.outDegree(of: "a") == 1)
+        #expect(Array(graph.successorIndices(ofIndex: 0)) == [0])
+        #expect(graph.outEdges(ofIndex: 0).map { [$0.source, $0.target] } == [[0, 0]])
+        #expect(Array(graph.predecessors(of: "a")) == ["a"])
+        #expect(graph.inEdges(of: "a").map { [$0.source, $0.target] } == [[0, 0]])
+        #expect(graph.inDegree(of: "a") == 1 && graph.degree(of: "a") == 2)
+        #expect(Array(graph.predecessorIndices(ofIndex: 0)) == [0])
+        #expect(graph.inEdges(ofIndex: 0).map { [$0.source, $0.target] } == [[0, 0]])
+        #expect(graph.contains("b"))
+        #expect(Array(graph.successors(of: "b")) == [] as [String])
+        #expect(graph.outEdges(of: "b").map { [$0.source, $0.target] } == [] as [[Int]])
+        #expect(graph.outDegree(of: "b") == 0)
+        #expect(Array(graph.successorIndices(ofIndex: 1)) == [] as [Int])
+        #expect(graph.outEdges(ofIndex: 1).map { [$0.source, $0.target] } == [] as [[Int]])
+        #expect(Array(graph.predecessors(of: "b")) == [] as [String])
+        #expect(graph.inEdges(of: "b").map { [$0.source, $0.target] } == [] as [[Int]])
+        #expect(graph.inDegree(of: "b") == 0 && graph.degree(of: "b") == 0)
+        #expect(Array(graph.predecessorIndices(ofIndex: 1)) == [] as [Int])
+        #expect(graph.inEdges(ofIndex: 1).map { [$0.source, $0.target] } == [] as [[Int]])
+        #expect(graph.contains("c"))
+        #expect(Array(graph.successors(of: "c")) == [] as [String])
+        #expect(graph.outEdges(of: "c").map { [$0.source, $0.target] } == [] as [[Int]])
+        #expect(graph.outDegree(of: "c") == 0)
+        #expect(Array(graph.successorIndices(ofIndex: 2)) == [] as [Int])
+        #expect(graph.outEdges(ofIndex: 2).map { [$0.source, $0.target] } == [] as [[Int]])
+        #expect(Array(graph.predecessors(of: "c")) == [] as [String])
+        #expect(graph.inEdges(of: "c").map { [$0.source, $0.target] } == [] as [[Int]])
+        #expect(graph.inDegree(of: "c") == 0 && graph.degree(of: "c") == 0)
+        #expect(Array(graph.predecessorIndices(ofIndex: 2)) == [] as [Int])
+        #expect(graph.inEdges(ofIndex: 2).map { [$0.source, $0.target] } == [] as [[Int]])
+        #expect(graph.contains(edge: DirectedEdge(from: "a", to: "a")))
+    }
+
+    @Test("LG-098 removeEdges(checkedFrom:) / (checkedTo:) / (checkedIncidentTo:) of a missing label throw, changing nothing")
+    func lg098() throws {
+        // M V [a, b, c]; E [a→b, a→c, b→a, a→a, c→b] / removeEdges(checkedFrom: q) / removeEdges(checkedTo: q) / removeEdges(checkedIncidentTo: q)
+        var graph = LabeledGraph<String, AdjacencyMatrix>(vertices: ["a", "b", "c"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "a", to: "c"), DirectedEdge(from: "b", to: "a"), DirectedEdge(from: "a", to: "a"), DirectedEdge(from: "c", to: "b")])
+        #expect(throws: VertexNotFound()) { try graph.removeEdges(checkedFrom: "q") }
+        // After removeEdges(checkedFrom: q).
+        #expect(Array(graph.vertices) == ["a", "b", "c"])
+        #expect(graph.edges.map { [$0.source, $0.target] } == [["a", "a"], ["a", "b"], ["a", "c"], ["b", "a"], ["c", "b"]])
+        #expect(graph.edges.indices.map { [$0.source, $0.target] } == [[0, 0], [0, 1], [0, 2], [1, 0], [2, 1]])
+        #expect(throws: VertexNotFound()) { try graph.removeEdges(checkedTo: "q") }
+        // After removeEdges(checkedTo: q).
+        #expect(Array(graph.vertices) == ["a", "b", "c"])
+        #expect(graph.edges.map { [$0.source, $0.target] } == [["a", "a"], ["a", "b"], ["a", "c"], ["b", "a"], ["c", "b"]])
+        #expect(graph.edges.indices.map { [$0.source, $0.target] } == [[0, 0], [0, 1], [0, 2], [1, 0], [2, 1]])
+        #expect(throws: VertexNotFound()) { try graph.removeEdges(checkedIncidentTo: "q") }
+        // Final state.
+        #expect(Array(graph.vertices) == ["a", "b", "c"])
+        #expect(graph.edges.map { [$0.source, $0.target] } == [["a", "a"], ["a", "b"], ["a", "c"], ["b", "a"], ["c", "b"]])
+        #expect(graph.edges.indices.map { [$0.source, $0.target] } == [[0, 0], [0, 1], [0, 2], [1, 0], [2, 1]])
+        #expect(graph.vertexCount == 3 && graph.edgeCount == 5 && graph.edges.count == 5)
+        #expect(graph.vertexIndexBound == 3)
+        #expect(graph.edgeIndexBound == nil)
+        #expect(graph.vertices.map { graph.vertexIndex(of: $0) } == [0, 1, 2])
+        #expect((0 ..< 3).map { graph.vertex(atIndex: $0) } == ["a", "b", "c"])
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [["a", "a"], ["a", "b"], ["a", "c"], ["b", "a"], ["c", "b"]])
+        #expect(graph.edges.indices.map { graph.edges[$0] } == [DirectedEdge(from: "a", to: "a"), DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "a", to: "c"), DirectedEdge(from: "b", to: "a"), DirectedEdge(from: "c", to: "b")])
+        #expect(graph.base.vertexCount == 3)
+        #expect(Array(graph.base.edges) == [DirectedEdge(from: 0, to: 0), DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 1, to: 0), DirectedEdge(from: 2, to: 1)])
+        #expect(graph.contains("a"))
+        #expect(Array(graph.successors(of: "a")) == ["a", "b", "c"])
+        #expect(graph.outEdges(of: "a").map { [$0.source, $0.target] } == [[0, 0], [0, 1], [0, 2]])
+        #expect(graph.outDegree(of: "a") == 3)
+        #expect(Array(graph.successorIndices(ofIndex: 0)) == [0, 1, 2])
+        #expect(graph.outEdges(ofIndex: 0).map { [$0.source, $0.target] } == [[0, 0], [0, 1], [0, 2]])
+        #expect(Array(graph.predecessors(of: "a")) == ["a", "b"])
+        #expect(graph.inEdges(of: "a").map { [$0.source, $0.target] } == [[0, 0], [1, 0]])
+        #expect(graph.inDegree(of: "a") == 2 && graph.degree(of: "a") == 5)
+        #expect(Array(graph.predecessorIndices(ofIndex: 0)) == [0, 1])
+        #expect(graph.inEdges(ofIndex: 0).map { [$0.source, $0.target] } == [[0, 0], [1, 0]])
+        #expect(graph.contains("b"))
+        #expect(Array(graph.successors(of: "b")) == ["a"])
+        #expect(graph.outEdges(of: "b").map { [$0.source, $0.target] } == [[1, 0]])
+        #expect(graph.outDegree(of: "b") == 1)
+        #expect(Array(graph.successorIndices(ofIndex: 1)) == [0])
+        #expect(graph.outEdges(ofIndex: 1).map { [$0.source, $0.target] } == [[1, 0]])
+        #expect(Array(graph.predecessors(of: "b")) == ["a", "c"])
+        #expect(graph.inEdges(of: "b").map { [$0.source, $0.target] } == [[0, 1], [2, 1]])
+        #expect(graph.inDegree(of: "b") == 2 && graph.degree(of: "b") == 3)
+        #expect(Array(graph.predecessorIndices(ofIndex: 1)) == [0, 2])
+        #expect(graph.inEdges(ofIndex: 1).map { [$0.source, $0.target] } == [[0, 1], [2, 1]])
+        #expect(graph.contains("c"))
+        #expect(Array(graph.successors(of: "c")) == ["b"])
+        #expect(graph.outEdges(of: "c").map { [$0.source, $0.target] } == [[2, 1]])
+        #expect(graph.outDegree(of: "c") == 1)
+        #expect(Array(graph.successorIndices(ofIndex: 2)) == [1])
+        #expect(graph.outEdges(ofIndex: 2).map { [$0.source, $0.target] } == [[2, 1]])
+        #expect(Array(graph.predecessors(of: "c")) == ["a"])
+        #expect(graph.inEdges(of: "c").map { [$0.source, $0.target] } == [[0, 2]])
+        #expect(graph.inDegree(of: "c") == 1 && graph.degree(of: "c") == 2)
+        #expect(Array(graph.predecessorIndices(ofIndex: 2)) == [0])
+        #expect(graph.inEdges(ofIndex: 2).map { [$0.source, $0.target] } == [[0, 2]])
+        #expect(graph.contains(edge: DirectedEdge(from: "a", to: "a")))
+        #expect(graph.contains(edge: DirectedEdge(from: "a", to: "b")))
+        #expect(graph.contains(edge: DirectedEdge(from: "a", to: "c")))
+        #expect(graph.contains(edge: DirectedEdge(from: "b", to: "a")))
+        #expect(graph.contains(edge: DirectedEdge(from: "c", to: "b")))
     }
 }

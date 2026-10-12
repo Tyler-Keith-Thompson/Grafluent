@@ -49,16 +49,17 @@ extension LabeledGraph where Base == AdjacencyMatrix {
         return (inserted, DirectedEdge(from: _labels[source], to: _labels[target]))
     }
 
-    /// Inserts `edge` only when both endpoints are already vertices; otherwise returns `nil` and
-    /// changes nothing.
+    /// Inserts `edge` only when both endpoints are already vertices, as `insert(edge:)` does.
     ///
+    /// - Returns: As `insert(edge:)`.
+    /// - Throws: `VertexNotFound` when an endpoint is not a vertex; then nothing changes.
     /// - Complexity: Two hashes; O(1) for the edge.
     @inlinable
     @discardableResult
-    public mutating func insert(safe edge: DirectedEdge<Label>) -> (inserted: Bool, memberAfterInsert: DirectedEdge<Label>)? {
+    public mutating func insert(checked edge: DirectedEdge<Label>) throws(VertexNotFound) -> (inserted: Bool, memberAfterInsert: DirectedEdge<Label>) {
         guard let source = _labels.firstIndex(of: edge.source),
               let target = _labels.firstIndex(of: edge.target)
-        else { return nil }
+        else { throw VertexNotFound() }
         let inserted = _base.insert(edge: DirectedEdge(from: source, to: target)).inserted
         return (inserted, DirectedEdge(from: _labels[source], to: _labels[target]))
     }
@@ -90,6 +91,17 @@ extension LabeledGraph where Base == AdjacencyMatrix {
         _base.removeEdges(from: _index(of: label))
     }
 
+    /// `removeEdges(from:)`, throwing instead of trapping when `label` is not a vertex.
+    ///
+    /// - Returns: The number of edges removed.
+    /// - Throws: `VertexNotFound` when `label` is not a vertex; then nothing changes.
+    @inlinable
+    @discardableResult
+    public mutating func removeEdges(checkedFrom label: Label) throws(VertexNotFound) -> Int {
+        guard let index = _labels.firstIndex(of: label) else { throw VertexNotFound() }
+        return _base.removeEdges(from: index)
+    }
+
     /// Removes every edge entering `label`, keeping the vertex: the matrix's `removeEdges(to:)`.
     ///
     /// - Returns: The number of edges removed.
@@ -99,6 +111,17 @@ extension LabeledGraph where Base == AdjacencyMatrix {
     @discardableResult
     public mutating func removeEdges(to label: Label) -> Int {
         _base.removeEdges(to: _index(of: label))
+    }
+
+    /// `removeEdges(to:)`, throwing instead of trapping when `label` is not a vertex.
+    ///
+    /// - Returns: The number of edges removed.
+    /// - Throws: `VertexNotFound` when `label` is not a vertex; then nothing changes.
+    @inlinable
+    @discardableResult
+    public mutating func removeEdges(checkedTo label: Label) throws(VertexNotFound) -> Int {
+        guard let index = _labels.firstIndex(of: label) else { throw VertexNotFound() }
+        return _base.removeEdges(to: index)
     }
 
     /// Removes every edge leaving or entering `label`, keeping the vertex (Boost.Graph's
@@ -111,6 +134,17 @@ extension LabeledGraph where Base == AdjacencyMatrix {
     @discardableResult
     public mutating func removeEdges(incidentTo label: Label) -> Int {
         _base.removeEdges(incidentTo: _index(of: label))
+    }
+
+    /// `removeEdges(incidentTo:)`, throwing instead of trapping when `label` is not a vertex.
+    ///
+    /// - Returns: The number of edges removed.
+    /// - Throws: `VertexNotFound` when `label` is not a vertex; then nothing changes.
+    @inlinable
+    @discardableResult
+    public mutating func removeEdges(checkedIncidentTo label: Label) throws(VertexNotFound) -> Int {
+        guard let index = _labels.firstIndex(of: label) else { throw VertexNotFound() }
+        return _base.removeEdges(incidentTo: index)
     }
 
     /// Removes every edge, keeping every label and its index.

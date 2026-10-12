@@ -86,18 +86,18 @@ struct BipartiteStressTests {
     }
 
     @Test("A 10⁵-vertex BipartiteGraph built by insertion (an even cycle), half its left side removed", .timeLimit(.minutes(1)))
-    func insertionAndRemoval() async {
-        await Task {
+    func insertionAndRemoval() async throws {
+        try await Task {
             let half = 50_000
             var graph = BipartiteGraph<Int>()
             graph.reserveCapacity(vertexCount: 2 * half, edgeCount: 2 * half)
             for i in 0 ..< half {
-                graph.insert(i, on: .left)
-                graph.insert(half + i, on: .right)
+                try graph.insert(i, on: .left)
+                try graph.insert(half + i, on: .right)
             }
             for i in 0 ..< half {
-                graph.insert(edge: UndirectedEdge(half + i, i))
-                graph.insert(edge: UndirectedEdge(i, half + (i + 1) % half))
+                try graph.insert(edge: UndirectedEdge(half + i, i))
+                try graph.insert(edge: UndirectedEdge(i, half + (i + 1) % half))
             }
             #expect(graph.edgeCount == 2 * half)
             #expect(graph.isBipartite)

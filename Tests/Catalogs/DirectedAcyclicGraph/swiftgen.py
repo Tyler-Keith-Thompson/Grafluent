@@ -8,7 +8,7 @@ at a time on ref.py's port of the wrapper over its port of the base, checking th
 call, asserts that each value matches its catalog cell, and writes one @Test per row. Each call's
 result is checked. After a mutation that another mutation follows, the test checks the order, the
 vertices and the edges with their positions. The final state is written out in full: the order, every
-vertex's place three ways, every row by vertex (out and in, with positions), the `safe:` rows of a
+vertex's place three ways, every row by vertex (out and in, with positions), the `checked:` rows of a
 vertex and of a non-vertex, every position's ends, and the base. A rejected edge's witness is
 Traversal's `bidirectionalShortestPath(from: target, to: source)`; the test checks that it is a genuine
 path of the graph and one of the shortest paths the cell lists. Hand-written exit tests spliced into
@@ -68,7 +68,7 @@ def is_trap(n): return "**trap**" in cell(n)
 # Swift literals
 # ---------------------------------------------------------------------------------------------
 BASE = {"AL": "AdjacencyList", "DP": "DirectedPseudograph", "SG": "StableDirectedGraph"}
-MUTATING = {"insert", "edge", "safe", "remove", "removeEdge", "removeAt", "removeAll", "removeAllEdges"}
+MUTATING = {"insert", "edge", "checked", "remove", "removeEdge", "removeAt", "removeAll", "removeAllEdges"}
 
 
 def vtype(V, E, ops):
@@ -141,20 +141,21 @@ def state(g, t, var="graph", short=False, ind="        "):
         pred = [g.b.vertex(s) for s, _ in inn]
         op = [p for _, p in o]
         ip = [p for _, p in inn]
-        out.append("#expect(%s.topologicalPosition(of: %s) == %d && %s.topologicalPosition(safe: %s) == %d && %s.topologicalOrder.firstIndex(of: %s) == %d)" % (
+        out.append("#expect(try %s.topologicalPosition(of: %s) == %d && %s.topologicalPosition(checked: %s) == %d && %s.topologicalOrder.firstIndex(of: %s) == %d)" % (
             var, x, i, var, x, i, var, x, i))
         out.append("#expect(Array(%s.successors(of: %s)) == %s && Array(%s.outEdges(of: %s)) == %s && %s.outDegree(of: %s) == %d)" % (
             var, x, arr(succ, t), var, x, arr(op, "Int"), var, x, len(o)))
         out.append("#expect(Array(%s.predecessors(of: %s)) == %s && Array(%s.inEdges(of: %s)) == %s && %s.inDegree(of: %s) == %d)" % (
             var, x, arr(pred, t), var, x, arr(ip, "Int"), var, x, len(inn)))
-        out.append("#expect(%s.successors(safe: %s).map { Array($0) } == %s && %s.outEdges(safe: %s).map { Array($0) } == %s && %s.outDegree(safe: %s) == %d)" % (
+        out.append("#expect(try Array(%s.successors(checked: %s)) == %s && Array(%s.outEdges(checked: %s)) == %s && %s.outDegree(checked: %s) == %d)" % (
             var, x, arr(succ, t), var, x, arr(op, "Int"), var, x, len(o)))
-        out.append("#expect(%s.predecessors(safe: %s).map { Array($0) } == %s && %s.inEdges(safe: %s).map { Array($0) } == %s && %s.inDegree(safe: %s) == %d)" % (
+        out.append("#expect(try Array(%s.predecessors(checked: %s)) == %s && Array(%s.inEdges(checked: %s)) == %s && %s.inDegree(checked: %s) == %d)" % (
             var, x, arr(pred, t), var, x, arr(ip, "Int"), var, x, len(inn)))
     y = non_vertex(g, t)
-    out.append("#expect(!%s.contains(%s) && %s.topologicalPosition(safe: %s) == nil && %s.topologicalOrder.firstIndex(of: %s) == nil)" % (var, y, var, y, var, y))
-    out.append("#expect(%s.successors(safe: %s) == nil && %s.predecessors(safe: %s) == nil && %s.outEdges(safe: %s) == nil)" % (var, y, var, y, var, y))
-    out.append("#expect(%s.inEdges(safe: %s) == nil && %s.outDegree(safe: %s) == nil && %s.inDegree(safe: %s) == nil)" % (var, y, var, y, var, y))
+    # Each `checked:` call throws only `VertexNotFound`, so `try?` giving nil is that error.
+    out.append("#expect(!%s.contains(%s) && (try? %s.topologicalPosition(checked: %s)) == nil && %s.topologicalOrder.firstIndex(of: %s) == nil)" % (var, y, var, y, var, y))
+    out.append("#expect((try? %s.successors(checked: %s)) == nil && (try? %s.predecessors(checked: %s)) == nil && (try? %s.outEdges(checked: %s)) == nil)" % (var, y, var, y, var, y))
+    out.append("#expect((try? %s.inEdges(checked: %s)) == nil && (try? %s.outDegree(checked: %s)) == nil && (try? %s.inDegree(checked: %s)) == nil)" % (var, y, var, y, var, y))
     return [ind + l for l in out]
 
 
@@ -166,7 +167,7 @@ def call_lines(g, kind, t, op, k, ind="        "):
     """The call's result on the model, its catalog text, and the Swift lines that check it."""
     r = ref.apply(g, op)
     ref.check_laws(g)
-    shown = ref.show_result(r)
+    shown = ref.show_call_result(g, op, r)
     name = op[0]
     a = op[1:]
 
@@ -176,9 +177,10 @@ def call_lines(g, kind, t, op, k, ind="        "):
         return shown, [ind + "let inserted%d = graph.insert(%s)" % (k, lit(a[0])),
                        ind + "#expect(inserted%d.inserted == %s && inserted%d.memberAfterInsert == %s)" % (
                            k, "true" if r[0] else "false", k, lit(r[1]))]
-    if name in ("edge", "safe"):
-        label = "edge" if name == "edge" else "safe"
-        return shown, ex("graph.insert(%s: %s) == %s" % (label, dedge(*a), "nil" if r is None else r))
+    if name in ("edge", "checked"):
+        if r is None:
+            return shown, [ind + "#expect(throws: AcyclicEdgeError%s) { try graph.insert(%s: %s) }" % (ref.rejection(g, op), name, dedge(*a))]
+        return shown, ex("try graph.insert(%s: %s) == %s" % (name, dedge(*a), r))
     if name == "remove":
         return shown, ex("graph.remove(%s) == %s" % (lit(a[0]), "nil" if r is None else lit(r)))
     if name == "removeEdge":
@@ -191,8 +193,10 @@ def call_lines(g, kind, t, op, k, ind="        "):
         return shown, [ind + "graph.removeAllEdges()"]
     if name == "position":
         return shown, ex("graph.topologicalPosition(of: %s) == %d" % (lit(a[0]), r))
-    if name == "positionSafe":
-        return shown, ex("graph.topologicalPosition(safe: %s) == %s" % (lit(a[0]), "nil" if r is None else r))
+    if name == "positionChecked":
+        if r is None:
+            return shown, [ind + "#expect(throws: VertexNotFound()) { try graph.topologicalPosition(checked: %s) }" % lit(a[0])]
+        return shown, ex("try graph.topologicalPosition(checked: %s) == %s" % (lit(a[0]), r))
     if name == "orderAt":
         return shown, ex("graph.topologicalOrder[%d] == %s" % (a[0], r))
     if name == "hasPath":
@@ -475,11 +479,12 @@ def hostile_test(n, text, exp, T):
     lines += ["        let again = try JSONDecoder().decode(%s.self, from: try JSONEncoder().encode(graph))" % T,
               "        #expect(again == graph && Array(again.topologicalOrder) == [7])",
               "        // Inserting next to it, before it, and removing it all work from that one page.",
-              "        #expect(graph.insert(edge: DirectedEdge(from: 7, to: 8)) == 0)",
-              "        #expect(graph.insert(edge: DirectedEdge(from: 9, to: 7)) == 1)",
+              "        #expect(try graph.insert(edge: DirectedEdge(from: 7, to: 8)) == 0)",
+              "        #expect(try graph.insert(edge: DirectedEdge(from: 9, to: 7)) == 1)",
               "        #expect(Array(graph.topologicalOrder) == [9, 7, 8])",
               "        #expect(graph.base.vertexPosition(of: 9) == %d)" % (ref.HOSTILE + 2),
-              "        #expect(graph.topologicalPosition(of: 8) == 2 && graph.insert(edge: DirectedEdge(from: 8, to: 9)) == nil)",
+              "        #expect(graph.topologicalPosition(of: 8) == 2)",
+              "        #expect(throws: AcyclicEdgeError.cycle) { try graph.insert(edge: DirectedEdge(from: 8, to: 9)) }",
               "        #expect(graph.remove(7) == 7)",
               "        #expect(Array(graph.topologicalOrder) == [9, 8] && graph.topologicalPosition(of: 8) == 1)",
               "    }"]
@@ -506,7 +511,7 @@ def span(name):
 
 
 TRAPS = [n for n in range(1, N + 1) if is_trap(n)]
-G = {name: ids(name) for name in ("Construction", "Insertion", "Reordering", "Cycle witness", "insert(safe:)", "Removal",
+G = {name: ids(name) for name in ("Construction", "Insertion", "Reordering", "Cycle witness", "insert(checked:)", "Removal",
                                   "Order queries", "Algorithms", "Codable")}
 FILES = [
     ("DirectedAcyclicGraphConstructionTests.swift", "DirectedAcyclicGraph construction", G["Construction"],
@@ -517,11 +522,11 @@ FILES = [
      "Insertion and reordering (catalog %s, %s): a vertex is placed last; a forward edge\n"
      "// moves nothing; missing endpoints are inserted, source first; a backward edge moves the backward set\n"
      "// B and then the forward set F into their pooled places, and nothing else." % (span("Insertion"), span("Reordering"))),
-    ("DirectedAcyclicGraphRejectionTests.swift", "DirectedAcyclicGraph rejection", G["Cycle witness"] + G["insert(safe:)"],
-     "Rejected edges (catalog %s, %s): `insert(edge:)` and `insert(safe:)` return nil for an\n"
-     "// edge that would close a cycle, a self-loop included, and change nothing; the witness is Traversal's\n"
-     "// `bidirectionalShortestPath(from: target, to: source)`, checked as a genuine shortest path; `insert(safe:)`\n"
-     "// also returns nil for a missing endpoint." % (span("Cycle witness"), span("insert(safe:)"))),
+    ("DirectedAcyclicGraphRejectionTests.swift", "DirectedAcyclicGraph rejection", G["Cycle witness"] + G["insert(checked:)"],
+     "Rejected edges (catalog %s, %s): `insert(edge:)` and `insert(checked:)` throw\n"
+     "// `AcyclicEdgeError.cycle` for an edge that would close a cycle and `.selfLoop` for a self-loop, and change\n"
+     "// nothing; the witness is Traversal's `bidirectionalShortestPath(from: target, to: source)`, checked as a\n"
+     "// genuine shortest path; `insert(checked:)` throws `.missingEndpoint` for a missing endpoint." % (span("Cycle witness"), span("insert(checked:)"))),
     ("DirectedAcyclicGraphRemovalTests.swift", "DirectedAcyclicGraph removal", G["Removal"],
      "Removal (catalog %s): removals keep the order; `remove(_:)` closes the gap and follows the\n"
      "// base's swap-remove; the resets." % span("Removal")),

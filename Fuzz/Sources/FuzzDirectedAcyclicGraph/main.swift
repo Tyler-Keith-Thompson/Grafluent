@@ -1,5 +1,5 @@
 // DirectedAcyclicGraph over AdjacencyList, DirectedPseudograph and StableDirectedGraph, all three
-// driven by the same random sequence of `insert(_:)`, `insert(edge:)`, `insert(safe:)`, removals
+// driven by the same random sequence of `insert(_:)`, `insert(edge:)`, `insert(checked:)`, removals
 // (a vertex, an edge, a position), `removeAllEdges()` and `removeAll()`, against a model of the
 // vertex set and the edge multiset (copies collapse on AdjacencyList). A sequence may start from
 // `init?(vertices:edges:)`, which must be nil exactly when the edges have a cycle and otherwise
@@ -10,8 +10,9 @@
 //
 // After every step: the vertices and edges match the model; `topologicalOrder` is a permutation of
 // the vertices in which every edge goes forward (so the graph is acyclic); `topologicalPosition(of:)`,
-// `(safe:)` and the order's `firstIndex(of:)` agree with it; an insertion is rejected exactly when
-// the model has a path from the target to the source (or it is a self-loop), and then nothing
+// `(checked:)` and the order's `firstIndex(of:)` agree with it; an insertion is rejected exactly when
+// the model has a path from the target to the source (or it is a self-loop), with the matching
+// `AcyclicEdgeError` (`insert(checked:)` throws `.missingEndpoint` first), and then nothing
 // changes and `bidirectionalShortestPath(from: target, to: source)` is a genuine shortest path; an
 // accepted edge is at the returned position; between two placed vertices, a forward edge moves
 // nothing and a backward one moves only vertices between the endpoints' places (where a new endpoint
@@ -268,9 +269,9 @@ enum FuzzDirectedAcyclicGraph {
         let before = Snapshot(lane.graph)
         switch op {
         case .insertEdge(let u, let v):
-            insertEdge(&lane, u, v, safe: false, before, context)
+            insertEdge(&lane, u, v, checked: false, before, context)
         case .insertSafe(let u, let v):
-            insertEdge(&lane, u, v, safe: true, before, context)
+            insertEdge(&lane, u, v, checked: true, before, context)
         case .insertVertex(let v):
             let present = lane.model.vertices.contains(v)
             let result = lane.graph.insert(v)
@@ -306,7 +307,7 @@ enum FuzzDirectedAcyclicGraph {
             var t = target
             for j in 0 ..< length {
                 let u = label(pool + (start + j) % 6)
-                insertEdge(&lane, u, t, safe: false, Snapshot(lane.graph), "\(context) link \(j)")
+                insertEdge(&lane, u, t, checked: false, Snapshot(lane.graph), "\(context) link \(j)")
                 checkState(lane, "\(context) link \(j)")
                 t = u
             }
@@ -321,14 +322,15 @@ enum FuzzDirectedAcyclicGraph {
         checkState(lane, context)
     }
 
-    static func insertEdge<B>(_ lane: inout Lane<B>, _ u: Int, _ v: Int, safe: Bool, _ before: Snapshot<B>, _ context: String) {
+    static func insertEdge<B>(_ lane: inout Lane<B>, _ u: Int, _ v: Int, checked: Bool, _ before: Snapshot<B>, _ context: String) {
         let model = lane.model
         let missing = !model.vertices.contains(u) || !model.vertices.contains(v)
         let closes = u == v || (!missing && model.distances(from: v, model.successors())[u] != nil)
         let edge = DirectedEdge(from: u, to: v)
-        let position = safe ? lane.graph.insert(safe: edge) : lane.graph.insert(edge: edge)
-        if closes || (safe && missing) {
-            check(position == nil, "inserted \(u)→\(v), which \(closes ? "closes a cycle" : "has a missing end"): \(context)")
+        let result = Result { () throws(AcyclicEdgeError) in try checked ? lane.graph.insert(checked: edge) : lane.graph.insert(edge: edge) }
+        if closes || (checked && missing) {
+            let expected: AcyclicEdgeError = checked && missing ? .missingEndpoint : u == v ? .selfLoop : .cycle
+            check(result == .failure(expected), "\(u)→\(v), which \(closes ? "closes a cycle" : "has a missing end"), gave \(result), not \(expected): \(context)")
             check(Snapshot(lane.graph) == before, "a rejected insertion changed the graph: \(context)")
             if closes && u != v {
                 let distance = model.distances(from: v, model.successors())[u]!
@@ -345,7 +347,7 @@ enum FuzzDirectedAcyclicGraph {
             }
             return
         }
-        guard let position else {
+        guard case .success(let position) = result else {
             check(false, "rejected \(u)→\(v), which closes no cycle: \(context)")
             return
         }
@@ -388,7 +390,7 @@ enum FuzzDirectedAcyclicGraph {
             // in the order, so Pearce–Kelly runs.
             if !targets.isEmpty && i % 97 < edges {
                 let w = targets[(i * 31) % targets.count]
-                check(lane.graph.insert(edge: DirectedEdge(from: v, to: w)) != nil, "churn edge \(v)→\(w): \(context)")
+                check((try? lane.graph.insert(edge: DirectedEdge(from: v, to: w))) != nil, "churn edge \(v)→\(w): \(context)")
                 check(lane.graph.topologicalPosition(of: v) < lane.graph.topologicalPosition(of: w), "churn order \(v)→\(w): \(context)")
             }
         }
@@ -419,14 +421,14 @@ enum FuzzDirectedAcyclicGraph {
         let order = Array(graph.topologicalOrder)
         check(order.count == graph.vertexCount && Set(order) == Set(graph.vertices), "order \(order) is not a permutation of \(Array(graph.vertices)): \(context)")
         for (i, v) in order.enumerated() {
-            check(graph.topologicalPosition(of: v) == i && graph.topologicalPosition(safe: v) == i, "position of \(v) is not \(i): \(context)")
+            check(graph.topologicalPosition(of: v) == i && (try? graph.topologicalPosition(checked: v)) == i, "position of \(v) is not \(i): \(context)")
             check(graph.topologicalOrder.firstIndex(of: v) == i && graph.topologicalOrder.contains(v), "order lookup of \(v): \(context)")
         }
         for p in graph.edges.indices {
             let s = graph.source(ofEdgeAt: p), t = graph.target(ofEdgeAt: p)
             check(graph.topologicalPosition(of: s) < graph.topologicalPosition(of: t), "edge \(s)→\(t) goes backward in \(order): \(context)")
         }
-        check(graph.topologicalPosition(safe: outsider) == nil && graph.topologicalOrder.firstIndex(of: outsider) == nil && !graph.topologicalOrder.contains(outsider), "outsider in the order: \(context)")
+        check((try? graph.topologicalPosition(checked: outsider)) == nil && graph.topologicalOrder.firstIndex(of: outsider) == nil && !graph.topologicalOrder.contains(outsider), "outsider in the order: \(context)")
     }
 
     // MARK: - Algorithms
@@ -587,8 +589,13 @@ enum FuzzDirectedAcyclicGraph {
             guard case .success(var graph) = decode(base, [0]) else { check(false, "a valid payload did not decode: \(context)"); return }
             check(Array(graph.topologicalOrder) == [label(0)] && graph.topologicalPosition(of: label(0)) == 0, "decoded order: \(context)")
             // Sources arriving last, at keys past the huge one.
-            check(graph.insert(edge: DirectedEdge(from: label(1), to: label(0))) != nil && graph.insert(edge: DirectedEdge(from: label(2), to: label(1))) != nil, "inserts: \(context)")
-            check(graph.insert(edge: DirectedEdge(from: label(0), to: label(2))) == nil, "a cycle was accepted: \(context)")
+            check((try? graph.insert(edge: DirectedEdge(from: label(1), to: label(0)))) != nil && (try? graph.insert(edge: DirectedEdge(from: label(2), to: label(1)))) != nil, "inserts: \(context)")
+            do throws(AcyclicEdgeError) {
+                _ = try graph.insert(edge: DirectedEdge(from: label(0), to: label(2)))
+                check(false, "a cycle was accepted: \(context)")
+            } catch {
+                check(error == .cycle, "\(error), not .cycle: \(context)")
+            }
             checkOrder(graph, context)
             check(Array(graph.topologicalOrder) == [label(2), label(1), label(0)], "order \(Array(graph.topologicalOrder)): \(context)")
         case 1: checkThrow(decode(base, []), at: "order", context)

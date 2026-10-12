@@ -28,7 +28,7 @@ struct BulkConstructionTests {
     func adjacencyListRows() {
         var bulk = AdjacencyList<Int>.wheel(vertexCount: 6)
         var built = AdjacencyList<Int>(vertices: 0 ..< 6)
-        for e in Array(bulk.edges) { built.insert(edge: e) }
+        for e in Array(bulk.edges) { _ = built.insert(edge: e) }
         for step in 0 ..< 7 {
             switch step {
             case 1: bulk.insert(edge: DirectedEdge(from: 2, to: 0)); built.insert(edge: DirectedEdge(from: 2, to: 0))
@@ -75,13 +75,13 @@ struct BulkConstructionTests {
     }
 
     @Test("DirectedMultigraph<Int>: a generated complete digraph keeps its rows in step with its edge-by-edge build through edits and parallel copies")
-    func directedMultigraphRows() {
+    func directedMultigraphRows() throws {
         var bulk = DirectedMultigraph<Int>.complete(vertexCount: 4)
         var built = DirectedMultigraph<Int>(vertices: 0 ..< 4)
-        for e in Array(bulk.edges) { _ = built.insert(edge: e) }
+        for e in Array(bulk.edges) { try built.insert(edge: e) }
         for step in 0 ..< 6 {
             switch step {
-            case 1: _ = bulk.insert(edge: DirectedEdge(from: 1, to: 2)); _ = built.insert(edge: DirectedEdge(from: 1, to: 2))
+            case 1: try bulk.insert(edge: DirectedEdge(from: 1, to: 2)); try built.insert(edge: DirectedEdge(from: 1, to: 2))
             case 2: #expect(bulk.remove(edge: DirectedEdge(from: 1, to: 2)) != nil && built.remove(edge: DirectedEdge(from: 1, to: 2)) != nil)
             case 3: #expect(bulk.remove(edge: DirectedEdge(from: 1, to: 2)) != nil && built.remove(edge: DirectedEdge(from: 1, to: 2)) != nil)
             case 4: #expect(bulk.remove(edge: DirectedEdge(from: 3, to: 0)) != nil && built.remove(edge: DirectedEdge(from: 3, to: 0)) != nil)
@@ -102,7 +102,7 @@ struct BulkConstructionTests {
     func undirectedRows() {
         var bulk = UndirectedAdjacencyList<Int>.wheel(vertexCount: 6)
         var built = UndirectedAdjacencyList<Int>(vertices: 0 ..< 6)
-        for e in Array(bulk.edges) { built.insert(edge: e) }
+        for e in Array(bulk.edges) { _ = built.insert(edge: e) }
         for step in 0 ..< 6 {
             switch step {
             case 1: bulk.insert(edge: UndirectedEdge(0, 6)); built.insert(edge: UndirectedEdge(0, 6))
@@ -146,13 +146,13 @@ struct BulkConstructionTests {
     }
 
     @Test("Multigraph<Int>: a generated complete graph keeps its rows in step with its edge-by-edge build through edits and parallel copies")
-    func multigraphRows() {
+    func multigraphRows() throws {
         var bulk = Multigraph<Int>.complete(vertexCount: 5)
         var built = Multigraph<Int>(vertices: 0 ..< 5)
-        for e in Array(bulk.edges) { _ = built.insert(edge: e) }
+        for e in Array(bulk.edges) { try built.insert(edge: e) }
         for step in 0 ..< 6 {
             switch step {
-            case 1: _ = bulk.insert(edge: UndirectedEdge(2, 3)); _ = built.insert(edge: UndirectedEdge(2, 3))
+            case 1: try bulk.insert(edge: UndirectedEdge(2, 3)); try built.insert(edge: UndirectedEdge(2, 3))
             case 2: #expect(bulk.remove(edge: UndirectedEdge(2, 3)) != nil && built.remove(edge: UndirectedEdge(2, 3)) != nil)
             case 3: #expect(bulk.remove(edge: UndirectedEdge(0, 1)) != nil && built.remove(edge: UndirectedEdge(0, 1)) != nil)
             case 4: #expect(bulk.remove(edge: UndirectedEdge(2, 3)) != nil && built.remove(edge: UndirectedEdge(2, 3)) != nil)

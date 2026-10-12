@@ -21,8 +21,15 @@ MUTANTS = [
 
     # BipartiteGraph
     Mutant("fastpath", "BipartiteGraph.swift", "list._reverseEdge(at: position)", "", mode="stmt"),
-    Mutant("overlap", "BipartiteGraph.swift", "if let slot = _graph._slotIfPresent(of: v), _side[slot] == .left { return nil }", "", mode="stmt"),
+    Mutant("overlap", "BipartiteGraph.swift", "                if _side[slot] == .left { return nil }", "", mode="stmt"),
     Mutant("edgeside", "BipartiteGraph.swift", "_side[u] != _side[v]", "true", nth=0),
+    Mutant("othersidecheck", "BipartiteGraph.swift", "            guard _side[slot] == side else { throw .onOtherSide(_side[slot]) }", "", mode="stmt"),
+    Mutant("othersidecase", "BipartiteGraph.swift", ".onOtherSide(_side[slot])", ".onOtherSide(side)", nth=0),
+    Mutant("insertsameside", "BipartiteGraph.swift", "        guard _side[u] != _side[v] else { throw .sameSide(_side[u]) }", "", mode="stmt", nth=0),
+    Mutant("checkedsameside", "BipartiteGraph.swift", "        guard _side[u] != _side[v] else { throw .sameSide(_side[u]) }", "", mode="stmt", nth=1),
+    Mutant("samesidecase", "BipartiteGraph.swift", ".sameSide(_side[u])", ".sameSide(.left)", nth=0),
+    Mutant("checkedsamesidecase", "BipartiteGraph.swift", ".sameSide(_side[u])", ".sameSide(.left)", nth=1),
+    Mutant("checkedmissing", "BipartiteGraph.swift", "            throw .missingEndpoint", "            throw .sameSide(.left)", mode="stmt"),
     Mutant("orientation", "BipartiteGraph.swift", "_side[u] == .left ? _graph._insertEdge(slots: u, v) : _graph._insertEdge(slots: v, u)", "_graph._insertEdge(slots: u, v)"),
     Mutant("sidelistswap", "BipartiteGraph.swift", "                _left[offset] = moved", "", mode="stmt"),
     Mutant("sideoffset", "BipartiteGraph.swift", "                _sideOffset[moved] = offset", "", mode="stmt", nth=0),

@@ -311,27 +311,27 @@ struct FunctionalGraphConstructionTests {
     }
 
     @Test("FG-011 init?(_ graph:): vertex i is the graph's i-th vertex")
-    func fg011() {
+    func fg011() throws {
         // FunctionalGraph(DirectedPseudograph(vertices: [c, a, b], edges: [c→a, a→b, b→a])) / successors → [1, 2, 1]
         let pseudograph = DirectedPseudograph<String>(vertices: ["c", "a", "b"], edges: [DirectedEdge(from: "c", to: "a"), DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "a")])
         let graph = FunctionalGraph(pseudograph)
         #expect(graph.map { g in g.vertices.map { g.successor(of: $0) } } == [1, 2, 1])
         #expect(graph == FunctionalGraph(successors: [1, 2, 1]))
         // Labeled by the graph's vertices, it gives the labels and the edges back.
-        let labeled = LabeledGraph(graph!, labels: pseudograph.vertices)
+        let labeled = try LabeledGraph(graph!, labels: pseudograph.vertices)
         #expect(Array(labeled.vertices) == Array(pseudograph.vertices))
         #expect(labeled.edges.map { [$0.source, $0.target] } == pseudograph.edges.map { [$0.source, $0.target] })
     }
 
     @Test("FG-012 init?(_ graph:): the empty graph")
-    func fg012() {
+    func fg012() throws {
         // FunctionalGraph(DirectedPseudograph(vertices: [], edges: [])) / successors → []
         let pseudograph = DirectedPseudograph<String>(vertices: [] as [String], edges: [] as [DirectedEdge<String>])
         let graph = FunctionalGraph(pseudograph)
         #expect(graph.map { g in g.vertices.map { g.successor(of: $0) } } == [] as [Int])
         #expect(graph == FunctionalGraph(successors: [] as [Int]))
         // Labeled by the graph's vertices, it gives the labels and the edges back.
-        let labeled = LabeledGraph(graph!, labels: pseudograph.vertices)
+        let labeled = try LabeledGraph(graph!, labels: pseudograph.vertices)
         #expect(Array(labeled.vertices) == Array(pseudograph.vertices))
         #expect(labeled.edges.map { [$0.source, $0.target] } == pseudograph.edges.map { [$0.source, $0.target] })
     }

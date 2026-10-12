@@ -28,12 +28,13 @@
             let graph = LabeledGraph<String, AdjacencyMatrix>(edges: [DirectedEdge(from: "a", to: "b")])
             _ = graph.undirected.degree(of: "q")
         }
-        // Without the calls: the same rows of a vertex answer, and the safe spellings answer nil.
+        // Without the calls: the same rows of a vertex answer, and the checked spellings throw.
         let graph = LabeledGraph<String, AdjacencyMatrix>(edges: [DirectedEdge(from: "a", to: "b")])
         #expect(graph.outEdges(of: "a").map { [$0.source, $0.target] } == [[0, 1]])
         #expect(graph.inDegree(of: "b") == 1 && graph.degree(of: "b") == 1)
         #expect(graph.undirected.degree(of: "a") == 1)
-        #expect(graph.inEdges(safe: "q") == nil && graph.degree(safe: "q") == nil)
+        #expect(throws: VertexNotFound()) { try graph.inEdges(checked: "q") }
+        #expect(throws: VertexNotFound()) { try graph.degree(checked: "q") }
     }
 
     @Test("Index-space reads trap outside 0..<vertexCount, and on an empty graph")
@@ -58,7 +59,7 @@
         let graph = LabeledGraph<String, CompressedSparseRow>(vertices: ["a", "b"])
         #expect(Array(graph.successorIndices(ofIndex: 1)) == [] as [Int])
         #expect(graph.vertex(atIndex: 1) == "b")
-        #expect(LabeledGraph<String, AdjacencyMatrix>().vertexIndex(safe: "a") == nil)
+        #expect(throws: VertexNotFound()) { try LabeledGraph<String, AdjacencyMatrix>().vertexIndex(checked: "a") }
     }
 
     @Test("CSR edge positions trap below 0 and at edgeCount, through every position read")
@@ -100,19 +101,23 @@
         #expect(graph.target(ofEdgeAt: cell01) == "b")
     }
 
-    @Test("init(_:labels:) traps on a matrix base too, and counts a lazy sequence of labels")
-    func baseInitOnOtherSequences() async {
-        await #expect(processExitsWith: .failure) {
-            _ = LabeledGraph(AdjacencyMatrix(vertexCount: 3), labels: ["x", "y", "x"])
+    @Test("init(_:labels:) throws on a matrix base too, and counts a lazy sequence of labels")
+    func baseInitOnOtherSequences() throws {
+        #expect(throws: LabelingError.duplicateLabel(position: 2)) {
+            try LabeledGraph(AdjacencyMatrix(vertexCount: 3), labels: ["x", "y", "x"])
         }
-        await #expect(processExitsWith: .failure) {
-            _ = LabeledGraph(AdjacencyMatrix(vertexCount: 3), labels: (0 ..< 4).lazy.map { "v\($0)" })
+        #expect(throws: LabelingError.labelCountMismatch(labelCount: 4, vertexCount: 3)) {
+            try LabeledGraph(AdjacencyMatrix(vertexCount: 3), labels: (0 ..< 4).lazy.map { "v\($0)" })
         }
-        await #expect(processExitsWith: .failure) {
-            _ = LabeledGraph(CompressedSparseRow(vertexCount: 1), labels: [] as [String])
+        #expect(throws: LabelingError.labelCountMismatch(labelCount: 0, vertexCount: 1)) {
+            try LabeledGraph(CompressedSparseRow(vertexCount: 1), labels: [] as [String])
+        }
+        // The first broken requirement is the one reported: the base before the labels.
+        #expect(throws: LabelingError.baseVerticesNotInIndexOrder) {
+            try LabeledGraph(AdjacencyList<Int>(vertices: [1, 0]), labels: ["x", "x", "x"])
         }
         // Without the faults: accepted.
-        let graph = LabeledGraph(AdjacencyMatrix(vertexCount: 3), labels: (0 ..< 3).lazy.map { "v\($0)" })
+        let graph = try LabeledGraph(AdjacencyMatrix(vertexCount: 3), labels: (0 ..< 3).lazy.map { "v\($0)" })
         #expect(Array(graph.vertices) == ["v0", "v1", "v2"])
     }
 

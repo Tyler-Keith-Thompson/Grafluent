@@ -1,4 +1,4 @@
-// Preconditions (catalog MG-032 – MG-034, MG-039, MG-040, MG-075 – MG-077, MG-080, MG-179 – MG-192):
+// Preconditions (catalog MG-039, MG-040, MG-075 – MG-077, MG-080, MG-179 – MG-192):
 // each trapping call runs in a child process (exit test). The same setup then runs in this process
 // one step short of the precondition, so the trap is the call's and not the setup's.
 // Generated from cases.md by swiftgen.py; see README.md.
@@ -10,65 +10,6 @@ import Testing
 
 @Suite("Multigraphs preconditions", .tags(.precondition))
 struct MultigraphPreconditionTests {
-    @Test("MG-032 multigraph insert loop traps")
-    func mg032() async {
-        // Multigraph V [0]; E []; insert(edge: UndirectedEdge(0, 0)) → trap (self-loop in a Multigraph)
-        await #expect(processExitsWith: .failure) {
-            var graph = Multigraph<Int>(vertices: [0])
-            graph.insert(edge: UndirectedEdge(0, 0))
-        }
-        // Without the call: the state it would apply to.
-        let graph = Multigraph<Int>(vertices: [0])
-        #expect(Array(graph.vertices) == [0])
-        #expect(graph.edges.map { [$0.u, $0.v] } == [] as [[Int]])
-        #expect(graph.vertexCount == 1)
-        #expect(graph.edgeCount == 0)
-        #expect(Array(graph.neighbors(of: 0)) == [] as [Int])
-        #expect(Array(graph.incidentEdges(of: 0)) == [] as [Int])
-    }
-
-    @Test("MG-033 multigraph insert loop with new vertex traps")
-    func mg033() async {
-        // Multigraph V []; E []; insert(edge: UndirectedEdge(5, 5)) → trap (self-loop in a Multigraph)
-        await #expect(processExitsWith: .failure) {
-            var graph = Multigraph<Int>(vertices: [] as [Int])
-            graph.insert(edge: UndirectedEdge(5, 5))
-        }
-        // Without the call: the state it would apply to.
-        let graph = Multigraph<Int>(vertices: [] as [Int])
-        #expect(Array(graph.vertices) == [] as [Int])
-        #expect(graph.edges.map { [$0.u, $0.v] } == [] as [[Int]])
-        #expect(graph.vertexCount == 0)
-        #expect(graph.edgeCount == 0)
-    }
-
-    @Test("MG-034 directed multigraph insert loop traps")
-    func mg034() async {
-        // DirectedMultigraph V [0, 1]; E [0→1]; insert(edge: DirectedEdge(from: 1, to: 1)) → trap (self-loop in a DirectedMultigraph)
-        await #expect(processExitsWith: .failure) {
-            var graph = DirectedMultigraph<Int>(vertices: [0, 1])
-            graph.insert(edge: DirectedEdge(from: 0, to: 1))
-            graph.insert(edge: DirectedEdge(from: 1, to: 1))
-        }
-        // Without the call: the state it would apply to.
-        var graph = DirectedMultigraph<Int>(vertices: [0, 1])
-        graph.insert(edge: DirectedEdge(from: 0, to: 1))
-        #expect(Array(graph.vertices) == [0, 1])
-        #expect(graph.edges.map { [$0.source, $0.target] } == [[0, 1]])
-        #expect(graph.vertexCount == 2)
-        #expect(graph.edgeCount == 1)
-        #expect(Array(graph.successors(of: 0)) == [1])
-        #expect(Array(graph.outEdges(of: 0)) == [0])
-        #expect(Array(graph.predecessors(of: 0)) == [] as [Int])
-        #expect(Array(graph.inEdges(of: 0)) == [] as [Int])
-        #expect(Array(graph.successors(of: 1)) == [] as [Int])
-        #expect(Array(graph.outEdges(of: 1)) == [] as [Int])
-        #expect(Array(graph.predecessors(of: 1)) == [0])
-        #expect(Array(graph.inEdges(of: 1)) == [0])
-        #expect(Array(graph.edges(from: 0, to: 1)) == [0])
-        #expect(graph.edgeCount(from: 0, to: 1) == 1)
-    }
-
     @Test("MG-039 degree of a non-vertex traps")
     func mg039() async {
         // Pseudograph V [0]; E []; degree(of: 1) → trap (not a vertex)
@@ -351,18 +292,18 @@ struct MultigraphPreconditionTests {
     }
 
     @Test("MG-192 DirectedMultigraph remove(edgeAt:) out of range")
-    func mg192() async {
+    func mg192() async throws {
         // DirectedMultigraph remove(edgeAt: 2) with E [0→1, 0→1] → trap
         await #expect(processExitsWith: .failure) {
             var graph = DirectedMultigraph<Int>(vertices: [0, 1])
-            graph.insert(edge: DirectedEdge(from: 0, to: 1))
-            graph.insert(edge: DirectedEdge(from: 0, to: 1))
+            try graph.insert(edge: DirectedEdge(from: 0, to: 1))
+            try graph.insert(edge: DirectedEdge(from: 0, to: 1))
             graph.remove(edgeAt: 2)
         }
         // One step short of the precondition: no trap.
         var graph = DirectedMultigraph<Int>(vertices: [0, 1])
-        graph.insert(edge: DirectedEdge(from: 0, to: 1))
-        graph.insert(edge: DirectedEdge(from: 0, to: 1))
+        try graph.insert(edge: DirectedEdge(from: 0, to: 1))
+        try graph.insert(edge: DirectedEdge(from: 0, to: 1))
         #expect(graph.remove(edgeAt: 1) == DirectedEdge(from: 0, to: 1))
     }
 }

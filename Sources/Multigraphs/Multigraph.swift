@@ -6,7 +6,7 @@ import GraphProtocols
 /// `edges`, which is its identity.
 ///
 /// The invariant is the type: every initializer from unchecked input is failable, and inserting a
-/// self-loop traps. Storage, costs and the order rules are `Pseudograph`'s, which it wraps:
+/// self-loop throws `SelfLoopError`. Storage, costs and the order rules are `Pseudograph`'s, which it wraps:
 /// `Pseudograph(multigraph)` is O(1).
 @frozen
 public struct Multigraph<Vertex: Hashable> {
@@ -155,11 +155,12 @@ extension Multigraph {
     /// not already a vertex. O(1) amortized.
     ///
     /// - Returns: The new copy's position in `edges`, which is the old `edgeCount`.
-    /// - Precondition: `!edge.isSelfLoop`. Checked before anything is inserted.
+    /// - Throws: `SelfLoopError` when `edge` is a self-loop, checked before anything is inserted;
+    ///   then nothing changes.
     @inlinable
     @discardableResult
-    public mutating func insert(edge: UndirectedEdge<Vertex>) -> Int {
-        precondition(!edge.isSelfLoop, "A Multigraph has no self-loops: \(edge)")
+    public mutating func insert(edge: UndirectedEdge<Vertex>) throws(SelfLoopError) -> Int {
+        if edge.isSelfLoop { throw SelfLoopError() }
         return _base.insert(edge: edge)
     }
 

@@ -31,19 +31,19 @@ struct DirectedAcyclicGraphPreconditionTests {
         #expect(graph.topologicalOrder.count == 2 && graph.topologicalOrder.indices == 0 ..< 2)
         #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [[0, 1]])
         #expect(Array(graph.base.vertices) == [0, 1] && Array(graph.base.edges) == [DirectedEdge(from: 0, to: 1)])
-        #expect(graph.topologicalPosition(of: 0) == 0 && graph.topologicalPosition(safe: 0) == 0 && graph.topologicalOrder.firstIndex(of: 0) == 0)
+        #expect(try graph.topologicalPosition(of: 0) == 0 && graph.topologicalPosition(checked: 0) == 0 && graph.topologicalOrder.firstIndex(of: 0) == 0)
         #expect(Array(graph.successors(of: 0)) == [1] && Array(graph.outEdges(of: 0)) == [0] && graph.outDegree(of: 0) == 1)
         #expect(Array(graph.predecessors(of: 0)) == [] as [Int] && Array(graph.inEdges(of: 0)) == [] as [Int] && graph.inDegree(of: 0) == 0)
-        #expect(graph.successors(safe: 0).map { Array($0) } == [1] && graph.outEdges(safe: 0).map { Array($0) } == [0] && graph.outDegree(safe: 0) == 1)
-        #expect(graph.predecessors(safe: 0).map { Array($0) } == [] as [Int] && graph.inEdges(safe: 0).map { Array($0) } == [] as [Int] && graph.inDegree(safe: 0) == 0)
-        #expect(graph.topologicalPosition(of: 1) == 1 && graph.topologicalPosition(safe: 1) == 1 && graph.topologicalOrder.firstIndex(of: 1) == 1)
+        #expect(try Array(graph.successors(checked: 0)) == [1] && Array(graph.outEdges(checked: 0)) == [0] && graph.outDegree(checked: 0) == 1)
+        #expect(try Array(graph.predecessors(checked: 0)) == [] as [Int] && Array(graph.inEdges(checked: 0)) == [] as [Int] && graph.inDegree(checked: 0) == 0)
+        #expect(try graph.topologicalPosition(of: 1) == 1 && graph.topologicalPosition(checked: 1) == 1 && graph.topologicalOrder.firstIndex(of: 1) == 1)
         #expect(Array(graph.successors(of: 1)) == [] as [Int] && Array(graph.outEdges(of: 1)) == [] as [Int] && graph.outDegree(of: 1) == 0)
         #expect(Array(graph.predecessors(of: 1)) == [0] && Array(graph.inEdges(of: 1)) == [0] && graph.inDegree(of: 1) == 1)
-        #expect(graph.successors(safe: 1).map { Array($0) } == [] as [Int] && graph.outEdges(safe: 1).map { Array($0) } == [] as [Int] && graph.outDegree(safe: 1) == 0)
-        #expect(graph.predecessors(safe: 1).map { Array($0) } == [0] && graph.inEdges(safe: 1).map { Array($0) } == [0] && graph.inDegree(safe: 1) == 1)
-        #expect(!graph.contains(101) && graph.topologicalPosition(safe: 101) == nil && graph.topologicalOrder.firstIndex(of: 101) == nil)
-        #expect(graph.successors(safe: 101) == nil && graph.predecessors(safe: 101) == nil && graph.outEdges(safe: 101) == nil)
-        #expect(graph.inEdges(safe: 101) == nil && graph.outDegree(safe: 101) == nil && graph.inDegree(safe: 101) == nil)
+        #expect(try Array(graph.successors(checked: 1)) == [] as [Int] && Array(graph.outEdges(checked: 1)) == [] as [Int] && graph.outDegree(checked: 1) == 0)
+        #expect(try Array(graph.predecessors(checked: 1)) == [0] && Array(graph.inEdges(checked: 1)) == [0] && graph.inDegree(checked: 1) == 1)
+        #expect(!graph.contains(101) && (try? graph.topologicalPosition(checked: 101)) == nil && graph.topologicalOrder.firstIndex(of: 101) == nil)
+        #expect((try? graph.successors(checked: 101)) == nil && (try? graph.predecessors(checked: 101)) == nil && (try? graph.outEdges(checked: 101)) == nil)
+        #expect((try? graph.inEdges(checked: 101)) == nil && (try? graph.outDegree(checked: 101)) == nil && (try? graph.inDegree(checked: 101)) == nil)
     }
 
     @Test("DAG-053 remove(edgeAt:) at a Stable hole traps")
@@ -65,19 +65,19 @@ struct DirectedAcyclicGraphPreconditionTests {
         #expect(graph.topologicalOrder.count == 2 && graph.topologicalOrder.indices == 0 ..< 2)
         #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [[0, 1]])
         #expect(Array(graph.base.vertices) == [0, 1] && Array(graph.base.edges) == [DirectedEdge(from: 0, to: 1)])
-        #expect(graph.topologicalPosition(of: 0) == 0 && graph.topologicalPosition(safe: 0) == 0 && graph.topologicalOrder.firstIndex(of: 0) == 0)
+        #expect(try graph.topologicalPosition(of: 0) == 0 && graph.topologicalPosition(checked: 0) == 0 && graph.topologicalOrder.firstIndex(of: 0) == 0)
         #expect(Array(graph.successors(of: 0)) == [1] && Array(graph.outEdges(of: 0)) == [1] && graph.outDegree(of: 0) == 1)
         #expect(Array(graph.predecessors(of: 0)) == [] as [Int] && Array(graph.inEdges(of: 0)) == [] as [Int] && graph.inDegree(of: 0) == 0)
-        #expect(graph.successors(safe: 0).map { Array($0) } == [1] && graph.outEdges(safe: 0).map { Array($0) } == [1] && graph.outDegree(safe: 0) == 1)
-        #expect(graph.predecessors(safe: 0).map { Array($0) } == [] as [Int] && graph.inEdges(safe: 0).map { Array($0) } == [] as [Int] && graph.inDegree(safe: 0) == 0)
-        #expect(graph.topologicalPosition(of: 1) == 1 && graph.topologicalPosition(safe: 1) == 1 && graph.topologicalOrder.firstIndex(of: 1) == 1)
+        #expect(try Array(graph.successors(checked: 0)) == [1] && Array(graph.outEdges(checked: 0)) == [1] && graph.outDegree(checked: 0) == 1)
+        #expect(try Array(graph.predecessors(checked: 0)) == [] as [Int] && Array(graph.inEdges(checked: 0)) == [] as [Int] && graph.inDegree(checked: 0) == 0)
+        #expect(try graph.topologicalPosition(of: 1) == 1 && graph.topologicalPosition(checked: 1) == 1 && graph.topologicalOrder.firstIndex(of: 1) == 1)
         #expect(Array(graph.successors(of: 1)) == [] as [Int] && Array(graph.outEdges(of: 1)) == [] as [Int] && graph.outDegree(of: 1) == 0)
         #expect(Array(graph.predecessors(of: 1)) == [0] && Array(graph.inEdges(of: 1)) == [1] && graph.inDegree(of: 1) == 1)
-        #expect(graph.successors(safe: 1).map { Array($0) } == [] as [Int] && graph.outEdges(safe: 1).map { Array($0) } == [] as [Int] && graph.outDegree(safe: 1) == 0)
-        #expect(graph.predecessors(safe: 1).map { Array($0) } == [0] && graph.inEdges(safe: 1).map { Array($0) } == [1] && graph.inDegree(safe: 1) == 1)
-        #expect(!graph.contains(101) && graph.topologicalPosition(safe: 101) == nil && graph.topologicalOrder.firstIndex(of: 101) == nil)
-        #expect(graph.successors(safe: 101) == nil && graph.predecessors(safe: 101) == nil && graph.outEdges(safe: 101) == nil)
-        #expect(graph.inEdges(safe: 101) == nil && graph.outDegree(safe: 101) == nil && graph.inDegree(safe: 101) == nil)
+        #expect(try Array(graph.successors(checked: 1)) == [] as [Int] && Array(graph.outEdges(checked: 1)) == [] as [Int] && graph.outDegree(checked: 1) == 0)
+        #expect(try Array(graph.predecessors(checked: 1)) == [0] && Array(graph.inEdges(checked: 1)) == [1] && graph.inDegree(checked: 1) == 1)
+        #expect(!graph.contains(101) && (try? graph.topologicalPosition(checked: 101)) == nil && graph.topologicalOrder.firstIndex(of: 101) == nil)
+        #expect((try? graph.successors(checked: 101)) == nil && (try? graph.predecessors(checked: 101)) == nil && (try? graph.outEdges(checked: 101)) == nil)
+        #expect((try? graph.inEdges(checked: 101)) == nil && (try? graph.outDegree(checked: 101)) == nil && (try? graph.inDegree(checked: 101)) == nil)
     }
 
     @Test("DAG-071 topologicalPosition(of:) non-vertex traps")
@@ -96,14 +96,14 @@ struct DirectedAcyclicGraphPreconditionTests {
         #expect(graph.vertexCount == 1 && graph.edgeCount == 0)
         #expect(graph.topologicalOrder.count == 1 && graph.topologicalOrder.indices == 0 ..< 1)
         #expect(Array(graph.base.vertices) == [0] && Array(graph.base.edges) == [] as [DirectedEdge<Int>])
-        #expect(graph.topologicalPosition(of: 0) == 0 && graph.topologicalPosition(safe: 0) == 0 && graph.topologicalOrder.firstIndex(of: 0) == 0)
+        #expect(try graph.topologicalPosition(of: 0) == 0 && graph.topologicalPosition(checked: 0) == 0 && graph.topologicalOrder.firstIndex(of: 0) == 0)
         #expect(Array(graph.successors(of: 0)) == [] as [Int] && Array(graph.outEdges(of: 0)) == [] as [Int] && graph.outDegree(of: 0) == 0)
         #expect(Array(graph.predecessors(of: 0)) == [] as [Int] && Array(graph.inEdges(of: 0)) == [] as [Int] && graph.inDegree(of: 0) == 0)
-        #expect(graph.successors(safe: 0).map { Array($0) } == [] as [Int] && graph.outEdges(safe: 0).map { Array($0) } == [] as [Int] && graph.outDegree(safe: 0) == 0)
-        #expect(graph.predecessors(safe: 0).map { Array($0) } == [] as [Int] && graph.inEdges(safe: 0).map { Array($0) } == [] as [Int] && graph.inDegree(safe: 0) == 0)
-        #expect(!graph.contains(100) && graph.topologicalPosition(safe: 100) == nil && graph.topologicalOrder.firstIndex(of: 100) == nil)
-        #expect(graph.successors(safe: 100) == nil && graph.predecessors(safe: 100) == nil && graph.outEdges(safe: 100) == nil)
-        #expect(graph.inEdges(safe: 100) == nil && graph.outDegree(safe: 100) == nil && graph.inDegree(safe: 100) == nil)
+        #expect(try Array(graph.successors(checked: 0)) == [] as [Int] && Array(graph.outEdges(checked: 0)) == [] as [Int] && graph.outDegree(checked: 0) == 0)
+        #expect(try Array(graph.predecessors(checked: 0)) == [] as [Int] && Array(graph.inEdges(checked: 0)) == [] as [Int] && graph.inDegree(checked: 0) == 0)
+        #expect(!graph.contains(100) && (try? graph.topologicalPosition(checked: 100)) == nil && graph.topologicalOrder.firstIndex(of: 100) == nil)
+        #expect((try? graph.successors(checked: 100)) == nil && (try? graph.predecessors(checked: 100)) == nil && (try? graph.outEdges(checked: 100)) == nil)
+        #expect((try? graph.inEdges(checked: 100)) == nil && (try? graph.outDegree(checked: 100)) == nil && (try? graph.inDegree(checked: 100)) == nil)
     }
 
     @Test("DAG-074 topologicalOrder subscript out of range traps")
@@ -122,14 +122,14 @@ struct DirectedAcyclicGraphPreconditionTests {
         #expect(graph.vertexCount == 1 && graph.edgeCount == 0)
         #expect(graph.topologicalOrder.count == 1 && graph.topologicalOrder.indices == 0 ..< 1)
         #expect(Array(graph.base.vertices) == [0] && Array(graph.base.edges) == [] as [DirectedEdge<Int>])
-        #expect(graph.topologicalPosition(of: 0) == 0 && graph.topologicalPosition(safe: 0) == 0 && graph.topologicalOrder.firstIndex(of: 0) == 0)
+        #expect(try graph.topologicalPosition(of: 0) == 0 && graph.topologicalPosition(checked: 0) == 0 && graph.topologicalOrder.firstIndex(of: 0) == 0)
         #expect(Array(graph.successors(of: 0)) == [] as [Int] && Array(graph.outEdges(of: 0)) == [] as [Int] && graph.outDegree(of: 0) == 0)
         #expect(Array(graph.predecessors(of: 0)) == [] as [Int] && Array(graph.inEdges(of: 0)) == [] as [Int] && graph.inDegree(of: 0) == 0)
-        #expect(graph.successors(safe: 0).map { Array($0) } == [] as [Int] && graph.outEdges(safe: 0).map { Array($0) } == [] as [Int] && graph.outDegree(safe: 0) == 0)
-        #expect(graph.predecessors(safe: 0).map { Array($0) } == [] as [Int] && graph.inEdges(safe: 0).map { Array($0) } == [] as [Int] && graph.inDegree(safe: 0) == 0)
-        #expect(!graph.contains(100) && graph.topologicalPosition(safe: 100) == nil && graph.topologicalOrder.firstIndex(of: 100) == nil)
-        #expect(graph.successors(safe: 100) == nil && graph.predecessors(safe: 100) == nil && graph.outEdges(safe: 100) == nil)
-        #expect(graph.inEdges(safe: 100) == nil && graph.outDegree(safe: 100) == nil && graph.inDegree(safe: 100) == nil)
+        #expect(try Array(graph.successors(checked: 0)) == [] as [Int] && Array(graph.outEdges(checked: 0)) == [] as [Int] && graph.outDegree(checked: 0) == 0)
+        #expect(try Array(graph.predecessors(checked: 0)) == [] as [Int] && Array(graph.inEdges(checked: 0)) == [] as [Int] && graph.inDegree(checked: 0) == 0)
+        #expect(!graph.contains(100) && (try? graph.topologicalPosition(checked: 100)) == nil && graph.topologicalOrder.firstIndex(of: 100) == nil)
+        #expect((try? graph.successors(checked: 100)) == nil && (try? graph.predecessors(checked: 100)) == nil && (try? graph.outEdges(checked: 100)) == nil)
+        #expect((try? graph.inEdges(checked: 100)) == nil && (try? graph.outDegree(checked: 100)) == nil && (try? graph.inDegree(checked: 100)) == nil)
     }
 
     @Test("DAG-078 hasPath: non-vertex traps")
@@ -148,14 +148,14 @@ struct DirectedAcyclicGraphPreconditionTests {
         #expect(graph.vertexCount == 1 && graph.edgeCount == 0)
         #expect(graph.topologicalOrder.count == 1 && graph.topologicalOrder.indices == 0 ..< 1)
         #expect(Array(graph.base.vertices) == [0] && Array(graph.base.edges) == [] as [DirectedEdge<Int>])
-        #expect(graph.topologicalPosition(of: 0) == 0 && graph.topologicalPosition(safe: 0) == 0 && graph.topologicalOrder.firstIndex(of: 0) == 0)
+        #expect(try graph.topologicalPosition(of: 0) == 0 && graph.topologicalPosition(checked: 0) == 0 && graph.topologicalOrder.firstIndex(of: 0) == 0)
         #expect(Array(graph.successors(of: 0)) == [] as [Int] && Array(graph.outEdges(of: 0)) == [] as [Int] && graph.outDegree(of: 0) == 0)
         #expect(Array(graph.predecessors(of: 0)) == [] as [Int] && Array(graph.inEdges(of: 0)) == [] as [Int] && graph.inDegree(of: 0) == 0)
-        #expect(graph.successors(safe: 0).map { Array($0) } == [] as [Int] && graph.outEdges(safe: 0).map { Array($0) } == [] as [Int] && graph.outDegree(safe: 0) == 0)
-        #expect(graph.predecessors(safe: 0).map { Array($0) } == [] as [Int] && graph.inEdges(safe: 0).map { Array($0) } == [] as [Int] && graph.inDegree(safe: 0) == 0)
-        #expect(!graph.contains(100) && graph.topologicalPosition(safe: 100) == nil && graph.topologicalOrder.firstIndex(of: 100) == nil)
-        #expect(graph.successors(safe: 100) == nil && graph.predecessors(safe: 100) == nil && graph.outEdges(safe: 100) == nil)
-        #expect(graph.inEdges(safe: 100) == nil && graph.outDegree(safe: 100) == nil && graph.inDegree(safe: 100) == nil)
+        #expect(try Array(graph.successors(checked: 0)) == [] as [Int] && Array(graph.outEdges(checked: 0)) == [] as [Int] && graph.outDegree(checked: 0) == 0)
+        #expect(try Array(graph.predecessors(checked: 0)) == [] as [Int] && Array(graph.inEdges(checked: 0)) == [] as [Int] && graph.inDegree(checked: 0) == 0)
+        #expect(!graph.contains(100) && (try? graph.topologicalPosition(checked: 100)) == nil && graph.topologicalOrder.firstIndex(of: 100) == nil)
+        #expect((try? graph.successors(checked: 100)) == nil && (try? graph.predecessors(checked: 100)) == nil && (try? graph.outEdges(checked: 100)) == nil)
+        #expect((try? graph.inEdges(checked: 100)) == nil && (try? graph.outDegree(checked: 100)) == nil && (try? graph.inDegree(checked: 100)) == nil)
     }
 
     @Test("topologicalPosition(of:) traps for a non-vertex on every base, and for a removed vertex")
@@ -182,13 +182,16 @@ struct DirectedAcyclicGraphPreconditionTests {
             let graph = DirectedAcyclicGraph<DirectedPseudograph<Int>>()
             _ = graph.topologicalPosition(of: 0)
         }
-        // Without the calls: the vertices that remain answer, and the safe spelling answers nil.
+        // Without the calls: the vertices that remain answer, and the checked spelling throws
+        // VertexNotFound.
         var stable = DirectedAcyclicGraph<StableDirectedGraph<Int>>(vertices: [0, 1, 2])
         _ = stable.remove(1)
-        #expect(stable.topologicalPosition(of: 2) == 1 && stable.topologicalPosition(safe: 1) == nil)
+        #expect(stable.topologicalPosition(of: 2) == 1)
+        #expect(throws: VertexNotFound()) { try stable.topologicalPosition(checked: 1) }
         var dense = DirectedAcyclicGraph<AdjacencyList<Int>>(vertices: [0, 1, 2])
         _ = dense.remove(0)
-        #expect(dense.topologicalPosition(of: 2) == 1 && dense.topologicalPosition(safe: 0) == nil)
+        #expect(dense.topologicalPosition(of: 2) == 1)
+        #expect(throws: VertexNotFound()) { try dense.topologicalPosition(checked: 0) }
     }
 
     @Test("hasPath(from:to:) traps for a non-vertex at either end, even when the other end decides the answer")
@@ -238,7 +241,7 @@ struct DirectedAcyclicGraphPreconditionTests {
         await #expect(processExitsWith: .failure) {
             // A source placed first: free slots lie before place 0.
             var graph = DirectedAcyclicGraph<AdjacencyList<Int>>(vertices: [0])
-            _ = graph.insert(edge: DirectedEdge(from: 5, to: 0))
+            _ = try! graph.insert(edge: DirectedEdge(from: 5, to: 0))
             _ = graph.topologicalOrder[-1]
         }
         // Without the calls: the last place answers.
@@ -248,7 +251,7 @@ struct DirectedAcyclicGraphPreconditionTests {
         _ = holed.remove(1)
         #expect(holed.topologicalOrder[2] == 3 && holed.topologicalOrder.count == 3)
         var prepended = DirectedAcyclicGraph<AdjacencyList<Int>>(vertices: [0])
-        _ = prepended.insert(edge: DirectedEdge(from: 5, to: 0))
+        _ = try prepended.insert(edge: DirectedEdge(from: 5, to: 0))
         #expect(prepended.topologicalOrder[0] == 5 && prepended.topologicalOrder[1] == 0)
     }
 

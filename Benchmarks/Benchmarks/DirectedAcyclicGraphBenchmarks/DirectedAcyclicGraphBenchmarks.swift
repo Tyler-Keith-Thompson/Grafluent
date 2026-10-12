@@ -80,7 +80,7 @@ let benchmarks: @Sendable () -> Void = {
         for _ in benchmark.scaledIterations {
             var g = DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: 0 ..< 100_000)
             benchmark.startMeasurement()
-            for e in forward { blackHole(g.insert(edge: e)) }
+            for e in forward { blackHole(try? g.insert(edge: e)) }
             benchmark.stopMeasurement()
             blackHole(g)
         }
@@ -98,7 +98,7 @@ let benchmarks: @Sendable () -> Void = {
         for _ in benchmark.scaledIterations {
             var g = DirectedAcyclicGraph<AdjacencyList<Int>>(vertices: 0 ..< 100_000)
             benchmark.startMeasurement()
-            for e in forward { blackHole(g.insert(edge: e)) }
+            for e in forward { blackHole(try? g.insert(edge: e)) }
             benchmark.stopMeasurement()
             blackHole(g)
         }
@@ -116,7 +116,7 @@ let benchmarks: @Sendable () -> Void = {
         for _ in benchmark.scaledIterations {
             var g = DirectedAcyclicGraph<StableDirectedGraph<Int>>(vertices: 0 ..< 100_000)
             benchmark.startMeasurement()
-            for e in forward { blackHole(g.insert(edge: e)) }
+            for e in forward { blackHole(try? g.insert(edge: e)) }
             benchmark.stopMeasurement()
             blackHole(g)
         }
@@ -151,7 +151,7 @@ let benchmarks: @Sendable () -> Void = {
             for _ in benchmark.scaledIterations {
                 var g = DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: 0 ..< n)
                 benchmark.startMeasurement()
-                for e in pairs { blackHole(g.insert(edge: e)) }
+                for e in pairs { blackHole(try? g.insert(edge: e)) }
                 benchmark.stopMeasurement()
                 precondition(g.edgeCount == m)
                 blackHole(g)
@@ -161,7 +161,7 @@ let benchmarks: @Sendable () -> Void = {
             for _ in benchmark.scaledIterations {
                 var g = DirectedAcyclicGraph<StableDirectedGraph<Int>>(vertices: 0 ..< n)
                 benchmark.startMeasurement()
-                for e in pairs { blackHole(g.insert(edge: e)) }
+                for e in pairs { blackHole(try? g.insert(edge: e)) }
                 benchmark.stopMeasurement()
                 blackHole(g)
             }
@@ -176,25 +176,25 @@ let benchmarks: @Sendable () -> Void = {
             var g = DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: 0 ..< 10_000)
             benchmark.startMeasurement()
             var rejected = 0
-            for e in pairs where g.insert(edge: e) == nil { rejected &+= 1 }
+            for e in pairs where (try? g.insert(edge: e)) == nil { rejected &+= 1 }
             benchmark.stopMeasurement()
             blackHole(rejected)
         }
     }
     var dense = DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: 0 ..< 10_000)
     var rejectedPairs = 0
-    for e in pairs where dense.insert(edge: e) == nil { rejectedPairs += 1 }
+    for e in pairs where (try? dense.insert(edge: e)) == nil { rejectedPairs += 1 }
     // rustworkx's PyDiGraph(check_cycle=True) rejects the same number (timings.py).
     precondition(rejectedPairs == 35_074, "\(rejectedPairs) rejected")
     let rejections = pairs.filter { !dense.contains(edge: $0) }.prefix(10_000).map { $0 }
     Benchmark("DirectedAcyclicGraph: 10⁴ rejected inserts on a dense DAG (must not allocate)", configuration: .init(metrics: [.wallClock, .mallocCountTotal], thresholds: [.mallocCountTotal: .init(absolute: [.p90: 0])])) { benchmark in
         var g = dense
         g.insert(-1)
-        _ = g.insert(edge: rejections[0])
+        _ = try? g.insert(edge: rejections[0])
         for _ in benchmark.scaledIterations {
             benchmark.startMeasurement()
             var rejected = 0
-            for e in rejections where g.insert(edge: e) == nil { rejected &+= 1 }
+            for e in rejections where (try? g.insert(edge: e)) == nil { rejected &+= 1 }
             benchmark.stopMeasurement()
             blackHole(rejected)
         }
@@ -207,7 +207,7 @@ let benchmarks: @Sendable () -> Void = {
             for _ in benchmark.scaledIterations {
                 var g = DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: 0 ..< n)
                 benchmark.startMeasurement()
-                for i in stride(from: n - 2, through: 0, by: -1) { blackHole(g.insert(edge: DirectedEdge(from: i + 1, to: i))) }
+                for i in stride(from: n - 2, through: 0, by: -1) { blackHole(try? g.insert(edge: DirectedEdge(from: i + 1, to: i))) }
                 benchmark.stopMeasurement()
                 blackHole(g)
             }
@@ -232,7 +232,7 @@ let benchmarks: @Sendable () -> Void = {
             for _ in benchmark.scaledIterations {
                 var g = DirectedAcyclicGraph<DirectedPseudograph<Int>>()
                 benchmark.startMeasurement()
-                for i in 0 ..< n - 1 { blackHole(g.insert(edge: DirectedEdge(from: i + 1, to: i))) }
+                for i in 0 ..< n - 1 { blackHole(try? g.insert(edge: DirectedEdge(from: i + 1, to: i))) }
                 benchmark.stopMeasurement()
                 blackHole(g)
             }
@@ -241,7 +241,7 @@ let benchmarks: @Sendable () -> Void = {
             for _ in benchmark.scaledIterations {
                 var g = DirectedAcyclicGraph<DirectedPseudograph<Int>>()
                 benchmark.startMeasurement()
-                for i in 0 ..< n - 1 { blackHole(g.insert(edge: DirectedEdge(from: i, to: i + 1))) }
+                for i in 0 ..< n - 1 { blackHole(try? g.insert(edge: DirectedEdge(from: i, to: i + 1))) }
                 benchmark.stopMeasurement()
                 blackHole(g)
             }

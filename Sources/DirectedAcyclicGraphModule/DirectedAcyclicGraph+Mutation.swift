@@ -17,48 +17,50 @@ extension DirectedAcyclicGraph {
     /// Inserts `edge`, unless it would close a cycle, inserting either endpoint that is not already
     /// a vertex, source first. A new source whose target is already a vertex is placed first in the
     /// order; any other new endpoint is placed last. So an edge with a new endpoint always goes
-    /// forward and never reorders. A self-loop closes a cycle and is rejected before anything is
-    /// inserted.
+    /// forward and never reorders. A self-loop is rejected before anything is inserted.
     ///
     /// When the source is already placed before the target, the cost is two array reads plus the
     /// base's insertion. Otherwise Pearce and Kelly's reordering runs, O(‖δ‖ + δ log δ) for the δ
-    /// vertices it visits between the endpoints' places; see the type's documentation.
+    /// vertices it visits between the endpoints' places; see the type's documentation. A rejection
+    /// allocates nothing once the reordering's scratch has grown.
     ///
     /// - Returns: The edge's position: a new one, or on `AdjacencyList`, which is simple, the
-    ///   existing edge's. `nil` when the edge would close a cycle; then nothing changes, and
-    ///   `bidirectionalShortestPath(from: edge.target, to: edge.source)` (Traversal) is a path
-    ///   the edge would close.
+    ///   existing edge's.
+    /// - Throws: `AcyclicEdgeError.selfLoop` for a self-loop, and `.cycle` when the edge would
+    ///   close a cycle; then nothing changes, and `bidirectionalShortestPath(from: edge.target,
+    ///   to: edge.source)` (Traversal) is a path the edge would close. `try?` turns a rejection
+    ///   into `nil`.
     @inlinable
     @discardableResult
-    public mutating func insert(edge: DirectedEdge<Vertex>) -> Edges.Index? {
-        if edge.source == edge.target { return nil }
+    public mutating func insert(edge: DirectedEdge<Vertex>) throws(AcyclicEdgeError) -> Edges.Index {
+        if edge.source == edge.target { throw .selfLoop }
         if let source = _base._key(of: edge.source) {
-            return _insertEdge(source, _base._key(of: edge.target) ?? _appendVertex(edge.target))
+            return try _insertEdge(source, _base._key(of: edge.target) ?? _appendVertex(edge.target))
         }
         if let target = _base._key(of: edge.target) {
-            return _insertEdge(_prependVertex(edge.source), target)
+            return try _insertEdge(_prependVertex(edge.source), target)
         }
         let source = _appendVertex(edge.source)
-        return _insertEdge(source, _appendVertex(edge.target))
+        return try _insertEdge(source, _appendVertex(edge.target))
     }
 
     /// Inserts `edge` only when both endpoints are already vertices and the edge would not close a
-    /// cycle; otherwise returns `nil` and changes nothing. The `safe:` spelling of README Principle
-    /// 6: JGraphT's `addEdge` requires the endpoints (it throws `IllegalArgumentException`), as
-    /// petgraph's `Acyclic::try_add_edge` does (`AcyclicEdgeError::InvalidEdge`). Costs as
-    /// `insert(edge:)`.
+    /// cycle. The `checked:` spelling of README Principle 6: JGraphT's `addEdge` requires the
+    /// endpoints (it throws `IllegalArgumentException`), as petgraph's `Acyclic::try_add_edge`
+    /// does (`AcyclicEdgeError::InvalidEdge`). Costs as `insert(edge:)`.
     ///
-    /// `nil` has two causes; `contains(edge.source) && contains(edge.target)` tells them apart: when
-    /// both are vertices, the edge would close a cycle (a self-loop included), and
-    /// `bidirectionalShortestPath(from: edge.target, to: edge.source)` is the path it would close.
-    ///
-    /// - Returns: The edge's position, as `insert(edge:)`'s, or `nil` when an endpoint is missing
-    ///   or the edge would close a cycle.
+    /// - Returns: The edge's position, as `insert(edge:)`'s.
+    /// - Throws: `AcyclicEdgeError.missingEndpoint` when an endpoint is not a vertex (checked
+    ///   first, so a self-loop at a missing vertex throws it), then `.selfLoop` or `.cycle` as
+    ///   `insert(edge:)` does. Nothing changes when it throws.
     @inlinable
     @discardableResult
-    public mutating func insert(safe edge: DirectedEdge<Vertex>) -> Edges.Index? {
-        guard let source = _base._key(of: edge.source), let target = _base._key(of: edge.target), source != target else { return nil }
-        return _insertEdge(source, target)
+    public mutating func insert(checked edge: DirectedEdge<Vertex>) throws(AcyclicEdgeError) -> Edges.Index {
+        guard let source = _base._key(of: edge.source), let target = _base._key(of: edge.target) else {
+            throw .missingEndpoint
+        }
+        if source == target { throw .selfLoop }
+        return try _insertEdge(source, target)
     }
 
     /// Appends `vertex`, which is not a vertex, to the base and to the order.
@@ -84,9 +86,9 @@ extension DirectedAcyclicGraph {
     /// Inserts the edge between two distinct keys, reordering first when it goes backward.
     @inlinable
     @inline(__always)
-    internal mutating func _insertEdge(_ source: Int, _ target: Int) -> Edges.Index? {
+    internal mutating func _insertEdge(_ source: Int, _ target: Int) throws(AcyclicEdgeError) -> Edges.Index {
         if _table.label(source) > _table.label(target) {
-            guard _reorder(source: source, target: target) else { return nil }
+            guard _reorder(source: source, target: target) else { throw .cycle }
         }
         return _base._insertEdge(fromKey: source, toKey: target)
     }

@@ -29,16 +29,18 @@ for line in text.splitlines():
     if line.startswith("| BP-"):
         parts = [p.strip() for p in line.strip("|").split(" | ")]
         CELLS[parts[0]] = parts
-assert len(CELLS) == 166
+assert len(CELLS) == 172
 
-ids = iter(f"BP-{i:03d}" for i in range(1, 167))
+ids = iter(f"BP-{i:03d}" for i in range(1, 173))
 REC_IDS = [next(ids) for _ in ref.REC]
 INITG_IDS = [next(ids) for _ in ref.INITG]
 INITS_IDS = [next(ids) for _ in ref.INITS]
 MUT_IDS = [next(ids) for _ in ref.MUT]
+REJ_IDS = [next(ids) for _ in ref.REJ]
 TRAP_IDS = [next(ids) for _ in ref.TRAP]
 PROJ_IDS = [next(ids) for _ in ref.PROJ]
 EQ_IDS = [next(ids) for _ in ref.EQ]
+CHECKED_IDS = [next(ids) for _ in ref.CHECKED]
 
 # ---------------------------------------------------------------------------------------------
 # Swift literals
@@ -459,10 +461,11 @@ def op_lines(b, op, T, check=True):
     """Applies op to the model b and returns Swift lines doing and checking the same."""
     k = op[0]
     if not check:
+        # In an exit test: `try?`, so that a throw where a trap belongs exits normally and fails.
         if k == "iv":
-            return [f"graph.insert({lit(op[1])}, on: {SIDE[op[2]]})"]
+            return [f"_ = try? graph.insert({lit(op[1])}, on: {SIDE[op[2]]})"]
         if k == "ie":
-            return [f"graph.insert(edge: UndirectedEdge({lit(op[1])}, {lit(op[2])}))"]
+            return [f"_ = try? graph.insert(edge: UndirectedEdge({lit(op[1])}, {lit(op[2])}))"]
         if k == "re":
             return [f"graph.remove(edge: UndirectedEdge({lit(op[1])}, {lit(op[2])}))"]
         if k == "rv":
@@ -471,15 +474,19 @@ def op_lines(b, op, T, check=True):
             return [f"_ = graph.side(of: {lit(op[1])})"]
         raise ValueError(op)
     if k == "iv":
-        r = b.insert_vertex(op[1], op[2])
-        if not check:
-            return [f"graph.insert({lit(op[1])}, on: {SIDE[op[2]]})"]
-        return [f"do {{ let result = graph.insert({lit(op[1])}, on: {SIDE[op[2]]}); #expect({"" if r else "!"}result.inserted); #expect(result.memberAfterInsert == {lit(op[1])}) }}"]
-    if k == "ie":
-        r, m = b.insert_edge(op[1], op[2])
-        if not check:
-            return [f"graph.insert(edge: UndirectedEdge({lit(op[1])}, {lit(op[2])}))"]
-        return [f"do {{ let result = graph.insert(edge: UndirectedEdge({lit(op[1])}, {lit(op[2])})); #expect({"" if r else "!"}result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [{lit(m[0])}, {lit(m[1])}]) }}"]
+        call = f"graph.insert({lit(op[1])}, on: {SIDE[op[2]]})"
+        try:
+            r = b.insert_vertex(op[1], op[2])
+        except ref.Thrown as t:
+            return [f"#expect(throws: BipartitionError{t}) {{ try {call} }}"]
+        return [f"do {{ let result = try {call}; #expect({"" if r else "!"}result.inserted); #expect(result.memberAfterInsert == {lit(op[1])}) }}"]
+    if k in ("ie", "iec"):
+        call = f"graph.insert({'edge' if k == 'ie' else 'checked'}: UndirectedEdge({lit(op[1])}, {lit(op[2])}))"
+        try:
+            r, m = b.insert_edge(op[1], op[2], checked=k == "iec")
+        except ref.Thrown as t:
+            return [f"#expect(throws: BipartitionError{t}) {{ try {call} }}"]
+        return [f"do {{ let result = try {call}; #expect({"" if r else "!"}result.inserted); #expect([result.memberAfterInsert.u, result.memberAfterInsert.v] == [{lit(m[0])}, {lit(m[1])}]) }}"]
     if k == "re":
         r = b.remove_edge(op[1], op[2])
         if not check:
@@ -513,20 +520,23 @@ def op_lines(b, op, T, check=True):
 
 def gen_mutation():
     out = header([
-        "Mutation (catalog BP-119 – BP-141): `insert(_:on:)`, `insert(edge:)`, `remove(_:)`,",
+        f"Mutation (catalog {MUT_IDS[0]} – {MUT_IDS[-1]}): `insert(_:on:)`, `insert(edge:)`, `remove(_:)`,",
         "`remove(edge:)`, `removeAllEdges()`, `removeAll()`, with each call's result and the final",
         "`vertices`, `left`, `right` and `edges` (as [u, v], left endpoint first). Removing a vertex",
         "moves the last slot into its place (as `UndirectedAdjacencyList` does) and the side's last",
         "vertex into its place in `left` or `right`; removing an edge moves the last edge into its",
-        "position. A vertex keeps its side when its edges go. BP-141 is ref.py's `random_ops(7)`",
-        "written out, with every intermediate result as the model gives it. Generated from cases.md",
-        "by swiftgen.py; see README.md.",
+        f"position. A vertex keeps its side when its edges go. {MUT_IDS[-1]} is ref.py's `random_ops(7)`",
+        "written out, with every intermediate result as the model gives it. Then the rejected",
+        f"mutations ({REJ_IDS[0]} – {REJ_IDS[-1]}): `BipartitionError.onOtherSide` from `insert(_:on:)`,",
+        "`.sameSide` from `insert(edge:)` (a self-loop included), and nothing changes; and",
+        f"`insert(checked:)` ({CHECKED_IDS[0]} – {CHECKED_IDS[-1]}), which throws `.missingEndpoint`",
+        "where `insert(edge:)` traps. Generated from cases.md by swiftgen.py; see README.md.",
     ], ["AdjacencyListModule", "BipartiteGraphs", "GraphProtocols", "Testing"],
         "BipartiteGraph mutation", "BipartiteGraphMutationTests")
-    for c, id_ in zip(ref.MUT, MUT_IDS):
+    for c, id_ in zip(ref.MUT + ref.REJ + ref.CHECKED, MUT_IDS + REJ_IDS + CHECKED_IDS):
         ops = ref.random_ops(7) if c["ops"] == "random7" else c["ops"]
         left, right, edges = c["init"]
-        allv = list(left) + list(right) + [o[1] for o in ops if o[0] in ("iv", "ie", "re", "rv", "side")]
+        allv = list(left) + list(right) + [o[1] for o in ops if o[0] in ("iv", "ie", "iec", "re", "rv", "side")]
         T = ty(allv)
         b = ref.BG.from_sides(left, right, edges or ())
         body = [f"// {CELLS[id_][3]}"]
@@ -547,9 +557,8 @@ def gen_mutation():
 
 def gen_preconditions():
     out = header([
-        "Preconditions, as exit tests (catalog BP-142 – BP-149): `insert(_:on:)` with a vertex already",
-        "on the other side; `insert(edge:)` inside a side, a self-loop, or with an endpoint that is not",
-        "a vertex; `side(of:)` on a non-vertex, also one just removed. Then the same preconditions",
+        f"Preconditions, as exit tests (catalog {TRAP_IDS[0]} – {TRAP_IDS[-1]}): `insert(edge:)` with an",
+        "endpoint that is not a vertex; `side(of:)` on a non-vertex, also one just removed. Then the same preconditions",
         "the catalog does not list: `side(of:)` on the empty graph, `insert(edge:)` on the empty",
         "graph, and `Bipartition.side(of:)` on a non-vertex and `side(ofIndex:)` out of range. Each",
         "exit test builds its inputs inside the closure. Generated from cases.md by swiftgen.py, the",
@@ -576,13 +585,13 @@ def gen_preconditions():
         "        }",
         "        await #expect(processExitsWith: .failure) {",
         "            var graph = BipartiteGraph<Int>()",
-        "            graph.insert(edge: UndirectedEdge(0, 1))",
+        "            _ = try? graph.insert(edge: UndirectedEdge(0, 1))",
         "        }",
         "        await #expect(processExitsWith: .failure) {",
         "            // One endpoint present, on the left; the other missing.",
         "            var graph = BipartiteGraph<Int>()",
-        "            graph.insert(0, on: .left)",
-        "            graph.insert(edge: UndirectedEdge(0, 1))",
+        "            _ = try? graph.insert(0, on: .left)",
+        "            _ = try? graph.insert(edge: UndirectedEdge(0, 1))",
         "        }",
         "    }",
         "",
@@ -615,7 +624,7 @@ def gen_preconditions():
 
 def gen_projection():
     out = header([
-        "`projectedGraph(onto:)` (catalog BP-150 – BP-161): the side's vertices in `left` or `right`",
+        f"`projectedGraph(onto:)` (catalog {PROJ_IDS[0]} – {PROJ_IDS[-1]}): the side's vertices in `left` or `right`",
         "order, isolated ones included, and an edge between two of them iff they share a neighbour,",
         "once however many they share, never a self-loop. Positions follow api.md's discovery order",
         "(for each u in side order, each neighbour w in u's row, each x ≠ u in w's row: {u, x}), and",
@@ -643,7 +652,7 @@ def gen_projection():
 
 def gen_equality():
     out = header([
-        "Equality (catalog BP-162 – BP-166): vertex sets, edge sets and each vertex's side, not orders",
+        f"Equality (catalog {EQ_IDS[0]} – {EQ_IDS[-1]}): vertex sets, edge sets and each vertex's side, not orders",
         "or orientations; the same graph with its sides swapped is a different value. Equal values",
         "hash alike. Generated from cases.md by swiftgen.py; see README.md.",
     ], ["BipartiteGraphs", "GraphProtocols", "Testing"],

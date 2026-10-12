@@ -32,7 +32,7 @@ struct DirectedAcyclicGraphConformanceTests {
             } else if step % 7 == 6 {
                 _ = graph.remove(edge: DirectedEdge(from: u, to: v))
             } else {
-                _ = graph.insert(edge: DirectedEdge(from: u, to: v))
+                _ = try? graph.insert(edge: DirectedEdge(from: u, to: v))
             }
             let order = Array(graph.topologicalOrder)
             #expect(Set(order) == Set(graph.vertices) && order.count == graph.vertexCount, "step \(step)")
@@ -93,7 +93,7 @@ struct DirectedAcyclicGraphConformanceTests {
                 _ = graph.remove(edge: DirectedEdge(from: u, to: v))
             } else {
                 // Copies too: a repeat of an accepted edge is accepted again.
-                _ = graph.insert(edge: DirectedEdge(from: u, to: v))
+                _ = try? graph.insert(edge: DirectedEdge(from: u, to: v))
             }
             let order = Array(graph.topologicalOrder)
             #expect(Set(order) == Set(graph.vertices) && order.count == graph.vertexCount, "step \(step)")
@@ -153,7 +153,7 @@ struct DirectedAcyclicGraphConformanceTests {
             } else if step % 5 == 4 {
                 _ = graph.remove(edge: DirectedEdge(from: u, to: v))
             } else {
-                _ = graph.insert(edge: DirectedEdge(from: u, to: v))
+                _ = try? graph.insert(edge: DirectedEdge(from: u, to: v))
             }
             let order = Array(graph.topologicalOrder)
             #expect(Set(order) == Set(graph.vertices) && order.count == graph.vertexCount, "step \(step)")
@@ -216,7 +216,7 @@ struct DirectedAcyclicGraphConformanceTests {
     @Test("Equality and hashing are the base's: the order is history and does not count")
     func equalityIgnoresTheOrder() throws {
         var a = DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [0, 1, 2])
-        #expect(a.insert(edge: DirectedEdge(from: 2, to: 0)) == 0)
+        #expect(try a.insert(edge: DirectedEdge(from: 2, to: 0)) == 0)
         #expect(a.remove(edge: DirectedEdge(from: 2, to: 0)) == DirectedEdge(from: 2, to: 0))
         let b = DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [0, 1, 2])
         #expect(Array(a.topologicalOrder) == [2, 1, 0] && Array(b.topologicalOrder) == [0, 1, 2])
@@ -226,7 +226,7 @@ struct DirectedAcyclicGraphConformanceTests {
         #expect(a.base == b.base)
         var c = DirectedAcyclicGraph<AdjacencyList<Int>>(vertices: [0, 1])
         let d = c
-        #expect(c.insert(edge: DirectedEdge(from: 0, to: 1)) == 0)
+        #expect(try c.insert(edge: DirectedEdge(from: 0, to: 1)) == 0)
         #expect(c != d && Set([c, d]).count == 2)
         // A copy is the base's notion: on DirectedPseudograph two copies differ from one.
         let one = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(edges: [DirectedEdge(from: 0, to: 1)]))
@@ -240,9 +240,9 @@ struct DirectedAcyclicGraphConformanceTests {
     }
 
     @Test("Descriptions: equal graphs describe alike whatever the order; the debug form also shows the order")
-    func descriptions() {
+    func descriptions() throws {
         var a = DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [0, 1])
-        #expect(a.insert(edge: DirectedEdge(from: 1, to: 0)) == 0)
+        #expect(try a.insert(edge: DirectedEdge(from: 1, to: 0)) == 0)
         _ = a.remove(edge: DirectedEdge(from: 1, to: 0))
         let b = DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [0, 1])
         #expect(a == b)
@@ -255,8 +255,8 @@ struct DirectedAcyclicGraphConformanceTests {
     @Test("Codable round trips keep the order, the vertices and the positions, on every base")
     func codableRoundTrips() throws {
         var dense = DirectedAcyclicGraph<AdjacencyList<String>>(vertices: ["a", "b", "c", "d"])
-        #expect(dense.insert(edge: DirectedEdge(from: "d", to: "a")) == 0)
-        #expect(dense.insert(edge: DirectedEdge(from: "c", to: "d")) == 1)
+        #expect(try dense.insert(edge: DirectedEdge(from: "d", to: "a")) == 0)
+        #expect(try dense.insert(edge: DirectedEdge(from: "c", to: "d")) == 1)
         _ = dense.remove("b")
         let denseAgain = try JSONDecoder().decode(DirectedAcyclicGraph<AdjacencyList<String>>.self, from: try JSONEncoder().encode(dense))
         #expect(denseAgain == dense && Array(denseAgain.topologicalOrder) == Array(dense.topologicalOrder))
@@ -264,17 +264,17 @@ struct DirectedAcyclicGraphConformanceTests {
         #expect(Array(denseAgain.vertices) == Array(dense.vertices) && Array(denseAgain.edges) == Array(dense.edges))
 
         var multi = DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [0, 1, 2])
-        #expect(multi.insert(edge: DirectedEdge(from: 2, to: 1)) == 0)
-        #expect(multi.insert(edge: DirectedEdge(from: 2, to: 1)) == 1)
-        #expect(multi.insert(edge: DirectedEdge(from: 1, to: 0)) == 2)
+        #expect(try multi.insert(edge: DirectedEdge(from: 2, to: 1)) == 0)
+        #expect(try multi.insert(edge: DirectedEdge(from: 2, to: 1)) == 1)
+        #expect(try multi.insert(edge: DirectedEdge(from: 1, to: 0)) == 2)
         let multiAgain = try JSONDecoder().decode(DirectedAcyclicGraph<DirectedPseudograph<Int>>.self, from: try JSONEncoder().encode(multi))
         #expect(multiAgain == multi && Array(multiAgain.topologicalOrder) == [2, 1, 0])
         #expect(Array(multiAgain.edges) == Array(multi.edges))
 
         var stable = DirectedAcyclicGraph<StableDirectedGraph<Int>>(vertices: [0, 1, 2, 3])
-        #expect(stable.insert(edge: DirectedEdge(from: 3, to: 0)) == 0)
-        #expect(stable.insert(edge: DirectedEdge(from: 2, to: 3)) == 1)
-        #expect(stable.insert(edge: DirectedEdge(from: 1, to: 2)) == 2)
+        #expect(try stable.insert(edge: DirectedEdge(from: 3, to: 0)) == 0)
+        #expect(try stable.insert(edge: DirectedEdge(from: 2, to: 3)) == 1)
+        #expect(try stable.insert(edge: DirectedEdge(from: 1, to: 2)) == 2)
         _ = stable.remove(edgeAt: 1)
         _ = stable.remove(0)
         let stableAgain = try JSONDecoder().decode(DirectedAcyclicGraph<StableDirectedGraph<Int>>.self, from: try JSONEncoder().encode(stable))
@@ -282,29 +282,29 @@ struct DirectedAcyclicGraphConformanceTests {
         #expect(Array(stableAgain.edges.indices) == [2] && stableAgain.vertexPosition(of: 3) == stable.vertexPosition(of: 3))
         // The decoded value keeps working: an edge against the decoded order reorders.
         var grown = stableAgain
-        #expect(grown.insert(edge: DirectedEdge(from: 3, to: 1)) == 3)
+        #expect(try grown.insert(edge: DirectedEdge(from: 3, to: 1)) == 3)
         #expect(Array(grown.topologicalOrder) == [3, 1, 2])
-        #expect(grown.insert(edge: DirectedEdge(from: 2, to: 3)) == nil)
+        #expect(throws: AcyclicEdgeError.cycle) { try grown.insert(edge: DirectedEdge(from: 2, to: 3)) }
     }
 
     @Test("Copy-on-write: mutating a copy leaves the original's base and order alone")
     func copyOnWrite() throws {
         let original = try #require(DirectedAcyclicGraph<AdjacencyList<Int>>(edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)]))
         var copy = original
-        #expect(copy.insert(edge: DirectedEdge(from: 3, to: 0)) == 2)
+        #expect(try copy.insert(edge: DirectedEdge(from: 3, to: 0)) == 2)
         _ = copy.remove(2)
         #expect(Array(original.topologicalOrder) == [0, 1, 2] && Array(original.vertices) == [0, 1, 2])
         #expect(Array(original.edges) == [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
         #expect(Array(copy.topologicalOrder) == [3, 0, 1])
         var stable = DirectedAcyclicGraph<StableDirectedGraph<Int>>(vertices: [0, 1])
         let snapshot = stable
-        #expect(stable.insert(edge: DirectedEdge(from: 1, to: 0)) == 0)
+        #expect(try stable.insert(edge: DirectedEdge(from: 1, to: 0)) == 0)
         stable.removeAll()
         #expect(Array(snapshot.topologicalOrder) == [0, 1] && snapshot.edgeCount == 0 && snapshot.vertexCount == 2)
         // The closure and the reduction are new values.
         var chain = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)]))
         let closure = chain.transitiveClosure()
-        #expect(chain.insert(edge: DirectedEdge(from: 2, to: 3)) == 2)
+        #expect(try chain.insert(edge: DirectedEdge(from: 2, to: 3)) == 2)
         #expect(closure.edgeCount == 3 && closure.vertexCount == 3)
     }
 
@@ -318,12 +318,12 @@ struct DirectedAcyclicGraphConformanceTests {
             graph.removeAllEdges(keepingCapacity: keep)
             #expect(Array(graph.topologicalOrder) == [2, 0, 1] && graph.edgeCount == 0 && graph.vertexCount == 3)
             // The kept order still decides: 1 is placed after 0, so 1 -> 0 moves 1.
-            #expect(graph.insert(edge: DirectedEdge(from: 1, to: 0)) == 0)
+            #expect(try graph.insert(edge: DirectedEdge(from: 1, to: 0)) == 0)
             #expect(Array(graph.topologicalOrder) == [2, 1, 0])
             graph.removeAll(keepingCapacity: keep)
             #expect(Array(graph.topologicalOrder) == [] as [Int] && graph.vertexCount == 0 && graph.edgeCount == 0)
             #expect(graph == DirectedAcyclicGraph<DirectedPseudograph<Int>>())
-            #expect(graph.insert(edge: DirectedEdge(from: 5, to: 4)) == 0)
+            #expect(try graph.insert(edge: DirectedEdge(from: 5, to: 4)) == 0)
             #expect(Array(graph.topologicalOrder) == [5, 4])
         }
         var stable = DirectedAcyclicGraph<StableDirectedGraph<Int>>(vertices: [0, 1])
@@ -347,7 +347,7 @@ struct DirectedAcyclicGraphConformanceTests {
         #expect(Array(fromDAG.vertices) == [3, 2, 1, 0] && Array(fromDAG.edges) == Array(multi.edges))
         // Its order is Kahn's on the copy, not the source's order.
         var reordered = DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: [0, 1])
-        #expect(reordered.insert(edge: DirectedEdge(from: 1, to: 0)) == 0)
+        #expect(try reordered.insert(edge: DirectedEdge(from: 1, to: 0)) == 0)
         _ = reordered.remove(edge: DirectedEdge(from: 1, to: 0))
         let copied = try #require(DirectedAcyclicGraph<AdjacencyList<Int>>(reordered))
         #expect(Array(reordered.topologicalOrder) == [1, 0] && Array(copied.topologicalOrder) == [0, 1])
@@ -369,7 +369,7 @@ struct DirectedAcyclicGraphConformanceTests {
     @Test("topologicalOrder is a random-access collection whose firstIndex(of:) is the vertex's place")
     func orderCollection() throws {
         var graph = DirectedAcyclicGraph<StableDirectedGraph<Int>>(vertices: [4, 3, 2, 1, 0])
-        #expect(graph.insert(edge: DirectedEdge(from: 0, to: 4)) == 0)
+        #expect(try graph.insert(edge: DirectedEdge(from: 0, to: 4)) == 0)
         let order = graph.topologicalOrder
         // B = {0} and F = {4} trade places; 3, 2 and 1 stay.
         #expect(Array(order) == [0, 3, 2, 1, 4] && order.count == 5 && order.startIndex == 0 && order.endIndex == 5)

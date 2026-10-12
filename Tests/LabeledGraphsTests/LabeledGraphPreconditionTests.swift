@@ -9,99 +9,11 @@ import CompressedSparseRowModule
 import GrafluentTestSupport
 import GraphProtocols
 import LabeledGraphs
-import StableGraphs
 import Testing
 import Traversal
 
 @Suite("LabeledGraphs preconditions", .tags(.precondition))
 struct LabeledGraphPreconditionTests {
-    @Test("LG-018 too few labels")
-    func lg018() async {
-        // LabeledGraph(CompressedSparseRow(vertexCount: 3), labels: [x, y]) → **trap** (2 labels for 3 vertices)
-        await #expect(processExitsWith: .failure) {
-            _ = LabeledGraph(CompressedSparseRow(vertexCount: 3), labels: ["x", "y"])
-        }
-        // Without the fault: accepted.
-        let graph = LabeledGraph(CompressedSparseRow(vertexCount: 3), labels: ["x", "y", "z"])
-        #expect(Array(graph.vertices) == ["x", "y", "z"])
-        #expect(graph.vertices.map { graph.vertexIndex(of: $0) } == [0, 1, 2])
-        #expect((0 ..< 3).map { graph.vertex(atIndex: $0) } == ["x", "y", "z"])
-        #expect(graph.vertexIndexBound == 3 && graph.edgeCount == 0)
-    }
-
-    @Test("LG-019 too many labels")
-    func lg019() async {
-        // LabeledGraph(CompressedSparseRow(vertexCount: 1), labels: [x, y]) → **trap** (2 labels for 1 vertices)
-        await #expect(processExitsWith: .failure) {
-            _ = LabeledGraph(CompressedSparseRow(vertexCount: 1), labels: ["x", "y"])
-        }
-        // Without the fault: accepted.
-        let graph = LabeledGraph(CompressedSparseRow(vertexCount: 1), labels: ["x"])
-        #expect(Array(graph.vertices) == ["x"])
-        #expect(graph.vertices.map { graph.vertexIndex(of: $0) } == [0])
-        #expect((0 ..< 1).map { graph.vertex(atIndex: $0) } == ["x"])
-        #expect(graph.vertexIndexBound == 1 && graph.edgeCount == 0)
-    }
-
-    @Test("LG-020 duplicate label")
-    func lg020() async {
-        // LabeledGraph(CompressedSparseRow(vertexCount: 2), labels: [x, x]) → **trap** (duplicate label x)
-        await #expect(processExitsWith: .failure) {
-            _ = LabeledGraph(CompressedSparseRow(vertexCount: 2), labels: ["x", "x"])
-        }
-        // Without the fault: accepted.
-        let graph = LabeledGraph(CompressedSparseRow(vertexCount: 2), labels: ["x", "y"])
-        #expect(Array(graph.vertices) == ["x", "y"])
-        #expect(graph.vertices.map { graph.vertexIndex(of: $0) } == [0, 1])
-        #expect((0 ..< 2).map { graph.vertex(atIndex: $0) } == ["x", "y"])
-        #expect(graph.vertexIndexBound == 2 && graph.edgeCount == 0)
-    }
-
-    @Test("LG-021 base vertices not 0..<n")
-    func lg021() async {
-        // LabeledGraph(AdjacencyList<Int>(vertices: [5, 6]), labels: [x, y]) → **trap** (base vertices are not 0..<vertexCount in index order)
-        await #expect(processExitsWith: .failure) {
-            _ = LabeledGraph(AdjacencyList<Int>(vertices: [5, 6]), labels: ["x", "y"])
-        }
-        // Without the fault: accepted.
-        let graph = LabeledGraph(AdjacencyList<Int>(vertices: [0, 1]), labels: ["x", "y"])
-        #expect(Array(graph.vertices) == ["x", "y"])
-        #expect(graph.vertices.map { graph.vertexIndex(of: $0) } == [0, 1])
-        #expect((0 ..< 2).map { graph.vertex(atIndex: $0) } == ["x", "y"])
-        #expect(graph.vertexIndexBound == 2 && graph.edgeCount == 0)
-    }
-
-    @Test("LG-022 base vertices 0..<n out of index order")
-    func lg022() async {
-        // LabeledGraph(AdjacencyList<Int>(vertices: [1, 0]), labels: [x, y]) → **trap** (base vertices are not 0..<vertexCount in index order)
-        await #expect(processExitsWith: .failure) {
-            _ = LabeledGraph(AdjacencyList<Int>(vertices: [1, 0]), labels: ["x", "y"])
-        }
-        // Without the fault: accepted.
-        let graph = LabeledGraph(AdjacencyList<Int>(vertices: [0, 1]), labels: ["x", "y"])
-        #expect(Array(graph.vertices) == ["x", "y"])
-        #expect(graph.vertices.map { graph.vertexIndex(of: $0) } == [0, 1])
-        #expect((0 ..< 2).map { graph.vertex(atIndex: $0) } == ["x", "y"])
-        #expect(graph.vertexIndexBound == 2 && graph.edgeCount == 0)
-    }
-
-    @Test("LG-023 base with holes (vertexIndexBound nil)")
-    func lg023() async {
-        // LabeledGraph(StableDirectedGraph<Int> after remove(1) of [0, 1, 2], labels: [x, y]) → **trap** (base is not densely indexed (vertexIndexBound is nil))
-        await #expect(processExitsWith: .failure) {
-            var base = StableDirectedGraph<Int>(vertices: [0, 1, 2])
-            _ = base.remove(1)
-            _ = LabeledGraph(base, labels: ["x", "y"])
-        }
-        // Without the removal: dense, and accepted.
-        let base = StableDirectedGraph<Int>(vertices: [0, 1, 2])
-        #expect(base.vertexIndexBound == 3)
-        let graph = LabeledGraph(base, labels: ["x", "y", "z"])
-        #expect(Array(graph.vertices) == ["x", "y", "z"])
-        #expect(graph.vertices.map { graph.vertexIndex(of: $0) } == [0, 1, 2])
-        #expect(graph.vertexIndexBound == 3 && graph.edgeCount == 0)
-    }
-
     @Test("LG-030 CSR: successors of a non-vertex")
     func lg030() async {
         // CSR V []; E [a→b, a→c, b→c, c→a] / successors(q) → **trap** (q is not a vertex of the graph)
@@ -1136,12 +1048,13 @@ struct LabeledGraphPreconditionTests {
             let graph = LabeledGraph<String, AdjacencyMatrix>(edges: [DirectedEdge(from: "a", to: "b")])
             _ = graph.undirected.degree(of: "q")
         }
-        // Without the calls: the same rows of a vertex answer, and the safe spellings answer nil.
+        // Without the calls: the same rows of a vertex answer, and the checked spellings throw.
         let graph = LabeledGraph<String, AdjacencyMatrix>(edges: [DirectedEdge(from: "a", to: "b")])
         #expect(graph.outEdges(of: "a").map { [$0.source, $0.target] } == [[0, 1]])
         #expect(graph.inDegree(of: "b") == 1 && graph.degree(of: "b") == 1)
         #expect(graph.undirected.degree(of: "a") == 1)
-        #expect(graph.inEdges(safe: "q") == nil && graph.degree(safe: "q") == nil)
+        #expect(throws: VertexNotFound()) { try graph.inEdges(checked: "q") }
+        #expect(throws: VertexNotFound()) { try graph.degree(checked: "q") }
     }
 
     @Test("Index-space reads trap outside 0..<vertexCount, and on an empty graph")
@@ -1166,7 +1079,7 @@ struct LabeledGraphPreconditionTests {
         let graph = LabeledGraph<String, CompressedSparseRow>(vertices: ["a", "b"])
         #expect(Array(graph.successorIndices(ofIndex: 1)) == [] as [Int])
         #expect(graph.vertex(atIndex: 1) == "b")
-        #expect(LabeledGraph<String, AdjacencyMatrix>().vertexIndex(safe: "a") == nil)
+        #expect(throws: VertexNotFound()) { try LabeledGraph<String, AdjacencyMatrix>().vertexIndex(checked: "a") }
     }
 
     @Test("CSR edge positions trap below 0 and at edgeCount, through every position read")
@@ -1208,19 +1121,23 @@ struct LabeledGraphPreconditionTests {
         #expect(graph.target(ofEdgeAt: cell01) == "b")
     }
 
-    @Test("init(_:labels:) traps on a matrix base too, and counts a lazy sequence of labels")
-    func baseInitOnOtherSequences() async {
-        await #expect(processExitsWith: .failure) {
-            _ = LabeledGraph(AdjacencyMatrix(vertexCount: 3), labels: ["x", "y", "x"])
+    @Test("init(_:labels:) throws on a matrix base too, and counts a lazy sequence of labels")
+    func baseInitOnOtherSequences() throws {
+        #expect(throws: LabelingError.duplicateLabel(position: 2)) {
+            try LabeledGraph(AdjacencyMatrix(vertexCount: 3), labels: ["x", "y", "x"])
         }
-        await #expect(processExitsWith: .failure) {
-            _ = LabeledGraph(AdjacencyMatrix(vertexCount: 3), labels: (0 ..< 4).lazy.map { "v\($0)" })
+        #expect(throws: LabelingError.labelCountMismatch(labelCount: 4, vertexCount: 3)) {
+            try LabeledGraph(AdjacencyMatrix(vertexCount: 3), labels: (0 ..< 4).lazy.map { "v\($0)" })
         }
-        await #expect(processExitsWith: .failure) {
-            _ = LabeledGraph(CompressedSparseRow(vertexCount: 1), labels: [] as [String])
+        #expect(throws: LabelingError.labelCountMismatch(labelCount: 0, vertexCount: 1)) {
+            try LabeledGraph(CompressedSparseRow(vertexCount: 1), labels: [] as [String])
+        }
+        // The first broken requirement is the one reported: the base before the labels.
+        #expect(throws: LabelingError.baseVerticesNotInIndexOrder) {
+            try LabeledGraph(AdjacencyList<Int>(vertices: [1, 0]), labels: ["x", "x", "x"])
         }
         // Without the faults: accepted.
-        let graph = LabeledGraph(AdjacencyMatrix(vertexCount: 3), labels: (0 ..< 3).lazy.map { "v\($0)" })
+        let graph = try LabeledGraph(AdjacencyMatrix(vertexCount: 3), labels: (0 ..< 3).lazy.map { "v\($0)" })
         #expect(Array(graph.vertices) == ["v0", "v1", "v2"])
     }
 

@@ -199,7 +199,7 @@ struct MultigraphPropertyTests {
                     #expect(result.inserted == !vertices.contains(a), "\(context)")
                     if !vertices.contains(a) { vertices.append(a); rows[a] = [] }
                 case 1, 2, 3, 4:
-                    let p = graph.insert(edge: UndirectedEdge(a, b))
+                    let p = try graph.insert(edge: UndirectedEdge(a, b))
                     #expect(p == edges.count, "\(context)")
                     for x in [a, b] where !vertices.contains(x) { vertices.append(x); rows[x] = [] }
                     edges.append((a, b, stamp))
@@ -460,7 +460,7 @@ struct MultigraphPropertyTests {
                     #expect(result.inserted == !vertices.contains(a), "\(context)")
                     if !vertices.contains(a) { vertices.append(a); outRows[a] = []; inRows[a] = [] }
                 case 1, 2, 3, 4:
-                    let p = graph.insert(edge: DirectedEdge(from: a, to: b))
+                    let p = try graph.insert(edge: DirectedEdge(from: a, to: b))
                     #expect(p == edges.count, "\(context)")
                     for x in [a, b] where !vertices.contains(x) { vertices.append(x); outRows[x] = []; inRows[x] = [] }
                     edges.append((a, b, stamp))

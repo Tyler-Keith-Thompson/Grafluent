@@ -66,9 +66,9 @@ for line in TEXT.splitlines():
         parts = [p.strip().replace("\\|", "|") for p in line.strip().strip("|").split(" | ")]
         CELLS[int(parts[0][3:])] = parts
 N = len(CELLS)
-assert N == 96
+assert N == 98
 EQ_ROWS = [n for n in range(1, N + 1) if CELLS[n][1] in ("Equality", "Hashing")]
-assert EQ_ROWS == list(range(89, 97)) and sorted(MAKE) == list(range(1, 89))
+assert EQ_ROWS == list(range(89, 97)) and sorted(MAKE) == list(range(1, 89)) + [97, 98]
 EQ_SPEC = {n: tuple(PAIRS[n]) for n in EQ_ROWS}
 assert all(len(p) == 2 for p in EQ_SPEC.values())
 
@@ -77,14 +77,16 @@ def title(n): return CELLS[n][2]
 def inp(n): return CELLS[n][3]
 def cell(n): return CELLS[n][4]
 def is_trap(n): return "**trap**" in cell(n)
+def is_init_throw(n): return cell(n).startswith("throws LabelingError")
 
 
 # ---------------------------------------------------------------------------------------------
 # Swift literals
 # ---------------------------------------------------------------------------------------------
 BASE = {"CSR": "CompressedSparseRow", "M": "AdjacencyMatrix", "U": "AdjacencyMatrix"}
-MUTATING = {"insert", "insert(edge:)", "insert(safe:)", "remove(edge:)", "removeAllEdges", "removeAll",
-            "removeEdges(from:)", "removeEdges(to:)", "removeEdges(incidentTo:)", "transposed"}
+MUTATING = {"insert", "insert(edge:)", "insert(checked:)", "remove(edge:)", "removeAllEdges", "removeAll",
+            "removeEdges(from:)", "removeEdges(to:)", "removeEdges(incidentTo:)", "transposed",
+            "removeEdges(checkedFrom:)", "removeEdges(checkedTo:)", "removeEdges(checkedIncidentTo:)"}
 
 
 def s(x): return json.dumps(x, ensure_ascii=False)
@@ -267,6 +269,15 @@ def call_lines(g, kind, call, ind="        "):
 
     def ex(text): return [ind + "#expect(%s)" % text]
 
+    def call(): return name[:-2] + ": " + s(a[0]) + ")"
+
+    # A `checked:` call on a missing label throws `VertexNotFound` and changes nothing; the state
+    # checks that follow show it.
+    if isinstance(r, ref.Throws):
+        assert r.error == "VertexNotFound" and "checked" in name
+        target = "%s: %s" % (name[:-2], dedge(*a)) + ")" if name == "insert(checked:)" else call()
+        return r, [ind + "#expect(throws: VertexNotFound()) { try graph.%s }" % target]
+
     if name in ("successors", "predecessors"):
         return r, ex("Array(graph.%s(of: %s)) == %s" % (name, s(a[0]), strs(r)))
     if name in ("outEdges", "inEdges"):
@@ -284,8 +295,10 @@ def call_lines(g, kind, call, ind="        "):
     if name == "contains(edge:)":
         e = "UndirectedEdge(%s, %s)" % (s(a[0]), s(a[1])) if kind == "U" else dedge(*a)
         return r, ex("%s%s.contains(edge: %s)" % ("" if r else "!", v, e))
-    if name in ("vertexIndex", "vertexIndex(safe:)"):
-        return r, ex("graph.vertexIndex(%s: %s) == %s" % ("of" if name == "vertexIndex" else "safe", s(a[0]), opt(r)))
+    if name == "vertexIndex":
+        return r, ex("graph.vertexIndex(of: %s) == %s" % (s(a[0]), r))
+    if name == "vertexIndex(checked:)":
+        return r, ex("try graph.vertexIndex(checked: %s) == %s" % (s(a[0]), r))
     if name == "vertex(atIndex:)":
         return r, ex("graph.vertex(atIndex: %d) == %s" % (a[0], s(r)))
     if name in ("successorIndices(ofIndex:)", "predecessorIndices(ofIndex:)"):
@@ -298,13 +311,12 @@ def call_lines(g, kind, call, ind="        "):
         return r, ex("graph.%s(ofEdgeAt: %s) == %s" % (name, posarg(a[0]), s(r)))
     if name == "edgeIndex":
         return r, ex("graph.edgeIndex(of: %s) == %d" % (posarg(a[0]), r))
-    if name in ("successors(safe:)", "predecessors(safe:)"):
-        return r, ex("graph.%s %s).map { Array($0) } == %s" % (name[:-2] + ":", s(a[0]), "nil" if r is None else strs(r)))
-    if name in ("outEdges(safe:)", "inEdges(safe:)"):
-        m = ".map { Array($0) }" if pk == "CSR" else ".map { $0.map { [$0.source, $0.target] } }"
-        return r, ex("graph.%s %s)%s == %s" % (name[:-2] + ":", s(a[0]), m, "nil" if r is None else poslit(r, pk)))
-    if name in ("outDegree(safe:)", "inDegree(safe:)", "degree(safe:)"):
-        return r, ex("graph.%s %s) == %s" % (name[:-2] + ":", s(a[0]), opt(r)))
+    if name in ("successors(checked:)", "predecessors(checked:)"):
+        return r, ex("try Array(graph.%s) == %s" % (call(), strs(r)))
+    if name in ("outEdges(checked:)", "inEdges(checked:)"):
+        return r, ex("try %s == %s" % (posexpr("graph." + call(), pk), poslit(r, pk)))
+    if name in ("outDegree(checked:)", "inDegree(checked:)", "degree(checked:)"):
+        return r, ex("try graph.%s == %d" % (call(), r))
     if name == "descendants":
         return r, ex("graph.descendants(of: %s) == %s" % (s(a[0]), "Set(%s)" % strs(sorted(r)) if r else "Set<String>()"))
     if name == "topologicalSort":
@@ -313,20 +325,19 @@ def call_lines(g, kind, call, ind="        "):
         return r, [ind + "do {", ind + "    let result = graph.insert(%s)" % s(a[0]),
                    ind + "    #expect(%sresult.inserted)" % ("" if r[0] else "!"),
                    ind + "    #expect(result.memberAfterInsert == %s)" % s(r[1]), ind + "}"]
-    if name in ("insert(edge:)", "insert(safe:)"):
-        label = "edge" if name == "insert(edge:)" else "safe"
-        if r is None:
-            return r, [ind + "#expect(graph.insert(safe: %s) == nil)" % dedge(*a)]
-        q = "?" if label == "safe" else ""
-        return r, [ind + "do {", ind + "    let result = graph.insert(%s: %s)" % (label, dedge(*a)),
-                   ind + "    #expect(result%s.inserted == %s)" % (q, "true" if r[0] else "false"),
-                   ind + "    #expect(result%s.memberAfterInsert == %s)" % (q, dedge(*r[1])), ind + "}"]
+    if name in ("insert(edge:)", "insert(checked:)"):
+        label = "edge" if name == "insert(edge:)" else "checked"
+        return r, [ind + "do {", ind + "    let result = %sgraph.insert(%s: %s)" % ("" if label == "edge" else "try ", label, dedge(*a)),
+                   ind + "    #expect(result.inserted == %s)" % ("true" if r[0] else "false"),
+                   ind + "    #expect(result.memberAfterInsert == %s)" % dedge(*r[1]), ind + "}"]
     if name == "remove(edge:)":
         return r, ex("graph.remove(edge: %s) == %s" % (dedge(*a), "nil" if r is None else dedge(*r)))
     if name in ("removeAllEdges", "removeAll"):
         return r, [ind + "graph.%s()" % name]
     if name in ("removeEdges(from:)", "removeEdges(to:)", "removeEdges(incidentTo:)"):
         return r, ex("graph.%s %s) == %d" % (name[:-2] + ":", s(a[0]), r))
+    if name in ("removeEdges(checkedFrom:)", "removeEdges(checkedTo:)", "removeEdges(checkedIncidentTo:)"):
+        return r, ex("try graph.%s == %d" % (call(), r))
     if name == "transposed":
         return r, [ind + "graph = graph.transposed()"]
     if name == "hashes":
@@ -463,7 +474,7 @@ def alternatives(n, kind, V, E, g):
     if n == 15:
         alts.append("LabeledGraph<String, %s>(vertices: %s, edges: %s)" % (t, strs(V), dedges(E)))
     alts.append("LabeledGraph<String, %s>(AdjacencyList<String>(vertices: %s, edges: %s))" % (t, strs(V), dedges(E)))
-    alts.append("LabeledGraph(graph.base, labels: graph.vertices)")
+    alts.append("try LabeledGraph(graph.base, labels: graph.vertices)")
     out = ["        // The other initializers give the same state."]
     for k, a in enumerate(alts):
         out.append("        do {")
@@ -511,7 +522,7 @@ def row_test(n):
         else:
             lines.append("        " + construct(kind, V, E, mut))
     else:
-        lines.append("        let graph = " + BASE_INIT[n][1])
+        lines.append("        let graph = try " + BASE_INIT[n][1])
     if kind == "U":
         lines.append("        let view = graph.undirected")
     shown = []
@@ -531,6 +542,8 @@ def row_test(n):
     if has_hashes:
         lines += counted_lines(n, kind, g0, calls)
     lines.append("    }")
+    if any("try " in l for l in lines):
+        lines[len(header(n, [".conformance"] if CELLS[n][1] == "Equality" else []))] = "    func lg%03d() throws {" % n
     return lines
 
 
@@ -540,8 +553,6 @@ def trap_test(n):
     lines = header(n)
     lines.append("    func lg%03d() async {" % n)
     lines.append("        // %s → %s" % (inp(n), cell(n)))
-    if spec is None:
-        return lines + base_init_trap(n) + ["    }"]
     kind, V, E = spec
     *setup, last = calls
     assert not setup
@@ -569,7 +580,8 @@ def trap_test(n):
     return lines
 
 
-def base_init_trap(n):
+def base_init_throw(n):
+    """A base and labels that cannot be labeled: `init(_:labels:)` throws the catalog's error."""
     cases = {
         18: ("LabeledGraph(CompressedSparseRow(vertexCount: 3), labels: [\"x\", \"y\"])",
              "LabeledGraph(CompressedSparseRow(vertexCount: 3), labels: [\"x\", \"y\", \"z\"])", ["x", "y", "z"]),
@@ -584,32 +596,34 @@ def base_init_trap(n):
     }
     try:
         MAKE[n]()
-        raise AssertionError("no trap: %d" % n)
-    except ref.Trap as t:
-        assert cell(n) == "**trap** (%s)" % t, n
+        raise AssertionError("no throw: %d" % n)
+    except ref.Thrown as t:
+        assert cell(n) == "throws %s" % t, n
+        error = str(t)
+    lines = header(n) + ["    func lg%03d() throws {" % n, "        // %s → %s" % (inp(n), cell(n))]
     if n == 23:
-        return ["        await #expect(processExitsWith: .failure) {",
-                "            var base = StableDirectedGraph<Int>(vertices: [0, 1, 2])",
-                "            _ = base.remove(1)",
-                "            _ = LabeledGraph(base, labels: [\"x\", \"y\"])",
-                "        }",
+        return lines + [
+                "        var holed = StableDirectedGraph<Int>(vertices: [0, 1, 2])",
+                "        _ = holed.remove(1)",
+                "        #expect(throws: %s) { try LabeledGraph(holed, labels: [\"x\", \"y\"]) }" % error,
                 "        // Without the removal: dense, and accepted.",
                 "        let base = StableDirectedGraph<Int>(vertices: [0, 1, 2])",
                 "        #expect(base.vertexIndexBound == 3)",
-                "        let graph = LabeledGraph(base, labels: [\"x\", \"y\", \"z\"])",
+                "        let graph = try LabeledGraph(base, labels: [\"x\", \"y\", \"z\"])",
                 "        #expect(Array(graph.vertices) == [\"x\", \"y\", \"z\"])",
                 "        #expect(graph.vertices.map { graph.vertexIndex(of: $0) } == [0, 1, 2])",
-                "        #expect(graph.vertexIndexBound == 3 && graph.edgeCount == 0)"]
+                "        #expect(graph.vertexIndexBound == 3 && graph.edgeCount == 0)",
+                "    }"]
     bad, good, L = cases[n]
-    return ["        await #expect(processExitsWith: .failure) {",
-            "            _ = " + bad,
-            "        }",
+    return lines + [
+            "        #expect(throws: %s) { try %s }" % (error, bad),
             "        // Without the fault: accepted.",
-            "        let graph = " + good,
+            "        let graph = try " + good,
             "        #expect(Array(graph.vertices) == %s)" % strs(L),
             "        #expect(graph.vertices.map { graph.vertexIndex(of: $0) } == %s)" % ints(list(range(len(L)))),
             "        #expect((0 ..< %d).map { graph.vertex(atIndex: $0) } == %s)" % (len(L), strs(L)),
-            "        #expect(graph.vertexIndexBound == %d && graph.edgeCount == 0)" % len(L)]
+            "        #expect(graph.vertexIndexBound == %d && graph.edgeCount == 0)" % len(L),
+            "    }"]
 
 
 def equality_test(n):
@@ -646,6 +660,8 @@ def equality_test(n):
 def test_for(n):
     if n in EQ_ROWS:
         return equality_test(n)
+    if is_init_throw(n):
+        return base_init_throw(n)
     return trap_test(n) if is_trap(n) else row_test(n)
 
 
@@ -660,14 +676,15 @@ def ids(*groups):
 TRAPS = [n for n in range(1, N + 1) if is_trap(n)]
 FILES = [
     ("LabeledGraphConstructionTests.swift", "LabeledGraphs construction", ids("Construction", "Base init", "Builder", "Transpose"),
-     "Construction (catalog LG-001 – LG-017, LG-024, LG-085 – LG-088): listed labels first (a repeat\n"
+     "Construction (catalog LG-001 – LG-024, LG-085 – LG-088): listed labels first (a repeat\n"
      "// once), then new endpoints in first-appearance order; parallel edges collapse; positions are the\n"
      "// base's; every initializer that fits gives the same state; `init(_:labels:)` names base vertex i\n"
-     "// by labels[i]; the result builder lists its bare labels first; `transposed()` keeps the labels."),
+     "// by labels[i], and throws the first `LabelingError` it finds; the result builder lists its bare\n"
+     "// labels first; `transposed()` keeps the labels."),
     ("LabeledGraphReadTests.swift", "LabeledGraphs reads", ids("Reads"),
      "Reads (catalog LG-025 – LG-053): rows in the base's (ascending index) order, membership, the index\n"
-     "// conversions both ways, the index-space rows forwarded from the base, positions, and the `safe:`\n"
-     "// lookups, nil for a label that is not a vertex."),
+     "// conversions both ways, the index-space rows forwarded from the base, positions, and the `checked:`\n"
+     "// lookups, which throw `VertexNotFound` for a label that is not a vertex."),
     ("LabeledGraphBoundaryTests.swift", "LabeledGraphs boundary", ids("Boundary"),
      "Boundary (catalog LG-054 – LG-060): algorithms see the base through the index-space members, so\n"
      "// index-space reads hash no label and a label-space read hashes one; topologicalSort and\n"
@@ -676,9 +693,10 @@ FILES = [
      "The undirected view (catalog LG-062 – LG-068): `labeled.undirected`, neighbours as successors then\n"
      "// predecessors, opposite arcs parallel, a loop twice, label-space reads hashing twice."),
     ("LabeledGraphMutationTests.swift", "LabeledGraphs mutation", ids("Mutation"),
-     "Mutation over AdjacencyMatrix (catalog LG-069 – LG-084): a new label appends base vertex n;\n"
-     "// `insert(edge:)` inserts missing endpoints, source first; `insert(safe:)` and `remove(edge:)`\n"
-     "// change nothing for a non-vertex; the two resets; `removeEdges` by row, column or both."),
+     "Mutation over AdjacencyMatrix (catalog LG-069 – LG-084, LG-097, LG-098): a new label appends base\n"
+     "// vertex n; `insert(edge:)` inserts missing endpoints, source first; `insert(checked:)` throws\n"
+     "// `VertexNotFound` and `remove(edge:)` returns nil, changing nothing, for a non-vertex; the two\n"
+     "// resets; `removeEdges` by row, column or both, and its `checked` spellings."),
     ("LabeledGraphEqualityTests.swift", "LabeledGraphs equality", EQ_ROWS,
      "Equality and hashing (catalog LG-089 – LG-096): equal label sets and equal labeled edge sets,\n"
      "// whatever the index assignment, and equal values hash alike."),

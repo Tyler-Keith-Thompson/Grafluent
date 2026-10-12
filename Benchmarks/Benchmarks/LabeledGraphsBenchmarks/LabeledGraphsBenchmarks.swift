@@ -47,7 +47,7 @@ let benchmarks: @Sendable () -> Void = {
     let edges = Inputs.sortedUnique(Inputs.randomEdges(vertexCount: n, edgeCount: 1_000_000))
     let names = (0 ..< n).map { "v\($0)" }
     let csr = CompressedSparseRow(vertexCount: n, edges: edges)
-    let labeled = LabeledGraph(csr, labels: names)
+    let labeled = try! LabeledGraph(csr, labels: names)
     let namedEdges = edges.map { DirectedEdge(from: names[$0.source], to: names[$0.target]) }
     var generator = SeededRandomNumberGenerator(seed: 5)
     let weights = edges.map { _ in Int.random(in: 1 ... 1000, using: &generator) }
@@ -56,7 +56,7 @@ let benchmarks: @Sendable () -> Void = {
     let side = 4096
     let matrixEdges = Inputs.randomEdges(vertexCount: side, edgeCount: 1_100_000, seed: 9)
     let matrix = AdjacencyMatrix(vertexCount: side, edges: matrixEdges)
-    let labeledMatrix = LabeledGraph(matrix, labels: names[..<side])
+    let labeledMatrix = try! LabeledGraph(matrix, labels: names[..<side])
 
     // Results agree with the bare base's.
     precondition(labeled.stronglyConnectedComponents().count == csr.stronglyConnectedComponents().count)
@@ -68,8 +68,8 @@ let benchmarks: @Sendable () -> Void = {
 
     // Zero label hashes per edge: each run hashes only its source label (a few times at most),
     // whatever the edge count. A per-edge lookup would be 10⁶ hashes.
-    let counted = LabeledGraph(csr, labels: (0 ..< n).map(CountingLabel.init))
-    let countedMatrix = LabeledGraph(matrix, labels: (0 ..< side).map(CountingLabel.init))
+    let counted = try! LabeledGraph(csr, labels: (0 ..< n).map(CountingLabel.init))
+    let countedMatrix = try! LabeledGraph(matrix, labels: (0 ..< side).map(CountingLabel.init))
     let source = CountingLabel(id: 0)
     for (name, count) in [
         ("CSR breadthFirstLayers", hashes { blackHole(counted.breadthFirstLayers(from: source)) }),
@@ -219,6 +219,6 @@ let benchmarks: @Sendable () -> Void = {
         for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow(vertexCount: n, edges: edges)) }
     }
     Benchmark("LabeledGraphs: LabeledGraph(csr, labels:)") { benchmark in
-        for _ in benchmark.scaledIterations { blackHole(LabeledGraph(csr, labels: names)) }
+        for _ in benchmark.scaledIterations { blackHole(try! LabeledGraph(csr, labels: names)) }
     }
 }

@@ -1,7 +1,7 @@
 # DirectedAcyclicGraphModule: proposed API (phase 1)
 
 `DirectedAcyclicGraph<Base>` wraps a mutable directed representation and keeps it acyclic: an
-edge that would close a cycle is rejected, and the call returns `nil` (README Principle 4,
+edge that would close a cycle is rejected, and the call throws `AcyclicEdgeError` (README Principle 4,
 Structures row). The path the edge would close comes from Traversal's existing path query. The wrapper keeps a topological order of its vertices
 current under insertions and removals, maintained by Pearce–Kelly, the algorithm JGraphT's
 `DirectedAcyclicGraph` and petgraph's `acyclic::Acyclic` both use. It follows the rule-adding
@@ -38,8 +38,8 @@ To run it:
 | Type | **`DirectedAcyclicGraph<Base>`** (README) | JGraphT `DirectedAcyclicGraph`; NetworkX "DAG" |
 | Module | **`DirectedAcyclicGraphModule`** (exists as a stub) | README package layout |
 | The order | **`topologicalOrder`**, a `RandomAccessCollection` of vertices (README) | "topological order" (CLRS); JGraphT `iterator()`, petgraph `nodes_iter()` |
-| Place in the order | **`topologicalPosition(of:)`**, `topologicalPosition(safe:)` | petgraph `get_position` (`TopologicalPosition`); `at_position` is the collection's subscript |
-| Insertion result | **`Edges.Index?`**: the position, or `nil` on a cycle (decided: no `EdgeInsertion` type, an invented name; open question 3) | JGraphT `addEdge` (returns the edge, rejects a cycle); petgraph `try_add_edge` |
+| Place in the order | **`topologicalPosition(of:)`**, `topologicalPosition(checked:)` | petgraph `get_position` (`TopologicalPosition`); `at_position` is the collection's subscript |
+| Insertion result | **`Edges.Index`**, or a thrown `AcyclicEdgeError` (`.cycle`, `.selfLoop`, and from `insert(checked:)` `.missingEndpoint`; decided: no `EdgeInsertion` type, an invented name; open question 3) | JGraphT `addEdge` (returns the edge, rejects a cycle); petgraph `try_add_edge` |
 | Base access | **`base`** (read-only) | README open question 9; petgraph `inner()` |
 | Algorithms | `transitiveClosure()`, `transitiveReduction()`, `longestPath()`, `hasPath(from:to:)` | NetworkX `transitive_closure_dag`, `transitive_reduction`, `dag_longest_path`, `has_path` |
 
@@ -139,9 +139,9 @@ extension DirectedAcyclicGraph {
     public var base: Base { get }                                     // O(1)
     public var topologicalOrder: TopologicalOrder { get }             // O(1)
     public func topologicalPosition(of vertex: Vertex) -> Int         // O(1) expected; traps on a non-vertex
-    public func topologicalPosition(safe vertex: Vertex) -> Int?
-    public func successors(safe:) / predecessors(safe:) / outEdges(safe:) / inEdges(safe:)
-        / outDegree(safe:) / inDegree(safe:)                          // one hash, then the base's row
+    public func topologicalPosition(checked vertex: Vertex) throws(VertexNotFound) -> Int
+    public func successors(checked:) / predecessors(checked:) / outEdges(checked:) / inEdges(checked:)
+        / outDegree(checked:) / inDegree(checked:)                    // throws(VertexNotFound); one hash, then the base's row
 }
 public struct TopologicalOrder: RandomAccessCollection {              // nested in DirectedAcyclicGraph
     // Index = Int, 0..<n; subscript O(1) (petgraph's at_position); traps out of range (DAG-061)
@@ -153,7 +153,7 @@ public struct TopologicalOrder: RandomAccessCollection {              // nested 
   Connectivity, ShortestPaths and the rest run at base speed, the same law `LabeledGraph`
   benchmarks (within 1.05×). Index-space algorithms over a stable base with holes take the
   `SparselyIndexedDirectedGraph` path.
-- **`safe:` members** are defined on the wrapper for every base (`_key(of:)` then the row), so a
+- **`checked:` members** are defined on the wrapper for every base (`_key(of:)` then the row), so a
   base without them, such as `AdjacencyList`, still gets them (Principle 6).
 - Traversal's `topologicalSort()`, `topologicalGenerations()`, `lexicographicalTopologicalSort()`,
   `findCycle()`, `isAcyclic`, `descendants(of:)` and `ancestors(of:)` apply unchanged, and none
@@ -167,8 +167,8 @@ public struct TopologicalOrder: RandomAccessCollection {              // nested 
 extension DirectedAcyclicGraph {
     @discardableResult
     public mutating func insert(_ vertex: Vertex) -> (inserted: Bool, memberAfterInsert: Vertex)   // O(1) amortized; last in the order
-    @discardableResult public mutating func insert(edge: DirectedEdge<Vertex>) -> Edges.Index?   // nil: a cycle
-    @discardableResult public mutating func insert(safe edge: DirectedEdge<Vertex>) -> Edges.Index?   // nil: a cycle or a missing endpoint
+    @discardableResult public mutating func insert(edge: DirectedEdge<Vertex>) throws(AcyclicEdgeError) -> Edges.Index      // .cycle, .selfLoop
+    @discardableResult public mutating func insert(checked edge: DirectedEdge<Vertex>) throws(AcyclicEdgeError) -> Edges.Index   // also .missingEndpoint, checked first
     @discardableResult public mutating func remove(_ vertex: Vertex) -> Vertex?     // base cost + O(n − position)
     @discardableResult public mutating func remove(edge: DirectedEdge<Vertex>) -> DirectedEdge<Vertex>?  // base cost
     @discardableResult public mutating func remove(edgeAt position: Edges.Index) -> DirectedEdge<Vertex> // base cost; Base: has it
@@ -180,8 +180,8 @@ extension DirectedAcyclicGraph {
 
 **`insert(edge:)`**, for an edge u→v, follows Pearce–Kelly:
 
-1. **Self-loop:** `nil` before anything is inserted, even when u is not a vertex (DAG-030,
-   DAG-031, DAG-044).
+1. **Self-loop:** throws `.selfLoop` before anything is inserted, even when u is not a vertex
+   (DAG-033, DAG-034, DAG-047).
 2. **Missing endpoints** are inserted, source first. **As implemented** after the review, a new
    source whose target is already a vertex is placed first, any other new endpoint last, so the
    edge goes forward and nothing reorders (DAG-014, DAG-016 – DAG-019). Placed last, as first
@@ -190,7 +190,7 @@ extension DirectedAcyclicGraph {
 3. **Fast path:** if u is placed before v, the base inserts the edge. Cost: two array reads plus
    the base's insert (DAG-013, DAG-015, DAG-017).
 4. **Forward search:** otherwise, search depth-first from v in `outEdges` order, only through
-   vertices placed before u. If the search meets u, the result is `nil`, and nothing changes
+   vertices placed before u. If the search meets u, it throws `.cycle`, and nothing changes
    (DAG-032 – DAG-040). The witness is a separate call, Traversal's
    `bidirectionalShortestPath(from: v, to: u)`, a shortest path; where several tie, the cell
    lists each (DAG-034, DAG-036). It searches again, on failure only.
@@ -282,9 +282,9 @@ extension DirectedAcyclicGraph {
 |---|---|---|---|---|
 | Algorithm | Pearce–Kelly | Pearce–Kelly (JEA 2007) | Pearce–Kelly | a reachability search per insert, no order kept |
 | Base | generic `MutableDirectedGraph` (three in phase 1) | its own storage (`AbstractBaseGraph`) | generic `G` (`Graph`, `StableGraph`) | its own storage |
-| On a cycle | returns `nil`; `bidirectionalShortestPath(from: v, to: u)` gives the path | throws `GraphCycleProhibitedException`, no witness | `Err(AcyclicEdgeError::Cycle(Cycle<N>))`, one node | raises `DAGWouldCycle`, no witness |
-| Self-loop | rejected (`nil`) | rejected | `AcyclicEdgeError::SelfLoop` | **accepted when the source has no in-edges or the target no out-edges**: 990 of 1243 tried in `--stress` |
-| Missing endpoint | `insert(edge:)` inserts it; `insert(safe:)` returns `nil` | `IllegalArgumentException` | `AcyclicEdgeError::InvalidEdge` | panics on an invalid index |
+| On a cycle | throws `AcyclicEdgeError.cycle`; `bidirectionalShortestPath(from: v, to: u)` gives the path | throws `GraphCycleProhibitedException`, no witness | `Err(AcyclicEdgeError::Cycle(Cycle<N>))`, one node | raises `DAGWouldCycle`, no witness |
+| Self-loop | rejected (`.selfLoop`) | rejected | `AcyclicEdgeError::SelfLoop` | **accepted when the source has no in-edges or the target no out-edges**: 990 of 1243 tried in `--stress` |
+| Missing endpoint | `insert(edge:)` inserts it; `insert(checked:)` throws `.missingEndpoint` | `IllegalArgumentException` | `AcyclicEdgeError::InvalidEdge` | panics on an invalid index |
 | Order exposed | `topologicalOrder` (random access), `topologicalPosition(of:)` | `iterator()` only | `nodes_iter()`, `range(..)`, `get_position`, `at_position` | none (`topological_sort` recomputes it) |
 | Check without inserting | `!hasPath(from: target, to: source)`, pruned by the order | — | `is_valid_edge` | — |
 | Vertex removal | O(n − position) shift, re-keys the swap move | yes | O(v) | yes |
@@ -336,7 +336,10 @@ Benchmarks against petgraph `Acyclic<StableDiGraph>::try_add_edge` (Rust, releas
    - **Removals keep the order** (it stays topological), and the gap is closed. Over swap-remove
      bases the moved vertex is re-keyed and keeps its place.
 3. **Insertion result.** **Decided (coordinator): `insert(edge:) -> Edges.Index?`**, `nil` when the
-   edge would close a cycle; no `EdgeInsertion` type, because no library has that name. The
+   edge would close a cycle; no `EdgeInsertion` type, because no library has that name.
+   **Superseded (2026-10-11):** `insert(edge:) throws(AcyclicEdgeError) -> Edges.Index`, after
+   petgraph's `AcyclicEdgeError`, so a rejection can no longer be dropped silently through
+   `@discardableResult`; `try?` gives the old Optional and `try!` a trap. The
    witness for a rejected u→v is Traversal's `bidirectionalShortestPath(from: v, to: u)`, which
    costs a second search on failure only. Both inserts are `@discardableResult`, as every base's
    `insert(edge:)` is.
@@ -352,11 +355,11 @@ Benchmarks against petgraph `Acyclic<StableDiGraph>::try_add_edge` (Rust, releas
      batch is large; and an unchecked init from Connectivity's `Condensation`. Today
      `init?(condensation.graph)` costs O(n + m), so the GraphOperations row "always a
      `DirectedAcyclicGraph`" is met by conversion. The CSR result stays as Connectivity built it.
-5. **`safe:`.** As on `StableDirectedGraph`. `insert(safe:)` returns `nil` and changes nothing
-   when an endpoint is missing or the edge would close a cycle, a self-loop included
-   (DAG-041 – DAG-045).
-   `topologicalPosition(safe:)` and the six row lookups return `nil` for a non-vertex. Removal
-   of an absent element returns `nil` or 0 and never traps.
+5. **`checked:`.** As on `StableDirectedGraph`. `insert(checked:)` throws and changes nothing:
+   `.missingEndpoint` when an endpoint is missing (checked first), otherwise `.selfLoop` or
+   `.cycle` (DAG-044 – DAG-048). `topologicalPosition(checked:)` and the six row lookups throw
+   `VertexNotFound` for a non-vertex. Removal of an absent element returns `nil` or 0 and never
+   traps.
 6. **How algorithms see the DAG.** Forward every `DirectedGraph`, `BidirectionalDirectedGraph`
    and (conditionally) `SparselyIndexedDirectedGraph` requirement to the base, `@inlinable`,
    with the base's own associated types (`SuccessorIndices`, `OutEdges`). The `DirectedGraph`

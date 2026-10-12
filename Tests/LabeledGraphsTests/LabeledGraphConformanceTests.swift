@@ -216,24 +216,24 @@ struct LabeledGraphConformanceTests {
     }
 
     @Test("Over a base with parallel edges, equality and hashing count each labeled edge's copies")
-    func parallelEdgeBaseEquality() {
+    func parallelEdgeBaseEquality() throws {
         // a→b twice and b→c once, numbered a, b, c on the left and c, a, b on the right.
-        let lhs = LabeledGraph(DirectedPseudograph<Int>(vertices: [0, 1, 2], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)]), labels: ["a", "b", "c"])
-        let rhs = LabeledGraph(DirectedPseudograph<Int>(vertices: [0, 1, 2], edges: [DirectedEdge(from: 2, to: 0), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 1, to: 2)]), labels: ["c", "a", "b"])
+        let lhs = try LabeledGraph(DirectedPseudograph<Int>(vertices: [0, 1, 2], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)]), labels: ["a", "b", "c"])
+        let rhs = try LabeledGraph(DirectedPseudograph<Int>(vertices: [0, 1, 2], edges: [DirectedEdge(from: 2, to: 0), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 1, to: 2)]), labels: ["c", "a", "b"])
         #expect(lhs == rhs && rhs == lhs)
         #expect(lhs.hashValue == rhs.hashValue)
         #expect(Set([lhs, rhs]).count == 1)
         // The same edge set and edge count, other multiplicities: a→b once, b→c twice.
-        let other = LabeledGraph(DirectedPseudograph<Int>(vertices: [0, 1, 2], edges: [DirectedEdge(from: 2, to: 0), DirectedEdge(from: 2, to: 0), DirectedEdge(from: 1, to: 2)]), labels: ["c", "a", "b"])
+        let other = try LabeledGraph(DirectedPseudograph<Int>(vertices: [0, 1, 2], edges: [DirectedEdge(from: 2, to: 0), DirectedEdge(from: 2, to: 0), DirectedEdge(from: 1, to: 2)]), labels: ["c", "a", "b"])
         #expect(Set(other.edges) == Set(lhs.edges) && other.edgeCount == lhs.edgeCount)
         #expect(lhs != other && other != lhs)
         // An edge the left graph lacks.
-        let missing = LabeledGraph(DirectedPseudograph<Int>(vertices: [0, 1, 2], edges: [DirectedEdge(from: 2, to: 0), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 0, to: 1)]), labels: ["c", "a", "b"])
+        let missing = try LabeledGraph(DirectedPseudograph<Int>(vertices: [0, 1, 2], edges: [DirectedEdge(from: 2, to: 0), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 0, to: 1)]), labels: ["c", "a", "b"])
         #expect(lhs != missing && missing != lhs)
     }
 
     @Test("Mutation returns the labels stored in the graph, not the equal ones passed in")
-    func storedLabelInstances() {
+    func storedLabelInstances() throws {
         // Equal by id, told apart by tag.
         struct Tagged: Hashable {
             let id: Int
@@ -245,8 +245,8 @@ struct LabeledGraphConformanceTests {
         let inserted = graph.insert(edge: DirectedEdge(from: Tagged(id: 1, tag: "probe"), to: Tagged(id: 2, tag: "probe")))
         #expect(inserted.inserted)
         #expect(inserted.memberAfterInsert.source.tag == "stored" && inserted.memberAfterInsert.target.tag == "stored")
-        let again = graph.insert(safe: DirectedEdge(from: Tagged(id: 1, tag: "probe"), to: Tagged(id: 2, tag: "probe")))
-        #expect(again?.inserted == false && again?.memberAfterInsert.source.tag == "stored")
+        let again = try graph.insert(checked: DirectedEdge(from: Tagged(id: 1, tag: "probe"), to: Tagged(id: 2, tag: "probe")))
+        #expect(!again.inserted && again.memberAfterInsert.source.tag == "stored")
         #expect(graph.insert(Tagged(id: 2, tag: "probe")).memberAfterInsert.tag == "stored")
         let removed = graph.remove(edge: DirectedEdge(from: Tagged(id: 1, tag: "probe"), to: Tagged(id: 2, tag: "probe")))
         #expect(removed?.source.tag == "stored" && removed?.target.tag == "stored")
@@ -322,14 +322,14 @@ struct LabeledGraphConformanceTests {
     }
 
     @Test("init(_:labels:) accepts any dense DirectedGraph<Int> base whose vertices are 0..<n in order")
-    func otherBases() {
+    func otherBases() throws {
         let csr = CompressedSparseRow(vertexCount: 3, edges: [DirectedEdge(from: 2, to: 0), DirectedEdge(from: 0, to: 1)])
-        let graph = LabeledGraph(csr, labels: ["x", "y", "z"])
+        let graph = try LabeledGraph(csr, labels: ["x", "y", "z"])
         #expect(Array(graph.successors(of: "z")) == ["x"])
         #expect(graph.topologicalSort() == ["z", "x", "y"])
         #expect(graph.base == csr)
         // Equal labeled graphs from bases with a different numbering.
-        let renumbered = LabeledGraph(CompressedSparseRow(vertexCount: 3, edges: [DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 0)]), labels: ["y", "z", "x"])
+        let renumbered = try LabeledGraph(CompressedSparseRow(vertexCount: 3, edges: [DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 0)]), labels: ["y", "z", "x"])
         #expect(renumbered == graph && renumbered.base != graph.base)
     }
 
@@ -374,27 +374,32 @@ struct LabeledGraphConformanceTests {
             try JSONDecoder().decode(LabeledGraph<String, ListedBase>.self, from: Data(#"{"labels": ["a"], "base": \#(good)}"#.utf8))
         }
         if case .dataCorrupted(let context) = fewLabels { #expect(context.codingPath.map(\.stringValue) == ["labels"]) } else { Issue.record("\(String(describing: fewLabels))") }
+        // The same bases through init(_:labels:): the first requirement broken, as its LabelingError.
+        #expect(throws: LabelingError.baseNotDenselyIndexed) { try LabeledGraph(ListedBase(order: [0, 1], bound: nil), labels: ["a", "b"]) }
+        #expect(throws: LabelingError.baseVerticesNotInIndexOrder) { try LabeledGraph(ListedBase(order: [0, 1], bound: 2, reversedIndex: true), labels: ["a", "b"]) }
+        #expect(throws: LabelingError.baseVerticesNotInIndexOrder) { try LabeledGraph(ListedBase(order: [0], bound: 2), labels: ["a", "b"]) }
+        #expect(throws: LabelingError.labelCountMismatch(labelCount: 1, vertexCount: 2)) { try LabeledGraph(ListedBase(order: [0, 1], bound: 2), labels: ["a"]) }
         let accepted = try JSONDecoder().decode(LabeledGraph<String, ListedBase>.self, from: Data(#"{"labels": ["a", "b"], "base": \#(good)}"#.utf8))
         #expect(Array(accepted.vertices) == ["a", "b"] && accepted.vertexIndex(of: "b") == 1)
     }
 
-    @Test("The safe: spellings and the index-space degrees answer for the vertex asked about")
-    func safeSpellingsMatchTheTrappingOnes() {
+    @Test("The checked: spellings and the index-space degrees answer for the vertex asked about")
+    func checkedSpellingsMatchTheTrappingOnes() throws {
         // a→b, a→c, a→d, c→b: no two vertices have the same row, column or degree pattern.
         let edges = [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "a", to: "c"), DirectedEdge(from: "a", to: "d"), DirectedEdge(from: "c", to: "b")]
         let matrix = LabeledGraph<String, AdjacencyMatrix>(edges: edges)
         let csr = LabeledGraph<String, CompressedSparseRow>(edges: edges)
         #expect(Array(matrix.vertices) == ["a", "b", "c", "d"])
         for (i, v) in ["a", "b", "c", "d"].enumerated() {
-            #expect(matrix.outEdges(safe: v).map { Array($0) } == Array(matrix.outEdges(of: v)))
-            #expect(matrix.inEdges(safe: v).map { Array($0) } == Array(matrix.inEdges(of: v)))
-            #expect(matrix.degree(safe: v) == matrix.degree(of: v))
-            #expect(csr.outEdges(safe: v).map { Array($0) } == Array(csr.outEdges(of: v)))
+            #expect(try Array(matrix.outEdges(checked: v)) == Array(matrix.outEdges(of: v)))
+            #expect(try Array(matrix.inEdges(checked: v)) == Array(matrix.inEdges(of: v)))
+            #expect(try matrix.degree(checked: v) == matrix.degree(of: v))
+            #expect(try Array(csr.outEdges(checked: v)) == Array(csr.outEdges(of: v)))
             #expect(matrix.outDegree(ofIndex: i) == matrix.outDegree(of: v) && csr.outDegree(ofIndex: i) == csr.outDegree(of: v))
             #expect(matrix.inDegree(ofIndex: i) == matrix.inDegree(of: v))
         }
-        #expect(matrix.degree(safe: "a") == 3 && matrix.degree(safe: "d") == 1)
-        #expect(matrix.outEdges(safe: "a").map { $0.count } == 3 && matrix.inEdges(safe: "b").map { $0.count } == 2)
+        #expect(try matrix.degree(checked: "a") == 3 && matrix.degree(checked: "d") == 1)
+        #expect(try matrix.outEdges(checked: "a").count == 3 && matrix.inEdges(checked: "b").count == 2)
         #expect(matrix.outDegree(ofIndex: 0) == 3 && matrix.inDegree(ofIndex: 1) == 2 && csr.outDegree(ofIndex: 3) == 0)
     }
 

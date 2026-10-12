@@ -268,7 +268,7 @@ def from_graph_test(n):
     text, calls = RECORD[n]
     vs, lit = pseudo(text)
     succ = calls[0][1]
-    lines = header(n) + ["    func fg%03d() {" % n, "        // %s → %s" % (inp(n), cell(n)),
+    lines = header(n) + ["    func fg%03d()%s {" % (n, "" if succ is None else " throws"), "        // %s → %s" % (inp(n), cell(n)),
                          "        let pseudograph = " + lit,
                          "        let graph = FunctionalGraph(pseudograph)"]
     if succ is None:
@@ -277,7 +277,7 @@ def from_graph_test(n):
         lines += ["        #expect(graph.map { g in g.vertices.map { g.successor(of: $0) } } == %s)" % ints(succ),
                   "        #expect(graph == FunctionalGraph(successors: %s))" % ints(succ),
                   "        // Labeled by the graph's vertices, it gives the labels and the edges back.",
-                  "        let labeled = LabeledGraph(graph!, labels: pseudograph.vertices)",
+                  "        let labeled = try LabeledGraph(graph!, labels: pseudograph.vertices)",
                   "        #expect(Array(labeled.vertices) == Array(pseudograph.vertices))",
                   "        #expect(labeled.edges.map { [$0.source, $0.target] } == pseudograph.edges.map { [$0.source, $0.target] })"]
     lines.append("    }")

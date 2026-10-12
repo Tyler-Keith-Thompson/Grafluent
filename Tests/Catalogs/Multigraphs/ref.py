@@ -31,6 +31,11 @@ class Trap(Exception):
     pass
 
 
+class Thrown(Exception):
+    """A typed throw: the call changes nothing."""
+    pass
+
+
 def swap_remove(row, off):
     """_RowPool.swapRemove: the last entry moves into `off`; returns it, or None if `off` was last."""
     last = row.pop()
@@ -79,7 +84,7 @@ class U:
 
     def insert_edge(s, a, b):
         if a == b and not s.loops:
-            raise Trap("self-loop in a %s" % s.kind)
+            raise Thrown("SelfLoopError")
         u = s.slot[a] if a in s.slot else s._append_slot(a)
         v = s.slot[b] if b in s.slot else s._append_slot(b)
         k = s.key(u, v)
@@ -301,7 +306,7 @@ class D:
 
     def insert_edge(s, a, b):
         if a == b and not s.loops:
-            raise Trap("self-loop in a %s" % s.kind)
+            raise Thrown("SelfLoopError")
         u = s.slot[a] if a in s.slot else s._append_slot(a)
         v = s.slot[b] if b in s.slot else s._append_slot(b)
         k = (u, v)
@@ -546,7 +551,7 @@ def copy_generic(g, kind, vertices=None, edges=None):
     for v in (g.V if vertices is None else vertices): h.insert_vertex(v)
     try:
         for a, b in (g.edges() if edges is None else edges): h.insert_edge(a, b)
-    except Trap:
+    except Thrown:
         return None
     return h
 
@@ -655,6 +660,8 @@ def run_ops(kind, V, E, ops):
         except Trap as t:
             results.append("trap (%s)" % t)
             return inp + "; " + " / ".join(calls), " / ".join(results)
+        except Thrown as t:
+            results.append("throws %s" % t)
         g.check_laws(); sh.check()
     exp = (" / ".join(results) + " ⇒ " if results else "") + g.state()
     return inp + ("; " + " / ".join(calls) if calls else ""), exp
@@ -761,9 +768,9 @@ def define():
     case("Loops", "loop on an isolated listed vertex", P, [0, 1], [(1, 1)], [("deg", 0), ("deg", 1)])
     case("Loops", "directed loop: once out, once in", DP, [], [(0, 0)], [("deg", 0), ("between", 0, 0)])
     case("Loops", "directed two loops and an arc", DP, [], [(0, 0), (0, 1), (0, 0)], [("deg", 0), ("deg", 1), ("count", 0, 0)])
-    case("Loops", "multigraph insert loop traps", M, [0], [], [("ins", 0, 0)])
-    case("Loops", "multigraph insert loop with new vertex traps", M, [], [], [("ins", 5, 5)])
-    case("Loops", "directed multigraph insert loop traps", DM, [0, 1], [(0, 1)], [("ins", 1, 1)])
+    case("Loops", "multigraph insert loop throws, nothing changes", M, [0], [], [("ins", 0, 0)])
+    case("Loops", "multigraph insert loop with new vertex throws, nothing inserted", M, [], [], [("ins", 5, 5)])
+    case("Loops", "directed multigraph insert loop throws, nothing changes", DM, [0, 1], [(0, 1)], [("ins", 1, 1)])
 
     # Degrees
     case("Degrees", "degrees count copies", P, [], [(0, 1), (0, 1), (0, 2)], [("deg", 0), ("deg", 1), ("deg", 2)])
@@ -1048,7 +1055,9 @@ Conventions:
   the hole and each row's last entry into its hole; removing a vertex moves the last slot into
   its place (UndirectedAdjacencyList's and AdjacencyList's rules).
 * `degrees(v)` (directed) is `outDegree`, `inDegree`, `degree`.
-* `trap` rows are preconditions, run as exit tests (`#expect(processExitsWith:)`).
+* `trap` rows are preconditions, run as exit tests (`#expect(processExitsWith:)`). `throws E` is a call
+  that threw `E` and changed nothing: a self-loop inserted into a Multigraph / DirectedMultigraph
+  throws `SelfLoopError`.
 * Codable payloads are `{"vertices": […], "edges": [u0, v0, u1, v1, …]}` (indices into vertices),
   the simple lists' format; errors are `DecodingError` cases with their debug description.
 

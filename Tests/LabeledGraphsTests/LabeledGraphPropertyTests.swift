@@ -41,12 +41,14 @@ struct LabeledGraphPropertyTests {
                     for l in [a, b] where !labels.contains(l) { labels.append(l) }
                     arcs.insert([a, b])
                 case 7, 8:
-                    let result = graph.insert(safe: DirectedEdge(from: a, to: b))
+                    let before = graph
+                    let result = try? graph.insert(checked: DirectedEdge(from: a, to: b))
                     if labels.contains(a) && labels.contains(b) {
                         #expect(result?.inserted == !arcs.contains([a, b]) && result?.memberAfterInsert == DirectedEdge(from: a, to: b), "\(context)")
                         arcs.insert([a, b])
                     } else {
-                        #expect(result == nil, "\(context)")
+                        // `VertexNotFound`, the only error it throws, and nothing changes.
+                        #expect(result == nil && graph == before && graph.base == before.base, "\(context)")
                     }
                 case 9, 10, 11, 12:
                     let removed = graph.remove(edge: DirectedEdge(from: a, to: b))
@@ -76,7 +78,7 @@ struct LabeledGraphPropertyTests {
                 for (i, l) in labels.enumerated() {
                     let successors = labels.filter { arcs.contains([l, $0]) }
                     let predecessors = labels.filter { arcs.contains([$0, l]) }
-                    #expect(graph.vertexIndex(of: l) == i && graph.vertexIndex(safe: l) == i && graph.vertex(atIndex: i) == l, "\(context)")
+                    #expect(graph.vertexIndex(of: l) == i && (try? graph.vertexIndex(checked: l)) == i && graph.vertex(atIndex: i) == l, "\(context)")
                     #expect(Array(graph.successors(of: l)) == successors && Array(graph.predecessors(of: l)) == predecessors, "\(context)")
                     #expect(Array(graph.successorIndices(ofIndex: i)) == successors.map { index[$0]! }, "\(context)")
                     #expect(Array(graph.predecessorIndices(ofIndex: i)) == predecessors.map { index[$0]! }, "\(context)")
@@ -92,7 +94,7 @@ struct LabeledGraphPropertyTests {
                         #expect(graph.contains(edge: DirectedEdge(from: l, to: "l\(y)")) == arcs.contains([l, "l\(y)"]), "\(context)")
                     }
                 }
-                #expect(graph.successors(safe: "absent") == nil && graph.vertexIndex(safe: "absent") == nil, "\(context)")
+                #expect((try? graph.successors(checked: "absent")) == nil && (try? graph.vertexIndex(checked: "absent")) == nil, "\(context)")
             }
             // Equal to its rebuilds, in the same order and in reverse.
             let edges = arcs.map { DirectedEdge(from: $0[0], to: $0[1]) }
@@ -128,7 +130,8 @@ struct LabeledGraphPropertyTests {
             }
             // init(_ graph:) and init(_:labels:) give the same graph.
             #expect(LabeledGraph<String, CompressedSparseRow>(matrix) == csr && LabeledGraph<String, AdjacencyMatrix>(csr) == matrix, "\(vertices) \(raw)")
-            #expect(LabeledGraph(csr.base, labels: labels) == csr && LabeledGraph(matrix.base, labels: labels) == matrix, "\(vertices) \(raw)")
+            let relabeledCSR = try LabeledGraph(csr.base, labels: labels), relabeledMatrix = try LabeledGraph(matrix.base, labels: labels)
+            #expect(relabeledCSR == csr && relabeledMatrix == matrix, "\(vertices) \(raw)")
             // topologicalSort is the base's through the labels.
             #expect(csr.topologicalSort() == csr.base.topologicalSort()?.map { labels[$0] }, "\(vertices) \(raw)")
         }

@@ -10,9 +10,10 @@ import GraphProtocols
 /// and vertex order, edge positions and parallel copies are the base's. The wrapper adds two
 /// things: the rule that an edge closing a cycle is rejected, and the order.
 ///
-/// **Rejection.** `insert(edge:)` returns `nil`, and changes nothing, when the edge would close a
-/// cycle; a self-loop is one. The path that the edge u→v would close is
-/// `bidirectionalShortestPath(from: v, to: u)` (Traversal), searched only when it is asked for.
+/// **Rejection.** `insert(edge:)` throws `AcyclicEdgeError`, and changes nothing, when the edge
+/// would close a cycle (`.cycle`) or is a self-loop (`.selfLoop`). The path that the edge u→v would
+/// close is `bidirectionalShortestPath(from: v, to: u)` (Traversal), searched only when it is
+/// asked for.
 ///
 /// **The order.** `topologicalOrder` lists every vertex so that each edge goes from an earlier
 /// vertex to a later one, and `topologicalPosition(of:)` gives a vertex's place. Bulk construction
