@@ -10,6 +10,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/apple/swift-collections", from: "1.3.0"),
         .package(url: "https://github.com/apple/swift-algorithms", from: "1.2.0"),
+        .package(url: "https://github.com/apple/swift-atomics", from: "1.3.0"),
         .package(url: "https://github.com/x-sheep/swift-property-based", from: "2.0.1"),
     ]
 )

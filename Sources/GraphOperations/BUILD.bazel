@@ -13,6 +13,7 @@ swift_library(
         "//Sources/DirectedAcyclicGraphModule",
         "//Sources/Connectivity",
         "//Sources/CompressedSparseRowModule",
+        "@swiftpkg_swift_atomics//:Atomics",
     ],
     visibility = ["//visibility:public"],
 )

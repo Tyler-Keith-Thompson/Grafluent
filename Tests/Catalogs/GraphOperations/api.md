@@ -245,7 +245,10 @@ extension SubgraphView {
 }
 // An IndexRow holds the base's index row, its position row (only under an edge set) and one
 // _RowState reference. _forEachSuccessorIndex, _forEachPredecessorIndex and _forEachNeighborIndex
-// loop over the base's rows in place, reading the mask's words at the base's edge index.
+// loop over the base's rows in place, reading the mask's words at the base's edge index; with an
+// edge set, once they have walked n/16 rows, the view builds compact kept rows (_KeptRows, O(n +
+// kept) memory, one O(n + m) pass, shared by copies) and walks those: one row per vertex instead
+// of the base's index row and edge-index row (spanning-forest BFS 0.28× the base, was 1.7×).
 extension SubgraphView: DirectedGraph where Base: DirectedGraph
     // Vertices: LazyMapCollection<Range<Int>, Base.Vertex>; Edges: DirectedEdges (base positions);
     // SuccessorIndices: IndexRow<Base.SuccessorIndices, Base.OutEdges>;

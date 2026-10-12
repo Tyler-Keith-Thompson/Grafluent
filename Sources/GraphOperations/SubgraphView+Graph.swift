@@ -148,12 +148,20 @@ extension SubgraphView: Graph where Base: Graph {
         _forEachKeptNeighborIndex(ofIndex: index, body)
     }
 
-    /// The filtered neighbor row, out of line: inlined beside the keep-everything branch, it made
-    /// breadth-first layers on a view of every vertex 1.2× the base (the per-edge closure was no
-    /// longer inlined); out of line, 1.0–1.06×, and a filtered view's walks change within noise.
+    /// The filtered neighbor row: with an edge set, the view's kept rows (`_KeptRows`),
+    /// built on the first call; otherwise the base's row filtered. Out of line: inlined beside the
+    /// keep-everything branch, it made breadth-first layers on a view of every vertex 1.2× the base
+    /// (the per-edge closure was no longer inlined); out of line, 1.0–1.06×.
     @inlinable
     @inline(never)
     func _forEachKeptNeighborIndex(ofIndex index: Int, _ body: (Int) -> Void) {
+        guard let rows = _state.unsafelyUnwrapped.rows else { return _walkKeptNeighbors(ofIndex: index, body) }
+        if !_forEachEntry(of: rows, index, { v, emit in _walkKeptNeighbors(ofIndex: v, emit) }, body) { _walkKeptNeighbors(ofIndex: index, body) }
+    }
+
+    /// The base's row at view index `index`, filtered and renumbered.
+    @inlinable
+    func _walkKeptNeighbors(ofIndex index: Int, _ body: (Int) -> Void) {
         let b = _baseIndex(index)
         guard let test = _undirectedTest else { return _forEachKept(base.neighborIndices(ofIndex: b), body) }
         if let words = test.maskWords {
@@ -264,7 +272,7 @@ extension SubgraphView: Graph where Base: Graph {
     public func degree(ofIndex index: Int) -> Int {
         if _new.isEmpty, !_filtersEdges { return base.degree(ofIndex: _baseIndex(index)) }
         var count = 0
-        _forEachNeighborIndex(ofIndex: index) { _ in count &+= 1 }
+        for _ in neighborIndices(ofIndex: index) { count &+= 1 }
         return count
     }
 

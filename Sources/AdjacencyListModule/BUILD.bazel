@@ -10,6 +10,7 @@ swift_library(
     module_name = "AdjacencyListModule",
     deps = [
         "//Sources/GraphProtocols",
+        "@swiftpkg_swift_atomics//:Atomics",
     ],
     visibility = ["//visibility:public"],
 )

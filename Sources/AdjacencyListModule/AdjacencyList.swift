@@ -13,7 +13,9 @@ import GraphProtocols
 /// array, so the graph makes a constant number of allocations however many vertices it has
 /// (amortized, like `Array`), and copying it copies a constant number of buffers. A hash table from
 /// slot pair to position (open addressing with a multiplicative hash, not `Dictionary`'s SipHash)
-/// answers `contains(edge:)` in O(1) expected.
+/// answers `contains(edge:)` in O(1) expected. A graph built in bulk from sorted edges (a
+/// condensation, a line graph, a named graph) builds that table on its first lookup or mutation,
+/// in O(m), so a result that is only traversed never pays for it.
 ///
 /// Removing an edge is O(1): the last edge moves into its position, and the last entry of each row
 /// into the hole. Removing a vertex costs O(degree) and moves the last slot into its place. So
@@ -49,9 +51,15 @@ public struct AdjacencyList<Vertex: Hashable> {
     @usableFromInline
     internal var _records: ContiguousArray<_ArcRecord>
 
-    /// The position of each edge, keyed by its pair of slots.
+    /// The position of each edge, keyed by its pair of slots. Empty while `_deferredEdges` holds
+    /// the table instead.
     @usableFromInline
     internal var _edges: _SlotPairTable<Int>
+
+    /// After a bulk build, the pair table to build on the first lookup; `nil` once the graph has
+    /// its own (`_takeEdgeTable()`, before any mutation).
+    @usableFromInline
+    internal var _deferredEdges: _DeferredSlotPairTable?
 
     /// The empty graph.
     @inlinable
@@ -64,6 +72,24 @@ public struct AdjacencyList<Vertex: Hashable> {
         _inEdges = _RowPool()
         _records = []
         _edges = _SlotPairTable()
+        _deferredEdges = nil
+    }
+
+    /// The position of the edge from slot `source` to slot `target`, or nil.
+    @inlinable
+    internal func _position(ofPair pair: _SlotPair) -> Int? {
+        guard let deferred = _deferredEdges else { return _edges[pair] }
+        return deferred.table().table[pair]
+    }
+
+    /// Moves a deferred pair table into `_edges` (building it if no lookup has), so a mutation
+    /// updates the graph's own table.
+    @inlinable
+    @inline(__always)
+    internal mutating func _takeEdgeTable() {
+        guard let deferred = _deferredEdges else { return }
+        _edges = deferred.builtTable ?? _DeferredSlotPairTable.makeTable(_records)
+        _deferredEdges = nil
     }
 }
 
@@ -171,7 +197,7 @@ extension AdjacencyList {
     @inlinable
     public func contains(edge: DirectedEdge<Vertex>) -> Bool {
         guard let source = _slots[edge.source], let target = _slots[edge.target] else { return false }
-        return _edges.contains(_SlotPair(source, target))
+        return _position(ofPair: _SlotPair(source, target)) != nil
     }
 
     /// The vertices that `vertex` has an edge to. A self-loop puts `vertex` in its own
@@ -263,7 +289,8 @@ extension AdjacencyList {
     internal mutating func _insertEdge(slots source: Int, _ target: Int) -> Int {
         let pair = _SlotPair(source, target)
         // Checked before inserting, so inserting an existing edge never copies shared storage.
-        if let existing = _edges.index(forKey: pair) { return _edges.value(at: existing) }
+        if let existing = _position(ofPair: pair) { return existing }
+        _takeEdgeTable()
         let position = _records.count
         let out = _out.append(target, toRow: source)
         _outEdges.append(position, toRow: source)
@@ -289,6 +316,7 @@ extension AdjacencyList {
     @inlinable
     internal mutating func _removeSlot(_ slot: Int) -> Vertex {
         let removed = _vertices[slot]
+        _takeEdgeTable()
 
         // Detach every edge incident to the vertex, last entry first, so nothing moves in its own
         // rows. A self-loop leaves both rows with the first loop.
@@ -343,7 +371,7 @@ extension AdjacencyList {
     public mutating func remove(edge: DirectedEdge<Vertex>) -> DirectedEdge<Vertex>? {
         guard let source = _slots[edge.source], let target = _slots[edge.target] else { return nil }
         // Checked before removing, so removing an absent edge never copies shared storage.
-        guard let position = _edges[_SlotPair(source, target)] else { return nil }
+        guard let position = _position(ofPair: _SlotPair(source, target)) else { return nil }
         _detach(position)
         return DirectedEdge(from: _vertices[source], to: _vertices[target])
     }
@@ -352,6 +380,7 @@ extension AdjacencyList {
     /// moving each row's last entry and the last edge into the holes and recording where they went.
     @inlinable
     internal mutating func _detach(_ position: Int) {
+        _takeEdgeTable()
         let record = _records[position]
         _edges.removeValue(forKey: record.pair)
         _ = _out.swapRemove(at: record.out, fromRow: record.source)
@@ -383,6 +412,7 @@ extension AdjacencyList {
         _in.removeAll(keepingCapacity: keepingCapacity)
         _inEdges.removeAll(keepingCapacity: keepingCapacity)
         _records.removeAll(keepingCapacity: keepingCapacity)
+        _deferredEdges = nil
         _edges.removeAll(keepingCapacity: keepingCapacity)
     }
 
@@ -395,6 +425,7 @@ extension AdjacencyList {
         _in.removeAllEntries(keepingCapacity: keepingCapacity)
         _inEdges.removeAllEntries(keepingCapacity: keepingCapacity)
         _records.removeAll(keepingCapacity: keepingCapacity)
+        _deferredEdges = nil
         _edges.removeAll(keepingCapacity: keepingCapacity)
     }
 
@@ -410,6 +441,7 @@ extension AdjacencyList {
         _in.reserveCapacity(rows: vertexCount, entries: edgeCount)
         _inEdges.reserveCapacity(rows: vertexCount, entries: edgeCount)
         _records.reserveCapacity(edgeCount)
+        _takeEdgeTable()
         _edges.reserveCapacity(edgeCount)
     }
 
@@ -512,14 +544,14 @@ extension AdjacencyList: Equatable {
         guard lhs.vertexCount == rhs.vertexCount, lhs.edgeCount == rhs.edgeCount else { return false }
         // Same slots (a copy, or the same insertions): compare slot pairs without hashing vertices.
         if lhs._vertices == rhs._vertices {
-            for record in lhs._records where !rhs._edges.contains(record.pair) { return false }
+            for record in lhs._records where rhs._position(ofPair: record.pair) == nil { return false }
             return true
         }
         for v in lhs._vertices where rhs._slots[v] == nil { return false }
         for record in lhs._records {
             guard let source = rhs._slots[lhs._vertices[record.source]],
                   let target = rhs._slots[lhs._vertices[record.target]],
-                  rhs._edges.contains(_SlotPair(source, target))
+                  rhs._position(ofPair: _SlotPair(source, target)) != nil
             else { return false }
         }
         return true

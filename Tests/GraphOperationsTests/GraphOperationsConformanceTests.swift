@@ -194,6 +194,57 @@ struct GraphOperationsConformanceTests {
         #expect(flipped.edges.map { [$0.v, $0.u] } == Pseudograph<String>(directed.undirected).edges.map { [$0.u, $0.v] })
     }
 
+    @Test("A view with an edge set walks the same rows before and after it builds its kept rows")
+    func keptRowsMatchFilteredRows() {
+        // The row hooks filter the base's rows until n/16 rows have been walked, then build the
+        // kept rows once: answers must not change across that point, directed or undirected.
+        var rng = SeededRandomNumberGenerator(seed: 23)
+        let n = 2000
+        var arcs: [DirectedEdge<Int>] = []
+        for _ in 0 ..< 6 * n { arcs.append(DirectedEdge(from: Int.random(in: 0 ..< n, using: &rng), to: Int.random(in: 0 ..< n, using: &rng))) }
+        let directed = DirectedPseudograph<Int>(vertices: 0 ..< n, edges: arcs)
+        let kept = directed.edges.indices.filter { _ in Int.random(in: 0 ..< 3, using: &rng) == 0 }
+        let keep = (0 ..< n).filter { _ in Int.random(in: 0 ..< 5, using: &rng) != 0 }
+        for view in [directed.spanningSubgraph(edges: kept), directed.subgraph(vertices: keep, edges: kept)] {
+            let copy = DirectedPseudograph<Int>(view)
+            // The first few searches stay below the threshold; the components walk every row.
+            for source in 0 ..< 3 {
+                let s = view.vertex(atIndex: source)
+                #expect(view.breadthFirstLayers(from: s) == copy.breadthFirstLayers(from: s))
+                #expect(view.ancestors(of: s) == copy.ancestors(of: s))
+            }
+            #expect(view.weaklyConnectedComponents().map { Array($0) } == copy.weaklyConnectedComponents().map { Array($0) })
+            #expect(view.stronglyConnectedComponents().map { Array($0) } == copy.stronglyConnectedComponents().map { Array($0) })
+            for source in [0, 7, 99] {
+                let s = view.vertex(atIndex: source)
+                #expect(view.breadthFirstLayers(from: s) == copy.breadthFirstLayers(from: s))
+                #expect(view.ancestors(of: s) == copy.ancestors(of: s))
+            }
+            // A copy of the view shares the built rows.
+            let again = view
+            #expect(again.weaklyConnectedComponents().map { Array($0) } == copy.weaklyConnectedComponents().map { Array($0) })
+        }
+        let undirected = Pseudograph<Int>(vertices: 0 ..< n, edges: arcs.map { UndirectedEdge($0.source, $0.target) })
+        let simple = UndirectedAdjacencyList<Int>(vertices: 0 ..< n, edges: Set(arcs.filter { $0.source != $0.target }.map { [Swift.min($0.source, $0.target), Swift.max($0.source, $0.target)] }).sorted { $0.lexicographicallyPrecedes($1) }.map { UndirectedEdge($0[0], $0[1]) })
+        let simpleKept = simple.edges.indices.filter { _ in Int.random(in: 0 ..< 3, using: &rng) == 0 }
+        func check<View: Graph>(_ view: View) where View.Vertex == Int {
+            let copy = Pseudograph<Int>(view)
+            for source in 0 ..< 3 {
+                let s = view.vertex(atIndex: source)
+                #expect(view.directed.breadthFirstLayers(from: s) == copy.directed.breadthFirstLayers(from: s))
+            }
+            #expect(view.connectedComponents().map { Array($0) } == copy.connectedComponents().map { Array($0) })
+            for source in [0, 7, 99] {
+                let s = view.vertex(atIndex: source)
+                #expect(view.directed.breadthFirstLayers(from: s) == copy.directed.breadthFirstLayers(from: s))
+            }
+        }
+        check(undirected.spanningSubgraph(edges: undirected.edges.indices.filter { $0 % 3 == 0 }))
+        check(undirected.subgraph(vertices: keep, edges: undirected.edges.indices.filter { $0 % 2 == 0 }))
+        check(simple.spanningSubgraph(edges: simpleKept))
+        check(simple.subgraph(vertices: keep, edges: simpleKept))
+    }
+
     @Test("Walking a complement's edges.indices steps from the current cell: every cell of n = 1500 in time", .timeLimit(.minutes(1)))
     func complementIndicesWalk() {
         // Before, index(after:) rescanned the row from its start, O(n) a step and O(n³) in all:

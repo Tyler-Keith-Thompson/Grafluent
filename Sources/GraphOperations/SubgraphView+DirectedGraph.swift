@@ -153,12 +153,20 @@ extension SubgraphView: DirectedGraph where Base: DirectedGraph {
         _forEachKeptSuccessorIndex(ofIndex: index, body)
     }
 
-    /// The filtered successor row, out of line: inlined beside the keep-everything branch, it made
-    /// breadth-first layers on a view of every vertex 1.2× the base (the per-edge closure was no
-    /// longer inlined); out of line, 1.0–1.06×, and a filtered view's walks change within noise.
+    /// The filtered successor row: with an edge set, the view's kept rows (`_KeptRows`),
+    /// built on the first call; otherwise the base's row filtered. Out of line: inlined beside the
+    /// keep-everything branch, it made breadth-first layers on a view of every vertex 1.2× the base
+    /// (the per-edge closure was no longer inlined); out of line, 1.0–1.06×.
     @inlinable
     @inline(never)
     func _forEachKeptSuccessorIndex(ofIndex index: Int, _ body: (Int) -> Void) {
+        guard let rows = _state.unsafelyUnwrapped.rows else { return _walkKeptSuccessors(ofIndex: index, body) }
+        if !_forEachEntry(of: rows, index, { v, emit in _walkKeptSuccessors(ofIndex: v, emit) }, body) { _walkKeptSuccessors(ofIndex: index, body) }
+    }
+
+    /// The base's row at view index `index`, filtered and renumbered.
+    @inlinable
+    func _walkKeptSuccessors(ofIndex index: Int, _ body: (Int) -> Void) {
         let b = _baseIndex(index)
         guard let test = _test else { return _forEachKept(base.successorIndices(ofIndex: b), body) }
         if let words = test.maskWords {
@@ -259,7 +267,7 @@ extension SubgraphView: DirectedGraph where Base: DirectedGraph {
     public func outDegree(ofIndex index: Int) -> Int {
         if _new.isEmpty, !_filtersEdges { return base.outDegree(ofIndex: _baseIndex(index)) }
         var count = 0
-        _forEachSuccessorIndex(ofIndex: index) { _ in count &+= 1 }
+        for _ in successorIndices(ofIndex: index) { count &+= 1 }
         return count
     }
 
@@ -319,12 +327,20 @@ extension SubgraphView: BidirectionalDirectedGraph where Base: BidirectionalDire
         _forEachKeptPredecessorIndex(ofIndex: index, body)
     }
 
-    /// The filtered predecessor row, out of line: inlined beside the keep-everything branch, it made
-    /// breadth-first layers on a view of every vertex 1.2× the base (the per-edge closure was no
-    /// longer inlined); out of line, 1.0–1.06×, and a filtered view's walks change within noise.
+    /// The filtered predecessor row: with an edge set, the view's kept rows (`_KeptRows`),
+    /// built on the first call; otherwise the base's row filtered. Out of line: inlined beside the
+    /// keep-everything branch, it made breadth-first layers on a view of every vertex 1.2× the base
+    /// (the per-edge closure was no longer inlined); out of line, 1.0–1.06×.
     @inlinable
     @inline(never)
     func _forEachKeptPredecessorIndex(ofIndex index: Int, _ body: (Int) -> Void) {
+        guard let rows = _state.unsafelyUnwrapped.inRows else { return _walkKeptPredecessors(ofIndex: index, body) }
+        if !_forEachEntry(of: rows, index, { v, emit in _walkKeptPredecessors(ofIndex: v, emit) }, body) { _walkKeptPredecessors(ofIndex: index, body) }
+    }
+
+    /// The base's row at view index `index`, filtered and renumbered.
+    @inlinable
+    func _walkKeptPredecessors(ofIndex index: Int, _ body: (Int) -> Void) {
         let b = _baseIndex(index)
         guard let test = _test else { return _forEachKept(base.predecessorIndices(ofIndex: b), body) }
         if let words = test.maskWords {
@@ -377,7 +393,7 @@ extension SubgraphView: BidirectionalDirectedGraph where Base: BidirectionalDire
     public func inDegree(ofIndex index: Int) -> Int {
         if _new.isEmpty, !_filtersEdges { return base.inDegree(ofIndex: _baseIndex(index)) }
         var count = 0
-        _forEachPredecessorIndex(ofIndex: index) { _ in count &+= 1 }
+        for _ in predecessorIndices(ofIndex: index) { count &+= 1 }
         return count
     }
 }

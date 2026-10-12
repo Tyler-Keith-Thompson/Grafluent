@@ -61,6 +61,7 @@ let products: [Product] = [
 let dependencies: [Package.Dependency] = [
     .package(url: "https://github.com/apple/swift-collections", from: "1.3.0"),
     .package(url: "https://github.com/apple/swift-algorithms", from: "1.2.0"),
+    .package(url: "https://github.com/apple/swift-atomics", from: "1.3.0"),
     .package(url: "https://github.com/x-sheep/swift-property-based", from: "2.0.1"),
 ]
 
@@ -73,7 +74,7 @@ let targets: [Target] = [
     .target(name: "PriorityQueueModule", exclude: bazelFiles),
     .target(name: "DisjointSetModule", exclude: bazelFiles),
     // Representations
-    .target(name: "AdjacencyListModule", dependencies: ["GraphProtocols"], exclude: bazelFiles),
+    .target(name: "AdjacencyListModule", dependencies: ["GraphProtocols", .product(name: "Atomics", package: "swift-atomics")], exclude: bazelFiles),
     .target(name: "AdjacencyMatrixModule", dependencies: ["GraphProtocols", .product(name: "BitCollections", package: "swift-collections")], exclude: bazelFiles),
     .target(name: "IncidenceMatrixModule", dependencies: ["GraphProtocols", .product(name: "BitCollections", package: "swift-collections")], exclude: bazelFiles),
     .target(name: "CompressedSparseRowModule", dependencies: ["GraphProtocols"], exclude: bazelFiles),
@@ -89,7 +90,7 @@ let targets: [Target] = [
     .target(name: "Hypergraphs", dependencies: ["GraphProtocols", "AdjacencyListModule", "DisjointSetModule", .product(name: "OrderedCollections", package: "swift-collections")], exclude: bazelFiles),
     .target(name: "FunctionalGraphs", dependencies: ["GraphProtocols", "Walks"], exclude: bazelFiles),
     // Operations
-    .target(name: "GraphOperations", dependencies: ["GraphProtocols", "DirectedAcyclicGraphModule", "Connectivity", "CompressedSparseRowModule"], exclude: bazelFiles),
+    .target(name: "GraphOperations", dependencies: ["GraphProtocols", "DirectedAcyclicGraphModule", "Connectivity", "CompressedSparseRowModule", .product(name: "Atomics", package: "swift-atomics")], exclude: bazelFiles),
     .target(name: "GraphProducts", dependencies: ["GraphProtocols"], exclude: bazelFiles),
     // Algorithms
     .target(name: "Traversal", dependencies: ["GraphProtocols", "Walks"], exclude: bazelFiles),

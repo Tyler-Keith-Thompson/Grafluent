@@ -13,6 +13,8 @@ only where the module would otherwise share a name with its main type (as DequeM
 PACKAGES = [
     ("swift-collections", "https://github.com/apple/swift-collections", "1.3.0"),
     ("swift-algorithms", "https://github.com/apple/swift-algorithms", "1.2.0"),
+    # Publish-once lazy state (ManagedAtomicLazyReference) shared by copies of a value.
+    ("swift-atomics", "https://github.com/apple/swift-atomics", "1.3.0"),
     # Tests only: property checks with shrinking, for Swift Testing.
     ("swift-property-based", "https://github.com/x-sheep/swift-property-based", "2.0.1"),
 ]
@@ -29,7 +31,7 @@ MODULES = [
     ("DisjointSetModule", "Data structures", "DisjointSet: union–find over 0..<count, with union by size and path halving.", []),
 
     # Representations
-    ("AdjacencyListModule", "Representations", "AdjacencyList: a directed graph stored as out- and in-adjacency per vertex.", ["GraphProtocols"]),
+    ("AdjacencyListModule", "Representations", "AdjacencyList: a directed graph stored as out- and in-adjacency per vertex.", ["GraphProtocols", "swift-atomics/Atomics"]),
     ("AdjacencyMatrixModule", "Representations", "AdjacencyMatrix: a directed graph on vertices 0..<n stored as an n×n bit matrix.", ["GraphProtocols", "swift-collections/BitCollections"]),
     ("IncidenceMatrixModule", "Representations", "IncidenceMatrix and OrientedIncidenceMatrix: a hypergraph's incidence as bit planes, conforming to Hypergraph and DirectedHypergraph.", ["GraphProtocols", "swift-collections/BitCollections"]),
     ("CompressedSparseRowModule", "Representations", "CompressedSparseRow: an immutable directed graph on vertices 0..<n in compressed sparse row form.", ["GraphProtocols"]),
@@ -47,7 +49,7 @@ MODULES = [
     ("FunctionalGraphs", "Structures", "FunctionalGraph: every vertex has outdegree 1; Floyd's and Brent's cycle detection.", ["GraphProtocols", "Walks"]),
 
     # Operations
-    ("GraphOperations", "Operations", "Subgraph, induced subgraph, converse, underlying graph, complement, line graph, condensation, quotient graph, union, intersection and join.", ["GraphProtocols", "DirectedAcyclicGraphModule", "Connectivity", "CompressedSparseRowModule"]),
+    ("GraphOperations", "Operations", "Subgraph, induced subgraph, converse, underlying graph, complement, line graph, condensation, quotient graph, union, intersection and join.", ["GraphProtocols", "DirectedAcyclicGraphModule", "Connectivity", "CompressedSparseRowModule", "swift-atomics/Atomics"]),
     ("GraphProducts", "Operations", "Cartesian, tensor, strong and lexicographic products.", ["GraphProtocols"]),
 
     # Algorithms

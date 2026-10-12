@@ -1,4 +1,6 @@
 import GraphProtocols
+import Atomics
+import Synchronization
 
 /// A subgraph of a graph, as a lazy view: some of its vertices and some of its edges, renumbered
 /// densely. Made by `inducedSubgraph(on:)`, `spanningSubgraph(edges:)` and
@@ -285,17 +287,99 @@ final class _UndirectedEdgeTest<G: Graph>: _EdgeTest<G.Edges.Index>, @unchecked 
 // MARK: - Rows
 
 /// What an index row needs beyond the base's row, in one reference: the renumbering and the edge
-/// set. A view that keeps every vertex and every edge has none, and its rows are the base's.
+/// set, and, with an edge set, the kept rows the row hooks walk. A view that keeps every vertex
+/// and every edge has none, and its rows are the base's.
 @usableFromInline
 final class _RowState<P: Comparable>: @unchecked Sendable {
     /// Base index to view index, or -1; empty when the view keeps every vertex.
     @usableFromInline let new: [Int]
     @usableFromInline let test: _EdgeTest<P>?
+    /// With an edge set: the kept out-rows (undirected, the kept rows), and the kept in-rows.
+    @usableFromInline let rows: _KeptRows?
+    @usableFromInline let inRows: _KeptRows?
 
     @inlinable
     init(new: [Int], test: _EdgeTest<P>?) {
         self.new = new
         self.test = test
+        rows = test == nil ? nil : _KeptRows()
+        inRows = test == nil ? nil : _KeptRows()
+    }
+}
+
+/// The rows of a view with an edge set as compact rows in view index space, built by one pass over
+/// the base's rows once the row hooks (`_forEachSuccessorIndex` and its kin, which algorithms call
+/// for every row they walk) have been called for n/16 rows, and shared by the view's copies. A
+/// search that stays within a few rows never builds them.
+///
+/// Walking the base's rows filters every base entry and reads two rows per vertex, the indices
+/// and the edge indices the mask is tested at: two cache misses where the base's own walk has one.
+/// A breadth-first search over a spanning forest of G(10⁵, 10⁶) took 1.7× the base's that way;
+/// over the kept rows it reads one row of kept entries. The rows cost O(n + kept) memory and one
+/// O(n + m) pass, paid by a walk, not by building the view. Immutable once built: the builder
+/// publishes them through swift-atomics' `ManagedAtomicLazyReference` (a racing builder's block is
+/// dropped). The walk count is the standard library's `Atomic`, stored inline, where swift-atomics'
+/// `ManagedAtomic` would be one more allocation per row state.
+@usableFromInline
+final class _KeptRows: Sendable {
+    @usableFromInline let block = ManagedAtomicLazyReference<Block>()
+    /// The rows walked without the block so far.
+    private let walks = Atomic<Int>(0)
+
+    /// `n + 1` offsets, then the entries: row `v` is `entries[offsets[v] ..< offsets[v + 1]]`.
+    @usableFromInline
+    final class Block: @unchecked Sendable {
+        /// Written in `init`, never again, so shared reads need no synchronization.
+        @usableFromInline let base: UnsafeMutablePointer<Int>
+
+        init(offsets: [Int], entries: [Int]) {
+            base = UnsafeMutablePointer<Int>.allocate(capacity: offsets.count + entries.count)
+            offsets.withUnsafeBufferPointer { base.initialize(from: $0.baseAddress!, count: $0.count) }
+            entries.withUnsafeBufferPointer { if let first = $0.baseAddress { (base + offsets.count).initialize(from: first, count: $0.count) } }
+        }
+
+        deinit {
+            base.deallocate()
+        }
+    }
+
+    @usableFromInline
+    init() {}
+
+    /// The block for `vertexCount` rows, or nil while fewer than n/16 rows have been asked for;
+    /// built from `row(v, emit)`, which emits row `v`'s entries in order.
+    @usableFromInline
+    func block(vertexCount n: Int, _ row: (Int, (Int) -> Void) -> Void) -> Block? {
+        if let built = block.load() { return built }
+        if walks.wrappingAdd(1, ordering: .relaxed).newValue < Swift.max(64, n >> 4) { return nil }
+        var offsets = [Int]()
+        offsets.reserveCapacity(n + 1)
+        offsets.append(0)
+        var entries = [Int]()
+        for v in 0 ..< n {
+            row(v) { entries.append($0) }
+            offsets.append(entries.count)
+        }
+        return block.storeIfNilThenLoad(Block(offsets: offsets, entries: entries))
+    }
+}
+
+extension SubgraphView {
+    /// Calls `body` with each entry of the kept row `index` of `rows` and returns true, or returns
+    /// false while the rows are not built; builds them, when due, from `row`, the filtered walk of
+    /// one row.
+    @inlinable
+    @inline(__always)
+    func _forEachEntry(of rows: _KeptRows, _ index: Int, _ row: (Int, (Int) -> Void) -> Void, _ body: (Int) -> Void) -> Bool {
+        precondition(UInt(bitPattern: index) < UInt(bitPattern: _vertexCount), "Vertex index \(index) is out of range 0..<\(_vertexCount)")
+        let n = _vertexCount
+        guard let kept = rows.block(vertexCount: n, row) else { return false }
+        return withExtendedLifetime(kept) {
+            let block = kept.base
+            let entries = block + (n &+ 1)
+            for k in block[index] ..< block[index &+ 1] { body(entries[k]) }
+            return true
+        }
     }
 }
 

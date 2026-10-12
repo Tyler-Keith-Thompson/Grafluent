@@ -11,13 +11,32 @@ extension _RowPool {
     /// capacity, with no garbage.
     @inlinable
     package init(storage: ContiguousArray<Int>, offsets: [Int]) {
+        self.init(storage: storage, rows: Self._packedRows(offsets: offsets))
+    }
+
+    /// Rows over `storage` with the row table `rows`, which pools with the same layout share (an
+    /// out-row pool and its positions): the table is built once, and copied only if one of them
+    /// changes a row.
+    @inlinable
+    package init(storage: ContiguousArray<Int>, rows: ContiguousArray<_Row>) {
         self.init()
         self.storage = storage
+        self.rows = rows
+    }
+
+    /// The row table of rows packed in order at their exact sizes: row `v` is
+    /// `offsets[v] ..< offsets[v + 1]`.
+    @inlinable
+    package static func _packedRows(offsets: [Int]) -> ContiguousArray<_Row> {
         let n = offsets.count - 1
-        rows.reserveCapacity(n)
-        for v in 0 ..< n {
-            let length = offsets[v + 1] - offsets[v]
-            rows.append(_Row(start: offsets[v], count: length, capacity: length))
+        return ContiguousArray(unsafeUninitializedCapacity: n) { rows, count in
+            offsets.withUnsafeBufferPointer { offsets in
+                for v in 0 ..< n {
+                    let length = offsets[v &+ 1] &- offsets[v]
+                    rows.initializeElement(at: v, to: _Row(start: offsets[v], count: length, capacity: length))
+                }
+            }
+            count = n
         }
     }
 }
@@ -48,42 +67,53 @@ package struct _SortedArcRows {
             outOffsets[v &+ 1] &+= outOffsets[v]
             inOffsets[v &+ 1] &+= inOffsets[v]
         }
-        var outStorage = ContiguousArray<Int>(repeating: 0, count: m)
-        var inStorage = ContiguousArray<Int>(repeating: 0, count: m)
-        var inEdgeStorage = ContiguousArray<Int>(repeating: 0, count: m)
+        // Every entry is written exactly once, so the storage starts uninitialized: zeroing the
+        // three rows first wrote 12 MB more for 5·10⁵ edges.
+        var inStorage = ContiguousArray<Int>(), inEdgeStorage = ContiguousArray<Int>()
         var records = ContiguousArray<_ArcRecord>()
-        records.reserveCapacity(m)
         var fill = inOffsets
-        outStorage.withUnsafeMutableBufferPointer { outStorage in
-            inStorage.withUnsafeMutableBufferPointer { inStorage in
-                inEdgeStorage.withUnsafeMutableBufferPointer { inEdgeStorage in
-                    fill.withUnsafeMutableBufferPointer { fill in
-                        outOffsets.withUnsafeBufferPointer { outOffsets in
-                            inOffsets.withUnsafeBufferPointer { inOffsets in
-                                var position = 0
-                                for edge in edges {
-                                    let source = edge.source, target = edge.target
-                                    outStorage[position] = target
-                                    let slot = fill[target]
-                                    fill[target] = slot &+ 1
-                                    inStorage[slot] = source
-                                    inEdgeStorage[slot] = position
-                                    records.append(_ArcRecord(
-                                        source: source, target: target,
-                                        out: position &- outOffsets[source], in: slot &- inOffsets[target]
-                                    ))
-                                    position &+= 1
+        var written = 0
+        let outStorage = ContiguousArray<Int>(unsafeUninitializedCapacity: m) { outStorage, outCount in
+            inStorage = ContiguousArray(unsafeUninitializedCapacity: m) { inStorage, inCount in
+                inEdgeStorage = ContiguousArray(unsafeUninitializedCapacity: m) { inEdgeStorage, inEdgeCount in
+                    records = ContiguousArray(unsafeUninitializedCapacity: m) { recordStorage, recordCount in
+                        fill.withUnsafeMutableBufferPointer { fill in
+                            outOffsets.withUnsafeBufferPointer { outOffsets in
+                                inOffsets.withUnsafeBufferPointer { inOffsets in
+                                    var position = 0
+                                    for edge in edges {
+                                        precondition(position < m, "The edge collection yielded more than its count")
+                                        let source = edge.source, target = edge.target
+                                        outStorage.initializeElement(at: position, to: target)
+                                        let slot = fill[target]
+                                        fill[target] = slot &+ 1
+                                        inStorage.initializeElement(at: slot, to: source)
+                                        inEdgeStorage.initializeElement(at: slot, to: position)
+                                        recordStorage.initializeElement(at: position, to: _ArcRecord(
+                                            source: source, target: target,
+                                            out: position &- outOffsets[source], in: slot &- inOffsets[target]
+                                        ))
+                                        position &+= 1
+                                    }
+                                    written = position
                                 }
                             }
                         }
+                        // The in-degree pass counted the same edges, so m entries fill every slot.
+                        precondition(written == m, "The edge collection yielded fewer than its count")
+                        recordCount = m
                     }
+                    inEdgeCount = m
                 }
+                inCount = m
             }
+            outCount = m
         }
-        out = _RowPool(storage: outStorage, offsets: outOffsets)
-        outEdges = _RowPool(storage: ContiguousArray(0 ..< m), offsets: outOffsets)
-        self.in = _RowPool(storage: inStorage, offsets: inOffsets)
-        inEdges = _RowPool(storage: inEdgeStorage, offsets: inOffsets)
+        let outRows = _RowPool._packedRows(offsets: outOffsets), inRows = _RowPool._packedRows(offsets: inOffsets)
+        out = _RowPool(storage: outStorage, rows: outRows)
+        outEdges = _RowPool(storage: ContiguousArray(0 ..< m), rows: outRows)
+        self.in = _RowPool(storage: inStorage, rows: inRows)
+        inEdges = _RowPool(storage: inEdgeStorage, rows: inRows)
         self.records = records
     }
 }
@@ -135,8 +165,9 @@ package struct _SortedEdgeRows {
                 }
             }
         }
-        neighbors = _RowPool(storage: neighborStorage, offsets: offsets)
-        incident = _RowPool(storage: incidentStorage, offsets: offsets)
+        let rows = _RowPool._packedRows(offsets: offsets)
+        neighbors = _RowPool(storage: neighborStorage, rows: rows)
+        incident = _RowPool(storage: incidentStorage, rows: rows)
         self.records = records
     }
 }
@@ -156,8 +187,7 @@ extension AdjacencyList where Vertex == Int {
         _in = rows.in
         _inEdges = rows.inEdges
         _records = rows.records
-        let records = rows.records
-        _edges._insertDistinct(count: records.count) { (_SlotPair(records[$0].source, records[$0].target), $0) }
+        _deferredEdges = rows.records.isEmpty ? nil : _DeferredSlotPairTable(records: rows.records)
     }
 }
 
@@ -214,8 +244,7 @@ extension AdjacencyList {
         _in = rows.in
         _inEdges = rows.inEdges
         _records = rows.records
-        let records = rows.records
-        _edges._insertDistinct(count: records.count) { (_SlotPair(records[$0].source, records[$0].target), $0) }
+        _deferredEdges = rows.records.isEmpty ? nil : _DeferredSlotPairTable(records: rows.records)
     }
 }
 
