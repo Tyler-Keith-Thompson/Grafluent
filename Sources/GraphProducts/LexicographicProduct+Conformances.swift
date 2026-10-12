@@ -50,6 +50,22 @@ extension LexicographicProduct: DirectedGraph where First: DirectedGraph, Second
         return IndexRow(firstRow: first.successorIndices(ofIndex: g), secondRow: second.successorIndices(ofIndex: h), g: g, secondCount: _secondCount)
     }
 
+    /// `successorIndices(ofIndex:)` without a row value: every H-index for each entry of G's
+    /// row, then H's row.
+    @inlinable
+    @inline(__always)
+    public func _forEachSuccessorIndex(ofIndex index: Int, _ body: (Int) -> Void) {
+        _checkProductIndex(index, count: _firstCount &* _secondCount)
+        let nH = _secondCount
+        let (g, h) = index.quotientAndRemainder(dividingBy: nH)
+        first._forEachSuccessorIndex(ofIndex: g) { w in
+            let block = w &* nH
+            for t in 0 ..< nH { body(block &+ t) }
+        }
+        let block = g &* nH
+        second._forEachSuccessorIndex(ofIndex: h) { body(block &+ $0) }
+    }
+
     @inlinable
     public func outEdges(ofIndex index: Int) -> EdgeRow<First.OutEdges, Second.OutEdges> {
         _checkProductIndex(index, count: _firstCount &* _secondCount)
@@ -178,6 +194,21 @@ extension LexicographicProduct: BidirectionalDirectedGraph where First: Bidirect
         _checkProductIndex(index, count: _firstCount &* _secondCount)
         let (g, h) = index.quotientAndRemainder(dividingBy: _secondCount)
         return IndexRow(firstRow: first.predecessorIndices(ofIndex: g), secondRow: second.predecessorIndices(ofIndex: h), g: g, secondCount: _secondCount)
+    }
+
+    /// `predecessorIndices(ofIndex:)` without a row value, as `_forEachSuccessorIndex`.
+    @inlinable
+    @inline(__always)
+    public func _forEachPredecessorIndex(ofIndex index: Int, _ body: (Int) -> Void) {
+        _checkProductIndex(index, count: _firstCount &* _secondCount)
+        let nH = _secondCount
+        let (g, h) = index.quotientAndRemainder(dividingBy: nH)
+        first._forEachPredecessorIndex(ofIndex: g) { w in
+            let block = w &* nH
+            for t in 0 ..< nH { body(block &+ t) }
+        }
+        let block = g &* nH
+        second._forEachPredecessorIndex(ofIndex: h) { body(block &+ $0) }
     }
 
     @inlinable
@@ -336,6 +367,26 @@ extension LexicographicProduct: Graph where First: Graph, Second: Graph {
     @inlinable
     public func neighborIndices(ofIndex index: Int) -> UndirectedIndexRow { UndirectedIndexRow(rows: _indexRows(index)) }
 
+    /// `neighborIndices(ofIndex:)` without a row value: G's entries with their blocks (a
+    /// self-loop's second appearance with `h` alone), then H's row.
+    @inlinable
+    @inline(__always)
+    public func _forEachNeighborIndex(ofIndex index: Int, _ body: (Int) -> Void) {
+        _checkProductIndex(index, count: _firstCount &* _secondCount)
+        let nH = _secondCount
+        let (g, h) = index.quotientAndRemainder(dividingBy: nH)
+        _forEachEntry(first, g) { w, isSecond in
+            let block = w &* nH
+            if isSecond {
+                body(block &+ h)
+            } else {
+                for t in 0 ..< nH { body(block &+ t) }
+            }
+        }
+        let block = g &* nH
+        second._forEachNeighborIndex(ofIndex: h) { body(block &+ $0) }
+    }
+
     /// The positions of the edges at (g, h), in the order of `neighborIndices(ofIndex:)`.
     @inlinable
     public func incidentEdges(ofIndex index: Int) -> UndirectedEdgeRow { UndirectedEdgeRow(rows: _rows(index, orient: true)) }
@@ -397,13 +448,16 @@ extension LexicographicProduct: Graph where First: Graph, Second: Graph {
         return Pair(first.vertex(atIndex: g), second.vertex(atIndex: h))
     }
 
-    /// The length of the row: with a self-loop in G the factors' degrees do not give it.
+    /// The length of the row, from the factors' degrees and G's self-loops: O(d_G).
     @inlinable
     public func degree(ofIndex index: Int) -> Int {
-        var count = 0
-        var rows = _indexRows(index)
-        while rows.next() != nil { count &+= 1 }
-        return count
+        // (d_G − 2ℓ_g)·|V(H)| + ℓ_g·(|V(H)| + 1) + d_H, ℓ_g the self-loops at g: a G-edge that is
+        // not a loop gives a whole block; a G-loop its block once and (g, h) once more.
+        _checkProductIndex(index, count: _firstCount &* _secondCount)
+        let nH = _secondCount
+        let (g, h) = index.quotientAndRemainder(dividingBy: nH)
+        let dG = first.degree(ofIndex: g), loops = _loopCount(first, g)
+        return (dG &- 2 &* loops) &* nH &+ loops &* (nH &+ 1) &+ second.degree(ofIndex: h)
     }
 
     @inlinable

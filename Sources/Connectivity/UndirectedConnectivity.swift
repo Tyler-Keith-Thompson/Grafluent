@@ -4,18 +4,27 @@ extension Graph {
     /// The connected components (NetworkX's, Boost's and igraph's `connected_components`): in
     /// the order of their first vertex in `vertices`, each listing its vertices in `vertices`
     /// order. The same value as `directed.weaklyConnectedComponents()`, computed over each edge
-    /// once. O(n + m α(n)).
+    /// once from flat rows (`_withIncidentIndexRows`). Over a graph with vertex indices but without
+    /// them it is `directed.weaklyConnectedComponents()`: union–find over each row walked in place
+    /// (`_forEachNeighborIndex`), which a computed row (a product, a subgraph view) runs faster
+    /// than copying the rows first. O(n + m α(n)).
     @inlinable
     public func connectedComponents() -> Components<DirectedView<Self>> {
+        if vertexIndexBound != nil, _withIncidentIndexRows({ _, _, _, _ in () }) == nil {
+            return directed.weaklyConnectedComponents()
+        }
         let (labels, count, _) = _runOnUndirectedRows(_UndirectedComponents())
         return Components(vertices: _DenseVertices(directed), labels: labels, count: count)
     }
 
     /// Whether the graph has exactly one connected component; false for the empty graph, as
     /// `isWeaklyConnected` (igraph, JGraphT; NetworkX raises). Stops as soon as n − 1 joins have
-    /// succeeded.
+    /// succeeded. Without flat rows, as `connectedComponents()`: `directed.isWeaklyConnected`.
     @inlinable
     public var isConnected: Bool {
+        if vertexIndexBound != nil, _withIncidentIndexRows({ _, _, _, _ in () }) == nil {
+            return directed.isWeaklyConnected
+        }
         let n = vertexCount
         guard n > 0 else { return false }
         return _runOnUndirectedRows(_UndirectedComponents(limit: n - 1, labelled: false)).joins == n - 1

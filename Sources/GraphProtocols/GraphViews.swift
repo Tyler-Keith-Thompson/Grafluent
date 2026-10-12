@@ -248,6 +248,20 @@ public struct DirectedView<Base: Graph>: BidirectionalDirectedGraph {
     /// The base's `neighborIndices(ofIndex:)`.
     @inlinable
     public func predecessorIndices(ofIndex index: Int) -> Base.NeighborIndices { base.neighborIndices(ofIndex: index) }
+
+    /// The base's `_forEachNeighborIndex(ofIndex:_:)`.
+    @inlinable
+    @inline(__always)
+    public func _forEachSuccessorIndex(ofIndex index: Int, _ body: (Int) -> Void) {
+        base._forEachNeighborIndex(ofIndex: index, body)
+    }
+
+    /// The base's `_forEachNeighborIndex(ofIndex:_:)`.
+    @inlinable
+    @inline(__always)
+    public func _forEachPredecessorIndex(ofIndex index: Int, _ body: (Int) -> Void) {
+        base._forEachNeighborIndex(ofIndex: index, body)
+    }
 }
 
 extension DirectedView: Sendable where Base: Sendable {}
@@ -365,6 +379,14 @@ public struct UndirectedView<Base: BidirectionalDirectedGraph>: Graph {
     @inlinable
     public func neighborIndices(ofIndex index: Int) -> Chain2Sequence<Base.SuccessorIndices, Base.PredecessorIndices> {
         chain(base.successorIndices(ofIndex: index), base.predecessorIndices(ofIndex: index))
+    }
+
+    /// The base's `_forEachSuccessorIndex(ofIndex:_:)`, then its `_forEachPredecessorIndex`.
+    @inlinable
+    @inline(__always)
+    public func _forEachNeighborIndex(ofIndex index: Int, _ body: (Int) -> Void) {
+        base._forEachSuccessorIndex(ofIndex: index, body)
+        base._forEachPredecessorIndex(ofIndex: index, body)
     }
 }
 

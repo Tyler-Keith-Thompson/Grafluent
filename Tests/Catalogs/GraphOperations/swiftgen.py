@@ -568,9 +568,9 @@ FILES = [
      "// is the base; a label-space row hashes once and an index-space row not at all."),
     ("SubgraphViewTests.swift", "GraphOperations subgraph views", ids("Induced", "Spanning", "Subgraph"),
      "Subgraph views (catalog GO-010 – GO-047): kept vertices renumbered in base order, positions the\n"
-     "// base's; an induced subgraph has no edge indices; an edge set gives dense edge indices by rank\n"
-     "// in base index order, counting only edges with both ends kept; a self-loop twice in an\n"
-     "// undirected row; views of views."),
+     "// base's; an induced subgraph that drops a vertex has no edge indices (one on every vertex has\n"
+     "// the base's); an edge set gives dense edge indices by rank in base index order, counting only\n"
+     "// edges with both ends kept; a self-loop twice in an undirected row; views of views."),
     ("ComplementViewTests.swift", "GraphOperations complement", ids("Complement"),
      "complement (catalog GO-048 – GO-062): every non-edge between distinct vertices, rows ascending\n"
      "// by index, positions as index pairs in row-major order, self-loops and parallel edges of the\n"

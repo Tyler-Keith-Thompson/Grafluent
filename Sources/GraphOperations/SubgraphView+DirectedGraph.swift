@@ -13,7 +13,9 @@ extension DirectedGraph {
     @inlinable
     public func inducedSubgraph(on vertices: some Sequence<Vertex>) -> SubgraphView<Self> {
         let (old, new, count) = _renumbering(bound: vertexIndexBound, vertices) { vertexIndex(of: $0) }
-        return SubgraphView(base: self, old: old, new: new, vertexCount: count, edgeTest: nil, edgeCount: nil)
+        return SubgraphView(
+            base: self, old: old, new: new, vertexCount: count, edgeTest: nil, edgeCount: nil,
+            rowState: new.isEmpty ? nil : _RowState<Edges.Index>(new: new, test: nil))
     }
 
     /// The spanning subgraph with the edges at `edges`: every vertex, at its own index, and only
@@ -59,10 +61,10 @@ extension DirectedGraph {
         let filter = _edgeFilter(
             positions, start: edges.startIndex, end: edges.endIndex, edgeIndexBound: edgeIndexBound, new: new,
             edgeIndex: { edgeIndex(of: $0) }, ends: { (sourceIndex(ofEdgeAt: $0), targetIndex(ofEdgeAt: $0)) })
+        let test = _DirectedEdgeTest(base: self, mask: filter.mask, kept: filter.kept)
         return SubgraphView(
             base: self, old: old, new: new, vertexCount: count,
-            edgeTest: _DirectedEdgeTest(base: self, mask: filter.mask, kept: filter.kept),
-            edgeCount: filter.count)
+            edgeTest: test, edgeCount: filter.count, rowState: _RowState<Edges.Index>(new: new, test: test))
     }
 }
 
@@ -70,6 +72,11 @@ extension SubgraphView: DirectedGraph where Base: DirectedGraph {
     @inlinable
     var _test: _EdgeTest<Base.Edges.Index>? {
         _edgeTest.map { unsafeDowncast($0, to: _EdgeTest<Base.Edges.Index>.self) }
+    }
+
+    @inlinable
+    var _state: _RowState<Base.Edges.Index>? {
+        _rowState.map { unsafeDowncast($0, to: _RowState<Base.Edges.Index>.self) }
     }
 
     /// Whether the view keeps the edge at `position` of the base.
@@ -129,10 +136,40 @@ extension SubgraphView: DirectedGraph where Base: DirectedGraph {
     @inlinable
     public func successorIndices(ofIndex index: Int) -> IndexRow<Base.SuccessorIndices, Base.OutEdges> {
         let b = _baseIndex(index)
-        let test = _test
+        let state = _state
         return IndexRow(
-            indices: base.successorIndices(ofIndex: b), positions: base.outEdges(ofIndex: b),
-            new: _new, test: test)
+            indices: base.successorIndices(ofIndex: b),
+            positions: state?.test == nil ? nil : base.outEdges(ofIndex: b), state: state)
+    }
+
+    /// `successorIndices(ofIndex:)` without a row value: with an edge set over a base with edge
+    /// indices, the mask's words are read at the base's own `edgeIndex(of:)`, not through the edge
+    /// set's class, and without retaining the mask.
+    @inlinable
+    @inline(__always)
+    public func _forEachSuccessorIndex(ofIndex index: Int, _ body: (Int) -> Void) {
+        // Keeping every vertex and every edge, the rows are the base's.
+        if _rowState == nil { return base._forEachSuccessorIndex(ofIndex: index, body) }
+        _forEachKeptSuccessorIndex(ofIndex: index, body)
+    }
+
+    /// The filtered successor row, out of line: inlined beside the keep-everything branch, it made
+    /// breadth-first layers on a view of every vertex 1.2× the base (the per-edge closure was no
+    /// longer inlined); out of line, 1.0–1.06×, and a filtered view's walks change within noise.
+    @inlinable
+    @inline(never)
+    func _forEachKeptSuccessorIndex(ofIndex index: Int, _ body: (Int) -> Void) {
+        let b = _baseIndex(index)
+        guard let test = _test else { return _forEachKept(base.successorIndices(ofIndex: b), body) }
+        if let words = test.maskWords {
+            let base = base
+            _forEachKept(base.successorIndices(ofIndex: b), base.outEdges(ofIndex: b), {
+                let i = base.edgeIndex(of: $0)
+                return words[i >> 6] & (1 << UInt64(i & 63)) != 0
+            }, body)
+        } else {
+            _forEachKept(base.successorIndices(ofIndex: b), base.outEdges(ofIndex: b), { test.keeps($0) }, body)
+        }
     }
 
     /// The kept out-edges of the vertex at view index `index`, at the base's positions. No hashing.
@@ -222,7 +259,7 @@ extension SubgraphView: DirectedGraph where Base: DirectedGraph {
     public func outDegree(ofIndex index: Int) -> Int {
         if _new.isEmpty, !_filtersEdges { return base.outDegree(ofIndex: _baseIndex(index)) }
         var count = 0
-        for _ in successorIndices(ofIndex: index) { count &+= 1 }
+        _forEachSuccessorIndex(ofIndex: index) { _ in count &+= 1 }
         return count
     }
 
@@ -232,9 +269,10 @@ extension SubgraphView: DirectedGraph where Base: DirectedGraph {
     @inlinable
     public func targetIndex(ofEdgeAt position: Base.Edges.Index) -> Int { _viewIndex(base.targetIndex(ofEdgeAt: position)) }
 
-    /// The number of kept edges with an edge set; `nil` for an induced subgraph.
+    /// The number of kept edges with an edge set; the base's bound when the view keeps every
+    /// vertex and every edge; otherwise (an induced subgraph) `nil`.
     @inlinable
-    public var edgeIndexBound: Int? { _edgeCount }
+    public var edgeIndexBound: Int? { _new.isEmpty && !_filtersEdges ? base.edgeIndexBound : _edgeCount }
 
     /// The rank of the edge among the kept edges, in base order: one popcount over a base with
     /// edge indices, a binary search without.
@@ -242,6 +280,7 @@ extension SubgraphView: DirectedGraph where Base: DirectedGraph {
     /// - Precondition: `edgeIndexBound` is not `nil`, and `position` is an edge of the view.
     @inlinable
     public func edgeIndex(of position: Base.Edges.Index) -> Int {
+        if _new.isEmpty, !_filtersEdges { return base.edgeIndex(of: position) }
         guard let test = _test else {
             preconditionFailure("An induced subgraph has no edge indices; check edgeIndexBound first")
         }
@@ -265,10 +304,38 @@ extension SubgraphView: BidirectionalDirectedGraph where Base: BidirectionalDire
     @inlinable
     public func predecessorIndices(ofIndex index: Int) -> IndexRow<Base.PredecessorIndices, Base.InEdges> {
         let b = _baseIndex(index)
-        let test = _test
+        let state = _state
         return IndexRow(
-            indices: base.predecessorIndices(ofIndex: b), positions: base.inEdges(ofIndex: b),
-            new: _new, test: test)
+            indices: base.predecessorIndices(ofIndex: b),
+            positions: state?.test == nil ? nil : base.inEdges(ofIndex: b), state: state)
+    }
+
+    /// `predecessorIndices(ofIndex:)` without a row value, as `_forEachSuccessorIndex`.
+    @inlinable
+    @inline(__always)
+    public func _forEachPredecessorIndex(ofIndex index: Int, _ body: (Int) -> Void) {
+        // Keeping every vertex and every edge, the rows are the base's.
+        if _rowState == nil { return base._forEachPredecessorIndex(ofIndex: index, body) }
+        _forEachKeptPredecessorIndex(ofIndex: index, body)
+    }
+
+    /// The filtered predecessor row, out of line: inlined beside the keep-everything branch, it made
+    /// breadth-first layers on a view of every vertex 1.2× the base (the per-edge closure was no
+    /// longer inlined); out of line, 1.0–1.06×, and a filtered view's walks change within noise.
+    @inlinable
+    @inline(never)
+    func _forEachKeptPredecessorIndex(ofIndex index: Int, _ body: (Int) -> Void) {
+        let b = _baseIndex(index)
+        guard let test = _test else { return _forEachKept(base.predecessorIndices(ofIndex: b), body) }
+        if let words = test.maskWords {
+            let base = base
+            _forEachKept(base.predecessorIndices(ofIndex: b), base.inEdges(ofIndex: b), {
+                let i = base.edgeIndex(of: $0)
+                return words[i >> 6] & (1 << UInt64(i & 63)) != 0
+            }, body)
+        } else {
+            _forEachKept(base.predecessorIndices(ofIndex: b), base.inEdges(ofIndex: b), { test.keeps($0) }, body)
+        }
     }
 
     /// The kept in-edges of the vertex at view index `index`. No hashing.
@@ -310,7 +377,7 @@ extension SubgraphView: BidirectionalDirectedGraph where Base: BidirectionalDire
     public func inDegree(ofIndex index: Int) -> Int {
         if _new.isEmpty, !_filtersEdges { return base.inDegree(ofIndex: _baseIndex(index)) }
         var count = 0
-        for _ in predecessorIndices(ofIndex: index) { count &+= 1 }
+        _forEachPredecessorIndex(ofIndex: index) { _ in count &+= 1 }
         return count
     }
 }

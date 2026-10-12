@@ -454,16 +454,29 @@ struct GraphOperationsPreconditionTests {
         #expect(graph.subgraph(vertices: ["a"], edges: [0]).edgeCount == 0)
     }
 
-    @Test("edgeIndex(of:) on an induced subgraph traps: it has no edge indices")
+    @Test("edgeIndex(of:) on an induced subgraph that drops a vertex traps: it has no edge indices")
     func inducedHasNoEdgeIndices() async {
         await #expect(processExitsWith: .failure) {
-            let graph = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
+            let graph = AdjacencyList<String>(vertices: ["a", "b", "c"], edges: [DirectedEdge(from: "a", to: "b")])
             _ = graph.inducedSubgraph(on: ["a", "b"]).edgeIndex(of: 0)
         }
-        // Without the fault: an edge set gives the same view edge indices.
-        let graph = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
+        // Without the fault: an edge set gives the same view edge indices, and so does keeping
+        // every vertex (the base's).
+        let graph = AdjacencyList<String>(vertices: ["a", "b", "c"], edges: [DirectedEdge(from: "a", to: "b")])
         #expect(graph.inducedSubgraph(on: ["a", "b"]).edgeIndexBound == nil)
         #expect(graph.subgraph(vertices: ["a", "b"], edges: [0]).edgeIndex(of: 0) == 0)
+        #expect(graph.inducedSubgraph(on: ["a", "b", "c"]).edgeIndex(of: 0) == 0)
+    }
+
+    @Test("incidentEdgeIndices(ofIndex:) on an undirected induced subgraph that drops a vertex traps")
+    func undirectedInducedHasNoIncidentEdgeIndices() async {
+        await #expect(processExitsWith: .failure) {
+            let graph = UndirectedAdjacencyList<String>(vertices: ["a", "b", "c"], edges: [UndirectedEdge("a", "b")])
+            _ = Array(graph.inducedSubgraph(on: ["a", "b"]).incidentEdgeIndices(ofIndex: 0))
+        }
+        // Without the fault: on every vertex the view lists the base's edge indices.
+        let graph = UndirectedAdjacencyList<String>(vertices: ["a", "b", "c"], edges: [UndirectedEdge("a", "b")])
+        #expect(Array(graph.inducedSubgraph(on: ["a", "b", "c"]).incidentEdgeIndices(ofIndex: 0)) == [0])
     }
 
     @Test("Directed quotient traps on a vertex in two blocks, a missing vertex and a non-vertex")

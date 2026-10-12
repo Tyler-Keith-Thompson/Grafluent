@@ -11,6 +11,7 @@
 // once per end over all rows, `contains(edge:)` for every pair, the vertex numbering both ways and
 // the edge-index law all must agree. Then Pair's laws. See README.md.
 
+import Connectivity
 import Foundation
 import GrafluentTestSupport
 import GraphProducts
@@ -18,6 +19,7 @@ import GraphProtocols
 import Multigraphs
 import PropertyBased
 import Testing
+import Traversal
 
 @Suite("GraphProducts properties against the definitions, with shrinking", .tags(.randomized))
 struct ProductPropertyTests {
@@ -51,6 +53,33 @@ struct ProductPropertyTests {
             let context = "G \(nG) \(gEdges), H \(nH) \(hEdges)"
             func check<P: Graph>(_ product: P, _ expected: [[Int]], hasEdgeIndices: Bool, _ kind: String) where P.Vertex == Pair<Int, Int> {
                 let n = nG * nH
+                // Breadth-first layers and connected components walk each row in place
+                // (`_forEachNeighborIndex`): the same entries, in the same order, as the row.
+                if n > 0 {
+                    var layer = [0], seen: Set = [0], layers: [[Int]] = []
+                    while !layer.isEmpty {
+                        layers.append(layer)
+                        var next: [Int] = []
+                        for u in layer { for w in product.neighborIndices(ofIndex: u) where seen.insert(w).inserted { next.append(w) } }
+                        layer = next
+                    }
+                    #expect(product.directed.breadthFirstLayers(from: product.vertex(atIndex: 0)) == layers.map { $0.map { product.vertex(atIndex: $0) } }, "\(kind): \(context)")
+                }
+                var label = [Int](repeating: -1, count: n), groups: [[Int]] = []
+                for s in 0 ..< n where label[s] < 0 {
+                    label[s] = groups.count
+                    var group = [s], k = 0
+                    while k < group.count {
+                        for w in product.neighborIndices(ofIndex: group[k]) where label[w] < 0 {
+                            label[w] = groups.count
+                            group.append(w)
+                        }
+                        k += 1
+                    }
+                    groups.append(group.sorted())
+                }
+                #expect(product.connectedComponents().map { $0.map { product.vertexIndex(of: $0) } } == groups, "\(kind): \(context)")
+                #expect(product.isConnected == (groups.count == 1), "\(kind): \(context)")
                 let positions = Array(product.edges.indices)
                 let ends = positions.map { [product.endpointIndices(ofEdgeAt: $0).u, product.endpointIndices(ofEdgeAt: $0).v] }
                 #expect(ends == expected, "\(kind): \(context)")
@@ -143,6 +172,39 @@ struct ProductPropertyTests {
             let context = "G \(nG) \(gArcs), H \(nH) \(hArcs)"
             func check<P: BidirectionalDirectedGraph>(_ product: P, _ expected: [[Int]], _ kind: String) where P.Vertex == Pair<Int, Int> {
                 let n = nG * nH
+                // Breadth-first layers, weak components and ancestors walk each row in place
+                // (`_forEachSuccessorIndex`, `_forEachPredecessorIndex`): the row's entries, in order.
+                if n > 0 {
+                    var layer = [0], seen: Set = [0], layers: [[Int]] = []
+                    while !layer.isEmpty {
+                        layers.append(layer)
+                        var next: [Int] = []
+                        for u in layer { for w in product.successorIndices(ofIndex: u) where seen.insert(w).inserted { next.append(w) } }
+                        layer = next
+                    }
+                    #expect(product.breadthFirstLayers(from: product.vertex(atIndex: 0)) == layers.map { $0.map { product.vertex(atIndex: $0) } }, "\(kind): \(context)")
+                    var stack = [0], reached: Set = [0]
+                    while let u = stack.popLast() {
+                        for w in product.predecessorIndices(ofIndex: u) where reached.insert(w).inserted { stack.append(w) }
+                    }
+                    reached.remove(0)
+                    #expect(product.ancestors(of: product.vertex(atIndex: 0)) == Set(reached.map { product.vertex(atIndex: $0) }), "\(kind): \(context)")
+                }
+                var label = [Int](repeating: -1, count: n), groups: [[Int]] = []
+                for s in 0 ..< n where label[s] < 0 {
+                    label[s] = groups.count
+                    var group = [s], k = 0
+                    while k < group.count {
+                        let u = group[k]
+                        for w in Array(product.successorIndices(ofIndex: u)) + Array(product.predecessorIndices(ofIndex: u)) where label[w] < 0 {
+                            label[w] = groups.count
+                            group.append(w)
+                        }
+                        k += 1
+                    }
+                    groups.append(group.sorted())
+                }
+                #expect(product.weaklyConnectedComponents().map { $0.map { product.vertexIndex(of: $0) } } == groups, "\(kind): \(context)")
                 let positions = Array(product.edges.indices)
                 let ends = positions.map { [product.sourceIndex(ofEdgeAt: $0), product.targetIndex(ofEdgeAt: $0)] }
                 #expect(ends == expected, "\(kind): \(context)")

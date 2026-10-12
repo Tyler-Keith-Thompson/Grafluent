@@ -97,7 +97,7 @@ factor positions are. Enum cases are public, and the tensor struct has a public 
 | □ | `enum CartesianProduct.Position` | `.first(edge: FirstEdge, vertexIndex: Int)` (G's edge at H's vertex index), `.second(vertexIndex: Int, edge: SecondEdge)` |
 | × | `struct TensorProduct.Position` | `first: FirstEdge`, `second: SecondEdge`, `reversed: Bool` |
 | ⊠ | `enum StrongProduct.Position` | `.first(edge:vertexIndex:)`, `.second(vertexIndex:edge:)` as □, then `.both(first:second:reversed:)` as × |
-| ∘ | `enum LexicographicProduct.Position` | `.first(edge: FirstEdge, sourceVertexIndex: Int, targetVertexIndex: Int)` (H's vertex indices at the G-edge's source, or `u`, end and at its target, or `v`, end), `.second(vertexIndex: Int, edge: SecondEdge)` |
+| ∘ | `enum LexicographicProduct.Position` | `.first(edge: FirstEdge, uVertexIndex: Int, vVertexIndex: Int)` (H's vertex indices at the G-edge's `u` end, directed its source, and at its `v` end, directed its target), `.second(vertexIndex: Int, edge: SecondEdge)` |
 
 The comparisons are the derived ones for □ and ∘ (case order, then the associated values), and
 written out for × and ⊠ (`Bool` is not `Comparable`; straight before reversed). The end index of
@@ -111,8 +111,8 @@ past G's last edge. The positions in detail:
   {(a,c),(b,d)} and the reversed {(a,d),(b,c)}. When either edge is a self-loop the two coincide
   and there is one (GP-023 – GP-025). Directed, `reversed` is always false.
 - ⊠: the □ positions, then the × positions.
-- ∘: `.first(edgeOfG, sourceH, targetH)` for every G-edge and every pair of H-vertices. Over an
-  undirected self-loop at a there is only `sourceH ≤ targetH`, since (a,h)–(a,h′) and (a,h′)–(a,h)
+- ∘: `.first(edgeOfG, uH, vH)` for every G-edge and every pair of H-vertices. Over an
+  undirected self-loop at a there is only `uH ≤ vH`, since (a,h)–(a,h′) and (a,h′)–(a,h)
   are one edge. Then `.second(vertexIndexOfG, edgeOfH)`.
 
 **Edge indices**, when both factors have dense ones:
@@ -202,10 +202,13 @@ ends; `Pseudograph(product)` keeps both.
 
 ### Row types and the measured traps
 
-- Stored generic iterators cost about 3× in index-space loops. A row is a struct holding the two
-  factor rows. When a factor's `SuccessorIndices` (or `NeighborIndices`) is a `RandomAccessCollection`
-  with `Int` indices, which covers `CompressedSparseRow` slices and the adjacency-list rows, it is
-  walked by integer cursor. The general `Sequence` path is the fallback.
+- Stored generic iterators cost about 3× in index-space loops. A row's iterator nevertheless holds
+  the factor rows' iterators (one per factor; the undirected ×, ⊠ and ∘ rows also hold the factors
+  by one reference); there is no integer-cursor path. Algorithms that walk every row (union–find,
+  breadth-first search) go through `_forEachSuccessorIndex`, `_forEachPredecessorIndex` and
+  `_forEachNeighborIndex`, which each product implements as loops over its factors' own hooks, with
+  no row value: □ and ∘ components then run at or under the copy's, and ⊠ reads H's row once per
+  vertex into a stack buffer.
 - ∘'s G-part is a counted loop over `0..<nH` for each G-neighbour, with no inner iterator.
 - No `lazy.map { self… }`: it copies the product, and both factors, on every call.
 - `_withSuccessorIndexRows` and `_withIncidentIndexRows` are `nil`. The rows are computed.
@@ -227,15 +230,25 @@ ends; `Pseudograph(product)` keeps both.
 |---|---|---|---|---|
 | Build | O(1) | O(1) | O(1) | O(1) |
 | Row, one vertex | O(d_G + d_H) | O(d_G·d_H) | O(d_G + d_H + d_G·d_H) | O(d_G·nH + d_H) |
-| `outDegree(ofIndex:)` / `degree(ofIndex:)` | O(1) from the factors' degrees, when theirs are O(1) and loop-free; otherwise the row | same | same | same |
+| `outDegree(ofIndex:)` / `degree(ofIndex:)` | O(1) from the factors' degrees | directed O(1); undirected the factors' degrees and loop counts, O(d_G + d_H) | as × | directed O(1); undirected O(d_G) |
 | `edgeCount` | O(1) | directed O(1); undirected O(mG + mH) | as × | as × |
 | `edgeIndexBound` | O(1) | directed O(1); undirected `nil` | as × | as × |
 | `contains(edge: (g,h)→(g′,h′))` | g = g′ and the H-edge, or h = h′ and the G-edge: factor `contains(edge:)`, O(1) | both factor edges | either | the G-edge, or g = g′ and the H-edge |
 
-An undirected degree law needs care. With a self-loop in a factor the O(1) degree formula is wrong
-(a loop counts 2 in the factor, but its product contribution depends on the kind). Degrees fall
-back to counting the row whenever a factor might have loops. Phase 1 counts the row for ×, ⊠ and
-∘ undirected, and uses the formula only for □, where d_G + d_H holds with loops too.
+An undirected degree law needs care. With a self-loop in a factor the loop-free formula is wrong
+(a loop counts 2 in the factor, but its product contribution depends on the kind). The undirected
+×, ⊠ and ∘ degrees use closed forms in the factors' degrees and self-loop counts ℓ (a loop is two
+entries of its row, so ℓ_g is half the entries of g's row that are g; counting them is O(d), not
+the product row's O(d_G·d_H)):
+
+- ×: (d_G − 2ℓ_g)·(d_H − ℓ_h) + ℓ_g·d_H. A G-entry that is not a loop meets each H-entry but an
+  H-loop's second appearance; a G-loop, counted at its first appearance, meets every H-entry.
+- ⊠: d_G + d_H, the Cartesian moves, plus ×'s.
+- ∘: (d_G − 2ℓ_g)·|V(H)| + ℓ_g·(|V(H)| + 1) + d_H. A G-entry that is not a loop gives a whole
+  block; a G-loop its block at its first appearance and (g, h) at its second.
+- □: d_G + d_H, which holds with loops too.
+
+The randomized property test compares each with the row's length on pseudographs with loops.
 
 ## Performance targets
 

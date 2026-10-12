@@ -28,8 +28,8 @@ public func lexicographicProduct<G: Graph, H: Graph>(_ g: G, _ h: H) -> Lexicogr
 /// Vertices and their indices are as in `CartesianProduct`. The row of (g, h) lists `(g′, h′)` for
 /// each entry g′ of G's row and **every** h′ of H, in index order, then the H-moves `(g, h′)`.
 ///
-/// An edge's position is `.first(edge: e, sourceVertexIndex: s, targetVertexIndex: t)`, G's edge
-/// `e` from H-vertex index `s` at its source (`u`) end to `t` at its target (`v`) end, or
+/// An edge's position is `.first(edge: e, uVertexIndex: s, vVertexIndex: t)`, G's edge `e` with
+/// H-vertex index `s` at its `u` end (directed: its source) and `t` at its `v` end (its target), or
 /// `.second(vertexIndex: g, edge: f)`, H's edge `f` at G-vertex index `g`. Over an undirected
 /// self-loop of G only `s ≤ t` occurs, since (a, s)–(a, t) and (a, t)–(a, s) are one edge; a row
 /// lists such a loop's edges at its first appearance, and only the product loop again at its
@@ -59,9 +59,9 @@ public struct LexicographicProduct<First, Second> {
     /// The position of an edge of a lexicographic product. Ordered as `edges` lists them.
     @frozen
     public enum Position<FirstEdge: Hashable & Comparable, SecondEdge: Hashable & Comparable>: Hashable, Comparable {
-        /// G's edge `edge`, from H-vertex index `sourceVertexIndex` at its source (`u`) end to
-        /// `targetVertexIndex` at its target (`v`) end.
-        case first(edge: FirstEdge, sourceVertexIndex: Int, targetVertexIndex: Int)
+        /// G's edge `edge`, with H-vertex index `uVertexIndex` at its `u` end (directed: its
+        /// source) and `vVertexIndex` at its `v` end (directed: its target).
+        case first(edge: FirstEdge, uVertexIndex: Int, vVertexIndex: Int)
         /// H's edge `edge`, at G's vertex index `vertexIndex`.
         case second(vertexIndex: Int, edge: SecondEdge)
     }
@@ -184,8 +184,8 @@ public struct LexicographicProduct<First, Second> {
                         if let e = current, cursor < secondCount {
                             defer { cursor &+= 1 }
                             return outward
-                                ? .first(edge: e, sourceVertexIndex: h, targetVertexIndex: cursor)
-                                : .first(edge: e, sourceVertexIndex: cursor, targetVertexIndex: h)
+                                ? .first(edge: e, uVertexIndex: h, vVertexIndex: cursor)
+                                : .first(edge: e, uVertexIndex: cursor, vVertexIndex: h)
                         }
                         guard let e = first.next() else { break }
                         current = e
@@ -215,7 +215,7 @@ extension LexicographicProduct.Position {
     @inlinable
     static func _start<GE: Collection, HE: Collection>(_ firstEdges: GE, _ secondEdges: HE, firstCount: Int, secondCount: Int) -> Self
     where GE.Index == FirstEdge, HE.Index == SecondEdge {
-        if secondCount > 0, !firstEdges.isEmpty { return .first(edge: firstEdges.startIndex, sourceVertexIndex: 0, targetVertexIndex: 0) }
+        if secondCount > 0, !firstEdges.isEmpty { return .first(edge: firstEdges.startIndex, uVertexIndex: 0, vVertexIndex: 0) }
         return _secondStart(secondEdges, from: 0, firstCount: firstCount)
     }
 
@@ -227,10 +227,10 @@ extension LexicographicProduct.Position {
     ) -> Self where GE.Index == FirstEdge, HE.Index == SecondEdge {
         switch self {
         case let .first(edge, s, t):
-            if t + 1 < secondCount { return .first(edge: edge, sourceVertexIndex: s, targetVertexIndex: t + 1) }
-            if s + 1 < secondCount { return .first(edge: edge, sourceVertexIndex: s + 1, targetVertexIndex: isLoop(edge) ? s + 1 : 0) }
+            if t + 1 < secondCount { return .first(edge: edge, uVertexIndex: s, vVertexIndex: t + 1) }
+            if s + 1 < secondCount { return .first(edge: edge, uVertexIndex: s + 1, vVertexIndex: isLoop(edge) ? s + 1 : 0) }
             let next = firstEdges.index(after: edge)
-            if next != firstEdges.endIndex { return .first(edge: next, sourceVertexIndex: 0, targetVertexIndex: 0) }
+            if next != firstEdges.endIndex { return .first(edge: next, uVertexIndex: 0, vVertexIndex: 0) }
             return Self._secondStart(secondEdges, from: 0, firstCount: firstCount)
         case let .second(g, edge):
             let next = secondEdges.index(after: edge)
@@ -303,9 +303,9 @@ struct _UndirectedLexicographicRows<G: Graph, H: Graph> {
                     cursor &+= 1
                     let index = neighbor &* secondCount &+ t
                     switch mode {
-                    case 0: return (index, .first(edge: edge, sourceVertexIndex: h, targetVertexIndex: t))
-                    case 1: return (index, .first(edge: edge, sourceVertexIndex: t, targetVertexIndex: h))
-                    default: return (index, .first(edge: edge, sourceVertexIndex: Swift.min(h, t), targetVertexIndex: Swift.max(h, t)))
+                    case 0: return (index, .first(edge: edge, uVertexIndex: h, vVertexIndex: t))
+                    case 1: return (index, .first(edge: edge, uVertexIndex: t, vVertexIndex: h))
+                    default: return (index, .first(edge: edge, uVertexIndex: Swift.min(h, t), vVertexIndex: Swift.max(h, t)))
                     }
                 }
                 if !_nextBlock() { break }

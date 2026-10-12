@@ -1,7 +1,7 @@
 // Subgraph views (catalog GO-010 – GO-047): kept vertices renumbered in base order, positions the
-// base's; an induced subgraph has no edge indices; an edge set gives dense edge indices by rank
-// in base index order, counting only edges with both ends kept; a self-loop twice in an
-// undirected row; views of views.
+// base's; an induced subgraph that drops a vertex has no edge indices (one on every vertex has
+// the base's); an edge set gives dense edge indices by rank in base index order, counting only
+// edges with both ends kept; a self-loop twice in an undirected row; views of views.
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import AdjacencyListModule
@@ -15,14 +15,14 @@ struct SubgraphViewTests {
     @Test("GO-010 empty base, empty set")
     func go010() {
         // AL V []; E [] / .inducedSubgraph(on: [])
-        // Expected: V []; E []; bounds 0/nil; rows []
+        // Expected: V []; E []; bounds 0/0; rows []
         let graph = AdjacencyList<String>(vertices: [] as [String], edges: [] as [DirectedEdge<String>])
         let view = graph.inducedSubgraph(on: [] as [String])
         #expect(Array(view.vertices) == [] as [String])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [] as [Int])
         #expect((0 ..< 0).map { view.vertex(atIndex: $0) } == [] as [String])
         #expect(view.vertexCount == 0 && view.edgeCount == 0 && view.edges.count == 0)
-        #expect(view.vertexIndexBound == 0 && view.edgeIndexBound == nil)
+        #expect(view.vertexIndexBound == 0 && view.edgeIndexBound == 0)
         #expect(Array(view.edges.indices) == [] as [Int])
         #expect(view.edges.map { [$0.source, $0.target] } == [] as [[String]])
     }
@@ -42,21 +42,22 @@ struct SubgraphViewTests {
         #expect(view.edges.map { [$0.source, $0.target] } == [] as [[String]])
     }
 
-    @Test("GO-012 keep everything: same graph, no edge indices")
+    @Test("GO-012 keep everything: same graph, the base's edge indices")
     func go012() {
         // AL V [a, b, c]; E [a→b, b→c, c→a] / .inducedSubgraph(on: [a, b, c])
-        // Expected: V [a#0, b#1, c#2]; E [0:a→b, 1:b→c, 2:c→a]; bounds 3/nil; rows [a: b; b: c; c: a]
+        // Expected: V [a#0, b#1, c#2]; E [0:a→b, 1:b→c, 2:c→a]; bounds 3/3; rows [a: b; b: c; c: a]
         let graph = AdjacencyList<String>(vertices: ["a", "b", "c"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "c"), DirectedEdge(from: "c", to: "a")])
         let view = graph.inducedSubgraph(on: ["a", "b", "c"])
         #expect(Array(view.vertices) == ["a", "b", "c"])
         #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1, 2])
         #expect((0 ..< 3).map { view.vertex(atIndex: $0) } == ["a", "b", "c"])
         #expect(view.vertexCount == 3 && view.edgeCount == 3 && view.edges.count == 3)
-        #expect(view.vertexIndexBound == 3 && view.edgeIndexBound == nil)
+        #expect(view.vertexIndexBound == 3 && view.edgeIndexBound == 3)
         #expect(Array(view.edges.indices) == [0, 1, 2])
         #expect(view.edges.map { [$0.source, $0.target] } == [["a", "b"], ["b", "c"], ["c", "a"]])
         #expect(view.edges.indices.map { [view.source(ofEdgeAt: $0), view.target(ofEdgeAt: $0)] } == [["a", "b"], ["b", "c"], ["c", "a"]])
         #expect(view.edges.indices.map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 1], [1, 2], [2, 0]])
+        #expect(view.edges.indices.map { view.edgeIndex(of: $0) } == [0, 1, 2])
         #expect(view.contains("a"))
         #expect(Array(view.successors(of: "a")) == ["b"])
         #expect(Array(view.successorIndices(ofIndex: 0)) == [1])

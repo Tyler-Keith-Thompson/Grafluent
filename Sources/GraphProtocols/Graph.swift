@@ -156,6 +156,12 @@ public protocol Graph<Vertex> {
     /// - Precondition: `vertexIndexBound` is not `nil`, and `index` is in `0..<vertexIndexBound`.
     func degree(ofIndex index: Int) -> Int
 
+    /// Calls `body` with each of `neighborIndices(ofIndex: index)`, in order. Default: a loop
+    /// over `neighborIndices`; as `DirectedGraph._forEachSuccessorIndex(ofIndex:_:)`.
+    ///
+    /// Not for use outside the library.
+    func _forEachNeighborIndex(ofIndex index: Int, _ body: (Int) -> Void)
+
     /// The indices of `edges[position].u` and `.v`, in that order, for a representation or a view
     /// that knows them without the lookup (the undirected view of a `LabeledGraph` reads its
     /// base's `Int` endpoints, where `vertexIndex(of:)` would hash two labels). Default: both
@@ -239,6 +245,12 @@ extension Graph {
     @inlinable
     public func degree(ofIndex index: Int) -> Int {
         degree(of: vertex(atIndex: index))
+    }
+
+    @inlinable
+    @inline(__always)
+    public func _forEachNeighborIndex(ofIndex index: Int, _ body: (Int) -> Void) {
+        for w in neighborIndices(ofIndex: index) { body(w) }
     }
 
     @inlinable

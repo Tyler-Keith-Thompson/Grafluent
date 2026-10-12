@@ -112,6 +112,9 @@ which stores only its count.
   - the edges in order;
   - `edgeCount`, and the undirected ×/∘ count formulas with ℓ_G and ℓ_H;
   - every row as a multiset;
+  - breadth-first layers, connected (weak) components and, directed, ancestors, against the same
+    computed over the rows: these walk each row in place through the products'
+    `_forEach…Index` hooks, which must list the row's entries in its order;
   - each entry's position and its other end;
   - each edge met once per end over all rows (a self-loop twice in its row), and each arc once in
     an out-row and once in an in-row;

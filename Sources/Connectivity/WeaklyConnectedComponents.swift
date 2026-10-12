@@ -36,7 +36,7 @@ extension DirectedGraph {
                 if joined == nil {
                     var u = 0
                     while u < n, joins < limit {
-                        for w in successorIndices(ofIndex: u) { union(u, w) }
+                        _forEachSuccessorIndex(ofIndex: u) { w in union(u, w) }
                         u += 1
                     }
                 }

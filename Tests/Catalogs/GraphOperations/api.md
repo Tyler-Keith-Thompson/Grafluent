@@ -94,7 +94,8 @@ Edges pass through. `Edges.Index` is `Base.Edges.Index`, so the base's weight cl
 its attached maps work on the view (README open question 9). An edge filter is a bit mask over the
 base's `edgeIndex`, plus one `Int32` prefix count per 64-bit word. With it the view reports dense
 edge indices: `edgeIndex(of: p)` is the rank of `p`'s bit, O(1) by popcount (GO-031). An induced
-subgraph reports `edgeIndexBound == nil` (GO-012), because building its edge mask costs O(m).
+subgraph that drops a vertex reports `edgeIndexBound == nil`, because building its edge mask costs
+O(m). One on every vertex keeps every edge, so it reports the base's edge indices (GO-012).
 
 **An edge filter over a base without edge indices** (an `AdjacencyMatrix`, whose positions are
 cells; a complement; an induced subgraph; a `StableDirectedGraph` with edge holes) takes the slower
@@ -111,10 +112,13 @@ from the base row. The row iterator marks the base row in a `⌈n/64⌉`-word ma
 then yields the clear bits by trailing-zero count. A row therefore costs O(n/64 + output) and one
 small allocation. The complement has Θ(n²) edges on a sparse base, so a traversal is Θ(n²)
 whatever the layout. `edgeIndexBound` is `nil`. `Edges.Index` is **`ComplementView.Cell`**, the cell of the adjacency
-matrix: a `@frozen` struct with `public let row: Int` and `public let column: Int` (vertex indices)
-and a public `init(row:column:)`, `Hashable`, `Sendable`, and `Comparable` in row-major order, as
-`AdjacencyMatrix.Edges.Index` is. One type serves both directions: directed, the edge runs from
-`row` to `column`; undirected, `row < column`. The init checks nothing, like
+matrix: a `@frozen` struct with `public let source: Int` and `public let target: Int` (vertex
+indices, the row and the column) and a public `init(source:target:)`, `Hashable`, `Sendable`, and
+`Comparable` in row-major order, as `AdjacencyMatrix.Edges.Index(source:target:)` is. One type
+serves both directions: directed, the edge runs from `source` to `target`; undirected,
+`source < target`. `edges.index(after:)` steps from the current column, one base
+`contains(edge:)` per column passed, so walking `edges.indices` costs O(n²) tests (it rescanned
+the row from its start, O(n³) in all, 800× iterating at n = 2000, before). The init checks nothing, like
 `DirectedView.Edges.Index`'s. `contains(edge:)` is `u ≠ v` and not `base.contains(edge:)` (GO-062).
 It takes vertices, so it looks both up (and the base's `contains(edge:)` looks them up again); GO-062
 counts hashes over the index-space rows only, and lists the `contains(edge:)` answers after. Self-loops and parallel
@@ -220,18 +224,28 @@ extension Graph { /* the same three */ }
     @usableFromInline let _old: [Int]             // view index → base index; empty when every vertex is kept
     @usableFromInline let _new: [Int]             // base index → view index or −1; empty when every vertex is kept
     @usableFromInline let _vertexCount: Int
-    @usableFromInline let _edgeMask: _EdgeMask?   // bits by base edgeIndex + per-word prefix counts
-    @usableFromInline let _keptPositions: _KeptPositionsBox?  // sorted positions, base without edge indices
+    @usableFromInline let _edgeTest: _EdgeTestBox? // the edge set, by reference: a mask by base
+                                                  // edgeIndex with per-word prefix counts (and its
+                                                  // words as a pointer), or the sorted kept positions
+                                                  // over a base without edge indices
     @usableFromInline let _edgeCount: Int?        // known when an edge set was given
+    @usableFromInline let _rowState: (AnyObject & Sendable)?  // _RowState: _new and the edge set in
+                                                  // one reference for the rows; nil when the view
+                                                  // keeps every vertex and every edge
 }
 // An induced subgraph that keeps every vertex leaves _old and _new empty, so its rows and
-// degrees are the base's.
+// degrees are the base's, and so are its edge indices (edgeIndexBound, edgeIndex(of:),
+// incidentEdgeIndices) and flat rows (_withSuccessorIndexRows, _withIncidentIndexRows).
 extension SubgraphView {
     // Rows shared by both directions, generic over the base's index row and position row:
     public struct IndexRow<Indices: Sequence<Int>, Positions: Sequence>: Sequence      // renumbered
     public struct EdgeRow<Indices: Sequence<Int>, Positions: Sequence>: Sequence       // positions
-    public struct EdgeIndexRow<Indices: Sequence<Int>, Positions: Sequence>: Sequence  // ranks
+    public struct EdgeIndexRow<Indices: Sequence<Int>, Positions: Sequence, BaseEdgeIndices: Sequence<Int>>: Sequence
+                                                                                       // ranks, or the base's row
 }
+// An IndexRow holds the base's index row, its position row (only under an edge set) and one
+// _RowState reference. _forEachSuccessorIndex, _forEachPredecessorIndex and _forEachNeighborIndex
+// loop over the base's rows in place, reading the mask's words at the base's edge index.
 extension SubgraphView: DirectedGraph where Base: DirectedGraph
     // Vertices: LazyMapCollection<Range<Int>, Base.Vertex>; Edges: DirectedEdges (base positions);
     // SuccessorIndices: IndexRow<Base.SuccessorIndices, Base.OutEdges>;
@@ -240,7 +254,8 @@ extension SubgraphView: BidirectionalDirectedGraph where Base: BidirectionalDire
     // The same over Base.PredecessorIndices and Base.InEdges.
 extension SubgraphView: Graph where Base: Graph
     // Edges: UndirectedEdges; NeighborIndices: IndexRow<Base.NeighborIndices, Base.IncidentEdges>;
-    // IncidentEdges: EdgeRow<…>; IncidentEdgeIndices: EdgeIndexRow<…> (each kept position's rank).
+    // IncidentEdges: EdgeRow<…>; IncidentEdgeIndices: EdgeIndexRow<…, Base.IncidentEdgeIndices>
+    // (each kept position's rank, or the base's row when the view keeps everything).
 
 // MARK: Complement
 extension DirectedGraph { public var complement: ComplementView<Self> { get } }  // O(1)
@@ -248,8 +263,8 @@ extension Graph { public var complement: ComplementView<Self> { get } }
 @frozen public struct ComplementView<Base> {
     public let base: Base
     @frozen public struct Cell: Hashable, Comparable, Sendable {   // Edges.Index, both directions
-        public let row: Int, column: Int                         // undirected: row < column
-        public init(row: Int, column: Int)
+        public let source: Int, target: Int                      // undirected: source < target
+        public init(source: Int, target: Int)
     }
     public struct IndexRow<Row: Sequence<Int>>: Sequence          // the clear bits of the row's mask
     public struct CellRow<Row: Sequence<Int>>: Sequence           // IndexRow as cells
@@ -318,7 +333,7 @@ n and m are the base's counts, and k is the number of kept vertices.
 | `outDegree(ofIndex:)` | base `inDegree` | O(base degree) | O(deg + n/64) |
 | `vertexIndex(of:)` | the base's | the base's plus one load | the base's |
 | `edgeCount` | O(1) | O(1) with an edge set; induced: O(Σ base out-degree of kept vertices) | O(n + m) |
-| `edgeIndexBound` | the base's | the kept count with an edge set; `nil` induced | `nil` |
+| `edgeIndexBound` | the base's | the kept count with an edge set; induced, the base's on every vertex, otherwise `nil` | `nil` |
 | `contains(edge:)` | base, flipped | base, both ends kept; with an edge set, a scan of the source's row | base, negated |
 
 | Materialized | Time | Memory |
@@ -336,10 +351,11 @@ n and m are the base's counts, and k is the number of kept vertices.
   every call.
 - `_withSuccessorIndexRows` and `_withIncidentIndexRows` return `nil` on every view here, with one
   exception. Their contract forbids forwarding through a view that changes incidence, and a
-  `ReverseView`'s rows are not the base's out-rows. A directed induced subgraph that keeps every
-  vertex leaves `_old` and `_new` empty and has no edge set, so its rows and positions are the
-  base's, and it forwards `_withSuccessorIndexRows`. (The undirected hook is not forwarded: it
-  carries edge indices, which an induced subgraph does not report.)
+  `ReverseView`'s rows are not the base's out-rows. An induced subgraph that keeps every vertex
+  leaves `_old` and `_new` empty and has no edge set, so its rows, positions and edge indices are
+  the base's, and it forwards `_withSuccessorIndexRows`, and undirected `_withIncidentIndexRows`,
+  `edgeIndexBound`, `edgeIndex(of:)` and `incidentEdgeIndices(ofIndex:)` (so `connectedComponents()`
+  takes the base's flat-row path).
 - The edge set is a class (`_EdgeTest<Position>`, subclassed per base) held once by the view, so
   a row holds one optional reference rather than a copy of the base; a row that would hold the base
   by value was copied through value witnesses on every row (measured: 2–3× on BFS).

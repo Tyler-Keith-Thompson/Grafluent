@@ -90,6 +90,8 @@ struct GraphOperationsConformanceTests {
         check(base.inducedSubgraph(on: keep).reverseView, "inducedSubgraph.reverseView")
         check(base.complement.reverseView, "complement.reverseView")
         check(base.reverseView.inducedSubgraph(on: keep).complement, "reverseView.inducedSubgraph.complement")
+        check(base.inducedSubgraph(on: names), "inducedSubgraph on every vertex")
+        check(base.inducedSubgraph(on: keep).reverseView.reverseView, "inducedSubgraph.reverseView.reverseView")
         // The subgraph and reverse views' positions are the base's: the weight of base position p is
         // the weight the view sees at p.
         let view = base.subgraph(vertices: keep, edges: positions)
@@ -158,10 +160,78 @@ struct GraphOperationsConformanceTests {
         check(base.complement, "complement")
         check(base.inducedSubgraph(on: keep).complement, "inducedSubgraph.complement")
         check(base.spanningSubgraph(edges: positions).inducedSubgraph(on: keep), "spanningSubgraph.inducedSubgraph")
+        check(base.inducedSubgraph(on: names), "inducedSubgraph on every vertex")
+        // On every vertex the view forwards the base's flat rows and edge indices, which
+        // UndirectedAdjacencyList keeps (and Pseudograph does not).
+        var pairs = Set<[String]>()
+        for e in edges where e.u != e.v { pairs.insert([Swift.min(e.u, e.v), Swift.max(e.u, e.v)]) }
+        let simple = UndirectedAdjacencyList<String>(vertices: names, edges: pairs.sorted { $0.lexicographicallyPrecedes($1) }.map { UndirectedEdge($0[0], $0[1]) })
+        check(simple.inducedSubgraph(on: names), "UndirectedAdjacencyList.inducedSubgraph on every vertex")
+        check(simple.inducedSubgraph(on: keep), "UndirectedAdjacencyList.inducedSubgraph")
+        check(simple.spanningSubgraph(edges: simple.edges.indices.filter { _ in Bool.random(using: &rng) }), "UndirectedAdjacencyList.spanningSubgraph")
+        let allView = simple.inducedSubgraph(on: names)
+        #expect(allView.edgeIndexBound == simple.edgeIndexBound)
+        for i in 0 ..< n {
+            #expect(Array(allView.incidentEdgeIndices(ofIndex: i)) == Array(simple.incidentEdgeIndices(ofIndex: i)))
+        }
+        for p in simple.edges.indices { #expect(allView.edgeIndex(of: p) == simple.edgeIndex(of: p)) }
         // The undirected view of a reverse view is the base's own undirected view, edge for edge.
         let directed = DirectedPseudograph<String>(vertices: names, edges: edges.map { DirectedEdge(from: $0.u, to: $0.v) })
+        // The undirected view of a directed view walks the out-row, then the in-row, in place: its
+        // rows are ordered differently from a copy's, so components and layers are compared.
+        let undirectedCopy = Pseudograph<String>(directed.undirected)
+        #expect(directed.undirected.connectedComponents().map { Array($0) } == undirectedCopy.connectedComponents().map { Array($0) })
+        #expect(directed.reverseView.undirected.connectedComponents().map { Array($0) } == undirectedCopy.connectedComponents().map { Array($0) })
+        #expect(directed.undirected.isConnected == undirectedCopy.isConnected)
+        for source in names {
+            let layers = undirectedCopy.directed.breadthFirstLayers(from: source).map { Set($0) }
+            #expect(directed.undirected.directed.breadthFirstLayers(from: source).map { Set($0) } == layers)
+            #expect(directed.reverseView.undirected.directed.breadthFirstLayers(from: source).map { Set($0) } == layers)
+        }
+        let inducedUndirected = directed.inducedSubgraph(on: keep).undirected
+        #expect(inducedUndirected.connectedComponents().map { Array($0) } == Pseudograph<String>(inducedUndirected).connectedComponents().map { Array($0) })
         let flipped = Pseudograph<String>(directed.reverseView.undirected)
         #expect(flipped.edges.map { [$0.v, $0.u] } == Pseudograph<String>(directed.undirected).edges.map { [$0.u, $0.v] })
+    }
+
+    @Test("Walking a complement's edges.indices steps from the current cell: every cell of n = 1500 in time", .timeLimit(.minutes(1)))
+    func complementIndicesWalk() {
+        // Before, index(after:) rescanned the row from its start, O(n) a step and O(n³) in all:
+        // 800× iteration at n = 2000. Now one contains(edge:) per column passed.
+        let n = 1500
+        var rng = SeededRandomNumberGenerator(seed: 71)
+        var arcs = Set<[Int]>()
+        while arcs.count < 3 * n { arcs.insert([Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng)]) }
+        let base = CompressedSparseRow(vertexCount: n, edges: arcs.map { DirectedEdge(from: $0[0], to: $0[1]) })
+        let complement = base.complement
+        var count = 0, previous: ComplementView<CompressedSparseRow>.Cell?
+        var sources = 0, ascending = true
+        for cell in complement.edges.indices {
+            if let previous, !(previous < cell) { ascending = false }
+            previous = cell
+            count += 1
+            sources &+= cell.source
+        }
+        #expect(ascending)
+        #expect(count == complement.edgeCount && count == n * (n - 1) - arcs.filter { $0[0] != $0[1] }.count)
+        #expect(sources == complement.edges.reduce(0) { $0 &+ $1.source })
+
+        var pairs = Set<[Int]>()
+        while pairs.count < 3 * n {
+            let a = Int.random(in: 0 ..< n, using: &rng), b = Int.random(in: 0 ..< n, using: &rng)
+            if a != b { pairs.insert([Swift.min(a, b), Swift.max(a, b)]) }
+        }
+        let undirected = UndirectedAdjacencyList<Int>(vertices: 0 ..< n, edges: pairs.map { UndirectedEdge($0[0], $0[1]) })
+        var cells = 0, upper = true
+        var last: ComplementView<UndirectedAdjacencyList<Int>>.Cell?
+        for cell in undirected.complement.edges.indices {
+            if cell.source >= cell.target { upper = false }
+            if let last, !(last < cell) { upper = false }
+            last = cell
+            cells += 1
+        }
+        #expect(upper)
+        #expect(cells == undirected.complement.edgeCount && cells == n * (n - 1) / 2 - pairs.count)
     }
 
     @Test("Views over CompressedSparseRow and AdjacencyMatrix bases equal their copies", arguments: [1, 2, 3, 4])

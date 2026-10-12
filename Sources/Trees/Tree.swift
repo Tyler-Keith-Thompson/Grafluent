@@ -174,6 +174,16 @@ extension Tree: Graph {
     @inlinable public func edgeIndex(of position: Int) -> Int { position }
     @inlinable public func incidentEdges(ofIndex index: Int) -> ArraySlice<Int> { _layout.rowEdges[_layout.row(index)] }
     @inlinable public func incidentEdgeIndices(ofIndex index: Int) -> ArraySlice<Int> { _layout.rowEdges[_layout.row(index)] }
+
+    /// The length of the stored row of the vertex at `index`. O(1), no lookup.
+    @inlinable public func degree(ofIndex index: Int) -> Int { _layout.row(index).count }
+
+    /// The indices of the edge's ends, read from the stored ends. O(1), no lookup.
+    @inlinable
+    public func endpointIndices(ofEdgeAt position: Int) -> (u: Int, v: Int) {
+        precondition(position >= 0 && position < _layout.edgeCount, "Edge position out of range")
+        return (_layout.ends[2 * position], _layout.ends[2 * position + 1])
+    }
 }
 
 // MARK: - Equality, hashing, coding, descriptions

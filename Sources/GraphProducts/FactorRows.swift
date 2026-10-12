@@ -164,3 +164,60 @@ struct _UndirectedIndexRows<G: Graph, H: Graph> {
         }
     }
 }
+
+/// Calls `body(w, second)` for each entry of `vertex`'s row, in order, `second` true at a
+/// self-loop's second appearance. The row is walked through the factor's own
+/// `_forEachNeighborIndex`; its positions are read only at a self-loop entry.
+@inlinable
+@inline(__always)
+func _forEachEntry<F: Graph>(_ graph: F, _ vertex: Int, _ body: (Int, Bool) -> Void) {
+    var offset = 0
+    graph._forEachNeighborIndex(ofIndex: vertex) { w in
+        if w == vertex {
+            body(w, !_isFirstAppearance(graph, at: vertex, offset: offset))
+        } else {
+            body(w, false)
+        }
+        offset &+= 1
+    }
+}
+
+/// The number of self-loops at `vertex`: half the entries of its row that are `vertex` itself.
+@inlinable
+func _loopCount<F: Graph>(_ graph: F, _ vertex: Int) -> Int {
+    var entries = 0
+    graph._forEachNeighborIndex(ofIndex: vertex) { if $0 == vertex { entries &+= 1 } }
+    return entries >> 1
+}
+
+/// The undirected tensor row of (g, h), in the order of `_UndirectedIndexRows`: each G-entry, a
+/// self-loop from its first appearance only, with each H-entry, an H-loop's second appearance
+/// only while the G-entry is a loop. H's row is read once, into a stack buffer of `degree(ofIndex:
+/// h)` entries, a loop's second appearance stored complemented.
+@inlinable
+@inline(__always)
+func _forEachTensorNeighbor<G: Graph, H: Graph>(
+    _ first: G, _ second: H, g: Int, h: Int, secondCount nH: Int, _ body: (Int) -> Void
+) {
+    let capacity = second.degree(ofIndex: h)
+    withUnsafeTemporaryAllocation(of: Int.self, capacity: capacity) { hRow in
+        var count = 0
+        _forEachEntry(second, h) { x, isSecond in
+            precondition(count < capacity, "degree(ofIndex:) is shorter than neighborIndices(ofIndex:)")
+            hRow[count] = isSecond ? ~x : x
+            count &+= 1
+        }
+        _forEachEntry(first, g) { w, isSecond in
+            if isSecond { return }
+            let block = w &* nH
+            if w == g {
+                for k in 0 ..< count {
+                    let x = hRow[k]
+                    body(block &+ (x < 0 ? ~x : x))
+                }
+            } else {
+                for k in 0 ..< count where hRow[k] >= 0 { body(block &+ hRow[k]) }
+            }
+        }
+    }
+}

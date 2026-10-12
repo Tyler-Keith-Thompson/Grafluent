@@ -58,6 +58,20 @@ extension TensorProduct: DirectedGraph where First: DirectedGraph, Second: Direc
         return IndexRow(firstRow: first.successorIndices(ofIndex: g), secondRow: second.successorIndices(ofIndex: h), secondCount: _secondCount)
     }
 
+    /// `successorIndices(ofIndex:)` without a row value: H's row for each entry of G's.
+    @inlinable
+    @inline(__always)
+    public func _forEachSuccessorIndex(ofIndex index: Int, _ body: (Int) -> Void) {
+        _checkProductIndex(index, count: _firstCount &* _secondCount)
+        let nH = _secondCount
+        let (g, h) = index.quotientAndRemainder(dividingBy: nH)
+        let second = second
+        first._forEachSuccessorIndex(ofIndex: g) { w in
+            let block = w &* nH
+            second._forEachSuccessorIndex(ofIndex: h) { body(block &+ $0) }
+        }
+    }
+
     @inlinable
     public func outEdges(ofIndex index: Int) -> EdgeRow<First.OutEdges, Second.OutEdges> {
         _checkProductIndex(index, count: _firstCount &* _secondCount)
@@ -167,6 +181,20 @@ extension TensorProduct: BidirectionalDirectedGraph where First: BidirectionalDi
         _checkProductIndex(index, count: _firstCount &* _secondCount)
         let (g, h) = index.quotientAndRemainder(dividingBy: _secondCount)
         return IndexRow(firstRow: first.predecessorIndices(ofIndex: g), secondRow: second.predecessorIndices(ofIndex: h), secondCount: _secondCount)
+    }
+
+    /// `predecessorIndices(ofIndex:)` without a row value, as `_forEachSuccessorIndex`.
+    @inlinable
+    @inline(__always)
+    public func _forEachPredecessorIndex(ofIndex index: Int, _ body: (Int) -> Void) {
+        _checkProductIndex(index, count: _firstCount &* _secondCount)
+        let nH = _secondCount
+        let (g, h) = index.quotientAndRemainder(dividingBy: nH)
+        let second = second
+        first._forEachPredecessorIndex(ofIndex: g) { w in
+            let block = w &* nH
+            second._forEachPredecessorIndex(ofIndex: h) { body(block &+ $0) }
+        }
     }
 
     @inlinable
@@ -318,6 +346,16 @@ extension TensorProduct: Graph where First: Graph, Second: Graph {
     @inlinable
     public func neighborIndices(ofIndex index: Int) -> UndirectedIndexRow { UndirectedIndexRow(rows: _indexRows(index)) }
 
+    /// `neighborIndices(ofIndex:)` without a row value, H's row read once.
+    @inlinable
+    @inline(__always)
+    public func _forEachNeighborIndex(ofIndex index: Int, _ body: (Int) -> Void) {
+        _checkProductIndex(index, count: _firstCount &* _secondCount)
+        let nH = _secondCount
+        let (g, h) = index.quotientAndRemainder(dividingBy: nH)
+        _forEachTensorNeighbor(first, second, g: g, h: h, secondCount: nH, body)
+    }
+
     /// The positions of the edges at (g, h), in the order of `neighborIndices(ofIndex:)`.
     @inlinable
     public func incidentEdges(ofIndex index: Int) -> UndirectedEdgeRow { UndirectedEdgeRow(rows: _rows(index, orient: true)) }
@@ -377,13 +415,16 @@ extension TensorProduct: Graph where First: Graph, Second: Graph {
         return Pair(first.vertex(atIndex: g), second.vertex(atIndex: h))
     }
 
-    /// The length of the row: with self-loops the factors' degrees do not give it.
+    /// The length of the row, from the factors' degrees and self-loops: O(d_G + d_H).
     @inlinable
     public func degree(ofIndex index: Int) -> Int {
-        var count = 0
-        var rows = _indexRows(index)
-        while rows.next() != nil { count &+= 1 }
-        return count
+        // (d_G − 2ℓ_g)·(d_H − ℓ_h) + ℓ_g·d_H, ℓ the self-loops: a G-edge that is not a loop meets
+        // each H-entry but an H-loop's second appearance; a G-loop, counted once, meets them all.
+        _checkProductIndex(index, count: _firstCount &* _secondCount)
+        let (g, h) = index.quotientAndRemainder(dividingBy: _secondCount)
+        let dG = first.degree(ofIndex: g), dH = second.degree(ofIndex: h)
+        let loopsG = _loopCount(first, g), loopsH = _loopCount(second, h)
+        return (dG &- 2 &* loopsG) &* (dH &- loopsH) &+ loopsG &* dH
     }
 
     @inlinable

@@ -45,8 +45,8 @@ struct GraphOperationsPropertyTests {
                 #expect(Array(view.edges.indices) == kept, "\(context)")
                 #expect(view.edges.map { [$0.source, $0.target] } == kept.map { arcs[$0] }, "\(context)")
                 #expect(view.edgeCount == kept.count, "\(context)")
-                #expect(view.edgeIndexBound == (indexed ? kept.count : nil), "\(context)")
-                if indexed { #expect(kept.map { view.edgeIndex(of: $0) } == Array(kept.indices), "\(context)") }
+                #expect(view.edgeIndexBound == (indexed || vertices.count == names.count ? kept.count : nil), "\(context)")
+                if indexed || vertices.count == names.count { #expect(kept.map { view.edgeIndex(of: $0) } == Array(kept.indices), "\(context)") }
                 #expect(kept.map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] }
                     == kept.map { [vertices.firstIndex(of: arcs[$0][0])!, vertices.firstIndex(of: arcs[$0][1])!] }, "\(context)")
                 for (k, v) in vertices.enumerated() {
@@ -89,7 +89,7 @@ struct GraphOperationsPropertyTests {
                 #expect(Array(view.vertices) == vertices, "\(context)")
                 #expect(Array(view.edges.indices) == kept && view.edgeCount == kept.count, "\(context)")
                 #expect(view.edges.map { [$0.u, $0.v] } == kept.map { ends[$0] }, "\(context)")
-                #expect(view.edgeIndexBound == (indexed ? kept.count : nil), "\(context)")
+                #expect(view.edgeIndexBound == (indexed || vertices.count == names.count ? kept.count : nil), "\(context)")
                 for (k, v) in vertices.enumerated() {
                     var row: [Int] = []
                     for p in kept {
@@ -101,7 +101,7 @@ struct GraphOperationsPropertyTests {
                     #expect(Array(view.neighbors(of: v)) == neighbors, "\(context) \(v)")
                     #expect(Array(view.neighborIndices(ofIndex: k)) == neighbors.map { vertices.firstIndex(of: $0)! }, "\(context) \(v)")
                     #expect(view.degree(of: v) == row.count && view.degree(ofIndex: k) == row.count, "\(context) \(v)")
-                    if indexed { #expect(Array(view.incidentEdgeIndices(ofIndex: k)) == row.map { kept.firstIndex(of: $0)! }, "\(context) \(v)") }
+                    if indexed || vertices.count == names.count { #expect(Array(view.incidentEdgeIndices(ofIndex: k)) == row.map { kept.firstIndex(of: $0)! }, "\(context) \(v)") }
                 }
                 for a in names {
                     for b in names {

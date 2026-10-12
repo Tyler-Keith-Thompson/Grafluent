@@ -19,7 +19,8 @@ extension ComplementView: DirectedGraph where Base: DirectedGraph {
     public var edges: DirectedEdges { DirectedEdges(view: self) }
 
     /// The edges of a directed `ComplementView`, in row-major order of their cells. Iterating
-    /// walks the rows; `index(after:)` alone rescans the current row.
+    /// walks the rows; `index(after:)` tests the columns after the current one with the base's
+    /// `contains(edge:)` until one is not an edge, so walking `indices` costs one test per cell.
     @frozen
     public struct DirectedEdges: Collection {
         @usableFromInline let view: ComplementView
@@ -31,15 +32,15 @@ extension ComplementView: DirectedGraph where Base: DirectedGraph {
             startIndex = view._nextCell(row: 0, after: -1)
         }
 
-        @inlinable public var endIndex: Cell { Cell(row: view._n, column: 0) }
+        @inlinable public var endIndex: Cell { Cell(source: view._n, target: 0) }
         @inlinable public var count: Int { view.edgeCount }
 
         @inlinable
-        public func index(after i: Cell) -> Cell { view._nextCell(row: i.row, after: i.column) }
+        public func index(after i: Cell) -> Cell { view._nextCell(row: i.source, after: i.target) }
 
         @inlinable
         public subscript(position: Cell) -> DirectedEdge<Base.Vertex> {
-            DirectedEdge(from: view.base.vertex(atIndex: position.row), to: view.base.vertex(atIndex: position.column))
+            DirectedEdge(from: view.base.vertex(atIndex: position.source), to: view.base.vertex(atIndex: position.target))
         }
 
         @inlinable
@@ -73,19 +74,26 @@ extension ComplementView: DirectedGraph where Base: DirectedGraph {
         }
     }
 
-    /// The first cell of the complement in row `row` or a later one, with a column above `after`
-    /// in row `row`; the end cell when there is none.
+    /// The first cell of the complement in row `row` above column `after`, or in a later row; the
+    /// end cell when there is none. One `contains(edge:)` per column passed: stepping from the
+    /// column, not rescanning the row from its start, keeps a walk of every cell O(n²) tests.
     @inlinable
     func _nextCell(row: Int, after column: Int) -> Cell {
         let n = _n
         var i = row
-        var floor = column
+        var j = column &+ 1
         while i < n {
-            for j in _row(i) where j > floor { return Cell(row: i, column: j) }
-            i += 1
-            floor = -1
+            let source = base.vertex(atIndex: i)
+            while j < n {
+                if j != i, !base.contains(edge: DirectedEdge(from: source, to: base.vertex(atIndex: j))) {
+                    return Cell(source: i, target: j)
+                }
+                j &+= 1
+            }
+            i &+= 1
+            j = 0
         }
-        return Cell(row: n, column: 0)
+        return Cell(source: n, target: 0)
     }
 
     /// Every index other than `index` that the base's row lacks, ascending. O(deg + n/64 + output).
@@ -106,10 +114,10 @@ extension ComplementView: DirectedGraph where Base: DirectedGraph {
     public func outEdges(of vertex: Base.Vertex) -> CellRow<Base.SuccessorIndices> { outEdges(ofIndex: base.vertexIndex(of: vertex)) }
 
     @inlinable
-    public func source(ofEdgeAt position: Cell) -> Base.Vertex { base.vertex(atIndex: position.row) }
+    public func source(ofEdgeAt position: Cell) -> Base.Vertex { base.vertex(atIndex: position.source) }
 
     @inlinable
-    public func target(ofEdgeAt position: Cell) -> Base.Vertex { base.vertex(atIndex: position.column) }
+    public func target(ofEdgeAt position: Cell) -> Base.Vertex { base.vertex(atIndex: position.target) }
 
     @inlinable public var vertexCount: Int { base.vertexCount }
 
@@ -143,8 +151,8 @@ extension ComplementView: DirectedGraph where Base: DirectedGraph {
         return n - 1 - _distinctOthers(base.successorIndices(ofIndex: index), index: index, count: n)
     }
 
-    @inlinable public func sourceIndex(ofEdgeAt position: Cell) -> Int { position.row }
-    @inlinable public func targetIndex(ofEdgeAt position: Cell) -> Int { position.column }
+    @inlinable public func sourceIndex(ofEdgeAt position: Cell) -> Int { position.source }
+    @inlinable public func targetIndex(ofEdgeAt position: Cell) -> Int { position.target }
 
     /// `nil`: a complement has no edge indices.
     @inlinable public var edgeIndexBound: Int? { nil }

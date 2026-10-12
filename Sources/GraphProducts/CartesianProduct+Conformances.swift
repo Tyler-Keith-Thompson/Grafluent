@@ -50,6 +50,19 @@ extension CartesianProduct: DirectedGraph where First: DirectedGraph, Second: Di
         return IndexRow(firstRow: first.successorIndices(ofIndex: g), secondRow: second.successorIndices(ofIndex: h), g: g, h: h, secondCount: _secondCount)
     }
 
+    /// `successorIndices(ofIndex:)` without a row value: G's row, then H's, each through its
+    /// factor's own `_forEachSuccessorIndex`.
+    @inlinable
+    @inline(__always)
+    public func _forEachSuccessorIndex(ofIndex index: Int, _ body: (Int) -> Void) {
+        _checkProductIndex(index, count: _firstCount &* _secondCount)
+        let nH = _secondCount
+        let (g, h) = index.quotientAndRemainder(dividingBy: nH)
+        first._forEachSuccessorIndex(ofIndex: g) { body($0 &* nH &+ h) }
+        let block = g &* nH
+        second._forEachSuccessorIndex(ofIndex: h) { body(block &+ $0) }
+    }
+
     @inlinable
     public func outEdges(ofIndex index: Int) -> EdgeRow<First.OutEdges, Second.OutEdges> {
         _checkProductIndex(index, count: _firstCount &* _secondCount)
@@ -184,6 +197,18 @@ extension CartesianProduct: BidirectionalDirectedGraph where First: Bidirectiona
         return IndexRow(firstRow: first.predecessorIndices(ofIndex: g), secondRow: second.predecessorIndices(ofIndex: h), g: g, h: h, secondCount: _secondCount)
     }
 
+    /// `predecessorIndices(ofIndex:)` without a row value, as `_forEachSuccessorIndex`.
+    @inlinable
+    @inline(__always)
+    public func _forEachPredecessorIndex(ofIndex index: Int, _ body: (Int) -> Void) {
+        _checkProductIndex(index, count: _firstCount &* _secondCount)
+        let nH = _secondCount
+        let (g, h) = index.quotientAndRemainder(dividingBy: nH)
+        first._forEachPredecessorIndex(ofIndex: g) { body($0 &* nH &+ h) }
+        let block = g &* nH
+        second._forEachPredecessorIndex(ofIndex: h) { body(block &+ $0) }
+    }
+
     @inlinable
     public func inEdges(ofIndex index: Int) -> EdgeRow<First.InEdges, Second.InEdges> {
         _checkProductIndex(index, count: _firstCount &* _secondCount)
@@ -274,6 +299,18 @@ extension CartesianProduct: Graph where First: Graph, Second: Graph {
         _checkProductIndex(index, count: _firstCount &* _secondCount)
         let (g, h) = index.quotientAndRemainder(dividingBy: _secondCount)
         return IndexRow(firstRow: first.neighborIndices(ofIndex: g), secondRow: second.neighborIndices(ofIndex: h), g: g, h: h, secondCount: _secondCount)
+    }
+
+    /// `neighborIndices(ofIndex:)` without a row value, as `_forEachSuccessorIndex`.
+    @inlinable
+    @inline(__always)
+    public func _forEachNeighborIndex(ofIndex index: Int, _ body: (Int) -> Void) {
+        _checkProductIndex(index, count: _firstCount &* _secondCount)
+        let nH = _secondCount
+        let (g, h) = index.quotientAndRemainder(dividingBy: nH)
+        first._forEachNeighborIndex(ofIndex: g) { body($0 &* nH &+ h) }
+        let block = g &* nH
+        second._forEachNeighborIndex(ofIndex: h) { body(block &+ $0) }
     }
 
     @inlinable
@@ -409,3 +446,4 @@ extension CartesianProduct: Graph where First: Graph, Second: Graph {
 
 extension CartesianProduct.DirectedEdges: Sendable where First: Sendable, Second: Sendable {}
 extension CartesianProduct.UndirectedEdges: Sendable where First: Sendable, Second: Sendable {}
+

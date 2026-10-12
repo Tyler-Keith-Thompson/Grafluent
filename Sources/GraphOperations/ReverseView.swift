@@ -114,6 +114,20 @@ public struct ReverseView<Base: BidirectionalDirectedGraph>: BidirectionalDirect
     @inlinable
     public func predecessorIndices(ofIndex index: Int) -> Base.SuccessorIndices { base.successorIndices(ofIndex: index) }
 
+    /// The base's `_forEachPredecessorIndex(ofIndex:_:)`.
+    @inlinable
+    @inline(__always)
+    public func _forEachSuccessorIndex(ofIndex index: Int, _ body: (Int) -> Void) {
+        base._forEachPredecessorIndex(ofIndex: index, body)
+    }
+
+    /// The base's `_forEachSuccessorIndex(ofIndex:_:)`.
+    @inlinable
+    @inline(__always)
+    public func _forEachPredecessorIndex(ofIndex index: Int, _ body: (Int) -> Void) {
+        base._forEachSuccessorIndex(ofIndex: index, body)
+    }
+
     @inlinable public func outEdges(ofIndex index: Int) -> Base.InEdges { base.inEdges(ofIndex: index) }
     @inlinable public func inEdges(ofIndex index: Int) -> Base.OutEdges { base.outEdges(ofIndex: index) }
     @inlinable public func outDegree(ofIndex index: Int) -> Int { base.inDegree(ofIndex: index) }

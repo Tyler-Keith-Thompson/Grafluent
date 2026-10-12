@@ -281,6 +281,23 @@ extension Arborescence: BidirectionalDirectedGraph {
     @inlinable public var edgeIndexBound: Int? { _layout.edgeCount }
     @inlinable public func edgeIndex(of position: Int) -> Int { position }
 
+    /// The number of children of the vertex at `index`. O(1), no lookup.
+    @inlinable public func outDegree(ofIndex index: Int) -> Int { OutEdges(_layout, index, _layout.rowEdges).count }
+
+    /// The index of the edge's parent end. O(1), no lookup.
+    @inlinable
+    public func sourceIndex(ofEdgeAt position: Int) -> Int {
+        precondition(position >= 0 && position < _layout.edgeCount, "Edge position out of range")
+        return _layout.nodes[_layout.child(ofEdge: position)].parent
+    }
+
+    /// The index of the edge's child end. O(1), no lookup.
+    @inlinable
+    public func targetIndex(ofEdgeAt position: Int) -> Int {
+        precondition(position >= 0 && position < _layout.edgeCount, "Edge position out of range")
+        return _layout.child(ofEdge: position)
+    }
+
     /// The parent's index, or nothing at the root.
     @inlinable
     public func predecessorIndices(ofIndex index: Int) -> PredecessorIndices { InEdges(_layout.nodes[index].parent) }
@@ -300,6 +317,9 @@ extension Arborescence: BidirectionalDirectedGraph {
 
     @inlinable public func inEdges(of vertex: Vertex) -> InEdges { inEdges(ofIndex: _layout.number(of: vertex)) }
     @inlinable public func inDegree(of vertex: Vertex) -> Int { _layout.nodes[_layout.number(of: vertex)].parent < 0 ? 0 : 1 }
+
+    /// 1, or 0 at the root. O(1), no lookup.
+    @inlinable public func inDegree(ofIndex index: Int) -> Int { _layout.nodes[index].parent < 0 ? 0 : 1 }
 }
 
 // MARK: - Equality, hashing, coding, descriptions

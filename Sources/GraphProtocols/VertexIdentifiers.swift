@@ -102,7 +102,7 @@ package struct _VertexIdentifiers<G: DirectedGraph> {
     @inlinable
     package mutating func forEachSuccessor(of id: Int, _ body: (Int) -> Void) {
         if isIndexed {
-            for w in graph.successorIndices(ofIndex: id) { body(w) }
+            graph._forEachSuccessorIndex(ofIndex: id, body)
         } else if let rows {
             for k in rows.offsets[id] ..< rows.offsets[id + 1] { body(rows.neighbors[k]) }
         } else {
@@ -138,7 +138,7 @@ extension _VertexIdentifiers where G: BidirectionalDirectedGraph {
     @inlinable
     package mutating func forEachPredecessor(of id: Int, _ body: (Int) -> Void) {
         if isIndexed {
-            for u in graph.predecessorIndices(ofIndex: id) { body(u) }
+            graph._forEachPredecessorIndex(ofIndex: id, body)
         } else if rows != nil {
             let rows = numberedPredecessorRows()
             for k in rows.offsets[id] ..< rows.offsets[id + 1] { body(rows.neighbors[k]) }

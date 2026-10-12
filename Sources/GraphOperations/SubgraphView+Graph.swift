@@ -13,7 +13,9 @@ extension Graph {
     @inlinable
     public func inducedSubgraph(on vertices: some Sequence<Vertex>) -> SubgraphView<Self> {
         let (old, new, count) = _renumbering(bound: vertexIndexBound, vertices) { vertexIndex(of: $0) }
-        return SubgraphView(base: self, old: old, new: new, vertexCount: count, edgeTest: nil, edgeCount: nil)
+        return SubgraphView(
+            base: self, old: old, new: new, vertexCount: count, edgeTest: nil, edgeCount: nil,
+            rowState: new.isEmpty ? nil : _RowState<Edges.Index>(new: new, test: nil))
     }
 
     /// The spanning subgraph with the edges at `edges`: every vertex, and only those edges, as a
@@ -53,10 +55,10 @@ extension Graph {
         let filter = _edgeFilter(
             positions, start: edges.startIndex, end: edges.endIndex, edgeIndexBound: edgeIndexBound, new: new,
             edgeIndex: { edgeIndex(of: $0) }, ends: { endpointIndices(ofEdgeAt: $0) })
+        let test = _UndirectedEdgeTest(base: self, mask: filter.mask, kept: filter.kept)
         return SubgraphView(
             base: self, old: old, new: new, vertexCount: count,
-            edgeTest: _UndirectedEdgeTest(base: self, mask: filter.mask, kept: filter.kept),
-            edgeCount: filter.count)
+            edgeTest: test, edgeCount: filter.count, rowState: _RowState<Edges.Index>(new: new, test: test))
     }
 }
 
@@ -64,6 +66,11 @@ extension SubgraphView: Graph where Base: Graph {
     @inlinable
     var _undirectedTest: _EdgeTest<Base.Edges.Index>? {
         _edgeTest.map { unsafeDowncast($0, to: _EdgeTest<Base.Edges.Index>.self) }
+    }
+
+    @inlinable
+    var _state: _RowState<Base.Edges.Index>? {
+        _rowState.map { unsafeDowncast($0, to: _RowState<Base.Edges.Index>.self) }
     }
 
     /// Whether the view keeps the edge at `position` of the base.
@@ -124,10 +131,38 @@ extension SubgraphView: Graph where Base: Graph {
     @inlinable
     public func neighborIndices(ofIndex index: Int) -> IndexRow<Base.NeighborIndices, Base.IncidentEdges> {
         let b = _baseIndex(index)
-        let test = _undirectedTest
+        let state = _state
         return IndexRow(
-            indices: base.neighborIndices(ofIndex: b), positions: base.incidentEdges(ofIndex: b),
-            new: _new, test: test)
+            indices: base.neighborIndices(ofIndex: b),
+            positions: state?.test == nil ? nil : base.incidentEdges(ofIndex: b), state: state)
+    }
+
+    /// `neighborIndices(ofIndex:)` without a row value: with an edge set over a base with edge
+    /// indices, the mask's words are read at the base's `incidentEdgeIndices`, with no call per
+    /// entry and without retaining the mask.
+    @inlinable
+    @inline(__always)
+    public func _forEachNeighborIndex(ofIndex index: Int, _ body: (Int) -> Void) {
+        // Keeping every vertex and every edge, the rows are the base's.
+        if _rowState == nil { return base._forEachNeighborIndex(ofIndex: index, body) }
+        _forEachKeptNeighborIndex(ofIndex: index, body)
+    }
+
+    /// The filtered neighbor row, out of line: inlined beside the keep-everything branch, it made
+    /// breadth-first layers on a view of every vertex 1.2× the base (the per-edge closure was no
+    /// longer inlined); out of line, 1.0–1.06×, and a filtered view's walks change within noise.
+    @inlinable
+    @inline(never)
+    func _forEachKeptNeighborIndex(ofIndex index: Int, _ body: (Int) -> Void) {
+        let b = _baseIndex(index)
+        guard let test = _undirectedTest else { return _forEachKept(base.neighborIndices(ofIndex: b), body) }
+        if let words = test.maskWords {
+            _forEachKept(base.neighborIndices(ofIndex: b), base.incidentEdgeIndices(ofIndex: b), {
+                words[$0 >> 6] & (1 << UInt64($0 & 63)) != 0
+            }, body)
+        } else {
+            _forEachKept(base.neighborIndices(ofIndex: b), base.incidentEdges(ofIndex: b), { test.keeps($0) }, body)
+        }
     }
 
     /// The kept edges at the vertex at view index `index`, at the base's positions. No hashing.
@@ -139,11 +174,15 @@ extension SubgraphView: Graph where Base: Graph {
             new: _new, test: _undirectedTest)
     }
 
-    /// The view's edge indices of `incidentEdges(ofIndex:)`.
+    /// The view's edge indices of `incidentEdges(ofIndex:)`: the base's own when the view keeps
+    /// every vertex and every edge.
     ///
     /// - Precondition: `edgeIndexBound` is not `nil`.
     @inlinable
-    public func incidentEdgeIndices(ofIndex index: Int) -> EdgeIndexRow<Base.NeighborIndices, Base.IncidentEdges> {
+    public func incidentEdgeIndices(ofIndex index: Int) -> EdgeIndexRow<Base.NeighborIndices, Base.IncidentEdges, Base.IncidentEdgeIndices> {
+        if _new.isEmpty, !_filtersEdges {
+            return EdgeIndexRow(baseRow: base.incidentEdgeIndices(ofIndex: _baseIndex(index)))
+        }
         precondition(_filtersEdges, "An induced subgraph has no edge indices; check edgeIndexBound first")
         return EdgeIndexRow(row: incidentEdges(ofIndex: index))
     }
@@ -225,7 +264,7 @@ extension SubgraphView: Graph where Base: Graph {
     public func degree(ofIndex index: Int) -> Int {
         if _new.isEmpty, !_filtersEdges { return base.degree(ofIndex: _baseIndex(index)) }
         var count = 0
-        for _ in neighborIndices(ofIndex: index) { count &+= 1 }
+        _forEachNeighborIndex(ofIndex: index) { _ in count &+= 1 }
         return count
     }
 
@@ -235,22 +274,27 @@ extension SubgraphView: Graph where Base: Graph {
         return (_viewIndex(ends.u), _viewIndex(ends.v))
     }
 
-    /// The number of kept edges with an edge set; `nil` for an induced subgraph.
+    /// The number of kept edges with an edge set; the base's bound when the view keeps every
+    /// vertex and every edge; otherwise (an induced subgraph) `nil`.
     @inlinable
-    public var edgeIndexBound: Int? { _edgeCount }
+    public var edgeIndexBound: Int? { _new.isEmpty && !_filtersEdges ? base.edgeIndexBound : _edgeCount }
 
-    /// The rank of the edge among the kept edges, in base order.
+    /// The rank of the edge among the kept edges, in base order; the base's edge index when the
+    /// view keeps every vertex and every edge.
     ///
     /// - Precondition: `edgeIndexBound` is not `nil`, and `position` is an edge of the view.
     @inlinable
     public func edgeIndex(of position: Base.Edges.Index) -> Int {
+        if _new.isEmpty, !_filtersEdges { return base.edgeIndex(of: position) }
         guard let test = _undirectedTest else {
             preconditionFailure("An induced subgraph has no edge indices; check edgeIndexBound first")
         }
         return test.rank(position)
     }
 
-    /// `nil`: the view changes incidence, so the base's rows are not its rows.
+    /// The base's flat rows when the view keeps every vertex and every edge (an induced subgraph
+    /// on all the vertices): its rows, positions and edge indices are then the base's. `nil`
+    /// otherwise, since the view changes incidence.
     @inlinable
     public func _withIncidentIndexRows<Result>(
         _ body: (
@@ -258,7 +302,8 @@ extension SubgraphView: Graph where Base: Graph {
             _ edges: UnsafeBufferPointer<Int>, _ edgeRows: UnsafeBufferPointer<Int>
         ) -> Result
     ) -> Result? {
-        nil
+        guard _new.isEmpty, !_filtersEdges else { return nil }
+        return base._withIncidentIndexRows(body)
     }
 }
 

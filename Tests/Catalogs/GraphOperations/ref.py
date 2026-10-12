@@ -199,7 +199,8 @@ class SubgraphView:
     """`SubgraphView<Base>`: kept vertices renumbered densely in base index order (`old`, `new`
     arrays, no hashing per edge); kept edges are base positions, filtered by an edge mask and by
     both ends being kept. Edge indices: dense by rank over the edge mask when an edge set was
-    given; none for an induced subgraph."""
+    given; the base's for an induced subgraph on every vertex (its rows are the base's); none for
+    any other induced subgraph."""
 
     def __init__(self, base, vkeep, ekeep):
         require(base.has_vertex_indices, "the base has no vertex indices (vertexIndexBound is nil)")
@@ -282,12 +283,18 @@ class SubgraphView:
     def incident(self, i):
         return [p for p in self.base.incident(self.old[i]) if self.kept(p)]
 
+    def keeps_everything(self):
+        return self.emask is None and len(self.old) == self.base.n()
+
     def edge_bound(self):
         if self.emask is None:
-            return None
+            return self.base.edge_bound() if self.keeps_everything() else None
         return len(self.emask)
 
     def edge_index(self, p):
+        if self.keeps_everything():
+            require(self.base.edge_bound() is not None, "no edge indices; check edgeIndexBound first")
+            return self.base.edge_index(p)
         require(self.emask is not None, "no edge indices; check edgeIndexBound first")
         return sorted(self.emask, key=self.base.edge_index).index(p)
 
@@ -973,7 +980,7 @@ def define():
     for title, base, keep in [
         ("empty base, empty set", AL("", ""), []),
         ("keep nothing", AL("a b", "a>b"), []),
-        ("keep everything: same graph, no edge indices", AL("a b c", "a>b b>c c>a"), ["a", "b", "c"]),
+        ("keep everything: same graph, the base's edge indices", AL("a b c", "a>b b>c c>a"), ["a", "b", "c"]),
         ("renumbered in base order, not listed order", AL("a b c d", "a>b b>c c>d d>a"), ["d", "b", "a"]),
         ("repeated vertex listed once", AL("a b c", "a>b b>c"), ["b", "b", "c"]),
         ("arcs leaving the set dropped", AL("a b c", "a>b a>c c>b"), ["a", "b"]),

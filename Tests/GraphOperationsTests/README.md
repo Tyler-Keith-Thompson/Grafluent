@@ -100,7 +100,12 @@ catalog cell, and writes the test. The precondition file also takes the hand-wri
   `CompressedSparseRow` and `AdjacencyMatrix` bases get the same check, and the subgraph and
   reverse views are checked to use the base's positions. An edge set over a base without edge
   indices (an `AdjacencyMatrix`, a complement) keeps its sorted positions: the view still has dense
-  edge indices by rank, and its rows are filtered by them. The materialized operations must agree
+  edge indices by rank, and its rows are filtered by them. The induced subgraph on every vertex,
+  over `Pseudograph` and over `UndirectedAdjacencyList` (whose flat rows and edge indices it
+  forwards), and the undirected views of directed views get the same checks; the latter's rows are
+  ordered out-row first, so components and layers (as sets) are compared. Walking
+  `complement.edges.indices` on 1500 vertices, directed and undirected, must finish within a minute
+  and list every cell once, ascending (it was O(n³) before). The materialized operations must agree
   across `CompressedSparseRow`, `AdjacencyList<Int>`, `AdjacencyMatrix` and `StableDirectedGraph<Int>`
   targets, and the condensation DAG over two bases.
 - **Properties** (swift-property-based, with shrinking), against written-out models: the three
@@ -124,7 +129,7 @@ workspace, and it caught every one.
 | `inducedSubgraph(on:)` hashing each listed vertex twice | GO-020 |
 | Directed subgraph rows ignoring the edge set | GO-029, GO-039, properties |
 | `subgraph(vertices:edges:)` ranking edges whose ends are dropped | GO-040 – GO-042, properties, conformance |
-| An induced subgraph reporting edge indices | GO-010 – GO-028 (20 rows), properties |
+| An induced subgraph that drops a vertex reporting edge indices | GO-011, GO-013 – GO-028, properties |
 | An undirected subgraph listing a self-loop once | properties |
 | A subgraph's `vertexIndex(of:)` accepting a dropped vertex | GO-023 |
 | The directed complement keeping self-loops | GO-049 – GO-062 (10 rows); properties (crash in the line graph of the complement) |

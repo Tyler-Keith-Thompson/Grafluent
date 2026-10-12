@@ -156,10 +156,8 @@ extension AdjacencyList where Vertex == Int {
         _in = rows.in
         _inEdges = rows.inEdges
         _records = rows.records
-        _edges.reserveCapacity(rows.records.count)
-        for (position, record) in rows.records.enumerated() {
-            _edges.insert(_SlotPair(record.source, record.target), position)
-        }
+        let records = rows.records
+        _edges._insertDistinct(count: records.count) { (_SlotPair(records[$0].source, records[$0].target), $0) }
     }
 }
 
@@ -184,10 +182,8 @@ extension UndirectedAdjacencyList where Vertex == Int {
         _neighbors = rows.neighbors
         _incident = rows.incident
         _records = rows.records
-        _positions.reserveCapacity(rows.records.count)
-        for (position, record) in rows.records.enumerated() {
-            _positions.insert(_SlotPair(record.u, record.v), position)
-        }
+        let records = rows.records
+        _positions._insertDistinct(count: records.count) { (_SlotPair(records[$0].u, records[$0].v), $0) }
     }
 }
 
@@ -218,10 +214,8 @@ extension AdjacencyList {
         _in = rows.in
         _inEdges = rows.inEdges
         _records = rows.records
-        _edges.reserveCapacity(rows.records.count)
-        for (position, record) in rows.records.enumerated() {
-            _edges.insert(_SlotPair(record.source, record.target), position)
-        }
+        let records = rows.records
+        _edges._insertDistinct(count: records.count) { (_SlotPair(records[$0].source, records[$0].target), $0) }
     }
 }
 
@@ -241,9 +235,7 @@ extension UndirectedAdjacencyList {
         _neighbors = rows.neighbors
         _incident = rows.incident
         _records = rows.records
-        _positions.reserveCapacity(rows.records.count)
-        for (position, record) in rows.records.enumerated() {
-            _positions.insert(_SlotPair(record.u, record.v), position)
-        }
+        let records = rows.records
+        _positions._insertDistinct(count: records.count) { (_SlotPair(records[$0].u, records[$0].v), $0) }
     }
 }

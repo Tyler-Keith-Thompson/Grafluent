@@ -19,7 +19,8 @@ extension ComplementView: Graph where Base: Graph {
     public var edges: UndirectedEdges { UndirectedEdges(view: self) }
 
     /// The edges of an undirected `ComplementView`, in row-major order of their cells, each with
-    /// `row < column`. Iterating walks the rows; `index(after:)` alone rescans the current row.
+    /// `source < target`. Iterating walks the rows; `index(after:)` tests the columns after the
+    /// current one with the base's `contains(edge:)`, as for a directed complement.
     @frozen
     public struct UndirectedEdges: Collection {
         @usableFromInline let view: ComplementView
@@ -31,15 +32,15 @@ extension ComplementView: Graph where Base: Graph {
             startIndex = view._nextUpperCell(row: 0, after: -1)
         }
 
-        @inlinable public var endIndex: Cell { Cell(row: view._order, column: 0) }
+        @inlinable public var endIndex: Cell { Cell(source: view._order, target: 0) }
         @inlinable public var count: Int { view.edgeCount }
 
         @inlinable
-        public func index(after i: Cell) -> Cell { view._nextUpperCell(row: i.row, after: i.column) }
+        public func index(after i: Cell) -> Cell { view._nextUpperCell(row: i.source, after: i.target) }
 
         @inlinable
         public subscript(position: Cell) -> UndirectedEdge<Base.Vertex> {
-            UndirectedEdge(view.base.vertex(atIndex: position.row), view.base.vertex(atIndex: position.column))
+            UndirectedEdge(view.base.vertex(atIndex: position.source), view.base.vertex(atIndex: position.target))
         }
 
         @inlinable
@@ -76,18 +77,22 @@ extension ComplementView: Graph where Base: Graph {
     }
 
     /// The first cell `(i, j)` with `i < j` in row `row` above column `after`, or in a later row;
-    /// the end cell when there is none.
+    /// the end cell when there is none. One `contains(edge:)` per column passed, as `_nextCell`.
     @inlinable
     func _nextUpperCell(row: Int, after column: Int) -> Cell {
         let n = _order
         var i = row
-        var floor = Swift.max(column, row)
+        var j = Swift.max(column, row) &+ 1
         while i < n {
-            for j in _neighborRow(i) where j > floor { return Cell(row: i, column: j) }
-            i += 1
-            floor = i
+            let u = base.vertex(atIndex: i)
+            while j < n {
+                if !base.contains(edge: UndirectedEdge(u, base.vertex(atIndex: j))) { return Cell(source: i, target: j) }
+                j &+= 1
+            }
+            i &+= 1
+            j = i &+ 1
         }
-        return Cell(row: n, column: 0)
+        return Cell(source: n, target: 0)
     }
 
     /// Every index other than `index` that the base's row lacks, ascending. O(deg + n/64 + output).
@@ -113,9 +118,9 @@ extension ComplementView: Graph where Base: Graph {
 
     @inlinable
     public func oppositeVertex(to vertex: Base.Vertex, acrossEdgeAt position: Cell) -> Base.Vertex {
-        let u = base.vertex(atIndex: position.row)
-        if vertex == u { return base.vertex(atIndex: position.column) }
-        let v = base.vertex(atIndex: position.column)
+        let u = base.vertex(atIndex: position.source)
+        if vertex == u { return base.vertex(atIndex: position.target) }
+        let v = base.vertex(atIndex: position.target)
         precondition(vertex == v, "\(vertex) is not an endpoint of the edge at \(position)")
         return u
     }
@@ -153,7 +158,7 @@ extension ComplementView: Graph where Base: Graph {
     }
 
     @inlinable
-    public func endpointIndices(ofEdgeAt position: Cell) -> (u: Int, v: Int) { (position.row, position.column) }
+    public func endpointIndices(ofEdgeAt position: Cell) -> (u: Int, v: Int) { (position.source, position.target) }
 
     /// `nil`: a complement has no edge indices.
     @inlinable public var edgeIndexBound: Int? { nil }

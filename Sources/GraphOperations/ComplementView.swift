@@ -34,9 +34,9 @@ extension Graph {
 /// O(deg + n/64), then yields the clear bits. A row costs O(n/64 + output) and one allocation.
 /// The complement of a sparse graph has Θ(n²) edges, so a traversal is Θ(n²) whatever the layout.
 ///
-/// An edge's position is its cell of the adjacency matrix, `Cell(row: i, column: j)`, ordered
-/// row-major as `AdjacencyMatrix`'s positions are; an undirected edge has `row < column`. There are
-/// no edge indices.
+/// An edge's position is its cell of the adjacency matrix, `Cell(source: i, target: j)`, ordered
+/// row-major as `AdjacencyMatrix`'s positions are; an undirected edge has `source < target`. There
+/// are no edge indices.
 @frozen
 public struct ComplementView<Base> {
     /// The graph the view complements.
@@ -45,28 +45,29 @@ public struct ComplementView<Base> {
     @inlinable
     init(base: Base) { self.base = base }
 
-    /// The position of an edge of a complement: the cell of the adjacency matrix at `row`,
-    /// `column`, both vertex indices. Directed, the edge runs from the vertex at `row` to the one at
-    /// `column`; undirected, `row < column`. Ordered row-major.
+    /// The position of an edge of a complement: the cell of the adjacency matrix at row `source`
+    /// and column `target`, both vertex indices, as `AdjacencyMatrix.Edges.Index`. Directed, the
+    /// edge runs from the vertex at `source` to the one at `target`; undirected, `source < target`.
+    /// Ordered row-major.
     @frozen
     public struct Cell: Hashable, Comparable, Sendable, CustomStringConvertible {
         /// The index of the source (undirected: the smaller end).
-        public let row: Int
+        public let source: Int
         /// The index of the target (undirected: the larger end).
-        public let column: Int
+        public let target: Int
 
         @inlinable
-        public init(row: Int, column: Int) {
-            self.row = row
-            self.column = column
+        public init(source: Int, target: Int) {
+            self.source = source
+            self.target = target
         }
 
         @inlinable
         public static func < (lhs: Cell, rhs: Cell) -> Bool {
-            (lhs.row, lhs.column) < (rhs.row, rhs.column)
+            (lhs.source, lhs.target) < (rhs.source, rhs.target)
         }
 
-        public var description: String { "(\(row), \(column))" }
+        public var description: String { "(\(source), \(target))" }
     }
 
     /// A row of a complement in index space: every index in `0..<n` other than `index` that
@@ -165,9 +166,9 @@ public struct ComplementView<Base> {
             public mutating func next() -> Cell? {
                 guard let j = base.next() else { return nil }
                 switch orientation {
-                case 0: return Cell(row: index, column: j)
-                case 1: return Cell(row: j, column: index)
-                default: return index < j ? Cell(row: index, column: j) : Cell(row: j, column: index)
+                case 0: return Cell(source: index, target: j)
+                case 1: return Cell(source: j, target: index)
+                default: return index < j ? Cell(source: index, target: j) : Cell(source: j, target: index)
                 }
             }
         }

@@ -327,6 +327,8 @@ extension BipartiteGraph: Graph {
     @inlinable public func edgeIndex(of position: Int) -> Int { position }
     @inlinable public func incidentEdges(ofIndex index: Int) -> ArraySlice<Int> { _graph.incidentEdges(ofIndex: index) }
     @inlinable public func incidentEdgeIndices(ofIndex index: Int) -> ArraySlice<Int> { _graph.incidentEdgeIndices(ofIndex: index) }
+    @inlinable public func degree(ofIndex index: Int) -> Int { _graph.degree(ofIndex: index) }
+    @inlinable public func endpointIndices(ofEdgeAt position: Int) -> (u: Int, v: Int) { _graph.endpointIndices(ofEdgeAt: position) }
 
     @inlinable
     public func _withIncidentIndexRows<Result>(

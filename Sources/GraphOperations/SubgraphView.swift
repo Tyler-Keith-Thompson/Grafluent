@@ -17,7 +17,8 @@ import GraphProtocols
 /// with a count per 64-bit word, so the rank costs one popcount. Over a base without them (an
 /// `AdjacencyMatrix`, a complement, an induced subgraph) the set is the sorted kept positions, and
 /// a row entry or a rank costs a binary search. An induced subgraph has no edge indices: building
-/// its edge mask would cost O(m).
+/// its edge mask would cost O(m). One on every vertex keeps the base's rows, edge indices and flat
+/// rows.
 ///
 /// The view holds a copy of the base (value semantics), so mutating the original never shows
 /// through. Phase 1 needs a base with vertex indices; a `StableDirectedGraph` with vertex holes
@@ -44,11 +45,17 @@ public struct SubgraphView<Base> {
     /// The number of kept edges, when an edge set was given.
     @usableFromInline let _edgeCount: Int?
 
+    /// What an index row needs beyond the base's rows, as a `_RowState` over the base's
+    /// positions: `nil` when the view keeps every vertex and every edge, so a row holds one
+    /// reference at most.
+    @usableFromInline let _rowState: (AnyObject & Sendable)?
+
     @inlinable
     init(
         base: Base, old: [Int], new: [Int], vertexCount: Int,
-        edgeTest: _EdgeTestBox?, edgeCount: Int?
+        edgeTest: _EdgeTestBox?, edgeCount: Int?, rowState: (AnyObject & Sendable)?
     ) {
+        _rowState = rowState
         self.base = base
         _old = old
         _new = new
@@ -81,6 +88,39 @@ public struct SubgraphView<Base> {
         let k = _new[b]
         precondition(k >= 0, "The vertex is not a vertex of the subgraph")
         return k
+    }
+
+    /// Calls `body` with each entry of a base row whose vertex the view keeps, renumbered.
+    @inlinable
+    @inline(__always)
+    func _forEachKept(_ indices: some Sequence<Int>, _ body: (Int) -> Void) {
+        let new = _new
+        if new.isEmpty {
+            for w in indices { body(w) }
+        } else {
+            for w in indices {
+                let k = new[w]
+                if k >= 0 { body(k) }
+            }
+        }
+    }
+
+    /// Calls `body` with each entry of a base row whose edge `keeps` accepts (read from `keys`, in
+    /// step with the row) and whose vertex the view keeps, renumbered.
+    @inlinable
+    @inline(__always)
+    func _forEachKept<Keys: Sequence>(
+        _ indices: some Sequence<Int>, _ keys: Keys, _ keeps: (Keys.Element) -> Bool, _ body: (Int) -> Void
+    ) {
+        let new = _new
+        if new.isEmpty {
+            for (w, key) in zip(indices, keys) where keeps(key) { body(w) }
+        } else {
+            for (w, key) in zip(indices, keys) where keeps(key) {
+                let k = new[w]
+                if k >= 0 { body(k) }
+            }
+        }
     }
 }
 
@@ -169,13 +209,24 @@ class _EdgeTest<Position: Comparable>: _EdgeTestBox, @unchecked Sendable {
     /// The kept positions, sorted, when the base has no edge indices.
     @usableFromInline let kept: [Position]
     @usableFromInline let mask: _EdgeMask?
+    /// The mask's words, owned here: a row reads them without retaining the mask's array.
+    @usableFromInline let maskWords: UnsafeMutablePointer<UInt64>?
 
     @inlinable
     init(mask: _EdgeMask?, kept: [Position]?) {
         self.mask = mask
         self.kept = kept ?? []
+        if let words = mask?.words {
+            let pointer = UnsafeMutablePointer<UInt64>.allocate(capacity: Swift.max(words.count, 1))
+            pointer.initialize(from: words, count: words.count)
+            maskWords = pointer
+        } else {
+            maskWords = nil
+        }
         super.init()
     }
+
+    deinit { maskWords?.deallocate() }
 
     /// The base's edge index of `position`.
     @usableFromInline
@@ -233,62 +284,74 @@ final class _UndirectedEdgeTest<G: Graph>: _EdgeTest<G.Edges.Index>, @unchecked 
 
 // MARK: - Rows
 
+/// What an index row needs beyond the base's row, in one reference: the renumbering and the edge
+/// set. A view that keeps every vertex and every edge has none, and its rows are the base's.
+@usableFromInline
+final class _RowState<P: Comparable>: @unchecked Sendable {
+    /// Base index to view index, or -1; empty when the view keeps every vertex.
+    @usableFromInline let new: [Int]
+    @usableFromInline let test: _EdgeTest<P>?
+
+    @inlinable
+    init(new: [Int], test: _EdgeTest<P>?) {
+        self.new = new
+        self.test = test
+    }
+}
+
 extension SubgraphView {
     /// A row in index space (successors, predecessors or neighbors): the base's row with the
-    /// dropped entries skipped and the rest renumbered. One array load per entry, no hashing.
+    /// dropped entries skipped and the rest renumbered. One array load per entry, no hashing. The
+    /// row holds one reference to the view's renumbering and edge set (none when the view keeps
+    /// everything), and walks the base's position row only under an edge set.
     @frozen
     public struct IndexRow<Indices: Sequence<Int>, Positions: Sequence>: Sequence where Positions.Element: Comparable {
         @usableFromInline let indices: Indices
-        /// Walked only under an edge set.
-        @usableFromInline let positions: Positions
-        @usableFromInline let new: [Int]
-        @usableFromInline let test: _EdgeTest<Positions.Element>?
+        /// `nil` without an edge set.
+        @usableFromInline let positions: Positions?
+        @usableFromInline let state: _RowState<Positions.Element>?
 
         @inlinable
-        init(indices: Indices, positions: Positions, new: [Int], test: _EdgeTest<Positions.Element>?) {
+        init(indices: Indices, positions: Positions?, state: _RowState<Positions.Element>?) {
             self.indices = indices
             self.positions = positions
-            self.new = new
-            self.test = test
+            self.state = state
         }
 
         @inlinable
         public func makeIterator() -> Iterator {
-            Iterator(indices: indices.makeIterator(), positions: positions.makeIterator(), new: new, test: test)
+            Iterator(indices: indices.makeIterator(), positions: positions?.makeIterator(), state: state)
         }
 
-        /// The base's position row is stepped in step with its index row only under an edge set.
         @frozen
         public struct Iterator: IteratorProtocol {
             @usableFromInline var indices: Indices.Iterator
-            @usableFromInline var positions: Positions.Iterator
-            @usableFromInline let new: [Int]
-            @usableFromInline let test: _EdgeTest<Positions.Element>?
+            @usableFromInline var positions: Positions.Iterator?
+            @usableFromInline let state: _RowState<Positions.Element>?
 
             @inlinable
-            init(indices: Indices.Iterator, positions: Positions.Iterator, new: [Int], test: _EdgeTest<Positions.Element>?) {
+            init(indices: Indices.Iterator, positions: Positions.Iterator?, state: _RowState<Positions.Element>?) {
                 self.indices = indices
                 self.positions = positions
-                self.new = new
-                self.test = test
+                self.state = state
             }
 
             @inlinable
             @inline(__always)
             public mutating func next() -> Int? {
-                if let test {
+                guard let state else { return indices.next() }
+                if let test = state.test {
                     while let w = indices.next() {
-                        guard let p = positions.next() else { return nil }
+                        guard let p = positions?.next() else { return nil }
                         guard test.keeps(p) else { continue }
-                        if new.isEmpty { return w }
-                        let k = new[w]
+                        if state.new.isEmpty { return w }
+                        let k = state.new[w]
                         if k >= 0 { return k }
                     }
                     return nil
                 }
-                if new.isEmpty { return indices.next() }
                 while let w = indices.next() {
-                    let k = new[w]
+                    let k = state.new[w]
                     if k >= 0 { return k }
                 }
                 return nil
@@ -352,28 +415,45 @@ extension SubgraphView {
         }
     }
 
-    /// The view's edge indices of a row of positions: each kept position's rank.
+    /// The view's edge indices of a row of positions: each kept position's rank, or the base's
+    /// own edge-index row when the view keeps every vertex and every edge.
     @frozen
-    public struct EdgeIndexRow<Indices: Sequence<Int>, Positions: Sequence>: Sequence where Positions.Element: Comparable {
-        @usableFromInline let row: EdgeRow<Indices, Positions>
+    public struct EdgeIndexRow<Indices: Sequence<Int>, Positions: Sequence, BaseEdgeIndices: Sequence<Int>>: Sequence
+    where Positions.Element: Comparable {
+        @usableFromInline let row: EdgeRow<Indices, Positions>?
+        @usableFromInline let baseRow: BaseEdgeIndices?
 
         @inlinable
-        init(row: EdgeRow<Indices, Positions>) { self.row = row }
+        init(row: EdgeRow<Indices, Positions>) {
+            self.row = row
+            baseRow = nil
+        }
 
         @inlinable
-        public func makeIterator() -> Iterator { Iterator(base: row.makeIterator()) }
+        init(baseRow: BaseEdgeIndices) {
+            row = nil
+            self.baseRow = baseRow
+        }
+
+        @inlinable
+        public func makeIterator() -> Iterator { Iterator(base: row?.makeIterator(), forwarded: baseRow?.makeIterator()) }
 
         @frozen
         public struct Iterator: IteratorProtocol {
-            @usableFromInline var base: EdgeRow<Indices, Positions>.Iterator
+            @usableFromInline var base: EdgeRow<Indices, Positions>.Iterator?
+            @usableFromInline var forwarded: BaseEdgeIndices.Iterator?
 
             @inlinable
-            init(base: EdgeRow<Indices, Positions>.Iterator) { self.base = base }
+            init(base: EdgeRow<Indices, Positions>.Iterator?, forwarded: BaseEdgeIndices.Iterator?) {
+                self.base = base
+                self.forwarded = forwarded
+            }
 
             @inlinable
             public mutating func next() -> Int? {
-                guard let position = base.next() else { return nil }
-                return base.test.unsafelyUnwrapped.rank(position)
+                if forwarded != nil { return forwarded!.next() }
+                guard let position = base!.next() else { return nil }
+                return base!.test.unsafelyUnwrapped.rank(position)
             }
         }
     }
@@ -381,4 +461,4 @@ extension SubgraphView {
 
 extension SubgraphView.IndexRow: Sendable where Indices: Sendable, Positions: Sendable {}
 extension SubgraphView.EdgeRow: Sendable where Indices: Sendable, Positions: Sendable {}
-extension SubgraphView.EdgeIndexRow: Sendable where Indices: Sendable, Positions: Sendable {}
+extension SubgraphView.EdgeIndexRow: Sendable where Indices: Sendable, Positions: Sendable, BaseEdgeIndices: Sendable {}

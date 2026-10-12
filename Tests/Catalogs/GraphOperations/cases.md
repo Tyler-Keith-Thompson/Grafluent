@@ -33,9 +33,9 @@ Conventions:
 | GO-007 | Reverse | edge indices forwarded | AL V [x, y, z]; E [x→y, y→z, z→x] / .reverseView | V [x#0, y#1, z#2]; E [0:y→x, 1:z→y, 2:x→z]; bounds 3/3; edgeIndex(of: 2) 2; sourceIndex(ofEdgeAt: 2) 0 |
 | GO-008 | Reverse | reverse of the reverse is the base (same type, O(1)) | AL V [a, b, c]; E [a→b, b→c] / .reverseView.reverseView | V [a#0, b#1, c#2]; E [0:a→b, 1:b→c]; bounds 3/2; is the base: true |
 | GO-009 | Reverse | a vertex lookup hashes once, rows none | AL V [a, b, c]; E [a→b, c→b] / .reverseView | V [a#0, b#1, c#2]; E [0:b→a, 1:b→c]; bounds 3/2; outEdges(of: b) [0, 1]; inEdges(ofIndex: 1) []; hashes 1 |
-| GO-010 | Induced | empty base, empty set | AL V []; E [] / .inducedSubgraph(on: []) | V []; E []; bounds 0/nil; rows [] |
+| GO-010 | Induced | empty base, empty set | AL V []; E [] / .inducedSubgraph(on: []) | V []; E []; bounds 0/0; rows [] |
 | GO-011 | Induced | keep nothing | AL V [a, b]; E [a→b] / .inducedSubgraph(on: []) | V []; E []; bounds 0/nil; rows [] |
-| GO-012 | Induced | keep everything: same graph, no edge indices | AL V [a, b, c]; E [a→b, b→c, c→a] / .inducedSubgraph(on: [a, b, c]) | V [a#0, b#1, c#2]; E [0:a→b, 1:b→c, 2:c→a]; bounds 3/nil; rows [a: b; b: c; c: a] |
+| GO-012 | Induced | keep everything: same graph, the base's edge indices | AL V [a, b, c]; E [a→b, b→c, c→a] / .inducedSubgraph(on: [a, b, c]) | V [a#0, b#1, c#2]; E [0:a→b, 1:b→c, 2:c→a]; bounds 3/3; rows [a: b; b: c; c: a] |
 | GO-013 | Induced | renumbered in base order, not listed order | AL V [a, b, c, d]; E [a→b, b→c, c→d, d→a] / .inducedSubgraph(on: [d, b, a]) | V [a#0, b#1, d#2]; E [0:a→b, 3:d→a]; bounds 3/nil; rows [a: b; b: ; d: a] |
 | GO-014 | Induced | repeated vertex listed once | AL V [a, b, c]; E [a→b, b→c] / .inducedSubgraph(on: [b, b, c]) | V [b#0, c#1]; E [1:b→c]; bounds 2/nil; rows [b: c; c: ] |
 | GO-015 | Induced | arcs leaving the set dropped | AL V [a, b, c]; E [a→b, a→c, c→b] / .inducedSubgraph(on: [a, b]) | V [a#0, b#1]; E [0:a→b]; bounds 2/nil; rows [a: b; b: ] |

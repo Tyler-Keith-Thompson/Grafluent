@@ -137,6 +137,14 @@ public protocol DirectedGraph<Vertex> {
     /// - Precondition: `vertexIndexBound` is not `nil`, and `index` is in `0..<vertexIndexBound`.
     func outDegree(ofIndex index: Int) -> Int
 
+    /// Calls `body` with each of `successorIndices(ofIndex: index)`, in order. Default: a loop
+    /// over `successorIndices`. A view whose row is a filtering iterator (a subgraph, a product)
+    /// runs its loops in place, which a walk over every row (union–find, breadth-first search)
+    /// runs faster than through the iterator.
+    ///
+    /// Not for use outside the library.
+    func _forEachSuccessorIndex(ofIndex index: Int, _ body: (Int) -> Void)
+
     /// `vertexIndex(of: source(ofEdgeAt: position))`, for a representation or a view that knows
     /// the index without the lookup (a `LabeledGraph` reads its base's `Int` endpoint, where
     /// `vertexIndex(of:)` would hash the label). Default: exactly that.
@@ -223,6 +231,12 @@ public protocol BidirectionalDirectedGraph<Vertex>: DirectedGraph {
     ///
     /// - Precondition: `vertexIndexBound` is not `nil`, and `index` is in `0..<vertexIndexBound`.
     func inEdges(ofIndex index: Int) -> InEdges
+
+    /// Calls `body` with each of `predecessorIndices(ofIndex: index)`, in order. Default: a loop
+    /// over `predecessorIndices`; as `_forEachSuccessorIndex(ofIndex:_:)`.
+    ///
+    /// Not for use outside the library.
+    func _forEachPredecessorIndex(ofIndex index: Int, _ body: (Int) -> Void)
 }
 
 extension DirectedGraph {
@@ -273,6 +287,12 @@ extension DirectedGraph {
     @inlinable
     public func outDegree(ofIndex index: Int) -> Int {
         outDegree(of: vertex(atIndex: index))
+    }
+
+    @inlinable
+    @inline(__always)
+    public func _forEachSuccessorIndex(ofIndex index: Int, _ body: (Int) -> Void) {
+        for w in successorIndices(ofIndex: index) { body(w) }
     }
 
     @inlinable
@@ -341,6 +361,12 @@ extension BidirectionalDirectedGraph {
     @inlinable
     public func inDegree(ofIndex index: Int) -> Int {
         inDegree(of: vertex(atIndex: index))
+    }
+
+    @inlinable
+    @inline(__always)
+    public func _forEachPredecessorIndex(ofIndex index: Int, _ body: (Int) -> Void) {
+        for w in predecessorIndices(ofIndex: index) { body(w) }
     }
 
     @inlinable
