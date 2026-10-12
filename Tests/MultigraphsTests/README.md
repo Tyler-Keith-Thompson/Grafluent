@@ -28,11 +28,15 @@ struct Pseudograph<Vertex: Hashable>: Graph, Hashable, Codable (Vertex: Codable)
     remove(_:), remove(edge:) -> UndirectedEdge?                   // the newest copy, in its stored orientation
     remove(edgeAt:) -> UndirectedEdge, removeAllEdges(between:and:) -> Int
     removeAll(keepingCapacity:), removeAllEdges(keepingCapacity:), reserveCapacity(vertexCount:edgeCount:)
+    insert(checked:) throws(VertexNotFound) -> Int                 // only between existing vertices
+    neighbors(checked:), incidentEdges(checked:), degree(checked:), vertexIndex(checked:)  // throw VertexNotFound
 struct Multigraph<Vertex: Hashable>                                // the same; init?(edges:), init?(vertices:edges:),
                                                                    // init?(builder), init?(_ graph:) nil on a loop;
-                                                                   // insert(edge:) throws SelfLoopError on a loop
+                                                                   // insert(edge:) throws LooplessEdgeError.selfLoop
+                                                                   // on a loop; insert(checked:) also .missingEndpoint
 struct DirectedPseudograph<Vertex: Hashable>: BidirectionalDirectedGraph, …   // edges(from:to:), edgeCount(from:to:),
-                                                                   // removeAllEdges(from:to:)
+                                                                   // removeAllEdges(from:to:); the directed checked:
+                                                                   // lookups, source/target(checkedEdgeAt:) (EdgeNotFound)
 struct DirectedMultigraph<Vertex: Hashable>                        // as Multigraph, directed
 ```
 
@@ -47,7 +51,8 @@ struct DirectedMultigraph<Vertex: Hashable>                        // as Multigr
 | `removeAllEdges(between:and:)` | Repeated `remove(edge:)`; returns the count; both vertices stay; directed: one direction | MG-084 – MG-089 |
 | Vertex removal | Its edges detached last row entry first (out row, then in row), then the last slot moves into its place | MG-090 – MG-104 |
 | Loops and degrees | Undirected: twice in the row, degree 2, once in `edges(between: v, and: v)`; directed: once out, once in, degree 2 | MG-026 – MG-031, MG-036 |
-| No-loop invariant | Failable initializers and decoding reject a loop; `insert(edge:)` throws `SelfLoopError` and changes nothing | MG-011 – MG-013, MG-032 – MG-034, MG-139, MG-140, MG-168, MG-171, MG-175, MG-176 |
+| No-loop invariant | Failable initializers and decoding reject a loop; `insert(edge:)` throws `LooplessEdgeError.selfLoop` and changes nothing | MG-011 – MG-013, MG-032 – MG-034, MG-139, MG-140, MG-168, MG-171, MG-175, MG-176 |
+| `checked:` spellings | Throw where the plain spellings trap and change nothing: `VertexNotFound` for a non-vertex, `EdgeNotFound` for a position outside `0..<edgeCount`; the multigraphs' `insert(checked:)` throws `LooplessEdgeError`, `.missingEndpoint` before `.selfLoop` | MG-193 – MG-211 |
 | Equality | Equal vertex sets and equal edge multisets (orientation ignored for the undirected types) | MG-115 – MG-128 |
 | Codable | The simple lists' format; vertex order and positions kept, rows rebuilt in position order | MG-129 – MG-153 |
 | Conversions | To the simple lists: each pair's first copy by position, in its orientation. From any graph: vertices in order, then every edge in `edges` order. From the same type: unchanged, rows included | MG-160 – MG-178 |
@@ -120,18 +125,19 @@ in-rows reversed in directed vertex removal (MG-098, MG-099, then a trap).
 | `MultigraphCodableTests.swift` | 25 | MG-129 – MG-153: round trips, copies and loops accepted, loops rejected by the multigraphs, odd length, repeated vertex, endpoints out of range, missing keys, cross-type payloads |
 | `MultigraphDescriptionTests.swift` | 6 | MG-154 – MG-159: `description`, `debugDescription`, the 16-item limit |
 | `MultigraphConversionTests.swift` | 19 | MG-160 – MG-178: to and from the simple lists, between the multigraphs and the pseudographs, through `.undirected` and `.directed`, the same type unchanged |
+| `MultigraphCheckedTests.swift` | 19 | MG-193 – MG-211: `insert(checked:)` on the four types (a copy, a missing endpoint, the multigraphs' self-loop, a loop at a missing vertex), the vertex lookups' `checked:` spellings present and absent, `source` / `target(checkedEdgeAt:)` in and out of range and after a removal, `String` vertices, a moved slot |
 | `MultigraphPreconditionTests.swift` | 23 | Exit tests: MG-032 – MG-034, MG-039, MG-040, MG-075 – MG-077, MG-080, MG-179 – MG-192 |
 | `MultigraphLawTests.swift` | 8 | `Graph`'s laws (counts, index maps, rows against `edges`, `oppositeVertex`, degrees, edge indices, every pair's class, `contains(edge:)`, `_withIncidentIndexRows` read back) on `Pseudograph` fresh and after removals; `Multigraph` forwarding every requirement to its storage; `BidirectionalDirectedGraph`'s laws on both directed types; the drop-in check against both reference conformers on hand-made shapes and every fixture; the fixtures' pseudograph degrees; generic code |
 | `MultigraphConformanceTests.swift` | 10 | Codable through JSON and property lists after removals, malformed payloads throwing on all four types, Hashable (orders ignored, multisets told apart, colliding vertex hashes), `Sendable` across a `Task`, the mirror, the builders with control flow, the remaining initializers, `EdgesConnecting` as a collection and a value, copy-on-write on every mutation, capacity |
 | `MultigraphPropertyTests.swift` | 10 | PropertyBased, shrinking: random operation sequences against the model for each of the four types; the laws on random graphs after random removals (undirected, directed); equality and hashing independent of orders; Codable round trips; the collapse to the simple lists and simple graphs both ways; the drop-in check against the reference conformers |
 | `Performance/MultigraphStressTests.swift` | 4 | Inside a `Task` with a one-minute limit: 10⁵ copies of one pair (newest-first removal, removal from the front, directed with a second class), a seeded random pseudograph and directed pseudograph on 10⁵ vertices against the reference conformers and then half removed, 10⁵ edges inserted and removed again by edge, by pair, by vertex and by position |
 
-192 catalog rows (169 value rows, 23 trap rows) and 32 more tests (8 laws, 10 conformance, 10
-property, 4 stress): 224 tests in all.
+211 catalog rows (188 value rows, 23 trap rows) and 32 more tests (8 laws, 10 conformance, 10
+property, 4 stress): 243 tests in all.
 
 ## Case IDs
 
-Case IDs (MG-001 … MG-192) refer to the catalog (`cases.md`), whose values `ref.py` computes with
+Case IDs (MG-001 … MG-211) refer to the catalog (`cases.md`), whose values `ref.py` computes with
 api.md's model and checks against NetworkX 3.7 `MultiGraph` / `MultiDiGraph` (degrees,
 `number_of_edges(u, v)` for every pair, the self-loop count, the copy `remove_edge(u, v)` removes,
 the key order of `G[u][v]`, the collapse to `nx.Graph` / `nx.DiGraph`). Each test's name starts with
@@ -150,6 +156,7 @@ its ID; tests without an ID check laws, properties or conformance that the catal
 | MG-154 – MG-159 | Descriptions | `MultigraphDescriptionTests.swift` |
 | MG-160 – MG-178 | Conversions | `MultigraphConversionTests.swift` |
 | MG-179 – MG-192 | Preconditions (traps) | `MultigraphPreconditionTests.swift` |
+| MG-193 – MG-211 | `checked:` spellings | `MultigraphCheckedTests.swift` |
 
 ## Readings of what api.md leaves open
 

@@ -6,7 +6,7 @@ import GraphProtocols
 /// `edges`, which is its identity.
 ///
 /// The invariant is the type: every initializer from unchecked input is failable, and inserting a
-/// self-loop throws `SelfLoopError`. Storage, costs and the order rules are `Pseudograph`'s, which it wraps:
+/// self-loop throws `LooplessEdgeError.selfLoop`. Storage, costs and the order rules are `Pseudograph`'s, which it wraps:
 /// `Pseudograph(multigraph)` is O(1).
 @frozen
 public struct Multigraph<Vertex: Hashable> {
@@ -136,6 +136,32 @@ extension Multigraph {
     /// - Precondition: `vertex` is a vertex of the graph.
     @inlinable
     public func degree(of vertex: Vertex) -> Int { _base.degree(of: vertex) }
+
+    /// `neighbors(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1) to
+    /// make.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func neighbors(checked vertex: Vertex) throws(VertexNotFound) -> Neighbors { try _base.neighbors(checked: vertex) }
+
+    /// `incidentEdges(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex.
+    /// O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func incidentEdges(checked vertex: Vertex) throws(VertexNotFound) -> ArraySlice<Int> { try _base.incidentEdges(checked: vertex) }
+
+    /// `degree(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func degree(checked vertex: Vertex) throws(VertexNotFound) -> Int { try _base.degree(checked: vertex) }
+
+    /// `vertexIndex(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func vertexIndex(checked vertex: Vertex) throws(VertexNotFound) -> Int { try _base.vertexIndex(checked: vertex) }
 }
 
 // MARK: - Mutation
@@ -155,13 +181,31 @@ extension Multigraph {
     /// not already a vertex. O(1) amortized.
     ///
     /// - Returns: The new copy's position in `edges`, which is the old `edgeCount`.
-    /// - Throws: `SelfLoopError` when `edge` is a self-loop, checked before anything is inserted;
-    ///   then nothing changes.
+    /// - Throws: `LooplessEdgeError.selfLoop` when `edge` is a self-loop, checked before anything
+    ///   is inserted; then nothing changes.
     @inlinable
     @discardableResult
-    public mutating func insert(edge: UndirectedEdge<Vertex>) throws(SelfLoopError) -> Int {
-        if edge.isSelfLoop { throw SelfLoopError() }
+    public mutating func insert(edge: UndirectedEdge<Vertex>) throws(LooplessEdgeError) -> Int {
+        if edge.isSelfLoop { throw .selfLoop }
         return _base.insert(edge: edge)
+    }
+
+    /// Adds a copy of `edge` only when both endpoints are already vertices and it is not a
+    /// self-loop; otherwise throws and changes nothing. The `checked:` spelling of README
+    /// Principle 6: JGraphT's `addEdge` requires the endpoints (it throws
+    /// `IllegalArgumentException`), as petgraph's `try_add_edge` does (`GraphError::NodeMissed`).
+    /// O(1) amortized.
+    ///
+    /// - Returns: The new copy's position in `edges`, which is the old `edgeCount`.
+    /// - Throws: `LooplessEdgeError.missingEndpoint` when an endpoint is not a vertex (checked
+    ///   first, so a self-loop at a missing vertex throws it), then `.selfLoop` as `insert(edge:)`
+    ///   does. Nothing changes when it throws.
+    @inlinable
+    @discardableResult
+    public mutating func insert(checked edge: UndirectedEdge<Vertex>) throws(LooplessEdgeError) -> Int {
+        guard let u = _base._slots[edge.u], let v = _base._slots[edge.v] else { throw .missingEndpoint }
+        if u == v { throw .selfLoop }
+        return _base._insertEdge(slots: u, v)
     }
 
     /// Removes `vertex` and every edge at it. O(degree), plus the degree of the vertex that moves

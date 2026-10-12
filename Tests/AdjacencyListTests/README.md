@@ -37,9 +37,14 @@ struct AdjacencyList<Vertex: Hashable>
     func outDegree(of: Vertex) -> Int
     func inDegree(of: Vertex) -> Int
     func degree(of: Vertex) -> Int                // outDegree + inDegree
+    // The checked: spellings throw VertexNotFound / EdgeNotFound where the trapping ones trap.
+    func successors(checked:), predecessors(checked:), outEdges(checked:), inEdges(checked:)
+    func outDegree(checked:), inDegree(checked:), degree(checked:), vertexIndex(checked:)
+    func source(checkedEdgeAt:), target(checkedEdgeAt:)
 
     mutating func insert(_: Vertex) -> (inserted: Bool, memberAfterInsert: Vertex)
     mutating func insert(edge: DirectedEdge<Vertex>) -> (inserted: Bool, memberAfterInsert: DirectedEdge<Vertex>)
+    mutating func insert(checked: DirectedEdge<Vertex>) throws(VertexNotFound) -> (inserted: Bool, memberAfterInsert: DirectedEdge<Vertex>)
     mutating func remove(_: Vertex) -> Vertex?
     mutating func remove(edge: DirectedEdge<Vertex>) -> DirectedEdge<Vertex>?
     mutating func removeAll(keepingCapacity: Bool = false)
@@ -67,7 +72,7 @@ why.
 | Inserting an edge with absent endpoints | Inserts the endpoints | Matches `Set.insert` ergonomics; NetworkX does the same | JGraphT throws; petgraph `Graph` panics |
 | Removing something absent | Returns `nil`; never traps | Matches `Set.remove` | NetworkX raises |
 | Removing an edge with absent endpoints | Returns `nil`; inserts nothing | A removal must not grow the graph | |
-| Successors, predecessors or degree of an absent vertex | **Traps** (precondition) | A programming error, like an out-of-bounds index; an empty answer would hide it | petgraph returns empty |
+| Successors, predecessors or degree of an absent vertex | **Traps** (precondition); the `checked:` spellings throw `VertexNotFound` instead | A programming error, like an out-of-bounds index; an empty answer would hide it | petgraph returns empty |
 | Equal-but-distinct vertex instances | The first stored instance is kept and returned, including as edge endpoints | Matches `Set.insert`'s `memberAfterInsert` | |
 | Dictionary literal with a repeated key | Traps | Matches `Dictionary` | |
 | `==` | Equal vertex sets and equal edge sets; independent of insertion order; not isomorphism | Value semantics | NetworkX and petgraph have no structural `==` |
@@ -99,6 +104,7 @@ named fixtures and the vertex types used to stress `Hashable` (`Collider`, `Hash
 | `AdjacencyListCodableTests.swift` | JSON and property list round trips |
 | `AdjacencyListDescriptionTests.swift` | `description`, `debugDescription` and the mirror |
 | `AdjacencyListOverloadTests.swift` | Vertex and edge operations stay distinct when the vertex type could hold an edge |
+| `AdjacencyListCheckedTests.swift` | The `checked:` lookups against their trapping spellings, throwing for a non-vertex and after a removal moved a slot; `source` / `target(checkedEdgeAt:)` in and out of range; `insert(checked:)` between existing vertices, and throwing with nothing changed for a missing endpoint |
 
 Case IDs in test names (C-04, V-06, Q-14, ...) refer to the catalog of cases (`Tests/Catalogs/AdjacencyList/cases.md`) harvested from
 NetworkX, petgraph, Boost.Graph and JGraphT; fixtures cite their sources in

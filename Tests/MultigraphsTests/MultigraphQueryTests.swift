@@ -1,7 +1,7 @@
 // Queries (catalog MG-015 – MG-046, without the trap rows MG-039, MG-040, which are in
 // MultigraphPreconditionTests.swift): `edges(between:and:)` / `edges(from:to:)` oldest copy
 // first, `edgeCount(between:and:)`, `contains(edge:)` (false, never a trap, for a non-vertex),
-// self-loops twice in an undirected row and once in each directed row, `SelfLoopError` from a
+// self-loops twice in an undirected row and once in each directed row, `LooplessEdgeError` from a
 // multigraph's `insert(edge:)` with nothing changed, degrees counting copies and a loop twice, and
 // the rows of a freshly built graph (each edge appended at u, then at v).
 // Generated from cases.md by swiftgen.py; see README.md.
@@ -403,7 +403,7 @@ struct MultigraphQueryTests {
     func mg032() throws {
         // Multigraph V [0]; E []; insert(edge: UndirectedEdge(0, 0))
         var graph = try #require(Multigraph<Int>(vertices: [0], edges: [] as [UndirectedEdge<Int>]))
-        #expect(throws: SelfLoopError()) { try graph.insert(edge: UndirectedEdge(0, 0)) }
+        #expect(throws: LooplessEdgeError.selfLoop) { try graph.insert(edge: UndirectedEdge(0, 0)) }
         // Final state.
         #expect(Array(graph.vertices) == [0])
         #expect(graph.edges.map { [$0.u, $0.v] } == [] as [[Int]])
@@ -417,7 +417,7 @@ struct MultigraphQueryTests {
     func mg033() throws {
         // Multigraph V []; E []; insert(edge: UndirectedEdge(5, 5))
         var graph = try #require(Multigraph<Int>(vertices: [] as [Int], edges: [] as [UndirectedEdge<Int>]))
-        #expect(throws: SelfLoopError()) { try graph.insert(edge: UndirectedEdge(5, 5)) }
+        #expect(throws: LooplessEdgeError.selfLoop) { try graph.insert(edge: UndirectedEdge(5, 5)) }
         // Final state.
         #expect(Array(graph.vertices) == [] as [Int])
         #expect(graph.edges.map { [$0.u, $0.v] } == [] as [[Int]])
@@ -429,7 +429,7 @@ struct MultigraphQueryTests {
     func mg034() throws {
         // DirectedMultigraph V [0, 1]; E [0→1]; insert(edge: DirectedEdge(from: 1, to: 1))
         var graph = try #require(DirectedMultigraph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)]))
-        #expect(throws: SelfLoopError()) { try graph.insert(edge: DirectedEdge(from: 1, to: 1)) }
+        #expect(throws: LooplessEdgeError.selfLoop) { try graph.insert(edge: DirectedEdge(from: 1, to: 1)) }
         // Final state.
         #expect(Array(graph.vertices) == [0, 1])
         #expect(graph.edges.map { [$0.source, $0.target] } == [[0, 1]])

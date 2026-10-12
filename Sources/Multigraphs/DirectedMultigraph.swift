@@ -6,7 +6,7 @@ import GraphProtocols
 /// its identity. Opposite edges, `u→v` and `v→u`, are allowed.
 ///
 /// The invariant is the type: every initializer from unchecked input is failable, and inserting a
-/// self-loop throws `SelfLoopError`. Storage, costs and the order rules are `DirectedPseudograph`'s, which it
+/// self-loop throws `LooplessEdgeError.selfLoop`. Storage, costs and the order rules are `DirectedPseudograph`'s, which it
 /// wraps: `DirectedPseudograph(directedMultigraph)` is O(1).
 @frozen
 public struct DirectedMultigraph<Vertex: Hashable> {
@@ -141,6 +141,70 @@ extension DirectedMultigraph {
     /// - Precondition: `vertex` is a vertex of the graph.
     @inlinable
     public func degree(of vertex: Vertex) -> Int { _base.degree(of: vertex) }
+
+    /// `successors(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1)
+    /// to make.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func successors(checked vertex: Vertex) throws(VertexNotFound) -> Neighbors { try _base.successors(checked: vertex) }
+
+    /// `predecessors(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1)
+    /// to make.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func predecessors(checked vertex: Vertex) throws(VertexNotFound) -> Neighbors { try _base.predecessors(checked: vertex) }
+
+    /// `outEdges(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func outEdges(checked vertex: Vertex) throws(VertexNotFound) -> ArraySlice<Int> { try _base.outEdges(checked: vertex) }
+
+    /// `inEdges(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func inEdges(checked vertex: Vertex) throws(VertexNotFound) -> ArraySlice<Int> { try _base.inEdges(checked: vertex) }
+
+    /// `outDegree(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func outDegree(checked vertex: Vertex) throws(VertexNotFound) -> Int { try _base.outDegree(checked: vertex) }
+
+    /// `inDegree(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func inDegree(checked vertex: Vertex) throws(VertexNotFound) -> Int { try _base.inDegree(checked: vertex) }
+
+    /// `degree(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func degree(checked vertex: Vertex) throws(VertexNotFound) -> Int { try _base.degree(checked: vertex) }
+
+    /// `vertexIndex(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func vertexIndex(checked vertex: Vertex) throws(VertexNotFound) -> Int { try _base.vertexIndex(checked: vertex) }
+
+    /// `source(ofEdgeAt: position)`, throwing instead of trapping when no edge is at `position`.
+    /// O(1).
+    ///
+    /// - Throws: `EdgeNotFound` when `position` is not in `0..<edgeCount`.
+    @inlinable
+    public func source(checkedEdgeAt position: Int) throws(EdgeNotFound) -> Vertex { try _base.source(checkedEdgeAt: position) }
+
+    /// `target(ofEdgeAt: position)`, throwing instead of trapping when no edge is at `position`.
+    /// O(1).
+    ///
+    /// - Throws: `EdgeNotFound` when `position` is not in `0..<edgeCount`.
+    @inlinable
+    public func target(checkedEdgeAt position: Int) throws(EdgeNotFound) -> Vertex { try _base.target(checkedEdgeAt: position) }
 }
 
 // MARK: - Mutation
@@ -160,13 +224,31 @@ extension DirectedMultigraph {
     /// amortized.
     ///
     /// - Returns: The new copy's position in `edges`, which is the old `edgeCount`.
-    /// - Throws: `SelfLoopError` when `edge` is a self-loop, checked before anything is inserted;
-    ///   then nothing changes.
+    /// - Throws: `LooplessEdgeError.selfLoop` when `edge` is a self-loop, checked before anything
+    ///   is inserted; then nothing changes.
     @inlinable
     @discardableResult
-    public mutating func insert(edge: DirectedEdge<Vertex>) throws(SelfLoopError) -> Int {
-        if edge.isSelfLoop { throw SelfLoopError() }
+    public mutating func insert(edge: DirectedEdge<Vertex>) throws(LooplessEdgeError) -> Int {
+        if edge.isSelfLoop { throw .selfLoop }
         return _base.insert(edge: edge)
+    }
+
+    /// Adds a copy of `edge` only when both endpoints are already vertices and it is not a
+    /// self-loop; otherwise throws and changes nothing. The `checked:` spelling of README
+    /// Principle 6: JGraphT's `addEdge` requires the endpoints (it throws
+    /// `IllegalArgumentException`), as petgraph's `try_add_edge` does (`GraphError::NodeMissed`).
+    /// O(1) amortized.
+    ///
+    /// - Returns: The new copy's position in `edges`, which is the old `edgeCount`.
+    /// - Throws: `LooplessEdgeError.missingEndpoint` when an endpoint is not a vertex (checked
+    ///   first, so a self-loop at a missing vertex throws it), then `.selfLoop` as `insert(edge:)`
+    ///   does. Nothing changes when it throws.
+    @inlinable
+    @discardableResult
+    public mutating func insert(checked edge: DirectedEdge<Vertex>) throws(LooplessEdgeError) -> Int {
+        guard let source = _base._slots[edge.source], let target = _base._slots[edge.target] else { throw .missingEndpoint }
+        if source == target { throw .selfLoop }
+        return _base._insertEdge(slots: source, target)
     }
 
     /// Removes `vertex` and every edge at it. O(degree), plus the degree of the vertex that moves

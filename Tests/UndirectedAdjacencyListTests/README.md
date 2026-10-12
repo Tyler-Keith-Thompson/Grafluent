@@ -38,6 +38,8 @@ struct UndirectedAdjacencyList<Vertex: Hashable>
     func incidentEdges(of: Vertex) -> ArraySlice<Int>    // a self-loop's position twice
     func oppositeVertex(to: Vertex, acrossEdgeAt: Int) -> Vertex
     func degree(of: Vertex) -> Int                // a self-loop counts 2
+    // The checked: spellings throw VertexNotFound where the four lookups above trap.
+    func neighbors(checked:), incidentEdges(checked:), degree(checked:), vertexIndex(checked:)
     var vertexIndexBound: Int?                    // vertexCount
     func vertexIndex(of: Vertex) -> Int
     func vertex(atIndex: Int) -> Vertex
@@ -45,6 +47,7 @@ struct UndirectedAdjacencyList<Vertex: Hashable>
 
     mutating func insert(_: Vertex) -> (inserted: Bool, memberAfterInsert: Vertex)
     mutating func insert(edge: UndirectedEdge<Vertex>) -> (inserted: Bool, memberAfterInsert: UndirectedEdge<Vertex>)
+    mutating func insert(checked: UndirectedEdge<Vertex>) throws(VertexNotFound) -> (inserted: Bool, memberAfterInsert: UndirectedEdge<Vertex>)
     mutating func remove(_: Vertex) -> Vertex?
     mutating func remove(edge: UndirectedEdge<Vertex>) -> UndirectedEdge<Vertex>?
     mutating func removeAll(keepingCapacity: Bool = false)
@@ -62,7 +65,7 @@ struct UndirectedAdjacencyList<Vertex: Hashable>
 | Orientation | An edge keeps the orientation it was first inserted with; `memberAfterInsert` and `remove(edge:)` return the stored one | `UndirectedEdge`'s `u` and `v` are not part of its value, but are observable | igraph canonicalizes, which needs `Comparable` |
 | Edge positions | `0..<edgeCount`, in insertion order until a removal; a removal moves the last edge into the hole | A weight is an array lookup, the same from both ends | — |
 | Row order | Before any removal, `neighbors` and `incidentEdges` are in insertion order, a loop's two entries side by side | What Boost's `vecS` lists give; tested for one fixture (UG-R06) | — |
-| Absent vertex | `neighbors`, `incidentEdges`, `degree` and `vertexIndex` trap; `contains` and removals never do | As `AdjacencyList` | petgraph returns empty |
+| Absent vertex | `neighbors`, `incidentEdges`, `degree` and `vertexIndex` trap, and their `checked:` spellings throw `VertexNotFound`; `contains` and removals never do; `insert(checked:)` throws instead of inserting it | As `AdjacencyList` | petgraph returns empty |
 | `oppositeVertex(to:acrossEdgeAt:)` off the edge | Traps | A programming error | — |
 | `==` | Equal vertex sets and equal edge sets, as unordered pairs; independent of insertion order and orientation | Value semantics | — |
 | `description` | `[0, 1, 2]; [0–1, 1–2]`, the form every representation shares, with `–` | Equal graphs print alike | — |
@@ -83,6 +86,7 @@ fixtures (`UndirectedFixtures.swift`), the pseudograph test conformer and `Minim
 | `UndirectedAdjacencyListValueSemanticsTests.swift` | Every kind of mutation leaves an existing copy and its views unchanged |
 | `UndirectedAdjacencyListDescriptionTests.swift` | `description` |
 | `UndirectedAdjacencyListCodableTests.swift` | JSON and property list round trips |
+| `UndirectedAdjacencyListCheckedTests.swift` | The `checked:` lookups against their trapping spellings, throwing for a non-vertex and after a removal moved a slot; `insert(checked:)` between existing vertices, in either orientation, a loop, and throwing with nothing changed for a missing endpoint |
 | `UndirectedAdjacencyListConstructionTests.swift` | Dictionary literals, adjacency mappings, initializers, order independence, conversion from any `Graph` |
 | `UndirectedAdjacencyListReviewTests.swift` | Added after the critical review, for bugs that survived the first suite: `removeAllEdges` forgets edges (UG-R21); edgeless graphs compare vertices and hashes see both sets (UG-R16); `memberAfterInsert` returns stored instances and orientation (UG-R10); decoding keeps orientation and rejects repeated edges (UG-R19); edge indices (UG-R22); seeded random mutations against a set model, every law after every step (UG-P02) |
 

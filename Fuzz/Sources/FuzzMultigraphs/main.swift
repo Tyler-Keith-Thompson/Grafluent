@@ -4,7 +4,9 @@
 // documented swap-remove rule (the last edge moves into the hole) and removing the newest stamp;
 // after a vertex removal it checks the multiset and re-reads the positions. After every step:
 // counts, every edge at its position, `edges(between:)` oldest first with its count, degrees, the
-// rows parallel, and equality with a rebuild in shuffled order.
+// rows parallel, each `checked:` lookup agreeing with its plain spelling (and throwing for a
+// non-vertex or a position out of range), `insert(checked:)` inserting only between existing
+// vertices, and equality with a rebuild in shuffled order.
 
 import FuzzSupport
 import GraphProtocols
@@ -27,10 +29,20 @@ enum FuzzMultigraphs {
         while !input.isEmpty, steps < 80 {
             steps += 1
             let a = input.int(below: 8), b = input.int(below: 8)
-            switch input.int(below: 6) {
+            switch input.int(below: 7) {
             case 0:
                 graph.insert(a)
                 vertices.insert(a)
+            case 6:
+                if !loops, a == b { continue }
+                let p = try? graph.insert(checked: UndirectedEdge(a, b))
+                guard vertices.contains(a), vertices.contains(b) else {
+                    check(p == nil, "insert(checked:) with a missing endpoint")
+                    continue
+                }
+                check(p == model.count, "insert(checked:) position")
+                model.append(Copy(u: a, v: b, stamp: stamp))
+                stamp += 1
             case 1, 2:
                 if !loops, a == b { continue }
                 let p = graph.insert(edge: UndirectedEdge(a, b))
@@ -83,7 +95,14 @@ enum FuzzMultigraphs {
             }
             check(graph.vertexCount == vertices.count && graph.edgeCount == model.count, "counts")
             for (p, c) in model.enumerated() { check(same(c, graph.edges[p].u, graph.edges[p].v), "edge at \(p)") }
+            for x in 0 ..< 8 where !vertices.contains(x) {
+                check((try? graph.degree(checked: x)) == nil && (try? graph.neighbors(checked: x)) == nil
+                    && (try? graph.incidentEdges(checked: x)) == nil && (try? graph.vertexIndex(checked: x)) == nil, "checked: lookups of non-vertex \(x)")
+            }
             for x in vertices {
+                check((try? graph.degree(checked: x)) == graph.degree(of: x) && (try? graph.incidentEdges(checked: x)) == graph.incidentEdges(of: x)
+                    && (try? graph.neighbors(checked: x)).map(Array.init) == Array(graph.neighbors(of: x))
+                    && (try? graph.vertexIndex(checked: x)) == graph.vertexIndex(of: x), "checked: lookups of \(x)")
                 check(graph.degree(of: x) == model.reduce(0) { $0 + ($1.u == x ? 1 : 0) + ($1.v == x ? 1 : 0) }, "degree of \(x)")
                 check(zip(graph.neighbors(of: x), graph.incidentEdges(of: x)).allSatisfy { graph.oppositeVertex(to: x, acrossEdgeAt: $0.1) == $0.0 }, "rows not parallel")
                 for y in vertices {
@@ -96,6 +115,14 @@ enum FuzzMultigraphs {
         check(rebuilt == graph && rebuilt.hashValue == graph.hashValue, "equality or hashing depends on order")
         if !loops {
             check(Multigraph(graph) != nil, "a loop-free pseudograph is a multigraph")
+            // insert(checked:): a missing endpoint first, then a self-loop, else a new copy.
+            if var multigraph = Multigraph(graph) {
+                let a = input.int(below: 8), b = input.int(below: 8)
+                let expected: Result<Int, LooplessEdgeError> =
+                    !vertices.contains(a) || !vertices.contains(b) ? .failure(.missingEndpoint) : a == b ? .failure(.selfLoop) : .success(graph.edgeCount)
+                check(Result { () throws(LooplessEdgeError) in try multigraph.insert(checked: UndirectedEdge(a, b)) } == expected, "Multigraph.insert(checked:)")
+                check(multigraph.edgeCount == graph.edgeCount + ((try? expected.get()) == nil ? 0 : 1), "Multigraph.insert(checked:) changed nothing on a throw")
+            }
         }
     }
 
@@ -108,10 +135,19 @@ enum FuzzMultigraphs {
         while !input.isEmpty, steps < 80 {
             steps += 1
             let a = input.int(below: 8), b = input.int(below: 8)
-            switch input.int(below: 5) {
+            switch input.int(below: 6) {
             case 0:
                 graph.insert(a)
                 vertices.insert(a)
+            case 5:
+                let p = try? graph.insert(checked: DirectedEdge(from: a, to: b))
+                guard vertices.contains(a), vertices.contains(b) else {
+                    check(p == nil, "directed insert(checked:) with a missing endpoint")
+                    continue
+                }
+                check(p == model.count, "directed insert(checked:) position")
+                model.append(Copy(u: a, v: b, stamp: stamp))
+                stamp += 1
             case 1, 2:
                 let p = graph.insert(edge: DirectedEdge(from: a, to: b))
                 check(p == model.count, "directed insert position")
@@ -134,8 +170,20 @@ enum FuzzMultigraphs {
                 model.removeLast()
             }
             check(graph.edgeCount == model.count, "directed counts")
-            for (p, c) in model.enumerated() { check(graph.source(ofEdgeAt: p) == c.u && graph.target(ofEdgeAt: p) == c.v, "directed edge at \(p)") }
+            for (p, c) in model.enumerated() {
+                check(graph.source(ofEdgeAt: p) == c.u && graph.target(ofEdgeAt: p) == c.v, "directed edge at \(p)")
+                check((try? graph.source(checkedEdgeAt: p)) == c.u && (try? graph.target(checkedEdgeAt: p)) == c.v, "checkedEdgeAt: \(p)")
+            }
+            check((try? graph.source(checkedEdgeAt: model.count)) == nil && (try? graph.target(checkedEdgeAt: -1)) == nil, "checkedEdgeAt: out of range")
+            for x in 0 ..< 8 where !vertices.contains(x) {
+                check((try? graph.outDegree(checked: x)) == nil && (try? graph.successors(checked: x)) == nil && (try? graph.inEdges(checked: x)) == nil, "directed checked: lookups of non-vertex \(x)")
+            }
             for x in vertices {
+                check((try? graph.outDegree(checked: x)) == graph.outDegree(of: x) && (try? graph.inDegree(checked: x)) == graph.inDegree(of: x)
+                    && (try? graph.degree(checked: x)) == graph.degree(of: x) && (try? graph.vertexIndex(checked: x)) == graph.vertexIndex(of: x)
+                    && (try? graph.outEdges(checked: x)) == graph.outEdges(of: x) && (try? graph.inEdges(checked: x)) == graph.inEdges(of: x)
+                    && (try? graph.successors(checked: x)).map(Array.init) == Array(graph.successors(of: x))
+                    && (try? graph.predecessors(checked: x)).map(Array.init) == Array(graph.predecessors(of: x)), "directed checked: lookups of \(x)")
                 check(graph.outDegree(of: x) == model.filter { $0.u == x }.count && graph.inDegree(of: x) == model.filter { $0.v == x }.count, "directed degrees")
                 for y in vertices {
                     let expected = model.indices.filter { model[$0].u == x && model[$0].v == y }.sorted { model[$0].stamp < model[$1].stamp }

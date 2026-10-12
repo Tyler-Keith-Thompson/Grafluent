@@ -243,6 +243,104 @@ extension AdjacencyList {
         return _out.count(ofRow: slot) + _in.count(ofRow: slot)
     }
 
+    // The `checked:` lookups (README Principle 6): they throw `VertexNotFound` for a vertex that
+    // is not in the graph, where the trapping spellings are the fast path (Rust's `checked_*`).
+    // Each is one hash, the same as its trapping spelling; `try?` gives an Optional.
+
+    /// `successors(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1)
+    /// to make.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func successors(checked vertex: Vertex) throws(VertexNotFound) -> Neighbors {
+        guard let slot = _slots[vertex] else { throw VertexNotFound() }
+        return Neighbors(vertices: _vertices, slots: _out[row: slot])
+    }
+
+    /// `predecessors(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1)
+    /// to make.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func predecessors(checked vertex: Vertex) throws(VertexNotFound) -> Neighbors {
+        guard let slot = _slots[vertex] else { throw VertexNotFound() }
+        return Neighbors(vertices: _vertices, slots: _in[row: slot])
+    }
+
+    /// `outEdges(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func outEdges(checked vertex: Vertex) throws(VertexNotFound) -> ArraySlice<Int> {
+        guard let slot = _slots[vertex] else { throw VertexNotFound() }
+        return _outEdges[row: slot]
+    }
+
+    /// `inEdges(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func inEdges(checked vertex: Vertex) throws(VertexNotFound) -> ArraySlice<Int> {
+        guard let slot = _slots[vertex] else { throw VertexNotFound() }
+        return _inEdges[row: slot]
+    }
+
+    /// `outDegree(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func outDegree(checked vertex: Vertex) throws(VertexNotFound) -> Int {
+        guard let slot = _slots[vertex] else { throw VertexNotFound() }
+        return _out.count(ofRow: slot)
+    }
+
+    /// `inDegree(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func inDegree(checked vertex: Vertex) throws(VertexNotFound) -> Int {
+        guard let slot = _slots[vertex] else { throw VertexNotFound() }
+        return _in.count(ofRow: slot)
+    }
+
+    /// `degree(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func degree(checked vertex: Vertex) throws(VertexNotFound) -> Int {
+        guard let slot = _slots[vertex] else { throw VertexNotFound() }
+        return _out.count(ofRow: slot) + _in.count(ofRow: slot)
+    }
+
+    /// `vertexIndex(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func vertexIndex(checked vertex: Vertex) throws(VertexNotFound) -> Int {
+        guard let slot = _slots[vertex] else { throw VertexNotFound() }
+        return slot
+    }
+
+    /// `source(ofEdgeAt: position)`, throwing instead of trapping when no edge is at `position`.
+    /// O(1).
+    ///
+    /// - Throws: `EdgeNotFound` when `position` is not in `0..<edgeCount`.
+    @inlinable
+    public func source(checkedEdgeAt position: Int) throws(EdgeNotFound) -> Vertex {
+        guard UInt(bitPattern: position) < UInt(bitPattern: _records.count) else { throw EdgeNotFound() }
+        return _vertices[_records[position].source]
+    }
+
+    /// `target(ofEdgeAt: position)`, throwing instead of trapping when no edge is at `position`.
+    /// O(1).
+    ///
+    /// - Throws: `EdgeNotFound` when `position` is not in `0..<edgeCount`.
+    @inlinable
+    public func target(checkedEdgeAt position: Int) throws(EdgeNotFound) -> Vertex {
+        guard UInt(bitPattern: position) < UInt(bitPattern: _records.count) else { throw EdgeNotFound() }
+        return _vertices[_records[position].target]
+    }
+
     @inlinable
     @inline(__always)
     internal func _slot(of vertex: Vertex) -> Int {
@@ -277,6 +375,25 @@ extension AdjacencyList {
     public mutating func insert(edge: DirectedEdge<Vertex>) -> (inserted: Bool, memberAfterInsert: DirectedEdge<Vertex>) {
         let source = _slots[edge.source] ?? _appendSlot(for: edge.source)
         let target = _slots[edge.target] ?? _appendSlot(for: edge.target)
+        let member = DirectedEdge(from: _vertices[source], to: _vertices[target])
+        let count = _records.count
+        return (_insertEdge(slots: source, target) == count, member)
+    }
+
+    /// Inserts `edge` only when both endpoints are already vertices; otherwise throws and changes
+    /// nothing. O(1) expected.
+    ///
+    /// `insert(edge:)` inserts a missing endpoint (NetworkX's `add_edge`). Requiring the endpoints
+    /// is JGraphT's `addEdge` precondition (it throws `IllegalArgumentException`) and petgraph's
+    /// `try_add_edge` (`GraphError::NodeMissed`); this library spells it with the `checked:` label
+    /// of the lookups (README Principle 6), for callers whose vertices may come from another graph.
+    ///
+    /// - Returns: As `insert(edge:)`.
+    /// - Throws: `VertexNotFound` when either endpoint is not a vertex.
+    @inlinable
+    @discardableResult
+    public mutating func insert(checked edge: DirectedEdge<Vertex>) throws(VertexNotFound) -> (inserted: Bool, memberAfterInsert: DirectedEdge<Vertex>) {
+        guard let source = _slots[edge.source], let target = _slots[edge.target] else { throw VertexNotFound() }
         let member = DirectedEdge(from: _vertices[source], to: _vertices[target])
         let count = _records.count
         return (_insertEdge(slots: source, target) == count, member)

@@ -113,6 +113,12 @@ import AdjacencyListModule   // shared row storage and view types; the simple li
     public func incidentEdges(of vertex: Vertex) -> ArraySlice<Int> // a loop's position twice
     public func degree(of vertex: Vertex) -> Int                    // O(1); a loop counts 2
     public func oppositeVertex(to vertex: Vertex, acrossEdgeAt position: Int) -> Vertex
+    // checked: lookups (README Principle 6): throw VertexNotFound for a vertex not in the graph,
+    // where the spellings above trap (MG-202, MG-203, MG-208, MG-210, MG-211).
+    public func neighbors(checked vertex: Vertex) throws(VertexNotFound) -> Neighbors
+    public func incidentEdges(checked vertex: Vertex) throws(VertexNotFound) -> ArraySlice<Int>
+    public func degree(checked vertex: Vertex) throws(VertexNotFound) -> Int
+    public func vertexIndex(checked vertex: Vertex) throws(VertexNotFound) -> Int
 
     /// Inserts `vertex` with no edges, if it is not already a vertex.
     @discardableResult
@@ -121,6 +127,10 @@ import AdjacencyListModule   // shared row storage and view types; the simple li
     /// vertices. Returns its position, which is the old `edgeCount`. O(1) amortized.
     @discardableResult
     public mutating func insert(edge: UndirectedEdge<Vertex>) -> Int
+    /// Adds a copy only when both endpoints are vertices; otherwise throws `VertexNotFound` and
+    /// changes nothing (JGraphT's `addEdge`, petgraph's `try_add_edge`; MG-193, MG-194).
+    @discardableResult
+    public mutating func insert(checked edge: UndirectedEdge<Vertex>) throws(VertexNotFound) -> Int
     /// Removes `vertex` and every edge at it, copies and loops included. nil if not a vertex.
     @discardableResult
     public mutating func remove(_ vertex: Vertex) -> Vertex?
@@ -153,7 +163,7 @@ import AdjacencyListModule   // shared row storage and view types; the simple li
 
 /// An undirected graph with parallel edges and no self-loops (JGraphT's and Harary's
 /// `Multigraph`). The same storage and costs as `Pseudograph`, which it wraps. Initializers from
-/// unchecked input are failable, and inserting a self-loop throws `SelfLoopError`.
+/// unchecked input are failable, and inserting a self-loop throws `LooplessEdgeError.selfLoop`.
 @frozen public struct Multigraph<Vertex: Hashable> {
     public init()
     public init(vertices: some Sequence<Vertex>)
@@ -163,8 +173,11 @@ import AdjacencyListModule   // shared row storage and view types; the simple li
     public init?(@GraphBuilder<Vertex> _ content: () -> GraphBuilder<Vertex>.Content)
     /// nil when the graph has a self-loop. From a `Multigraph`: itself, O(1).
     public init?(_ graph: some Graph<Vertex>)
-    /// Throws `SelfLoopError`, before inserting either endpoint, for a self-loop.
-    @discardableResult public mutating func insert(edge: UndirectedEdge<Vertex>) throws(SelfLoopError) -> Int
+    /// Throws `LooplessEdgeError.selfLoop`, before inserting either endpoint, for a self-loop.
+    @discardableResult public mutating func insert(edge: UndirectedEdge<Vertex>) throws(LooplessEdgeError) -> Int
+    /// Throws `.missingEndpoint` when an endpoint is not a vertex (checked first), then
+    /// `.selfLoop`; nothing changes (MG-196 – MG-199).
+    @discardableResult public mutating func insert(checked edge: UndirectedEdge<Vertex>) throws(LooplessEdgeError) -> Int
     /// Precondition: `!edge.isSelfLoop`. Checked before anything is inserted.
     @discardableResult
     public mutating func insert(edge: UndirectedEdge<Vertex>) -> Int
@@ -193,9 +206,22 @@ import AdjacencyListModule   // shared row storage and view types; the simple li
     public func outDegree(of vertex: Vertex) -> Int                       // O(1)
     public func inDegree(of vertex: Vertex) -> Int                        // O(1)
     public func degree(of vertex: Vertex) -> Int                          // out + in; a loop 2
+    // checked: lookups: throw VertexNotFound / EdgeNotFound where the spellings above and
+    // source(ofEdgeAt:) / target(ofEdgeAt:) trap (MG-204 – MG-207, MG-209).
+    public func successors(checked vertex: Vertex) throws(VertexNotFound) -> Neighbors
+    public func predecessors(checked vertex: Vertex) throws(VertexNotFound) -> Neighbors
+    public func outEdges(checked vertex: Vertex) throws(VertexNotFound) -> ArraySlice<Int>
+    public func inEdges(checked vertex: Vertex) throws(VertexNotFound) -> ArraySlice<Int>
+    public func outDegree(checked vertex: Vertex) throws(VertexNotFound) -> Int
+    public func inDegree(checked vertex: Vertex) throws(VertexNotFound) -> Int
+    public func degree(checked vertex: Vertex) throws(VertexNotFound) -> Int
+    public func vertexIndex(checked vertex: Vertex) throws(VertexNotFound) -> Int
+    public func source(checkedEdgeAt position: Int) throws(EdgeNotFound) -> Vertex
+    public func target(checkedEdgeAt position: Int) throws(EdgeNotFound) -> Vertex
 
     @discardableResult public mutating func insert(_ vertex: Vertex) -> (inserted: Bool, memberAfterInsert: Vertex)
     @discardableResult public mutating func insert(edge: DirectedEdge<Vertex>) -> Int
+    @discardableResult public mutating func insert(checked edge: DirectedEdge<Vertex>) throws(VertexNotFound) -> Int
     @discardableResult public mutating func remove(_ vertex: Vertex) -> Vertex?
     @discardableResult public mutating func remove(edge: DirectedEdge<Vertex>) -> DirectedEdge<Vertex>?
     @discardableResult public mutating func remove(edgeAt position: Int) -> DirectedEdge<Vertex>
@@ -211,8 +237,8 @@ import AdjacencyListModule   // shared row storage and view types; the simple li
 }
 
 /// A directed graph with parallel edges and no self-loops (JGraphT's `DirectedMultigraph`).
-/// Wraps `DirectedPseudograph`; failable initializers, and `insert(edge:)` throws `SelfLoopError`
-/// on a loop.
+/// Wraps `DirectedPseudograph`; failable initializers, `insert(edge:)` throws
+/// `LooplessEdgeError.selfLoop` on a loop, and `insert(checked:)` also `.missingEndpoint`.
 @frozen public struct DirectedMultigraph<Vertex: Hashable> { /* as Multigraph, directed */ }
 
 extension Pseudograph: Graph {}                        // + vertex/edge indices, _withIncidentIndexRows
@@ -222,8 +248,10 @@ extension DirectedMultigraph: BidirectionalDirectedGraph {}   // every requireme
 // All four: Equatable, Hashable, Sendable (when Vertex is), Codable (when Vertex is),
 // CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable.
 
-/// The error both multigraphs' `insert(edge:)` throw for a self-loop: payload-free, `Sendable`.
-public struct SelfLoopError: Error, Hashable, Sendable { public init() }
+/// Why a multigraph rejected an edge, shaped after `AcyclicEdgeError`: `insert(edge:)` throws
+/// `.selfLoop`, `insert(checked:)` either case, so one `catch` is exhaustive. Payload-free,
+/// `Sendable`.
+public enum LooplessEdgeError: Error, Hashable, Sendable { case selfLoop, missingEndpoint }
 ```
 
 The existing generic initializers convert to the simple lists:
@@ -243,6 +271,7 @@ arcs, a loop included (MG-174).
 | `edges(between:and:)`, `edges(from:to:)` | JGraphT `getAllEdges(u, v)`, petgraph `edges_connecting`, Boost `edge_range` | `between:and:` for unordered pairs, `from:to:` as `DirectedEdge(from:to:)` |
 | `EdgesConnecting` | petgraph's iterator type for `edges_connecting` | Open question 5 |
 | `edgeCount(between:and:)`, `edgeCount(from:to:)` | NetworkX `number_of_edges(u, v)`: the total count's name with endpoints | The mathematical term is the pair's *multiplicity* (igraph `count_multiple` counts it per edge). `edgeCount` is the name programmers already use here |
+| `LooplessEdgeError` | Shaped and named after `AcyclicEdgeError` (petgraph's): the invariant's adjective, then `EdgeError`. "Loopless multigraph" is the textbook term (JGraphT: "loops not allowed") | One enum for `insert(edge:)` and `insert(checked:)`, so a `catch` is exhaustive, as `AcyclicEdgeError.missingEndpoint` and `BipartitionError.missingEndpoint` do |
 | `remove(edgeAt:)` | Swift's `remove(at:)`, with the house label for positions (`source(ofEdgeAt:)`, `oppositeVertex(to:acrossEdgeAt:)`) | |
 | `removeAllEdges(between:and:)`, `removeAllEdges(from:to:)` | JGraphT `removeAllEdges(u, v)` | It overloads `removeAllEdges(keepingCapacity:)`, which removes every edge. The labels keep the two apart, and both mean "remove all the edges named here" |
 | *copy*, *parallel class* | NetworkX docs ("multiple edges", "copies"); parallel class is the standard term (Diestel) | Doc vocabulary only, never an identifier |
@@ -308,8 +337,10 @@ arcs, a loop included (MG-174).
 
 * **Invariant: no self-loop.** `init?(edges:)`, `init?(vertices:edges:)`, the builder init,
   `init?(_ graph:)` and decoding all reject a loop (MG-011, MG-012, MG-139, MG-168, MG-171, MG-175,
-  MG-176). `insert(edge:)` throws `SelfLoopError` for one (MG-032 – MG-034), and checks before inserting
-  either endpoint, so a rejected loop never leaves a stray vertex and never copies shared storage.
+  MG-176). `insert(edge:)` throws `LooplessEdgeError.selfLoop` for one (MG-032 – MG-034), and
+  checks before inserting either endpoint, so a rejected loop never leaves a stray vertex and never
+  copies shared storage. `insert(checked:)` throws the same type, `.missingEndpoint` first, so a
+  loop at a missing vertex reports the missing vertex (MG-196 – MG-201).
   Opposite arcs are fine in `DirectedMultigraph` (MG-013).
 * `init?(_ graph:)` from a loop-free graph keeps positions (MG-169, MG-170). `Pseudograph(m)` and
   `DirectedPseudograph(dm)` are O(1): the wrapped storage (MG-172, MG-177).
@@ -361,8 +392,9 @@ Non-vertex arguments to `neighbors`, `incidentEdges`, `degree`, `successors`, `p
 `outDegree` / `inDegree`, `vertexIndex(of:)`; positions out of range in `edges[p]`,
 `remove(edgeAt:)`, `oppositeVertex(to:acrossEdgeAt:)`, `source(ofEdgeAt:)`; a non-endpoint in
 `oppositeVertex`; negative capacities (MG-039, MG-040, MG-075 – MG-077, MG-080, MG-179 – MG-192).
-A self-loop in the multigraphs' `insert(edge:)` is not a trap: it throws `SelfLoopError`
-(MG-032 – MG-034). The queries
+A self-loop in the multigraphs' `insert(edge:)` is not a trap: it throws `LooplessEdgeError.selfLoop`
+(MG-032 – MG-034). Each vertex lookup above, and `source(ofEdgeAt:)` / `target(ofEdgeAt:)`, has a
+`checked:` spelling that throws `VertexNotFound` or `EdgeNotFound` instead (MG-193 – MG-211). The queries
 `contains`, `contains(edge:)`, `edges(between:)`, `edgeCount(between:)`, `remove(_:)` and
 `remove(edge:)` never trap.
 
@@ -468,7 +500,7 @@ simple lists use about 64 bytes plus one entry per edge.
   representations."
 * **Structures table**: replace the two rows with:
   `Multigraph<Vertex>` / `DirectedMultigraph<Vertex>` | Parallel edges allowed, no self-loop |
-  "Invariant: initializers from unchecked input are failable, `insert(edge:)` throws `SelfLoopError` on a loop" |
+  "Invariant: initializers from unchecked input are failable, `insert(edge:)` throws `LooplessEdgeError.selfLoop` on a loop" |
   "`Graph` / `BidirectionalDirectedGraph`, mutable, copy-on-write, wrapping the pseudograph";
   `Pseudograph<Vertex>` / `DirectedPseudograph<Vertex>` | Parallel edges and self-loops | n/a |
   "`UndirectedAdjacencyList`'s / `AdjacencyList`'s storage with a parallel class per vertex pair:

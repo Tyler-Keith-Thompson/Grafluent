@@ -84,7 +84,7 @@ class U:
 
     def insert_edge(s, a, b):
         if a == b and not s.loops:
-            raise Thrown("SelfLoopError")
+            raise Thrown("LooplessEdgeError.selfLoop")
         u = s.slot[a] if a in s.slot else s._append_slot(a)
         v = s.slot[b] if b in s.slot else s._append_slot(b)
         k = s.key(u, v)
@@ -306,7 +306,7 @@ class D:
 
     def insert_edge(s, a, b):
         if a == b and not s.loops:
-            raise Thrown("SelfLoopError")
+            raise Thrown("LooplessEdgeError.selfLoop")
         u = s.slot[a] if a in s.slot else s._append_slot(a)
         v = s.slot[b] if b in s.slot else s._append_slot(b)
         k = (u, v)
@@ -614,6 +614,22 @@ def apply(g, sh, op):
     if name == "deg":
         d = g.degree(op[1])
         return ("out %d in %d degree %d" % d) if g.directed else str(d)
+    # The `checked:` spellings: a missing vertex or dead position throws and changes nothing.
+    if name == "insC":
+        if op[1] not in g.slot or op[2] not in g.slot:  # checked before the self-loop
+            raise Thrown("VertexNotFound" if g.loops else "LooplessEdgeError.missingEndpoint")
+        p = g.insert_edge(op[1], op[2]); sh.sync_insert_edge(op[1], op[2], p); return str(p)
+    if name in ("degC", "rowC", "idxC"):
+        if op[1] not in g.slot: raise Thrown("VertexNotFound")
+        if name == "degC": return apply(g, sh, ("deg", op[1]))
+        i = g.slot[op[1]]
+        if name == "idxC": return str(i)
+        zipped = lambda ws, es: "[%s]" % ", ".join("%s@%d" % (fmt(g.V[w]), e) for w, e in zip(ws, es))
+        if g.directed: return "out %s in %s" % (zipped(g.out[i], g.oute[i]), zipped(g.inn[i], g.ine[i]))
+        return zipped(g.nb[i], g.inc[i])
+    if name == "endC":
+        if not (0 <= op[1] < len(g.rec)): raise Thrown("EdgeNotFound")
+        return show_edge(g, g.edge(op[1]))
     raise ValueError(op)
 
 
@@ -634,6 +650,11 @@ def show_op(g, op):
         "count": lambda: "edgeCount(%s)" % d(op[1], op[2]),
         "contains": lambda: "contains(edge: %s)" % E(op[1], op[2]),
         "deg": lambda: ("degrees(%s)" if g.directed else "degree(of: %s)") % fmt(op[1]),
+        "insC": lambda: "insert(checked: %s)" % E(op[1], op[2]),
+        "degC": lambda: ("degrees(checked: %s)" if g.directed else "degree(checked: %s)") % fmt(op[1]),
+        "rowC": lambda: "rows(checked: %s)" % fmt(op[1]),
+        "idxC": lambda: "vertexIndex(checked: %s)" % fmt(op[1]),
+        "endC": lambda: "ends(checkedEdgeAt: %d)" % op[1],
     }[name]()
 
 
@@ -1022,6 +1043,28 @@ def define():
     for title, kind, call in traps:
         row("Trap", title, "%s %s" % (kind, call), "trap")
 
+    # The `checked:` spellings (README Principle 6), appended so earlier IDs stay stable
+    case("Checked", "insert(checked:) between vertices adds a copy, a loop too", P, [0, 1], [(0, 1)], [("insC", 0, 1), ("insC", 1, 1)])
+    case("Checked", "insert(checked:) with a missing endpoint throws, nothing inserted", P, [0], [], [("insC", 0, 1), ("insC", 2, 2)])
+    case("Checked", "directed insert(checked:)", DP, [0, 1], [], [("insC", 1, 0), ("insC", 0, 0), ("insC", 0, 9)])
+    case("Checked", "multigraph insert(checked:) adds a copy", M, [0, 1], [(0, 1)], [("insC", 1, 0)])
+    case("Checked", "multigraph insert(checked:) missing endpoint", M, [0], [], [("insC", 0, 1)])
+    case("Checked", "multigraph insert(checked:) self-loop", M, [0], [], [("insC", 0, 0)])
+    case("Checked", "multigraph loop at a missing vertex: missing endpoint first", M, [0], [], [("insC", 3, 3)])
+    case("Checked", "directed multigraph insert(checked:)", DM, [0, 1], [], [("insC", 0, 1), ("insC", 1, 1), ("insC", 0, 2)])
+    case("Checked", "directed multigraph loop at a missing vertex", DM, [], [], [("insC", 0, 0)])
+    case("Checked", "lookups of a vertex", P, [], [(0, 1), (1, 1), (1, 2)], [("degC", 1), ("rowC", 1), ("idxC", 2)])
+    case("Checked", "lookups of a non-vertex throw", P, [0], [], [("degC", 5), ("rowC", 5), ("idxC", 5)])
+    case("Checked", "directed lookups of a vertex", DP, [], [(0, 1), (1, 1), (2, 1)], [("degC", 1), ("rowC", 1), ("idxC", 1)])
+    case("Checked", "directed lookups of a non-vertex throw", DP, [0], [], [("degC", 5), ("rowC", 5), ("idxC", 5)])
+    case("Checked", "endpoints by position; out of range throws", DP, [], [(0, 1), (2, 2)], [("endC", 0), ("endC", 1), ("endC", 2), ("endC", -1)])
+    case("Checked", "endpoints after a removal moved the last edge", DP, [], [(0, 1), (1, 2), (2, 0)], [("rmAt", 0), ("endC", 0), ("endC", 2)])
+    case("Checked", "multigraph lookups", M, [3], [(0, 1), (1, 2)], [("degC", 1), ("rowC", 1), ("idxC", 3), ("degC", 9), ("rowC", 9), ("idxC", 9)])
+    case("Checked", "directed multigraph lookups and endpoints", DM, [], [(0, 1), (0, 1)],
+         [("degC", 0), ("rowC", 1), ("idxC", 1), ("endC", 1), ("endC", 2), ("degC", 7), ("rowC", 7), ("idxC", 7)])
+    case("Checked", "string vertices", P, ["a"], [], [("insC", "a", "b"), ("insV", "b"), ("insC", "a", "b"), ("rowC", "b")])
+    case("Checked", "lookups after a vertex removal see the moved slot", P, [], [(0, 1), (1, 2), (2, 0)], [("rmV", 0), ("idxC", 2), ("rowC", 2), ("idxC", 0)])
+
 
 def render():
     out = [HEADER, "| ID | Group | Case | Input / call | Expected |", "|---|---|---|---|---|"]
@@ -1055,9 +1098,16 @@ Conventions:
   the hole and each row's last entry into its hole; removing a vertex moves the last slot into
   its place (UndirectedAdjacencyList's and AdjacencyList's rules).
 * `degrees(v)` (directed) is `outDegree`, `inDegree`, `degree`.
+* The `checked:` spellings throw where the plain ones trap: `degree(checked: v)` /
+  `degrees(checked: v)` are the degree calls; `rows(checked: v)` is `neighbors(checked:)` zipped
+  with `incidentEdges(checked:)` (directed: `out` / `in` from `successors` / `predecessors` and
+  `outEdges` / `inEdges`, each `checked:`); `ends(checkedEdgeAt: p)` is `source(checkedEdgeAt:)` and
+  `target(checkedEdgeAt:)`. `insert(checked:)` inserts only between existing vertices.
 * `trap` rows are preconditions, run as exit tests (`#expect(processExitsWith:)`). `throws E` is a call
   that threw `E` and changed nothing: a self-loop inserted into a Multigraph / DirectedMultigraph
-  throws `SelfLoopError`.
+  throws `LooplessEdgeError.selfLoop`; a missing vertex throws `VertexNotFound` (the multigraphs'
+  `insert(checked:)`: `LooplessEdgeError.missingEndpoint`, checked before the self-loop), and a
+  dead edge position `EdgeNotFound`.
 * Codable payloads are `{"vertices": […], "edges": [u0, v0, u1, v1, …]}` (indices into vertices),
   the simple lists' format; errors are `DecodingError` cases with their debug description.
 
@@ -1079,8 +1129,15 @@ def stress(seed_count=300, steps=40):
                 elif r < 0.75 and g.rec: op = ("rmAt", rnd.randrange(len(g.rec)))
                 elif r < 0.85: op = ("rmV", a)
                 elif r < 0.9: op = ("rmAll", a, b)
-                else: op = ("insV", a)
-                apply(g, sh, op)
+                elif r < 0.93: op = ("insV", a)
+                else:  # a checked call; vertex 5 is never inserted, so it misses sometimes
+                    c = rnd.randrange(5); x, y = rnd.randrange(6), rnd.randrange(6)
+                    op = [("insC", x, y), ("degC", x), ("rowC", x), ("idxC", x), ("endC", rnd.randrange(-1, len(g.rec) + 1))][c]
+                    if op[0] == "endC" and not g.directed: op = ("idxC", x)
+                try:
+                    apply(g, sh, op)
+                except Thrown:
+                    pass
                 g.check_laws(); sh.check()
 
 

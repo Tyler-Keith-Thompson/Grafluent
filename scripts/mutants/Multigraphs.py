@@ -29,6 +29,24 @@ MUTANTS = [
 
     # Multigraph invariant
     Mutant("loopinsert", "Multigraph.swift", "!edge.isSelfLoop", "true", nth=0),
-    Mutant("loopthrow", "Multigraph.swift", "        if edge.isSelfLoop { throw SelfLoopError() }", "", mode="stmt"),
-    Mutant("dloopthrow", "DirectedMultigraph.swift", "        if edge.isSelfLoop { throw SelfLoopError() }", "", mode="stmt"),
+    Mutant("loopthrow", "Multigraph.swift", "        if edge.isSelfLoop { throw .selfLoop }", "", mode="stmt"),
+    Mutant("dloopthrow", "DirectedMultigraph.swift", "        if edge.isSelfLoop { throw .selfLoop }", "", mode="stmt"),
+
+    # The `checked:` spellings
+    Mutant("pcheckedinsert", "Pseudograph.swift", "_slots[edge.v]", "Optional(_slots[edge.v] ?? 0)", nth=1),
+    Mutant("pcheckeddegree", "Pseudograph.swift", "        return _neighbors.count(ofRow: slot)", "        return _neighbors.count(ofRow: slot) &- 1", mode="stmt"),
+    Mutant("pcheckedincident", "Pseudograph.swift", "        return _incident[row: slot]", "        return _neighbors[row: slot]", mode="stmt"),
+    Mutant("pcheckedindex", "Pseudograph.swift", "        return slot\n", "        return slot &+ 1\n", mode="stmt", nth=0),
+    Mutant("dpcheckedinsert", "DirectedPseudograph.swift", "_slots[edge.target]", "Optional(_slots[edge.target] ?? 0)", nth=1),
+    Mutant("dpcheckedsourcebound", "DirectedPseudograph.swift", "UInt(bitPattern: position) < UInt(bitPattern: _records.count)", "position <= _records.count", nth=0),
+    Mutant("dpcheckedtargetbound", "DirectedPseudograph.swift", "UInt(bitPattern: position) < UInt(bitPattern: _records.count)", "position < _records.count", nth=1),
+    Mutant("dpcheckedsourceend", "DirectedPseudograph.swift", "        return _vertices[_records[position].source]", "        return _vertices[_records[position].target]", mode="stmt"),
+    Mutant("dpcheckeddegree", "DirectedPseudograph.swift", "        return _out.count(ofRow: slot) + _in.count(ofRow: slot)", "        return _out.count(ofRow: slot)", mode="stmt", nth=1),
+    Mutant("dpcheckedpredecessors", "DirectedPseudograph.swift", "_in[row: slot]", "_out[row: slot]"),
+    Mutant("dpcheckedinedges", "DirectedPseudograph.swift", "_inEdges[row: slot]", "_outEdges[row: slot]"),
+    Mutant("dpcheckedindex", "DirectedPseudograph.swift", "        return slot\n", "        return slot &+ 1\n", mode="stmt", nth=0),
+    Mutant("mcheckedmissing", "Multigraph.swift", "_base._slots[edge.v]", "Optional(_base._slots[edge.v] ?? 0)"),
+    Mutant("mcheckedloop", "Multigraph.swift", "        if u == v { throw .selfLoop }", "", mode="stmt"),
+    Mutant("dmcheckedmissing", "DirectedMultigraph.swift", "_base._slots[edge.target]", "Optional(_base._slots[edge.target] ?? 0)"),
+    Mutant("dmcheckedloop", "DirectedMultigraph.swift", "        if source == target { throw .selfLoop }", "", mode="stmt"),
 ]

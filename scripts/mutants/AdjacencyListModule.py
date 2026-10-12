@@ -16,6 +16,8 @@ TESTS = ["AdjacencyListTests", "UndirectedAdjacencyListTests", "MultigraphsTests
 
 ST = "SlotPairTable.swift"
 VS = "VertexSlots.swift"
+AL = "AdjacencyList.swift"
+UAL = "UndirectedAdjacencyList.swift"
 
 MUTANTS = [
     # Packing and hashing.
@@ -32,14 +34,14 @@ MUTANTS = [
     # Insertion and growth.
     Mutant("insertgrow", ST, "(_count &+ 1) &* 4 > _buckets.count &* 3", "(_count &+ 1) &* 4 > _buckets.count &* 4"),
     Mutant("insertfound", ST, "if k == key { return false }", "if k == key { return true }", mode="stmt"),
-    Mutant("insertplace", ST, "                    buckets[i] = _Bucket(key: key, value: value)", "", mode="stmt"),
+    Mutant("insertplace", ST, "                    buckets[i] = _Bucket(key: key, value: value)", "", mode="stmt", nth=0),
     Mutant("insertcount", ST, "        if inserted { _count &+= 1 }", "", mode="stmt"),
     Mutant("insertstep", ST, "i = (i &+ 1) & mask", "i = (i &+ 2) & mask", mode="stmt", nth=1),
     Mutant("updatevalue", ST, "        if !inserted { _buckets[i].value = value }", "", mode="stmt"),
     Mutant("resizesize", ST, "(1 << bits) &* 3 < Swift.max(minimumCapacity, _count) &* 4", "(1 << bits) &* 4 < Swift.max(minimumCapacity, _count) &* 4"),
     Mutant("resizeclear", ST, "            for i in 0 ..< size { raw.storeBytes(of: Self._empty, toByteOffset: i &* stride, as: UInt64.self) }", "", mode="stmt"),
     Mutant("resizeshift", ST, "UInt64(64 &- bits)", "UInt64(63 &- bits)"),
-    Mutant("resizeprobe", ST, "                    while buckets[i].key != Self._empty { i = (i &+ 1) & mask }", "", mode="stmt"),
+    Mutant("resizeprobe", ST, "                    while buckets[i].key != Self._empty { i = (i &+ 1) & mask }", "", mode="stmt", nth=2),
 
     # Backward-shift deletion.
     Mutant("removestop", ST, "                if k == Self._empty { break }", "", mode="stmt"),
@@ -69,4 +71,18 @@ MUTANTS = [
     Mutant("slotswriteloop", VS, "        for v in 0 ..< count { _table[unsafeBitCast(v, to: Vertex.self)] = v }", "", mode="stmt"),
     Mutant("slotswriteend", VS, "        _identityCount = -1", "", mode="stmt"),
     Mutant("slotsremoveall", VS, "Vertex.self == Int.self ? 0 : -1", "_identityCount", nth=1),
+
+    # The `checked:` spellings.
+    Mutant("checkedsourcebound", AL, "UInt(bitPattern: position) < UInt(bitPattern: _records.count)", "position <= _records.count", nth=0),
+    Mutant("checkedtargetbound", AL, "UInt(bitPattern: position) < UInt(bitPattern: _records.count)", "position < _records.count", nth=1),
+    Mutant("checkedsourceend", AL, "        return _vertices[_records[position].source]", "        return _vertices[_records[position].target]", mode="stmt"),
+    Mutant("checkeddegree", AL, "        return _out.count(ofRow: slot) + _in.count(ofRow: slot)", "        return _out.count(ofRow: slot)", mode="stmt", nth=1),
+    Mutant("checkedpredecessors", AL, "_in[row: slot]", "_out[row: slot]"),
+    Mutant("checkedinedges", AL, "_inEdges[row: slot]", "_outEdges[row: slot]"),
+    Mutant("checkedindex", AL, "        return slot\n", "        return slot &+ 1\n", mode="stmt", nth=0),
+    Mutant("checkedinsert", AL, "_slots[edge.target]", "Optional(_slots[edge.target] ?? 0)", nth=2),
+    Mutant("ucheckeddegree", UAL, "        return _neighbors.count(ofRow: slot)", "        return _neighbors.count(ofRow: slot) &- 1", mode="stmt"),
+    Mutant("ucheckedincident", UAL, "        return _incident[row: slot]", "        return _neighbors[row: slot]", mode="stmt"),
+    Mutant("ucheckedindex", UAL, "        return slot\n", "        return slot &+ 1\n", mode="stmt", nth=0),
+    Mutant("ucheckedinsert", UAL, "_slots[edge.v]", "Optional(_slots[edge.v] ?? 0)", nth=2),
 ]

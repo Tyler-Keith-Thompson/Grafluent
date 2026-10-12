@@ -1,7 +1,8 @@
 // UndirectedAdjacencyList against a set of vertices and a set of unordered pairs, on vertices
 // 0..<10, self-loops included (listed twice in neighbors, degree 2). After each operation every
 // query must agree with the model and edge positions must be dense and name the same edge from
-// both ends; a copy taken earlier must still equal the graph it was.
+// both ends, and each `checked:` spelling must agree with its plain one or throw for a non-vertex;
+// a copy taken earlier must still equal the graph it was.
 
 import AdjacencyListModule
 import FuzzSupport
@@ -18,7 +19,7 @@ enum FuzzUndirectedAdjacencyList {
         var snapshot: (UndirectedAdjacencyList<Int>, Set<Int>, Set<UndirectedEdge<Int>>)?
 
         while !input.isEmpty {
-            let op = input.int(below: 8)
+            let op = input.int(below: 9)
             let (u, v) = (input.int(below: 10), input.int(below: 10))
             let edge = UndirectedEdge(u, v)
             switch op {
@@ -33,6 +34,15 @@ enum FuzzUndirectedAdjacencyList {
                 edges = edges.filter { $0.u != u && $0.v != u }
             case 5, 6:
                 check(graph.remove(edge: edge) == edges.remove(edge), "remove(edge: \(edge))")
+            case 7:
+                // Only between existing vertices; otherwise it throws and changes nothing.
+                let result = try? graph.insert(checked: edge)
+                if vertices.contains(u), vertices.contains(v) {
+                    check(result?.inserted == !edges.contains(edge), "insert(checked: \(edge))")
+                    edges.insert(edge)
+                } else {
+                    check(result == nil, "insert(checked: \(edge)) with a missing endpoint")
+                }
             default:
                 snapshot = (graph, vertices, edges)
             }
@@ -56,7 +66,14 @@ enum FuzzUndirectedAdjacencyList {
             for y in 0 ..< 10 {
                 check(graph.contains(edge: UndirectedEdge(x, y)) == edges.contains(UndirectedEdge(x, y)), "contains(edge: \(x)–\(y))")
             }
-            guard vertices.contains(x) else { continue }
+            guard vertices.contains(x) else {
+                check((try? graph.neighbors(checked: x)) == nil && (try? graph.incidentEdges(checked: x)) == nil
+                    && (try? graph.degree(checked: x)) == nil && (try? graph.vertexIndex(checked: x)) == nil, "checked: lookups of non-vertex \(x)")
+                continue
+            }
+            check((try? graph.neighbors(checked: x)).map(Array.init) == Array(graph.neighbors(of: x))
+                && (try? graph.incidentEdges(checked: x)) == graph.incidentEdges(of: x)
+                && (try? graph.degree(checked: x)) == graph.degree(of: x) && (try? graph.vertexIndex(checked: x)) == graph.vertexIndex(of: x), "checked: lookups of \(x)")
             // A self-loop is listed twice.
             let neighbors = edges.flatMap { e -> [Int] in e.u == x && e.v == x ? [x, x] : e.u == x ? [e.v] : e.v == x ? [e.u] : [] }.sorted()
             check(graph.neighbors(of: x).sorted() == neighbors, "neighbors(of: \(x)): \(Array(graph.neighbors(of: x))), model \(neighbors)")

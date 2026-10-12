@@ -223,6 +223,48 @@ extension UndirectedAdjacencyList {
         _neighbors.count(ofRow: _slot(of: vertex))
     }
 
+    // The `checked:` lookups (README Principle 6): they throw `VertexNotFound` for a vertex that
+    // is not in the graph, where the trapping spellings are the fast path (Rust's `checked_*`).
+    // Each is one hash, the same as its trapping spelling; `try?` gives an Optional.
+
+    /// `neighbors(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1) to
+    /// make.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func neighbors(checked vertex: Vertex) throws(VertexNotFound) -> Neighbors {
+        guard let slot = _slots[vertex] else { throw VertexNotFound() }
+        return Neighbors(vertices: _vertices, slots: _neighbors[row: slot])
+    }
+
+    /// `incidentEdges(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex.
+    /// O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func incidentEdges(checked vertex: Vertex) throws(VertexNotFound) -> ArraySlice<Int> {
+        guard let slot = _slots[vertex] else { throw VertexNotFound() }
+        return _incident[row: slot]
+    }
+
+    /// `degree(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func degree(checked vertex: Vertex) throws(VertexNotFound) -> Int {
+        guard let slot = _slots[vertex] else { throw VertexNotFound() }
+        return _neighbors.count(ofRow: slot)
+    }
+
+    /// `vertexIndex(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func vertexIndex(checked vertex: Vertex) throws(VertexNotFound) -> Int {
+        guard let slot = _slots[vertex] else { throw VertexNotFound() }
+        return slot
+    }
+
     @inlinable
     @inline(__always)
     internal func _slot(of vertex: Vertex) -> Int {
@@ -271,6 +313,23 @@ extension UndirectedAdjacencyList {
         _records.append(_EdgeRecord(u: u, v: v, uOffset: uOffset, vOffset: vOffset))
         _positions.insert(key, position)
         return (true, UndirectedEdge(_vertices[u], _vertices[v]))
+    }
+
+    /// Inserts `edge` only when both endpoints are already vertices; otherwise throws and changes
+    /// nothing. O(1) expected.
+    ///
+    /// `insert(edge:)` inserts a missing endpoint (NetworkX's `add_edge`). Requiring the endpoints
+    /// is JGraphT's `addEdge` precondition (it throws `IllegalArgumentException`) and petgraph's
+    /// `try_add_edge` (`GraphError::NodeMissed`); this library spells it with the `checked:` label
+    /// of the lookups (README Principle 6), for callers whose vertices may come from another graph.
+    ///
+    /// - Returns: As `insert(edge:)`.
+    /// - Throws: `VertexNotFound` when either endpoint is not a vertex.
+    @inlinable
+    @discardableResult
+    public mutating func insert(checked edge: UndirectedEdge<Vertex>) throws(VertexNotFound) -> (inserted: Bool, memberAfterInsert: UndirectedEdge<Vertex>) {
+        guard let u = _slots[edge.u], let v = _slots[edge.v] else { throw VertexNotFound() }
+        return _insertEdge(slots: u, v)
     }
 
     /// Removes `vertex` and every edge incident to it. O(degree), plus the degree of the vertex

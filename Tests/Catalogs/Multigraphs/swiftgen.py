@@ -39,7 +39,7 @@ for line in text.splitlines():
     if line.startswith("| MG-"):
         parts = [p.strip() for p in line.strip("|").split(" | ")]
         CELLS[int(parts[0][3:])] = parts
-assert len(CELLS) == 192
+assert len(CELLS) == 211
 CASE_ROWS = {n: (g, t, k, V, E, ops) for n, g, t, k, V, E, ops in STRUCT}
 
 
@@ -101,7 +101,31 @@ def ends(kind):
 
 
 def mutating(op):
-    return op[0] in ("insV", "ins", "rm", "rmAt", "rmAll", "rmV", "rmAllEdges", "rmAllV")
+    return op[0] in ("insV", "ins", "insC", "rm", "rmAt", "rmAll", "rmV", "rmAllEdges", "rmAllV")
+
+
+def checked_calls(kind, op, t):
+    """The Swift calls a `checked:` op (or a throwing `ins`) stands for, each with its expected
+    value as a Swift literal (None when the op throws)."""
+    name, v = op[0], lit(op[1])
+    if name == "ins":
+        return ["graph.insert(edge: %s)" % edge_lit(kind, op[1], op[2])]
+    if name == "insC":
+        return ["graph.insert(checked: %s)" % edge_lit(kind, op[1], op[2])]
+    if name == "degC":
+        if is_directed(kind):
+            return ["graph.outDegree(checked: %s)" % v, "graph.inDegree(checked: %s)" % v, "graph.degree(checked: %s)" % v]
+        return ["graph.degree(checked: %s)" % v]
+    if name == "rowC":
+        if is_directed(kind):
+            return ["graph.successors(checked: %s)" % v, "graph.outEdges(checked: %s)" % v,
+                    "graph.predecessors(checked: %s)" % v, "graph.inEdges(checked: %s)" % v]
+        return ["graph.neighbors(checked: %s)" % v, "graph.incidentEdges(checked: %s)" % v]
+    if name == "idxC":
+        return ["graph.vertexIndex(checked: %s)" % v]
+    if name == "endC":
+        return ["graph.source(checkedEdgeAt: %d)" % op[1], "graph.target(checkedEdgeAt: %d)" % op[1]]
+    raise ValueError(op)
 
 
 def construct(kind, V, E, t, var="graph", mutable=True):
@@ -155,14 +179,17 @@ def call_lines(g, op, t, indent="        "):
         result = ref.apply(g, sh, op)
     except ref.Thrown as e:
         # A throw changes nothing; the state checks that follow show it.
-        assert name == "ins" and str(e) == "SelfLoopError"
-        return [indent + "#expect(throws: SelfLoopError()) { try graph.insert(edge: %s) }" % edge_lit(kind, op[1], op[2])]
+        err = str(e)
+        assert name in ("ins", "insC", "degC", "rowC", "idxC", "endC"), op
+        assert err in ("VertexNotFound", "EdgeNotFound", "LooplessEdgeError.selfLoop", "LooplessEdgeError.missingEndpoint"), err
+        swift_err = err + "()" if err in ("VertexNotFound", "EdgeNotFound") else err
+        return [indent + "#expect(throws: %s) { try %s }" % (swift_err, c) for c in checked_calls(kind, op, t)]
     f, s = pair_label(kind)
     if name == "insV":
         ok = result == "inserted true"
         return [indent + "do { let result = graph.insert(%s); #expect(%sresult.inserted); #expect(result.memberAfterInsert == %s) }" % (lit(op[1]), "" if ok else "!", lit(op[1]))]
     if name == "ins":
-        # Multigraph and DirectedMultigraph throw SelfLoopError; the pseudographs never throw.
+        # Multigraph and DirectedMultigraph throw LooplessEdgeError; the pseudographs never throw.
         return [indent + "#expect(%sgraph.insert(edge: %s) == %s)" % ("" if g.loops else "try ", edge_lit(kind, op[1], op[2]), result)]
     if name in ("rm", "rmAt"):
         call = "graph.remove(edge: %s)" % edge_lit(kind, op[1], op[2]) if name == "rm" else "graph.remove(edgeAt: %d)" % op[1]
@@ -197,6 +224,27 @@ def call_lines(g, op, t, indent="        "):
                     indent + "#expect(graph.inDegree(of: %s) == %d)" % (lit(op[1]), i),
                     indent + "#expect(graph.degree(of: %s) == %d)" % (lit(op[1]), d)]
         return [indent + "#expect(graph.degree(of: %s) == %s)" % (lit(op[1]), result)]
+    calls = checked_calls(kind, op, t)
+    if name == "insC":
+        return [indent + "#expect(try %s == %s)" % (calls[0], result)]
+    if name == "degC":
+        if g.directed:
+            values = [int(x) for x in result.replace("out ", "").replace("in ", "").replace("degree ", "").split()]
+        else:
+            values = [int(result)]
+        return [indent + "#expect(try %s == %d)" % (c, d) for c, d in zip(calls, values)]
+    if name == "idxC":
+        return [indent + "#expect(try %s == %s)" % (calls[0], result)]
+    if name == "rowC":
+        i = g.slot[op[1]]
+        if g.directed:
+            rows = [([g.V[w] for w in g.out[i]], t), (g.oute[i], "Int"), ([g.V[w] for w in g.inn[i]], t), (g.ine[i], "Int")]
+        else:
+            rows = [([g.V[w] for w in g.nb[i]], t), (g.inc[i], "Int")]
+        return [indent + "#expect(try Array(%s) == %s)" % (c, arr(xs, ty)) for c, (xs, ty) in zip(calls, rows)]
+    if name == "endC":
+        a, b = g.edge(op[1])
+        return [indent + "#expect(try %s == %s)" % (calls[0], lit(a)), indent + "#expect(try %s == %s)" % (calls[1], lit(b))]
     raise ValueError(op)
 
 
@@ -790,7 +838,7 @@ FILES = [
      "Queries (catalog MG-015 – MG-046, without the trap rows MG-039, MG-040, which are in\n"
      "// MultigraphPreconditionTests.swift): `edges(between:and:)` / `edges(from:to:)` oldest copy\n"
      "// first, `edgeCount(between:and:)`, `contains(edge:)` (false, never a trap, for a non-vertex),\n"
-     "// self-loops twice in an undirected row and once in each directed row, `SelfLoopError` from a\n"
+     "// self-loops twice in an undirected row and once in each directed row, `LooplessEdgeError` from a\n"
      "// multigraph's `insert(edge:)` with nothing changed, degrees counting copies and a loop twice, and\n"
      "// the rows of a freshly built graph (each edge appended at u, then at v)."),
     ("MultigraphInsertionTests.swift", "Multigraphs insertion", range(47, 55),
@@ -827,6 +875,12 @@ FILES = [
      "// position, in its orientation), from them (vertex order and positions kept, rows rebuilt in\n"
      "// position order), between the multigraphs and the pseudographs, and through `.undirected` /\n"
      "// `.directed`."),
+    ("MultigraphCheckedTests.swift", "Multigraphs checked spellings", range(193, 212),
+     "The `checked:` spellings (catalog MG-193 – MG-211, README Principle 6): `insert(checked:)` adds a\n"
+     "// copy only between existing vertices, else throws `VertexNotFound` (the multigraphs:\n"
+     "// `LooplessEdgeError.missingEndpoint`, checked before `.selfLoop`) and changes nothing; the vertex\n"
+     "// lookups throw `VertexNotFound` where the plain spellings trap, and `source(checkedEdgeAt:)` /\n"
+     "// `target(checkedEdgeAt:)` throw `EdgeNotFound` for a position outside `0..<edgeCount`."),
     ("MultigraphPreconditionTests.swift", "Multigraphs preconditions", None,
      "Preconditions (catalog MG-039, MG-040, MG-075 – MG-077, MG-080, MG-179 – MG-192):\n"
      "// each trapping call runs in a child process (exit test). The same setup then runs in this process\n"
@@ -890,4 +944,4 @@ for fname, suite, ids, comment in FILES:
     print(fname, k)
     total += k
 print("total", total)
-assert total == 192
+assert total == 211

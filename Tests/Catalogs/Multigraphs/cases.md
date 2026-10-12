@@ -22,9 +22,16 @@ Conventions:
   the hole and each row's last entry into its hole; removing a vertex moves the last slot into
   its place (UndirectedAdjacencyList's and AdjacencyList's rules).
 * `degrees(v)` (directed) is `outDegree`, `inDegree`, `degree`.
+* The `checked:` spellings throw where the plain ones trap: `degree(checked: v)` /
+  `degrees(checked: v)` are the degree calls; `rows(checked: v)` is `neighbors(checked:)` zipped
+  with `incidentEdges(checked:)` (directed: `out` / `in` from `successors` / `predecessors` and
+  `outEdges` / `inEdges`, each `checked:`); `ends(checkedEdgeAt: p)` is `source(checkedEdgeAt:)` and
+  `target(checkedEdgeAt:)`. `insert(checked:)` inserts only between existing vertices.
 * `trap` rows are preconditions, run as exit tests (`#expect(processExitsWith:)`). `throws E` is a call
   that threw `E` and changed nothing: a self-loop inserted into a Multigraph / DirectedMultigraph
-  throws `SelfLoopError`.
+  throws `LooplessEdgeError.selfLoop`; a missing vertex throws `VertexNotFound` (the multigraphs'
+  `insert(checked:)`: `LooplessEdgeError.missingEndpoint`, checked before the self-loop), and a
+  dead edge position `EdgeNotFound`.
 * Codable payloads are `{"vertices": […], "edges": [u0, v0, u1, v1, …]}` (indices into vertices),
   the simple lists' format; errors are `DecodingError` cases with their debug description.
 
@@ -62,9 +69,9 @@ Conventions:
 | MG-029 | Loops | loop on an isolated listed vertex | Pseudograph V [0, 1]; E [1–1]; degree(of: 0) / degree(of: 1) | 0 / 2 ⇒ V [0, 1]; E [1–1]; rows 0:[] 1:[1@0, 1@0] |
 | MG-030 | Loops | directed loop: once out, once in | DirectedPseudograph V []; E [0→0]; degrees(0) / edges(from: 0, to: 0) | out 1 in 1 degree 2 / [0] ⇒ V [0]; E [0→0]; out 0:[0@0]; in 0:[0@0] |
 | MG-031 | Loops | directed two loops and an arc | DirectedPseudograph V []; E [0→0, 0→1, 0→0]; degrees(0) / degrees(1) / edgeCount(from: 0, to: 0) | out 3 in 2 degree 5 / out 0 in 1 degree 1 / 2 ⇒ V [0, 1]; E [0→0, 0→1, 0→0]; out 0:[0@0, 1@1, 0@2]; in 0:[0@0, 0@2] 1:[0@1] |
-| MG-032 | Loops | multigraph insert loop throws, nothing changes | Multigraph V [0]; E []; insert(edge: UndirectedEdge(0, 0)) | throws SelfLoopError ⇒ V [0]; E []; rows 0:[] |
-| MG-033 | Loops | multigraph insert loop with new vertex throws, nothing inserted | Multigraph V []; E []; insert(edge: UndirectedEdge(5, 5)) | throws SelfLoopError ⇒ V []; E []; rows - |
-| MG-034 | Loops | directed multigraph insert loop throws, nothing changes | DirectedMultigraph V [0, 1]; E [0→1]; insert(edge: DirectedEdge(from: 1, to: 1)) | throws SelfLoopError ⇒ V [0, 1]; E [0→1]; out 0:[1@0]; in 1:[0@0] |
+| MG-032 | Loops | multigraph insert loop throws, nothing changes | Multigraph V [0]; E []; insert(edge: UndirectedEdge(0, 0)) | throws LooplessEdgeError.selfLoop ⇒ V [0]; E []; rows 0:[] |
+| MG-033 | Loops | multigraph insert loop with new vertex throws, nothing inserted | Multigraph V []; E []; insert(edge: UndirectedEdge(5, 5)) | throws LooplessEdgeError.selfLoop ⇒ V []; E []; rows - |
+| MG-034 | Loops | directed multigraph insert loop throws, nothing changes | DirectedMultigraph V [0, 1]; E [0→1]; insert(edge: DirectedEdge(from: 1, to: 1)) | throws LooplessEdgeError.selfLoop ⇒ V [0, 1]; E [0→1]; out 0:[1@0]; in 1:[0@0] |
 | MG-035 | Degrees | degrees count copies | Pseudograph V []; E [0–1, 0–1, 0–2]; degree(of: 0) / degree(of: 1) / degree(of: 2) | 3 / 2 / 1 ⇒ V [0, 1, 2]; E [0–1, 0–1, 0–2]; rows 0:[1@0, 1@1, 2@2] 1:[0@0, 0@1] 2:[0@2] |
 | MG-036 | Degrees | sum is twice the edge count with loops | Pseudograph V []; E [0–0, 0–1, 1–1, 1–1]; degree(of: 0) / degree(of: 1) | 3 / 5 ⇒ V [0, 1]; E [0–0, 0–1, 1–1, 1–1]; rows 0:[0@0, 0@0, 1@1] 1:[0@1, 1@2, 1@2, 1@3, 1@3] |
 | MG-037 | Degrees | isolated vertex 0 | Pseudograph V [0, 1]; E []; degree(of: 0) | 0 ⇒ V [0, 1]; E []; rows 0:[] 1:[] |
@@ -223,3 +230,22 @@ Conventions:
 | MG-190 | Trap | reserveCapacity negative vertices | Pseudograph reserveCapacity(vertexCount: -1, edgeCount: 0) | trap |
 | MG-191 | Trap | reserveCapacity negative edges | DirectedMultigraph reserveCapacity(vertexCount: 0, edgeCount: -1) | trap |
 | MG-192 | Trap | DirectedMultigraph remove(edgeAt:) out of range | DirectedMultigraph remove(edgeAt: 2) with E [0→1, 0→1] | trap |
+| MG-193 | Checked | insert(checked:) between vertices adds a copy, a loop too | Pseudograph V [0, 1]; E [0–1]; insert(checked: UndirectedEdge(0, 1)) / insert(checked: UndirectedEdge(1, 1)) | 1 / 2 ⇒ V [0, 1]; E [0–1, 0–1, 1–1]; rows 0:[1@0, 1@1] 1:[0@0, 0@1, 1@2, 1@2] |
+| MG-194 | Checked | insert(checked:) with a missing endpoint throws, nothing inserted | Pseudograph V [0]; E []; insert(checked: UndirectedEdge(0, 1)) / insert(checked: UndirectedEdge(2, 2)) | throws VertexNotFound / throws VertexNotFound ⇒ V [0]; E []; rows 0:[] |
+| MG-195 | Checked | directed insert(checked:) | DirectedPseudograph V [0, 1]; E []; insert(checked: DirectedEdge(from: 1, to: 0)) / insert(checked: DirectedEdge(from: 0, to: 0)) / insert(checked: DirectedEdge(from: 0, to: 9)) | 0 / 1 / throws VertexNotFound ⇒ V [0, 1]; E [1→0, 0→0]; out 0:[0@1] 1:[0@0]; in 0:[1@0, 0@1] |
+| MG-196 | Checked | multigraph insert(checked:) adds a copy | Multigraph V [0, 1]; E [0–1]; insert(checked: UndirectedEdge(1, 0)) | 1 ⇒ V [0, 1]; E [0–1, 1–0]; rows 0:[1@0, 1@1] 1:[0@0, 0@1] |
+| MG-197 | Checked | multigraph insert(checked:) missing endpoint | Multigraph V [0]; E []; insert(checked: UndirectedEdge(0, 1)) | throws LooplessEdgeError.missingEndpoint ⇒ V [0]; E []; rows 0:[] |
+| MG-198 | Checked | multigraph insert(checked:) self-loop | Multigraph V [0]; E []; insert(checked: UndirectedEdge(0, 0)) | throws LooplessEdgeError.selfLoop ⇒ V [0]; E []; rows 0:[] |
+| MG-199 | Checked | multigraph loop at a missing vertex: missing endpoint first | Multigraph V [0]; E []; insert(checked: UndirectedEdge(3, 3)) | throws LooplessEdgeError.missingEndpoint ⇒ V [0]; E []; rows 0:[] |
+| MG-200 | Checked | directed multigraph insert(checked:) | DirectedMultigraph V [0, 1]; E []; insert(checked: DirectedEdge(from: 0, to: 1)) / insert(checked: DirectedEdge(from: 1, to: 1)) / insert(checked: DirectedEdge(from: 0, to: 2)) | 0 / throws LooplessEdgeError.selfLoop / throws LooplessEdgeError.missingEndpoint ⇒ V [0, 1]; E [0→1]; out 0:[1@0]; in 1:[0@0] |
+| MG-201 | Checked | directed multigraph loop at a missing vertex | DirectedMultigraph V []; E []; insert(checked: DirectedEdge(from: 0, to: 0)) | throws LooplessEdgeError.missingEndpoint ⇒ V []; E []; out -; in - |
+| MG-202 | Checked | lookups of a vertex | Pseudograph V []; E [0–1, 1–1, 1–2]; degree(checked: 1) / rows(checked: 1) / vertexIndex(checked: 2) | 4 / [0@0, 1@1, 1@1, 2@2] / 2 ⇒ V [0, 1, 2]; E [0–1, 1–1, 1–2]; rows 0:[1@0] 1:[0@0, 1@1, 1@1, 2@2] 2:[1@2] |
+| MG-203 | Checked | lookups of a non-vertex throw | Pseudograph V [0]; E []; degree(checked: 5) / rows(checked: 5) / vertexIndex(checked: 5) | throws VertexNotFound / throws VertexNotFound / throws VertexNotFound ⇒ V [0]; E []; rows 0:[] |
+| MG-204 | Checked | directed lookups of a vertex | DirectedPseudograph V []; E [0→1, 1→1, 2→1]; degrees(checked: 1) / rows(checked: 1) / vertexIndex(checked: 1) | out 1 in 3 degree 4 / out [1@1] in [0@0, 1@1, 2@2] / 1 ⇒ V [0, 1, 2]; E [0→1, 1→1, 2→1]; out 0:[1@0] 1:[1@1] 2:[1@2]; in 1:[0@0, 1@1, 2@2] |
+| MG-205 | Checked | directed lookups of a non-vertex throw | DirectedPseudograph V [0]; E []; degrees(checked: 5) / rows(checked: 5) / vertexIndex(checked: 5) | throws VertexNotFound / throws VertexNotFound / throws VertexNotFound ⇒ V [0]; E []; out -; in - |
+| MG-206 | Checked | endpoints by position; out of range throws | DirectedPseudograph V []; E [0→1, 2→2]; ends(checkedEdgeAt: 0) / ends(checkedEdgeAt: 1) / ends(checkedEdgeAt: 2) / ends(checkedEdgeAt: -1) | 0→1 / 2→2 / throws EdgeNotFound / throws EdgeNotFound ⇒ V [0, 1, 2]; E [0→1, 2→2]; out 0:[1@0] 2:[2@1]; in 1:[0@0] 2:[2@1] |
+| MG-207 | Checked | endpoints after a removal moved the last edge | DirectedPseudograph V []; E [0→1, 1→2, 2→0]; remove(edgeAt: 0) / ends(checkedEdgeAt: 0) / ends(checkedEdgeAt: 2) | 0→1 / 2→0 / throws EdgeNotFound ⇒ V [0, 1, 2]; E [2→0, 1→2]; out 1:[2@1] 2:[0@0]; in 0:[2@0] 2:[1@1] |
+| MG-208 | Checked | multigraph lookups | Multigraph V [3]; E [0–1, 1–2]; degree(checked: 1) / rows(checked: 1) / vertexIndex(checked: 3) / degree(checked: 9) / rows(checked: 9) / vertexIndex(checked: 9) | 2 / [0@0, 2@1] / 0 / throws VertexNotFound / throws VertexNotFound / throws VertexNotFound ⇒ V [3, 0, 1, 2]; E [0–1, 1–2]; rows 3:[] 0:[1@0] 1:[0@0, 2@1] 2:[1@1] |
+| MG-209 | Checked | directed multigraph lookups and endpoints | DirectedMultigraph V []; E [0→1, 0→1]; degrees(checked: 0) / rows(checked: 1) / vertexIndex(checked: 1) / ends(checkedEdgeAt: 1) / ends(checkedEdgeAt: 2) / degrees(checked: 7) / rows(checked: 7) / vertexIndex(checked: 7) | out 2 in 0 degree 2 / out [] in [0@0, 0@1] / 1 / 0→1 / throws EdgeNotFound / throws VertexNotFound / throws VertexNotFound / throws VertexNotFound ⇒ V [0, 1]; E [0→1, 0→1]; out 0:[1@0, 1@1]; in 1:[0@0, 0@1] |
+| MG-210 | Checked | string vertices | Pseudograph V ["a"]; E []; insert(checked: UndirectedEdge("a", "b")) / insert("b") / insert(checked: UndirectedEdge("a", "b")) / rows(checked: "b") | throws VertexNotFound / inserted true / 0 / ["a"@0] ⇒ V ["a", "b"]; E ["a"–"b"]; rows "a":["b"@0] "b":["a"@0] |
+| MG-211 | Checked | lookups after a vertex removal see the moved slot | Pseudograph V []; E [0–1, 1–2, 2–0]; remove(0) / vertexIndex(checked: 2) / rows(checked: 2) / vertexIndex(checked: 0) | 0 / 0 / [1@0] / throws VertexNotFound ⇒ V [2, 1]; E [1–2]; rows 2:[1@0] 1:[2@0] |
