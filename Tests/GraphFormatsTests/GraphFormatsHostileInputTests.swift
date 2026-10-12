@@ -127,12 +127,13 @@ struct GraphFormatsHostileInputTests {
             }
         }
 
-        // An edge-list column is typed by its text: an integer past Int and a decimal past Double are text.
+        // An edge-list column is typed by its text: an integer past Int is a double, and a decimal
+        // past Double is infinite, as Python's float reads them.
         var edgeValues: [Int: [String: AttributeValue]] = [:]
         let huge = String(repeating: "9", count: 100_000), wide = "1" + String(repeating: "0", count: 400)
         _ = try DirectedPseudograph<String>(edgeList: "a b \(huge)\nb c \(wide)\nc a 99999999999999999999\n".utf8, columns: ["w"],
                                             edgeAttribute: { edgeValues[$0, default: [:]][$1] = $2 })
-        #expect(edgeValues == [0: ["w": .string(huge)], 1: ["w": .string(wide)], 2: ["w": .double(1e20)]])
+        #expect(edgeValues == [0: ["w": .double(.infinity)], 1: ["w": .double(.infinity)], 2: ["w": .double(1e20)]])
         #expect(clock.now - start < .seconds(20))
     }
 

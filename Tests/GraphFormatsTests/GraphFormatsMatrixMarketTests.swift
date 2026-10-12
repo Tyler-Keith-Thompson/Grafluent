@@ -626,4 +626,69 @@ struct GraphFormatsMatrixMarketTests {
             #expect([error.line, error.column, error.byteOffset] == [3, 5, 66])
         }
     }
+
+    @Test("GF-232 a vertex count above maximumVertexCount (2^24)")
+    func gf232() {
+        // DirectedPseudograph<Int>(matrixMarket:) → **limitExceeded** at 2:1
+        let input = "%%MatrixMarket matrix coordinate pattern general\n16777217 16777217 0\n"
+        do {
+            let graph = try DirectedPseudograph<Int>(matrixMarket: input.utf8)
+            Issue.record("expected limitExceeded, read \(graph)")
+        } catch {
+            #expect(error.kind == .limitExceeded)
+            #expect([error.line, error.column, error.byteOffset] == [2, 1, 49])
+        }
+    }
+
+    @Test("GF-247 pattern: a third field on an entry")
+    func gf247() {
+        // DirectedPseudograph<Int>(matrixMarket:) → **syntax** at 3:5
+        let input = "%%MatrixMarket matrix coordinate pattern general\n2 2 1\n1 2 3\n"
+        do {
+            let graph = try DirectedPseudograph<Int>(matrixMarket: input.utf8)
+            Issue.record("expected syntax, read \(graph)")
+        } catch {
+            #expect(error.kind == .syntax)
+            #expect([error.line, error.column, error.byteOffset] == [3, 5, 59])
+        }
+    }
+
+    @Test("GF-249 a lone CR inside a field")
+    func gf249() {
+        // DirectedPseudograph<Int>(matrixMarket:) → **syntax** at 3:1
+        let input = "%%MatrixMarket matrix coordinate pattern general\n2 2 1\n1\r2 2\n"
+        do {
+            let graph = try DirectedPseudograph<Int>(matrixMarket: input.utf8)
+            Issue.record("expected syntax, read \(graph)")
+        } catch {
+            #expect(error.kind == .syntax)
+            #expect([error.line, error.column, error.byteOffset] == [3, 1, 55])
+        }
+    }
+
+    @Test("GF-250 a comment of several words after the size line")
+    func gf250() {
+        // DirectedPseudograph<Int>(matrixMarket:) → **syntax** at 3:1
+        let input = "%%MatrixMarket matrix coordinate pattern general\n2 2 1\n% a b\n1 2\n"
+        do {
+            let graph = try DirectedPseudograph<Int>(matrixMarket: input.utf8)
+            Issue.record("expected syntax, read \(graph)")
+        } catch {
+            #expect(error.kind == .syntax)
+            #expect([error.line, error.column, error.byteOffset] == [3, 1, 55])
+        }
+    }
+
+    @Test("GF-251 an entry cut short before CR LF")
+    func gf251() {
+        // DirectedPseudograph<Int>(matrixMarket:) → **syntax** at 3:2
+        let input = "%%MatrixMarket matrix coordinate pattern general\n2 2 1\n1\r\n"
+        do {
+            let graph = try DirectedPseudograph<Int>(matrixMarket: input.utf8)
+            Issue.record("expected syntax, read \(graph)")
+        } catch {
+            #expect(error.kind == .syntax)
+            #expect([error.line, error.column, error.byteOffset] == [3, 2, 56])
+        }
+    }
 }

@@ -76,6 +76,10 @@ public struct ParseError: Error, Hashable, Sendable, CustomStringConvertible {
         case mismatchedTag
         /// A feature this version does not read, another diagram or object type, or another encoding.
         case unsupported
+        /// The file asks for more than a reader builds: a Matrix Market vertex count above
+        /// `maximumVertexCount`, or more expansion than the input's size allows (DOT and GraphML
+        /// defaults and DOT edge-chain attributes, Mermaid `&` groups; see `_ExpansionBudget`).
+        case limitExceeded
     }
 }
 

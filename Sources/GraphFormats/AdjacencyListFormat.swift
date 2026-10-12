@@ -1,31 +1,28 @@
 /// The adjacency list (NetworkX `read_adjlist`/`write_adjlist`): per line a vertex, then its
 /// neighbours, one edge to each; `#` comments.
 
-/// Reads an adjacency list into `target`: the first field of each non-blank line is a vertex
+/// Reads an adjacency list into `target`: the first field of each line that has any is a vertex
 /// (inserted even alone), each later field an edge from it, in order.
 @inlinable func _readAdjacencyList<Target: _ReadTarget>(
     _ text: UnsafeBufferPointer<UInt8>, into target: inout Target,
     map: (UnsafeBufferPointer<UInt8>) -> Target.Vertex?
 ) throws(ParseError) {
     var registry = _Registry<Target>()
-    var start = 0
-    while let line = _line(text, from: start) {
-        start = line.next
-        let end = _uncommentedEnd(text, line)
-        var i = line.start
+    let n = text.count
+    var p = 0
+    while p < n {
+        var q = p
         var head = -1
-        while i < end {
-            while i < end && _isBlank(text[i]) { i &+= 1 }
-            if i >= end { break }
-            let s = i
-            while i < end && !_isBlank(text[i]) { i &+= 1 }
-            let resolved = try registry.resolve(UnsafeBufferPointer(rebasing: text[s ..< i]), at: s, into: &target, map: map)
+        while let (s, e) = _nextListField(text, &q) {
+            let resolved = try registry.resolve(UnsafeBufferPointer(rebasing: text[s ..< e]), at: s, into: &target, map: map)
             if head < 0 {
                 head = resolved.key
             } else {
                 _ = target.insertEdge(head, resolved.key)
             }
         }
+        while q < n && text[q] != 0x0A { q &+= 1 }
+        p = q &+ 1
     }
 }
 
@@ -51,7 +48,10 @@
         fill[line] += 1
     }
     var ids = _IDCache(vertexCount: n)
-    for k in 0 ..< n { ids.set(k) { _appendListToken(vertexID(source.vertex(at: k)), to: &$0) } }
+    for k in 0 ..< n {
+        let id = vertexID(source.vertex(at: k))
+        ids.set(k, id: id.debugDescription) { _appendListToken(id, to: &$0) }
+    }
     for k in 0 ..< n {
         ids.write(k, to: &out)
         for j in rowStart[k] ..< rowStart[k + 1] {

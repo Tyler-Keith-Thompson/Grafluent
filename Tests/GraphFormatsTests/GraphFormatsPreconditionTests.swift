@@ -207,4 +207,84 @@ struct GraphFormatsPreconditionTests {
         graph.writeMermaid(to: &output, vertexID: { $0 == "end" ? "v0" : "v1" }, vertexLabel: { $0 })
         #expect(output == "flowchart TD\n    v0[\"end\"]\n    v1[\"a-b\"]\n    v0 --> v1\n")
     }
+
+    @Test("Two vertices with one ID trap in every writer that names vertices; IDs compare by Unicode scalars")
+    func repeatedVertexID() async {
+        await #expect(processExitsWith: .failure) {
+            var output = ""
+            DirectedPseudograph<Int>(vertices: [1, 2]).writeDOT(to: &output, vertexID: { _ in "x" })
+        }
+        await #expect(processExitsWith: .failure) {
+            var output = ""
+            Pseudograph<Int>(vertices: [1, 2]).writeGraphML(to: &output, vertexID: { _ in "x" })
+        }
+        await #expect(processExitsWith: .failure) {
+            var output = ""
+            DirectedPseudograph<Int>(vertices: [1, 2]).writeNodeLinkJSON(to: &output, vertexID: { _ in .integer(7) })
+        }
+        await #expect(processExitsWith: .failure) {
+            var output = ""
+            DirectedPseudograph<Int>(edges: [DirectedEdge(from: 1, to: 2)]).writeEdgeList(to: &output, vertexID: { _ in "x" })
+        }
+        await #expect(processExitsWith: .failure) {
+            var output = ""
+            Pseudograph<Int>(vertices: [1, 2]).writeAdjacencyList(to: &output, vertexID: { _ in "x" })
+        }
+        await #expect(processExitsWith: .failure) {
+            var output = ""
+            DirectedPseudograph<Int>(vertices: [1, 2]).writeMermaid(to: &output, vertexID: { _ in "x" })
+        }
+        // Without the fault: distinct IDs, including the string "7" beside the integer 7, and "é"
+        // precomposed beside "é" decomposed (canonically equivalent, different scalars).
+        var output = ""
+        DirectedPseudograph<Int>(vertices: [1, 2]).writeNodeLinkJSON(to: &output, vertexID: { $0 == 1 ? .integer(7) : .string("7") })
+        #expect(output == "{\"directed\": true, \"multigraph\": false, \"graph\": {}, \"nodes\": [{\"id\": 7}, {\"id\": \"7\"}], \"edges\": []}")
+        output = ""
+        DirectedPseudograph<Int>(vertices: [1, 2]).writeDOT(to: &output, vertexID: { $0 == 1 ? "\u{E9}" : "e\u{301}" })
+        // Compared by scalars: `==` on String would also accept both written precomposed.
+        #expect(Array(output.unicodeScalars) == Array("digraph {\n\t\"\u{E9}\";\n\t\"e\u{301}\";\n}\n".unicodeScalars))
+    }
+
+    @Test("Node-link JSON: an id that is neither a string nor an integer traps")
+    func nodeLinkIDType() async {
+        await #expect(processExitsWith: .failure) {
+            var output = ""
+            DirectedPseudograph<Int>(vertices: [1]).writeNodeLinkJSON(to: &output, vertexID: { _ in .double(1.5) })
+        }
+        await #expect(processExitsWith: .failure) {
+            var output = ""
+            Pseudograph<Int>(vertices: [1]).writeNodeLinkJSON(to: &output, vertexID: { _ in .boolean(true) })
+        }
+        // Without the fault: a string id.
+        var output = ""
+        DirectedPseudograph<Int>(vertices: [1]).writeNodeLinkJSON(to: &output, vertexID: { _ in .string("1.5") })
+        #expect(output == "{\"directed\": true, \"multigraph\": false, \"graph\": {}, \"nodes\": [{\"id\": \"1.5\"}], \"edges\": []}")
+    }
+
+    @Test("Edge and adjacency lists: an ID holding whitespace the readers split on (VT, FF, NBSP, U+3000) traps")
+    func listTokenWhitespace() async {
+        await #expect(processExitsWith: .failure) {
+            var output = ""
+            DirectedPseudograph<String>(edges: [DirectedEdge(from: "a\u{B}b", to: "c")]).writeEdgeList(to: &output)
+        }
+        await #expect(processExitsWith: .failure) {
+            var output = ""
+            DirectedPseudograph<String>(vertices: ["a\u{C}"]).writeAdjacencyList(to: &output)
+        }
+        await #expect(processExitsWith: .failure) {
+            var output = ""
+            DirectedPseudograph<String>(edges: [DirectedEdge(from: "a", to: "c")])
+                .writeEdgeList(to: &output, columns: ["s"], edgeAttributes: { _ in [("s", .string("x\u{A0}y"))] })
+        }
+        await #expect(processExitsWith: .failure) {
+            var output = ""
+            Pseudograph<String>(vertices: ["\u{3000}"]).writeAdjacencyList(to: &output)
+        }
+        // Without the fault: other non-ASCII characters are fine, and read back as written.
+        var output = ""
+        DirectedPseudograph<String>(edges: [DirectedEdge(from: "a\u{200B}b", to: "日本")]).writeEdgeList(to: &output)
+        #expect(output == "a\u{200B}b 日本\n")
+        let reread = try? DirectedPseudograph<String>(edgeList: output.utf8)
+        #expect(reread.map { Array($0.vertices) } == ["a\u{200B}b", "日本"])
+    }
 }

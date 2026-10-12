@@ -192,4 +192,98 @@ struct GraphFormatsEdgeListTests {
         graph.writeEdgeList(to: &output)
         #expect(output == "0 1\n1 2\n")
     }
+
+    @Test("GF-237 inf, Infinity, nan and a decimal beyond Double are doubles")
+    func gf237() throws {
+        // DirectedPseudograph<String>(edgeList:, columns: ["w"]) → D: a, b, c, d, e; a>b{w=inf}, b>c{w=-inf}, c>d{w=nan}, d>e{w=inf}
+        let input = "a b inf\nb c -Infinity\nc d nan\nd e 1e999\n"
+        var edgeKeys: [Int: [String]] = [:]
+        var edgeValues: [Int: [String: AttributeValue]] = [:]
+        let graph = try DirectedPseudograph<String>(edgeList: input.utf8, columns: ["w"], edgeAttribute: { e, key, value in
+            if edgeValues[e, default: [:]].updateValue(value, forKey: key) == nil { edgeKeys[e, default: []].append(key) }
+        })
+        #expect(Array(graph.vertices) == ["a", "b", "c", "d", "e"])
+        #expect(graph.vertexCount == 5 && graph.edgeCount == 4)
+        #expect(Array(graph.edges.indices) == [0, 1, 2, 3])
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [["a", "b"], ["b", "c"], ["c", "d"], ["d", "e"]])
+        #expect(edgeKeys == [0: ["w"], 1: ["w"], 2: ["w"], 3: ["w"]])
+        #expect(edgeValues.count == 4)
+        #expect(edgeValues[0]?["w"] == .double(.infinity))
+        #expect(edgeValues[1]?["w"] == .double(-.infinity))
+        #expect({ if case .double(let x)? = edgeValues[2]?["w"] { x.isNaN } else { false } }())
+        #expect(edgeValues[3]?["w"] == .double(.infinity))
+    }
+
+    @Test("GF-238 VT, FF, NBSP and other Unicode whitespace separate fields")
+    func gf238() throws {
+        // DirectedPseudograph<String>(edgeList:) → D: a, b, c, d, x, y; a>b, c>d, x>y
+        let input = "a\u{B}b\nc\u{C}d\u{A0}\nx\u{3000}y\u{2003}\r\n"
+        var edgeKeys: [Int: [String]] = [:]
+        var edgeValues: [Int: [String: AttributeValue]] = [:]
+        let graph = try DirectedPseudograph<String>(edgeList: input.utf8, edgeAttribute: { e, key, value in
+            if edgeValues[e, default: [:]].updateValue(value, forKey: key) == nil { edgeKeys[e, default: []].append(key) }
+        })
+        #expect(Array(graph.vertices) == ["a", "b", "c", "d", "x", "y"])
+        #expect(graph.vertexCount == 6 && graph.edgeCount == 3)
+        #expect(Array(graph.edges.indices) == [0, 1, 2])
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [["a", "b"], ["c", "d"], ["x", "y"]])
+        #expect(edgeKeys == [:])
+        #expect(edgeValues == [:])
+    }
+
+    @Test("GF-239 NBSP between three fields makes three fields")
+    func gf239() {
+        // DirectedPseudograph<String>(edgeList:) → **syntax** at 1:5
+        let input = "a\u{A0}b\u{A0}c\n"
+        do {
+            let graph = try DirectedPseudograph<String>(edgeList: input.utf8)
+            Issue.record("expected syntax, read \(graph)")
+        } catch {
+            #expect(error.kind == .syntax)
+            #expect([error.line, error.column, error.byteOffset] == [1, 5, 6])
+        }
+    }
+
+    @Test("GF-252 # ends a field it touches")
+    func gf252() throws {
+        // DirectedPseudograph<String>(edgeList:) → D: a, b; a>b
+        let input = "a b#c d\n"
+        var edgeKeys: [Int: [String]] = [:]
+        var edgeValues: [Int: [String: AttributeValue]] = [:]
+        let graph = try DirectedPseudograph<String>(edgeList: input.utf8, edgeAttribute: { e, key, value in
+            if edgeValues[e, default: [:]].updateValue(value, forKey: key) == nil { edgeKeys[e, default: []].append(key) }
+        })
+        #expect(Array(graph.vertices) == ["a", "b"])
+        #expect(graph.vertexCount == 2 && graph.edgeCount == 1)
+        #expect(Array(graph.edges.indices) == [0])
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [["a", "b"]])
+        #expect(edgeKeys == [:])
+        #expect(edgeValues == [:])
+    }
+
+    @Test("GF-253 one token before CR LF")
+    func gf253() {
+        // DirectedPseudograph<String>(edgeList:) → **syntax** at 2:2
+        let input = "a b\r\nc\r\n"
+        do {
+            let graph = try DirectedPseudograph<String>(edgeList: input.utf8)
+            Issue.record("expected syntax, read \(graph)")
+        } catch {
+            #expect(error.kind == .syntax)
+            #expect([error.line, error.column, error.byteOffset] == [2, 2, 6])
+        }
+    }
+
+    @Test("GF-255 an overlong three-byte sequence")
+    func gf255() {
+        // DirectedPseudograph<String>(edgeList:) → **invalidUTF8** at 1:3
+        let input: [UInt8] = [0x61, 0x20, 0xE0, 0x80, 0xAF, 0x0A]
+        do {
+            let graph = try DirectedPseudograph<String>(edgeList: input)
+            Issue.record("expected invalidUTF8, read \(graph)")
+        } catch {
+            #expect(error.kind == .invalidUTF8)
+            #expect([error.line, error.column, error.byteOffset] == [1, 3, 2])
+        }
+    }
 }

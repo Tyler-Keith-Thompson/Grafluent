@@ -1,48 +1,45 @@
 /// The edge list (NetworkX `read_edgelist`/`write_edgelist`, igraph `Read_Ncol`, SNAP): `u v
 /// [column …]` per line, `#` comments, fields separated by spaces and tabs.
 
-/// Reads an edge list into `target`: exactly `2 + columns.count` fields per non-blank line, the
-/// columns typed by their text.
+/// Reads an edge list into `target`: exactly `2 + columnCount` fields per line that has any, the
+/// columns typed by their text and reported to `value` with the edge's number and the column's.
+/// Each line is scanned once for its fields; the columns are read after the line's field count is
+/// checked.
 @inlinable func _readEdgeList<Target: _ReadTarget>(
-    _ text: UnsafeBufferPointer<UInt8>, columns: [String], into target: inout Target,
+    _ text: UnsafeBufferPointer<UInt8>, columnCount: Int, into target: inout Target,
     map: (UnsafeBufferPointer<UInt8>) -> Target.Vertex?,
-    edgeAttribute: (Target.Position, String, AttributeValue) -> Void
+    value: (Target.Position, Int, AttributeValue) -> Void
 ) throws(ParseError) {
-    let width = 2 + columns.count
+    let width = 2 &+ columnCount
     var registry = _Registry<Target>()
-    var fields: [(Int, Int)] = []
-    fields.reserveCapacity(width + 1)
-    var start = 0
-    while let line = _line(text, from: start) {
-        start = line.next
-        let end = _uncommentedEnd(text, line)
-        _fields(text, line.start, end, into: &fields, limit: width + 1)
-        if fields.isEmpty { continue }
-        if fields.count < width { throw ParseError(.syntax, at: end) }
-        if fields.count > width { throw ParseError(.syntax, at: fields[width].0) }
-        let (s0, e0) = fields[0], (s1, e1) = fields[1]
+    let n = text.count
+    var p = 0
+    while p < n {
+        let line = _ListLine(text, from: p, limit: width)
+        p = line.next
+        if line.count == 0 { continue }
+        if line.count < width { throw ParseError(.syntax, at: line.contentEnd) }
+        if line.count > width { throw ParseError(.syntax, at: line.extraStart) }
+        let (s0, e0) = line.first, (s1, e1) = line.second
         let u = try registry.resolve(UnsafeBufferPointer(rebasing: text[s0 ..< e0]), at: s0, into: &target, map: map)
         let v = try registry.resolve(UnsafeBufferPointer(rebasing: text[s1 ..< e1]), at: s1, into: &target, map: map)
         let position = target.insertEdge(u.key, v.key)
-        var k = 2
-        while k < width {
-            let (s, e) = fields[k]
-            edgeAttribute(position, columns[k - 2], _lexicalValue(text, s, e))
-            k += 1
+        if columnCount > 0 {
+            var q = line.thirdStart
+            for k in 0 ..< columnCount {
+                guard let (s, e) = _nextListField(text, &q) else { break }
+                value(position, k, _lexicalValue(text, s, e))
+            }
         }
     }
 }
 
-/// Whether `s` can be one field: non-empty, with no whitespace and no `#`.
+/// Whether `s` can be one field: non-empty, with no `#` and no whitespace as the readers split on
+/// it (Python's `str.split()`).
 @inlinable func _isListToken(_ bytes: UnsafeBufferPointer<UInt8>) -> Bool {
     guard !bytes.isEmpty else { return false }
-    for b in bytes {
-        switch b {
-        case 0x20, 0x09, 0x0A, 0x0D, 0x0B, 0x0C, UInt8(ascii: "#"): return false
-        default: continue
-        }
-    }
-    return true
+    for b in bytes where b == UInt8(ascii: "#") { return false }
+    return !_containsWhitespace(bytes)
 }
 
 /// Appends `s` as a list field, after checking it can be one.
@@ -62,8 +59,14 @@
     var ids = _IDCache(vertexCount: source.vertexCount)
     var scratch: [UInt8] = []
     source.forEachEdge { position, u, v in
-        if !ids.has(u) { ids.set(u) { _appendListToken(vertexID(source.vertex(at: u)), to: &$0) } }
-        if !ids.has(v) { ids.set(v) { _appendListToken(vertexID(source.vertex(at: v)), to: &$0) } }
+        if !ids.has(u) {
+            let id = vertexID(source.vertex(at: u))
+            ids.set(u, id: id.debugDescription) { _appendListToken(id, to: &$0) }
+        }
+        if !ids.has(v) {
+            let id = vertexID(source.vertex(at: v))
+            ids.set(v, id: id.debugDescription) { _appendListToken(id, to: &$0) }
+        }
         ids.write(u, to: &out)
         out.append(0x20)
         ids.write(v, to: &out)
@@ -71,7 +74,7 @@
         if !columns.isEmpty {
             _checkDistinctKeys(pairs)
             for column in columns {
-                guard let value = pairs.first(where: { $0.key == column })?.value else {
+                guard let value = pairs.first(where: { _sameScalars($0.key, column) })?.value else {
                     preconditionFailure("The edge at \(position) has no value for the column \(column)")
                 }
                 out.append(0x20)

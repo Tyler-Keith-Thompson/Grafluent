@@ -91,4 +91,15 @@ struct GraphFormatsAdjacencyListTests {
         graph.writeAdjacencyList(to: &output)
         #expect(output == "a b\nb c\nc d\nd\n")
     }
+
+    @Test("GF-240 Unicode whitespace separates neighbours")
+    func gf240() throws {
+        // DirectedPseudograph<String>(adjacencyList:) → D: a, b, c, d; a>b, a>c, a>d
+        let input = "a\u{A0}b\u{2003}c\u{1F}d\n"
+        let graph = try DirectedPseudograph<String>(adjacencyList: input.utf8)
+        #expect(Array(graph.vertices) == ["a", "b", "c", "d"])
+        #expect(graph.vertexCount == 4 && graph.edgeCount == 3)
+        #expect(Array(graph.edges.indices) == [0, 1, 2])
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [["a", "b"], ["a", "c"], ["a", "d"]])
+    }
 }

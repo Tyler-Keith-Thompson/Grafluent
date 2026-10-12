@@ -66,17 +66,20 @@ extension MutableDirectedGraph {
     }
 
     /// Reads a Matrix Market coordinate file: vertices `0..<n` (each index mapped once by `vertex`,
-    /// at the size line), an edge per entry, its value under the key `"weight"`.
+    /// at the size line), an edge per entry, its value under the key `"weight"`. A size line
+    /// declaring more than `maximumVertexCount` vertices is `limitExceeded` at its first field,
+    /// before anything is allocated: the vertices are inserted eagerly, so the count bounds the
+    /// memory a small file can ask for.
     @inlinable public init(
         matrixMarket input: some Sequence<UInt8>,
+        maximumVertexCount: Int = 1 << 24,
         vertex: (Int) -> Vertex?,
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
     ) throws(ParseError) {
-        var target = _DirectedTarget<Self>()
-        try _readInput(input) { (text) throws(ParseError) in
-            try _readMatrixMarket(text, into: &target, map: vertex, edgeAttribute: edgeAttribute)
+        self = try Self._readLines(input, names: ["weight"], edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
+            try _readMatrixMarket(text, into: &target, maximumVertexCount: maximumVertexCount, identity: false, map: vertex,
+                                  weight: { buffer.record($0, 0, $1) })
         }
-        self = target.graph
     }
 
     /// Reads an edge list: `u v` and one field per column on each line, `#` comments; each column's
@@ -87,11 +90,10 @@ extension MutableDirectedGraph {
         vertex: (String) -> Vertex?,
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
     ) throws(ParseError) {
-        var target = _DirectedTarget<Self>()
-        try _readInput(input) { (text) throws(ParseError) in
-            try _readEdgeList(text, columns: columns, into: &target, map: { vertex(_string($0)) }, edgeAttribute: edgeAttribute)
+        self = try Self._readLines(input, names: columns, edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
+            try _readEdgeList(text, columnCount: columns.count, into: &target, map: { vertex(_string($0)) },
+                              value: { buffer.record($0, $1, $2) })
         }
-        self = target.graph
     }
 
     /// Reads an adjacency list: a vertex, then its neighbours, on each line; `#` comments.
@@ -99,11 +101,9 @@ extension MutableDirectedGraph {
         adjacencyList input: some Sequence<UInt8>,
         vertex: (String) -> Vertex?
     ) throws(ParseError) {
-        var target = _DirectedTarget<Self>()
-        try _readInput(input) { (text) throws(ParseError) in
+        self = try Self._readLines(input, names: [], edgeAttribute: { _, _, _ in }) { (text, target, _) throws(ParseError) in
             try _readAdjacencyList(text, into: &target, map: { vertex(_string($0)) })
         }
-        self = target.graph
     }
 
     /// Reads a Mermaid flowchart: vertices with their labels, links with theirs; shapes and styling
@@ -174,20 +174,17 @@ extension MutableDirectedGraph where Vertex == String {
         columns: [String] = [],
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
     ) throws(ParseError) {
-        var target = _DirectedTarget<Self>()
-        try _readInput(input) { (text) throws(ParseError) in
-            try _readEdgeList(text, columns: columns, into: &target, map: _string, edgeAttribute: edgeAttribute)
+        self = try Self._readLines(input, names: columns, edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
+            try _readEdgeList(text, columnCount: columns.count, into: &target, map: _string,
+                              value: { buffer.record($0, $1, $2) })
         }
-        self = target.graph
     }
 
     /// Reads an adjacency list, each field its own vertex.
     @inlinable public init(adjacencyList input: some Sequence<UInt8>) throws(ParseError) {
-        var target = _DirectedTarget<Self>()
-        try _readInput(input) { (text) throws(ParseError) in
+        self = try Self._readLines(input, names: [], edgeAttribute: { _, _, _ in }) { (text, target, _) throws(ParseError) in
             try _readAdjacencyList(text, into: &target, map: _string)
         }
-        self = target.graph
     }
 
     /// Reads a Mermaid flowchart, each vertex ID its own vertex.
@@ -220,16 +217,17 @@ extension MutableDirectedGraph where Vertex == Int {
         self = target.graph
     }
 
-    /// Reads a Matrix Market file onto the vertices `0..<n`.
+    /// Reads a Matrix Market file onto the vertices `0..<n`; more than `maximumVertexCount` is
+    /// `limitExceeded` at the size line's first field.
     @inlinable public init(
         matrixMarket input: some Sequence<UInt8>,
+        maximumVertexCount: Int = 1 << 24,
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
     ) throws(ParseError) {
-        var target = _DirectedTarget<Self>()
-        try _readInput(input) { (text) throws(ParseError) in
-            try _readMatrixMarket(text, into: &target, map: { $0 }, edgeAttribute: edgeAttribute)
+        self = try Self._readLines(input, names: ["weight"], edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
+            try _readMatrixMarket(text, into: &target, maximumVertexCount: maximumVertexCount, identity: true, map: { $0 },
+                                  weight: { buffer.record($0, 0, $1) })
         }
-        self = target.graph
     }
 
     /// Reads an edge list whose fields are decimal integers (as `Int(_:)` reads them; anything
@@ -239,20 +237,17 @@ extension MutableDirectedGraph where Vertex == Int {
         columns: [String] = [],
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
     ) throws(ParseError) {
-        var target = _DirectedTarget<Self>()
-        try _readInput(input) { (text) throws(ParseError) in
-            try _readEdgeList(text, columns: columns, into: &target, map: _integerID, edgeAttribute: edgeAttribute)
+        self = try Self._readLines(input, names: columns, edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
+            try _readEdgeList(text, columnCount: columns.count, into: &target, map: _integerID,
+                              value: { buffer.record($0, $1, $2) })
         }
-        self = target.graph
     }
 
     /// Reads an adjacency list whose fields are decimal integers.
     @inlinable public init(adjacencyList input: some Sequence<UInt8>) throws(ParseError) {
-        var target = _DirectedTarget<Self>()
-        try _readInput(input) { (text) throws(ParseError) in
+        self = try Self._readLines(input, names: [], edgeAttribute: { _, _, _ in }) { (text, target, _) throws(ParseError) in
             try _readAdjacencyList(text, into: &target, map: _integerID)
         }
-        self = target.graph
     }
 }
 
@@ -312,17 +307,20 @@ extension MutableGraph {
     }
 
     /// Reads a Matrix Market coordinate file: vertices `0..<n` (each index mapped once by `vertex`,
-    /// at the size line), an edge per entry, its value under the key `"weight"`.
+    /// at the size line), an edge per entry, its value under the key `"weight"`. A size line
+    /// declaring more than `maximumVertexCount` vertices is `limitExceeded` at its first field,
+    /// before anything is allocated: the vertices are inserted eagerly, so the count bounds the
+    /// memory a small file can ask for.
     @inlinable public init(
         matrixMarket input: some Sequence<UInt8>,
+        maximumVertexCount: Int = 1 << 24,
         vertex: (Int) -> Vertex?,
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
     ) throws(ParseError) {
-        var target = _UndirectedTarget<Self>()
-        try _readInput(input) { (text) throws(ParseError) in
-            try _readMatrixMarket(text, into: &target, map: vertex, edgeAttribute: edgeAttribute)
+        self = try Self._readLines(input, names: ["weight"], edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
+            try _readMatrixMarket(text, into: &target, maximumVertexCount: maximumVertexCount, identity: false, map: vertex,
+                                  weight: { buffer.record($0, 0, $1) })
         }
-        self = target.graph
     }
 
     /// Reads an edge list: `u v` and one field per column on each line, `#` comments; each column's
@@ -333,11 +331,10 @@ extension MutableGraph {
         vertex: (String) -> Vertex?,
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
     ) throws(ParseError) {
-        var target = _UndirectedTarget<Self>()
-        try _readInput(input) { (text) throws(ParseError) in
-            try _readEdgeList(text, columns: columns, into: &target, map: { vertex(_string($0)) }, edgeAttribute: edgeAttribute)
+        self = try Self._readLines(input, names: columns, edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
+            try _readEdgeList(text, columnCount: columns.count, into: &target, map: { vertex(_string($0)) },
+                              value: { buffer.record($0, $1, $2) })
         }
-        self = target.graph
     }
 
     /// Reads an adjacency list: a vertex, then its neighbours, on each line; `#` comments.
@@ -345,11 +342,9 @@ extension MutableGraph {
         adjacencyList input: some Sequence<UInt8>,
         vertex: (String) -> Vertex?
     ) throws(ParseError) {
-        var target = _UndirectedTarget<Self>()
-        try _readInput(input) { (text) throws(ParseError) in
+        self = try Self._readLines(input, names: [], edgeAttribute: { _, _, _ in }) { (text, target, _) throws(ParseError) in
             try _readAdjacencyList(text, into: &target, map: { vertex(_string($0)) })
         }
-        self = target.graph
     }
 
     /// Reads a Mermaid flowchart: vertices with their labels, links with theirs; shapes and styling
@@ -420,20 +415,17 @@ extension MutableGraph where Vertex == String {
         columns: [String] = [],
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
     ) throws(ParseError) {
-        var target = _UndirectedTarget<Self>()
-        try _readInput(input) { (text) throws(ParseError) in
-            try _readEdgeList(text, columns: columns, into: &target, map: _string, edgeAttribute: edgeAttribute)
+        self = try Self._readLines(input, names: columns, edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
+            try _readEdgeList(text, columnCount: columns.count, into: &target, map: _string,
+                              value: { buffer.record($0, $1, $2) })
         }
-        self = target.graph
     }
 
     /// Reads an adjacency list, each field its own vertex.
     @inlinable public init(adjacencyList input: some Sequence<UInt8>) throws(ParseError) {
-        var target = _UndirectedTarget<Self>()
-        try _readInput(input) { (text) throws(ParseError) in
+        self = try Self._readLines(input, names: [], edgeAttribute: { _, _, _ in }) { (text, target, _) throws(ParseError) in
             try _readAdjacencyList(text, into: &target, map: _string)
         }
-        self = target.graph
     }
 
     /// Reads a Mermaid flowchart, each vertex ID its own vertex.
@@ -466,16 +458,17 @@ extension MutableGraph where Vertex == Int {
         self = target.graph
     }
 
-    /// Reads a Matrix Market file onto the vertices `0..<n`.
+    /// Reads a Matrix Market file onto the vertices `0..<n`; more than `maximumVertexCount` is
+    /// `limitExceeded` at the size line's first field.
     @inlinable public init(
         matrixMarket input: some Sequence<UInt8>,
+        maximumVertexCount: Int = 1 << 24,
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
     ) throws(ParseError) {
-        var target = _UndirectedTarget<Self>()
-        try _readInput(input) { (text) throws(ParseError) in
-            try _readMatrixMarket(text, into: &target, map: { $0 }, edgeAttribute: edgeAttribute)
+        self = try Self._readLines(input, names: ["weight"], edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
+            try _readMatrixMarket(text, into: &target, maximumVertexCount: maximumVertexCount, identity: true, map: { $0 },
+                                  weight: { buffer.record($0, 0, $1) })
         }
-        self = target.graph
     }
 
     /// Reads an edge list whose fields are decimal integers (as `Int(_:)` reads them; anything
@@ -485,19 +478,16 @@ extension MutableGraph where Vertex == Int {
         columns: [String] = [],
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
     ) throws(ParseError) {
-        var target = _UndirectedTarget<Self>()
-        try _readInput(input) { (text) throws(ParseError) in
-            try _readEdgeList(text, columns: columns, into: &target, map: _integerID, edgeAttribute: edgeAttribute)
+        self = try Self._readLines(input, names: columns, edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
+            try _readEdgeList(text, columnCount: columns.count, into: &target, map: _integerID,
+                              value: { buffer.record($0, $1, $2) })
         }
-        self = target.graph
     }
 
     /// Reads an adjacency list whose fields are decimal integers.
     @inlinable public init(adjacencyList input: some Sequence<UInt8>) throws(ParseError) {
-        var target = _UndirectedTarget<Self>()
-        try _readInput(input) { (text) throws(ParseError) in
+        self = try Self._readLines(input, names: [], edgeAttribute: { _, _, _ in }) { (text, target, _) throws(ParseError) in
             try _readAdjacencyList(text, into: &target, map: _integerID)
         }
-        self = target.graph
     }
 }

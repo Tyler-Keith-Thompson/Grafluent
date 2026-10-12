@@ -12,7 +12,7 @@ has its own UTF-8, XML-subset and JSON scanners, and builds on Linux with the st
 shapes, colours, SVG or images; a format's styling statements are skipped on reading and never
 written, unless the caller passes them as plain attributes.
 
-`cases.md` (GF-001 – GF-231, 231 rows: 191 read rows, 99 of them errors, and 40 write rows; GF-226 – GF-231 were added after review, at the end so that no row was renumbered) pins
+`cases.md` (GF-001 – GF-256, 256 rows: 216 read rows, 109 of them errors, and 40 write rows; GF-226 – GF-231 were added after the first review and GF-232 – GF-256 after the second, at the end so that no row was renumbered) pins
 the values. `ref.py` is an independent Python implementation of everything below, and every row is
 compared with NetworkX 3.7 (GraphML, node-link JSON, edge list, adjacency list), SciPy 1.18.1
 (Matrix Market) or pydot 4.0.1 (DOT), where the library reads or writes the format. Write rows
@@ -93,7 +93,7 @@ public struct ParseError: Error, Hashable, Sendable, CustomStringConvertible {
         case invalidUTF8, syntax, unexpectedEndOfInput, nestingTooDeep, numberOutOfRange,
              invalidValue, invalidVertex, duplicateVertex, undeclaredVertex, duplicateKey,
              undeclaredKey, kindMismatch, entryCountMismatch, indexOutOfRange, notSquare,
-             doctypeNotAllowed, entityNotAllowed, mismatchedTag, unsupported
+             doctypeNotAllowed, entityNotAllowed, mismatchedTag, unsupported, limitExceeded
     }
 }
 
@@ -114,6 +114,7 @@ extension MutableDirectedGraph {
                 vertex: (AttributeValue) -> Vertex?,                 // id: .string or .integer
                 vertexAttribute:, edgeAttribute:, graphAttribute:) throws(ParseError)
     public init(matrixMarket input: some Sequence<UInt8>,
+                maximumVertexCount: Int = 1 << 24,                   // above it: limitExceeded
                 vertex: (Int) -> Vertex?,                            // 0-based index
                 edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = …) throws(ParseError) // key "weight"
     public init(edgeList input: some Sequence<UInt8>, columns: [String] = [], vertex:, edgeAttribute:) throws(ParseError)
@@ -167,8 +168,11 @@ let csr = try AdjacencyList<Int>(matrixMarket: file)        // then CompressedSp
 **Prerequisite: `MutableGraph`** in `GraphProtocols`, the undirected counterpart of
 `MutableDirectedGraph` (Boost's `MutableGraph` concept): `init()`, `insert(_:)`, `_key(of:)`,
 `_insertVertex(_:)`, `_insertEdge(fromKey:toKey:) -> Edges.Index` (on a simple graph, an existing
-edge's position), for `UndirectedAdjacencyList` and `Pseudograph`. The readers need only those
-members; `GraphFormats` then depends on `GraphProtocols` alone, as its BUILD file says now.
+edge's position), and, mirroring `MutableDirectedGraph`, `remove(_:)`, `remove(edge:)`,
+`removeAll(keepingCapacity:)`, `removeAllEdges(keepingCapacity:)`, `reserveCapacity(vertexCount:edgeCount:)`
+and `_vertex(atKey:)`, for `UndirectedAdjacencyList` and `Pseudograph`. Both protocols also have
+the bulk hook the line readers build through (Implementation, below). `GraphFormats` depends on
+`GraphProtocols` alone, as its BUILD file says.
 `Multigraph` and `DirectedMultigraph` (no loops) and `CompressedSparseRow` (immutable) are read
 through a mutable representation and converted (`CompressedSparseRow(adjacencyList)`,
 `LabeledGraph(...)`), as NetworkX reads into a `Graph` and converts.
@@ -219,13 +223,25 @@ through a mutable representation and converted (`CompressedSparseRow(adjacencyLi
   `vertex` closure maps each ID once (a dictionary from ID bytes to key, so a repeated ID costs one
   lookup, no closure call). If two IDs map to the same vertex they are one vertex.
 - **Edges** are inserted in file order with the target's `_insertEdge(fromKey:toKey:)`, which
-  returns the position the attribute callbacks get. A simple target (`AdjacencyList`,
+  returns the position the attribute callbacks get (the line formats build the same graph in one
+  step, below). A simple target (`AdjacencyList`,
   `UndirectedAdjacencyList`) returns the existing position for a repeated pair, so a parallel
   edge in the file merges and its attributes are set again: last value wins (GF-019, GF-051,
   GF-119, GF-151). This is NetworkX's behaviour when reading into `DiGraph`/`Graph`.
 - **Merging that the file demands.** DOT `strict` and node-link `"multigraph": false` merge
   parallel edges in any target (GF-020, GF-021, GF-087), as Graphviz and NetworkX do; the reader
   keeps a table from vertex-key pair to position for this, only when the file asks for it.
+  Node-link `"multigraph": true` merges on `(u, v, key)` as NetworkX's `node_link_graph` does: an
+  edge whose `key` is already taken between the same pair is that edge, its attributes set again
+  (GF-233, GF-234).
+- **IDs compare by Unicode scalars** (NetworkX's choice: Python compares strings by code point, as
+  Graphviz and XML compare names). `"é"` precomposed and `"e"` + U+0301 are two IDs, two DOT default
+  keys, two GraphML key names, two writer keys, and two writer IDs. Each ID is then mapped through
+  the `vertex` closure: a `String` vertex merges the two, since `String`'s `==` is canonical
+  equivalence (a declared GraphML or node-link node is then `duplicateVertex`), while a vertex type
+  that compares scalars (`[Unicode.Scalar]`, `vertex: { Array($0.unicodeScalars) }`) keeps them
+  apart. Normalizing would change the caller's names; keeping `String`'s semantics inside the reader
+  would merge what every other tool keeps apart.
 - **Undirected orientation.** An undirected edge is inserted as written (`b -- a` is stored
   `UndirectedEdge(b, a)`), so writing it again gives the same text.
 
@@ -237,12 +253,26 @@ through a mutable representation and converted (`CompressedSparseRow(adjacencyLi
   values keep their JSON type (an integer literal is `.integer`, a number with `.` or an exponent
   `.double`); Matrix Market weights are `.integer` or `.double` under the key `"weight"` (NetworkX's
   key in `from_scipy_sparse_array`); edge-list columns are typed by their text (an integer that fits
-  `Int`, else a decimal double, else a string: GF-149, GF-152); Mermaid labels are strings.
+  `Int`; else a decimal double, infinite beyond `Double`, or `inf`, `infinity`, `nan` in any case
+  with a sign, as Python's `float` reads them, so that every double the writer prints reads back;
+  else a string: GF-149, GF-152, GF-237); Mermaid labels are strings.
 - **Read callbacks are setters**, called in document order, once per value set. For DOT that
   includes defaults: a vertex created after `node [k=v]` gets `k` before its explicit attributes
   (GF-005, GF-006), Graphviz's rule. GraphML `<default>` values are reported for every element of
   that domain that has no `<data>` for the key, after its explicit data (GF-046). Repeated keys
-  call again; a caller storing into a dictionary keeps the last.
+  call again; a caller storing into a dictionary keeps the last. The line formats (Matrix Market,
+  edge list, adjacency list) read the whole file before building the graph, so their callbacks run
+  after the last line is read, and not at all when a later line is an error.
+- **Defaults are applied, within a budget (decision).** Applying them is what Graphviz and the
+  GraphML specification say, and DOT's scoping (`node [..]` reaches only vertices created after it)
+  cannot be reported once, as NetworkX's `node_default` reports GraphML's: a caller would lose which
+  vertices a default reached. The cost is amplification: 2000 defaults and 50,000 vertices are 10⁸
+  calls from 354 KB. So the calls a file can multiply are bounded by its size, with the same budget
+  as Mermaid's `&` groups: DOT `node`/`edge` defaults and edge-chain attribute lists (set on every
+  hop), and GraphML `<default>`s, at most 16 calls per input byte plus 4,096; Mermaid `&` groups at
+  most one edge per input byte plus 4,096. Past it a reader throws `limitExceeded` at the statement
+  or element that crosses it. A real file stays far inside (a vertex statement is several bytes, a
+  Mermaid edge at least three).
 - **Writers take closures** returning `[(key: String, value: AttributeValue)]`, the pairs in the
   order to write. An array, not `KeyValuePairs` (which only a literal can build) and not a generic
   `some Sequence` (a generic closure result cannot have a default argument, so each combination of
@@ -291,6 +321,7 @@ through a mutable representation and converted (`CompressedSparseRow(adjacencyLi
 | `doctypeNotAllowed`, `entityNotAllowed` | any `<!DOCTYPE`; any entity reference but `&lt; &gt; &amp; &quot; &apos;` and character references |
 | `mismatchedTag` | an end tag that does not close the open element, or comes with no element open (`</a>` first, GF-227) |
 | `unsupported` | a phase 2 feature, another diagram or object type, another encoding |
+| `limitExceeded` | a Matrix Market size line over `maximumVertexCount` (at its first field, GF-232); a file over the expansion budget (DOT and GraphML defaults, DOT edge-chain attributes, Mermaid `&` groups; at the statement or element that crosses it) |
 
 - **Error order.** A reader reports the first error in this order: invalid UTF-8 anywhere (the
   whole input is checked first, so a scalar cut at the end is `invalidUTF8` at its lead byte); for
@@ -306,11 +337,12 @@ through a mutable representation and converted (`CompressedSparseRow(adjacencyLi
   expansion of any size (billion laughs, external entities). Integers are parsed with overflow
   checks. No reader reserves memory from a count in the file beyond what the input could hold: the
   Matrix Market entry count reserves at most `remaining bytes / 4` entries, so a 30-byte file
-  claiming 10¹⁸ entries allocates nothing. The one exception is the Matrix Market vertex count,
-  inserted eagerly because isolated vertices are part of the graph (open question 3): nothing is
-  reserved from it beyond the bytes that follow, but a small file claiming 10¹² vertices still costs
-  memory linear in that count. Strings,
-  lines and files have no length limit beyond memory: each costs memory linear in the input.
+  claiming 10¹⁸ entries allocates nothing. The Matrix Market vertex count is inserted eagerly,
+  because isolated vertices are part of the graph, and is bounded by `maximumVertexCount` (default
+  2²⁴; open question 3): a 79-byte file claiming 10¹² vertices is `limitExceeded` before anything
+  is allocated (it reached 8.3 GB before the bound). The work a file can multiply is bounded by its
+  size (Attributes, the budget). Strings, lines and files have no length limit beyond memory: each
+  costs memory linear in the input.
 - **Strict.** Where a format leaves room, readers reject rather than guess: a single-token
   edge-list line, extra columns, Matrix Market comments after the size line, a signed index,
   hexadecimal floats, JSON `NaN`, duplicate keys, undeclared nodes. Each is a library
@@ -368,7 +400,9 @@ through a mutable representation and converted (`CompressedSparseRow(adjacencyLi
   child gives the default. Exactly one `<graph>`, whose `edgedefault` is required (graphml.xsd:
   `use="required"`, GF-064). `<node id>` in document order; `<edge source target>` in document
   order, endpoints resolved after the whole graph is read (an edge may precede its nodes, GF-049).
-  An edge's `directed` attribute must equal `edgedefault` (phase 2 otherwise, GF-076). `<data>`
+  An edge's `directed` attribute (an `xs:boolean`: `true`, `false`, `1`, `0`, surrounding
+  whitespace collapsed, GF-241, GF-242) must equal `edgedefault` (phase 2 otherwise, GF-076);
+  `edgedefault` is an enumeration of tokens, so whitespace around it is collapsed too (GF-243). `<data>`
   with element content (yEd graphics) is skipped (GF-055); unknown elements (`<desc>`, foreign
   namespaces) are skipped with their subtrees (GF-056). Typed values: `boolean` is `true`,
   `false`, `1`, `0` (XML Schema, GF-072); numbers allow surrounding whitespace (XML Schema
@@ -413,9 +447,14 @@ through a mutable representation and converted (`CompressedSparseRow(adjacencyLi
   when `edges` is absent, `links` (files from NetworkX before 3.4, GF-089): one of the two is
   required, as `node_link_graph` requires its `edges` key; a file with neither is `syntax` at the
   top-level object (GF-229). Each node has `id`
-  (string or integer), the rest are attributes. Each edge has `source`, `target`, an ignored
+  (string or integer), the rest are attributes. Each edge has `source`, `target`, an optional
   `key`, and attributes. Other top-level members are ignored (GF-091). `multigraph: false`
-  merges parallel edges, later attributes winning (GF-087).
+  merges parallel edges, later attributes winning, and ignores keys (GF-087). `multigraph: true`
+  merges on `(u, v, key)` as `node_link_graph` does (`add_edge(u, v, key=d.get("key"))`): a key
+  already taken between the pair is that edge, its attributes set again; an edge without a key, or
+  with `null`, gets NetworkX's `new_edge_key` (the number of keys between the pair, raised past any
+  taken); keys compare as Python's dictionary keys do (`true` is 1, an integral double its integer;
+  the string `"1"` is not 1); an array or object key is `unsupported` (GF-233 – GF-236).
 - **Writer**: byte-equal to Python's `json.dumps(nx.node_link_data(G, edges="edges"))` for the
   same graph built in the same order (GF-200 – GF-206): `", "` and `": "` separators, one line, and
   no final line feed (`json.dumps` writes none; byte equality wins, so this is the one writer whose
@@ -425,8 +464,9 @@ through a mutable representation and converted (`CompressedSparseRow(adjacencyLi
   the number of earlier edges between the same ordered (directed) or unordered pair, NetworkX's
   `new_edge_key` (GF-204). Strings escape `"`, `\`, the C0 controls (`\n \r \t \b \f`, else
   `\u00XX`) and everything outside ASCII as `\uXXXX` with surrogate pairs (`ensure_ascii`,
-  GF-206). Doubles in Python's `repr` form; a non-finite double, or an attribute named `id`
-  (node) or `source`/`target`/`key` (edge), is a precondition failure. Edge order is position
+  GF-206). Doubles in Python's `repr` form; a non-finite double, an `id` that is neither
+  `.string` nor `.integer`, or an attribute named `id` (node) or `source`/`target`/`key` (edge), is
+  a precondition failure. Edge order is position
   order; NetworkX orders by adjacency, so on a graph whose edges are not grouped by source the
   bytes differ in edge order only (`ref.py` compares those as sets).
 
@@ -444,7 +484,9 @@ through a mutable representation and converted (`CompressedSparseRow(adjacencyLi
   `Int`; `real` values are decimal floats or `inf`, `infinity`, `nan` in any case with a sign
   (SciPy writes `Infinity`, `NaN`).
 - **Graph**: vertices `0..<n` (the `vertex` closure maps the index), even with no entries
-  (GF-117). Directed target: `general` → an arc row → column per entry (NetworkX's
+  (GF-117), at most `maximumVertexCount` of them (default 2²⁴, about 1.7 GB in the dense
+  representations at about 100 bytes a vertex; above it `limitExceeded` at the size line's first
+  field, GF-232). Directed target: `general` → an arc row → column per entry (NetworkX's
   `from_scipy_sparse_array` convention); `symmetric` → arcs (r, c) then (c, r), one arc for a
   diagonal entry (GF-115); `skew-symmetric` → the mirrored arc gets the negated weight (GF-116).
   Undirected target: `symmetric` only, one edge per entry as written (GF-114); either triangle is
@@ -461,7 +503,10 @@ through a mutable representation and converted (`CompressedSparseRow(adjacencyLi
 ### Edge list and adjacency list
 
 - Lines split at LF; `#` starts a comment anywhere on a line (NetworkX's `comments="#"`); fields
-  are runs of non-space, non-tab characters; blank lines are skipped. Edge list: exactly `2 +
+  are runs of characters that are not whitespace as Python's `str.split()` reads it (NetworkX
+  splits each line that way): tab, LF, VT, FF, CR, U+001C – U+001F, space, U+0085, NBSP, U+1680,
+  U+2000 – U+200A, U+2028, U+2029, U+202F, U+205F, U+3000 (GF-238 – GF-240); blank lines are
+  skipped. (Matrix Market fields are separated by spaces and tabs only, as mmio.c reads them.) Edge list: exactly `2 +
   columns.count` fields (GF-153 – GF-155). Adjacency list: the first field is a vertex (inserted
   even alone, GF-156), the others its neighbours, one edge each in order.
 - **Writers**: edge list `u v [values]` per edge in position order (isolated vertices are not
@@ -469,7 +514,8 @@ through a mutable representation and converted (`CompressedSparseRow(adjacencyLi
   out-edges' targets in position order; undirected: each edge on the line of its endpoint that
   comes first in `vertices` order, a loop once (GF-219 – GF-221). Both byte-equal to NetworkX's
   writers on simple graphs (`write_adjlist` minus its three `#` header lines). IDs and string
-  values must be non-empty and contain no whitespace or `#` (precondition, open question 4).
+  values must be non-empty and contain no whitespace (in the readers' sense above) or `#`
+  (precondition, open question 4).
   Booleans cannot be written to an edge list (they would read back as strings): precondition. So
   is an edge whose attributes lack one of `columns` (NetworkX raises `KeyError`); its short line
   would read back as a syntax error. `edgeAttributes` is called once per edge even without columns.
@@ -480,7 +526,9 @@ through a mutable representation and converted (`CompressedSparseRow(adjacencyLi
   directives), then the header `flowchart` or `graph` with an optional `TB TD BT RL LR` (dropped:
   layout). Another diagram keyword is `unsupported`, anything else `syntax` (GF-181, GF-182).
   Statements end at LF, `;` or a carriage return (CR LF counts once, GF-231). `classDef`, `class`, `style`, `linkStyle` and `click` lines are
-  skipped (styling), as is `:::class` after a vertex (GF-171). A vertex is `[A-Za-z0-9_]+`, not
+  skipped (styling), as is `:::class` after a vertex (GF-171), when the keyword is followed by
+  blanks and then a name (a vertex, a class, a link number); followed by anything else
+  (`style --> B`, `class & A --> C`) the keyword is a vertex (GF-244). A vertex is `[A-Za-z0-9_]+`, not
   `end`, which closes a subgraph in Mermaid (`unsupported`, GF-184), with an optional shape `[…] (…) ([…]) [[…]] [(…)]
   ((…)) (((…))) {…} {{…}} >…] [/…/] [\…\] [/…\] [\…/]` whose text is the label (quoted text verbatim,
   unquoted text trimmed), the shape dropped (GF-165). A later label replaces an earlier one
@@ -491,7 +539,9 @@ through a mutable representation and converted (`CompressedSparseRow(adjacencyLi
   letter directly after the dashes belongs to the link (`A---oB` is A to B, GF-174, Mermaid's
   documented rule). `A & B --> C & D` adds every source–target pair, sources outer (GF-164).
   A directed target rejects open links, an undirected one rejects heads (`kindMismatch`):
-  Mermaid diagrams freely mix them, and phase 1 has no mixed representation.
+  Mermaid diagrams freely mix them, and phase 1 has no mixed representation. A simple target merges
+  a repeated link, its last label winning (GF-245, GF-246). The edges `&` groups add are bounded by
+  the input's size (Attributes, the budget): 3000 × 3000 from 45 KB was 9·10⁶ edges and 2.4 GB.
 - **Writer**:
 
   ```
@@ -506,6 +556,9 @@ through a mutable representation and converted (`CompressedSparseRow(adjacencyLi
   IDs must match `[A-Za-z0-9_]+` and not be `end graph flowchart subgraph style classDef class
   click linkStyle direction` (precondition); a caller with arbitrary vertex names passes
   `vertexID:` (indices) and `vertexLabel:` (the names).
+- **Every writer that names vertices** requires distinct IDs (precondition): two vertices with one
+  ID would read back as one. IDs compare by Unicode scalars, so canonically equivalent but
+  different IDs are distinct.
 
 ### Round trips
 
@@ -527,12 +580,18 @@ What `read(write(g))` gives back, into a target of the same kind and type:
   shortest digits that round-trip, positional when the decimal exponent is in `-4 ..< 16`,
   otherwise `d.ddde±XX` with at least two exponent digits (`2.0`, `0.0001`, `1e-05`, `1e+16`). This
   makes node-link and edge-list output byte-equal to NetworkX's and GraphML text equal to what
-  NetworkX writes. Swift's `description` gives the same digits but switches to exponent form at
-  2⁵³ instead of 10¹⁶ (`9.5e+15` against Python's `9500000000000000.0`), so the writer reformats
-  `description`'s digits by Python's rule. Matrix Market uses SciPy's form (above).
+  NetworkX writes. The digits come from the module's own Schubfach (below), the same digits as
+  Swift's `description`, which switches to exponent form at 2⁵³ instead of 10¹⁶ (`9.5e+15` against
+  Python's `9500000000000000.0`); the writer lays them out by Python's rule. Matrix Market uses
+  SciPy's form (above).
 - **Doubles, read**: the grammar is checked first (decimal only: no hexadecimal floats, no
-  `nan(…)` payloads), then the standard library's `Double(_:)` (correctly rounded; no Foundation),
-  overflow to infinity being `numberOutOfRange`.
+  `nan(…)` payloads), then Eisel–Lemire (Lemire's fast_float algorithm over a table of 128-bit
+  powers of five): the first 19 significant digits give the answer whenever it is decided, and when
+  digits were dropped the truncated and the next value must agree; the rare input it cannot decide
+  goes to the standard library's `Double(_:)` (correctly rounded; no Foundation). A test compares
+  every result with `Double(_:)` on random digits, near-ties and the extremes. Overflow to infinity
+  is `numberOutOfRange` in JSON, GraphML and Matrix Market, and an infinite value in an edge-list
+  column (Python's `float` reading).
 - **Integers** are parsed by hand with overflow checks, to `Int` (64-bit). GraphML `int` is 32-bit
   in XML Schema; it is read as `Int` (NetworkX does the same) and written as `long`.
 
@@ -556,10 +615,25 @@ What `read(write(g))` gives back, into a target of the same kind and type:
   the happy path.
 - **Writers** format integers and doubles into a stack buffer and append bytes to a 64 KiB
   `String` buffer flushed through `TextOutputStream.write(_:)`; no intermediate `String` per
-  value. A double's shortest digits come from the runtime entry point `Double.description` uses
-  (`swift_float64ToString`, declared with `@_silgen_name`, as the standard library declares it),
-  into a stack buffer; below 2⁵³ its layout is already Python's `repr`, and only Python's form needs
-  rearranging above it.
+  value. A double's shortest digits come from the module's own Schubfach (Giulietti, "The
+  Schubfach way to render doubles"; Java's `DoubleToDecimal`), public API only: 64-bit
+  multiplications against a dedicated table of 617 126-bit entries, generated from its definition
+  with exact rational arithmetic (`scripts/schubfach_table.py`), without Java's special case for the
+  two smallest subnormals (`c < C_TINY`; the general path gives them the same digits), and the
+  digits written two at a time. A property test checks its digits against `description` on random
+  bit patterns, both ends of every binade, subnormals and the 9·10¹⁵ – 2⁵⁴ band; the Python and
+  SciPy layouts are byte-equal to before (the catalog's write rows). It replaced a call to the
+  runtime's `swift_float64ToString` through `@_silgen_name`, a private entry point.
+- **The line formats build in one step.** Matrix Market, the edge list and the adjacency list read
+  the whole file into a list of vertices and `(uKey, vKey)` pairs in file order (one pass that
+  parses each field as it scans it: no array of fields), then hand them to the representation's
+  bulk hook (`MutableDirectedGraph._built` / `MutableGraph._built`, callable only from inside the
+  package through `_ConstructionToken`). The dense representations lay out every row at its exact
+  size by a stable counting sort, O(n + m), so each row lists its edges in position order, as one
+  insertion per edge would; the simple lists first drop repeated pairs through their own pair
+  table (which becomes the graph's) and map each pair to its first copy's position; the multigraphs
+  keep every pair. Edge attributes are buffered during the read and replayed with the built graph's
+  positions. Any other conformer (`StableDirectedGraph`) gets the default: one insertion per edge.
 - **Specialization.** The readers and writers are `@inlinable` down to the scanners, so a call on a
   concrete representation (`DirectedPseudograph<Int>`) is specialized in the caller's module: the
   target's insertions, the edge iteration and the attribute closures are direct calls. Unspecialized,
@@ -573,7 +647,7 @@ What `read(write(g))` gives back, into a target of the same kind and type:
 
 | Operation | Time | Extra memory |
 |---|---|---|
-| every reader | O(input bytes + n + m) expected (one hash per ID occurrence) | O(n) ID table; O(m) pair table only for DOT `strict` and node-link `multigraph: false`; GraphML holds the edges until the graph's nodes are known (O(m)) |
+| every reader | O(input bytes + n + m) expected (one hash per ID occurrence), plus the calls and edges defaults and `&` groups add, at most 16 (DOT, GraphML) or 1 (Mermaid) per input byte | O(n) ID table; O(m) pair table only for DOT `strict` and node-link `multigraph: false`, and an O(m) table of `(u, v, key)` for node-link `multigraph: true`; GraphML holds the edges until the graph's nodes are known (O(m)); the line formats hold the vertices and key pairs (O(n + m)) and their edge attributes until the build. A GraphML element costs O(its data + the defaults of its domain); a JSON object or XML tag of k keys O(k) (one shared index with generation stamps, not one per object) |
 | every writer | O(n + m + output bytes), plus the closures' cost (GraphML: called twice) | O(n) for the vertex IDs, kept as escaped bytes, beyond a 64 KiB buffer; node-link JSON O(m) for the parallel-edge keys (a table of pairs and one `Int32` per edge, found in one pass); the adjacency list O(n + m) to group the edges by line; GraphML O(keys) |
 | error position | O(offset of the error), once | O(1) |
 
@@ -612,9 +686,10 @@ into `DirectedPseudograph<Int>` / `AdjacencyList<Int>` where the IDs are integer
 
 | Measure | Target |
 |---|---|
-| Edge list read, 10⁶ edges with a weight column | ≥ 30× NetworkX `read_edgelist`; ≥ 150 MB/s with `Int` vertices |
+| Parse only, every format whose reader checks or collects the whole input before building (Matrix Market, edge and adjacency lists, GraphML's well-formedness walk, node-link JSON's document check) | ≥ 300 MB/s |
+| Edge list read, 10⁶ edges with a weight column | ≥ 30× NetworkX `read_edgelist` |
 | Edge list and adjacency list write | ≥ 20× NetworkX |
-| Matrix Market read | within 1.5× SciPy `mmread` on one thread (≤ 100 ms here, parse plus building the target); ≥ 10× `mmread` + `from_scipy_sparse_array`. SciPy on all cores is 4× faster again: a parallel parse (split at line boundaries, as fast_matrix_market does) is phase 2, only if a benchmark asks |
+| Matrix Market parse + build into `CompressedSparseRow` (`CompressedSparseRow(AdjacencyList<Int>(matrixMarket:))`), the 10⁶-edge file | ≤ 100 ms; ≥ 10× `mmread` + `from_scipy_sparse_array`. SciPy on all cores is 4× faster again: a parallel parse (split at line boundaries, as fast_matrix_market does) is phase 2, only if a benchmark asks. Reading into `DirectedPseudograph` is reported separately |
 | Matrix Market write | within 1.5× SciPy `mmwrite` on one thread (≤ 190 ms here), byte-equal |
 | GraphML read and write | ≥ 20× NetworkX (expat + Python) |
 | node-link JSON read and write | ≥ 10× `json.loads` + `node_link_graph` and `node_link_data` + `json.dumps` (both C-accelerated JSON) |
@@ -623,27 +698,37 @@ into `DirectedPseudograph<Int>` / `AdjacencyList<Int>` where the IDs are integer
 | Allocations | readers: amortized O(1) per vertex (its ID `String`) and none per edge beyond the target's own storage; writers: none per element |
 | Hostile inputs | the 3,000 mutated inputs of `--stress` and a libFuzzer target per reader (`just fuzz`) run without a crash, a hang or memory beyond 16× the input |
 
-Measured (`GraphFormatsBenchmarks`, release, one run on the development machine under load
-average 8–12; details in `Benchmarks/README.md`):
+Measured (`GraphFormatsBenchmarks`, release, one run on the development machine, 2026-10-11,
+load average 3–7 after the second review; the first column of the earlier run, under load 8–12,
+in parentheses; details in `Benchmarks/README.md`):
 
 | Measure | Target | Measured | |
 |---|---|---|---|
-| Edge list write | ≥ 20× | 89 ms: 16× | miss |
-| Edge list read (`Int` vertices) | ≥ 30×, ≥ 150 MB/s | 541 ms: 6.6×, 57 MB/s | miss: building the target |
-| Adjacency list write | ≥ 20× | 14 ms: 15× | miss (close) |
-| GraphML write / read | ≥ 20× | 224 ms: 41× / 1,362 ms: 8.1× | met / miss |
-| Node-link JSON write / read | ≥ 10× | 162 ms: 6.4× / 1,019 ms: 2.4× | miss / miss |
-| Matrix Market write | ≤ 190 ms | 107 ms | met |
-| Matrix Market read | ≤ 100 ms | 390 ms (`AdjacencyList<Int>` 374 ms) | miss: building the target |
-| DOT write / read | ≥ 50× | 284× / 1,070× | met |
-| Mermaid read | ≥ 100 MB/s | 38 MB/s | miss: building the target |
-| Allocations | O(1) per vertex, none per edge | readers 17–386 in all; writers ≤ 1,589 | met |
+| Parse only: Matrix Market (32.9 MB) | ≥ 300 MB/s | 123 ms: 268 MB/s | miss (close) |
+| Parse only: edge list, `Int` vertices, weight column (31.0 MB) | ≥ 300 MB/s | 229 ms: 136 MB/s | miss: an ID lookup and a typed column per line |
+| Parse only: adjacency list (6.5 MB) | ≥ 300 MB/s | 60 ms: 108 MB/s | miss: an ID lookup per field |
+| Parse only: GraphML walk (102.3 MB) / node-link document check (77.5 MB) | ≥ 300 MB/s | 297 ms: 345 MB/s / 187 ms: 415 MB/s | met |
+| Matrix Market parse + build into `CompressedSparseRow`, real / pattern | ≤ 100 ms | 157 ms / 93 ms | miss / met |
+| Matrix Market into `DirectedPseudograph<Int>` / `AdjacencyList<Int>` | reported | 145 ms (390) / 144 ms (374) | 9.9× `mmread` + `from_scipy_sparse_array` |
+| Edge list read (`Int` vertices) | ≥ 30× | 257 ms (541): 14× | miss |
+| Adjacency list read | | 103 ms (304): 17× | |
+| GraphML read / write | ≥ 20× | 1,199 ms: 9.3× / 307 ms: 30× | miss / met |
+| Node-link JSON read / write | ≥ 10× | 1,236 ms (1,019): 2.0× / 149 ms: 7.0× | miss / miss |
+| Edge list write / adjacency list write | ≥ 20× | 161 ms (89): 9.0× / 20 ms: 11× | miss / miss |
+| Matrix Market write | ≤ 190 ms | 77 ms (107) | met |
+| DOT write / read | ≥ 50× | 2.4 ms: 237× / 44 ms: 1,170× | met |
+| Mermaid read | ≥ 100 MB/s | 516 ms: 44 MB/s | miss: building the target |
+| Allocations | O(1) per vertex, none per edge | readers 16–392 in all | met |
 
-The read targets were set against parsers alone; here every reader also builds a
-`DirectedPseudograph` of 10⁶ edges, which by itself (`init(vertices:edges:)`, no parsing) takes
-about 200 ms, and its insertions are half of each reader's profile. The remaining parse cost is
-about 150–350 MB/s per format. A cheaper target (a bulk-built representation) is the next step if
-a benchmark asks.
+The line formats now build in one step (Implementation): the Matrix Market reader went from 390 to
+145 ms and the edge list from 541 to 257 ms. Reading a real-valued Matrix Market file into
+`CompressedSparseRow` takes 157 ms, of which 123 ms is the parse (the pattern file, without a
+value per line, 93 ms): the remaining gap to 100 ms is decimal parsing, for a fused scanner that
+converts while it scans. Node-link reading pays for NetworkX's `(u, v, key)` merging on multigraph
+files (one table entry per edge, integer keys without hashing an `AttributeValue`). The writers of
+doubles moved from the runtime's private formatting entry point to the module's own Schubfach:
+Matrix Market got faster (107 → 77 ms); the edge list writer is 161 ms against 89 ms in the earlier
+run, which also had no distinct-ID check (one table entry per written ID).
 
 ## Library disagreements found
 
@@ -658,6 +743,8 @@ a benchmark asks.
 | JSON parsing | Python's `json.loads` accepts `NaN`/`Infinity`, keeps the last of duplicate keys, keeps lone surrogates, and reads integers of any size; NetworkX adds undeclared edge endpoints, keeps `null`/list attributes, and names a node without `id` `None` | GF-093 – GF-104, GF-110 |
 | Matrix Market | SciPy truncates `3.5` in an `integer` file to `3`, reads `0x1p3` as `0.0`, ignores extra columns, accepts `+1` as an index, a skew-symmetric diagonal, and `pattern skew-symmetric` (which the spec forbids); writes field `real` for any empty matrix, even with `field="pattern"` | GF-137 – GF-146, GF-213 |
 | Matrix Market symmetry | SciPy's `mmwrite(A)` without `symmetry=` detects a symmetric matrix and writes `symmetric`; ours writes `general` for every directed graph (so the kind is the type's, not the data's) | `ref.py` passes `symmetry="general"` |
+| Matrix Market vertex count | SciPy makes a 2²⁴ + 1 square empty matrix lazily; ours: `limitExceeded` above `maximumVertexCount` | GF-232 |
+| GraphML `edgedefault` | NetworkX compares `edgedefault` without collapsing whitespace, so `" directed "` reads undirected; ours collapses it (an enumeration of tokens) | GF-243 |
 | Edge list | NetworkX skips lines with fewer than two fields, ignores fields past the declared data, and accepts a line without its data; ours: `syntax` | GF-153 – GF-155 |
 | Adjacency list | NetworkX `read_adjlist` raises `IndexError` on a line that is only a comment | GF-160 |
 | DOT (pydot 4.0.1) | pydot accepts `--` in a digraph, `[k]` without a value, and either kind in any context; keeps a port in the vertex name (`a:p`); splits `1a`; rejects a negative numeral after an edge operator, `;` inside `[ ]`, a second `[ ]`, and a byte-order mark; does not apply `node`/`edge` defaults; does not merge `strict` edges; keeps a backslash before a quote and drops line continuations; crashes on a graph attribute called `name` and on some quoted IDs that start with `-`. Graphviz's scan.l is the reference here, not pydot | GF-014 – GF-038, GF-191 |
@@ -678,10 +765,12 @@ and drops GML and GEXF.
    edges, would invent or lose direction. Revisit with a mixed representation, if one is added.
 3. **Matrix Market vertex count from the header.** A 40-byte file can ask for 2⁴⁰ isolated
    vertices. SciPy allocates lazily (a COO matrix), NetworkX `from_scipy_sparse_array` adds them
-   all. *Recommendation:* insert eagerly (isolated vertices are data), document it, and do not add
-   a `maximumVertexCount:` parameter that no library has; a caller reading untrusted files checks
-   the size line first or bounds the file size. Revisit if the fuzz target makes this the only
-   memory finding.
+   all. *Decided after review:* insert eagerly (isolated vertices are data), bounded by
+   `maximumVertexCount: Int = 1 << 24` on both `init(matrixMarket:)` overloads: the review measured
+   8.3 GB from a 79-byte file, and checking the size line before calling the reader is the reader's
+   job. Above the bound: `limitExceeded` at the size line's first field, before anything is
+   allocated (GF-232). 2²⁴ vertices cost about 1.7 GB in the dense representations; a caller with
+   larger matrices passes a larger bound, and one reading untrusted files a smaller one.
 4. **Unrepresentable strings in writers** (XML control characters, whitespace in edge-list IDs,
    Mermaid IDs, JSON non-finite doubles). *Recommendation:* precondition failures, as the
    library traps on caller errors elsewhere; DOT and node-link JSON represent every string, so a

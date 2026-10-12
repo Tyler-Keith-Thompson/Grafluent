@@ -41,7 +41,7 @@ for line in TEXT.split("\n"):
     if line.startswith("| GF-"):
         ROWS[line.split(" | ")[0][2:]] = line
 CASES = ref.CASES
-assert len(CASES) == len(ROWS) == 231
+assert len(CASES) == len(ROWS) == 256
 for c in CASES:
     r = ref.evaluate(c)
     cells = ROWS[c["id"]].split(" | ")
@@ -59,7 +59,7 @@ for c in CASES:
 
 
 def lit(s):
-    """A one-line Swift string literal; controls, the BOM and DEL as \\u{…}."""
+    """A one-line Swift string literal; controls, the BOM, DEL and non-ASCII whitespace as \\u{…}."""
     out = ['"']
     for ch in s:
         o = ord(ch)
@@ -73,7 +73,7 @@ def lit(s):
             out.append("\\r")
         elif ch == "\t":
             out.append("\\t")
-        elif o < 0x20 or o == 0x7F or o == 0xFEFF:
+        elif o < 0x20 or o == 0x7F or o == 0xFEFF or (o > 0x7F and ch.isspace()):
             out.append("\\u{%X}" % o)
         else:
             out.append(ch)

@@ -118,10 +118,14 @@
     @usableFromInline var registry = _Registry<Target>()
     @usableFromInline var sources: [(key: Int, id: Int)] = []
     @usableFromInline var targets: [(key: Int, id: Int)] = []
+    /// The edges the file may still ask for, one per input byte (`_ExpansionBudget`): an `&` group
+    /// multiplies them.
+    @usableFromInline var budget: _ExpansionBudget
 
     @inlinable init(text: UnsafeBufferPointer<UInt8>) {
         self.text = text
         n = text.count
+        budget = _ExpansionBudget(inputCount: n, perByte: 1)
     }
 
     @inline(__always)
@@ -198,9 +202,14 @@
                 let other = _otherDiagrams.contains { _isWord(text, p, wordEnd, $0) }
                 throw ParseError(other ? .unsupported : .syntax, at: p)
             }
+            // A styling statement names a vertex (or a class, or a link number) after its keyword;
+            // the keyword followed by anything else (`style --> B`) is a vertex of that name.
             if wordEnd < n && _isBlank(text[wordEnd]) && _skippedStatements.contains(where: { _isWord(text, p, wordEnd, $0) }) {
-                p = lineEnd(p)
-                continue
+                let next = blanks(wordEnd)
+                if next < n && _isMermaidID(text[next]) {
+                    p = lineEnd(p)
+                    continue
+                }
             }
             if (wordEnd >= n || !_isMermaidID(text[wordEnd])) && _unsupportedStatements.contains(where: { _isWord(text, p, wordEnd, $0) }) {
                 throw ParseError(.unsupported, at: p)
@@ -228,6 +237,7 @@
             guard let link = try link(&q) else { return q }
             if link.directed != Target.isDirected { throw ParseError(.kindMismatch, at: link.offset) }
             q = try group(q, into: &targets, target: &target, map: map, vertexLabel: vertexLabel)
+            try budget.spend(sources.count &* targets.count, at: link.offset)
             for u in sources {
                 for v in targets {
                     let position = target.insertEdge(u.key, v.key)
@@ -485,7 +495,7 @@
         let id = vertexID(vertex)
         precondition(!id.isEmpty && id.utf8.allSatisfy(_isMermaidID) && !_reservedMermaidIDs.contains(id),
                      "\(id.debugDescription) cannot be a Mermaid vertex ID: pass vertexID: with IDs of [A-Za-z0-9_]+")
-        ids.set(k) { $0.append(contentsOf: id.utf8) }
+        ids.set(k, id: id.debugDescription) { $0.append(contentsOf: id.utf8) }
         out.appendASCII("    ")
         ids.write(k, to: &out)
         if let label = vertexLabel(vertex) {

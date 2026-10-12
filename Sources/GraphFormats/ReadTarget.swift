@@ -66,7 +66,142 @@ import GraphProtocols
 
     @inlinable mutating func insertEdge(_ u: Int, _ v: Int) -> Base.Edges.Index { graph._insertEdge(fromKey: u, toKey: v) }
 
-    @inlinable mutating func reserve(vertexCount: Int, edgeCount: Int) {}
+    @inlinable mutating func reserve(vertexCount: Int, edgeCount: Int) {
+        graph.reserveCapacity(vertexCount: vertexCount, edgeCount: edgeCount)
+    }
+}
+
+/// Which kind a `_BulkTarget` builds.
+@usableFromInline internal protocol _Direction {
+    static var isDirected: Bool { get }
+}
+
+@usableFromInline internal enum _Directed: _Direction {
+    @inlinable static var isDirected: Bool { true }
+}
+
+@usableFromInline internal enum _Undirected: _Direction {
+    @inlinable static var isDirected: Bool { false }
+}
+
+/// A target that collects a whole file's vertices and edges, for a representation to build in
+/// one step (`MutableDirectedGraph._built`, `MutableGraph._built`): the line formats (Matrix
+/// Market, the edge and adjacency lists) read into it. A vertex's key is its index in `vertices`;
+/// an edge's position here is its number in file order, which the build maps to the
+/// representation's position.
+@usableFromInline internal struct _BulkTarget<Vertex: Hashable, Direction: _Direction>: _ReadTarget {
+    @inlinable
+    init() {
+    }
+
+    @usableFromInline var vertices: ContiguousArray<Vertex> = []
+    /// Each vertex's key, unless the vertices were appended as known to be distinct.
+    @usableFromInline var keys: [Vertex: Int] = [:]
+    /// The edges' endpoint keys, in file order.
+    @usableFromInline var firsts: [Int] = []
+    @usableFromInline var seconds: [Int] = []
+
+    @usableFromInline static var isDirected: Bool { Direction.isDirected }
+
+    @inlinable mutating func key(for vertex: Vertex) -> (key: Int, inserted: Bool) {
+        let key = vertices.count
+        if let existing = keys.updateValue(key, forKey: vertex) {
+            keys[vertex] = existing
+            return (existing, false)
+        }
+        vertices.append(vertex)
+        return (key, true)
+    }
+
+    /// Appends a vertex the caller knows is new, without hashing it; `keys` is then not used.
+    @inlinable mutating func appendDistinct(_ vertex: Vertex) -> Int {
+        vertices.append(vertex)
+        return vertices.count &- 1
+    }
+
+    @inlinable func contains(_ vertex: Vertex) -> Bool { keys[vertex] != nil }
+
+    @inlinable mutating func insertEdge(_ u: Int, _ v: Int) -> Int {
+        firsts.append(u)
+        seconds.append(v)
+        return firsts.count &- 1
+    }
+
+    @inlinable mutating func reserve(vertexCount: Int, edgeCount: Int) {
+        vertices.reserveCapacity(vertexCount)
+        firsts.reserveCapacity(edgeCount)
+        seconds.reserveCapacity(edgeCount)
+    }
+}
+
+/// Edge attributes reported while a `_BulkTarget` is filled, kept in order (edge number, name
+/// number, value) and replayed with the built graph's positions.
+@usableFromInline internal struct _EdgeAttributeBuffer {
+    @usableFromInline let names: [String]
+    @usableFromInline var entries: ContiguousArray<(edge: Int, name: Int, value: AttributeValue)> = []
+
+    @inlinable init(names: [String]) { self.names = names }
+
+    @inlinable mutating func record(_ edge: Int, _ name: Int, _ value: AttributeValue) {
+        entries.append((edge, name, value))
+    }
+
+    /// Calls `body` with each entry, in order, its edge given by `positions`.
+    @inlinable func replay<Position>(_ positions: [Position], _ body: (Position, String, AttributeValue) -> Void) {
+        for entry in entries { body(positions[entry.edge], names[entry.name], entry.value) }
+    }
+}
+
+extension MutableDirectedGraph {
+    /// Reads a line format with `read` into a bulk target and builds the graph from it in one step,
+    /// then replays the edge attributes `read` buffered (each under one of `names`).
+    @inlinable static func _readLines(
+        _ input: some Sequence<UInt8>, names: [String], edgeAttribute: (Edges.Index, String, AttributeValue) -> Void,
+        _ read: (UnsafeBufferPointer<UInt8>, inout _BulkTarget<Vertex, _Directed>, inout _EdgeAttributeBuffer) throws(ParseError) -> Void
+    ) throws(ParseError) -> Self {
+        var target = _BulkTarget<Vertex, _Directed>()
+        var buffer = _EdgeAttributeBuffer(names: names)
+        try _readInput(input) { (text) throws(ParseError) in try read(text, &target, &buffer) }
+        return _build(target, buffer, edgeAttribute: edgeAttribute)
+    }
+
+    /// The graph a line-format reader collected in `target`, its buffered edge attributes replayed
+    /// through `edgeAttribute` with the graph's positions.
+    @inlinable static func _build(
+        _ target: _BulkTarget<Vertex, _Directed>, _ buffer: _EdgeAttributeBuffer,
+        edgeAttribute: (Edges.Index, String, AttributeValue) -> Void
+    ) -> Self {
+        let (graph, positions) = Self._built(vertices: target.vertices, sourceKeys: target.firsts, targetKeys: target.seconds,
+                                             reportingPositions: !buffer.entries.isEmpty, _ConstructionToken())
+        buffer.replay(positions, edgeAttribute)
+        return graph
+    }
+}
+
+extension MutableGraph {
+    /// Reads a line format with `read` into a bulk target and builds the graph from it in one step,
+    /// then replays the edge attributes `read` buffered (each under one of `names`).
+    @inlinable static func _readLines(
+        _ input: some Sequence<UInt8>, names: [String], edgeAttribute: (Edges.Index, String, AttributeValue) -> Void,
+        _ read: (UnsafeBufferPointer<UInt8>, inout _BulkTarget<Vertex, _Undirected>, inout _EdgeAttributeBuffer) throws(ParseError) -> Void
+    ) throws(ParseError) -> Self {
+        var target = _BulkTarget<Vertex, _Undirected>()
+        var buffer = _EdgeAttributeBuffer(names: names)
+        try _readInput(input) { (text) throws(ParseError) in try read(text, &target, &buffer) }
+        return _build(target, buffer, edgeAttribute: edgeAttribute)
+    }
+
+    /// The graph a line-format reader collected in `target`, its buffered edge attributes replayed
+    /// through `edgeAttribute` with the graph's positions.
+    @inlinable static func _build(
+        _ target: _BulkTarget<Vertex, _Undirected>, _ buffer: _EdgeAttributeBuffer,
+        edgeAttribute: (Edges.Index, String, AttributeValue) -> Void
+    ) -> Self {
+        let (graph, positions) = Self._built(vertices: target.vertices, uKeys: target.firsts, vKeys: target.seconds,
+                                             reportingPositions: !buffer.entries.isEmpty, _ConstructionToken())
+        buffer.replay(positions, edgeAttribute)
+        return graph
+    }
 }
 
 /// A pair of vertex keys as an edge's identity in a table of edges seen: ordered for a directed

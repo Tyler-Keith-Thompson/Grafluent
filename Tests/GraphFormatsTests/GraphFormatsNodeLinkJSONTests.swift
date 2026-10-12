@@ -626,4 +626,162 @@ struct GraphFormatsNodeLinkJSONTests {
             #expect([error.line, error.column, error.byteOffset] == [1, 1, 0])
         }
     }
+
+    @Test("GF-233 multigraph: an edge whose key is taken is that edge; no key gets new_edge_key")
+    func gf233() throws {
+        // DirectedPseudograph<String>(nodeLinkJSON:) → D: a, b; a>b{w=3}, a>b{w=6}, a>b{w=4}, a>b{w=5}
+        let input = "{\"directed\": true, \"multigraph\": true, \"nodes\": [{\"id\": \"a\"}, {\"id\": \"b\"}], \"edges\": [{\"source\": \"a\", \"target\": \"b\", \"w\": 1}, {\"source\": \"a\", \"target\": \"b\", \"key\": 1, \"w\": 2}, {\"source\": \"a\", \"target\": \"b\", \"key\": 0, \"w\": 3}, {\"source\": \"a\", \"target\": \"b\", \"w\": 4}, {\"source\": \"a\", \"target\": \"b\", \"key\": \"1\", \"w\": 5}, {\"source\": \"a\", \"target\": \"b\", \"key\": true, \"w\": 6}]}"
+        var vertexKeys: [String: [String]] = [:]
+        var vertexValues: [String: [String: AttributeValue]] = [:]
+        var edgeKeys: [Int: [String]] = [:]
+        var edgeValues: [Int: [String: AttributeValue]] = [:]
+        var graphKeys: [String] = []
+        var graphValues: [String: AttributeValue] = [:]
+        let graph = try DirectedPseudograph<String>(nodeLinkJSON: input.utf8, vertexAttribute: { v, key, value in
+            if vertexValues[v, default: [:]].updateValue(value, forKey: key) == nil { vertexKeys[v, default: []].append(key) }
+        }, edgeAttribute: { e, key, value in
+            if edgeValues[e, default: [:]].updateValue(value, forKey: key) == nil { edgeKeys[e, default: []].append(key) }
+        }, graphAttribute: { key, value in
+            if graphValues.updateValue(value, forKey: key) == nil { graphKeys.append(key) }
+        })
+        #expect(Array(graph.vertices) == ["a", "b"])
+        #expect(graph.vertexCount == 2 && graph.edgeCount == 4)
+        #expect(Array(graph.edges.indices) == [0, 1, 2, 3])
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [["a", "b"], ["a", "b"], ["a", "b"], ["a", "b"]])
+        #expect(vertexKeys == [:])
+        #expect(vertexValues == [:])
+        #expect(edgeKeys == [0: ["w"], 1: ["w"], 2: ["w"], 3: ["w"]])
+        #expect(edgeValues == [0: ["w": .integer(3)], 1: ["w": .integer(6)], 2: ["w": .integer(4)], 3: ["w": .integer(5)]])
+        #expect(graphKeys == [])
+        #expect(graphValues == [:])
+    }
+
+    @Test("GF-234 undirected multigraph: b-a under a-b's key is that edge")
+    func gf234() throws {
+        // Pseudograph<String>(nodeLinkJSON:) → U: a, b; a-b{w=2}
+        let input = "{\"multigraph\": true, \"nodes\": [{\"id\": \"a\"}, {\"id\": \"b\"}], \"edges\": [{\"source\": \"a\", \"target\": \"b\", \"key\": 0, \"w\": 1}, {\"source\": \"b\", \"target\": \"a\", \"key\": 0, \"w\": 2}]}"
+        var vertexKeys: [String: [String]] = [:]
+        var vertexValues: [String: [String: AttributeValue]] = [:]
+        var edgeKeys: [Int: [String]] = [:]
+        var edgeValues: [Int: [String: AttributeValue]] = [:]
+        var graphKeys: [String] = []
+        var graphValues: [String: AttributeValue] = [:]
+        let graph = try Pseudograph<String>(nodeLinkJSON: input.utf8, vertexAttribute: { v, key, value in
+            if vertexValues[v, default: [:]].updateValue(value, forKey: key) == nil { vertexKeys[v, default: []].append(key) }
+        }, edgeAttribute: { e, key, value in
+            if edgeValues[e, default: [:]].updateValue(value, forKey: key) == nil { edgeKeys[e, default: []].append(key) }
+        }, graphAttribute: { key, value in
+            if graphValues.updateValue(value, forKey: key) == nil { graphKeys.append(key) }
+        })
+        #expect(Array(graph.vertices) == ["a", "b"])
+        #expect(graph.vertexCount == 2 && graph.edgeCount == 1)
+        #expect(Array(graph.edges.indices) == [0])
+        #expect(graph.edges.map { [$0.u, $0.v] } == [["a", "b"]])
+        #expect(vertexKeys == [:])
+        #expect(vertexValues == [:])
+        #expect(edgeKeys == [0: ["w"]])
+        #expect(edgeValues == [0: ["w": .integer(2)]])
+        #expect(graphKeys == [])
+        #expect(graphValues == [:])
+    }
+
+    @Test("GF-235 multigraph: a null key is no key")
+    func gf235() throws {
+        // DirectedPseudograph<String>(nodeLinkJSON:) → D: a; a>a{w=2}
+        let input = "{\"directed\": true, \"multigraph\": true, \"nodes\": [{\"id\": \"a\"}], \"edges\": [{\"source\": \"a\", \"target\": \"a\", \"key\": null, \"w\": 1}, {\"source\": \"a\", \"target\": \"a\", \"key\": 0, \"w\": 2}]}"
+        var vertexKeys: [String: [String]] = [:]
+        var vertexValues: [String: [String: AttributeValue]] = [:]
+        var edgeKeys: [Int: [String]] = [:]
+        var edgeValues: [Int: [String: AttributeValue]] = [:]
+        var graphKeys: [String] = []
+        var graphValues: [String: AttributeValue] = [:]
+        let graph = try DirectedPseudograph<String>(nodeLinkJSON: input.utf8, vertexAttribute: { v, key, value in
+            if vertexValues[v, default: [:]].updateValue(value, forKey: key) == nil { vertexKeys[v, default: []].append(key) }
+        }, edgeAttribute: { e, key, value in
+            if edgeValues[e, default: [:]].updateValue(value, forKey: key) == nil { edgeKeys[e, default: []].append(key) }
+        }, graphAttribute: { key, value in
+            if graphValues.updateValue(value, forKey: key) == nil { graphKeys.append(key) }
+        })
+        #expect(Array(graph.vertices) == ["a"])
+        #expect(graph.vertexCount == 1 && graph.edgeCount == 1)
+        #expect(Array(graph.edges.indices) == [0])
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [["a", "a"]])
+        #expect(vertexKeys == [:])
+        #expect(vertexValues == [:])
+        #expect(edgeKeys == [0: ["w"]])
+        #expect(edgeValues == [0: ["w": .integer(2)]])
+        #expect(graphKeys == [])
+        #expect(graphValues == [:])
+    }
+
+    @Test("GF-236 an array as an edge key")
+    func gf236() {
+        // DirectedPseudograph<String>(nodeLinkJSON:) → **unsupported** at 1:112
+        let input = "{\"directed\": true, \"multigraph\": true, \"nodes\": [{\"id\": \"a\"}], \"edges\": [{\"source\": \"a\", \"target\": \"a\", \"key\": [1]}]}"
+        do {
+            let graph = try DirectedPseudograph<String>(nodeLinkJSON: input.utf8)
+            Issue.record("expected unsupported, read \(graph)")
+        } catch {
+            #expect(error.kind == .unsupported)
+            #expect([error.line, error.column, error.byteOffset] == [1, 112, 111])
+        }
+    }
+
+    @Test("GF-248 multigraph: a key-less edge skips keys taken; later keys find it")
+    func gf248() throws {
+        // DirectedPseudograph<String>(nodeLinkJSON:) → D: a, b; a>b{w=1}, a>b{w=4}, a>b{w=3}
+        let input = "{\"directed\": true, \"multigraph\": true, \"nodes\": [{\"id\": \"a\"}, {\"id\": \"b\"}], \"edges\": [{\"source\": \"a\", \"target\": \"b\", \"key\": 1, \"w\": 1}, {\"source\": \"a\", \"target\": \"b\", \"w\": 2}, {\"source\": \"a\", \"target\": \"b\", \"key\": 0, \"w\": 3}, {\"source\": \"a\", \"target\": \"b\", \"key\": 2, \"w\": 4}]}"
+        var vertexKeys: [String: [String]] = [:]
+        var vertexValues: [String: [String: AttributeValue]] = [:]
+        var edgeKeys: [Int: [String]] = [:]
+        var edgeValues: [Int: [String: AttributeValue]] = [:]
+        var graphKeys: [String] = []
+        var graphValues: [String: AttributeValue] = [:]
+        let graph = try DirectedPseudograph<String>(nodeLinkJSON: input.utf8, vertexAttribute: { v, key, value in
+            if vertexValues[v, default: [:]].updateValue(value, forKey: key) == nil { vertexKeys[v, default: []].append(key) }
+        }, edgeAttribute: { e, key, value in
+            if edgeValues[e, default: [:]].updateValue(value, forKey: key) == nil { edgeKeys[e, default: []].append(key) }
+        }, graphAttribute: { key, value in
+            if graphValues.updateValue(value, forKey: key) == nil { graphKeys.append(key) }
+        })
+        #expect(Array(graph.vertices) == ["a", "b"])
+        #expect(graph.vertexCount == 2 && graph.edgeCount == 3)
+        #expect(Array(graph.edges.indices) == [0, 1, 2])
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [["a", "b"], ["a", "b"], ["a", "b"]])
+        #expect(vertexKeys == [:])
+        #expect(vertexValues == [:])
+        #expect(edgeKeys == [0: ["w"], 1: ["w"], 2: ["w"]])
+        #expect(edgeValues == [0: ["w": .integer(1)], 1: ["w": .integer(4)], 2: ["w": .integer(3)]])
+        #expect(graphKeys == [])
+        #expect(graphValues == [:])
+    }
+
+    @Test("GF-256 multigraph: a repeated string key is that edge, in either orientation")
+    func gf256() throws {
+        // Pseudograph<String>(nodeLinkJSON:) → U: a, b; a-b{w=2}, a-b{w=4}
+        let input = "{\"multigraph\": true, \"nodes\": [{\"id\": \"a\"}, {\"id\": \"b\"}], \"edges\": [{\"source\": \"a\", \"target\": \"b\", \"key\": \"x\", \"w\": 1}, {\"source\": \"b\", \"target\": \"a\", \"key\": \"x\", \"w\": 2}, {\"source\": \"a\", \"target\": \"b\", \"key\": 1.5, \"w\": 3}, {\"source\": \"a\", \"target\": \"b\", \"key\": 1.5, \"w\": 4}]}"
+        var vertexKeys: [String: [String]] = [:]
+        var vertexValues: [String: [String: AttributeValue]] = [:]
+        var edgeKeys: [Int: [String]] = [:]
+        var edgeValues: [Int: [String: AttributeValue]] = [:]
+        var graphKeys: [String] = []
+        var graphValues: [String: AttributeValue] = [:]
+        let graph = try Pseudograph<String>(nodeLinkJSON: input.utf8, vertexAttribute: { v, key, value in
+            if vertexValues[v, default: [:]].updateValue(value, forKey: key) == nil { vertexKeys[v, default: []].append(key) }
+        }, edgeAttribute: { e, key, value in
+            if edgeValues[e, default: [:]].updateValue(value, forKey: key) == nil { edgeKeys[e, default: []].append(key) }
+        }, graphAttribute: { key, value in
+            if graphValues.updateValue(value, forKey: key) == nil { graphKeys.append(key) }
+        })
+        #expect(Array(graph.vertices) == ["a", "b"])
+        #expect(graph.vertexCount == 2 && graph.edgeCount == 2)
+        #expect(Array(graph.edges.indices) == [0, 1])
+        #expect(graph.edges.map { [$0.u, $0.v] } == [["a", "b"], ["a", "b"]])
+        #expect(vertexKeys == [:])
+        #expect(vertexValues == [:])
+        #expect(edgeKeys == [0: ["w"], 1: ["w"]])
+        #expect(edgeValues == [0: ["w": .integer(2)], 1: ["w": .integer(4)]])
+        #expect(graphKeys == [])
+        #expect(graphValues == [:])
+    }
 }

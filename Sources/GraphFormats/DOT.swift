@@ -181,10 +181,13 @@
     @usableFromInline var i = 0
     /// Decoded IDs of the statement being read.
     @usableFromInline var scratch: [UInt8] = []
+    /// The attribute calls defaults and edge chains may still multiply (`_ExpansionBudget`).
+    @usableFromInline var budget: _ExpansionBudget
 
     @inlinable init(text: UnsafeBufferPointer<UInt8>, tokens: [_Lexeme]) {
         self.text = text
         self.tokens = tokens
+        budget = _ExpansionBudget(inputCount: text.count, perByte: 16)
     }
 
     @usableFromInline var peek: _Lexeme { tokens[i] }
@@ -295,15 +298,14 @@
         let open = take()
         guard isPunctuation(open, "{") else { throw fail(open) }
 
+        // The defaults in order of their first setting, each key's place found through an index.
         var nodeDefaults: [(String, String)] = []
         var edgeDefaults: [(String, String)] = []
+        var nodeDefaultIndex: [_ScalarKey: Int] = [:]
+        var edgeDefaultIndex: [_ScalarKey: Int] = [:]
         var merged: [_KeyPair: Target.Position] = [:]
         var names: [(offset: Int, range: Range<Int>)] = []
         var keys: [Int] = []
-
-        func setDefault(_ list: inout [(String, String)], _ key: String, _ value: String) {
-            if let k = list.firstIndex(where: { $0.0 == key }) { list[k].1 = value } else { list.append((key, value)) }
-        }
 
         while true {
             let lexeme = peek
@@ -324,9 +326,22 @@
                 let pairs = try attributeList()
                 for (k, v) in pairs {
                     switch keyword {
-                    case .graph: graphAttribute(k, .string(v))
-                    case .node: setDefault(&nodeDefaults, k, v)
-                    default: setDefault(&edgeDefaults, k, v)
+                    case .graph:
+                        graphAttribute(k, .string(v))
+                    case .node:
+                        if let place = nodeDefaultIndex[_ScalarKey(k)] {
+                            nodeDefaults[place].1 = v
+                        } else {
+                            nodeDefaultIndex[_ScalarKey(k)] = nodeDefaults.count
+                            nodeDefaults.append((k, v))
+                        }
+                    default:
+                        if let place = edgeDefaultIndex[_ScalarKey(k)] {
+                            edgeDefaults[place].1 = v
+                        } else {
+                            edgeDefaultIndex[_ScalarKey(k)] = edgeDefaults.count
+                            edgeDefaults.append((k, v))
+                        }
                     }
                 }
             case .quoted, .html, .numeral, .identifier:
@@ -353,7 +368,7 @@
                     keys.removeAll(keepingCapacity: true)
                     for name in names {
                         let id = try resolve(name, into: &target, registry: &registry, map: map, defaults: nodeDefaults,
-                                             vertexAttribute: vertexAttribute)
+                                             statement: lexeme.start, vertexAttribute: vertexAttribute)
                         keys.append(registry.keys[id])
                     }
                     for k in 1 ..< keys.count {
@@ -362,7 +377,9 @@
                         let pair = _KeyPair(u, v, directed: Target.isDirected)
                         if strict, let existing = merged[pair] {
                             position = existing
+                            try budget.spend(pairs.count, at: lexeme.start)
                         } else {
+                            try budget.spend(edgeDefaults.count &+ pairs.count, at: lexeme.start)
                             position = target.insertEdge(u, v)
                             if strict && merged[pair] == nil { merged[pair] = position }
                             for (key, value) in edgeDefaults { edgeAttribute(position, key, .string(value)) }
@@ -372,7 +389,7 @@
                 } else {
                     let pairs = try attributeList()
                     let resolved = try resolve(first, into: &target, registry: &registry, map: map, defaults: nodeDefaults,
-                                               vertexAttribute: vertexAttribute)
+                                               statement: lexeme.start, vertexAttribute: vertexAttribute)
                     let vertex = registry.vertices[resolved]
                     for (key, value) in pairs { vertexAttribute(vertex, key, .string(value)) }
                 }
@@ -390,15 +407,17 @@
         }
     }
 
-    /// The ID number of `name`, its vertex created with the node defaults when new.
-    @inlinable func resolve(
+    /// The ID number of `name`, its vertex created with the node defaults when new (spent from the
+    /// budget, at `statement`).
+    @inlinable mutating func resolve(
         _ name: (offset: Int, range: Range<Int>), into target: inout Target, registry: inout _Registry<Target>, map: (UnsafeBufferPointer<UInt8>) -> Target.Vertex?,
-        defaults: [(String, String)], vertexAttribute: (Target.Vertex, String, AttributeValue) -> Void
+        defaults: [(String, String)], statement: Int, vertexAttribute: (Target.Vertex, String, AttributeValue) -> Void
     ) throws(ParseError) -> Int {
         let resolved = try scratch.withUnsafeBufferPointer { buffer throws(ParseError) in
             try registry.resolve(UnsafeBufferPointer(rebasing: buffer[name.range]), at: name.offset, into: &target, map: map)
         }
         if resolved.inserted {
+            try budget.spend(defaults.count, at: statement)
             let vertex = registry.vertices[resolved.id]
             for (key, value) in defaults { vertexAttribute(vertex, key, .string(value)) }
         }
@@ -511,7 +530,7 @@
     for k in 0 ..< n {
         let vertex = source.vertex(at: k)
         let id = vertexID(vertex)
-        ids.set(k) { _appendDOTID(id, to: &$0) }
+        ids.set(k, id: id.debugDescription) { _appendDOTID(id, to: &$0) }
         out.append(0x09)
         ids.write(k, to: &out)
         _appendDOTAttributes(vertexAttributes(vertex), to: &out, scratch: &scratch)

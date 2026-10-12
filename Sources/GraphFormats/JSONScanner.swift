@@ -387,8 +387,10 @@
     /// Per key: where its bytes are (in the text when `raw`, else in `bytes`), and its hash once
     /// its frame is indexed; a frame is the keys of one object.
     @usableFromInline var keys: [(start: Int, count: Int, hash: Int, raw: Bool)] = []
-    /// Per frame with many keys: its keys by hash.
-    @usableFromInline var indexes: [Int: [Int: [Int]]] = [:]
+    /// Per open frame, innermost last: whether it is indexed in `index`.
+    @usableFromInline var indexed: [Bool] = []
+    /// The index of every frame with many keys.
+    @usableFromInline var index = _KeyIndex()
     /// The members of the top-level object.
     @usableFromInline var top: [(key: [UInt8], value: Int)] = []
 
@@ -403,17 +405,20 @@
         @usableFromInline var firstByte: Int
     }
 
-    @inlinable mutating func openFrame() -> Frame { Frame(firstKey: keys.count, firstByte: bytes.count) }
+    @inlinable mutating func openFrame() -> Frame {
+        indexed.append(false)
+        return Frame(firstKey: keys.count, firstByte: bytes.count)
+    }
 
     @inlinable mutating func closeFrame(_ frame: Frame) {
         keys.removeSubrange(frame.firstKey...)
         bytes.removeSubrange(frame.firstByte...)
-        if !indexes.isEmpty { indexes[frame.firstKey] = nil }
+        if indexed.removeLast() { index.end() }
     }
 
-    /// Adds a key to `frame`: `count` bytes at `start`, in `text` when `raw`, else in `bytes`;
-    /// `false` (and nothing added) when the frame has it. A frame of fewer than 16 keys is searched
-    /// in order; a larger one through an index by hash.
+    /// Adds a key to `frame`, the innermost open one: `count` bytes at `start`, in `text` when
+    /// `raw`, else in `bytes`; `false` (and nothing added) when the frame has it. A frame of fewer
+    /// than 16 keys is searched in order; a larger one through the shared index.
     @inlinable mutating func add(_ frame: Frame, raw: Bool, start: Int, count: Int, in text: UnsafeBufferPointer<UInt8>) -> Bool {
         let existing = keys.count - frame.firstKey
         if existing < 16 {
@@ -424,20 +429,20 @@
             keys.append((start, count, 0, raw))
             return true
         }
-        if indexes[frame.firstKey] == nil {
-            var index: [Int: [Int]] = [:]
+        if !indexed[indexed.count - 1] {
+            indexed[indexed.count - 1] = true
+            index.begin()
             for k in frame.firstKey ..< keys.count {
                 keys[k].hash = hash(keys[k].raw, keys[k].start, keys[k].count, text)
-                index[keys[k].hash, default: []].append(k)
+                index.insert(hash: keys[k].hash, key: k)
             }
-            indexes[frame.firstKey] = index
         }
         let h = hash(raw, start, count, text)
-        for k in indexes[frame.firstKey]![h] ?? [] where keys[k].count == count && equal(k, raw, start, count, text) {
+        if index.find(hash: h, { keys[$0].count == count && equal($0, raw, start, count, text) }) != nil {
             if !raw { bytes.removeSubrange(start...) }
             return false
         }
-        indexes[frame.firstKey]![h, default: []].append(keys.count)
+        index.insert(hash: h, key: keys.count)
         keys.append((start, count, h, raw))
         return true
     }

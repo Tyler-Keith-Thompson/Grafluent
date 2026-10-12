@@ -1,3 +1,4 @@
+import CLibFuzzer
 #if canImport(Darwin)
 import Darwin
 #elseif canImport(Glibc)
@@ -46,13 +47,6 @@ func fail(_ message: String, file: StaticString, line: UInt) -> Never {
     abort()
 }
 
-@_silgen_name("LLVMFuzzerRunDriver")
-func LLVMFuzzerRunDriver(
-    _ argc: UnsafeMutablePointer<CInt>,
-    _ argv: UnsafeMutablePointer<UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>>,
-    _ callback: @convention(c) (UnsafePointer<UInt8>?, Int) -> CInt
-) -> CInt
-
 nonisolated(unsafe) var testOneInput: ((inout FuzzInput) -> Void)?
 
 /// Runs libFuzzer with `body` as the test of one input, passing the command line through.
@@ -63,7 +57,8 @@ nonisolated(unsafe) var testOneInput: ((inout FuzzInput) -> Void)?
 public func runFuzzer(_ body: @escaping (inout FuzzInput) -> Void) -> Never {
     testOneInput = body
     var argc = CommandLine.argc
-    var argv = CommandLine.unsafeArgv
+    var argv: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>? = CommandLine.unsafeArgv
+    // Declared in CLibFuzzer.h: libFuzzer's public entry point for a program with its own main.
     exit(LLVMFuzzerRunDriver(&argc, &argv) { data, size in
         var input = FuzzInput(UnsafeBufferPointer(start: data, count: size))
         testOneInput!(&input)

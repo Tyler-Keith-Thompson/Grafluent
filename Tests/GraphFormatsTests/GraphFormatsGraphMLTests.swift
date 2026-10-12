@@ -899,4 +899,104 @@ struct GraphFormatsGraphMLTests {
             #expect([error.line, error.column, error.byteOffset] == [1, 1, 0])
         }
     }
+
+    @Test("GF-241 xs:boolean: directed=\"1\" on a directed edge")
+    func gf241() throws {
+        // DirectedPseudograph<String>(graphML:) → D: a; a>a
+        let input = "<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"directed\"><node id=\"a\"/><edge source=\"a\" target=\"a\" directed=\"1\"/></graph></graphml>"
+        var vertexKeys: [String: [String]] = [:]
+        var vertexValues: [String: [String: AttributeValue]] = [:]
+        var edgeKeys: [Int: [String]] = [:]
+        var edgeValues: [Int: [String: AttributeValue]] = [:]
+        var graphKeys: [String] = []
+        var graphValues: [String: AttributeValue] = [:]
+        let graph = try DirectedPseudograph<String>(graphML: input.utf8, vertexAttribute: { v, key, value in
+            if vertexValues[v, default: [:]].updateValue(value, forKey: key) == nil { vertexKeys[v, default: []].append(key) }
+        }, edgeAttribute: { e, key, value in
+            if edgeValues[e, default: [:]].updateValue(value, forKey: key) == nil { edgeKeys[e, default: []].append(key) }
+        }, graphAttribute: { key, value in
+            if graphValues.updateValue(value, forKey: key) == nil { graphKeys.append(key) }
+        })
+        #expect(Array(graph.vertices) == ["a"])
+        #expect(graph.vertexCount == 1 && graph.edgeCount == 1)
+        #expect(Array(graph.edges.indices) == [0])
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [["a", "a"]])
+        #expect(vertexKeys == [:])
+        #expect(vertexValues == [:])
+        #expect(edgeKeys == [:])
+        #expect(edgeValues == [:])
+        #expect(graphKeys == [])
+        #expect(graphValues == [:])
+    }
+
+    @Test("GF-242 xs:boolean: directed=\" 0 \" on an undirected edge")
+    func gf242() throws {
+        // Pseudograph<String>(graphML:) → U: a; a-a
+        let input = "<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"undirected\"><node id=\"a\"/><edge source=\"a\" target=\"a\" directed=\" 0 \"/></graph></graphml>"
+        var vertexKeys: [String: [String]] = [:]
+        var vertexValues: [String: [String: AttributeValue]] = [:]
+        var edgeKeys: [Int: [String]] = [:]
+        var edgeValues: [Int: [String: AttributeValue]] = [:]
+        var graphKeys: [String] = []
+        var graphValues: [String: AttributeValue] = [:]
+        let graph = try Pseudograph<String>(graphML: input.utf8, vertexAttribute: { v, key, value in
+            if vertexValues[v, default: [:]].updateValue(value, forKey: key) == nil { vertexKeys[v, default: []].append(key) }
+        }, edgeAttribute: { e, key, value in
+            if edgeValues[e, default: [:]].updateValue(value, forKey: key) == nil { edgeKeys[e, default: []].append(key) }
+        }, graphAttribute: { key, value in
+            if graphValues.updateValue(value, forKey: key) == nil { graphKeys.append(key) }
+        })
+        #expect(Array(graph.vertices) == ["a"])
+        #expect(graph.vertexCount == 1 && graph.edgeCount == 1)
+        #expect(Array(graph.edges.indices) == [0])
+        #expect(graph.edges.map { [$0.u, $0.v] } == [["a", "a"]])
+        #expect(vertexKeys == [:])
+        #expect(vertexValues == [:])
+        #expect(edgeKeys == [:])
+        #expect(edgeValues == [:])
+        #expect(graphKeys == [])
+        #expect(graphValues == [:])
+    }
+
+    @Test("GF-243 edgedefault with whitespace around it")
+    func gf243() throws {
+        // DirectedPseudograph<String>(graphML:) → D: a; a>a
+        let input = "<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\" directed\n\"><node id=\"a\"/><edge source=\"a\" target=\"a\"/></graph></graphml>"
+        var vertexKeys: [String: [String]] = [:]
+        var vertexValues: [String: [String: AttributeValue]] = [:]
+        var edgeKeys: [Int: [String]] = [:]
+        var edgeValues: [Int: [String: AttributeValue]] = [:]
+        var graphKeys: [String] = []
+        var graphValues: [String: AttributeValue] = [:]
+        let graph = try DirectedPseudograph<String>(graphML: input.utf8, vertexAttribute: { v, key, value in
+            if vertexValues[v, default: [:]].updateValue(value, forKey: key) == nil { vertexKeys[v, default: []].append(key) }
+        }, edgeAttribute: { e, key, value in
+            if edgeValues[e, default: [:]].updateValue(value, forKey: key) == nil { edgeKeys[e, default: []].append(key) }
+        }, graphAttribute: { key, value in
+            if graphValues.updateValue(value, forKey: key) == nil { graphKeys.append(key) }
+        })
+        #expect(Array(graph.vertices) == ["a"])
+        #expect(graph.vertexCount == 1 && graph.edgeCount == 1)
+        #expect(Array(graph.edges.indices) == [0])
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [["a", "a"]])
+        #expect(vertexKeys == [:])
+        #expect(vertexValues == [:])
+        #expect(edgeKeys == [:])
+        #expect(edgeValues == [:])
+        #expect(graphKeys == [])
+        #expect(graphValues == [:])
+    }
+
+    @Test("GF-254 a vertical tab in text (XML forbids C0 controls)")
+    func gf254() {
+        // DirectedPseudograph<String>(graphML:) → **syntax** at 1:97
+        let input = "<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"directed\"><node id=\"a\u{B}\"/></graph></graphml>"
+        do {
+            let graph = try DirectedPseudograph<String>(graphML: input.utf8)
+            Issue.record("expected syntax, read \(graph)")
+        } catch {
+            #expect(error.kind == .syntax)
+            #expect([error.line, error.column, error.byteOffset] == [1, 97, 96])
+        }
+    }
 }

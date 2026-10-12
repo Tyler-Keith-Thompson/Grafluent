@@ -510,7 +510,20 @@ struct GraphFormatsRoundTripTests {
                 #expect(Array(reread.vertices) == expectedVertices, "\(output)")
                 #expect(reread.edges.indices.map { reread.edges[$0] } == edges, "\(output)")
                 #expect(edgeKeys == Dictionary(uniqueKeysWithValues: edges.indices.map { ($0, ["w", "s"]) }), "\(output)")
-                #expect(edgeValues == Dictionary(uniqueKeysWithValues: values.enumerated().map { ($0, ["w": $1.0, "s": $1.1]) }), "\(output)")
+                // Re-typed by their text: "inf" and "NaN" read back as doubles (compared through a
+                // rendering with the type, since NaN is not equal to itself).
+                func rendered(_ value: AttributeValue) -> String {
+                    switch value {
+                    case .string("inf"): "double inf"
+                    case .string("NaN"): "double nan"
+                    case .string(let s): "string \(s)"
+                    case .integer(let i): "integer \(i)"
+                    case .double(let d): "double \(d)"
+                    case .boolean(let b): "boolean \(b)"
+                    }
+                }
+                #expect(edgeValues.mapValues { $0.mapValues(rendered) }
+                    == Dictionary(uniqueKeysWithValues: values.enumerated().map { ($0, ["w": rendered($1.0), "s": rendered($1.1)]) }), "\(output)")
             } catch {
                 Issue.record("\(error) reading back \(output)")
             }

@@ -13,7 +13,7 @@
         self.deliver = deliver
     }
 
-    deinit { base.deallocate() }
+    @inlinable deinit { base.deallocate() }
 
     /// Hands every complete scalar in the buffer to the stream, keeping a cut scalar's bytes.
     @inlinable mutating func flush() {

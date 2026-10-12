@@ -26,6 +26,9 @@
 /// - `_removeEdge(at:)` removes the edge at a live position and returns it, trapping on any other
 ///   position. Removing an edge changes no key.
 /// - `remove(v)` is `_removeVertex(atKey: _key(of: v)!)`, returning the removed instance.
+/// - `_built(vertices:sourceKeys:targetKeys:reportingPositions:_:)` is `init()`, then
+///   `_insertVertex(_:)` for each vertex in order, then `_insertEdge(fromKey:toKey:)` for each pair
+///   in order: the same graph, and the same position for each pair.
 ///
 /// **Key density.** A wrapper may keep one table entry per 1024 keys, from the smallest live key
 /// to `vertices.endIndex`, plus O(1) per live vertex: the memory of the representation's own page
@@ -138,4 +141,35 @@ public protocol MutableDirectedGraph<Vertex>: BidirectionalDirectedGraph where V
     ///
     /// - Precondition: `position` is the position of an edge.
     mutating func _removeEdge(at position: Edges.Index) -> DirectedEdge<Vertex>
+
+    /// The graph with `vertices` (distinct; key `k` is `vertices[k]`) and an edge per pair
+    /// `(sourceKeys[i], targetKeys[i])`, in order, as one `_insertEdge(fromKey:toKey:)` per pair
+    /// would build it; with, when `reportingPositions`, the position each pair got (`[]`
+    /// otherwise). For the readers, which collect a whole file first. Default: exactly those
+    /// insertions.
+    static func _built(
+        vertices: ContiguousArray<Vertex>, sourceKeys: [Int], targetKeys: [Int], reportingPositions: Bool, _: _ConstructionToken
+    ) -> (graph: Self, positions: [Edges.Index])
+}
+
+extension MutableDirectedGraph {
+    /// See the requirement: `init()`, then one insertion per vertex and per pair.
+    @inlinable
+    public static func _built(
+        vertices: ContiguousArray<Vertex>, sourceKeys: [Int], targetKeys: [Int], reportingPositions: Bool, _: _ConstructionToken
+    ) -> (graph: Self, positions: [Edges.Index]) {
+        precondition(sourceKeys.count == targetKeys.count, "Unpaired keys")
+        var graph = Self()
+        graph.reserveCapacity(vertexCount: vertices.count, edgeCount: sourceKeys.count)
+        var keys: [Int] = []
+        keys.reserveCapacity(vertices.count)
+        for vertex in vertices { keys.append(graph._insertVertex(vertex)) }
+        var positions: [Edges.Index] = []
+        if reportingPositions { positions.reserveCapacity(sourceKeys.count) }
+        for i in sourceKeys.indices {
+            let position = graph._insertEdge(fromKey: keys[sourceKeys[i]], toKey: keys[targetKeys[i]])
+            if reportingPositions { positions.append(position) }
+        }
+        return (graph, positions)
+    }
 }

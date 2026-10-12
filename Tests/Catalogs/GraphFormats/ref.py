@@ -816,6 +816,7 @@ def graphml_read(t, g):
     if "edgedefault" not in gr.attrs:
         raise ParseError("syntax", gr.offset)
     ed, off = gr.attrs["edgedefault"]
+    ed = ed.strip(" \t\n\r")  # an NMTOKEN enumeration: whitespace collapsed
     if ed not in ("directed", "undirected"):
         raise ParseError("invalidValue", off)
     if (ed == "directed") != g.directed:
@@ -863,9 +864,10 @@ def graphml_read(t, g):
                     raise ParseError("unsupported", el.attrs[a][1])
             if "directed" in el.attrs:
                 d, off = el.attrs["directed"]
-                if d not in ("true", "false"):
+                d = d.strip(" \t\n\r")  # xs:boolean: true, false, 1, 0, whitespace collapsed
+                if d not in ("true", "false", "1", "0"):
                     raise ParseError("invalidValue", off)
-                if (d == "true") != g.directed:
+                if (d in ("true", "1")) != g.directed:
                     raise ParseError("unsupported", off)
             for c in el.children:
                 if c.local == "graph":
@@ -1162,6 +1164,7 @@ def node_link_read(t, g):
             if k != "id":
                 g.vattrs[v][k] = scalar(x)
     merged = {}
+    keyed, key_counts = {}, {}  # multigraph: (pair, key) -> position; pair -> number of keys
     for (edge, edgeoff) in edges:
         if not isinstance(edge, JObj):
             raise ParseError("invalidValue", edgeoff)
@@ -1174,7 +1177,30 @@ def node_link_read(t, g):
                 raise ParseError("undeclaredVertex", xoff)
             ends.append(g.index[name])
         k = g.key(*ends)
-        if not multigraph and k in merged:
+        if multigraph:
+            # NetworkX's node_link_graph: add_edge(u, v, key=d.get("key")); a key already between
+            # the pair is that edge (attributes updated), None gets new_edge_key. Python's dict
+            # equality: True == 1 == 1.0.
+            ky = edge.items["key"][0] if "key" in edge.items else (JNull, None)
+            if ky[0] is not JNull:
+                ky = scalar(ky)
+                if isinstance(ky, float) and ky.is_integer() and INT_MIN <= ky <= INT_MAX:
+                    ky = int(ky)
+                elif type(ky) is bool:
+                    ky = int(ky)
+                if isinstance(ky, str):
+                    ky = ("s", ky)
+            else:
+                ky = key_counts.get(k, 0)
+                while (k, ky) in keyed:
+                    ky += 1
+            if (k, ky) in keyed:
+                p = keyed[(k, ky)]
+            else:
+                p = g.edge(*ends)
+                keyed[(k, ky)] = p
+                key_counts[k] = key_counts.get(k, 0) + 1
+        elif k in merged:
             p = merged[k]
         else:
             p = g.edge(*ends)
@@ -1295,6 +1321,9 @@ def mm_int(tok, off, sign=True):
     return x
 
 
+MM_MAX_VERTICES = 1 << 24
+
+
 def mm_read(t, g):
     ls = lines_of(t)
     if not ls or not ls[0][1].startswith("%%MatrixMarket"):
@@ -1337,6 +1366,8 @@ def mm_read(t, g):
     rows, cols, nnz = [mm_int(s, o, sign=False) for o, s in size]
     if rows != cols:
         raise ParseError("notSquare", size[1][0])
+    if rows > MM_MAX_VERTICES:  # maximumVertexCount's default
+        raise ParseError("limitExceeded", size[0][0])
     for i in range(rows):
         g.vertex(i if g.vtype is int else str(i))
     width = 2 if field == "pattern" else 3
@@ -1429,21 +1460,28 @@ def text_lines(t):
 
 
 def lexical(tok):
+    """An integer in Int, else a decimal (infinite beyond Double) or inf/infinity/nan as Python's
+    float reads them, else the text."""
     if INT_DEC.match(tok):
         x = int(tok)
         if INT_MIN <= x <= INT_MAX:
             return x
     if FLOAT_DEC.match(tok):
-        x = float(tok)
-        if math.isfinite(x):
-            return x
+        return float(tok)
+    if re.fullmatch(r"[+-]?(inf|infinity|nan)", ascii_lower(tok)):
+        return float(tok)
     return tok
+
+
+def list_tokens_of(off, s):
+    """Fields of an edge- or adjacency-list line: runs of non-whitespace as str.split() reads it."""
+    return [(off + m.start(), m.group()) for m in re.finditer(r"[^\s]+", s)]
 
 
 def edge_list_read(t, g, columns=()):
     width = 2 + len(columns)
     for off, line in text_lines(t):
-        toks = tokens_of(off, line)
+        toks = list_tokens_of(off, line)
         if not toks:
             continue
         if len(toks) < width:
@@ -1457,7 +1495,7 @@ def edge_list_read(t, g, columns=()):
 
 def adjacency_list_read(t, g):
     for off, line in text_lines(t):
-        toks = tokens_of(off, line)
+        toks = list_tokens_of(off, line)
         if not toks:
             continue
         u = g.vertex(toks[0][1])
@@ -1465,7 +1503,7 @@ def adjacency_list_read(t, g):
             g.edge(u, g.vertex(s))
 
 
-TOKEN_SAFE = re.compile(r"[^ \t\n\r\v\f#]+$")
+TOKEN_SAFE = re.compile(r"[^\s#]+\Z")
 
 
 def token(s):
@@ -1577,7 +1615,8 @@ def mermaid_read(t, g):
                 header = True
                 continue
             raise ParseError("unsupported" if word in MM_DIAGRAMS else "syntax", p)
-        if word in MM_SKIP and m.end() < n and t[m.end()] in " \t":
+        if word in MM_SKIP and m.end() < n and t[m.end()] in " \t" and MM_ID.match(t[sp(m.end()):sp(m.end()) + 1]):
+            # A styling statement names something after its keyword; `style --> B` is a vertex.
             q = t.find("\n", p)
             p = n if q < 0 else q
             continue
@@ -2161,6 +2200,54 @@ E("nodeLinkJSON", "D", "neither edges nor links", '{"directed": true, "nodes": [
 E("matrixMarket", "DI", "skew-symmetric: a mirrored weight outside Int", MMH + "integer skew-symmetric\n2 2 1\n2 1 -9223372036854775808\n")
 R("mermaid", "D", "a lone CR ends a statement", "flowchart TD\n  A\rB --> C\n")
 
+# ---------------------------------------------------------------- added after the second review (GF-232 on)
+E("matrixMarket", "DI", "a vertex count above maximumVertexCount (2^24)", MMH + "pattern general\n16777217 16777217 0\n")
+R("nodeLinkJSON", "D", "multigraph: an edge whose key is taken is that edge; no key gets new_edge_key",
+  '{"directed": true, "multigraph": true, "nodes": [{"id": "a"}, {"id": "b"}], "edges": ['
+  '{"source": "a", "target": "b", "w": 1}, {"source": "a", "target": "b", "key": 1, "w": 2}, '
+  '{"source": "a", "target": "b", "key": 0, "w": 3}, {"source": "a", "target": "b", "w": 4}, '
+  '{"source": "a", "target": "b", "key": "1", "w": 5}, {"source": "a", "target": "b", "key": true, "w": 6}]}')
+R("nodeLinkJSON", "U", "undirected multigraph: b-a under a-b's key is that edge",
+  '{"multigraph": true, "nodes": [{"id": "a"}, {"id": "b"}], "edges": ['
+  '{"source": "a", "target": "b", "key": 0, "w": 1}, {"source": "b", "target": "a", "key": 0, "w": 2}]}')
+R("nodeLinkJSON", "D", "multigraph: a null key is no key",
+  '{"directed": true, "multigraph": true, "nodes": [{"id": "a"}], "edges": ['
+  '{"source": "a", "target": "a", "key": null, "w": 1}, {"source": "a", "target": "a", "key": 0, "w": 2}]}')
+E("nodeLinkJSON", "D", "an array as an edge key",
+  '{"directed": true, "multigraph": true, "nodes": [{"id": "a"}], "edges": [{"source": "a", "target": "a", "key": [1]}]}')
+R("edgeList", "D", "inf, Infinity, nan and a decimal beyond Double are doubles", "a b inf\nb c -Infinity\nc d nan\nd e 1e999\n",
+  columns=["w"])
+R("edgeList", "D", "VT, FF, NBSP and other Unicode whitespace separate fields",
+  "a\x0bb\nc\x0cd\u00a0\nx\u3000y\u2003\r\n")
+E("edgeList", "D", "NBSP between three fields makes three fields", "a\u00a0b\u00a0c\n")
+R("adjacencyList", "D", "Unicode whitespace separates neighbours", "a\u00a0b\u2003c\x1fd\n")
+R("graphML", "D", "xs:boolean: directed=\"1\" on a directed edge",
+  H + '<graph edgedefault="directed"><node id="a"/><edge source="a" target="a" directed="1"/></graph></graphml>')
+R("graphML", "U", "xs:boolean: directed=\" 0 \" on an undirected edge",
+  H + '<graph edgedefault="undirected"><node id="a"/><edge source="a" target="a" directed=" 0 "/></graph></graphml>')
+R("graphML", "D", "edgedefault with whitespace around it",
+  H + '<graph edgedefault=" directed\n"><node id="a"/><edge source="a" target="a"/></graph></graphml>')
+R("mermaid", "D", "a styling keyword followed by a link or & is a vertex",
+  "flowchart TD\n  style --> B\n  class & A --> C\n  style A fill:#f9f\n  class A foo\n")
+R("mermaid", "DS", "into a simple target a repeated link merges, its last label winning", "flowchart LR\n  A -->|x| B\n  A -->|y| B\n")
+R("mermaid", "US", "into a simple undirected target B --- A is A --- B", "graph TD\n  A --- B\n  B ---|t| A\n")
+E("matrixMarket", "DI", "pattern: a third field on an entry", MMH + "pattern general\n2 2 1\n1 2 3\n")
+R("nodeLinkJSON", "D", "multigraph: a key-less edge skips keys taken; later keys find it",
+  '{"directed": true, "multigraph": true, "nodes": [{"id": "a"}, {"id": "b"}], "edges": ['
+  '{"source": "a", "target": "b", "key": 1, "w": 1}, {"source": "a", "target": "b", "w": 2}, '
+  '{"source": "a", "target": "b", "key": 0, "w": 3}, {"source": "a", "target": "b", "key": 2, "w": 4}]}')
+E("matrixMarket", "DI", "a lone CR inside a field", MMH + "pattern general\n2 2 1\n1\r2 2\n")
+E("matrixMarket", "DI", "a comment of several words after the size line", MMH + "pattern general\n2 2 1\n% a b\n1 2\n")
+E("matrixMarket", "DI", "an entry cut short before CR LF", MMH + "pattern general\n2 2 1\n1\r\n")
+R("edgeList", "D", "# ends a field it touches", "a b#c d\n")
+E("edgeList", "D", "one token before CR LF", "a b\r\nc\r\n")
+E("graphML", "D", "a vertical tab in text (XML forbids C0 controls)", H + '<graph edgedefault="directed"><node id="a\x0b"/></graph></graphml>')
+E("edgeList", "D", "an overlong three-byte sequence", b"a \xe0\x80\xaf\n")
+R("nodeLinkJSON", "U", "multigraph: a repeated string key is that edge, in either orientation",
+  '{"multigraph": true, "nodes": [{"id": "a"}, {"id": "b"}], "edges": ['
+  '{"source": "a", "target": "b", "key": "x", "w": 1}, {"source": "b", "target": "a", "key": "x", "w": 2}, '
+  '{"source": "a", "target": "b", "key": 1.5, "w": 3}, {"source": "a", "target": "b", "key": 1.5, "w": 4}]}')
+
 
 def write_output(c):
     g, kw = c["graph"], c["kw"]
@@ -2487,6 +2574,14 @@ def dot_text(x):
 
 # Library behaviour that differs from ours on purpose (api.md, Library disagreements).
 KNOWN = {
+    # Rows added after the second review (GF-232 on)
+    "a vertex count above maximumVertexCount (2^24)": "SciPy makes the empty 2^24 + 1 square matrix lazily",
+    "edgedefault with whitespace around it": "NetworkX compares edgedefault without collapsing whitespace, so reads it undirected",
+    "pattern: a third field on an entry": "SciPy ignores extra columns",
+    "a lone CR inside a field": "SciPy reads 1\\r2 as two fields",
+    "one token before CR LF": "NetworkX skips lines with fewer than two tokens",
+    "an entry cut short before CR LF": "",
+    "NBSP between three fields makes three fields": "NetworkX ignores tokens past the declared data (it splits at NBSP too)",
     # Rows added after review (GF-226 on)
     "an id that is neither a string nor an integer": "NetworkX takes any hashable JSON value as a node id (1.5 here)",
     "skew-symmetric: a mirrored weight outside Int": "SciPy negates in int64 and wraps -2^63 to itself",
@@ -2571,7 +2666,9 @@ def literal(x):
             x = x.decode("utf-8")
         except UnicodeDecodeError:
             return "bytes " + " ".join(f"{b:02x}" for b in x)
-    return json.dumps(x, ensure_ascii=False)
+    # Whitespace other than the space is escaped, so that a cell shows it (JSON's \uXXXX).
+    return "".join(f"\\u{ord(ch):04x}" if ch.isspace() and ord(ch) > 0x7F else ch
+                   for ch in json.dumps(x, ensure_ascii=False))
 
 
 def op_of(c):

@@ -11,7 +11,8 @@ Its open questions are decided as recommended:
 - `MutableGraph` in `GraphProtocols` is the undirected counterpart of `MutableDirectedGraph`.
   `UndirectedAdjacencyList` and `Pseudograph` conform, so every reader also has an undirected form.
 - A Mermaid flowchart that mixes arrows and open links is `kindMismatch`.
-- The Matrix Market vertex count is inserted eagerly, with no `maximumVertexCount:` parameter.
+- The Matrix Market vertex count is inserted eagerly, bounded by `maximumVertexCount:` (default
+  2²⁴; decided after the second review).
 - Writers trap on a string they cannot represent: XML control characters, whitespace or `#` in a
   list token, a Mermaid ID outside `[A-Za-z0-9_]+`, a non-finite double in JSON.
 - DOT HTML strings are read as `.string`, and the writer quotes them.
@@ -61,15 +62,15 @@ uv run --quiet --no-project --with networkx==3.7 --with scipy==1.18.1 --with pyd
 
 It first checks that `ref.py` reproduces `cases.md` byte for byte. Then it re-runs every row on the
 model and checks that the result renders to the row's Expected cell. Last, it writes one `@Test` per
-row (231 rows):
+row (256 rows):
 
-- **Read rows (92).** The reader runs on the row's target with closures that record every
+- **Read rows (107).** The reader runs on the row's target with closures that record every
   attribute call (or Mermaid label call). For each key the test keeps the order it was first set
   in and the last value set. The test then checks the vertices in order, and every edge position
   with its endpoints (stored orientation for undirected edges). It also checks the counts and every
   recorded attribute of every vertex, every edge and the graph, and that no other attribute was
   set. A NaN is checked by `isNaN`.
-- **Error rows (99).** The test checks the `ParseError`'s kind, line, column and byte offset. The
+- **Error rows (109).** The test checks the `ParseError`'s kind, line, column and byte offset. The
   offset is computed from the model's position and counts from after a byte-order mark.
 - **Write rows (40).** The test builds the row's graph as a `DirectedPseudograph` or `Pseudograph`:
   vertices in order, then edges in position order. It passes the row's attributes through the
@@ -138,7 +139,37 @@ is checked, so the trap comes from the fault.
   - A 2 MB output that must reach a recording `TextOutputStream` in order, in pieces of at most
     64 KiB that are on average at least half full.
 
+- **Review cases** (`GraphFormatsReviewTests.swift`). Inputs whose cost grew faster than their
+  size: a Matrix Market size line over `maximumVertexCount` (every overload, and the 79-byte file
+  claiming 10¹² vertices in a child process under 256 MB), DOT default lists, Mermaid `&` groups (the
+  45 KB, 9·10⁶-edge file in a child process), GraphML defaults against data, defaults multiplied by
+  vertices and edge chains (the budget's exact crossing point), JSON objects and XML tags with many
+  keys, and the writers' distinct-ID check. Costs are checked by timing two sizes eight times apart
+  (the least of five interleaved runs; a linear reader takes about 8×, a quadratic one 64×). The many-keys ratio shows
+  the old per-object index only in release builds.
+- **Bulk construction** (`GraphFormatsBulkBuildTests.swift`). The line readers collect a file and
+  build in one step; on seeded files with repeats, loops and aliased IDs, each representation must
+  equal the graph insertion builds (vertices, positions, every row in order), mutate correctly
+  afterwards, and report each edge's attributes at its position (a simple target's repeat on its
+  first copy).
+- **Numbers** (`GraphFormatsNumberTests.swift`). Decimal columns against `Double(_:)` on random
+  digits, near-ties and extremes, to the bit; written doubles with `description`'s digits and
+  Python's layout, read back to the same bits in the edge list, Matrix Market, GraphML and node-link
+  JSON, on random bit patterns, both ends of every binade, subnormals and 9·10¹⁵ – 2⁵⁴.
+- **Identifiers** (`GraphFormatsIdentifierTests.swift`). IDs and attribute names compare by Unicode
+  scalars: canonically equivalent IDs are two IDs (merged by a `String` target, kept apart by a
+  scalar one), and two DOT default keys, two GraphML key names, two writer keys.
+
+`UndirectedAdjacencyList` and `Pseudograph` as `MutableGraph` are tested in their own suites
+(`AdjacencyListTests`, `MultigraphsTests`).
+
 ## Planted bugs
+
+`scripts/mutants/GraphFormats.py` plants bugs in the scanners, every reader and writer, the limits,
+the decimal parser, Schubfach and the bulk hooks (`just mutate GraphFormats`). The table below is
+from the first phase, before that file existed.
+
+## Planted bugs, phase 1
 
 The suite was checked against a partial Swift model of api.md (all seven readers and writers, ported
 from `ref.py`) built through Bazel in a scratch copy of the workspace. All 31 planted bugs

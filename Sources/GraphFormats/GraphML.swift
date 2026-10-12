@@ -225,6 +225,35 @@
 
     @usableFromInline var keys: [_GraphMLKey] = []
     @usableFromInline var byID: [[UInt8]: Int] = [:]
+    /// Per key: the number of its `attr.name` (keys sharing a name share a number).
+    @usableFromInline var groups: [Int] = []
+    @usableFromInline var groupsByName: [_ScalarKey: Int] = [:]
+    /// The keys with a default, per domain (graph, node, edge), in declaration order.
+    @usableFromInline var defaults: [[Int]] = [[], [], []]
+    /// Per name number: the last element (by `generation`) that gave data under that name, so that
+    /// an element's defaults are found in one pass over its data and one over the defaults.
+    @usableFromInline var stamps: [Int] = []
+    @usableFromInline var generation = 0
+
+    /// Adds a checked key.
+    @inlinable mutating func append(_ key: _GraphMLKey) {
+        byID[key.id] = keys.count
+        let group: Int
+        if let existing = groupsByName[_ScalarKey(key.name)] {
+            group = existing
+        } else {
+            group = groupsByName.count
+            groupsByName[_ScalarKey(key.name)] = group
+            stamps.append(0)
+        }
+        groups.append(group)
+        if key.defaultValue != nil {
+            for (d, domain) in [_GraphMLDomain.graph, .node, .edge].enumerated() where key.domain.applies(to: domain) {
+                defaults[d].append(keys.count)
+            }
+        }
+        keys.append(key)
+    }
 
     /// The number of the key a `<data>` in `domain` names (`nil` when the data holds elements),
     /// or `undeclaredKey` at its `key` attribute.
@@ -244,28 +273,43 @@
         return data.hasElements ? nil : k
     }
 
-    /// Calls `body` with the attributes of an element of `domain` whose `<data>` children are the
-    /// first `count` of `data`, in order: each data element's (a name given twice is set twice), then
-    /// each applicable default whose name was not given.
-    @inlinable func forEachAttribute(
-        of data: [_DataElement], count: Int, in domain: _GraphMLDomain, _ body: (String, AttributeValue) -> Void
+    /// Calls `body` with the attributes of an element of `domain` at `offset` whose `<data>`
+    /// children are the first `count` of `data`, in order: each data element's (a name given twice
+    /// is set twice), then each applicable default whose name was not given. The defaults are spent
+    /// from `budget` (`limitExceeded` at `offset`). O(count + defaults).
+    @inlinable mutating func forEachAttribute(
+        of data: [_DataElement], count: Int, in domain: _GraphMLDomain, at offset: Int, budget: inout _ExpansionBudget,
+        _ body: (String, AttributeValue) -> Void
     ) throws(ParseError) {
+        generation &+= 1
         for i in 0 ..< count {
             let element = data[i]
             guard let k = try key(for: element, in: domain) else { continue }
+            stamps[groups[k]] = generation
             body(keys[k].name, try _graphMLValue(keys[k].type, element.text, at: element.offset))
         }
-        for key in keys where key.domain.applies(to: domain) && key.defaultValue != nil {
-            var given = false
-            for i in 0 ..< count {
-                if let k = byID[data[i].key?.bytes ?? []], keys[k].name == key.name, !data[i].hasElements {
-                    given = true
-                    break
-                }
-            }
-            if !given { body(key.name, key.defaultValue!) }
-        }
+        let list = domain == .graph ? 0 : domain == .node ? 1 : 2
+        let applicable = defaults[list]
+        guard !applicable.isEmpty else { return }
+        try budget.spend(applicable.count, at: offset)
+        for k in applicable where stamps[groups[k]] != generation { body(keys[k].name, keys[k].defaultValue!) }
     }
+}
+
+/// `text` without XML whitespace at either end (XML Schema's `collapse` for a token type).
+@inlinable func _collapsed(_ text: [UInt8]) -> ArraySlice<UInt8> {
+    var s = 0, e = text.count
+    while s < e && _isXMLSpace(text[s]) { s += 1 }
+    while e > s && _isXMLSpace(text[e - 1]) { e -= 1 }
+    return text[s ..< e]
+}
+
+/// An `xs:boolean` attribute value: `true`, `false`, `1` or `0`, surrounding whitespace collapsed.
+@inlinable func _xmlBoolean(_ text: [UInt8]) -> Bool? {
+    let word = _collapsed(text)
+    if word.elementsEqual("true".utf8) || word.elementsEqual("1".utf8) { return true }
+    if word.elementsEqual("false".utf8) || word.elementsEqual("0".utf8) { return false }
+    return nil
 }
 
 // MARK: - Second walk: nodes and edges
@@ -423,7 +467,8 @@
 @usableFromInline internal final class _GraphMLBuilder<Target: _ReadTarget>: _GraphMLSink {
     @usableFromInline var target: Target
     @usableFromInline var registry = _Registry<Target>()
-    @usableFromInline let keys: _GraphMLKeys
+    @usableFromInline var keys: _GraphMLKeys
+    @usableFromInline var budget: _ExpansionBudget
     @usableFromInline let map: (UnsafeBufferPointer<UInt8>) -> Target.Vertex?
     @usableFromInline let vertexAttribute: (Target.Vertex, String, AttributeValue) -> Void
     @usableFromInline let edgeAttribute: (Target.Position, String, AttributeValue) -> Void
@@ -432,12 +477,13 @@
     @usableFromInline var edgeError: ParseError?
 
     @inlinable
-    init(target: Target, keys: _GraphMLKeys, map: @escaping (UnsafeBufferPointer<UInt8>) -> Target.Vertex?,
+    init(target: Target, keys: _GraphMLKeys, budget: _ExpansionBudget, map: @escaping (UnsafeBufferPointer<UInt8>) -> Target.Vertex?,
          vertexAttribute: @escaping (Target.Vertex, String, AttributeValue) -> Void,
          edgeAttribute: @escaping (Target.Position, String, AttributeValue) -> Void)
     {
         self.target = target
         self.keys = keys
+        self.budget = budget
         self.map = map
         self.vertexAttribute = vertexAttribute
         self.edgeAttribute = edgeAttribute
@@ -452,16 +498,17 @@
         let key = target.key(for: vertex).key
         _ = id.bytes.withUnsafeBufferPointer { registry.add($0, vertex: vertex, key: key) }
         let vertexAttribute = self.vertexAttribute
-        try keys.forEachAttribute(of: node.data, count: node.dataCount, in: .node) { vertexAttribute(vertex, $0, $1) }
+        try keys.forEachAttribute(of: node.data, count: node.dataCount, in: .node, at: node.offset, budget: &budget) {
+            vertexAttribute(vertex, $0, $1)
+        }
     }
 
     @inlinable func edge(_ edge: borrowing _GraphMLEdge) throws(ParseError) {
         guard let source = edge.source, let target = edge.target else { throw ParseError(.syntax, at: edge.offset) }
         if let offset = edge.sourcePort ?? edge.targetPort { throw ParseError(.unsupported, at: offset) }
         if let directed = edge.directed {
-            let word = String(decoding: directed.bytes, as: UTF8.self)
-            guard word == "true" || word == "false" else { throw ParseError(.invalidValue, at: directed.offset) }
-            if (word == "true") != Target.isDirected { throw ParseError(.unsupported, at: directed.offset) }
+            guard let value = _xmlBoolean(directed.bytes) else { throw ParseError(.invalidValue, at: directed.offset) }
+            if value != Target.isDirected { throw ParseError(.unsupported, at: directed.offset) }
         }
         if let offset = edge.nestedGraph { throw ParseError(.unsupported, at: offset) }
         if !waiting.isEmpty || edgeError != nil {
@@ -485,7 +532,9 @@
     @inlinable func insert(_ edge: borrowing _GraphMLEdge, _ u: Int, _ v: Int) throws(ParseError) {
         let position = target.insertEdge(u, v)
         let edgeAttribute = self.edgeAttribute
-        try keys.forEachAttribute(of: edge.data, count: edge.dataCount, in: .edge) { edgeAttribute(position, $0, $1) }
+        try keys.forEachAttribute(of: edge.data, count: edge.dataCount, in: .edge, at: edge.offset, budget: &budget) {
+            edgeAttribute(position, $0, $1)
+        }
     }
 
     /// The key of a declared vertex named by an edge's endpoint.
@@ -539,21 +588,25 @@
         }
         var defaultValue: AttributeValue?
         for element in key.defaults { defaultValue = try _graphMLValue(type, element.text, at: element.offset) }
-        keys.byID[id.bytes] = keys.keys.count
-        keys.keys.append(_GraphMLKey(id: id.bytes, domain: domain, name: name, type: type, defaultValue: defaultValue))
+        keys.append(_GraphMLKey(id: id.bytes, domain: domain, name: name, type: type, defaultValue: defaultValue))
     }
     guard let graph = outline.graphs.first else { throw ParseError(.syntax, at: root.offset) }
     if outline.graphs.count > 1 { throw ParseError(.unsupported, at: outline.graphs[1]) }
     guard let edgeDefault = outline.edgeDefault else { throw ParseError(.syntax, at: graph) }
-    let word = String(decoding: edgeDefault.bytes, as: UTF8.self)
-    guard word == "directed" || word == "undirected" else { throw ParseError(.invalidValue, at: edgeDefault.offset) }
-    if (word == "directed") != Target.isDirected { throw ParseError(.kindMismatch, at: graph) }
-    try keys.forEachAttribute(of: outline.graphData, count: outline.graphData.count, in: .graph) { graphAttribute($0, $1) }
+    // An enumeration of NMTOKENs: whitespace around it is collapsed.
+    let word = _collapsed(edgeDefault.bytes)
+    let isDirected = word.elementsEqual("directed".utf8)
+    guard isDirected || word.elementsEqual("undirected".utf8) else { throw ParseError(.invalidValue, at: edgeDefault.offset) }
+    if isDirected != Target.isDirected { throw ParseError(.kindMismatch, at: graph) }
+    var budget = _ExpansionBudget(inputCount: text.count, perByte: 16)
+    try keys.forEachAttribute(of: outline.graphData, count: outline.graphData.count, in: .graph, at: graph, budget: &budget) {
+        graphAttribute($0, $1)
+    }
 
     try withoutActuallyEscaping(map) { (map) throws(ParseError) in
         try withoutActuallyEscaping(vertexAttribute) { (vertexAttribute) throws(ParseError) in
             try withoutActuallyEscaping(edgeAttribute) { (edgeAttribute) throws(ParseError) in
-                let builder = _GraphMLBuilder(target: target, keys: keys, map: map, vertexAttribute: vertexAttribute,
+                let builder = _GraphMLBuilder(target: target, keys: keys, budget: budget, map: map, vertexAttribute: vertexAttribute,
                                               edgeAttribute: edgeAttribute)
                 var collector = _GraphMLCollector(sink: builder)
                 var second = _XMLScanner(text)
@@ -624,7 +677,7 @@
     init() {
     }
 
-    @usableFromInline var numbers: [String: Int] = [:]
+    @usableFromInline var numbers: [_ScalarKey: Int] = [:]
     @usableFromInline var names: [String] = []
     @usableFromInline var types: [_WrittenType] = []
 
@@ -638,7 +691,7 @@
             case .double: type = .double
             case .boolean: type = .boolean
             }
-            if let k = numbers[pair.key] {
+            if let k = numbers[_ScalarKey(pair.key)] {
                 let old = types[k]
                 if old != type {
                     precondition((old == .long || old == .double) && (type == .long || type == .double),
@@ -646,7 +699,7 @@
                     types[k] = .double
                 }
             } else {
-                numbers[pair.key] = names.count
+                numbers[_ScalarKey(pair.key)] = names.count
                 names.append(pair.key)
                 types.append(type)
                 order.append((domain, names.count - 1))
@@ -696,7 +749,7 @@
         for pair in pairs {
             out.appendASCII(indent)
             out.appendASCII("<data key=\"d")
-            out.appendDecimal(ids[d][keyTables[d].numbers[pair.key]!])
+            out.appendDecimal(ids[d][keyTables[d].numbers[_ScalarKey(pair.key)]!])
             out.appendASCII("\">")
             switch pair.value {
             case .string(let s): _appendXMLEscaped(s, attribute: false, to: &out)
@@ -721,7 +774,7 @@
         let vertex = source.vertex(at: k)
         let id = vertexID(vertex)
         precondition(_isXMLRepresentable(id), "\(id.debugDescription) holds a character XML 1.0 cannot represent")
-        cache.set(k) { bytes in
+        cache.set(k, id: id.debugDescription) { bytes in
             for b in id.utf8 {
                 switch b {
                 case UInt8(ascii: "&"): bytes.append(contentsOf: "&amp;".utf8)

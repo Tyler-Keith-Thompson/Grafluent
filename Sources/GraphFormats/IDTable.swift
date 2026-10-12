@@ -30,7 +30,7 @@
         arena = .allocate(capacity: 64)
     }
 
-    deinit {
+    @inlinable deinit {
         slots.deallocate()
         hashes.deallocate()
         starts.deallocate()

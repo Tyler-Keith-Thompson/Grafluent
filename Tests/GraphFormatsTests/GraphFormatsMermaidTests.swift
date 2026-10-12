@@ -2,6 +2,7 @@
 // link of phase 1, labels kept and styling skipped; the writer quotes every label.
 // Generated from cases.md by swiftgen.py; see README.md.
 
+import AdjacencyListModule
 import GraphFormats
 import GraphProtocols
 import Multigraphs
@@ -427,5 +428,50 @@ struct GraphFormatsMermaidTests {
         #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [["B", "C"]])
         #expect(vertexLabels == [:])
         #expect(edgeLabels == [:])
+    }
+
+    @Test("GF-244 a styling keyword followed by a link or & is a vertex")
+    func gf244() throws {
+        // DirectedPseudograph<String>(mermaid:) → D: style, B, class, A, C; style>B, class>C, A>C
+        let input = "flowchart TD\n  style --> B\n  class & A --> C\n  style A fill:#f9f\n  class A foo\n"
+        var vertexLabels: [String: String] = [:]
+        var edgeLabels: [Int: String] = [:]
+        let graph = try DirectedPseudograph<String>(mermaid: input.utf8, vertexLabel: { v, label in vertexLabels[v] = label }, edgeLabel: { e, label in edgeLabels[e] = label })
+        #expect(Array(graph.vertices) == ["style", "B", "class", "A", "C"])
+        #expect(graph.vertexCount == 5 && graph.edgeCount == 3)
+        #expect(Array(graph.edges.indices) == [0, 1, 2])
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [["style", "B"], ["class", "C"], ["A", "C"]])
+        #expect(vertexLabels == [:])
+        #expect(edgeLabels == [:])
+    }
+
+    @Test("GF-245 into a simple target a repeated link merges, its last label winning")
+    func gf245() throws {
+        // AdjacencyList<String>(mermaid:) → D: A, B; A>B{label="y"}
+        let input = "flowchart LR\n  A -->|x| B\n  A -->|y| B\n"
+        var vertexLabels: [String: String] = [:]
+        var edgeLabels: [Int: String] = [:]
+        let graph = try AdjacencyList<String>(mermaid: input.utf8, vertexLabel: { v, label in vertexLabels[v] = label }, edgeLabel: { e, label in edgeLabels[e] = label })
+        #expect(Array(graph.vertices) == ["A", "B"])
+        #expect(graph.vertexCount == 2 && graph.edgeCount == 1)
+        #expect(Array(graph.edges.indices) == [0])
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [["A", "B"]])
+        #expect(vertexLabels == [:])
+        #expect(edgeLabels == [0: "y"])
+    }
+
+    @Test("GF-246 into a simple undirected target B --- A is A --- B")
+    func gf246() throws {
+        // UndirectedAdjacencyList<String>(mermaid:) → U: A, B; A-B{label="t"}
+        let input = "graph TD\n  A --- B\n  B ---|t| A\n"
+        var vertexLabels: [String: String] = [:]
+        var edgeLabels: [Int: String] = [:]
+        let graph = try UndirectedAdjacencyList<String>(mermaid: input.utf8, vertexLabel: { v, label in vertexLabels[v] = label }, edgeLabel: { e, label in edgeLabels[e] = label })
+        #expect(Array(graph.vertices) == ["A", "B"])
+        #expect(graph.vertexCount == 2 && graph.edgeCount == 1)
+        #expect(Array(graph.edges.indices) == [0])
+        #expect(graph.edges.map { [$0.u, $0.v] } == [["A", "B"]])
+        #expect(vertexLabels == [:])
+        #expect(edgeLabels == [0: "t"])
     }
 }

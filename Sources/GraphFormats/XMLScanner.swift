@@ -70,6 +70,8 @@
     /// Open elements: each one's offset and name.
     @usableFromInline var stack: [(offset: Int, nameStart: Int, nameEnd: Int)] = []
     @usableFromInline var buffer: [UInt8] = []
+    /// The attribute names of a tag with many, by hash, reused for every such tag.
+    @usableFromInline var nameIndex = _KeyIndex()
 
     @usableFromInline static let maximumDepth = 64
 
@@ -364,7 +366,8 @@
         for k in (p &+ 1) ..< nameEnd where text[k] == UInt8(ascii: ":") { localStart = k &+ 1 }
         attributes.removeAll(keepingCapacity: true)
         var q = nameEnd
-        var index: [Int: [Int]]?
+        var indexed = false
+        defer { if indexed { nameIndex.end() } }
         while true {
             let q2 = whitespace(q)
             guard q2 < n else { throw ParseError(.unexpectedEndOfInput, at: p) }
@@ -397,18 +400,19 @@
                 q4 &+= 1
             }
             let attribute = _XMLAttribute(nameStart: q2, nameEnd: attributeEnd, valueStart: q3 &+ 1, valueEnd: q4, verbatim: verbatim)
-            // A repeated name: by comparison while few, then by hash.
+            // A repeated name: by comparison while few, then through the shared index.
             if attributes.count < 16 {
                 for other in attributes where sameName(other, attribute) { throw ParseError(.duplicateKey, at: q2) }
             } else {
-                if index == nil {
-                    var built: [Int: [Int]] = [:]
-                    for (k, other) in attributes.enumerated() { built[nameHash(other), default: []].append(k) }
-                    index = built
+                if !indexed {
+                    indexed = true
+                    nameIndex.begin()
+                    for (k, other) in attributes.enumerated() { nameIndex.insert(hash: nameHash(other), key: k) }
                 }
                 let h = nameHash(attribute)
-                for k in index![h] ?? [] where sameName(attributes[k], attribute) { throw ParseError(.duplicateKey, at: q2) }
-                index![h, default: []].append(attributes.count)
+                let attributes = self.attributes
+                if nameIndex.find(hash: h, { sameName(attributes[$0], attribute) }) != nil { throw ParseError(.duplicateKey, at: q2) }
+                nameIndex.insert(hash: h, key: attributes.count)
             }
             attributes.append(attribute)
             q = q4 &+ 1

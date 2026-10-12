@@ -349,6 +349,7 @@ let package = Package(
                 .product(name: "GraphFormats", package: "Grafluent"),
                 .product(name: "Multigraphs", package: "Grafluent"),
                 .product(name: "AdjacencyListModule", package: "Grafluent"),
+                .product(name: "CompressedSparseRowModule", package: "Grafluent"),
             ],
             path: "Benchmarks/GraphFormatsBenchmarks",
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]

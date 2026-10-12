@@ -6,6 +6,9 @@ extension UndirectedAdjacencyList: MutableGraph {
     /// The slot of `vertex`, or `nil`. One hash.
     @inlinable public func _key(of vertex: Vertex) -> Int? { _slots[vertex] }
 
+    /// The vertex in slot `key`.
+    @inlinable public func _vertex(atKey key: Int) -> Vertex { _vertices[key] }
+
     @inlinable public mutating func _insertVertex(_ vertex: Vertex) -> Int { _appendSlot(for: vertex) }
 
     /// The new edge's position, `edgeCount` before the call; or the position of the edge already

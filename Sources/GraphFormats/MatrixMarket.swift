@@ -20,6 +20,12 @@
 /// Reads a Matrix Market real value: a decimal, or `inf`, `infinity`, `nan` in any case with a
 /// sign.
 @inlinable func _matrixMarketReal(_ text: UnsafeBufferPointer<UInt8>, _ start: Int, _ end: Int) throws(ParseError) -> Double {
+    // A decimal first: nearly every value is one.
+    if let parts = _decimalParts(text, start, end) {
+        let d = _double(parts, text, start, end)
+        if d.isInfinite { throw ParseError(.numberOutOfRange, at: start) }
+        return d
+    }
     var s = start
     var negative = false
     if s < end && (text[s] == UInt8(ascii: "+") || text[s] == UInt8(ascii: "-")) {
@@ -30,10 +36,7 @@
         return negative ? -.infinity : .infinity
     }
     if _equalsIgnoringCase(text, s, end, "nan") { return .nan }
-    guard let parts = _decimalParts(text, start, end) else { throw ParseError(.invalidValue, at: start) }
-    let d = _double(parts, text, start, end)
-    if d.isInfinite { throw ParseError(.numberOutOfRange, at: start) }
-    return d
+    throw ParseError(.invalidValue, at: start)
 }
 
 /// Reads an unsigned decimal index or size: `syntax` when it is not digits.
@@ -45,13 +48,72 @@
     }
 }
 
-/// Reads a Matrix Market file into `target`: vertices `0..<n` (mapped by `map`) inserted at the
-/// size line, then an edge per entry (both arcs of an off-diagonal symmetric entry in a directed
-/// target), each with its weight under the key `"weight"`.
-@inlinable func _readMatrixMarket<Target: _ReadTarget>(
-    _ text: UnsafeBufferPointer<UInt8>, into target: inout Target,
-    map: (Int) -> Target.Vertex?,
-    edgeAttribute: (Target.Position, String, AttributeValue) -> Void
+/// Where a field of an entry line ends: at a space or tab, a line feed, a carriage return that
+/// ends the line (before a line feed or the end), or the end of the text.
+@inline(__always)
+@inlinable func _endsMatrixMarketField(_ text: UnsafeBufferPointer<UInt8>, _ q: Int) -> Bool {
+    let c = text[q]
+    return c == 0x20 || c == 0x09 || c == 0x0A || (c == 0x0D && (q &+ 1 == text.count || text[q &+ 1] == 0x0A))
+}
+
+/// One field of an entry line read as an unsigned decimal while it is scanned: from `q`, which
+/// moves past the field.
+@usableFromInline internal struct _ScannedCount {
+    @usableFromInline var start: Int
+    @usableFromInline var value: Int
+    /// `.value` when the field is digits that fit `Int`.
+    @usableFromInline var status: _IntegerParse
+
+    @inlinable init(_ text: UnsafeBufferPointer<UInt8>, _ q: inout Int) {
+        start = q
+        let n = text.count
+        var magnitude: UInt64 = 0
+        var digitsOnly = true
+        var overflow = false
+        while q < n && !_endsMatrixMarketField(text, q) {
+            let d = text[q] &- 0x30
+            if d < 10 {
+                let (m, o1) = magnitude.multipliedReportingOverflow(by: 10)
+                let (s, o2) = m.addingReportingOverflow(UInt64(d))
+                if o1 || o2 { overflow = true }
+                magnitude = s
+            } else {
+                digitsOnly = false
+            }
+            q &+= 1
+        }
+        if !digitsOnly {
+            status = .malformed
+            value = 0
+        } else if overflow || magnitude > UInt64(Int.max) {
+            status = .outOfRange
+            value = 0
+        } else {
+            status = .value(Int(magnitude))
+            value = Int(magnitude)
+        }
+    }
+
+    /// The value, or the error the field's start is reported with.
+    @inlinable func get() throws(ParseError) -> Int {
+        switch status {
+        case .value: return value
+        case .malformed: throw ParseError(.syntax, at: start)
+        case .outOfRange: throw ParseError(.numberOutOfRange, at: start)
+        }
+    }
+}
+
+/// Reads a Matrix Market file into `target`: vertices `0..<n` (mapped by `map`, or, when
+/// `identity`, known to be the distinct `0..<n`) appended at the size line, then an edge per entry
+/// (both arcs of an off-diagonal symmetric entry in a directed target), each value reported to
+/// `weight` with its edge number. The entries are read in one pass that parses each field as it
+/// scans it; their checks then run in the order of the grammar (field count, indices, ranges,
+/// value).
+@inlinable func _readMatrixMarket<Vertex, Direction>(
+    _ text: UnsafeBufferPointer<UInt8>, into target: inout _BulkTarget<Vertex, Direction>,
+    maximumVertexCount: Int, identity: Bool, map: (Int) -> Vertex?,
+    weight: (Int, AttributeValue) -> Void
 ) throws(ParseError) {
     let n = text.count
     var fields: [(Int, Int)] = []
@@ -94,7 +156,8 @@
         throw ParseError(.syntax, at: o4)
     }
     if symmetry == .skewSymmetric && field == .pattern { throw ParseError(.invalidValue, at: o4) }
-    if symmetry != .symmetric && !Target.isDirected { throw ParseError(.kindMismatch, at: o4) }
+    let isDirected = Direction.isDirected
+    if symmetry != .symmetric && !isDirected { throw ParseError(.kindMismatch, at: o4) }
 
     // Comments and blank lines, then the size line.
     var start = header.next
@@ -115,63 +178,111 @@
     let entries = try _matrixMarketCount(text, fields[2].0, fields[2].1)
     if rows != columns { throw ParseError(.notSquare, at: fields[1].0) }
 
-    // The vertices, eagerly (isolated vertices are data); edge room only as much as the rest of
-    // the input could describe, at 4 bytes an entry at least.
+    // The vertices, eagerly (isolated vertices are data), up to the caller's bound; edge room only
+    // as much as the rest of the input could describe, at 4 bytes an entry at least.
     let sizeOffset = fields[0].0
+    if rows > maximumVertexCount { throw ParseError(.limitExceeded, at: sizeOffset) }
     let remaining = n - start
-    target.reserve(vertexCount: min(rows, remaining), edgeCount: min(entries, remaining / 4))
+    let arcsPerEntry = symmetry != .general && isDirected ? 2 : 1
+    target.reserve(vertexCount: rows, edgeCount: min(entries, remaining / 4) &* arcsPerEntry)
     var keys: [Int] = []
-    keys.reserveCapacity(min(rows, remaining))
-    for i in 0 ..< rows {
-        guard let vertex = map(i) else { throw ParseError(.invalidVertex, at: sizeOffset) }
-        keys.append(target.key(for: vertex).key)
+    if identity {
+        for i in 0 ..< rows {
+            guard let vertex = map(i) else { throw ParseError(.invalidVertex, at: sizeOffset) }
+            _ = target.appendDistinct(vertex)
+        }
+    } else {
+        keys.reserveCapacity(rows)
+        for i in 0 ..< rows {
+            guard let vertex = map(i) else { throw ParseError(.invalidVertex, at: sizeOffset) }
+            keys.append(target.key(for: vertex).key)
+        }
     }
 
     let width = field == .pattern ? 2 : 3
+    let mirrors = symmetry != .general && isDirected
     var seen = 0
-    while let line = _line(text, from: start) {
-        start = line.next
-        _fields(text, line.start, line.end, into: &fields, limit: width + 1)
-        if fields.isEmpty { continue }
-        if text[line.start] == UInt8(ascii: "%") { throw ParseError(.syntax, at: line.start) }
-        if seen == entries { throw ParseError(.entryCountMismatch, at: line.start) }
-        if fields.count < width { throw ParseError(.syntax, at: line.end) }
-        if fields.count > width { throw ParseError(.syntax, at: fields[width].0) }
-        let r = try _matrixMarketCount(text, fields[0].0, fields[0].1)
-        let c = try _matrixMarketCount(text, fields[1].0, fields[1].1)
-        if r < 1 || r > rows { throw ParseError(.indexOutOfRange, at: fields[0].0) }
-        if c < 1 || c > rows { throw ParseError(.indexOutOfRange, at: fields[1].0) }
-        var weight: AttributeValue?
+    var p = start
+    while p < n {
+        let lineStart = p
+        var q = p
+        while q < n && _isBlank(text[q]) { q &+= 1 }
+        // A blank line: only blanks before its end.
+        if q == n {
+            p = n
+            break
+        }
+        if text[q] == 0x0A || (text[q] == 0x0D && (q &+ 1 == n || text[q &+ 1] == 0x0A)) {
+            p = text[q] == 0x0A ? q &+ 1 : min(q &+ 2, n)
+            continue
+        }
+        if q == lineStart && text[q] == UInt8(ascii: "%") { throw ParseError(.syntax, at: lineStart) }
+        if seen == entries { throw ParseError(.entryCountMismatch, at: lineStart) }
+
+        // The fields, parsed as they are scanned; `count` of them, up to one past `width`.
+        let row = _ScannedCount(text, &q)
+        var column = row
+        var count = 1
+        var valueStart = q, valueEnd = q, extra = q
+        while q < n && _isBlank(text[q]) { q &+= 1 }
+        if q < n && !_endsMatrixMarketField(text, q) {
+            column = _ScannedCount(text, &q)
+            count = 2
+            while q < n && _isBlank(text[q]) { q &+= 1 }
+            if q < n && !_endsMatrixMarketField(text, q) {
+                valueStart = q
+                while q < n && !_endsMatrixMarketField(text, q) { q &+= 1 }
+                valueEnd = q
+                count = 3
+                while q < n && _isBlank(text[q]) { q &+= 1 }
+                if q < n && !_endsMatrixMarketField(text, q) {
+                    extra = q
+                    count = 4
+                }
+            }
+        }
+        // The line's end: its line feed (a carriage return before it is not content), or the end.
+        var contentEnd = q
+        while contentEnd < n && text[contentEnd] != 0x0A { contentEnd &+= 1 }
+        p = contentEnd < n ? contentEnd &+ 1 : n
+        if contentEnd > lineStart && text[contentEnd &- 1] == 0x0D { contentEnd &-= 1 }
+
+        if count < width { throw ParseError(.syntax, at: contentEnd) }
+        if count > width { throw ParseError(.syntax, at: width == 2 ? valueStart : extra) }
+        let r = try row.get()
+        let c = try column.get()
+        if r < 1 || r > rows { throw ParseError(.indexOutOfRange, at: row.start) }
+        if c < 1 || c > rows { throw ParseError(.indexOutOfRange, at: column.start) }
+        var value: AttributeValue?
         var mirrored: AttributeValue?
         switch field {
         case .pattern: break
         case .integer:
-            let (s, e) = fields[2]
-            switch _parseInteger(text, s, e, signed: true) {
+            switch _parseInteger(text, valueStart, valueEnd, signed: true) {
             case .value(let w):
-                weight = .integer(w)
+                value = .integer(w)
                 if symmetry == .skewSymmetric && r != c {
-                    guard w != .min else { throw ParseError(.numberOutOfRange, at: s) }
+                    guard w != .min else { throw ParseError(.numberOutOfRange, at: valueStart) }
                     mirrored = .integer(-w)
                 } else {
-                    mirrored = weight
+                    mirrored = value
                 }
-            case .malformed: throw ParseError(.invalidValue, at: s)
-            case .outOfRange: throw ParseError(.numberOutOfRange, at: s)
+            case .malformed: throw ParseError(.invalidValue, at: valueStart)
+            case .outOfRange: throw ParseError(.numberOutOfRange, at: valueStart)
             }
         case .real:
-            let w = try _matrixMarketReal(text, fields[2].0, fields[2].1)
-            weight = .double(w)
+            let w = try _matrixMarketReal(text, valueStart, valueEnd)
+            value = .double(w)
             mirrored = .double(symmetry == .skewSymmetric ? -w : w)
         }
-        if symmetry == .skewSymmetric && r == c { throw ParseError(.invalidValue, at: fields[0].0) }
-        seen += 1
-        let u = keys[r - 1], v = keys[c - 1]
-        let position = target.insertEdge(u, v)
-        if let weight { edgeAttribute(position, "weight", weight) }
-        if symmetry != .general && Target.isDirected && r != c {
+        if symmetry == .skewSymmetric && r == c { throw ParseError(.invalidValue, at: row.start) }
+        seen &+= 1
+        let u = identity ? r &- 1 : keys[r &- 1], v = identity ? c &- 1 : keys[c &- 1]
+        let edge = target.insertEdge(u, v)
+        if let value { weight(edge, value) }
+        if mirrors && r != c {
             let back = target.insertEdge(v, u)
-            if let mirrored { edgeAttribute(back, "weight", mirrored) }
+            if let mirrored { weight(back, mirrored) }
         }
     }
     if seen < entries { throw ParseError(.entryCountMismatch, at: n) }

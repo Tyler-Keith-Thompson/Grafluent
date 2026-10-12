@@ -17,7 +17,9 @@ let package = Package(
     platforms: [.macOS(.v15)],
     dependencies: [.package(path: "..")],
     targets: [
-        .target(name: "FuzzSupport"),
+        // libFuzzer's driver, declared in a C header (it is defined by the runtime -sanitize=fuzzer links).
+        .systemLibrary(name: "CLibFuzzer", path: "Sources/CLibFuzzer"),
+        .target(name: "FuzzSupport", dependencies: ["CLibFuzzer"]),
         target("FuzzPriorityQueue", ["PriorityQueueModule"]),
         target("FuzzDisjointSet", ["DisjointSetModule"]),
         target("FuzzAdjacencyList", ["GraphProtocols", "AdjacencyListModule"]),
@@ -49,6 +51,7 @@ let package = Package(
         target("FuzzIsomorphism", ["GraphProtocols", "IsomorphismModule", "Multigraphs"]),
         target("FuzzPlanarity", ["GraphProtocols", "Planarity", "Multigraphs"]),
         target("FuzzSpectral", ["GraphProtocols", "AdjacencyListModule", "SpectralGraphTheory"]),
+        target("FuzzGraphFormats", ["GraphProtocols", "GraphFormats", "Multigraphs", "AdjacencyListModule"]),
         target("FuzzSemirings", ["GraphProtocols", "Semirings", "ShortestPaths", "Multigraphs", "AdjacencyListModule", "DirectedAcyclicGraphModule", "Walks"]),
         target("FuzzGraphDrawing", ["GraphProtocols", "GraphDrawing", "Multigraphs", "Trees", "Cycles"]),
     ]

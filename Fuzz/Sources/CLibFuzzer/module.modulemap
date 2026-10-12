@@ -1,0 +1,4 @@
+module CLibFuzzer [system] {
+    header "CLibFuzzer.h"
+    export *
+}
