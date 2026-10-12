@@ -64,10 +64,19 @@ extension Graph {
     /// normalized Laplacian N with `normalized`), 0 exactly when the graph is not connected (a
     /// weight-0 edge does not connect). NetworkX `algebraic_connectivity`; Fiedler 1973.
     ///
-    /// Thick-restart Lanczos (Wu–Simon) with full reorthogonalization on σI − L (σ twice the
-    /// largest weighted degree; on 2I − N with `normalized`), the null space projected out, from a
-    /// fixed start vector, accepting a Ritz pair whose residual is at most `tolerance` · σ; the
-    /// dense solver below 64 vertices. O((n + m) · iterations) time, 20 n `Double`s.
+    /// Thick-restart Lanczos (Wu–Simon) with full reorthogonalization, the null space projected
+    /// out, from a fixed start vector: on σI − L (σ twice the largest weighted degree; 2I − N with
+    /// `normalized`) while σ/λ₂ is moderate, else on L⁺ by shift-invert, each product a
+    /// conjugate-gradient solve with L grounded at the vertex of largest degree. A Ritz pair is
+    /// accepted when its residual is at most `tolerance` · λ₂, so λ₂ is relative to itself however
+    /// the weights spread; the value is then the vector's Rayleigh quotient, a sum over edges. The
+    /// dense solver below 64 vertices. O((n + m) · products) time; 31 n `Double`s (34 n from 5,000
+    /// vertices, for the polynomial filter), and on the shift-invert path O(n + m) more for the
+    /// solver.
+    ///
+    /// Traps when the work limit is spent: 4,000 + 20√n products on σI − L (then shift-invert),
+    /// 1,000 shift-invert products, 20,000 + 2n per solve. Only a tolerance below rounding has
+    /// reached it in the measurements.
     ///
     /// - Precondition: at least two vertices, and `tolerance > 0`.
     @inlinable
@@ -80,10 +89,19 @@ extension Graph {
     /// normalized Laplacian N with `normalized`), 0 exactly when the graph is not connected (a
     /// weight-0 edge does not connect). NetworkX `algebraic_connectivity`; Fiedler 1973.
     ///
-    /// Thick-restart Lanczos (Wu–Simon) with full reorthogonalization on σI − L (σ twice the
-    /// largest weighted degree; on 2I − N with `normalized`), the null space projected out, from a
-    /// fixed start vector, accepting a Ritz pair whose residual is at most `tolerance` · σ; the
-    /// dense solver below 64 vertices. O((n + m) · iterations) time, 20 n `Double`s.
+    /// Thick-restart Lanczos (Wu–Simon) with full reorthogonalization, the null space projected
+    /// out, from a fixed start vector: on σI − L (σ twice the largest weighted degree; 2I − N with
+    /// `normalized`) while σ/λ₂ is moderate, else on L⁺ by shift-invert, each product a
+    /// conjugate-gradient solve with L grounded at the vertex of largest degree. A Ritz pair is
+    /// accepted when its residual is at most `tolerance` · λ₂, so λ₂ is relative to itself however
+    /// the weights spread; the value is then the vector's Rayleigh quotient, a sum over edges. The
+    /// dense solver below 64 vertices. O((n + m) · products) time; 31 n `Double`s (34 n from 5,000
+    /// vertices, for the polynomial filter), and on the shift-invert path O(n + m) more for the
+    /// solver.
+    ///
+    /// Traps when the work limit is spent: 4,000 + 20√n products on σI − L (then shift-invert),
+    /// 1,000 shift-invert products, 20,000 + 2n per solve. Only a tolerance below rounding has
+    /// reached it in the measurements.
     ///
     /// `weight` gives the weight of the edge at each position, read once per position; a weight of
     /// 0 is no edge.
@@ -99,10 +117,19 @@ extension Graph {
     /// normalized Laplacian N with `normalized`), 0 exactly when the graph is not connected (a
     /// weight-0 edge does not connect). NetworkX `algebraic_connectivity`; Fiedler 1973.
     ///
-    /// Thick-restart Lanczos (Wu–Simon) with full reorthogonalization on σI − L (σ twice the
-    /// largest weighted degree; on 2I − N with `normalized`), the null space projected out, from a
-    /// fixed start vector, accepting a Ritz pair whose residual is at most `tolerance` · σ; the
-    /// dense solver below 64 vertices. O((n + m) · iterations) time, 20 n `Double`s.
+    /// Thick-restart Lanczos (Wu–Simon) with full reorthogonalization, the null space projected
+    /// out, from a fixed start vector: on σI − L (σ twice the largest weighted degree; 2I − N with
+    /// `normalized`) while σ/λ₂ is moderate, else on L⁺ by shift-invert, each product a
+    /// conjugate-gradient solve with L grounded at the vertex of largest degree. A Ritz pair is
+    /// accepted when its residual is at most `tolerance` · λ₂, so λ₂ is relative to itself however
+    /// the weights spread; the value is then the vector's Rayleigh quotient, a sum over edges. The
+    /// dense solver below 64 vertices. O((n + m) · products) time; 31 n `Double`s (34 n from 5,000
+    /// vertices, for the polynomial filter), and on the shift-invert path O(n + m) more for the
+    /// solver.
+    ///
+    /// Traps when the work limit is spent: 4,000 + 20√n products on σI − L (then shift-invert),
+    /// 1,000 shift-invert products, 20,000 + 2n per solve. Only a tolerance below rounding has
+    /// reached it in the measurements.
     ///
     /// `weight` gives the weight of the edge at each position, read once per position; a weight of
     /// 0 is no edge.
@@ -117,10 +144,19 @@ extension Graph {
     /// The Fiedler vector: λ₂ and a unit eigenvector of it, with the canonical sign (see
     /// `FiedlerVector`); nil when the graph is not connected. NetworkX `fiedler_vector`.
     ///
-    /// Thick-restart Lanczos (Wu–Simon) with full reorthogonalization on σI − L (σ twice the
-    /// largest weighted degree; on 2I − N with `normalized`), the null space projected out, from a
-    /// fixed start vector, accepting a Ritz pair whose residual is at most `tolerance` · σ; the
-    /// dense solver below 64 vertices. O((n + m) · iterations) time, 20 n `Double`s.
+    /// Thick-restart Lanczos (Wu–Simon) with full reorthogonalization, the null space projected
+    /// out, from a fixed start vector: on σI − L (σ twice the largest weighted degree; 2I − N with
+    /// `normalized`) while σ/λ₂ is moderate, else on L⁺ by shift-invert, each product a
+    /// conjugate-gradient solve with L grounded at the vertex of largest degree. A Ritz pair is
+    /// accepted when its residual is at most `tolerance` · λ₂, so λ₂ is relative to itself however
+    /// the weights spread; the value is then the vector's Rayleigh quotient, a sum over edges. The
+    /// dense solver below 64 vertices. O((n + m) · products) time; 31 n `Double`s (34 n from 5,000
+    /// vertices, for the polynomial filter), and on the shift-invert path O(n + m) more for the
+    /// solver.
+    ///
+    /// Traps when the work limit is spent: 4,000 + 20√n products on σI − L (then shift-invert),
+    /// 1,000 shift-invert products, 20,000 + 2n per solve. Only a tolerance below rounding has
+    /// reached it in the measurements.
     ///
     /// - Precondition: at least two vertices, and `tolerance > 0`.
     @inlinable
@@ -135,10 +171,19 @@ extension Graph {
     /// The Fiedler vector: λ₂ and a unit eigenvector of it, with the canonical sign (see
     /// `FiedlerVector`); nil when the graph is not connected. NetworkX `fiedler_vector`.
     ///
-    /// Thick-restart Lanczos (Wu–Simon) with full reorthogonalization on σI − L (σ twice the
-    /// largest weighted degree; on 2I − N with `normalized`), the null space projected out, from a
-    /// fixed start vector, accepting a Ritz pair whose residual is at most `tolerance` · σ; the
-    /// dense solver below 64 vertices. O((n + m) · iterations) time, 20 n `Double`s.
+    /// Thick-restart Lanczos (Wu–Simon) with full reorthogonalization, the null space projected
+    /// out, from a fixed start vector: on σI − L (σ twice the largest weighted degree; 2I − N with
+    /// `normalized`) while σ/λ₂ is moderate, else on L⁺ by shift-invert, each product a
+    /// conjugate-gradient solve with L grounded at the vertex of largest degree. A Ritz pair is
+    /// accepted when its residual is at most `tolerance` · λ₂, so λ₂ is relative to itself however
+    /// the weights spread; the value is then the vector's Rayleigh quotient, a sum over edges. The
+    /// dense solver below 64 vertices. O((n + m) · products) time; 31 n `Double`s (34 n from 5,000
+    /// vertices, for the polynomial filter), and on the shift-invert path O(n + m) more for the
+    /// solver.
+    ///
+    /// Traps when the work limit is spent: 4,000 + 20√n products on σI − L (then shift-invert),
+    /// 1,000 shift-invert products, 20,000 + 2n per solve. Only a tolerance below rounding has
+    /// reached it in the measurements.
     ///
     /// `weight` gives the weight of the edge at each position, read once per position; a weight of
     /// 0 is no edge.
@@ -156,10 +201,19 @@ extension Graph {
     /// The Fiedler vector: λ₂ and a unit eigenvector of it, with the canonical sign (see
     /// `FiedlerVector`); nil when the graph is not connected. NetworkX `fiedler_vector`.
     ///
-    /// Thick-restart Lanczos (Wu–Simon) with full reorthogonalization on σI − L (σ twice the
-    /// largest weighted degree; on 2I − N with `normalized`), the null space projected out, from a
-    /// fixed start vector, accepting a Ritz pair whose residual is at most `tolerance` · σ; the
-    /// dense solver below 64 vertices. O((n + m) · iterations) time, 20 n `Double`s.
+    /// Thick-restart Lanczos (Wu–Simon) with full reorthogonalization, the null space projected
+    /// out, from a fixed start vector: on σI − L (σ twice the largest weighted degree; 2I − N with
+    /// `normalized`) while σ/λ₂ is moderate, else on L⁺ by shift-invert, each product a
+    /// conjugate-gradient solve with L grounded at the vertex of largest degree. A Ritz pair is
+    /// accepted when its residual is at most `tolerance` · λ₂, so λ₂ is relative to itself however
+    /// the weights spread; the value is then the vector's Rayleigh quotient, a sum over edges. The
+    /// dense solver below 64 vertices. O((n + m) · products) time; 31 n `Double`s (34 n from 5,000
+    /// vertices, for the polynomial filter), and on the shift-invert path O(n + m) more for the
+    /// solver.
+    ///
+    /// Traps when the work limit is spent: 4,000 + 20√n products on σI − L (then shift-invert),
+    /// 1,000 shift-invert products, 20,000 + 2n per solve. Only a tolerance below rounding has
+    /// reached it in the measurements.
     ///
     /// `weight` gives the weight of the edge at each position, read once per position; a weight of
     /// 0 is no edge.
@@ -180,10 +234,19 @@ extension Graph {
     /// graph, `fiedlerVector()`'s), entries within 10⁻⁸ · max|x| of their predecessor kept in
     /// index order. `[]` for the empty graph.
     ///
-    /// Thick-restart Lanczos (Wu–Simon) with full reorthogonalization on σI − L (σ twice the
-    /// largest weighted degree; on 2I − N with `normalized`), the null space projected out, from a
-    /// fixed start vector, accepting a Ritz pair whose residual is at most `tolerance` · σ; the
-    /// dense solver below 64 vertices. O((n + m) · iterations) time, 20 n `Double`s.
+    /// Thick-restart Lanczos (Wu–Simon) with full reorthogonalization, the null space projected
+    /// out, from a fixed start vector: on σI − L (σ twice the largest weighted degree; 2I − N with
+    /// `normalized`) while σ/λ₂ is moderate, else on L⁺ by shift-invert, each product a
+    /// conjugate-gradient solve with L grounded at the vertex of largest degree. A Ritz pair is
+    /// accepted when its residual is at most `tolerance` · λ₂, so λ₂ is relative to itself however
+    /// the weights spread; the value is then the vector's Rayleigh quotient, a sum over edges. The
+    /// dense solver below 64 vertices. O((n + m) · products) time; 31 n `Double`s (34 n from 5,000
+    /// vertices, for the polynomial filter), and on the shift-invert path O(n + m) more for the
+    /// solver.
+    ///
+    /// Traps when the work limit is spent: 4,000 + 20√n products on σI − L (then shift-invert),
+    /// 1,000 shift-invert products, 20,000 + 2n per solve. Only a tolerance below rounding has
+    /// reached it in the measurements.
     ///
     /// - Precondition: `tolerance > 0`.
     @inlinable
@@ -201,10 +264,19 @@ extension Graph {
     /// graph, `fiedlerVector()`'s), entries within 10⁻⁸ · max|x| of their predecessor kept in
     /// index order. `[]` for the empty graph.
     ///
-    /// Thick-restart Lanczos (Wu–Simon) with full reorthogonalization on σI − L (σ twice the
-    /// largest weighted degree; on 2I − N with `normalized`), the null space projected out, from a
-    /// fixed start vector, accepting a Ritz pair whose residual is at most `tolerance` · σ; the
-    /// dense solver below 64 vertices. O((n + m) · iterations) time, 20 n `Double`s.
+    /// Thick-restart Lanczos (Wu–Simon) with full reorthogonalization, the null space projected
+    /// out, from a fixed start vector: on σI − L (σ twice the largest weighted degree; 2I − N with
+    /// `normalized`) while σ/λ₂ is moderate, else on L⁺ by shift-invert, each product a
+    /// conjugate-gradient solve with L grounded at the vertex of largest degree. A Ritz pair is
+    /// accepted when its residual is at most `tolerance` · λ₂, so λ₂ is relative to itself however
+    /// the weights spread; the value is then the vector's Rayleigh quotient, a sum over edges. The
+    /// dense solver below 64 vertices. O((n + m) · products) time; 31 n `Double`s (34 n from 5,000
+    /// vertices, for the polynomial filter), and on the shift-invert path O(n + m) more for the
+    /// solver.
+    ///
+    /// Traps when the work limit is spent: 4,000 + 20√n products on σI − L (then shift-invert),
+    /// 1,000 shift-invert products, 20,000 + 2n per solve. Only a tolerance below rounding has
+    /// reached it in the measurements.
     ///
     /// `weight` gives the weight of the edge at each position, read once per position; a weight of
     /// 0 is no edge.
@@ -225,10 +297,19 @@ extension Graph {
     /// graph, `fiedlerVector()`'s), entries within 10⁻⁸ · max|x| of their predecessor kept in
     /// index order. `[]` for the empty graph.
     ///
-    /// Thick-restart Lanczos (Wu–Simon) with full reorthogonalization on σI − L (σ twice the
-    /// largest weighted degree; on 2I − N with `normalized`), the null space projected out, from a
-    /// fixed start vector, accepting a Ritz pair whose residual is at most `tolerance` · σ; the
-    /// dense solver below 64 vertices. O((n + m) · iterations) time, 20 n `Double`s.
+    /// Thick-restart Lanczos (Wu–Simon) with full reorthogonalization, the null space projected
+    /// out, from a fixed start vector: on σI − L (σ twice the largest weighted degree; 2I − N with
+    /// `normalized`) while σ/λ₂ is moderate, else on L⁺ by shift-invert, each product a
+    /// conjugate-gradient solve with L grounded at the vertex of largest degree. A Ritz pair is
+    /// accepted when its residual is at most `tolerance` · λ₂, so λ₂ is relative to itself however
+    /// the weights spread; the value is then the vector's Rayleigh quotient, a sum over edges. The
+    /// dense solver below 64 vertices. O((n + m) · products) time; 31 n `Double`s (34 n from 5,000
+    /// vertices, for the polynomial filter), and on the shift-invert path O(n + m) more for the
+    /// solver.
+    ///
+    /// Traps when the work limit is spent: 4,000 + 20√n products on σI − L (then shift-invert),
+    /// 1,000 shift-invert products, 20,000 + 2n per solve. Only a tolerance below rounding has
+    /// reached it in the measurements.
     ///
     /// `weight` gives the weight of the edge at each position, read once per position; a weight of
     /// 0 is no edge.

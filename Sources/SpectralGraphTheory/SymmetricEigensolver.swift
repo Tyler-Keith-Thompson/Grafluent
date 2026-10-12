@@ -1,8 +1,10 @@
 // The dense symmetric eigensolver: Householder reduction to tridiagonal form, then the implicit QL
 // iteration with Wilkinson-type shifts (EISPACK's `tred2`, Martin, Reinsch and Wilkinson, and
 // `tql2`, Bowdler, Martin, Reinsch and Wilkinson, both in Wilkinson and Reinsch, "Handbook for
-// Automatic Computation II: Linear Algebra", 1971; transcribed after JAMA's public-domain version), the method of LAPACK's `dsteqr`. One thread, fixed operation order, so results are
-// reproducible bit for bit on one platform and build.
+// Automatic Computation II: Linear Algebra", 1971; transcribed after JAMA's public-domain
+// version), the method of LAPACK's `dsteqr`; for eigenvalues alone, the root-free QL/QR of
+// LAPACK's `dsterf` instead. One thread, fixed operation order, so results are reproducible bit
+// for bit on one platform and build.
 
 /// sqrt(a² + b²) without overflow or destructive underflow.
 @inline(__always)
@@ -230,27 +232,232 @@ func _tridiagonalQL(_ n: Int, _ a: UnsafeMutablePointer<Double>, _ d: UnsafeMuta
                 d[l] = c * p
                 // QL converges cubically; the cap only guards against a pathological input.
             } while abs(e[l]) > eps * tst1 && iterations < 60
+            precondition(abs(e[l]) <= eps * tst1, "The QL iteration did not converge in 60 iterations (a NaN or infinite entry?)")
         }
         d[l] += f
         e[l] = 0
     }
 }
 
-/// The eigenvalues of the symmetric `n`×`n` column-major matrix `matrix`, ascending.
+/// The eigenvalues of the symmetric `n`×`n` column-major matrix `matrix`, ascending: Householder
+/// tridiagonalization, then the root-free QL/QR iteration.
 @usableFromInline
 func _eigenvalues(_ matrix: [Double], _ n: Int) -> [Double] {
+    guard n > 0 else { return [] }
     var a = matrix
+    let exponent = _scaleIntoRange(&a)
     var d = [Double](repeating: 0, count: n)
     var e = [Double](repeating: 0, count: n)
     a.withUnsafeMutableBufferPointer { a in
         d.withUnsafeMutableBufferPointer { d in
             e.withUnsafeMutableBufferPointer { e in
-                guard n > 0 else { return }
-                _symmetricEigen(n, a.baseAddress!, d.baseAddress!, e.baseAddress!, vectors: false)
+                _tridiagonalize(n, a.baseAddress!, d.baseAddress!, e.baseAddress!, vectors: false)
+                // e[i] couples i − 1 and i; the root-free iteration wants it at i − 1.
+                for i in 1 ..< n { e[i - 1] = e[i] }
+                e[n - 1] = 0
+                _tridiagonalEigenvalues(n, d.baseAddress!, e.baseAddress!)
             }
         }
     }
+    d.sort()
+    if exponent != 0 { for i in 0 ..< n { d[i] = Double(sign: .plus, exponent: exponent, significand: d[i]) } }
     return d
+}
+
+/// Scales the entries of `a` by a power of two (exactly) so that the largest magnitude is near 1,
+/// when it lies outside 2^±500: Householder reduction squares entries, which overflows near
+/// `Double`'s limits. Returns the exponent to scale the eigenvalues back by (0 when unscaled).
+@usableFromInline
+func _scaleIntoRange(_ a: inout [Double]) -> Int {
+    var largest = 0.0
+    for t in a { largest = max(largest, abs(t)) }
+    guard largest.isFinite, largest > 0x1p500 || (largest > 0 && largest < 0x1p-500) else { return 0 }
+    let exponent = Int(largest.exponent)
+    for i in a.indices { a[i] = Double(sign: .plus, exponent: -exponent, significand: a[i]) }
+    return exponent
+}
+
+/// The eigenvalues of the symmetric tridiagonal matrix with diagonal `d` and off-diagonal `e`
+/// (`e[i]` couples i and i + 1), into `d`, unsorted; `e` is destroyed. The root-free QL/QR
+/// iteration of Pal, Walker and Kahan (LAPACK's `dsterf`): it carries the squares of the
+/// off-diagonal, so a rotation costs no square root, choosing QL or QR per block by which end is
+/// larger, with blocks scaled into a safe range first.
+@usableFromInline
+func _tridiagonalEigenvalues(_ n: Int, _ d: UnsafeMutablePointer<Double>, _ e: UnsafeMutablePointer<Double>) {
+    guard n > 1 else { return }
+    let eps = Double.ulpOfOne / 2
+    let eps2 = eps * eps
+    let safeMinimum = Double.leastNormalMagnitude
+    let safeMaximum = 1 / safeMinimum
+    let scaledMaximum = safeMaximum.squareRoot() / 3
+    let scaledMinimum = safeMinimum.squareRoot() / eps2
+    let maximumIterations = 30 * n
+    var iterations = 0
+    var l1 = 0
+    while l1 < n {
+        if l1 > 0 { e[l1 - 1] = 0 }
+        // The next unreduced block l1 ... m.
+        var m = l1
+        while m < n - 1 {
+            let t = abs(e[m])
+            if t == 0 { break }
+            if t <= abs(d[m]).squareRoot() * abs(d[m + 1]).squareRoot() * eps {
+                e[m] = 0
+                break
+            }
+            m += 1
+        }
+        var l = l1
+        let start = l
+        var end = m
+        let endStart = end
+        l1 = m + 1
+        if end == l { continue }
+        // Scale the block into range.
+        var norm = 0.0
+        for i in l ... end { norm = max(norm, abs(d[i])) }
+        for i in l ..< end { norm = max(norm, abs(e[i])) }
+        if norm == 0 { continue }
+        var scale = 1.0
+        if norm > scaledMaximum {
+            scale = scaledMaximum / norm
+        } else if norm < scaledMinimum {
+            scale = scaledMinimum / norm
+        }
+        if scale != 1 {
+            for i in l ... end { d[i] *= scale }
+            for i in l ..< end { e[i] *= scale }
+        }
+        for i in l ..< end { e[i] *= e[i] }
+        // QL when the top is the larger end, else QR.
+        if abs(d[end]) < abs(d[l]) {
+            end = start
+            l = endStart
+        }
+        if end >= l {
+            // QL: deflate from the top.
+            while l <= end {
+                var m = l
+                while m < end {
+                    if abs(e[m]) <= eps2 * abs(d[m] * d[m + 1]) { break }
+                    m += 1
+                }
+                if m < end { e[m] = 0 }
+                let p = d[l]
+                if m == l {
+                    l += 1
+                    continue
+                }
+                if m == l + 1 {
+                    (d[l], d[l + 1]) = _eigenvalues2(d[l], e[l].squareRoot(), d[l + 1])
+                    e[l] = 0
+                    l += 2
+                    continue
+                }
+                precondition(iterations < maximumIterations, "The QL iteration did not converge (a NaN or infinite entry?)")
+                iterations += 1
+                // The shift.
+                let root = e[l].squareRoot()
+                var sigma = (d[l + 1] - p) / (2 * root)
+                let r = _hypot(sigma, 1)
+                sigma = p - root / (sigma + (sigma < 0 ? -r : r))
+                var c = 1.0, s = 0.0
+                var gamma = d[m] - sigma
+                var q = gamma * gamma
+                var i = m - 1
+                while i >= l {
+                    let bb = e[i]
+                    let rr = q + bb
+                    if i != m - 1 { e[i + 1] = s * rr }
+                    let oldC = c
+                    c = q / rr
+                    s = bb / rr
+                    let oldGamma = gamma
+                    let alpha = d[i]
+                    gamma = c * (alpha - sigma) - s * oldGamma
+                    d[i + 1] = oldGamma + (alpha - gamma)
+                    q = c != 0 ? gamma * gamma / c : oldC * bb
+                    i -= 1
+                }
+                e[l] = s * q
+                d[l] = sigma + gamma
+            }
+        } else {
+            // QR: deflate from the bottom.
+            while l >= end {
+                var m = l
+                while m > end {
+                    if abs(e[m - 1]) <= eps2 * abs(d[m] * d[m - 1]) { break }
+                    m -= 1
+                }
+                if m > end { e[m - 1] = 0 }
+                let p = d[l]
+                if m == l {
+                    l -= 1
+                    continue
+                }
+                if m == l - 1 {
+                    (d[l], d[l - 1]) = _eigenvalues2(d[l], e[l - 1].squareRoot(), d[l - 1])
+                    e[l - 1] = 0
+                    l -= 2
+                    continue
+                }
+                precondition(iterations < maximumIterations, "The QL iteration did not converge (a NaN or infinite entry?)")
+                iterations += 1
+                let root = e[l - 1].squareRoot()
+                var sigma = (d[l - 1] - p) / (2 * root)
+                let r = _hypot(sigma, 1)
+                sigma = p - root / (sigma + (sigma < 0 ? -r : r))
+                var c = 1.0, s = 0.0
+                var gamma = d[m] - sigma
+                var q = gamma * gamma
+                var i = m
+                while i < l {
+                    let bb = e[i]
+                    let rr = q + bb
+                    if i != m { e[i - 1] = s * rr }
+                    let oldC = c
+                    c = q / rr
+                    s = bb / rr
+                    let oldGamma = gamma
+                    let alpha = d[i + 1]
+                    gamma = c * (alpha - sigma) - s * oldGamma
+                    d[i] = oldGamma + (alpha - gamma)
+                    q = c != 0 ? gamma * gamma / c : oldC * bb
+                    i += 1
+                }
+                e[l - 1] = s * q
+                d[l] = sigma + gamma
+            }
+        }
+        if scale != 1 {
+            for i in start ... endStart { d[i] /= scale }
+        }
+    }
+}
+
+/// The eigenvalues of [[a, b], [b, c]], the larger in magnitude first (LAPACK's `dlae2`).
+@inline(__always)
+func _eigenvalues2(_ a: Double, _ b: Double, _ c: Double) -> (Double, Double) {
+    let sum = a + c, difference = a - c
+    let ad = abs(difference), ab = abs(b + b)
+    let (larger, smaller) = abs(a) > abs(c) ? (a, c) : (c, a)
+    let rt: Double
+    if ad > ab {
+        rt = ad * (1 + (ab / ad) * (ab / ad)).squareRoot()
+    } else if ad < ab {
+        rt = ab * (1 + (ad / ab) * (ad / ab)).squareRoot()
+    } else {
+        rt = ab * 2.0.squareRoot()
+    }
+    if sum < 0 {
+        let rt1 = 0.5 * (sum - rt)
+        return (rt1, (larger / rt1) * smaller - (b / rt1) * b)
+    } else if sum > 0 {
+        let rt1 = 0.5 * (sum + rt)
+        return (rt1, (larger / rt1) * smaller - (b / rt1) * b)
+    }
+    return (0.5 * rt, -0.5 * rt)
 }
 
 /// The eigenvalues of the symmetric `n`×`n` column-major matrix `matrix`, ascending, and the
@@ -258,6 +465,7 @@ func _eigenvalues(_ matrix: [Double], _ n: Int) -> [Double] {
 @usableFromInline
 func _eigensystem(_ matrix: [Double], _ n: Int) -> (values: [Double], vectors: [Double]) {
     var a = matrix
+    let exponent = _scaleIntoRange(&a)
     var d = [Double](repeating: 0, count: n)
     var e = [Double](repeating: 0, count: n)
     a.withUnsafeMutableBufferPointer { a in
@@ -268,5 +476,6 @@ func _eigensystem(_ matrix: [Double], _ n: Int) -> (values: [Double], vectors: [
             }
         }
     }
+    if exponent != 0 { for i in 0 ..< n { d[i] = Double(sign: .plus, exponent: exponent, significand: d[i]) } }
     return (d, a)
 }

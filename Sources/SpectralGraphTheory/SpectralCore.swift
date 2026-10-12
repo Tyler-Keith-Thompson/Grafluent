@@ -16,11 +16,47 @@ func _canonicalSign(_ x: inout [Double]) {
     }
 }
 
+/// The work limits, in matrix–vector products (one conjugate-gradient iteration is one). A run
+/// that reaches its limit traps: the input is far outside what the method is for.
+@usableFromInline
+enum _SpectralLimits {
+    /// Lanczos on σI − L before switching to shift-invert.
+    @usableFromInline static func shifted(_ n: Int) -> Int { 4_000 + 20 * Int(Double(n).squareRoot()) }
+    /// Lanczos (outer products) on L⁺ by shift-invert.
+    @usableFromInline static let shiftInvert = 1_000
+    /// One conjugate-gradient solve.
+    @usableFromInline static func solve(_ n: Int) -> Int { 20_000 + 2 * n }
+    /// Lanczos on A for ρ(A).
+    @usableFromInline static func radius(_ n: Int) -> Int { 20_000 + 20 * Int(Double(n).squareRoot()) }
+}
+
+/// σ/λ₂ above which λ₂ comes from shift-invert rather than from σI − L: there the residual
+/// `tolerance` · λ₂ is near the rounding floor of the shifted operator (ε · σ). The caller also
+/// switches above 20 n, measured: path-like graphs (σ/λ₂ ≈ 0.4 n²) and weight spreads run 2–20×
+/// faster by shift-invert, grids (≈ 0.8 n) 2–3× slower.
+@inline(__always)
+func _shiftInvertRatio(_ tolerance: Double) -> Double {
+    min(1e7, max(1e3, 0.05 * tolerance / Double.ulpOfOne))
+}
+
 extension _WeightedAdjacency {
     /// All eigenvalues of the matrix of `kind`, ascending (dense).
     @usableFromInline
     func spectrum(_ kind: _MatrixKind) -> [Double] {
         _eigenvalues(dense(kind), count)
+    }
+
+    /// The rows with every weight scaled by a power of two (exactly) so that Gershgorin's bound
+    /// is near 1, when it lies outside 2^±500, and the exponent scaled away (0 when unscaled): the
+    /// iterative engines square and sum entries, which overflows near `Double`'s limits. λ and ρ
+    /// scale with the weights, R inversely, N and the vectors not at all.
+    @usableFromInline
+    func rescaledIntoRange() -> (rows: _WeightedAdjacency, exponent: Int) {
+        guard let values, gershgorinBound > 0x1p500 || (gershgorinBound > 0 && gershgorinBound < 0x1p-500) else { return (self, 0) }
+        let exponent = Int(gershgorinBound.exponent)
+        let scaled = values.map { Double(sign: .plus, exponent: -exponent, significand: $0) }
+        let bound = Double(sign: .plus, exponent: -exponent, significand: gershgorinBound)
+        return (_WeightedAdjacency(offsets: offsets, columns: columns, values: scaled, gershgorinBound: bound, hasNegativeEntry: hasNegativeEntry, hasLoop: hasLoop), exponent)
     }
 
     /// The unit null vector of L (or of N when `normalized`) on a connected graph.
@@ -35,28 +71,86 @@ extension _WeightedAdjacency {
         return d.map { $0.squareRoot() * inverse }
     }
 
-    /// λ₂ of L (of N when `normalized`) of a connected graph with at least two vertices, and, when
-    /// `wantsVector`, a unit eigenvector orthogonal to the null vector, with the canonical sign.
+    /// xᵀLx / xᵀx (xᵀNx / xᵀx when `normalized`) as a sum over edges of w (x_u − x_v)² (with
+    /// x / √d for N): no term is negative, so the quotient keeps its relative accuracy however far
+    /// λ₂ lies below the largest eigenvalue.
     @usableFromInline
-    func connectedFiedler(normalized: Bool, tolerance: Double, wantsVector: Bool) -> (value: Double, vector: [Double]) {
+    func rayleighQuotient(_ x: [Double], normalized: Bool) -> Double {
         let n = count
-        var value: Double
+        var y = x
+        if normalized {
+            let d = degrees()
+            for v in 0 ..< n { y[v] = x[v] / d[v].squareRoot() }
+        }
+        var energy = 0.0
+        for v in 0 ..< n {
+            let yv = y[v]
+            for k in offsets[v] ..< offsets[v + 1] {
+                let difference = yv - y[Int(columns[k])]
+                energy += weight(k) * difference * difference
+            }
+        }
+        var length = 0.0
+        for t in x { length += t * t }
+        // Every edge was counted from both ends.
+        return energy / 2 / length
+    }
+
+    /// An upper bound on λ₂ from a cheap test vector: the breadth-first distance from a far vertex
+    /// (two sweeps), minus its mean. On paths, grids and barbells it is within a small factor of λ₂.
+    @usableFromInline
+    func rayleighBound(normalized: Bool) -> Double {
+        let n = count
+        var distance = [Int](repeating: -1, count: n)
+        var queue = [Int](repeating: 0, count: n)
+        func sweep(from s: Int) -> Int {
+            for v in 0 ..< n { distance[v] = -1 }
+            distance[s] = 0
+            queue[0] = s
+            var head = 0, tail = 1
+            while head < tail {
+                let v = queue[head]
+                head += 1
+                for k in offsets[v] ..< offsets[v + 1] where distance[Int(columns[k])] < 0 {
+                    distance[Int(columns[k])] = distance[v] + 1
+                    queue[tail] = Int(columns[k])
+                    tail += 1
+                }
+            }
+            return queue[tail - 1]
+        }
+        _ = sweep(from: sweep(from: 0))
+        var x = distance.map { Double($0) }
+        let d = normalized ? degrees() : [Double](repeating: 1, count: n)
+        var mean = 0.0, total = 0.0
+        for v in 0 ..< n {
+            mean += d[v] * x[v]
+            total += d[v]
+        }
+        mean /= total
+        for v in 0 ..< n { x[v] = (x[v] - mean) * (normalized ? d[v].squareRoot() : 1) }
+        return rayleighQuotient(x, normalized: normalized)
+    }
+
+    /// λ₂ of L (of N when `normalized`) of a connected graph with at least two vertices, and a unit
+    /// eigenvector orthogonal to the null vector, with the canonical sign. λ₂ is the edge-sum
+    /// Rayleigh quotient of the vector.
+    @usableFromInline
+    func connectedFiedler(normalized: Bool, tolerance: Double) -> (value: Double, vector: [Double]) {
+        let (rows, exponent) = rescaledIntoRange()
+        if exponent != 0 {
+            let (value, vector) = rows.connectedFiedler(normalized: normalized, tolerance: tolerance)
+            return (normalized ? value : Double(sign: .plus, exponent: exponent, significand: value), vector)
+        }
+        let n = count
         var x: [Double]
         let null: [Double]
         if n < _denseThreshold {
-            let a = dense(normalized ? .normalizedLaplacian : .laplacian)
-            guard wantsVector else { return (_eigenvalues(a, n)[1], []) }
-            let (values, vectors) = _eigensystem(a, n)
-            value = values[1]
+            let (_, vectors) = _eigensystem(dense(normalized ? .normalizedLaplacian : .laplacian), n)
             x = Array(vectors[n ..< 2 * n])
             null = nullVector(normalized: normalized)
         } else {
-            let (op, shift, z) = shiftedLaplacian(normalized: normalized)
-            let (theta, vector) = _largestEigenpair(op, null: z, lowerBound: 0, tolerance: tolerance, scale: shift, wantsVector: wantsVector)
-            value = shift - theta
-            guard wantsVector else { return (value, []) }
-            x = vector
-            null = z
+            (x, null) = iterativeFiedler(normalized: normalized, tolerance: tolerance)
         }
         // Orthogonal to the null vector and unit length, to rounding.
         var dot = 0.0
@@ -67,7 +161,67 @@ extension _WeightedAdjacency {
         let inverse = 1 / length.squareRoot()
         for i in 0 ..< n { x[i] *= inverse }
         _canonicalSign(&x)
-        return (value, x)
+        return (rayleighQuotient(x, normalized: normalized), x)
+    }
+
+    /// The Fiedler vector by Lanczos: on σI − L while σ/λ₂ is moderate, else (or when that runs
+    /// out of products) on L⁺ by shift-invert, each product a conjugate-gradient solve with L
+    /// grounded at the vertex of largest degree. Returns the vector and the null vector.
+    @usableFromInline
+    func iterativeFiedler(normalized: Bool, tolerance: Double) -> (vector: [Double], null: [Double]) {
+        let n = count
+        let (op, shift, null) = shiftedLaplacian(normalized: normalized)
+        let ratio = min(_shiftInvertRatio(tolerance), 20 * Double(n))
+        var products = 0
+        if shift / rayleighBound(normalized: normalized) <= ratio {
+            let rule = _LanczosRule(tolerance: tolerance, shift: shift, floor: 0, abandonRatio: ratio, budget: _SpectralLimits.shifted(n))
+            if let (_, vector) = _largestEigenpair(count: n, null: null, lowerBound: 0, filters: n >= _filterMinimumSize, rule: rule, products: &products, apply: op.apply) {
+                return (vector, null)
+            }
+        }
+        // Shift-invert: the largest eigenvalue of L⁺ (D^1/2 L⁺ D^1/2 for N) is 1/λ₂.
+        products = 0
+        let d = offDiagonalDegrees()
+        var ground = 0
+        for v in 0 ..< n where d[v] > d[ground] { ground = v }
+        let solver = _GroundedSolver(self, ground: ground)
+        let root: [Double]? = normalized ? degrees().map { $0.squareRoot() } : nil
+        let inner = max(1e-13, 1e-2 * tolerance)
+        let buffers = UnsafeMutablePointer<Double>.allocate(capacity: 2 * n)
+        defer { buffers.deallocate() }
+        let b = buffers, solution = buffers + n
+        let rule = _LanczosRule(tolerance: tolerance, shift: 0, floor: 0, abandonRatio: .infinity, budget: _SpectralLimits.shiftInvert)
+        let limit = _SpectralLimits.solve(n)
+        let outcome = root.withOptionalPointer { root -> [Double]? in
+            /// output = K input: D^1/2 L_g⁻¹ D^1/2 (without D for L), the null space left to the caller.
+            func apply(_ input: UnsafePointer<Double>, _ output: UnsafeMutablePointer<Double>) {
+                if let root {
+                    for v in 0 ..< n { b[v] = root[v] * input[v] }
+                } else {
+                    b.update(from: input, count: n)
+                }
+                solution.update(repeating: 0, count: n)
+                let solved = solver.solve(b, solution, tolerance: inner, budget: solver.products + limit)
+                precondition(solved, "Conjugate gradients did not converge within \(limit) products (shift-invert λ₂)")
+                if let root {
+                    for v in 0 ..< n { output[v] = root[v] * solution[v] }
+                } else {
+                    output.update(from: solution, count: n)
+                }
+            }
+            guard var (_, vector) = _largestEigenpair(count: n, null: null, lowerBound: 0, filters: false, rule: rule, products: &products, apply: apply) else { return nil }
+            // One more inverse-iteration step: the Ritz vector meets the residual test for L⁺,
+            // whose error along an eigenvector of L with eigenvalue λ costs λ in Lx − λ₂x; the step
+            // scales that error by λ₂/λ, so ‖Lx − λ₂x‖ ≤ tolerance · λ₂ as well.
+            var next = [Double](repeating: 0, count: n)
+            vector.withUnsafeBufferPointer { x in next.withUnsafeMutableBufferPointer { apply(x.baseAddress!, $0.baseAddress!) } }
+            vector = next
+            return vector
+        }
+        guard let vector = outcome else {
+            preconditionFailure("Lanczos did not converge within \(_SpectralLimits.shiftInvert) shift-invert products (λ₂)")
+        }
+        return (vector, null)
     }
 
     /// λ₂: 0 when the graph is not connected.
@@ -77,7 +231,7 @@ extension _WeightedAdjacency {
     func algebraicConnectivity(normalized: Bool, tolerance: Double) -> Double {
         precondition(count >= 2, "The algebraic connectivity needs at least two vertices")
         guard components().count == 1 else { return 0 }
-        return connectedFiedler(normalized: normalized, tolerance: tolerance, wantsVector: false).value
+        return connectedFiedler(normalized: normalized, tolerance: tolerance).value
     }
 
     /// λ₂ and its canonical unit eigenvector; nil when the graph is not connected.
@@ -87,7 +241,7 @@ extension _WeightedAdjacency {
     func fiedler(normalized: Bool, tolerance: Double) -> (value: Double, vector: [Double])? {
         precondition(count >= 2, "The Fiedler vector needs at least two vertices")
         guard components().count == 1 else { return nil }
-        return connectedFiedler(normalized: normalized, tolerance: tolerance, wantsVector: true)
+        return connectedFiedler(normalized: normalized, tolerance: tolerance)
     }
 
     /// The spectral ordering in index space (api.md): components by least vertex; a component of at
@@ -108,7 +262,7 @@ extension _WeightedAdjacency {
                 continue
             }
             let sub = componentCount == 1 ? self : induced(group)
-            let x = sub.connectedFiedler(normalized: normalized, tolerance: tolerance, wantsVector: true).vector
+            let x = sub.connectedFiedler(normalized: normalized, tolerance: tolerance).vector
             var largest = 0.0
             for t in x { largest = max(largest, abs(t)) }
             let sorted = (0 ..< group.count).sorted { x[$0] < x[$1] || (x[$0] == x[$1] && $0 < $1) }
@@ -130,190 +284,143 @@ extension _WeightedAdjacency {
     @usableFromInline
     func spectralRadius(tolerance: Double) -> Double {
         let n = count
-        guard !values.isEmpty else { return 0 }
+        guard !columns.isEmpty else { return 0 }
+        let (rows, exponent) = rescaledIntoRange()
+        if exponent != 0 { return Double(sign: .plus, exponent: exponent, significand: rows.spectralRadius(tolerance: tolerance)) }
         if n < _denseThreshold {
             let spectrum = spectrum(.adjacency)
             return max(abs(spectrum[0]), abs(spectrum[n - 1]))
         }
+        let bound = gershgorinBound
+        let limit = _SpectralLimits.radius(n)
+        var products = 0
         let op = adjacencyOperator(negated: false)
-        let bound = op.gershgorinBound
-        let largest = _largestEigenpair(op, null: nil, lowerBound: -bound, tolerance: tolerance, scale: bound, wantsVector: false).value
+        let rule = _LanczosRule(tolerance: tolerance, shift: 0, floor: hasNegativeEntry ? 1e-6 * bound : 0, abandonRatio: .infinity, budget: limit)
+        guard let (largest, _) = _largestEigenpair(count: n, null: nil, lowerBound: -bound, filters: n >= _filterMinimumSize, rule: rule, products: &products, apply: op.apply) else {
+            preconditionFailure("Lanczos did not converge within \(limit) products (spectral radius)")
+        }
         guard hasNegativeEntry else { return max(largest, 0) }
         // Without Perron–Frobenius, the most negative eigenvalue may be the larger in magnitude.
-        let negated = _largestEigenpair(adjacencyOperator(negated: true), null: nil, lowerBound: -bound, tolerance: tolerance, scale: bound, wantsVector: false).value
+        let negatedOperator = adjacencyOperator(negated: true)
+        let negatedRule = _LanczosRule(tolerance: tolerance, shift: 0, floor: max(abs(largest), 1e-6 * bound), abandonRatio: .infinity, budget: limit)
+        products = 0
+        guard let (negated, _) = _largestEigenpair(count: n, null: nil, lowerBound: -bound, filters: n >= _filterMinimumSize, rule: negatedRule, products: &products, apply: negatedOperator.apply) else {
+            preconditionFailure("Lanczos did not converge within \(limit) products (spectral radius)")
+        }
         return max(largest, negated, 0)
     }
 
-    /// The number of spanning trees, weighted (Σ over spanning trees of the product of their
-    /// weights): 0 for no vertex or a disconnected graph, 1 for one vertex; otherwise the
-    /// determinant of L with the last row and column removed, by a dense Cholesky factorization.
-    /// Rounded to the nearest integer when `integral` and below 2⁵³.
+    /// The vertex of largest weighted degree (the ground of the dense eliminations).
     @usableFromInline
-    func spanningTreeCount(integral: Bool) -> Double {
+    func heaviestVertex() -> Int {
+        let d = degrees()
+        var best = 0
+        for v in 0 ..< count where d[v] > d[best] { best = v }
+        return best
+    }
+
+    /// Whether every weight is an integer below 2⁵³, so exact in `Double` and summed exactly.
+    @usableFromInline
+    var hasSmallIntegerWeights: Bool {
+        guard let values else { return true }
+        return values.allSatisfy { $0 == $0.rounded(.towardZero) && $0 < 0x1p53 }
+    }
+
+    /// The number of spanning trees, weighted (Σ over spanning trees of the product of their
+    /// weights): 0 for no vertex or a disconnected graph, 1 for one vertex; otherwise det L_g by
+    /// GTH elimination, its pivots multiplied with the binary exponent kept apart. When every
+    /// weight is an integer and that count is below 2¹⁰⁰, the exact count from two modular
+    /// determinants instead, correctly rounded.
+    @usableFromInline
+    func spanningTreeCount() -> Double {
         let n = count
         guard n > 0 else { return 0 }
         guard n > 1 else { return 1 }
         guard components().count == 1 else { return 0 }
-        let size = n - 1
-        // The grounded Laplacian, column-major, lower triangle.
-        let laplacian = matrix(.laplacian)
-        var a = [Double](repeating: 0, count: size * size)
-        for v in 0 ..< size {
-            for k in laplacian._offsets[v] ..< laplacian._offsets[v + 1] where laplacian._columns[k] < size {
-                a[laplacian._columns[k] * size + v] = laplacian._values[k]
-            }
-        }
-        // The determinant is the product of the pivots, kept as a significand in [1, 2) and a
-        // binary exponent apart, so it neither overflows nor underflows before the end.
-        var significand = 1.0
-        var exponent = 0
-        let positive = a.withUnsafeMutableBufferPointer { buffer -> Bool in
-            let a = buffer.baseAddress!
-            for j in 0 ..< size {
-                let column = a + j * size
-                for k in 0 ..< j {
-                    let previous = a + k * size
-                    let l = previous[j]
-                    if l == 0 { continue }
-                    for i in j ..< size { column[i] -= previous[i] * l }
-                }
-                let pivot = column[j]
-                guard pivot > 0 else { return false }
-                significand *= pivot
-                exponent += Int(significand.exponent)
-                significand = significand.significand
-                let inverse = 1 / pivot.squareRoot()
-                for i in j ..< size { column[i] *= inverse }
-            }
-            return true
-        }
-        guard positive else { return 0 }
-        let count = Double(sign: .plus, exponent: exponent, significand: significand)
-        if integral && count < 0x1p53 { return count.rounded() }
-        return count
+        let ground = heaviestVertex()
+        let (significand, exponent) = _GroundedElimination(self, ground: ground).determinant
+        let estimate = Double(sign: .plus, exponent: exponent, significand: significand)
+        if estimate < 0x1p100 && hasSmallIntegerWeights { return exactSpanningTreeCount(ground: ground) }
+        return estimate
     }
 
-    /// The effective resistance between `source` and `target` with each weight a conductance:
-    /// conjugate gradients, Jacobi preconditioned, on L grounded at `target` and restricted to its
-    /// component, until the residual's norm is at most `tolerance` (the right side has norm 1).
-    /// nil when they lie in different components.
+    /// The effective resistance between `source` and `target` with each weight a conductance: the
+    /// potential at `source` when a unit current enters there and leaves at `target` (grounded),
+    /// by preconditioned conjugate gradients on the rows. nil when they lie in different
+    /// components.
     @usableFromInline
     func resistance(from source: Int, to target: Int, tolerance: Double) -> Double? {
         if source == target { return 0 }
+        let (rows, exponent) = rescaledIntoRange()
+        if exponent != 0 { return rows.resistance(from: source, to: target, tolerance: tolerance).map { Double(sign: .plus, exponent: -exponent, significand: $0) } }
         let n = count
-        // The component of `target`, numbered in the order reached; `target` itself is grounded.
-        var local = [Int](repeating: -1, count: n)
-        var members: [Int] = [target]
-        local[target] = 0
-        var head = 0
-        while head < members.count {
-            let v = members[head]
+        // Is `source` in the component of `target`?
+        var seen = [Bool](repeating: false, count: n)
+        var queue = [Int](repeating: 0, count: n)
+        seen[target] = true
+        queue[0] = target
+        var head = 0, tail = 1
+        while head < tail && !seen[source] {
+            let v = queue[head]
             head += 1
-            for k in offsets[v] ..< offsets[v + 1] where local[columns[k]] < 0 {
-                local[columns[k]] = members.count
-                members.append(columns[k])
+            for k in offsets[v] ..< offsets[v + 1] where !seen[Int(columns[k])] {
+                seen[Int(columns[k])] = true
+                queue[tail] = Int(columns[k])
+                tail += 1
             }
         }
-        guard local[source] >= 0 else { return nil }
-        // Unknowns 0..<size: the members other than `target`, member i at i − 1.
-        let size = members.count - 1
-        var diagonal = [Double](repeating: 0, count: size)
-        var rowOffsets = [Int](repeating: 0, count: size + 1)
-        var rowColumns: [Int] = [], rowValues: [Double] = []
-        for i in 0 ..< size {
-            let v = members[i + 1]
-            for k in offsets[v] ..< offsets[v + 1] where columns[k] != v {
-                diagonal[i] += values[k]
-                let u = local[columns[k]] - 1
-                if u >= 0 {
-                    rowColumns.append(u)
-                    rowValues.append(values[k])
-                }
-            }
-            rowOffsets[i + 1] = rowColumns.count
-        }
-        let s = local[source] - 1
-        let workspace = UnsafeMutablePointer<Double>.allocate(capacity: 5 * size)
-        defer { workspace.deallocate() }
-        let x = workspace, r = x + size, z = r + size, p = z + size, q = p + size
-        workspace.update(repeating: 0, count: 5 * size)
-        r[s] = 1
-        z[s] = 1 / diagonal[s]
-        p[s] = z[s]
-        var rz = z[s]
-        let limit = max(100, 10 * size)
-        var iteration = 0
-        diagonal.withUnsafeBufferPointer { diagonal in
-            rowOffsets.withUnsafeBufferPointer { rowOffsets in
-                rowColumns.withUnsafeBufferPointer { rowColumns in
-                    rowValues.withUnsafeBufferPointer { rowValues in
-                        let diagonal = diagonal.baseAddress!, rowOffsets = rowOffsets.baseAddress!
-                        // Never read when the component has no edge between unknowns.
-                        let rowColumns = rowColumns.baseAddress ?? UnsafePointer(rowOffsets), rowValues = rowValues.baseAddress ?? UnsafePointer(diagonal)
-                        while iteration < limit {
-                            iteration += 1
-                            // q = L_g p: the diagonal minus the off-diagonal conductances.
-                            var pq = 0.0
-                            var i = 0
-                            var k = 0
-                            while i < size {
-                                var sum = diagonal[i] * p[i]
-                                let end = rowOffsets[i &+ 1]
-                                while k < end {
-                                    sum -= rowValues[k] * p[rowColumns[k]]
-                                    k &+= 1
-                                }
-                                q[i] = sum
-                                pq += p[i] * sum
-                                i &+= 1
-                            }
-                            let alpha = rz / pq
-                            _axpy(alpha, p, x, size)
-                            _axpy(-alpha, q, r, size)
-                            if _dot(r, r, size).squareRoot() <= tolerance { break }
-                            var next = 0.0
-                            i = 0
-                            while i < size {
-                                z[i] = r[i] / diagonal[i]
-                                next += r[i] * z[i]
-                                i &+= 1
-                            }
-                            let beta = next / rz
-                            rz = next
-                            i = 0
-                            while i < size {
-                                p[i] = z[i] + beta * p[i]
-                                i &+= 1
-                            }
-                        }
-                    }
-                }
+        guard seen[source] else { return nil }
+        let solver = _GroundedSolver(self, ground: target)
+        var b = [Double](repeating: 0, count: n)
+        b[source] = 1
+        var x = [Double](repeating: 0, count: n)
+        let limit = _SpectralLimits.solve(n)
+        let solved = b.withUnsafeBufferPointer { b in
+            x.withUnsafeMutableBufferPointer { x in
+                solver.solve(b.baseAddress!, x.baseAddress!, tolerance: tolerance, budget: limit)
             }
         }
-        return x[s]
+        precondition(solved, "Conjugate gradients did not converge within \(limit) products (resistance distance)")
+        return x[source]
     }
 
-    /// n · Σ_{i≥2} 1/λᵢ over L's spectrum: nil when not connected, 0 below two vertices.
+    /// n · tr(L_g⁻¹) − 1ᵀ L_g⁻¹ 1 (the sum of the pairwise resistances, for any ground g) from the
+    /// GTH elimination: nil when not connected, 0 below two vertices.
     @usableFromInline
     func effectiveGraphResistance() -> Double? {
         let n = count
         guard n > 1 else { return 0 }
         guard components().count == 1 else { return nil }
-        let spectrum = spectrum(.laplacian)
-        var sum = 0.0
-        for i in 1 ..< n { sum += 1 / spectrum[i] }
-        return Double(n) * sum
+        let elimination = _GroundedElimination(self, ground: heaviestVertex())
+        var trace = 0.0
+        for t in elimination.inverseDiagonal() { trace += t }
+        let total = elimination.energy([Double](repeating: 1, count: n - 1))
+        return Double(n) * trace - total
     }
 
-    /// Σ_{i≥2} 1/μᵢ over N's spectrum: nil when not connected, 0 below two vertices.
+    /// vol · (Σᵢ πᵢ (L_g⁻¹)ᵢᵢ − πᵀ L_g⁻¹ π) with π = d / vol the stationary distribution, which is
+    /// (1 / 2vol) Σᵢⱼ dᵢ dⱼ R(i, j), the Kemeny constant of the walk (commute times are vol · R).
+    /// Grounded at the vertex of largest degree, so the difference loses at most a factor
+    /// vol / d_g ≤ n; π rather than d keeps every intermediate within range when the weights are
+    /// near `Double`'s limits. nil when not connected, 0 below two vertices.
     @usableFromInline
     func kemenyConstant() -> Double? {
         let n = count
         guard n > 1 else { return 0 }
         guard components().count == 1 else { return nil }
-        let spectrum = spectrum(.normalizedLaplacian)
-        var sum = 0.0
-        for i in 1 ..< n { sum += 1 / spectrum[i] }
-        return sum
+        let d = degrees()
+        var volume = 0.0
+        for t in d { volume += t }
+        let ground = heaviestVertex()
+        let elimination = _GroundedElimination(self, ground: ground)
+        let diagonal = elimination.inverseDiagonal()
+        var weighted = 0.0
+        var stationary = [Double](repeating: 0, count: n - 1)
+        for v in 0 ..< n where v != ground {
+            let i = elimination.unknown(v)
+            stationary[i] = d[v] / volume
+            weighted += stationary[i] * diagonal[i]
+        }
+        return volume * (weighted - elimination.energy(stationary))
     }
 }

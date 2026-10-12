@@ -12,7 +12,7 @@ extension Graph {
     /// O(n + m), the result storing exactly the nonzero entries.
     @inlinable
     public func adjacencyMatrix() -> SparseMatrix {
-        _spectralAdjacency(nil, numbering: nil).matrix(.adjacency)
+        _spectralAdjacency(nil, numbering: nil).merged().matrix(.adjacency)
     }
 
     /// The adjacency matrix A: A[u][v] is the total weight of the edges between u and v, so parallel
@@ -29,7 +29,7 @@ extension Graph {
     /// - Precondition: every weight is finite.
     @inlinable
     public func adjacencyMatrix<W: BinaryInteger>(weight: (Edges.Index) -> W) -> SparseMatrix {
-        _spectralAdjacency(_spectralWeights(weight, allowsNegative: true), numbering: nil).matrix(.adjacency)
+        _spectralAdjacency(_spectralWeights(weight, allowsNegative: true), numbering: nil).merged().matrix(.adjacency)
     }
 
     /// The adjacency matrix A: A[u][v] is the total weight of the edges between u and v, so parallel
@@ -46,7 +46,7 @@ extension Graph {
     /// - Precondition: every weight is finite.
     @inlinable
     public func adjacencyMatrix<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W) -> SparseMatrix {
-        _spectralAdjacency(_spectralWeights(weight, allowsNegative: true), numbering: nil).matrix(.adjacency)
+        _spectralAdjacency(_spectralWeights(weight, allowsNegative: true), numbering: nil).merged().matrix(.adjacency)
     }
 
     /// The Laplacian L = D − A, D the diagonal of weighted degrees: self-loops cancel (L is the
@@ -56,7 +56,7 @@ extension Graph {
     /// O(n + m), the result storing exactly the nonzero entries.
     @inlinable
     public func laplacianMatrix() -> SparseMatrix {
-        _spectralAdjacency(nil, numbering: nil).matrix(.laplacian)
+        _spectralAdjacency(nil, numbering: nil).merged().matrix(.laplacian)
     }
 
     /// The Laplacian L = D − A, D the diagonal of weighted degrees: self-loops cancel (L is the
@@ -69,7 +69,7 @@ extension Graph {
     /// - Precondition: every weight is finite and nonnegative.
     @inlinable
     public func laplacianMatrix<W: BinaryInteger>(weight: (Edges.Index) -> W) -> SparseMatrix {
-        _spectralAdjacency(_spectralWeights(weight), numbering: nil).matrix(.laplacian)
+        _spectralAdjacency(_spectralWeights(weight), numbering: nil).merged().matrix(.laplacian)
     }
 
     /// The Laplacian L = D − A, D the diagonal of weighted degrees: self-loops cancel (L is the
@@ -82,7 +82,7 @@ extension Graph {
     /// - Precondition: every weight is finite and nonnegative.
     @inlinable
     public func laplacianMatrix<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W) -> SparseMatrix {
-        _spectralAdjacency(_spectralWeights(weight), numbering: nil).matrix(.laplacian)
+        _spectralAdjacency(_spectralWeights(weight), numbering: nil).merged().matrix(.laplacian)
     }
 
     /// The normalized Laplacian N = D^-1/2 L D^-1/2, with D^-1/2 taken as 0 at a vertex of degree 0
@@ -92,7 +92,7 @@ extension Graph {
     /// O(n + m), the result storing exactly the nonzero entries.
     @inlinable
     public func normalizedLaplacianMatrix() -> SparseMatrix {
-        _spectralAdjacency(nil, numbering: nil).matrix(.normalizedLaplacian)
+        _spectralAdjacency(nil, numbering: nil).merged().matrix(.normalizedLaplacian)
     }
 
     /// The normalized Laplacian N = D^-1/2 L D^-1/2, with D^-1/2 taken as 0 at a vertex of degree 0
@@ -105,7 +105,7 @@ extension Graph {
     /// - Precondition: every weight is finite and nonnegative.
     @inlinable
     public func normalizedLaplacianMatrix<W: BinaryInteger>(weight: (Edges.Index) -> W) -> SparseMatrix {
-        _spectralAdjacency(_spectralWeights(weight), numbering: nil).matrix(.normalizedLaplacian)
+        _spectralAdjacency(_spectralWeights(weight), numbering: nil).merged().matrix(.normalizedLaplacian)
     }
 
     /// The normalized Laplacian N = D^-1/2 L D^-1/2, with D^-1/2 taken as 0 at a vertex of degree 0
@@ -118,7 +118,7 @@ extension Graph {
     /// - Precondition: every weight is finite and nonnegative.
     @inlinable
     public func normalizedLaplacianMatrix<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W) -> SparseMatrix {
-        _spectralAdjacency(_spectralWeights(weight), numbering: nil).matrix(.normalizedLaplacian)
+        _spectralAdjacency(_spectralWeights(weight), numbering: nil).merged().matrix(.normalizedLaplacian)
     }
 
     /// The random-walk Laplacian L_rw = D⁻¹ L = I − D⁻¹A on rows of positive degree, zero rows at
@@ -127,7 +127,7 @@ extension Graph {
     /// O(n + m), the result storing exactly the nonzero entries.
     @inlinable
     public func randomWalkLaplacianMatrix() -> SparseMatrix {
-        _spectralAdjacency(nil, numbering: nil).matrix(.randomWalkLaplacian)
+        _spectralAdjacency(nil, numbering: nil).merged().matrix(.randomWalkLaplacian)
     }
 
     /// The random-walk Laplacian L_rw = D⁻¹ L = I − D⁻¹A on rows of positive degree, zero rows at
@@ -139,7 +139,7 @@ extension Graph {
     /// - Precondition: every weight is finite and nonnegative.
     @inlinable
     public func randomWalkLaplacianMatrix<W: BinaryInteger>(weight: (Edges.Index) -> W) -> SparseMatrix {
-        _spectralAdjacency(_spectralWeights(weight), numbering: nil).matrix(.randomWalkLaplacian)
+        _spectralAdjacency(_spectralWeights(weight), numbering: nil).merged().matrix(.randomWalkLaplacian)
     }
 
     /// The random-walk Laplacian L_rw = D⁻¹ L = I − D⁻¹A on rows of positive degree, zero rows at
@@ -151,7 +151,7 @@ extension Graph {
     /// - Precondition: every weight is finite and nonnegative.
     @inlinable
     public func randomWalkLaplacianMatrix<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W) -> SparseMatrix {
-        _spectralAdjacency(_spectralWeights(weight), numbering: nil).matrix(.randomWalkLaplacian)
+        _spectralAdjacency(_spectralWeights(weight), numbering: nil).merged().matrix(.randomWalkLaplacian)
     }
 
     /// The signless Laplacian Q = D + A (Cvetković, Rowlinson and Simić): a self-loop adds 4 times
@@ -160,7 +160,7 @@ extension Graph {
     /// O(n + m), the result storing exactly the nonzero entries.
     @inlinable
     public func signlessLaplacianMatrix() -> SparseMatrix {
-        _spectralAdjacency(nil, numbering: nil).matrix(.signlessLaplacian)
+        _spectralAdjacency(nil, numbering: nil).merged().matrix(.signlessLaplacian)
     }
 
     /// The signless Laplacian Q = D + A (Cvetković, Rowlinson and Simić): a self-loop adds 4 times
@@ -172,7 +172,7 @@ extension Graph {
     /// - Precondition: every weight is finite and nonnegative.
     @inlinable
     public func signlessLaplacianMatrix<W: BinaryInteger>(weight: (Edges.Index) -> W) -> SparseMatrix {
-        _spectralAdjacency(_spectralWeights(weight), numbering: nil).matrix(.signlessLaplacian)
+        _spectralAdjacency(_spectralWeights(weight), numbering: nil).merged().matrix(.signlessLaplacian)
     }
 
     /// The signless Laplacian Q = D + A (Cvetković, Rowlinson and Simić): a self-loop adds 4 times
@@ -184,7 +184,7 @@ extension Graph {
     /// - Precondition: every weight is finite and nonnegative.
     @inlinable
     public func signlessLaplacianMatrix<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W) -> SparseMatrix {
-        _spectralAdjacency(_spectralWeights(weight), numbering: nil).matrix(.signlessLaplacian)
+        _spectralAdjacency(_spectralWeights(weight), numbering: nil).merged().matrix(.signlessLaplacian)
     }
 }
 

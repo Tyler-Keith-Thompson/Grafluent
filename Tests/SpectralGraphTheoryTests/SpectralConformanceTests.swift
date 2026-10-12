@@ -252,7 +252,7 @@ struct SpectralConformanceTests {
         }
     }
 
-    @Test("tolerance: a looser tolerance stays within it (relative to the Gershgorin bound); the default is tighter")
+    @Test("tolerance: λ₂ and ρ stay within it relative to themselves, the Fiedler residual within tolerance · λ₂")
     func toleranceParameter() {
         var rng = SeededRandomNumberGenerator(seed: 5)
         let n = 300
@@ -260,24 +260,21 @@ struct SpectralConformanceTests {
         for _ in 0 ..< 600 { edges.append(UndirectedEdge(Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng))) }
         let graph = ReferencePseudograph(vertices: Array(0 ..< n), edges: edges)
         let exact = graph.laplacianSpectrum()
-        var degree = [Double](repeating: 0, count: n)
-        for e in edges where e.u != e.v { degree[e.u] += 1; degree[e.v] += 1 }
-        let sigma = 2 * degree.max()!
         for tolerance in [1e-3, 1e-6, 1e-8, 1e-10] {
             let value = graph.algebraicConnectivity(tolerance: tolerance)
-            #expect(abs(value - exact[1]) <= tolerance * sigma, "tolerance \(tolerance)")
+            #expect(abs(value - exact[1]) <= tolerance * exact[1], "tolerance \(tolerance)")
             if let fiedler = graph.fiedlerVector(tolerance: tolerance) {
                 let x = fiedler.values
                 let lx = graph.laplacianMatrix() * x
                 let residual = zip(lx, x).reduce(0) { $0 + ($1.0 - fiedler.algebraicConnectivity * $1.1) * ($1.0 - fiedler.algebraicConnectivity * $1.1) }
-                #expect(residual.squareRoot() <= 10 * tolerance * sigma, "tolerance \(tolerance)")
+                #expect(residual.squareRoot() <= 10 * tolerance * exact[1] + 1e-12 * exact[n - 1], "tolerance \(tolerance)")
             } else {
                 Issue.record("nil on a connected graph")
             }
         }
         let largest = graph.adjacencySpectrum().map { abs($0) }.max()!
-        #expect(abs(graph.spectralRadius(tolerance: 1e-4) - largest) <= 1e-4 * sigma)
-        #expect(abs(graph.spectralRadius() - largest) <= 1e-6 * largest)
+        #expect(abs(graph.spectralRadius(tolerance: 1e-4) - largest) <= 1e-4 * largest)
+        #expect(abs(graph.spectralRadius() - largest) <= 1e-8 * largest)
         // resistanceDistance's tolerance: a loose one is still within 10 %.
         let r = graph.resistanceDistance(from: 0, to: n - 1)
         let loose = graph.resistanceDistance(from: 0, to: n - 1, tolerance: 1e-4)

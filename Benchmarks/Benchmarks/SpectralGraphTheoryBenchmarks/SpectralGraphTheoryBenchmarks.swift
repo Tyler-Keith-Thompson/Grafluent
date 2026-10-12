@@ -110,9 +110,9 @@ let benchmarks: @Sendable () -> Void = {
         let graph = inputs[5].1
         for _ in benchmark.scaledIterations { blackHole(graph.normalizedLaplacianMatrix(weight: { $0 % 7 + 1 })) }
     }
-    // numpy.linalg.eigvalsh on the same kind of Laplacian, measured alongside: 81 ms (n = 1000),
-    // 670 ms (n = 2000).
-    for (n, numpy) in [(1_000, "81 ms"), (2_000, "670 ms")] {
+    // numpy.linalg.eigvalsh, one thread (OPENBLAS_NUM_THREADS=1), measured interleaved on random
+    // symmetric matrices of the same sizes: 77 ms (n = 1000), 610–730 ms (n = 2000).
+    for (n, numpy) in [(1_000, "77 ms"), (2_000, "610–730 ms")] {
         let graph = giantComponent(n, seed: 5)
         Benchmark("SpectralGraphTheory: laplacianSpectrum(), G(n, p) \(n) (numpy eigvalsh \(numpy))") { benchmark in
             for _ in benchmark.scaledIterations { blackHole(graph.laplacianSpectrum()) }
@@ -126,6 +126,19 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("SpectralGraphTheory: numberOfSpanningTrees(), G(n, p) 1000") { benchmark in
         let graph = giantComponent(1_000, seed: 5)
         for _ in benchmark.scaledIterations { blackHole(graph.numberOfSpanningTrees()) }
+    }
+    // The shift-invert path: σ/λ₂ ≈ 0.4 n² on a path (phase 1 ran past 500 s here).
+    let path = UndirectedAdjacencyList(vertices: 0 ..< 100_000, edges: (0 ..< 99_999).map { UndirectedEdge($0, $0 + 1) })
+    Benchmark("SpectralGraphTheory: algebraicConnectivity(), path 10⁵ (shift-invert)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(path.algebraicConnectivity()) }
+    }
+    // Conductances log-uniform over 2⁻²⁰ … 2²¹ on the 100 × 100 grid: Jacobi, then the incomplete
+    // factor (phase 1's Jacobi stopped at its cap with an error of 8.6 · 10⁻⁴).
+    let spreadGrid = inputs[0].1
+    var spreadRandom = SeededRandomNumberGenerator(seed: 6)
+    let spread = (0 ..< spreadGrid.edgeCount).map { _ in Double(sign: .plus, exponent: Int.random(in: -20 ... 20, using: &spreadRandom), significand: Double.random(in: 1 ..< 2, using: &spreadRandom)) }
+    Benchmark("SpectralGraphTheory: resistanceDistance(from:to:weight:), grid 100×100, conductances over twelve decades") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(spreadGrid.resistanceDistance(from: 0, to: spreadGrid.vertexCount - 1, weight: { spread[$0] })) }
     }
     // api.md: finishes with the correct λ₂ = 2 − 2cos(π/1000) ≈ 9.8696e-6 in under 120 s.
     Benchmark("SpectralGraphTheory: algebraicConnectivity(), grid 1000×1000 (target < 120 s; no SciPy method finished)", configuration: .init(maxDuration: .seconds(1), maxIterations: 1)) { benchmark in

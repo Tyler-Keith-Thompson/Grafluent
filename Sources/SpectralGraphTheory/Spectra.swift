@@ -4,7 +4,7 @@ extension Graph {
     /// Every eigenvalue of the adjacency matrix A (`adjacencyMatrix()`), ascending, with multiplicity.
     /// NetworkX `adjacency_spectrum`.
     ///
-    /// Dense: Householder tridiagonalization and the implicit QL iteration, O(n³) time and n²
+    /// Dense: Householder tridiagonalization and the root-free QL iteration, O(n³) time and n²
     /// `Double`s, for graphs of up to a few thousand vertices. `[]` for the empty graph.
     @inlinable
     public func adjacencySpectrum() -> [Double] {
@@ -14,7 +14,7 @@ extension Graph {
     /// Every eigenvalue of the adjacency matrix A (`adjacencyMatrix()`), ascending, with multiplicity.
     /// NetworkX `adjacency_spectrum`.
     ///
-    /// Dense: Householder tridiagonalization and the implicit QL iteration, O(n³) time and n²
+    /// Dense: Householder tridiagonalization and the root-free QL iteration, O(n³) time and n²
     /// `Double`s, for graphs of up to a few thousand vertices. `[]` for the empty graph.
     ///
     /// `weight` gives the weight of the edge at each position, read once per position.
@@ -28,7 +28,7 @@ extension Graph {
     /// Every eigenvalue of the adjacency matrix A (`adjacencyMatrix()`), ascending, with multiplicity.
     /// NetworkX `adjacency_spectrum`.
     ///
-    /// Dense: Householder tridiagonalization and the implicit QL iteration, O(n³) time and n²
+    /// Dense: Householder tridiagonalization and the root-free QL iteration, O(n³) time and n²
     /// `Double`s, for graphs of up to a few thousand vertices. `[]` for the empty graph.
     ///
     /// `weight` gives the weight of the edge at each position, read once per position.
@@ -42,7 +42,7 @@ extension Graph {
     /// Every eigenvalue of the Laplacian L (`laplacianMatrix()`), ascending, with multiplicity: 0
     /// once per component. NetworkX `laplacian_spectrum`.
     ///
-    /// Dense: Householder tridiagonalization and the implicit QL iteration, O(n³) time and n²
+    /// Dense: Householder tridiagonalization and the root-free QL iteration, O(n³) time and n²
     /// `Double`s, for graphs of up to a few thousand vertices. `[]` for the empty graph.
     @inlinable
     public func laplacianSpectrum() -> [Double] {
@@ -52,7 +52,7 @@ extension Graph {
     /// Every eigenvalue of the Laplacian L (`laplacianMatrix()`), ascending, with multiplicity: 0
     /// once per component. NetworkX `laplacian_spectrum`.
     ///
-    /// Dense: Householder tridiagonalization and the implicit QL iteration, O(n³) time and n²
+    /// Dense: Householder tridiagonalization and the root-free QL iteration, O(n³) time and n²
     /// `Double`s, for graphs of up to a few thousand vertices. `[]` for the empty graph.
     ///
     /// `weight` gives the weight of the edge at each position, read once per position; a weight of
@@ -67,7 +67,7 @@ extension Graph {
     /// Every eigenvalue of the Laplacian L (`laplacianMatrix()`), ascending, with multiplicity: 0
     /// once per component. NetworkX `laplacian_spectrum`.
     ///
-    /// Dense: Householder tridiagonalization and the implicit QL iteration, O(n³) time and n²
+    /// Dense: Householder tridiagonalization and the root-free QL iteration, O(n³) time and n²
     /// `Double`s, for graphs of up to a few thousand vertices. `[]` for the empty graph.
     ///
     /// `weight` gives the weight of the edge at each position, read once per position; a weight of
@@ -83,7 +83,7 @@ extension Graph {
     /// with multiplicity, in [0, 2]; also the spectrum of the random-walk Laplacian. NetworkX
     /// `normalized_laplacian_spectrum`.
     ///
-    /// Dense: Householder tridiagonalization and the implicit QL iteration, O(n³) time and n²
+    /// Dense: Householder tridiagonalization and the root-free QL iteration, O(n³) time and n²
     /// `Double`s, for graphs of up to a few thousand vertices. `[]` for the empty graph.
     @inlinable
     public func normalizedLaplacianSpectrum() -> [Double] {
@@ -94,7 +94,7 @@ extension Graph {
     /// with multiplicity, in [0, 2]; also the spectrum of the random-walk Laplacian. NetworkX
     /// `normalized_laplacian_spectrum`.
     ///
-    /// Dense: Householder tridiagonalization and the implicit QL iteration, O(n³) time and n²
+    /// Dense: Householder tridiagonalization and the root-free QL iteration, O(n³) time and n²
     /// `Double`s, for graphs of up to a few thousand vertices. `[]` for the empty graph.
     ///
     /// `weight` gives the weight of the edge at each position, read once per position; a weight of
@@ -110,7 +110,7 @@ extension Graph {
     /// with multiplicity, in [0, 2]; also the spectrum of the random-walk Laplacian. NetworkX
     /// `normalized_laplacian_spectrum`.
     ///
-    /// Dense: Householder tridiagonalization and the implicit QL iteration, O(n³) time and n²
+    /// Dense: Householder tridiagonalization and the root-free QL iteration, O(n³) time and n²
     /// `Double`s, for graphs of up to a few thousand vertices. `[]` for the empty graph.
     ///
     /// `weight` gives the weight of the edge at each position, read once per position; a weight of
@@ -125,8 +125,10 @@ extension Graph {
     /// The spectral radius ρ(A), the largest magnitude of an eigenvalue of the adjacency matrix:
     /// for nonnegative weights, the largest eigenvalue (Perron–Frobenius); 0 without edges.
     /// Thick-restart Lanczos on A from a fixed start vector (with −A as well when a weight is
-    /// negative), accepting a Ritz pair whose residual is at most `tolerance` times Gershgorin's
-    /// bound on |λ|; the dense solver below 64 vertices.
+    /// negative), the top Ritz pair tested every 5 steps, accepting it when its residual is at
+    /// most `tolerance` · ρ (relative); the dense solver below 64 vertices. O((n + m) · products)
+    /// time, 31 n `Double`s; the operator shares the graph's rows. Traps after 20,000 + 20√n
+    /// products, which only a tolerance below rounding has reached in the measurements.
     ///
     /// - Precondition: `tolerance > 0`.
     @inlinable
@@ -138,14 +140,14 @@ extension Graph {
     /// The spectral radius ρ(A), the largest magnitude of an eigenvalue of the adjacency matrix:
     /// for nonnegative weights, the largest eigenvalue (Perron–Frobenius); 0 without edges.
     /// Thick-restart Lanczos on A from a fixed start vector (with −A as well when a weight is
-    /// negative), accepting a Ritz pair whose residual is at most `tolerance` times Gershgorin's
-    /// bound on |λ|; the dense solver below 64 vertices.
-    ///
-    /// - Precondition: `tolerance > 0`.
+    /// negative), the top Ritz pair tested every 5 steps, accepting it when its residual is at
+    /// most `tolerance` · ρ (relative); the dense solver below 64 vertices. O((n + m) · products)
+    /// time, 31 n `Double`s; the operator shares the graph's rows. Traps after 20,000 + 20√n
+    /// products, which only a tolerance below rounding has reached in the measurements.
     ///
     /// `weight` gives the weight of the edge at each position, read once per position.
     ///
-    /// - Precondition: every weight is finite.
+    /// - Precondition: `tolerance > 0`, and every weight is finite.
     @inlinable
     public func spectralRadius<W: BinaryInteger>(weight: (Edges.Index) -> W, tolerance: Double = 1e-8) -> Double {
         precondition(tolerance > 0, "The tolerance is not positive")
@@ -155,14 +157,14 @@ extension Graph {
     /// The spectral radius ρ(A), the largest magnitude of an eigenvalue of the adjacency matrix:
     /// for nonnegative weights, the largest eigenvalue (Perron–Frobenius); 0 without edges.
     /// Thick-restart Lanczos on A from a fixed start vector (with −A as well when a weight is
-    /// negative), accepting a Ritz pair whose residual is at most `tolerance` times Gershgorin's
-    /// bound on |λ|; the dense solver below 64 vertices.
-    ///
-    /// - Precondition: `tolerance > 0`.
+    /// negative), the top Ritz pair tested every 5 steps, accepting it when its residual is at
+    /// most `tolerance` · ρ (relative); the dense solver below 64 vertices. O((n + m) · products)
+    /// time, 31 n `Double`s; the operator shares the graph's rows. Traps after 20,000 + 20√n
+    /// products, which only a tolerance below rounding has reached in the measurements.
     ///
     /// `weight` gives the weight of the edge at each position, read once per position.
     ///
-    /// - Precondition: every weight is finite.
+    /// - Precondition: `tolerance > 0`, and every weight is finite.
     @inlinable
     public func spectralRadius<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W, tolerance: Double = 1e-8) -> Double {
         precondition(tolerance > 0, "The tolerance is not positive")

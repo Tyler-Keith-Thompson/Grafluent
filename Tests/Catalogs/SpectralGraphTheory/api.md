@@ -225,14 +225,20 @@ With w(e) the weight of edge e (1 without `weight:`):
   of L (Kirchhoff). Loops never lie on a tree (SGT-164); parallel edges each count (SGT-163). 0
   when not connected and for the empty graph (no tree has no vertex; NetworkX raises), 1 for one
   vertex. A `Double`, as NetworkX: counts pass `Int` quickly (K₂₅ has 25²³, SGT-154; an 8 × 8
-  grid 1.26 · 10²⁶, SGT-162). Computed by a Cholesky factorization of the grounded Laplacian,
-  the pivots multiplied as a significand in [1, 2) with the binary exponent kept apart (a
+  grid 1.26 · 10²⁶, SGT-162). Computed by eliminating the grounded Laplacian as Grassmann,
+  Taksar and Heyman eliminate (GTH, 1985; each pivot the sum of the conductances still leaving
+  its vertex, never a difference, so entrywise relative accuracy whatever the weights, O'Cinneide
+  1993). A Cholesky factorization cancels instead: the path {h, 1} with h = 10¹⁶ gave 0. The
+  pivots are multiplied as a significand in [1, 2) with the binary exponent kept apart (a
   logarithm in base 2, without `log`/`exp`), so it overflows only past `Double`'s range (10³⁰⁸)
-  and returns `.infinity` there. When every weight is an integer (unweighted included) a result
-  below 2⁵³ is rounded to the nearest integer. **Counts near 2⁵³ are not exact**: the
-  factorization carries a relative error of order n · 10⁻¹⁶, so once the count is within a few
-  units of 2⁵³ (or above it) rounding may land on a neighbouring integer; the catalog pins such
-  counts to a relative 10⁻⁹ (SGT-154, SGT-162, SGT-168).
+  and returns `.infinity` there. **Integer weights (unweighted included) give the exact count**
+  whenever it is below 2¹⁰⁰: two determinants modulo the primes 2⁶² − 57 and 2⁶² − 87 (Gaussian
+  elimination in Montgomery arithmetic, `multipliedFullWidth`), combined by the Chinese
+  remainder theorem and rounded once, so every count below 2⁵³ is exact and larger ones are
+  correctly rounded. (The phase 1 Cholesky rounded its estimate, and 32 of 136 random graphs with
+  counts between 10⁹ and 2⁵³ came out wrong.) A weight counts as an integer when it is one below
+  2⁵³; otherwise, or past 2¹⁰⁰, the GTH value is returned unrounded. The catalog pins large counts
+  to a relative 10⁻⁹ (SGT-154, SGT-162, SGT-168).
 - `resistanceDistance(from: u, to: v)` = (e_u − e_v)ᵀ L⁺ (e_u − e_v), the effective resistance
   when each edge is a conductance w(e). 0 when u = v (SGT-172, SGT-174), returned after checking
   both are vertices and **without reading any weight** (so a negative weight elsewhere does not
@@ -243,38 +249,80 @@ With w(e) the weight of edge e (1 without `weight:`):
   residual's Euclidean norm is at most `tolerance` relative to the right-hand side (which has
   norm 1); since R is the energy of the solution, the error in R is of the order of the squared
   energy-norm error, far below `tolerance` · R in practice (10⁻⁴ stays within 10⁻¹ · R,
-  conformance).
+  conformance). Under a weight spread that puts `tolerance` below the residual's rounding floor
+  (about ε · Σ w |x|), the solve stops when the true residual no longer halves between restarts:
+  x is then as accurate as rounding allows (300 series bundles with conductances over twelve
+  decades: within 10⁻⁸ of the series–parallel law).
 - `effectiveGraphResistance` = Σ over unordered pairs of `resistanceDistance` = n · Σ_{i≥2} 1/λᵢ;
-  `nil` when not connected (NetworkX returns ∞), 0 for zero or one vertex.
+  `nil` when not connected (NetworkX returns ∞), 0 for zero or one vertex. Computed as
+  n · tr(L_g⁻¹) − 1ᵀ L_g⁻¹ 1 for L grounded at any vertex g (here the one of largest degree), from
+  the GTH factor: (I − M)⁻¹ is nonnegative, so tr(L_g⁻¹) and 1ᵀ L_g⁻¹ 1 are sums of positive terms,
+  and the difference loses at most a factor n. Σ 1/λᵢ over a dense spectrum lost the relative
+  accuracy: λᵢ carries an absolute error ε · λ_max.
 - `kemenyConstant` = Σ_{i≥2} 1/μᵢ over N's eigenvalues: the expected steps of the random walk to
   a target drawn from the stationary distribution. The walk takes a loop with probability
   2w/d(v) (two ends), consistent with A. `nil` when not connected (NetworkX raises), 0 for zero
-  or one vertex (NetworkX raises on the empty graph).
+  or one vertex (NetworkX raises on the empty graph). Computed through the fundamental matrix in
+  its resistance form: commute times are vol · R(i, j), so K = (1/2vol) Σᵢⱼ dᵢ dⱼ R(i, j) =
+  vol · (Σᵢ πᵢ (L_g⁻¹)ᵢᵢ − πᵀ L_g⁻¹ π) with π = d/vol, from the same GTH factor, grounded at the
+  vertex of largest degree (the difference then loses at most vol/d_g ≤ n). π rather than d keeps
+  the intermediates in range for weights near `Double`'s limits.
 
 ## Numerics (decision)
 
 ### Algorithms
 
-- **Dense spectra**: Householder tridiagonalization, then the implicit symmetric QL iteration
-  with Wilkinson shifts (EISPACK `tql1`/`tql2`, LAPACK `dsteqr`'s method), eigenvalues only;
-  `eigh`-style vectors for the small-n path of the Fiedler vector. O(n³) time, n² `Double`s.
-  Deterministic: one thread, fixed operation order.
+- **Dense spectra**: Householder tridiagonalization (EISPACK `tred2`), then for eigenvalues
+  alone the root-free QL/QR iteration of Pal, Walker and Kahan (LAPACK `dsterf`: squared
+  off-diagonals, no square root per rotation, blocks scaled into range), and with vectors (the
+  small-n Fiedler path, the Lanczos projections) the implicit QL iteration with Wilkinson shifts
+  (`tql2`, LAPACK `dsteqr`'s method), which traps if an eigenvalue takes more than 60 iterations
+  (only a NaN or infinite entry does that). A matrix whose largest entry lies outside 2^±500 is
+  first scaled by a power of two, exactly: Householder squares entries. O(n³) time, n² `Double`s.
+  Deterministic: one thread, fixed operation order. A blocked reduction (`dsytrd` with `dlatrd`
+  panels) was not added: `tred2` already runs at 11.7 GFlop/s at n = 2,000, the QL step is 8 %
+  of the time, and the target below is met (see Performance).
 - **λ₂, the Fiedler vector, ρ(A)**: thick-restart Lanczos (Wu–Simon 2000; mathematically
   ARPACK's implicitly restarted Lanczos, which SciPy `eigsh` and igraph wrap) with full
-  reorthogonalization of each new vector against the basis (classical Gram–Schmidt applied twice,
-  Daniel–Gragg–Kaufman–Stewart; in the implementation, the three-term coupling first, then one
-  full classical Gram–Schmidt pass), a basis of 30 vectors keeping the best 12 Ritz vectors at
-  each restart (measured: 20/8 took 3,752 products and 5.0 s on the 300 × 300 grid, 30/12 2,046
-  and 3.2 s, 40/16 1,552 and 3.0 s at more memory).
-- **Polynomial acceleration (measured, added).** From 5,000 vertices, when 4 restarts have not
+  reorthogonalization of each new vector against the basis: the three-term coupling first, one
+  full classical Gram–Schmidt pass, and a second only when that pass left less than η = 0.717 of
+  the vector (the DGKS criterion, Daniel–Gragg–Kaufman–Stewart 1976). A basis of 30 vectors
+  keeps the best 12 Ritz vectors at each restart (measured: 20/8 took 3,752 products and 5.0 s on
+  the 300 × 300 grid, 30/12 2,046 and 3.2 s, 40/16 1,552 and 3.0 s at more memory), and the top
+  Ritz pair is tested every 5 steps, not only at a restart. The operators share the graph's rows
+  (no copy): `Int32` columns, no values for an unweighted graph, A's loops left in place, and for
+  L the diagonal σ − d apart (rows with loops are copied once without them).
+- **Shift-invert for λ₂ (added in review).** The shifted operator σI − L needs O(√(σ/λ₂))
+  products and cannot resolve λ₂ below its rounding floor ε · σ: a 1,000-vertex path with one
+  edge of 10⁶ gave λ₂ 280× too large, and a 10⁵-vertex path ran past 500 s. When an upper bound
+  on λ₂ (the Rayleigh quotient of the breadth-first distance from a far vertex, two sweeps) puts
+  σ/λ₂ above min(0.05 · tolerance/ε, 20 n), or when the shifted run spends 4,000 + 20√n products
+  or finds σ/(σ − θ) past that ratio, Lanczos runs on L⁺ instead (D^1/2 L⁺ D^1/2 for N), whose
+  largest eigenvalue is 1/λ₂: each product is a conjugate-gradient solve with L grounded at the
+  vertex of largest degree (below), to a residual of max(10⁻¹³, 10⁻² · tolerance), followed at
+  the end by one more inverse-iteration step so that ‖Lx − λ₂x‖ ≤ tolerance · λ₂ holds for L too
+  (FuzzSpectral found the Ritz vector's residual for L at λ_max · tolerance). Measured choice
+  (interleaved medians): shift-invert 0.06 s against 1.2 s on the 10⁵ path, 0.03 s against
+  0.34 s on G(n, p) 2,000 with weights over six decades, 0.075 s against 0.17 s on the 10 × 1,000
+  grid; the shifted operator 0.07 s against 0.17 s on the 100 × 100 grid and 1.3 s against 6.8 s
+  on the 300 × 300 grid, so grids (σ/λ₂ ≈ 0.8 n) stay shifted and path-like graphs (≈ 0.4 n²)
+  and wide weight spreads go to shift-invert. LOBPCG with a Jacobi preconditioner was the
+  alternative: it needs O(√κ(D⁻¹L)) iterations, about n on a path, where shift-invert with the
+  incomplete factor below needs a few dozen products.
+- **λ₂ is the Rayleigh quotient** of the final vector, Σ over edges of w (x_u − x_v)² (with x/√d
+  for N): no term is negative, so it keeps its relative accuracy where σ − θ cancels. On every
+  path, dense included.
+- **Polynomial acceleration (measured, added).** From 5,000 vertices, when 8 restarts have not
   converged, the iteration starts again from its best Ritz vector on p(M), p the degree-10
   Chebyshev polynomial bounded by 1 on [lower bound, b], b the smallest kept Ritz value (below
   the wanted eigenvalue by interlacing; Saad, *Numerical Methods for Large Eigenvalue Problems*,
   2nd ed., ch. 7; Zhou–Saad's Chebyshev–Davidson filter). p(M) has M's eigenvectors and order
   above b, with the top spread apart, so each reorthogonalized step does the work of ten; the
   null vector is projected out after every polynomial step, and Ritz vectors are judged by their
-  residual for M itself. 300 × 300 grid: 3.2 s → 1.0 s; 1000 × 1000 grid: 188–256 s → 42 s. The smallest eigenvalues of L come from the largest of σI − L, σ = 2 · max weighted
-  degree (Gershgorin), so no factorization (shift-invert) is needed. The known null space (the
+  residual for M itself. 300 × 300 grid: 3.2 s → 1.0 s; 1000 × 1000 grid: 188–256 s → 42 s.
+  While σ/λ₂ is moderate the smallest eigenvalues of L come from the largest of σI − L,
+  σ = 2 · max weighted degree (Gershgorin), with no factorization; otherwise shift-invert
+  (above). The known null space (the
   indicator vector of each component for L, D^1/2 times it for N) is projected out of the start
   vector and every new Lanczos vector, so λ₂ is the largest eigenvalue of the deflated operator,
   and a disconnected graph is detected by the components pass before any iteration. Below
@@ -284,22 +332,37 @@ With w(e) the weight of edge e (1 without `weight:`):
   clustered and multiple eigenvalues. Phase 1 needs one eigenpair, for which Lanczos is optimal
   in matrix–vector products among Krylov methods; the baselines below compare. Phase 2's k
   eigenpairs (embedding, clustering) need a block method: LOBPCG with a Jacobi preconditioner.
-- **Resistance distance**: conjugate gradients on the Laplacian grounded at `target` (row and
-  column removed) restricted to the component, Jacobi preconditioned, from zero, solving for
-  `source`'s column: O(m √κ) per pair, no n² memory. `effectiveGraphResistance` and
-  `kemenyConstant` use the dense spectrum (n · Σ 1/λᵢ); `numberOfSpanningTrees` a dense
-  Cholesky (O(n³)). Sparse Cholesky with a fill-reducing order is phase 2 if large inputs ask.
+- **Resistance distance**: conjugate gradients on the Laplacian grounded at `target`, run on the
+  rows as they are: the grounded unknown is held at 0 and the product is (Lx)_v = Σ w (x_v − x_u)
+  (a loop adds 0), so no grounded copy, no sort and no merge. Jacobi preconditioned for 300
+  iterations, then (restarting from where Jacobi stopped) a modified incomplete Cholesky factor
+  with no fill (MIC(0), Gustafsson 1978), eliminating in the reverse of Prim's order on a
+  maximum-weight spanning tree from the ground, pivots computed GTH-style (sums of the
+  conductances still leaving the vertex), so a tree factors exactly and no pivot cancels. Measured
+  on a 100 × 100 grid with conductances over 10⁻⁶ … 10⁶: Jacobi alone did not converge in
+  40,000 products (phase 1 stopped silently at its cap with an error of 8.6 · 10⁻⁴), IC(0) in
+  breadth-first order took 26,559, MIC(0) in this order 79. On G(n, p) Jacobi converges first
+  (36 products at 10⁵ vertices, where the factor costs 711), hence the switch. O(m √κ) per pair,
+  no n² memory. `effectiveGraphResistance`, `kemenyConstant` and `numberOfSpanningTrees` use the
+  dense GTH elimination (O(n³), less on sparse graphs: zero multipliers are skipped). Sparse
+  elimination with a fill-reducing order is phase 2 if large inputs ask.
+- **Work limits (decision, review).** Every iterative path counts matrix–vector products (a
+  conjugate-gradient iteration is one) and traps when its limit is spent: Lanczos on σI − L
+  4,000 + 20√n (then shift-invert, not a trap), shift-invert 1,000, each solve 20,000 + 2n, ρ(A)
+  20,000 + 20√n. Each limit is documented on its method. In the measurements only a tolerance
+  below rounding (10⁻³⁰⁰) reached one; phase 1 instead ran on (a 10⁵ path past 500 s) or
+  stopped silently. Whether these become a typed throw or `nil` is the repo-wide trap-versus-throw
+  decision, taken in the `safe:` pass.
 - **Start vector**: a fixed one, vᵢ = SplitMix64(i)'s 53-bit uniform in [0.5, 1.5) (the counter
   i + 1 times the golden-ratio increment, then SplitMix64's finalizer), so results are
   reproducible bit for bit on one platform and build; across platforms the last bits may differ
   (fused multiply–add), which the tolerances absorb.
-- **Stopping rule**: a Ritz pair (θ, x) is accepted when ‖Mx − θx‖ ≤ tolerance · σ, σ the
-  Gershgorin bound (for `spectralRadius`, Gershgorin's bound on |λ(A)|, max over rows of Σ|A|) (SciPy `eigsh`'s `tol` and NetworkX's `tol` are relative the same way);
-  default 1e-8, NetworkX's default. Lanczos with full reorthogonalization over at most n
-  directions terminates; the restart loop is capped at max(100, n) restarts, after which the
-  dense solver runs when n ≤ 4,096, and otherwise the best Ritz pair is returned (documented,
-  no `nil`: unlike Centrality's power iterations, Lanczos does not fail to converge on a
-  symmetric matrix, it only slows on clustered spectra).
+- **Stopping rule (relative, changed in review)**: a Ritz pair (θ, x) is accepted when
+  ‖Mx − θx‖ ≤ tolerance · λ, λ the eigenvalue sought measured from the shift: σ − θ = λ₂ on
+  σI − L, θ = 1/λ₂ on L⁺, θ = ρ on A. So λ₂ and ρ carry a relative error of about `tolerance`
+  however the weights spread; the phase 1 rule, tolerance · σ, left λ₂ wrong by orders of
+  magnitude when σ/λ₂ was large (σ/λ₂ ≈ 10¹¹ for the path with one edge of 10⁶). Default 1e-8,
+  NetworkX's default. The work limits above replace the restart cap and the dense fallback.
 
 ### Determinism and degenerate eigenspaces (decision)
 
@@ -322,7 +385,7 @@ With w(e) the weight of edge e (1 without `weight:`):
   the rule as "the first component of magnitude > 10⁻⁹ is positive". The two agree on every row of
   both catalogs (P₅, the 3 × 4 grid and `lcggraph(12,20,9)` all start with an entry far from 0;
   SGT-109 and SGT-113 equal DR-207's and DR-208's x), but differ when an entry that is 0 in exact
-  arithmetic leads: the Lanczos result carries noise of order tolerance · σ ≈ 10⁻⁸ there, above
+  arithmetic leads: the Lanczos result carries noise of order tolerance · λ₂ there, above
   10⁻⁹, so an absolute 10⁻⁹ threshold would let noise pick the sign. Recommendation: GraphDrawing
   adopts this relative 10⁻⁴ rule (one sentence in its api.md and its `ref.py` `spectral`), and
   `spectralLayout()` reads x from `fiedlerVector()` rather than applying its own rule.
@@ -362,8 +425,12 @@ are `digraph.undirected.…`.
   spectra, the spanning-tree Cholesky) are the only places LAPACK would win by blocking (2–5× at
   n ≈ 2,000 per the usual reference vs. blocked comparison); they are for small graphs.
 - Revisit only if a measured dense-spectrum workload (n ≥ 2,000) is more than 3× slower than
-  `numpy.linalg.eigvalsh` (OpenBLAS/Accelerate LAPACK `dsyevd`), and then as an opt-in Apple-only
-  fast path for dense spectra alone, never for the sparse engines.
+  single-threaded `numpy.linalg.eigvalsh` (OpenBLAS LAPACK `dsyevd`, `OPENBLAS_NUM_THREADS=1`,
+  the fair comparison for a one-thread solver), and then as an opt-in Apple-only fast path for
+  dense spectra alone, never for the sparse engines. Re-measured in review (interleaved medians,
+  random symmetric matrices): NumPy one thread 77 ms at n = 1,000 and 610–730 ms at n = 2,000;
+  ours 124 ms and 930–1,030 ms, so 1.4–1.6×. The phase 1 table's 81 and 670 ms were NumPy's
+  default threading.
 - README edit: the row's "(Accelerate where it's available)" goes (done).
 
 ## Implementation notes (index space)
@@ -372,14 +439,26 @@ are `digraph.undirected.…`.
   UndirectedAdjacencyList, else `neighborIndices(ofIndex:)` with `incidentEdgeIndices(ofIndex:)`,
   else `_vertexNumbering()`), and on `DirectedGraph` `_withSuccessorIndexRows` (compressed sparse
   row) or the out-edge rows (Centrality's `_centralityRows`, generalized). Weights are read once
-  per edge position into a `[Double]`. The slots are then sorted by column with a bucket pass
-  (the transpose; an undirected graph's slots are symmetric, so one pass sorts them, a directed
-  graph's take two) and merged (parallel edges, both ends of a loop) into the `SparseMatrix`
-  arrays. O(n + m), no comparison sort.
-- The Lanczos engine runs on an operator built from the merged rows: the shifted diagonal apart
-  and the off-diagonal entries in compressed sparse rows (y = diag ∘ x + B x, a gather per row),
-  not on a materialized `SparseMatrix` of L, so `algebraicConnectivity()` allocates the rows and
-  the operator once plus the basis (31 · n `Double`s; 34 · n with the polynomial filter).
+  per edge position into a `[Double]`; a weight-0 edge is left out. The rows store `Int32`
+  columns and, for an unweighted graph, no values, and the same pass records Gershgorin's bound
+  (the largest Σ |w| over a row), whether a weight is negative and whether a loop occurs, so ρ(A)
+  needs no extra pass. A sum that overflows `Double` traps here (and in the degree and merge
+  passes) rather than returning infinities.
+- Only the matrices and the directed graphs sort and merge: the slots are sorted by column with
+  a bucket pass (the transpose; an undirected graph's slots are symmetric, so one pass sorts
+  them, a directed graph's take two) and merged (parallel edges, both ends of a loop) into the
+  `SparseMatrix` arrays. O(n + m), no comparison sort. The iterative paths (Lanczos, conjugate
+  gradients) and the dense ones (accumulating into the n × n array) use the rows as they are.
+- The Lanczos engine runs on an operator that shares those rows: y = diag ∘ x + sign · B x, a
+  gather per row, not a materialized `SparseMatrix` of L, so `algebraicConnectivity()` allocates
+  the rows once plus the basis (31 · n `Double`s; 34 · n with the polynomial filter), and on the
+  shift-invert path the solver (5 n) and the incomplete factor (O(n + m)).
+- Weights whose Gershgorin bound lies outside 2^±500 are scaled by a power of two (exactly)
+  before an iterative path, and the result scaled back (λ and ρ with the weights, R inversely, N
+  and vectors not at all): the engines square and sum entries.
+- `SparseMatrix` stays square (n × n, `Int` columns, public): an `incidenceMatrix()` would need a
+  rectangular |V| × |E| shape it does not have. The incidence matrix of a graph is
+  `IncidenceMatrixModule`'s representation; build one from the graph there.
 - `SparseMatrix.pattern` wraps `offsets` and `columns` with `CompressedSparseRow`'s package
   initializer (no copy): the dependency `CompressedSparseRowModule` is added to the BUILD file.
 - Vertices without indices (`AdjacencyList<String>`) are numbered once by `_vertexNumbering()`;
@@ -391,10 +470,10 @@ are `digraph.undirected.…`.
 |---|---|---|
 | matrices | O(n + m) | the result: n + 1 + 2 · nnz words |
 | full spectra | O(n³) | n² `Double`s |
-| `algebraicConnectivity`, `fiedlerVector`, `spectralOrdering`, `spectralRadius` | O((n + m) · iterations), iterations ≈ O(√(σ / gap) · log(1/tol)) for Lanczos; O(n³) below n = 64 | 31 n `Double`s (34 n from 5,000 vertices) |
-| `numberOfSpanningTrees` | O(n³) dense Cholesky | n² `Double`s |
-| `resistanceDistance` | O((n + m) √κ) conjugate gradients | 5 n `Double`s |
-| `effectiveGraphResistance`, `kemenyConstant` | O(n³) (the dense spectrum) | n² `Double`s |
+| `algebraicConnectivity`, `fiedlerVector`, `spectralOrdering`, `spectralRadius` | O((n + m) · products), products ≈ O(√(σ / gap) · log(1/tol)) on σI − L, a few dozen solves by shift-invert; O(n³) below n = 64 | 31 n `Double`s (34 n from 5,000 vertices); shift-invert adds 7 n and the incomplete factor, O(n + m) |
+| `numberOfSpanningTrees` | O(n³) GTH elimination (less when sparse), and for integer weights two modular eliminations | n² `Double`s, n² `UInt64`s |
+| `resistanceDistance` | O((n + m) √κ) conjugate gradients | about 9 n words, and the incomplete factor when built |
+| `effectiveGraphResistance`, `kemenyConstant` | O(n³) GTH elimination and the diagonal of L_g⁻¹ | n² `Double`s |
 
 ## Performance
 
@@ -446,10 +525,11 @@ the Swift inputs are the same families, `UndirectedAdjacencyList`):
 |---|---|---|
 | `laplacianMatrix()` | 0.64 ms, 6 ms (grids 100², 300²); 0.53, 6 ms (3-regular 10⁴, 10⁵); 1.7, 20 ms (G(n, p) 10⁴, 10⁵) | met (1.3–2.0× `csgraph.laplacian`) |
 | `algebraicConnectivity()` | 47 ms, 1.14 s (grids); 44 ms, 1.04 s (3-regular); 32, 321 ms (G(n, p)) | met (0.3–1.05× the shifted `eigsh`) |
-| grid 1000 × 1000 | 45 s, λ₂ = 9.8695963 · 10⁻⁶ (exact 9.8695963 · 10⁻⁶) | met (thick restart alone: 188–256 s; the Chebyshev filter brought it under) |
-| `spectralRadius()` | 23 ms, 0.64 s (grids); 6, 71 ms (3-regular); 6.8, 76 ms (G(n, p)) | met except G(n, p) 10⁵: 1.6× (`eigsh` 48 ms); the iteration takes 30 products, the rest is copying the rows and building the operator |
-| `laplacianSpectrum()` | 124 ms (n = 1000), 1.96 s (n = 2000); NumPy `eigvalsh` 81, 670 ms on this machine | met (1.5×, 2.9×), so no Accelerate path |
-| `resistanceDistance` on G(n, p) 10⁵ | 87 ms; SciPy's Jacobi `cg` on a prebuilt grounded Laplacian 51 ms | **missed**, 1.7×: the call reads the graph, finds the component and grounds L, which SciPy's timing leaves out |
+| `algebraicConnectivity()`, review | interleaved with phase 1 on a loaded machine: grid 100² 57 ms (phase 1 47–95), 300² 1.1–3.5 s (1.4–1.6 s), 3-regular 10⁴ 47–88 ms (44–116), 10⁵ 1.4–1.8 s (0.6–1.6 s), G(n, p) 10⁴ 29–134 ms (118–129), 10⁵ 1.0–2.2 s (0.8–1.5 s). The relative rule asks a residual of tolerance · λ₂ rather than tolerance · σ, so the shifted runs take up to 1.5× more products; a 10⁵ path takes 0.06–0.14 s by shift-invert (phase 1: over 500 s) | the 10⁵-vertex targets need re-measuring on a quiet machine (`just bench`) |
+| grid 1000 × 1000 | 45 s, λ₂ = 9.8695963 · 10⁻⁶ (exact 9.8695963 · 10⁻⁶); review, with the relative stopping rule: 42.7 s, λ₂ = 9.869596284 · 10⁻⁶ | met (thick restart alone: 188–256 s; the Chebyshev filter brought it under) |
+| `spectralRadius()` | 23 ms, 0.64 s (grids); 6, 71 ms (3-regular); 6.8, 76 ms (G(n, p)). Review (interleaved with the phase 1 code on a loaded machine, so read the ratios): G(n, p) 10⁵ 41–160 ms against 220–610 ms (47 ms quiet, against 78), grids and 3-regular within the noise | met: the G(n, p) miss was the iteration (30 products, then a restart's worth of reorthogonalization), not the setup; the top Ritz pair is now tested every 5 steps, and the operator shares the rows (no copy, `Int32` columns, no values array unweighted) |
+| `laplacianSpectrum()` | 124 ms (n = 1000), 1.96 s (n = 2000); review, random symmetric matrices interleaved with single-threaded NumPy: 124 ms against 77 ms, 0.93–1.03 s against 0.61–0.73 s | met (1.4–1.6× single-threaded `dsyevd`; the phase 1 comparison was against NumPy's threaded default) |
+| `resistanceDistance` on G(n, p) 10⁵ | phase 1 87 ms; review 48–55 ms (interleaved: 87–145 ms for phase 1); SciPy's Jacobi `cg` on a prebuilt grounded Laplacian 51 ms | met: conjugate gradients run on the rows with the ground held at 0, so no grounded copy, sort or merge |
 
 ## Library disagreements found
 
@@ -463,7 +543,7 @@ the Swift inputs are the same families, `UndirectedAdjacencyList`):
 | Disconnected inputs | NetworkX: `fiedler_vector` and `kemeny_constant` raise, `resistance_distance` raises, `effective_graph_resistance` returns ∞. Ours: `nil` for all four (the result does not exist; Distances' convention) | SGT-123, SGT-173, SGT-192, SGT-203 |
 | `spectral_bisection` with a zero Fiedler entry | NetworkX puts the vertex on the side of its rounding noise's sign (`v >= 0`), so P₅'s middle vertex moves between runs; ours: entries within 10⁻⁸ · max|x| of 0 join the nonnegative side, after the canonical sign | SGT-215 |
 | `resistance_distance` weights | NetworkX's default `invert_weight=True` reads `weight` as a resistance (1/w in L); ours reads every weight as a conductance, as `laplacianMatrix(weight:)` does (pass `{ 1 / r($0) }`) | SGT-176 |
-| `number_of_spanning_trees` | NetworkX returns `float(det(...))`, so K₅ gives 125.00000000000004; ours multiplies Cholesky pivots with the exponent kept apart and rounds to the nearest integer when every weight is an integer and the count is below 2⁵³ | SGT-152 |
+| `number_of_spanning_trees` | NetworkX returns `float(det(...))`, so K₅ gives 125.00000000000004; ours is exact for integer weights below 2¹⁰⁰ (modular determinants, Chinese remainder) and otherwise multiplies GTH pivots with the exponent kept apart | SGT-152 |
 | SciPy `eigsh(L, k=2, which="SA")` | Returns a wrong λ₂ on the 100 × 100 and 300 × 300 grids without an error (Performance); the shifted largest-eigenvalue problem is right | `--bench` |
 | Directed Laplacian | NetworkX and igraph use out-degrees; SciPy `csgraph.laplacian` defaults to in-degrees (`use_out_degree=False`) | SGT-041 |
 | Isolated vertex in N | NetworkX, SciPy: N[v][v] = 0 (ours too); some texts define N = I − D^-1/2 A D^-1/2 with 1 there | SGT-023 |
@@ -490,10 +570,12 @@ the Swift inputs are the same families, `UndirectedAdjacencyList`):
 1. **Element type of `SparseMatrix`.** *Recommendation:* `Double` only (above). A generic
    `SparseMatrix<Scalar>` only if `GraphFormats`' Matrix Market reader wants integer or complex
    matrices; then this type moves to its own module in the final reuse pass.
-2. **Iteration cap.** *Recommendation:* no `maxIterations:` parameter and no `nil` on
-   non-convergence (above); reconsider if the grid benchmarks show the restart cap reached.
+2. **Iteration cap.** *Decided in review:* no `maxIterations:` parameter; every iterative path
+   has a work limit in products and traps when it is spent (Numerics, "Work limits"). Trap
+   versus throw or `nil` is the repo-wide decision of the `safe:` pass.
 3. **Small-n threshold** (dense below 64 vertices): kept at 64; the Lanczos path at 64–200
    vertices takes well under a millisecond, so nothing argues for moving it.
-4. **`numberOfSpanningTrees` exactness.** *Recommendation:* `Double`, as NetworkX. An exact
-   `BigInt` count needs a dependency the package does not have (IsomorphismModule's `order` made
-   the same choice).
+4. **`numberOfSpanningTrees` exactness.** *Decided:* `Double`, as NetworkX, but exact (correctly
+   rounded) for integer weights while the count is below 2¹⁰⁰, by two modular determinants and
+   the Chinese remainder theorem. An exact count past that needs a `BigInt` the package does not
+   have (IsomorphismModule's `order` made the same choice).

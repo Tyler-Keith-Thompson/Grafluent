@@ -57,13 +57,14 @@ called `matrix[i, j]`, without labels.
 | λ₂ | 0 when not connected (weight-0 edges do not connect); traps below two vertices | SGT-095, SGT-100, SGT-106 |
 | Fiedler vector | Unit, canonical sign (relative 1e-4 rule); nil when not connected | SGT-108 – SGT-125, canonical sign |
 | Ordering | Components by least index; ≤ 2 vertices in index order; ties within 1e-8 · max\|x\| in index order | SGT-127 – SGT-134 |
-| Counts | 0 empty or disconnected, 1 for one vertex; unweighted counts below 2⁵³ are integers; `.infinity` past `Double` | SGT-148 – SGT-168, stress |
+| Counts | 0 empty or disconnected, 1 for one vertex; exact (correctly rounded) for integer weights below 2¹⁰⁰; `.infinity` past `Double` | SGT-148 – SGT-168, stress, accuracy |
 | Electrical | Weights are conductances; R(v, v) = 0; nil across components; 0 for n ≤ 1 | SGT-169 – SGT-204 |
 
 ## How values are pinned
 
 The catalog-row files are every file except `CanonicalSignTests.swift`,
-`SpectralConformanceTests.swift`, `SpectralPropertyTests.swift` and `SpectralStressTests.swift`.
+`SpectralAccuracyTests.swift`, `SpectralConformanceTests.swift`, `SpectralPropertyTests.swift`
+and `SpectralStressTests.swift`.
 `swiftgen.py` generated them from `cases.md`. It sits next to `ref.py` and `cases.md` in
 [`Tests/Catalogs/SpectralGraphTheory/`](../Catalogs/SpectralGraphTheory/):
 
@@ -115,9 +116,30 @@ hand-written exit tests in `extra_traps.swift`:
   against the reference: matrices with ==, weights as exact quarters by endpoint. Directed A and L
   on `AdjacencyList`, `CompressedSparseRow` and `AdjacencyMatrix`. `graph.directed` has the graph's
   A and L. `digraph.undirected` is the multigraph of its arcs. The file also checks SparseMatrix
-  equality and hashing, bitwise determinism on both paths, the `tolerance:` parameter against the
-  Gershgorin bound, `Sendable`, and that every weighted entry point reads each position exactly
-  once.
+  equality and hashing, bitwise determinism on both paths, the `tolerance:` parameter (λ₂ and ρ
+  relative to themselves, the Fiedler residual within tolerance · λ₂), `Sendable`, and that every
+  weighted entry point reads each position exactly once.
+- **Accuracy under weight spread** (added in review; each test failed on the phase 1 code).
+  References that keep their relative accuracy:
+  - weighted λ₂ on random graphs of 64 to 500 vertices, weights log-uniform over five decades,
+    against the dense λ₂ (relative 10⁻⁹ on L, 10⁻⁷ on N, whose dense form rounds more);
+  - paths with one edge of 10⁶ or 10¹², and with conductances over twelve decades, against power
+    iteration on the path's explicit grounded inverse: λ₂ and every Fiedler entry, and the
+    residual ‖Lx − λ₂x‖ within 10⁻⁷ · λ₂ (a FuzzSpectral finding);
+  - barbells (two cliques joined by a path), against the dense λ₂, on L and on N;
+  - spanning-tree counts: {h, 1} is h up to 10³⁰⁰ (Cholesky gave 0 at 10¹⁶); 16 counts between
+    10¹³ and 2⁵³ exactly equal to `ref.py`'s exact determinant (simple graphs, and multigraphs
+    with loops and integer weights); K₂₀, K₂₁ and a weighted 5-cycle past 2⁶², correctly rounded;
+  - N, its spectrum, λ₂ of N and the Kemeny constant with weights 10²⁰⁰, 10³⁰⁰ and 10⁻³⁰⁰ equal to
+    the unweighted ones; dense spectra at 10^±200 and 10^±300 equal to c times the unit ones;
+  - the effective graph resistance and the Kemeny constant on weighted paths against
+    Σ r(k + 1)(n − k − 1) and (1/2vol) Σ dᵢdⱼR(i, j), relative 10⁻¹²;
+  - resistance across 300 series bundles of parallel two-edge paths with conductances over twelve
+    decades, against the series–parallel law;
+  - scale invariance at c = 10^±150 (property-based and on the Lanczos paths): λ₂(cw) = cλ₂(w),
+    N(cw) = N(w), τ(cw) = c^(n−1) τ(w), R(cw) = R(w)/c;
+  - traps: sums that overflow `Double`, and the work limits (a tolerance of 10⁻³⁰⁰ runs Lanczos on
+    A and by shift-invert out of products).
 - **Properties** (swift-property-based, with shrinking). The graphs are random multigraphs with
   loops and integer weights, 0 included, with vertices listed in a seeded order. The properties
   are:
