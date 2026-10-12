@@ -25,6 +25,7 @@ swift_library(
         "//Sources/CompressedSparseRowModule",
         "//Tests/GrafluentTestSupport",
         "//Sources/Walks",
+        "//Sources/Trees",
     ],
 )
 

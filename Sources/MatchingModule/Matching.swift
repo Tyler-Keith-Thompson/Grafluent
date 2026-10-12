@@ -62,7 +62,7 @@ public struct Matching<G: Graph, Weight: Comparable & AdditiveArithmetic> {
         }
         _mate = mate
         _slot = slot
-        edges = graph._matchingPositions(ofAscendingEdgeNumbers: numbers)
+        edges = graph._positions(ofAscendingEdgeNumbers: numbers)
         weight = total
     }
 

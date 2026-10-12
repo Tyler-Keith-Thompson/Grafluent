@@ -95,15 +95,6 @@ func _readWeights<Positions: Sequence, W>(_ positions: Positions, count: Int, _ 
     return weights
 }
 
-/// The vertex numbers of a graph without vertex indices: positions in `listed`.
-@inlinable
-func _vertexNumbers<V: Hashable>(_ listed: [V]) -> [V: Int] {
-    var numbers: [V: Int] = [:]
-    numbers.reserveCapacity(listed.count)
-    for (i, v) in listed.enumerated() { numbers[v] = i }
-    return numbers
-}
-
 /// The number of `vertex`: from `numbers`, or its vertex index (`required`, one lookup).
 @inlinable
 func _number<V>(of vertex: V, _ numbers: [V: Int]?, required: (V) -> Int) -> Int {
@@ -193,15 +184,6 @@ extension DirectedGraph {
             offsets.append(targets.count)
         }
         return (_CentralityRows(offsets: offsets, targets: targets, edges: edges), vertexNumbers)
-    }
-
-    /// Each edge position's offset in `edges`.
-    @inlinable
-    func _edgeNumbers() -> [Edges.Index: Int] {
-        var numbers: [Edges.Index: Int] = [:]
-        numbers.reserveCapacity(edgeCount)
-        for (k, position) in edges.indices.enumerated() { numbers[position] = k }
-        return numbers
     }
 
     /// Vertex numbers for a result: nil when the graph has vertex indices.

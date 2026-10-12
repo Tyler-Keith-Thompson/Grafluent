@@ -73,7 +73,8 @@ package struct _TwoColoring: _UndirectedRowsAlgorithm {
         if let (v, w, e) = conflict {
             guard witness else { return (nil, nil) }
             precondition(UInt(bitPattern: e) < UInt(bitPattern: edgeCount), "An edge index is out of range")
-            return (nil, _canonicalOddCycle(_closeCycle(v, w, e, parent, parentEdge)))
+            let (vs, es) = _closeCycle(v, w, e, parent, parentEdge)
+            return (nil, _canonicalCycle(vs, es, undirected: true))
         }
         return (side, nil)
     }
@@ -101,31 +102,6 @@ func _closeCycle(_ v: Int, _ w: Int, _ e: Int, _ parent: [Int], _ parentEdge: [I
     let vertices = Array(up.reversed()) + down.dropLast()
     let edges = Array(upEdges.reversed()) + [e] + downEdges
     return (vertices, edges)
-}
-
-/// Rotated to start at its least vertex number and turned to leave it through the lesser of its
-/// two edge numbers (Cycles' canonical form).
-@inlinable
-func _canonicalOddCycle(_ cycle: (vertices: [Int], edges: [Int])) -> (vertices: [Int], edges: [Int]) {
-    let (vertices, edges) = cycle
-    let n = vertices.count
-    var r = 0
-    for i in 1 ..< max(n, 1) where vertices[i] < vertices[r] { r = i }
-    var vs = [Int](), es = [Int]()
-    vs.reserveCapacity(n)
-    es.reserveCapacity(n)
-    for i in 0 ..< n {
-        let j = r + i < n ? r + i : r + i - n
-        vs.append(vertices[j])
-        es.append(edges[j])
-    }
-    guard n >= 2, es[n - 1] < es[0] else { return (vs, es) }
-    var rv = [vs[0]], re = [Int]()
-    rv.reserveCapacity(n)
-    re.reserveCapacity(n)
-    for i in stride(from: n - 1, through: 1, by: -1) { rv.append(vs[i]) }
-    for i in stride(from: n - 1, through: 0, by: -1) { re.append(es[i]) }
-    return (rv, re)
 }
 
 /// A bipartition of a graph's vertices: the result of `bipartition()`. In each connected component
@@ -245,22 +221,6 @@ extension Graph {
         guard let (vs, es) = _runOnUndirectedRows(_TwoColoring(witness: true)).cycle else { return nil }
         let listed = _listedVertices()
         let vertices = vs.map { _vertex(number: $0, listed) }
-        return Cycle(_uncheckedVertices: vertices, edges: _bipartitePositions(ofEdgeNumbers: es))
-    }
-
-    /// The positions of edges given by number (offset in `edges`), in one walk.
-    @inlinable
-    func _bipartitePositions(ofEdgeNumbers numbers: [Int]) -> [Edges.Index] {
-        let order = numbers.indices.sorted { numbers[$0] < numbers[$1] }
-        var result = [Edges.Index?](repeating: nil, count: numbers.count)
-        var index = edges.startIndex, offset = 0
-        for k in order {
-            while offset < numbers[k] {
-                edges.formIndex(after: &index)
-                offset += 1
-            }
-            result[k] = index
-        }
-        return result.map { $0! }
+        return Cycle(_uncheckedVertices: vertices, edges: _positions(ofEdgeNumbers: es))
     }
 }

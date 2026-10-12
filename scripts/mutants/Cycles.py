@@ -39,8 +39,8 @@ MUTANTS = [
     Mutant("blockback", "SimpleCycleSearch.swift", "disc[w] < disc[v]", "false"),
 
     # Canonical form
-    Mutant("rotation", "CycleRows.swift", "vertices[i] < vertices[r]", "vertices[i] > vertices[r]"),
-    Mutant("reflection", "CycleRows.swift", "es[n - 1] < es[0]", "es[n - 1] > es[0]"),
+    Mutant("rotation", "Cycle.swift", "vertices[i] < vertices[r]", "vertices[i] > vertices[r]", module="Walks"),
+    Mutant("reflection", "Cycle.swift", "es[n - 1] < es[0]", "es[n - 1] > es[0]", module="Walks"),
 
     # isAcyclic, findCycle
     Mutant("emptyforest", "UndirectedCycles.swift", "edgeCount >= max(vertexCount, 1)", "edgeCount >= vertexCount"),
@@ -60,7 +60,7 @@ MUTANTS = [
 
     # Rows and positions
     Mutant("rowends", "CycleRows.swift", "$0 == 2", "$0 >= 1"),
-    Mutant("positionwalk", "CycleRows.swift", "offset < numbers[k]", "offset < numbers[k] - 1"),
+    Mutant("positionwalk", "UndirectedRows.swift", "offset < numbers[k]", "offset < numbers[k] - 1", module="GraphProtocols"),
     Mutant("findedgerange", "UndirectedCycles.swift", "UInt(bitPattern: e) < UInt(bitPattern: edgeCount)", "true", nth=1),
     Mutant("girthparent", "Girth.swift", "e == parentEdge[v]", "false"),
     Mutant("girthdirected", "Girth.swift", "best = dist[v] + 1", "best = dist[v] + 2"),

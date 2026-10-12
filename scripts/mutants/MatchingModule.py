@@ -56,7 +56,7 @@ MUTANTS = [
 
     # Checks
     Mutant("checkrepeat", "CardinalityMatching.swift", "guard used.insert(position).inserted else { return nil }", "", mode="stmt"),
-    Mutant("checkloop", "CardinalityMatching.swift", "guard edge.u != edge.v else { return nil }", "", mode="stmt"),
+    Mutant("checkloop", "CardinalityMatching.swift", "            guard u != v, !covered[u], !covered[v] else { return nil }", "            guard !covered[u], !covered[v] else { return nil }", mode="stmt"),
     Mutant("maximalloop", "CardinalityMatching.swift", "if u != v, !covered[u], !covered[v] { return false }", "if !covered[u], !covered[v] { return false }", mode="stmt"),
 
     # Assignment

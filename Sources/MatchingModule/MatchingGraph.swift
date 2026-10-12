@@ -95,23 +95,6 @@ extension Graph {
     @inlinable
     package func _matchingGraph() -> _MatchingGraph { _runOnUndirectedRows(_CopyMatchingGraph()) }
 
-    /// The positions of edges given by number (offset in `edges`), ascending numbers in, ascending
-    /// positions out, in one walk.
-    @inlinable
-    package func _matchingPositions(ofAscendingEdgeNumbers numbers: [Int]) -> [Edges.Index] {
-        var result: [Edges.Index] = []
-        result.reserveCapacity(numbers.count)
-        var index = edges.startIndex, offset = 0
-        for k in numbers {
-            while offset < k {
-                edges.formIndex(after: &index)
-                offset += 1
-            }
-            result.append(index)
-        }
-        return result
-    }
-
     /// Each edge's weight by number, read once in position order, for the edges `read` selects
     /// (self-loops are never weighed); `.zero` for the others.
     @inlinable

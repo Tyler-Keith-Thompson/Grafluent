@@ -197,5 +197,40 @@ extension Graph {
     package func _edgeNumber(of position: Edges.Index, _ numbers: [Edges.Index: Int]) -> Int {
         edgeIndexBound != nil ? edgeIndex(of: position) : numbers[position]!
     }
+
+    /// The positions of these edge numbers (offsets in `edges`), in the same order: one walk of
+    /// `edges.indices` up to the largest, so a collection without random access costs O(m), not
+    /// O(m) per edge.
+    @inlinable
+    package func _positions(ofEdgeNumbers numbers: [Int]) -> [Edges.Index] {
+        let order = numbers.indices.sorted { numbers[$0] < numbers[$1] }
+        var result = [Edges.Index?](repeating: nil, count: numbers.count)
+        var index = edges.startIndex, offset = 0
+        for k in order {
+            while offset < numbers[k] {
+                edges.formIndex(after: &index)
+                offset += 1
+            }
+            result[k] = index
+        }
+        return result.map { $0! }
+    }
+
+    /// The positions of edges given by number (offset in `edges`), ascending numbers in, ascending
+    /// positions out, in one walk.
+    @inlinable
+    package func _positions(ofAscendingEdgeNumbers numbers: [Int]) -> [Edges.Index] {
+        var result: [Edges.Index] = []
+        result.reserveCapacity(numbers.count)
+        var index = edges.startIndex, offset = 0
+        for k in numbers {
+            while offset < k {
+                edges.formIndex(after: &index)
+                offset += 1
+            }
+            result.append(index)
+        }
+        return result
+    }
 }
 

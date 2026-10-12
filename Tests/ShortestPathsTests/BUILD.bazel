@@ -30,6 +30,7 @@ swift_library(
         "//Tests/GrafluentTestSupport",
         "@swiftpkg_swift_property_based//:PropertyBased",
         "//Sources/Walks",
+        "//Sources/Trees",
     ],
 )
 

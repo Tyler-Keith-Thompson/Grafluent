@@ -14,6 +14,8 @@ swift_library(
         "//Sources/Semirings",
         "//Sources/PriorityQueueModule",
         "//Sources/DirectedAcyclicGraphModule",
+        "//Sources/Trees",
+        "//Sources/Connectivity",
     ],
     visibility = ["//visibility:public"],
 )
@@ -29,6 +31,8 @@ docc_archive(
         "//Sources/Semirings:SemiringsDocumentation",
         "//Sources/PriorityQueueModule:PriorityQueueModuleDocumentation",
         "//Sources/DirectedAcyclicGraphModule:DirectedAcyclicGraphModuleDocumentation",
+        "//Sources/Trees:TreesDocumentation",
+        "//Sources/Connectivity:ConnectivityDocumentation",
     ],
     tags = ["manual"],
     visibility = ["//visibility:public"],

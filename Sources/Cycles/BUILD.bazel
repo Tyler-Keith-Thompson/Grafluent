@@ -12,6 +12,7 @@ swift_library(
         "//Sources/GraphProtocols",
         "//Sources/Walks",
         "//Sources/DisjointSetModule",
+        "//Sources/Connectivity",
     ],
     visibility = ["//visibility:public"],
 )
@@ -25,6 +26,7 @@ docc_archive(
         "//Sources/GraphProtocols:GraphProtocolsDocumentation",
         "//Sources/Walks:WalksDocumentation",
         "//Sources/DisjointSetModule:DisjointSetModuleDocumentation",
+        "//Sources/Connectivity:ConnectivityDocumentation",
     ],
     tags = ["manual"],
     visibility = ["//visibility:public"],

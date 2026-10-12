@@ -15,8 +15,8 @@ MUTANTS = [
     Mutant("rootside", "Recognition.swift", "side[root] = 0", "side[root] = 1", mode="stmt"),
     Mutant("loopcycle", "Recognition.swift", "guard v != w else { return ([v], [e]) }", "", mode="stmt"),
     Mutant("cycleedge", "Recognition.swift", "Array(upEdges.reversed()) + [e] + downEdges", "Array(upEdges.reversed()) + downEdges + [e]"),
-    Mutant("rotate", "Recognition.swift", "for i in 1 ..< max(n, 1) where vertices[i] < vertices[r] { r = i }", "", mode="stmt"),
-    Mutant("turn", "Recognition.swift", "guard n >= 2, es[n - 1] < es[0] else { return (vs, es) }", "return (vs, es)", mode="stmt"),
+    Mutant("rotate", "Cycle.swift", "for i in 1 ..< max(n, 1) where vertices[i] < vertices[r] { r = i }", "", mode="stmt", module="Walks"),
+    Mutant("turn", "Cycle.swift", "guard undirected, n >= 2, es[n - 1] < es[0] else { return (vs, es) }", "return (vs, es)", mode="stmt", module="Walks"),
     Mutant("leftfirst", "Recognition.swift", "for v in sides.indices where sides[v] == 0 { members.append(listed?[v] ?? graph.vertex(atIndex: v)) }", "", mode="stmt"),
 
     # BipartiteGraph

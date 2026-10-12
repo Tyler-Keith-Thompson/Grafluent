@@ -35,6 +35,18 @@ extension Graph {
         for (i, v) in listed.enumerated() { numbers[v] = i }
         return (listed, numbers)
     }
+
+    /// The number of `vertex`: from `numbers` (a graph without vertex indices), or its vertex
+    /// index in one lookup (`_requiredVertexIndex(of:_:)`); trapping with `message` when it is not
+    /// a vertex.
+    @inlinable
+    package func _vertexNumber(of vertex: Vertex, _ numbers: [Vertex: Int]?, _ message: @autoclosure () -> String) -> Int {
+        if let numbers {
+            guard let v = numbers[vertex] else { preconditionFailure(message()) }
+            return v
+        }
+        return _requiredVertexIndex(of: vertex, message())
+    }
 }
 
 extension DirectedGraph {
@@ -59,4 +71,44 @@ extension DirectedGraph {
         precondition(UInt(bitPattern: index) < UInt(bitPattern: vertexIndexBound ?? 0) && self.vertex(atIndex: index) == vertex, message())
         return index
     }
+
+    /// The number of `vertex`: from `numbers` (a graph without vertex indices), or its vertex
+    /// index in one lookup (`_requiredVertexIndex(of:_:)`); trapping with `message` when it is not
+    /// a vertex.
+    @inlinable
+    package func _vertexNumber(of vertex: Vertex, _ numbers: [Vertex: Int]?, _ message: @autoclosure () -> String) -> Int {
+        if let numbers {
+            guard let v = numbers[vertex] else { preconditionFailure(message()) }
+            return v
+        }
+        return _requiredVertexIndex(of: vertex, message())
+    }
+
+    /// The vertices by number and each one's number when the graph has no vertex indices (one
+    /// hash per vertex); nil when it has them.
+    @inlinable
+    package func _vertexNumbering() -> (listed: [Vertex], numbers: [Vertex: Int])? {
+        guard vertexIndexBound == nil else { return nil }
+        let listed = Array(vertices)
+        return (listed, _vertexNumbers(listed))
+    }
+
+    /// Each edge position's offset in `edges`.
+    @inlinable
+    package func _edgeNumbers() -> [Edges.Index: Int] {
+        var numbers: [Edges.Index: Int] = [:]
+        numbers.reserveCapacity(edgeCount)
+        for (k, position) in edges.indices.enumerated() { numbers[position] = k }
+        return numbers
+    }
+}
+
+/// The numbers of a graph's vertices listed by number (a graph without vertex indices): each
+/// one's position in `listed`.
+@inlinable
+package func _vertexNumbers<V: Hashable>(_ listed: [V]) -> [V: Int] {
+    var numbers: [V: Int] = [:]
+    numbers.reserveCapacity(listed.count)
+    for (i, v) in listed.enumerated() { numbers[v] = i }
+    return numbers
 }

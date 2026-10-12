@@ -177,3 +177,30 @@ extension Cycle: CustomStringConvertible, CustomDebugStringConvertible {
     /// The type, the vertices and the edge positions: `Cycle(vertices: [0, 1, 2], edges: [3, 5, 7])`.
     public var debugDescription: String { _debugDescribe("Cycle", _vertices, _edges) }
 }
+
+/// Rotates a closed sequence of vertex numbers (edge `i` joining vertex `i` and vertex `i + 1`) to
+/// start at its least vertex and, when `undirected`, to leave it through the lesser of its two
+/// edges there: the vertex-number form of `Cycle`'s canonical rotation, shared by Cycles and
+/// BipartiteGraphs.
+@inlinable
+package func _canonicalCycle(_ vertices: [Int], _ edges: [Int], undirected: Bool) -> (vertices: [Int], edges: [Int]) {
+    let n = vertices.count
+    var r = 0
+    for i in 1 ..< max(n, 1) where vertices[i] < vertices[r] { r = i }
+    var vs = [Int](), es = [Int]()
+    vs.reserveCapacity(n)
+    es.reserveCapacity(n)
+    for i in 0 ..< n {
+        let j = r + i < n ? r + i : r + i - n
+        vs.append(vertices[j])
+        es.append(edges[j])
+    }
+    guard undirected, n >= 2, es[n - 1] < es[0] else { return (vs, es) }
+    // The other orientation: v₀, vₙ₋₁, …, v₁ over eₙ₋₁, eₙ₋₂, …, e₀.
+    var rv = [vs[0]], re = [Int]()
+    rv.reserveCapacity(n)
+    re.reserveCapacity(n)
+    for i in stride(from: n - 1, through: 1, by: -1) { rv.append(vs[i]) }
+    for i in stride(from: n - 1, through: 0, by: -1) { re.append(es[i]) }
+    return (rv, re)
+}

@@ -13,6 +13,7 @@ swift_library(
         "//Sources/AdjacencyListModule",
         "//Sources/DisjointSetModule",
         "@swiftpkg_swift_collections//:OrderedCollections",
+        "//Sources/Connectivity",
     ],
     visibility = ["//visibility:public"],
 )
@@ -26,6 +27,7 @@ docc_archive(
         "//Sources/GraphProtocols:GraphProtocolsDocumentation",
         "//Sources/AdjacencyListModule:AdjacencyListModuleDocumentation",
         "//Sources/DisjointSetModule:DisjointSetModuleDocumentation",
+        "//Sources/Connectivity:ConnectivityDocumentation",
     ],
     tags = ["manual"],
     visibility = ["//visibility:public"],

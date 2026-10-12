@@ -162,7 +162,7 @@ extension Graph {
         }
         var numbers: [Int] = []
         for e in 0 ..< structure.edgeCount where chosen[e] { numbers.append(e) }
-        return _matchingPositions(ofAscendingEdgeNumbers: numbers)
+        return _positions(ofAscendingEdgeNumbers: numbers)
     }
 
     /// Whether every edge, and every self-loop, has an end in `vertices` (NetworkX
