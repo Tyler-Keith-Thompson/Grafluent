@@ -17,7 +17,7 @@ struct IsomorphismLoopTests {
         let mapping = try #require(pattern.isomorphism(to: target))
         #expect(Array(mapping.images) == [1, 0])
         #expect(pattern.vertices.map { mapping.image(of: $0) } == [1, 0])
-        #expect(pattern.vertices.map { mapping.image(safe: $0) } == [1, 0])
+        #expect(pattern.vertices.map { try? mapping.image(checked: $0) } == [1, 0])
         #expect((0 ..< 2).map { target.vertex(atIndex: mapping.imageIndex(ofIndex: $0)) } == (0 ..< 2).map { mapping.image(of: pattern.vertex(atIndex: $0)) })
         #expect(target.vertices.map { mapping.preimage(of: $0) } == [0, 1])
         // The family on the same arguments: every mapping, the yes/no answer and the first mapping.
@@ -177,7 +177,7 @@ struct IsomorphismLoopTests {
         let mapping = try #require(pattern.isomorphism(to: target))
         #expect(Array(mapping.images) == [1, 0])
         #expect(pattern.vertices.map { mapping.image(of: $0) } == [1, 0])
-        #expect(pattern.vertices.map { mapping.image(safe: $0) } == [1, 0])
+        #expect(pattern.vertices.map { try? mapping.image(checked: $0) } == [1, 0])
         #expect((0 ..< 2).map { target.vertex(atIndex: mapping.imageIndex(ofIndex: $0)) } == (0 ..< 2).map { mapping.image(of: pattern.vertex(atIndex: $0)) })
         #expect(target.vertices.map { mapping.preimage(of: $0) } == [1, 0])
         // The family on the same arguments: every mapping, the yes/no answer and the first mapping.
@@ -223,7 +223,7 @@ struct IsomorphismLoopTests {
         let mapping = try #require(pattern.isomorphism(to: target))
         #expect(Array(mapping.images) == [2, 1, 0])
         #expect(pattern.vertices.map { mapping.image(of: $0) } == [2, 1, 0])
-        #expect(pattern.vertices.map { mapping.image(safe: $0) } == [2, 1, 0])
+        #expect(pattern.vertices.map { try? mapping.image(checked: $0) } == [2, 1, 0])
         #expect((0 ..< 3).map { target.vertex(atIndex: mapping.imageIndex(ofIndex: $0)) } == (0 ..< 3).map { mapping.image(of: pattern.vertex(atIndex: $0)) })
         #expect(target.vertices.map { mapping.preimage(of: $0) } == [2, 1, 0])
         // The family on the same arguments: every mapping, the yes/no answer and the first mapping.

@@ -174,17 +174,19 @@ def drawing_test(n):
         b += [TWO, "drawing.setPosition(SIMD2(7.0, -1.0), of: 5)", "#expect(drawing.positions == [SIMD2(7.0, -1.0), SIMD2(2.0, 1.0)])",
               "#expect(Array(drawing.vertices) == [5, 3])", "let written = drawing.position(of: 5)", "#expect(written == SIMD2(7.0, -1.0))"]
     elif n == 8:
-        b += [TWO_LET, "#expect(drawing.position(safe: 4) == nil)", "#expect(drawing.position(safe: 0) == nil && drawing.position(safe: 1) == nil)"]
+        b += [TWO_LET, "#expect(throws: VertexNotFound.self) { try drawing.position(checked: 4) }",
+              "#expect(throws: VertexNotFound.self) { try drawing.position(checked: 0) }",
+              "#expect(throws: VertexNotFound.self) { try drawing.position(checked: 1) }"]
     elif n == 9:
-        b += [TWO_LET, "#expect(drawing.position(safe: 5) == SIMD2(0.0, 0.0))", "#expect(drawing.position(safe: 3) == SIMD2(2.0, 1.0))"]
+        b += [TWO_LET, "#expect(try drawing.position(checked: 5) == SIMD2(0.0, 0.0))", "#expect(try drawing.position(checked: 3) == SIMD2(2.0, 1.0))"]
     elif n == 12:
         b += [TWO_LET, "let elements = Array(drawing)", "#expect(elements.map(\\.vertex) == [5, 3])",
               "#expect(elements.map(\\.position) == [SIMD2(0.0, 0.0), SIMD2(2.0, 1.0)])",
               "var visited: [Int] = []", "for (vertex, position) in drawing {", "    visited.append(vertex)",
-              "    #expect(drawing.position(safe: vertex) == position)", "}", "#expect(visited == [5, 3])"]
+              "    #expect(try drawing.position(checked: vertex) == position)", "}", "#expect(visited == [5, 3])"]
     elif n == 13:
         b += [TWO_LET, "let reordered = Drawing(vertices: [3, 5], positions: [SIMD2(2.0, 1.0), SIMD2(0.0, 0.0)])",
-              "#expect(drawing != reordered)", "#expect(drawing.position(safe: 3) == reordered.position(safe: 3) && drawing.position(safe: 5) == reordered.position(safe: 5))",
+              "#expect(drawing != reordered)", "#expect(try drawing.position(checked: 3) == reordered.position(checked: 3) && drawing.position(checked: 5) == reordered.position(checked: 5))",
               "let same = Drawing(vertices: [5, 3], positions: [SIMD2(0.0, 0.0), SIMD2(2.0, 1.0)])",
               "#expect(drawing == same && drawing.hashValue == same.hashValue)"]
     elif n == 14:
@@ -206,7 +208,7 @@ def drawing_test(n):
               "#expect(copy == rescaled)"]
     else:
         raise AssertionError(n)
-    throws = any("try " in x for x in b)
+    throws = any("try " in x and not x.startswith("#expect(throws:") for x in b)
     if throws:
         L[1] = L[1].replace("() {", "() throws {")
     return L + ["        " + x if x else "" for x in b] + ["    }"]
@@ -280,11 +282,11 @@ def tree_test(n):
               "#expect(left.allSatisfy { $0 == 1 || tree.isAncestor(1, of: $0) } && right.allSatisfy { $0 == 2 || tree.isAncestor(2, of: $0) })",
               "let p1 = layout.position(of: 1), p2 = layout.position(of: 2)",
               "// As point sets: the order of `descendants(of:)` is not what is pinned.",
-              "let leftOffsets = left.map { (layout.position(safe: $0) ?? SIMD2(.nan, .nan)) - p1 }.sorted { ($0.y, $0.x) < ($1.y, $1.x) }",
-              "let rightOffsets = right.map { (layout.position(safe: $0) ?? SIMD2(.nan, .nan)) - p2 }.sorted { ($0.y, $0.x) < ($1.y, $1.x) }",
+              "let leftOffsets = try left.map { try layout.position(checked: $0) - p1 }.sorted { ($0.y, $0.x) < ($1.y, $1.x) }",
+              "let rightOffsets = try right.map { try layout.position(checked: $0) - p2 }.sorted { ($0.y, $0.x) < ($1.y, $1.x) }",
               "#expect(leftOffsets == rightOffsets && leftOffsets.count == 7)",
               "// The two subtrees do not overlap: every x of the left one is left of every x of the right one at its depth.",
-              "#expect(left.map { layout.position(safe: $0)!.x }.max()! < right.map { layout.position(safe: $0)!.x }.min()!)"]
+              "#expect(try left.map { try layout.position(checked: $0).x }.max()! < right.map { try layout.position(checked: $0).x }.min()!)"]
         return L + ["        " + x if x else "" for x in b] + ["    }"]
     circular = "Circular" in op(n)
     if circular:
@@ -293,7 +295,7 @@ def tree_test(n):
         b += ["let layout = tree.reingoldTilfordCircularLayout()", "#expect(Array(layout.vertices) == Array(0 ..< %d))" % len(par)]
         b += close_lines("layout.positions", got, "")
         b += ["// The radius of each vertex is its depth.", "for v in tree.vertices {",
-              "    let p = layout.position(safe: v) ?? SIMD2(.nan, .nan)",
+              "    let p = try layout.position(checked: v)",
               "    #expect(abs((p * p).sum().squareRoot() - Double(tree.depth(of: v))) <= 1e-9)", "}"]
     else:
         got = ref.reingold_tilford(par)
@@ -706,7 +708,7 @@ def trap_test(n):
     child, after = [], []
     if n == 7:
         child = [TWO_LET, "let position = drawing.position(of: 4)", "_ = position"]
-        after = [TWO_LET, "#expect(drawing.position(safe: 4) == nil && drawing.count == 2)"]
+        after = [TWO_LET, "#expect(throws: VertexNotFound.self) { try drawing.position(checked: 4) }", "#expect(drawing.count == 2)"]
     elif n == 10:
         child = ["_ = Drawing(vertices: [5, 3], positions: [SIMD2(0.0, 0.0)])"]
         after = ["#expect(Drawing(vertices: [5, 3], positions: [SIMD2(0.0, 0.0), SIMD2(2.0, 1.0)]).count == 2)"]
@@ -824,7 +826,7 @@ TRAPS = [n for n in PHASE1 if is_trap(n)]
 FILES = [
     ("DrawingTests.swift", "Drawing", ids("Drawing"),
      "Drawing (catalog DR-001 – DR-021): a position per vertex in the order given, lookup by vertex\n"
-     "// (`position(of:)`, `position(safe:)`, `setPosition(_:of:)`), (vertex, position) elements, equality\n"
+     "// (`position(of:)`, `position(checked:)`, `setPosition(_:of:)`), (vertex, position) elements, equality\n"
      "// in order, the bounding box, and `rescaled(scale:center:)` (NetworkX's rescale_layout, then a\n"
      "// translation). Exact."),
     ("CircularLayoutTests.swift", "circularLayout", ids("Circular"),

@@ -147,8 +147,8 @@ struct GraphDrawingConformanceTests {
             let layout = tree.reingoldTilfordLayout()
             let circular = tree.reingoldTilfordCircularLayout()
             for v in 0 ..< n {
-                #expect(layout.position(safe: v) == reference.position(safe: v), "\(name), parents \(parents)")
-                let a = circular.position(safe: v) ?? SIMD2(.nan, .nan), b = referenceCircular.position(safe: v) ?? SIMD2(.nan, .nan)
+                #expect(try layout.position(checked: v) == reference.position(checked: v), "\(name), parents \(parents)")
+                let a = try circular.position(checked: v), b = try referenceCircular.position(checked: v)
                 #expect(abs(a.x - b.x) <= 1e-9 && abs(a.y - b.y) <= 1e-9, "\(name), parents \(parents)")
             }
         }

@@ -393,6 +393,7 @@ All on `AdjacencyMatrix` and `CompressedSparseRow` unless stated.
 | TR-112 | A vertex on a cycle is not its own descendant | `directedCycle4` descendants of 1 → `{2, 3, 4}`; `singleSelfLoop` descendants of 0 → `{}` (NetworkX excludes the source) | nx-dag:36-70 |
 | TR-113 | petgraph reach counts | H→I, H→J, I→J, I→K, isolated Z: from H reaches 4, from I reaches 3; ancestors of H = {} (reversed from H reaches only H); reversed from K reaches `{K, I, H}` | pg-T:73-96, 128-160 |
 | TR-114 | `hasPath` agrees with `descendants`, and `hasPath(v, v)` is true (NetworkX `has_path(G, v, v)`) | every pair on `DirectedFixture.zeroBased` with n ≤ 10 | nx `has_path` |
+| TR-183 | The `checked:` spellings (README Principle 6) | NetworkX's TR-109 graph: `descendants(checked: 4)` = `{2, 3, 5, 6}`, `ancestors(checked: 6)` = `{1, 2, 4, 5}`; for 9, both throw `VertexNotFound` | nx `NodeNotFound`, Rust `checked_*` |
 
 ### I. Bidirectional BFS
 

@@ -365,9 +365,9 @@ MUTANTS = [
     Mutant("groupedgecolors", AG, "edges.indices.map { edgeTable.id(edgeColor($0)) }", "[Int]()", nth=0),
     Mutant("groupvertexcolors", AG, "return _automorphismGroup(vertexColors: vertices.map { table.id(vertexColor($0)) }, edgeColors: [])", "return _automorphismGroup(vertexColors: [], edgeColors: [])", mode="stmt", nth=1),
 
-    # The inverse and preimage(safe:).
+    # The inverse and preimage(checked:).
     Mutant("inverse", I, "for (u, x) in imageIndices.enumerated() { inverted[x] = u }", "for (u, x) in imageIndices.enumerated() { inverted[u] = x }", mode="stmt", nth=0),
-    Mutant("preimagesafe", I, "guard target.contains(vertex) else { return nil }", "guard true else { return nil }", mode="stmt", nth=1),
+    Mutant("preimagechecked", I, "guard target.contains(vertex) else { throw VertexNotFound() }", "guard true else { throw VertexNotFound() }", mode="stmt", nth=1),
 
     # The subgraph search's copy.
     Mutant("subcopy", S, "        cursor.update(from: other.cursor, count: np)", "", mode="stmt"),

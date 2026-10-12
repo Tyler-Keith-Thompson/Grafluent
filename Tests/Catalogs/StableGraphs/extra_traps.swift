@@ -198,7 +198,7 @@
         var graph = try JSONDecoder().decode(StableDirectedGraph<Int>.self, from: payload)
         #expect(graph.edges.endIndex == Int.max && graph.edgeCount == 0)
         #expect(graph.insert(1).inserted)
-        #expect(graph.insert(safe: DirectedEdge(from: 0, to: 9)) == nil)
+        #expect(throws: VertexNotFound.self) { try graph.insert(checked: DirectedEdge(from: 0, to: 9)) }
     }
 
     @Test("An attached map's handle traps on another graph, after removeEdgeMap, and to set a dead position")

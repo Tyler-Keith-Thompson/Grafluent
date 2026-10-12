@@ -28,8 +28,8 @@ extension Graph {
     var isOuterplanar: Bool
 }
 struct PlanarEmbedding<G: Graph>: CustomStringConvertible
-    clockwiseIncidentEdges(of:), clockwiseIncidentEdges(safe:), clockwiseNeighbors(of:),
-        clockwiseNeighbors(safe:), clockwiseNeighborIndices(ofIndex:)
+    clockwiseIncidentEdges(of:), clockwiseIncidentEdges(checked:), clockwiseNeighbors(of:),
+        clockwiseNeighbors(checked:), clockwiseNeighborIndices(ofIndex:)
     faceCount, faces, face(from:alongEdgeAt:), rightFace(from:alongEdgeAt:)
     dualGraph()                                         // phase 2
 struct KuratowskiSubgraph<G: Graph>: CustomStringConvertible
@@ -49,7 +49,7 @@ struct KuratowskiSubgraph<G: Graph>: CustomStringConvertible
 | Branch vertices | K₅ in vertices order; K₃,₃ the side holding the first, then the other, each in vertices order | PL-133 – PL-151 |
 | Paths | One per pair, i < j lexicographic (K₃,₃ across the sides), from `branchVertices[i]` | PL-133 – PL-151 |
 | Directed graphs | Through `graph.undirected` | PL-055 – PL-061, PL-168 |
-| Non-vertices | The vertex-keyed accessors trap; the `safe:` spellings answer nil | PL-117, PL-118 |
+| Non-vertices | The vertex-keyed accessors trap; the `checked:` spellings throw `VertexNotFound` | PL-117, PL-118 |
 
 ## How values are pinned
 
@@ -61,7 +61,7 @@ Every planar row checks the embedding against the definitions, written out in th
 
 - each clockwise order is a permutation of the vertex's incident edges (a loop twice) and starts at
   the first one;
-- `clockwiseNeighbors`, `clockwiseNeighborIndices(ofIndex:)` and the `safe:` spellings say the same;
+- `clockwiseNeighbors`, `clockwiseNeighborIndices(ofIndex:)` and the `checked:` spellings say the same;
 - `faces` is exactly the orbits of the face permutation, in the documented order and from the
   documented start, computed in the test from the clockwise orders;
 - `face(from:alongEdgeAt:)` is the orbit from every half-edge (a sample of them on the largest rows),
@@ -167,7 +167,7 @@ Swift, with the Kuratowski subgraph found by deletion. The suite caught every on
 | Clockwise orders not started at the first incident edge | most embedding rows |
 | One vertex's clockwise order reversed | PL-072, PL-074, PL-079 and others |
 | The last face dropped | every row with two faces or more |
-| `clockwiseNeighbors(safe:)` answering `[]` for a non-vertex | PL-118, extra traps, value semantics |
+| `clockwiseNeighbors(checked:)` answering `[]` for a non-vertex | PL-118, extra traps, value semantics |
 | `clockwiseNeighborIndices(ofIndex:)` reversed | PL-112, PL-116, every embedding row |
 | `faceCount` counting isolated vertices | PL-063, PL-088, PL-113, PL-128, properties |
 | A loop's face taken from its second end | PL-092, PL-093, PL-095 |

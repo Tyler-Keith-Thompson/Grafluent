@@ -21,7 +21,8 @@
         }
         // Without the calls.
         let drawing = Drawing(vertices: ["a", "b"], positions: [SIMD2(0.0, 0.0), SIMD2(1.0, 0.0)])
-        #expect(drawing.position(of: "b") == SIMD2(1.0, 0.0) && drawing.position(safe: "c") == nil)
+        #expect(drawing.position(of: "b") == SIMD2(1.0, 0.0))
+        #expect(throws: VertexNotFound.self) { try drawing.position(checked: "c") }
     }
 
     @Test("circularLayout traps on an infinite centre and on a NaN in y")

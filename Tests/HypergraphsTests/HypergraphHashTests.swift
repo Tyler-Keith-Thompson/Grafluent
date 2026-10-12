@@ -1,7 +1,7 @@
 // The hash law, through the public API: a vertex type local to each test counts its own
 // `hash(into:)` and `==` calls. Index-space members and whole-hypergraph algorithms touch no vertex
 // (no hash, no comparison), and so do the graph algorithms run on `incidenceGraph`; every
-// vertex-space member hashes exactly once, safe spellings included, hit or miss; an algorithm that
+// vertex-space member hashes exactly once, checked spellings included, hit or miss; an algorithm that
 // takes vertices looks each up once; `contains(hyperedge:)` hashes each member once; hashing a
 // hypergraph hashes each vertex once; building is amortized O(1) hashes per incidence. Every
 // hypergraph here has at least 16 vertices: an OrderedSet scans linearly up to 15 elements and
@@ -119,7 +119,7 @@ struct HypergraphHashTests {
         #expect(sink != 0)
     }
 
-    @Test("Every vertex-space member hashes once, safe spellings hit or miss; algorithms look each argument up once")
+    @Test("Every vertex-space member hashes once, checked spellings hit or miss; algorithms look each argument up once")
     func vertexSpaceReadsHashOnce() {
         final class Tally {
             var hashes = 0
@@ -150,10 +150,10 @@ struct HypergraphHashTests {
         #expect(hashes { _ = undirected.vertexIndex(of: v) } == 1)
         #expect(hashes { _ = undirected.contains(v) } == 1)
         #expect(hashes { _ = undirected.contains(absent) } == 1)
-        #expect(hashes { _ = undirected.incidentHyperedges(safe: v) } == 1)
-        #expect(hashes { _ = undirected.incidentHyperedges(safe: absent) } == 1)
-        #expect(hashes { _ = undirected.degree(safe: absent) } == 1)
-        #expect(hashes { _ = undirected.vertexIndex(safe: absent) } == 1)
+        #expect(hashes { _ = try? undirected.incidentHyperedges(checked: v) } == 1)
+        #expect(hashes { _ = try? undirected.incidentHyperedges(checked: absent) } == 1)
+        #expect(hashes { _ = try? undirected.degree(checked: absent) } == 1)
+        #expect(hashes { _ = try? undirected.vertexIndex(checked: absent) } == 1)
         #expect(hashes { _ = undirected.neighbors(of: v) } == 1)
         #expect(hashes { _ = undirected.contains(hyperedge: [label(1), label(2), label(5)]) } == 3)
         #expect(hashes { _ = directed.outHyperedges(of: v) } == 1)
@@ -161,10 +161,13 @@ struct HypergraphHashTests {
         #expect(hashes { _ = directed.outDegree(of: v) } == 1)
         #expect(hashes { _ = directed.inDegree(of: v) } == 1)
         #expect(hashes { _ = directed.degree(of: v) } == 1)
-        #expect(hashes { _ = directed.outHyperedges(safe: absent) } == 1)
-        #expect(hashes { _ = directed.inHyperedges(safe: v) } == 1)
-        #expect(hashes { _ = directed.outDegree(safe: v) } == 1)
-        #expect(hashes { _ = directed.inDegree(safe: absent) } == 1)
+        #expect(hashes { _ = try? directed.outHyperedges(checked: absent) } == 1)
+        #expect(hashes { _ = try? directed.inHyperedges(checked: v) } == 1)
+        #expect(hashes { _ = try? directed.outDegree(checked: v) } == 1)
+        #expect(hashes { _ = try? directed.inDegree(checked: absent) } == 1)
+        #expect(hashes { _ = try? directed.degree(checked: v) } == 1)
+        #expect(hashes { _ = try? directed.degree(checked: absent) } == 1)
+        #expect(hashes { _ = try? directed.vertexIndex(checked: absent) } == 1)
         #expect(hashes { _ = directed.bConnectedVertices(from: v) } == 1)
         #expect(hashes { _ = directed.fConnectedVertices(to: v) } == 1)
         #expect(hashes { _ = directed.isBConnected(from: v, to: label(9)) } == 2)

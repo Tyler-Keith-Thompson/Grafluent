@@ -56,10 +56,10 @@ struct IsomorphismPreconditionTests {
             Issue.record("no mapping")
             return
         }
-        #expect(mapping.image(safe: 3) == nil)
+        #expect(throws: VertexNotFound.self) { try mapping.image(checked: 3) }
         #expect(Array(mapping.images) == [2, 4, 0])
         #expect(pattern.vertices.map { mapping.image(of: $0) } == [2, 4, 0])
-        #expect(pattern.vertices.map { mapping.image(safe: $0) } == [2, 4, 0])
+        #expect(pattern.vertices.map { try? mapping.image(checked: $0) } == [2, 4, 0])
         #expect((0 ..< 3).map { target.vertex(atIndex: mapping.imageIndex(ofIndex: $0)) } == (0 ..< 3).map { mapping.image(of: pattern.vertex(atIndex: $0)) })
         #expect(target.vertices.map { mapping.preimage(of: $0) } == [5, 7, 9])
     }
@@ -86,12 +86,12 @@ struct IsomorphismPreconditionTests {
         }
         #expect(Array(mapping.images) == [9, 5, 6])
         #expect(pattern.vertices.map { mapping.image(of: $0) } == [9, 5, 6])
-        #expect(pattern.vertices.map { mapping.image(safe: $0) } == [9, 5, 6])
+        #expect(pattern.vertices.map { try? mapping.image(checked: $0) } == [9, 5, 6])
         #expect((0 ..< 3).map { target.vertex(atIndex: mapping.imageIndex(ofIndex: $0)) } == (0 ..< 3).map { mapping.image(of: pattern.vertex(atIndex: $0)) })
         #expect(target.vertices.map { mapping.preimage(of: $0) } == [0, 1, 2, nil])
     }
 
-    @Test("image(of:) and preimage(of:) trap for a non-vertex on directed graphs too; image(safe:) is nil")
+    @Test("image(of:) and preimage(of:) trap for a non-vertex on directed graphs too; image(checked:) throws")
     func directedAccessorsOfNonVertices() async {
         await #expect(processExitsWith: .failure) {
             let pattern = DirectedPseudograph<Int>(vertices: [4, 8], edges: [DirectedEdge(from: 4, to: 8)])
@@ -105,8 +105,8 @@ struct IsomorphismPreconditionTests {
             let mapping = pattern.subgraphIsomorphism(to: target)!
             _ = mapping.preimage(of: 4)
         }
-        // Without the calls: the one mapping 4 ↦ 3, 8 ↦ 1, its accessors on vertices, and nil for a
-        // non-vertex through image(safe:).
+        // Without the calls: the one mapping 4 ↦ 3, 8 ↦ 1, its accessors on vertices, and
+        // VertexNotFound for a non-vertex through image(checked:).
         let pattern = DirectedPseudograph<Int>(vertices: [4, 8], edges: [DirectedEdge(from: 4, to: 8)])
         let target = DirectedPseudograph<Int>(vertices: [1, 2, 3], edges: [DirectedEdge(from: 3, to: 1)])
         guard let mapping = pattern.subgraphIsomorphism(to: target) else {
@@ -115,7 +115,8 @@ struct IsomorphismPreconditionTests {
         }
         #expect(Array(mapping.images) == [3, 1])
         #expect(mapping.image(of: 4) == 3 && mapping.image(of: 8) == 1)
-        #expect(mapping.image(safe: 5) == nil && mapping.image(safe: 8) == 1)
+        #expect(throws: VertexNotFound.self) { try mapping.image(checked: 5) }
+        #expect((try? mapping.image(checked: 8)) == 1)
         #expect(target.vertices.map { mapping.preimage(of: $0) } == [8, nil, 4])
     }
 

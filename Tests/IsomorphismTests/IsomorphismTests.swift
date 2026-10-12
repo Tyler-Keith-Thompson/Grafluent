@@ -100,7 +100,7 @@ struct IsomorphismTests {
         let mapping = try #require(pattern.isomorphism(to: target))
         #expect(Array(mapping.images) == [])
         #expect(pattern.vertices.map { mapping.image(of: $0) } == [])
-        #expect(pattern.vertices.map { mapping.image(safe: $0) } == [])
+        #expect(pattern.vertices.map { try? mapping.image(checked: $0) } == [])
         #expect((0 ..< 0).map { target.vertex(atIndex: mapping.imageIndex(ofIndex: $0)) } == (0 ..< 0).map { mapping.image(of: pattern.vertex(atIndex: $0)) })
         #expect(target.vertices.map { mapping.preimage(of: $0) } == [])
         // The family on the same arguments: every mapping, the yes/no answer and the first mapping.
@@ -146,7 +146,7 @@ struct IsomorphismTests {
         let mapping = try #require(pattern.isomorphism(to: target))
         #expect(Array(mapping.images) == [7])
         #expect(pattern.vertices.map { mapping.image(of: $0) } == [7])
-        #expect(pattern.vertices.map { mapping.image(safe: $0) } == [7])
+        #expect(pattern.vertices.map { try? mapping.image(checked: $0) } == [7])
         #expect((0 ..< 1).map { target.vertex(atIndex: mapping.imageIndex(ofIndex: $0)) } == (0 ..< 1).map { mapping.image(of: pattern.vertex(atIndex: $0)) })
         #expect(target.vertices.map { mapping.preimage(of: $0) } == [0])
         // The family on the same arguments: every mapping, the yes/no answer and the first mapping.
@@ -1422,7 +1422,7 @@ struct IsomorphismTests {
         let mapping = try #require(pattern.isomorphism(to: target))
         #expect(Array(mapping.images) == [1, 6, 11, 4, 9, 2, 7, 0, 5, 10, 3, 8])
         #expect(pattern.vertices.map { mapping.image(of: $0) } == [1, 6, 11, 4, 9, 2, 7, 0, 5, 10, 3, 8])
-        #expect(pattern.vertices.map { mapping.image(safe: $0) } == [1, 6, 11, 4, 9, 2, 7, 0, 5, 10, 3, 8])
+        #expect(pattern.vertices.map { try? mapping.image(checked: $0) } == [1, 6, 11, 4, 9, 2, 7, 0, 5, 10, 3, 8])
         #expect((0 ..< 12).map { target.vertex(atIndex: mapping.imageIndex(ofIndex: $0)) } == (0 ..< 12).map { mapping.image(of: pattern.vertex(atIndex: $0)) })
         #expect(target.vertices.map { mapping.preimage(of: $0) } == [7, 0, 5, 10, 3, 8, 1, 6, 11, 4, 9, 2])
         // The family on the same arguments: every mapping, the yes/no answer and the first mapping.
@@ -1517,7 +1517,7 @@ struct IsomorphismTests {
         let mapping = try #require(pattern.isomorphism(to: target))
         #expect(Array(mapping.images) == [6, 5, 4, 3, 2, 1, 0])
         #expect(pattern.vertices.map { mapping.image(of: $0) } == [6, 5, 4, 3, 2, 1, 0])
-        #expect(pattern.vertices.map { mapping.image(safe: $0) } == [6, 5, 4, 3, 2, 1, 0])
+        #expect(pattern.vertices.map { try? mapping.image(checked: $0) } == [6, 5, 4, 3, 2, 1, 0])
         #expect((0 ..< 7).map { target.vertex(atIndex: mapping.imageIndex(ofIndex: $0)) } == (0 ..< 7).map { mapping.image(of: pattern.vertex(atIndex: $0)) })
         #expect(target.vertices.map { mapping.preimage(of: $0) } == [0, 1, 2, 3, 4, 5, 6])
         // The family on the same arguments: every mapping, the yes/no answer and the first mapping.
@@ -1782,7 +1782,7 @@ struct IsomorphismTests {
         let mapping = try #require(pattern.isomorphism(to: target, vertexColor: { patternColor[$0]! }, otherVertexColor: { targetColor[$0]! }))
         #expect(Array(mapping.images) == [2, 4, 0])
         #expect(pattern.vertices.map { mapping.image(of: $0) } == [2, 4, 0])
-        #expect(pattern.vertices.map { mapping.image(safe: $0) } == [2, 4, 0])
+        #expect(pattern.vertices.map { try? mapping.image(checked: $0) } == [2, 4, 0])
         #expect((0 ..< 3).map { target.vertex(atIndex: mapping.imageIndex(ofIndex: $0)) } == (0 ..< 3).map { mapping.image(of: pattern.vertex(atIndex: $0)) })
         #expect(target.vertices.map { mapping.preimage(of: $0) } == [5, 7, 9])
         // The family on the same arguments: every mapping, the yes/no answer and the first mapping.

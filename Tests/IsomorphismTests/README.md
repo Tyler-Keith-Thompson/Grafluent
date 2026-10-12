@@ -34,7 +34,7 @@ extension Graph {            // and DirectedGraph, with Other: DirectedGraph
     func weisfeilerLehmanSubgraphHashes(iterations: Int = 3) -> WeisfeilerLehmanSubgraphHashes<Self>   // the same shapes
 }
 struct Isomorphism<Pattern, Target>: Hashable, CustomStringConvertible   // equal by images
-    image(of:), image(safe:), preimage(of:), imageIndex(ofIndex:), images
+    image(of:), image(checked:), preimage(of:), preimage(checked:), imageIndex(ofIndex:), images
 struct Isomorphisms<Pattern, Target>: Sequence                             // lazy
 struct WeisfeilerLehmanSubgraphHashes<G>
     iterations, hashes(of:), hashes(ofIndex:)                                // one hash per round 1…iterations
@@ -132,7 +132,7 @@ whose orbits are `orbits`.
   order 20! · 12²⁰ of the hexagons' group); Latin-square graphs of Z₁₆ and Z₂ × Z₈; twisted CFI
   over a random cubic base of 40 (order divisible by 2²¹); non-isomorphic random 3-regular (2 000)
   and 10-regular (1 000) pairs. Also an iterator copied in the middle of each kind of sequence,
-  cancellation (a cancelled task ends the sequences early), `inverse` and `preimage(safe:)`, and
+  cancellation (a cancelled task ends the sequences early), `inverse` and `preimage(checked:)`, and
   canonical forms of relabelled copies, loops, parallel edges and digraphs. The edge-colour check
   at a joint-search leaf is not pinned by a test: it fails only when two different colour
   multisets have equal 64-bit weight sums, and the code documents it as defensive.

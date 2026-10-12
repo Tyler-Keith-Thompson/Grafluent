@@ -216,8 +216,8 @@ struct StableGraphPagingTests {
     }
 
     @Test("SG-122 algorithms after churn see the live vertices only")
-    func sg122() {
-        // V [0]; E [] / for i in 0..<2100 { insert(edge: i→i+1); remove(i) } / insert(edge: 2100→2102) / insert(edge: 2102→2101) / insert(edge: 2101→2100) / breadthFirstSearch(from: 2100) / descendants(safe: 2102)
+    func sg122() throws {
+        // V [0]; E [] / for i in 0..<2100 { insert(edge: i→i+1); remove(i) } / insert(edge: 2100→2102) / insert(edge: 2102→2101) / insert(edge: 2101→2100) / breadthFirstSearch(from: 2100) / descendants(checked: 2102)
         var graph = StableDirectedGraph<Int>(vertices: [0], edges: [] as [DirectedEdge<Int>])
         for i in 0 ..< 2100 { graph.insert(edge: DirectedEdge(from: i, to: i + 1)); graph.remove(i) }
         // Positions after for i in 0..<2100 { insert(edge: i→i+1); remove(i) }.
@@ -261,7 +261,7 @@ struct StableGraphPagingTests {
             return nil
         }
         #expect(discovered == [2100, 2102, 2101])
-        #expect(graph.descendants(safe: 2102) == Set([2100, 2101]))
+        #expect(try graph.descendants(checked: 2102) == Set([2100, 2101]))
         // Final state.
         #expect(Array(graph.vertices) == [2100, 2102, 2101])
         #expect(Array(graph.vertices.indices) == [2100, 2101, 2102])

@@ -769,11 +769,12 @@ struct HypergraphPreconditionTests {
             let hypergraph = UndirectedIncidenceList<String>()
             _ = hypergraph.degree(of: "a")
         }
-        // Without the calls: the same reads of a vertex answer, and the safe spellings answer nil.
+        // Without the calls: the same reads of a vertex answer, and the checked spellings throw.
         let hypergraph = UndirectedIncidenceList<String>(hyperedges: [["a", "b"]])
-        #expect(hypergraph.vertexIndex(of: "b") == 1 && hypergraph.vertexIndex(safe: "q") == nil)
-        #expect(UndirectedIncidenceList<String>().incidentHyperedges(safe: "a") == nil)
-        #expect(UndirectedIncidenceList<String>().degree(safe: "a") == nil)
+        #expect(hypergraph.vertexIndex(of: "b") == 1)
+        #expect(throws: VertexNotFound.self) { try hypergraph.vertexIndex(checked: "q") }
+        #expect(throws: VertexNotFound.self) { try UndirectedIncidenceList<String>().incidentHyperedges(checked: "a") }
+        #expect(throws: VertexNotFound.self) { try UndirectedIncidenceList<String>().degree(checked: "a") }
     }
 
     @Test("Undirected: positions and indices trap outside their ranges")
@@ -859,11 +860,14 @@ struct HypergraphPreconditionTests {
             let hypergraph = IncidenceList<String>(hyperedges: [(sources: ["a"], targets: ["b"])])
             _ = hypergraph.isFConnected(from: "q", to: "b")
         }
-        // Without the calls: the vertices answer, and the safe spellings answer nil.
+        // Without the calls: the vertices answer, and the checked spellings throw.
         let hypergraph = IncidenceList<String>(hyperedges: [(sources: ["a"], targets: ["b"])])
         #expect(Array(hypergraph.inHyperedges(of: "b")) == [0] && hypergraph.degree(of: "a") == 1)
         #expect(hypergraph.fConnectedVertices(to: "b") == ["a", "b"] && hypergraph.isBConnected(from: "a", to: "b"))
-        #expect(hypergraph.inHyperedges(safe: "q") == nil && hypergraph.outDegree(safe: "q") == nil && hypergraph.inDegree(safe: "q") == nil)
+        #expect(throws: VertexNotFound.self) { try hypergraph.inHyperedges(checked: "q") }
+        #expect(throws: VertexNotFound.self) { try hypergraph.outDegree(checked: "q") }
+        #expect(throws: VertexNotFound.self) { try hypergraph.inDegree(checked: "q") }
+        #expect(throws: VertexNotFound.self) { try hypergraph.degree(checked: "q") }
     }
 
     @Test("Directed: positions and indices trap outside their ranges")

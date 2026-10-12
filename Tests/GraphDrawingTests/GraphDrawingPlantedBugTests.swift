@@ -35,12 +35,12 @@ struct GraphDrawingPlantedBugTests {
         #expect(drawing.positions == [SIMD2(7.0, 5.0), SIMD2(6.0, 6.0)])
     }
 
-    @Test("Drawing of 0..<n: position(safe:) of n and of −1 is nil")
-    func denseLookupBounds() {
+    @Test("Drawing of 0..<n: position(checked:) of n and of −1 throws")
+    func denseLookupBounds() throws {
         let drawing = Drawing(vertices: 0 ..< 3, positions: [SIMD2(0.0, 0.0), SIMD2(1.0, 0.0), SIMD2(2.0, 0.0)])
-        #expect(drawing.position(safe: 3) == nil)
-        #expect(drawing.position(safe: -1) == nil)
-        #expect(drawing.position(safe: 2) == SIMD2(2.0, 0.0))
+        #expect(throws: VertexNotFound.self) { try drawing.position(checked: 3) }
+        #expect(throws: VertexNotFound.self) { try drawing.position(checked: -1) }
+        #expect(try drawing.position(checked: 2) == SIMD2(2.0, 0.0))
     }
 
     @Test("Drawing equality compares the vertices too, and the description lists x before y")

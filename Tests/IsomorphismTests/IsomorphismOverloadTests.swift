@@ -105,13 +105,13 @@ struct IsomorphismOverloadTests {
         #expect(c3.automorphismGroup(vertexColor: { $0 == 0 ? "red" : "blue" }, edgeColor: { _ in 0 }).order == 1)
     }
 
-    @Test("Directed preimage(safe:) is nil for a vertex outside the target")
-    func directedSafePreimage() throws {
+    @Test("Directed preimage(checked:) throws for a vertex outside the target")
+    func directedCheckedPreimage() throws {
         let g = DirectedPseudograph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])
         let h = DirectedPseudograph<Int>(vertices: [5, 6], edges: [DirectedEdge(from: 6, to: 5)])
         let mapping = try #require(g.isomorphism(to: h))
-        #expect(mapping.preimage(safe: 99) == nil)
-        #expect(mapping.preimage(safe: 5) == 1)
+        #expect(throws: VertexNotFound.self) { try mapping.preimage(checked: 99) }
+        #expect(try mapping.preimage(checked: 5) == 1)
     }
 
     @Test("Canonical forms keep direction: K2 is not the directed 2-cycle; a loop beside a vertex is not an arc")

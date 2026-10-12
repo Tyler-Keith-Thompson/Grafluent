@@ -20,7 +20,7 @@ struct PlanarRotationTests {
         let vertexList = Array(graph.vertices)
         let indexOf = Dictionary(uniqueKeysWithValues: vertexList.enumerated().map { ($1, $0) })
         // Each clockwise order: the vertex's incident edges (a loop twice), starting at the first one;
-        // the neighbours, the index-space neighbours and the safe: spellings say the same.
+        // the neighbours, the index-space neighbours and the checked: spellings say the same.
         var rotation: [[Int]] = []
         for (i, v) in vertexList.enumerated() {
             let row = Array(embedding.clockwiseIncidentEdges(of: v))
@@ -28,9 +28,9 @@ struct PlanarRotationTests {
             let across = row.map { graph.oppositeVertex(to: v, acrossEdgeAt: $0) }
             #expect(row.sorted() == incident.sorted(), "the clockwise order at \(v) is not its incident edges")
             #expect(row.first == incident.first, "the clockwise order at \(v) does not start at its first edge")
-            #expect(embedding.clockwiseIncidentEdges(safe: v).map { Array($0) } == row)
+            #expect(try Array(embedding.clockwiseIncidentEdges(checked: v)) == row)
             #expect(Array(embedding.clockwiseNeighbors(of: v)) == across)
-            #expect(embedding.clockwiseNeighbors(safe: v).map { Array($0) } == across)
+            #expect(try Array(embedding.clockwiseNeighbors(checked: v)) == across)
             #expect(Array(embedding.clockwiseNeighborIndices(ofIndex: i)) == across.map { indexOf[$0]! })
             rotation.append(row)
         }
@@ -107,7 +107,7 @@ struct PlanarRotationTests {
         let vertexList = Array(graph.vertices)
         let indexOf = Dictionary(uniqueKeysWithValues: vertexList.enumerated().map { ($1, $0) })
         // Each clockwise order: the vertex's incident edges (a loop twice), starting at the first one;
-        // the neighbours, the index-space neighbours and the safe: spellings say the same.
+        // the neighbours, the index-space neighbours and the checked: spellings say the same.
         var rotation: [[Int]] = []
         for (i, v) in vertexList.enumerated() {
             let row = Array(embedding.clockwiseIncidentEdges(of: v))
@@ -115,9 +115,9 @@ struct PlanarRotationTests {
             let across = row.map { graph.oppositeVertex(to: v, acrossEdgeAt: $0) }
             #expect(row.sorted() == incident.sorted(), "the clockwise order at \(v) is not its incident edges")
             #expect(row.first == incident.first, "the clockwise order at \(v) does not start at its first edge")
-            #expect(embedding.clockwiseIncidentEdges(safe: v).map { Array($0) } == row)
+            #expect(try Array(embedding.clockwiseIncidentEdges(checked: v)) == row)
             #expect(Array(embedding.clockwiseNeighbors(of: v)) == across)
-            #expect(embedding.clockwiseNeighbors(safe: v).map { Array($0) } == across)
+            #expect(try Array(embedding.clockwiseNeighbors(checked: v)) == across)
             #expect(Array(embedding.clockwiseNeighborIndices(ofIndex: i)) == across.map { indexOf[$0]! })
             rotation.append(row)
         }
@@ -195,7 +195,7 @@ struct PlanarRotationTests {
         let vertexList = Array(graph.vertices)
         let indexOf = Dictionary(uniqueKeysWithValues: vertexList.enumerated().map { ($1, $0) })
         // Each clockwise order: the vertex's incident edges (a loop twice), starting at the first one;
-        // the neighbours, the index-space neighbours and the safe: spellings say the same.
+        // the neighbours, the index-space neighbours and the checked: spellings say the same.
         var rotation: [[Int]] = []
         for (i, v) in vertexList.enumerated() {
             let row = Array(embedding.clockwiseIncidentEdges(of: v))
@@ -203,9 +203,9 @@ struct PlanarRotationTests {
             let across = row.map { graph.oppositeVertex(to: v, acrossEdgeAt: $0) }
             #expect(row.sorted() == incident.sorted(), "the clockwise order at \(v) is not its incident edges")
             #expect(row.first == incident.first, "the clockwise order at \(v) does not start at its first edge")
-            #expect(embedding.clockwiseIncidentEdges(safe: v).map { Array($0) } == row)
+            #expect(try Array(embedding.clockwiseIncidentEdges(checked: v)) == row)
             #expect(Array(embedding.clockwiseNeighbors(of: v)) == across)
-            #expect(embedding.clockwiseNeighbors(safe: v).map { Array($0) } == across)
+            #expect(try Array(embedding.clockwiseNeighbors(checked: v)) == across)
             #expect(Array(embedding.clockwiseNeighborIndices(ofIndex: i)) == across.map { indexOf[$0]! })
             rotation.append(row)
         }
@@ -283,7 +283,7 @@ struct PlanarRotationTests {
         let vertexList = Array(graph.vertices)
         let indexOf = Dictionary(uniqueKeysWithValues: vertexList.enumerated().map { ($1, $0) })
         // Each clockwise order: the vertex's incident edges (a loop twice), starting at the first one;
-        // the neighbours, the index-space neighbours and the safe: spellings say the same.
+        // the neighbours, the index-space neighbours and the checked: spellings say the same.
         var rotation: [[Int]] = []
         for (i, v) in vertexList.enumerated() {
             let row = Array(embedding.clockwiseIncidentEdges(of: v))
@@ -291,9 +291,9 @@ struct PlanarRotationTests {
             let across = row.map { graph.oppositeVertex(to: v, acrossEdgeAt: $0) }
             #expect(row.sorted() == incident.sorted(), "the clockwise order at \(v) is not its incident edges")
             #expect(row.first == incident.first, "the clockwise order at \(v) does not start at its first edge")
-            #expect(embedding.clockwiseIncidentEdges(safe: v).map { Array($0) } == row)
+            #expect(try Array(embedding.clockwiseIncidentEdges(checked: v)) == row)
             #expect(Array(embedding.clockwiseNeighbors(of: v)) == across)
-            #expect(embedding.clockwiseNeighbors(safe: v).map { Array($0) } == across)
+            #expect(try Array(embedding.clockwiseNeighbors(checked: v)) == across)
             #expect(Array(embedding.clockwiseNeighborIndices(ofIndex: i)) == across.map { indexOf[$0]! })
             rotation.append(row)
         }
@@ -369,7 +369,7 @@ struct PlanarRotationTests {
         let vertexList = Array(graph.vertices)
         let indexOf = Dictionary(uniqueKeysWithValues: vertexList.enumerated().map { ($1, $0) })
         // Each clockwise order: the vertex's incident edges (a loop twice), starting at the first one;
-        // the neighbours, the index-space neighbours and the safe: spellings say the same.
+        // the neighbours, the index-space neighbours and the checked: spellings say the same.
         var rotation: [[Int]] = []
         for (i, v) in vertexList.enumerated() {
             let row = Array(embedding.clockwiseIncidentEdges(of: v))
@@ -377,9 +377,9 @@ struct PlanarRotationTests {
             let across = row.map { graph.oppositeVertex(to: v, acrossEdgeAt: $0) }
             #expect(row.sorted() == incident.sorted(), "the clockwise order at \(v) is not its incident edges")
             #expect(row.first == incident.first, "the clockwise order at \(v) does not start at its first edge")
-            #expect(embedding.clockwiseIncidentEdges(safe: v).map { Array($0) } == row)
+            #expect(try Array(embedding.clockwiseIncidentEdges(checked: v)) == row)
             #expect(Array(embedding.clockwiseNeighbors(of: v)) == across)
-            #expect(embedding.clockwiseNeighbors(safe: v).map { Array($0) } == across)
+            #expect(try Array(embedding.clockwiseNeighbors(checked: v)) == across)
             #expect(Array(embedding.clockwiseNeighborIndices(ofIndex: i)) == across.map { indexOf[$0]! })
             rotation.append(row)
         }
@@ -452,7 +452,7 @@ struct PlanarRotationTests {
         let vertexList = Array(graph.vertices)
         let indexOf = Dictionary(uniqueKeysWithValues: vertexList.enumerated().map { ($1, $0) })
         // Each clockwise order: the vertex's incident edges (a loop twice), starting at the first one;
-        // the neighbours, the index-space neighbours and the safe: spellings say the same.
+        // the neighbours, the index-space neighbours and the checked: spellings say the same.
         var rotation: [[Int]] = []
         for (i, v) in vertexList.enumerated() {
             let row = Array(embedding.clockwiseIncidentEdges(of: v))
@@ -460,9 +460,9 @@ struct PlanarRotationTests {
             let across = row.map { graph.oppositeVertex(to: v, acrossEdgeAt: $0) }
             #expect(row.sorted() == incident.sorted(), "the clockwise order at \(v) is not its incident edges")
             #expect(row.first == incident.first, "the clockwise order at \(v) does not start at its first edge")
-            #expect(embedding.clockwiseIncidentEdges(safe: v).map { Array($0) } == row)
+            #expect(try Array(embedding.clockwiseIncidentEdges(checked: v)) == row)
             #expect(Array(embedding.clockwiseNeighbors(of: v)) == across)
-            #expect(embedding.clockwiseNeighbors(safe: v).map { Array($0) } == across)
+            #expect(try Array(embedding.clockwiseNeighbors(checked: v)) == across)
             #expect(Array(embedding.clockwiseNeighborIndices(ofIndex: i)) == across.map { indexOf[$0]! })
             rotation.append(row)
         }
@@ -536,7 +536,7 @@ struct PlanarRotationTests {
         let vertexList = Array(graph.vertices)
         let indexOf = Dictionary(uniqueKeysWithValues: vertexList.enumerated().map { ($1, $0) })
         // Each clockwise order: the vertex's incident edges (a loop twice), starting at the first one;
-        // the neighbours, the index-space neighbours and the safe: spellings say the same.
+        // the neighbours, the index-space neighbours and the checked: spellings say the same.
         var rotation: [[Int]] = []
         for (i, v) in vertexList.enumerated() {
             let row = Array(embedding.clockwiseIncidentEdges(of: v))
@@ -544,9 +544,9 @@ struct PlanarRotationTests {
             let across = row.map { graph.oppositeVertex(to: v, acrossEdgeAt: $0) }
             #expect(row.sorted() == incident.sorted(), "the clockwise order at \(v) is not its incident edges")
             #expect(row.first == incident.first, "the clockwise order at \(v) does not start at its first edge")
-            #expect(embedding.clockwiseIncidentEdges(safe: v).map { Array($0) } == row)
+            #expect(try Array(embedding.clockwiseIncidentEdges(checked: v)) == row)
             #expect(Array(embedding.clockwiseNeighbors(of: v)) == across)
-            #expect(embedding.clockwiseNeighbors(safe: v).map { Array($0) } == across)
+            #expect(try Array(embedding.clockwiseNeighbors(checked: v)) == across)
             #expect(Array(embedding.clockwiseNeighborIndices(ofIndex: i)) == across.map { indexOf[$0]! })
             rotation.append(row)
         }
@@ -622,7 +622,7 @@ struct PlanarRotationTests {
         let vertexList = Array(graph.vertices)
         let indexOf = Dictionary(uniqueKeysWithValues: vertexList.enumerated().map { ($1, $0) })
         // Each clockwise order: the vertex's incident edges (a loop twice), starting at the first one;
-        // the neighbours, the index-space neighbours and the safe: spellings say the same.
+        // the neighbours, the index-space neighbours and the checked: spellings say the same.
         var rotation: [[Int]] = []
         for (i, v) in vertexList.enumerated() {
             let row = Array(embedding.clockwiseIncidentEdges(of: v))
@@ -630,9 +630,9 @@ struct PlanarRotationTests {
             let across = row.map { graph.oppositeVertex(to: v, acrossEdgeAt: $0) }
             #expect(row.sorted() == incident.sorted(), "the clockwise order at \(v) is not its incident edges")
             #expect(row.first == incident.first, "the clockwise order at \(v) does not start at its first edge")
-            #expect(embedding.clockwiseIncidentEdges(safe: v).map { Array($0) } == row)
+            #expect(try Array(embedding.clockwiseIncidentEdges(checked: v)) == row)
             #expect(Array(embedding.clockwiseNeighbors(of: v)) == across)
-            #expect(embedding.clockwiseNeighbors(safe: v).map { Array($0) } == across)
+            #expect(try Array(embedding.clockwiseNeighbors(checked: v)) == across)
             #expect(Array(embedding.clockwiseNeighborIndices(ofIndex: i)) == across.map { indexOf[$0]! })
             rotation.append(row)
         }
@@ -706,7 +706,7 @@ struct PlanarRotationTests {
         let vertexList = Array(graph.vertices)
         let indexOf = Dictionary(uniqueKeysWithValues: vertexList.enumerated().map { ($1, $0) })
         // Each clockwise order: the vertex's incident edges (a loop twice), starting at the first one;
-        // the neighbours, the index-space neighbours and the safe: spellings say the same.
+        // the neighbours, the index-space neighbours and the checked: spellings say the same.
         var rotation: [[Int]] = []
         for (i, v) in vertexList.enumerated() {
             let row = Array(embedding.clockwiseIncidentEdges(of: v))
@@ -714,9 +714,9 @@ struct PlanarRotationTests {
             let across = row.map { graph.oppositeVertex(to: v, acrossEdgeAt: $0) }
             #expect(row.sorted() == incident.sorted(), "the clockwise order at \(v) is not its incident edges")
             #expect(row.first == incident.first, "the clockwise order at \(v) does not start at its first edge")
-            #expect(embedding.clockwiseIncidentEdges(safe: v).map { Array($0) } == row)
+            #expect(try Array(embedding.clockwiseIncidentEdges(checked: v)) == row)
             #expect(Array(embedding.clockwiseNeighbors(of: v)) == across)
-            #expect(embedding.clockwiseNeighbors(safe: v).map { Array($0) } == across)
+            #expect(try Array(embedding.clockwiseNeighbors(checked: v)) == across)
             #expect(Array(embedding.clockwiseNeighborIndices(ofIndex: i)) == across.map { indexOf[$0]! })
             rotation.append(row)
         }
@@ -779,9 +779,9 @@ struct PlanarRotationTests {
         #expect(Array(embedding.clockwiseNeighbors(of: 3)) == [7, 5])
     }
 
-    @Test("PL-118 not a vertex, safe:: planarEmbedding()!.clockwiseNeighbors(safe: 9)")
+    @Test("PL-118 not a vertex, checked:: planarEmbedding()!.clockwiseNeighbors(checked: 9)")
     func pl118() throws {
-        // U: K(4); planarEmbedding()!.clockwiseNeighbors(safe: 9) → nil
+        // U: K(4); planarEmbedding()!.clockwiseNeighbors(checked: 9) → throws VertexNotFound
         let graph = Pseudograph<Int>(vertices: 0 ..< 4, edges: [UndirectedEdge(0, 1), UndirectedEdge(0, 2),
             UndirectedEdge(0, 3), UndirectedEdge(1, 2), UndirectedEdge(1, 3), UndirectedEdge(2, 3)])
         #expect(graph.vertexCount == 4 && graph.edgeCount == 6)
@@ -790,7 +790,7 @@ struct PlanarRotationTests {
         let vertexList = Array(graph.vertices)
         let indexOf = Dictionary(uniqueKeysWithValues: vertexList.enumerated().map { ($1, $0) })
         // Each clockwise order: the vertex's incident edges (a loop twice), starting at the first one;
-        // the neighbours, the index-space neighbours and the safe: spellings say the same.
+        // the neighbours, the index-space neighbours and the checked: spellings say the same.
         var rotation: [[Int]] = []
         for (i, v) in vertexList.enumerated() {
             let row = Array(embedding.clockwiseIncidentEdges(of: v))
@@ -798,9 +798,9 @@ struct PlanarRotationTests {
             let across = row.map { graph.oppositeVertex(to: v, acrossEdgeAt: $0) }
             #expect(row.sorted() == incident.sorted(), "the clockwise order at \(v) is not its incident edges")
             #expect(row.first == incident.first, "the clockwise order at \(v) does not start at its first edge")
-            #expect(embedding.clockwiseIncidentEdges(safe: v).map { Array($0) } == row)
+            #expect(try Array(embedding.clockwiseIncidentEdges(checked: v)) == row)
             #expect(Array(embedding.clockwiseNeighbors(of: v)) == across)
-            #expect(embedding.clockwiseNeighbors(safe: v).map { Array($0) } == across)
+            #expect(try Array(embedding.clockwiseNeighbors(checked: v)) == across)
             #expect(Array(embedding.clockwiseNeighborIndices(ofIndex: i)) == across.map { indexOf[$0]! })
             rotation.append(row)
         }
@@ -863,12 +863,12 @@ struct PlanarRotationTests {
         #expect(again.faces.map(\.vertices) == embedding.faces.map(\.vertices) && again.faces.map(\.edges) == embedding.faces.map(\.edges))
         #expect(graph.isPlanar && graph.findKuratowskiSubgraph() == nil)
         #expect(!embedding.description.isEmpty)
-        #expect(embedding.clockwiseNeighbors(safe: 9) == nil)
+        #expect(throws: VertexNotFound.self) { try embedding.clockwiseNeighbors(checked: 9) }
     }
 
-    @Test("PL-119 a vertex, safe:: planarEmbedding()!.clockwiseNeighbors(safe: 0)")
+    @Test("PL-119 a vertex, checked:: planarEmbedding()!.clockwiseNeighbors(checked: 0)")
     func pl119() throws {
-        // U: K(4); planarEmbedding()!.clockwiseNeighbors(safe: 0) → [1, 3, 2] or [1, 2, 3] (mirror image)
+        // U: K(4); planarEmbedding()!.clockwiseNeighbors(checked: 0) → [1, 3, 2] or [1, 2, 3] (mirror image)
         let graph = Pseudograph<Int>(vertices: 0 ..< 4, edges: [UndirectedEdge(0, 1), UndirectedEdge(0, 2),
             UndirectedEdge(0, 3), UndirectedEdge(1, 2), UndirectedEdge(1, 3), UndirectedEdge(2, 3)])
         #expect(graph.vertexCount == 4 && graph.edgeCount == 6)
@@ -877,7 +877,7 @@ struct PlanarRotationTests {
         let vertexList = Array(graph.vertices)
         let indexOf = Dictionary(uniqueKeysWithValues: vertexList.enumerated().map { ($1, $0) })
         // Each clockwise order: the vertex's incident edges (a loop twice), starting at the first one;
-        // the neighbours, the index-space neighbours and the safe: spellings say the same.
+        // the neighbours, the index-space neighbours and the checked: spellings say the same.
         var rotation: [[Int]] = []
         for (i, v) in vertexList.enumerated() {
             let row = Array(embedding.clockwiseIncidentEdges(of: v))
@@ -885,9 +885,9 @@ struct PlanarRotationTests {
             let across = row.map { graph.oppositeVertex(to: v, acrossEdgeAt: $0) }
             #expect(row.sorted() == incident.sorted(), "the clockwise order at \(v) is not its incident edges")
             #expect(row.first == incident.first, "the clockwise order at \(v) does not start at its first edge")
-            #expect(embedding.clockwiseIncidentEdges(safe: v).map { Array($0) } == row)
+            #expect(try Array(embedding.clockwiseIncidentEdges(checked: v)) == row)
             #expect(Array(embedding.clockwiseNeighbors(of: v)) == across)
-            #expect(embedding.clockwiseNeighbors(safe: v).map { Array($0) } == across)
+            #expect(try Array(embedding.clockwiseNeighbors(checked: v)) == across)
             #expect(Array(embedding.clockwiseNeighborIndices(ofIndex: i)) == across.map { indexOf[$0]! })
             rotation.append(row)
         }
@@ -950,7 +950,7 @@ struct PlanarRotationTests {
         #expect(again.faces.map(\.vertices) == embedding.faces.map(\.vertices) && again.faces.map(\.edges) == embedding.faces.map(\.edges))
         #expect(graph.isPlanar && graph.findKuratowskiSubgraph() == nil)
         #expect(!embedding.description.isEmpty)
-        #expect(embedding.clockwiseNeighbors(safe: 0).map { Array($0) } == (isA ? [1, 3, 2] : [1, 2, 3]))
+        #expect(try Array(embedding.clockwiseNeighbors(checked: 0)) == (isA ? [1, 3, 2] : [1, 2, 3]))
     }
 
     @Test("PL-120 K4: face right of 0 → 1: planarEmbedding()!.face(from: 0, alongEdgeAt: 0)")
@@ -964,7 +964,7 @@ struct PlanarRotationTests {
         let vertexList = Array(graph.vertices)
         let indexOf = Dictionary(uniqueKeysWithValues: vertexList.enumerated().map { ($1, $0) })
         // Each clockwise order: the vertex's incident edges (a loop twice), starting at the first one;
-        // the neighbours, the index-space neighbours and the safe: spellings say the same.
+        // the neighbours, the index-space neighbours and the checked: spellings say the same.
         var rotation: [[Int]] = []
         for (i, v) in vertexList.enumerated() {
             let row = Array(embedding.clockwiseIncidentEdges(of: v))
@@ -972,9 +972,9 @@ struct PlanarRotationTests {
             let across = row.map { graph.oppositeVertex(to: v, acrossEdgeAt: $0) }
             #expect(row.sorted() == incident.sorted(), "the clockwise order at \(v) is not its incident edges")
             #expect(row.first == incident.first, "the clockwise order at \(v) does not start at its first edge")
-            #expect(embedding.clockwiseIncidentEdges(safe: v).map { Array($0) } == row)
+            #expect(try Array(embedding.clockwiseIncidentEdges(checked: v)) == row)
             #expect(Array(embedding.clockwiseNeighbors(of: v)) == across)
-            #expect(embedding.clockwiseNeighbors(safe: v).map { Array($0) } == across)
+            #expect(try Array(embedding.clockwiseNeighbors(checked: v)) == across)
             #expect(Array(embedding.clockwiseNeighborIndices(ofIndex: i)) == across.map { indexOf[$0]! })
             rotation.append(row)
         }
@@ -1053,7 +1053,7 @@ struct PlanarRotationTests {
         let vertexList = Array(graph.vertices)
         let indexOf = Dictionary(uniqueKeysWithValues: vertexList.enumerated().map { ($1, $0) })
         // Each clockwise order: the vertex's incident edges (a loop twice), starting at the first one;
-        // the neighbours, the index-space neighbours and the safe: spellings say the same.
+        // the neighbours, the index-space neighbours and the checked: spellings say the same.
         var rotation: [[Int]] = []
         for (i, v) in vertexList.enumerated() {
             let row = Array(embedding.clockwiseIncidentEdges(of: v))
@@ -1061,9 +1061,9 @@ struct PlanarRotationTests {
             let across = row.map { graph.oppositeVertex(to: v, acrossEdgeAt: $0) }
             #expect(row.sorted() == incident.sorted(), "the clockwise order at \(v) is not its incident edges")
             #expect(row.first == incident.first, "the clockwise order at \(v) does not start at its first edge")
-            #expect(embedding.clockwiseIncidentEdges(safe: v).map { Array($0) } == row)
+            #expect(try Array(embedding.clockwiseIncidentEdges(checked: v)) == row)
             #expect(Array(embedding.clockwiseNeighbors(of: v)) == across)
-            #expect(embedding.clockwiseNeighbors(safe: v).map { Array($0) } == across)
+            #expect(try Array(embedding.clockwiseNeighbors(checked: v)) == across)
             #expect(Array(embedding.clockwiseNeighborIndices(ofIndex: i)) == across.map { indexOf[$0]! })
             rotation.append(row)
         }
@@ -1141,7 +1141,7 @@ struct PlanarRotationTests {
         let vertexList = Array(graph.vertices)
         let indexOf = Dictionary(uniqueKeysWithValues: vertexList.enumerated().map { ($1, $0) })
         // Each clockwise order: the vertex's incident edges (a loop twice), starting at the first one;
-        // the neighbours, the index-space neighbours and the safe: spellings say the same.
+        // the neighbours, the index-space neighbours and the checked: spellings say the same.
         var rotation: [[Int]] = []
         for (i, v) in vertexList.enumerated() {
             let row = Array(embedding.clockwiseIncidentEdges(of: v))
@@ -1149,9 +1149,9 @@ struct PlanarRotationTests {
             let across = row.map { graph.oppositeVertex(to: v, acrossEdgeAt: $0) }
             #expect(row.sorted() == incident.sorted(), "the clockwise order at \(v) is not its incident edges")
             #expect(row.first == incident.first, "the clockwise order at \(v) does not start at its first edge")
-            #expect(embedding.clockwiseIncidentEdges(safe: v).map { Array($0) } == row)
+            #expect(try Array(embedding.clockwiseIncidentEdges(checked: v)) == row)
             #expect(Array(embedding.clockwiseNeighbors(of: v)) == across)
-            #expect(embedding.clockwiseNeighbors(safe: v).map { Array($0) } == across)
+            #expect(try Array(embedding.clockwiseNeighbors(checked: v)) == across)
             #expect(Array(embedding.clockwiseNeighborIndices(ofIndex: i)) == across.map { indexOf[$0]! })
             rotation.append(row)
         }
@@ -1225,7 +1225,7 @@ struct PlanarRotationTests {
         let vertexList = Array(graph.vertices)
         let indexOf = Dictionary(uniqueKeysWithValues: vertexList.enumerated().map { ($1, $0) })
         // Each clockwise order: the vertex's incident edges (a loop twice), starting at the first one;
-        // the neighbours, the index-space neighbours and the safe: spellings say the same.
+        // the neighbours, the index-space neighbours and the checked: spellings say the same.
         var rotation: [[Int]] = []
         for (i, v) in vertexList.enumerated() {
             let row = Array(embedding.clockwiseIncidentEdges(of: v))
@@ -1233,9 +1233,9 @@ struct PlanarRotationTests {
             let across = row.map { graph.oppositeVertex(to: v, acrossEdgeAt: $0) }
             #expect(row.sorted() == incident.sorted(), "the clockwise order at \(v) is not its incident edges")
             #expect(row.first == incident.first, "the clockwise order at \(v) does not start at its first edge")
-            #expect(embedding.clockwiseIncidentEdges(safe: v).map { Array($0) } == row)
+            #expect(try Array(embedding.clockwiseIncidentEdges(checked: v)) == row)
             #expect(Array(embedding.clockwiseNeighbors(of: v)) == across)
-            #expect(embedding.clockwiseNeighbors(safe: v).map { Array($0) } == across)
+            #expect(try Array(embedding.clockwiseNeighbors(checked: v)) == across)
             #expect(Array(embedding.clockwiseNeighborIndices(ofIndex: i)) == across.map { indexOf[$0]! })
             rotation.append(row)
         }
@@ -1309,7 +1309,7 @@ struct PlanarRotationTests {
         let vertexList = Array(graph.vertices)
         let indexOf = Dictionary(uniqueKeysWithValues: vertexList.enumerated().map { ($1, $0) })
         // Each clockwise order: the vertex's incident edges (a loop twice), starting at the first one;
-        // the neighbours, the index-space neighbours and the safe: spellings say the same.
+        // the neighbours, the index-space neighbours and the checked: spellings say the same.
         var rotation: [[Int]] = []
         for (i, v) in vertexList.enumerated() {
             let row = Array(embedding.clockwiseIncidentEdges(of: v))
@@ -1317,9 +1317,9 @@ struct PlanarRotationTests {
             let across = row.map { graph.oppositeVertex(to: v, acrossEdgeAt: $0) }
             #expect(row.sorted() == incident.sorted(), "the clockwise order at \(v) is not its incident edges")
             #expect(row.first == incident.first, "the clockwise order at \(v) does not start at its first edge")
-            #expect(embedding.clockwiseIncidentEdges(safe: v).map { Array($0) } == row)
+            #expect(try Array(embedding.clockwiseIncidentEdges(checked: v)) == row)
             #expect(Array(embedding.clockwiseNeighbors(of: v)) == across)
-            #expect(embedding.clockwiseNeighbors(safe: v).map { Array($0) } == across)
+            #expect(try Array(embedding.clockwiseNeighbors(checked: v)) == across)
             #expect(Array(embedding.clockwiseNeighborIndices(ofIndex: i)) == across.map { indexOf[$0]! })
             rotation.append(row)
         }
@@ -1392,7 +1392,7 @@ struct PlanarRotationTests {
         let vertexList = Array(graph.vertices)
         let indexOf = Dictionary(uniqueKeysWithValues: vertexList.enumerated().map { ($1, $0) })
         // Each clockwise order: the vertex's incident edges (a loop twice), starting at the first one;
-        // the neighbours, the index-space neighbours and the safe: spellings say the same.
+        // the neighbours, the index-space neighbours and the checked: spellings say the same.
         var rotation: [[Int]] = []
         for (i, v) in vertexList.enumerated() {
             let row = Array(embedding.clockwiseIncidentEdges(of: v))
@@ -1400,9 +1400,9 @@ struct PlanarRotationTests {
             let across = row.map { graph.oppositeVertex(to: v, acrossEdgeAt: $0) }
             #expect(row.sorted() == incident.sorted(), "the clockwise order at \(v) is not its incident edges")
             #expect(row.first == incident.first, "the clockwise order at \(v) does not start at its first edge")
-            #expect(embedding.clockwiseIncidentEdges(safe: v).map { Array($0) } == row)
+            #expect(try Array(embedding.clockwiseIncidentEdges(checked: v)) == row)
             #expect(Array(embedding.clockwiseNeighbors(of: v)) == across)
-            #expect(embedding.clockwiseNeighbors(safe: v).map { Array($0) } == across)
+            #expect(try Array(embedding.clockwiseNeighbors(checked: v)) == across)
             #expect(Array(embedding.clockwiseNeighborIndices(ofIndex: i)) == across.map { indexOf[$0]! })
             rotation.append(row)
         }
@@ -1478,7 +1478,7 @@ struct PlanarRotationTests {
         let vertexList = Array(graph.vertices)
         let indexOf = Dictionary(uniqueKeysWithValues: vertexList.enumerated().map { ($1, $0) })
         // Each clockwise order: the vertex's incident edges (a loop twice), starting at the first one;
-        // the neighbours, the index-space neighbours and the safe: spellings say the same.
+        // the neighbours, the index-space neighbours and the checked: spellings say the same.
         var rotation: [[Int]] = []
         for (i, v) in vertexList.enumerated() {
             let row = Array(embedding.clockwiseIncidentEdges(of: v))
@@ -1486,9 +1486,9 @@ struct PlanarRotationTests {
             let across = row.map { graph.oppositeVertex(to: v, acrossEdgeAt: $0) }
             #expect(row.sorted() == incident.sorted(), "the clockwise order at \(v) is not its incident edges")
             #expect(row.first == incident.first, "the clockwise order at \(v) does not start at its first edge")
-            #expect(embedding.clockwiseIncidentEdges(safe: v).map { Array($0) } == row)
+            #expect(try Array(embedding.clockwiseIncidentEdges(checked: v)) == row)
             #expect(Array(embedding.clockwiseNeighbors(of: v)) == across)
-            #expect(embedding.clockwiseNeighbors(safe: v).map { Array($0) } == across)
+            #expect(try Array(embedding.clockwiseNeighbors(checked: v)) == across)
             #expect(Array(embedding.clockwiseNeighborIndices(ofIndex: i)) == across.map { indexOf[$0]! })
             rotation.append(row)
         }
@@ -1568,7 +1568,7 @@ struct PlanarRotationTests {
         let vertexList = Array(graph.vertices)
         let indexOf = Dictionary(uniqueKeysWithValues: vertexList.enumerated().map { ($1, $0) })
         // Each clockwise order: the vertex's incident edges (a loop twice), starting at the first one;
-        // the neighbours, the index-space neighbours and the safe: spellings say the same.
+        // the neighbours, the index-space neighbours and the checked: spellings say the same.
         var rotation: [[Int]] = []
         for (i, v) in vertexList.enumerated() {
             let row = Array(embedding.clockwiseIncidentEdges(of: v))
@@ -1576,9 +1576,9 @@ struct PlanarRotationTests {
             let across = row.map { graph.oppositeVertex(to: v, acrossEdgeAt: $0) }
             #expect(row.sorted() == incident.sorted(), "the clockwise order at \(v) is not its incident edges")
             #expect(row.first == incident.first, "the clockwise order at \(v) does not start at its first edge")
-            #expect(embedding.clockwiseIncidentEdges(safe: v).map { Array($0) } == row)
+            #expect(try Array(embedding.clockwiseIncidentEdges(checked: v)) == row)
             #expect(Array(embedding.clockwiseNeighbors(of: v)) == across)
-            #expect(embedding.clockwiseNeighbors(safe: v).map { Array($0) } == across)
+            #expect(try Array(embedding.clockwiseNeighbors(checked: v)) == across)
             #expect(Array(embedding.clockwiseNeighborIndices(ofIndex: i)) == across.map { indexOf[$0]! })
             rotation.append(row)
         }
@@ -1648,7 +1648,7 @@ struct PlanarRotationTests {
         let vertexList = Array(graph.vertices)
         let indexOf = Dictionary(uniqueKeysWithValues: vertexList.enumerated().map { ($1, $0) })
         // Each clockwise order: the vertex's incident edges (a loop twice), starting at the first one;
-        // the neighbours, the index-space neighbours and the safe: spellings say the same.
+        // the neighbours, the index-space neighbours and the checked: spellings say the same.
         var rotation: [[Int]] = []
         for (i, v) in vertexList.enumerated() {
             let row = Array(embedding.clockwiseIncidentEdges(of: v))
@@ -1656,9 +1656,9 @@ struct PlanarRotationTests {
             let across = row.map { graph.oppositeVertex(to: v, acrossEdgeAt: $0) }
             #expect(row.sorted() == incident.sorted(), "the clockwise order at \(v) is not its incident edges")
             #expect(row.first == incident.first, "the clockwise order at \(v) does not start at its first edge")
-            #expect(embedding.clockwiseIncidentEdges(safe: v).map { Array($0) } == row)
+            #expect(try Array(embedding.clockwiseIncidentEdges(checked: v)) == row)
             #expect(Array(embedding.clockwiseNeighbors(of: v)) == across)
-            #expect(embedding.clockwiseNeighbors(safe: v).map { Array($0) } == across)
+            #expect(try Array(embedding.clockwiseNeighbors(checked: v)) == across)
             #expect(Array(embedding.clockwiseNeighborIndices(ofIndex: i)) == across.map { indexOf[$0]! })
             rotation.append(row)
         }
@@ -1746,7 +1746,7 @@ struct PlanarRotationTests {
         let vertexList = Array(graph.vertices)
         let indexOf = Dictionary(uniqueKeysWithValues: vertexList.enumerated().map { ($1, $0) })
         // Each clockwise order: the vertex's incident edges (a loop twice), starting at the first one;
-        // the neighbours, the index-space neighbours and the safe: spellings say the same.
+        // the neighbours, the index-space neighbours and the checked: spellings say the same.
         var rotation: [[Int]] = []
         for (i, v) in vertexList.enumerated() {
             let row = Array(embedding.clockwiseIncidentEdges(of: v))
@@ -1754,9 +1754,9 @@ struct PlanarRotationTests {
             let across = row.map { graph.oppositeVertex(to: v, acrossEdgeAt: $0) }
             #expect(row.sorted() == incident.sorted(), "the clockwise order at \(v) is not its incident edges")
             #expect(row.first == incident.first, "the clockwise order at \(v) does not start at its first edge")
-            #expect(embedding.clockwiseIncidentEdges(safe: v).map { Array($0) } == row)
+            #expect(try Array(embedding.clockwiseIncidentEdges(checked: v)) == row)
             #expect(Array(embedding.clockwiseNeighbors(of: v)) == across)
-            #expect(embedding.clockwiseNeighbors(safe: v).map { Array($0) } == across)
+            #expect(try Array(embedding.clockwiseNeighbors(checked: v)) == across)
             #expect(Array(embedding.clockwiseNeighborIndices(ofIndex: i)) == across.map { indexOf[$0]! })
             rotation.append(row)
         }

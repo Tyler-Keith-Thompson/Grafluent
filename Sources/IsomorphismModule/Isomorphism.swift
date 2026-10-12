@@ -73,10 +73,12 @@ extension Isomorphism where Pattern: Graph, Target: Graph {
         return target._vertex(number: imageIndices[_patternNumber(of: vertex)], listed)
     }
 
-    /// The image of `vertex`, or nil when it is not a vertex of the pattern.
+    /// The image of `vertex`, throwing instead of trapping when it is not a vertex of the pattern.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the pattern.
     @inlinable
-    public func image(safe vertex: Pattern.Vertex) -> Target.Vertex? {
-        guard pattern.contains(vertex) else { return nil }
+    public func image(checked vertex: Pattern.Vertex) throws(VertexNotFound) -> Target.Vertex {
+        guard pattern.contains(vertex) else { throw VertexNotFound() }
         return image(of: vertex)
     }
 
@@ -97,11 +99,14 @@ extension Isomorphism where Pattern: Graph, Target: Graph {
         return pattern._vertex(number: u, _numbers(patternNumbers, Pattern.Vertex.self)?.listed)
     }
 
-    /// The pattern vertex mapped to `vertex`, or nil when `vertex` is outside the image or is not
-    /// a vertex of the target. O(n).
+    /// The pattern vertex mapped to `vertex`, or nil when `vertex` is outside the image (a
+    /// subgraph mapping), throwing instead of trapping when `vertex` is not a vertex of the target.
+    /// O(n).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the target.
     @inlinable
-    public func preimage(safe vertex: Target.Vertex) -> Pattern.Vertex? {
-        guard target.contains(vertex) else { return nil }
+    public func preimage(checked vertex: Target.Vertex) throws(VertexNotFound) -> Pattern.Vertex? {
+        guard target.contains(vertex) else { throw VertexNotFound() }
         return preimage(of: vertex)
     }
 
@@ -146,10 +151,12 @@ extension Isomorphism where Pattern: DirectedGraph, Target: DirectedGraph {
         return target._vertex(number: imageIndices[_patternNumber(of: vertex)], listed)
     }
 
-    /// The image of `vertex`, or nil when it is not a vertex of the pattern.
+    /// The image of `vertex`, throwing instead of trapping when it is not a vertex of the pattern.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the pattern.
     @inlinable
-    public func image(safe vertex: Pattern.Vertex) -> Target.Vertex? {
-        guard pattern.contains(vertex) else { return nil }
+    public func image(checked vertex: Pattern.Vertex) throws(VertexNotFound) -> Target.Vertex {
+        guard pattern.contains(vertex) else { throw VertexNotFound() }
         return image(of: vertex)
     }
 
@@ -170,11 +177,14 @@ extension Isomorphism where Pattern: DirectedGraph, Target: DirectedGraph {
         return pattern._vertex(number: u, _numbers(patternNumbers, Pattern.Vertex.self)?.listed)
     }
 
-    /// The pattern vertex mapped to `vertex`, or nil when `vertex` is outside the image or is not
-    /// a vertex of the target. O(n).
+    /// The pattern vertex mapped to `vertex`, or nil when `vertex` is outside the image (a
+    /// subgraph mapping), throwing instead of trapping when `vertex` is not a vertex of the target.
+    /// O(n).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the target.
     @inlinable
-    public func preimage(safe vertex: Target.Vertex) -> Pattern.Vertex? {
-        guard target.contains(vertex) else { return nil }
+    public func preimage(checked vertex: Target.Vertex) throws(VertexNotFound) -> Pattern.Vertex? {
+        guard target.contains(vertex) else { throw VertexNotFound() }
         return preimage(of: vertex)
     }
 

@@ -67,8 +67,7 @@ struct StableGraphChurnTests {
                 default:
                     if let p = graph.edges.indices.last {
                         let v = vertices[next(vertices.count)]
-                        let changed = graph.changeSource(ofEdgeAt: p, safe: v)
-                        #expect(changed)
+                        #expect(throws: Never.self) { try graph.changeSource(ofEdgeAt: p, checked: v) }
                         live[p]!.source = v
                     }
                 }

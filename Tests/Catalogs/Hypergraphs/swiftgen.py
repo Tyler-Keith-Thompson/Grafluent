@@ -67,7 +67,7 @@ for line in TEXT.splitlines():
         parts = [p.strip().replace("\\|", "|") for p in line.strip().strip("|").split(" | ")]
         CELLS[parts[0]] = parts
 IDS = list(CELLS)
-assert len(IDS) == 150 and sorted(IDS) == sorted(SPEC), (len(IDS), len(SPEC))
+assert len(IDS) == 151 and sorted(IDS) == sorted(SPEC), (len(IDS), len(SPEC))
 
 
 def group(r): return CELLS[r][1]
@@ -86,7 +86,6 @@ def ints(xs): return "[" + ", ".join(str(x) for x in xs) + "]"
 def vlist(xs): return "[" + ", ".join(s(x) for x in xs) + "]"
 def vlists(xss): return "[" + ", ".join(vlist(x) for x in xss) + "]"
 def intlists(xss): return "[" + ", ".join(ints(x) for x in xss) + "]"
-def opt(x): return "nil" if x is None else str(x)
 
 
 def vtype(vs, es, prefix):
@@ -184,7 +183,7 @@ def state(g, var, ind, short=False):
 # ---------------------------------------------------------------------------------------------
 # Calls
 # ---------------------------------------------------------------------------------------------
-MUTATING = {"insert", "insert(hyperedge:)", "insert(safe:)", "insert(sources:targets:)", "insert(safe:targets:)", "removeAll"}
+MUTATING = {"insert", "insert(hyperedge:)", "insert(checked:)", "insert(sources:targets:)", "insert(checked:targets:)", "removeAll"}
 
 
 def view_lines(x, var, directed, ind):
@@ -233,6 +232,12 @@ def call_lines(g, call, var="hypergraph"):
 
     def ex(text): return ["#expect(%s)" % text]
 
+    def checked(call, wrap, expected):
+        """A `checked:` call: its value through `try`, or the throw."""
+        if r is ref.NOT_FOUND:
+            return r, ["#expect(throws: VertexNotFound.self) { try %s.%s }" % (var, call)]
+        return r, ex("try %s == %s" % (wrap % ("%s.%s" % (var, call)), expected))
+
     t = vtype(g.vs, [], "HG") if g.vs else "String"
     if name in ref.AT_LABEL:
         if name.endswith("Indices"):
@@ -244,22 +249,24 @@ def call_lines(g, call, var="hypergraph"):
         return r, ex("Array(%s.%s(of: %s)) == %s" % (var, name, s(a[0]), ints(r)))
     if name in ("incidentHyperedges(ofIndex:)", "outHyperedges(ofIndex:)", "inHyperedges(ofIndex:)"):
         return r, ex("Array(%s.%s %d)) == %s" % (var, name[:-2] + ":", a[0], ints(r)))
-    if name in ("incidentHyperedges(safe:)", "outHyperedges(safe:)"):
-        return r, ex("%s.%s %s).map { Array($0) } == %s" % (var, name[:-2] + ":", s(a[0]), "nil" if r is None else ints(r)))
+    if name in ("incidentHyperedges(checked:)", "outHyperedges(checked:)", "inHyperedges(checked:)"):
+        return checked("%s %s)" % (name[:-2] + ":", s(a[0])), "Array(%s)", "" if r is ref.NOT_FOUND else ints(r))
     if name in ("degree", "outDegree", "inDegree"):
         return r, ex("%s.%s(of: %s) == %d" % (var, name, s(a[0]), r))
     if name == "degree(ofIndex:)":
         return r, ex("%s.degree(ofIndex: %d) == %d" % (var, a[0], r))
-    if name == "degree(safe:)":
-        return r, ex("%s.degree(safe: %s) == %s" % (var, s(a[0]), opt(r)))
+    if name in ("degree(checked:)", "outDegree(checked:)", "inDegree(checked:)"):
+        return checked("%s %s)" % (name[:-2] + ":", s(a[0])), "%s", "" if r is ref.NOT_FOUND else str(r))
     if name == "contains":
         return r, ex("%s%s.contains(%s)" % ("" if r else "!", var, s(a[0])))
     if name == "contains(hyperedge:)":
         return r, ex("%s%s.contains(hyperedge: %s as [%s])" % ("" if r else "!", var, vlist(a), t))
     if name == "contains(sources:targets:)":
         return r, ex("%s%s.contains(sources: %s as [%s], targets: %s as [%s])" % ("" if r else "!", var, vlist(a[0]), t, vlist(a[1]), t))
-    if name in ("vertexIndex", "vertexIndex(safe:)"):
-        return r, ex("%s.vertexIndex(%s: %s) == %s" % (var, "of" if name == "vertexIndex" else "safe", s(a[0]), opt(r)))
+    if name == "vertexIndex":
+        return r, ex("%s.vertexIndex(of: %s) == %s" % (var, s(a[0]), r))
+    if name == "vertexIndex(checked:)":
+        return checked("vertexIndex(checked: %s)" % s(a[0]), "%s", "" if r is ref.NOT_FOUND else str(r))
     if name == "vertex(atIndex:)":
         return r, ex("%s.vertex(atIndex: %d) == %s" % (var, a[0], s(r)))
     if name == "counts":
@@ -270,12 +277,13 @@ def call_lines(g, call, var="hypergraph"):
                    "    #expect(%sresult.inserted && result.memberAfterInsert == %s)" % ("" if r[0] else "!", s(r[1])), "}"]
     if name == "insert(hyperedge:)":
         return r, ex("%s.insert(hyperedge: %s as [%s]) == %d" % (var, vlist(a), t, r))
-    if name == "insert(safe:)":
-        return r, ex("%s.insert(safe: %s as [%s]) == %s" % (var, vlist(a), t, opt(r)))
+    if name == "insert(checked:)":
+        return checked("insert(checked: %s as [%s])" % (vlist(a), t), "%s", "" if r is ref.NOT_FOUND else str(r))
     if name == "insert(sources:targets:)":
         return r, ex("%s.insert(sources: %s as [%s], targets: %s as [%s]) == %d" % (var, vlist(a[0]), t, vlist(a[1]), t, r))
-    if name == "insert(safe:targets:)":
-        return r, ex("%s.insert(safe: %s as [%s], targets: %s as [%s]) == %s" % (var, vlist(a[0]), t, vlist(a[1]), t, opt(r)))
+    if name == "insert(checked:targets:)":
+        return checked("insert(checked: %s as [%s], targets: %s as [%s])" % (vlist(a[0]), t, vlist(a[1]), t), "%s",
+                       "" if r is ref.NOT_FOUND else str(r))
     if name == "removeAll":
         return r, ["%s.removeAll()" % var]
     if name in ("neighbors", "bConnectedVertices(from:)", "fConnectedVertices(to:)"):
@@ -424,15 +432,14 @@ def counted_lines(prefix, vs, es, calls, ind="        "):
         elif name in ("incidentHyperedges", "outHyperedges"):
             lines.append("let %s = Array(counted.%s(of: label(%s)))" % (x, name, s(a[0])))
             later.append("#expect(%s == %s)" % (x, ints(r)))
-        elif name in ("incidentHyperedges(safe:)", "outHyperedges(safe:)"):
-            lines.append("let %s = counted.%s label(%s)).map { Array($0) }" % (x, name[:-2] + ":", s(a[0])))
-            later.append("#expect(%s == %s)" % (x, "nil" if r is None else ints(r)))
-        elif name == "degree(safe:)":
-            lines.append("let %s = counted.degree(safe: label(%s))" % (x, s(a[0])))
-            later.append("#expect(%s == %s)" % (x, opt(r)))
-        elif name == "vertexIndex(safe:)":
-            lines.append("let %s = counted.vertexIndex(safe: label(%s))" % (x, s(a[0])))
-            later.append("#expect(%s == %s)" % (x, opt(r)))
+        elif name.endswith("(checked:)") and r is ref.NOT_FOUND:
+            lines.append("#expect(throws: VertexNotFound.self) { try counted.%s label(%s)) }" % (name[:-2] + ":", s(a[0])))
+        elif name in ("incidentHyperedges(checked:)", "outHyperedges(checked:)", "inHyperedges(checked:)"):
+            lines.append("let %s = try Array(counted.%s label(%s)))" % (x, name[:-2] + ":", s(a[0])))
+            later.append("#expect(%s == %s)" % (x, ints(r)))
+        elif name in ("degree(checked:)", "outDegree(checked:)", "inDegree(checked:)", "vertexIndex(checked:)"):
+            lines.append("let %s = try counted.%s label(%s))" % (x, name[:-2] + ":", s(a[0])))
+            later.append("#expect(%s == %d)" % (x, r))
         else:
             raise ValueError(c)
     lines += later
@@ -494,7 +501,7 @@ def row_test(rid):
     g = ref.UHG(vs, es) if prefix == "HG" else ref.DHG(vs, es)
     g.hashes = 0
     mut = any(c[0] in MUTATING for c in calls)
-    throws = any(c[0] == "encode" for c in calls)
+    throws = any(c[0] == "encode" or c[0].startswith("insert(checked:") or c[0].endswith("(checked:)") for c in calls)
     lines = header(rid, [".conformance"] if group(rid) in ("Codable", "Description") else [])
     lines.append("    func %s()%s {" % (fname(rid), " throws" if throws else ""))
     lines.append("        // %s" % inp(rid))
@@ -613,10 +620,11 @@ FILES = [
      "Construction and mutation (catalog HG-001 – HG-011, HG-035 – HG-042): listed vertices first (a repeat\n"
      "// once), then new members by first appearance; members stored once and in vertex-index order;\n"
      "// repeated and empty hyperedges kept at their own positions; every initializer that fits, and\n"
-     "// inserting one at a time, give the same state; insert(safe:) changes nothing for a non-vertex."),
+     "// inserting one at a time, give the same state; insert(checked:) throws and changes nothing for a\n"
+     "// non-vertex."),
     ("UndirectedIncidenceListReadTests.swift", "UndirectedIncidenceList reads", ids("HG", "Reads"),
      "Reads (catalog HG-012 – HG-024): members, sizes, incident hyperedges in ascending position, degrees,\n"
-     "// membership of vertices and of member sets, the index conversions, the safe: lookups, neighbors,\n"
+     "// membership of vertices and of member sets, the index conversions, the checked: lookups, neighbors,\n"
      "// and the hash law: index-space reads hash nothing and a vertex-space read hashes once."),
     ("UndirectedIncidenceListAlgorithmTests.swift", "UndirectedIncidenceList algorithms",
      ids("HG", "Measures", "Dual", "Incidence graph", "Clique expansion", "Line graph", "Connectivity", "s-connectivity"),
@@ -634,8 +642,8 @@ FILES = [
      "// hyperedge's sources, then its targets, by first appearance; each side stored once in index order;\n"
      "// empty sides, the empty hyperedge, a vertex on both sides and repeats are kept."),
     ("IncidenceListReadTests.swift", "IncidenceList reads", ids("DH", "Reads"),
-     "Reads (catalog DH-008 – DH-012): the forward and backward stars in ascending position, degrees as\n"
-     "// in + out, contains(sources:targets:), the safe: lookups and the hash law."),
+     "Reads (catalog DH-008 – DH-012, DH-057): the forward and backward stars in ascending position,\n"
+     "// degrees as in + out, contains(sources:targets:), the checked: lookups and the hash law."),
     ("IncidenceListAlgorithmTests.swift", "IncidenceList algorithms",
      ids("DH", "Reversal", "Dual", "Incidence graph", "Components", "B-connectivity", "F-connectivity", "Hyperedge classes",
          "Clique expansion", "Measures"),

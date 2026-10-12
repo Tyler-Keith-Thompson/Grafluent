@@ -24,4 +24,18 @@ MUTANTS = [
     Mutant("forwardorder", "Reachability.swift",
            "        edges.reverse()",
            "", mode="stmt"),
+    # The checked: spellings: a dropped membership check reaches the trapping spelling, and a
+    # swapped call returns the other direction's set.
+    Mutant("descendantschecked", "Reachability.swift",
+           "        guard contains(vertex) else { throw VertexNotFound() }",
+           "", mode="stmt", nth=0),
+    Mutant("ancestorschecked", "Reachability.swift",
+           "        guard contains(vertex) else { throw VertexNotFound() }",
+           "", mode="stmt", nth=1),
+    Mutant("descendantscheckedvalue", "Reachability.swift",
+           "        return descendants(of: vertex)",
+           "        return []", mode="stmt"),
+    Mutant("ancestorscheckedvalue", "Reachability.swift",
+           "        return ancestors(of: vertex)",
+           "        return []", mode="stmt"),
 ]

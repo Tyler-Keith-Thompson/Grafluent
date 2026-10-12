@@ -12,7 +12,7 @@ DualGraphTests.swift; without it that file is not written, because `dualGraph()`
 
 Every planar row checks the embedding against the definitions in api.md, written out in the test:
 each clockwise order is a permutation of the vertex's incident edges that starts at the first one,
-the three clockwise accessors and their `safe:` spellings agree, `faces` is exactly the orbits of
+the three clockwise accessors and their `checked:` spellings agree, `faces` is exactly the orbits of
 the face permutation in the documented order, `face(from:alongEdgeAt:)` is the orbit from that
 half-edge and `rightFace(from:alongEdgeAt:)` its position in `faces`, `faceCount` is Euler's
 count, and a second call returns the same embedding. Rows whose embedding is unique compare every
@@ -136,7 +136,7 @@ def embedding_block(g, ind, face_count, lengths=None, mirror=None, sample=1):
     a(ind + "let vertexList = Array(graph.vertices)")
     a(ind + "let indexOf = Dictionary(uniqueKeysWithValues: vertexList.enumerated().map { ($1, $0) })")
     a(ind + "// Each clockwise order: the vertex's incident edges (a loop twice), starting at the first one;")
-    a(ind + "// the neighbours, the index-space neighbours and the safe: spellings say the same.")
+    a(ind + "// the neighbours, the index-space neighbours and the checked: spellings say the same.")
     a(ind + "var rotation: [[Int]] = []")
     a(ind + "for (i, v) in vertexList.enumerated() {")
     a(ind + "    let row = Array(embedding.clockwiseIncidentEdges(of: v))")
@@ -144,9 +144,9 @@ def embedding_block(g, ind, face_count, lengths=None, mirror=None, sample=1):
     a(ind + "    let across = row.map { graph.oppositeVertex(to: v, acrossEdgeAt: $0) }")
     a(ind + "    #expect(row.sorted() == incident.sorted(), \"the clockwise order at \\(v) is not its incident edges\")")
     a(ind + "    #expect(row.first == incident.first, \"the clockwise order at \\(v) does not start at its first edge\")")
-    a(ind + "    #expect(embedding.clockwiseIncidentEdges(safe: v).map { Array($0) } == row)")
+    a(ind + "    #expect(try Array(embedding.clockwiseIncidentEdges(checked: v)) == row)")
     a(ind + "    #expect(Array(embedding.clockwiseNeighbors(of: v)) == across)")
-    a(ind + "    #expect(embedding.clockwiseNeighbors(safe: v).map { Array($0) } == across)")
+    a(ind + "    #expect(try Array(embedding.clockwiseNeighbors(checked: v)) == across)")
     a(ind + "    #expect(Array(embedding.clockwiseNeighborIndices(ofIndex: i)) == across.map { indexOf[$0]! })")
     a(ind + "    rotation.append(row)")
     a(ind + "}")
@@ -414,12 +414,12 @@ def accessor_lines(g, o, c, one, mirror, ind):
             L.append(ind + "#expect(cycles == (isA ? %s : %s))" % (int_rows(names(a)), int_rows(names(b))))
         assert ref.fmt_faces(min(a, b), g) in c
         return L
-    m = re.match(r"planarEmbedding\(\)!\.clockwise(Neighbors|IncidentEdges)\((of|safe): (-?\d+)\)", o)
+    m = re.match(r"planarEmbedding\(\)!\.clockwise(Neighbors|IncidentEdges)\((of|checked): (-?\d+)\)", o)
     if m:
         what, label, x = m.group(1), m.group(2), int(m.group(3))
         call = "embedding.clockwise%s(%s: %d)" % (what, label, x)
-        if c == "nil":
-            L.append(ind + "#expect(%s == nil)" % call)
+        if c == "throws VertexNotFound":
+            L.append(ind + "#expect(throws: VertexNotFound.self) { try %s }" % call)
             return L
         v = g.vertices.index(x)
 
@@ -427,7 +427,7 @@ def accessor_lines(g, o, c, one, mirror, ind):
             row = [h for h in rot[v]]
             return [g.vertices[g.head(h)] for h in row] if what == "Neighbors" else [h >> 1 for h in row]
         A, B = show(one), show(ref.mirror(one))
-        expr = "Array(%s)" % call if label == "of" else "%s.map { Array($0) }" % call
+        expr = "Array(%s)" % call if label == "of" else "try Array(%s)" % call
         if A == B:
             L.append(ind + "#expect(%s == %s)" % (expr, ints(A)))
             assert c == ref.fmt_list(A)
@@ -474,7 +474,7 @@ def trap_test(n):
     L.append("        let embedding = try #require(graph.planarEmbedding())")
     m = re.match(r"clockwiseNeighbors\(of: (-?\d+)\)", call[len("embedding."):])
     if m:
-        L.append("        #expect(embedding.clockwiseNeighbors(safe: %s) == nil)" % m.group(1))
+        L.append("        #expect(throws: VertexNotFound.self) { try embedding.clockwiseNeighbors(checked: %s) }" % m.group(1))
         L.append("        #expect(Array(embedding.clockwiseNeighbors(of: 0)).sorted() == [1, 2, 3])")
     else:
         m = re.match(r"face\(from: (-?\d+), alongEdgeAt: (\d+)\)", call[len("embedding."):])

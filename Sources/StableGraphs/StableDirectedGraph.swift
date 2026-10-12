@@ -54,9 +54,12 @@ import GraphProtocols
 /// allocation. Values are read and written through `graph[handle, ofEdgeAt: position]`.
 ///
 /// **Missing vertices.** The lookups trap on a vertex that is not in the graph, like an `Array`
-/// subscript; `successors(safe:)`, `outDegree(safe:)` and the other `safe:` spellings return `nil`
-/// instead, and `insert(safe:)` inserts only between existing vertices. `remove(_:)`,
-/// `remove(edge:)` and the `removeAllEdges` family return `nil` or 0 rather than trap.
+/// subscript; `successors(checked:)`, `outDegree(checked:)` and the other `checked:` spellings
+/// throw `VertexNotFound` instead, `source(checkedEdgeAt:)` and `target(checkedEdgeAt:)` throw
+/// `EdgeNotFound` for a dead position, `changeTarget(ofEdgeAt:checked:)` and
+/// `changeSource(ofEdgeAt:checked:)` throw `ElementNotFound` for either, and `insert(checked:)`
+/// inserts only between existing vertices. `remove(_:)`, `remove(edge:)` and the `removeAllEdges`
+/// family return `nil` or 0 rather than trap.
 ///
 /// There is no map from vertex pairs to copies: `contains(edge:)`, `edges(from:to:)` and
 /// `remove(edge:)` scan the shorter of the two endpoints' rows, as petgraph's `find_edge` scans
@@ -327,50 +330,73 @@ extension StableDirectedGraph {
         return _outDegree(slot) + _inDegree(slot)
     }
 
-    // The `safe:` lookups (README Principle 6): `nil` for a vertex that is not in the graph,
-    // after the `array[safe: i]` idiom, where the trapping spellings above are the fast path. Each
-    // is one hash, the same as its trapping spelling.
+    // The `checked:` lookups (README Principle 6): they throw `VertexNotFound` for a vertex that
+    // is not in the graph, where the trapping spellings above are the fast path (Rust's
+    // `checked_*`). Each is one hash, the same as its trapping spelling; `try?` gives an Optional.
 
-    /// `successors(of: vertex)`, or `nil` when `vertex` is not a vertex. O(1) to make.
+    /// `successors(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1)
+    /// to make.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
     @inlinable
-    public func successors(safe vertex: Vertex) -> Neighbors? {
-        guard let slot = _slots[vertex] else { return nil }
+    public func successors(checked vertex: Vertex) throws(VertexNotFound) -> Neighbors {
+        guard let slot = _slots[vertex] else { throw VertexNotFound() }
         return Neighbors(pages: _vertexPages, base: _vertexBase, row: _outRow(slot))
     }
 
-    /// `predecessors(of: vertex)`, or `nil` when `vertex` is not a vertex. O(1) to make.
+    /// `predecessors(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1)
+    /// to make.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
     @inlinable
-    public func predecessors(safe vertex: Vertex) -> Neighbors? {
-        guard let slot = _slots[vertex] else { return nil }
+    public func predecessors(checked vertex: Vertex) throws(VertexNotFound) -> Neighbors {
+        guard let slot = _slots[vertex] else { throw VertexNotFound() }
         return Neighbors(pages: _vertexPages, base: _vertexBase, row: _inRow(slot))
     }
 
-    /// `outEdges(of: vertex)`, or `nil` when `vertex` is not a vertex. O(1).
+    /// `outEdges(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
     @inlinable
-    public func outEdges(safe vertex: Vertex) -> OutEdges? {
-        guard let slot = _slots[vertex] else { return nil }
+    public func outEdges(checked vertex: Vertex) throws(VertexNotFound) -> OutEdges {
+        guard let slot = _slots[vertex] else { throw VertexNotFound() }
         return _outEdges(slot: slot)
     }
 
-    /// `inEdges(of: vertex)`, or `nil` when `vertex` is not a vertex. O(1).
+    /// `inEdges(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
     @inlinable
-    public func inEdges(safe vertex: Vertex) -> InEdges? {
-        guard let slot = _slots[vertex] else { return nil }
+    public func inEdges(checked vertex: Vertex) throws(VertexNotFound) -> InEdges {
+        guard let slot = _slots[vertex] else { throw VertexNotFound() }
         return _inEdges(slot: slot)
     }
 
-    /// `outDegree(of: vertex)`, or `nil` when `vertex` is not a vertex. O(1).
+    /// `outDegree(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
     @inlinable
-    public func outDegree(safe vertex: Vertex) -> Int? {
-        guard let slot = _slots[vertex] else { return nil }
+    public func outDegree(checked vertex: Vertex) throws(VertexNotFound) -> Int {
+        guard let slot = _slots[vertex] else { throw VertexNotFound() }
         return _outDegree(slot)
     }
 
-    /// `inDegree(of: vertex)`, or `nil` when `vertex` is not a vertex. O(1).
+    /// `inDegree(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
     @inlinable
-    public func inDegree(safe vertex: Vertex) -> Int? {
-        guard let slot = _slots[vertex] else { return nil }
+    public func inDegree(checked vertex: Vertex) throws(VertexNotFound) -> Int {
+        guard let slot = _slots[vertex] else { throw VertexNotFound() }
         return _inDegree(slot)
+    }
+
+    /// `degree(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func degree(checked vertex: Vertex) throws(VertexNotFound) -> Int {
+        guard let slot = _slots[vertex] else { throw VertexNotFound() }
+        return _outDegree(slot) + _inDegree(slot)
     }
 
     /// The source of the edge at `position`. O(1).
@@ -387,6 +413,26 @@ extension StableDirectedGraph {
     @inlinable
     public func target(ofEdgeAt position: Int) -> Vertex {
         _vertex(atSlot: _liveRecord(position).target)
+    }
+
+    /// `source(ofEdgeAt: position)`, throwing instead of trapping when no edge is at `position`.
+    /// O(1).
+    ///
+    /// - Throws: `EdgeNotFound` when `position` is out of range or its edge was removed.
+    @inlinable
+    public func source(checkedEdgeAt position: Int) throws(EdgeNotFound) -> Vertex {
+        guard _isLiveEdge(position, _edgePages, base: _edgeBase, end: _edgeEnd) else { throw EdgeNotFound() }
+        return _vertex(atSlot: _record(position).source)
+    }
+
+    /// `target(ofEdgeAt: position)`, throwing instead of trapping when no edge is at `position`.
+    /// O(1).
+    ///
+    /// - Throws: `EdgeNotFound` when `position` is out of range or its edge was removed.
+    @inlinable
+    public func target(checkedEdgeAt position: Int) throws(EdgeNotFound) -> Vertex {
+        guard _isLiveEdge(position, _edgePages, base: _edgeBase, end: _edgeEnd) else { throw EdgeNotFound() }
+        return _vertex(atSlot: _record(position).target)
     }
 
     @inlinable
@@ -522,19 +568,19 @@ extension StableDirectedGraph {
     }
 
     /// Adds a copy of `edge` at position `edges.endIndex` only when both endpoints are already
-    /// vertices; otherwise returns `nil` and changes nothing. O(1) amortized.
+    /// vertices; otherwise throws and changes nothing. O(1) amortized.
     ///
     /// `insert(edge:)` inserts a missing endpoint (NetworkX's `add_edge`). Requiring the endpoints
     /// is JGraphT's `addEdge` precondition (it throws `IllegalArgumentException`) and petgraph's
-    /// `try_add_edge`; this library spells the failing case as `nil`, with the `safe:` label of the
-    /// lookups (README Principle 6), for callers whose vertices may come from another graph.
+    /// `try_add_edge` (`GraphError::NodeMissed`); this library spells it with the `checked:` label
+    /// of the lookups (README Principle 6), for callers whose vertices may come from another graph.
     ///
-    /// - Returns: The new copy's position (the old `edges.endIndex`), or `nil` if either endpoint is
-    ///   not a vertex.
+    /// - Returns: The new copy's position: the old `edges.endIndex`.
+    /// - Throws: `VertexNotFound` when either endpoint is not a vertex.
     @inlinable
     @discardableResult
-    public mutating func insert(safe edge: DirectedEdge<Vertex>) -> Int? {
-        guard let source = _slots[edge.source], let target = _slots[edge.target] else { return nil }
+    public mutating func insert(checked edge: DirectedEdge<Vertex>) throws(VertexNotFound) -> Int {
+        guard let source = _slots[edge.source], let target = _slots[edge.target] else { throw VertexNotFound() }
         return _insertEdge(slots: source, target)
     }
 
@@ -760,28 +806,30 @@ extension StableDirectedGraph {
         _changeSource(position, record, to: _slot(of: newSource))
     }
 
-    /// `changeTarget(ofEdgeAt: position, to: newTarget)`, or `false`, changing nothing, when no edge
-    /// is at `position` or `newTarget` is not a vertex (README Principle 6).
+    /// `changeTarget(ofEdgeAt: position, to: newTarget)`, throwing instead of trapping, and
+    /// changing nothing, when no edge is at `position` or `newTarget` is not a vertex (README
+    /// Principle 6).
     ///
-    /// - Returns: Whether the edge now ends at `newTarget`.
+    /// - Throws: `ElementNotFound.edge` when `position` is out of range or its edge was removed,
+    ///   checked first; otherwise `ElementNotFound.vertex` when `newTarget` is not a vertex.
     @inlinable
-    @discardableResult
-    public mutating func changeTarget(ofEdgeAt position: Int, safe newTarget: Vertex) -> Bool {
-        guard let slot = _slots[newTarget], _isLiveEdge(position, _edgePages, base: _edgeBase, end: _edgeEnd) else { return false }
+    public mutating func changeTarget(ofEdgeAt position: Int, checked newTarget: Vertex) throws(ElementNotFound) {
+        guard _isLiveEdge(position, _edgePages, base: _edgeBase, end: _edgeEnd) else { throw .edge }
+        guard let slot = _slots[newTarget] else { throw .vertex }
         _changeTarget(position, _record(position), to: slot)
-        return true
     }
 
-    /// `changeSource(ofEdgeAt: position, to: newSource)`, or `false`, changing nothing, when no edge
-    /// is at `position` or `newSource` is not a vertex (README Principle 6).
+    /// `changeSource(ofEdgeAt: position, to: newSource)`, throwing instead of trapping, and
+    /// changing nothing, when no edge is at `position` or `newSource` is not a vertex (README
+    /// Principle 6).
     ///
-    /// - Returns: Whether the edge now starts at `newSource`.
+    /// - Throws: `ElementNotFound.edge` when `position` is out of range or its edge was removed,
+    ///   checked first; otherwise `ElementNotFound.vertex` when `newSource` is not a vertex.
     @inlinable
-    @discardableResult
-    public mutating func changeSource(ofEdgeAt position: Int, safe newSource: Vertex) -> Bool {
-        guard let slot = _slots[newSource], _isLiveEdge(position, _edgePages, base: _edgeBase, end: _edgeEnd) else { return false }
+    public mutating func changeSource(ofEdgeAt position: Int, checked newSource: Vertex) throws(ElementNotFound) {
+        guard _isLiveEdge(position, _edgePages, base: _edgeBase, end: _edgeEnd) else { throw .edge }
+        guard let slot = _slots[newSource] else { throw .vertex }
         _changeSource(position, _record(position), to: slot)
-        return true
     }
 
     @inlinable

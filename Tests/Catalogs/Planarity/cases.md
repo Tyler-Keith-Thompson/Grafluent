@@ -172,8 +172,8 @@ and its kind where only one kind exists. `**trap**` rows are preconditions.
 | PL-115 | Rotation | loop: its position twice | `U: 0-0` | `planarEmbedding()!.clockwiseIncidentEdges(of: 0)` | [0, 0] |
 | PL-116 | Rotation | labels: vertices are not indices | `U: [7, 3, 5] 7-3, 3-5, 5-7` | `planarEmbedding()!.clockwiseNeighbors(of: 3)` | [7, 5] |
 | PL-117 | Rotation | not a vertex | `U: K(4)` | `planarEmbedding()!.clockwiseNeighbors(of: 9)` | **trap** (9 is not a vertex) |
-| PL-118 | Rotation | not a vertex, safe: | `U: K(4)` | `planarEmbedding()!.clockwiseNeighbors(safe: 9)` | nil |
-| PL-119 | Rotation | a vertex, safe: | `U: K(4)` | `planarEmbedding()!.clockwiseNeighbors(safe: 0)` | [1, 3, 2] or [1, 2, 3] (mirror image) |
+| PL-118 | Rotation | not a vertex, checked: | `U: K(4)` | `planarEmbedding()!.clockwiseNeighbors(checked: 9)` | throws VertexNotFound |
+| PL-119 | Rotation | a vertex, checked: | `U: K(4)` | `planarEmbedding()!.clockwiseNeighbors(checked: 0)` | [1, 3, 2] or [1, 2, 3] (mirror image) |
 | PL-120 | Rotation | K4: face right of 0 → 1 | `U: K(4)` | `planarEmbedding()!.face(from: 0, alongEdgeAt: 0)` | vertices [0, 1, 3, 0], edges [0, 4, 2]; or vertices [0, 1, 2, 0], edges [0, 3, 1] (mirror image) |
 | PL-121 | Rotation | K4: face right of 1 → 0 | `U: K(4)` | `planarEmbedding()!.face(from: 1, alongEdgeAt: 0)` | vertices [1, 0, 2, 1], edges [0, 1, 3]; or vertices [1, 0, 3, 1], edges [0, 2, 4] (mirror image) |
 | PL-122 | Rotation | path: the one face | `U: P(0..2)` | `planarEmbedding()!.face(from: 0, alongEdgeAt: 0)` | vertices [0, 1, 2, 1, 0], edges [0, 1, 1, 0] |

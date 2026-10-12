@@ -69,11 +69,11 @@ readable afterwards. It is what `Connectivity`, `Flows` and `ShortestPaths` will
 | `SearchOrderTests.swift` | Layers, breadth-first trees, preorder and postorder, depth-limited orders, pruning, early exit |
 | `TopologicalAndReachabilityTests.swift` | The three topological sorts, cycle witnesses, descendants and ancestors, `hasPath`, bidirectional search, iterative deepening, and the closure-based searches |
 | `SearchReferenceTests.swift` | Transcripts on random graphs against a reference written in the test (recursive DFS, queue BFS), pulled and pushed, with and without vertex indices, with spread-out Int and String vertices, after vertex removals; topological, cycle and reachability answers against a reachability reference; `forEach` errors; deep closure searches; `findCycle(from:)` |
-| `TraversalWalkReviewTests.swift` | Walks migration, after the review: `findCycle` and `bidirectionalShortestPath` without vertex indices, over parallel edges (with steps found by the backward search), and through a directed view's self-loop (WK-1216 – WK-1219) |
+| `TraversalWalkReviewTests.swift` | Walks migration, after the review: `findCycle` and `bidirectionalShortestPath` without vertex indices, over parallel edges (with steps found by the backward search, WK-1217, and by the forward one, WK-1405), and through a directed view's self-loop (WK-1216 – WK-1219) |
 | `TraversalWalkTests.swift` | Walks migration: `findCycle` and `bidirectionalShortestPath` as `Cycle` and `Path`, rotation, parallel copies, self-loops, NetworkX's `find_cycle` answers as cycles of the graph or its undirected view |
 | `SearchPropertyTests.swift` | Random graphs through every representation (shortest distances, parenthesis theorem, consistent classification, every edge once, back edge iff cycle, topological validity and minimality), real-world fixtures, deep and wide graphs, index-space dispatch, value semantics, preconditions |
 
-Case IDs (TR-01 … TR-174) refer to the catalog of cases (`Tests/Catalogs/Traversal/cases.md`) harvested from NetworkX, petgraph, Boost,
+Case IDs (TR-01 … TR-183) refer to the catalog of cases (`Tests/Catalogs/Traversal/cases.md`) harvested from NetworkX, petgraph, Boost,
 JGraphT, LEMON, igraph and the Rust `pathfinding` crate. Expected transcripts were computed by an
 independent reference (`ref.py` there) checked against NetworkX on every fixture (`check.py`). WK-1202 – WK-1205 and
 WK-1213 – WK-1215 are the Walks catalog's migration cases (`Tests/WalksTests/README.md`), in

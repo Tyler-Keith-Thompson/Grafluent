@@ -39,12 +39,11 @@ struct HypergraphPropertyTests {
                     for v in members where !names.contains(v) { names.append(v) }
                     rows.append(Set(members.map { names.firstIndex(of: $0)! }).sorted())
                 case 6, 7, 8:
-                    let position = hypergraph.insert(safe: members)
                     if members.allSatisfy(names.contains) {
-                        #expect(position == rows.count, "\(context)")
+                        #expect((try? hypergraph.insert(checked: members)) == rows.count, "\(context)")
                         rows.append(Set(members.map { names.firstIndex(of: $0)! }).sorted())
                     } else {
-                        #expect(position == nil, "\(context)")
+                        #expect(throws: VertexNotFound.self, "\(context)") { try hypergraph.insert(checked: members) }
                     }
                 default:
                     if raw.count < 2 {
@@ -102,13 +101,12 @@ struct HypergraphPropertyTests {
                     sources.append(Set(s.map { names.firstIndex(of: $0)! }).sorted())
                     targets.append(Set(t.map { names.firstIndex(of: $0)! }).sorted())
                 case 6, 7, 8:
-                    let position = hypergraph.insert(safe: s, targets: t)
                     if (s + t).allSatisfy(names.contains) {
-                        #expect(position == sources.count, "\(context)")
+                        #expect((try? hypergraph.insert(checked: s, targets: t)) == sources.count, "\(context)")
                         sources.append(Set(s.map { names.firstIndex(of: $0)! }).sorted())
                         targets.append(Set(t.map { names.firstIndex(of: $0)! }).sorted())
                     } else {
-                        #expect(position == nil, "\(context)")
+                        #expect(throws: VertexNotFound.self, "\(context)") { try hypergraph.insert(checked: s, targets: t) }
                     }
                 default:
                     if rawSources.count < 2 {

@@ -80,8 +80,8 @@ func _startPositions<Vertex: Hashable>(_ vertices: ContiguousArray<Vertex>, in d
         drawing._vertices == vertices
         ? drawing._positions
         : vertices.map { v in
-            guard let p = drawing.position(safe: v) else { preconditionFailure("The initial drawing has no position for vertex \(v)") }
-            return p
+            guard let i = drawing._offset(of: v) else { preconditionFailure("The initial drawing has no position for vertex \(v)") }
+            return drawing._positions[i]
         }
     for p in positions { precondition(p.x.isFinite && p.y.isFinite, "Every initial position must be finite") }
     return positions

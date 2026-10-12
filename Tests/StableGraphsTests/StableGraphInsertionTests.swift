@@ -1,6 +1,7 @@
 // Insertion (catalog SG-007 – SG-010, SG-103, SG-104): `insert(edge:)` returns the old `edges.endIndex`
 // and inserts missing endpoints; a self-loop is once in its out-row and once in its in-row;
-// `insert(safe:)` inserts only between existing vertices and otherwise returns nil, changing nothing.
+// `insert(checked:)` inserts only between existing vertices and otherwise throws `VertexNotFound`,
+// changing nothing.
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import GraphProtocols
@@ -233,12 +234,12 @@ struct StableGraphInsertionTests {
         #expect(graph.edges.indices.map { graph.edgeIndex(of: $0) } == [0])
     }
 
-    @Test("SG-103 insert(safe:) with both endpoints: the new position")
-    func sg103() {
-        // V [0, 1]; E [0→1] / insert(safe: 1→0) / insert(safe: 1→1)
+    @Test("SG-103 insert(checked:) with both endpoints: the new position")
+    func sg103() throws {
+        // V [0, 1]; E [0→1] / insert(checked: 1→0) / insert(checked: 1→1)
         var graph = StableDirectedGraph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])
-        #expect(graph.insert(safe: DirectedEdge(from: 1, to: 0)) == 1)
-        // Positions after insert(safe: 1→0).
+        #expect(try graph.insert(checked: DirectedEdge(from: 1, to: 0)) == 1)
+        // Positions after insert(checked: 1→0).
         #expect(Array(graph.vertices) == [0, 1])
         #expect(Array(graph.vertices.indices) == [0, 1])
         #expect(graph.vertices.startIndex == 0)
@@ -249,7 +250,7 @@ struct StableGraphInsertionTests {
         #expect(graph.edges.endIndex == 2)
         #expect(graph.vertexIndexBound == 2)
         #expect(graph.edgeIndexBound == 2)
-        #expect(graph.insert(safe: DirectedEdge(from: 1, to: 1)) == 2)
+        #expect(try graph.insert(checked: DirectedEdge(from: 1, to: 1)) == 2)
         // Final state.
         #expect(Array(graph.vertices) == [0, 1])
         #expect(Array(graph.vertices.indices) == [0, 1])
@@ -295,12 +296,12 @@ struct StableGraphInsertionTests {
         #expect(graph.edges.indices.map { graph.edgeIndex(of: $0) } == [0, 1, 2])
     }
 
-    @Test("SG-104 insert(safe:) with a missing endpoint: nil, nothing changes")
-    func sg104() {
-        // V [0, 1]; E [0→0] / insert(safe: 0→9) / insert(safe: 9→0) / insert(safe: 9→9) / remove(1) / insert(safe: 0→1)
+    @Test("SG-104 insert(checked:) with a missing endpoint: throws VertexNotFound, nothing changes")
+    func sg104() throws {
+        // V [0, 1]; E [0→0] / insert(checked: 0→9) / insert(checked: 9→0) / insert(checked: 9→9) / remove(1) / insert(checked: 0→1)
         var graph = StableDirectedGraph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 0)])
-        #expect(graph.insert(safe: DirectedEdge(from: 0, to: 9)) == nil)
-        // Positions after insert(safe: 0→9).
+        #expect(throws: VertexNotFound.self) { try graph.insert(checked: DirectedEdge(from: 0, to: 9)) }
+        // Positions after insert(checked: 0→9).
         #expect(Array(graph.vertices) == [0, 1])
         #expect(Array(graph.vertices.indices) == [0, 1])
         #expect(graph.vertices.startIndex == 0)
@@ -311,8 +312,8 @@ struct StableGraphInsertionTests {
         #expect(graph.edges.endIndex == 1)
         #expect(graph.vertexIndexBound == 2)
         #expect(graph.edgeIndexBound == 1)
-        #expect(graph.insert(safe: DirectedEdge(from: 9, to: 0)) == nil)
-        // Positions after insert(safe: 9→0).
+        #expect(throws: VertexNotFound.self) { try graph.insert(checked: DirectedEdge(from: 9, to: 0)) }
+        // Positions after insert(checked: 9→0).
         #expect(Array(graph.vertices) == [0, 1])
         #expect(Array(graph.vertices.indices) == [0, 1])
         #expect(graph.vertices.startIndex == 0)
@@ -323,8 +324,8 @@ struct StableGraphInsertionTests {
         #expect(graph.edges.endIndex == 1)
         #expect(graph.vertexIndexBound == 2)
         #expect(graph.edgeIndexBound == 1)
-        #expect(graph.insert(safe: DirectedEdge(from: 9, to: 9)) == nil)
-        // Positions after insert(safe: 9→9).
+        #expect(throws: VertexNotFound.self) { try graph.insert(checked: DirectedEdge(from: 9, to: 9)) }
+        // Positions after insert(checked: 9→9).
         #expect(Array(graph.vertices) == [0, 1])
         #expect(Array(graph.vertices.indices) == [0, 1])
         #expect(graph.vertices.startIndex == 0)
@@ -347,7 +348,7 @@ struct StableGraphInsertionTests {
         #expect(graph.edges.endIndex == 1)
         #expect(graph.vertexIndexBound == nil)
         #expect(graph.edgeIndexBound == 1)
-        #expect(graph.insert(safe: DirectedEdge(from: 0, to: 1)) == nil)
+        #expect(throws: VertexNotFound.self) { try graph.insert(checked: DirectedEdge(from: 0, to: 1)) }
         // Final state.
         #expect(Array(graph.vertices) == [0])
         #expect(Array(graph.vertices.indices) == [0])

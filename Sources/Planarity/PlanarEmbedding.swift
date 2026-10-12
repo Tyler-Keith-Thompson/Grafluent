@@ -31,11 +31,15 @@ struct _NumberedVertices<G: Graph> {
         return number
     }
 
-    /// The number of `vertex`, or nil when it is not a vertex.
+    /// The number of `vertex`, throwing when it is not a vertex.
     @inlinable
-    func number(safe vertex: G.Vertex) -> Int? {
-        guard listed != nil else { return graph.contains(vertex) ? graph.vertexIndex(of: vertex) : nil }
-        return numbers[vertex]
+    func number(checked vertex: G.Vertex) throws(VertexNotFound) -> Int {
+        if listed == nil {
+            guard graph.contains(vertex) else { throw VertexNotFound() }
+            return graph.vertexIndex(of: vertex)
+        }
+        guard let number = numbers[vertex] else { throw VertexNotFound() }
+        return number
     }
 }
 
@@ -97,10 +101,13 @@ public struct PlanarEmbedding<G: Graph> {
         ClockwiseIncidentEdges(_numbers: _layout.rowEdges[_row(_vertices.number(of: vertex))], _positions: _positions)
     }
 
-    /// `clockwiseIncidentEdges(of:)`, or nil when `vertex` is not a vertex of the graph.
+    /// `clockwiseIncidentEdges(of:)`, throwing instead of trapping when `vertex` is not a vertex
+    /// of the graph.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the graph.
     @inlinable
-    public func clockwiseIncidentEdges(safe vertex: G.Vertex) -> ClockwiseIncidentEdges? {
-        guard let v = _vertices.number(safe: vertex) else { return nil }
+    public func clockwiseIncidentEdges(checked vertex: G.Vertex) throws(VertexNotFound) -> ClockwiseIncidentEdges {
+        let v = try _vertices.number(checked: vertex)
         return ClockwiseIncidentEdges(_numbers: _layout.rowEdges[_row(v)], _positions: _positions)
     }
 
@@ -113,10 +120,13 @@ public struct PlanarEmbedding<G: Graph> {
         ClockwiseNeighbors(_numbers: _layout.rowNeighbors[_row(_vertices.number(of: vertex))], _vertices: _vertices)
     }
 
-    /// `clockwiseNeighbors(of:)`, or nil when `vertex` is not a vertex of the graph.
+    /// `clockwiseNeighbors(of:)`, throwing instead of trapping when `vertex` is not a vertex of
+    /// the graph.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the graph.
     @inlinable
-    public func clockwiseNeighbors(safe vertex: G.Vertex) -> ClockwiseNeighbors? {
-        guard let v = _vertices.number(safe: vertex) else { return nil }
+    public func clockwiseNeighbors(checked vertex: G.Vertex) throws(VertexNotFound) -> ClockwiseNeighbors {
+        let v = try _vertices.number(checked: vertex)
         return ClockwiseNeighbors(_numbers: _layout.rowNeighbors[_row(v)], _vertices: _vertices)
     }
 

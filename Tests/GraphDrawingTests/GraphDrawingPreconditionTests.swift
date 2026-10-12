@@ -22,7 +22,8 @@ struct GraphDrawingPreconditionTests {
         }
         // Without the call: the same setup answers.
         let drawing = Drawing(vertices: [5, 3], positions: [SIMD2(0.0, 0.0), SIMD2(2.0, 1.0)])
-        #expect(drawing.position(safe: 4) == nil && drawing.count == 2)
+        #expect(throws: VertexNotFound.self) { try drawing.position(checked: 4) }
+        #expect(drawing.count == 2)
     }
 
     @Test("DR-010 vertices and positions of different lengths")
@@ -207,7 +208,8 @@ struct GraphDrawingPreconditionTests {
         }
         // Without the calls.
         let drawing = Drawing(vertices: ["a", "b"], positions: [SIMD2(0.0, 0.0), SIMD2(1.0, 0.0)])
-        #expect(drawing.position(of: "b") == SIMD2(1.0, 0.0) && drawing.position(safe: "c") == nil)
+        #expect(drawing.position(of: "b") == SIMD2(1.0, 0.0))
+        #expect(throws: VertexNotFound.self) { try drawing.position(checked: "c") }
     }
 
     @Test("circularLayout traps on an infinite centre and on a NaN in y")

@@ -32,6 +32,34 @@ def need(cond, msg):
         raise Trap(msg)
 
 
+class Throws:
+    """The result of a `checked:` call that threw: the error type's name. The graph is unchanged."""
+
+    def __init__(self, error):
+        self.error = error
+
+    def __eq__(self, other):
+        return isinstance(other, Throws) and other.error == self.error
+
+    def __repr__(self):
+        return f"Throws({self.error})"
+
+
+class Done:
+    """The result of a `checked:` call that returns nothing and did not throw."""
+
+    def __eq__(self, other):
+        return isinstance(other, Done)
+
+    def __repr__(self):
+        return "Done()"
+
+
+VERTEX_NOT_FOUND, EDGE_NOT_FOUND = Throws("VertexNotFound"), Throws("EdgeNotFound")
+# What changeTarget/changeSource(ofEdgeAt:checked:) throw: a case of the compound error.
+ELEMENT_EDGE, ELEMENT_VERTEX = Throws("ElementNotFound.edge"), Throws("ElementNotFound.vertex")
+
+
 # ---------------------------------------------------------------------------------------------
 # The port of the proposed storage.
 
@@ -167,13 +195,15 @@ class Port:
             self._unlink_out(p); self.src[p] = a; self._link_out(p, a)
         return None
 
-    def change_target_safe(self, p, v):
-        if not self.is_edge(p) or v not in self.slot: return False
-        self.change_target(p, v); return True
+    def change_target_checked(self, p, v):
+        if not self.is_edge(p): return ELEMENT_EDGE
+        if v not in self.slot: return ELEMENT_VERTEX
+        self.change_target(p, v); return Done()
 
-    def change_source_safe(self, p, u):
-        if not self.is_edge(p) or u not in self.slot: return False
-        self.change_source(p, u); return True
+    def change_source_checked(self, p, u):
+        if not self.is_edge(p): return ELEMENT_EDGE
+        if u not in self.slot: return ELEMENT_VERTEX
+        self.change_source(p, u); return Done()
 
     def remove_edge(self, u, v):
         if u not in self.slot or v not in self.slot:
@@ -218,9 +248,9 @@ class Port:
             return self.out_edges(u) if u in self.slot else []
         return [p for v, _ in self.vertices() for p in self.out_edges(v)]
 
-    def insert_safe(self, u, v):
+    def insert_checked(self, u, v):
         if u not in self.slot or v not in self.slot:
-            return None
+            return VERTEX_NOT_FOUND
         return self.insert_edge(u, v)
 
     def remove(self, v):
@@ -324,8 +354,8 @@ class Spec:
         for q in copies: self.remove_edgeAt(q)
         return len(copies)
 
-    def insert_safe(self, u, v):
-        return self.insert_edge(u, v) if self.has(u) and self.has(v) else None
+    def insert_checked(self, u, v):
+        return self.insert_edge(u, v) if self.has(u) and self.has(v) else VERTEX_NOT_FOUND
 
     def change_target(self, p, v):
         i = next((i for i, e in enumerate(self.E) if e[0] == p), None)
@@ -337,13 +367,15 @@ class Spec:
         need(i is not None, "not an edge position"); need(self.has(u), "not a vertex")
         self.E[i] = (p, u, self.E[i][2])
 
-    def change_target_safe(self, p, v):
-        if not any(e[0] == p for e in self.E) or not self.has(v): return False
-        self.change_target(p, v); return True
+    def change_target_checked(self, p, v):
+        if not any(e[0] == p for e in self.E): return ELEMENT_EDGE
+        if not self.has(v): return ELEMENT_VERTEX
+        self.change_target(p, v); return Done()
 
-    def change_source_safe(self, p, u):
-        if not any(e[0] == p for e in self.E) or not self.has(u): return False
-        self.change_source(p, u); return True
+    def change_source_checked(self, p, u):
+        if not any(e[0] == p for e in self.E): return ELEMENT_EDGE
+        if not self.has(u): return ELEMENT_VERTEX
+        self.change_source(p, u); return Done()
 
     def remove(self, v):
         if not self.has(v): return None
@@ -432,6 +464,8 @@ def show_state(g):
 
 def show_result(r):
     if r is None: return "nil"
+    if isinstance(r, Throws): return f"throws {r.error}"
+    if isinstance(r, Done): return "()"
     if isinstance(r, tuple) and len(r) == 2 and isinstance(r[0], bool):
         return f"({str(r[0]).lower()}, {fmt(r[1])})"
     if isinstance(r, tuple): return f"{fmt(r[0])}→{fmt(r[1])}"
@@ -450,11 +484,11 @@ def apply(g, op):
     if k == "removeAllBetween": return g.removeAllEdges_between(op[1], op[2])
     if k == "removeFromWhere": return g.removeAllEdges_from_where(op[1], set(op[2]))
     if k == "removeWhere": return g.removeAllEdges_where(set(op[1]))
-    if k == "insertSafe": return g.insert_safe(op[1], op[2])
+    if k == "insertChecked": return g.insert_checked(op[1], op[2])
     if k == "changeTarget": return g.change_target(op[1], op[2])
     if k == "changeSource": return g.change_source(op[1], op[2])
-    if k == "changeTargetSafe": return g.change_target_safe(op[1], op[2])
-    if k == "changeSourceSafe": return g.change_source_safe(op[1], op[2])
+    if k == "changeTargetChecked": return g.change_target_checked(op[1], op[2])
+    if k == "changeSourceChecked": return g.change_source_checked(op[1], op[2])
     if k == "churn":
         # n times: a new copy of u→v, then the oldest live edge removed.
         for _ in range(op[1]):
@@ -498,11 +532,21 @@ def apply(g, op):
         o, i = len(g.out_edges(op[1])), len(g.in_edges(op[1]))
         return [o, i, o + i]
     if k == "bfs": return bfs(g, op[1])
-    if k in SAFE:
-        # The safe: lookups: nil for a non-vertex, otherwise the trapping spelling's answer.
-        if not any(v == op[1] for v, _ in g.vertices()): return None
-        return apply(g, (SAFE[k], op[1]))
+    if k == "vertexIndexChecked":
+        # The vertex-hole precondition stays; only a missing vertex throws.
+        need(g.vertexIndexBound() is not None, "no vertex indices")
+        d = dict(g.vertices())
+        return d[op[1]] if op[1] in d else VERTEX_NOT_FOUND
+    if k in ("sourceChecked", "targetChecked"):
+        d = {q: (a, b) for q, a, b in g.edges()}
+        if op[1] not in d: return EDGE_NOT_FOUND
+        return d[op[1]][0 if k == "sourceChecked" else 1]
+    if k in CHECKED:
+        # The checked: lookups: VertexNotFound for a non-vertex, otherwise the trapping spelling's answer.
+        if not any(v == op[1] for v, _ in g.vertices()): return VERTEX_NOT_FOUND
+        return apply(g, (CHECKED[k], op[1]))
     if k == "outDegree": return len(g.out_edges(op[1]))
+    if k == "degree": return len(g.out_edges(op[1])) + len(g.in_edges(op[1]))
     if k == "inDegree": return len(g.in_edges(op[1]))
     if k == "predecessors":
         d = {q: a for q, a, _ in g.edges()}
@@ -514,9 +558,9 @@ def apply(g, op):
     raise ValueError(op)
 
 
-SAFE = {"successorsSafe": "successors", "predecessorsSafe": "predecessors", "outEdgesSafe": "outEdges",
-        "inEdgesSafe": "inEdges", "outDegreeSafe": "outDegree", "inDegreeSafe": "inDegree",
-        "descendantsSafe": "descendants", "ancestorsSafe": "ancestors"}
+CHECKED = {"successorsChecked": "successors", "predecessorsChecked": "predecessors", "outEdgesChecked": "outEdges",
+           "inEdgesChecked": "inEdges", "outDegreeChecked": "outDegree", "inDegreeChecked": "inDegree",
+           "degreeChecked": "degree", "descendantsChecked": "descendants", "ancestorsChecked": "ancestors"}
 
 
 def reach(g, s, forward):
@@ -542,15 +586,18 @@ def show_op(op):
     k = op[0]
     if k == "removeFromWhere": return f"removeAllEdges(from: {fmt(op[1])}, where: {predicate(op[2])})"
     if k == "removeWhere": return f"removeAllEdges(where: {predicate(op[1])})"
-    if k == "insertSafe": return f"insert(safe: {fmt(op[1])}→{fmt(op[2])})"
-    if k in ("changeTarget", "changeSource", "changeTargetSafe", "changeSourceSafe"):
+    if k == "insertChecked": return f"insert(checked: {fmt(op[1])}→{fmt(op[2])})"
+    if k in ("changeTarget", "changeSource", "changeTargetChecked", "changeSourceChecked"):
         name = "changeTarget" if "Target" in k else "changeSource"
-        return f"{name}(ofEdgeAt: {op[1]}, {'safe' if k.endswith('Safe') else 'to'}: {fmt(op[2])})"
+        return f"{name}(ofEdgeAt: {op[1]}, {'checked' if k.endswith('Checked') else 'to'}: {fmt(op[2])})"
+    if k == "sourceChecked": return f"source(checkedEdgeAt: {op[1]})"
+    if k == "targetChecked": return f"target(checkedEdgeAt: {op[1]})"
     if k == "churn":
         return f"{op[1]} × {{ insert(edge: {fmt(op[2])}→{fmt(op[3])}); remove(edgeAt: edges.startIndex) }}"
     if k == "vertexChurn":
         return f"for i in {op[1]}..<{op[1] + op[2]} {{ insert(edge: i→i+1); remove(i) }}"
-    if k in SAFE: return f"{SAFE[k]}(safe: {fmt(op[1])})"
+    if k == "vertexIndexChecked": return f"vertexIndex(checked: {fmt(op[1])})"
+    if k in CHECKED: return f"{CHECKED[k]}(checked: {fmt(op[1])})"
     two = {"edge": "insert(edge: {}→{})", "removeEdge": "remove(edge: {}→{})",
            "removeAllBetween": "removeAllEdges(from: {}, to: {})", "containsEdge": "contains(edge: {}→{})",
            "edgesFromTo": "edges(from: {}, to: {})"}
@@ -836,18 +883,20 @@ def define_flow_navigation():
          [("remove", 1), ("removeWhere", []), ("removeWhere", [3])])
 
     X = "Insertion"
-    case(X, "insert(safe:) with both endpoints: the new position", [0, 1], [(0, 1)], [("insertSafe", 1, 0), ("insertSafe", 1, 1)])
-    case(X, "insert(safe:) with a missing endpoint: nil, nothing changes", [0, 1], [(0, 0)],
-         [("insertSafe", 0, 9), ("insertSafe", 9, 0), ("insertSafe", 9, 9), ("remove", 1), ("insertSafe", 0, 1)])
+    case(X, "insert(checked:) with both endpoints: the new position", [0, 1], [(0, 1)], [("insertChecked", 1, 0), ("insertChecked", 1, 1)])
+    case(X, "insert(checked:) with a missing endpoint: throws VertexNotFound, nothing changes", [0, 1], [(0, 0)],
+         [("insertChecked", 0, 9), ("insertChecked", 9, 0), ("insertChecked", 9, 9), ("remove", 1), ("insertChecked", 0, 1)])
 
     Q = "Queries"
-    case(Q, "safe: lookups on a vertex", [0, 1, 2], [(0, 1), (2, 0), (0, 0)],
-         [("successorsSafe", 0), ("predecessorsSafe", 0), ("outEdgesSafe", 0), ("inEdgesSafe", 0), ("outDegreeSafe", 0), ("inDegreeSafe", 0)])
-    case(Q, "safe: lookups on a removed vertex or a non-vertex: nil", [0, 1], [(0, 1)],
-         [("remove", 1), ("successorsSafe", 1), ("predecessorsSafe", 1), ("outEdgesSafe", 9), ("inEdgesSafe", 1),
-          ("outDegreeSafe", 1), ("inDegreeSafe", 9)])
-    case(Q, "descendants(safe:) and ancestors(safe:)", [0, 1, 2, 3], [(0, 1), (1, 2), (2, 0), (2, 3)],
-         [("descendantsSafe", 1), ("ancestorsSafe", 3), ("remove", 0), ("descendantsSafe", 1), ("descendantsSafe", 0), ("ancestorsSafe", 9)])
+    case(Q, "checked: lookups on a vertex", [0, 1, 2], [(0, 1), (2, 0), (0, 0)],
+         [("successorsChecked", 0), ("predecessorsChecked", 0), ("outEdgesChecked", 0), ("inEdgesChecked", 0), ("outDegreeChecked", 0),
+          ("inDegreeChecked", 0)])
+    case(Q, "checked: lookups on a removed vertex or a non-vertex: throws VertexNotFound", [0, 1], [(0, 1)],
+         [("remove", 1), ("successorsChecked", 1), ("predecessorsChecked", 1), ("outEdgesChecked", 9), ("inEdgesChecked", 1),
+          ("outDegreeChecked", 1), ("inDegreeChecked", 9)])
+    case(Q, "descendants(checked:) and ancestors(checked:)", [0, 1, 2, 3], [(0, 1), (1, 2), (2, 0), (2, 3)],
+         [("descendantsChecked", 1), ("ancestorsChecked", 3), ("remove", 0), ("descendantsChecked", 1), ("descendantsChecked", 0),
+          ("ancestorsChecked", 9)])
 
     K = "Codable"
     for title, d in [
@@ -897,7 +946,7 @@ def define_paging():
     case(G, "vertices[p] at a position in a freed page traps", [0], [], [("vertexChurn", 0, 2100), ("vertexAt", 3)])
     case(G, "removeAll() after churn resets both ends", [0, 1], [(0, 1)], [("churn", 2100, 0, 1), ("vertexChurn", 2, 1100), ("removeAll",), ("edge", 3, 4)])
     case(G, "algorithms after churn see the live vertices only", [0], [],
-         [("vertexChurn", 0, 2100), ("edge", 2100, 2102), ("edge", 2102, 2101), ("edge", 2101, 2100), ("bfs", 2100), ("descendantsSafe", 2102)])
+         [("vertexChurn", 0, 2100), ("edge", 2100, 2102), ("edge", 2102, 2101), ("edge", 2101, 2100), ("bfs", 2100), ("descendantsChecked", 2102)])
 
     C = "Edge change"
     case(C, "changeTarget keeps the position and the place in the source's row", [0, 1, 2], [(0, 1), (0, 2), (0, 1), (2, 1)],
@@ -912,9 +961,9 @@ def define_paging():
          [("removeAt", 1), ("changeTarget", 3, 2), ("remove", 1), ("edge", 2, 2), ("changeSource", 3, 2), ("removeEdge", 2, 2)])
     case(C, "changeTarget(ofEdgeAt:to:) to a non-vertex traps", [0, 1], [(0, 1)], [("changeTarget", 0, 1), ("changeTarget", 0, 9)])
     case(C, "changeSource(ofEdgeAt:to:) at a hole traps", [0, 1], [(0, 1), (1, 0)], [("removeAt", 0), ("changeSource", 0, 1)])
-    case(C, "safe: variants return false and change nothing", [0, 1, 2], [(0, 1), (1, 2)],
-         [("removeAt", 0), ("changeTargetSafe", 0, 2), ("changeTargetSafe", 1, 9), ("changeSourceSafe", 5, 0), ("changeSourceSafe", -1, 0),
-          ("changeTargetSafe", 1, 0), ("changeSourceSafe", 1, 0)])
+    case(C, "checked: variants throw ElementNotFound.edge or .vertex and change nothing", [0, 1, 2], [(0, 1), (1, 2)],
+         [("removeAt", 0), ("changeTargetChecked", 0, 2), ("changeTargetChecked", 1, 9), ("changeSourceChecked", 5, 0),
+          ("changeSourceChecked", -1, 0), ("changeSourceChecked", 0, 9), ("changeTargetChecked", 1, 0), ("changeSourceChecked", 1, 0)])
 
     M = "Maps"
     map_case(M, "attached EdgeMap: set, get, nil removes; removing the edge clears its value", [0, 1, 2], [(0, 1), (1, 2), (2, 0)],
@@ -936,6 +985,17 @@ def define_paging():
              [("addEdgeMap", "a", "Int"), ("addEdgeMap", "b", "String"), ("eset", "a", 0, 1), ("eset", "b", 0, "x"), ("eset", "a", 1, 2),
               ("snapshot",), ("changeTarget", 0, 2), ("eget", "a", 0), ("removeAt", 1), ("eset", "b", 0, "y"), ("evalues", "a"),
               ("evalues", "b"), ("snapshotValues", "a"), ("snapshotValues", "b"), ("removeMap", "a"), ("evalues", "b")])
+
+    Q = "Queries"
+    case(Q, "degree(checked:) and vertexIndex(checked:): the value, or VertexNotFound", [0, 1, 2], [(0, 1), (1, 1), (2, 1)],
+         [("degreeChecked", 1), ("degreeChecked", 0), ("degreeChecked", 9), ("vertexIndexChecked", 2), ("vertexIndexChecked", 9),
+          ("removeAt", 1), ("degreeChecked", 1), ("vertexIndexChecked", 1)])
+    case(Q, "source(checkedEdgeAt:) and target(checkedEdgeAt:): live, removed, out of range", [0, 1, 2], [(0, 1), (1, 2), (2, 0)],
+         [("sourceChecked", 1), ("targetChecked", 1), ("removeAt", 1), ("sourceChecked", 1), ("targetChecked", 1),
+          ("sourceChecked", 3), ("targetChecked", -1), ("sourceChecked", 2), ("targetChecked", 0)])
+    case(Q, "source(checkedEdgeAt:) at a position in a freed page: EdgeNotFound", [0, 1], [(0, 1)],
+         [("churn", 2500, 0, 1), ("sourceChecked", 5), ("targetChecked", 2499), ("sourceChecked", 2500)])
+    case(Q, "vertexIndex(checked:) with a vertex hole traps", [0, 1], [], [("remove", 0), ("vertexIndexChecked", 1)])
 
 
 MAPS = {}

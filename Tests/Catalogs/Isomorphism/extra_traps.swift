@@ -1,4 +1,4 @@
-    @Test("image(of:) and preimage(of:) trap for a non-vertex on directed graphs too; image(safe:) is nil")
+    @Test("image(of:) and preimage(of:) trap for a non-vertex on directed graphs too; image(checked:) throws")
     func directedAccessorsOfNonVertices() async {
         await #expect(processExitsWith: .failure) {
             let pattern = DirectedPseudograph<Int>(vertices: [4, 8], edges: [DirectedEdge(from: 4, to: 8)])
@@ -12,8 +12,8 @@
             let mapping = pattern.subgraphIsomorphism(to: target)!
             _ = mapping.preimage(of: 4)
         }
-        // Without the calls: the one mapping 4 ↦ 3, 8 ↦ 1, its accessors on vertices, and nil for a
-        // non-vertex through image(safe:).
+        // Without the calls: the one mapping 4 ↦ 3, 8 ↦ 1, its accessors on vertices, and
+        // VertexNotFound for a non-vertex through image(checked:).
         let pattern = DirectedPseudograph<Int>(vertices: [4, 8], edges: [DirectedEdge(from: 4, to: 8)])
         let target = DirectedPseudograph<Int>(vertices: [1, 2, 3], edges: [DirectedEdge(from: 3, to: 1)])
         guard let mapping = pattern.subgraphIsomorphism(to: target) else {
@@ -22,7 +22,8 @@
         }
         #expect(Array(mapping.images) == [3, 1])
         #expect(mapping.image(of: 4) == 3 && mapping.image(of: 8) == 1)
-        #expect(mapping.image(safe: 5) == nil && mapping.image(safe: 8) == 1)
+        #expect(throws: VertexNotFound.self) { try mapping.image(checked: 5) }
+        #expect((try? mapping.image(checked: 8)) == 1)
         #expect(target.vertices.map { mapping.preimage(of: $0) } == [8, nil, 4])
     }
 

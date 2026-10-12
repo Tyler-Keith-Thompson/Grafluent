@@ -24,7 +24,7 @@ only shared material is the seeded generator and the tags in `GrafluentTestSuppo
 struct Drawing<Vertex: Hashable>: RandomAccessCollection, Equatable, Hashable, Sendable, CustomStringConvertible
     init(), init(vertices:positions:)
     var vertices: ContiguousArray<Vertex>; var positions: [SIMD2<Double>]
-    position(of:), position(safe:), setPosition(_:of:), boundingBox, rescaled(scale:center:), rescale(scale:center:)
+    position(of:), position(checked:), setPosition(_:of:), boundingBox, rescaled(scale:center:), rescale(scale:center:)
 extension Graph
     circularLayout(radius:center:)
     fruchtermanReingoldLayout(iterations:optimalDistance:threshold:barnesHutTheta:weight:using:), (initial:…), (…) with the system generator
@@ -37,7 +37,7 @@ struct LayeredDrawing<G>: drawing, layer(of:), layerCount, bends(ofEdgeAt:), rev
 ```
 
 The tests assume `feedbackArcSet()` returns `[Edges.Index]` in position order, the same array as
-`reversedEdges`. A vertex is looked up with `position(of:)` and `position(safe:)` and moved with
+`reversedEdges`. A vertex is looked up with `position(of:)` and `position(checked:)` and moved with
 `setPosition(_:of:)`, not a subscript: a `Drawing<Int>` would have two `Int` subscripts, the
 collection's (by offset) and the vertex's.
 
@@ -115,7 +115,7 @@ process without the call.
   - caller layers with numbers up to 3 × 10¹² and `Int.max / 2`: empty layers skipped, y as given.
 - **Planted bugs.** What `just mutate GraphDrawing` (scripts/mutants/GraphDrawing.py) found the
   rest of the suite letting through:
-  - `Drawing`: the `positions` setter's count check, `position(safe:)` past the end of `0..<n`,
+  - `Drawing`: the `positions` setter's count check, `position(checked:)` past the end of `0..<n`,
     equality comparing vertices, and the description's x before y;
   - Fruchterman–Reingold: the start temperature (a tenth of the larger side, k/10 from one point
     with the default k = √(1/n)), two coincident vertices moving apart, the stopping rules (below

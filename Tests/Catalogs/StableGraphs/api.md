@@ -67,7 +67,7 @@ never comes back (SG-015, SG-031). Only `removeAll()` and `removeAllEdges()` res
 2. **Stale identities are detectable.** With reuse, a caller holding a removed edge's position
    silently gets whichever edge took the slot (the ABA problem). Monotone positions make
    `edges.indices.contains(p)` false forever after a removal, which is what requirement 3 needs.
-   It also lets the planned `safe:` lookups return `nil` with no generation counters.
+   It also lets the `checked:` lookups throw with no generation counters.
 3. **Side data stays simple.** A value kept by position never has to be cleared for a reused
    slot. With paging it goes in an attached `EdgeMap` or `VertexMap`, bounded by the values held
    (an array sized `edges.endIndex` would grow with every insertion), attached to the graph.
@@ -227,9 +227,11 @@ row at its place in position order, since rows are in position order, which is i
 Changing to the current endpoint changes nothing, and self-loops before and after work. The cost
 is O(1) amortized to leave the old row plus O(degree) for the ordered insert; an edge that left a
 row and comes back revives its dead entry there. The trapping spellings trap on a dead position
-or a missing endpoint. The `safe:` spellings (`changeTarget(ofEdgeAt:safe:)`,
-`changeSource(ofEdgeAt:safe:)`, README Principle 6) return `false` and change nothing
-(SG-123 – SG-130).
+or a missing endpoint. The `checked:` spellings (`changeTarget(ofEdgeAt:checked:)`,
+`changeSource(ofEdgeAt:checked:)`, README Principle 6) throw `ElementNotFound.edge` for a dead
+position, checked first, and otherwise `ElementNotFound.vertex` for a missing endpoint, and
+change nothing (SG-123 – SG-130). `ElementNotFound` (GraphProtocols) is the compound typed error
+for a call that can fail both ways, so a `catch` over its two cases stays exhaustive.
 
 ## Signatures
 
@@ -263,18 +265,23 @@ or a missing endpoint. The `safe:` spellings (`changeTarget(ofEdgeAt:safe:)`,
     public func source(ofEdgeAt position: Int) -> Vertex               // O(1); precondition: live position
     public func target(ofEdgeAt position: Int) -> Vertex
 
-    // safe: lookups (README Principle 6): nil for a vertex not in the graph, one hash like the trapping spelling
-    public func successors(safe vertex: Vertex) -> Neighbors?
-    public func predecessors(safe vertex: Vertex) -> Neighbors?
-    public func outEdges(safe vertex: Vertex) -> OutEdges?
-    public func inEdges(safe vertex: Vertex) -> InEdges?
-    public func outDegree(safe vertex: Vertex) -> Int?
-    public func inDegree(safe vertex: Vertex) -> Int?
+    // checked: lookups (README Principle 6): throw VertexNotFound for a vertex not in the graph,
+    // one hash like the trapping spelling; EdgeNotFound for a dead or out-of-range position
+    public func successors(checked vertex: Vertex) throws(VertexNotFound) -> Neighbors
+    public func predecessors(checked vertex: Vertex) throws(VertexNotFound) -> Neighbors
+    public func outEdges(checked vertex: Vertex) throws(VertexNotFound) -> OutEdges
+    public func inEdges(checked vertex: Vertex) throws(VertexNotFound) -> InEdges
+    public func outDegree(checked vertex: Vertex) throws(VertexNotFound) -> Int
+    public func inDegree(checked vertex: Vertex) throws(VertexNotFound) -> Int
+    public func degree(checked vertex: Vertex) throws(VertexNotFound) -> Int
+    public func vertexIndex(checked vertex: Vertex) throws(VertexNotFound) -> Int  // precondition: no vertex holes
+    public func source(checkedEdgeAt position: Int) throws(EdgeNotFound) -> Vertex
+    public func target(checkedEdgeAt position: Int) throws(EdgeNotFound) -> Vertex
 
     // Mutation
     public mutating func insert(_ vertex: Vertex) -> (inserted: Bool, memberAfterInsert: Vertex)  // O(1) amortized
     public mutating func insert(edge: DirectedEdge<Vertex>) -> Int     // O(1) amortized; returns the old edges.endIndex
-    public mutating func insert(safe edge: DirectedEdge<Vertex>) -> Int?  // nil, nothing changed, unless both endpoints are vertices
+    public mutating func insert(checked edge: DirectedEdge<Vertex>) throws(VertexNotFound) -> Int  // nothing changed unless both endpoints are vertices
     public mutating func remove(_ vertex: Vertex) -> Vertex?           // O(degree) amortized; its slot and its edges become holes
     public mutating func remove(edge: DirectedEdge<Vertex>) -> DirectedEdge<Vertex>?  // newest copy; O(min(outDegree(source),
                                                                        //   inDegree(target))) to find, O(1) amortized to remove
@@ -289,8 +296,8 @@ or a missing endpoint. The `safe:` spellings (`changeTarget(ofEdgeAt:safe:)`,
     public mutating func reserveCapacity(vertexCount: Int, edgeCount: Int)    // the page tables and the vertex lookup
     public mutating func changeTarget(ofEdgeAt position: Int, to newTarget: Vertex)   // LEMON's changeTarget; position kept
     public mutating func changeSource(ofEdgeAt position: Int, to newSource: Vertex)
-    public mutating func changeTarget(ofEdgeAt position: Int, safe newTarget: Vertex) -> Bool  // false, nothing changed
-    public mutating func changeSource(ofEdgeAt position: Int, safe newSource: Vertex) -> Bool
+    public mutating func changeTarget(ofEdgeAt position: Int, checked newTarget: Vertex) throws(ElementNotFound)  // .edge, then
+    public mutating func changeSource(ofEdgeAt position: Int, checked newSource: Vertex) throws(ElementNotFound)  //   .vertex; nothing changed
 
     // Collections (values: unaffected by later changes to the graph)
     @frozen public struct Vertices: BidirectionalCollection { // Element Vertex, Index Int (slot), skips holes
@@ -429,8 +436,9 @@ holes exist", and names the refinement.
 - A negative `reserveCapacity`.
 
 `remove(_:)`, `remove(edge:)`, `removeAllEdges(from:to:)`, `removeAllEdges(from:where:)` and
-`insert(safe:)` never trap. They return `nil` or 0, and `contains`, `contains(edge:)`,
-`edges(from:to:)`, `*.indices.contains` and the `safe:` lookups never trap either.
+`insert(checked:)` never trap. They return `nil` or 0 or throw, and `contains`, `contains(edge:)`,
+`edges(from:to:)`, `*.indices.contains` and the `checked:` lookups never trap either
+(`vertexIndex(checked:)` keeps its vertex-hole precondition, SG-138).
 
 ## Codable
 
@@ -454,20 +462,22 @@ before encoding (SG-083). Errors are `DecodingError.dataCorrupted` for:
 
 ## Accommodating the later plan items
 
-- **`safe:` lookups (shipped for FlowNavigation).** Monotone positions make every `safe:` variant
-  a plain membership test, with no generation check. The vertex lookups FlowNavigation uses ship:
-  `successors(safe:)`, `predecessors(safe:)`, `outEdges(safe:)`, `inEdges(safe:)`,
-  `outDegree(safe:)`, `inDegree(safe:)` (SG-105, SG-106), each one hash, the same as the trapping
-  spelling; and `descendants(safe:)` / `ancestors(safe:)` in Traversal, generic over
-  `DirectedGraph` / `BidirectionalDirectedGraph` (SG-107), since StableGraphs does not depend on
-  Traversal. Position lookups (`source(safe:)`, `edges[safe: p]`) would be
-  `edges.indices.contains(p) ? … : nil`; FlowNavigation does not need them yet.
-- **Endpoints-required failable insert (shipped): `insert(safe:)`** (SG-103, SG-104). Requiring
+- **`checked:` lookups (shipped; `safe:` before the repo-wide rename).** Monotone positions make
+  every `checked:` variant a plain membership test, with no generation check. Each throws a typed
+  `VertexNotFound` (Rust's `checked_*` precedent; `try?` gives the old Optional):
+  `successors(checked:)`, `predecessors(checked:)`, `outEdges(checked:)`, `inEdges(checked:)`,
+  `outDegree(checked:)`, `inDegree(checked:)` (SG-105, SG-106), `degree(checked:)` and
+  `vertexIndex(checked:)` (SG-135), each one hash, the same as the trapping spelling; and
+  `descendants(checked:)` / `ancestors(checked:)` in Traversal, generic over `DirectedGraph` /
+  `BidirectionalDirectedGraph` (SG-107), since StableGraphs does not depend on Traversal. The
+  position lookups `source(checkedEdgeAt:)` and `target(checkedEdgeAt:)` throw `EdgeNotFound`
+  for a dead, out-of-range or freed-page position (SG-136, SG-137).
+- **Endpoints-required failable insert (shipped): `insert(checked:)`** (SG-103, SG-104). Requiring
   the endpoints is JGraphT's `addEdge` precondition (`IllegalArgumentException` on a missing
   endpoint) and petgraph's `try_add_edge` (`Err(GraphError::NodeMissed)`); LEMON's `addArc`
-  requires valid nodes, and NetworkX's `add_edge` inserts them. None has an optional-returning
-  name, and a labelled `insert(edge:requiringEndpoints:)` would be invented, so the failing case
-  takes the `safe:` label: the new position, or `nil` with nothing changed.
+  requires valid nodes, and NetworkX's `add_edge` inserts them. A labelled
+  `insert(edge:requiringEndpoints:)` would be invented, so the failing case takes the `checked:`
+  label: the new position, or `VertexNotFound` thrown with nothing changed.
 - **Bulk removal (shipped).** `removeAllEdges(from:where:)` and `removeAllEdges(where:)` (after
   `Array.removeAll(where:)`; the second is petgraph's `retain_edges` with the predicate inverted)
   and `removeAllEdges(from:to:)` remove in one pass over a row: the walked row is compacted once,

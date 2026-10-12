@@ -7,10 +7,10 @@
 // repeated hyperedges included), with vertices that are either the identity `0..<n` or labels far
 // from their indices, and builds the list in bulk, from the hyperedges alone when nothing is
 // listed, and one call at a time. A mutation step runs a random sequence of `insert(_:)`,
-// `insert(hyperedge:)` / `insert(sources:targets:)`, the `safe:` spellings (with a non-vertex
+// `insert(hyperedge:)` / `insert(sources:targets:)`, the `checked:` spellings (with a non-vertex
 // sometimes) and `removeAll`. After each step the whole state is compared: vertices both ways,
 // rows by position and by vertex, degrees, sizes, membership of every vertex and of every
-// hyperedge (and of near misses), the incidence numbers, and the `safe:` spellings.
+// hyperedge (and of near misses), the incidence numbers, and the `checked:` spellings.
 //
 // Every state then checks the algorithms against direct computations on the model: neighbors,
 // rank, uniformity, the histograms, the dual, the clique expansions, the s-line graph,
@@ -193,11 +193,11 @@ enum FuzzHypergraphs {
                 var members = readMembers(&input, identity: identity, universe: 12)
                 if input.int(below: 3) == 0 { members.append(outsider) }
                 let valid = members.allSatisfy { model.index(of: $0) != nil }
-                let position = list.insert(safe: members)
+                let position = try? list.insert(checked: members)
                 if valid {
-                    check(position == model.insert(hyperedge: members), "insert(safe: \(members))")
+                    check(position == model.insert(hyperedge: members), "insert(checked: \(members))")
                 } else {
-                    check(position == nil, "insert(safe: \(members)) with a non-vertex")
+                    check(position == nil, "insert(checked: \(members)) with a non-vertex")
                 }
             case 6:
                 if input.int(below: 4) == 0 {
@@ -233,13 +233,13 @@ enum FuzzHypergraphs {
         check(list.incidenceGraph.edgeCount == incidence, "incidence count \(context)")
         for (i, v) in model.vertices.enumerated() {
             let incident = model.incident(i)
-            check(list.vertexIndex(of: v) == i && list.vertexIndex(safe: v) == i && list.vertex(atIndex: i) == v && list.contains(v), "index of \(v) \(context)")
+            check(list.vertexIndex(of: v) == i && (try? list.vertexIndex(checked: v)) == i && list.vertex(atIndex: i) == v && list.contains(v), "index of \(v) \(context)")
             check(Array(list.incidentHyperedges(of: v)) == incident && Array(list.incidentHyperedges(ofIndex: i)) == incident, "incidentHyperedges(of: \(v)) \(context)")
-            check(list.incidentHyperedges(safe: v).map(Array.init) == incident, "incidentHyperedges(safe: \(v)) \(context)")
-            check(list.degree(of: v) == incident.count && list.degree(ofIndex: i) == incident.count && list.degree(safe: v) == incident.count, "degree(of: \(v)) \(context)")
+            check((try? list.incidentHyperedges(checked: v)).map(Array.init) == incident, "incidentHyperedges(checked: \(v)) \(context)")
+            check(list.degree(of: v) == incident.count && list.degree(ofIndex: i) == incident.count && (try? list.degree(checked: v)) == incident.count, "degree(of: \(v)) \(context)")
         }
         for v in [outsider, vertex(40, identity: false), n] where model.index(of: v) == nil {
-            check(!list.contains(v) && list.vertexIndex(safe: v) == nil && list.incidentHyperedges(safe: v) == nil && list.degree(safe: v) == nil, "non-vertex \(v) \(context)")
+            check(!list.contains(v) && (try? list.vertexIndex(checked: v)) == nil && (try? list.incidentHyperedges(checked: v)) == nil && (try? list.degree(checked: v)) == nil, "non-vertex \(v) \(context)")
             check(!list.contains(hyperedge: [v]), "contains(hyperedge: [\(v)]) \(context)")
         }
         check(list.contains(hyperedge: [] as [Int]) == model.rows.contains([]), "contains(hyperedge: []) \(context)")
@@ -615,11 +615,11 @@ enum FuzzHypergraphs {
                 default: break
                 }
                 let valid = (s + t).allSatisfy { model.index(of: $0) != nil }
-                let position = list.insert(safe: s, targets: t)
+                let position = try? list.insert(checked: s, targets: t)
                 if valid {
-                    check(position == model.insert(sources: s, targets: t), "insert(safe: \(s), targets: \(t))")
+                    check(position == model.insert(sources: s, targets: t), "insert(checked: \(s), targets: \(t))")
                 } else {
-                    check(position == nil, "insert(safe: \(s), targets: \(t)) with a non-vertex")
+                    check(position == nil, "insert(checked: \(s), targets: \(t)) with a non-vertex")
                 }
             case 6:
                 if input.int(below: 4) == 0 {
@@ -657,16 +657,16 @@ enum FuzzHypergraphs {
         check(list.incidenceGraph.edgeCount == offsets.0 + offsets.1, "incidence counts \(context)")
         for (i, v) in model.vertices.enumerated() {
             let out = model.outStar(i), into = model.inStar(i)
-            check(list.vertexIndex(of: v) == i && list.vertexIndex(safe: v) == i && list.vertex(atIndex: i) == v && list.contains(v), "index of \(v) \(context)")
-            check(Array(list.outHyperedges(of: v)) == out && Array(list.outHyperedges(ofIndex: i)) == out && list.outHyperedges(safe: v).map(Array.init) == out, "outHyperedges(of: \(v)) \(context)")
-            check(Array(list.inHyperedges(of: v)) == into && Array(list.inHyperedges(ofIndex: i)) == into && list.inHyperedges(safe: v).map(Array.init) == into, "inHyperedges(of: \(v)) \(context)")
-            check(list.outDegree(of: v) == out.count && list.outDegree(ofIndex: i) == out.count && list.outDegree(safe: v) == out.count, "outDegree(of: \(v)) \(context)")
-            check(list.inDegree(of: v) == into.count && list.inDegree(ofIndex: i) == into.count && list.inDegree(safe: v) == into.count, "inDegree(of: \(v)) \(context)")
-            check(list.degree(of: v) == out.count + into.count, "degree(of: \(v)) \(context)")
+            check(list.vertexIndex(of: v) == i && (try? list.vertexIndex(checked: v)) == i && list.vertex(atIndex: i) == v && list.contains(v), "index of \(v) \(context)")
+            check(Array(list.outHyperedges(of: v)) == out && Array(list.outHyperedges(ofIndex: i)) == out && (try? list.outHyperedges(checked: v)).map(Array.init) == out, "outHyperedges(of: \(v)) \(context)")
+            check(Array(list.inHyperedges(of: v)) == into && Array(list.inHyperedges(ofIndex: i)) == into && (try? list.inHyperedges(checked: v)).map(Array.init) == into, "inHyperedges(of: \(v)) \(context)")
+            check(list.outDegree(of: v) == out.count && list.outDegree(ofIndex: i) == out.count && (try? list.outDegree(checked: v)) == out.count, "outDegree(of: \(v)) \(context)")
+            check(list.inDegree(of: v) == into.count && list.inDegree(ofIndex: i) == into.count && (try? list.inDegree(checked: v)) == into.count, "inDegree(of: \(v)) \(context)")
+            check(list.degree(of: v) == out.count + into.count && (try? list.degree(checked: v)) == out.count + into.count, "degree(of: \(v)) \(context)")
         }
         for v in [outsider, vertex(40, identity: false), n] where model.index(of: v) == nil {
-            check(!list.contains(v) && list.vertexIndex(safe: v) == nil && list.outHyperedges(safe: v) == nil && list.inHyperedges(safe: v) == nil, "non-vertex \(v) \(context)")
-            check(list.outDegree(safe: v) == nil && list.inDegree(safe: v) == nil && !list.contains(sources: [v], targets: [] as [Int]), "non-vertex \(v) degrees \(context)")
+            check(!list.contains(v) && (try? list.vertexIndex(checked: v)) == nil && (try? list.outHyperedges(checked: v)) == nil && (try? list.inHyperedges(checked: v)) == nil, "non-vertex \(v) \(context)")
+            check((try? list.outDegree(checked: v)) == nil && (try? list.inDegree(checked: v)) == nil && (try? list.degree(checked: v)) == nil && !list.contains(sources: [v], targets: [] as [Int]), "non-vertex \(v) degrees \(context)")
         }
         let hasEmpty = model.sources.indices.contains { model.sources[$0].isEmpty && model.targets[$0].isEmpty }
         check(list.contains(sources: [] as [Int], targets: [] as [Int]) == hasEmpty, "contains the empty hyperedge \(context)")

@@ -15,7 +15,7 @@
 // vertex), which must throw; a huge end decodes in O(elements) when the pages from the first listed
 // position to the end number at most 16 per listed element plus 64, and throws otherwise. Heavy
 // churn steps hand out thousands of positions while few stay live, so pages fill and are freed;
-// `changeTarget` / `changeSource` (and their `safe:` spellings) re-point edges in place; up to three
+// `changeTarget` / `changeSource` (and their `checked:` spellings) re-point edges in place; up to three
 // attached edge maps and a vertex map, added, filled and removed at random, must never hold a
 // value at a dead position (every removal clears it) and keep the live ones' values, through
 // re-pointing too; a copy taken at a snapshot step, maps included, must not change while the
@@ -122,6 +122,9 @@ enum FuzzStableGraphs {
             let live = p >= 0 && p < model.edges.count && model.edges[p] != nil
             check(graph.containsEdge(atPosition: p) == live, "containsEdge(atPosition: \(p)) \(context)")
             check(graph.edges.indices.contains(p) == live, "edges.indices.contains(\(p)) \(context)")
+            let ends = live ? model.edges[p]! : nil
+            check((try? graph.source(checkedEdgeAt: p)) == ends?.source, "source(checkedEdgeAt: \(p)) \(context)")
+            check((try? graph.target(checkedEdgeAt: p)) == ends?.target, "target(checkedEdgeAt: \(p)) \(context)")
         }
         let vertexHoles = lv.count != vertexEnd, edgeHoles = le.count != edgeEnd
         check(graph.vertexIndexBound == (vertexHoles ? nil : lv.count), "vertexIndexBound \(String(describing: graph.vertexIndexBound)) \(context)")
@@ -141,7 +144,12 @@ enum FuzzStableGraphs {
             check(graph.degree(of: v) == out.count + into.count, "degree of \(v) \(context)")
             check(graph.outEdges(of: v).count == out.count && graph.inEdges(of: v).count == into.count, "row counts of \(v) \(context)")
             if vertexHoles == false { check(graph.vertexIndex(of: v) == p, "vertexIndex(of: \(v)) \(context)") }
+            check((try? graph.degree(checked: v)) == out.count + into.count, "degree(checked: \(v)) \(context)")
+            if vertexHoles == false { check((try? graph.vertexIndex(checked: v)) == p, "vertexIndex(checked: \(v)) \(context)") }
         }
+        // A vertex never inserted: every checked: lookup throws.
+        check((try? graph.degree(checked: -1)) == nil && (try? graph.successors(checked: -1)) == nil, "checked: lookups of -1 \(context)")
+        if vertexHoles == false { check((try? graph.vertexIndex(checked: -1)) == nil, "vertexIndex(checked: -1) \(context)") }
     }
 
     static func checkMaps(
@@ -326,21 +334,30 @@ enum FuzzStableGraphs {
                 checkDecoding(model, corruption: (a * 8 + b) % 17, "after \(log.suffix(6).joined(separator: "; "))")
                 continue
             case 18, 19:
-                // Re-point a live edge: the safe: spelling also at dead positions and non-vertices.
+                // Re-point a live edge: the checked: spelling also at dead positions and non-vertices,
+                // throwing ElementNotFound.edge for a dead position first, then .vertex.
                 let live = model.liveEdges
                 let p = live.isEmpty ? a - 1 : live[(a * 8 + b) % live.count]
-                let target = op == 18, safe = (a + b) % 3 == 0
-                let ok = p >= 0 && p < model.edges.count && model.edges[p] != nil && model.position(of: b) != nil
-                if safe {
-                    let changed = target ? graph.changeTarget(ofEdgeAt: p, safe: b) : graph.changeSource(ofEdgeAt: p, safe: b)
-                    check(changed == ok, "change\(target ? "Target" : "Source")(ofEdgeAt: \(p), safe: \(b)) result")
+                let target = op == 18, checked = (a + b) % 3 == 0
+                let isEdge = p >= 0 && p < model.edges.count && model.edges[p] != nil
+                let ok = isEdge && model.position(of: b) != nil
+                if checked {
+                    let call = "change\(target ? "Target" : "Source")(ofEdgeAt: \(p), checked: \(b))"
+                    do throws(ElementNotFound) {
+                        if target { try graph.changeTarget(ofEdgeAt: p, checked: b) } else { try graph.changeSource(ofEdgeAt: p, checked: b) }
+                        check(ok, "\(call) did not throw")
+                    } catch .edge {
+                        check(!isEdge, "\(call) threw ElementNotFound.edge")
+                    } catch .vertex {
+                        check(isEdge && !ok, "\(call) threw ElementNotFound.vertex")
+                    }
                 } else if ok {
                     if target { graph.changeTarget(ofEdgeAt: p, to: b) } else { graph.changeSource(ofEdgeAt: p, to: b) }
                 }
                 if ok {
                     if target { model.edges[p]!.target = b } else { model.edges[p]!.source = b }
                 }
-                log.append("change\(target ? "Target" : "Source")(ofEdgeAt: \(p), \(safe ? "safe" : "to"): \(b))")
+                log.append("change\(target ? "Target" : "Source")(ofEdgeAt: \(p), \(checked ? "checked" : "to"): \(b))")
             case 20:
                 // Heavy edge churn: hundreds of edges in, the oldest out, so whole pages die.
                 for round in 0 ..< 300 * (1 + a) {

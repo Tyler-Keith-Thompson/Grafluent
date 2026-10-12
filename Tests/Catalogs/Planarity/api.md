@@ -73,9 +73,9 @@ public struct PlanarEmbedding<G: Graph> {
     // A self-loop appears twice (its two ends), as in incidentEdges(of:).
     // Each a RandomAccessCollection indexed from 0, O(1) to make, over the embedding's 32-bit rows.
     public func clockwiseIncidentEdges(of vertex: G.Vertex) -> ClockwiseIncidentEdges       // of G.Edges.Index; traps on a non-vertex
-    public func clockwiseIncidentEdges(safe vertex: G.Vertex) -> ClockwiseIncidentEdges?    // Principle 6
+    public func clockwiseIncidentEdges(checked vertex: G.Vertex) throws(VertexNotFound) -> ClockwiseIncidentEdges    // Principle 6
     public func clockwiseNeighbors(of vertex: G.Vertex) -> ClockwiseNeighbors               // of G.Vertex
-    public func clockwiseNeighbors(safe vertex: G.Vertex) -> ClockwiseNeighbors?
+    public func clockwiseNeighbors(checked vertex: G.Vertex) throws(VertexNotFound) -> ClockwiseNeighbors
     public func clockwiseNeighborIndices(ofIndex index: Int) -> ClockwiseNeighborIndices    // of Int, index space; without vertex indices, index i is the i-th vertex of `vertices`
 
     public var faceCount: Int                       // Σ (2 − n_c + m_c) over components with an edge

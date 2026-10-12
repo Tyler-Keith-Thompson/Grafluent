@@ -677,10 +677,10 @@ def half_edge_of(g, v, p):
     return 2 * p if u == v else 2 * p + 1
 
 
-def vertex_arg(g, op, safe=False):
-    x = int(re.search(r"\((?:of|safe|from): (-?\d+)", op).group(1))
+def vertex_arg(g, op, checked=False):
+    x = int(re.search(r"\((?:of|checked|from): (-?\d+)", op).group(1))
     if x not in g.vertices:
-        if safe:
+        if checked:
             return None
         raise Trap(f"{x} is not a vertex")
     return g.vertices.index(x)
@@ -747,10 +747,10 @@ def evaluate(cell, op, note):
         fs = min(a, b)
         tail = "" if a == b else "; or every face reversed (the mirror image)"
         return fmt_faces(fs, g) + tail
-    if op.startswith("planarEmbedding()!.clockwiseNeighbors(safe:") and vertex_arg(g, op, True) is None:
-        return "nil"
+    if op.startswith("planarEmbedding()!.clockwiseNeighbors(checked:") and vertex_arg(g, op, True) is None:
+        return "throws VertexNotFound"
     if op.startswith("planarEmbedding()!.clockwise"):
-        v = vertex_arg(g, op, "safe:" in op)
+        v = vertex_arg(g, op, "checked:" in op)
         assert unique
 
         def show(rot):
@@ -937,8 +937,8 @@ def define():
         ("loop: its position twice", "U: 0-0", "planarEmbedding()!.clockwiseIncidentEdges(of: 0)"),
         ("labels: vertices are not indices", "U: [7, 3, 5] 7-3, 3-5, 5-7", "planarEmbedding()!.clockwiseNeighbors(of: 3)"),
         ("not a vertex", "U: K(4)", "planarEmbedding()!.clockwiseNeighbors(of: 9)"),
-        ("not a vertex, safe:", "U: K(4)", "planarEmbedding()!.clockwiseNeighbors(safe: 9)"),
-        ("a vertex, safe:", "U: K(4)", "planarEmbedding()!.clockwiseNeighbors(safe: 0)"),
+        ("not a vertex, checked:", "U: K(4)", "planarEmbedding()!.clockwiseNeighbors(checked: 9)"),
+        ("a vertex, checked:", "U: K(4)", "planarEmbedding()!.clockwiseNeighbors(checked: 0)"),
         ("K4: face right of 0 → 1", "U: K(4)", "planarEmbedding()!.face(from: 0, alongEdgeAt: 0)"),
         ("K4: face right of 1 → 0", "U: K(4)", "planarEmbedding()!.face(from: 1, alongEdgeAt: 0)"),
         ("path: the one face", "U: P(0..2)", "planarEmbedding()!.face(from: 0, alongEdgeAt: 0)"),

@@ -18,6 +18,18 @@ extension StableDirectedGraph: BidirectionalDirectedGraph {
         return _slot(of: vertex)
     }
 
+    /// `vertexIndex(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1)
+    /// expected.
+    ///
+    /// - Precondition: `vertexIndexBound` is not `nil`.
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func vertexIndex(checked vertex: Vertex) throws(VertexNotFound) -> Int {
+        precondition(_vertexCount == _vertexEnd, "The graph has vertex holes, so no vertex indices; check vertexIndexBound first")
+        guard let slot = _slots[vertex] else { throw VertexNotFound() }
+        return slot
+    }
+
     /// The vertex at index `index`. O(1).
     ///
     /// - Precondition: `vertexIndexBound` is not `nil`, and `index` is in `0..<vertexIndexBound`.

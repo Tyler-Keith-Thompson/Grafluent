@@ -103,18 +103,25 @@ struct StableGraphPropertyTests {
                         }
                     }
                 case 18:
-                    // The safe: spellings at any position, live or not, to any vertex or non-vertex.
+                    // The checked: spellings at any position, live or not, to any vertex or non-vertex:
+                    // ElementNotFound.edge for a dead position first, then .vertex, else the change.
                     let position = k % (edgeEnd + 2) - 1
                     let live = edges.firstIndex { $0.position == position }
-                    let ok = live != nil && vertices.contains { $0.vertex == b }
-                    if k % 2 == 0 {
-                        let changed = graph.changeTarget(ofEdgeAt: position, safe: b)
-                        #expect(changed == ok, "\(context)")
-                        if ok, let live { edges[live].target = b }
-                    } else {
-                        let changed = graph.changeSource(ofEdgeAt: position, safe: b)
-                        #expect(changed == ok, "\(context)")
-                        if ok, let live { edges[live].source = b }
+                    let isVertex = vertices.contains { $0.vertex == b }
+                    do throws(ElementNotFound) {
+                        if k % 2 == 0 {
+                            try graph.changeTarget(ofEdgeAt: position, checked: b)
+                        } else {
+                            try graph.changeSource(ofEdgeAt: position, checked: b)
+                        }
+                        #expect(live != nil && isVertex, "\(context)")
+                        if let live {
+                            if k % 2 == 0 { edges[live].target = b } else { edges[live].source = b }
+                        }
+                    } catch .edge {
+                        #expect(live == nil, "\(context)")
+                    } catch .vertex {
+                        #expect(live != nil && !isVertex, "\(context)")
                     }
                 case 19:
                     // Values for every live edge and vertex in the attached maps.

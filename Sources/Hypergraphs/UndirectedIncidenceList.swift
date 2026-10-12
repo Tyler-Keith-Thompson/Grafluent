@@ -157,17 +157,18 @@ extension UndirectedIncidenceList {
         return position
     }
 
-    /// Appends a hyperedge with `members` if every member is already a vertex; otherwise changes
-    /// nothing.
+    /// Appends a hyperedge with `members` if every member is already a vertex; otherwise throws
+    /// and changes nothing.
     ///
-    /// - Returns: The new hyperedge's position, or `nil` when a member is not a vertex.
+    /// - Returns: The new hyperedge's position, the old `hyperedgeCount`.
+    /// - Throws: `VertexNotFound` when a member is not a vertex.
     /// - Complexity: O(k log k) expected, one hash per member.
     @inlinable
     @discardableResult
-    public mutating func insert(safe members: some Sequence<Vertex>) -> Int? {
+    public mutating func insert(checked members: some Sequence<Vertex>) throws(VertexNotFound) -> Int {
         var row: [Int] = []
         for v in members {
-            guard let index = _vertices.firstIndex(of: v) else { return nil }
+            guard let index = _vertices.firstIndex(of: v) else { throw VertexNotFound() }
             row.append(index)
         }
         _sortUnique(&row)
@@ -308,10 +309,13 @@ extension UndirectedIncidenceList {
         _plane.hyperedgeRow(index)
     }
 
-    /// `incidentHyperedges(of:)`, or `nil` when `vertex` is not a vertex. One hash.
+    /// `incidentHyperedges(of:)`, throwing instead of trapping when `vertex` is not a vertex. One
+    /// hash.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
     @inlinable
-    public func incidentHyperedges(safe vertex: Vertex) -> ArraySlice<Int>? {
-        guard let index = _vertices.firstIndex(of: vertex) else { return nil }
+    public func incidentHyperedges(checked vertex: Vertex) throws(VertexNotFound) -> ArraySlice<Int> {
+        guard let index = _vertices.firstIndex(of: vertex) else { throw VertexNotFound() }
         return incidentHyperedges(ofIndex: index)
     }
 
@@ -331,10 +335,12 @@ extension UndirectedIncidenceList {
         _plane.degree(index)
     }
 
-    /// `degree(of:)`, or `nil` when `vertex` is not a vertex. One hash.
+    /// `degree(of:)`, throwing instead of trapping when `vertex` is not a vertex. One hash.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
     @inlinable
-    public func degree(safe vertex: Vertex) -> Int? {
-        guard let index = _vertices.firstIndex(of: vertex) else { return nil }
+    public func degree(checked vertex: Vertex) throws(VertexNotFound) -> Int {
+        guard let index = _vertices.firstIndex(of: vertex) else { throw VertexNotFound() }
         return _plane.degree(index)
     }
 
@@ -380,10 +386,13 @@ extension UndirectedIncidenceList {
         _index(of: vertex)
     }
 
-    /// The index of `vertex`, or `nil` when it is not a vertex. One hash.
+    /// The index of `vertex`, throwing instead of trapping when it is not a vertex. One hash.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
     @inlinable
-    public func vertexIndex(safe vertex: Vertex) -> Int? {
-        _vertices.firstIndex(of: vertex)
+    public func vertexIndex(checked vertex: Vertex) throws(VertexNotFound) -> Int {
+        guard let index = _vertices.firstIndex(of: vertex) else { throw VertexNotFound() }
+        return index
     }
 
     /// The vertex at `index`. O(1).

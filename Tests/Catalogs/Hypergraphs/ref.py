@@ -142,15 +142,16 @@ class Store:
     def vertex_index(self, v):
         return self._need(v)
 
-    def vertex_index_safe(self, v):
-        return self._find(v)
+    def vertex_index_checked(self, v):
+        i = self._find(v)
+        return NOT_FOUND if i is None else i
 
     def vertex(self, i):
         return self.vs[self._need_index(i)]
 
-    def safe(self, f, v):
+    def checked(self, f, v):
         if self._find(v) is None:
-            return None
+            return NOT_FOUND
         self.hashes -= 1  # the trapping spelling's hash is the same one
         return f(v)
 
@@ -232,11 +233,11 @@ class UHG(Store):
             self.inc[i].append(p)
         return p
 
-    def insert_safe(self, members):
+    def insert_checked(self, members):
         members = list(members)
         for v in members:
             if self._find(v) is None:
-                return None
+                return NOT_FOUND
         self.hashes -= len(members)  # insert_hyperedge looks them up again; Swift keeps the indices
         return self.insert_hyperedge(members)
 
@@ -447,11 +448,11 @@ class DHG(Store):
             self.inn[i].append(p)
         return p
 
-    def insert_safe(self, sources, targets):
+    def insert_checked(self, sources, targets):
         allv = list(sources) + list(targets)
         for v in allv:
             if self._find(v) is None:
-                return None
+                return NOT_FOUND
         self.hashes -= len(allv)
         return self.insert_hyperedge(sources, targets)
 
@@ -875,6 +876,8 @@ def check_d(g):
 # ---------------------------------------------------------------- formatting
 
 VOID = object()
+# What a `checked:` call throws for a vertex that is not in the hypergraph.
+NOT_FOUND = object()
 
 
 def fmt_set(vs):
@@ -896,6 +899,8 @@ def fmt(x):
         return "nil"
     if x is VOID:
         return "()"
+    if x is NOT_FOUND:
+        return "throws VertexNotFound"
     if isinstance(x, bool):
         return "true" if x else "false"
     if isinstance(x, (UHG, DHG)):
@@ -920,7 +925,7 @@ def run_call(g, call):
     common = {
         "contains": lambda v: g.contains(v),
         "vertexIndex": lambda v: g.vertex_index(v),
-        "vertexIndex(safe:)": lambda v: g.vertex_index_safe(v),
+        "vertexIndex(checked:)": lambda v: g.vertex_index_checked(v),
         "vertex(atIndex:)": lambda i: g.vertex(i),
         "counts": lambda: f"{g.vertex_count}/{g.hyperedge_count}",
         "insert": lambda v: g.insert(v),
@@ -940,13 +945,13 @@ def run_call(g, call):
             "size": lambda p: g.size(p),
             "incidentHyperedges": lambda v: g.incident(v),
             "incidentHyperedges(ofIndex:)": lambda i: g.incident_of_index(i),
-            "incidentHyperedges(safe:)": lambda v: g.safe(g.incident, v),
+            "incidentHyperedges(checked:)": lambda v: g.checked(g.incident, v),
             "degree": lambda v: g.degree(v),
             "degree(ofIndex:)": lambda i: g.degree_of_index(i),
-            "degree(safe:)": lambda v: g.safe(g.degree, v),
+            "degree(checked:)": lambda v: g.checked(g.degree, v),
             "contains(hyperedge:)": lambda *vs: g.contains_hyperedge(vs),
             "insert(hyperedge:)": lambda *vs: g.insert_hyperedge(vs),
-            "insert(safe:)": lambda *vs: g.insert_safe(vs),
+            "insert(checked:)": lambda *vs: g.insert_checked(vs),
             "neighbors": lambda v: g.neighbors(v),
             "rank": lambda: g.rank(),
             "isUniform(size:)": lambda k: g.is_uniform(k),
@@ -968,13 +973,17 @@ def run_call(g, call):
             "inHyperedges": lambda v: g.in_hyperedges(v),
             "outHyperedges(ofIndex:)": lambda i: g.out_of_index(i),
             "inHyperedges(ofIndex:)": lambda i: g.in_of_index(i),
-            "outHyperedges(safe:)": lambda v: g.safe(g.out_hyperedges, v),
+            "outHyperedges(checked:)": lambda v: g.checked(g.out_hyperedges, v),
+            "inHyperedges(checked:)": lambda v: g.checked(g.in_hyperedges, v),
+            "outDegree(checked:)": lambda v: g.checked(g.out_degree, v),
+            "inDegree(checked:)": lambda v: g.checked(g.in_degree, v),
+            "degree(checked:)": lambda v: g.checked(g.degree, v),
             "outDegree": lambda v: g.out_degree(v),
             "inDegree": lambda v: g.in_degree(v),
             "degree": lambda v: g.degree(v),
             "contains(sources:targets:)": lambda s, t: g.contains_hyperedge(s, t),
             "insert(sources:targets:)": lambda s, t: g.insert_hyperedge(s, t),
-            "insert(safe:targets:)": lambda s, t: g.insert_safe(s, t),
+            "insert(checked:targets:)": lambda s, t: g.insert_checked(s, t),
             "reversed": lambda: g.reversed(),
             "weaklyConnectedComponents": lambda: g.weakly_connected_components(),
             "isWeaklyConnected": lambda: g.is_weakly_connected(),
@@ -1011,14 +1020,14 @@ def call_text(call):
     name, *args = call
     if name in AT_LABEL:
         return f"{name}(ofHyperedgeAt: {args[0]})"
-    if name in ("contains(hyperedge:)", "insert(hyperedge:)", "insert(safe:)"):
+    if name in ("contains(hyperedge:)", "insert(hyperedge:)", "insert(checked:)"):
         return name.replace(":)", f": {lst(args)})")
     if name == "contains(sources:targets:)":
         return f"contains(sources: {lst(args[0])}, targets: {lst(args[1])})"
     if name == "insert(sources:targets:)":
         return f"insert(sources: {lst(args[0])}, targets: {lst(args[1])})"
-    if name == "insert(safe:targets:)":
-        return f"insert(safe: {lst(args[0])}, targets: {lst(args[1])})"
+    if name == "insert(checked:targets:)":
+        return f"insert(checked: {lst(args[0])}, targets: {lst(args[1])})"
     if name in ("isBConnected(from:to:)", "isFConnected(from:to:)"):
         return f"{name.split('(')[0]}(from: {args[0]}, to: {args[1]})"
     if name == "dual().sConnectedComponents(s:)":
@@ -1152,13 +1161,13 @@ def define():
     case("Reads", "contains(hyperedge:) of the empty set, none stored", EX_V, EX_E,
          [("contains(hyperedge:)",)], show_state=False)
     case("Reads", "vertex indices round trip", EX_V, EX_E,
-         [("vertexIndex", "d"), ("vertex(atIndex:)", 3), ("vertexIndex(safe:)", "z")], show_state=False)
+         [("vertexIndex", "d"), ("vertex(atIndex:)", 3), ("vertexIndex(checked:)", "z")], show_state=False)
     case("Reads", "index-space reads hash nothing; a vertex-space read hashes once", EX_V, EX_E,
          [("incidentHyperedges(ofIndex:)", 2), ("degree(ofIndex:)", 2), ("memberIndices", 0), ("hashes",),
           ("incidentHyperedges", "c"), ("hashes",)], show_state=False)
-    case("Reads", "safe: spellings return nil for a non-vertex", EX_V, EX_E,
-         [("incidentHyperedges(safe:)", "z"), ("degree(safe:)", "z"), ("incidentHyperedges(safe:)", "c"),
-          ("degree(safe:)", "c"), ("hashes",)], show_state=False)
+    case("Reads", "checked: spellings throw for a non-vertex", EX_V, EX_E,
+         [("incidentHyperedges(checked:)", "z"), ("degree(checked:)", "z"), ("incidentHyperedges(checked:)", "c"),
+          ("degree(checked:)", "c"), ("hashes",)], show_state=False)
     case("Reads", "neighbors: vertices sharing a hyperedge, once each, in index order, never itself", EX_V, EX_E,
          [("neighbors", "c"), ("neighbors", "e"), ("neighbors", "f")], show_state=False)
     case("Traps", "incidentHyperedges(of:) on a non-vertex", EX_V, EX_E, [("incidentHyperedges", "z")])
@@ -1177,9 +1186,9 @@ def define():
     case("Mutation", "insert(hyperedge:) of an existing member set adds a copy", [], [["a", "b"]],
          [("insert(hyperedge:)", "b", "a"), ("counts",)])
     case("Mutation", "insert(hyperedge:) of the empty set", ["a"], [], [("insert(hyperedge:)",), ("size", 0)])
-    case("Mutation", "insert(safe:) with every member present", ["a", "b"], [], [("insert(safe:)", "a", "b")])
-    case("Mutation", "insert(safe:) with a missing member: nil, nothing changes", ["a", "b"], [],
-         [("insert(safe:)", "a", "z"), ("counts",)])
+    case("Mutation", "insert(checked:) with every member present", ["a", "b"], [], [("insert(checked:)", "a", "b")])
+    case("Mutation", "insert(checked:) with a missing member: throws, nothing changes", ["a", "b"], [],
+         [("insert(checked:)", "a", "z"), ("counts",)])
     case("Mutation", "removeAll", EX_V, EX_E, [("removeAll",), ("counts",)])
     case("Mutation", "incidence rows stay ascending under appends", ["a", "b"], [["b"]],
          [("insert(hyperedge:)", "a"), ("insert(hyperedge:)", "b", "a"), ("incidentHyperedges", "b"),
@@ -1285,8 +1294,8 @@ def define():
     dcase("Reads", "index-space reads hash nothing; a vertex-space read hashes once", DY_V, DY_E,
           [("outHyperedges(ofIndex:)", 2), ("inHyperedges(ofIndex:)", 2), ("sourceIndices", 1), ("hashes",),
            ("outHyperedges", "c"), ("hashes",)], show_state=False)
-    dcase("Reads", "safe: spellings return nil for a non-vertex", DY_V, DY_E,
-          [("outHyperedges(safe:)", "z"), ("vertexIndex(safe:)", "z"), ("outHyperedges(safe:)", "a"), ("hashes",)],
+    dcase("Reads", "checked: spellings throw for a non-vertex", DY_V, DY_E,
+          [("outHyperedges(checked:)", "z"), ("vertexIndex(checked:)", "z"), ("outHyperedges(checked:)", "a"), ("hashes",)],
           show_state=False)
     dcase("Traps", "outHyperedges(of:) on a non-vertex", DY_V, DY_E, [("outHyperedges", "z")])
     dcase("Traps", "sources(ofHyperedgeAt:) past the end", DY_V, DY_E, [("sources", 5)])
@@ -1295,10 +1304,10 @@ def define():
     dcase("Traps", "isFConnected(from:to:) with a non-vertex", DX_V, DX_E, [("isFConnected(from:to:)", "a", "z")])
     dcase("Mutation", "insert(sources:targets:) appends, inserting missing vertices", ["a"], [],
           [("insert(sources:targets:)", ["b", "a"], ["c"]), ("outHyperedges", "a")])
-    dcase("Mutation", "insert(safe:targets:) with every vertex present", ["a", "b"], [],
-          [("insert(safe:targets:)", ["a"], ["b"])])
-    dcase("Mutation", "insert(safe:targets:) with a missing vertex: nil, nothing changes", ["a", "b"], [],
-          [("insert(safe:targets:)", ["a"], ["z"]), ("counts",)])
+    dcase("Mutation", "insert(checked:targets:) with every vertex present", ["a", "b"], [],
+          [("insert(checked:targets:)", ["a"], ["b"])])
+    dcase("Mutation", "insert(checked:targets:) with a missing vertex: throws, nothing changes", ["a", "b"], [],
+          [("insert(checked:targets:)", ["a"], ["z"]), ("counts",)])
     dcase("Mutation", "removeAll", DY_V, DY_E, [("removeAll",), ("counts",)])
     dcase("Reversal", "reversed swaps sources and targets (Gallo's symmetric image)", DY_V, DY_E, [("reversed",)], show_state=False)
     dcase("Dual", "hyperedge i of the dual has sources = out-hyperedges of i, targets = in-hyperedges of i (the transpose)",
@@ -1365,6 +1374,10 @@ def define():
     decode_case("DH", DHG, "rejects source and target lists of different lengths", {"vertices": ["a"], "sources": [[0]], "targets": []})
     decode_case("DH", DHG, "rejects a repeated member inside one side", {"vertices": ["a", "b"], "sources": [[1, 1]], "targets": [[]]})
     decode_case("DH", DHG, "rejects an index out of range", {"vertices": ["a"], "sources": [[]], "targets": [[3]]})
+    dcase("Reads", "the other checked: reads answer a vertex and throw for a non-vertex", DY_V, DY_E,
+          [("inHyperedges(checked:)", "c"), ("outDegree(checked:)", "c"), ("inDegree(checked:)", "c"),
+           ("degree(checked:)", "c"), ("degree(checked:)", "z"), ("inHyperedges(checked:)", "z"),
+           ("outDegree(checked:)", "z"), ("inDegree(checked:)", "z"), ("hashes",)], show_state=False)
 
 
 def render():
@@ -1476,19 +1489,19 @@ def stress():
                 dspec.add_edge((s, t))
             elif op < 0.95:
                 e = [rng.choice(pool) for _ in range(rng.choice([1, 2, 3]))]
-                p = g.insert_safe(e)
+                p = g.insert_checked(e)
                 if all(v in spec.nodes for v in e):
                     spec.add_edge(e)
                     assert p == spec.num_edges - 1
                 else:
-                    assert p is None
+                    assert p is NOT_FOUND
                 s, t = random_side(rng, pool), random_side(rng, pool)
-                p = dg.insert_safe(s, t)
+                p = dg.insert_checked(s, t)
                 if all(v in dspec.nodes for v in s + t):
                     dspec.add_edge((s, t))
                     assert p == dspec.num_edges - 1
                 else:
-                    assert p is None
+                    assert p is NOT_FOUND
             else:
                 g.remove_all()
                 spec = xgi.Hypergraph()

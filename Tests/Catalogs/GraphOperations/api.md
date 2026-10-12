@@ -306,7 +306,7 @@ Result numbering:
 
 | Case | Behaviour | Rows |
 |---|---|---|
-| `inducedSubgraph(on:)` / `subgraph` with a vertex not in the base | **Trap.** NetworkX's `subgraph` silently skips it, igraph raises. A `safe:` variant comes with the repo-wide pass (Principle 6) | GO-022, GO-044 |
+| `inducedSubgraph(on:)` / `subgraph` with a vertex not in the base | **Trap.** NetworkX's `subgraph` silently skips it, igraph raises. A `checked:` variant comes with the repo-wide pass (Principle 6) | GO-022, GO-044 |
 | A position not in the base | **Trap** | GO-036, GO-045 |
 | Repeated vertex or position | Set semantics; the hash count still counts each listed occurrence | GO-014, GO-020, GO-032 |
 | `subgraph(vertices:edges:)` edge with an end outside the vertex set | Dropped, as in JGraphT's `AsSubgraph` and NetworkX's filters | GO-040, GO-041 |

@@ -50,7 +50,7 @@ for line in TEXT.splitlines():
         parts = [p.strip().replace("\\|", "|") for p in line.strip().strip("|").split(" | ")]
         CELLS[int(parts[0][3:])] = parts
 N = len(CELLS)
-assert N == 134 and sorted(ROWS) == list(range(1, N + 1))
+assert N == 138 and sorted(ROWS) == list(range(1, N + 1))
 
 
 def title(n): return CELLS[n][2]
@@ -99,8 +99,11 @@ def construct(V, E, t, var="graph", mutable=True):
 
 STATEMENTS = {"removeAll", "removeAllEdges", "churn", "vertexChurn", "changeTarget", "changeSource"}
 MUTATING = {"insert", "edge", "remove", "removeEdge", "removeAt", "removeAllBetween", "removeAll", "removeAllEdges",
-            "changeTarget", "changeSource", "changeTargetSafe", "changeSourceSafe", "churn", "vertexChurn",
-            "removeFromWhere", "removeWhere", "insertSafe"}
+            "changeTarget", "changeSource", "changeTargetChecked", "changeSourceChecked", "churn", "vertexChurn",
+            "removeFromWhere", "removeWhere", "insertChecked"}
+CHECKED = {"insertChecked", "outDegreeChecked", "inDegreeChecked", "degreeChecked", "successorsChecked", "predecessorsChecked",
+           "outEdgesChecked", "inEdgesChecked", "descendantsChecked", "ancestorsChecked", "changeTargetChecked",
+           "changeSourceChecked", "vertexIndexChecked", "sourceChecked", "targetChecked"}
 
 # ---------------------------------------------------------------------------------------------
 # Running a row on the model, one call at a time
@@ -216,19 +219,23 @@ def call_text(op):
         "contains": lambda: "graph.contains(%s)" % lit(a[0]),
         "containsEdge": lambda: "graph.contains(edge: %s)" % edge(*a),
         "edgesFromTo": lambda: "Array(graph.edges(from: %s, to: %s))" % (lit(a[0]), lit(a[1])),
-        "insertSafe": lambda: "graph.insert(safe: %s)" % edge(*a),
-        "outDegreeSafe": lambda: "graph.outDegree(safe: %s)" % lit(a[0]),
-        "inDegreeSafe": lambda: "graph.inDegree(safe: %s)" % lit(a[0]),
-        "successorsSafe": lambda: "graph.successors(safe: %s)" % lit(a[0]),
-        "predecessorsSafe": lambda: "graph.predecessors(safe: %s)" % lit(a[0]),
-        "outEdgesSafe": lambda: "graph.outEdges(safe: %s)" % lit(a[0]),
-        "inEdgesSafe": lambda: "graph.inEdges(safe: %s)" % lit(a[0]),
-        "descendantsSafe": lambda: "graph.descendants(safe: %s)" % lit(a[0]),
-        "ancestorsSafe": lambda: "graph.ancestors(safe: %s)" % lit(a[0]),
+        "insertChecked": lambda: "try graph.insert(checked: %s)" % edge(*a),
+        "outDegreeChecked": lambda: "try graph.outDegree(checked: %s)" % lit(a[0]),
+        "inDegreeChecked": lambda: "try graph.inDegree(checked: %s)" % lit(a[0]),
+        "degreeChecked": lambda: "try graph.degree(checked: %s)" % lit(a[0]),
+        "successorsChecked": lambda: "try graph.successors(checked: %s)" % lit(a[0]),
+        "predecessorsChecked": lambda: "try graph.predecessors(checked: %s)" % lit(a[0]),
+        "outEdgesChecked": lambda: "try graph.outEdges(checked: %s)" % lit(a[0]),
+        "inEdgesChecked": lambda: "try graph.inEdges(checked: %s)" % lit(a[0]),
+        "descendantsChecked": lambda: "try graph.descendants(checked: %s)" % lit(a[0]),
+        "ancestorsChecked": lambda: "try graph.ancestors(checked: %s)" % lit(a[0]),
+        "vertexIndexChecked": lambda: "try graph.vertexIndex(checked: %s)" % lit(a[0]),
+        "sourceChecked": lambda: "try graph.source(checkedEdgeAt: %d)" % a[0],
+        "targetChecked": lambda: "try graph.target(checkedEdgeAt: %d)" % a[0],
         "changeTarget": lambda: "graph.changeTarget(ofEdgeAt: %d, to: %s)" % (a[0], lit(a[1])),
         "changeSource": lambda: "graph.changeSource(ofEdgeAt: %d, to: %s)" % (a[0], lit(a[1])),
-        "changeTargetSafe": lambda: "graph.changeTarget(ofEdgeAt: %d, safe: %s)" % (a[0], lit(a[1])),
-        "changeSourceSafe": lambda: "graph.changeSource(ofEdgeAt: %d, safe: %s)" % (a[0], lit(a[1])),
+        "changeTargetChecked": lambda: "try graph.changeTarget(ofEdgeAt: %d, checked: %s)" % (a[0], lit(a[1])),
+        "changeSourceChecked": lambda: "try graph.changeSource(ofEdgeAt: %d, checked: %s)" % (a[0], lit(a[1])),
         "churn": lambda: "for _ in 0 ..< %d { graph.insert(edge: %s); graph.remove(edgeAt: graph.edges.startIndex) }" % (a[0], edge(a[1], a[2])),
         "vertexChurn": lambda: "for i in %d ..< %d { graph.insert(edge: DirectedEdge(from: i, to: i + 1)); graph.remove(i) }" % (a[0], a[0] + a[1]),
     }[k]()
@@ -250,14 +257,21 @@ def call_lines(port, spec, op, t, ind="        "):
         return r, [ind + "do {", ind + "    var visited: [Int] = []", ind + "    let removed = " + call,
                    ind + "    #expect(removed == %d)" % r, ind + "    #expect(visited == %s)" % arr(visit, "Int"), ind + "}"]
     r = step(port, spec, op)
-    if k in ("insertSafe", "outDegreeSafe", "inDegreeSafe"):
-        return r, [ind + "#expect(%s == %s)" % (call_text(op), opt(r))]
-    if k in ("successorsSafe", "predecessorsSafe", "outEdgesSafe", "inEdgesSafe"):
-        if r is None:
-            return r, [ind + "#expect(%s == nil)" % call_text(op)]
-        return r, [ind + "#expect(%s.map { Array($0) } == %s)" % (call_text(op), arr(r, "Int" if k in ("outEdgesSafe", "inEdgesSafe") else t))]
-    if k in ("descendantsSafe", "ancestorsSafe"):
-        return r, [ind + "#expect(%s == %s)" % (call_text(op), "nil" if r is None else "Set(%s)" % arr(r, t))]
+    if isinstance(r, ref.Throws):
+        # A failed checked: call; the state lines after it show nothing changed.
+        # A struct error is matched by type; a case of the compound ElementNotFound by value.
+        error = r.error if "." in r.error else r.error + ".self"
+        return r, [ind + "#expect(throws: %s) { %s }" % (error, call_text(op))]
+    if k in ("insertChecked", "outDegreeChecked", "inDegreeChecked", "degreeChecked", "vertexIndexChecked", "sourceChecked",
+             "targetChecked"):
+        return r, [ind + "#expect(%s == %s)" % (call_text(op), lit(r))]
+    if k in ("successorsChecked", "predecessorsChecked", "outEdgesChecked", "inEdgesChecked"):
+        return r, [ind + "#expect(try Array(%s) == %s)" % (call_text(op)[4:], arr(r, "Int" if k in ("outEdgesChecked", "inEdgesChecked") else t))]
+    if k in ("descendantsChecked", "ancestorsChecked"):
+        return r, [ind + "#expect(%s == Set(%s))" % (call_text(op), arr(r, t))]
+    if k in ("changeTargetChecked", "changeSourceChecked"):
+        assert isinstance(r, ref.Done)
+        return r, [ind + call_text(op)]
     if k == "insert":
         return r, [ind + "do {", ind + "    let result = graph.insert(%s)" % lit(op[1]),
                    ind + "    #expect(%sresult.inserted)" % ("" if r[0] else "!"),
@@ -266,8 +280,6 @@ def call_lines(port, spec, op, t, ind="        "):
         return r, [ind + "#expect(%s == %s)" % (call_text(op), "nil" if r is None else edge(*r))]
     if k in STATEMENTS:
         return r, [ind + call_text(op)]
-    if k in ("changeTargetSafe", "changeSourceSafe"):
-        return r, [ind + "do {", ind + "    let changed = " + call_text(op), ind + "    #expect(%schanged)" % ("" if r else "!"), ind + "}"]
     if k in ("successors", "outEdges", "inEdges", "edgesFromTo"):
         return r, [ind + "#expect(%s == %s)" % (call_text(op), arr(r, "Int" if k in ("outEdges", "inEdges", "edgesFromTo") else t))]
     if k == "remove":
@@ -311,7 +323,7 @@ def case_test(n):
     _, group, ttl, V, E, ops, note = ROWS[n]
     t = vty(V, E, [o[1:] for o in ops])
     lines = header(n)
-    lines.append("    func sg%03d() {" % n)
+    lines.append("    func sg%03d()%s {" % (n, " throws" if any(o[0] in CHECKED for o in ops) else ""))
     lines.append("        // %s" % inp(n))
     port, spec = build(V, E)
     mut = any(o[0] in MUTATING for o in ops)
@@ -764,7 +776,8 @@ FILES = [
     ("StableGraphInsertionTests.swift", "StableGraphs insertion", ids("Insertion"),
      "Insertion (catalog SG-007 – SG-010, SG-103, SG-104): `insert(edge:)` returns the old `edges.endIndex`\n"
      "// and inserts missing endpoints; a self-loop is once in its out-row and once in its in-row;\n"
-     "// `insert(safe:)` inserts only between existing vertices and otherwise returns nil, changing nothing."),
+     "// `insert(checked:)` inserts only between existing vertices and otherwise throws `VertexNotFound`,\n"
+     "// changing nothing."),
     ("StableGraphEdgeRemovalTests.swift", "StableGraphs edge removal", ids("Edge removal"),
      "Edge removal (catalog SG-011 – SG-025, SG-097 – SG-102): a removed edge leaves a hole, nothing\n"
      "// moves, a removed position never returns, `remove(edge:)` takes the newest copy, rows keep\n"
@@ -777,9 +790,10 @@ FILES = [
      "Interleaved sequences (catalog SG-035 – SG-040): mixed insertions and removals, churn on one pair,\n"
      "// a FlowNavigation-shaped replacement, and the two resets, `removeAllEdges()` and `removeAll()`."),
     ("StableGraphQueryTests.swift", "StableGraphs queries", ids("Queries"),
-     "Queries (catalog SG-041 – SG-049, SG-105 – SG-107): rows and `edges(from:to:)` in insertion order\n"
-     "// across holes, membership after removals, the O(1) live-or-stale checks `edges.indices.contains`\n"
-     "// and `vertices.indices.contains`, and the `safe:` lookups, nil for a vertex not in the graph."),
+     "Queries (catalog SG-041 – SG-049, SG-105 – SG-107, SG-135 – SG-137): rows and `edges(from:to:)` in\n"
+     "// insertion order across holes, membership after removals, the O(1) live-or-stale checks\n"
+     "// `edges.indices.contains` and `vertices.indices.contains`, and the `checked:` lookups, which throw\n"
+     "// `VertexNotFound` for a vertex not in the graph and `EdgeNotFound` for a dead edge position."),
     ("StableGraphIndexTests.swift", "StableGraphs indices, views and conversions", [n for n in ids("Conformance")],
      "Indices, views and conversions (catalog SG-066 – SG-077 without SG-062): dense indices exactly while\n"
      "// there are no holes, vertex and edge holes independent; algorithms on a graph with holes (BFS,\n"
@@ -802,8 +816,9 @@ FILES = [
     ("StableGraphEdgeChangeTests.swift", "StableGraphs edge changes", ids("Edge change"),
      "Edge changes (catalog SG-123 – SG-130): `changeTarget(ofEdgeAt:to:)` and `changeSource(ofEdgeAt:to:)`\n"
      "// (LEMON's `changeTarget` / `changeSource`) keep the position and the place in the unchanged\n"
-     "// endpoint's row, and join the new endpoint's row in position order; the `safe:` spellings return\n"
-     "// false and change nothing."),
+     "// endpoint's row, and join the new endpoint's row in position order; the `checked:` spellings throw\n"
+     "// `ElementNotFound.edge` for a dead position, then `.vertex` for a missing endpoint, and change\n"
+     "// nothing."),
     ("StableGraphMapTests.swift", "StableGraphs maps", ids("Maps"),
      "Maps (catalog SG-131 – SG-134): maps attached to the graph (`addEdgeMap(of:)`, `addVertexMap(of:)`),\n"
      "// values by position or vertex, every removal path clearing the removed element's values, several\n"
@@ -833,7 +848,7 @@ def write(fname, suite, rows, comment):
     imports = ["GraphProtocols", "StableGraphs", "Testing"]
     for module, needle in IMPORTS.items():
         if needle in text_body or (module == "Connectivity" and "stronglyConnectedComponents(" in text_body) \
-                or (module == "Traversal" and ("topologicalSort(" in text_body or "descendants(safe:" in text_body)):
+                or (module == "Traversal" and ("topologicalSort(" in text_body or "descendants(checked:" in text_body)):
             imports.append(module)
     if ".tags(" in text_body or fname == "StableGraphPreconditionTests.swift":
         imports.append("GrafluentTestSupport")

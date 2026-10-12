@@ -1,6 +1,7 @@
-// Queries (catalog SG-041 – SG-049, SG-105 – SG-107): rows and `edges(from:to:)` in insertion order
-// across holes, membership after removals, the O(1) live-or-stale checks `edges.indices.contains`
-// and `vertices.indices.contains`, and the `safe:` lookups, nil for a vertex not in the graph.
+// Queries (catalog SG-041 – SG-049, SG-105 – SG-107, SG-135 – SG-137): rows and `edges(from:to:)` in
+// insertion order across holes, membership after removals, the O(1) live-or-stale checks
+// `edges.indices.contains` and `vertices.indices.contains`, and the `checked:` lookups, which throw
+// `VertexNotFound` for a vertex not in the graph and `EdgeNotFound` for a dead edge position.
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import GraphProtocols
@@ -417,16 +418,16 @@ struct StableGraphQueryTests {
         #expect(graph.edges.indices.map { graph.edgeIndex(of: $0) } == [0])
     }
 
-    @Test("SG-105 safe: lookups on a vertex")
-    func sg105() {
-        // V [0, 1, 2]; E [0→1, 2→0, 0→0] / successors(safe: 0) / predecessors(safe: 0) / outEdges(safe: 0) / inEdges(safe: 0) / outDegree(safe: 0) / inDegree(safe: 0)
+    @Test("SG-105 checked: lookups on a vertex")
+    func sg105() throws {
+        // V [0, 1, 2]; E [0→1, 2→0, 0→0] / successors(checked: 0) / predecessors(checked: 0) / outEdges(checked: 0) / inEdges(checked: 0) / outDegree(checked: 0) / inDegree(checked: 0)
         let graph = StableDirectedGraph<Int>(vertices: [0, 1, 2], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 2, to: 0), DirectedEdge(from: 0, to: 0)])
-        #expect(graph.successors(safe: 0).map { Array($0) } == [1, 0])
-        #expect(graph.predecessors(safe: 0).map { Array($0) } == [2, 0])
-        #expect(graph.outEdges(safe: 0).map { Array($0) } == [0, 2])
-        #expect(graph.inEdges(safe: 0).map { Array($0) } == [1, 2])
-        #expect(graph.outDegree(safe: 0) == 2)
-        #expect(graph.inDegree(safe: 0) == 2)
+        #expect(try Array(graph.successors(checked: 0)) == [1, 0])
+        #expect(try Array(graph.predecessors(checked: 0)) == [2, 0])
+        #expect(try Array(graph.outEdges(checked: 0)) == [0, 2])
+        #expect(try Array(graph.inEdges(checked: 0)) == [1, 2])
+        #expect(try graph.outDegree(checked: 0) == 2)
+        #expect(try graph.inDegree(checked: 0) == 2)
         // Final state.
         #expect(Array(graph.vertices) == [0, 1, 2])
         #expect(Array(graph.vertices.indices) == [0, 1, 2])
@@ -479,17 +480,17 @@ struct StableGraphQueryTests {
         #expect(graph.edges.indices.map { graph.edgeIndex(of: $0) } == [0, 1, 2])
     }
 
-    @Test("SG-106 safe: lookups on a removed vertex or a non-vertex: nil")
-    func sg106() {
-        // V [0, 1]; E [0→1] / remove(1) / successors(safe: 1) / predecessors(safe: 1) / outEdges(safe: 9) / inEdges(safe: 1) / outDegree(safe: 1) / inDegree(safe: 9)
+    @Test("SG-106 checked: lookups on a removed vertex or a non-vertex: throws VertexNotFound")
+    func sg106() throws {
+        // V [0, 1]; E [0→1] / remove(1) / successors(checked: 1) / predecessors(checked: 1) / outEdges(checked: 9) / inEdges(checked: 1) / outDegree(checked: 1) / inDegree(checked: 9)
         var graph = StableDirectedGraph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])
         #expect(graph.remove(1) == 1)
-        #expect(graph.successors(safe: 1) == nil)
-        #expect(graph.predecessors(safe: 1) == nil)
-        #expect(graph.outEdges(safe: 9) == nil)
-        #expect(graph.inEdges(safe: 1) == nil)
-        #expect(graph.outDegree(safe: 1) == nil)
-        #expect(graph.inDegree(safe: 9) == nil)
+        #expect(throws: VertexNotFound.self) { try graph.successors(checked: 1) }
+        #expect(throws: VertexNotFound.self) { try graph.predecessors(checked: 1) }
+        #expect(throws: VertexNotFound.self) { try graph.outEdges(checked: 9) }
+        #expect(throws: VertexNotFound.self) { try graph.inEdges(checked: 1) }
+        #expect(throws: VertexNotFound.self) { try graph.outDegree(checked: 1) }
+        #expect(throws: VertexNotFound.self) { try graph.inDegree(checked: 9) }
         // Final state.
         #expect(Array(graph.vertices) == [0])
         #expect(Array(graph.vertices.indices) == [0])
@@ -514,16 +515,16 @@ struct StableGraphQueryTests {
         #expect(graph.outDegree(of: 0) == 0 && graph.inDegree(of: 0) == 0 && graph.degree(of: 0) == 0)
     }
 
-    @Test("SG-107 descendants(safe:) and ancestors(safe:)")
-    func sg107() {
-        // V [0, 1, 2, 3]; E [0→1, 1→2, 2→0, 2→3] / descendants(safe: 1) / ancestors(safe: 3) / remove(0) / descendants(safe: 1) / descendants(safe: 0) / ancestors(safe: 9)
+    @Test("SG-107 descendants(checked:) and ancestors(checked:)")
+    func sg107() throws {
+        // V [0, 1, 2, 3]; E [0→1, 1→2, 2→0, 2→3] / descendants(checked: 1) / ancestors(checked: 3) / remove(0) / descendants(checked: 1) / descendants(checked: 0) / ancestors(checked: 9)
         var graph = StableDirectedGraph<Int>(vertices: [0, 1, 2, 3], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 0), DirectedEdge(from: 2, to: 3)])
-        #expect(graph.descendants(safe: 1) == Set([0, 2, 3]))
-        #expect(graph.ancestors(safe: 3) == Set([0, 1, 2]))
+        #expect(try graph.descendants(checked: 1) == Set([0, 2, 3]))
+        #expect(try graph.ancestors(checked: 3) == Set([0, 1, 2]))
         #expect(graph.remove(0) == 0)
-        #expect(graph.descendants(safe: 1) == Set([2, 3]))
-        #expect(graph.descendants(safe: 0) == nil)
-        #expect(graph.ancestors(safe: 9) == nil)
+        #expect(try graph.descendants(checked: 1) == Set([2, 3]))
+        #expect(throws: VertexNotFound.self) { try graph.descendants(checked: 0) }
+        #expect(throws: VertexNotFound.self) { try graph.ancestors(checked: 9) }
         // Final state.
         #expect(Array(graph.vertices) == [1, 2, 3])
         #expect(Array(graph.vertices.indices) == [1, 2, 3])
@@ -568,5 +569,172 @@ struct StableGraphQueryTests {
         #expect(Array(graph.edges(from: 2, to: 3)) == [3])
         #expect(graph.edgeCount(from: 2, to: 3) == 1)
         #expect(graph.contains(edge: DirectedEdge(from: 2, to: 3)))
+    }
+
+    @Test("SG-135 degree(checked:) and vertexIndex(checked:): the value, or VertexNotFound")
+    func sg135() throws {
+        // V [0, 1, 2]; E [0→1, 1→1, 2→1] / degree(checked: 1) / degree(checked: 0) / degree(checked: 9) / vertexIndex(checked: 2) / vertexIndex(checked: 9) / remove(edgeAt: 1) / degree(checked: 1) / vertexIndex(checked: 1)
+        var graph = StableDirectedGraph<Int>(vertices: [0, 1, 2], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 1), DirectedEdge(from: 2, to: 1)])
+        #expect(try graph.degree(checked: 1) == 4)
+        #expect(try graph.degree(checked: 0) == 1)
+        #expect(throws: VertexNotFound.self) { try graph.degree(checked: 9) }
+        #expect(try graph.vertexIndex(checked: 2) == 2)
+        #expect(throws: VertexNotFound.self) { try graph.vertexIndex(checked: 9) }
+        #expect(graph.remove(edgeAt: 1) == DirectedEdge(from: 1, to: 1))
+        #expect(try graph.degree(checked: 1) == 2)
+        #expect(try graph.vertexIndex(checked: 1) == 1)
+        // Final state.
+        #expect(Array(graph.vertices) == [0, 1, 2])
+        #expect(Array(graph.vertices.indices) == [0, 1, 2])
+        #expect(graph.vertices.startIndex == 0)
+        #expect(graph.vertices.endIndex == 3)
+        #expect(graph.edges.map { [$0.source, $0.target] } == [[0, 1], [2, 1]])
+        #expect(Array(graph.edges.indices) == [0, 2])
+        #expect(graph.edges.startIndex == 0)
+        #expect(graph.edges.endIndex == 3)
+        #expect(graph.vertexIndexBound == 3)
+        #expect(graph.edgeIndexBound == nil)
+        #expect(graph.vertexCount == 3)
+        #expect(graph.vertices.count == 3)
+        #expect(graph.edgeCount == 2)
+        #expect(graph.edges.count == 2)
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [[0, 1], [2, 1]])
+        #expect(graph.edges.indices.map { graph.edges[$0] } == [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 2, to: 1)])
+        #expect(graph.vertices.firstIndex(of: 0) == 0)
+        #expect(graph.vertices[0] == 0)
+        #expect(Array(graph.successors(of: 0)) == [1])
+        #expect(Array(graph.outEdges(of: 0)) == [0])
+        #expect(Array(graph.predecessors(of: 0)) == [] as [Int])
+        #expect(Array(graph.inEdges(of: 0)) == [] as [Int])
+        #expect(graph.outDegree(of: 0) == 1 && graph.inDegree(of: 0) == 0 && graph.degree(of: 0) == 1)
+        #expect(graph.vertices.firstIndex(of: 1) == 1)
+        #expect(graph.vertices[1] == 1)
+        #expect(Array(graph.successors(of: 1)) == [] as [Int])
+        #expect(Array(graph.outEdges(of: 1)) == [] as [Int])
+        #expect(Array(graph.predecessors(of: 1)) == [0, 2])
+        #expect(Array(graph.inEdges(of: 1)) == [0, 2])
+        #expect(graph.outDegree(of: 1) == 0 && graph.inDegree(of: 1) == 2 && graph.degree(of: 1) == 2)
+        #expect(graph.vertices.firstIndex(of: 2) == 2)
+        #expect(graph.vertices[2] == 2)
+        #expect(Array(graph.successors(of: 2)) == [1])
+        #expect(Array(graph.outEdges(of: 2)) == [2])
+        #expect(Array(graph.predecessors(of: 2)) == [] as [Int])
+        #expect(Array(graph.inEdges(of: 2)) == [] as [Int])
+        #expect(graph.outDegree(of: 2) == 1 && graph.inDegree(of: 2) == 0 && graph.degree(of: 2) == 1)
+        #expect(Array(graph.edges(from: 0, to: 1)) == [0])
+        #expect(graph.edgeCount(from: 0, to: 1) == 1)
+        #expect(graph.contains(edge: DirectedEdge(from: 0, to: 1)))
+        #expect(Array(graph.edges(from: 2, to: 1)) == [2])
+        #expect(graph.edgeCount(from: 2, to: 1) == 1)
+        #expect(graph.contains(edge: DirectedEdge(from: 2, to: 1)))
+        #expect(graph.vertices.map { graph.vertexIndex(of: $0) } == [0, 1, 2])
+        #expect((0 ..< 3).map { graph.vertex(atIndex: $0) } == [0, 1, 2])
+    }
+
+    @Test("SG-136 source(checkedEdgeAt:) and target(checkedEdgeAt:): live, removed, out of range")
+    func sg136() throws {
+        // V [0, 1, 2]; E [0→1, 1→2, 2→0] / source(checkedEdgeAt: 1) / target(checkedEdgeAt: 1) / remove(edgeAt: 1) / source(checkedEdgeAt: 1) / target(checkedEdgeAt: 1) / source(checkedEdgeAt: 3) / target(checkedEdgeAt: -1) / source(checkedEdgeAt: 2) / target(checkedEdgeAt: 0)
+        var graph = StableDirectedGraph<Int>(vertices: [0, 1, 2], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 0)])
+        #expect(try graph.source(checkedEdgeAt: 1) == 1)
+        #expect(try graph.target(checkedEdgeAt: 1) == 2)
+        #expect(graph.remove(edgeAt: 1) == DirectedEdge(from: 1, to: 2))
+        #expect(throws: EdgeNotFound.self) { try graph.source(checkedEdgeAt: 1) }
+        #expect(throws: EdgeNotFound.self) { try graph.target(checkedEdgeAt: 1) }
+        #expect(throws: EdgeNotFound.self) { try graph.source(checkedEdgeAt: 3) }
+        #expect(throws: EdgeNotFound.self) { try graph.target(checkedEdgeAt: -1) }
+        #expect(try graph.source(checkedEdgeAt: 2) == 2)
+        #expect(try graph.target(checkedEdgeAt: 0) == 1)
+        // Final state.
+        #expect(Array(graph.vertices) == [0, 1, 2])
+        #expect(Array(graph.vertices.indices) == [0, 1, 2])
+        #expect(graph.vertices.startIndex == 0)
+        #expect(graph.vertices.endIndex == 3)
+        #expect(graph.edges.map { [$0.source, $0.target] } == [[0, 1], [2, 0]])
+        #expect(Array(graph.edges.indices) == [0, 2])
+        #expect(graph.edges.startIndex == 0)
+        #expect(graph.edges.endIndex == 3)
+        #expect(graph.vertexIndexBound == 3)
+        #expect(graph.edgeIndexBound == nil)
+        #expect(graph.vertexCount == 3)
+        #expect(graph.vertices.count == 3)
+        #expect(graph.edgeCount == 2)
+        #expect(graph.edges.count == 2)
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [[0, 1], [2, 0]])
+        #expect(graph.edges.indices.map { graph.edges[$0] } == [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 2, to: 0)])
+        #expect(graph.vertices.firstIndex(of: 0) == 0)
+        #expect(graph.vertices[0] == 0)
+        #expect(Array(graph.successors(of: 0)) == [1])
+        #expect(Array(graph.outEdges(of: 0)) == [0])
+        #expect(Array(graph.predecessors(of: 0)) == [2])
+        #expect(Array(graph.inEdges(of: 0)) == [2])
+        #expect(graph.outDegree(of: 0) == 1 && graph.inDegree(of: 0) == 1 && graph.degree(of: 0) == 2)
+        #expect(graph.vertices.firstIndex(of: 1) == 1)
+        #expect(graph.vertices[1] == 1)
+        #expect(Array(graph.successors(of: 1)) == [] as [Int])
+        #expect(Array(graph.outEdges(of: 1)) == [] as [Int])
+        #expect(Array(graph.predecessors(of: 1)) == [0])
+        #expect(Array(graph.inEdges(of: 1)) == [0])
+        #expect(graph.outDegree(of: 1) == 0 && graph.inDegree(of: 1) == 1 && graph.degree(of: 1) == 1)
+        #expect(graph.vertices.firstIndex(of: 2) == 2)
+        #expect(graph.vertices[2] == 2)
+        #expect(Array(graph.successors(of: 2)) == [0])
+        #expect(Array(graph.outEdges(of: 2)) == [2])
+        #expect(Array(graph.predecessors(of: 2)) == [] as [Int])
+        #expect(Array(graph.inEdges(of: 2)) == [] as [Int])
+        #expect(graph.outDegree(of: 2) == 1 && graph.inDegree(of: 2) == 0 && graph.degree(of: 2) == 1)
+        #expect(Array(graph.edges(from: 0, to: 1)) == [0])
+        #expect(graph.edgeCount(from: 0, to: 1) == 1)
+        #expect(graph.contains(edge: DirectedEdge(from: 0, to: 1)))
+        #expect(Array(graph.edges(from: 2, to: 0)) == [2])
+        #expect(graph.edgeCount(from: 2, to: 0) == 1)
+        #expect(graph.contains(edge: DirectedEdge(from: 2, to: 0)))
+        #expect(graph.vertices.map { graph.vertexIndex(of: $0) } == [0, 1, 2])
+        #expect((0 ..< 3).map { graph.vertex(atIndex: $0) } == [0, 1, 2])
+    }
+
+    @Test("SG-137 source(checkedEdgeAt:) at a position in a freed page: EdgeNotFound")
+    func sg137() throws {
+        // V [0, 1]; E [0→1] / 2500 × { insert(edge: 0→1); remove(edgeAt: edges.startIndex) } / source(checkedEdgeAt: 5) / target(checkedEdgeAt: 2499) / source(checkedEdgeAt: 2500)
+        var graph = StableDirectedGraph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])
+        for _ in 0 ..< 2500 { graph.insert(edge: DirectedEdge(from: 0, to: 1)); graph.remove(edgeAt: graph.edges.startIndex) }
+        #expect(throws: EdgeNotFound.self) { try graph.source(checkedEdgeAt: 5) }
+        #expect(throws: EdgeNotFound.self) { try graph.target(checkedEdgeAt: 2499) }
+        #expect(try graph.source(checkedEdgeAt: 2500) == 0)
+        // Final state.
+        #expect(Array(graph.vertices) == [0, 1])
+        #expect(Array(graph.vertices.indices) == [0, 1])
+        #expect(graph.vertices.startIndex == 0)
+        #expect(graph.vertices.endIndex == 2)
+        #expect(graph.edges.map { [$0.source, $0.target] } == [[0, 1]])
+        #expect(Array(graph.edges.indices) == [2500])
+        #expect(graph.edges.startIndex == 2500)
+        #expect(graph.edges.endIndex == 2501)
+        #expect(graph.vertexIndexBound == 2)
+        #expect(graph.edgeIndexBound == nil)
+        #expect(graph.vertexCount == 2)
+        #expect(graph.vertices.count == 2)
+        #expect(graph.edgeCount == 1)
+        #expect(graph.edges.count == 1)
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [[0, 1]])
+        #expect(graph.edges.indices.map { graph.edges[$0] } == [DirectedEdge(from: 0, to: 1)])
+        #expect(graph.vertices.firstIndex(of: 0) == 0)
+        #expect(graph.vertices[0] == 0)
+        #expect(Array(graph.successors(of: 0)) == [1])
+        #expect(Array(graph.outEdges(of: 0)) == [2500])
+        #expect(Array(graph.predecessors(of: 0)) == [] as [Int])
+        #expect(Array(graph.inEdges(of: 0)) == [] as [Int])
+        #expect(graph.outDegree(of: 0) == 1 && graph.inDegree(of: 0) == 0 && graph.degree(of: 0) == 1)
+        #expect(graph.vertices.firstIndex(of: 1) == 1)
+        #expect(graph.vertices[1] == 1)
+        #expect(Array(graph.successors(of: 1)) == [] as [Int])
+        #expect(Array(graph.outEdges(of: 1)) == [] as [Int])
+        #expect(Array(graph.predecessors(of: 1)) == [0])
+        #expect(Array(graph.inEdges(of: 1)) == [2500])
+        #expect(graph.outDegree(of: 1) == 0 && graph.inDegree(of: 1) == 1 && graph.degree(of: 1) == 1)
+        #expect(Array(graph.edges(from: 0, to: 1)) == [2500])
+        #expect(graph.edgeCount(from: 0, to: 1) == 1)
+        #expect(graph.contains(edge: DirectedEdge(from: 0, to: 1)))
+        #expect(graph.vertices.map { graph.vertexIndex(of: $0) } == [0, 1])
+        #expect((0 ..< 2).map { graph.vertex(atIndex: $0) } == [0, 1])
     }
 }

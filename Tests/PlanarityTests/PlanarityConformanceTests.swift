@@ -250,7 +250,7 @@ struct PlanarityConformanceTests {
         _ = graph.insert(4)
         #expect((0 ..< 4).map { Array(embedding.clockwiseIncidentEdges(of: $0)) } == before)
         #expect(embedding.faces.map(\.vertices) == facesBefore && embedding.faceCount == 2)
-        #expect(embedding.clockwiseNeighbors(safe: 4) == nil)
+        #expect(throws: VertexNotFound.self) { try embedding.clockwiseNeighbors(checked: 4) }
         #expect(embedding.face(from: 0, alongEdgeAt: 0).length == 4)
         // K4 now: still planar, with four triangles.
         #expect(try #require(graph.planarEmbedding()).faceCount == 4)

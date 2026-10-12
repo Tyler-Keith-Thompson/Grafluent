@@ -1,7 +1,8 @@
 // Construction and mutation (catalog HG-001 – HG-011, HG-035 – HG-042): listed vertices first (a repeat
 // once), then new members by first appearance; members stored once and in vertex-index order;
 // repeated and empty hyperedges kept at their own positions; every initializer that fits, and
-// inserting one at a time, give the same state; insert(safe:) changes nothing for a non-vertex.
+// inserting one at a time, give the same state; insert(checked:) throws and changes nothing for a
+// non-vertex.
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import GraphProtocols
@@ -607,11 +608,11 @@ struct UndirectedIncidenceListConstructionTests {
         #expect(hypergraph.degree(of: "a") == 0 && hypergraph.degree(ofIndex: 0) == 0)
     }
 
-    @Test("HG-039 insert(safe:) with every member present")
-    func hg039() {
-        // U V [a, b]; E [] / insert(safe: [a, b])
+    @Test("HG-039 insert(checked:) with every member present")
+    func hg039() throws {
+        // U V [a, b]; E [] / insert(checked: [a, b])
         var hypergraph = UndirectedIncidenceList<String>(vertices: ["a", "b"] as [String], hyperedges: [] as [[String]])
-        #expect(hypergraph.insert(safe: ["a", "b"] as [String]) == 0)
+        #expect(try hypergraph.insert(checked: ["a", "b"] as [String]) == 0)
         // Final state.
         #expect(Array(hypergraph.vertices) == ["a", "b"])
         #expect(hypergraph.hyperedges.map { Array($0) } == [["a", "b"]])
@@ -630,11 +631,11 @@ struct UndirectedIncidenceListConstructionTests {
         #expect(hypergraph.degree(of: "b") == 1 && hypergraph.degree(ofIndex: 1) == 1)
     }
 
-    @Test("HG-040 insert(safe:) with a missing member: nil, nothing changes")
-    func hg040() {
-        // U V [a, b]; E [] / insert(safe: [a, z]) / vertexCount/hyperedgeCount
+    @Test("HG-040 insert(checked:) with a missing member: throws, nothing changes")
+    func hg040() throws {
+        // U V [a, b]; E [] / insert(checked: [a, z]) / vertexCount/hyperedgeCount
         var hypergraph = UndirectedIncidenceList<String>(vertices: ["a", "b"] as [String], hyperedges: [] as [[String]])
-        #expect(hypergraph.insert(safe: ["a", "z"] as [String]) == nil)
+        #expect(throws: VertexNotFound.self) { try hypergraph.insert(checked: ["a", "z"] as [String]) }
         #expect(hypergraph.vertexCount == 2 && hypergraph.hyperedgeCount == 0)
         // Final state.
         #expect(Array(hypergraph.vertices) == ["a", "b"])

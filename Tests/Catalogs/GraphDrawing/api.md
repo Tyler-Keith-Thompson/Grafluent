@@ -105,7 +105,7 @@ rendering and stay out.
     public var vertices: ContiguousArray<Vertex> { get }
     public var positions: [SIMD2<Double>] { get set }             // index space: positions[i] is vertices[i]'s
     public func position(of vertex: Vertex) -> SIMD2<Double>         // traps for a missing vertex
-    public func position(safe vertex: Vertex) -> SIMD2<Double>?      // Principle 6
+    public func position(checked vertex: Vertex) throws(VertexNotFound) -> SIMD2<Double>  // Principle 6
     public mutating func setPosition(_ position: SIMD2<Double>, of vertex: Vertex)  // traps for a missing vertex
     public var boundingBox: (min: SIMD2<Double>, max: SIMD2<Double>)? { get }  // nil when empty
     public func rescaled(scale: Double = 1, center: SIMD2<Double> = .zero) -> Drawing
@@ -194,7 +194,7 @@ extension DirectedGraph {
 | `bends(ofEdgeAt:)` | OGDF `GraphAttributes::bends(e)`, "bend points" in the layered-drawing literature | igraph 1.0's "control points" (in Graphviz they are spline control points, which these are not). |
 | `reversedEdges` | Sugiyama literature ("reverse the arcs of a feedback arc set"), igraph's docstring | `feedbackArcSet` here would duplicate a `Cycles` concept (see Implementation notes). |
 | `crossingCount` | OGDF `SugiyamaLayout::numberOfCrossings()`, "crossing number" literature | `numberOfCrossings`: Swift prefers `…Count` (`edgeCount`). |
-| `position(of:)`, `position(safe:)`, `setPosition(_:of:)` | `layer(of:)` here, `score(of:)` in `Centrality`; the library's `safe:` nil variants | A vertex subscript (`drawing[v]`, NetworkX `pos[v]`): ambiguous with the collection's `Int` subscript on a `Drawing<Int>`. A labelled `[vertex:]` subscript: a second read spelling. |
+| `position(of:)`, `position(checked:)`, `setPosition(_:of:)` | `layer(of:)` here, `score(of:)` in `Centrality`; the library's `checked:` throwing variants (Rust's `checked_*`) | A vertex subscript (`drawing[v]`, NetworkX `pos[v]`): ambiguous with the collection's `Int` subscript on a `Drawing<Int>`. A labelled `[vertex:]` subscript: a second read spelling. |
 | `rescaled(scale:center:)` | NetworkX `rescale_layout` (and every layout's `scale=`, `center=`) | normalising inside every layout (NetworkX does): layouts return their natural units, so tree and layered coordinates stay exact integers and halves. |
 | `boundingBox` | OGDF `GraphAttributes::boundingBox()`, Graphviz `bb` | |
 | `step()`, `run()`, `iteration`, `isFinished` | README; d3-force `tick()` is the same idea | `tick()`: d3's word, not graph-library usage. |
@@ -209,14 +209,14 @@ No synonym typealiases (no `springLayout`, no `kamadaKawaiLayout`).
 - A `Drawing` lists vertices in a fixed order with one position each; a layout returns its graph's
   `vertices` order. With `Int` vertices `0..<n` in order the lookup is the index (no dictionary,
   as `_TreeLayout`'s `dense` flag); otherwise one `[Vertex: Int]` built at construction.
-- `position(of:)` reads by vertex and traps for a missing one (DR-005, DR-007); `position(safe:)`
-  returns `nil` (DR-008, DR-009); `setPosition(_:of:)` writes and traps for a missing one (DR-006),
+- `position(of:)` reads by vertex and traps for a missing one (DR-005, DR-007); `position(checked:)`
+  throws `VertexNotFound` (DR-008, DR-009); `setPosition(_:of:)` writes and traps for a missing one (DR-006),
   because callers build and edit drawings (initial positions, nudges). **Not a subscript**
   (decided): `Drawing` is a `RandomAccessCollection` indexed by `Int` offset, so a `Drawing<Int>`
   would have two one-argument `Int` subscripts, the collection's and the vertex's, the ambiguity
   that keeps swift-collections' `OrderedDictionary` from being a collection. The method pair
-  matches `layer(of:)` and the library's `safe:` convention (`vertexIndex(safe:)`,
-  `outDegree(safe:)`); `setPosition(_:of:)` keeps one read spelling rather than adding a labelled
+  matches `layer(of:)` and the library's `checked:` convention (`vertexIndex(checked:)`,
+  `outDegree(checked:)`); `setPosition(_:of:)` keeps one read spelling rather than adding a labelled
   `[vertex:]` subscript as a synonym. `positions[i]` is the in-place spelling by offset.
 - Equality compares vertices and positions in order (DR-013: same pairs in another order are not
   equal), so tests compare whole drawings.

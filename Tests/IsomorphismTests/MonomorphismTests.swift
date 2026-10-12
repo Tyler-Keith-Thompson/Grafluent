@@ -1183,7 +1183,7 @@ struct MonomorphismTests {
         let mapping = try #require(pattern.monomorphism(to: target, vertexColor: { patternColor[$0]! }, otherVertexColor: { targetColor[$0]! }))
         #expect(Array(mapping.images) == [1, 2, 0])
         #expect(pattern.vertices.map { mapping.image(of: $0) } == [1, 2, 0])
-        #expect(pattern.vertices.map { mapping.image(safe: $0) } == [1, 2, 0])
+        #expect(pattern.vertices.map { try? mapping.image(checked: $0) } == [1, 2, 0])
         #expect((0 ..< 3).map { target.vertex(atIndex: mapping.imageIndex(ofIndex: $0)) } == (0 ..< 3).map { mapping.image(of: pattern.vertex(atIndex: $0)) })
         #expect(target.vertices.map { mapping.preimage(of: $0) } == [2, 0, 1])
         // The family on the same arguments: every mapping, the yes/no answer and the first mapping.

@@ -1,5 +1,5 @@
 // Reads (catalog HG-012 – HG-024): members, sizes, incident hyperedges in ascending position, degrees,
-// membership of vertices and of member sets, the index conversions, the safe: lookups, neighbors,
+// membership of vertices and of member sets, the index conversions, the checked: lookups, neighbors,
 // and the hash law: index-space reads hash nothing and a vertex-space read hashes once.
 // Generated from cases.md by swiftgen.py; see README.md.
 
@@ -381,12 +381,12 @@ struct UndirectedIncidenceListReadTests {
     }
 
     @Test("HG-021 vertex indices round trip")
-    func hg021() {
-        // U V [a, b, c, d, e, f]; E [{a, b, c}, {c, d}, {a, b, c}, {e}] / vertexIndex(of: d) / vertex(atIndex: 3) / vertexIndex(safe: z)
+    func hg021() throws {
+        // U V [a, b, c, d, e, f]; E [{a, b, c}, {c, d}, {a, b, c}, {e}] / vertexIndex(of: d) / vertex(atIndex: 3) / vertexIndex(checked: z)
         let hypergraph = UndirectedIncidenceList<String>(vertices: ["a", "b", "c", "d", "e", "f"] as [String], hyperedges: [["a", "b", "c"], ["c", "d"], ["a", "b", "c"], ["e"]] as [[String]])
         #expect(hypergraph.vertexIndex(of: "d") == 3)
         #expect(hypergraph.vertex(atIndex: 3) == "d")
-        #expect(hypergraph.vertexIndex(safe: "z") == nil)
+        #expect(throws: VertexNotFound.self) { try hypergraph.vertexIndex(checked: "z") }
         // Final state.
         #expect(Array(hypergraph.vertices) == ["a", "b", "c", "d", "e", "f"])
         #expect(hypergraph.hyperedges.map { Array($0) } == [["a", "b", "c"], ["c", "d"], ["a", "b", "c"], ["e"]])
@@ -505,14 +505,14 @@ struct UndirectedIncidenceListReadTests {
         #expect(r5 == [0, 1, 2])
     }
 
-    @Test("HG-023 safe: spellings return nil for a non-vertex")
-    func hg023() {
-        // U V [a, b, c, d, e, f]; E [{a, b, c}, {c, d}, {a, b, c}, {e}] / incidentHyperedges(safe: z) / degree(safe: z) / incidentHyperedges(safe: c) / degree(safe: c) / hashes()
+    @Test("HG-023 checked: spellings throw for a non-vertex")
+    func hg023() throws {
+        // U V [a, b, c, d, e, f]; E [{a, b, c}, {c, d}, {a, b, c}, {e}] / incidentHyperedges(checked: z) / degree(checked: z) / incidentHyperedges(checked: c) / degree(checked: c) / hashes()
         let hypergraph = UndirectedIncidenceList<String>(vertices: ["a", "b", "c", "d", "e", "f"] as [String], hyperedges: [["a", "b", "c"], ["c", "d"], ["a", "b", "c"], ["e"]] as [[String]])
-        #expect(hypergraph.incidentHyperedges(safe: "z").map { Array($0) } == nil)
-        #expect(hypergraph.degree(safe: "z") == nil)
-        #expect(hypergraph.incidentHyperedges(safe: "c").map { Array($0) } == [0, 1, 2])
-        #expect(hypergraph.degree(safe: "c") == 3)
+        #expect(throws: VertexNotFound.self) { try hypergraph.incidentHyperedges(checked: "z") }
+        #expect(throws: VertexNotFound.self) { try hypergraph.degree(checked: "z") }
+        #expect(try Array(hypergraph.incidentHyperedges(checked: "c")) == [0, 1, 2])
+        #expect(try hypergraph.degree(checked: "c") == 3)
         // hashes() is 4 here: see the counted copy below.
         // Final state.
         #expect(Array(hypergraph.vertices) == ["a", "b", "c", "d", "e", "f"])
@@ -573,13 +573,11 @@ struct UndirectedIncidenceListReadTests {
         let counted = UndirectedIncidenceList<Counted>(vertices: (["a", "b", "c", "d", "e", "f"] + pads).map(label), hyperedges: [["a", "b", "c"], ["c", "d"], ["a", "b", "c"], ["e"]].map { $0.map(label) })
         tally.hashes = 0
         tally.comparisons = 0
-        let r1 = counted.incidentHyperedges(safe: label("z")).map { Array($0) }
-        let r2 = counted.degree(safe: label("z"))
-        let r3 = counted.incidentHyperedges(safe: label("c")).map { Array($0) }
-        let r4 = counted.degree(safe: label("c"))
+        #expect(throws: VertexNotFound.self) { try counted.incidentHyperedges(checked: label("z")) }
+        #expect(throws: VertexNotFound.self) { try counted.degree(checked: label("z")) }
+        let r3 = try Array(counted.incidentHyperedges(checked: label("c")))
+        let r4 = try counted.degree(checked: label("c"))
         #expect(tally.hashes == 4)
-        #expect(r1 == nil)
-        #expect(r2 == nil)
         #expect(r3 == [0, 1, 2])
         #expect(r4 == 3)
     }

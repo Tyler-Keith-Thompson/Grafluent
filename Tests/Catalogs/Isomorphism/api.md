@@ -104,9 +104,9 @@ extension DirectedGraph { /* the same members, Other: DirectedGraph */ }
 
 @frozen public struct Isomorphism<Pattern, Target> {   // members where both are Graph, or both DirectedGraph
     public func image(of vertex: Pattern.Vertex) -> Target.Vertex          // traps on a non-vertex
-    public func image(safe vertex: Pattern.Vertex) -> Target.Vertex?       // Principle 6
+    public func image(checked vertex: Pattern.Vertex) throws(VertexNotFound) -> Target.Vertex     // Principle 6
     public func preimage(of vertex: Target.Vertex) -> Pattern.Vertex?      // nil outside the image; traps on a non-vertex
-    public func preimage(safe vertex: Target.Vertex) -> Pattern.Vertex?    // nil outside the image or off the target
+    public func preimage(checked vertex: Target.Vertex) throws(VertexNotFound) -> Pattern.Vertex?  // nil outside the image; throws off the target
     public var inverse: Isomorphism<Target, Pattern>                      // bijections only (traps otherwise); O(n)
     public func imageIndex(ofIndex index: Int) -> Int                      // index space, O(1)
     public var images: some RandomAccessCollection<Target.Vertex>          // in pattern `vertices` order
@@ -188,7 +188,8 @@ none (disagreements).
 - A mapping is written as `images` in the pattern's `vertices` order (IS-040: the images are
   target vertices, not indices). `preimage(of:)` is `nil` for a target vertex outside the image of
   a subgraph mapping (IS-180) and traps for a vertex not in the target (IS-181). `image(of:)` traps
-  for a non-vertex (IS-178); `image(safe:)` returns `nil` instead.
+  for a non-vertex (IS-178); `image(checked:)` throws `VertexNotFound` instead, and
+  `preimage(checked:)` throws it for a vertex not in the target.
 - `Isomorphism` holds the two graphs (as `Coloring` holds its graph) and the image indices as one
   `[Int]`. `Equatable`/`Hashable` compare the images, so tests compare whole sequences as sets.
 - `Isomorphisms` is a lazy `Sequence`: the iterator owns the search state (the partial mapping,

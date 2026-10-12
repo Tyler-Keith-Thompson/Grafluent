@@ -204,7 +204,7 @@ def accessor_lines(g, h, f, var, ind):
     pre = {x: g.vertices[u] for u, x in enumerate(f)}
     out = [ind + "#expect(Array(%s.images) == %s)" % (var, lit(images)),
            ind + "#expect(pattern.vertices.map { %s.image(of: $0) } == %s)" % (var, lit(images)),
-           ind + "#expect(pattern.vertices.map { %s.image(safe: $0) } == %s)" % (var, lit(images)),
+           ind + "#expect(pattern.vertices.map { try? %s.image(checked: $0) } == %s)" % (var, lit(images)),
            ind + "#expect((0 ..< %d).map { target.vertex(atIndex: %s.imageIndex(ofIndex: $0)) } == (0 ..< %d).map { %s.image(of: pattern.vertex(atIndex: $0)) })" % (g.n, var, g.n, var),
            ind + "#expect(target.vertices.map { %s.preimage(of: $0) } == [%s])" % (var, ", ".join(s(pre[x]) if x in pre else "nil" for x in range(h.n)))]
     return out
@@ -379,7 +379,7 @@ def accessor_test(n):
         r = h.vertices[f[g.vertices.index(v)]]
         assert cell(n) == str(r)
         lines.append(ind + "#expect(mapping.image(of: %s) == %s)" % (s(v), s(r)))
-        lines.append(ind + "#expect(mapping.image(safe: %s) == %s)" % (s(v), s(r)))
+        lines.append(ind + "#expect(try mapping.image(checked: %s) == %s)" % (s(v), s(r)))
     else:
         x = h.vertices.index(v)
         r = g.vertices[f.index(x)] if x in f else None
@@ -436,7 +436,7 @@ def trap_test(n):
     lines.append("            return")
     lines.append("        }")
     if which == "image":
-        lines.append("        #expect(mapping.image(safe: %s) == nil)" % s(v))
+        lines.append("        #expect(throws: VertexNotFound.self) { try mapping.image(checked: %s) }" % s(v))
     lines += accessor_lines(g, h, f, "mapping", "        ")
     lines.append("    }")
     return lines

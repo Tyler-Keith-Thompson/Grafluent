@@ -412,11 +412,11 @@ struct IncidenceListConstructionTests {
         #expect(hypergraph.degree(of: "c") == 1)
     }
 
-    @Test("DH-019 insert(safe:targets:) with every vertex present")
-    func dh019() {
-        // D V [a, b]; E [] / insert(safe: [a], targets: [b])
+    @Test("DH-019 insert(checked:targets:) with every vertex present")
+    func dh019() throws {
+        // D V [a, b]; E [] / insert(checked: [a], targets: [b])
         var hypergraph = IncidenceList<String>(vertices: ["a", "b"] as [String], hyperedges: [] as [(sources: [String], targets: [String])])
-        #expect(hypergraph.insert(safe: ["a"] as [String], targets: ["b"] as [String]) == 0)
+        #expect(try hypergraph.insert(checked: ["a"] as [String], targets: ["b"] as [String]) == 0)
         // Final state.
         #expect(Array(hypergraph.vertices) == ["a", "b"])
         #expect(hypergraph.hyperedges.map { [Array($0.sources), Array($0.targets)] } == [[["a"], ["b"]]])
@@ -440,11 +440,11 @@ struct IncidenceListConstructionTests {
         #expect(hypergraph.degree(of: "b") == 1)
     }
 
-    @Test("DH-020 insert(safe:targets:) with a missing vertex: nil, nothing changes")
-    func dh020() {
-        // D V [a, b]; E [] / insert(safe: [a], targets: [z]) / vertexCount/hyperedgeCount
+    @Test("DH-020 insert(checked:targets:) with a missing vertex: throws, nothing changes")
+    func dh020() throws {
+        // D V [a, b]; E [] / insert(checked: [a], targets: [z]) / vertexCount/hyperedgeCount
         var hypergraph = IncidenceList<String>(vertices: ["a", "b"] as [String], hyperedges: [] as [(sources: [String], targets: [String])])
-        #expect(hypergraph.insert(safe: ["a"] as [String], targets: ["z"] as [String]) == nil)
+        #expect(throws: VertexNotFound.self) { try hypergraph.insert(checked: ["a"] as [String], targets: ["z"] as [String]) }
         #expect(hypergraph.vertexCount == 2 && hypergraph.hyperedgeCount == 0)
         // Final state.
         #expect(Array(hypergraph.vertices) == ["a", "b"])

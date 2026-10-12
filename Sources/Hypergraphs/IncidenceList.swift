@@ -204,21 +204,22 @@ extension IncidenceList {
     }
 
     /// Appends the hyperedge `sources` → `targets` if every one is already a vertex; otherwise
-    /// changes nothing.
+    /// throws and changes nothing.
     ///
-    /// - Returns: The new hyperedge's position, or `nil` when one is not a vertex.
+    /// - Returns: The new hyperedge's position, the old `hyperedgeCount`.
+    /// - Throws: `VertexNotFound` when one is not a vertex.
     /// - Complexity: O(k log k) expected, one hash per vertex listed.
     @inlinable
     @discardableResult
-    public mutating func insert(safe sources: some Sequence<Vertex>, targets: some Sequence<Vertex>) -> Int? {
+    public mutating func insert(checked sources: some Sequence<Vertex>, targets: some Sequence<Vertex>) throws(VertexNotFound) -> Int {
         var sourceRow: [Int] = []
         for v in sources {
-            guard let index = _vertices.firstIndex(of: v) else { return nil }
+            guard let index = _vertices.firstIndex(of: v) else { throw VertexNotFound() }
             sourceRow.append(index)
         }
         var targetRow: [Int] = []
         for v in targets {
-            guard let index = _vertices.firstIndex(of: v) else { return nil }
+            guard let index = _vertices.firstIndex(of: v) else { throw VertexNotFound() }
             targetRow.append(index)
         }
         _sortUnique(&sourceRow)
@@ -372,17 +373,21 @@ extension IncidenceList {
         _targets.hyperedgeRow(index)
     }
 
-    /// `outHyperedges(of:)`, or `nil` when `vertex` is not a vertex. One hash.
+    /// `outHyperedges(of:)`, throwing instead of trapping when `vertex` is not a vertex. One hash.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
     @inlinable
-    public func outHyperedges(safe vertex: Vertex) -> ArraySlice<Int>? {
-        guard let index = _vertices.firstIndex(of: vertex) else { return nil }
+    public func outHyperedges(checked vertex: Vertex) throws(VertexNotFound) -> ArraySlice<Int> {
+        guard let index = _vertices.firstIndex(of: vertex) else { throw VertexNotFound() }
         return outHyperedges(ofIndex: index)
     }
 
-    /// `inHyperedges(of:)`, or `nil` when `vertex` is not a vertex. One hash.
+    /// `inHyperedges(of:)`, throwing instead of trapping when `vertex` is not a vertex. One hash.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
     @inlinable
-    public func inHyperedges(safe vertex: Vertex) -> ArraySlice<Int>? {
-        guard let index = _vertices.firstIndex(of: vertex) else { return nil }
+    public func inHyperedges(checked vertex: Vertex) throws(VertexNotFound) -> ArraySlice<Int> {
+        guard let index = _vertices.firstIndex(of: vertex) else { throw VertexNotFound() }
         return inHyperedges(ofIndex: index)
     }
 
@@ -402,18 +407,31 @@ extension IncidenceList {
         return _sources.degree(index) &+ _targets.degree(index)
     }
 
-    /// `outDegree(of:)`, or `nil` when `vertex` is not a vertex. One hash.
+    /// `outDegree(of:)`, throwing instead of trapping when `vertex` is not a vertex. One hash.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
     @inlinable
-    public func outDegree(safe vertex: Vertex) -> Int? {
-        guard let index = _vertices.firstIndex(of: vertex) else { return nil }
+    public func outDegree(checked vertex: Vertex) throws(VertexNotFound) -> Int {
+        guard let index = _vertices.firstIndex(of: vertex) else { throw VertexNotFound() }
         return _sources.degree(index)
     }
 
-    /// `inDegree(of:)`, or `nil` when `vertex` is not a vertex. One hash.
+    /// `inDegree(of:)`, throwing instead of trapping when `vertex` is not a vertex. One hash.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
     @inlinable
-    public func inDegree(safe vertex: Vertex) -> Int? {
-        guard let index = _vertices.firstIndex(of: vertex) else { return nil }
+    public func inDegree(checked vertex: Vertex) throws(VertexNotFound) -> Int {
+        guard let index = _vertices.firstIndex(of: vertex) else { throw VertexNotFound() }
         return _targets.degree(index)
+    }
+
+    /// `degree(of:)`, throwing instead of trapping when `vertex` is not a vertex. One hash.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func degree(checked vertex: Vertex) throws(VertexNotFound) -> Int {
+        guard let index = _vertices.firstIndex(of: vertex) else { throw VertexNotFound() }
+        return _sources.degree(index) &+ _targets.degree(index)
     }
 
     /// The out-degree of the vertex at `index`. O(1).
@@ -472,9 +490,14 @@ extension IncidenceList {
     @inlinable
     public func vertexIndex(of vertex: Vertex) -> Int { _index(of: vertex) }
 
-    /// The index of `vertex`, or `nil` when it is not a vertex. One hash.
+    /// The index of `vertex`, throwing instead of trapping when it is not a vertex. One hash.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
     @inlinable
-    public func vertexIndex(safe vertex: Vertex) -> Int? { _vertices.firstIndex(of: vertex) }
+    public func vertexIndex(checked vertex: Vertex) throws(VertexNotFound) -> Int {
+        guard let index = _vertices.firstIndex(of: vertex) else { throw VertexNotFound() }
+        return index
+    }
 
     /// The vertex at `index`. O(1).
     ///

@@ -2,11 +2,14 @@ import GraphProtocols
 import Walks
 
 extension DirectedGraph {
-    /// `descendants(of: vertex)`, or `nil` when `vertex` is not a vertex: the `safe:` spelling
-    /// (README Principle 6), for a vertex that may not belong to the graph.
+    /// `descendants(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex: the
+    /// `checked:` spelling (README Principle 6), for a vertex that may not belong to the graph.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
     @inlinable
-    public func descendants(safe vertex: Vertex) -> Set<Vertex>? {
-        contains(vertex) ? descendants(of: vertex) : nil
+    public func descendants(checked vertex: Vertex) throws(VertexNotFound) -> Set<Vertex> {
+        guard contains(vertex) else { throw VertexNotFound() }
+        return descendants(of: vertex)
     }
 
     /// Every vertex reachable from `vertex` by at least one edge, `vertex` itself excluded even on a
@@ -64,11 +67,14 @@ extension DirectedGraph {
 }
 
 extension BidirectionalDirectedGraph {
-    /// `ancestors(of: vertex)`, or `nil` when `vertex` is not a vertex: the `safe:` spelling
-    /// (README Principle 6).
+    /// `ancestors(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex: the
+    /// `checked:` spelling (README Principle 6).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
     @inlinable
-    public func ancestors(safe vertex: Vertex) -> Set<Vertex>? {
-        contains(vertex) ? ancestors(of: vertex) : nil
+    public func ancestors(checked vertex: Vertex) throws(VertexNotFound) -> Set<Vertex> {
+        guard contains(vertex) else { throw VertexNotFound() }
+        return ancestors(of: vertex)
     }
 
     /// Every vertex from which a path leads to `vertex`, `vertex` itself excluded (NetworkX's

@@ -1,5 +1,5 @@
 // Drawing (catalog DR-001 – DR-021): a position per vertex in the order given, lookup by vertex
-// (`position(of:)`, `position(safe:)`, `setPosition(_:of:)`), (vertex, position) elements, equality
+// (`position(of:)`, `position(checked:)`, `setPosition(_:of:)`), (vertex, position) elements, equality
 // in order, the bounding box, and `rescaled(scale:center:)` (NetworkX's rescale_layout, then a
 // translation). Exact.
 // Generated from cases.md by swiftgen.py; see README.md.
@@ -66,24 +66,25 @@ struct DrawingTests {
         #expect(written == SIMD2(7.0, -1.0))
     }
 
-    @Test("DR-008 position(safe:) on a missing vertex")
+    @Test("DR-008 position(checked:) on a missing vertex")
     func dr008() {
-        // Drawing(vertices: [5, 3], positions: [(0, 0), (2, 1)]); position(safe: 4) → nil
+        // Drawing(vertices: [5, 3], positions: [(0, 0), (2, 1)]); position(checked: 4) → throws VertexNotFound
         let drawing = Drawing(vertices: [5, 3], positions: [SIMD2(0.0, 0.0), SIMD2(2.0, 1.0)])
-        #expect(drawing.position(safe: 4) == nil)
-        #expect(drawing.position(safe: 0) == nil && drawing.position(safe: 1) == nil)
+        #expect(throws: VertexNotFound.self) { try drawing.position(checked: 4) }
+        #expect(throws: VertexNotFound.self) { try drawing.position(checked: 0) }
+        #expect(throws: VertexNotFound.self) { try drawing.position(checked: 1) }
     }
 
-    @Test("DR-009 position(safe:) on a vertex")
-    func dr009() {
-        // Drawing(vertices: [5, 3], positions: [(0, 0), (2, 1)]); position(safe: 5) → (0.0, 0.0)
+    @Test("DR-009 position(checked:) on a vertex")
+    func dr009() throws {
+        // Drawing(vertices: [5, 3], positions: [(0, 0), (2, 1)]); position(checked: 5) → (0.0, 0.0)
         let drawing = Drawing(vertices: [5, 3], positions: [SIMD2(0.0, 0.0), SIMD2(2.0, 1.0)])
-        #expect(drawing.position(safe: 5) == SIMD2(0.0, 0.0))
-        #expect(drawing.position(safe: 3) == SIMD2(2.0, 1.0))
+        #expect(try drawing.position(checked: 5) == SIMD2(0.0, 0.0))
+        #expect(try drawing.position(checked: 3) == SIMD2(2.0, 1.0))
     }
 
     @Test("DR-012 elements are (vertex, position) pairs in order")
-    func dr012() {
+    func dr012() throws {
         // Drawing(vertices: [5, 3], positions: [(0, 0), (2, 1)]); Array(self) → [(5, (0.0, 0.0)), (3, (2.0, 1.0))]
         let drawing = Drawing(vertices: [5, 3], positions: [SIMD2(0.0, 0.0), SIMD2(2.0, 1.0)])
         let elements = Array(drawing)
@@ -92,18 +93,18 @@ struct DrawingTests {
         var visited: [Int] = []
         for (vertex, position) in drawing {
             visited.append(vertex)
-            #expect(drawing.position(safe: vertex) == position)
+            #expect(try drawing.position(checked: vertex) == position)
         }
         #expect(visited == [5, 3])
     }
 
     @Test("DR-013 equal when vertices and positions are equal in order")
-    func dr013() {
+    func dr013() throws {
         // Drawing(vertices: [5, 3], positions: [(0, 0), (2, 1)])` vs `Drawing(vertices: [3, 5], positions: [(2, 1), (0, 0)]); == → false
         let drawing = Drawing(vertices: [5, 3], positions: [SIMD2(0.0, 0.0), SIMD2(2.0, 1.0)])
         let reordered = Drawing(vertices: [3, 5], positions: [SIMD2(2.0, 1.0), SIMD2(0.0, 0.0)])
         #expect(drawing != reordered)
-        #expect(drawing.position(safe: 3) == reordered.position(safe: 3) && drawing.position(safe: 5) == reordered.position(safe: 5))
+        #expect(try drawing.position(checked: 3) == reordered.position(checked: 3) && drawing.position(checked: 5) == reordered.position(checked: 5))
         let same = Drawing(vertices: [5, 3], positions: [SIMD2(0.0, 0.0), SIMD2(2.0, 1.0)])
         #expect(drawing == same && drawing.hashValue == same.hashValue)
     }

@@ -232,6 +232,21 @@ struct ReachabilityTests {
         #expect(graph.descendants(of: "Z") == [])
     }
 
+    @Test("TR-183 descendants(checked:) and ancestors(checked:) throw VertexNotFound for a vertex not in the graph")
+    func checked() throws {
+        let edges = [(1, 2), (1, 3), (4, 2), (4, 3), (4, 5), (2, 6), (5, 6)].map { DirectedEdge(from: $0.0, to: $0.1) }
+        let list = AdjacencyList(edges: edges)
+        #expect(try list.descendants(checked: 4) == [2, 3, 5, 6])
+        #expect(try list.ancestors(checked: 6) == [1, 2, 4, 5])
+        #expect(throws: VertexNotFound.self) { try list.descendants(checked: 9) }
+        #expect(throws: VertexNotFound.self) { try list.ancestors(checked: 9) }
+        #expect(list.vertexCount == 6)
+        let csr = CompressedSparseRow(vertexCount: 7, edges: edges)
+        #expect(try csr.descendants(checked: 1) == [2, 3, 6])
+        #expect(throws: VertexNotFound.self) { try csr.descendants(checked: 7) }
+        #expect(throws: VertexNotFound.self) { try csr.descendants(checked: -1) }
+    }
+
     @Test("TR-114 hasPath agrees with descendants, and every vertex reaches itself", .tags(.fixture), arguments: DirectedFixture<Int>.zeroBased)
     func hasPathAgrees(_ fixture: DirectedFixture<Int>) {
         let graph = CompressedSparseRow(vertexCount: fixture.vertexCount, edges: fixture.edges)

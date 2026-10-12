@@ -1,4 +1,4 @@
-    @Test("Every vertex-keyed accessor traps on a non-vertex; the safe: spellings answer nil")
+    @Test("Every vertex-keyed accessor traps on a non-vertex; the checked: spellings throw")
     func nonVertices() async throws {
         await #expect(processExitsWith: .failure) {
             let graph = Pseudograph<Int>(vertices: 0 ..< 4, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2), UndirectedEdge(2, 0)])
@@ -12,14 +12,16 @@
             let graph = Pseudograph<String>(edges: [UndirectedEdge("a", "b")])
             _ = graph.planarEmbedding()!.clockwiseNeighbors(of: "z")
         }
-        // Without the calls: a vertex answers, and the safe: spellings answer nil for a non-vertex.
+        // Without the calls: a vertex answers, and the checked: spellings throw for a non-vertex.
         let graph = Pseudograph<Int>(vertices: 0 ..< 4, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2), UndirectedEdge(2, 0)])
         let embedding = try #require(graph.planarEmbedding())
-        #expect(embedding.clockwiseIncidentEdges(safe: 9) == nil && embedding.clockwiseNeighbors(safe: 9) == nil)
-        #expect(Array(embedding.clockwiseIncidentEdges(of: 3)).isEmpty && embedding.clockwiseIncidentEdges(safe: 3).map { Array($0) } == [])
+        #expect(throws: VertexNotFound.self) { try embedding.clockwiseIncidentEdges(checked: 9) }
+        #expect(throws: VertexNotFound.self) { try embedding.clockwiseNeighbors(checked: 9) }
+        #expect(try Array(embedding.clockwiseIncidentEdges(of: 3)).isEmpty && Array(embedding.clockwiseIncidentEdges(checked: 3)).isEmpty)
         #expect(embedding.face(from: 0, alongEdgeAt: 0).vertices.count == 4)
         let named = Pseudograph<String>(edges: [UndirectedEdge("a", "b")])
-        #expect(try #require(named.planarEmbedding()).clockwiseNeighbors(safe: "z") == nil)
+        let namedEmbedding = try #require(named.planarEmbedding())
+        #expect(throws: VertexNotFound.self) { try namedEmbedding.clockwiseNeighbors(checked: "z") }
     }
 
     @Test("clockwiseNeighborIndices(ofIndex:) traps outside 0..<vertexCount")

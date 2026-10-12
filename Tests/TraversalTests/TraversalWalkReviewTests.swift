@@ -56,6 +56,22 @@ struct TraversalWalkReviewTests {
         #expect(plain.bidirectionalShortestPath(from: 2, to: 2)?.vertices == [2])
     }
 
+    @Test("WK-1405 bidirectionalShortestPath with several forward steps over parallel edges lists its edges source first")
+    func bidirectionalWithForwardSteps() {
+        // 0→1→2→3→4 with the first two steps doubled, and three dead ends 5→4, 6→4, 7→4 so the
+        // backward frontier is wider: the forward search then expands from 0 and meets the
+        // backward one at 3, so the steps 0→1→2→3 are all found forward, over out-edges.
+        let edges = [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 3), DirectedEdge(from: 3, to: 4),
+                     DirectedEdge(from: 5, to: 4), DirectedEdge(from: 6, to: 4), DirectedEdge(from: 7, to: 4)]
+        let plain = PlainBidirectionalGraph(vertices: Array(0 ... 7), edges: edges)
+        let indexed = ReferenceDirectedMultigraph(vertices: 0 ... 7, edges: edges)
+        for (path, name) in [(plain.bidirectionalShortestPath(from: 0, to: 4), "plain"), (indexed.bidirectionalShortestPath(from: 0, to: 4), "indexed")] {
+            #expect(path?.vertices == [0, 1, 2, 3, 4], "\(name)")
+            #expect(path?.length == 4, "\(name)")
+            #expect(path.map { Path(vertices: $0.vertices, edges: $0.edges, in: plain) != nil } == true, "\(name)")
+        }
+    }
+
     @Test("WK-1218 findCycle on a multigraph with parallel edges and vertex indices names edges of the graph", .tags(.randomized), arguments: 0 ..< 6)
     func findCycleOnIndexedMultigraph(seed: Int) {
         var rng = SeededRandomNumberGenerator(seed: UInt(1218 + seed))

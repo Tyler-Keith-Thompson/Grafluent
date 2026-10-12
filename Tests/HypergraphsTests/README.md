@@ -12,7 +12,7 @@ question decided as recommended:
 - the representations are named after their storage;
 - `size(ofHyperedgeAt:)` is undirected only;
 - there is no `Hyperedge` value;
-- the safe insert is spelled `insert(safe:targets:)`;
+- the checked insert is spelled `insert(checked:targets:)`;
 - s-components are over hyperedges;
 - BF-connection and removal are deferred.
 
@@ -26,13 +26,14 @@ protocol Hypergraph, protocol DirectedHypergraph                  // GraphProtoc
 struct UndirectedIncidenceList<Vertex>: Hypergraph, Equatable, Hashable, Codable, Sendable,
         CustomStringConvertible, CustomDebugStringConvertible
     init(), init(vertices:), init(hyperedges:), init(vertices:hyperedges:), init(_ hypergraph:)
-    insert(_:), insert(hyperedge:), insert(safe:), removeAll(keepingCapacity:), reserveCapacity(…)
-    members / memberIndices / size(ofHyperedgeAt:), incidentHyperedges(of: / ofIndex: / safe:),
-    degree(of: / ofIndex: / safe:), contains(_:), contains(hyperedge:), vertexIndex(of: / safe:), …
+    insert(_:), insert(hyperedge:), insert(checked:), removeAll(keepingCapacity:), reserveCapacity(…)
+    members / memberIndices / size(ofHyperedgeAt:), incidentHyperedges(of: / ofIndex: / checked:),
+    degree(of: / ofIndex: / checked:), contains(_:), contains(hyperedge:), vertexIndex(of: / checked:), …
 struct IncidenceList<Vertex>: DirectedHypergraph, …               // the same conformances
     init(…hyperedges: [(sources:, targets:)]), init(_ hypergraph:), init(_ graph: some DirectedGraph)
-    insert(sources:targets:), insert(safe:targets:), sources / targets / sourceIndices / targetIndices,
-    outHyperedges / inHyperedges(of: / ofIndex: / safe:), outDegree, inDegree, degree, reversed
+    insert(sources:targets:), insert(checked:targets:), sources / targets / sourceIndices / targetIndices,
+    outHyperedges / inHyperedges(of: / ofIndex: / checked:), outDegree / inDegree / degree(of: / checked:),
+    vertexIndex(of: / checked:), reversed
 extension Hypergraph: neighbors(of:), rank, isUniform(size:), degreeHistogram(), hyperedgeSizeHistogram(),
     dual(), incidenceGraph, cliqueExpansion(), lineGraph(s:), connectedComponents(), isConnected,
     sConnectedComponents(s:)
@@ -50,8 +51,8 @@ extension DirectedHypergraph: dual(), incidenceGraph, weaklyConnectedComponents(
 | Members | Stored once, in vertex-index order; each side separately when directed | HG-005, HG-006, DH-003, DH-004 |
 | What a hyperedge may be | Empty, repeated, and (directed) with an empty side or a vertex on both sides | HG-007, HG-008, DH-005 – DH-007 |
 | Rows | Incident, out- and in-hyperedges ascend by position; directed degree is in + out | HG-014, DH-008, DH-009 |
-| Non-vertices | Vertex-space members trap; `safe:` spellings answer nil; `contains` answers false | HG-021 – HG-027, DH-012 – DH-017 |
-| Hash law | Index-space reads and whole-hypergraph algorithms hash no vertex; a vertex-space read hashes once | HG-022, HG-023, DH-011, DH-012 |
+| Non-vertices | Vertex-space members trap; `checked:` spellings throw `VertexNotFound` and change nothing; `contains` answers false | HG-021 – HG-027, DH-012 – DH-017, DH-057 |
+| Hash law | Index-space reads and whole-hypergraph algorithms hash no vertex; a vertex-space read hashes once | HG-022, HG-023, DH-011, DH-012, DH-057 |
 | Views | Vertex indices `0..<n`, hyperedge `p` at `n + p`; edge q is incidence q, directed source incidences first | HG-059 – HG-061, DH-025, DH-026 |
 | Expansions | Every vertex (or every position, for the line graph), edges ascending by index pair, no self-loops | HG-062 – HG-068, DH-041, DH-042 |
 | Components | By least vertex index, each ascending; `isConnected` false for no vertices; s-components keep singletons | HG-069 – HG-077, DH-027 – DH-030 |
@@ -117,7 +118,7 @@ checked.
   - a hyperedge of 40 members past the builder's insertion-sort limit, unsorted and repeated;
   - copies of conformers without vertex indices;
   - re-inserting a vertex adds no row; `hyperedgeIndex(of:)` traps out of range;
-  - the in-side `safe:` reads, and `contains(sources:targets:)` on both sides;
+  - the in-side `checked:` reads, and `contains(sources:targets:)` on both sides;
   - near-miss equality (same sizes, other members; sides split differently) and hashing;
   - hostile payloads: a negative index, a repeated vertex;
   - the views' membership, opposite ends and trapping reads, and edge subscripts, components and
@@ -157,7 +158,7 @@ through Bazel, with one bug planted at a time. It caught every one:
 | Planted bug | Caught by |
 |---|---|
 | Members kept in first-appearance order, not vertex-index order | HG-003 and 17 more rows, properties, Codable |
-| `insert(safe:)` dropping a missing member and inserting the rest | HG-040, properties |
+| `insert(checked:)` dropping a missing member and inserting the rest | HG-040, properties |
 | `contains(hyperedge:)` of the empty set always false | HG-008, HG-019 and every state check |
 | `incidentHyperedges(of:)` looking the vertex up twice | hash law, HG-022 |
 | `incidentHyperedges(ofIndex:)` read through a vertex lookup | hash law, HG-022, stress |

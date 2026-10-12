@@ -1,3 +1,5 @@
+import GraphProtocols
+
 /// A position in the plane for each vertex, in a fixed vertex order: what every layout in this
 /// module returns, and what a caller passes as a starting drawing.
 ///
@@ -8,7 +10,7 @@
 /// drawing to a common frame.
 ///
 /// The drawing is a random-access collection of `(vertex, position)` pairs in order, indexed by
-/// offset. Look a vertex up with `position(of:)` (traps when absent) or `position(safe:)` (`nil`),
+/// offset. Look a vertex up with `position(of:)` (traps when absent) or `position(checked:)` (throws),
 /// and move it with `setPosition(_:of:)`; `positions` is the whole column, for loops in index
 /// space. Lookup is the offset itself when the vertices are the `Int`s `0..<n` in order, and one
 /// hash otherwise.
@@ -115,10 +117,13 @@ public struct Drawing<Vertex: Hashable> {
         return _positions[i]
     }
 
-    /// The position of `vertex`, or `nil` when it is not in the drawing.
+    /// The position of `vertex`, throwing instead of trapping when it is not in the drawing.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not in the drawing.
     @inlinable
-    public func position(safe vertex: Vertex) -> SIMD2<Double>? {
-        _offset(of: vertex).map { _positions[$0] }
+    public func position(checked vertex: Vertex) throws(VertexNotFound) -> SIMD2<Double> {
+        guard let i = _offset(of: vertex) else { throw VertexNotFound() }
+        return _positions[i]
     }
 
     /// Moves `vertex` to `position`.

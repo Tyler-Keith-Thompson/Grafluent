@@ -51,8 +51,8 @@ the phase 2 entry points exist.
 | DR-005 | Drawing | position(of:) reads by vertex | `Drawing(vertices: [5, 3], positions: [(0, 0), (2, 1)])` | `position(of: 3)` | (2.0, 1.0) |
 | DR-006 | Drawing | setPosition(_:of:) writes by vertex | `Drawing(vertices: [5, 3], positions: [(0, 0), (2, 1)])` | `setPosition((7, -1), of: 5); positions` | [(7.0, -1.0), (2.0, 1.0)] |
 | DR-007 | Drawing | position(of:) on a missing vertex | `Drawing(vertices: [5, 3], positions: [(0, 0), (2, 1)])` | `position(of: 4)` | **trap** |
-| DR-008 | Drawing | position(safe:) on a missing vertex | `Drawing(vertices: [5, 3], positions: [(0, 0), (2, 1)])` | `position(safe: 4)` | nil |
-| DR-009 | Drawing | position(safe:) on a vertex | `Drawing(vertices: [5, 3], positions: [(0, 0), (2, 1)])` | `position(safe: 5)` | (0.0, 0.0) |
+| DR-008 | Drawing | position(checked:) on a missing vertex | `Drawing(vertices: [5, 3], positions: [(0, 0), (2, 1)])` | `position(checked: 4)` | throws VertexNotFound |
+| DR-009 | Drawing | position(checked:) on a vertex | `Drawing(vertices: [5, 3], positions: [(0, 0), (2, 1)])` | `position(checked: 5)` | (0.0, 0.0) |
 | DR-010 | Drawing | vertices and positions of different lengths | `Drawing(vertices: [5, 3], positions: [(0, 0)])` | `init` | **trap** |
 | DR-011 | Drawing | duplicate vertex | `Drawing(vertices: [5, 5], positions: [(0, 0), (1, 1)])` | `init` | **trap** |
 | DR-012 | Drawing | elements are (vertex, position) pairs in order | `Drawing(vertices: [5, 3], positions: [(0, 0), (2, 1)])` | `Array(self)` | [(5, (0.0, 0.0)), (3, (2.0, 1.0))] |

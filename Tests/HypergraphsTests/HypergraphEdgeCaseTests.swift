@@ -93,13 +93,16 @@ struct HypergraphEdgeCaseTests {
         #expect(IncidenceList<String>(hyperedges: [(sources: ["a"], targets: ["b"])]).hyperedgeIndex(of: 0) == 0)
     }
 
-    @Test("The in-side safe: reads answer the in-star, not the out-star")
-    func inSideSafeReads() {
+    @Test("The in-side checked: reads answer the in-star, not the out-star")
+    func inSideCheckedReads() throws {
         let hypergraph = IncidenceList<String>(hyperedges: [(sources: ["a"], targets: ["b"]), (sources: ["a"], targets: ["c"]), (sources: ["b"], targets: ["a"])])
-        #expect(hypergraph.inHyperedges(safe: "a").map(Array.init) == [2])
-        #expect(hypergraph.outHyperedges(safe: "a").map(Array.init) == [0, 1])
-        #expect(hypergraph.inDegree(safe: "a") == 1 && hypergraph.outDegree(safe: "a") == 2)
-        #expect(hypergraph.inDegree(safe: "q") == nil && hypergraph.inHyperedges(safe: "q") == nil)
+        #expect(try Array(hypergraph.inHyperedges(checked: "a")) == [2])
+        #expect(try Array(hypergraph.outHyperedges(checked: "a")) == [0, 1])
+        #expect(try hypergraph.inDegree(checked: "a") == 1 && hypergraph.outDegree(checked: "a") == 2)
+        #expect(try hypergraph.degree(checked: "a") == 3)
+        #expect(throws: VertexNotFound.self) { try hypergraph.inDegree(checked: "q") }
+        #expect(throws: VertexNotFound.self) { try hypergraph.inHyperedges(checked: "q") }
+        #expect(throws: VertexNotFound.self) { try hypergraph.degree(checked: "q") }
     }
 
     @Test("contains(sources:targets:) compares both sides, and the empty pair needs both sides empty")

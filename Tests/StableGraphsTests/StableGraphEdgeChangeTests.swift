@@ -1,7 +1,8 @@
 // Edge changes (catalog SG-123 – SG-130): `changeTarget(ofEdgeAt:to:)` and `changeSource(ofEdgeAt:to:)`
 // (LEMON's `changeTarget` / `changeSource`) keep the position and the place in the unchanged
-// endpoint's row, and join the new endpoint's row in position order; the `safe:` spellings return
-// false and change nothing.
+// endpoint's row, and join the new endpoint's row in position order; the `checked:` spellings throw
+// `ElementNotFound.edge` for a dead position, then `.vertex` for a missing endpoint, and change
+// nothing.
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import GraphProtocols
@@ -426,9 +427,9 @@ struct StableGraphEdgeChangeTests {
         #expect(graph.contains(edge: DirectedEdge(from: 2, to: 0)))
     }
 
-    @Test("SG-130 safe: variants return false and change nothing")
-    func sg130() {
-        // V [0, 1, 2]; E [0→1, 1→2] / remove(edgeAt: 0) / changeTarget(ofEdgeAt: 0, safe: 2) / changeTarget(ofEdgeAt: 1, safe: 9) / changeSource(ofEdgeAt: 5, safe: 0) / changeSource(ofEdgeAt: -1, safe: 0) / changeTarget(ofEdgeAt: 1, safe: 0) / changeSource(ofEdgeAt: 1, safe: 0)
+    @Test("SG-130 checked: variants throw ElementNotFound.edge or .vertex and change nothing")
+    func sg130() throws {
+        // V [0, 1, 2]; E [0→1, 1→2] / remove(edgeAt: 0) / changeTarget(ofEdgeAt: 0, checked: 2) / changeTarget(ofEdgeAt: 1, checked: 9) / changeSource(ofEdgeAt: 5, checked: 0) / changeSource(ofEdgeAt: -1, checked: 0) / changeSource(ofEdgeAt: 0, checked: 9) / changeTarget(ofEdgeAt: 1, checked: 0) / changeSource(ofEdgeAt: 1, checked: 0)
         var graph = StableDirectedGraph<Int>(vertices: [0, 1, 2], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
         #expect(graph.remove(edgeAt: 0) == DirectedEdge(from: 0, to: 1))
         // Positions after remove(edgeAt: 0).
@@ -442,11 +443,8 @@ struct StableGraphEdgeChangeTests {
         #expect(graph.edges.endIndex == 2)
         #expect(graph.vertexIndexBound == 3)
         #expect(graph.edgeIndexBound == nil)
-        do {
-            let changed = graph.changeTarget(ofEdgeAt: 0, safe: 2)
-            #expect(!changed)
-        }
-        // Positions after changeTarget(ofEdgeAt: 0, safe: 2).
+        #expect(throws: ElementNotFound.edge) { try graph.changeTarget(ofEdgeAt: 0, checked: 2) }
+        // Positions after changeTarget(ofEdgeAt: 0, checked: 2).
         #expect(Array(graph.vertices) == [0, 1, 2])
         #expect(Array(graph.vertices.indices) == [0, 1, 2])
         #expect(graph.vertices.startIndex == 0)
@@ -457,11 +455,8 @@ struct StableGraphEdgeChangeTests {
         #expect(graph.edges.endIndex == 2)
         #expect(graph.vertexIndexBound == 3)
         #expect(graph.edgeIndexBound == nil)
-        do {
-            let changed = graph.changeTarget(ofEdgeAt: 1, safe: 9)
-            #expect(!changed)
-        }
-        // Positions after changeTarget(ofEdgeAt: 1, safe: 9).
+        #expect(throws: ElementNotFound.vertex) { try graph.changeTarget(ofEdgeAt: 1, checked: 9) }
+        // Positions after changeTarget(ofEdgeAt: 1, checked: 9).
         #expect(Array(graph.vertices) == [0, 1, 2])
         #expect(Array(graph.vertices.indices) == [0, 1, 2])
         #expect(graph.vertices.startIndex == 0)
@@ -472,11 +467,8 @@ struct StableGraphEdgeChangeTests {
         #expect(graph.edges.endIndex == 2)
         #expect(graph.vertexIndexBound == 3)
         #expect(graph.edgeIndexBound == nil)
-        do {
-            let changed = graph.changeSource(ofEdgeAt: 5, safe: 0)
-            #expect(!changed)
-        }
-        // Positions after changeSource(ofEdgeAt: 5, safe: 0).
+        #expect(throws: ElementNotFound.edge) { try graph.changeSource(ofEdgeAt: 5, checked: 0) }
+        // Positions after changeSource(ofEdgeAt: 5, checked: 0).
         #expect(Array(graph.vertices) == [0, 1, 2])
         #expect(Array(graph.vertices.indices) == [0, 1, 2])
         #expect(graph.vertices.startIndex == 0)
@@ -487,11 +479,8 @@ struct StableGraphEdgeChangeTests {
         #expect(graph.edges.endIndex == 2)
         #expect(graph.vertexIndexBound == 3)
         #expect(graph.edgeIndexBound == nil)
-        do {
-            let changed = graph.changeSource(ofEdgeAt: -1, safe: 0)
-            #expect(!changed)
-        }
-        // Positions after changeSource(ofEdgeAt: -1, safe: 0).
+        #expect(throws: ElementNotFound.edge) { try graph.changeSource(ofEdgeAt: -1, checked: 0) }
+        // Positions after changeSource(ofEdgeAt: -1, checked: 0).
         #expect(Array(graph.vertices) == [0, 1, 2])
         #expect(Array(graph.vertices.indices) == [0, 1, 2])
         #expect(graph.vertices.startIndex == 0)
@@ -502,11 +491,20 @@ struct StableGraphEdgeChangeTests {
         #expect(graph.edges.endIndex == 2)
         #expect(graph.vertexIndexBound == 3)
         #expect(graph.edgeIndexBound == nil)
-        do {
-            let changed = graph.changeTarget(ofEdgeAt: 1, safe: 0)
-            #expect(changed)
-        }
-        // Positions after changeTarget(ofEdgeAt: 1, safe: 0).
+        #expect(throws: ElementNotFound.edge) { try graph.changeSource(ofEdgeAt: 0, checked: 9) }
+        // Positions after changeSource(ofEdgeAt: 0, checked: 9).
+        #expect(Array(graph.vertices) == [0, 1, 2])
+        #expect(Array(graph.vertices.indices) == [0, 1, 2])
+        #expect(graph.vertices.startIndex == 0)
+        #expect(graph.vertices.endIndex == 3)
+        #expect(graph.edges.map { [$0.source, $0.target] } == [[1, 2]])
+        #expect(Array(graph.edges.indices) == [1])
+        #expect(graph.edges.startIndex == 1)
+        #expect(graph.edges.endIndex == 2)
+        #expect(graph.vertexIndexBound == 3)
+        #expect(graph.edgeIndexBound == nil)
+        try graph.changeTarget(ofEdgeAt: 1, checked: 0)
+        // Positions after changeTarget(ofEdgeAt: 1, checked: 0).
         #expect(Array(graph.vertices) == [0, 1, 2])
         #expect(Array(graph.vertices.indices) == [0, 1, 2])
         #expect(graph.vertices.startIndex == 0)
@@ -517,10 +515,7 @@ struct StableGraphEdgeChangeTests {
         #expect(graph.edges.endIndex == 2)
         #expect(graph.vertexIndexBound == 3)
         #expect(graph.edgeIndexBound == nil)
-        do {
-            let changed = graph.changeSource(ofEdgeAt: 1, safe: 0)
-            #expect(changed)
-        }
+        try graph.changeSource(ofEdgeAt: 1, checked: 0)
         // Final state.
         #expect(Array(graph.vertices) == [0, 1, 2])
         #expect(Array(graph.vertices.indices) == [0, 1, 2])

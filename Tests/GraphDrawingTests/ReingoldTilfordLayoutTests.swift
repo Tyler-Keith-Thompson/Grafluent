@@ -297,11 +297,11 @@ struct ReingoldTilfordLayoutTests {
         #expect(left.allSatisfy { $0 == 1 || tree.isAncestor(1, of: $0) } && right.allSatisfy { $0 == 2 || tree.isAncestor(2, of: $0) })
         let p1 = layout.position(of: 1), p2 = layout.position(of: 2)
         // As point sets: the order of `descendants(of:)` is not what is pinned.
-        let leftOffsets = left.map { (layout.position(safe: $0) ?? SIMD2(.nan, .nan)) - p1 }.sorted { ($0.y, $0.x) < ($1.y, $1.x) }
-        let rightOffsets = right.map { (layout.position(safe: $0) ?? SIMD2(.nan, .nan)) - p2 }.sorted { ($0.y, $0.x) < ($1.y, $1.x) }
+        let leftOffsets = try left.map { try layout.position(checked: $0) - p1 }.sorted { ($0.y, $0.x) < ($1.y, $1.x) }
+        let rightOffsets = try right.map { try layout.position(checked: $0) - p2 }.sorted { ($0.y, $0.x) < ($1.y, $1.x) }
         #expect(leftOffsets == rightOffsets && leftOffsets.count == 7)
         // The two subtrees do not overlap: every x of the left one is left of every x of the right one at its depth.
-        #expect(left.map { layout.position(safe: $0)!.x }.max()! < right.map { layout.position(safe: $0)!.x }.min()!)
+        #expect(try left.map { try layout.position(checked: $0).x }.max()! < right.map { try layout.position(checked: $0).x }.min()!)
     }
 
     @Test("DR-058 circular: one vertex")
@@ -319,7 +319,7 @@ struct ReingoldTilfordLayoutTests {
         }
         // The radius of each vertex is its depth.
         for v in tree.vertices {
-            let p = layout.position(safe: v) ?? SIMD2(.nan, .nan)
+            let p = try layout.position(checked: v)
             #expect(abs((p * p).sum().squareRoot() - Double(tree.depth(of: v))) <= 1e-9)
         }
     }
@@ -340,7 +340,7 @@ struct ReingoldTilfordLayoutTests {
         }
         // The radius of each vertex is its depth.
         for v in tree.vertices {
-            let p = layout.position(safe: v) ?? SIMD2(.nan, .nan)
+            let p = try layout.position(checked: v)
             #expect(abs((p * p).sum().squareRoot() - Double(tree.depth(of: v))) <= 1e-9)
         }
     }
@@ -361,7 +361,7 @@ struct ReingoldTilfordLayoutTests {
         }
         // The radius of each vertex is its depth.
         for v in tree.vertices {
-            let p = layout.position(safe: v) ?? SIMD2(.nan, .nan)
+            let p = try layout.position(checked: v)
             #expect(abs((p * p).sum().squareRoot() - Double(tree.depth(of: v))) <= 1e-9)
         }
     }
@@ -385,7 +385,7 @@ struct ReingoldTilfordLayoutTests {
         }
         // The radius of each vertex is its depth.
         for v in tree.vertices {
-            let p = layout.position(safe: v) ?? SIMD2(.nan, .nan)
+            let p = try layout.position(checked: v)
             #expect(abs((p * p).sum().squareRoot() - Double(tree.depth(of: v))) <= 1e-9)
         }
     }
@@ -407,7 +407,7 @@ struct ReingoldTilfordLayoutTests {
         }
         // The radius of each vertex is its depth.
         for v in tree.vertices {
-            let p = layout.position(safe: v) ?? SIMD2(.nan, .nan)
+            let p = try layout.position(checked: v)
             #expect(abs((p * p).sum().squareRoot() - Double(tree.depth(of: v))) <= 1e-9)
         }
     }
@@ -433,7 +433,7 @@ struct ReingoldTilfordLayoutTests {
         }
         // The radius of each vertex is its depth.
         for v in tree.vertices {
-            let p = layout.position(safe: v) ?? SIMD2(.nan, .nan)
+            let p = try layout.position(checked: v)
             #expect(abs((p * p).sum().squareRoot() - Double(tree.depth(of: v))) <= 1e-9)
         }
     }

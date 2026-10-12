@@ -218,8 +218,8 @@ struct IsomorphismHardFamiliesTests {
         #expect(monomorphismCount == 60 * 59 * 58)
     }
 
-    @Test("The inverse of an isomorphism maps each image back; preimage(safe:) is nil off the target and outside the image")
-    func inverseAndSafePreimage() throws {
+    @Test("The inverse of an isomorphism maps each image back; preimage(checked:) throws off the target and is nil outside the image")
+    func inverseAndCheckedPreimage() throws {
         let g = UndirectedAdjacencyList(vertices: [1, 2, 3, 4], edges: [UndirectedEdge(1, 2), UndirectedEdge(2, 3), UndirectedEdge(3, 4)])
         let h = UndirectedAdjacencyList(vertices: [10, 20, 30, 40], edges: [UndirectedEdge(30, 10), UndirectedEdge(10, 40), UndirectedEdge(40, 20)])
         for mapping in g.isomorphisms(to: h) {
@@ -227,13 +227,13 @@ struct IsomorphismHardFamiliesTests {
             #expect(g.vertices.allSatisfy { inverse.image(of: mapping.image(of: $0)) == $0 })
             #expect(h.vertices.allSatisfy { inverse.image(of: $0) == mapping.preimage(of: $0) })
             #expect(h.edges.allSatisfy { g.contains(edge: UndirectedEdge(inverse.image(of: $0.u), inverse.image(of: $0.v))) })
-            #expect(mapping.preimage(safe: 99) == nil)
-            #expect(mapping.preimage(safe: 20) == mapping.preimage(of: 20))
+            #expect(throws: VertexNotFound.self) { try mapping.preimage(checked: 99) }
+            #expect(try mapping.preimage(checked: 20) == mapping.preimage(of: 20))
         }
         let pattern = UndirectedAdjacencyList(vertices: [1, 2], edges: [UndirectedEdge(1, 2)])
         let mapping = try #require(pattern.subgraphIsomorphism(to: h))
         let outside = try #require(h.vertices.first { !mapping.images.contains($0) })
-        #expect(mapping.preimage(safe: outside) == nil)
+        #expect(try mapping.preimage(checked: outside) == nil)
     }
 
     @Test("Canonical labelings: relabelled copies get equal forms, a permutation and matching indices; directed C3 and its two orientations")

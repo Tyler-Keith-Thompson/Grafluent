@@ -90,7 +90,18 @@ MUTANTS = [
     Mutant("insertorder", P, "                if positions[start &+ middle] < position { low = middle &+ 1 } else { high = middle }", "                high = middle", mode="stmt"),
     Mutant("insertshiftoffset", P, "                        if outward { table[page].records[slot].out = k } else { table[page].records[slot].in = k }", "", mode="stmt"),
     Mutant("insertrevive", P, "            rows[row].dead &-= 1", "", mode="stmt"),
-    Mutant("safedead", S, "_isLiveEdge(position, _edgePages, base: _edgeBase, end: _edgeEnd)", "true", nth=0),
+    Mutant("checkeddead", S, "_isLiveEdge(position, _edgePages, base: _edgeBase, end: _edgeEnd)", "true", nth=2),
+    Mutant("checkedsourcedead", S, "_isLiveEdge(position, _edgePages, base: _edgeBase, end: _edgeEnd)", "true", nth=3),
+    Mutant("checkedmissingtarget", S, "_slots[newTarget]", "Optional(_slots[newTarget] ?? 0)"),
+    Mutant("checkedmissingsource", S, "_slots[newSource]", "Optional(_slots[newSource] ?? 0)"),
+    Mutant("checkederrororder", S, "_isLiveEdge(position, _edgePages, base: _edgeBase, end: _edgeEnd)", "_isLiveEdge(position, _edgePages, base: _edgeBase, end: _edgeEnd) || _slots[newSource] == nil", nth=3),
+
+    # The checked: lookups and insert.
+    Mutant("checkedpositionsource", S, "_isLiveEdge(position, _edgePages, base: _edgeBase, end: _edgeEnd)", "position >= 0 && position < _edgeEnd", nth=0),
+    Mutant("checkedpositiontarget", S, "_isLiveEdge(position, _edgePages, base: _edgeBase, end: _edgeEnd)", "position >= 0 && position < _edgeEnd", nth=1),
+    Mutant("checkeddegree", S, "        return _outDegree(slot) + _inDegree(slot)", "        return _outDegree(slot)", mode="stmt", nth=1),
+    Mutant("checkedindexholes", C, 'precondition(_vertexCount == _vertexEnd, "The graph has vertex holes, so no vertex indices; check vertexIndexBound first")', "", mode="stmt", nth=1),
+    Mutant("checkedinsert", S, "_slots[edge.target]", "Optional(_slots[edge.target] ?? 0)", nth=2),
 
     # Indices and liveness.
     Mutant("vertexbound", C, "_vertexCount == _vertexEnd ? _vertexCount : nil", "_vertexEnd"),

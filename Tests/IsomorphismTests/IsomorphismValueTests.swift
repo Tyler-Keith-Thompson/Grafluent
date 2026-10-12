@@ -18,11 +18,11 @@ struct IsomorphismValueTests {
         let mapping = try #require(pattern.isomorphism(to: target, vertexColor: { patternColor[$0]! }, otherVertexColor: { targetColor[$0]! }))
         // The catalog's value.
         #expect(mapping.image(of: 7) == 0)
-        #expect(mapping.image(safe: 7) == 0)
+        #expect(try mapping.image(checked: 7) == 0)
         // Every accessor.
         #expect(Array(mapping.images) == [2, 4, 0])
         #expect(pattern.vertices.map { mapping.image(of: $0) } == [2, 4, 0])
-        #expect(pattern.vertices.map { mapping.image(safe: $0) } == [2, 4, 0])
+        #expect(pattern.vertices.map { try? mapping.image(checked: $0) } == [2, 4, 0])
         #expect((0 ..< 3).map { target.vertex(atIndex: mapping.imageIndex(ofIndex: $0)) } == (0 ..< 3).map { mapping.image(of: pattern.vertex(atIndex: $0)) })
         #expect(target.vertices.map { mapping.preimage(of: $0) } == [5, 7, 9])
     }
@@ -40,7 +40,7 @@ struct IsomorphismValueTests {
         // Every accessor.
         #expect(Array(mapping.images) == [2, 4, 0])
         #expect(pattern.vertices.map { mapping.image(of: $0) } == [2, 4, 0])
-        #expect(pattern.vertices.map { mapping.image(safe: $0) } == [2, 4, 0])
+        #expect(pattern.vertices.map { try? mapping.image(checked: $0) } == [2, 4, 0])
         #expect((0 ..< 3).map { target.vertex(atIndex: mapping.imageIndex(ofIndex: $0)) } == (0 ..< 3).map { mapping.image(of: pattern.vertex(atIndex: $0)) })
         #expect(target.vertices.map { mapping.preimage(of: $0) } == [5, 7, 9])
     }
@@ -58,7 +58,7 @@ struct IsomorphismValueTests {
         // Every accessor.
         #expect(Array(mapping.images) == [9, 5, 6])
         #expect(pattern.vertices.map { mapping.image(of: $0) } == [9, 5, 6])
-        #expect(pattern.vertices.map { mapping.image(safe: $0) } == [9, 5, 6])
+        #expect(pattern.vertices.map { try? mapping.image(checked: $0) } == [9, 5, 6])
         #expect((0 ..< 3).map { target.vertex(atIndex: mapping.imageIndex(ofIndex: $0)) } == (0 ..< 3).map { mapping.image(of: pattern.vertex(atIndex: $0)) })
         #expect(target.vertices.map { mapping.preimage(of: $0) } == [0, 1, 2, nil])
     }

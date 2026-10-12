@@ -14,7 +14,7 @@ hypergraph's hyperedge is an ordered pair of vertex sets, its sources (tail) and
 `IncidenceMatrix` and `OrientedIncidenceMatrix` are the protocols' second conformers. They are
 designed in `Tests/Catalogs/IncidenceMatrix/api.md`.
 
-`cases.md` (150 rows: HG-001 – HG-094 undirected, DH-001 – DH-056 directed) pins the values.
+`cases.md` (151 rows: HG-001 – HG-094 undirected, DH-001 – DH-057 directed) pins the values.
 `ref.py` ports both storages and counts every vertex lookup. Each undirected state is checked
 against:
 
@@ -75,7 +75,7 @@ To run it:
 | B- and F-connection | **`bConnectedVertices(from:)`**, **`isBConnected(from:to:)`**, **`fConnectedVertices(to:)`**, **`isFConnected(from:to:)`** | Gallo, Longo, Pallottino, Nguyen (1993) "B-connected", "F-connected", B-Visit, F-Visit; halp `b_visit`, `is_b_connected`, `f_visit`, `is_f_connected` |
 | Hyperedge classes | **`isBHypergraph`**, **`isFHypergraph`**, **`isBFHypergraph`** | Gallo et al. "B-graph (or B-hypergraph)", "F-graph", "BF-graph"; halp `is_B_hypergraph`; SimpleDirectedHypergraphs.jl `is_b_hypergraph` |
 | Histograms | **`degreeHistogram()`**, **`hyperedgeSizeHistogram()`**; **`outDegreeHistogram()`**, **`inDegreeHistogram()`**, **`sourceSizeHistogram()`**, **`targetSizeHistogram()`** | NetworkX / XGI `degree_histogram`; XGI `edges.size`, `tail_size`, `head_size` |
-| Non-trapping | `incidentHyperedges(safe:)`, `degree(safe:)`, `outHyperedges(safe:)`, `inHyperedges(safe:)`, `outDegree(safe:)`, `inDegree(safe:)`, `vertexIndex(safe:)`, `insert(safe:)`, `insert(safe:targets:)` | README Principle 6; the first label becomes `safe:` |
+| Non-trapping | `incidentHyperedges(checked:)`, `degree(checked:)`, `outHyperedges(checked:)`, `inHyperedges(checked:)`, `outDegree(checked:)`, `inDegree(checked:)`, `vertexIndex(checked:)`, `insert(checked:)`, `insert(checked:targets:)`; each throws `VertexNotFound` | README Principle 6; the first label becomes `checked:` (Rust's `checked_*`) |
 
 No `Hyperedge<Vertex>` value type (open question 3). No synonyms: no `nodes`, `edges`, `tail`,
 `head`, `twoSection`, `symmetricImage`, `bipartiteGraph`, `memberships`, or `forwardStar`.
@@ -306,8 +306,8 @@ extension UndirectedIncidenceList {
     @discardableResult public mutating func insert(_ vertex: Vertex) -> (inserted: Bool, memberAfterInsert: Vertex)
     @discardableResult public mutating func insert(hyperedge members: some Sequence<Vertex>) -> Int
         // appends; inserts missing members (XGI add_edge); returns the position. O(k log k) amortized
-    @discardableResult public mutating func insert(safe members: some Sequence<Vertex>) -> Int?
-        // nil and no change unless every member is already a vertex (HG-040)
+    @discardableResult public mutating func insert(checked members: some Sequence<Vertex>) throws(VertexNotFound) -> Int
+        // throws, changing nothing, unless every member is already a vertex (HG-040)
     public mutating func removeAll(keepingCapacity: Bool = false)
     public mutating func reserveCapacity(vertexCount: Int, hyperedgeCount: Int, incidenceCount: Int)
 }
@@ -325,7 +325,7 @@ extension IncidenceList {
         // a type that is both reads as a hypergraph, so the call is not ambiguous
     @discardableResult public mutating func insert(_ vertex: Vertex) -> (inserted: Bool, memberAfterInsert: Vertex)
     @discardableResult public mutating func insert(sources: some Sequence<Vertex>, targets: some Sequence<Vertex>) -> Int
-    @discardableResult public mutating func insert(safe sources: some Sequence<Vertex>, targets: some Sequence<Vertex>) -> Int?
+    @discardableResult public mutating func insert(checked sources: some Sequence<Vertex>, targets: some Sequence<Vertex>) throws(VertexNotFound) -> Int
     public mutating func removeAll(keepingCapacity: Bool = false)
     public mutating func reserveCapacity(vertexCount: Int, hyperedgeCount: Int, sourceCount: Int, targetCount: Int)
 }
@@ -349,7 +349,7 @@ extension IncidenceList {
 | `contains(_:)` | O(1) expected | |
 | `contains(hyperedge:)`, `contains(sources:targets:)` | O(k) expected + O(d · k) | compares the rows at the first member's incidences |
 | `vertexIndex(of:)`, `vertex(atIndex:)`, `vertexIndexBound`, `hyperedgeIndexBound` | O(1) expected, O(1), O(1), O(1) | both bounds always non-nil |
-| `(safe:)` spellings | the trapping spelling's one hash | `nil` for a non-vertex |
+| `(checked:)` spellings | the trapping spelling's one hash | throw `VertexNotFound` for a non-vertex (HG-021, HG-023, DH-012, DH-057) |
 
 **Traps:** a vertex-space read on a non-vertex (HG-025 – HG-027, DH-013, DH-016, DH-017); a
 hyperedge position out of `0..<m` (HG-028, HG-029, DH-014); a vertex index out of `0..<n` (HG-030,
@@ -572,8 +572,9 @@ in; measured 19 against 11 ms (1.7×) at load average 70, and 2.2× before them.
    `hyperedges[p]` is a view over the stored rows (or a labeled tuple of two). The protocol leaves
    `Hyperedges.Element` free (see "`Hyperedges.Element` is free" above), so no
    `DirectedHyperedge<Members>` struct is needed.
-4. **`insert(safe:targets:)`.** The repo's rule makes the first label `safe:`. It reads a little
-   oddly here. *Recommendation:* keep the rule rather than invent `insert(safeSources:targets:)`.
+4. **`insert(checked:targets:)`.** The repo's rule makes the first label `checked:`. It reads a
+   little oddly here. *Recommendation:* keep the rule rather than invent
+   `insert(checkedSources:targets:)`.
 5. **`sConnectedComponents(s:)`.** *Recommendation:* hyperedges by default (HyperNetX
    `edges=True`); the vertex form is `dual().sConnectedComponents(s:)`.
 6. **BF-connection, B-strong components, hyperpaths.** *Recommendation:* phase 2, in this order:

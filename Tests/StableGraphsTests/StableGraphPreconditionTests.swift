@@ -809,6 +809,41 @@ struct StableGraphPreconditionTests {
         #expect((0 ..< 2).map { graph.vertex(atIndex: $0) } == [0, 1])
     }
 
+    @Test("SG-138 vertexIndex(checked:) with a vertex hole traps")
+    func sg138() async {
+        // V [0, 1]; E [] / remove(0) / vertexIndex(checked: 1) → 0; **trap**
+        await #expect(processExitsWith: .failure) {
+            var graph = StableDirectedGraph<Int>(vertices: [0, 1], edges: [] as [DirectedEdge<Int>])
+            _ = graph.remove(0)
+            _ = try graph.vertexIndex(checked: 1)
+        }
+        // Without the call: the setup's results and the state the call would apply to.
+        var graph = StableDirectedGraph<Int>(vertices: [0, 1], edges: [] as [DirectedEdge<Int>])
+        #expect(graph.remove(0) == 0)
+        #expect(Array(graph.vertices) == [1])
+        #expect(Array(graph.vertices.indices) == [1])
+        #expect(graph.vertices.startIndex == 1)
+        #expect(graph.vertices.endIndex == 2)
+        #expect(graph.edges.map { [$0.source, $0.target] } == [] as [[Int]])
+        #expect(Array(graph.edges.indices) == [] as [Int])
+        #expect(graph.edges.startIndex == 0)
+        #expect(graph.edges.endIndex == 0)
+        #expect(graph.vertexIndexBound == nil)
+        #expect(graph.edgeIndexBound == 0)
+        #expect(graph.vertexCount == 1)
+        #expect(graph.vertices.count == 1)
+        #expect(graph.edgeCount == 0)
+        #expect(graph.edges.count == 0)
+        #expect(graph.vertices.firstIndex(of: 1) == 1)
+        #expect(graph.vertices[1] == 1)
+        #expect(Array(graph.successors(of: 1)) == [] as [Int])
+        #expect(Array(graph.outEdges(of: 1)) == [] as [Int])
+        #expect(Array(graph.predecessors(of: 1)) == [] as [Int])
+        #expect(Array(graph.inEdges(of: 1)) == [] as [Int])
+        #expect(graph.outDegree(of: 1) == 0 && graph.inDegree(of: 1) == 0 && graph.degree(of: 1) == 0)
+        #expect(graph.edges.indices.map { graph.edgeIndex(of: $0) } == [] as [Int])
+    }
+
     @Test("Every neighbourhood and degree of a non-vertex or a removed vertex traps")
     func neighbourhoodsOfAbsentVertices() async {
         await #expect(processExitsWith: .failure) {
@@ -1009,7 +1044,7 @@ struct StableGraphPreconditionTests {
         var graph = try JSONDecoder().decode(StableDirectedGraph<Int>.self, from: payload)
         #expect(graph.edges.endIndex == Int.max && graph.edgeCount == 0)
         #expect(graph.insert(1).inserted)
-        #expect(graph.insert(safe: DirectedEdge(from: 0, to: 9)) == nil)
+        #expect(throws: VertexNotFound.self) { try graph.insert(checked: DirectedEdge(from: 0, to: 9)) }
     }
 
     @Test("An attached map's handle traps on another graph, after removeEdgeMap, and to set a dead position")
