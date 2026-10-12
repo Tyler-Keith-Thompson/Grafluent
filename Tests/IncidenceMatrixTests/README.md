@@ -28,11 +28,14 @@ struct IncidenceMatrix: Hypergraph, Equatable, Hashable, Codable, Sendable, Cust
     subscript(vertex:hyperedge:) -> Bool, members(ofHyperedgeAt:), incidentHyperedges(of:), size, degree
     appendVertex(), insert(hyperedge:), insert(_:intoHyperedgeAt:), remove(_:fromHyperedgeAt:),
     removeAll(keepingCapacity:), reserveCapacity(vertexCount:hyperedgeCount:), transposed()
+    incidentHyperedges(checked:), degree(checked:), vertexIndex(checked:), insert(checked:)   // throw VertexNotFound
 struct OrientedIncidenceMatrix: DirectedHypergraph, …             // the same conformances
     init(vertexCount:hyperedges:), init(vertexCount:edges:), init(_ hypergraph:), init(_ graph:) (both kinds)
     subscript(vertex:hyperedge:) -> Int, sources, targets, outHyperedges, inHyperedges, outDegree, inDegree,
     degree, appendVertex(), insert(sources:targets:), insert(edge:), insert/remove(_:into/fromSources/TargetsOfHyperedgeAt:),
     removeAll, reserveCapacity, transposed(), reversed
+    outHyperedges/inHyperedges/outDegree/inDegree/degree/vertexIndex(checked:),
+    insert(checked:targets:), insert(checked:)                         // throw VertexNotFound
 ```
 
 ## Conventions
@@ -45,6 +48,7 @@ struct OrientedIncidenceMatrix: DirectedHypergraph, …             // the same 
 | Growth | Rows and columns grow past 64 with every bit kept | IM-024, IM-031 |
 | Dual | `transposed()`, each plane transposed; `reversed` swaps the planes (every entry negated) | IM-032, IM-049, IM-050 |
 | Equality | Cell for cell with equal shape; column order observable; both planes compared | IM-034 – IM-037, IM-060 – IM-063 |
+| `checked:` spellings | The plain answer for a vertex in range; `VertexNotFound` out of it, and a throwing insert changes nothing | IM-064 – IM-069 |
 | Traps | A vertex or column out of range, a negative vertex count | IM-005, IM-006, IM-019 – IM-022, IM-026, IM-029, IM-056 – IM-059 |
 
 ## How values are pinned

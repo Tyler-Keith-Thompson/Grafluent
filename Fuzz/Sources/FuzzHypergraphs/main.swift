@@ -386,7 +386,7 @@ enum FuzzHypergraphs {
         var rows = n
         var grown = false
         for _ in 0 ..< input.int(in: 0 ... 10) {
-            switch input.int(below: 5) {
+            switch input.int(below: 6) {
             case 0:
                 if rows > 0, columns > 0 {
                     let v = input.int(below: rows), p = input.int(below: columns)
@@ -405,6 +405,18 @@ enum FuzzHypergraphs {
                 check(matrix.insert(hyperedge: members) == columns, "insert(hyperedge:)")
                 for v in members { cells.insert([v, columns]) }
                 columns += 1
+            case 4:
+                // insert(checked:) with members from -1 ... rows: throws and changes nothing when one is
+                // out of range.
+                let members = (0 ..< input.int(in: 0 ... 3)).map { _ in input.int(in: -1 ... rows) }
+                let before = matrix
+                if members.allSatisfy({ $0 >= 0 && $0 < rows }) {
+                    check((try? matrix.insert(checked: members)) == columns, "insert(checked: \(members))")
+                    for v in members { cells.insert([v, columns]) }
+                    columns += 1
+                } else {
+                    check((try? matrix.insert(checked: members)) == nil && matrix == before, "insert(checked: \(members)) out of range")
+                }
             default:
                 // Grow past a word of columns or rows once, so the strides move.
                 guard !grown else { break }
@@ -435,9 +447,14 @@ enum FuzzHypergraphs {
             check(Array(matrix.incidentHyperedges(of: v)) == row && Array(matrix.incidentHyperedges(ofIndex: v)) == row, "matrix row \(v) \(context)")
             check(matrix.degree(of: v) == row.count && matrix.degree(ofIndex: v) == row.count, "matrix degree(of: \(v)) \(context)")
             check(matrix.contains(v) && matrix.vertexIndex(of: v) == v && matrix.vertex(atIndex: v) == v, "matrix vertex \(v) \(context)")
+            check((try? matrix.incidentHyperedges(checked: v)).map(Array.init) == row && (try? matrix.degree(checked: v)) == row.count, "matrix checked row \(v) \(context)")
+            check((try? matrix.vertexIndex(checked: v)) == v, "matrix vertexIndex(checked: \(v)) \(context)")
             for p in 0 ..< m { check(matrix[vertex: v, hyperedge: p] == cells.contains([v, p]), "matrix cell (\(v), \(p)) \(context)") }
         }
         check(!matrix.contains(-1) && !matrix.contains(n) && !matrix.contains(hyperedge: [n]) && !matrix.contains(hyperedge: [-1]), "matrix out of range \(context)")
+        for bad in [-1, n, Int.min] {
+            check((try? matrix.incidentHyperedges(checked: bad)) == nil && (try? matrix.degree(checked: bad)) == nil && (try? matrix.vertexIndex(checked: bad)) == nil, "matrix checked \(bad) \(context)")
+        }
         let hasEmpty = (0 ..< m).contains { p in !cells.contains { $0[1] == p } }
         check(matrix.contains(hyperedge: [] as [Int]) == hasEmpty, "matrix contains the empty column \(context)")
     }
@@ -827,7 +844,7 @@ enum FuzzHypergraphs {
         var grown = false
         for _ in 0 ..< input.int(in: 0 ... 10) {
             let target = input.int(below: 2) == 0
-            switch input.int(below: 4) {
+            switch input.int(below: 5) {
             case 0:
                 if rows > 0, columns > 0 {
                     let v = input.int(below: rows), p = input.int(below: columns)
@@ -845,6 +862,33 @@ enum FuzzHypergraphs {
                     grown = true
                     check(matrix.appendVertex() == rows, "appendVertex")
                     rows += 1
+                }
+            case 3:
+                // The checked: inserts with vertices from -1 ... rows: they throw and change nothing when
+                // one is out of range.
+                let before = matrix
+                let inRange = { (v: Int) in v >= 0 && v < rows }
+                if target {
+                    let edge = DirectedEdge(from: input.int(in: -1 ... rows), to: input.int(in: -1 ... rows))
+                    if inRange(edge.source) && inRange(edge.target) {
+                        check((try? matrix.insert(checked: edge)) == columns, "insert(checked: \(edge))")
+                        sourceCells.insert([edge.source, columns])
+                        targetCells.insert([edge.target, columns])
+                        columns += 1
+                    } else {
+                        check((try? matrix.insert(checked: edge)) == nil && matrix == before, "insert(checked: \(edge)) out of range")
+                    }
+                } else {
+                    let s = (0 ..< input.int(in: 0 ... 2)).map { _ in input.int(in: -1 ... rows) }
+                    let t = (0 ..< input.int(in: 0 ... 2)).map { _ in input.int(in: -1 ... rows) }
+                    if (s + t).allSatisfy(inRange) {
+                        check((try? matrix.insert(checked: s, targets: t)) == columns, "insert(checked: \(s), targets: \(t))")
+                        for v in s { sourceCells.insert([v, columns]) }
+                        for v in t { targetCells.insert([v, columns]) }
+                        columns += 1
+                    } else {
+                        check((try? matrix.insert(checked: s, targets: t)) == nil && matrix == before, "insert(checked: \(s), targets: \(t)) out of range")
+                    }
                 }
             default:
                 if rows > 0 {
@@ -883,12 +927,19 @@ enum FuzzHypergraphs {
             check(Array(matrix.inHyperedges(of: v)) == into && Array(matrix.inHyperedges(ofIndex: v)) == into, "oriented in row \(v) \(context)")
             check(matrix.outDegree(of: v) == out.count && matrix.inDegree(of: v) == into.count && matrix.degree(of: v) == out.count + into.count, "oriented degrees of \(v) \(context)")
             check(matrix.outDegree(ofIndex: v) == out.count && matrix.inDegree(ofIndex: v) == into.count, "oriented index degrees of \(v) \(context)")
+            check((try? matrix.outHyperedges(checked: v)).map(Array.init) == out && (try? matrix.inHyperedges(checked: v)).map(Array.init) == into, "oriented checked rows of \(v) \(context)")
+            check((try? matrix.outDegree(checked: v)) == out.count && (try? matrix.inDegree(checked: v)) == into.count && (try? matrix.degree(checked: v)) == out.count + into.count, "oriented checked degrees of \(v) \(context)")
+            check((try? matrix.vertexIndex(checked: v)) == v, "oriented vertexIndex(checked: \(v)) \(context)")
             for p in 0 ..< m {
                 let entry = (targetCells.contains([v, p]) ? 1 : 0) - (sourceCells.contains([v, p]) ? 1 : 0)
                 check(matrix[vertex: v, hyperedge: p] == entry, "oriented entry (\(v), \(p)) \(context)")
             }
         }
         check(!matrix.contains(-1) && !matrix.contains(n) && !matrix.contains(sources: [n], targets: [] as [Int]), "oriented out of range \(context)")
+        for bad in [-1, n, Int.min] {
+            check((try? matrix.outHyperedges(checked: bad)) == nil && (try? matrix.inHyperedges(checked: bad)) == nil, "oriented checked rows \(bad) \(context)")
+            check((try? matrix.outDegree(checked: bad)) == nil && (try? matrix.inDegree(checked: bad)) == nil && (try? matrix.degree(checked: bad)) == nil && (try? matrix.vertexIndex(checked: bad)) == nil, "oriented checked \(bad) \(context)")
+        }
         let hasEmpty = (0 ..< m).contains { p in !sourceCells.contains { $0[1] == p } && !targetCells.contains { $0[1] == p } }
         check(matrix.contains(sources: [] as [Int], targets: [] as [Int]) == hasEmpty, "oriented empty column \(context)")
     }

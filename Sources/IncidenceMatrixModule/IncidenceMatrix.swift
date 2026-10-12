@@ -344,6 +344,16 @@ extension IncidenceMatrix {
         return _rows.row(vertex)
     }
 
+    /// `incidentHyperedges(of:)`, throwing instead of trapping when `vertex` is not in
+    /// `0..<vertexCount`. O(⌈m/64⌉).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
+    @inlinable
+    public func incidentHyperedges(checked vertex: Int) throws(VertexNotFound) -> BitSet {
+        guard contains(vertex) else { throw VertexNotFound() }
+        return incidentHyperedges(of: vertex)
+    }
+
     @inlinable
     public func incidentHyperedges(ofIndex index: Int) -> BitSet { incidentHyperedges(of: index) }
 
@@ -363,6 +373,16 @@ extension IncidenceMatrix {
     public func degree(of vertex: Int) -> Int {
         _checkVertex(vertex)
         return _degrees[vertex]
+    }
+
+    /// `degree(of:)`, throwing instead of trapping when `vertex` is not in `0..<vertexCount`.
+    /// O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
+    @inlinable
+    public func degree(checked vertex: Int) throws(VertexNotFound) -> Int {
+        guard contains(vertex) else { throw VertexNotFound() }
+        return degree(of: vertex)
     }
 
     @inlinable
@@ -398,6 +418,15 @@ extension IncidenceMatrix {
     public func vertexIndex(of vertex: Int) -> Int {
         _checkVertex(vertex)
         return vertex
+    }
+
+    /// `vertex` itself, throwing instead of trapping when it is not in `0..<vertexCount`. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
+    @inlinable
+    public func vertexIndex(checked vertex: Int) throws(VertexNotFound) -> Int {
+        guard contains(vertex) else { throw VertexNotFound() }
+        return vertexIndex(of: vertex)
     }
 
     @inlinable
@@ -522,6 +551,20 @@ extension IncidenceMatrix {
         _sizes.append(0)
         for v in members { _setCell(v, position, to: true) }
         return position
+    }
+
+    /// Appends a column with `members` if every member is in `0..<vertexCount`; otherwise throws
+    /// and changes nothing. A member listed twice is one bit.
+    ///
+    /// - Returns: The new column's position, the old `hyperedgeCount`.
+    /// - Throws: `VertexNotFound` when a member is not in `0..<vertexCount`.
+    /// - Complexity: `insert(hyperedge:)`'s, plus one pass over the members to check them first.
+    @inlinable
+    @discardableResult
+    public mutating func insert(checked members: some Sequence<Int>) throws(VertexNotFound) -> Int {
+        let members = Array(members)
+        for v in members where !contains(v) { throw VertexNotFound() }
+        return insert(hyperedge: members)
     }
 
     /// Sets cell (`vertex`, `position`). O(1).

@@ -3,7 +3,8 @@
 // cycle valid and canonical; sides canonical: each component's least vertex left), and random
 // mutation sequences on BipartiteGraph against a model (a side per vertex and a set of edges),
 // including rejected ones (`BipartitionError`, from `insert(_:on:)`, `insert(edge:)` and
-// `insert(checked:)`, which then change nothing), checking the invariant, the Graph laws that matter (counts, degrees, rows parallel), `left` and
+// `insert(checked:)`, which then change nothing), checking the invariant, the Graph laws that matter (counts, degrees, rows parallel), the
+// `checked:` lookups (the trapping answer for a vertex, `VertexNotFound` otherwise), `left` and
 // `right` against the model, equality, hashing and the `init(_:left:)` round trip (Codable is the test suite's: the fuzzing
 // toolchain has no JSON coders).
 
@@ -131,6 +132,22 @@ enum FuzzBipartiteGraphs {
                 check(zip(graph.neighbors(of: v), graph.incidentEdges(of: v)).allSatisfy { graph.oppositeVertex(to: v, acrossEdgeAt: $0.1) == $0.0 }, "rows not parallel")
             }
             for e in graph.edges { check(graph.side(of: e.u) == .left && graph.side(of: e.v) == .right, "edge orientation") }
+            // The checked: lookups over every candidate vertex: the trapping answer, or VertexNotFound.
+            for u in 0 ..< 12 {
+                if side[u] != nil {
+                    check((try? graph.side(checked: u)) == graph.side(of: u), "side(checked:)")
+                    check((try? graph.degree(checked: u)) == graph.degree(of: u), "degree(checked:)")
+                    check((try? graph.incidentEdges(checked: u)) == graph.incidentEdges(of: u), "incidentEdges(checked:)")
+                    check((try? graph.neighbors(checked: u)).map(Array.init) == Array(graph.neighbors(of: u)), "neighbors(checked:)")
+                    check((try? graph.vertexIndex(checked: u)) == graph.vertexIndex(of: u), "vertexIndex(checked:)")
+                } else {
+                    check(Result { () throws(VertexNotFound) in try graph.side(checked: u) } == .failure(VertexNotFound()), "side(checked:) of a non-vertex")
+                    check(Result { () throws(VertexNotFound) in try graph.degree(checked: u) } == .failure(VertexNotFound()), "degree(checked:) of a non-vertex")
+                    check((try? graph.incidentEdges(checked: u)) == nil, "incidentEdges(checked:) of a non-vertex")
+                    check((try? graph.neighbors(checked: u)) == nil, "neighbors(checked:) of a non-vertex")
+                    check((try? graph.vertexIndex(checked: u)) == nil, "vertexIndex(checked:) of a non-vertex")
+                }
+            }
         }
         let rebuilt = BipartiteGraph(left: graph.left.shuffled(), right: graph.right.shuffled(), edges: graph.edges.shuffled())!
         check(rebuilt == graph && rebuilt.hashValue == graph.hashValue, "equality or hashing depends on order")

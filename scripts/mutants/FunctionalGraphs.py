@@ -121,4 +121,15 @@ MUTANTS = [
     Mutant("brentlead", C, "for _ in 0 ..< cycleLength { hare = f(hare) }", "for _ in 0 ..< cycleLength + 1 { hare = f(hare) }", mode="stmt"),
     Mutant("brenttail", C, "tailLength += 1", "", mode="stmt", nth=2),
     Mutant("brentextra", C, "        hare = f(hare)\n        cycleLength += 1", "        _ = f(hare)\n        hare = f(hare)\n        cycleLength += 1", mode="stmt", nth=1),
+
+
+    # The checked: spellings (README Principle 6): each guard removed lets the plain spelling trap.
+    Mutant("cksuccessor", F, "guard contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=0),
+    Mutant("cksteps", F, "guard contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=1),
+    Mutant("cksuccessors", G, "guard contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=0),
+    Mutant("ckoutedges", G, "guard contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=1),
+    Mutant("ckoutdegree", G, "guard contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=2),
+    Mutant("ckvertexindex", G, "guard contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=3),
+    Mutant("cksource", G, "guard contains(position) else { throw EdgeNotFound() }", "", mode="stmt", nth=0),
+    Mutant("cktarget", G, "guard contains(position) else { throw EdgeNotFound() }", "", mode="stmt", nth=1),
 ]

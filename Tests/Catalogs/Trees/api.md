@@ -67,6 +67,8 @@ extension DirectedGraph {
     public var pruferSequence: [Vertex]? { get }
     // Graph: vertices, edges (RandomAccessCollection, Int positions 0..<n−1), neighbors(of:),
     // incidentEdges(of:), vertex indices 0..<n, edge indices 0..<n−1, the index-space rows.
+    // checked: neighbors(checked:), incidentEdges(checked:), degree(checked:),
+    // vertexIndex(checked:), path(checkedFrom:to:) throw VertexNotFound (§L).
 }
 extension Tree where Vertex == Int {
     /// The tree on 0..<count+2 with this code; nil when an element is outside that range.
@@ -95,6 +97,9 @@ extension Tree where Vertex == Int {
     public var rootIndex: Int { get }
     public func parent(ofIndex index: Int) -> Int?
     public func depth(ofIndex index: Int) -> Int
+    // checked: parent(checked:) and parentEdge(checked:) (nil at the root), children(checked:),
+    // depth(checked:), descendants(checked:), ancestors(checked:), isAncestor(checked:of:),
+    // path(checkedFrom:to:) and Tree's four row lookups throw VertexNotFound (§L).
 }
 extension RootedTree where Vertex == Int {
     /// Vertex i has parent parents[i]; exactly one nil, the root.
@@ -115,6 +120,10 @@ extension RootedTree where Vertex == Int {
     public func path(from source: Vertex, to target: Vertex) -> Path<Vertex, Int>?
     // BidirectionalDirectedGraph: successors = children, outEdges = child edges, predecessors =
     // the parent (0 or 1), inEdges = the parent edge; edges are DirectedEdge(parent → child).
+    // checked: RootedTree's tree lookups (path(checkedFrom:to:) nil unless downward), and
+    // successors, predecessors, outEdges, inEdges, outDegree, inDegree, degree, vertexIndex
+    // (checked:) throw VertexNotFound; source(checkedEdgeAt:), target(checkedEdgeAt:) throw
+    // EdgeNotFound for a position outside 0..<edgeCount (§L).
 }
 extension Arborescence where Vertex == Int { public init?(parents: [Int?]) }
 
@@ -128,6 +137,8 @@ extension Arborescence where Vertex == Int { public init?(parents: [Int?]) }
     public var trees: Trees { get }                            // RandomAccessCollection<Tree<Vertex>>
     public func component(of vertex: Vertex) -> Int            // its tree's offset in `trees`
     public func path(from source: Vertex, to target: Vertex) -> Path<Vertex, Int>?
+    // checked: component(checked:), path(checkedFrom:to:) (nil across trees) and Tree's four row
+    // lookups throw VertexNotFound (§L).
 }
 ```
 
@@ -178,7 +189,11 @@ Every initializer from unchecked input is failable. A thrown error would have to
 so it could not carry vertices (README, the DAG row: witnesses, not errors), and the witnesses
 already exist: `g.findCycle()` (Cycles) for a cycle, `g.connectedComponents()` (Connectivity) for
 disconnection. A root that is not a vertex is a precondition, as Cycles' `findCycle(from:)`
-(TS-109); a query on a non-vertex traps, as `DominatorTree`'s do (TS-246, TS-315).
+(TS-109); a query on a non-vertex traps, as `DominatorTree`'s do (TS-246, TS-315). Each such
+query also has a `checked:` spelling (README Principle 6, added after phase 1) that throws
+`VertexNotFound` instead, or `EdgeNotFound` for an `Arborescence` edge position, with the one
+lookup the trapping spelling makes; a nil the plain spelling returns (the root's parent, a path
+across trees or not downward) keeps its meaning (§L, TS-900 – TS-995).
 
 ### Vertex order and edge positions
 

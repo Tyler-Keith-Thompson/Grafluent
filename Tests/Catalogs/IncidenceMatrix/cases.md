@@ -20,6 +20,8 @@ Conventions:
   only), `-` (source only), `0` (neither, or both); `columns [p:{…}→{…}]` lists each column's two planes.
 * `**trap**` rows are preconditions, run as exit tests (`#expect(processExitsWith:)`); results before the
   trap are listed.
+* `throws VertexNotFound` is what a `checked:` spelling throws for a vertex not in `0..<vertexCount` (README
+  Principle 6), where the plain spelling traps; a throwing insert changes nothing.
 
 | ID | Group | Case | Input / call | Expected |
 |---|---|---|---|---|
@@ -86,3 +88,9 @@ Conventions:
 | IM-061 | Equality | oriented: two loops at different vertices differ although every entry is 0 | OIM n 2; A [0→0] == OIM n 2; A [1→1] | false |
 | IM-062 | Equality | oriented: reversed arc differs | OIM n 2; A [0→1] == OIM n 2; A [1→0] | false |
 | IM-063 | Equality | oriented: column order is observable | OIM n 2; E [{0}→{}, {}→{1}] == OIM n 2; E [{}→{1}, {0}→{}] | false |
+| IM-064 | Reads | checked: spellings answer a vertex as the plain ones do and throw out of range | IM n 5; E [{0, 1, 2}, {2, 3}, {0, 1, 2}, {4}, {}] / incidentHyperedges(checked: 2) / degree(checked: 2) / vertexIndex(checked: 4) / incidentHyperedges(checked: 5) / degree(checked: -1) / vertexIndex(checked: 5) | [0, 1, 2]; 3; 4; throws VertexNotFound; throws VertexNotFound; throws VertexNotFound |
+| IM-065 | Mutation | insert(checked:) with every member in range appends the column | IM n 3; E [{0}] / insert(checked: [2, 0, 2]) / vertexCount/hyperedgeCount | 1; 3/2 ⇒ 3×2 [11, 00, 01] |
+| IM-066 | Mutation | insert(checked:) with a member out of range: throws, nothing changes | IM n 2; E [{0}] / insert(checked: [0, 2]) / insert(checked: [-1]) / vertexCount/hyperedgeCount | throws VertexNotFound; throws VertexNotFound; 2/1 ⇒ 2×1 [1, 0] |
+| IM-067 | Oriented hypergraph | checked: spellings answer a vertex as the plain ones do and throw out of range | OIM n 4; E [{0, 1}→{2}, {2}→{2, 3}, {}→{}, {3}→{0, 1}] / outHyperedges(checked: 2) / inHyperedges(checked: 2) / outDegree(checked: 2) / inDegree(checked: 2) / degree(checked: 2) / vertexIndex(checked: 3) / outHyperedges(checked: 4) / inHyperedges(checked: -1) / outDegree(checked: 4) / inDegree(checked: -1) / degree(checked: 4) / vertexIndex(checked: -1) | [1]; [0, 1]; 1; 2; 3; 3; throws VertexNotFound; throws VertexNotFound; throws VertexNotFound; throws VertexNotFound; throws VertexNotFound; throws VertexNotFound |
+| IM-068 | Oriented mutation | insert(checked:targets:) and insert(checked:) with every vertex in range | OIM n 3; E [] / insert(checked: [0, 1], targets: [2]) / insert(checked: 2→2) / vertexCount/hyperedgeCount | 0; 1; 3/2 ⇒ 3×2 [-0, -0, +0]; columns [0:{0, 1}→{2}, 1:{2}→{2}] |
+| IM-069 | Oriented mutation | insert(checked:targets:) and insert(checked:) out of range: throw, nothing changes | OIM n 2; E [{0}→{1}] / insert(checked: [0], targets: [2]) / insert(checked: [-1], targets: []) / insert(checked: 0→2) / insert(checked: 2→0) / vertexCount/hyperedgeCount | throws VertexNotFound; throws VertexNotFound; throws VertexNotFound; throws VertexNotFound; 2/1 ⇒ 2×1 [-, +]; columns [0:{0}→{1}] |

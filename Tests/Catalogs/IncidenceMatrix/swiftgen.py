@@ -49,7 +49,7 @@ for line in TEXT.splitlines():
         parts = [p.strip().replace("\\|", "|") for p in line.strip().strip("|").split(" | ")]
         CELLS[parts[0]] = parts
 IDS = list(CELLS)
-assert len(IDS) == 63 and sorted(IDS) == sorted(SPEC)
+assert len(IDS) == 69 and sorted(IDS) == sorted(SPEC)
 
 
 def group(r): return CELLS[r][1]
@@ -191,7 +191,8 @@ def state(M, var, ind, short=False):
 # ---------------------------------------------------------------------------------------------
 MUTATING = {"appendVertex", "insert(hyperedge:)", "insert(_:intoHyperedgeAt:)", "remove(_:fromHyperedgeAt:)", "removeAll",
             "insert(sources:targets:)", "insert(_:intoSourcesOfHyperedgeAt:)", "insert(_:intoTargetsOfHyperedgeAt:)",
-            "remove(_:fromSourcesOfHyperedgeAt:)", "remove(_:fromTargetsOfHyperedgeAt:)"}
+            "remove(_:fromSourcesOfHyperedgeAt:)", "remove(_:fromTargetsOfHyperedgeAt:)",
+            "insert(checked:)", "insert(checked:targets:)", "insert(checked:edge)"}
 
 
 def call_lines(M, call, var="matrix"):
@@ -200,6 +201,23 @@ def call_lines(M, call, var="matrix"):
 
     def ex(text): return ["#expect(%s)" % text]
 
+    if "(checked:" in name:
+        if name == "insert(checked:)":
+            call = "insert(checked: %s as [Int])" % ints(a)
+        elif name == "insert(checked:targets:)":
+            call = "insert(checked: %s as [Int], targets: %s as [Int])" % (ints(a[0]), ints(a[1]))
+        elif name == "insert(checked:edge)":
+            call = "insert(checked: DirectedEdge(from: %d, to: %d))" % (a[0], a[1])
+        else:
+            call = "%s %d)" % (name[:-1], a[0])
+        if r == ref.THROWS:
+            lines = ["#expect(throws: VertexNotFound.self) { try %s.%s }" % (var, call)]
+            if not name.startswith("insert"):
+                lines.append("#expect((try? %s.%s) == nil)" % (var, call))
+            return r, lines
+        if isinstance(r, list):
+            return r, ex("try Array(%s.%s) == %s" % (var, call, ints(r)))
+        return r, ex("try %s.%s == %d" % (var, call, r))
     if name == "subscript":
         if isinstance(M, ref.OIM):
             return r, ex("%s[vertex: %d, hyperedge: %d] == %d" % (var, a[0], a[1], r))
@@ -272,7 +290,8 @@ def row_test(rid):
     _, text, make, calls, oriented, source, graph = SPEC[rid]
     M = make()
     mut = any(c[0] in MUTATING for c in calls)
-    lines = header(rid) + ["    func %s() {" % fname(rid), "        // %s" % inp(rid),
+    throws = any("(checked:" in c[0] for c in calls)
+    lines = header(rid) + ["    func %s()%s {" % (fname(rid), " throws" if throws else ""), "        // %s" % inp(rid),
                            "        %s matrix = %s" % ("var" if mut else "let", construct(rid))]
     shown = []
     for i, c in enumerate(calls):
@@ -376,18 +395,21 @@ def ids(*groups):
 TRAPS = [r for r in IDS if is_trap(r)]
 FILES = [
     ("IncidenceMatrixConstructionTests.swift", "IncidenceMatrix construction and reads", ids("Construction", "From a graph", "Reads"),
-     "Construction and reads (catalog IM-001 – IM-018): columns in input order, a repeated member one bit,\n"
-     "// repeated and empty columns kept; from a graph one column per edge in edges order, a self-loop one\n"
-     "// bit (NetworkX: a zero column), both ends from a digraph; cells, columns, rows and degrees; the\n"
-     "// same matrix through an incidence-list copy and by appending one column at a time."),
+     "Construction and reads (catalog IM-001 – IM-018, IM-064): columns in input order, a repeated member\n"
+     "// one bit, repeated and empty columns kept; from a graph one column per edge in edges order, a\n"
+     "// self-loop one bit (NetworkX: a zero column), both ends from a digraph; cells, columns, rows and\n"
+     "// degrees; the same matrix through an incidence-list copy and by appending one column at a time;\n"
+     "// the checked: reads, which throw VertexNotFound out of range."),
     ("IncidenceMatrixMutationTests.swift", "IncidenceMatrix mutation, transpose and equality", ids("Mutation", "Transpose", "Equality"),
-     "Mutation, transpose and equality (catalog IM-023 – IM-037, IM-060 – IM-063): rows and columns grow\n"
-     "// past 64; a cell is set or cleared once; transposed() is the dual and an involution; equality is\n"
-     "// cell for cell with equal shape, column order observable, both planes compared when oriented."),
+     "Mutation, transpose and equality (catalog IM-023 – IM-037, IM-060 – IM-063, IM-065, IM-066): rows\n"
+     "// and columns grow past 64; a cell is set or cleared once; insert(checked:) throws for a member out\n"
+     "// of range and changes nothing; transposed() is the dual and an involution; equality is cell for\n"
+     "// cell with equal shape, column order observable, both planes compared when oriented."),
     ("OrientedIncidenceMatrixTests.swift", "OrientedIncidenceMatrix", ids("Oriented, from a graph", "Oriented hypergraph", "Oriented mutation"),
-     "OrientedIncidenceMatrix (catalog IM-038 – IM-055): −1 at each source and +1 at each target, 0 for a\n"
-     "// vertex on both sides with both bits kept (a self-loop included, as NetworkX's zero column); the\n"
-     "// union matrix, the transposed dual, reversal as negation, and the plane edits."),
+     "OrientedIncidenceMatrix (catalog IM-038 – IM-055, IM-067 – IM-069): −1 at each source and +1 at\n"
+     "// each target, 0 for a vertex on both sides with both bits kept (a self-loop included, as NetworkX's\n"
+     "// zero column); the union matrix, the transposed dual, reversal as negation, the plane edits, and\n"
+     "// the checked: reads and inserts, which throw VertexNotFound out of range and change nothing."),
     ("IncidenceMatrixPreconditionTests.swift", "IncidenceMatrix preconditions", TRAPS,
      "Preconditions (catalog trap rows): each trapping call runs in a child process (exit test). The\n"
      "// same setup then runs in this process without the call, so the trap is the call's and not the\n"

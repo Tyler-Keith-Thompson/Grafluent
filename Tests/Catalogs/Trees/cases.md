@@ -1,4 +1,4 @@
-# Trees: case catalog (TS-001 – TS-813)
+# Trees: case catalog (TS-001 – TS-995)
 
 Cases for the Trees module's phase 1 (api.md): `Graph.isTree`, `DirectedGraph.isArborescence`,
 the four types' failable initializers, the parent-function initializers, the rooted queries,
@@ -37,11 +37,11 @@ Traversal already owns `TR-`.
 `Forest(tree)`). With no query the case asks whether construction succeeds. `X == source as
 Chain` compares two values with `==`.
 
-**Expected**: `nil` (the failable initializer, or `path`, returns `nil`), `trap` (a
-precondition), `T`/`F`, `#k`, a vertex, a list `[a,b,…]` in order, a list of edges `[u-v,…]` by
-position (`u>v` for arcs: source then target; an undirected edge's stored orientation is not part
-of its value), a path `[vertices]/[edge positions]`, or a forest's trees `[vertices]/[edges]; …`
-in order (`none` when there are none).
+**Expected**: `nil` (the failable initializer, or `path`, returns `nil`), `trap` (a precondition),
+`throws` (a `checked:` spelling throws, §L), `T`/`F`, `#k`, a vertex, a list `[a,b,…]` in order, a
+list of edges `[u-v,…]` by position (`u>v` for arcs: source then target; an undirected edge's
+stored orientation is not part of its value), a path `[vertices]/[edge positions]`, or a forest's
+trees `[vertices]/[edges]; …` in order (`none` when there are none).
 
 Unless a case says otherwise: a tree's incidence rows are in position order, `children(of:)` is
 in position order of the child edges, `preorder` and `postorder` visit children in that order,
@@ -316,3 +316,111 @@ vertex order).
 | TS-811 | `U: P(0..999999)` | `Tree : prufer[999997]` | `#999998` | |
 | TS-812 | `U: kary(1000000,2)` | `RootedTree(root: 0) : height` | `#19` | |
 | TS-813 | `U: kary(1000000,2)` | `RootedTree(root: 0) : preorder[19]` | `#524287` | The leftmost leaf: 2^k − 1 down the first children |
+
+## L. `checked:` lookups
+
+Each `checked` query is the `checked:` spelling of the query (`parent(checked:)`,
+`path(checkedFrom:to:)`, `isAncestor(checked:of:)`, `source(checkedEdgeAt:)`, …): the plain
+query's value when every vertex is in the tree and every position in `0..<edgeCount`, otherwise
+`throws` (`VertexNotFound`, or `EdgeNotFound` for a position) where the plain spelling traps.
+Three lookups are covered: dense `Int` vertices (a range check), at most 8 vertices (a linear
+search) and the hash table.
+
+| ID | Source | Op | Expected | Notes |
+|---|---|---|---|---|
+| TS-900 | `U: 0-1, 0-2, 1-3, 1-4, 2-5, 4-6` | `Tree : checked neighbors(1)` | `[0,3,4]` | Dense `Int` vertices: a range check, no table |
+| TS-901 | `U: 0-1, 0-2, 1-3, 1-4, 2-5, 4-6` | `Tree : checked neighbors(9)` | `throws` | |
+| TS-902 | `U: 0-1, 0-2, 1-3, 1-4, 2-5, 4-6` | `Tree : checked neighbors(-1)` | `throws` | Negative, on the dense path |
+| TS-903 | `U: 0-1, 0-2, 1-3, 1-4, 2-5, 4-6` | `Tree : checked incidentEdges(4)` | `[3,5]` | |
+| TS-904 | `U: 0-1, 0-2, 1-3, 1-4, 2-5, 4-6` | `Tree : checked degree(4)` | `#2` | |
+| TS-905 | `U: 0-1, 0-2, 1-3, 1-4, 2-5, 4-6` | `Tree : checked degree(7)` | `throws` | `vertexCount` itself |
+| TS-906 | `U: 0-1, 0-2, 1-3, 1-4, 2-5, 4-6` | `Tree : checked vertexIndex(6)` | `#6` | |
+| TS-907 | `U: 0-1, 0-2, 1-3, 1-4, 2-5, 4-6` | `Tree : checked path(3,5)` | `[3,1,0,2,5]/[2,0,1,4]` | |
+| TS-908 | `U: 0-1, 0-2, 1-3, 1-4, 2-5, 4-6` | `Tree : checked path(3,9)` | `throws` | Either end checked |
+| TS-909 | `U: 0-1, 0-2, 1-3, 1-4, 2-5, 4-6` | `Tree : checked path(9,3)` | `throws` | |
+| TS-910 | `U: a-b, b-c, b-d` | `Tree : checked neighbors(b)` | `[a,c,d]` | At most 8 vertices: no table, a linear search |
+| TS-911 | `U: a-b, b-c, b-d` | `Tree : checked degree(z)` | `throws` | |
+| TS-912 | `U: a-b, b-c, b-d` | `Tree : checked vertexIndex(d)` | `#3` | |
+| TS-913 | `U: P(a,b,c,d,e,f,g,h,i,j)` | `Tree : checked vertexIndex(j)` | `#9` | More than 8 vertices: the hash table |
+| TS-914 | `U: P(a,b,c,d,e,f,g,h,i,j)` | `Tree : checked incidentEdges(z)` | `throws` | |
+| TS-915 | `U: 0-1, 0-2, 1-3, 1-4, 2-5, 4-6` | `RootedTree(root: 0) : checked parent(6)` | `#4` | |
+| TS-916 | `U: 0-1, 0-2, 1-3, 1-4, 2-5, 4-6` | `RootedTree(root: 0) : checked parent(0)` | `nil` | nil still means the root |
+| TS-917 | `U: 0-1, 0-2, 1-3, 1-4, 2-5, 4-6` | `RootedTree(root: 0) : checked parent(9)` | `throws` | |
+| TS-918 | `U: 0-1, 0-2, 1-3, 1-4, 2-5, 4-6` | `RootedTree(root: 0) : checked parentEdge(6)` | `#5` | |
+| TS-919 | `U: 0-1, 0-2, 1-3, 1-4, 2-5, 4-6` | `RootedTree(root: 0) : checked parentEdge(0)` | `nil` | |
+| TS-920 | `U: 0-1, 0-2, 1-3, 1-4, 2-5, 4-6` | `RootedTree(root: 0) : checked parentEdge(-1)` | `throws` | |
+| TS-921 | `U: 0-1, 0-2, 1-3, 1-4, 2-5, 4-6` | `RootedTree(root: 0) : checked children(1)` | `[3,4]` | |
+| TS-922 | `U: 0-1, 0-2, 1-3, 1-4, 2-5, 4-6` | `RootedTree(root: 0) : checked children(7)` | `throws` | |
+| TS-923 | `U: 0-1, 0-2, 1-3, 1-4, 2-5, 4-6` | `RootedTree(root: 0) : checked depth(6)` | `#3` | |
+| TS-924 | `U: 0-1, 0-2, 1-3, 1-4, 2-5, 4-6` | `RootedTree(root: 0) : checked depth(9)` | `throws` | |
+| TS-925 | `U: 0-1, 0-2, 1-3, 1-4, 2-5, 4-6` | `RootedTree(root: 0) : checked descendants(1)` | `[3,4,6]` | |
+| TS-926 | `U: 0-1, 0-2, 1-3, 1-4, 2-5, 4-6` | `RootedTree(root: 0) : checked descendants(9)` | `throws` | |
+| TS-927 | `U: 0-1, 0-2, 1-3, 1-4, 2-5, 4-6` | `RootedTree(root: 0) : checked ancestors(6)` | `[4,1,0]` | |
+| TS-928 | `U: 0-1, 0-2, 1-3, 1-4, 2-5, 4-6` | `RootedTree(root: 0) : checked ancestors(9)` | `throws` | |
+| TS-929 | `U: 0-1, 0-2, 1-3, 1-4, 2-5, 4-6` | `RootedTree(root: 0) : checked isAncestor(1,6)` | `T` | |
+| TS-930 | `U: 0-1, 0-2, 1-3, 1-4, 2-5, 4-6` | `RootedTree(root: 0) : checked isAncestor(9,6)` | `throws` | Either vertex checked |
+| TS-931 | `U: 0-1, 0-2, 1-3, 1-4, 2-5, 4-6` | `RootedTree(root: 0) : checked isAncestor(1,9)` | `throws` | |
+| TS-932 | `U: 0-1, 0-2, 1-3, 1-4, 2-5, 4-6` | `RootedTree(root: 0) : checked path(6,5)` | `[6,4,1,0,2,5]/[5,3,0,1,4]` | |
+| TS-933 | `U: 0-1, 0-2, 1-3, 1-4, 2-5, 4-6` | `RootedTree(root: 0) : checked path(6,9)` | `throws` | |
+| TS-934 | `U: 0-1, 0-2, 1-3, 1-4, 2-5, 4-6` | `RootedTree(root: 0) : checked neighbors(4)` | `[1,6]` | |
+| TS-935 | `U: 0-1, 0-2, 1-3, 1-4, 2-5, 4-6` | `RootedTree(root: 0) : checked incidentEdges(4)` | `[3,5]` | |
+| TS-936 | `U: 0-1, 0-2, 1-3, 1-4, 2-5, 4-6` | `RootedTree(root: 0) : checked degree(1)` | `#3` | |
+| TS-937 | `U: 0-1, 0-2, 1-3, 1-4, 2-5, 4-6` | `RootedTree(root: 0) : checked vertexIndex(5)` | `#5` | |
+| TS-938 | `U: 0-1, 0-2, 1-3, 1-4, 2-5, 4-6` | `RootedTree(root: 0) : checked degree(9)` | `throws` | |
+| TS-939 | `U: P(a,b,c,d,e,f,g,h,i,j)` | `RootedTree(root: e) : checked depth(a)` | `#4` | The hash table |
+| TS-940 | `U: P(a,b,c,d,e,f,g,h,i,j)` | `RootedTree(root: e) : checked parent(z)` | `throws` | |
+| TS-941 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked parent(6)` | `#4` | |
+| TS-942 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked parent(0)` | `nil` | nil still means the root |
+| TS-943 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked parent(9)` | `throws` | |
+| TS-944 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked parentEdge(6)` | `#5` | |
+| TS-945 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked parentEdge(9)` | `throws` | |
+| TS-946 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked children(1)` | `[3,4]` | |
+| TS-947 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked depth(6)` | `#3` | |
+| TS-948 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked descendants(1)` | `[3,4,6]` | The preorder slice, not Traversal's `Set` |
+| TS-949 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked descendants(-1)` | `throws` | |
+| TS-950 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked ancestors(6)` | `[4,1,0]` | |
+| TS-951 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked ancestors(7)` | `throws` | |
+| TS-952 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked isAncestor(6,1)` | `F` | |
+| TS-953 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked isAncestor(9,1)` | `throws` | |
+| TS-954 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked path(1,6)` | `[1,4,6]/[3,5]` | |
+| TS-955 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked path(6,1)` | `nil` | nil still means not downward |
+| TS-956 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked path(1,9)` | `throws` | |
+| TS-957 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked successors(1)` | `[3,4]` | |
+| TS-958 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked successors(9)` | `throws` | |
+| TS-959 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked predecessors(6)` | `[4]` | |
+| TS-960 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked predecessors(0)` | `[]` | |
+| TS-961 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked predecessors(9)` | `throws` | |
+| TS-962 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked outEdges(1)` | `[2,3]` | |
+| TS-963 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked outEdges(9)` | `throws` | |
+| TS-964 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked inEdges(6)` | `[5]` | |
+| TS-965 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked inEdges(0)` | `[]` | |
+| TS-966 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked inEdges(9)` | `throws` | |
+| TS-967 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked outDegree(1)` | `#2` | |
+| TS-968 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked outDegree(9)` | `throws` | |
+| TS-969 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked inDegree(0)` | `#0` | |
+| TS-970 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked inDegree(6)` | `#1` | |
+| TS-971 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked inDegree(9)` | `throws` | |
+| TS-972 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked degree(1)` | `#3` | One lookup, where `degree(of:)` makes two |
+| TS-973 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked degree(0)` | `#2` | |
+| TS-974 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked degree(9)` | `throws` | |
+| TS-975 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked vertexIndex(4)` | `#4` | |
+| TS-976 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked vertexIndex(7)` | `throws` | |
+| TS-977 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked source(5)` | `#4` | `source(checkedEdgeAt:)` |
+| TS-978 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked target(5)` | `#6` | |
+| TS-979 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked source(6)` | `throws` | `edgeCount`: `EdgeNotFound` |
+| TS-980 | `D: 0>1, 0>2, 1>3, 1>4, 2>5, 4>6` | `Arborescence : checked target(-1)` | `throws` | |
+| TS-981 | `D: P(a,b,c,d,e,f,g,h,i,j)` | `Arborescence : checked depth(j)` | `#9` | The hash table |
+| TS-982 | `D: P(a,b,c,d,e,f,g,h,i,j)` | `Arborescence : checked depth(z)` | `throws` | |
+| TS-983 | `U: 0-1, 2-3, 3-4` | `Forest : checked component(3)` | `#1` | |
+| TS-984 | `U: 0-1, 2-3, 3-4` | `Forest : checked component(9)` | `throws` | |
+| TS-985 | `U: 0-1, 2-3, 3-4` | `Forest : checked path(2,4)` | `[2,3,4]/[1,2]` | |
+| TS-986 | `U: 0-1, 2-3, 3-4` | `Forest : checked path(0,4)` | `nil` | nil still means different trees |
+| TS-987 | `U: 0-1, 2-3, 3-4` | `Forest : checked path(0,9)` | `throws` | |
+| TS-988 | `U: 0-1, 2-3, 3-4` | `Forest : checked path(9,0)` | `throws` | |
+| TS-989 | `U: 0-1, 2-3, 3-4` | `Forest : checked neighbors(3)` | `[2,4]` | |
+| TS-990 | `U: 0-1, 2-3, 3-4` | `Forest : checked incidentEdges(3)` | `[1,2]` | |
+| TS-991 | `U: 0-1, 2-3, 3-4` | `Forest : checked degree(3)` | `#2` | |
+| TS-992 | `U: 0-1, 2-3, 3-4` | `Forest : checked vertexIndex(4)` | `#4` | |
+| TS-993 | `U: 0-1, 2-3, 3-4` | `Forest : checked degree(-1)` | `throws` | |
+| TS-994 | `U: [k] P(a,b,c,d,e,f,g,h,i,j)` | `Forest : checked component(k)` | `#0` | The hash table |
+| TS-995 | `U: [k] P(a,b,c,d,e,f,g,h,i,j)` | `Forest : checked component(z)` | `throws` | |

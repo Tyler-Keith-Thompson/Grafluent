@@ -378,6 +378,57 @@ extension BipartiteGraph: Graph {
     }
 }
 
+// MARK: - checked: lookups
+
+// README Principle 6: `VertexNotFound` for a vertex that is not in the graph, where the trapping
+// spellings above are the fast path. Each is one hash, the same as its trapping spelling, and then
+// the underlying list's row; `try?` gives an Optional.
+
+extension BipartiteGraph {
+    /// `side(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func side(checked vertex: Vertex) throws(VertexNotFound) -> BipartiteSide {
+        guard let slot = _graph._slotIfPresent(of: vertex) else { throw VertexNotFound() }
+        return _side[slot]
+    }
+
+    /// `neighbors(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1) to
+    /// make.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func neighbors(checked vertex: Vertex) throws(VertexNotFound) -> Neighbors {
+        try _graph.neighbors(checked: vertex)
+    }
+
+    /// `incidentEdges(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex.
+    /// O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func incidentEdges(checked vertex: Vertex) throws(VertexNotFound) -> ArraySlice<Int> {
+        try _graph.incidentEdges(checked: vertex)
+    }
+
+    /// `degree(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func degree(checked vertex: Vertex) throws(VertexNotFound) -> Int {
+        try _graph.degree(checked: vertex)
+    }
+
+    /// `vertexIndex(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func vertexIndex(checked vertex: Vertex) throws(VertexNotFound) -> Int {
+        try _graph.vertexIndex(checked: vertex)
+    }
+}
+
 // MARK: - Equatable, Hashable
 
 extension BipartiteGraph: Equatable {

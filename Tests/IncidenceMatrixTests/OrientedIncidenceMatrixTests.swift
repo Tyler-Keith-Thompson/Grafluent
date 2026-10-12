@@ -1,6 +1,7 @@
-// OrientedIncidenceMatrix (catalog IM-038 – IM-055): −1 at each source and +1 at each target, 0 for a
-// vertex on both sides with both bits kept (a self-loop included, as NetworkX's zero column); the
-// union matrix, the transposed dual, reversal as negation, and the plane edits.
+// OrientedIncidenceMatrix (catalog IM-038 – IM-055, IM-067 – IM-069): −1 at each source and +1 at
+// each target, 0 for a vertex on both sides with both bits kept (a self-loop included, as NetworkX's
+// zero column); the union matrix, the transposed dual, reversal as negation, the plane edits, and
+// the checked: reads and inserts, which throw VertexNotFound out of range and change nothing.
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import GraphProtocols
@@ -756,5 +757,131 @@ struct OrientedIncidenceMatrixTests {
         #expect(matrix.hyperedges.map { [Array($0.sources), Array($0.targets)] } == [])
         #expect(matrix.vertices == 0 ..< 0 && matrix.vertexIndexBound == 0 && matrix.hyperedgeIndexBound == 0)
         #expect(matrix.hyperedges.indices.map { matrix.hyperedgeIndex(of: $0) } == [])
+    }
+
+    @Test("IM-067 checked: spellings answer a vertex as the plain ones do and throw out of range")
+    func im067() throws {
+        // OIM n 4; E [{0, 1}→{2}, {2}→{2, 3}, {}→{}, {3}→{0, 1}] / outHyperedges(checked: 2) / inHyperedges(checked: 2) / outDegree(checked: 2) / inDegree(checked: 2) / degree(checked: 2) / vertexIndex(checked: 3) / outHyperedges(checked: 4) / inHyperedges(checked: -1) / outDegree(checked: 4) / inDegree(checked: -1) / degree(checked: 4) / vertexIndex(checked: -1)
+        let matrix = OrientedIncidenceMatrix(vertexCount: 4, hyperedges: [(sources: [0, 1], targets: [2]), (sources: [2], targets: [2, 3]), (sources: [], targets: []), (sources: [3], targets: [0, 1])] as [(sources: [Int], targets: [Int])])
+        #expect(try Array(matrix.outHyperedges(checked: 2)) == [1])
+        #expect(try Array(matrix.inHyperedges(checked: 2)) == [0, 1])
+        #expect(try matrix.outDegree(checked: 2) == 1)
+        #expect(try matrix.inDegree(checked: 2) == 2)
+        #expect(try matrix.degree(checked: 2) == 3)
+        #expect(try matrix.vertexIndex(checked: 3) == 3)
+        #expect(throws: VertexNotFound.self) { try matrix.outHyperedges(checked: 4) }
+        #expect((try? matrix.outHyperedges(checked: 4)) == nil)
+        #expect(throws: VertexNotFound.self) { try matrix.inHyperedges(checked: -1) }
+        #expect((try? matrix.inHyperedges(checked: -1)) == nil)
+        #expect(throws: VertexNotFound.self) { try matrix.outDegree(checked: 4) }
+        #expect((try? matrix.outDegree(checked: 4)) == nil)
+        #expect(throws: VertexNotFound.self) { try matrix.inDegree(checked: -1) }
+        #expect((try? matrix.inDegree(checked: -1)) == nil)
+        #expect(throws: VertexNotFound.self) { try matrix.degree(checked: 4) }
+        #expect((try? matrix.degree(checked: 4)) == nil)
+        #expect(throws: VertexNotFound.self) { try matrix.vertexIndex(checked: -1) }
+        #expect((try? matrix.vertexIndex(checked: -1)) == nil)
+        // Final state.
+        #expect(matrix.vertexCount == 4 && matrix.hyperedgeCount == 4)
+        #expect((0 ..< 4).map { v in String((0 ..< 4).map { p -> Character in ["-", "0", "+"][matrix[vertex: v, hyperedge: p] + 1] }) } == ["-00+", "-00+", "+000", "0+0-"])
+        #expect(matrix.hyperedges.map { [Array($0.sources), Array($0.targets)] } == [[[0, 1], [2]], [[2], [2, 3]], [[], []], [[3], [0, 1]]])
+        #expect(matrix.vertices == 0 ..< 4 && matrix.vertexIndexBound == 4 && matrix.hyperedgeIndexBound == 4)
+        #expect(matrix.hyperedges.indices.map { matrix.hyperedgeIndex(of: $0) } == [0, 1, 2, 3])
+        #expect(Array(matrix.sources(ofHyperedgeAt: 0)) == [0, 1] && Array(matrix.sourceIndices(ofHyperedgeAt: 0)) == [0, 1])
+        #expect(Array(matrix.targets(ofHyperedgeAt: 0)) == [2] && Array(matrix.targetIndices(ofHyperedgeAt: 0)) == [2])
+        #expect(matrix.contains(sources: [1, 0] as [Int], targets: [2] as [Int]))
+        #expect(Array(matrix.sources(ofHyperedgeAt: 1)) == [2] && Array(matrix.sourceIndices(ofHyperedgeAt: 1)) == [2])
+        #expect(Array(matrix.targets(ofHyperedgeAt: 1)) == [2, 3] && Array(matrix.targetIndices(ofHyperedgeAt: 1)) == [2, 3])
+        #expect(matrix.contains(sources: [2] as [Int], targets: [3, 2] as [Int]))
+        #expect(Array(matrix.sources(ofHyperedgeAt: 2)) == [] && Array(matrix.sourceIndices(ofHyperedgeAt: 2)) == [])
+        #expect(Array(matrix.targets(ofHyperedgeAt: 2)) == [] && Array(matrix.targetIndices(ofHyperedgeAt: 2)) == [])
+        #expect(matrix.contains(sources: [] as [Int], targets: [] as [Int]))
+        #expect(Array(matrix.sources(ofHyperedgeAt: 3)) == [3] && Array(matrix.sourceIndices(ofHyperedgeAt: 3)) == [3])
+        #expect(Array(matrix.targets(ofHyperedgeAt: 3)) == [0, 1] && Array(matrix.targetIndices(ofHyperedgeAt: 3)) == [0, 1])
+        #expect(matrix.contains(sources: [3] as [Int], targets: [1, 0] as [Int]))
+        #expect(Array(matrix.outHyperedges(of: 0)) == [0] && Array(matrix.outHyperedges(ofIndex: 0)) == [0])
+        #expect(Array(matrix.inHyperedges(of: 0)) == [3] && Array(matrix.inHyperedges(ofIndex: 0)) == [3])
+        #expect(matrix.outDegree(of: 0) == 1 && matrix.inDegree(of: 0) == 1 && matrix.outDegree(ofIndex: 0) == 1 && matrix.inDegree(ofIndex: 0) == 1 && matrix.degree(of: 0) == 2)
+        #expect(Array(matrix.outHyperedges(of: 1)) == [0] && Array(matrix.outHyperedges(ofIndex: 1)) == [0])
+        #expect(Array(matrix.inHyperedges(of: 1)) == [3] && Array(matrix.inHyperedges(ofIndex: 1)) == [3])
+        #expect(matrix.outDegree(of: 1) == 1 && matrix.inDegree(of: 1) == 1 && matrix.outDegree(ofIndex: 1) == 1 && matrix.inDegree(ofIndex: 1) == 1 && matrix.degree(of: 1) == 2)
+        #expect(Array(matrix.outHyperedges(of: 2)) == [1] && Array(matrix.outHyperedges(ofIndex: 2)) == [1])
+        #expect(Array(matrix.inHyperedges(of: 2)) == [0, 1] && Array(matrix.inHyperedges(ofIndex: 2)) == [0, 1])
+        #expect(matrix.outDegree(of: 2) == 1 && matrix.inDegree(of: 2) == 2 && matrix.outDegree(ofIndex: 2) == 1 && matrix.inDegree(ofIndex: 2) == 2 && matrix.degree(of: 2) == 3)
+        #expect(Array(matrix.outHyperedges(of: 3)) == [3] && Array(matrix.outHyperedges(ofIndex: 3)) == [3])
+        #expect(Array(matrix.inHyperedges(of: 3)) == [1] && Array(matrix.inHyperedges(ofIndex: 3)) == [1])
+        #expect(matrix.outDegree(of: 3) == 1 && matrix.inDegree(of: 3) == 1 && matrix.outDegree(ofIndex: 3) == 1 && matrix.inDegree(ofIndex: 3) == 1 && matrix.degree(of: 3) == 2)
+    }
+
+    @Test("IM-068 insert(checked:targets:) and insert(checked:) with every vertex in range")
+    func im068() throws {
+        // OIM n 3; E [] / insert(checked: [0, 1], targets: [2]) / insert(checked: 2→2) / vertexCount/hyperedgeCount
+        var matrix = OrientedIncidenceMatrix(vertexCount: 3, hyperedges: [] as [(sources: [Int], targets: [Int])])
+        #expect(try matrix.insert(checked: [0, 1] as [Int], targets: [2] as [Int]) == 0)
+        // After insert(checked: [0, 1], targets: [2]).
+        #expect(matrix.vertexCount == 3 && matrix.hyperedgeCount == 1)
+        #expect((0 ..< 3).map { v in String((0 ..< 1).map { p -> Character in ["-", "0", "+"][matrix[vertex: v, hyperedge: p] + 1] }) } == ["-", "-", "+"])
+        #expect(matrix.hyperedges.map { [Array($0.sources), Array($0.targets)] } == [[[0, 1], [2]]])
+        #expect(try matrix.insert(checked: DirectedEdge(from: 2, to: 2)) == 1)
+        #expect(matrix.vertexCount == 3 && matrix.hyperedgeCount == 2)
+        // Final state.
+        #expect(matrix.vertexCount == 3 && matrix.hyperedgeCount == 2)
+        #expect((0 ..< 3).map { v in String((0 ..< 2).map { p -> Character in ["-", "0", "+"][matrix[vertex: v, hyperedge: p] + 1] }) } == ["-0", "-0", "+0"])
+        #expect(matrix.hyperedges.map { [Array($0.sources), Array($0.targets)] } == [[[0, 1], [2]], [[2], [2]]])
+        #expect(matrix.vertices == 0 ..< 3 && matrix.vertexIndexBound == 3 && matrix.hyperedgeIndexBound == 2)
+        #expect(matrix.hyperedges.indices.map { matrix.hyperedgeIndex(of: $0) } == [0, 1])
+        #expect(Array(matrix.sources(ofHyperedgeAt: 0)) == [0, 1] && Array(matrix.sourceIndices(ofHyperedgeAt: 0)) == [0, 1])
+        #expect(Array(matrix.targets(ofHyperedgeAt: 0)) == [2] && Array(matrix.targetIndices(ofHyperedgeAt: 0)) == [2])
+        #expect(matrix.contains(sources: [1, 0] as [Int], targets: [2] as [Int]))
+        #expect(Array(matrix.sources(ofHyperedgeAt: 1)) == [2] && Array(matrix.sourceIndices(ofHyperedgeAt: 1)) == [2])
+        #expect(Array(matrix.targets(ofHyperedgeAt: 1)) == [2] && Array(matrix.targetIndices(ofHyperedgeAt: 1)) == [2])
+        #expect(matrix.contains(sources: [2] as [Int], targets: [2] as [Int]))
+        #expect(Array(matrix.outHyperedges(of: 0)) == [0] && Array(matrix.outHyperedges(ofIndex: 0)) == [0])
+        #expect(Array(matrix.inHyperedges(of: 0)) == [] && Array(matrix.inHyperedges(ofIndex: 0)) == [])
+        #expect(matrix.outDegree(of: 0) == 1 && matrix.inDegree(of: 0) == 0 && matrix.outDegree(ofIndex: 0) == 1 && matrix.inDegree(ofIndex: 0) == 0 && matrix.degree(of: 0) == 1)
+        #expect(Array(matrix.outHyperedges(of: 1)) == [0] && Array(matrix.outHyperedges(ofIndex: 1)) == [0])
+        #expect(Array(matrix.inHyperedges(of: 1)) == [] && Array(matrix.inHyperedges(ofIndex: 1)) == [])
+        #expect(matrix.outDegree(of: 1) == 1 && matrix.inDegree(of: 1) == 0 && matrix.outDegree(ofIndex: 1) == 1 && matrix.inDegree(ofIndex: 1) == 0 && matrix.degree(of: 1) == 1)
+        #expect(Array(matrix.outHyperedges(of: 2)) == [1] && Array(matrix.outHyperedges(ofIndex: 2)) == [1])
+        #expect(Array(matrix.inHyperedges(of: 2)) == [0, 1] && Array(matrix.inHyperedges(ofIndex: 2)) == [0, 1])
+        #expect(matrix.outDegree(of: 2) == 1 && matrix.inDegree(of: 2) == 2 && matrix.outDegree(ofIndex: 2) == 1 && matrix.inDegree(ofIndex: 2) == 2 && matrix.degree(of: 2) == 3)
+    }
+
+    @Test("IM-069 insert(checked:targets:) and insert(checked:) out of range: throw, nothing changes")
+    func im069() throws {
+        // OIM n 2; E [{0}→{1}] / insert(checked: [0], targets: [2]) / insert(checked: [-1], targets: []) / insert(checked: 0→2) / insert(checked: 2→0) / vertexCount/hyperedgeCount
+        var matrix = OrientedIncidenceMatrix(vertexCount: 2, hyperedges: [(sources: [0], targets: [1])] as [(sources: [Int], targets: [Int])])
+        #expect(throws: VertexNotFound.self) { try matrix.insert(checked: [0] as [Int], targets: [2] as [Int]) }
+        // After insert(checked: [0], targets: [2]).
+        #expect(matrix.vertexCount == 2 && matrix.hyperedgeCount == 1)
+        #expect((0 ..< 2).map { v in String((0 ..< 1).map { p -> Character in ["-", "0", "+"][matrix[vertex: v, hyperedge: p] + 1] }) } == ["-", "+"])
+        #expect(matrix.hyperedges.map { [Array($0.sources), Array($0.targets)] } == [[[0], [1]]])
+        #expect(throws: VertexNotFound.self) { try matrix.insert(checked: [-1] as [Int], targets: [] as [Int]) }
+        // After insert(checked: [-1], targets: []).
+        #expect(matrix.vertexCount == 2 && matrix.hyperedgeCount == 1)
+        #expect((0 ..< 2).map { v in String((0 ..< 1).map { p -> Character in ["-", "0", "+"][matrix[vertex: v, hyperedge: p] + 1] }) } == ["-", "+"])
+        #expect(matrix.hyperedges.map { [Array($0.sources), Array($0.targets)] } == [[[0], [1]]])
+        #expect(throws: VertexNotFound.self) { try matrix.insert(checked: DirectedEdge(from: 0, to: 2)) }
+        // After insert(checked: 0→2).
+        #expect(matrix.vertexCount == 2 && matrix.hyperedgeCount == 1)
+        #expect((0 ..< 2).map { v in String((0 ..< 1).map { p -> Character in ["-", "0", "+"][matrix[vertex: v, hyperedge: p] + 1] }) } == ["-", "+"])
+        #expect(matrix.hyperedges.map { [Array($0.sources), Array($0.targets)] } == [[[0], [1]]])
+        #expect(throws: VertexNotFound.self) { try matrix.insert(checked: DirectedEdge(from: 2, to: 0)) }
+        #expect(matrix.vertexCount == 2 && matrix.hyperedgeCount == 1)
+        // Final state.
+        #expect(matrix.vertexCount == 2 && matrix.hyperedgeCount == 1)
+        #expect((0 ..< 2).map { v in String((0 ..< 1).map { p -> Character in ["-", "0", "+"][matrix[vertex: v, hyperedge: p] + 1] }) } == ["-", "+"])
+        #expect(matrix.hyperedges.map { [Array($0.sources), Array($0.targets)] } == [[[0], [1]]])
+        #expect(matrix.vertices == 0 ..< 2 && matrix.vertexIndexBound == 2 && matrix.hyperedgeIndexBound == 1)
+        #expect(matrix.hyperedges.indices.map { matrix.hyperedgeIndex(of: $0) } == [0])
+        #expect(Array(matrix.sources(ofHyperedgeAt: 0)) == [0] && Array(matrix.sourceIndices(ofHyperedgeAt: 0)) == [0])
+        #expect(Array(matrix.targets(ofHyperedgeAt: 0)) == [1] && Array(matrix.targetIndices(ofHyperedgeAt: 0)) == [1])
+        #expect(matrix.contains(sources: [0] as [Int], targets: [1] as [Int]))
+        #expect(Array(matrix.outHyperedges(of: 0)) == [0] && Array(matrix.outHyperedges(ofIndex: 0)) == [0])
+        #expect(Array(matrix.inHyperedges(of: 0)) == [] && Array(matrix.inHyperedges(ofIndex: 0)) == [])
+        #expect(matrix.outDegree(of: 0) == 1 && matrix.inDegree(of: 0) == 0 && matrix.outDegree(ofIndex: 0) == 1 && matrix.inDegree(ofIndex: 0) == 0 && matrix.degree(of: 0) == 1)
+        #expect(Array(matrix.outHyperedges(of: 1)) == [] && Array(matrix.outHyperedges(ofIndex: 1)) == [])
+        #expect(Array(matrix.inHyperedges(of: 1)) == [0] && Array(matrix.inHyperedges(ofIndex: 1)) == [0])
+        #expect(matrix.outDegree(of: 1) == 0 && matrix.inDegree(of: 1) == 1 && matrix.outDegree(ofIndex: 1) == 0 && matrix.inDegree(ofIndex: 1) == 1 && matrix.degree(of: 1) == 1)
     }
 }

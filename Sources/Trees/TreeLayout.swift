@@ -120,6 +120,14 @@ package struct _TreeLayout<Vertex: Hashable> {
         return v
     }
 
+    /// The number of `vertex`, for the `checked:` spellings: the one lookup `number(of:)` makes,
+    /// throwing where it traps.
+    @inlinable @inline(__always)
+    func checkedNumber(of vertex: Vertex) throws(VertexNotFound) -> Int {
+        guard let v = Self.lookup(vertex, vertices, slots, dense) else { throw VertexNotFound() }
+        return v
+    }
+
     @inlinable
     func contains(_ vertex: Vertex) -> Bool { Self.lookup(vertex, vertices, slots, dense) != nil }
 

@@ -37,18 +37,27 @@ struct RootedTree<Vertex: Hashable>: Graph
     root, parent(of:), parentEdge(of:), children(of:), depth(of:), height,
     preorder, postorder, descendants(of:), ancestors(of:), isAncestor(_:of:),
     path(from:to:), rootIndex, parent(ofIndex:), depth(ofIndex:)
+    parent(checked:), parentEdge(checked:), children(checked:), depth(checked:),
+    descendants(checked:), ancestors(checked:), isAncestor(checked:of:),
+    path(checkedFrom:to:)                                            // throw VertexNotFound; nil is still the root
 
 struct Arborescence<Vertex: Hashable>: BidirectionalDirectedGraph
     init?(_ graph: some DirectedGraph<Vertex>), init?(edges:), init?(vertices:edges:)
     init(_ tree: RootedTree<Vertex>)                                 // arcs parent → child at the tree's positions
     init?<E>(vertices:parent:) throws(E), init?(parents: [Int?])
     the rooted queries above; path(from:to:) -> Path<Vertex, Int>?  // nil unless downward
+    successors, predecessors, outEdges, inEdges, outDegree, inDegree,
+    degree, vertexIndex (checked:)                                   // throw VertexNotFound
+    source(checkedEdgeAt:), target(checkedEdgeAt:)                   // throw EdgeNotFound
 
 struct Forest<Vertex: Hashable>: Graph
     init(), init?(_ graph:), init?(edges:), init?(vertices:edges:), init(_ tree: Tree<Vertex>)
     var trees: Trees                                                 // RandomAccessCollection<Tree<Vertex>>, by least vertex
     func component(of:) -> Int
     func path(from:to:) -> Path<Vertex, Int>?                        // nil across trees
+    component(checked:), path(checkedFrom:to:)                       // throw VertexNotFound
+// Tree, RootedTree, Forest: neighbors, incidentEdges, degree, vertexIndex (checked:), and Tree's
+// path(checkedFrom:to:), throw VertexNotFound
 // All four: Equatable, Hashable, Codable, Sendable (when Vertex is), descriptions
 ```
 
@@ -57,7 +66,7 @@ struct Forest<Vertex: Hashable>: Graph
 | Question | Choice | Cases |
 |---|---|---|
 | Null graph | Not a tree (no empty `Tree`, `RootedTree` or `Arborescence`); the empty `Forest` exists | TS-001 – TS-004, TS-050, TS-159, TS-405 |
-| Failure | Unchecked input gives `nil`; a root or query vertex that is not a vertex traps | §A – §D, TS-109, TS-246, TS-315 |
+| Failure | Unchecked input gives `nil`; a root or query vertex that is not a vertex traps, and each query's `checked:` spelling throws `VertexNotFound` (`EdgeNotFound` for an arborescence edge position) instead, a plain nil keeping its meaning | §A – §D, TS-109, TS-246, TS-315, §L |
 | Vertex order | The graph's `vertices`; from `vertices:edges:`, the listed vertices with repeats dropped, then endpoints by first appearance; from a parent function, `vertices` with repeats dropped | TS-100 – TS-103, TS-165 |
 | Edge positions | The graph's positions; from a parent function one edge per non-root vertex, in vertex order, `(parent, child)`; Prüfer decoding in decoding order | TS-030, TS-063, TS-151, TS-163, TS-501 |
 | Rows | Rebuilt in position order whatever the source's row order; `children(of:)` is the row without the parent edge | TS-105, TS-219, TS-225, representation tests |
@@ -104,13 +113,14 @@ that model. The property tests write their oracles inside each test.
 | `TreePropertyTests.swift` | 7 | PropertyBased, shrinking: recognition against union–find and in-degree counts, rooted queries against recursion, paths against BFS, Prüfer against the textbook loop, parent arrays, equality and Codable under shuffles |
 | `Performance/TreeStressTests.swift` | 16 | §K inside a `Task` with a one-minute limit: the 10⁶ path (depth, postorder, height, path, ancestor, descendants, Prüfer), the 10⁶ star, kary(10⁶, 2), 10⁶ isolated vertices, a 10⁶ parent chain, conversions and equality at 10⁶ |
 | `TreePreconditionTests.swift` | 5 | Exit tests: a root that is not a vertex (TS-109), queries and paths on a non-vertex (TS-246, TS-315 and the other rooted queries, `component(of:)`) |
+| `TreeCheckedLookupTests.swift` | 99 | §L: every `checked:` spelling on each type, its value against the plain spelling's and its throw on a vertex outside the tree (negative, `vertexCount`, absent) or a position outside `0..<edgeCount`; dense `Int`, small (no table) and hashed lookups; sweeps of every vertex and position; Arborescence's own `descendants(checked:)` and `ancestors(checked:)` |
 | `TreeReviewTests.swift` | 10 | Added after planting bugs and the review (TS-1001 – TS-1010): a forest with a parallel pair, edges keeping their orientation, hashes that see edges, `Int` vertices by first appearance, small trees without a vertex table, one-vertex trees of a forest, children with the parent edge anywhere in the row, parent arrays, rooted-tree decoding errors, equal hashes under shuffles |
 
-267 tests in all.
+366 tests in all.
 
 ## Case IDs
 
-Case IDs (TS-001 … TS-813) refer to the catalog (`cases.md`, with `ref.py` and `api.md` in `Tests/Catalogs/Trees/`), harvested from NetworkX
+Case IDs (TS-001 … TS-995) refer to the catalog (`cases.md`, with `ref.py` and `api.md` in `Tests/Catalogs/Trees/`), harvested from NetworkX
 (`tree/tests/test_recognition.py`, `test_coding.py`, `traversal/tests/test_dfs.py`), igraph
 (`igraph_is_tree.c`, `igraph_is_forest.c`, `igraph_to_prufer.c`, `igraph_from_prufer.c`,
 `igraph_tree_from_parent_vector.c`), JGraphT (`GraphTestsTest`) and LEMON (`connectivity_test.cc`).
@@ -133,6 +143,7 @@ properties the catalog does not list.
 | TS-600 – TS-611 | I. Graph rows | `TreeGraphRowTests.swift` |
 | TS-700 – TS-707 | J. Equality | `TreeEqualityTests.swift` |
 | TS-800 – TS-813 | K. Scale | `Performance/TreeStressTests.swift` |
+| TS-900 – TS-995 | L. `checked:` lookups | `TreeCheckedLookupTests.swift` |
 | TS-1001 – TS-1010 | Review: see the file table | `TreeReviewTests.swift` |
 
 ## Not tested

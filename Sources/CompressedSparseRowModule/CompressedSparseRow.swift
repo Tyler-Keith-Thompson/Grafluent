@@ -784,6 +784,74 @@ extension CompressedSparseRow: DirectedGraph {
     }
 }
 
+// MARK: - checked: lookups
+
+// README Principle 6: `VertexNotFound` for a vertex outside `0..<vertexCount`, `EdgeNotFound` for
+// an edge index outside `0..<edgeCount`, where the trapping spellings above are the fast path.
+// Each checks the range once and then calls its trapping spelling; `try?` gives an Optional.
+
+extension CompressedSparseRow {
+    /// `successors(of: vertex)`, throwing instead of trapping when `vertex` is not in
+    /// `0..<vertexCount`. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
+    @inlinable
+    public func successors(checked vertex: Int) throws(VertexNotFound) -> ArraySlice<Int> {
+        guard contains(vertex) else { throw VertexNotFound() }
+        return successors(of: vertex)
+    }
+
+    /// `outEdges(of: vertex)`, throwing instead of trapping when `vertex` is not in
+    /// `0..<vertexCount`. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
+    @inlinable
+    public func outEdges(checked vertex: Int) throws(VertexNotFound) -> Range<Int> {
+        guard contains(vertex) else { throw VertexNotFound() }
+        return outEdges(of: vertex)
+    }
+
+    /// `outDegree(of: vertex)`, throwing instead of trapping when `vertex` is not in
+    /// `0..<vertexCount`. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
+    @inlinable
+    public func outDegree(checked vertex: Int) throws(VertexNotFound) -> Int {
+        guard contains(vertex) else { throw VertexNotFound() }
+        return outDegree(of: vertex)
+    }
+
+    /// `vertexIndex(of: vertex)`, throwing instead of trapping when `vertex` is not in
+    /// `0..<vertexCount`. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
+    @inlinable
+    public func vertexIndex(checked vertex: Int) throws(VertexNotFound) -> Int {
+        guard contains(vertex) else { throw VertexNotFound() }
+        return vertexIndex(of: vertex)
+    }
+
+    /// `source(ofEdgeAt: edgeIndex)`, throwing instead of trapping when `edgeIndex` is not in
+    /// `0..<edgeCount`. O(log n).
+    ///
+    /// - Throws: `EdgeNotFound` when `edgeIndex` is not in `0..<edgeCount`.
+    @inlinable
+    public func source(checkedEdgeAt edgeIndex: Int) throws(EdgeNotFound) -> Int {
+        guard edgeIndex >= 0 && edgeIndex < edgeCount else { throw EdgeNotFound() }
+        return source(ofEdgeAt: edgeIndex)
+    }
+
+    /// `target(ofEdgeAt: edgeIndex)`, throwing instead of trapping when `edgeIndex` is not in
+    /// `0..<edgeCount`. O(1).
+    ///
+    /// - Throws: `EdgeNotFound` when `edgeIndex` is not in `0..<edgeCount`.
+    @inlinable
+    public func target(checkedEdgeAt edgeIndex: Int) throws(EdgeNotFound) -> Int {
+        guard edgeIndex >= 0 && edgeIndex < edgeCount else { throw EdgeNotFound() }
+        return target(ofEdgeAt: edgeIndex)
+    }
+}
+
 extension CompressedSparseRow {
     /// The compressed sparse row form of any directed graph on the vertices
     /// `0..<graph.vertexCount`, with parallel edges collapsed. The edges are read in place.

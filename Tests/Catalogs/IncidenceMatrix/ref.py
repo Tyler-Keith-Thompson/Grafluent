@@ -375,6 +375,13 @@ def check_oim(M, graph=None):
 
 VOID = object()
 ROWS = []
+# What a `checked:` spelling throws for a vertex not in 0..<vertexCount (README Principle 6).
+THROWS = "throws VertexNotFound"
+
+
+def checked(M, f, *vs):
+    """`f()`, or the throw when a vertex in `vs` is out of range; nothing changes on a throw."""
+    return f() if all(0 <= v < M.n for v in vs) else THROWS
 
 
 def fmt_im(M):
@@ -424,6 +431,10 @@ def run_call(M, call):
             "removeAll": lambda: (M.remove_all(), VOID)[1],
             "transposed": lambda: M.transposed(),
             "counts": lambda: f"{M.n}/{M.m}",
+            "incidentHyperedges(checked:)": lambda v: checked(M, lambda: M.incident(v), v),
+            "degree(checked:)": lambda v: checked(M, lambda: M.degree(v), v),
+            "vertexIndex(checked:)": lambda v: checked(M, lambda: v, v),
+            "insert(checked:)": lambda *vs: checked(M, lambda: M.insert_hyperedge(vs), *vs),
         }
     else:
         table = {
@@ -446,6 +457,14 @@ def run_call(M, call):
             "reversed": lambda: M.reversed(),
             "IncidenceMatrix(_:)": lambda: M.unoriented(),
             "counts": lambda: f"{M.n}/{M.m}",
+            "outHyperedges(checked:)": lambda v: checked(M, lambda: M.out_h(v), v),
+            "inHyperedges(checked:)": lambda v: checked(M, lambda: M.in_h(v), v),
+            "outDegree(checked:)": lambda v: checked(M, lambda: len(M.out_h(v)), v),
+            "inDegree(checked:)": lambda v: checked(M, lambda: len(M.in_h(v)), v),
+            "degree(checked:)": lambda v: checked(M, lambda: M.degree(v), v),
+            "vertexIndex(checked:)": lambda v: checked(M, lambda: v, v),
+            "insert(checked:targets:)": lambda s, t: checked(M, lambda: M.insert_hyperedge(s, t), *s, *t),
+            "insert(checked:edge)": lambda s, t: checked(M, lambda: M.insert_hyperedge([s], [t]), s, t),
         }
     return table[name](*args)
 
@@ -465,6 +484,14 @@ def call_text(call):
     if name.startswith(("insert(_:", "remove(_:")):
         base, label = name.split("(_:")
         return f"{base}({args[0]}, {label[:-2]}: {args[1]})"
+    if name.endswith("(checked:)") and not name.startswith("insert"):
+        return f"{name[:-1]} {args[0]})"
+    if name == "insert(checked:)":
+        return f"insert(checked: [{', '.join(map(str, args))}])"
+    if name == "insert(checked:targets:)":
+        return f"insert(checked: [{', '.join(map(str, args[0]))}], targets: [{', '.join(map(str, args[1]))}])"
+    if name == "insert(checked:edge)":
+        return f"insert(checked: {args[0]}→{args[1]})"
     if name == "counts":
         return "vertexCount/hyperedgeCount"
     if name == "IncidenceMatrix(_:)":
@@ -638,6 +665,26 @@ def define():
     eq_case("oriented: column order is observable", "OIM n 2; E [{0}→{}, {}→{1}]", lambda: OIM(2, [([0], []), ([], [1])]),
             "OIM n 2; E [{}→{1}, {0}→{}]", lambda: OIM(2, [([], [1]), ([0], [])]))
 
+    # checked: spellings (README Principle 6): the plain answer in range, VertexNotFound out of it
+    im("Reads", "checked: spellings answer a vertex as the plain ones do and throw out of range", 5, HYP,
+       [("incidentHyperedges(checked:)", 2), ("degree(checked:)", 2), ("vertexIndex(checked:)", 4),
+        ("incidentHyperedges(checked:)", 5), ("degree(checked:)", -1), ("vertexIndex(checked:)", 5)], show_state=False)
+    im("Mutation", "insert(checked:) with every member in range appends the column", 3, [[0]],
+       [("insert(checked:)", 2, 0, 2), ("counts",)])
+    im("Mutation", "insert(checked:) with a member out of range: throws, nothing changes", 2, [[0]],
+       [("insert(checked:)", 0, 2), ("insert(checked:)", -1), ("counts",)])
+    doim("Oriented hypergraph", "checked: spellings answer a vertex as the plain ones do and throw out of range", 4, DHYP,
+         [("outHyperedges(checked:)", 2), ("inHyperedges(checked:)", 2), ("outDegree(checked:)", 2),
+          ("inDegree(checked:)", 2), ("degree(checked:)", 2), ("vertexIndex(checked:)", 3),
+          ("outHyperedges(checked:)", 4), ("inHyperedges(checked:)", -1), ("outDegree(checked:)", 4),
+          ("inDegree(checked:)", -1), ("degree(checked:)", 4), ("vertexIndex(checked:)", -1)], show_state=False)
+    doim("Oriented mutation", "insert(checked:targets:) and insert(checked:) with every vertex in range", 3, [],
+         [("insert(checked:targets:)", [0, 1], [2]), ("insert(checked:edge)", 2, 2), ("counts",)])
+    doim("Oriented mutation", "insert(checked:targets:) and insert(checked:) out of range: throw, nothing changes", 2,
+         [([0], [1])],
+         [("insert(checked:targets:)", [0], [2]), ("insert(checked:targets:)", [-1], []), ("insert(checked:edge)", 0, 2),
+          ("insert(checked:edge)", 2, 0), ("counts",)])
+
 
 def render():
     out = [
@@ -663,6 +710,8 @@ def render():
         "  only), `-` (source only), `0` (neither, or both); `columns [p:{…}→{…}]` lists each column's two planes.",
         "* `**trap**` rows are preconditions, run as exit tests (`#expect(processExitsWith:)`); results before the",
         "  trap are listed.",
+        "* `throws VertexNotFound` is what a `checked:` spelling throws for a vertex not in `0..<vertexCount` (README",
+        "  Principle 6), where the plain spelling traps; a throwing insert changes nothing.",
         "",
         "| ID | Group | Case | Input / call | Expected |",
         "|---|---|---|---|---|",

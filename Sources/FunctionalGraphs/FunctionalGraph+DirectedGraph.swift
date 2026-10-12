@@ -72,6 +72,16 @@ extension FunctionalGraph: DirectedGraph {
         CollectionOfOne(successor(of: vertex))
     }
 
+    /// `successors(of: vertex)`, throwing instead of trapping when `vertex` is not in
+    /// `0..<vertexCount`. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
+    @inlinable
+    public func successors(checked vertex: Int) throws(VertexNotFound) -> CollectionOfOne<Int> {
+        guard contains(vertex) else { throw VertexNotFound() }
+        return successors(of: vertex)
+    }
+
     /// `[vertex]`: the edge leaving a vertex has the vertex as its position. O(1).
     ///
     /// - Precondition: `vertex` is in `0..<vertexCount`.
@@ -81,6 +91,16 @@ extension FunctionalGraph: DirectedGraph {
         return CollectionOfOne(vertex)
     }
 
+    /// `outEdges(of: vertex)`, throwing instead of trapping when `vertex` is not in
+    /// `0..<vertexCount`. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
+    @inlinable
+    public func outEdges(checked vertex: Int) throws(VertexNotFound) -> CollectionOfOne<Int> {
+        guard contains(vertex) else { throw VertexNotFound() }
+        return outEdges(of: vertex)
+    }
+
     /// 1. O(1).
     ///
     /// - Precondition: `vertex` is in `0..<vertexCount`.
@@ -88,6 +108,16 @@ extension FunctionalGraph: DirectedGraph {
     public func outDegree(of vertex: Int) -> Int {
         _check(vertex)
         return 1
+    }
+
+    /// `outDegree(of: vertex)`, throwing instead of trapping when `vertex` is not in
+    /// `0..<vertexCount`. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
+    @inlinable
+    public func outDegree(checked vertex: Int) throws(VertexNotFound) -> Int {
+        guard contains(vertex) else { throw VertexNotFound() }
+        return outDegree(of: vertex)
     }
 
     /// `position`, the vertex the edge leaves. O(1).
@@ -105,6 +135,26 @@ extension FunctionalGraph: DirectedGraph {
     @inlinable
     public func target(ofEdgeAt position: Int) -> Int {
         successor(of: position)
+    }
+
+    /// `source(ofEdgeAt: position)`, throwing instead of trapping when `position` is not in
+    /// `0..<edgeCount`. O(1).
+    ///
+    /// - Throws: `EdgeNotFound` when `position` is not in `0..<edgeCount`.
+    @inlinable
+    public func source(checkedEdgeAt position: Int) throws(EdgeNotFound) -> Int {
+        guard contains(position) else { throw EdgeNotFound() }
+        return source(ofEdgeAt: position)
+    }
+
+    /// `target(ofEdgeAt: position)`, throwing instead of trapping when `position` is not in
+    /// `0..<edgeCount`. O(1).
+    ///
+    /// - Throws: `EdgeNotFound` when `position` is not in `0..<edgeCount`.
+    @inlinable
+    public func target(checkedEdgeAt position: Int) throws(EdgeNotFound) -> Int {
+        guard contains(position) else { throw EdgeNotFound() }
+        return target(ofEdgeAt: position)
     }
 
     /// n. O(1).
@@ -138,6 +188,16 @@ extension FunctionalGraph: DirectedGraph {
     public func vertexIndex(of vertex: Int) -> Int {
         _check(vertex)
         return vertex
+    }
+
+    /// `vertexIndex(of: vertex)`, throwing instead of trapping when `vertex` is not in
+    /// `0..<vertexCount`. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
+    @inlinable
+    public func vertexIndex(checked vertex: Int) throws(VertexNotFound) -> Int {
+        guard contains(vertex) else { throw VertexNotFound() }
+        return vertexIndex(of: vertex)
     }
 
     /// `index`. O(1).

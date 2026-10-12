@@ -350,6 +350,23 @@ extension AdjacencyMatrix {
         return (true, edge)
     }
 
+    /// Inserts `edge`, if it is not already an edge, only when both endpoints are in
+    /// `0..<vertexCount`; otherwise throws and changes nothing. O(1).
+    ///
+    /// `insert(edge:)` traps on an out-of-range endpoint, since the matrix never grows to fit an
+    /// edge. Requiring the endpoints is JGraphT's `addEdge` precondition (it throws
+    /// `IllegalArgumentException`) and petgraph's `try_add_edge` (`GraphError::NodeMissed`); this
+    /// library spells it with the `checked:` label of the lookups (README Principle 6), for callers
+    /// whose vertices may come from another graph.
+    ///
+    /// - Throws: `VertexNotFound` when either endpoint is not in `0..<vertexCount`.
+    @inlinable
+    @discardableResult
+    public mutating func insert(checked edge: DirectedEdge<Int>) throws(VertexNotFound) -> (inserted: Bool, memberAfterInsert: DirectedEdge<Int>) {
+        guard contains(edge.source), contains(edge.target) else { throw VertexNotFound() }
+        return insert(edge: edge)
+    }
+
     /// Removes `edge`.
     ///
     /// - Returns: The removed edge, or `nil` if it was not an edge (including when an endpoint is
@@ -1023,6 +1040,114 @@ extension AdjacencyMatrix: BidirectionalDirectedGraph {
     /// `target(ofEdgeAt:)`: vertices are their own indices. O(1).
     @inlinable
     public func targetIndex(ofEdgeAt position: Edges.Index) -> Int { target(ofEdgeAt: position) }
+}
+
+// MARK: - checked: lookups
+
+// README Principle 6: `VertexNotFound` for a vertex outside `0..<vertexCount`, `EdgeNotFound` for
+// a cell that holds no edge, where the trapping spellings above are the fast path. Each checks
+// the range once and then calls its trapping spelling; `try?` gives an Optional.
+
+extension AdjacencyMatrix {
+    /// `successors(of: vertex)`, throwing instead of trapping when `vertex` is not in
+    /// `0..<vertexCount`. O(n / 64).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
+    @inlinable
+    public func successors(checked vertex: Int) throws(VertexNotFound) -> BitSet {
+        guard contains(vertex) else { throw VertexNotFound() }
+        return successors(of: vertex)
+    }
+
+    /// `predecessors(of: vertex)`, throwing instead of trapping when `vertex` is not in
+    /// `0..<vertexCount`. O(n).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
+    @inlinable
+    public func predecessors(checked vertex: Int) throws(VertexNotFound) -> BitSet {
+        guard contains(vertex) else { throw VertexNotFound() }
+        return predecessors(of: vertex)
+    }
+
+    /// `outEdges(of: vertex)`, throwing instead of trapping when `vertex` is not in
+    /// `0..<vertexCount`. O(n / 64) to make.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
+    @inlinable
+    public func outEdges(checked vertex: Int) throws(VertexNotFound) -> LazyMapSequence<BitSet, Edges.Index> {
+        guard contains(vertex) else { throw VertexNotFound() }
+        return outEdges(of: vertex)
+    }
+
+    /// `inEdges(of: vertex)`, throwing instead of trapping when `vertex` is not in
+    /// `0..<vertexCount`. O(n) to make.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
+    @inlinable
+    public func inEdges(checked vertex: Int) throws(VertexNotFound) -> LazyMapSequence<BitSet, Edges.Index> {
+        guard contains(vertex) else { throw VertexNotFound() }
+        return inEdges(of: vertex)
+    }
+
+    /// `outDegree(of: vertex)`, throwing instead of trapping when `vertex` is not in
+    /// `0..<vertexCount`. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
+    @inlinable
+    public func outDegree(checked vertex: Int) throws(VertexNotFound) -> Int {
+        guard contains(vertex) else { throw VertexNotFound() }
+        return outDegree(of: vertex)
+    }
+
+    /// `inDegree(of: vertex)`, throwing instead of trapping when `vertex` is not in
+    /// `0..<vertexCount`. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
+    @inlinable
+    public func inDegree(checked vertex: Int) throws(VertexNotFound) -> Int {
+        guard contains(vertex) else { throw VertexNotFound() }
+        return inDegree(of: vertex)
+    }
+
+    /// `degree(of: vertex)`, throwing instead of trapping when `vertex` is not in
+    /// `0..<vertexCount`. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
+    @inlinable
+    public func degree(checked vertex: Int) throws(VertexNotFound) -> Int {
+        guard contains(vertex) else { throw VertexNotFound() }
+        return degree(of: vertex)
+    }
+
+    /// `vertexIndex(of: vertex)`, throwing instead of trapping when `vertex` is not in
+    /// `0..<vertexCount`. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
+    @inlinable
+    public func vertexIndex(checked vertex: Int) throws(VertexNotFound) -> Int {
+        guard contains(vertex) else { throw VertexNotFound() }
+        return vertexIndex(of: vertex)
+    }
+
+    /// `source(ofEdgeAt: position)`, throwing instead of trapping when the cell holds no edge.
+    /// O(1).
+    ///
+    /// - Throws: `EdgeNotFound` when the cell is out of range or holds no edge.
+    @inlinable
+    public func source(checkedEdgeAt position: Edges.Index) throws(EdgeNotFound) -> Int {
+        guard contains(edge: DirectedEdge(from: position.source, to: position.target)) else { throw EdgeNotFound() }
+        return source(ofEdgeAt: position)
+    }
+
+    /// `target(ofEdgeAt: position)`, throwing instead of trapping when the cell holds no edge.
+    /// O(1).
+    ///
+    /// - Throws: `EdgeNotFound` when the cell is out of range or holds no edge.
+    @inlinable
+    public func target(checkedEdgeAt position: Edges.Index) throws(EdgeNotFound) -> Int {
+        guard contains(edge: DirectedEdge(from: position.source, to: position.target)) else { throw EdgeNotFound() }
+        return target(ofEdgeAt: position)
+    }
 }
 
 extension AdjacencyMatrix {

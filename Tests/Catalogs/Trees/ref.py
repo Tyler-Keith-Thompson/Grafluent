@@ -593,6 +593,11 @@ def query(t, q):
         val = None if p < 0 else p
     elif name == "children":
         val = [V[c] for c in t.children[ix(a[0])]]
+    elif name == "successors":
+        val = [V[c] for c in t.children[ix(a[0])]]
+    elif name == "predecessors":
+        p = t.parent[ix(a[0])]
+        val = [] if p < 0 else [V[p]]
     elif name == "depth":
         val = t.depth[ix(a[0])]
     elif name == "height":
@@ -642,6 +647,13 @@ def query(t, q):
     elif name == "inDegree":
         v = ix(a[0])
         val = sum(1 for k in t.rows[v] if t.edges[k][1] == v)
+    elif name in ("source", "target"):
+        k = int(a[0])
+        if not 0 <= k < len(t.edges):
+            raise Trap("not an edge position")
+        val = V[t.edges[k][0 if name == "source" else 1]]
+    elif name == "vertexIndex":
+        val = ix(a[0])
     elif name == "trees":
         return trees_str(t)
     elif name == "treeCount":
@@ -745,13 +757,21 @@ def evaluate(source_cell, op):
         b, q = op.split(" : ", 1)
     else:
         b, q = op, "built"
+    # `checked q`: the `checked:` spelling of query q (§L), which throws `VertexNotFound` or
+    # `EdgeNotFound` where q traps and otherwise returns q's value.
+    checked = q.startswith("checked ")
+    if checked:
+        q = q[len("checked "):]
     try:
         t = build(parse_source(source_cell), parse_steps(b))
-        if t is None:
-            return "nil"
-        return query(t, q)
     except Trap:
         return "trap"
+    if t is None:
+        return "nil"
+    try:
+        return query(t, q)
+    except Trap:
+        return "throws" if checked else "trap"
 
 
 # --------------------------------------------------------------------------------------------

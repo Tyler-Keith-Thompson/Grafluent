@@ -22,6 +22,16 @@ extension ImplicitDirectedGraph: DirectedGraph {
         return _row(vertex)
     }
 
+    /// `successors(of: vertex)`, throwing instead of trapping when `vertex` is not in
+    /// `0..<vertexCount`. One call.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
+    @inlinable
+    public func successors(checked vertex: Int) throws(VertexNotFound) -> Successors {
+        guard contains(vertex) else { throw VertexNotFound() }
+        return successors(of: vertex)
+    }
+
     /// The positions of the edges leaving `vertex`, in row order: ranks 0, 1, …, each with its
     /// target. One call.
     ///
@@ -32,6 +42,16 @@ extension ImplicitDirectedGraph: DirectedGraph {
         return OutEdges(_row: _row(vertex))
     }
 
+    /// `outEdges(of: vertex)`, throwing instead of trapping when `vertex` is not in
+    /// `0..<vertexCount`. One call.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
+    @inlinable
+    public func outEdges(checked vertex: Int) throws(VertexNotFound) -> OutEdges {
+        guard contains(vertex) else { throw VertexNotFound() }
+        return outEdges(of: vertex)
+    }
+
     /// The length of the row. One call, O(d).
     ///
     /// - Precondition: `vertex` is in `0..<vertexCount`.
@@ -40,6 +60,16 @@ extension ImplicitDirectedGraph: DirectedGraph {
         var count = 0
         for _ in successors(of: vertex) { count &+= 1 }
         return count
+    }
+
+    /// `outDegree(of: vertex)`, throwing instead of trapping when `vertex` is not in
+    /// `0..<vertexCount`. One call, O(d).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
+    @inlinable
+    public func outDegree(checked vertex: Int) throws(VertexNotFound) -> Int {
+        guard contains(vertex) else { throw VertexNotFound() }
+        return outDegree(of: vertex)
     }
 
     /// `position.source`. O(1); calls nothing.
@@ -87,6 +117,16 @@ extension ImplicitDirectedGraph: DirectedGraph {
     public func vertexIndex(of vertex: Int) -> Int {
         _check(vertex)
         return vertex
+    }
+
+    /// `vertexIndex(of: vertex)`, throwing instead of trapping when `vertex` is not in
+    /// `0..<vertexCount`. O(1); calls nothing.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
+    @inlinable
+    public func vertexIndex(checked vertex: Int) throws(VertexNotFound) -> Int {
+        guard contains(vertex) else { throw VertexNotFound() }
+        return vertexIndex(of: vertex)
     }
 
     /// `index`. O(1).

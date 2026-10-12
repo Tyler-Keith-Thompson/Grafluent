@@ -102,6 +102,28 @@ public struct FunctionalGraph: Sendable {
         return _successors.withUnsafeBufferPointer { $0[vertex] }
     }
 
+    /// `successor(of: vertex)`, throwing instead of trapping when `vertex` is not in
+    /// `0..<vertexCount`. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
+    @inlinable
+    public func successor(checked vertex: Int) throws(VertexNotFound) -> Int {
+        guard contains(vertex) else { throw VertexNotFound() }
+        return successor(of: vertex)
+    }
+
+    /// `successor(of: vertex, steps: steps)`, throwing instead of trapping when `vertex` is not
+    /// in `0..<vertexCount`. O(min(k, n)).
+    ///
+    /// - Precondition: `steps >= 0`: a negative count is a misuse, not a missing vertex, and
+    ///   still traps.
+    /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
+    @inlinable
+    public func successor(checked vertex: Int, steps: Int) throws(VertexNotFound) -> Int {
+        guard contains(vertex) else { throw VertexNotFound() }
+        return successor(of: vertex, steps: steps)
+    }
+
     /// f^k(v): the vertex reached from `vertex` after `steps` edges. O(min(k, n)) time and O(1)
     /// memory. Up to n steps, it walks; beyond, it finds the tail and cycle of `vertex`'s walk by
     /// Brent's algorithm and walks the tail length plus the remaining steps modulo the cycle

@@ -1,7 +1,8 @@
-// Construction and reads (catalog IM-001 – IM-018): columns in input order, a repeated member one bit,
-// repeated and empty columns kept; from a graph one column per edge in edges order, a self-loop one
-// bit (NetworkX: a zero column), both ends from a digraph; cells, columns, rows and degrees; the
-// same matrix through an incidence-list copy and by appending one column at a time.
+// Construction and reads (catalog IM-001 – IM-018, IM-064): columns in input order, a repeated member
+// one bit, repeated and empty columns kept; from a graph one column per edge in edges order, a
+// self-loop one bit (NetworkX: a zero column), both ends from a digraph; cells, columns, rows and
+// degrees; the same matrix through an incidence-list copy and by appending one column at a time;
+// the checked: reads, which throw VertexNotFound out of range.
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import GraphProtocols
@@ -512,5 +513,46 @@ struct IncidenceMatrixConstructionTests {
         #expect(matrix.degree(of: 4) == 1 && matrix.degree(ofIndex: 4) == 1 && matrix.vertexIndex(of: 4) == 4 && matrix.vertex(atIndex: 4) == 4)
         #expect(Array(matrix.incidentHyperedges(of: 5)) == [] && Array(matrix.incidentHyperedges(ofIndex: 5)) == [])
         #expect(matrix.degree(of: 5) == 0 && matrix.degree(ofIndex: 5) == 0 && matrix.vertexIndex(of: 5) == 5 && matrix.vertex(atIndex: 5) == 5)
+    }
+
+    @Test("IM-064 checked: spellings answer a vertex as the plain ones do and throw out of range")
+    func im064() throws {
+        // IM n 5; E [{0, 1, 2}, {2, 3}, {0, 1, 2}, {4}, {}] / incidentHyperedges(checked: 2) / degree(checked: 2) / vertexIndex(checked: 4) / incidentHyperedges(checked: 5) / degree(checked: -1) / vertexIndex(checked: 5)
+        let matrix = IncidenceMatrix(vertexCount: 5, hyperedges: [[0, 1, 2], [2, 3], [0, 1, 2], [4], []] as [[Int]])
+        #expect(try Array(matrix.incidentHyperedges(checked: 2)) == [0, 1, 2])
+        #expect(try matrix.degree(checked: 2) == 3)
+        #expect(try matrix.vertexIndex(checked: 4) == 4)
+        #expect(throws: VertexNotFound.self) { try matrix.incidentHyperedges(checked: 5) }
+        #expect((try? matrix.incidentHyperedges(checked: 5)) == nil)
+        #expect(throws: VertexNotFound.self) { try matrix.degree(checked: -1) }
+        #expect((try? matrix.degree(checked: -1)) == nil)
+        #expect(throws: VertexNotFound.self) { try matrix.vertexIndex(checked: 5) }
+        #expect((try? matrix.vertexIndex(checked: 5)) == nil)
+        // Final state.
+        #expect(matrix.vertexCount == 5 && matrix.hyperedgeCount == 5)
+        #expect((0 ..< 5).map { v in String((0 ..< 5).map { p -> Character in matrix[vertex: v, hyperedge: p] ? "1" : "0" }) } == ["10100", "10100", "11100", "01000", "00010"])
+        #expect(matrix.hyperedges.map { Array($0) } == [[0, 1, 2], [2, 3], [0, 1, 2], [4], []])
+        #expect(matrix.vertices == 0 ..< 5 && matrix.vertexIndexBound == 5 && matrix.hyperedgeIndexBound == 5)
+        #expect(matrix.hyperedges.indices.map { matrix.hyperedgeIndex(of: $0) } == [0, 1, 2, 3, 4])
+        #expect(Array(matrix.members(ofHyperedgeAt: 0)) == [0, 1, 2] && Array(matrix.memberIndices(ofHyperedgeAt: 0)) == [0, 1, 2] && matrix.size(ofHyperedgeAt: 0) == 3)
+        #expect(matrix.contains(hyperedge: [2, 1, 0] as [Int]))
+        #expect(Array(matrix.members(ofHyperedgeAt: 1)) == [2, 3] && Array(matrix.memberIndices(ofHyperedgeAt: 1)) == [2, 3] && matrix.size(ofHyperedgeAt: 1) == 2)
+        #expect(matrix.contains(hyperedge: [3, 2] as [Int]))
+        #expect(Array(matrix.members(ofHyperedgeAt: 2)) == [0, 1, 2] && Array(matrix.memberIndices(ofHyperedgeAt: 2)) == [0, 1, 2] && matrix.size(ofHyperedgeAt: 2) == 3)
+        #expect(matrix.contains(hyperedge: [2, 1, 0] as [Int]))
+        #expect(Array(matrix.members(ofHyperedgeAt: 3)) == [4] && Array(matrix.memberIndices(ofHyperedgeAt: 3)) == [4] && matrix.size(ofHyperedgeAt: 3) == 1)
+        #expect(matrix.contains(hyperedge: [4] as [Int]))
+        #expect(Array(matrix.members(ofHyperedgeAt: 4)) == [] && Array(matrix.memberIndices(ofHyperedgeAt: 4)) == [] && matrix.size(ofHyperedgeAt: 4) == 0)
+        #expect(matrix.contains(hyperedge: [] as [Int]))
+        #expect(Array(matrix.incidentHyperedges(of: 0)) == [0, 2] && Array(matrix.incidentHyperedges(ofIndex: 0)) == [0, 2])
+        #expect(matrix.degree(of: 0) == 2 && matrix.degree(ofIndex: 0) == 2 && matrix.vertexIndex(of: 0) == 0 && matrix.vertex(atIndex: 0) == 0)
+        #expect(Array(matrix.incidentHyperedges(of: 1)) == [0, 2] && Array(matrix.incidentHyperedges(ofIndex: 1)) == [0, 2])
+        #expect(matrix.degree(of: 1) == 2 && matrix.degree(ofIndex: 1) == 2 && matrix.vertexIndex(of: 1) == 1 && matrix.vertex(atIndex: 1) == 1)
+        #expect(Array(matrix.incidentHyperedges(of: 2)) == [0, 1, 2] && Array(matrix.incidentHyperedges(ofIndex: 2)) == [0, 1, 2])
+        #expect(matrix.degree(of: 2) == 3 && matrix.degree(ofIndex: 2) == 3 && matrix.vertexIndex(of: 2) == 2 && matrix.vertex(atIndex: 2) == 2)
+        #expect(Array(matrix.incidentHyperedges(of: 3)) == [1] && Array(matrix.incidentHyperedges(ofIndex: 3)) == [1])
+        #expect(matrix.degree(of: 3) == 1 && matrix.degree(ofIndex: 3) == 1 && matrix.vertexIndex(of: 3) == 3 && matrix.vertex(atIndex: 3) == 3)
+        #expect(Array(matrix.incidentHyperedges(of: 4)) == [3] && Array(matrix.incidentHyperedges(ofIndex: 4)) == [3])
+        #expect(matrix.degree(of: 4) == 1 && matrix.degree(ofIndex: 4) == 1 && matrix.vertexIndex(of: 4) == 4 && matrix.vertex(atIndex: 4) == 4)
     }
 }

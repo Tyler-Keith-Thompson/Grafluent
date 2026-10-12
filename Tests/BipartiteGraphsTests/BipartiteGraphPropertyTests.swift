@@ -100,6 +100,24 @@ struct BipartiteGraphPropertyTests {
                 #expect(Set(graph.edges) == edges, "\(context)")
                 #expect(graph.edgeCount == edges.count)
                 for (v, side) in sides { #expect(graph.side(of: v) == side, "\(v) at \(context)") }
+                // The checked: lookups over the whole range 0...7: the model's answer for a vertex,
+                // VertexNotFound for the rest.
+                for v in 0 ... 7 {
+                    if let side = sides[v] {
+                        let degree = edges.count { $0.u == v || $0.v == v }
+                        #expect(try graph.side(checked: v) == side, "\(v) at \(context)")
+                        #expect(try graph.degree(checked: v) == degree, "\(v) at \(context)")
+                        #expect(try graph.incidentEdges(checked: v).count == degree, "\(v) at \(context)")
+                        #expect(try Set(graph.neighbors(checked: v)) == Set(edges.filter { $0.u == v || $0.v == v }.map { $0.oppositeVertex(to: v) }), "\(v) at \(context)")
+                        #expect(try graph.vertex(atIndex: graph.vertexIndex(checked: v)) == v, "\(v) at \(context)")
+                    } else {
+                        #expect(throws: VertexNotFound(), "\(v) at \(context)") { try graph.side(checked: v) }
+                        #expect(throws: VertexNotFound(), "\(v) at \(context)") { try graph.degree(checked: v) }
+                        #expect(throws: VertexNotFound(), "\(v) at \(context)") { try graph.incidentEdges(checked: v) }
+                        #expect(throws: VertexNotFound(), "\(v) at \(context)") { try graph.neighbors(checked: v) }
+                        #expect(throws: VertexNotFound(), "\(v) at \(context)") { try graph.vertexIndex(checked: v) }
+                    }
+                }
                 for edge in graph.edges {
                     #expect(graph.side(of: edge.u) == .left && graph.side(of: edge.v) == .right, "\(edge) at \(context)")
                 }

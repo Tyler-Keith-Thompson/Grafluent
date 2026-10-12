@@ -116,6 +116,8 @@ extension ImplicitDirectedGraph: DirectedGraph {
     public var edgeIndexBound: Int?                                      // nil: no dense edge numbering without a pass
     public func vertexIndex(of:) / vertex(atIndex:)                      // identity, range-checked (IG-011)
     public func successorIndices(ofIndex:) / outEdges(ofIndex:)          // one call each
+    public func successors(checked:) / outEdges(checked:) / outDegree(checked:) / vertexIndex(checked:)
+                                                                         // throw VertexNotFound off 0..<n, no call (IG-046)
 }
 ```
 

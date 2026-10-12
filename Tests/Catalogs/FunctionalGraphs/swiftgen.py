@@ -76,7 +76,7 @@ for line in TEXT.splitlines():
         parts = [p.strip().replace("\\|", "|") for p in line.strip().strip("|").split(" | ")]
         CELLS[int(parts[0][3:])] = parts
 N = len(CELLS)
-assert N == 62 and sorted(RECORD) == list(range(1, N + 1))
+assert N == 64 and sorted(RECORD) == list(range(1, N + 1))
 
 
 def group(n): return CELLS[n][1]
@@ -169,6 +169,15 @@ def call_line(n, text, v, ind="        "):
     obj = "whole" if on_whole else "graph"
     if text in ("vertexCount", "edgeCount", "edgeIndexBound", "vertexIndexBound"):
         return "#expect(graph.%s == %s)" % (text, opt(v))
+    m = re.fullmatch(r"(\w+)\((checked|checkedEdgeAt): .*\)", text)
+    if m:
+        if v in (ref.THROWS_VERTEX, ref.THROWS_EDGE):
+            error = v.split()[1]
+            return "\n".join(["#expect(throws: %s.self) { try graph.%s }" % (error, text),
+                               ind + "#expect((try? graph.%s) == nil)" % text])
+        if m.group(1) in ("successors", "outEdges"):
+            return "#expect(try Array(graph.%s) == %s)" % (text, ints(v))
+        return "#expect(try graph.%s == %d)" % (text, v)
     if text == "vertices":
         return "#expect(Array(graph.vertices) == %s)" % ints(v)
     if text == "edges":
@@ -220,7 +229,8 @@ def header(n, tags=()):
 def graph_test(n):
     succ = SUCC[n]
     calls = RECORD[n][1]
-    lines = header(n) + ["    func fg%03d() {" % n, "        // %s → %s" % (inp(n), cell(n)), "        " + construct(succ)]
+    throws = any("(checked" in t for t, _ in calls)
+    lines = header(n) + ["    func fg%03d()%s {" % (n, " throws" if throws else ""), "        // %s → %s" % (inp(n), cell(n)), "        " + construct(succ)]
     if any(group(n) == "Decomposition" or t.startswith("cycleDecomposition()") or t.startswith("root(") for t, _ in calls):
         lines.append("        let whole = graph.cycleDecomposition()")
     for text, v in calls:
@@ -386,7 +396,7 @@ def trap_test(n):
     succ = SUCC[n]
     (ctext, trap), = calls
     assert isinstance(trap, ref.Trap) and cell(n) == "**trap** (%s)" % trap
-    child = "_ = graph.%s" % ctext
+    child = ("_ = try? graph.%s" if "(checked" in ctext else "_ = graph.%s") % ctext
     lines += ["        await #expect(processExitsWith: .failure) {", "            " + construct(succ), "            " + child, "        }",
               "        // Without the call: the state the call would apply to.", "        " + construct(succ)]
     lines += state(succ)
@@ -425,8 +435,9 @@ FILES = [
      "// leaving p, `init(vertexCount:successor:)` calling once per vertex in ascending order, and\n"
      "// `init?(_ graph:)` numbering the graph's vertices in order, nil unless every out-degree is 1."),
     ("FunctionalGraphReadTests.swift", "FunctionalGraphs reads", ids("Reads"),
-     "Reads (catalog FG-016 – FG-018): the one-element rows, membership false off 0..<n, and the\n"
-     "// dense indices, which are the vertices and the edge positions."),
+     "Reads (catalog FG-016 – FG-018, FG-063): the one-element rows, membership false off 0..<n, the\n"
+     "// dense indices, which are the vertices and the edge positions, and the checked: spellings,\n"
+     "// which throw VertexNotFound or EdgeNotFound where the plain ones trap."),
     ("FunctionalGraphStepTests.swift", "FunctionalGraphs successor(of:steps:)", ids("Steps"),
      "f^k on the stored graph (catalog FG-021 – FG-024): a walk for k <= n, and past n the tail and\n"
      "// cycle by Brent's algorithm, up to Int.max steps."),

@@ -113,6 +113,12 @@ needs it anyway. `_withSuccessorIndexRows` keeps the default (`nil`): the CSR ro
 
 **Traps:** a vertex outside `0..<n` (FG-019, FG-020), as for every dense representation.
 
+**`checked:` spellings** (README Principle 6): `successor(checked:)`, `successor(checked:steps:)`,
+`successors(checked:)`, `outEdges(checked:)`, `outDegree(checked:)` and `vertexIndex(checked:)` throw
+`VertexNotFound` for a vertex outside `0..<n`; `source(checkedEdgeAt:)` and `target(checkedEdgeAt:)`
+throw `EdgeNotFound` for a position outside `0..<n` (FG-063). Each checks once and then calls the
+plain spelling. A negative step count is a misuse, not a missing vertex, and still traps (FG-064).
+
 ```swift
 extension FunctionalGraph {
     /// f^k(v). O(min(k, n)) time, O(1) memory: walks k steps when k <= n, otherwise finds v's

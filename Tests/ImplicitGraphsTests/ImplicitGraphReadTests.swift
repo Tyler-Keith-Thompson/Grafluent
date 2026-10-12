@@ -1,7 +1,8 @@
-// Reads (catalog IG-004 – IG-011, IG-045): one closure call per row read, positions (source, rank,
-// target) that read their ends without a call, edges in row order with one call per vertex,
-// index(after:) re-reading the row, parallel edges and self-loops as distinct positions, contains,
-// and isEmpty and first reading every empty row.
+// Reads (catalog IG-004 – IG-011, IG-045, IG-046): one closure call per row read, positions
+// (source, rank, target) that read their ends without a call, edges in row order with one call per
+// vertex, index(after:) re-reading the row, parallel edges and self-loops as distinct positions,
+// contains, isEmpty and first reading every empty row, and the checked: spellings, which throw
+// VertexNotFound for a non-vertex without calling the closure.
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import GraphProtocols
@@ -531,6 +532,77 @@ struct ImplicitGraphReadTests {
             }
             #expect(stepped == positions && stepped.map(\.target) == positions.map(\.target))
             #expect(Set(positions).count == 0 && positions == positions.sorted())
+        }
+    }
+
+    @Test("IG-046 checked: spellings answer a vertex as the plain ones do, one call each; a non-vertex throws without a call")
+    func ig046() throws {
+        // IG (4, diamond) / successors(checked: 0) / calls() / outEdges(checked: 0) / outDegree(checked: 3) / vertexIndex(checked: 2) / calls() / successors(checked: 4) / outEdges(checked: -1) / outDegree(checked: 4) / vertexIndex(checked: -1) / vertexIndex(checked: 4) / calls() → [1, 2]; 1; [0.0→1, 0.1→2]; 0; 2; 2; throws VertexNotFound; throws VertexNotFound; throws VertexNotFound; throws VertexNotFound; throws VertexNotFound; 0
+        var calls = 0
+        let graph = ImplicitDirectedGraph(vertexCount: 4, successors: { (v: Int) -> [Int] in
+            calls += 1
+            return [[1, 2], [3], [3], []][v]
+        })
+        #expect(try Array(graph.successors(checked: 0)) == [1, 2])
+        #expect(calls == 1)
+        calls = 0
+        #expect(try Array(graph.outEdges(checked: 0)).map { [$0.source, $0.rank, $0.target] } == [[0, 0, 1], [0, 1, 2]])
+        #expect(try graph.outDegree(checked: 3) == 0)
+        #expect(try graph.vertexIndex(checked: 2) == 2)
+        #expect(calls == 2)
+        calls = 0
+        #expect(throws: VertexNotFound.self) { try graph.successors(checked: 4) }
+        #expect((try? graph.successors(checked: 4)) == nil)
+        #expect(throws: VertexNotFound.self) { try graph.outEdges(checked: -1) }
+        #expect((try? graph.outEdges(checked: -1)) == nil)
+        #expect(throws: VertexNotFound.self) { try graph.outDegree(checked: 4) }
+        #expect((try? graph.outDegree(checked: 4)) == nil)
+        #expect(throws: VertexNotFound.self) { try graph.vertexIndex(checked: -1) }
+        #expect((try? graph.vertexIndex(checked: -1)) == nil)
+        #expect(throws: VertexNotFound.self) { try graph.vertexIndex(checked: 4) }
+        #expect((try? graph.vertexIndex(checked: 4)) == nil)
+        #expect(calls == 0)
+        calls = 0
+        do {
+            // The whole graph, from the model, with the closure calls each read makes.
+            calls = 0
+            #expect(graph.vertexCount == 4 && graph.vertexIndexBound == 4 && graph.edgeIndexBound == nil)
+            #expect(Array(graph.vertices) == [0, 1, 2, 3] && !graph.contains(-1) && !graph.contains(4))
+            #expect(graph.edgeCount == 4)
+            #expect(calls == 4)
+            calls = 0
+            var iterated: [[Int]] = []
+            for edge in graph.edges { iterated.append([edge.source, edge.target]) }
+            #expect(iterated == [[0, 1], [0, 2], [1, 3], [2, 3]])
+            #expect(calls == 4)
+            calls = 0
+            #expect(graph.vertices.map { Array(graph.successors(of: $0)) } == [[1, 2], [3], [3], [] as [Int]])
+            #expect(calls == 4)
+            #expect(graph.vertices.map { Array(graph.successorIndices(ofIndex: $0)) } == [[1, 2], [3], [3], [] as [Int]])
+            #expect(graph.vertices.map { graph.outDegree(of: $0) } == [2, 1, 1, 0])
+            #expect(graph.vertices.map { graph.outDegree(ofIndex: $0) } == [2, 1, 1, 0])
+            #expect(graph.vertices.map { [graph.vertexIndex(of: $0), graph.vertex(atIndex: $0)] } == [[0, 0], [1, 1], [2, 2], [3, 3]])
+            calls = 0
+            let positions = graph.vertices.flatMap { Array(graph.outEdges(of: $0)) }
+            #expect(calls == 4)
+            #expect(positions.map { [$0.source, $0.rank, $0.target] } == [[0, 0, 1], [0, 1, 2], [1, 0, 3], [2, 0, 3]])
+            #expect(graph.vertices.flatMap { Array(graph.outEdges(ofIndex: $0)) } == positions)
+            calls = 0
+            #expect(positions.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == positions.map { [$0.source, $0.target] })
+            #expect(positions.map { graph.edges[$0] } == positions.map { DirectedEdge(from: $0.source, to: $0.target) })
+            #expect(calls == 0)
+            // Stepping by index(after:) visits the positions iteration lists, in order.
+            var stepped: [ImplicitDirectedGraph<[Int]>.Edges.Index] = []
+            var position = graph.edges.startIndex
+            while position != graph.edges.endIndex {
+                stepped.append(position)
+                position = graph.edges.index(after: position)
+            }
+            #expect(stepped == positions && stepped.map(\.target) == positions.map(\.target))
+            #expect(Set(positions).count == 4 && positions == positions.sorted())
+            calls = 0
+            #expect(positions.allSatisfy { graph.contains(edge: DirectedEdge(from: $0.source, to: $0.target)) })
+            #expect(calls == 4)
         }
     }
 }

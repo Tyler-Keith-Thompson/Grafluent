@@ -13,6 +13,10 @@
 #   firstappear             missing a new endpoint falls back to hashing: slower, the same answer.
 #   parentskip              skipping the parent vertex instead of its edge still finds a parallel
 #                           pair, from the parent's row.
+#
+# cycle, parentskip, orientation, reachall, endrange, sizes, component and rootfirst were re-aimed
+# at the rewritten rooting walk (records written whole, `reached` bytes), whose text they no longer
+# matched.
 
 TESTS = ["TreesTests"]
 
@@ -20,11 +24,11 @@ MUTANTS = [
     # Validation
     Mutant("edgecount", "TreeLayout.swift", "m == n - 1", "m <= n - 1", nth=0),
     Mutant("forestcount", "TreeLayout.swift", "m <= max(n - 1, 0)", "m <= n"),
-    Mutant("cycle", "TreeLayout.swift", "                guard nodes[w].depth < 0 else { return false }", "                guard nodes[w].depth < 0 else { continue }", mode="stmt"),
-    Mutant("parentskip", "TreeLayout.swift", "e == node.parentEdge", "rowNeighbors[k] == node.parent"),
-    Mutant("orientation", "TreeLayout.swift", "                if oriented, ends[2 * e] != v { return false }", "", mode="stmt"),
-    Mutant("reachall", "TreeLayout.swift", "        guard preorder.count == n else { return false }", "", mode="stmt"),
-    Mutant("endrange", "TreeLayout.swift", "            guard UInt(bitPattern: x) < UInt(bitPattern: n) else { return nil }", "", mode="stmt"),
+    Mutant("cycle", "TreeLayout.swift", "                                                guard !reached[w] else { return false }", "                                                guard !reached[w] else { continue }", mode="stmt"),
+    Mutant("parentskip", "TreeLayout.swift", "e == nodes[v].parentEdge", "rowNeighbors[k] == nodes[v].parent"),
+    Mutant("orientation", "TreeLayout.swift", "                                                if oriented, ends[2 &* e] != v { return false }", "", mode="stmt"),
+    Mutant("reachall", "TreeLayout.swift", "count == n", "true"),
+    Mutant("endrange", "TreeLayout.swift", "                    guard UInt(bitPattern: x) < UInt(bitPattern: n) else { return false }", "", mode="stmt"),
     Mutant("oneincoming", "Arborescence.swift", "            if incoming[t] > 1 { return nil }", "", mode="stmt"),
     Mutant("tworoots", "RootedTree.swift", "                guard root < 0 else { return nil }", "", mode="stmt"),
     Mutant("selfparent", "RootedTree.swift", "                guard p != v else { return nil }", "", mode="stmt"),
@@ -35,10 +39,10 @@ MUTANTS = [
 
     # The rooting
     Mutant("twin", "TreeLayout.swift", "twin[k]", "(twin[k] == 0 ? 0 : twin[k] - 1)"),
-    Mutant("sizes", "TreeLayout.swift", "                    if p >= 0 { nodes[p].size += nodes[v].size }", "", mode="stmt"),
+    Mutant("sizes", "TreeLayout.swift", "                                                    if p >= 0 { nodes[p].size &+= nodes[v].size }", "", mode="stmt"),
     Mutant("height", "TreeLayout.swift", "                if depth > height { height = depth }", "", mode="stmt"),
-    Mutant("component", "TreeLayout.swift", "                nodes[w].component = tree", "                nodes[w].component = 0", mode="stmt"),
-    Mutant("rootfirst", "TreeLayout.swift", "nodes[next].depth >= 0", "nodes[next].depth > 0"),
+    Mutant("component", "TreeLayout.swift", "roots.count", "0", nth=0),
+    Mutant("rootfirst", "TreeLayout.swift", "reached[next]", "(reached[next] && nodes[next].depth > 0)"),
     Mutant("reroot", "TreeLayout.swift", "roots[0] == root", "true"),
 
     # Queries
@@ -48,7 +52,7 @@ MUTANTS = [
     Mutant("childhole", "RootedTree.swift", "position < _hole ? position : position + 1", "position <= _hole ? position : position + 1"),
     Mutant("pathorder", "TreeLayout.swift", "up.append(contentsOf: down.dropLast().reversed())", "up.append(contentsOf: down.dropLast())"),
     Mutant("pathcomponent", "TreeLayout.swift", "        guard nodes[a].component == nodes[b].component else { return nil }", "", mode="stmt"),
-    Mutant("arbpath", "Arborescence.swift", "a == b || _layout.isAncestor(a, of: b)", "true"),
+    Mutant("arbpath", "Arborescence.swift", "a == b || _layout.isAncestor(a, of: b)", "true", nth=0),
     Mutant("containsedge", "Tree.swift", "a != b && (nodes[a].parent == b || nodes[b].parent == a)", "nodes[a].parent == b || nodes[b].parent == a"),
     Mutant("arbsource", "Arborescence.swift", "DirectedEdge(from: _layout.vertices[_layout.nodes[c].parent], to: _layout.vertices[c])", "DirectedEdge(from: _layout.vertices[c], to: _layout.vertices[_layout.nodes[c].parent])"),
 
@@ -74,4 +78,24 @@ MUTANTS = [
     Mutant("smalllookup", "TreeLayout.swift", "vertices.firstIndex(of: vertex)", "vertices.isEmpty ? nil : 0"),
     Mutant("singletree", "Forest.swift", "_vertexStart[t + 1] - _vertexStart[t] == 1", "_vertexStart[t + 1] - _vertexStart[t] <= 2"),
     Mutant("pruferxor", "Prufer.swift", "            xor[next] ^= leaf", "", mode="stmt"),
+
+    # The checked: spellings (§L): the one lookup that throws, and each spelling's own reading.
+    Mutant("checkednumber", "TreeLayout.swift", "Self.lookup(vertex, vertices, slots, dense)", "Self.lookup(vertex, vertices, slots, dense) ?? 0", nth=1),
+    Mutant("treeneighbors", "Tree.swift", "_layout.rowNeighbors[_layout.row(v)]", "_layout.rowEdges[_layout.row(v)]"),
+    Mutant("treepath", "Tree.swift", "_layout._path(a, b)!", "_layout._path(b, a)!"),
+    Mutant("rootedparent", "RootedTree.swift", "p < 0 ? nil : _layout.vertices[p]", "_layout.vertices[max(p, 0)]", nth=1),
+    Mutant("rootedparentedge", "RootedTree.swift", "e < 0 ? nil : e", "e", nth=1),
+    Mutant("rootedancestor", "RootedTree.swift", "_layout.isAncestor(x, of: y)", "_layout.isAncestor(y, of: x)"),
+    Mutant("rootedpath", "RootedTree.swift", "_layout._path(a, b)!", "_layout._path(b, a)!"),
+    Mutant("rootedneighbors", "RootedTree.swift", "_layout.rowNeighbors[_layout.row(v)]", "_layout.rowEdges[_layout.row(v)]"),
+    Mutant("forestpath", "Forest.swift", "_layout._path(a, b)", "_layout._path(b, a)"),
+    Mutant("forestneighbors", "Forest.swift", "_layout.rowNeighbors[_layout.row(v)]", "_layout.rowEdges[_layout.row(v)]"),
+    Mutant("arbparent", "Arborescence.swift", "p < 0 ? nil : _layout.vertices[p]", "_layout.vertices[max(p, 0)]", nth=2),
+    Mutant("arbparentedge", "Arborescence.swift", "e < 0 ? nil : e", "e", nth=1),
+    Mutant("arbancestor", "Arborescence.swift", "_layout.isAncestor(x, of: y)", "_layout.isAncestor(y, of: x)"),
+    Mutant("arbpathdown", "Arborescence.swift", "a == b || _layout.isAncestor(a, of: b)", "true", nth=1),
+    Mutant("arbpredecessor", "Arborescence.swift", "Predecessors(p < 0 ? nil : _layout.vertices[p])", "Predecessors(_layout.vertices[max(p, 0)])", nth=1),
+    Mutant("arbdegree", "Arborescence.swift", "outDegree(ofIndex: v) + inDegree(ofIndex: v)", "outDegree(ofIndex: v)"),
+    Mutant("arbsourcelow", "Arborescence.swift", "        guard position >= 0 && position < _layout.edgeCount else { throw EdgeNotFound() }\n        return _layout.vertices[_layout.nodes[_layout.child(ofEdge: position)].parent]", "        guard position < _layout.edgeCount else { throw EdgeNotFound() }\n        return _layout.vertices[_layout.nodes[_layout.child(ofEdge: position)].parent]", mode="stmt"),
+    Mutant("arbtargethigh", "Arborescence.swift", "        guard position >= 0 && position < _layout.edgeCount else { throw EdgeNotFound() }\n        return _layout.vertices[_layout.child(ofEdge: position)]", "        guard position >= 0 && position <= _layout.edgeCount else { throw EdgeNotFound() }\n        return _layout.vertices[_layout.child(ofEdge: position)]", mode="stmt"),
 ]

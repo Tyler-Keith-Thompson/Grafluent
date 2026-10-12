@@ -211,6 +211,70 @@ extension Forest: Graph {
     }
 }
 
+// MARK: - checked: lookups
+
+// README Principle 6: `VertexNotFound` for a vertex that is not in the forest, where the trapping
+// spellings are the fast path. Each makes the one lookup per vertex its trapping spelling makes;
+// `try?` gives an Optional. `path(checkedFrom:to:)` still returns nil across trees; `try?` flattens
+// that nil with a missing vertex's, so a caller that must tell them apart catches.
+
+extension Forest {
+    /// `component(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func component(checked vertex: Vertex) throws(VertexNotFound) -> Int {
+        _layout.nodes[try _layout.checkedNumber(of: vertex)].component
+    }
+
+    /// `path(from: source, to: target)`, throwing instead of trapping when either is not a
+    /// vertex: nil still means they are in different trees. O(length).
+    ///
+    /// - Throws: `VertexNotFound` when `source` or `target` is not a vertex.
+    @inlinable
+    public func path(checkedFrom source: Vertex, to target: Vertex) throws(VertexNotFound) -> Path<Vertex, Int>? {
+        let a = try _layout.checkedNumber(of: source), b = try _layout.checkedNumber(of: target)
+        return _layout._path(a, b)
+    }
+
+    /// `neighbors(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. One
+    /// lookup.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func neighbors(checked vertex: Vertex) throws(VertexNotFound) -> Neighbors {
+        let v = try _layout.checkedNumber(of: vertex)
+        return Neighbors(_vertices: _layout.vertices, numbers: _layout.rowNeighbors[_layout.row(v)])
+    }
+
+    /// `incidentEdges(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex.
+    /// One lookup.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func incidentEdges(checked vertex: Vertex) throws(VertexNotFound) -> ArraySlice<Int> {
+        _layout.rowEdges[_layout.row(try _layout.checkedNumber(of: vertex))]
+    }
+
+    /// `degree(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. One
+    /// lookup.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func degree(checked vertex: Vertex) throws(VertexNotFound) -> Int {
+        _layout.row(try _layout.checkedNumber(of: vertex)).count
+    }
+
+    /// `vertexIndex(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. One
+    /// lookup.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func vertexIndex(checked vertex: Vertex) throws(VertexNotFound) -> Int {
+        try _layout.checkedNumber(of: vertex)
+    }
+}
+
 // MARK: - Equality, hashing, coding, descriptions
 
 extension Forest: Equatable {

@@ -112,6 +112,47 @@ struct BipartiteGraphLawTests {
         }
     }
 
+    @Test("The checked: lookups agree with the trapping ones on every vertex, fresh and after removals, and throw VertexNotFound for a non-vertex")
+    func checkedLookups() throws {
+        let pairs: [(String, String)] = [("a", "x"), ("y", "a"), ("a", "z"), ("x", "b"), ("b", "y"), ("z", "b"), ("c", "x"), ("c", "y"), ("z", "c")]
+        let k33 = try #require(BipartiteGraph(left: ["a", "b", "c"], right: ["x", "y", "z"], edges: pairs.map { UndirectedEdge($0.0, $0.1) }))
+        // Removing "a" moves the last slot into its hole, and "c" into its place on the left.
+        var afterRemoval = k33
+        afterRemoval.remove("a")
+        afterRemoval.remove(edge: UndirectedEdge("b", "y"))
+        var withIsolated = k33
+        try withIsolated.insert("p", on: .left)
+        try withIsolated.insert("q", on: .right)
+
+        for (graph, missing) in [(k33, ["absent", ""]), (afterRemoval, ["a", "absent"]), (withIsolated, ["absent"]),
+                                 (BipartiteGraph<String>(), ["a"])] {
+            for v in graph.vertices {
+                #expect(try graph.side(checked: v) == graph.side(of: v))
+                #expect(try Array(graph.neighbors(checked: v)) == Array(graph.neighbors(of: v)))
+                #expect(try graph.incidentEdges(checked: v) == graph.incidentEdges(of: v))
+                #expect(try graph.degree(checked: v) == graph.degree(of: v))
+                #expect(try graph.vertexIndex(checked: v) == graph.vertexIndex(of: v))
+            }
+            for v in missing {
+                #expect(throws: VertexNotFound()) { try graph.side(checked: v) }
+                #expect(throws: VertexNotFound()) { try graph.neighbors(checked: v) }
+                #expect(throws: VertexNotFound()) { try graph.incidentEdges(checked: v) }
+                #expect(throws: VertexNotFound()) { try graph.degree(checked: v) }
+                #expect(throws: VertexNotFound()) { try graph.vertexIndex(checked: v) }
+                #expect((try? graph.side(checked: v)) == nil)
+                #expect((try? graph.degree(checked: v)) == nil)
+            }
+        }
+        // Spot values: "p" is isolated on the left, "q" on the right.
+        #expect(try withIsolated.side(checked: "p") == .left)
+        #expect(try withIsolated.side(checked: "q") == .right)
+        #expect(try withIsolated.degree(checked: "p") == 0)
+        #expect(try withIsolated.neighbors(checked: "q").isEmpty)
+        #expect(try k33.degree(checked: "z") == 3)
+        #expect(try Set(k33.neighbors(checked: "a")) == ["x", "y", "z"])
+        #expect(try afterRemoval.degree(checked: "y") == 1)
+    }
+
     @Test("Generic code over some Graph sees the same graph; isBipartite is true and bipartition() is the stored sides when built canonically")
     func genericCode() throws {
         func summary<G: Graph>(_ graph: G) -> (Int, Int, [G.Vertex], Int) {

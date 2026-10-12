@@ -174,6 +174,11 @@ class FG:
     def contains_edge(self, s, t):
         return self.contains(s) and self.contains(t) and self.f[s] == t
 
+    def checked(self, f, v, error=None):
+        """A `checked:` spelling: `f(v)`, or the throw for a non-vertex (an edge position is its
+        source, so a bad position is a non-vertex too)."""
+        return f(v) if self.contains(v) else (error or THROWS_VERTEX)
+
     def decomposition(self):
         return Decomposition(self.f)
 
@@ -404,6 +409,11 @@ def graph_row(group, title, succ, calls):
     row(group, title, f"FG {fmt(succ)}", [(t, (lambda fn: lambda: fn(g))(fn)) for t, fn in calls])
 
 
+# What a `checked:` spelling throws where its plain spelling traps (README Principle 6).
+THROWS_VERTEX = "throws VertexNotFound"
+THROWS_EDGE = "throws EdgeNotFound"
+
+
 # The featured graph: a 3-cycle with trees, a fixed point, a 2-cycle with a path into it.
 FEAT = [3, 0, 1, 5, 3, 6, 3, 7, 9, 10, 9, 8]
 
@@ -593,6 +603,28 @@ def define():
         "encode FG [1, 2, 0] / decode [0, 3]", [("", lambda: "[1,2,0]"),
                                                 ("", lambda: "DecodingError.dataCorrupted")])
 
+    # --- checked: spellings (README Principle 6)
+    graph_row("Reads", "checked: spellings answer a vertex as the plain ones do and throw for a non-vertex or a bad "
+              "edge position", [1, 2, 0, 0], [
+        ("successor(checked: 3)", lambda g: g.checked(g.successor, 3)),
+        ("successor(checked: 2, steps: 4)", lambda g: g.checked(lambda v: g.successor_steps(v, 4), 2)),
+        ("successors(checked: 1)", lambda g: g.checked(lambda v: [g.successor(v)], 1)),
+        ("outEdges(checked: 3)", lambda g: g.checked(lambda v: [v], 3)),
+        ("outDegree(checked: 0)", lambda g: g.checked(lambda v: 1, 0)),
+        ("vertexIndex(checked: 2)", lambda g: g.checked(lambda v: v, 2)),
+        ("source(checkedEdgeAt: 3)", lambda g: g.checked(lambda p: p, 3, THROWS_EDGE)),
+        ("target(checkedEdgeAt: 3)", lambda g: g.checked(g.successor, 3, THROWS_EDGE)),
+        ("successor(checked: 4)", lambda g: g.checked(g.successor, 4)),
+        ("successor(checked: -1, steps: 2)", lambda g: g.checked(lambda v: g.successor_steps(v, 2), -1)),
+        ("successors(checked: 4)", lambda g: g.checked(lambda v: [g.successor(v)], 4)),
+        ("outEdges(checked: -1)", lambda g: g.checked(lambda v: [v], -1)),
+        ("outDegree(checked: 4)", lambda g: g.checked(lambda v: 1, 4)),
+        ("vertexIndex(checked: -1)", lambda g: g.checked(lambda v: v, -1)),
+        ("source(checkedEdgeAt: 4)", lambda g: g.checked(lambda p: p, 4, THROWS_EDGE)),
+        ("target(checkedEdgeAt: -1)", lambda g: g.checked(g.successor, -1, THROWS_EDGE))])
+    graph_row("Traps", "successor(checked:steps:): negative steps still trap", FEAT, [
+        ("successor(checked: 0, steps: -1)", lambda g: g.checked(lambda v: g.successor_steps(v, -1), 0))])
+
 
 # ---------------------------------------------------------------- render, stress, main
 
@@ -615,6 +647,8 @@ Conventions:
   is the number of times the closure was called (a test counts it in the closure); it pins the
   formulation in api.md.
 * `**trap**` rows are preconditions, run as exit tests (`#expect(processExitsWith:)`).
+* `throws VertexNotFound` / `throws EdgeNotFound` is what a `checked:` spelling throws where its plain
+  spelling traps (README Principle 6).
 * Group `Generic` pins cross-module agreement (Connectivity) and lives in the integration suite.
 
 | ID | Group | Case | Input / call | Expected |

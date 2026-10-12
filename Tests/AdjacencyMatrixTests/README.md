@@ -33,8 +33,13 @@ struct AdjacencyMatrix: Hashable, Sendable, Codable, ExpressibleByArrayLiteral,
     func outDegree(of: Int) -> Int                    // O(1)
     func inDegree(of: Int) -> Int                     // O(1)
     func degree(of: Int) -> Int
+    // checked: spellings throw VertexNotFound / EdgeNotFound instead of trapping (Principle 6)
+    func successors(checked:) / predecessors(checked:) / outEdges(checked:) / inEdges(checked:)
+    func outDegree(checked:) / inDegree(checked:) / degree(checked:) / vertexIndex(checked:)
+    func source(checkedEdgeAt: Edges.Index) / target(checkedEdgeAt: Edges.Index)  // EdgeNotFound
 
     mutating func insert(edge: DirectedEdge<Int>) -> (inserted: Bool, memberAfterInsert: DirectedEdge<Int>)
+    mutating func insert(checked: DirectedEdge<Int>) throws(VertexNotFound) -> (inserted: Bool, memberAfterInsert: DirectedEdge<Int>)
     mutating func remove(edge: DirectedEdge<Int>) -> DirectedEdge<Int>?
     mutating func insertEdges(from: Int, to: BitSet) -> Int   // row ∪= targets
     mutating func removeEdges(from: Int) -> Int               // clear a row
@@ -66,7 +71,7 @@ Where the reference libraries disagree, these are the choices and the reasons.
 | Vertex identity | Positions `0..<vertexCount` | A matrix is indexed by position | — |
 | Adding vertices | `appendVertex()`, amortized by doubling | Growth without renumbering | Boost and gonum fix the size; LEMON's `resize` discards edges |
 | Removing vertices | Not offered | Removal either renumbers later vertices or leaves holes; petgraph's holes cause a stale `edge_count` and a wrong `is_adjacent` (both confirmed by running petgraph) | petgraph offers it |
-| Edge to an out-of-range vertex | `insert(edge:)` and the subscript trap; the matrix never grows to fit | petgraph silently grows despite documenting a panic; Boost has undefined behavior | — |
+| Edge to an out-of-range vertex | `insert(edge:)` and the subscript trap; the matrix never grows to fit; `insert(checked:)` throws `VertexNotFound` and changes nothing | petgraph silently grows despite documenting a panic; Boost has undefined behavior | — |
 | `contains` / `remove` out of range | `false` / `nil`, never a trap | Asking about something absent is not an error (same as `AdjacencyList`) | gonum is inconsistent between its own methods |
 | Duplicate edges in the input | Collapse | A cell is a bit | petgraph panics |
 | Self-loop | One edge; 1 to out-degree, 1 to in-degree, 2 to degree; diagonal cell is 1 | Same as `AdjacencyList` | gonum forbids self-loops; JGraphT exports a 2 on the diagonal |
@@ -90,6 +95,7 @@ Where the reference libraries disagree, these are the choices and the reasons.
 | `AdjacencyMatrixWordBoundaryTests.swift` | Rows straddling 64-bit words (n = 1 … 129), phantom cells, large sparse and dense matrices |
 | `AdjacencyMatrixConformanceTests.swift` | Equality and hashing laws, every 3-vertex matrix, `description`, exact and malformed encodings |
 | `AdjacencyMatrixPreconditionTests.swift` | Exit tests for every trapping precondition |
+| `AdjacencyMatrixCheckedTests.swift` | The `checked:` spellings (AM-R08): each equals its trapping spelling in range and throws `VertexNotFound` or `EdgeNotFound` outside it; `insert(checked:)` changes nothing when it throws |
 | `AdjacencyMatrixValueTests.swift` | Value semantics, views as values, Collection laws, `Sendable`, a model-based randomized test starting at 0 to 120 vertices |
 | `AdjacencyMatrixOperationTests.swift` | Transpose, set algebra, complement, row and column clearing, `insertEdges(from:to:)`, a transitive closure written with row unions, stable edge positions, slices, Collection laws on wide matrices, the decoding limit, large descriptions |
 

@@ -121,9 +121,11 @@ extension IncidenceMatrix {
     public func incidentHyperedges(of vertex: Int) -> BitSet         // O(w(m)), ascending
     public func size(ofHyperedgeAt position: Int) -> Int             // O(1), cached
     public func degree(of vertex: Int) -> Int                        // O(1), cached
+    public func incidentHyperedges(checked:) / degree(checked:) / vertexIndex(checked:)   // throw VertexNotFound off 0..<n (IM-064)
 
     @discardableResult public mutating func appendVertex() -> Int                    // amortized O(w(m))
     @discardableResult public mutating func insert(hyperedge members: some Sequence<Int>) -> Int   // amortized O(n·w(m)/m + w(n) + k)
+    @discardableResult public mutating func insert(checked members: some Sequence<Int>) throws(VertexNotFound) -> Int   // checks first; throws, changing nothing (IM-065, IM-066)
     @discardableResult public mutating func insert(_ vertex: Int, intoHyperedgeAt position: Int) -> Bool   // O(1); false if set
     @discardableResult public mutating func remove(_ vertex: Int, fromHyperedgeAt position: Int) -> Bool   // O(1); false if clear
     public mutating func removeAll(keepingCapacity: Bool = false)
@@ -149,7 +151,9 @@ extension IncidenceMatrix: Hypergraph {
   each (IM-008). A self-loop sets one bit (IM-009, IM-012).
 - **Traps:** a member or vertex out of `0..<n` (IM-005, IM-019, IM-022, IM-026); a column out of
   `0..<m` (IM-020, IM-021, IM-029); a negative `vertexCount` (IM-006); storage that does not fit
-  in `Int` (as `AdjacencyMatrix`).
+  in `Int` (as `AdjacencyMatrix`). The `checked:` spellings (README Principle 6) throw
+  `VertexNotFound` for a vertex out of `0..<n` instead, as `UndirectedIncidenceList`'s do; column
+  positions and the cell edits keep their traps.
 - **Column removal is phase 2.** It shifts every row by one bit, at O(n·w(m)).
 
 ### `OrientedIncidenceMatrix`
@@ -174,10 +178,12 @@ extension OrientedIncidenceMatrix {
     public func inHyperedges(of vertex: Int) -> BitSet            // the target plane's row
     public func outDegree(of vertex: Int) -> Int; public func inDegree(of vertex: Int) -> Int   // O(1), cached
     public func degree(of vertex: Int) -> Int                     // outDegree + inDegree
+    // outHyperedges / inHyperedges / outDegree / inDegree / degree / vertexIndex(checked:): throw VertexNotFound off 0..<n (IM-067)
 
     @discardableResult public mutating func appendVertex() -> Int
     @discardableResult public mutating func insert(sources: some Sequence<Int>, targets: some Sequence<Int>) -> Int
     @discardableResult public mutating func insert(edge: DirectedEdge<Int>) -> Int
+    // insert(checked:targets:), insert(checked: DirectedEdge<Int>): check first; throw VertexNotFound, changing nothing (IM-068, IM-069)
     @discardableResult public mutating func insert(_ vertex: Int, intoSourcesOfHyperedgeAt position: Int) -> Bool
     @discardableResult public mutating func insert(_ vertex: Int, intoTargetsOfHyperedgeAt position: Int) -> Bool
     @discardableResult public mutating func remove(_ vertex: Int, fromSourcesOfHyperedgeAt position: Int) -> Bool

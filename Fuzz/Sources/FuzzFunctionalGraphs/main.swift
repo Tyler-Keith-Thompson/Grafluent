@@ -98,6 +98,20 @@ enum FuzzFunctionalGraphs {
         check(FunctionalGraph(vertexCount: n) { f[$0] } == graph, "init(vertexCount:successor:) \(f)")
         let d = graph.cycleDecomposition()
         let orbits = (0 ..< n).map { orbit(f, from: $0) }
+        // The checked: spellings throw just off 0..<n, where the plain ones trap.
+        for bad in [-1, n, n + 1 + input.int(below: 4), Int.min] {
+            check((try? graph.successor(checked: bad)) == nil && (try? graph.successor(checked: bad, steps: 1)) == nil, "successor(checked: \(bad))")
+            check((try? graph.successors(checked: bad)) == nil && (try? graph.outEdges(checked: bad)) == nil, "rows(checked: \(bad))")
+            check((try? graph.outDegree(checked: bad)) == nil && (try? graph.vertexIndex(checked: bad)) == nil, "outDegree/vertexIndex(checked: \(bad))")
+            do throws(EdgeNotFound) {
+                _ = try graph.source(checkedEdgeAt: bad)
+                check(false, "source(checkedEdgeAt: \(bad)) returned")
+            } catch {}
+            do throws(EdgeNotFound) {
+                _ = try graph.target(checkedEdgeAt: bad)
+                check(false, "target(checkedEdgeAt: \(bad)) returned")
+            } catch {}
+        }
 
         // The cycles, each from its least vertex, ordered by least vertex.
         var cycles: [[Int]] = []
@@ -120,6 +134,10 @@ enum FuzzFunctionalGraphs {
             let pre = (0 ..< n).filter { f[$0] == v }
             check(Array(d.preimages(of: v)) == pre && d.inDegree(of: v) == pre.count, "preimages(of: \(v)) for \(f)")
             check(graph.successor(of: v) == f[v], "successor(of: \(v))")
+            check((try? graph.successor(checked: v)) == f[v] && (try? graph.successor(checked: v, steps: 2)) == f[f[v]], "successor(checked: \(v))")
+            check((try? graph.successors(checked: v)).map(Array.init) == [f[v]] && (try? graph.outEdges(checked: v)).map(Array.init) == [v], "rows(checked: \(v))")
+            check((try? graph.outDegree(checked: v)) == 1 && (try? graph.vertexIndex(checked: v)) == v, "outDegree/vertexIndex(checked: \(v))")
+            check((try? graph.source(checkedEdgeAt: v)) == v && (try? graph.target(checkedEdgeAt: v)) == f[v], "ends(checkedEdgeAt: \(v))")
             for k in 0 ... (3 * n + 3) {
                 let expected = step(f, v, k)
                 check(graph.successor(of: v, steps: k) == expected, "graph successor(of: \(v), steps: \(k)) for \(f)")
@@ -211,6 +229,16 @@ enum FuzzFunctionalGraphs {
             check(Array(graph.outEdges(ofIndex: v)) == out, "outEdges(ofIndex: \(v)) \(context)")
             check(graph.outDegree(of: v) == rows[v].count && graph.outDegree(ofIndex: v) == rows[v].count, "outDegree(of: \(v)) \(context)")
             check(graph.vertexIndex(of: v) == v && graph.vertex(atIndex: v) == v, "indices \(context)")
+            calls = 0
+            check((try? graph.successors(checked: v)).map(Array.init) == rows[v] && calls == 1, "successors(checked: \(v)) \(context)")
+            check((try? graph.outEdges(checked: v)).map(Array.init) == out && (try? graph.outDegree(checked: v)) == rows[v].count, "outEdges/outDegree(checked: \(v)) \(context)")
+            check((try? graph.vertexIndex(checked: v)) == v, "vertexIndex(checked: \(v)) \(context)")
+        }
+        for bad in [-1, n, Int.min, Int.max] {
+            calls = 0
+            check((try? graph.successors(checked: bad)) == nil && (try? graph.outEdges(checked: bad)) == nil, "rows(checked: \(bad)) \(context)")
+            check((try? graph.outDegree(checked: bad)) == nil && (try? graph.vertexIndex(checked: bad)) == nil, "outDegree/vertexIndex(checked: \(bad)) \(context)")
+            check(calls == 0, "checked: \(bad) called the closure \(calls) times \(context)")
         }
         for a in -1 ... n {
             check(graph.contains(a) == (a >= 0 && a < n), "contains(\(a)) \(context)")

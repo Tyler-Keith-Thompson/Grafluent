@@ -89,4 +89,11 @@ MUTANTS = [
     Mutant("cutoffskip", S, "if let cutoff, cutoff < candidate { continue }", "", mode="stmt", module=SP),
     Mutant("cutoffexclusive", S, "cutoff < candidate", "cutoff <= candidate", module=SP),
     Mutant("cutoffsum", S, "cutoff < candidate", "cutoff < candidate + (heuristic?(next) ?? .zero)", module=SP),
+
+
+    # The checked: spellings (README Principle 6): each guard removed lets the plain spelling trap.
+    Mutant("cksuccessors", D, "guard contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=0),
+    Mutant("ckoutedges", D, "guard contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=1),
+    Mutant("ckoutdegree", D, "guard contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=2),
+    Mutant("ckvertexindex", D, "guard contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=3),
 ]

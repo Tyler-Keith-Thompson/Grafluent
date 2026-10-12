@@ -26,6 +26,7 @@ the seeded generator and the tags in `GrafluentTestSupport`.
 ```swift
 struct ImplicitDirectedGraph<Row: Sequence<Int>>: DirectedGraph
     init(vertexCount:successors:)
+    successors(checked:), outEdges(checked:), outDegree(checked:), vertexIndex(checked:)  // throw VertexNotFound
     // Vertices = Range<Int>; Successors = SuccessorIndices, the range-checked row;
     // OutEdges, the row's positions
     struct Edges: Collection                   // Element = DirectedEdge<Int>
@@ -44,6 +45,7 @@ func aStarShortestPath(from:cutoff:successors:heuristic:success:) -> (path: [V],
 | Edges | Iteration, `Array(edges)` and `edgeCount` call once per vertex; `index(after:)` re-reads the row, then each later row up to a non-empty one; `isEmpty` and `first` read `startIndex`, a call per row up to the first non-empty one (n with no edges) | IG-007, IG-008, IG-045 |
 | Membership | `contains(_:)` calls nothing; `contains(edge:)` calls nothing for an endpoint off `0..<n` | IG-010 |
 | Bounds | `vertexIndexBound` is n, `edgeIndexBound` nil; the index members are the identity | IG-002, IG-011 |
+| `checked:` spellings | `successors(checked:)`, `outEdges(checked:)`, `outDegree(checked:)` and `vertexIndex(checked:)` answer a vertex as the plain spellings do, with the same calls, and throw `VertexNotFound` for one off `0..<n` without calling the closure | IG-046 |
 | Range check | Lazy: a successor off `0..<n` traps when it is read, not when the row is formed | IG-014, IG-015 |
 | Generic algorithms | Traversal calls once per discovered vertex; the weight closure can read `$0.target` | IG-016 – IG-022 |
 | D19 | Distances, and path vertex counts under unit costs. Ties between equal paths are not pinned, so each path is checked step by step against the closure. The goal is tested when it is settled, not when it is pushed | IG-024 – IG-031 |

@@ -111,6 +111,10 @@ import AdjacencyListModule
     public var right: SideVertices { get }
     /// O(1). Precondition: `vertex` is a vertex.
     public func side(of vertex: Vertex) -> BipartiteSide
+    /// As `side(of:)`, throwing `VertexNotFound` instead of trapping (README Principle 6); so do
+    /// `neighbors(checked:)`, `incidentEdges(checked:)`, `degree(checked:)` and
+    /// `vertexIndex(checked:)`, each one hash through the `UndirectedAdjacencyList`'s own.
+    public func side(checked vertex: Vertex) throws(VertexNotFound) -> BipartiteSide
 
     /// Inserts `vertex` on `side` with no edges. (false, existing) when it is already on `side`.
     /// Throws `.onOtherSide(s)` when it is a vertex on the other side `s`.
@@ -308,6 +312,10 @@ on a `BipartiteGraph` only when someone asks a known answer, as `isAcyclic` does
 * **`insert(edge:)`** throws `.sameSide(s)` for an edge inside side `s`, a self-loop included
   (BP-143 – BP-145), and traps when an endpoint is not a vertex (BP-146, BP-147);
   `insert(checked:)` throws `.missingEndpoint` instead (BP-167 – BP-172).
+* **`side(checked:)`, `neighbors(checked:)`, `incidentEdges(checked:)`, `degree(checked:)`,
+  `vertexIndex(checked:)`** answer as the trapping spellings for a vertex and throw
+  `VertexNotFound` for anything else, a removed vertex included (not catalog rows:
+  `BipartiteGraphLawTests.swift` and the model in `BipartiteGraphPropertyTests.swift`).
   An existing edge, in either orientation, returns `(false, existing)` (BP-123).
 * **`remove(_:)`, `remove(edge:)`** return nil for an absent vertex or edge, and never trap
   (BP-126, BP-127, BP-131). A vertex keeps its side when its edges go (BP-138).

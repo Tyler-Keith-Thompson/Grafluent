@@ -39,6 +39,14 @@ def require(cond, msg):
         raise Trap(msg)
 
 
+class Throws:
+    def __str__(self):
+        return "throws VertexNotFound"
+
+
+THROWS = Throws()  # what a `checked:` call throws for a vertex not in 0..<vertexCount
+
+
 # ---------------------------------------------------------------- the graph
 
 class IG:
@@ -78,6 +86,10 @@ class IG:
 
     def contains(self, v):
         return 0 <= v < self.n
+
+    def checked(self, f, v):
+        """A `checked:` spelling: `f(v)`, or the throw, with no closure call, for a non-vertex."""
+        return f(v) if self.contains(v) else THROWS
 
     def contains_edge(self, s, t):
         if not (self.contains(s) and self.contains(t)):
@@ -542,6 +554,14 @@ def define():
               "so n calls when there are no edges", "(5, { _ in [] })", 5, lambda v: [], [
         ("edges.isEmpty", lambda g: g.start_index() == "endIndex"), ("calls()", calls_since),
         ("edges.first", lambda g: None if g.start_index() == "endIndex" else g.start_index()), ("calls()", calls_since)])
+    graph_row("Reads", "checked: spellings answer a vertex as the plain ones do, one call each; a non-vertex "
+              "throws without a call", "(4, diamond)", 4, DIAMOND, [
+        ("successors(checked: 0)", lambda g: g.checked(g.successors, 0)), ("calls()", calls_since),
+        ("outEdges(checked: 0)", lambda g: g.checked(g.out_edges, 0)), ("outDegree(checked: 3)", lambda g: g.checked(g.out_degree, 3)),
+        ("vertexIndex(checked: 2)", lambda g: g.checked(lambda v: v, 2)), ("calls()", calls_since),
+        ("successors(checked: 4)", lambda g: g.checked(g.successors, 4)), ("outEdges(checked: -1)", lambda g: g.checked(g.out_edges, -1)),
+        ("outDegree(checked: 4)", lambda g: g.checked(g.out_degree, 4)), ("vertexIndex(checked: -1)", lambda g: g.checked(lambda v: v, -1)),
+        ("vertexIndex(checked: 4)", lambda g: g.checked(lambda v: v, 4)), ("calls()", calls_since)])
 
 
 # ---------------------------------------------------------------- render, stress, main
@@ -578,6 +598,8 @@ Conventions:
   S→A 1, S→B 2, A→C 3, B→C 1, C→G 3 on states 0…4 (S, A, B, C, G); `zeroCycle` is
   0→1→2→3→0 at cost 0, with 0→9 at 2 and 3→9 at 1.
 * `**trap**` rows are preconditions, run as exit tests.
+* `throws VertexNotFound` is what a `checked:` spelling throws for a vertex not in `0..<n` (README
+  Principle 6), where the plain spelling traps.
 
 | ID | Group | Case | Input / call | Expected |
 |---|---|---|---|---|

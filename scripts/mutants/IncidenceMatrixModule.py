@@ -217,4 +217,21 @@ MUTANTS = [
     Mutant("odecodeshape", O, "        try IncidenceMatrix._checkDecodedShape(n, sources.count, planes: 2, maximum: maximum, key: .vertexCount, in: container)", "", mode="stmt"),
     Mutant("odecodeplanes", O, "        try IncidenceMatrix._checkDecodedShape(n, sources.count, planes: 2, maximum: maximum, key: .vertexCount, in: container)", "        try IncidenceMatrix._checkDecodedShape(n, sources.count, planes: 1, maximum: maximum, key: .vertexCount, in: container)", mode="stmt"),
     Mutant("odescribe", O, 'entry < 0 ? "-" : entry > 0 ? "+" : "0"', 'entry < 0 ? "+" : entry > 0 ? "-" : "0"'),
+
+
+    # The checked: spellings (README Principle 6): each guard removed lets the plain spelling trap.
+    Mutant("ckincident", M, "guard contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=0),
+    Mutant("ckdegree", M, "guard contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=1),
+    Mutant("ckvertexindex", M, "guard contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=2),
+    Mutant("ckinsert", M, "for v in members where !contains(v) { throw VertexNotFound() }", "", mode="stmt"),
+    Mutant("ckoout", O, "guard contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=0),
+    Mutant("ckoin", O, "guard contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=1),
+    Mutant("ckooutdegree", O, "guard contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=2),
+    Mutant("ckoindegree", O, "guard contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=3),
+    Mutant("ckodegree", O, "guard contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=4),
+    Mutant("ckovertexindex", O, "guard contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=5),
+    Mutant("ckoinsertsources", O, "for v in sources where !contains(v) { throw VertexNotFound() }", "", mode="stmt"),
+    Mutant("ckoinserttargets", O, "for v in targets where !contains(v) { throw VertexNotFound() }", "", mode="stmt"),
+    Mutant("ckoedgesource", O, "guard contains(edge.source), contains(edge.target) else { throw VertexNotFound() }", "guard contains(edge.target) else { throw VertexNotFound() }", mode="stmt"),
+    Mutant("ckoedgetarget", O, "guard contains(edge.source), contains(edge.target) else { throw VertexNotFound() }", "guard contains(edge.source) else { throw VertexNotFound() }", mode="stmt"),
 ]

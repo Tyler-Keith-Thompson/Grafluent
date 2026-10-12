@@ -1,6 +1,7 @@
-// Mutation, transpose and equality (catalog IM-023 – IM-037, IM-060 – IM-063): rows and columns grow
-// past 64; a cell is set or cleared once; transposed() is the dual and an involution; equality is
-// cell for cell with equal shape, column order observable, both planes compared when oriented.
+// Mutation, transpose and equality (catalog IM-023 – IM-037, IM-060 – IM-063, IM-065, IM-066): rows
+// and columns grow past 64; a cell is set or cleared once; insert(checked:) throws for a member out
+// of range and changes nothing; transposed() is the dual and an involution; equality is cell for
+// cell with equal shape, column order observable, both planes compared when oriented.
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import GrafluentTestSupport
@@ -608,5 +609,53 @@ struct IncidenceMatrixMutationTests {
         #expect(lhs != rhs && rhs != lhs)
         #expect(Set([lhs, rhs]).count == 2)
         #expect(lhs == lhs)
+    }
+
+    @Test("IM-065 insert(checked:) with every member in range appends the column")
+    func im065() throws {
+        // IM n 3; E [{0}] / insert(checked: [2, 0, 2]) / vertexCount/hyperedgeCount
+        var matrix = IncidenceMatrix(vertexCount: 3, hyperedges: [[0]] as [[Int]])
+        #expect(try matrix.insert(checked: [2, 0, 2] as [Int]) == 1)
+        #expect(matrix.vertexCount == 3 && matrix.hyperedgeCount == 2)
+        // Final state.
+        #expect(matrix.vertexCount == 3 && matrix.hyperedgeCount == 2)
+        #expect((0 ..< 3).map { v in String((0 ..< 2).map { p -> Character in matrix[vertex: v, hyperedge: p] ? "1" : "0" }) } == ["11", "00", "01"])
+        #expect(matrix.hyperedges.map { Array($0) } == [[0], [0, 2]])
+        #expect(matrix.vertices == 0 ..< 3 && matrix.vertexIndexBound == 3 && matrix.hyperedgeIndexBound == 2)
+        #expect(matrix.hyperedges.indices.map { matrix.hyperedgeIndex(of: $0) } == [0, 1])
+        #expect(Array(matrix.members(ofHyperedgeAt: 0)) == [0] && Array(matrix.memberIndices(ofHyperedgeAt: 0)) == [0] && matrix.size(ofHyperedgeAt: 0) == 1)
+        #expect(matrix.contains(hyperedge: [0] as [Int]))
+        #expect(Array(matrix.members(ofHyperedgeAt: 1)) == [0, 2] && Array(matrix.memberIndices(ofHyperedgeAt: 1)) == [0, 2] && matrix.size(ofHyperedgeAt: 1) == 2)
+        #expect(matrix.contains(hyperedge: [2, 0] as [Int]))
+        #expect(Array(matrix.incidentHyperedges(of: 0)) == [0, 1] && Array(matrix.incidentHyperedges(ofIndex: 0)) == [0, 1])
+        #expect(matrix.degree(of: 0) == 2 && matrix.degree(ofIndex: 0) == 2 && matrix.vertexIndex(of: 0) == 0 && matrix.vertex(atIndex: 0) == 0)
+        #expect(Array(matrix.incidentHyperedges(of: 1)) == [] && Array(matrix.incidentHyperedges(ofIndex: 1)) == [])
+        #expect(matrix.degree(of: 1) == 0 && matrix.degree(ofIndex: 1) == 0 && matrix.vertexIndex(of: 1) == 1 && matrix.vertex(atIndex: 1) == 1)
+        #expect(Array(matrix.incidentHyperedges(of: 2)) == [1] && Array(matrix.incidentHyperedges(ofIndex: 2)) == [1])
+        #expect(matrix.degree(of: 2) == 1 && matrix.degree(ofIndex: 2) == 1 && matrix.vertexIndex(of: 2) == 2 && matrix.vertex(atIndex: 2) == 2)
+    }
+
+    @Test("IM-066 insert(checked:) with a member out of range: throws, nothing changes")
+    func im066() throws {
+        // IM n 2; E [{0}] / insert(checked: [0, 2]) / insert(checked: [-1]) / vertexCount/hyperedgeCount
+        var matrix = IncidenceMatrix(vertexCount: 2, hyperedges: [[0]] as [[Int]])
+        #expect(throws: VertexNotFound.self) { try matrix.insert(checked: [0, 2] as [Int]) }
+        // After insert(checked: [0, 2]).
+        #expect(matrix.vertexCount == 2 && matrix.hyperedgeCount == 1)
+        #expect((0 ..< 2).map { v in String((0 ..< 1).map { p -> Character in matrix[vertex: v, hyperedge: p] ? "1" : "0" }) } == ["1", "0"])
+        #expect(throws: VertexNotFound.self) { try matrix.insert(checked: [-1] as [Int]) }
+        #expect(matrix.vertexCount == 2 && matrix.hyperedgeCount == 1)
+        // Final state.
+        #expect(matrix.vertexCount == 2 && matrix.hyperedgeCount == 1)
+        #expect((0 ..< 2).map { v in String((0 ..< 1).map { p -> Character in matrix[vertex: v, hyperedge: p] ? "1" : "0" }) } == ["1", "0"])
+        #expect(matrix.hyperedges.map { Array($0) } == [[0]])
+        #expect(matrix.vertices == 0 ..< 2 && matrix.vertexIndexBound == 2 && matrix.hyperedgeIndexBound == 1)
+        #expect(matrix.hyperedges.indices.map { matrix.hyperedgeIndex(of: $0) } == [0])
+        #expect(Array(matrix.members(ofHyperedgeAt: 0)) == [0] && Array(matrix.memberIndices(ofHyperedgeAt: 0)) == [0] && matrix.size(ofHyperedgeAt: 0) == 1)
+        #expect(matrix.contains(hyperedge: [0] as [Int]))
+        #expect(Array(matrix.incidentHyperedges(of: 0)) == [0] && Array(matrix.incidentHyperedges(ofIndex: 0)) == [0])
+        #expect(matrix.degree(of: 0) == 1 && matrix.degree(ofIndex: 0) == 1 && matrix.vertexIndex(of: 0) == 0 && matrix.vertex(atIndex: 0) == 0)
+        #expect(Array(matrix.incidentHyperedges(of: 1)) == [] && Array(matrix.incidentHyperedges(ofIndex: 1)) == [])
+        #expect(matrix.degree(of: 1) == 0 && matrix.degree(ofIndex: 1) == 0 && matrix.vertexIndex(of: 1) == 1 && matrix.vertex(atIndex: 1) == 1)
     }
 }

@@ -70,7 +70,13 @@ extension _TreeLayout {
     /// The path between two vertices, as a `Path`; nil across trees.
     @inlinable
     func _path(from source: Vertex, to target: Vertex) -> Path<Vertex, Int>? {
-        guard let (vs, es) = path(number(of: source), number(of: target)) else { return nil }
+        _path(number(of: source), number(of: target))
+    }
+
+    /// The path between the vertices numbered `a` and `b`, as a `Path`; nil across trees.
+    @inlinable
+    func _path(_ a: Int, _ b: Int) -> Path<Vertex, Int>? {
+        guard let (vs, es) = path(a, b) else { return nil }
         return Path(_uncheckedVertices: vs.map { vertices[$0] }, edges: es)
     }
 }
@@ -183,6 +189,61 @@ extension Tree: Graph {
     public func endpointIndices(ofEdgeAt position: Int) -> (u: Int, v: Int) {
         precondition(position >= 0 && position < _layout.edgeCount, "Edge position out of range")
         return (_layout.ends[2 * position], _layout.ends[2 * position + 1])
+    }
+}
+
+// MARK: - checked: lookups
+
+// README Principle 6: `VertexNotFound` for a vertex that is not in the tree, where the trapping
+// spellings are the fast path. Each makes the one lookup its trapping spelling makes; `try?` gives
+// an Optional.
+
+extension Tree {
+    /// `neighbors(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. One
+    /// lookup.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func neighbors(checked vertex: Vertex) throws(VertexNotFound) -> Neighbors {
+        let v = try _layout.checkedNumber(of: vertex)
+        return Neighbors(_vertices: _layout.vertices, numbers: _layout.rowNeighbors[_layout.row(v)])
+    }
+
+    /// `incidentEdges(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex.
+    /// One lookup.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func incidentEdges(checked vertex: Vertex) throws(VertexNotFound) -> ArraySlice<Int> {
+        _layout.rowEdges[_layout.row(try _layout.checkedNumber(of: vertex))]
+    }
+
+    /// `degree(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. One
+    /// lookup.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func degree(checked vertex: Vertex) throws(VertexNotFound) -> Int {
+        _layout.row(try _layout.checkedNumber(of: vertex)).count
+    }
+
+    /// `vertexIndex(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. One
+    /// lookup.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func vertexIndex(checked vertex: Vertex) throws(VertexNotFound) -> Int {
+        try _layout.checkedNumber(of: vertex)
+    }
+
+    /// `path(from: source, to: target)`, throwing instead of trapping when either is not a
+    /// vertex. O(length).
+    ///
+    /// - Throws: `VertexNotFound` when `source` or `target` is not a vertex.
+    @inlinable
+    public func path(checkedFrom source: Vertex, to target: Vertex) throws(VertexNotFound) -> Path<Vertex, Int> {
+        let a = try _layout.checkedNumber(of: source), b = try _layout.checkedNumber(of: target)
+        return _layout._path(a, b)!
     }
 }
 

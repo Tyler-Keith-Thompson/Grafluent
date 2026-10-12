@@ -276,6 +276,60 @@ extension OrientedIncidenceMatrix {
     @inlinable
     public func degree(of vertex: Int) -> Int { outDegree(of: vertex) &+ inDegree(of: vertex) }
 
+    // The `checked:` lookups (README Principle 6): they throw `VertexNotFound` for a vertex that
+    // is not in `0..<vertexCount`, where the trapping spellings above are the fast path; `try?`
+    // gives an Optional.
+
+    /// `outHyperedges(of:)`, throwing instead of trapping when `vertex` is not in
+    /// `0..<vertexCount`. O(⌈m/64⌉).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
+    @inlinable
+    public func outHyperedges(checked vertex: Int) throws(VertexNotFound) -> BitSet {
+        guard contains(vertex) else { throw VertexNotFound() }
+        return outHyperedges(of: vertex)
+    }
+
+    /// `inHyperedges(of:)`, throwing instead of trapping when `vertex` is not in
+    /// `0..<vertexCount`. O(⌈m/64⌉).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
+    @inlinable
+    public func inHyperedges(checked vertex: Int) throws(VertexNotFound) -> BitSet {
+        guard contains(vertex) else { throw VertexNotFound() }
+        return inHyperedges(of: vertex)
+    }
+
+    /// `outDegree(of:)`, throwing instead of trapping when `vertex` is not in `0..<vertexCount`.
+    /// O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
+    @inlinable
+    public func outDegree(checked vertex: Int) throws(VertexNotFound) -> Int {
+        guard contains(vertex) else { throw VertexNotFound() }
+        return outDegree(of: vertex)
+    }
+
+    /// `inDegree(of:)`, throwing instead of trapping when `vertex` is not in `0..<vertexCount`.
+    /// O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
+    @inlinable
+    public func inDegree(checked vertex: Int) throws(VertexNotFound) -> Int {
+        guard contains(vertex) else { throw VertexNotFound() }
+        return inDegree(of: vertex)
+    }
+
+    /// `degree(of:)`, throwing instead of trapping when `vertex` is not in `0..<vertexCount`.
+    /// O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
+    @inlinable
+    public func degree(checked vertex: Int) throws(VertexNotFound) -> Int {
+        guard contains(vertex) else { throw VertexNotFound() }
+        return degree(of: vertex)
+    }
+
     @inlinable
     public func outDegree(ofIndex index: Int) -> Int { outDegree(of: index) }
 
@@ -323,6 +377,15 @@ extension OrientedIncidenceMatrix {
 
     @inlinable
     public func vertexIndex(of vertex: Int) -> Int { _sources.vertexIndex(of: vertex) }
+
+    /// `vertex` itself, throwing instead of trapping when it is not in `0..<vertexCount`. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
+    @inlinable
+    public func vertexIndex(checked vertex: Int) throws(VertexNotFound) -> Int {
+        guard contains(vertex) else { throw VertexNotFound() }
+        return vertexIndex(of: vertex)
+    }
 
     @inlinable
     public func vertex(atIndex index: Int) -> Int { _sources.vertex(atIndex: index) }
@@ -399,6 +462,34 @@ extension OrientedIncidenceMatrix {
     @discardableResult
     public mutating func insert(edge: DirectedEdge<Int>) -> Int {
         insert(sources: CollectionOfOne(edge.source), targets: CollectionOfOne(edge.target))
+    }
+
+    /// Appends the column `sources` → `targets` if every vertex listed is in `0..<vertexCount`;
+    /// otherwise throws and changes nothing.
+    ///
+    /// - Returns: The new column's position.
+    /// - Throws: `VertexNotFound` when a vertex listed is not in `0..<vertexCount`.
+    /// - Complexity: `insert(sources:targets:)`'s, plus one pass over the vertices to check them
+    ///   first.
+    @inlinable
+    @discardableResult
+    public mutating func insert(checked sources: some Sequence<Int>, targets: some Sequence<Int>) throws(VertexNotFound) -> Int {
+        let sources = Array(sources), targets = Array(targets)
+        for v in sources where !contains(v) { throw VertexNotFound() }
+        for v in targets where !contains(v) { throw VertexNotFound() }
+        return insert(sources: sources, targets: targets)
+    }
+
+    /// Appends the column of `edge` if both endpoints are in `0..<vertexCount`; otherwise throws
+    /// and changes nothing.
+    ///
+    /// - Returns: The new column's position.
+    /// - Throws: `VertexNotFound` when an endpoint is not in `0..<vertexCount`.
+    @inlinable
+    @discardableResult
+    public mutating func insert(checked edge: DirectedEdge<Int>) throws(VertexNotFound) -> Int {
+        guard contains(edge.source), contains(edge.target) else { throw VertexNotFound() }
+        return insert(edge: edge)
     }
 
     /// Makes `vertex` a source of the column at `position`. O(1).

@@ -17,6 +17,8 @@ Conventions:
   is the number of times the closure was called (a test counts it in the closure); it pins the
   formulation in api.md.
 * `**trap**` rows are preconditions, run as exit tests (`#expect(processExitsWith:)`).
+* `throws VertexNotFound` / `throws EdgeNotFound` is what a `checked:` spelling throws where its plain
+  spelling traps (README Principle 6).
 * Group `Generic` pins cross-module agreement (Connectivity) and lives in the integration suite.
 
 | ID | Group | Case | Input / call | Expected |
@@ -83,3 +85,5 @@ Conventions:
 | FG-060 | Conformances | Equatable compares successor arrays | FG [1, 0] == FG [1, 0] / FG [1, 0] == FG [0, 1] | true; false |
 | FG-061 | Conformances | description | FG [1, 2, 0].description | FunctionalGraph([1, 2, 0]) |
 | FG-062 | Conformances | Codable round trip as the successor array; decoding re-checks the range | encode FG [1, 2, 0] / decode [0, 3] | [1,2,0]; DecodingError.dataCorrupted |
+| FG-063 | Reads | checked: spellings answer a vertex as the plain ones do and throw for a non-vertex or a bad edge position | FG [1, 2, 0, 0] / successor(checked: 3) / successor(checked: 2, steps: 4) / successors(checked: 1) / outEdges(checked: 3) / outDegree(checked: 0) / vertexIndex(checked: 2) / source(checkedEdgeAt: 3) / target(checkedEdgeAt: 3) / successor(checked: 4) / successor(checked: -1, steps: 2) / successors(checked: 4) / outEdges(checked: -1) / outDegree(checked: 4) / vertexIndex(checked: -1) / source(checkedEdgeAt: 4) / target(checkedEdgeAt: -1) | 0; 0; [2]; [3]; 1; 2; 3; 0; throws VertexNotFound; throws VertexNotFound; throws VertexNotFound; throws VertexNotFound; throws VertexNotFound; throws VertexNotFound; throws EdgeNotFound; throws EdgeNotFound |
+| FG-064 | Traps | successor(checked:steps:): negative steps still trap | FG [3, 0, 1, 5, 3, 6, 3, 7, 9, 10, 9, 8] / successor(checked: 0, steps: -1) | **trap** (negative step count -1) |

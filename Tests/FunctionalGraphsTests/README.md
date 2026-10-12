@@ -26,6 +26,9 @@ the seeded generator and the tags in `GrafluentTestSupport`.
 struct FunctionalGraph: DirectedGraph, Hashable, Codable, Sendable, CustomStringConvertible
     init(successors:), init(vertexCount:successor:), init?(_ graph: some DirectedGraph)
     successor(of:), successor(of:steps:), cycleDecomposition()
+    successor(checked:), successor(checked:steps:), successors(checked:), outEdges(checked:),
+        outDegree(checked:), vertexIndex(checked:)          // throw VertexNotFound
+    source(checkedEdgeAt:), target(checkedEdgeAt:)            // throw EdgeNotFound
     // DirectedGraph: Vertices = Range<Int>; Successors, OutEdges, SuccessorIndices = CollectionOfOne<Int>;
     // Edges: RandomAccessCollection with Index = Int, the position of the edge leaving p is p
 struct FunctionalGraph.CycleDecomposition: Sendable
@@ -49,7 +52,8 @@ func brentCycleDetection(from:successor:) -> (tailLength: Int, cycleLength: Int,
 | `successor(of:steps:)` | Any k from 0 to `Int.max`, on the graph and on the decomposition | FG-021 – FG-024, FG-032 – FG-034 |
 | Floyd and Brent | The formulations api.md pins, so call counts are exact: Floyd 3ν + 2μ + λ | FG-047 – FG-059 |
 | Codable | The bare successor array; decoding re-checks the range and throws `dataCorrupted` | FG-062 |
-| Traps | A successor off `0..<n`, a negative count, a non-vertex, negative steps | FG-007 – FG-010, FG-019, FG-020, FG-025, FG-043, FG-044 |
+| `checked:` spellings | The plain spelling's answer for a vertex; `VertexNotFound` off `0..<n`, `EdgeNotFound` for a position off `0..<n`; negative steps still trap | FG-063, FG-064 |
+| Traps | A successor off `0..<n`, a negative count, a non-vertex, negative steps | FG-007 – FG-010, FG-019, FG-020, FG-025, FG-043, FG-044, FG-064 |
 
 ## How values are pinned
 

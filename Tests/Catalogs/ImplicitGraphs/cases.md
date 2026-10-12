@@ -30,6 +30,8 @@ Conventions:
   S→A 1, S→B 2, A→C 3, B→C 1, C→G 3 on states 0…4 (S, A, B, C, G); `zeroCycle` is
   0→1→2→3→0 at cost 0, with 0→9 at 2 and 3→9 at 1.
 * `**trap**` rows are preconditions, run as exit tests.
+* `throws VertexNotFound` is what a `checked:` spelling throws for a vertex not in `0..<n` (README
+  Principle 6), where the plain spelling traps.
 
 | ID | Group | Case | Input / call | Expected |
 |---|---|---|---|---|
@@ -78,3 +80,4 @@ Conventions:
 | IG-043 | Closures | D19: an infinite cost plus an estimate of -∞ is a NaN priority | aStarShortestPath(from: 0, successors: { $0 == 0 ? [(1, .infinity), (3, 5)] : [] }, heuristic: { $0 == 1 ? -.infinity : 0 }, success: { $0 == 1 \|\| $0 == 3 }) | **trap** (An A* priority (distance plus heuristic estimate) is NaN) |
 | IG-044 | Closures | D19: a NaN cutoff | dijkstraShortestPath(from: 0, cutoff: .nan, successors: { _ in [(1, 1.0)] }, success: { $0 == 1 }) | **trap** (The cutoff is NaN) |
 | IG-045 | Reads | edges.isEmpty and edges.first read startIndex: a call per row up to the first non-empty one, so n calls when there are no edges | IG (5, { _ in [] }) / edges.isEmpty / calls() / edges.first / calls() | true; 5; nil; 5 |
+| IG-046 | Reads | checked: spellings answer a vertex as the plain ones do, one call each; a non-vertex throws without a call | IG (4, diamond) / successors(checked: 0) / calls() / outEdges(checked: 0) / outDegree(checked: 3) / vertexIndex(checked: 2) / calls() / successors(checked: 4) / outEdges(checked: -1) / outDegree(checked: 4) / vertexIndex(checked: -1) / vertexIndex(checked: 4) / calls() | [1, 2]; 1; [0.0→1, 0.1→2]; 0; 2; 2; throws VertexNotFound; throws VertexNotFound; throws VertexNotFound; throws VertexNotFound; throws VertexNotFound; 0 |

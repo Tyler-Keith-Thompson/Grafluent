@@ -44,4 +44,12 @@ MUTANTS = [
     Mutant("decodeinside", "BipartiteGraph.swift", "(pairs[i] < leftVertices.count) != (pairs[i + 1] < leftVertices.count)", "true"),
     Mutant("encodeoffset", "BipartiteGraph.swift", "pairs.append(_left.count + _sideOffset[v])", "pairs.append(_sideOffset[v])", mode="stmt"),
     Mutant("equalfast", "BipartiteGraph.swift", "lhs._side == rhs._side", "lhs._left.count == rhs._left.count"),
+
+    # The checked: lookups
+    Mutant("checkedside", "BipartiteGraph.swift", "_graph._slotIfPresent(of: vertex)", "Optional(_graph._slotIfPresent(of: vertex) ?? 0)", nth=3),
+    Mutant("checkedsidevalue", "BipartiteGraph.swift", "return _side[slot]", "return .left", nth=1, mode="stmt"),
+    Mutant("checkedneighbors", "BipartiteGraph.swift", "        try _graph.neighbors(checked: vertex)", "        _graph.neighbors(of: vertex)", mode="stmt"),
+    Mutant("checkedincident", "BipartiteGraph.swift", "        try _graph.incidentEdges(checked: vertex)", "        _graph.incidentEdges(of: vertex)", mode="stmt"),
+    Mutant("checkeddegree", "BipartiteGraph.swift", "        try _graph.degree(checked: vertex)", "        _graph.degree(of: vertex)", mode="stmt"),
+    Mutant("checkedindex", "BipartiteGraph.swift", "        try _graph.vertexIndex(checked: vertex)", "        _graph.vertexIndex(of: vertex)", mode="stmt"),
 ]

@@ -322,6 +322,182 @@ extension Arborescence: BidirectionalDirectedGraph {
     @inlinable public func inDegree(ofIndex index: Int) -> Int { _layout.nodes[index].parent < 0 ? 0 : 1 }
 }
 
+// MARK: - checked: lookups
+
+// README Principle 6: `VertexNotFound` for a vertex that is not in the arborescence and
+// `EdgeNotFound` for an edge position out of range, where the trapping spellings are the fast
+// path. Each makes the one lookup per vertex its trapping spelling makes; `try?` gives an
+// Optional. `parent(checked:)`, `parentEdge(checked:)` and `path(checkedFrom:to:)` keep their
+// plain spellings' nil (at the root; not downward); `try?` flattens that nil with a missing
+// vertex's, so a caller that must tell them apart catches.
+
+extension Arborescence {
+    /// `parent(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex: nil still
+    /// means `vertex` is the root. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func parent(checked vertex: Vertex) throws(VertexNotFound) -> Vertex? {
+        let p = _layout.nodes[try _layout.checkedNumber(of: vertex)].parent
+        return p < 0 ? nil : _layout.vertices[p]
+    }
+
+    /// `parentEdge(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex: nil
+    /// still means `vertex` is the root. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func parentEdge(checked vertex: Vertex) throws(VertexNotFound) -> Int? {
+        let e = _layout.nodes[try _layout.checkedNumber(of: vertex)].parentEdge
+        return e < 0 ? nil : e
+    }
+
+    /// `children(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func children(checked vertex: Vertex) throws(VertexNotFound) -> RootedTree<Vertex>.Children {
+        RootedTree.Children(_layout, try _layout.checkedNumber(of: vertex))
+    }
+
+    /// `depth(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func depth(checked vertex: Vertex) throws(VertexNotFound) -> Int {
+        _layout.nodes[try _layout.checkedNumber(of: vertex)].depth
+    }
+
+    /// `descendants(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex.
+    /// O(1). Traversal's `descendants(checked:)` on any `DirectedGraph` returns a `Set`; this one
+    /// is the slice of `preorder`, and the more specific member wins.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func descendants(checked vertex: Vertex) throws(VertexNotFound) -> RootedTree<Vertex>.Preorder.SubSequence {
+        _layout.descendants(ofNumber: try _layout.checkedNumber(of: vertex))
+    }
+
+    /// `ancestors(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1)
+    /// to make.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func ancestors(checked vertex: Vertex) throws(VertexNotFound) -> RootedTree<Vertex>.Ancestors {
+        RootedTree.Ancestors(_layout, try _layout.checkedNumber(of: vertex))
+    }
+
+    /// `isAncestor(a, of: b)`, throwing instead of trapping when either is not a vertex. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `a` or `b` is not a vertex.
+    @inlinable
+    public func isAncestor(checked a: Vertex, of b: Vertex) throws(VertexNotFound) -> Bool {
+        let x = try _layout.checkedNumber(of: a), y = try _layout.checkedNumber(of: b)
+        return _layout.isAncestor(x, of: y)
+    }
+
+    /// `path(from: source, to: target)`, throwing instead of trapping when either is not a
+    /// vertex: nil still means `source` is neither `target` nor an ancestor of it. O(length).
+    ///
+    /// - Throws: `VertexNotFound` when `source` or `target` is not a vertex.
+    @inlinable
+    public func path(checkedFrom source: Vertex, to target: Vertex) throws(VertexNotFound) -> Path<Vertex, Int>? {
+        let a = try _layout.checkedNumber(of: source), b = try _layout.checkedNumber(of: target)
+        guard a == b || _layout.isAncestor(a, of: b) else { return nil }
+        return _layout._path(a, b)
+    }
+
+    /// `successors(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func successors(checked vertex: Vertex) throws(VertexNotFound) -> Successors {
+        RootedTree.Children(_layout, try _layout.checkedNumber(of: vertex))
+    }
+
+    /// `predecessors(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex.
+    /// O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func predecessors(checked vertex: Vertex) throws(VertexNotFound) -> Predecessors {
+        let p = _layout.nodes[try _layout.checkedNumber(of: vertex)].parent
+        return Predecessors(p < 0 ? nil : _layout.vertices[p])
+    }
+
+    /// `outEdges(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func outEdges(checked vertex: Vertex) throws(VertexNotFound) -> OutEdges {
+        OutEdges(_layout, try _layout.checkedNumber(of: vertex), _layout.rowEdges)
+    }
+
+    /// `inEdges(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func inEdges(checked vertex: Vertex) throws(VertexNotFound) -> InEdges {
+        inEdges(ofIndex: try _layout.checkedNumber(of: vertex))
+    }
+
+    /// `outDegree(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func outDegree(checked vertex: Vertex) throws(VertexNotFound) -> Int {
+        OutEdges(_layout, try _layout.checkedNumber(of: vertex), _layout.rowEdges).count
+    }
+
+    /// `inDegree(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func inDegree(checked vertex: Vertex) throws(VertexNotFound) -> Int {
+        _layout.nodes[try _layout.checkedNumber(of: vertex)].parent < 0 ? 0 : 1
+    }
+
+    /// `degree(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex: the
+    /// number of children, plus one below the root. O(1), one lookup where `degree(of:)` makes
+    /// two.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func degree(checked vertex: Vertex) throws(VertexNotFound) -> Int {
+        let v = try _layout.checkedNumber(of: vertex)
+        return outDegree(ofIndex: v) + inDegree(ofIndex: v)
+    }
+
+    /// `vertexIndex(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. One
+    /// lookup.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public func vertexIndex(checked vertex: Vertex) throws(VertexNotFound) -> Int {
+        try _layout.checkedNumber(of: vertex)
+    }
+
+    /// `source(ofEdgeAt: position)`, throwing instead of trapping when no edge is at `position`.
+    /// O(1).
+    ///
+    /// - Throws: `EdgeNotFound` when `position` is not in `0..<edgeCount`.
+    @inlinable
+    public func source(checkedEdgeAt position: Int) throws(EdgeNotFound) -> Vertex {
+        guard position >= 0 && position < _layout.edgeCount else { throw EdgeNotFound() }
+        return _layout.vertices[_layout.nodes[_layout.child(ofEdge: position)].parent]
+    }
+
+    /// `target(ofEdgeAt: position)`, throwing instead of trapping when no edge is at `position`.
+    /// O(1).
+    ///
+    /// - Throws: `EdgeNotFound` when `position` is not in `0..<edgeCount`.
+    @inlinable
+    public func target(checkedEdgeAt position: Int) throws(EdgeNotFound) -> Vertex {
+        guard position >= 0 && position < _layout.edgeCount else { throw EdgeNotFound() }
+        return _layout.vertices[_layout.child(ofEdge: position)]
+    }
+}
+
 // MARK: - Equality, hashing, coding, descriptions
 
 extension _TreeLayout {

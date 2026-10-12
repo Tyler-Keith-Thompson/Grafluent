@@ -325,6 +325,8 @@ No studied CSR library offers structural equality (petgraph's `Csr`, Boost, neo4
 | CSR-P05 | Sorted fast path with unsorted or duplicate input | trap, or a thrown error if the API is `throws` (CSR-C22–C25) |
 | CSR-P06 | `source(ofEdgeAt: m)`, `target(ofEdgeAt: -1)` | trap (CSR-E04) |
 | CSR-P07 | `contains(edge:)` out of range | **no trap**, returns `false` (CSR-L06) |
+| CSR-P08 | `successors(checked:)`, `outEdges(checked:)`, `outDegree(checked:)`, `vertexIndex(checked:)` at `-1` and `n` | throws `VertexNotFound`, no trap (README Principle 6); in range, equal to the trapping spelling |
+| CSR-P09 | `source(checkedEdgeAt:)`, `target(checkedEdgeAt:)` at `-1` and `m` | throws `EdgeNotFound`, no trap; in range, equal to the trapping spelling |
 
 ---
 

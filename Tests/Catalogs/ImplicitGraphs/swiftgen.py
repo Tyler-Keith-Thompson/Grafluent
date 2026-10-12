@@ -72,7 +72,7 @@ for line in TEXT.splitlines():
         parts = [p.strip().replace("\\|", "|") for p in line.strip().strip("|").split(" | ")]
         CELLS[int(parts[0][3:])] = parts
 N = len(CELLS)
-assert N == 45 and sorted(RECORD) == list(range(1, N + 1))
+assert N == 46 and sorted(RECORD) == list(range(1, N + 1))
 
 
 def group(n): return CELLS[n][1]
@@ -195,6 +195,16 @@ def call_lines(n, text, v):
     """The Swift lines checking `text` (a catalog call) returns the model's value v."""
     if text == "calls()":
         return ["#expect(calls == %d)" % v, "calls = 0"]
+    m = re.fullmatch(r"(successors|outEdges|outDegree|vertexIndex)\(checked: (-?\d+)\)", text)
+    if m:
+        if v is ref.THROWS:
+            return ["#expect(throws: VertexNotFound.self) { try graph.%s }" % text,
+                    "#expect((try? graph.%s) == nil)" % text]
+        if m.group(1) == "successors":
+            return ["#expect(try Array(graph.%s) == %s)" % (text, ints(v))]
+        if m.group(1) == "outEdges":
+            return ["#expect(try Array(graph.%s).map { [$0.source, $0.rank, $0.target] } == %s)" % (text, int_rows([list(p) for p in v]))]
+        return ["#expect(try graph.%s == %d)" % (text, v)]
     if text in ("vertexCount", "vertexIndexBound", "edgeIndexBound", "edgeCount"):
         return ["#expect(graph.%s == %s)" % (text, "nil" if v is None else v)]
     if text == "edges.isEmpty":
@@ -281,7 +291,8 @@ def graph_test(n):
     count, cname = parse_name(name)
     ROW_TYPE[0] = CLOSURES[cname][0]
     calls = RECORD[n][1]
-    lines = header(n) + ["    func ig%03d() {" % n, "        // %s → %s" % (inp(n), cell(n)), "        var calls = 0"]
+    throws = any("(checked:" in t for t, _ in calls)
+    lines = header(n) + ["    func ig%03d()%s {" % (n, " throws" if throws else ""), "        // %s → %s" % (inp(n), cell(n)), "        var calls = 0"]
     if any(t == "IG(5, twoCycles).topologicalSort()" for t, _ in calls):
         lines.append("        var otherCalls = 0")
     lines += construct(count, cname)
@@ -590,10 +601,11 @@ FILES = [
      "Construction (catalog IG-001, IG-002): the closure is never called to build the graph, and an\n"
      "// empty graph never calls it at all."),
     ("ImplicitGraphReadTests.swift", "ImplicitGraphs reads", ids("Reads"),
-     "Reads (catalog IG-004 – IG-011, IG-045): one closure call per row read, positions (source, rank,\n"
-     "// target) that read their ends without a call, edges in row order with one call per vertex,\n"
-     "// index(after:) re-reading the row, parallel edges and self-loops as distinct positions, contains,\n"
-     "// and isEmpty and first reading every empty row."),
+     "Reads (catalog IG-004 – IG-011, IG-045, IG-046): one closure call per row read, positions\n"
+     "// (source, rank, target) that read their ends without a call, edges in row order with one call per\n"
+     "// vertex, index(after:) re-reading the row, parallel edges and self-loops as distinct positions,\n"
+     "// contains, isEmpty and first reading every empty row, and the checked: spellings, which throw\n"
+     "// VertexNotFound for a non-vertex without calling the closure."),
     ("ImplicitGraphGenericTests.swift", "ImplicitGraphs generic algorithms", ids("Generic"),
      "Generic algorithms on the implicit graph (catalog IG-016 – IG-022): Traversal's layers with one\n"
      "// call per discovered vertex, ShortestPaths with the weight read from the position's target,\n"
