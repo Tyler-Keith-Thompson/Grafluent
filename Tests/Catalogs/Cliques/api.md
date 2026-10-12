@@ -296,14 +296,21 @@ K₁₂₀, `moon(8)` (6 561 cliques) and a 2 000-vertex random multigraph.
   adjacency is ever read, so build N(u) ∩ P bits, not N(u) ∩ (P ∪ X), for u ∈ X. Benchmark
   before choosing.
 * **`cliqueNumber()`**: branch and bound in σ order (as ELS, P = later neighbours). Skip v when
-  core(v) + 1 ≤ best. Prune a node when |R| + colours(P) ≤ best, with a greedy colouring of P in
-  bitset form (Tomita–Seki MCQ/MCS style). Stop as soon as best = degeneracy + 1. Seed best with
-  a greedy clique grown from the last vertex of σ.
-* **`maximumClique()`**: ω from `cliqueNumber()`, then for each v in **index** order with
-  core(v) + 1 ≥ ω, search for a clique of size ω whose least index is v. P = the neighbours with
-  a greater index, branching in ascending index, pruning |R| + colours(P) < ω. The first clique
-  found is the lexicographically least one with least vertex v, and v ascends, so it is the
-  answer. `ref.py` checks the rule by brute force over all maximal cliques.
+  core(v) + 1 ≤ best. Each P is searched by `_MaximumCliqueSearch` (`MaximumCliqueSearch.swift`):
+  San Segundo et al.'s BBMC (2011), Tomita–Seki's MCQ on bitsets. P is ordered by descending
+  degree within P (left as given below 32 vertices, where sorting costs more than it saves); each
+  node colours its candidates greedily in that order and branches from the highest colour down,
+  pruning when |R| + colour ≤ best. A greedy clique in P seeds best. Stop as soon as best =
+  degeneracy + 1 (or a caller's target: ColoringModule asks for its upper bound). Covering's
+  maximum independent set runs the same engine on complement rows.
+* **`maximumClique()`**: ω from `cliqueNumber()`, then for each v in σ order with core(v) + 1 ≥ ω,
+  the least (ω − 1)-clique among its later neighbours (core(v) + 1 ≥ ω) by a witness pass: W =
+  any such clique from the engine (skip v if none); walk the candidates u in ascending index with
+  C chosen and P their common neighbours left; u ∈ W is taken, any other u is taken exactly when
+  the engine finds a (need − 1)-clique in P ∩ N(u), which becomes W, else u leaves P. Invariant:
+  W ⊆ C ∪ P. The least of the per-v cliques (by the least vertex of a symmetric difference) is the
+  answer; v is skipped when min(v, its candidates) exceeds the best clique's least vertex.
+  `ref.py` checks the rule by brute force over all maximal cliques.
 * **Triangles, whole graph (compact-forward, Latapy 2008).** Rank the vertices by (simple degree,
   index) with a counting sort. Keep each vertex's forward neighbours (greater rank). For each v
   in rank order, mark its forward neighbours with a stamp. For each forward neighbour w and each

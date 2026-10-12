@@ -11,6 +11,7 @@ swift_library(
     deps = [
         "//Sources/GraphProtocols",
         "//Sources/BipartiteGraphs",
+        "//Sources/Cliques",
     ],
     visibility = ["//visibility:public"],
 )
@@ -23,6 +24,7 @@ docc_archive(
     deps = [
         "//Sources/GraphProtocols:GraphProtocolsDocumentation",
         "//Sources/BipartiteGraphs:BipartiteGraphsDocumentation",
+        "//Sources/Cliques:CliquesDocumentation",
     ],
     tags = ["manual"],
     visibility = ["//visibility:public"],

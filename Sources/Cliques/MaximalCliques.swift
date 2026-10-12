@@ -13,7 +13,7 @@ import GraphProtocols
 @frozen
 @usableFromInline
 struct _MaximalCliqueSearch: Sendable {
-    @usableFromInline let rows: _SimpleRows
+    @usableFromInline let rows: _CompressedRows
     @usableFromInline let order: [Int]
     @usableFromInline var rank: [Int]
     /// Each vertex's later neighbors in the degeneracy order: at most `degeneracy` each.
@@ -42,7 +42,7 @@ struct _MaximalCliqueSearch: Sendable {
     @usableFromInline var found: [Int] = []
 
     @inlinable
-    init(_ rows: _SimpleRows) {
+    init(_ rows: _CompressedRows) {
         self.rows = rows
         let n = rows.count
         order = _cores(rows).order
@@ -51,9 +51,9 @@ struct _MaximalCliqueSearch: Sendable {
         self.rank = rank
         var offsets = [Int](repeating: 0, count: n + 1)
         var later: [Int] = []
-        later.reserveCapacity(rows.neighbors.count / 2)
+        later.reserveCapacity(rows.targets.count / 2)
         for v in 0 ..< n {
-            for k in rows.offsets[v] ..< rows.offsets[v + 1] where rank[rows.neighbors[k]] > rank[v] { later.append(rows.neighbors[k]) }
+            for k in rows.offsets[v] ..< rows.offsets[v + 1] where rank[rows.targets[k]] > rank[v] { later.append(rows.targets[k]) }
             offsets[v + 1] = later.count
         }
         laterOffsets = offsets
@@ -98,7 +98,7 @@ struct _MaximalCliqueSearch: Sendable {
         pVertices.removeAll(keepingCapacity: true)
         xVertices.removeAll(keepingCapacity: true)
         for k in laterOffsets[v] ..< laterOffsets[v + 1] { pVertices.append(later[k]) }
-        for k in rows.offsets[v] ..< rows.offsets[v + 1] where rank[rows.neighbors[k]] < rank[v] { xVertices.append(rows.neighbors[k]) }
+        for k in rows.offsets[v] ..< rows.offsets[v + 1] where rank[rows.targets[k]] < rank[v] { xVertices.append(rows.targets[k]) }
         if pVertices.isEmpty {
             guard xVertices.isEmpty else { return false }
             found = [v]

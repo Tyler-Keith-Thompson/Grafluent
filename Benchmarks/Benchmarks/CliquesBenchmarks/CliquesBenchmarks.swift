@@ -60,6 +60,17 @@ let benchmarks: @Sendable () -> Void = {
     }
     let sparse = simple(100_000, 500_000, 7)
     let dense = simple(2000, 20_000, 8)
+    // G(n, p): each pair an edge with probability p, so ω grows with n (the branch-and-bound case).
+    func bernoulli(_ n: Int, _ p: Double, _ seed: UInt) -> UndirectedAdjacencyList<Int> {
+        var rng = SeededRandomNumberGenerator(seed: seed)
+        var pairs: [UndirectedEdge<Int>] = []
+        for u in 0 ..< n {
+            for v in u + 1 ..< n where Double.random(in: 0 ..< 1, using: &rng) < p { pairs.append(UndirectedEdge(u, v)) }
+        }
+        return UndirectedAdjacencyList(vertices: 0 ..< n, edges: pairs)
+    }
+    let packed = bernoulli(150, 0.9, 9)
+    let packedSmall = bernoulli(120, 0.9, 10)
     func rows(_ g: UndirectedAdjacencyList<Int>) -> ([Int], [Int]) {
         var offsets = [0], targets: [Int] = []
         for v in 0 ..< g.vertexCount {
@@ -92,6 +103,12 @@ let benchmarks: @Sendable () -> Void = {
     }
     Benchmark("Cliques: maximumClique(), G(2000, 2·10⁴)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(dense.maximumClique()) }
+    }
+    Benchmark("Cliques: cliqueNumber(), G(150, 0.9)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(packed.cliqueNumber()) }
+    }
+    Benchmark("Cliques: maximumClique(), G(120, 0.9)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(packedSmall.maximumClique()) }
     }
     // CQ-B03: triangles and clustering.
     Benchmark("Cliques: BASELINE hand-written node-iterator triangles, G(10⁵, 5·10⁵)") { benchmark in

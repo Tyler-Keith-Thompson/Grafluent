@@ -455,18 +455,15 @@ left after removing looped vertices.
 * **Components and two-colouring.** One breadth-first pass over the loop-free vertices labels
   components and colours them; a component with a conflicting edge goes to the search. The colouring
   is local (any proper one: the lattice result does not depend on which side is called left).
-* **Matching.** Hopcroft–Karp on all bipartite components at once (they are disjoint). MatchingModule
-  has it in index space; expose its core as a `package` function (`package` is already used
-  between GraphProtocols and the algorithm modules) rather than copying it (the final reuse pass
-  memo says to dedupe, not to start early, so copying is acceptable too). The alternating reach is
+* **Matching.** Hopcroft–Karp on all bipartite components at once (they are disjoint), after a
+  greedy start: MatchingModule's `_hopcroftKarpPhases`, following only targets on a bipartite
+  component (a looped neighbour is outside). The alternating reach is
   one queue seeded with every free vertex, tagged with its root's side; the implications are the
   unmatched core edges, scanned from left ends; the greedy is one pass with an explicit stack per
   propagation. `Int32` arrays throughout, `Int` when n ≥ 2³¹.
-* **Branch and bound.** Covering cannot use Cliques' `_CliqueSubproblem` (internal to Cliques).
-  It gets its own complement-bitset search, which the final reuse pass may merge with Cliques'
-  (the same colouring bound and the same flat stack layout). Bitset rows of the component's
-  complement among non-looped vertices. Isolated vertices and components of one or two vertices are
-  answered without the search.
+* **Branch and bound.** Cliques' `_MaximumCliqueSearch` (BBMC) on bitset rows of a kernel
+  component's complement, vertices by ascending degree. Isolated vertices and components of one or
+  two vertices are answered without the search.
 * **Dominating search.** Bitset closed neighbourhoods per component, an "undominated" bitset per
   depth on a flat stack, no recursion.
 * **Bar-Yehuda–Even**: one pass over `edges` with `cost: [W]` read once per vertex from
@@ -480,8 +477,8 @@ left after removing looped vertices.
   vertices. The result sorts the added positions into the matching's ascending ones by a counting
   pass over edge numbers.
 * **Dependencies**: GraphProtocols, BipartiteGraphs (`Bipartition`), MatchingModule (`Matching`,
-  `maximumMatching()`, Hopcroft–Karp). `scripts/modules.py` lists GraphProtocols and MatchingModule;
-  BipartiteGraphs comes through MatchingModule but is imported directly, so list it.
+  `maximumMatching()`, Hopcroft–Karp), Cliques (`_MaximumCliqueSearch`). BipartiteGraphs comes
+  through MatchingModule but is imported directly, so it is listed.
 * **Tests** (public API only, self-contained): every catalog row; `multigraph` rows with an in-file
   `Graph` conformer; generators written out in each file. Properties with swift-property-based:
   `minimumVertexCover()` and `maximumIndependentSet()` partition `vertices`; `isVertexCover`,

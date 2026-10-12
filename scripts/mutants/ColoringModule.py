@@ -1,7 +1,7 @@
 # Planted bugs for ColoringModule; run with `just mutate ColoringModule`. See scripts/mutate.py.
 #
 # Known equivalent mutants:
-#   order_twice, order_seen, order_missing, order_foreign, coloring_contains
+#   order_twice, order_seen, order_missing, order_foreign
 #                        greedyColoring(order:) without its repeat or count check still traps: a
 #                        vertex left out keeps colour −1, which indexes out of range in Coloring's
 #                        init (a worse message, the same trap); without the check of the vertex
@@ -24,7 +24,7 @@
 #
 # Order matters where patterns overlap: lf_degree edits the counting loop before lf_tie replaces
 # the filling loop; check_holder drops the holder test before check_loopedge edits its condition;
-# rows_repeat and rows_loop both edit one statement; firstfit_skip's text is also inside
+# firstfit_skip's text is also inside
 # ffrows_skip's, hence its nth; sl_lower wraps the statement that sl_removed
 # then edits; kempe_chosen and region_chosen are the two `chosen = c`, and mg_fanfree and
 # mg_fanrepeat each have a second form for vertices with tables.
@@ -33,8 +33,8 @@ TESTS = ["ColoringModuleTests"]
 
 MUTANTS = [
     # Simple rows
-    Mutant("rows_repeat", "ColoringRows.swift", "                if w == v || stamp[w] == v { continue }", "                if w == v { continue }", mode="stmt"),
-    Mutant("rows_loop", "ColoringRows.swift", "                if w == v || stamp[w] == v { continue }", "                if stamp[w] == v { continue }", mode="stmt"),
+    Mutant("rows_repeat", "CompressedRows.swift", "                if stamp[w] == v { continue }", "", mode="stmt", module="GraphProtocols"),
+    Mutant("rows_loop", "CompressedRows.swift", "w == v", "false", nth=1, module="GraphProtocols"),
 
     # The indexed heap shared by smallest last, DSatur and the independent set
     Mutant("heap_tie", "ColoringRows.swift", "ka < kb || (ka == kb && a < b)", "ka < kb || (ka == kb && a > b)"),
@@ -79,25 +79,25 @@ MUTANTS = [
     Mutant("is_initial", "GreedyColoring.swift", "available[adjacency[k]]", "true"),
     Mutant("is_drop", "GreedyColoring.swift", "                    available[w] = false", "", mode="stmt"),
     Mutant("is_degree", "GreedyColoring.swift", "                    if available[y] { heap.lower(y, heap.key[y] - 1) }", "", mode="stmt"),
-    Mutant("is_presetblock", "GreedyColoring.swift", "                for k in rows.offsets[x] ..< rows.offsets[x + 1] { available[rows.neighbors[k]] = false }", "", mode="stmt"),
+    Mutant("is_presetblock", "GreedyColoring.swift", "                for k in rows.offsets[x] ..< rows.offsets[x + 1] { available[rows.targets[k]] = false }", "", mode="stmt"),
     Mutant("is_presetclass", "GreedyColoring.swift", "colors[presets[nextPreset]] <= color", "colors[presets[nextPreset]] < color"),
     Mutant("is_compact", "GreedyColoring.swift", "        swap(&adjacency, &spare)", "", mode="stmt"),
 
     # Connected sequential
     Mutant("cs_swap", "GreedyColoring.swift", "depthFirst", "!depthFirst", nth=1),
     Mutant("cs_bfsroot", "GreedyColoring.swift", "order.count - 1", "order.count", nth=0),
-    Mutant("cs_bfsseen", "GreedyColoring.swift", "                    seen[rows.neighbors[k]] = true", "", mode="stmt"),
+    Mutant("cs_bfsseen", "GreedyColoring.swift", "                    seen[rows.targets[k]] = true", "", mode="stmt"),
     Mutant("cs_dfsdescend", "GreedyColoring.swift", "                stack.append(w)\n                cursor.append(rows.offsets[w])", "", mode="stmt"),
 
     # Colored neighbours
     Mutant("cn_start", "GreedyColoring.swift", "rows.degree(v) > rows.degree(best)", "rows.degree(v) >= rows.degree(best)"),
     Mutant("cn_count", "GreedyColoring.swift", "            if heap.contains(w) { heap.modify(w, heap.value(w) + 1) }", "", mode="stmt"),
-    Mutant("cn_sorted", "GreedyColoring.swift", "sorted[k]", "rows.neighbors[k]"),
-    Mutant("cn_presetcount", "GreedyColoring.swift", "            for k in rows.offsets[v] ..< rows.offsets[v + 1] where colors[rows.neighbors[k]] >= 0 { count += 1 }", "", mode="stmt"),
+    Mutant("cn_sorted", "GreedyColoring.swift", "sorted[k]", "rows.targets[k]"),
+    Mutant("cn_presetcount", "GreedyColoring.swift", "            for k in rows.offsets[v] ..< rows.offsets[v + 1] where colors[rows.targets[k]] >= 0 { count += 1 }", "", mode="stmt"),
 
     # greedyColoring(strategy:presetColor:) and greedyColoring(order:)
     Mutant("preset_negative", "GreedyColoring.swift", r'                precondition(c >= 0, "The preset colour of \(vertex) is negative")', "", mode="stmt"),
-    Mutant("preset_adjacent", "GreedyColoring.swift", '                precondition(preset[rows.neighbors[k]] != preset[v], "Two adjacent vertices have the same preset colour")', "", mode="stmt"),
+    Mutant("preset_adjacent", "GreedyColoring.swift", '                precondition(preset[rows.targets[k]] != preset[v], "Two adjacent vertices have the same preset colour")', "", mode="stmt"),
     Mutant("order_twice", "GreedyColoring.swift", r'            precondition(!seen[v], "\(vertex) appears twice in the order")', "", mode="stmt"),
     Mutant("order_seen", "GreedyColoring.swift", "            seen[v] = true", "", mode="stmt"),
     Mutant("order_missing", "GreedyColoring.swift", r'        precondition(sequence.count == n, "The order misses \(n - sequence.count) vertices")', "", mode="stmt"),
@@ -111,7 +111,6 @@ MUTANTS = [
     Mutant("coloring_classes", "Coloring.swift", "            fill[colors[v]] += 1", "", mode="stmt"),
     Mutant("coloring_equal", "Coloring.swift", "lhs._colors == rhs._colors", "lhs._offsets == rhs._offsets"),
     Mutant("coloring_colorof", "Coloring.swift", "            return _colors[v]", "            return _colors[_colors.count - 1 - v]", mode="stmt"),
-    Mutant("coloring_contains", "Coloring.swift", r'        precondition(_graph.contains(vertex), "\(vertex) is not a vertex of the graph")', "", mode="stmt"),
     Mutant("coloring_index", "Coloring.swift", "index >= 0 && index < _colors.count", "index < _colors.count"),
 
     # EdgeColoring
@@ -164,13 +163,13 @@ MUTANTS = [
     Mutant("check_dense", "ColoringChecks.swift", "low < 0 || high >= 2 * m + 1", "high >= 2 * m + 1"),
 
     # Exact search: components, whole-graph cases, per-component handling and skipping
-    Mutant("exact_edgeless", "ExactColoring.swift", "    guard !rows.neighbors.isEmpty else { return (1, colors) }", "", mode="stmt"),
+    Mutant("exact_edgeless", "ExactColoring.swift", "    guard !rows.targets.isEmpty else { return (1, colors) }", "", mode="stmt"),
     Mutant("exact_wholesides", "ExactColoring.swift", "Int(sides[v])", "1 - Int(sides[v])"),
     Mutant("exact_partsides", "ExactColoring.swift", "Int(sides[i])", "1 - Int(sides[i])"),
-    Mutant("exact_components", "ExactColoring.swift", "                component[rows.neighbors[k]] = count", "", mode="stmt"),
+    Mutant("exact_components", "ExactColoring.swift", "                component[rows.targets[k]] = count", "", mode="stmt"),
     Mutant("exact_skip", "ExactColoring.swift", "upper > floor", "upper > floor + 1"),
     Mutant("exact_noskip", "ExactColoring.swift", "lexicographic ? 0 : chi", "0"),
-    Mutant("exact_load", "ExactColoring.swift", "local[global.neighbors[k]] >= 0", "true"),
+    Mutant("exact_load", "ExactColoring.swift", "local[global.targets[k]] >= 0", "true"),
     Mutant("exact_witness", "ExactColoring.swift", "            for (i, v) in part.enumerated() { colors[v] = witness[i] }", "", mode="stmt"),
     Mutant("exact_renumber", "ExactColoring.swift", "            colors[v] = renumbered[c]", "", mode="stmt"),
 
@@ -178,8 +177,6 @@ MUTANTS = [
     Mutant("exact_lower", "ExactColoring.swift", "lower ..< upper", "lower + 1 ..< upper"),
     Mutant("exact_three", "ExactColoring.swift", "max(3, clique.count)", "clique.count"),
     Mutant("exact_seed", "ExactColoring.swift", "        for (i, v) in clique.enumerated() { preset[v] = i }", "        for v in clique { preset[v] = 0 }", mode="stmt"),
-    Mutant("clique_adjacent", "ExactColoring.swift", "hits[x] == clique.count", "true"),
-    Mutant("clique_undo", "ExactColoring.swift", "                for k in rows.offsets[y] ..< rows.offsets[y + 1] { hits[rows.neighbors[k]] -= 1 }", "", mode="stmt"),
 
     # Exact search: DSatur branch and bound
     Mutant("bb_count", "ExactColoring.swift", "            counts[slot] += 1", "", mode="stmt"),

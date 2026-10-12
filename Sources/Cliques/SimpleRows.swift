@@ -1,61 +1,11 @@
 import GraphProtocols
 
-/// The simple graph underlying an undirected graph, in index space: each vertex's distinct other
-/// neighbors in first-appearance row order (self-loops dropped, parallel copies merged), as flat
-/// rows. Every Cliques algorithm reads this, so a multigraph means its simple graph.
-@frozen
-@usableFromInline
-struct _SimpleRows: Sendable {
-    @usableFromInline var offsets: [Int]
-    @usableFromInline var neighbors: [Int]
-
-    @inlinable
-    init(offsets: [Int], neighbors: [Int]) {
-        self.offsets = offsets
-        self.neighbors = neighbors
-    }
-
-    @inlinable
-    var count: Int { offsets.count - 1 }
-
-    @inlinable
-    func degree(_ v: Int) -> Int { offsets[v + 1] - offsets[v] }
-}
-
-/// Copies the rows once, dropping loops and repeats with a stamp per vertex.
-@frozen
-@usableFromInline
-struct _CopySimpleRows: _UndirectedRowsAlgorithm {
-    @inlinable
-    init() {}
-
-    @inlinable
-    var readsEdges: Bool { false }
-
-    @inlinable
-    func run<Rows: _IncidenceRowSource>(count n: Int, edgeCount: Int, _ rows: inout Rows) -> _SimpleRows {
-        var offsets = [Int](repeating: 0, count: n + 1)
-        var neighbors: [Int] = []
-        neighbors.reserveCapacity(2 * edgeCount)
-        var stamp = [Int](repeating: -1, count: n)
-        for v in 0 ..< n {
-            for k in 0 ..< rows.count(v) {
-                let w = rows.neighbor(v, k)
-                precondition(UInt(bitPattern: w) < UInt(bitPattern: n), "A neighbor index is out of range")
-                if w == v || stamp[w] == v { continue }
-                stamp[w] = v
-                neighbors.append(w)
-            }
-            offsets[v + 1] = neighbors.count
-        }
-        return _SimpleRows(offsets: offsets, neighbors: neighbors)
-    }
-}
-
 extension Graph {
+    /// The simple graph underlying this one, in index space: each vertex's distinct other
+    /// neighbors in first-appearance row order (self-loops dropped, parallel copies merged). Every
+    /// Cliques algorithm reads this, so a multigraph means its simple graph.
     @inlinable
-    func _simpleRows() -> _SimpleRows { _runOnUndirectedRows(_CopySimpleRows()) }
-
+    func _simpleRows() -> _CompressedRows { _runOnUndirectedRows(_CopySimpleRows(recordsLoops: false)).rows }
 }
 
 /// Batagelj–Zaversnik's core decomposition, O(n + m): the core numbers and the removal order
@@ -63,7 +13,7 @@ extension Graph {
 /// degree, stable in index order; each removed vertex lowers its later neighbors, taken in row
 /// order, moving each to the front of its bucket first.
 @inlinable
-func _cores(_ rows: _SimpleRows) -> (core: [Int], order: [Int]) {
+func _cores(_ rows: _CompressedRows) -> (core: [Int], order: [Int]) {
     let n = rows.count
     guard n > 0 else { return ([], []) }
     var degree = (0 ..< n).map { rows.degree($0) }
@@ -86,7 +36,7 @@ func _cores(_ rows: _SimpleRows) -> (core: [Int], order: [Int]) {
     for i in 0 ..< n {
         let v = vert[i]
         for k in rows.offsets[v] ..< rows.offsets[v + 1] {
-            let u = rows.neighbors[k]
+            let u = rows.targets[k]
             guard degree[u] > degree[v] else { continue }
             let du = degree[u], pu = pos[u]
             let pw = bin[du], w = vert[pw]

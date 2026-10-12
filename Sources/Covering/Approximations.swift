@@ -45,7 +45,7 @@ extension Graph {
     /// ratios weight / k; ties go to the lesser vertex index.
     @inlinable
     func _greedyDominatingSet<W>(_ weights: [W], less: (W, Int, W, Int) -> Bool) -> [Vertex] {
-        let graph = _coveringGraph()
+        let graph = _coveringGraph(recordsLoops: false).rows
         let n = graph.count
         var undominated = [Int](repeating: 0, count: n)  // per vertex: undominated vertices in N[v]
         for v in 0 ..< n { undominated[v] = graph.degree(v) + 1 }
@@ -71,12 +71,12 @@ extension Graph {
             chosen[top.v] = true
             // The closed neighbourhood: the vertex itself (k = −1), then its row.
             for k in graph.offsets[top.v] - 1 ..< graph.offsets[top.v + 1] {
-                let x = k < graph.offsets[top.v] ? top.v : graph.neighbors[k]
+                let x = k < graph.offsets[top.v] ? top.v : graph.targets[k]
                 if dominated[x] { continue }
                 dominated[x] = true
                 remaining -= 1
                 undominated[x] -= 1
-                for y in graph.neighbors[graph.offsets[x] ..< graph.offsets[x + 1]] { undominated[y] -= 1 }
+                for y in graph.targets[graph.offsets[x] ..< graph.offsets[x + 1]] { undominated[y] -= 1 }
             }
         }
         return _coveringVertices(flagged: chosen, _listedVertices())

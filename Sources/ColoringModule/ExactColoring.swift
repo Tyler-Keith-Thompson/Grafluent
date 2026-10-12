@@ -1,10 +1,11 @@
 import BipartiteGraphs
+import Cliques
 import GraphProtocols
 
 /// The connected components of the simple graph, by breadth-first search from each unvisited
 /// vertex in index order: component c is `members[starts[c] ..< starts[c + 1]]`, ascending. O(n + m).
 @inlinable
-func _coloringComponents(_ rows: _ColoringRows) -> (members: [Int], starts: [Int]) {
+func _coloringComponents(_ rows: _CompressedRows) -> (members: [Int], starts: [Int]) {
     let n = rows.count
     var component = [Int](repeating: -1, count: n)
     var queue = [Int](repeating: 0, count: n)
@@ -16,9 +17,9 @@ func _coloringComponents(_ rows: _ColoringRows) -> (members: [Int], starts: [Int
         while head < tail {
             let v = queue[head]
             head += 1
-            for k in rows.offsets[v] ..< rows.offsets[v + 1] where component[rows.neighbors[k]] < 0 {
-                component[rows.neighbors[k]] = count
-                queue[tail] = rows.neighbors[k]
+            for k in rows.offsets[v] ..< rows.offsets[v + 1] where component[rows.targets[k]] < 0 {
+                component[rows.targets[k]] = count
+                queue[tail] = rows.targets[k]
                 tail += 1
             }
         }
@@ -71,7 +72,7 @@ func _restrictGrowth(_ colors: inout [Int], from: Int, high: Int, scratch: inout
 @frozen
 @usableFromInline
 struct _ColoringSearch {
-    @usableFromInline var rows = _ColoringRows(offsets: [0], neighbors: [])
+    @usableFromInline var rows = _CompressedRows(offsets: [0], targets: [], edges: [])
     @usableFromInline var k = 0
     @usableFromInline var words = 0
     @usableFromInline var color: [Int] = []
@@ -106,54 +107,19 @@ struct _ColoringSearch {
 
     /// Sets up the subgraph that `members` (ascending numbers in `global`) induce.
     @inlinable
-    mutating func load(_ members: ArraySlice<Int>, of global: _ColoringRows) {
+    mutating func load(_ members: ArraySlice<Int>, of global: _CompressedRows) {
         for (i, u) in members.enumerated() { local[u] = i }
         var offsets = [0]
         offsets.reserveCapacity(members.count + 1)
         var neighbors: [Int] = []
         for u in members {
-            for k in global.offsets[u] ..< global.offsets[u + 1] where local[global.neighbors[k]] >= 0 {
-                neighbors.append(local[global.neighbors[k]])
+            for k in global.offsets[u] ..< global.offsets[u + 1] where local[global.targets[k]] >= 0 {
+                neighbors.append(local[global.targets[k]])
             }
             offsets.append(neighbors.count)
         }
         for u in members { local[u] = -1 }
-        rows = _ColoringRows(offsets: offsets, neighbors: neighbors)
-    }
-
-    /// A clique found greedily: from each seed (every vertex, or the 64 of greatest degree in a
-    /// component above 1024 vertices), its neighbours by degree descending, each taken when
-    /// adjacent to all taken so far (`hits[w]` counts the taken vertices adjacent to w).
-    @inlinable
-    func greedyClique() -> [Int] {
-        let p = count
-        let order = _largestFirstOrder(rows)
-        var hits = [Int](repeating: 0, count: p)
-        var rank = [Int](repeating: 0, count: p)
-        for (i, v) in order.enumerated() { rank[v] = i }
-        var best: [Int] = []
-        var clique: [Int] = []
-        var candidates: [Int] = []
-        let ceiling = rows.maximumDegree + 1
-        for s in order.prefix(p > 1024 ? 64 : p) {
-            if rows.degree(s) + 1 <= best.count { break }
-            candidates.removeAll(keepingCapacity: true)
-            candidates.append(contentsOf: rows.neighbors[rows.offsets[s] ..< rows.offsets[s + 1]])
-            candidates.sort { rank[$0] < rank[$1] }
-            clique.removeAll(keepingCapacity: true)
-            clique.append(s)
-            for k in rows.offsets[s] ..< rows.offsets[s + 1] { hits[rows.neighbors[k]] += 1 }
-            for x in candidates where hits[x] == clique.count {
-                clique.append(x)
-                for k in rows.offsets[x] ..< rows.offsets[x + 1] { hits[rows.neighbors[k]] += 1 }
-            }
-            for y in clique {
-                for k in rows.offsets[y] ..< rows.offsets[y + 1] { hits[rows.neighbors[k]] -= 1 }
-            }
-            if clique.count > best.count { best = clique }
-            if best.count == ceiling { break }
-        }
-        return best.sorted()
+        rows = _CompressedRows(offsets: offsets, targets: neighbors, edges: [])
     }
 
     /// Puts the uncoloured `v` at the head of its saturation's list.
@@ -180,7 +146,7 @@ struct _ColoringSearch {
         uncolored -= 1
         let word = c >> 6, bit = UInt64(1) << UInt64(c & 63)
         for i in rows.offsets[v] ..< rows.offsets[v + 1] {
-            let w = rows.neighbors[i]
+            let w = rows.targets[i]
             let slot = w &* k &+ c
             if counts[slot] == 0 {
                 masks[w &* words &+ word] |= bit
@@ -201,7 +167,7 @@ struct _ColoringSearch {
     mutating func unassign(_ v: Int, _ c: Int) {
         let word = c >> 6, bit = UInt64(1) << UInt64(c & 63)
         for i in rows.offsets[v] ..< rows.offsets[v + 1] {
-            let w = rows.neighbors[i]
+            let w = rows.targets[i]
             let slot = w &* k &+ c
             counts[slot] -= 1
             if counts[slot] == 0 {
@@ -362,7 +328,7 @@ struct _ColoringSearch {
     mutating func addBlockers(of x: Int, limit: Int) {
         for c in 0 ... limit { holder[c] = Int.max }
         for i in rows.offsets[x] ..< rows.offsets[x + 1] {
-            let w = rows.neighbors[i], c = color[w]
+            let w = rows.targets[i], c = color[w]
             if c >= 0 && c <= limit { holder[c] = min(holder[c], level[w]) }
         }
         for c in 0 ... limit where holder[c] >= 0 && holder[c] != Int.max { failure.append(holder[c]) }
@@ -401,15 +367,16 @@ struct _ColoringSearch {
     /// The chromatic number of the loaded component, known not bipartite (so at least 3), with a
     /// colouring that uses that many colours; when greedy DSatur already uses no more than `floor`,
     /// its count and colouring instead (χ alone needs no better, nor does a colouring with `floor`
-    /// colours). DSatur gives the upper bound, a greedy clique the lower one; each k between is
-    /// decided with the clique fixed to colours `0..<q`, ascending.
+    /// colours). DSatur gives the upper bound, a largest clique the lower one (Cliques' branch and
+    /// bound, stopped once a clique reaches the upper bound); each k between is decided with the
+    /// clique fixed to colours `0..<q`, ascending.
     @inlinable
     mutating func chromaticNumber(above floor: Int) -> (chi: Int, witness: [Int]) {
         let greedy = _saturationColoring(rows)
         var upper = 0
         for c in greedy where c >= upper { upper = c + 1 }
         guard upper > floor else { return (upper, greedy) }
-        let clique = greedyClique()
+        let clique = _cliqueNumber(rows, target: upper).clique.sorted()
         let lower = max(3, clique.count)
         guard lower < upper else { return (upper, greedy) }
         var preset = [Int](repeating: -1, count: count)
@@ -442,14 +409,14 @@ struct _ColoringSearch {
         var queue: [Int] = [], members: [Int] = [], boundary: [Int] = [], part: [Int] = [], hint: [Int] = []
         var reached = -1
         // Average degree at most 8.
-        let sparse = rows.neighbors.count <= 8 * p
+        let sparse = rows.targets.count <= 8 * p
         var region = _ColoringSearch(count: p)
         var high = -1
         for v in 0 ..< p {
             var chosen = witness[v]
             for c in 0 ..< witness[v] {
                 var clash = false
-                for i in rows.offsets[v] ..< rows.offsets[v + 1] where preset[rows.neighbors[i]] == c {
+                for i in rows.offsets[v] ..< rows.offsets[v + 1] where preset[rows.targets[i]] == c {
                     clash = true
                     break
                 }
@@ -465,7 +432,7 @@ struct _ColoringSearch {
                     let x = queue[head]
                     head += 1
                     for i in rows.offsets[x] ..< rows.offsets[x + 1] {
-                        let y = rows.neighbors[i]
+                        let y = rows.targets[i]
                         if mark[y] == stamp || (witness[y] != c && witness[y] != d) { continue }
                         mark[y] = stamp
                         queue.append(y)
@@ -492,7 +459,7 @@ struct _ColoringSearch {
                         let x = members[head]
                         head += 1
                         for j in rows.offsets[x] ..< rows.offsets[x + 1] {
-                            let y = rows.neighbors[j]
+                            let y = rows.targets[j]
                             if mark[y] == stamp { continue }
                             mark[y] = stamp
                             if y > v { members.append(y) } else { boundary.append(y) }
@@ -554,13 +521,13 @@ enum _ExactColoringGoal {
 /// a bipartite one its two-colouring, and the rest the search. Except for the lexicographic goal,
 /// a component whose DSatur bound is no more than the best so far keeps its DSatur colouring.
 @inlinable
-func _exactColoring(_ rows: _ColoringRows, goal: _ExactColoringGoal) -> (chi: Int, colors: [Int]) {
+func _exactColoring(_ rows: _CompressedRows, goal: _ExactColoringGoal) -> (chi: Int, colors: [Int]) {
     let n = rows.count
     var colors = [Int](repeating: 0, count: n)
     guard n > 0 else { return (0, colors) }
-    guard !rows.neighbors.isEmpty else { return (1, colors) }
+    guard !rows.targets.isEmpty else { return (1, colors) }
     var whole = _ColoringRowSource(rows)
-    if let sides = _TwoColoring(witness: false).run(count: n, edgeCount: rows.neighbors.count, &whole).sides {
+    if let sides = _TwoColoring(witness: false).run(count: n, edgeCount: rows.targets.count, &whole).sides {
         for v in 0 ..< n { colors[v] = Int(sides[v]) }
         return (2, colors)
     }
@@ -573,7 +540,7 @@ func _exactColoring(_ rows: _ColoringRows, goal: _ExactColoringGoal) -> (chi: In
         guard part.count > 1 else { continue }
         search.load(part, of: rows)
         var source = _ColoringRowSource(search.rows)
-        if let sides = _TwoColoring(witness: false).run(count: part.count, edgeCount: search.rows.neighbors.count, &source).sides {
+        if let sides = _TwoColoring(witness: false).run(count: part.count, edgeCount: search.rows.targets.count, &source).sides {
             for (i, v) in part.enumerated() { colors[v] = Int(sides[i]) }
             continue
         }
@@ -615,7 +582,7 @@ extension Graph {
     /// ones. The search does not check for task cancellation.
     @inlinable
     public func chromaticNumber() -> Int {
-        _exactColoring(_runOnUndirectedRows(_CopyColoringRows()), goal: .chromaticNumber).chi
+        _exactColoring(_runOnUndirectedRows(_CopySimpleRows(recordsLoops: false)).rows, goal: .chromaticNumber).chi
     }
 
     /// An optimal colouring of the simple graph: `colorCount == chromaticNumber()`, with colours
@@ -631,7 +598,7 @@ extension Graph {
     @inlinable
     public func minimumColoring() -> Coloring<Self> {
         let numbering = _vertexNumbering()
-        let rows = _runOnUndirectedRows(_CopyColoringRows(), vertexNumbering: numbering)
+        let rows = _runOnUndirectedRows(_CopySimpleRows(recordsLoops: false), vertexNumbering: numbering).rows
         return Coloring(self, numbering: numbering, colors: _exactColoring(rows, goal: .minimumColoring).colors)
     }
 
@@ -658,7 +625,7 @@ extension Graph {
     @inlinable
     public func lexicographicallyFirstMinimumColoring() -> Coloring<Self> {
         let numbering = _vertexNumbering()
-        let rows = _runOnUndirectedRows(_CopyColoringRows(), vertexNumbering: numbering)
+        let rows = _runOnUndirectedRows(_CopySimpleRows(recordsLoops: false), vertexNumbering: numbering).rows
         return Coloring(self, numbering: numbering, colors: _exactColoring(rows, goal: .lexicographicallyFirst).colors)
     }
 }

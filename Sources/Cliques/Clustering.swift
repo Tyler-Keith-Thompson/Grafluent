@@ -4,7 +4,7 @@ import GraphProtocols
 /// ranked by (degree, index), each one's forward neighbors (higher rank) marked, and each forward
 /// neighbor's forward neighbors checked against the marks. O(m^(3/2)).
 @inlinable
-func _triangles(_ rows: _SimpleRows) -> [Int] {
+func _triangles(_ rows: _CompressedRows) -> [Int] {
     let n = rows.count
     guard n > 0 else { return [] }
     // Rank by degree, ties by index: a stable counting sort.
@@ -20,9 +20,9 @@ func _triangles(_ rows: _SimpleRows) -> [Int] {
     // Forward rows.
     var offsets = [Int](repeating: 0, count: n + 1)
     var forward: [Int] = []
-    forward.reserveCapacity(rows.neighbors.count / 2)
+    forward.reserveCapacity(rows.targets.count / 2)
     for v in 0 ..< n {
-        for k in rows.offsets[v] ..< rows.offsets[v + 1] where rank[rows.neighbors[k]] > rank[v] { forward.append(rows.neighbors[k]) }
+        for k in rows.offsets[v] ..< rows.offsets[v + 1] where rank[rows.targets[k]] > rank[v] { forward.append(rows.targets[k]) }
         offsets[v + 1] = forward.count
     }
     var triangles = [Int](repeating: 0, count: n)
@@ -55,16 +55,9 @@ public struct ClusteringCoefficients<G: Graph> {
     @usableFromInline let _averageClustering: Double
 
     @inlinable
-    init(_ graph: G, listed: [G.Vertex]?, rows: _SimpleRows) {
+    init(_ graph: G, listed: [G.Vertex]?, rows: _CompressedRows) {
         _graph = graph
-        if let listed {
-            var numbers: [G.Vertex: Int] = [:]
-            numbers.reserveCapacity(listed.count)
-            for (i, v) in listed.enumerated() { numbers[v] = i }
-            _numbers = numbers
-        } else {
-            _numbers = nil
-        }
+        _numbers = listed.map { _vertexNumbers($0) }
         let triangles = Cliques._triangles(rows)
         let degrees = (0 ..< rows.count).map { rows.degree($0) }
         _triangles = triangles
@@ -82,22 +75,13 @@ public struct ClusteringCoefficients<G: Graph> {
         _averageClustering = triangles.isEmpty ? 0 : sum / Double(triangles.count)
     }
 
-    @inlinable
-    func _index(of vertex: G.Vertex) -> Int {
-        if let _numbers {
-            guard let v = _numbers[vertex] else { preconditionFailure("The vertex is not in the graph") }
-            return v
-        }
-        return _graph._requiredVertexIndex(of: vertex, "The vertex is not in the graph")
-    }
-
     /// The local clustering coefficient of `vertex`: 2T / (d(d − 1)) for its T triangles and d
     /// distinct neighbors; 0 when d < 2.
     ///
     /// - Precondition: `vertex` is a vertex of the graph.
     @inlinable
     public func clusteringCoefficient(of vertex: G.Vertex) -> Double {
-        let v = _index(of: vertex)
+        let v = _graph._vertexNumber(of: vertex, _numbers, "The vertex is not in the graph")
         return _clustering(_triangles[v], _degrees[v])
     }
 
@@ -114,7 +98,7 @@ public struct ClusteringCoefficients<G: Graph> {
     ///
     /// - Precondition: `vertex` is a vertex of the graph.
     @inlinable
-    public func triangleCount(of vertex: G.Vertex) -> Int { _triangles[_index(of: vertex)] }
+    public func triangleCount(of vertex: G.Vertex) -> Int { _triangles[_graph._vertexNumber(of: vertex, _numbers, "The vertex is not in the graph")] }
 
     /// The number of triangles through the vertex at `index`.
     ///

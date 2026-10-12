@@ -18,29 +18,26 @@ package func _maximalMatching(_ graph: _MatchingGraph) -> [Int] {
 /// Hopcroft–Karp as NetworkX's `hopcroft_karp_matching` (the textbook procedure), iterative: each
 /// phase layers the left vertices by a breadth-first search from the free ones (in `left` order),
 /// then depth-first searches from each free left vertex, a row cursor per frame, descend into the
-/// mate one layer deeper; a vertex whose search fails leaves the phase. Returns the matched edge
-/// number per vertex.
+/// mate one layer deeper; a vertex whose search fails leaves the phase. Phases run until none
+/// augments. Row v is `targets[offsets[v] ..< offsets[v + 1]]`; only targets that `accept` admits
+/// are followed (rows of left vertices hold right vertices). `mateSlot[v]` is the slot of left
+/// vertex v's matched arc (−1 free) and `pairRight[w]` right vertex w's mate (−1 free); the caller
+/// may seed them with any matching.
 @inlinable
-package func _hopcroftKarp(_ graph: _MatchingGraph, left: [Int], isLeft: [Bool]) -> [Int] {
-    let n = graph.count
+package func _hopcroftKarpPhases(
+    offsets: [Int], targets: [Int], left: [Int], mateSlot: inout [Int], pairRight: inout [Int], accept: (Int) -> Bool
+) {
+    let n = offsets.count - 1
     let infinity = Int.max
-    var pairLeft = [Int](repeating: -1, count: n)   // by left vertex: its right mate
-    var pairRight = [Int](repeating: -1, count: n)  // by right vertex: its left mate
-    var mateEdge = [Int](repeating: -1, count: n)
     var layer = [Int](repeating: infinity, count: n)
     var queue = [Int](repeating: 0, count: left.count)
     var stack: [(vertex: Int, slot: Int)] = []
-    for v in 0 ..< n {
-        for slot in graph.offsets[v] ..< graph.offsets[v + 1] {
-            precondition(isLeft[graph.targets[slot]] != isLeft[v], "An edge joins two vertices on one side: the bipartition is not this graph's")
-        }
-    }
     while true {
         // Breadth-first layering; `free` is the layer of the free right vertices (NetworkX's
         // dist[None]).
         var head = 0, tail = 0
         for v in left {
-            if pairLeft[v] < 0 {
+            if mateSlot[v] < 0 {
                 layer[v] = 0
                 queue[tail] = v
                 tail += 1
@@ -53,8 +50,10 @@ package func _hopcroftKarp(_ graph: _MatchingGraph, left: [Int], isLeft: [Bool])
             let v = queue[head]
             head += 1
             guard layer[v] < free else { continue }
-            for slot in graph.offsets[v] ..< graph.offsets[v + 1] {
-                let p = pairRight[graph.targets[slot]]
+            for slot in offsets[v] ..< offsets[v + 1] {
+                let w = targets[slot]
+                guard accept(w) else { continue }
+                let p = pairRight[w]
                 if p < 0 {
                     if free == infinity { free = layer[v] + 1 }
                 } else if layer[p] == infinity {
@@ -66,40 +65,61 @@ package func _hopcroftKarp(_ graph: _MatchingGraph, left: [Int], isLeft: [Bool])
         }
         guard free != infinity else { break }
         // Depth-first augmentation from each free left vertex.
-        for root in left where pairLeft[root] < 0 {
+        for root in left where mateSlot[root] < 0 {
             stack.removeAll(keepingCapacity: true)
-            stack.append((root, graph.offsets[root]))
+            stack.append((root, offsets[root]))
             var augmented = false
             while let (v, slot) = stack.last {
-                if slot == graph.offsets[v + 1] {
+                if slot == offsets[v + 1] {
                     layer[v] = infinity
                     stack.removeLast()
                     if let parent = stack.last { stack[stack.count - 1].slot = parent.slot + 1 }
                     continue
                 }
-                let p = pairRight[graph.targets[slot]]
-                let next = layer[v] + 1
-                if p < 0 {
-                    if free == next {
-                        augmented = true
-                        break
+                let w = targets[slot]
+                if accept(w) {
+                    let p = pairRight[w]
+                    let next = layer[v] + 1
+                    if p < 0 {
+                        if free == next {
+                            augmented = true
+                            break
+                        }
+                    } else if layer[p] == next {
+                        stack.append((p, offsets[p]))
+                        continue
                     }
-                } else if layer[p] == next {
-                    stack.append((p, graph.offsets[p]))
-                    continue
                 }
                 stack[stack.count - 1].slot = slot + 1
             }
             if augmented {
                 for (v, slot) in stack {
-                    let u = graph.targets[slot], e = graph.edges[slot]
-                    pairRight[u] = v
-                    pairLeft[v] = u
-                    mateEdge[v] = e
-                    mateEdge[u] = e
+                    pairRight[targets[slot]] = v
+                    mateSlot[v] = slot
                 }
             }
         }
+    }
+}
+
+/// Hopcroft–Karp from the empty matching (`_hopcroftKarpPhases`). Returns the matched edge number
+/// per vertex.
+@inlinable
+package func _hopcroftKarp(_ graph: _MatchingGraph, left: [Int], isLeft: [Bool]) -> [Int] {
+    let n = graph.count
+    for v in 0 ..< n {
+        for slot in graph.offsets[v] ..< graph.offsets[v + 1] {
+            precondition(isLeft[graph.targets[slot]] != isLeft[v], "An edge joins two vertices on one side: the bipartition is not this graph's")
+        }
+    }
+    var mateSlot = [Int](repeating: -1, count: n)
+    var pairRight = [Int](repeating: -1, count: n)
+    _hopcroftKarpPhases(offsets: graph.offsets, targets: graph.targets, left: left, mateSlot: &mateSlot, pairRight: &pairRight) { _ in true }
+    var mateEdge = [Int](repeating: -1, count: n)
+    for v in left where mateSlot[v] >= 0 {
+        let slot = mateSlot[v], e = graph.edges[slot]
+        mateEdge[v] = e
+        mateEdge[graph.targets[slot]] = e
     }
     return mateEdge
 }

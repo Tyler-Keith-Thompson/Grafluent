@@ -329,8 +329,8 @@ NetworkX `greedy_color`, rustworkx `graph_greedy_color` beside `graph_greedy_edg
 * **Fast cases.** χ = 0 for the empty graph, 1 with no non-loop edge, 2 when bipartite with an
   edge (BipartiteGraphs' two-colouring, O(n + m)). Otherwise χ ≥ 3, and χ = max over components.
 * **Search** (per non-bipartite component; the result does not depend on it). The upper bound is
-  greedy DSatur. The lower bound is a clique found greedily, or Cliques-style by a colouring bound;
-  its vertices are fixed to colours 0..<q, which breaks symmetry. Then DSatur branch and bound
+  greedy DSatur. The lower bound is a largest clique (Cliques' branch and bound, stopped at the
+  upper bound); its vertices are fixed to colours 0..<q, which breaks symmetry. Then DSatur branch and bound
   (Brélaz 1979, with San Segundo's 2012 tie-breaking as an option): branch on the uncoloured vertex
   with the fewest colours left (the most distinct neighbour colours), trying used colours ascending,
   then one new colour only while it stays below the best. The search stops when the bounds meet.
@@ -427,10 +427,11 @@ n vertices, m edges, Δ the greatest simple degree.
   O(n + m) bucket queue would need a tie rule that depends on the procedure. Open question 7.
 * **Exact search**: bitset rows of each non-bipartite component (`[UInt64]`, c words per row),
   colour classes as bitsets, available colours per vertex as a `UInt64` mask when k ≤ 64 (else
-  multiword), and a flat stack with no recursion, the layout of `_CliqueSubproblem.search`. The
-  clique lower bound is a greedy clique in degree order, improved by Cliques' colouring bound if
-  benchmarks say so. The lexicographic pass reuses the same search as a feasibility oracle with a
-  fixed prefix.
+  multiword), and a flat stack with no recursion. The clique lower bound is a largest clique, from
+  Cliques' `_cliqueNumber` (BBMC per degeneracy subproblem), stopped once it reaches the DSatur
+  upper bound; it replaced a greedy clique in degree order (queen(7): 0.50 → 0.16 ms, the other
+  exact benchmarks unchanged). The lexicographic pass reuses the same search as a feasibility
+  oracle with a fixed prefix.
 * **Bipartite shortcut**: BipartiteGraphs' `_TwoColoring` (`@usableFromInline`, already inlinable
   across modules) gives the sides; this is why ColoringModule depends on BipartiteGraphs.
 * **Edge colouring**: `at: [Int32]` of n · (Δ + 1) entries, the edge of each colour at each vertex

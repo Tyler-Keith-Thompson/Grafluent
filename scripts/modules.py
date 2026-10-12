@@ -61,7 +61,7 @@ MODULES = [
     ("Tours", "Algorithms", "Eulerian trails and circuits, Hamiltonian paths and cycles, travelling salesman heuristics.", ["GraphProtocols", "Walks", "MatchingModule", "SpanningTrees"]),
     ("Flows", "Algorithms", "Maximum flow (push–relabel, Dinic, Edmonds–Karp), minimum cuts (s–t, Nagamochi–Ibaraki, Hao–Orlin), Gomory–Hu trees, minimum-cost flow (network simplex), edge and vertex connectivity, disjoint paths.", ["GraphProtocols", "Trees", "Walks"]),
     ("MatchingModule", "Algorithms", "Matching: Hopcroft–Karp, Hungarian, Edmonds' blossom, Gale–Shapley.", ["GraphProtocols", "BipartiteGraphs"]),
-    ("ColoringModule", "Algorithms", "Vertex coloring (greedy strategies, exact chromatic number), edge coloring (Misra–Gries, König, greedy).", ["GraphProtocols", "BipartiteGraphs"]),
+    ("ColoringModule", "Algorithms", "Vertex coloring (greedy strategies, exact chromatic number), edge coloring (Misra–Gries, König, greedy).", ["GraphProtocols", "BipartiteGraphs", "Cliques"]),
     ("Cliques", "Algorithms", "Bron–Kerbosch, k-cores, triangle counting, clustering coefficient.", ["GraphProtocols"]),
     ("Covering", "Algorithms", "Vertex cover, independent set, dominating set, edge cover.", ["GraphProtocols", "MatchingModule", "BipartiteGraphs", "Cliques"]),
     ("Centrality", "Algorithms", "Degree, closeness, harmonic, betweenness, eigenvector, Katz, PageRank, HITS.", ["GraphProtocols", "PriorityQueueModule"]),

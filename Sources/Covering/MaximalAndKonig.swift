@@ -172,10 +172,10 @@ extension Graph {
     @inlinable
     public func isVertexCover(_ vertices: some Sequence<Vertex>) -> Bool {
         let inSet = _coveringFlags(vertices, _listedVertices())
-        let graph = _coveringGraph()
+        let (graph, loops) = _coveringGraph(recordsLoops: true)
         for v in 0 ..< graph.count where !inSet[v] {
-            if graph.hasLoop[v] { return false }
-            for k in graph.offsets[v] ..< graph.offsets[v + 1] where !inSet[graph.neighbors[k]] { return false }
+            if loops[v] { return false }
+            for k in graph.offsets[v] ..< graph.offsets[v + 1] where !inSet[graph.targets[k]] { return false }
         }
         return true
     }
@@ -187,10 +187,10 @@ extension Graph {
     @inlinable
     public func isIndependentSet(_ vertices: some Sequence<Vertex>) -> Bool {
         let inSet = _coveringFlags(vertices, _listedVertices())
-        let graph = _coveringGraph()
+        let (graph, loops) = _coveringGraph(recordsLoops: true)
         for v in 0 ..< graph.count where inSet[v] {
-            if graph.hasLoop[v] { return false }
-            for k in graph.offsets[v] ..< graph.offsets[v + 1] where inSet[graph.neighbors[k]] { return false }
+            if loops[v] { return false }
+            for k in graph.offsets[v] ..< graph.offsets[v + 1] where inSet[graph.targets[k]] { return false }
         }
         return true
     }
@@ -202,10 +202,10 @@ extension Graph {
     @inlinable
     public func isDominatingSet(_ vertices: some Sequence<Vertex>) -> Bool {
         let inSet = _coveringFlags(vertices, _listedVertices())
-        let graph = _coveringGraph()
+        let graph = _coveringGraph(recordsLoops: false).rows
         var dominated = inSet
         for v in 0 ..< graph.count where inSet[v] {
-            for k in graph.offsets[v] ..< graph.offsets[v + 1] { dominated[graph.neighbors[k]] = true }
+            for k in graph.offsets[v] ..< graph.offsets[v + 1] { dominated[graph.targets[k]] = true }
         }
         return !dominated.contains(false)
     }

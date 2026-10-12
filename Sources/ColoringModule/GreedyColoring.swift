@@ -7,13 +7,13 @@ import GraphProtocols
 /// Δ, so the stamp array has Δ + 1 entries. With `preset`, those vertices start coloured and are
 /// skipped in `order` (and their colours above Δ need no stamp). O(n + m).
 @inlinable
-func _firstFit(_ rows: _ColoringRows, order: [Int], preset: [Int]? = nil) -> [Int] {
+func _firstFit(_ rows: _CompressedRows, order: [Int], preset: [Int]? = nil) -> [Int] {
     let n = rows.count
     var colors = preset ?? [Int](repeating: -1, count: n)
     var used = [Int](repeating: -1, count: rows.maximumDegree + 1)
     for v in order where colors[v] < 0 {
         for k in rows.offsets[v] ..< rows.offsets[v + 1] {
-            let c = colors[rows.neighbors[k]]
+            let c = colors[rows.targets[k]]
             if c >= 0 && c < used.count { used[c] = v }
         }
         var c = 0
@@ -25,7 +25,7 @@ func _firstFit(_ rows: _ColoringRows, order: [Int], preset: [Int]? = nil) -> [In
 
 /// Degree descending, index ascending: a counting sort, stable in index order. O(n + Δ).
 @inlinable
-func _largestFirstOrder(_ rows: _ColoringRows) -> [Int] {
+func _largestFirstOrder(_ rows: _CompressedRows) -> [Int] {
     let n = rows.count
     let top = rows.maximumDegree
     // starts[top - d] is where degree d begins.
@@ -44,7 +44,7 @@ func _largestFirstOrder(_ rows: _ColoringRows) -> [Int] {
 /// Matula–Beck's smallest-last order: the removal order (least degree in what is left, least
 /// index on ties, through an indexed heap keyed by degree), reversed. O((n + m) log n).
 @inlinable
-func _smallestLastOrder(_ rows: _ColoringRows) -> [Int] {
+func _smallestLastOrder(_ rows: _CompressedRows) -> [Int] {
     let n = rows.count
     var heap = _ColoringHeap(count: n)
     for v in 0 ..< n { heap.insert(v, UInt64(rows.degree(v))) }
@@ -55,7 +55,7 @@ func _smallestLastOrder(_ rows: _ColoringRows) -> [Int] {
         slot -= 1
         order[slot] = v
         for k in rows.offsets[v] ..< rows.offsets[v + 1] {
-            let w = rows.neighbors[k]
+            let w = rows.targets[k]
             if heap.contains(w) { heap.lower(w, heap.key[w] - 1) }
         }
     }
@@ -70,7 +70,7 @@ func _smallestLastOrder(_ rows: _ColoringRows) -> [Int] {
 /// most once per edge end. With `preset`, those vertices start coloured, their colours counted in
 /// their neighbours' saturation. O((n + m) log n).
 @inlinable
-func _saturationColoring(_ rows: _ColoringRows, preset: [Int]? = nil) -> [Int] {
+func _saturationColoring(_ rows: _CompressedRows, preset: [Int]? = nil) -> [Int] {
     let n = rows.count
     var colors = preset ?? [Int](repeating: -1, count: n)
     guard n > 0 else { return colors }
@@ -104,7 +104,7 @@ func _saturationColoring(_ rows: _ColoringRows, preset: [Int]? = nil) -> [Int] {
             colors[v] = c
         }
         for k in rows.offsets[v] ..< rows.offsets[v + 1] {
-            let w = rows.neighbors[k]
+            let w = rows.targets[k]
             if colors[w] >= 0 { continue }
             let dw = rows.degree(w)
             var fresh: Bool
@@ -132,7 +132,7 @@ func _saturationColoring(_ rows: _ColoringRows, preset: [Int]? = nil) -> [Int] {
 /// each class the rows are cut down to the uncoloured vertices. Returns the colours directly:
 /// each class's vertices get its number, which is what first fit in that order gives them.
 @inlinable
-func _independentSetColoring(_ rows: _ColoringRows, preset: [Int]? = nil) -> [Int] {
+func _independentSetColoring(_ rows: _CompressedRows, preset: [Int]? = nil) -> [Int] {
     let n = rows.count
     var colors = preset ?? [Int](repeating: -1, count: n)
     var available = [Bool](repeating: false, count: n)
@@ -151,7 +151,7 @@ func _independentSetColoring(_ rows: _ColoringRows, preset: [Int]? = nil) -> [In
     var spare: [Int] = []
     for v in remaining {
         start[v] = adjacency.count
-        for k in rows.offsets[v] ..< rows.offsets[v + 1] where colors[rows.neighbors[k]] < 0 { adjacency.append(rows.neighbors[k]) }
+        for k in rows.offsets[v] ..< rows.offsets[v + 1] where colors[rows.targets[k]] < 0 { adjacency.append(rows.targets[k]) }
         end[v] = adjacency.count
     }
     var dropped: [Int] = []
@@ -162,7 +162,7 @@ func _independentSetColoring(_ rows: _ColoringRows, preset: [Int]? = nil) -> [In
         while nextPreset < presets.count && colors[presets[nextPreset]] <= color {
             let x = presets[nextPreset]
             if colors[x] == color {
-                for k in rows.offsets[x] ..< rows.offsets[x + 1] { available[rows.neighbors[k]] = false }
+                for k in rows.offsets[x] ..< rows.offsets[x + 1] { available[rows.targets[k]] = false }
             }
             nextPreset += 1
         }
@@ -219,16 +219,16 @@ func _independentSetColoring(_ rows: _ColoringRows, preset: [Int]? = nil) -> [In
 /// `preset`, those vertices start coloured, the others are pushed with their counts of preset
 /// neighbours, and the first vertex comes from the heap too.
 @inlinable
-func _coloredNeighborsColoring(_ rows: _ColoringRows, preset: [Int]? = nil) -> [Int] {
+func _coloredNeighborsColoring(_ rows: _CompressedRows, preset: [Int]? = nil) -> [Int] {
     let n = rows.count
     var colors = preset ?? [Int](repeating: -1, count: n)
     guard n > 0 else { return colors }
     // Rows in ascending order, as igraph_neighbors lists them.
-    var sorted = [Int](repeating: 0, count: rows.neighbors.count)
+    var sorted = [Int](repeating: 0, count: rows.targets.count)
     var fill = Array(rows.offsets.dropLast())
     for v in 0 ..< n {
         for k in rows.offsets[v] ..< rows.offsets[v + 1] {
-            let w = rows.neighbors[k]
+            let w = rows.targets[k]
             sorted[fill[w]] = v
             fill[w] += 1
         }
@@ -243,7 +243,7 @@ func _coloredNeighborsColoring(_ rows: _ColoringRows, preset: [Int]? = nil) -> [
     } else {
         for v in 0 ..< n where colors[v] < 0 {
             var count = 0
-            for k in rows.offsets[v] ..< rows.offsets[v + 1] where colors[rows.neighbors[k]] >= 0 { count += 1 }
+            for k in rows.offsets[v] ..< rows.offsets[v + 1] where colors[rows.targets[k]] >= 0 { count += 1 }
             heap.push(v, count)
         }
         guard !heap.isEmpty else { return colors }
@@ -252,7 +252,7 @@ func _coloredNeighborsColoring(_ rows: _ColoringRows, preset: [Int]? = nil) -> [
     var used = [Int](repeating: -1, count: rows.maximumDegree + 1)
     while true {
         for k in rows.offsets[vertex] ..< rows.offsets[vertex + 1] {
-            let c = colors[rows.neighbors[k]]
+            let c = colors[rows.targets[k]]
             if c >= 0 && c < used.count { used[c] = vertex }
         }
         var c = 0
@@ -271,7 +271,7 @@ func _coloredNeighborsColoring(_ rows: _ColoringRows, preset: [Int]? = nil) -> [
 /// Components by least vertex, each searched from it in row order: breadth first, or depth first
 /// in preorder (a stack of row cursors).
 @inlinable
-func _connectedSequentialOrder(_ rows: _ColoringRows, depthFirst: Bool) -> [Int] {
+func _connectedSequentialOrder(_ rows: _CompressedRows, depthFirst: Bool) -> [Int] {
     let n = rows.count
     var seen = [Bool](repeating: false, count: n)
     var order: [Int] = []
@@ -286,14 +286,14 @@ func _connectedSequentialOrder(_ rows: _ColoringRows, depthFirst: Bool) -> [Int]
             while let v = stack.last {
                 var k = cursor[cursor.count - 1]
                 let end = rows.offsets[v + 1]
-                while k < end, seen[rows.neighbors[k]] { k += 1 }
+                while k < end, seen[rows.targets[k]] { k += 1 }
                 if k == end {
                     stack.removeLast()
                     cursor.removeLast()
                     continue
                 }
                 cursor[cursor.count - 1] = k + 1
-                let w = rows.neighbors[k]
+                let w = rows.targets[k]
                 seen[w] = true
                 order.append(w)
                 stack.append(w)
@@ -304,9 +304,9 @@ func _connectedSequentialOrder(_ rows: _ColoringRows, depthFirst: Bool) -> [Int]
             while head < order.count {
                 let v = order[head]
                 head += 1
-                for k in rows.offsets[v] ..< rows.offsets[v + 1] where !seen[rows.neighbors[k]] {
-                    seen[rows.neighbors[k]] = true
-                    order.append(rows.neighbors[k])
+                for k in rows.offsets[v] ..< rows.offsets[v + 1] where !seen[rows.targets[k]] {
+                    seen[rows.targets[k]] = true
+                    order.append(rows.targets[k])
                 }
             }
         }
@@ -316,7 +316,7 @@ func _connectedSequentialOrder(_ rows: _ColoringRows, depthFirst: Bool) -> [Int]
 
 /// The colours a strategy gives, by vertex number, from `preset` colours when given.
 @inlinable
-func _greedyColors(_ rows: _ColoringRows, _ strategy: ColoringStrategy, preset: [Int]? = nil) -> [Int] {
+func _greedyColors(_ rows: _CompressedRows, _ strategy: ColoringStrategy, preset: [Int]? = nil) -> [Int] {
     switch strategy {
     case .largestFirst: return _firstFit(rows, order: _largestFirstOrder(rows), preset: preset)
     case .smallestLast: return _firstFit(rows, order: _smallestLastOrder(rows), preset: preset)
@@ -377,7 +377,7 @@ extension Graph {
     @inlinable
     public func greedyColoring(strategy: ColoringStrategy = .largestFirst) -> Coloring<Self> {
         let numbering = _vertexNumbering()
-        let rows = _runOnUndirectedRows(_CopyColoringRows(), vertexNumbering: numbering)
+        let rows = _runOnUndirectedRows(_CopySimpleRows(recordsLoops: false), vertexNumbering: numbering).rows
         return Coloring(self, numbering: numbering, colors: _greedyColors(rows, strategy))
     }
 
@@ -400,7 +400,7 @@ extension Graph {
     @inlinable
     public func greedyColoring(strategy: ColoringStrategy = .largestFirst, presetColor: (Vertex) -> Int?) -> Coloring<Self> {
         let numbering = _vertexNumbering()
-        let rows = _runOnUndirectedRows(_CopyColoringRows(), vertexNumbering: numbering)
+        let rows = _runOnUndirectedRows(_CopySimpleRows(recordsLoops: false), vertexNumbering: numbering).rows
         var preset: [Int] = []
         preset.reserveCapacity(rows.count)
         for vertex in vertices {
@@ -413,7 +413,7 @@ extension Graph {
         }
         for v in 0 ..< rows.count where preset[v] >= 0 {
             for k in rows.offsets[v] ..< rows.offsets[v + 1] {
-                precondition(preset[rows.neighbors[k]] != preset[v], "Two adjacent vertices have the same preset colour")
+                precondition(preset[rows.targets[k]] != preset[v], "Two adjacent vertices have the same preset colour")
             }
         }
         return Coloring(self, numbering: numbering, colors: _greedyColors(rows, strategy, preset: preset))

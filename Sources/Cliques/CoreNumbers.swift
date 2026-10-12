@@ -16,33 +16,17 @@ public struct CoreNumbers<G: Graph> {
     init(_ graph: G, listed: [G.Vertex]?, core: [Int], order: [Int]) {
         _graph = graph
         _listed = listed
-        if let listed {
-            var numbers: [G.Vertex: Int] = [:]
-            numbers.reserveCapacity(listed.count)
-            for (i, v) in listed.enumerated() { numbers[v] = i }
-            _numbers = numbers
-        } else {
-            _numbers = nil
-        }
+        _numbers = listed.map { _vertexNumbers($0) }
         _core = core
         _order = order
         _degeneracy = core.max() ?? 0
-    }
-
-    @inlinable
-    func _index(of vertex: G.Vertex) -> Int {
-        if let _numbers {
-            guard let v = _numbers[vertex] else { preconditionFailure("The vertex is not in the graph") }
-            return v
-        }
-        return _graph._requiredVertexIndex(of: vertex, "The vertex is not in the graph")
     }
 
     /// The core number of `vertex`. O(1) after looking it up.
     ///
     /// - Precondition: `vertex` is a vertex of the graph.
     @inlinable
-    public func coreNumber(of vertex: G.Vertex) -> Int { _core[_index(of: vertex)] }
+    public func coreNumber(of vertex: G.Vertex) -> Int { _core[_graph._vertexNumber(of: vertex, _numbers, "The vertex is not in the graph")] }
 
     /// The core number of the vertex at `index` (its vertex index, or its position in `vertices`
     /// when the graph has no vertex indices).

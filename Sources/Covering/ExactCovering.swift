@@ -1,4 +1,6 @@
+import Cliques
 import GraphProtocols
+import MatchingModule
 
 // MARK: - Components
 
@@ -9,7 +11,7 @@ import GraphProtocols
 /// looped vertices are left out, as if deleted. O(n + m).
 @inlinable
 func _coveringComponents(
-    _ g: _CoveringGraph, skipLooped: Bool
+    _ g: _CompressedRows, loops: [Bool], skipLooped: Bool
 ) -> (order: [Int], starts: [Int], color: [Int8], bipartite: [Bool]) {
     let n = g.count
     var color = [Int8](repeating: -1, count: n)
@@ -17,7 +19,7 @@ func _coveringComponents(
     order.reserveCapacity(n)
     var starts = [0]
     var bipartite: [Bool] = []
-    for s in 0 ..< n where color[s] < 0 && !(skipLooped && g.hasLoop[s]) {
+    for s in 0 ..< n where color[s] < 0 && !(skipLooped && loops[s]) {
         color[s] = 0
         var head = order.count
         order.append(s)
@@ -26,8 +28,8 @@ func _coveringComponents(
             let v = order[head]
             head += 1
             for k in g.offsets[v] ..< g.offsets[v + 1] {
-                let w = g.neighbors[k]
-                if skipLooped && g.hasLoop[w] { continue }
+                let w = g.targets[k]
+                if skipLooped && loops[w] { continue }
                 if color[w] < 0 {
                     color[w] = 1 - color[v]
                     order.append(w)
@@ -46,7 +48,7 @@ func _coveringComponents(
 /// search from each unvisited vertex in index order: component c is `order[starts[c] ..<
 /// starts[c + 1]]`. O(n + m).
 @inlinable
-func _dominationComponents(_ g: _CoveringGraph) -> (order: [Int], starts: [Int]) {
+func _dominationComponents(_ g: _CompressedRows) -> (order: [Int], starts: [Int]) {
     let n = g.count
     var seen = [Bool](repeating: false, count: n)
     var order: [Int] = []
@@ -59,9 +61,9 @@ func _dominationComponents(_ g: _CoveringGraph) -> (order: [Int], starts: [Int])
         while head < order.count {
             let v = order[head]
             head += 1
-            for k in g.offsets[v] ..< g.offsets[v + 1] where !seen[g.neighbors[k]] {
-                seen[g.neighbors[k]] = true
-                order.append(g.neighbors[k])
+            for k in g.offsets[v] ..< g.offsets[v + 1] where !seen[g.targets[k]] {
+                seen[g.targets[k]] = true
+                order.append(g.targets[k])
             }
         }
         starts.append(order.count)
@@ -78,11 +80,11 @@ func _dominationComponents(_ g: _CoveringGraph) -> (order: [Int], starts: [Int])
 /// alone). The rule composes: the least vertex of a symmetric difference lies in one component,
 /// whose own least set wins there. Without `lexicographic`, only the size is meaningful.
 @inlinable
-func _maximumIndependentSet(_ g: _CoveringGraph, lexicographic: Bool) -> (inSet: [Bool], size: Int) {
+func _maximumIndependentSet(_ g: _CompressedRows, loops: [Bool], lexicographic: Bool) -> (inSet: [Bool], size: Int) {
     let n = g.count
     var inSet = [Bool](repeating: false, count: n)
     guard n > 0 else { return (inSet, 0) }
-    let (order, starts, color, bipartite) = _coveringComponents(g, skipLooped: true)
+    let (order, starts, color, bipartite) = _coveringComponents(g, loops: loops, skipLooped: true)
     var side = [Int8](repeating: -1, count: n)
     var size = 0
     var reduction: _IndependentSetReduction?
@@ -98,7 +100,7 @@ func _maximumIndependentSet(_ g: _CoveringGraph, lexicographic: Bool) -> (inSet:
         for i in first ..< end {
             let u = order[i]
             least = min(least, u)
-            for k in g.offsets[u] ..< g.offsets[u + 1] where !g.hasLoop[g.neighbors[k]] { ends += 1 }
+            for k in g.offsets[u] ..< g.offsets[u + 1] where !loops[g.targets[k]] { ends += 1 }
         }
         let p = end - first
         if ends == p * (p - 1) {
@@ -141,107 +143,38 @@ func _maximumIndependentSet(_ g: _CoveringGraph, lexicographic: Bool) -> (inSet:
 /// undecided is made independent, and the choice propagates forward (left end) or backward (right
 /// end) to undecided pairs. O(m √n) for the matching, O(n + m) for the rest.
 @inlinable
-func _bipartiteIndependentSet(_ g: _CoveringGraph, side: [Int8], lexicographic: Bool, into inSet: inout [Bool]) -> Int {
+func _bipartiteIndependentSet(_ g: _CompressedRows, side: [Int8], lexicographic: Bool, into inSet: inout [Bool]) -> Int {
     let n = g.count
-    let infinity = Int.max
-    var mate = [Int](repeating: -1, count: n)
+    var mateSlot = [Int](repeating: -1, count: n), pairRight = [Int](repeating: -1, count: n)
     var left: [Int] = []
-    var count = 0, matched = 0
+    var count = 0
     for v in 0 ..< n where side[v] >= 0 {
         count += 1
         guard side[v] == 0 else { continue }
         left.append(v)
         for k in g.offsets[v] ..< g.offsets[v + 1] {
-            let w = g.neighbors[k]
-            if side[w] >= 0 && mate[w] < 0 {
-                mate[v] = w
-                mate[w] = v
-                matched += 1
+            let w = g.targets[k]
+            if side[w] >= 0 && pairRight[w] < 0 {
+                mateSlot[v] = k
+                pairRight[w] = v
                 break
             }
         }
     }
-    // Hopcroft–Karp phases: layer the left vertices from the free ones, then augment by
-    // depth-first search one layer deeper at a time, a row cursor per frame.
-    var layer = [Int](repeating: infinity, count: n)
-    var queue = [Int](repeating: 0, count: max(left.count, 1))
-    var path: [Int] = [], cursor: [Int] = []
-    while matched < left.count {
-        var head = 0, tail = 0
-        for v in left {
-            if mate[v] < 0 {
-                layer[v] = 0
-                queue[tail] = v
-                tail += 1
-            } else {
-                layer[v] = infinity
-            }
-        }
-        var free = infinity
-        while head < tail {
-            let v = queue[head]
-            head += 1
-            guard layer[v] < free else { continue }
-            for k in g.offsets[v] ..< g.offsets[v + 1] {
-                let w = g.neighbors[k]
-                guard side[w] >= 0 else { continue }
-                let p = mate[w]
-                if p < 0 {
-                    if free == infinity { free = layer[v] + 1 }
-                } else if layer[p] == infinity {
-                    layer[p] = layer[v] + 1
-                    queue[tail] = p
-                    tail += 1
-                }
-            }
-        }
-        guard free != infinity else { break }
-        for root in left where mate[root] < 0 {
-            path.removeAll(keepingCapacity: true)
-            cursor.removeAll(keepingCapacity: true)
-            path.append(root)
-            cursor.append(g.offsets[root])
-            var augmented = false
-            while let v = path.last {
-                let k = cursor[cursor.count - 1]
-                if k == g.offsets[v + 1] {
-                    layer[v] = infinity
-                    path.removeLast()
-                    cursor.removeLast()
-                    if !cursor.isEmpty { cursor[cursor.count - 1] += 1 }
-                    continue
-                }
-                let w = g.neighbors[k]
-                if side[w] >= 0 {
-                    let p = mate[w], next = layer[v] + 1
-                    if p < 0 {
-                        if free == next {
-                            augmented = true
-                            break
-                        }
-                    } else if layer[p] == next {
-                        path.append(p)
-                        cursor.append(g.offsets[p])
-                        continue
-                    }
-                }
-                cursor[cursor.count - 1] = k + 1
-            }
-            if augmented {
-                for i in path.indices {
-                    let v = path[i], w = g.neighbors[cursor[i]]
-                    mate[v] = w
-                    mate[w] = v
-                }
-                matched += 1
-            }
-        }
+    _hopcroftKarpPhases(offsets: g.offsets, targets: g.targets, left: left, mateSlot: &mateSlot, pairRight: &pairRight) { side[$0] >= 0 }
+    var mate = [Int](repeating: -1, count: n)
+    var matched = 0
+    for v in left where mateSlot[v] >= 0 {
+        let w = g.targets[mateSlot[v]]
+        mate[v] = w
+        mate[w] = v
+        matched += 1
     }
     guard lexicographic else { return count - matched }
 
     // Alternating reach from every free vertex; `root[v]` is the side of v's root, −1 unreached.
     var root = [Int8](repeating: -1, count: n)
-    queue.removeAll(keepingCapacity: true)
+    var queue: [Int] = []
     for v in 0 ..< n where side[v] >= 0 && mate[v] < 0 {
         root[v] = side[v]
         queue.append(v)
@@ -253,7 +186,7 @@ func _bipartiteIndependentSet(_ g: _CoveringGraph, side: [Int8], lexicographic: 
         if side[v] == root[v] {
             inSet[v] = true
             for k in g.offsets[v] ..< g.offsets[v + 1] {
-                let w = g.neighbors[k]
+                let w = g.targets[k]
                 if side[w] >= 0 && root[w] < 0 && w != mate[v] {
                     root[w] = root[v]
                     queue.append(w)
@@ -281,7 +214,7 @@ func _bipartiteIndependentSet(_ g: _CoveringGraph, side: [Int8], lexicographic: 
             choice[x] = 1
             while let a = stack.popLast() {
                 for k in g.offsets[a] ..< g.offsets[a + 1] {
-                    let y = g.neighbors[k]
+                    let y = g.targets[k]
                     guard side[y] >= 0 && root[y] < 0 && y != mate[a] else { continue }
                     let b = mate[y]
                     if choice[b] == 0 {
@@ -297,7 +230,7 @@ func _bipartiteIndependentSet(_ g: _CoveringGraph, side: [Int8], lexicographic: 
             while let b = stack.popLast() {
                 let y = mate[b]
                 for k in g.offsets[y] ..< g.offsets[y + 1] {
-                    let a = g.neighbors[k]
+                    let a = g.targets[k]
                     guard side[a] >= 0 && root[a] < 0 && a != b else { continue }
                     if choice[a] == 0 {
                         choice[a] = 2
@@ -313,14 +246,10 @@ func _bipartiteIndependentSet(_ g: _CoveringGraph, side: [Int8], lexicographic: 
     return count - matched
 }
 
-/// Maximum independent sets of one graph as maximum cliques of its complement, held as bitset
-/// rows over local indices (the vertices by ascending degree, ties by index, which colours well).
-/// The search is San Segundo, Rodríguez-Losada and Jiménez's BBMC (2011), Tomita and Seki's MCQ
-/// (2003) on bitsets, iterative: each node colours its candidates greedily in local order,
-/// branches on them from the highest colour down, and stops when the chosen vertices plus the
-/// colour cannot beat the best. `_IndependentSetKernel` runs it on what its reductions leave, so
-/// the rows cover a kernel component, not the input. Scratch is reused, so a node allocates
-/// nothing once the flat stacks have grown.
+/// Maximum independent sets of one graph as maximum cliques of its complement, held as
+/// `_MaximumCliqueSearch` rows over local indices (the vertices by ascending degree, ties by
+/// index, which colours well), searched there by BBMC. `_IndependentSetKernel` runs it on what its
+/// reductions leave, so the rows cover a kernel component, not the input.
 @frozen
 @usableFromInline
 struct _IndependentSetSearch {
@@ -328,44 +257,26 @@ struct _IndependentSetSearch {
     @usableFromInline var local: [Int]
     /// Local index → vertex number.
     @usableFromInline var vertices: [Int] = []
-    @usableFromInline var words = 0
-    /// The complement's rows: `rows[i * words ..< (i + 1) * words]`.
-    @usableFromInline var rows: [UInt64] = []
-    /// The candidate set per depth, flat.
-    @usableFromInline var sets: [UInt64] = []
-    /// The coloured candidates per depth, flat: `order` and `colors` from `starts[d]`; `next[d]` is
-    /// one past the next to branch on (they are taken from the end).
-    @usableFromInline var order: [Int] = []
-    @usableFromInline var colors: [Int] = []
-    @usableFromInline var starts: [Int] = []
-    @usableFromInline var next: [Int] = []
-    @usableFromInline var chosen: [Int] = []
-    /// The best clique found by the last `maximum`, by local index.
-    @usableFromInline var best: [Int] = []
-    /// The set `search` starts from.
-    @usableFromInline var start: [UInt64] = []
-    @usableFromInline var uncolored: [UInt64] = []
-    @usableFromInline var color: [UInt64] = []
     @usableFromInline var degree: [Int] = []
     @usableFromInline var rank: [Int] = []
+    /// The search over the complement's rows; `engine.best` is the last maximum set, by local index.
+    @usableFromInline var engine = _MaximumCliqueSearch()
 
     @inlinable
     init(count n: Int) {
         local = [Int](repeating: -1, count: n)
     }
 
-    /// Sets up the vertices `members` of `g` (ascending numbers, a union of components, no looped
-    /// vertex).
+    /// Sets up the vertices `members` of `g` (ascending numbers, a union of components of a graph
+    /// without self-loops).
     @inlinable
-    mutating func load(_ g: _CoveringGraph, _ members: [Int]) {
+    mutating func load(_ g: _CompressedRows, _ members: [Int]) {
         for u in vertices { local[u] = -1 }
-        // Degree among the members (every non-looped neighbour is one).
+        // Degree among the members (every neighbour is one).
         degree.removeAll(keepingCapacity: true)
         rank.removeAll(keepingCapacity: true)
         for (i, u) in members.enumerated() {
-            var d = 0
-            for k in g.offsets[u] ..< g.offsets[u + 1] where !g.hasLoop[g.neighbors[k]] { d += 1 }
-            degree.append(d)
+            degree.append(g.degree(u))
             rank.append(i)
         }
         rank.sort { degree[$0] != degree[$1] ? degree[$0] < degree[$1] : $0 < $1 }
@@ -373,136 +284,19 @@ struct _IndependentSetSearch {
         for i in rank { vertices.append(members[i]) }
         for (i, u) in vertices.enumerated() { local[u] = i }
         let p = vertices.count
-        words = (p + 63) >> 6
-        rows.removeAll(keepingCapacity: true)
-        rows.append(contentsOf: repeatElement(~0, count: p * words))
+        engine.reset(count: p)
+        let words = engine.words
         let tail = p & 63
         for i in 0 ..< p {
-            if tail != 0 { rows[i * words + words - 1] = (1 << UInt64(tail)) - 1 }
-            rows[i * words + i >> 6] &= ~(1 << UInt64(i & 63))
+            for k in 0 ..< words { engine.rows[i * words + k] = ~0 }
+            if tail != 0 { engine.rows[i * words + words - 1] = (1 << UInt64(tail)) - 1 }
+            engine.rows[i * words + i >> 6] &= ~(1 << UInt64(i & 63))
             let u = vertices[i]
             for k in g.offsets[u] ..< g.offsets[u + 1] {
-                let j = local[g.neighbors[k]]
-                if j >= 0 { rows[i * words + j >> 6] &= ~(1 << UInt64(j & 63)) }
+                let j = local[g.targets[k]]
+                if j >= 0 { engine.rows[i * words + j >> 6] &= ~(1 << UInt64(j & 63)) }
             }
         }
-        uncolored.removeAll(keepingCapacity: true)
-        uncolored.append(contentsOf: repeatElement(0, count: words))
-        color.removeAll(keepingCapacity: true)
-        color.append(contentsOf: repeatElement(0, count: words))
-        start.removeAll(keepingCapacity: true)
-        start.append(contentsOf: repeatElement(0, count: words))
-    }
-
-    /// Colours the candidates at `depth` greedily (each colour class independent in the
-    /// complement, filled in local order) and lists those of colour at least `least`, by colour.
-    @inlinable
-    mutating func colorSort(depth: Int, least: Int) {
-        starts.append(order.count)
-        let base = depth * words
-        var remaining = 0
-        for k in 0 ..< words {
-            uncolored[k] = sets[base + k]
-            remaining += uncolored[k].nonzeroBitCount
-        }
-        var c = 0
-        var first = 0
-        while remaining > 0 {
-            c += 1
-            while uncolored[first] == 0 { first += 1 }
-            for k in first ..< words { color[k] = uncolored[k] }
-            for k in first ..< words {
-                while color[k] != 0 {
-                    let b = color[k].trailingZeroBitCount
-                    let v = k << 6 | b
-                    color[k] &= color[k] - 1
-                    uncolored[k] &= ~(1 << UInt64(b))
-                    remaining -= 1
-                    // Its neighbours in the complement cannot share its colour.
-                    for j in k ..< words { color[j] &= ~rows[v * words + j] }
-                    if c >= least {
-                        order.append(v)
-                        colors.append(c)
-                    }
-                }
-            }
-        }
-        next.append(order.count)
-    }
-
-    /// The size of a largest clique of the complement inside `start`, if it exceeds `floor`
-    /// (recorded in `best`), else `floor`. Stops as soon as `target` is reached.
-    @inlinable
-    mutating func search(floor: Int, target: Int) -> Int {
-        var bestSize = floor
-        sets.removeAll(keepingCapacity: true)
-        sets.append(contentsOf: start)
-        order.removeAll(keepingCapacity: true)
-        colors.removeAll(keepingCapacity: true)
-        starts.removeAll(keepingCapacity: true)
-        next.removeAll(keepingCapacity: true)
-        chosen.removeAll(keepingCapacity: true)
-        colorSort(depth: 0, least: bestSize + 1)
-        while let depth = next.indices.last {
-            let i = next[depth] - 1
-            if i < starts[depth] || depth + colors[i] <= bestSize {
-                order.removeSubrange(starts[depth]...)
-                colors.removeSubrange(starts[depth]...)
-                starts.removeLast()
-                next.removeLast()
-                sets.removeLast(words)
-                if depth > 0 { chosen.removeLast() }
-                continue
-            }
-            next[depth] = i
-            let v = order[i]
-            let base = depth * words
-            // Later branches never revisit v.
-            sets[base + v >> 6] &= ~(1 << UInt64(v & 63))
-            chosen.append(v)
-            sets.append(contentsOf: repeatElement(0, count: words))
-            let child = base + words
-            var empty = true
-            for k in 0 ..< words {
-                let x = sets[base + k] & rows[v * words + k]
-                sets[child + k] = x
-                if x != 0 { empty = false }
-            }
-            if empty {
-                sets.removeLast(words)
-                if depth + 1 > bestSize {
-                    bestSize = depth + 1
-                    best = chosen
-                    if bestSize >= target { return bestSize }
-                }
-                chosen.removeLast()
-                continue
-            }
-            colorSort(depth: depth + 1, least: bestSize - depth)
-        }
-        return bestSize
-    }
-
-    /// A maximum independent set of the loaded graph, in `best` (local indices), and its size α;
-    /// the greedy set in local order seeds the search. With `floor` above the greedy size, only
-    /// sets larger than `floor` are looked for: the result is then α when α > `floor`, else the
-    /// greedy size (and `best` the greedy set). The search stops once it reaches `target`.
-    @inlinable
-    mutating func maximum(floor: Int, target: Int) -> Int {
-        let p = vertices.count
-        for k in 0 ..< words { start[k] = 0 }
-        for i in 0 ..< p { start[i >> 6] |= 1 << UInt64(i & 63) }
-        for k in 0 ..< words { uncolored[k] = start[k] }
-        best.removeAll(keepingCapacity: true)
-        for i in 0 ..< p where uncolored[i >> 6] & (1 << UInt64(i & 63)) != 0 {
-            best.append(i)
-            for k in 0 ..< words { uncolored[k] &= rows[i * words + k] }
-        }
-        let greedy = best.count
-        guard greedy < target else { return greedy }
-        let least = max(floor, greedy)
-        let size = search(floor: least, target: target)
-        return size > least ? size : greedy
     }
 }
 
@@ -630,7 +424,7 @@ struct _IndependentSetKernel {
     /// whether α ≥ `need` and knows α ≤ `need`: the result is then at least `need` exactly when α
     /// is, and `set` is valid only then.
     @inlinable
-    mutating func solve(_ g: _CoveringGraph, _ members: [Int], need: Int, wantSet: Bool) -> Int {
+    mutating func solve(_ g: _CompressedRows, _ members: [Int], need: Int, wantSet: Bool) -> Int {
         for u in vertices { local[u] = -1 }
         vertices.removeAll(keepingCapacity: true)
         vertices.append(contentsOf: members)
@@ -644,7 +438,7 @@ struct _IndependentSetKernel {
         for i in 0 ..< r {
             let u = members[i], first = pool.count
             for k in g.offsets[u] ..< g.offsets[u + 1] {
-                let j = local[g.neighbors[k]]
+                let j = local[g.targets[k]]
                 if j >= 0 { pool.append(j) }
             }
             start.append(first)
@@ -704,8 +498,8 @@ struct _IndependentSetKernel {
                 for k in start[i] ..< start[i] + length[i] where state[pool[k]] == 0 { neighbors.append(kernelIndex[pool[k]]) }
                 offsets.append(neighbors.count)
             }
-            let kernel = _CoveringGraph(offsets: offsets, neighbors: neighbors, hasLoop: [Bool](repeating: false, count: size))
-            let (order, starts, color, bipartite) = _coveringComponents(kernel, skipLooped: false)
+            let kernel = _CompressedRows(offsets: offsets, targets: neighbors, edges: [])
+            let (order, starts, color, bipartite) = _coveringComponents(kernel, loops: [], skipLooped: false)
             var side = [Int8](repeating: -1, count: size)
             var anyBipartite = false, others = 0
             for c in bipartite.indices {
@@ -724,12 +518,12 @@ struct _IndependentSetKernel {
                 search.load(kernel, part)
                 if others == 1 && need != Int.max {
                     let needed = need - total
-                    total += search.maximum(floor: needed - 1, target: needed)
+                    total += search.engine.maximum(floor: needed - 1, target: needed)
                 } else {
-                    total += search.maximum(floor: 0, target: part.count)
+                    total += search.engine.maximum(floor: 0, target: part.count)
                 }
                 if wantSet {
-                    for i in search.best { found[search.vertices[i]] = true }
+                    for i in search.engine.best { found[search.vertices[i]] = true }
                 }
             }
         }
@@ -795,10 +589,10 @@ struct _IndependentSetReduction {
     }
 
     @inlinable
-    mutating func kill(_ g: _CoveringGraph, _ u: Int) {
+    mutating func kill(_ g: _CompressedRows, _ u: Int) {
         alive[u] = false
         for k in g.offsets[u] ..< g.offsets[u + 1] {
-            let w = g.neighbors[k]
+            let w = g.targets[k]
             guard alive[w] else { continue }
             degree[w] -= 1
             queue.append(w)
@@ -806,15 +600,15 @@ struct _IndependentSetReduction {
     }
 
     @inlinable
-    mutating func take(_ g: _CoveringGraph, _ v: Int, into inSet: inout [Bool]) {
+    mutating func take(_ g: _CompressedRows, _ v: Int, into inSet: inout [Bool]) {
         inSet[v] = true
         alive[v] = false
-        for k in g.offsets[v] ..< g.offsets[v + 1] where alive[g.neighbors[k]] { kill(g, g.neighbors[k]) }
+        for k in g.offsets[v] ..< g.offsets[v + 1] where alive[g.targets[k]] { kill(g, g.targets[k]) }
     }
 
     /// Applies the lexicographic rules to the queued vertices until none applies.
     @inlinable
-    mutating func reduce(_ g: _CoveringGraph, into inSet: inout [Bool]) {
+    mutating func reduce(_ g: _CompressedRows, into inSet: inout [Bool]) {
         while let x = queue.popLast() {
             guard alive[x] else { continue }
             let d = degree[x]
@@ -825,19 +619,19 @@ struct _IndependentSetReduction {
             }
             guard d <= 8 else { continue }
             var least = true
-            for k in g.offsets[x] ..< g.offsets[x + 1] where alive[g.neighbors[k]] && g.neighbors[k] < x {
+            for k in g.offsets[x] ..< g.offsets[x + 1] where alive[g.targets[k]] && g.targets[k] < x {
                 least = false
                 break
             }
             guard least else { continue }
             if d > 1 {
                 stamp += 1
-                for k in g.offsets[x] ..< g.offsets[x + 1] where alive[g.neighbors[k]] { mark[g.neighbors[k]] = stamp }
+                for k in g.offsets[x] ..< g.offsets[x + 1] where alive[g.targets[k]] { mark[g.targets[k]] = stamp }
                 var clique = true
-                for k in g.offsets[x] ..< g.offsets[x + 1] where alive[g.neighbors[k]] {
-                    let a = g.neighbors[k]
+                for k in g.offsets[x] ..< g.offsets[x + 1] where alive[g.targets[k]] {
+                    let a = g.targets[k]
                     var count = 0
-                    for j in g.offsets[a] ..< g.offsets[a + 1] where mark[g.neighbors[j]] == stamp && alive[g.neighbors[j]] { count += 1 }
+                    for j in g.offsets[a] ..< g.offsets[a + 1] where mark[g.targets[j]] == stamp && alive[g.targets[j]] { count += 1 }
                     if count != d - 1 {
                         clique = false
                         break
@@ -846,7 +640,7 @@ struct _IndependentSetReduction {
                 guard clique else { continue }
             }
             if !witness[x] {
-                for k in g.offsets[x] ..< g.offsets[x + 1] where alive[g.neighbors[k]] { witness[g.neighbors[k]] = false }
+                for k in g.offsets[x] ..< g.offsets[x + 1] where alive[g.targets[k]] { witness[g.targets[k]] = false }
                 witness[x] = true
             }
             take(g, x, into: &inSet)
@@ -855,7 +649,7 @@ struct _IndependentSetReduction {
 
     /// The component of v among the vertices alive, into `reached`.
     @inlinable
-    mutating func reach(_ g: _CoveringGraph, _ v: Int) {
+    mutating func reach(_ g: _CompressedRows, _ v: Int) {
         stamp += 1
         reached.removeAll(keepingCapacity: true)
         reached.append(v)
@@ -865,7 +659,7 @@ struct _IndependentSetReduction {
             let u = reached[head]
             head += 1
             for k in g.offsets[u] ..< g.offsets[u + 1] {
-                let w = g.neighbors[k]
+                let w = g.targets[k]
                 if alive[w] && mark[w] != stamp {
                     mark[w] = stamp
                     reached.append(w)
@@ -878,7 +672,7 @@ struct _IndependentSetReduction {
     /// matching pass (`side`), complete ones take their least vertex, and with `computeWitness`
     /// the others get a witness from the kernel.
     @inlinable
-    mutating func split(_ g: _CoveringGraph, _ list: [Int], side: inout [Int8], into inSet: inout [Bool], computeWitness: Bool) {
+    mutating func split(_ g: _CompressedRows, _ list: [Int], side: inout [Int8], into inSet: inout [Bool], computeWitness: Bool) {
         stamp += 1
         let visit = stamp
         for s in list where alive[s] && mark[s] != visit {
@@ -892,7 +686,7 @@ struct _IndependentSetReduction {
                 head += 1
                 least = min(least, u)
                 for k in g.offsets[u] ..< g.offsets[u + 1] {
-                    let w = g.neighbors[k]
+                    let w = g.targets[k]
                     guard alive[w] else { continue }
                     ends += 1
                     if mark[w] != visit {
@@ -923,14 +717,14 @@ struct _IndependentSetReduction {
     /// Writes the least maximum independent set of the component `members` (ascending numbers)
     /// into `inSet`, except for the pieces it leaves to the matching pass through `side`.
     @inlinable
-    mutating func solve(_ g: _CoveringGraph, _ members: [Int], side: inout [Int8], into inSet: inout [Bool]) {
+    mutating func solve(_ g: _CompressedRows, _ members: [Int], side: inout [Int8], into inSet: inout [Bool]) {
         for u in members {
             alive[u] = true
             witness[u] = false
         }
         for u in members {
             var d = 0
-            for k in g.offsets[u] ..< g.offsets[u + 1] where alive[g.neighbors[k]] { d += 1 }
+            for k in g.offsets[u] ..< g.offsets[u + 1] where alive[g.targets[k]] { d += 1 }
             degree[u] = d
         }
         queue.append(contentsOf: members.reversed())
@@ -950,7 +744,7 @@ struct _IndependentSetReduction {
             if !take {
                 stamp += 1
                 mark[v] = stamp
-                for k in g.offsets[v] ..< g.offsets[v + 1] { mark[g.neighbors[k]] = stamp }
+                for k in g.offsets[v] ..< g.offsets[v + 1] { mark[g.targets[k]] = stamp }
                 piece.removeAll(keepingCapacity: true)
                 for u in reached where mark[u] != stamp { piece.append(u) }
                 piece.sort()
@@ -1048,10 +842,10 @@ struct _DominatingSetSearch {
     @usableFromInline var topDegree = 0
 
     @inlinable
-    init(_ g: _CoveringGraph) {
+    init(_ g: _CompressedRows) {
         let n = g.count
         offsets = g.offsets
-        neighbors = g.neighbors
+        neighbors = g.targets
         state = [UInt8](repeating: 0, count: n)
         dominators = [Int](repeating: 0, count: n)
         allowed = [Int](repeating: 0, count: n)
@@ -1546,7 +1340,7 @@ struct _DenseDominatingSetSearch {
 
     /// Sets up the component `members` (ascending numbers).
     @inlinable
-    mutating func load(_ g: _CoveringGraph, _ members: [Int]) {
+    mutating func load(_ g: _CompressedRows, _ members: [Int]) {
         for u in vertices { local[u] = -1 }
         vertices = members
         for (i, u) in members.enumerated() { local[u] = i }
@@ -1557,7 +1351,7 @@ struct _DenseDominatingSetSearch {
         for (i, u) in members.enumerated() {
             closed[i * words + i >> 6] |= 1 << UInt64(i & 63)
             for k in g.offsets[u] ..< g.offsets[u + 1] {
-                let j = local[g.neighbors[k]]
+                let j = local[g.targets[k]]
                 closed[i * words + j >> 6] |= 1 << UInt64(j & 63)
             }
         }
@@ -1731,7 +1525,7 @@ struct _DenseDominatingSetSearch {
 /// component (loops ignored), isolated vertices and components with a vertex adjacent to all the
 /// others directly, the rest by `_DominatingSetSearch` or, when dense, `_DenseDominatingSetSearch`.
 @inlinable
-func _minimumDominatingSet(_ g: _CoveringGraph) -> [Bool] {
+func _minimumDominatingSet(_ g: _CompressedRows) -> [Bool] {
     let n = g.count
     var inSet = [Bool](repeating: false, count: n)
     let (order, starts) = _dominationComponents(g)
@@ -1800,7 +1594,8 @@ extension Graph {
     /// the worst case. Memory O(n + m + k² / 64) words for a kernel component of k vertices.
     @inlinable
     public func maximumIndependentSet() -> [Vertex] {
-        _coveringVertices(flagged: _maximumIndependentSet(_coveringGraph(), lexicographic: true).inSet, _listedVertices())
+        let (g, loops) = _coveringGraph(recordsLoops: true)
+        return _coveringVertices(flagged: _maximumIndependentSet(g, loops: loops, lexicographic: true).inSet, _listedVertices())
     }
 
     /// The size of a maximum independent set, α: 0 for the empty graph. A bipartite component
@@ -1809,7 +1604,8 @@ extension Graph {
     /// lexicographic pass: O(n + m) plus the search on what the reductions leave.
     @inlinable
     public func independenceNumber() -> Int {
-        _maximumIndependentSet(_coveringGraph(), lexicographic: false).size
+        let (g, loops) = _coveringGraph(recordsLoops: true)
+        return _maximumIndependentSet(g, loops: loops, lexicographic: false).size
     }
 
     /// A minimum vertex cover (exact): `vertices` minus `maximumIndependentSet()`, in `vertices`
@@ -1818,7 +1614,8 @@ extension Graph {
     /// `maximumIndependentSet()`'s: O(m √n) on bipartite components.
     @inlinable
     public func minimumVertexCover() -> [Vertex] {
-        var flags = _maximumIndependentSet(_coveringGraph(), lexicographic: true).inSet
+        let (g, loops) = _coveringGraph(recordsLoops: true)
+        var flags = _maximumIndependentSet(g, loops: loops, lexicographic: true).inSet
         for v in flags.indices { flags[v].toggle() }
         return _coveringVertices(flagged: flags, _listedVertices())
     }
@@ -1844,6 +1641,6 @@ extension Graph {
     /// component size in the worst case.
     @inlinable
     public func minimumDominatingSet() -> [Vertex] {
-        _coveringVertices(flagged: _minimumDominatingSet(_coveringGraph()), _listedVertices())
+        _coveringVertices(flagged: _minimumDominatingSet(_coveringGraph(recordsLoops: false).rows), _listedVertices())
     }
 }

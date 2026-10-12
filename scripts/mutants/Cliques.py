@@ -2,7 +2,8 @@
 #
 # Known equivalent mutants:
 #   laterrows, forward  ranks are unique, so >= and > pick the same vertices.
-#   colorbound          drops a pruning test: slower, the same answers.
+#   bbmc_bound          `<` for `<=` in the colour bound prunes less: the same optimum, slower
+#                       (it was Covering's; the search moved here).
 #   pivotscore          the first pivot loop's ties by order met rather than by index: no graph
 #                       among 3000 differential cases tells them apart (the X ∩ P members it
 #                       passes over were branched on in the same frame). pivotscorex, the tie
@@ -12,8 +13,8 @@ TESTS = ["CliquesTests"]
 
 MUTANTS = [
     # Simple rows
-    Mutant("keeploops", "SimpleRows.swift", "w == v || stamp[w] == v", "stamp[w] == v"),
-    Mutant("keeprepeats", "SimpleRows.swift", "w == v || stamp[w] == v", "w == v"),
+    Mutant("keeploops", "CompressedRows.swift", "w == v", "false", nth=1, module="GraphProtocols"),
+    Mutant("keeprepeats", "CompressedRows.swift", "                if stamp[w] == v { continue }", "", mode="stmt", module="GraphProtocols"),
 
     # Batagelj–Zaversnik
     Mutant("coredecrement", "SimpleRows.swift", "            degree[u] -= 1", "", mode="stmt"),
@@ -22,7 +23,7 @@ MUTANTS = [
     Mutant("coreswap", "SimpleRows.swift", "u != w", "false"),
 
     # Maximal cliques
-    Mutant("laterrows", "MaximalCliques.swift", "rank[rows.neighbors[k]] > rank[v]", "rank[rows.neighbors[k]] >= rank[v]"),
+    Mutant("laterrows", "MaximalCliques.swift", "rank[rows.targets[k]] > rank[v]", "rank[rows.targets[k]] >= rank[v]"),
     Mutant("linkback", "MaximalCliques.swift", "                link(w, u)", "", mode="stmt"),
     Mutant("corefilter", "MaximumClique.swift", "core[later[k]] >= best", "core[later[k]] > best"),
     Mutant("singleton", "MaximalCliques.swift", "xVertices.isEmpty", "false"),
@@ -35,14 +36,25 @@ MUTANTS = [
     Mutant("cliquesort", "MaximalCliques.swift", "                    found.sort()", "", mode="stmt"),
 
     # Maximum clique
-    Mutant("colorbound", "MaximumClique.swift", "chosen.count + colorBound(at: child) < need", "false"),
-    Mutant("colorclass", "MaximumClique.swift", "                    for j in 0 ..< words { candidates[j] &= ~adjacency[i * words + j] }", "", mode="stmt"),
     Mutant("ceiling", "MaximumClique.swift", "core.max()! + 1", "core.max()!"),
-    Mutant("corepruning", "MaximumClique.swift", "core[v] + 1 > best", "core[v] > best"),
-    Mutant("lexleast", "MaximumClique.swift", "a.contains(least)", "!a.contains(least)"),
+    Mutant("corepruning", "MaximumClique.swift", "core[v] + 1 > clique.count", "core[v] > clique.count"),
+    Mutant("subrows", "MaximumClique.swift", "                engine.rows[j * words + i >> 6] |= 1 << UInt64(i & 63)", "", mode="stmt"),
+    Mutant("lexleast", "MaximumClique.swift", "candidate.lexicographicallyPrecedes(current)", "current.lexicographicallyPrecedes(candidate)"),
+    Mutant("crossprune", "MaximumClique.swift", "min(v, members.first ?? v) > current[0]", "min(v, members.first ?? v) >= current[0]"),
+    Mutant("witnessreset", "MaximumClique.swift", "                        for k in 0 ..< words { witness[k] = 0 }", "", mode="stmt"),
+    Mutant("openrestrict", "MaximumClique.swift", "                for k in 0 ..< words { open[k] &= sub.engine.rows[i * words + k] }", "", mode="stmt"),
+    Mutant("restzero", "MaximumClique.swift", "(rest == 0 || sub.engine.search(floor: rest - 1, target: rest) >= rest)", "sub.engine.search(floor: rest - 1, target: rest) >= rest"),
+
+    # BBMC (also Covering's and ColoringModule's)
+    Mutant("bbmc_bound", "MaximumCliqueSearch.swift", "depth + colors[i] <= bestSize", "depth + colors[i] < bestSize"),
+    Mutant("bbmc_colorclass", "MaximumCliqueSearch.swift", "                    for j in k ..< words { color[j] &= ~rows[v * words + j] }", "", mode="stmt"),
+    Mutant("bbmc_least", "MaximumCliqueSearch.swift", "c >= least", "c > least"),
+    Mutant("bbmc_child", "MaximumCliqueSearch.swift", "sets[base + k] & rows[v * words + k]", "sets[base + k]"),
+    Mutant("bbmc_leaf", "MaximumCliqueSearch.swift", "                if x != 0 { empty = false }", "", mode="stmt"),
+    Mutant("bbmc_greedy", "MaximumCliqueSearch.swift", "            for k in 0 ..< words { uncolored[k] &= rows[i * words + k] }", "", mode="stmt"),
 
     # Triangles and clustering
-    Mutant("forward", "Clustering.swift", "rank[rows.neighbors[k]] > rank[v]", "rank[rows.neighbors[k]] >= rank[v]"),
+    Mutant("forward", "Clustering.swift", "rank[rows.targets[k]] > rank[v]", "rank[rows.targets[k]] >= rank[v]"),
     Mutant("clusteringzero", "Clustering.swift", "degree < 2", "degree < 1"),
     Mutant("transitivity", "Clustering.swift", "Double(corners) / Double(triples)", "Double(corners / 3) / Double(triples)", nth=0),
     Mutant("transitivityoneshot", "Clustering.swift", "Double(corners) / Double(triples)", "Double(corners / 3) / Double(triples)", nth=1),

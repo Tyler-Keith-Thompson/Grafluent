@@ -1,7 +1,6 @@
 # Planted bugs for Covering; run with `just mutate Covering`. See scripts/mutate.py.
 #
 # Known equivalent mutants:
-#   bbmc_bound            `<` for `<=` in the colour bound prunes less: the same optimum, slower.
 #   dominating_noallowed, dominating_bound
 #                         pruning removed from the dominating search: it still exhausts the same
 #                         tree within the budget and finds the same least set.
@@ -21,15 +20,17 @@ TESTS = ["CoveringTests"]
 
 MUTANTS = [
     # Simple rows
-    Mutant("loopflag", "CoveringGraph.swift", "                    hasLoop[v] = true", "", mode="stmt"),
-    Mutant("repeats", "CoveringGraph.swift", "if stamp[w] == v { continue }", "", mode="stmt"),
+    Mutant("loopflag", "CompressedRows.swift", "if recordsLoops { loops[v] = true }", "", mode="stmt", module="GraphProtocols"),
+    Mutant("repeats", "CompressedRows.swift", "                if stamp[w] == v { continue }", "", mode="stmt", module="GraphProtocols"),
 
     # Exact searches
     Mutant("components_conflict", "ExactCovering.swift", "color[w] == color[v]", "false"),
     Mutant("lattice_choice", "ExactCovering.swift", "if choice[x] == 1 { inSet[x] = true } else { inSet[mate[x]] = true }", "if choice[x] == 2 { inSet[x] = true } else { inSet[mate[x]] = true }", mode="stmt"),
     Mutant("lattice_forward", "ExactCovering.swift", "                        choice[b] = 1", "", mode="stmt"),
     Mutant("lattice_backward", "ExactCovering.swift", "                        choice[a] = 2", "", mode="stmt"),
-    Mutant("bbmc_bound", "ExactCovering.swift", "depth + colors[i] <= bestSize", "depth + colors[i] < bestSize"),
+    Mutant("hk_side", "ExactCovering.swift", "side[$0] >= 0", "true"),
+    Mutant("hk_seed", "ExactCovering.swift", "side[w] >= 0 && pairRight[w] < 0", "pairRight[w] < 0"),
+    Mutant("hk_mate", "ExactCovering.swift", "        mate[w] = v", "", mode="stmt"),
     Mutant("dominating_noallowed", "ExactCovering.swift", "if count == 0 { return -1 }", "", mode="stmt"),
     Mutant("dominating_bound", "ExactCovering.swift", "if most * remaining < undominated { return -1 }", "", mode="stmt"),
     Mutant("dominating_budget", "ExactCovering.swift", "if remaining <= 0 { return -1 }", "", mode="stmt"),
@@ -66,6 +67,6 @@ MUTANTS = [
     Mutant("ec_covers", "MaximalAndKonig.swift", "covered[structure.to[e]] = true", "", nth=0, mode="stmt"),
 
     # Checks
-    Mutant("vc_loop", "MaximalAndKonig.swift", "if graph.hasLoop[v] { return false }", "", nth=0, mode="stmt"),
-    Mutant("ds_neighbors", "MaximalAndKonig.swift", "for k in graph.offsets[v] ..< graph.offsets[v + 1] { dominated[graph.neighbors[k]] = true }", "", mode="stmt"),
+    Mutant("vc_loop", "MaximalAndKonig.swift", "if loops[v] { return false }", "", nth=0, mode="stmt"),
+    Mutant("ds_neighbors", "MaximalAndKonig.swift", "for k in graph.offsets[v] ..< graph.offsets[v + 1] { dominated[graph.targets[k]] = true }", "", mode="stmt"),
 ]

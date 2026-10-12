@@ -107,6 +107,77 @@ struct CliquePropertyTests {
         }
     }
 
+    @Test("maximumClique() on dense graphs, where several largest cliques compete: the lexicographically least by index")
+    func maximumCliqueDenseAgainstSubsets() async {
+        // Each pair of 0..<n is an edge when its bit of `bits` is set, n(n − 1)/2 ≤ 66 bits, with
+        // `extra` setting more bits so most graphs are dense.
+        await propertyCheck(count: 300, input: Gen.int(in: 6 ... 12), Gen.uint64(in: 0 ... .max), Gen.uint64(in: 0 ... .max)) { n, bits, extra in
+            var pairs: [(Int, Int)] = []
+            var k = 0
+            for a in 0 ..< n {
+                for b in a + 1 ..< n {
+                    let bit = UInt64(1) << UInt64(k % 64)
+                    if (bits | extra) & bit != 0 { pairs.append((a, b)) }
+                    k += 1
+                }
+            }
+            let graph = ShuffledPseudograph(vertexCount: n, edges: pairs.map { UndirectedEdge($0.0, $0.1) }, seed: Int(extra % 1000))
+            var neighbours = [Int](repeating: 0, count: n)
+            for (a, b) in pairs {
+                neighbours[a] |= 1 << b
+                neighbours[b] |= 1 << a
+            }
+            var best: [Int] = []
+            for mask in 1 ..< (1 << n) {
+                let members = (0 ..< n).filter { mask & (1 << $0) != 0 }
+                guard members.allSatisfy({ (mask & ~(1 << $0)) & ~neighbours[$0] == 0 }) else { continue }
+                if members.count > best.count || (members.count == best.count && members.lexicographicallyPrecedes(best)) {
+                    best = members
+                }
+            }
+            #expect(graph.maximumClique() == best)
+            #expect(graph.cliqueNumber() == best.count)
+        }
+    }
+
+    @Test("maximumClique() keeps only the latest witness: a vertex of an earlier witness, taken again, can leave no room for the rest")
+    func maximumCliqueStaleWitness() {
+        // A dense random graph on 20 vertices, found by a search that replays the witness pass
+        // with stale witness bits kept: that variant returns [0, 1, 3, 11, 16], five vertices.
+        // Rows in position order (seed 0).
+        let pairs: [(Int, Int)] = [
+            (15, 17), (0, 17), (16, 18), (0, 18), (6, 10), (11, 12), (6, 19), (6, 8), (9, 11), (8, 14),
+            (2, 15), (0, 14), (1, 19), (8, 16), (0, 11), (3, 13), (6, 15), (12, 13), (4, 8), (13, 14),
+            (13, 17), (3, 5), (4, 15), (2, 11), (4, 19), (9, 12), (1, 5), (7, 11), (14, 18), (2, 19),
+            (11, 16), (3, 19), (2, 8), (4, 5), (1, 11), (15, 18), (6, 13), (3, 18), (4, 10), (1, 3), (7, 8),
+            (10, 13), (0, 1), (2, 12), (5, 11), (4, 9), (7, 16), (11, 14), (1, 8), (4, 13), (6, 7), (8, 18),
+            (10, 16), (14, 16), (2, 4), (4, 11), (5, 16), (1, 4), (8, 12), (10, 19), (11, 19), (1, 13),
+            (10, 14), (2, 5), (15, 19), (9, 18), (8, 11), (0, 4), (17, 18), (1, 12), (7, 10), (1, 6),
+            (5, 14), (8, 15), (1, 7), (9, 17), (3, 17), (17, 19), (1, 15), (5, 18), (10, 15), (4, 18),
+            (4, 14), (4, 17), (6, 14), (9, 19), (13, 19), (3, 10), (3, 6), (5, 17), (14, 15), (5, 10),
+            (7, 9), (1, 16), (1, 17), (2, 10), (6, 11), (0, 13), (5, 15), (8, 19), (8, 10), (0, 16), (2, 18),
+            (7, 13), (0, 3), (12, 17), (0, 15), (12, 16), (2, 13), (16, 17), (7, 19), (5, 19), (3, 14),
+            (8, 9), (0, 8), (0, 9), (3, 11), (14, 17), (5, 6), (6, 18), (18, 19), (9, 14), (4, 16), (3, 16),
+            (0, 7), (6, 9)
+        ]
+        let graph = ShuffledPseudograph(vertexCount: 20, edges: pairs.map { UndirectedEdge($0.0, $0.1) }, seed: 0)
+        #expect(graph.maximumClique() == [0, 1, 4, 8, 11, 16])
+        #expect(graph.cliqueNumber() == 6)
+    }
+
+    @Test("maximumClique() takes the last vertex it needs without a search: nothing is left to extend it with")
+    func maximumCliqueLastVertex() {
+        // 0, 3 and 4 form the least triangle; a pass that searched for the empty rest among 4's
+        // remaining common neighbours (none) would reject 4 and return [0, 3, 8]. Rows in position
+        // order (seed 0).
+        let pairs: [(Int, Int)] = [
+            (1, 6), (1, 7), (0, 4), (3, 4), (4, 5), (2, 3), (4, 6), (2, 8), (0, 1), (1, 5), (0, 3), (0, 8),
+            (3, 6), (5, 8), (3, 8), (5, 6), (6, 8), (7, 8), (1, 2), (2, 4),
+        ]
+        let graph = ShuffledPseudograph(vertexCount: 9, edges: pairs.map { UndirectedEdge($0.0, $0.1) }, seed: 0)
+        #expect(graph.maximumClique() == [0, 3, 4])
+    }
+
     @Test("coreNumbers() is peeling: core(v) is the largest k for which v survives deleting vertices of fewer than k distinct neighbours; degeneracy, kCore and kShell follow")
     func coreNumbersAgainstPeeling() async {
         let edges = zip(Gen.int(in: 0 ... 8), Gen.int(in: 0 ... 8)).array(of: 0 ... 30)

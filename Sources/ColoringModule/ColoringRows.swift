@@ -1,26 +1,9 @@
 import GraphProtocols
 
-/// The simple graph underlying an undirected graph, in index space: each vertex's distinct other
-/// neighbors in first-appearance row order (self-loops dropped, parallel copies merged), as flat
-/// rows. Every vertex colouring reads this, so a multigraph means its simple graph.
-@frozen
-@usableFromInline
-struct _ColoringRows: Sendable {
-    @usableFromInline var offsets: [Int]
-    @usableFromInline var neighbors: [Int]
+// Every vertex colouring reads the simple graph underlying an undirected graph
+// (`_CopySimpleRows`), so a multigraph means its simple graph.
 
-    @inlinable
-    init(offsets: [Int], neighbors: [Int]) {
-        self.offsets = offsets
-        self.neighbors = neighbors
-    }
-
-    @inlinable
-    var count: Int { offsets.count - 1 }
-
-    @inlinable
-    func degree(_ v: Int) -> Int { offsets[v + 1] - offsets[v] }
-
+extension _CompressedRows {
     /// The greatest degree, Δ; 0 without vertices.
     @inlinable
     var maximumDegree: Int {
@@ -30,52 +13,22 @@ struct _ColoringRows: Sendable {
     }
 }
 
-/// Copies the rows once, dropping loops and repeats with a stamp per vertex.
-@frozen
-@usableFromInline
-struct _CopyColoringRows: _UndirectedRowsAlgorithm {
-    @inlinable
-    init() {}
-
-    @inlinable
-    var readsEdges: Bool { false }
-
-    @inlinable
-    func run<Rows: _IncidenceRowSource>(count n: Int, edgeCount: Int, _ rows: inout Rows) -> _ColoringRows {
-        var offsets = [Int](repeating: 0, count: n + 1)
-        var neighbors: [Int] = []
-        neighbors.reserveCapacity(2 * edgeCount)
-        var stamp = [Int](repeating: -1, count: n)
-        for v in 0 ..< n {
-            for k in 0 ..< rows.count(v) {
-                let w = rows.neighbor(v, k)
-                precondition(UInt(bitPattern: w) < UInt(bitPattern: n), "A neighbor index is out of range")
-                if w == v || stamp[w] == v { continue }
-                stamp[w] = v
-                neighbors.append(w)
-            }
-            offsets[v + 1] = neighbors.count
-        }
-        return _ColoringRows(offsets: offsets, neighbors: neighbors)
-    }
-}
-
 /// Simple rows seen as incidence rows, so BipartiteGraphs' `_TwoColoring` can run on them (it
 /// reads neighbors only). The edge numbers are the row slots, so the edge count to run it with is
-/// `neighbors.count`, one per slot.
+/// `targets.count`, one per slot.
 @frozen
 @usableFromInline
 struct _ColoringRowSource: _IncidenceRowSource {
-    @usableFromInline let rows: _ColoringRows
+    @usableFromInline let rows: _CompressedRows
 
     @inlinable
-    init(_ rows: _ColoringRows) { self.rows = rows }
+    init(_ rows: _CompressedRows) { self.rows = rows }
 
     @inlinable @inline(__always)
     mutating func count(_ v: Int) -> Int { rows.offsets[v + 1] - rows.offsets[v] }
 
     @inlinable @inline(__always)
-    mutating func neighbor(_ v: Int, _ k: Int) -> Int { rows.neighbors[rows.offsets[v] + k] }
+    mutating func neighbor(_ v: Int, _ k: Int) -> Int { rows.targets[rows.offsets[v] + k] }
 
     @inlinable @inline(__always)
     mutating func edge(_ v: Int, _ k: Int) -> Int { rows.offsets[v] + k }
