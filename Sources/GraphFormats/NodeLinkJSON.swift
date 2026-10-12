@@ -82,92 +82,150 @@
     try json.forEachElement(nodes) { node throws(ParseError) in
         try reader.node(node, into: &target, map: map, vertexAttribute: vertexAttribute)
     }
-    var merged: [_KeyPair: Target.Position] = [:]
-    var keyed = _KeyedEdges<Target.Position>()
-    try withUnsafeMutablePointer(to: &merged) { (merged) throws(ParseError) in
-        try withUnsafeMutablePointer(to: &keyed) { (keyed) throws(ParseError) in
-            try json.forEachElement(edgeList) { edge throws(ParseError) in
-                try reader.edge(edge, into: &target, map: map, merging: isMultigraph ? nil : merged, keyed: isMultigraph ? keyed : nil,
-                                edgeAttribute: edgeAttribute)
-            }
-        }
+    // The edges in two passes. The first reads each edge's endpoints and key, with every check
+    // in document order; then which edge each one is (itself, or an earlier one it merges into) is
+    // decided for all of them at once, by a counting sort on their pairs, without a table entry per
+    // edge; the second inserts them and reports their attributes.
+    var collected = _NodeLinkEdges()
+    try json.forEachElement(edgeList) { edge throws(ParseError) in
+        try reader.collectEdge(edge, into: &target, map: map, keyed: isMultigraph, edges: &collected)
+    }
+    let firsts = collected.firstCopies(directed: Target.isDirected)
+    let sameAs = isMultigraph ? collected.networkXKeys(firsts: firsts) : firsts
+    var positions: [Target.Position] = []
+    positions.reserveCapacity(collected.us.count)
+    for i in collected.us.indices {
+        let earlier = sameAs[i]
+        let position = earlier == i ? target.insertEdge(collected.us[i], collected.vs[i]) : positions[earlier]
+        positions.append(position)
+        if collected.hasAttributes[i] { try reader.attributes(of: collected.offsets[i], at: position, edgeAttribute: edgeAttribute) }
     }
 }
 
-/// A multigraph's edges by `(u, v, key)`, as NetworkX's `node_link_graph` adds them: an edge whose
-/// `key` names an edge already read between the same pair is that edge (its attributes set again,
-/// the last value winning); an edge without a key gets `new_edge_key`, the number of keys between
-/// the pair, raised past any taken. Keys compare as Python's do: `true` is 1, an integral double
-/// its integer.
-@usableFromInline internal struct _KeyedEdges<Position> {
-    @usableFromInline internal struct Key: Hashable {
-        @usableFromInline var pair: _KeyPair
-        @usableFromInline var key: AttributeValue
-
-        @inlinable init(pair: _KeyPair, key: AttributeValue) {
-            self.pair = pair
-            self.key = key
-        }
-    }
-
-    @usableFromInline var positions: [Key: Position] = [:]
-    /// Integer keys (what NetworkX writes), without hashing an `AttributeValue`.
-    @usableFromInline internal struct IntegerKey: Hashable {
-        @usableFromInline var first: Int
-        @usableFromInline var second: Int
-        @usableFromInline var key: Int
-
-        @inlinable init(_ pair: _KeyPair, _ key: Int) {
-            first = pair.first
-            second = pair.second
-            self.key = key
-        }
-    }
-    @usableFromInline var integerPositions: [IntegerKey: Position] = [:]
-    /// Per pair: how many keys it has.
-    @usableFromInline var counts: [_KeyPair: Int] = [:]
+/// The edges of a node-link document as its first pass reads them: endpoint keys, the key each
+/// gives (`keyKinds`: 0 none, 1 an integer in `keyIntegers`, 2 another value in `otherKeys`),
+/// where each starts, and whether it has attributes.
+@usableFromInline internal struct _NodeLinkEdges {
+    @usableFromInline var us: [Int] = []
+    @usableFromInline var vs: [Int] = []
+    @usableFromInline var keyKinds: [UInt8] = []
+    @usableFromInline var keyIntegers: [Int] = []
+    @usableFromInline var otherKeys: [Int: AttributeValue] = [:]
+    @usableFromInline var offsets: [Int] = []
+    @usableFromInline var hasAttributes: [Bool] = []
+    @usableFromInline var vertexBound = 0
 
     @inlinable init() {}
 
-    /// `value` as a Python dictionary key compares: a boolean or an integral double as its integer.
-    @inlinable static func normalized(_ value: AttributeValue) -> AttributeValue {
-        switch value {
-        case .boolean(let b): return .integer(b ? 1 : 0)
-        case .double(let d):
-            if let i = Int(exactly: d) { return .integer(i) }
-            return value
-        default: return value
+    @inlinable mutating func append(_ u: Int, _ v: Int, key: AttributeValue?, offset: Int, hasAttributes attributes: Bool) {
+        vertexBound = max(vertexBound, u &+ 1, v &+ 1)
+        switch key {
+        case nil:
+            keyKinds.append(0)
+            keyIntegers.append(0)
+        case .integer(let k)?:
+            keyKinds.append(1)
+            keyIntegers.append(k)
+        case let other?:
+            otherKeys[us.count] = other
+            keyKinds.append(2)
+            keyIntegers.append(0)
+        }
+        us.append(u)
+        vs.append(v)
+        offsets.append(offset)
+        hasAttributes.append(attributes)
+    }
+
+    /// The key of edge `i` as a value, `nil` for none.
+    @inlinable func key(_ i: Int) -> AttributeValue? {
+        switch keyKinds[i] {
+        case 0: return nil
+        case 1: return .integer(keyIntegers[i])
+        default: return otherKeys[i]
         }
     }
 
-    @inlinable func find(_ pair: _KeyPair, _ name: AttributeValue) -> Position? {
-        if case .integer(let k) = name { return integerPositions[IntegerKey(pair, k)] }
-        return positions[Key(pair: pair, key: name)]
+    /// For each edge, the first edge between the same pair (unordered when undirected): a stable
+    /// counting sort on one end and a stamp per other end within each row. O(n + m).
+    @inlinable func firstCopies(directed: Bool) -> [Int] {
+        let m = us.count, n = vertexBound
+        var offsets = [Int](repeating: 0, count: n &+ 1)
+        for i in 0 ..< m { offsets[(directed ? us[i] : min(us[i], vs[i])) &+ 1] &+= 1 }
+        for v in 0 ..< n { offsets[v &+ 1] &+= offsets[v] }
+        var fill = Array(offsets[0 ..< n])
+        var order = [Int](repeating: 0, count: m)
+        for i in 0 ..< m {
+            let a = directed ? us[i] : min(us[i], vs[i])
+            order[fill[a]] = i
+            fill[a] &+= 1
+        }
+        var stamp = [Int](repeating: -1, count: n), first = [Int](repeating: 0, count: n)
+        var firsts = [Int](repeating: 0, count: m)
+        for a in 0 ..< n {
+            for k in offsets[a] ..< offsets[a &+ 1] {
+                let i = order[k]
+                let b = directed ? vs[i] : max(us[i], vs[i])
+                if stamp[b] != a {
+                    stamp[b] = a
+                    first[b] = i
+                    firsts[i] = i
+                } else {
+                    firsts[i] = first[b]
+                }
+            }
+        }
+        return firsts
     }
 
-    /// The position of the edge `key` names between `u` and `v`, inserting it with `insert` when
-    /// there is none; a new key when `key` is `nil`.
-    @inlinable mutating func position(
-        _ u: Int, _ v: Int, directed: Bool, key: AttributeValue?, insert: () -> Position
-    ) -> Position {
-        let pair = _KeyPair(u, v, directed: directed)
-        let name: AttributeValue
-        if let key {
-            name = Self.normalized(key)
-            if let existing = find(pair, name) { return existing }
-        } else {
-            var k = counts[pair] ?? 0
-            while integerPositions[IntegerKey(pair, k)] != nil { k &+= 1 }
-            name = .integer(k)
+    /// For each edge, the edge it is in NetworkX's `node_link_graph` (`add_edge(u, v, key=…)`):
+    /// itself when its key is new between its pair, else the earlier edge with that key; an edge
+    /// without a key gets `new_edge_key` (the number of keys between the pair, raised past any
+    /// taken). Only pairs with several edges keep a table of their keys.
+    @inlinable func networkXKeys(firsts: [Int]) -> [Int] {
+        var sameAs = firsts
+        var groups: [Int: (keys: [AttributeValue: Int], count: Int)] = [:]
+        for i in firsts.indices {
+            let first = firsts[i]
+            if first == i {
+                sameAs[i] = i
+                continue
+            }
+            var group = groups[first] ?? {
+                // The pair's first edge: its key, or key 0 when it has none.
+                let key = self.key(first).map(_pythonKey) ?? .integer(0)
+                return ([key: first], 1)
+            }()
+            var name: AttributeValue
+            if let key = key(i) {
+                name = _pythonKey(key)
+            } else {
+                var k = group.count
+                while group.keys[.integer(k)] != nil { k &+= 1 }
+                name = .integer(k)
+            }
+            if let earlier = group.keys[name] {
+                sameAs[i] = earlier
+            } else {
+                group.keys[name] = i
+                group.count &+= 1
+                sameAs[i] = i
+            }
+            groups[first] = group
         }
-        let position = insert()
-        if case .integer(let k) = name {
-            integerPositions[IntegerKey(pair, k)] = position
-        } else {
-            positions[Key(pair: pair, key: name)] = position
-        }
-        counts[pair, default: 0] &+= 1
-        return position
+        return sameAs
+    }
+}
+
+/// `value` as a Python dictionary key compares, for NetworkX's edge keys: a boolean or an
+/// integral double as its integer (`True == 1 == 1.0`); the string `"1"` stays apart from 1.
+@inlinable func _pythonKey(_ value: AttributeValue) -> AttributeValue {
+    switch value {
+    case .boolean(let b): return .integer(b ? 1 : 0)
+    case .double(let d):
+        if let i = Int(exactly: d) { return .integer(i) }
+        return value
+    default: return value
     }
 }
 
@@ -247,16 +305,16 @@
         return vertexKey
     }
 
-    /// Reads the edge at `edge`; returns the offset past it.
-    @inlinable mutating func edge(
-        _ edge: Int, into target: inout Target, map: (AttributeValue) -> Target.Vertex?,
-        merging merged: UnsafeMutablePointer<[_KeyPair: Target.Position]>?,
-        keyed: UnsafeMutablePointer<_KeyedEdges<Target.Position>>?,
-        edgeAttribute: (Target.Position, String, AttributeValue) -> Void
+    /// Reads the edge at `edge` into `edges` (its endpoints resolved, its key read), with every
+    /// check of the edge in document order; returns the offset past it.
+    @inlinable mutating func collectEdge(
+        _ edge: Int, into target: inout Target, map: (AttributeValue) -> Target.Vertex?, keyed: Bool,
+        edges: inout _NodeLinkEdges
     ) throws(ParseError) -> Int {
         guard json.kind(edge) == .object else { throw ParseError(.invalidValue, at: edge) }
         var source: Int?, targetOffset: Int?, keyOffset: Int?
         var others = 0
+        var unsupported: Int?
         let end = try json.forEachMember(edge, key: &key) { name, value in
             if _is(name, "source") {
                 source = value
@@ -266,42 +324,40 @@
                 keyOffset = value
             } else {
                 others += 1
+                if unsupported == nil {
+                    switch json.kind(value) {
+                    case .null, .array, .object: unsupported = value
+                    default: break
+                    }
+                }
             }
         }
         guard let source else { throw ParseError(.syntax, at: edge) }
         let u = try endpoint(source, into: &target, map: map)
         guard let targetOffset else { throw ParseError(.syntax, at: edge) }
         let v = try endpoint(targetOffset, into: &target, map: map)
-        let position: Target.Position
-        if let keyed {
-            // A `null` key is no key (`dict.get` returns None); a container cannot be one.
-            var name: AttributeValue?
-            if let keyOffset, json.kind(keyOffset) != .null {
-                guard let scalar = json.scalar(keyOffset, scratch: &scratch) else { throw ParseError(.unsupported, at: keyOffset) }
-                name = scalar
-            }
-            position = keyed.pointee.position(u, v, directed: Target.isDirected, key: name) { target.insertEdge(u, v) }
-        } else if let merged {
-            let pair = _KeyPair(u, v, directed: Target.isDirected)
-            if let existing = merged.pointee[pair] {
-                position = existing
-            } else {
-                position = target.insertEdge(u, v)
-                merged.pointee[pair] = position
-            }
-        } else {
-            position = target.insertEdge(u, v)
+        // A `null` key is no key (`dict.get` returns None); a container cannot be one.
+        var name: AttributeValue?
+        if keyed, let keyOffset, json.kind(keyOffset) != .null {
+            guard let scalar = json.scalar(keyOffset, scratch: &scratch) else { throw ParseError(.unsupported, at: keyOffset) }
+            name = scalar
         }
-        if others > 0 {
-            var scratch = self.scratch
-            defer { self.scratch = scratch }
-            try json.forEachMember(edge, key: &key) { name, value throws(ParseError) in
-                if _is(name, "source") || _is(name, "target") || _is(name, "key") { return }
-                guard let scalar = json.scalar(value, scratch: &scratch) else { throw ParseError(.unsupported, at: value) }
-                edgeAttribute(position, _string(name), scalar)
-            }
-        }
+        if let unsupported { throw ParseError(.unsupported, at: unsupported) }
+        edges.append(u, v, key: name, offset: edge, hasAttributes: others > 0)
         return end
+    }
+
+    /// Reports the attributes of the (checked) edge at `edge`.
+    @inlinable mutating func attributes(
+        of edge: Int, at position: Target.Position, edgeAttribute: (Target.Position, String, AttributeValue) -> Void
+    ) throws(ParseError) {
+        var scratch = self.scratch
+        defer { self.scratch = scratch }
+        try json.forEachMember(edge, key: &key) { name, value throws(ParseError) in
+            if _is(name, "source") || _is(name, "target") || _is(name, "key") { return }
+            guard let scalar = json.scalar(value, scratch: &scratch) else { throw ParseError(.unsupported, at: value) }
+            edgeAttribute(position, _string(name), scalar)
+        }
     }
 }
 
@@ -366,14 +422,21 @@
     }
 }
 
-/// Appends `"key": value` pairs, each followed by `, `.
-@inlinable func _appendJSONMembers(_ pairs: [(key: String, value: AttributeValue)], to out: inout _OutputBuffer) {
-    for pair in pairs {
-        _appendJSONString(pair.key, to: &out)
-        out.appendASCII(": ")
-        _appendJSONValue(pair.value, to: &out)
-        out.appendASCII(", ")
+/// Appends `"key": value, ` for a node's attribute (`node`, whose key may not be `id`) or an edge's
+/// (whose key may not be `source`, `target` or `key`). Out of line, so that a writer's per-element
+/// body stays small enough for the caller's attribute closure to be inlined into it (and the array
+/// it returns to stay on the stack).
+@inline(never)
+@inlinable func _appendJSONMember(_ key: String, _ value: AttributeValue, node: Bool, to out: inout _OutputBuffer) {
+    if node {
+        precondition(!_sameScalars(key, ascii: "id"), "A node-link node cannot have an attribute named id")
+    } else {
+        precondition(!_isEndpointKey(key), "A node-link edge cannot have an attribute named source, target or key")
     }
+    _appendJSONString(key, to: &out)
+    out.appendASCII(": ")
+    _appendJSONValue(value, to: &out)
+    out.appendASCII(", ")
 }
 
 /// Counts of vertex-number pairs: open addressing over packed pairs.
@@ -429,10 +492,10 @@
 @inlinable func _isEndpointKey(_ key: String) -> Bool {
     let utf8 = key.utf8
     switch utf8.count {
-    case 3: return _sameScalars(key, "key")
+    case 3: return _sameScalars(key, ascii: "key")
     case 6:
         let first = utf8.first
-        return (first == UInt8(ascii: "s") && _sameScalars(key, "source")) || (first == UInt8(ascii: "t") && _sameScalars(key, "target"))
+        return (first == UInt8(ascii: "s") && _sameScalars(key, ascii: "source")) || (first == UInt8(ascii: "t") && _sameScalars(key, ascii: "target"))
     default: return false
     }
 }
@@ -482,8 +545,7 @@
         out.append(UInt8(ascii: "{"))
         let pairs = vertexAttributes(vertex)
         _checkDistinctKeys(pairs)
-        precondition(!pairs.contains { _sameScalars($0.key, "id") }, "A node-link node cannot have an attribute named id")
-        _appendJSONMembers(pairs, to: &out)
+        for k in pairs.indices { _appendJSONMember(pairs[k].key, pairs[k].value, node: true, to: &out) }
         out.appendASCII("\"id\": ")
         ids.write(k, to: &out)
         out.append(UInt8(ascii: "}"))
@@ -497,9 +559,7 @@
         out.append(UInt8(ascii: "{"))
         let pairs = edgeAttributes(position)
         _checkDistinctKeys(pairs)
-        precondition(!pairs.contains { _isEndpointKey($0.key) },
-                     "A node-link edge cannot have an attribute named source, target or key")
-        _appendJSONMembers(pairs, to: &out)
+        for k in pairs.indices { _appendJSONMember(pairs[k].key, pairs[k].value, node: false, to: &out) }
         out.appendASCII("\"source\": ")
         ids.write(u, to: &out)
         out.appendASCII(", \"target\": ")

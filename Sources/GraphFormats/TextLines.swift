@@ -170,8 +170,11 @@
 /// `float` reads, so that a written non-finite double reads back as one; a decimal beyond
 /// `Double` is infinite, as `float` makes it); else the text.
 @inlinable func _lexicalValue(_ text: UnsafeBufferPointer<UInt8>, _ start: Int, _ end: Int) -> AttributeValue {
-    if case .value(let v) = _parseInteger(text, start, end, signed: true) { return .integer(v) }
-    if let parts = _decimalParts(text, start, end) { return .double(_double(parts, text, start, end)) }
+    switch _scanNumber(text, start, end) {
+    case .integer(let v): return .integer(v)
+    case .double(let d): return .double(d)
+    case .none: break
+    }
     var s = start
     var negative = false
     if s < end && (text[s] == UInt8(ascii: "+") || text[s] == UInt8(ascii: "-")) {

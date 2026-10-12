@@ -3,8 +3,9 @@ import GraphProtocols
 // Bulk construction from edges in insertion order (`MutableDirectedGraph._built` and
 // `MutableGraph._built`, what the `GraphFormats` readers build through): each row is laid out at
 // its exact size by a stable counting sort, so it lists its edges in position order, as inserting
-// the edges one at a time would leave it. O(n + m), with no row growing. The simple lists first
-// drop repeated pairs through their own pair table, which then becomes the graph's.
+// the edges one at a time would leave it. O(n + m), with no row growing. Repeated pairs are found
+// by a counting sort and a stamp per row, without hashing: the simple lists drop them, the
+// multigraphs link them into their parallel classes.
 
 /// The rows and records of a directed graph on `0..<n` whose edge at position `p` is
 /// `(sources[p], targets[p])`, for `AdjacencyList` and `DirectedPseudograph`.
@@ -117,33 +118,83 @@ package struct _EdgeRows {
     }
 }
 
-/// The pairs `(firsts[i], seconds[i])` with repeats dropped (an undirected pair in either
-/// orientation is one), in order of first appearance: the kept pairs, a table from each kept pair
-/// (smaller slot first when `undirected`) to its number, and, when `reportingPositions`, the number
-/// of each input pair's kept copy. O(m) expected.
+/// For each pair `(firsts[i], seconds[i])` (unordered when `undirected`), the index of the first
+/// pair equal to it: `i` itself for a first copy. A stable counting sort on one end, then a stamp per
+/// other end within each row, so no pair is hashed. O(n + m).
 @inlinable
-package func _distinctPairs(
-    _ firsts: [Int], _ seconds: [Int], undirected: Bool, reportingPositions: Bool
-) -> (firsts: [Int], seconds: [Int], table: _SlotPairTable<Int>, positions: [Int]) {
+package func _firstCopies(_ firsts: [Int], _ seconds: [Int], vertexCount n: Int, undirected: Bool) -> [Int] {
     let m = firsts.count
-    var table = _SlotPairTable<Int>()
-    table.reserveCapacity(m)
+    var offsets = [Int](repeating: 0, count: n &+ 1)
+    var order = [Int](repeating: 0, count: m)
+    var group = [Int](repeating: 0, count: m)
+    offsets.withUnsafeMutableBufferPointer { offsets in
+        order.withUnsafeMutableBufferPointer { order in
+            group.withUnsafeMutableBufferPointer { group in
+                firsts.withUnsafeBufferPointer { firsts in
+                    seconds.withUnsafeBufferPointer { seconds in
+                        for i in 0 ..< m {
+                            let a = undirected ? min(firsts[i], seconds[i]) : firsts[i]
+                            offsets[a &+ 1] &+= 1
+                        }
+                        for v in 0 ..< n { offsets[v &+ 1] &+= offsets[v] }
+                        var fill = Array(offsets[0 ..< n])
+                        fill.withUnsafeMutableBufferPointer { fill in
+                            for i in 0 ..< m {
+                                let a = undirected ? min(firsts[i], seconds[i]) : firsts[i]
+                                order[fill[a]] = i
+                                fill[a] &+= 1
+                            }
+                        }
+                        var stamp = [Int](repeating: -1, count: n)
+                        var first = [Int](repeating: 0, count: n)
+                        stamp.withUnsafeMutableBufferPointer { stamp in
+                            first.withUnsafeMutableBufferPointer { first in
+                                for a in 0 ..< n {
+                                    for k in offsets[a] ..< offsets[a &+ 1] {
+                                        let i = order[k]
+                                        let b = undirected ? max(firsts[i], seconds[i]) : seconds[i]
+                                        if stamp[b] != a {
+                                            stamp[b] = a
+                                            first[b] = i
+                                            group[i] = i
+                                        } else {
+                                            group[i] = first[b]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return group
+}
+
+/// The pairs with repeats dropped (`_firstCopies`): the kept pairs in order of first appearance,
+/// and each input pair's kept number.
+@inlinable
+package func _keptPairs(
+    _ firsts: [Int], _ seconds: [Int], vertexCount n: Int, undirected: Bool
+) -> (firsts: [Int], seconds: [Int], positions: [Int]) {
+    let group = _firstCopies(firsts, seconds, vertexCount: n, undirected: undirected)
+    let m = firsts.count
     var keptFirsts: [Int] = [], keptSeconds: [Int] = []
     keptFirsts.reserveCapacity(m)
     keptSeconds.reserveCapacity(m)
-    var positions: [Int] = []
-    if reportingPositions { positions.reserveCapacity(m) }
+    var positions = [Int](repeating: 0, count: m)
     for i in 0 ..< m {
-        let a = firsts[i], b = seconds[i]
-        let pair = undirected && b < a ? _SlotPair(b, a) : _SlotPair(a, b)
-        let (inserted, index) = table.insert(pair, keptFirsts.count)
-        if inserted {
-            keptFirsts.append(a)
-            keptSeconds.append(b)
+        let g = group[i]
+        if g == i {
+            positions[i] = keptFirsts.count
+            keptFirsts.append(firsts[i])
+            keptSeconds.append(seconds[i])
+        } else {
+            positions[i] = positions[g]
         }
-        if reportingPositions { positions.append(table.value(at: index)) }
     }
-    return (keptFirsts, keptSeconds, table, positions)
+    return (keptFirsts, keptSeconds, positions)
 }
 
 /// The slot table for `vertices`, each at its index: identity while they are `0..<n` in order.
@@ -167,7 +218,9 @@ extension AdjacencyList {
         let n = vertices.count
         precondition(sourceKeys.allSatisfy { UInt(bitPattern: $0) < UInt(n) } && targetKeys.allSatisfy { UInt(bitPattern: $0) < UInt(n) },
                      "Key out of range")
-        let kept = _distinctPairs(sourceKeys, targetKeys, undirected: false, reportingPositions: reportingPositions)
+        // Repeats found by counting sort, without hashing; the pair table is built on the first
+        // lookup (`_DeferredSlotPairTable`), as for the sorted bulk builds.
+        let kept = _keptPairs(sourceKeys, targetKeys, vertexCount: n, undirected: false)
         let rows = _ArcRows(vertexCount: n, sources: kept.firsts, targets: kept.seconds)
         var graph = Self()
         graph._slots = _vertexSlots(of: vertices)
@@ -177,8 +230,8 @@ extension AdjacencyList {
         graph._in = rows.in
         graph._inEdges = rows.inEdges
         graph._records = rows.records
-        graph._edges = kept.table
-        return (graph, kept.positions)
+        graph._deferredEdges = rows.records.isEmpty ? nil : _DeferredSlotPairTable(records: rows.records)
+        return (graph, reportingPositions ? kept.positions : [])
     }
 }
 
@@ -194,7 +247,7 @@ extension UndirectedAdjacencyList {
         let n = vertices.count
         precondition(uKeys.allSatisfy { UInt(bitPattern: $0) < UInt(n) } && vKeys.allSatisfy { UInt(bitPattern: $0) < UInt(n) },
                      "Key out of range")
-        let kept = _distinctPairs(uKeys, vKeys, undirected: true, reportingPositions: reportingPositions)
+        let kept = _keptPairs(uKeys, vKeys, vertexCount: n, undirected: true)
         let rows = _EdgeRows(vertexCount: n, us: kept.firsts, vs: kept.seconds)
         var graph = Self()
         graph._slots = _vertexSlots(of: vertices)
@@ -202,7 +255,8 @@ extension UndirectedAdjacencyList {
         graph._neighbors = rows.neighbors
         graph._incident = rows.incident
         graph._records = rows.records
-        graph._positions = kept.table
-        return (graph, kept.positions)
+        let us = kept.firsts, vs = kept.seconds
+        graph._positions._insertDistinct(count: us.count) { (us[$0] <= vs[$0] ? _SlotPair(us[$0], vs[$0]) : _SlotPair(vs[$0], us[$0]), $0) }
+        return (graph, reportingPositions ? kept.positions : [])
     }
 }

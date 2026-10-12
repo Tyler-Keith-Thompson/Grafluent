@@ -134,21 +134,97 @@ import GraphProtocols
     }
 }
 
-/// Edge attributes reported while a `_BulkTarget` is filled, kept in order (edge number, name
-/// number, value) and replayed with the built graph's positions.
+/// Edge attributes reported while a `_BulkTarget` is filled, kept in order and replayed with the
+/// built graph's positions. Plain words, so that a million values cost two array appends each and
+/// nothing to destroy: per entry its edge number, name number and kind packed in one word, and its
+/// payload (an integer's or a double's bits, a boolean, or an index into `strings`) in another.
 @usableFromInline internal struct _EdgeAttributeBuffer {
     @usableFromInline let names: [String]
-    @usableFromInline var entries: ContiguousArray<(edge: Int, name: Int, value: AttributeValue)> = []
+    /// Edge number << 24 | name number << 2 | kind (0 integer, 1 double, 2 boolean, 3 string).
+    @usableFromInline var heads: [UInt64] = []
+    @usableFromInline var payloads: [UInt64] = []
+    @usableFromInline var strings: [String] = []
+    /// While every entry so far is a double under the first name for the next edge in order (a
+    /// Matrix Market weight, a one-column edge list): only the values, one append each.
+    @usableFromInline var dense: [Double] = []
+    @usableFromInline var isDense = true
 
-    @inlinable init(names: [String]) { self.names = names }
+    @inlinable init(names: [String]) {
+        precondition(names.count < 1 << 22, "Too many columns")
+        self.names = names
+    }
 
+    @inlinable var isEmpty: Bool { heads.isEmpty && dense.isEmpty }
+
+    /// Ends the dense run: its values become ordinary entries.
+    @inlinable mutating func spill() {
+        isDense = false
+        for (edge, value) in dense.enumerated() {
+            heads.append(UInt64(truncatingIfNeeded: edge) << 24 | 1)
+            payloads.append(value.bitPattern)
+        }
+        dense = []
+    }
+
+    @inline(__always)
     @inlinable mutating func record(_ edge: Int, _ name: Int, _ value: AttributeValue) {
-        entries.append((edge, name, value))
+        if isDense {
+            if case .double(let d) = value, name == 0, edge == dense.count {
+                dense.append(d)
+                return
+            }
+            spill()
+        }
+        let head = UInt64(truncatingIfNeeded: edge) << 24 | UInt64(truncatingIfNeeded: name) << 2
+        switch value {
+        case .integer(let i):
+            heads.append(head)
+            payloads.append(UInt64(bitPattern: Int64(i)))
+        case .double(let d):
+            heads.append(head | 1)
+            payloads.append(d.bitPattern)
+        case .boolean(let b):
+            heads.append(head | 2)
+            payloads.append(b ? 1 : 0)
+        case .string(let t):
+            heads.append(head | 3)
+            payloads.append(UInt64(strings.count))
+            strings.append(t)
+        }
+    }
+
+    @inline(__always)
+    @inlinable mutating func recordDouble(_ edge: Int, _ name: Int, _ value: Double) {
+        if isDense {
+            if name == 0 && edge == dense.count {
+                dense.append(value)
+                return
+            }
+            spill()
+        }
+        heads.append(UInt64(truncatingIfNeeded: edge) << 24 | UInt64(truncatingIfNeeded: name) << 2 | 1)
+        payloads.append(value.bitPattern)
     }
 
     /// Calls `body` with each entry, in order, its edge given by `positions`.
     @inlinable func replay<Position>(_ positions: [Position], _ body: (Position, String, AttributeValue) -> Void) {
-        for entry in entries { body(positions[entry.edge], names[entry.name], entry.value) }
+        if isDense {
+            guard !dense.isEmpty else { return }
+            let name = names[0]
+            for (edge, value) in dense.enumerated() { body(positions[edge], name, .double(value)) }
+            return
+        }
+        for k in heads.indices {
+            let head = heads[k], payload = payloads[k]
+            let value: AttributeValue
+            switch head & 3 {
+            case 0: value = .integer(Int(Int64(bitPattern: payload)))
+            case 1: value = .double(Double(bitPattern: payload))
+            case 2: value = .boolean(payload != 0)
+            default: value = .string(strings[Int(payload)])
+            }
+            body(positions[Int(head >> 24)], names[Int(head >> 2 & 0x3F_FFFF)], value)
+        }
     }
 }
 
@@ -172,7 +248,7 @@ extension MutableDirectedGraph {
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void
     ) -> Self {
         let (graph, positions) = Self._built(vertices: target.vertices, sourceKeys: target.firsts, targetKeys: target.seconds,
-                                             reportingPositions: !buffer.entries.isEmpty, _ConstructionToken())
+                                             reportingPositions: !buffer.isEmpty, _ConstructionToken())
         buffer.replay(positions, edgeAttribute)
         return graph
     }
@@ -198,7 +274,7 @@ extension MutableGraph {
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void
     ) -> Self {
         let (graph, positions) = Self._built(vertices: target.vertices, uKeys: target.firsts, vKeys: target.seconds,
-                                             reportingPositions: !buffer.entries.isEmpty, _ConstructionToken())
+                                             reportingPositions: !buffer.isEmpty, _ConstructionToken())
         buffer.replay(positions, edgeAttribute)
         return graph
     }

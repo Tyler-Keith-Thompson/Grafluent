@@ -52,9 +52,7 @@ MUTANTS = [
     Mutant("listcr", TL, "if end == lineEnd && end > p && text[end &- 1] == 0x0D { end &-= 1 }", "", mode="stmt"),
     Mutant("lexinf", TL, "return .double(negative ? -.infinity : .infinity)",
            "return .string(_string(UnsafeBufferPointer(rebasing: text[start ..< end])))", mode="stmt"),
-    Mutant("lexoverflow", TL, "if let parts = _decimalParts(text, start, end) { return .double(_double(parts, text, start, end)) }",
-           "if let parts = _decimalParts(text, start, end), _double(parts, text, start, end).isFinite { return .double(_double(parts, text, start, end)) }",
-           mode="stmt"),
+    Mutant("lexoverflow", TL, "return .double(d)", "return d.isFinite ? .double(d) : .string(\"\")", mode="stmt"),
     Mutant("listtokenws", EL, "!_containsWhitespace(bytes)", "true"),
 
     # Matrix Market.
@@ -69,9 +67,9 @@ MUTANTS = [
     Mutant("mmshort", MM, "if count < width { throw ParseError(.syntax, at: contentEnd) }", "", mode="stmt"),
     Mutant("mmcontentcr", MM, "if contentEnd > lineStart && text[contentEnd &- 1] == 0x0D { contentEnd &-= 1 }", "", mode="stmt"),
     Mutant("mmrange", MM, "if c < 1 || c > rows { throw ParseError(.indexOutOfRange, at: column.start) }", "", mode="stmt"),
-    Mutant("mmmirror", MM, "mirrors && r != c", "mirrors"),
+    Mutant("mmmirror", MM, "mirrors && r != c", "mirrors", nth=0),
     Mutant("mmskew", MM, ".double(symmetry == .skewSymmetric ? -w : w)", ".double(w)"),
-    Mutant("mmidentity", MM, "identity ? r &- 1 : keys[r &- 1]", "identity ? r : keys[r &- 1]"),
+    Mutant("mmidentity", MM, "identity ? r &- 1 : keys[r &- 1]", "identity ? r : keys[r &- 1]", nth=0),
     Mutant("mmcount", MM, "if seen < entries { throw ParseError(.entryCountMismatch, at: n) }", "", mode="stmt"),
 
     # Edge and adjacency lists.
@@ -83,19 +81,17 @@ MUTANTS = [
 
     # Bulk target and replay.
     Mutant("bulkalias", RT, "keys[vertex] = existing\n            return (existing, false)", "return (key, false)", mode="stmt"),
-    Mutant("bulkreplay", RT, "for entry in entries { body(positions[entry.edge], names[entry.name], entry.value) }",
-           "for entry in entries { body(positions[0], names[entry.name], entry.value) }", mode="stmt"),
-    Mutant("bulkpositions", RT, "!buffer.entries.isEmpty", "false", nth=0),
+    Mutant("bulkreplay", RT, "body(positions[Int(head >> 24)], names[Int(head >> 2 & 0x3F_FFFF)], value)", "body(positions[0], names[Int(head >> 2 & 0x3F_FFFF)], value)", mode="stmt"),
+    Mutant("bulkpositions", RT, "for (edge, value) in dense.enumerated() { body(positions[edge], name, .double(value)) }", "for (_, value) in dense.enumerated() { body(positions[0], name, .double(value)) }", mode="stmt"),
     Mutant("undirectedreserve", RT, "graph.reserveCapacity(vertexCount: vertexCount, edgeCount: edgeCount)", "", mode="stmt", nth=1),
 
     # Rows built by counting sort (AdjacencyListModule, Multigraphs).
     Mutant("arcrowsoutedge", FO, "outEdgeStorage[o] = p", "outEdgeStorage[o] = o", mode="stmt", module="AdjacencyListModule"),
     Mutant("arcrowsin", FO, "inStorage[i] = source", "inStorage[i] = target", mode="stmt", module="AdjacencyListModule"),
     Mutant("edgerowsorder", FO, "neighborStorage[uSlot] = v", "neighborStorage[uSlot] = u", mode="stmt", module="AdjacencyListModule"),
-    Mutant("distinctorient", FO, "undirected && b < a ? _SlotPair(b, a) : _SlotPair(a, b)", "_SlotPair(a, b)", module="AdjacencyListModule"),
-    Mutant("distinctposition", FO, "if reportingPositions { positions.append(table.value(at: index)) }",
-           "if reportingPositions { positions.append(i) }", mode="stmt", module="AdjacencyListModule"),
-    Mutant("parallelkey", PM, "u <= v ? _SlotPair(u, v) : _SlotPair(v, u)", "_SlotPair(u, v)", module="Multigraphs"),
+    Mutant("distinctorient", FO, "undirected ? max(firsts[i], seconds[i]) : seconds[i]", "seconds[i]", module="AdjacencyListModule"),
+    Mutant("distinctposition", FO, "positions[i] = positions[g]", "positions[i] = i", mode="stmt", module="AdjacencyListModule"),
+    Mutant("parallelkey", PM, "undirected && b < a ? _SlotPair(b, a) : _SlotPair(a, b)", "_SlotPair(a, b)", module="Multigraphs"),
 
     # DOT.
     Mutant("dotdefaultplace", DOT, "nodeDefaults[place].1 = v", "nodeDefaults.append((k, v))", mode="stmt"),
@@ -131,12 +127,12 @@ MUTANTS = [
     Mutant("xmlindexend", XML, "nameIndex.end()", "", mode="stmt"),
 
     # Node-link JSON.
-    Mutant("nlkeyed", NL, "if let existing = find(pair, name) { return existing }", "", mode="stmt"),
-    Mutant("nlnewkey", NL, "while integerPositions[IntegerKey(pair, k)] != nil { k &+= 1 }", "", mode="stmt"),
-    Mutant("nlstringkey", NL, "return positions[Key(pair: pair, key: name)]", "return nil", mode="stmt"),
+    Mutant("nlkeyed", NL, "sameAs[i] = earlier", "sameAs[i] = i", mode="stmt"),
+    Mutant("nlnewkey", NL, "while group.keys[.integer(k)] != nil { k &+= 1 }", "", mode="stmt"),
+    Mutant("nlstringkey", NL, "otherKeys[us.count] = other", "", mode="stmt"),
     Mutant("nlnormalize", NL, ".integer(b ? 1 : 0)", "value"),
     Mutant("nlnullkey", NL, "json.kind(keyOffset) != .null", "true"),
-    Mutant("nlcount", NL, "counts[pair, default: 0] &+= 1", "", mode="stmt"),
+    Mutant("nlcount", NL, "group.count &+= 1", "", mode="stmt"),
     Mutant("nlidtype", NL, "preconditionFailure(\"A node-link id must be a string or an integer, not \\(id)\")", "break", mode="stmt"),
 
     # Mermaid.
@@ -165,7 +161,7 @@ MUTANTS = [
     Mutant("sfinteger", DF, "q < 0 && q > -53", "q < 0 && q > -52"),
     Mutant("sfsticky", DF, "vbp | (((z & 0x7FFF_FFFF_FFFF_FFFF) &+ 0x7FFF_FFFF_FFFF_FFFF) >> 63)", "vbp"),
     Mutant("sfpairs", DF, "out[k &+ 1] = pairs[r &+ 1]", "out[k &+ 1] = pairs[r]", mode="stmt"),
-    Mutant("sfcount", DF, "count < 19 && f >= bound", "count < 16 && f >= bound"),
+    Mutant("sfcount", DF, "return v < 1_000_000_000 ? 9 : 10", "return 9", mode="stmt"),
     Mutant("pyexponent", DF, "e < -4 || e >= 16", "e < -4 || e >= 15"),
     Mutant("pyexpdigits", DF, "magnitude / 10 % 10", "magnitude / 10"),
     Mutant("scipyexp", DF, "d.exponent != 0", "true"),

@@ -118,9 +118,10 @@ import GraphProtocols
     @usableFromInline var starts: [Int]
     @usableFromInline var counts: [Int]
     /// The IDs made so far, to find a repeated one.
-    @usableFromInline var made = _IDTable()
+    @usableFromInline var made: _IDTable
 
     @inlinable init(vertexCount: Int) {
+        made = _IDTable(capacity: vertexCount)
         starts = Array(repeating: -1, count: vertexCount)
         counts = Array(repeating: 0, count: vertexCount)
     }
@@ -142,10 +143,7 @@ import GraphProtocols
         swap(&bytes, &arena)
         let repeated = bytes.withUnsafeBufferPointer { bytes in
             let encoded = UnsafeBufferPointer(rebasing: bytes[start ..< end])
-            let hash = _IDTable.hash(encoded)
-            if made.find(encoded, hash: hash) != nil { return true }
-            _ = made.insert(encoded, hash: hash)
-            return false
+            return !made.insertIfAbsent(encoded, hash: _IDTable.hash(encoded))
         }
         swap(&bytes, &arena)
         precondition(!repeated, "Two vertices have the ID \(id()): pass vertexID: with distinct IDs")

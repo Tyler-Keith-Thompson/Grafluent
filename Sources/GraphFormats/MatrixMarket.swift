@@ -21,10 +21,12 @@
 /// sign.
 @inlinable func _matrixMarketReal(_ text: UnsafeBufferPointer<UInt8>, _ start: Int, _ end: Int) throws(ParseError) -> Double {
     // A decimal first: nearly every value is one.
-    if let parts = _decimalParts(text, start, end) {
-        let d = _double(parts, text, start, end)
+    switch _scanNumber(text, start, end) {
+    case .integer(let v): return v == 0 && text[start] == UInt8(ascii: "-") ? -0.0 : Double(v)
+    case .double(let d):
         if d.isInfinite { throw ParseError(.numberOutOfRange, at: start) }
         return d
+    case .none: break
     }
     var s = start
     var negative = false
@@ -218,6 +220,89 @@
         }
         if q == lineStart && text[q] == UInt8(ascii: "%") { throw ParseError(.syntax, at: lineStart) }
         if seen == entries { throw ParseError(.entryCountMismatch, at: lineStart) }
+
+        // The fast path, for an entry as writers print it: indices of at most 18 digits in range,
+        // the value a number of the field's type, blanks between, then the line's end. Anything
+        // else is left to the general reading below, which reports it.
+        fast: do {
+            let base = text.baseAddress!
+            var f = q
+            var r = 0, digits = 0
+            while f < n {
+                let d = base[f] &- 0x30
+                if d >= 10 { break }
+                if digits == 18 { break fast }
+                r = r &* 10 &+ Int(d)
+                digits &+= 1
+                f &+= 1
+            }
+            guard digits > 0, f < n, _isBlank(base[f]) else { break fast }
+            while f < n && _isBlank(base[f]) { f &+= 1 }
+            var c = 0
+            digits = 0
+            while f < n {
+                let d = base[f] &- 0x30
+                if d >= 10 { break }
+                if digits == 18 { break fast }
+                c = c &* 10 &+ Int(d)
+                digits &+= 1
+                f &+= 1
+            }
+            guard digits > 0, r >= 1, r <= rows, c >= 1, c <= rows else { break fast }
+            if symmetry == .skewSymmetric && r == c { break fast }
+            var integerValue = 0
+            var realValue = 0.0
+            if field != .pattern {
+                guard f < n, _isBlank(base[f]) else { break fast }
+                while f < n && _isBlank(base[f]) { f &+= 1 }
+                let valueStart = f
+                let (number, end) = _scanNumberPrefix(base, f, n)
+                switch number {
+                case .integer(let w):
+                    if field == .integer {
+                        if symmetry == .skewSymmetric && w == .min { break fast }
+                        integerValue = w
+                    } else {
+                        realValue = w == 0 && base[valueStart] == UInt8(ascii: "-") ? -0.0 : Double(w)
+                    }
+                case .double(let d):
+                    guard field == .real, d.isFinite else { break fast }
+                    realValue = d
+                case .none:
+                    break fast
+                }
+                f = end
+            }
+            while f < n && _isBlank(base[f]) { f &+= 1 }
+            let next: Int
+            if f == n {
+                next = n
+            } else if base[f] == 0x0A {
+                next = f &+ 1
+            } else if base[f] == 0x0D && (f &+ 1 == n || base[f &+ 1] == 0x0A) {
+                next = min(f &+ 2, n)
+            } else {
+                break fast
+            }
+            seen &+= 1
+            let u = identity ? r &- 1 : keys[r &- 1], v = identity ? c &- 1 : keys[c &- 1]
+            let edge = target.insertEdge(u, v)
+            switch field {
+            case .pattern: break
+            case .integer: weight(edge, .integer(integerValue))
+            case .real: weight(edge, .double(realValue))
+            }
+            if mirrors && r != c {
+                let back = target.insertEdge(v, u)
+                switch field {
+                case .pattern: break
+                case .integer: weight(back, .integer(symmetry == .skewSymmetric ? -integerValue : integerValue))
+                case .real: weight(back, .double(symmetry == .skewSymmetric ? -realValue : realValue))
+                }
+            }
+            p = next
+            continue
+        }
 
         // The fields, parsed as they are scanned; `count` of them, up to one past `width`.
         let row = _ScannedCount(text, &q)

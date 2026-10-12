@@ -698,37 +698,39 @@ into `DirectedPseudograph<Int>` / `AdjacencyList<Int>` where the IDs are integer
 | Allocations | readers: amortized O(1) per vertex (its ID `String`) and none per edge beyond the target's own storage; writers: none per element |
 | Hostile inputs | the 3,000 mutated inputs of `--stress` and a libFuzzer target per reader (`just fuzz`) run without a crash, a hang or memory beyond 16× the input |
 
-Measured (`GraphFormatsBenchmarks`, release, one run on the development machine, 2026-10-11,
-load average 3–7 after the second review; the first column of the earlier run, under load 8–12,
-in parentheses; details in `Benchmarks/README.md`):
+Measured (`GraphFormatsBenchmarks`, release, medians, the development machine at load average
+3–6, 2026-10-11, after the speed pass; the first review's numbers in parentheses; details in
+`Benchmarks/README.md`):
 
 | Measure | Target | Measured | |
 |---|---|---|---|
-| Parse only: Matrix Market (32.9 MB) | ≥ 300 MB/s | 123 ms: 268 MB/s | miss (close) |
-| Parse only: edge list, `Int` vertices, weight column (31.0 MB) | ≥ 300 MB/s | 229 ms: 136 MB/s | miss: an ID lookup and a typed column per line |
-| Parse only: adjacency list (6.5 MB) | ≥ 300 MB/s | 60 ms: 108 MB/s | miss: an ID lookup per field |
-| Parse only: GraphML walk (102.3 MB) / node-link document check (77.5 MB) | ≥ 300 MB/s | 297 ms: 345 MB/s / 187 ms: 415 MB/s | met |
-| Matrix Market parse + build into `CompressedSparseRow`, real / pattern | ≤ 100 ms | 157 ms / 93 ms | miss / met |
-| Matrix Market into `DirectedPseudograph<Int>` / `AdjacencyList<Int>` | reported | 145 ms (390) / 144 ms (374) | 9.9× `mmread` + `from_scipy_sparse_array` |
-| Edge list read (`Int` vertices) | ≥ 30× | 257 ms (541): 14× | miss |
-| Adjacency list read | | 103 ms (304): 17× | |
-| GraphML read / write | ≥ 20× | 1,199 ms: 9.3× / 307 ms: 30× | miss / met |
-| Node-link JSON read / write | ≥ 10× | 1,236 ms (1,019): 2.0× / 149 ms: 7.0× | miss / miss |
-| Edge list write / adjacency list write | ≥ 20× | 161 ms (89): 9.0× / 20 ms: 11× | miss / miss |
-| Matrix Market write | ≤ 190 ms | 77 ms (107) | met |
-| DOT write / read | ≥ 50× | 2.4 ms: 237× / 44 ms: 1,170× | met |
-| Mermaid read | ≥ 100 MB/s | 516 ms: 44 MB/s | miss: building the target |
-| Allocations | O(1) per vertex, none per edge | readers 16–392 in all | met |
+| Parse only: Matrix Market (32.9 MB) | ≥ 300 MB/s | 50 ms: 658 MB/s (123 ms) | met |
+| Parse only: edge list, `Int` vertices, weight column (31.0 MB) | ≥ 300 MB/s | 66 ms: 470 MB/s (229 ms) | met |
+| Parse only: adjacency list (6.5 MB) | ≥ 300 MB/s | 13 ms: 498 MB/s (60 ms) | met |
+| Parse only: GraphML walk (102.3 MB) / node-link document check (77.5 MB) | ≥ 300 MB/s | 234 ms: 437 MB/s / 177 ms: 438 MB/s | met |
+| Matrix Market parse + build into `CompressedSparseRow`, real / pattern | ≤ 100 ms | 89 ms / 70 ms (157 / 93) | met |
+| Matrix Market into `DirectedPseudograph<Int>` / `AdjacencyList<Int>` | reported | 91 ms / 75 ms (145 / 144) | 16× `mmread` + `from_scipy_sparse_array` |
+| Edge list read (`Int` vertices) | ≥ 30× | 112 ms: 32× (257 ms) | met |
+| Adjacency list read | | 56 ms: 32× (103 ms) | |
+| GraphML read / write | ≥ 20× | 1,203 ms: 9.2× / 208 ms: 45× | miss / met |
+| Node-link JSON read / write | ≥ 10× | 760 ms: 3.3× / 162 ms: 6.4× | miss / miss |
+| Edge list write / adjacency list write | ≥ 20× | 73 ms: 20× / 19 ms: 11× | met / miss |
+| Matrix Market write | ≤ 190 ms | 63 ms | met |
+| DOT write / read | ≥ 50× | 1.8 ms / 43 ms | met |
+| Mermaid read | ≥ 100 MB/s | 477 ms: 48 MB/s | miss: building the target |
+| Allocations | O(1) per vertex, none per edge | readers 16–574 in all | met |
 
-The line formats now build in one step (Implementation): the Matrix Market reader went from 390 to
-145 ms and the edge list from 541 to 257 ms. Reading a real-valued Matrix Market file into
-`CompressedSparseRow` takes 157 ms, of which 123 ms is the parse (the pattern file, without a
-value per line, 93 ms): the remaining gap to 100 ms is decimal parsing, for a fused scanner that
-converts while it scans. Node-link reading pays for NetworkX's `(u, v, key)` merging on multigraph
-files (one table entry per edge, integer keys without hashing an `AttributeValue`). The writers of
-doubles moved from the runtime's private formatting entry point to the module's own Schubfach:
-Matrix Market got faster (107 → 77 ms); the edge list writer is 161 ms against 89 ms in the earlier
-run, which also had no distinct-ID check (one table entry per written ID).
+What the speed pass changed: an `Int` target reads the edge and adjacency lists with each field
+parsed as it is scanned and its vertex found by value (an array for small values), leaving any
+other line to the general scanner; Matrix Market reads an entry as writers print it the same way;
+numbers are read in one scan (`_scanNumberPrefix`); UTF-8 is checked 32 bytes at a time and an
+error's line and column are found by counting line feeds eight bytes at a time; buffered edge
+values are plain words (a dense run of doubles needs one append each); the bulk builds find
+repeated pairs by a counting sort instead of a table (`AdjacencyList` builds its pair table on the
+first lookup); node-link edges are read in two passes, their merges decided for all of them at
+once; the edge-list writer keeps its per-edge body small, so that the caller's attribute closure
+is inlined and its array stays on the stack (one allocation per edge was the writer's regression,
+with a slower scalar comparison of column names and a two-probe ID check).
 
 ## Library disagreements found
 

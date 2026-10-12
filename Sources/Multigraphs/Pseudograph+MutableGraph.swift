@@ -22,14 +22,30 @@ extension Pseudograph: MutableGraph {
 // MARK: - Bulk construction
 
 extension _ParallelClasses {
-    /// The classes of `count` edges at positions `0..<count`, keyed by `key(position)`, as
-    /// appending them in order would leave them.
+    /// The classes of the edges at positions `0..<firsts.count`, `(firsts[p], seconds[p])`
+    /// (unordered when `undirected`), as appending them in order would leave them: copies found by
+    /// `_firstCopies` (a counting sort, no hashing), then one bulk insertion per distinct pair.
     @inlinable
-    init(appending count: Int, key: (Int) -> _SlotPair) {
+    init(firsts: [Int], seconds: [Int], vertexCount n: Int, undirected: Bool) {
         self.init()
-        links.reserveCapacity(count)
-        classes.reserveCapacity(count)
-        for position in 0 ..< count { append(position, key: key(position)) }
+        let m = firsts.count
+        let group = _firstCopies(firsts, seconds, vertexCount: n, undirected: undirected)
+        links = ContiguousArray(repeating: _ParallelLinks(previous: -1, next: -1), count: m)
+        var pairs: [_SlotPair] = []
+        var values: [Int] = []
+        var slot = [Int](repeating: 0, count: m)
+        for p in 0 ..< m {
+            let g = group[p]
+            if g == p {
+                slot[p] = values.count
+                let a = firsts[p], b = seconds[p]
+                pairs.append(undirected && b < a ? _SlotPair(b, a) : _SlotPair(a, b))
+                values.append(p)
+            } else {
+                Self._append(p, to: &values[slot[g]], links: &links, multi: &multi, freeMulti: &freeMulti)
+            }
+        }
+        classes._insertDistinct(count: pairs.count) { (pairs[$0], values[$0]) }
     }
 }
 
@@ -53,14 +69,14 @@ extension DirectedPseudograph {
         graph._in = rows.in
         graph._inEdges = rows.inEdges
         graph._records = rows.records
-        graph._parallel = _ParallelClasses(appending: sourceKeys.count) { _SlotPair(sourceKeys[$0], targetKeys[$0]) }
+        graph._parallel = _ParallelClasses(firsts: sourceKeys, seconds: targetKeys, vertexCount: n, undirected: false)
         return (graph, reportingPositions ? Array(sourceKeys.indices) : [])
     }
 }
 
 extension Pseudograph {
     /// See `MutableGraph._built`: the rows by counting sort, then one parallel-class entry per
-    /// edge. O(n + m) expected.
+    /// edge class. O(n + m) expected.
     @inlinable
     public static func _built(
         vertices: ContiguousArray<Vertex>, uKeys: [Int], vKeys: [Int], reportingPositions: Bool, _: _ConstructionToken
@@ -76,10 +92,7 @@ extension Pseudograph {
         graph._neighbors = rows.neighbors
         graph._incident = rows.incident
         graph._records = rows.records
-        graph._parallel = _ParallelClasses(appending: uKeys.count) {
-            let u = uKeys[$0], v = vKeys[$0]
-            return u <= v ? _SlotPair(u, v) : _SlotPair(v, u)
-        }
+        graph._parallel = _ParallelClasses(firsts: uKeys, seconds: vKeys, vertexCount: n, undirected: true)
         return (graph, reportingPositions ? Array(uKeys.indices) : [])
     }
 }

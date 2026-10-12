@@ -19,15 +19,23 @@
     @usableFromInline var arenaCapacity: Int
 
     @inlinable init() {
-        slotMask = 15
-        slots = .allocate(capacity: 16)
-        slots.initialize(repeating: (0, 0), count: 16)
-        entryCapacity = 8
-        hashes = .allocate(capacity: 8)
-        starts = .allocate(capacity: 9)
+        self.init(capacity: 8)
+    }
+
+    /// Room for `capacity` entries (of about eight bytes) before growing.
+    @inlinable init(capacity: Int) {
+        let entries = max(8, capacity)
+        var size = 16
+        while size &* 3 < entries &* 4 { size &*= 2 }
+        slotMask = size &- 1
+        slots = .allocate(capacity: size)
+        slots.initialize(repeating: (0, 0), count: size)
+        entryCapacity = entries
+        hashes = .allocate(capacity: entries)
+        starts = .allocate(capacity: entries &+ 1)
         starts[0] = 0
-        arenaCapacity = 64
-        arena = .allocate(capacity: 64)
+        arenaCapacity = max(64, entries &* 8)
+        arena = .allocate(capacity: arenaCapacity)
     }
 
     @inlinable deinit {
@@ -81,6 +89,33 @@
     @inlinable mutating func insert(_ bytes: UnsafeBufferPointer<UInt8>, hash: Int) -> Int {
         if count == entryCapacity { growEntries() }
         if (count &+ 1) &* 4 > (slotMask &+ 1) &* 3 { growSlots() }
+        var slot = hash & slotMask
+        while slots[slot].meta != 0 { slot = (slot &+ 1) & slotMask }
+        return store(bytes, hash: hash, at: slot)
+    }
+
+    /// Adds `bytes` unless they are already an entry, in one probe; whether they were added.
+    @inlinable mutating func insertIfAbsent(_ bytes: UnsafeBufferPointer<UInt8>, hash: Int) -> Bool {
+        if count == entryCapacity { growEntries() }
+        if (count &+ 1) &* 4 > (slotMask &+ 1) &* 3 { growSlots() }
+        let tag = Self.tag(bytes, hash)
+        let prefix = Self.prefix(bytes)
+        var slot = hash & slotMask
+        while true {
+            let (meta, first) = slots[slot]
+            if meta == 0 { break }
+            if meta & 0xFFFF_FFFF_0000_0000 == tag && first == prefix {
+                let entry = Int(truncatingIfNeeded: meta & 0xFFFF_FFFF) &- 1
+                if bytes.count <= 8 || equal(entry, bytes) { return false }
+            }
+            slot = (slot &+ 1) & slotMask
+        }
+        _ = store(bytes, hash: hash, at: slot)
+        return true
+    }
+
+    /// Stores `bytes` as a new entry in the empty `slot`.
+    @inlinable mutating func store(_ bytes: UnsafeBufferPointer<UInt8>, hash: Int, at slot: Int) -> Int {
         let entry = count
         let start = arenaCount
         if arenaCount &+ bytes.count > arenaCapacity {
@@ -97,8 +132,6 @@
         hashes[entry] = hash
         starts[entry &+ 1] = arenaCount
         count &+= 1
-        var slot = hash & slotMask
-        while slots[slot].meta != 0 { slot = (slot &+ 1) & slotMask }
         slots[slot] = (Self.tag(bytes, hash) | UInt64(entry &+ 1), Self.prefix(bytes))
         return entry
     }

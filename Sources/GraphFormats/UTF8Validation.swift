@@ -12,6 +12,17 @@
     var firstBadCharacter = -1
     let raw = UnsafeRawPointer(base)
     while i < n {
+        // 32 ASCII bytes at a time, while no byte is a control character XML needs checked.
+        if !xmlCharacters || firstBadCharacter >= 0 {
+            while i &+ 32 <= n {
+                let a = raw.loadUnaligned(fromByteOffset: i, as: UInt64.self)
+                let b = raw.loadUnaligned(fromByteOffset: i &+ 8, as: UInt64.self)
+                let c = raw.loadUnaligned(fromByteOffset: i &+ 16, as: UInt64.self)
+                let d = raw.loadUnaligned(fromByteOffset: i &+ 24, as: UInt64.self)
+                if (a | b | c | d) & 0x8080_8080_8080_8080 != 0 { break }
+                i &+= 32
+            }
+        }
         // Eight ASCII bytes at a time.
         while i &+ 8 <= n {
             let word = raw.loadUnaligned(fromByteOffset: i, as: UInt64.self)

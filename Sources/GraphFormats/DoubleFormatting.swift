@@ -11,8 +11,8 @@
     init() {
     }
 
-    /// Up to 17 digits, as ASCII.
-    @usableFromInline var digits: (UInt64, UInt64, UInt64) = (0, 0, 0)
+    /// Up to 17 digits, as ASCII, in 32 bytes (so that 24 can be copied from any of the first 8).
+    @usableFromInline var digits: (UInt64, UInt64, UInt64, UInt64) = (0, 0, 0, 0)
     @usableFromInline var count = 0
     @usableFromInline var exponent = 0
 
@@ -49,6 +49,7 @@
 /// end in zeros. Java's `DoubleToDecimal.toDecimal` without its case for the two smallest
 /// subnormals (`c < C_TINY`): the general path gives them the same digits, which the tests check
 /// against `description` with the rest.
+@inline(__always)
 @inlinable func _schubfach(_ x: Double) -> (significand: UInt64, exponent: Int) {
     let bits = x.bitPattern
     let biased = Int(truncatingIfNeeded: (bits >> 52) & 0x7FF)
@@ -105,41 +106,62 @@
 @usableFromInline internal let _digitPairs: StaticString =
     "00010203040506070809101112131415161718192021222324252627282930313233343536373839404142434445464748495051525354555657585960616263646566676869707172737475767778798081828384858687888990919293949596979899"
 
-/// The shortest digits of a finite, nonzero `x` (its sign ignored), written two at a time.
+/// The number of decimal digits of `v`, which is below 10¹⁰ (by comparisons, at most four).
+@inline(__always)
+@inlinable func _decimalDigitCount(_ v: UInt64) -> Int {
+    if v < 10_000 {
+        if v < 100 { return v < 10 ? 1 : 2 }
+        return v < 1_000 ? 3 : 4
+    }
+    if v < 100_000_000 {
+        if v < 1_000_000 { return v < 100_000 ? 5 : 6 }
+        return v < 10_000_000 ? 7 : 8
+    }
+    return v < 1_000_000_000 ? 9 : 10
+}
+
+/// Writes the last `count` decimal digits of `v`, zero-padded, to `out[0 ..< count]`, two at a time.
+@inline(__always)
+@inlinable func _writeDigits(_ v: UInt64, count: Int, to out: UnsafeMutablePointer<UInt8>, pairs: UnsafePointer<UInt8>) {
+    var v = v
+    var k = count
+    while k >= 2 {
+        let r = Int(truncatingIfNeeded: v % 100) &* 2
+        v /= 100
+        k &-= 2
+        out[k] = pairs[r]
+        out[k &+ 1] = pairs[r &+ 1]
+    }
+    if k == 1 { out[0] = UInt8(truncatingIfNeeded: v % 10) &+ 0x30 }
+}
+
+/// The shortest digits of a finite, nonzero `x` (its sign ignored): Schubfach's significand
+/// written two digits at a time (its last eight digits as a fixed-width block), then its trailing
+/// zeros dropped from the text.
+@inline(__always)
 @inlinable func _shortestDigits(_ x: Double) -> _ShortestDigits {
-    var (f, e) = _schubfach(x.magnitude)
-    while f % 10 == 0 {
-        f /= 10
-        e &+= 1
-    }
-    var count = 1
-    var bound: UInt64 = 10
-    while count < 19 && f >= bound {
-        count &+= 1
-        bound &*= 10
-    }
+    let (f, e) = _schubfach(x.magnitude)
     var result = _ShortestDigits()
-    result.count = count
-    result.exponent = e &+ count &- 1
-    withUnsafeMutableBytes(of: &result.digits) { out in
-        _digitPairs.withUTF8Buffer { pairs in
-            var k = count
-            while f >= 100 {
-                let r = Int(truncatingIfNeeded: f % 100) &* 2
-                f /= 100
-                k &-= 2
-                out[k] = pairs[r]
-                out[k &+ 1] = pairs[r &+ 1]
-            }
-            if f >= 10 {
-                let r = Int(truncatingIfNeeded: f) &* 2
-                out[k &- 2] = pairs[r]
-                out[k &- 1] = pairs[r &+ 1]
+    var count = 0
+    withUnsafeMutableBytes(of: &result.digits) { raw in
+        let out = raw.baseAddress!.assumingMemoryBound(to: UInt8.self)
+        _digitPairs.withUTF8Buffer { table in
+            let pairs = table.baseAddress!
+            let high = f / 100_000_000
+            if high == 0 {
+                count = _decimalDigitCount(f)
+                _writeDigits(f, count: count, to: out, pairs: pairs)
             } else {
-                out[k &- 1] = UInt8(truncatingIfNeeded: f) &+ 0x30
+                let highCount = _decimalDigitCount(high)
+                _writeDigits(high, count: highCount, to: out, pairs: pairs)
+                _writeDigits(f &- high &* 100_000_000, count: 8, to: out + highCount, pairs: pairs)
+                count = highCount &+ 8
             }
         }
+        result.exponent = e &+ count &- 1
+        while count > 1 && out[count &- 1] == UInt8(ascii: "0") { count &-= 1 }
     }
+    result.count = count
     return result
 }
 
@@ -151,26 +173,32 @@
     if x.isInfinite { return sink.appendASCII(x < 0 ? "-inf" : "inf") }
     if x == 0 { return sink.appendASCII(x.sign == .minus ? "-0.0" : "0.0") }
     let d = _shortestDigits(x)
-    let e = d.exponent, count = d.count
-    // Laid out in a stack buffer (at most 25 bytes: sign, 17 digits, point, e±XXX), then appended once.
-    var text: (UInt64, UInt64, UInt64, UInt64) = (0, 0, 0, 0)
-    let length = withUnsafeMutableBytes(of: &text) { out -> Int in
-        withUnsafeBytes(of: d.digits) { digits -> Int in
+    let negative = x.sign == .minus
+    // Laid out in place: at most 26 bytes (sign, 17 digits, point, e±XXX), with the digits
+    // copied 24 bytes at a time (the bytes past them are overwritten or not kept).
+    sink.appendInPlace(maximum: 48) { out in
+        withUnsafeBytes(of: d.digits) { raw in
+            let digits = raw.baseAddress!
+            @inline(__always) func copy24(from offset: Int, to target: UnsafeMutablePointer<UInt8>) {
+                let to = UnsafeMutableRawPointer(target)
+                to.storeBytes(of: digits.loadUnaligned(fromByteOffset: offset, as: UInt64.self), as: UInt64.self)
+                to.storeBytes(of: digits.loadUnaligned(fromByteOffset: offset &+ 8, as: UInt64.self), toByteOffset: 8, as: UInt64.self)
+                to.storeBytes(of: digits.loadUnaligned(fromByteOffset: offset &+ 16, as: UInt64.self), toByteOffset: 16, as: UInt64.self)
+            }
+            let first = digits.load(as: UInt8.self)
+            let e = d.exponent, count = d.count
             var n = 0
-            if x.sign == .minus {
+            if negative {
                 out[0] = UInt8(ascii: "-")
                 n = 1
             }
             if e < -4 || e >= 16 {
-                out[n] = digits[0]
+                out[n] = first
                 n &+= 1
                 if count > 1 {
                     out[n] = UInt8(ascii: ".")
-                    n &+= 1
-                    for k in 1 ..< count {
-                        out[n] = digits[k]
-                        n &+= 1
-                    }
+                    copy24(from: 1, to: out + (n &+ 1))
+                    n &+= count
                 }
                 out[n] = UInt8(ascii: "e")
                 out[n &+ 1] = e < 0 ? UInt8(ascii: "-") : UInt8(ascii: "+")
@@ -192,31 +220,27 @@
                     out[n] = UInt8(ascii: "0")
                     n &+= 1
                 }
-                for k in 0 ..< count {
-                    out[n] = digits[k]
-                    n &+= 1
-                }
-                return n
+                copy24(from: 0, to: out + n)
+                return n &+ count
             }
-            for k in 0 ... e {
-                out[n] = k < count ? digits[k] : UInt8(ascii: "0")
-                n &+= 1
-            }
-            out[n] = UInt8(ascii: ".")
-            n &+= 1
             if count > e &+ 1 {
-                for k in (e &+ 1) ..< count {
-                    out[n] = digits[k]
-                    n &+= 1
-                }
-            } else {
-                out[n] = UInt8(ascii: "0")
-                n &+= 1
+                // Integer digits, the point, the fraction's.
+                copy24(from: 0, to: out + n)
+                out[n &+ e &+ 1] = UInt8(ascii: ".")
+                copy24(from: e &+ 1, to: out + (n &+ e &+ 2))
+                return n &+ count &+ 1
             }
-            return n
+            copy24(from: 0, to: out + n)
+            var k = count
+            while k <= e {
+                out[n &+ k] = UInt8(ascii: "0")
+                k &+= 1
+            }
+            out[n &+ e &+ 1] = UInt8(ascii: ".")
+            out[n &+ e &+ 2] = UInt8(ascii: "0")
+            return n &+ e &+ 3
         }
     }
-    withUnsafeBytes(of: text) { sink.append(UnsafeBufferPointer(start: $0.baseAddress!.assumingMemoryBound(to: UInt8.self), count: length)) }
 }
 
 /// Appends `x` as SciPy's `mmwrite` (fast_matrix_market) writes it: the shortest round-trip

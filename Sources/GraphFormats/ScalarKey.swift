@@ -16,7 +16,6 @@
 }
 
 /// Whether `a` and `b` have the same Unicode scalars.
-@inline(__always)
 @inlinable func _sameScalars(_ a: String, _ b: String) -> Bool {
     var a = a, b = b
     return a.withUTF8 { x in
@@ -31,3 +30,14 @@
         }
     }
 }
+
+/// Whether `a` has the scalars of `ascii`, which is ASCII: `==` and the same UTF-8 length. A
+/// string canonically equivalent to an ASCII one but different holds a scalar of two or more
+/// bytes in place of one byte (U+212A for "K"), so it is longer.
+@inline(__always)
+@inlinable func _sameScalars(_ a: String, ascii: String) -> Bool {
+    a.utf8.count == ascii.utf8.count && a == ascii
+}
+
+/// Whether every byte of `s` is ASCII.
+@inlinable func _isASCII(_ s: String) -> Bool { s.utf8.allSatisfy { $0 < 0x80 } }

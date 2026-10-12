@@ -85,20 +85,28 @@ public struct ParseError: Error, Hashable, Sendable, CustomStringConvertible {
 
 extension ParseError {
     /// The error with `line` and `column` computed from `byteOffset` in `input`: O(offset), once.
+    /// Line feeds are counted eight bytes at a time; the column from the last one.
     @inlinable func _located(in input: UnsafeBufferPointer<UInt8>) -> ParseError {
         let end = min(max(byteOffset, 0), input.count)
-        var line = 1, column = 1
+        guard let base = input.baseAddress else { return ParseError(kind: kind, line: 1, column: 1, byteOffset: byteOffset) }
+        let raw = UnsafeRawPointer(base)
+        var line = 1
         var i = 0
-        while i < end {
-            let byte = input[i]
-            if byte == 0x0A {
-                line += 1
-                column = 1
-            } else if byte & 0xC0 != 0x80 {
-                column += 1
-            }
-            i += 1
+        while i &+ 8 <= end {
+            // The bytes equal to LF, each as its high bit, exactly (no borrow between bytes).
+            let x = raw.loadUnaligned(fromByteOffset: i, as: UInt64.self) ^ 0x0A0A_0A0A_0A0A_0A0A
+            let t = (x & 0x7F7F_7F7F_7F7F_7F7F) &+ 0x7F7F_7F7F_7F7F_7F7F
+            line &+= (~(t | x | 0x7F7F_7F7F_7F7F_7F7F)).nonzeroBitCount
+            i &+= 8
         }
+        while i < end {
+            if base[i] == 0x0A { line &+= 1 }
+            i &+= 1
+        }
+        var lineStart = end
+        while lineStart > 0 && base[lineStart &- 1] != 0x0A { lineStart &-= 1 }
+        var column = 1
+        for k in lineStart ..< end where base[k] & 0xC0 != 0x80 { column &+= 1 }
         return ParseError(kind: kind, line: line, column: column, byteOffset: byteOffset)
     }
 }

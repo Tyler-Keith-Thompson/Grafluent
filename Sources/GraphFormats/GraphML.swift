@@ -680,6 +680,20 @@
     @usableFromInline var numbers: [_ScalarKey: Int] = [:]
     @usableFromInline var names: [String] = []
     @usableFromInline var types: [_WrittenType] = []
+    /// Per name: whether it is ASCII, so that `number(of:)` can recognize it by `==` alone.
+    @usableFromInline var ascii: [Bool] = []
+    /// The name found last: the next element most often has the same one.
+    @usableFromInline var last = -1
+
+    /// The number of the name `key`, if it is one: the last one found by `==` when it is ASCII,
+    /// otherwise through the table.
+    @inline(__always)
+    @inlinable mutating func number(of key: String) -> Int? {
+        if last >= 0 && ascii[last] && _sameScalars(key, ascii: names[last]) { return last }
+        guard let k = numbers[_ScalarKey(key)] else { return nil }
+        last = k
+        return k
+    }
 
     @inlinable mutating func add(_ pairs: [(key: String, value: AttributeValue)], order: inout [(Int, Int)], domain: Int) {
         _checkDistinctKeys(pairs)
@@ -691,7 +705,7 @@
             case .double: type = .double
             case .boolean: type = .boolean
             }
-            if let k = numbers[_ScalarKey(pair.key)] {
+            if let k = number(of: pair.key) {
                 let old = types[k]
                 if old != type {
                     precondition((old == .long || old == .double) && (type == .long || type == .double),
@@ -701,6 +715,7 @@
             } else {
                 numbers[_ScalarKey(pair.key)] = names.count
                 names.append(pair.key)
+                ascii.append(_isASCII(pair.key))
                 types.append(type)
                 order.append((domain, names.count - 1))
             }
@@ -727,7 +742,8 @@
     var numbering = [[Int]](repeating: [], count: 3)
     for d in 0 ..< 3 { numbering[d] = Array(repeating: 0, count: tables[d].names.count) }
     for (k, (d, local)) in order.enumerated() { numbering[d][local] = k }
-    let ids = numbering, keyTables = tables
+    let ids = numbering
+    var keyTables = tables
 
     out.appendASCII("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
     out.appendASCII("<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd\">\n")
@@ -745,29 +761,11 @@
     }
     out.appendASCII(Source.isDirected ? "  <graph edgedefault=\"directed\">\n" : "  <graph edgedefault=\"undirected\">\n")
 
-    func data(_ pairs: [(key: String, value: AttributeValue)], _ d: Int, indent: StaticString, _ out: inout _OutputBuffer) {
-        for pair in pairs {
-            out.appendASCII(indent)
-            out.appendASCII("<data key=\"d")
-            out.appendDecimal(ids[d][keyTables[d].numbers[_ScalarKey(pair.key)]!])
-            out.appendASCII("\">")
-            switch pair.value {
-            case .string(let s): _appendXMLEscaped(s, attribute: false, to: &out)
-            case .integer(let i): out.appendDecimal(i)
-            case .boolean(let b): out.appendASCII(b ? "true" : "false")
-            case .double(let x):
-                if x.isNaN {
-                    out.appendASCII("NaN")
-                } else if x.isInfinite {
-                    out.appendASCII(x < 0 ? "-INF" : "INF")
-                } else {
-                    _appendPythonDouble(x, to: &out)
-                }
-            }
-            out.appendASCII("</data>\n")
-        }
+    // One `<data>` per pair, written out of line (`_appendGraphMLData`) so that the per-element
+    // bodies stay small enough for the caller's attribute closures to be inlined into them.
+    for pair in graphAttributes {
+        _appendGraphMLData(pair.value, key: ids[0][keyTables[0].number(of: pair.key)!], indent: "    ", to: &out)
     }
-    data(graphAttributes, 0, indent: "    ", &out)
 
     var cache = _IDCache(vertexCount: n)
     for k in 0 ..< n {
@@ -795,7 +793,9 @@
             out.appendASCII("\"/>\n")
         } else {
             out.appendASCII("\">\n")
-            data(pairs, 1, indent: "      ", &out)
+            for k in pairs.indices {
+                _appendGraphMLData(pairs[k].value, key: ids[1][keyTables[1].number(of: pairs[k].key)!], indent: "      ", to: &out)
+            }
             out.appendASCII("    </node>\n")
         }
     }
@@ -809,9 +809,34 @@
             out.appendASCII("\"/>\n")
         } else {
             out.appendASCII("\">\n")
-            data(pairs, 2, indent: "      ", &out)
+            for k in pairs.indices {
+                _appendGraphMLData(pairs[k].value, key: ids[2][keyTables[2].number(of: pairs[k].key)!], indent: "      ", to: &out)
+            }
             out.appendASCII("    </edge>\n")
         }
     }
     out.appendASCII("  </graph>\n</graphml>\n")
+}
+
+/// Appends `<data key="dN">value</data>` and a line feed after `indent`.
+@inline(never)
+@inlinable func _appendGraphMLData(_ value: AttributeValue, key: Int, indent: StaticString, to out: inout _OutputBuffer) {
+    out.appendASCII(indent)
+    out.appendASCII("<data key=\"d")
+    out.appendDecimal(key)
+    out.appendASCII("\">")
+    switch value {
+    case .string(let s): _appendXMLEscaped(s, attribute: false, to: &out)
+    case .integer(let i): out.appendDecimal(i)
+    case .boolean(let b): out.appendASCII(b ? "true" : "false")
+    case .double(let x):
+        if x.isNaN {
+            out.appendASCII("NaN")
+        } else if x.isInfinite {
+            out.appendASCII(x < 0 ? "-INF" : "INF")
+        } else {
+            _appendPythonDouble(x, to: &out)
+        }
+    }
+    out.appendASCII("</data>\n")
 }

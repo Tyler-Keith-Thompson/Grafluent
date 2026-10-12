@@ -187,3 +187,115 @@
     if power2 >= 0x7FF { return 0x7FF << 52 }
     return mantissa | (UInt64(power2) << 52)
 }
+
+/// A number read in one scan: what `_lexicalValue` and the Matrix Market reader take a field's
+/// text to be before falling back to words (`inf`, `nan`) or text.
+@usableFromInline internal enum _ScannedNumber {
+    /// `[+-]?[0-9]+` within `Int`.
+    case integer(Int)
+    /// Any other decimal (`_decimalParts`' grammar), correctly rounded; infinite past `Double`.
+    case double(Double)
+    /// Not a decimal.
+    case none
+}
+
+/// Reads the longest prefix of `base[start..<limit]` that the decimal grammar allows as an integer
+/// or a decimal, in one pass: the digits are accumulated while the grammar is checked (the first
+/// 19 significant ones; the rest only counted), and the value comes from Eisel–Lemire, or
+/// `_double`'s fallback for the rare input it cannot decide. Returns where the prefix ends.
+@inline(__always)
+@inlinable func _scanNumberPrefix(_ base: UnsafePointer<UInt8>, _ start: Int, _ limit: Int) -> (number: _ScannedNumber, end: Int) {
+    var i = start
+    guard i < limit else { return (.none, i) }
+    var negative = false
+    let first = base[i]
+    if first == UInt8(ascii: "+") || first == UInt8(ascii: "-") {
+        negative = first == UInt8(ascii: "-")
+        i &+= 1
+    }
+    var w: UInt64 = 0
+    var significant = 0, dropped = 0
+    var integerDigits = 0, fractionDigits = 0
+    while i < limit {
+        let d = base[i] &- 0x30
+        if d >= 10 { break }
+        integerDigits &+= 1
+        if significant < 19 {
+            if w != 0 || d != 0 {
+                w = w &* 10 &+ UInt64(d)
+                significant &+= 1
+            }
+        } else {
+            dropped &+= 1
+        }
+        i &+= 1
+    }
+    let afterInteger = i
+    var exponent = 0
+    var decimal = false
+    if i < limit && base[i] == UInt8(ascii: ".") {
+        decimal = true
+        i &+= 1
+        while i < limit {
+            let d = base[i] &- 0x30
+            if d >= 10 { break }
+            fractionDigits &+= 1
+            if significant < 19 {
+                if w != 0 || d != 0 {
+                    w = w &* 10 &+ UInt64(d)
+                    significant &+= 1
+                }
+            } else {
+                dropped &+= 1
+            }
+            i &+= 1
+        }
+    }
+    if integerDigits == 0 && fractionDigits == 0 { return (.none, start) }
+    if i < limit && (base[i] | 0x20) == UInt8(ascii: "e") {
+        var j = i &+ 1
+        var exponentNegative = false
+        if j < limit && (base[j] == UInt8(ascii: "+") || base[j] == UInt8(ascii: "-")) {
+            exponentNegative = base[j] == UInt8(ascii: "-")
+            j &+= 1
+        }
+        let digits = j
+        var value = 0
+        while j < limit {
+            let d = base[j] &- 0x30
+            if d >= 10 { break }
+            if value < 1_000_000_000 { value = value &* 10 &+ Int(d) }
+            j &+= 1
+        }
+        if j > digits {
+            exponent = exponentNegative ? -value : value
+            decimal = true
+            i = j
+        }
+    }
+    if !decimal {
+        // An integer: within Int when it has at most 18 significant digits, or 19 that fit.
+        if dropped == 0 && (significant < 19 || w <= UInt64(Int.max) &+ (negative ? 1 : 0)) {
+            if negative { return (.integer(w == UInt64(Int.max) &+ 1 ? Int.min : -Int(w)), afterInteger) }
+            return (.integer(Int(w)), afterInteger)
+        }
+    }
+    let sign: UInt64 = negative ? 1 << 63 : 0
+    if w == 0 { return (.double(Double(bitPattern: sign)), i) }
+    let q = exponent &- fractionDigits &+ dropped
+    if let bits = _eiselLemire(q, w) {
+        if dropped == 0 { return (.double(Double(bitPattern: bits | sign)), i) }
+        if let upper = _eiselLemire(q, w &+ 1), upper == bits { return (.double(Double(bitPattern: bits | sign)), i) }
+    }
+    let text = UnsafeBufferPointer(start: base, count: i)
+    guard let parts = _decimalParts(text, start, i) else { return (.none, start) }
+    return (.double(_double(parts, text, start, i)), i)
+}
+
+/// Reads `text[start..<end]` as an integer or a decimal in one pass (`_scanNumberPrefix`, which
+/// must read all of it).
+@inlinable func _scanNumber(_ text: UnsafeBufferPointer<UInt8>, _ start: Int, _ end: Int) -> _ScannedNumber {
+    guard let base = text.baseAddress, start < end else { return .none }
+    let (number, stop) = _scanNumberPrefix(base, start, end)
+    return stop == end ? number : .none
+}

@@ -51,22 +51,19 @@
     }
 }
 
-/// Writes every edge as `u v [values]`, in position order.
+/// Writes every edge as `u v [values]`, in position order. The per-edge body stays small (an ID's
+/// first use and a value's text are out of line), so that the caller's attribute closure is
+/// inlined into it and the array it returns stays on the stack.
 @inlinable func _writeEdgeList<Source: _WriteSource>(
     _ source: Source, to out: inout _OutputBuffer, vertexID: (Source.Vertex) -> String, columns: [String],
     edgeAttributes: (Source.Position) -> [(key: String, value: AttributeValue)]
 ) {
     var ids = _IDCache(vertexCount: source.vertexCount)
     var scratch: [UInt8] = []
+    let columnsAreASCII = columns.allSatisfy(_isASCII)
     source.forEachEdge { position, u, v in
-        if !ids.has(u) {
-            let id = vertexID(source.vertex(at: u))
-            ids.set(u, id: id.debugDescription) { _appendListToken(id, to: &$0) }
-        }
-        if !ids.has(v) {
-            let id = vertexID(source.vertex(at: v))
-            ids.set(v, id: id.debugDescription) { _appendListToken(id, to: &$0) }
-        }
+        if !ids.has(u) { _makeListID(u, of: source, vertexID: vertexID, in: &ids) }
+        if !ids.has(v) { _makeListID(v, of: source, vertexID: vertexID, in: &ids) }
         ids.write(u, to: &out)
         out.append(0x20)
         ids.write(v, to: &out)
@@ -74,22 +71,50 @@
         if !columns.isEmpty {
             _checkDistinctKeys(pairs)
             for column in columns {
-                guard let value = pairs.first(where: { _sameScalars($0.key, column) })?.value else {
-                    preconditionFailure("The edge at \(position) has no value for the column \(column)")
+                var found = -1
+                var k = 0
+                while k < pairs.count {
+                    let key = pairs[k].key
+                    if columnsAreASCII ? _sameScalars(key, ascii: column) : _sameScalars(key, column) {
+                        found = k
+                        break
+                    }
+                    k &+= 1
                 }
+                if found < 0 { _missingColumn(column, at: position) }
                 out.append(0x20)
-                switch value {
-                case .integer(let i): out.appendDecimal(i)
-                case .double(let d): _appendPythonDouble(d, to: &out)
-                case .string(let s):
-                    scratch.removeAll(keepingCapacity: true)
-                    _appendListToken(s, to: &scratch)
-                    scratch.withUnsafeBufferPointer { out.append($0) }
-                case .boolean:
-                    preconditionFailure("A boolean cannot be an edge-list column: it would read back as a string")
-                }
+                _appendListValue(pairs[found].value, to: &out, scratch: &scratch)
             }
         }
         out.append(0x0A)
+    }
+}
+
+/// Makes vertex `index`'s edge-list ID on its first use.
+@inline(never)
+@inlinable func _makeListID<Source: _WriteSource>(
+    _ index: Int, of source: Source, vertexID: (Source.Vertex) -> String, in ids: inout _IDCache
+) {
+    let id = vertexID(source.vertex(at: index))
+    ids.set(index, id: id.debugDescription) { _appendListToken(id, to: &$0) }
+}
+
+@inline(never)
+@usableFromInline func _missingColumn<Position>(_ column: String, at position: Position) -> Never {
+    preconditionFailure("The edge at \(position) has no value for the column \(column)")
+}
+
+/// Appends an edge-list column's value.
+@inline(never)
+@inlinable func _appendListValue(_ value: AttributeValue, to out: inout _OutputBuffer, scratch: inout [UInt8]) {
+    switch value {
+    case .integer(let i): out.appendDecimal(i)
+    case .double(let d): _appendPythonDouble(d, to: &out)
+    case .string(let s):
+        scratch.removeAll(keepingCapacity: true)
+        _appendListToken(s, to: &scratch)
+        scratch.withUnsafeBufferPointer { out.append($0) }
+    case .boolean:
+        preconditionFailure("A boolean cannot be an edge-list column: it would read back as a string")
     }
 }

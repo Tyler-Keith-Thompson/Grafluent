@@ -238,15 +238,14 @@ extension MutableDirectedGraph where Vertex == Int {
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
     ) throws(ParseError) {
         self = try Self._readLines(input, names: columns, edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
-            try _readEdgeList(text, columnCount: columns.count, into: &target, map: _integerID,
-                              value: { buffer.record($0, $1, $2) })
+            try _readIntegerEdgeList(text, columnCount: columns.count, into: &target, value: { buffer.record($0, $1, $2) })
         }
     }
 
     /// Reads an adjacency list whose fields are decimal integers.
     @inlinable public init(adjacencyList input: some Sequence<UInt8>) throws(ParseError) {
         self = try Self._readLines(input, names: [], edgeAttribute: { _, _, _ in }) { (text, target, _) throws(ParseError) in
-            try _readAdjacencyList(text, into: &target, map: _integerID)
+            try _readIntegerAdjacencyList(text, into: &target)
         }
     }
 }
@@ -479,15 +478,14 @@ extension MutableGraph where Vertex == Int {
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
     ) throws(ParseError) {
         self = try Self._readLines(input, names: columns, edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
-            try _readEdgeList(text, columnCount: columns.count, into: &target, map: _integerID,
-                              value: { buffer.record($0, $1, $2) })
+            try _readIntegerEdgeList(text, columnCount: columns.count, into: &target, value: { buffer.record($0, $1, $2) })
         }
     }
 
     /// Reads an adjacency list whose fields are decimal integers.
     @inlinable public init(adjacencyList input: some Sequence<UInt8>) throws(ParseError) {
         self = try Self._readLines(input, names: [], edgeAttribute: { _, _, _ in }) { (text, target, _) throws(ParseError) in
-            try _readAdjacencyList(text, into: &target, map: _integerID)
+            try _readIntegerAdjacencyList(text, into: &target)
         }
     }
 }

@@ -45,9 +45,10 @@
         count &+= 1
     }
 
+    @inline(__always)
     @inlinable mutating func append(_ bytes: UnsafeBufferPointer<UInt8>) {
-        guard var source = bytes.baseAddress else { return }
-        var remaining = bytes.count
+        guard let source = bytes.baseAddress else { return }
+        let remaining = bytes.count
         // A short piece that fits: a plain loop, cheaper than a call to memmove.
         if remaining <= 32 && count &+ remaining <= Self.capacity {
             var k = 0
@@ -58,6 +59,12 @@
             count &+= remaining
             return
         }
+        appendLong(source, remaining)
+    }
+
+    @inlinable mutating func appendLong(_ start: UnsafePointer<UInt8>, _ length: Int) {
+        var source = start
+        var remaining = length
         while remaining > 0 {
             if count == Self.capacity { flush() }
             let n = min(remaining, Self.capacity - count)
@@ -113,15 +120,30 @@
 
 /// Where formatting code appends bytes: the output buffer, or an array being built.
 @usableFromInline internal protocol _ByteSink: ~Copyable {
+    /// Lets `body` write at most `maximum` (≤ 64) bytes in place, keeping the number it returns.
+    mutating func appendInPlace(maximum: Int, _ body: (UnsafeMutablePointer<UInt8>) -> Int)
     mutating func append(_ byte: UInt8)
     mutating func append(_ bytes: UnsafeBufferPointer<UInt8>)
     mutating func appendASCII(_ text: StaticString)
     mutating func appendDecimal(_ value: Int)
 }
 
-extension _OutputBuffer: _ByteSink {}
+extension _OutputBuffer: _ByteSink {
+    @inline(__always)
+    @inlinable mutating func appendInPlace(maximum: Int, _ body: (UnsafeMutablePointer<UInt8>) -> Int) {
+        reserve(maximum)
+        count &+= body(base + count)
+    }
+}
 
 extension Array: _ByteSink where Element == UInt8 {
+    @inlinable mutating func appendInPlace(maximum: Int, _ body: (UnsafeMutablePointer<UInt8>) -> Int) {
+        let start = count
+        append(contentsOf: repeatElement(0, count: maximum))
+        let written = withUnsafeMutableBufferPointer { body($0.baseAddress! + start) }
+        removeLast(maximum &- written)
+    }
+
     @inlinable mutating func append(_ bytes: UnsafeBufferPointer<UInt8>) {
         append(contentsOf: bytes)
     }
