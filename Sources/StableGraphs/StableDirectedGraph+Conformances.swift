@@ -3,6 +3,11 @@ import GraphProtocols
 // MARK: - DirectedGraph
 
 extension StableDirectedGraph: BidirectionalDirectedGraph {
+    /// The current generation (see `GraphGeneration`): every insertion, removal and re-pointed
+    /// edge, and both resets, start a new one. O(1).
+    @inlinable
+    public var generation: GraphGeneration { _generation.generation }
+
     /// While no vertex has been removed since the last reset: `vertexCount`, and each vertex's
     /// position is its index. While vertex holes exist: `nil`, because indices must be dense; the
     /// positions are then reported by `SparselyIndexedDirectedGraph`.

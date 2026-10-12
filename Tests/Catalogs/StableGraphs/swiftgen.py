@@ -50,7 +50,7 @@ for line in TEXT.splitlines():
         parts = [p.strip().replace("\\|", "|") for p in line.strip().strip("|").split(" | ")]
         CELLS[int(parts[0][3:])] = parts
 N = len(CELLS)
-assert N == 138 and sorted(ROWS) == list(range(1, N + 1))
+assert N == 141 and sorted(ROWS) == list(range(1, N + 1))
 
 
 def title(n): return CELLS[n][2]
@@ -637,31 +637,51 @@ def codable_tests():
     return out
 
 
-def map_values_lines(var, name, kind, m, value, ind="        "):
-    """Every position below the end: the ones with a value, and the values, so a dead position
-    holding a value fails too."""
-    items = sorted(m.items())
-    at = "ofEdgeAt" if kind == "Edge" else "ofVertexAt"
+def swift_value(x):
+    return "nil" if x is None else lit(x)
+
+
+def swift_values(xs, t):
+    return "[" + ", ".join(swift_value(x) for x in xs) + "]" + ("" if xs else " as [%s]" % t)
+
+
+def map_values_lines(var, name, maps, g, value, ind="        "):
+    """Every position below the end: a removed one throws from the checked read, a live one reads
+    its value. For a map of an Optional (default nil), the positions with a value and the values;
+    for a map with another default, every live position and its value."""
+    kind = maps.kind[name]
+    at, checked = ("ofEdgeAt", "checkedEdgeAt") if kind == "Edge" else ("ofVertexAt", "checkedVertexAt")
     end = "%s.%s.endIndex" % (var, "edges" if kind == "Edge" else "vertices")
-    return [ind + "#expect((0 ..< %s).filter { %s[%s, %s: $0] != nil } == %s)" % (end, var, name, at, arr([p for p, _ in items], "Int")),
-            ind + "#expect((0 ..< %s).compactMap { %s[%s, %s: $0] } == %s)" % (end, var, name, at, arr([x for _, x in items], value))]
+    items = sorted(maps.live_values(g, name).items())
+    if maps.default[name] is None:
+        return [ind + "#expect((0 ..< %s).filter { (try? %s[%s, %s: $0]) != nil } == %s)" % (end, var, name, checked, arr([p for p, _ in items], "Int")),
+                ind + "#expect((0 ..< %s).compactMap { try? %s[%s, %s: $0] } == %s)" % (end, var, name, checked, arr([x for _, x in items], value.rstrip("?")))]
+    indices = "%s.%s.indices" % (var, "edges" if kind == "Edge" else "vertices")
+    return [ind + "#expect((0 ..< %s).filter { (try? %s[%s, %s: $0]) != nil } == %s)" % (end, var, name, checked, arr([p for p, _ in items], "Int")),
+            ind + "#expect(%s.map { %s[%s, %s: $0] } == %s)" % (indices, var, name, at, arr([x for _, x in items], value))]
 
 
 def map_test(n):
     V, E, ops = ref.MAPS[n]
-    t = vty(V, E, [o[1:] for o in ops if o[0] not in ref.MAP_OPS])
+    t = vty(V, E, [o[1:] for o in ops if o[0] not in ref.MAP_OPS and o[0] not in ref.MAP_LOOPS])
     port, spec = build(V, E)
-    lines = header(n) + ["    func sg%03d() {" % n, "        // %s" % inp(n)]
+    lines = header(n) + ["    func sg%03d() throws {" % n, "        // %s" % inp(n)]
     lines.append("        " + construct(V, E, t, mutable=True))
     maps, snap, shown, types = ref.MapModel(), None, [], {}
     for op in ops:
         k = op[0]
         if k in ref.MAP_OPS:
+            if k in ("eread", "vread"):
+                live = [p for p, _, _ in port.edges()] if k == "eread" else [s for _, s in port.vertices()]
+                read = [maps.values[op[1]].get(p, maps.default[op[1]]) for p in live]
             r, snap = ref.map_step(port, maps, snap, op)
             if r is not None: shown.append(r)
             if k in ("addEdgeMap", "addVertexMap"):
-                types[op[1]] = op[2]
+                types[op[1]] = op[2] + "?"
                 lines.append("        let %s = graph.%s(of: %s.self)" % (op[1], k, op[2]))
+            elif k in ("addEdgeMapDefault", "addVertexMapDefault"):
+                types[op[1]] = op[2]
+                lines.append("        let %s = graph.%s(default: %s)" % (op[1], k[:-7], lit(op[3])))
             elif k == "removeMap":
                 lines.append("        graph.removeEdgeMap(%s)" % op[1])
             elif k in ("eset", "vset"):
@@ -669,21 +689,49 @@ def map_test(n):
             elif k == "vsetOf":
                 lines.append("        graph[%s, of: %s] = %s" % (op[1], lit(op[2]), lit(op[3])))
             elif k in ("eget", "vget"):
-                lines.append("        #expect(graph[%s, %s: %d] == %s)" % (op[1], "ofEdgeAt" if k == "eget" else "ofVertexAt", op[2], "nil" if r == "nil" else lit(json.loads(r) if r.startswith('"') else int(r))))
+                lines.append("        #expect(graph[%s, %s: %d] == %s)" % (op[1], "ofEdgeAt" if k == "eget" else "ofVertexAt", op[2], r))
             elif k == "vgetOf":
-                lines.append("        #expect(graph[%s, of: %s] == %s)" % (op[1], lit(op[2]), "nil" if r == "nil" else lit(json.loads(r) if r.startswith('"') else int(r))))
+                lines.append("        #expect(graph[%s, of: %s] == %s)" % (op[1], lit(op[2]), r))
+            elif k in ("egetChecked", "vgetChecked", "vgetCheckedOf"):
+                call = "graph[%s, %s: %s]" % (op[1], {"egetChecked": "checkedEdgeAt", "vgetChecked": "checkedVertexAt", "vgetCheckedOf": "checked"}[k], lit(op[2]))
+                if r.startswith("throws "):
+                    lines.append("        #expect(throws: %s.self) { try %s }" % (r[len("throws "):], call))
+                else:
+                    lines.append("        #expect(try %s == %s)" % (call, r))
             elif k in ("evalues", "vvalues"):
-                lines += map_values_lines("graph", op[1], maps.kind[op[1]], maps.values[op[1]], types[op[1]])
+                lines += map_values_lines("graph", op[1], maps, port, types[op[1]])
+            elif k in ("eread", "vread"):
+                indices = "graph.edges.indices" if k == "eread" else "graph.vertices.indices"
+                lines += ["        do {", "            let values = graph.values(of: %s)" % op[1],
+                          "            #expect(%s.map { values[$0] } == %s)" % (indices, swift_values(read, types[op[1]])), "        }"]
+            elif k in ("epages", "vpages"):
+                pages = sorted(maps.pages[op[1]])
+                lines += ["        do {", "            // The pages allocated in the map's storage, by page number.",
+                          "            let storage = graph.values(of: %s)._storage" % op[1],
+                          "            #expect(storage.pages.indices.filter { !storage.pages[$0].isEmpty }.map { storage.firstPage + $0 } == %s)" % arr(pages, "Int"),
+                          "        }"]
             elif k == "snapshot":
                 lines.append("        let copy = graph")
             elif k == "snapshotValues":
-                lines += map_values_lines("copy", op[1], snap[1].kind[op[1]], snap[1].values[op[1]], types[op[1]])
+                lines += map_values_lines("copy", op[1], snap[1], snap[2], types[op[1]])
+        elif k in ref.MAP_LOOPS:
+            for o in ref.map_expand(op):
+                if o[0] in ref.MAP_OPS:
+                    ref.map_step(port, maps, snap, o)
+                else:
+                    ref.apply(port, o); ref.apply(spec, o); maps.settle(port, o)
+            shown.append("()")
+            if k == "mapChurn":
+                lines.append("        for p in %d ..< %d { graph[%s, ofEdgeAt: graph.insert(edge: %s)] = p; graph.remove(edgeAt: p - 1) }" % (op[2], op[3], op[1], edge(op[4], op[5])))
+            else:
+                lines.append("        for i in %d ..< %d { graph.insert(i); graph[%s, of: i] = i; graph.remove(i - 1) }" % (op[2], op[3], op[1]))
+            lines += position_lines(port, t)
         else:
             r, ls = call_lines(port, spec, op, t)
             maps.settle(port, op)
             shown.append(ref.show_result(r))
             lines += ls
-    assert "; ".join(shown) + " ⇒ " + ref.show_state(port) == cell(n), n
+    assert "; ".join(shown) + " ⇒ " + ref.show_state(port) == cell(n), (n, "; ".join(shown) + " ⇒ " + ref.show_state(port), cell(n))
     lines.append("        // Final state.")
     lines += state_lines(port, t)
     lines.append("    }")
@@ -820,9 +868,11 @@ FILES = [
      "// `ElementNotFound.edge` for a dead position, then `.vertex` for a missing endpoint, and change\n"
      "// nothing."),
     ("StableGraphMapTests.swift", "StableGraphs maps", ids("Maps"),
-     "Maps (catalog SG-131 – SG-134): maps attached to the graph (`addEdgeMap(of:)`, `addVertexMap(of:)`),\n"
-     "// values by position or vertex, every removal path clearing the removed element's values, several\n"
-     "// maps, a copy keeping its values, `changeTarget` keeping them, and `removeEdgeMap`."),
+     "Maps (catalog SG-131 – SG-134, SG-139 – SG-141): maps attached to the graph (`addEdgeMap(of:)`,\n"
+     "// `addEdgeMap(default:)`, `addVertexMap`), values by position or vertex, every removal path removing\n"
+     "// the removed element's values (a removed element has none: its checked read throws), several maps,\n"
+     "// a copy keeping its values, `changeTarget` keeping them, `removeEdgeMap`, defaults for every new\n"
+     "// element, `values(of:)`, and map pages freed with the graph's."),
     ("StableGraphPreconditionTests.swift", "StableGraphs preconditions", TRAPS,
      "Preconditions (catalog SG-050 – SG-065): each trapping call runs in a child process (exit test).\n"
      "// The same setup then runs in this process one step short of the precondition, so the trap is\n"

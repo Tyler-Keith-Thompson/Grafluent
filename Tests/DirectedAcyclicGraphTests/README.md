@@ -38,7 +38,8 @@ struct DirectedAcyclicGraph<Base: MutableDirectedGraph>: BidirectionalDirectedGr
     remove(_:), remove(edge:), remove(edgeAt:) (DirectedPseudograph, StableDirectedGraph),
         removeAll(keepingCapacity:), removeAllEdges(keepingCapacity:), reserveCapacity(vertexCount:edgeCount:)
     hasPath(from:to:), transitiveClosure(), transitiveReduction(), longestPath() -> Path?, longestPath(weight:) -> Path?
-    addEdgeMap(of:), addVertexMap(of:), removeEdgeMap(_:), removeVertexMap(_:), self[map, …]  // Base == StableDirectedGraph
+    PropertyGraph where Base: PropertyGraph: addEdgeMap(default:), addEdgeMap(of:), addVertexMap(…), removeEdgeMap(_:),
+        removeVertexMap(_:), self[map, …], self[map, checked…], values(of:)   // the base's (StableDirectedGraph)
 // ShortestPaths: dagShortestPaths(from:weight:) on any DirectedGraph (nil when a cycle is reachable),
 // and on DirectedAcyclicGraph in its order (not optional).
 ```

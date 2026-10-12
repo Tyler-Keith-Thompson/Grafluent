@@ -17,7 +17,7 @@
 #   iddense           a numbered graph reported not dense: the searches then hand out the same
 #                     numbers lazily (through `_number`), in the same order; presizing only.
 
-TESTS = ["StableGraphsTests", "TraversalTests", "ConnectivityTests"]
+TESTS = ["StableGraphsTests", "TraversalTests", "ConnectivityTests", "GraphProtocolsTests"]
 
 S = "StableDirectedGraph.swift"
 C = "StableDirectedGraph+Conformances.swift"
@@ -149,7 +149,59 @@ MUTANTS = [
     Mutant("rowends", V, "slot >= 0", "true"),
     Mutant("connecting", V, "_ends[_ends.startIndex &+ k] == _other", "_ends[_ends.startIndex &+ k] >= 0"),
 
-    # Maps.
+    # Maps: liveness, release, page freeing, resets, and the checked reads.
+    Mutant("mapgetlive", M, 'precondition(_isLiveEdge(position, _edgePages, base: _edgeBase, end: _edgeEnd), "No edge at position \\(position): it was removed")', "", mode="stmt"),
+    Mutant("mapsetlive", M, 'precondition(_isLiveEdge(position, _edgePages, base: _edgeBase, end: _edgeEnd), "No edge at position \\(position) to hold a value")', "", mode="stmt"),
+    Mutant("vmapgetlive", M, 'precondition(containsVertex(atPosition: position), "No vertex at position \\(position): it was removed")', "", mode="stmt"),
+    Mutant("vmapsetlive", M, 'precondition(containsVertex(atPosition: position), "No vertex at position \\(position) to hold a value")', "", mode="stmt"),
+    Mutant("mapchecked", M, "guard _isLiveEdge(position, _edgePages, base: _edgeBase, end: _edgeEnd) else { throw EdgeNotFound() }", "", mode="stmt"),
+    Mutant("vmapchecked", M, "guard containsVertex(atPosition: position) else { throw VertexNotFound() }", "", mode="stmt"),
+    Mutant("vmapcheckedof", M, "_slots[vertex]", "Optional(0)"),
+    Mutant("maplayout", M, ".paged", "_MapLayout.dense", nth=1),
+    Mutant("unlinkrelease", S, "            _edgeMaps.release(at: position)", "", mode="stmt", nth=0),
+    Mutant("unlinkfreepage", S, "            if freed { _edgeMaps.freePage(position &>> _PositionPage.shift) }", "", mode="stmt", nth=0),
+    Mutant("holerelease", S, "            _edgeMaps.release(at: position)", "", mode="stmt", nth=1),
+    Mutant("holefreepage", S, "            if freed { _edgeMaps.freePage(position &>> _PositionPage.shift) }", "", mode="stmt", nth=1),
+    Mutant("killrelease", S, "                    maps.release(at: position)", "", mode="stmt"),
+    Mutant("killfreepage", S, "                    if freed { maps.freePage(position &>> _PositionPage.shift) }", "", mode="stmt"),
+    Mutant("vertexrelease", S, "if !_vertexMaps.isEmpty { _vertexMaps.release(at: slot) }", "", mode="stmt"),
+    Mutant("vertexfreepage", S, "if !_vertexMaps.isEmpty { _vertexMaps.freePage(_vertexBase &+ k) }", "", mode="stmt"),
+    Mutant("resetedgemaps", S, "if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }", "", mode="stmt", nth=0),
+    Mutant("resetvertexmaps", S, "if !_vertexMaps.isEmpty { _vertexMaps.removeAll(keepingCapacity: keepingCapacity) }", "", mode="stmt"),
+    Mutant("edgesresetmaps", S, "if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }", "", mode="stmt", nth=1),
+
+    # Generations: each structural mutation's stamp, in file order, and one that would stamp a no-op.
+    Mutant("geninsertedge", S, "        _generation.advance()", "", mode="stmt", nth=0),
+    Mutant("genappendslot", S, "        _generation.advance()", "", mode="stmt", nth=1),
+    Mutant("genremoveslot", S, "        _generation.advance()", "", mode="stmt", nth=2),
+    Mutant("genchangetarget", S, "        _generation.advance()", "", mode="stmt", nth=3),
+    Mutant("genchangesource", S, "        _generation.advance()", "", mode="stmt", nth=4),
+    Mutant("genkillall", S, "        _generation.advance()", "", mode="stmt", nth=5),
+    Mutant("genunlink", S, "        _generation.advance()", "", mode="stmt", nth=6),
+    Mutant("genremoveall", S, "        _generation.advance()", "", mode="stmt", nth=7),
+    Mutant("genremovealledges", S, "        _generation.advance()", "", mode="stmt", nth=8),
+    Mutant("genkillallalways", S, "removed > 0", "true"),
+
+    # GraphProtocols: the shared map storage and generations.
+    Mutant("pagedempty", "AttachedMaps.swift", "$0.isEmpty ? defaultValue : $0[offset & _PositionPage.mask]", "$0[offset & _PositionPage.mask]", module="GraphProtocols"),
+    Mutant("pagednegative", "AttachedMaps.swift", "k >= 0", "true", nth=0, module="GraphProtocols"),
+    Mutant("pagedfront", "AttachedMaps.swift", "            pages.insert(contentsOf: repeatElement([], count: firstPage &- page), at: 0)\n            firstPage = page", "            firstPage = page", mode="stmt", module="GraphProtocols"),
+    Mutant("pagedresetnoop", "AttachedMaps.swift", "        pages[k][offset & _PositionPage.mask] = defaultValue", "", mode="stmt", module="GraphProtocols"),
+    Mutant("freepagetrimback", "AttachedMaps.swift", "        while let last = pages.last, last.isEmpty { pages.removeLast() }", "", mode="stmt", module="GraphProtocols"),
+    Mutant("freepagetrimfront", "AttachedMaps.swift", "front &* 2 >= pages.count", "front &* 2 > pages.count", module="GraphProtocols"),
+    Mutant("freepagenoop", "AttachedMaps.swift", "        pages[k] = []", "", mode="stmt", module="GraphProtocols"),
+    Mutant("swapremovelast", "AttachedMaps.swift", "if offset < dense.count { dense[offset] = last }", "dense[offset] = last", mode="stmt", module="GraphProtocols"),
+    Mutant("densereset", "AttachedMaps.swift", "typed.storage.dense[offset] = typed.storage.defaultValue", "", mode="stmt", module="GraphProtocols"),
+    Mutant("attachcount", "AttachedMaps.swift", "storage.dense = ContiguousArray(repeating: value, count: count)", "storage.dense = []", mode="stmt", module="GraphProtocols"),
+    Mutant("releasesall", "AttachedMaps.swift", "!_isPOD(Value.self)", "true", module="GraphProtocols"),
+    Mutant("releasesnone", "AttachedMaps.swift", "!_isPOD(Value.self)", "false", module="GraphProtocols"),
+    Mutant("hintwrong", "AttachedMaps.swift", "if hint < entries.count, entries[hint].token === token { return hint }", "if hint < entries.count { return hint }", mode="stmt", module="GraphProtocols"),
+    Mutant("setshared", "AttachedMaps.swift", "        entries[k].makeUnique()", "", mode="stmt", nth=0, module="GraphProtocols"),
+    Mutant("freepageshared", "AttachedMaps.swift", "        entries[k].makeUnique()", "", mode="stmt", nth=3, module="GraphProtocols"),
+    Mutant("valueslayout", "PropertyGraph.swift", "if Base._edgeMapLayout == .dense { return _storage.dense[k] }", "", mode="stmt", module="GraphProtocols"),
+    Mutant("gencurrentidentity", "GraphGeneration.swift", "token === generation._token", "true", module="GraphProtocols"),
+    Mutant("gennevermint", "GraphGeneration.swift", "if !isKnownUniquelyReferenced(&_token) { _token = _GenerationToken() }", "if _token == nil { _token = _GenerationToken() }", mode="stmt", module="GraphProtocols"),
+    Mutant("genviewuntracked", "GraphAdaptor.swift", "base.generation", "GraphGeneration.untracked", nth=3, module="GraphProtocols"),
 
     # GraphProtocols: the numbered mode of _VertexIdentifiers.
     Mutant("idnumber", "VertexIdentifiers.swift", "rows.numbers[sparse.vertexPosition(of: vertex)]", "sparse.vertexPosition(of: vertex)", module="GraphProtocols"),

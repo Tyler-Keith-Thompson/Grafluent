@@ -47,11 +47,14 @@ import GraphProtocols
 /// pages), skipping a freed page whole. A copy shares every page, and the first mutation after a
 /// copy copies the page table and only the pages it touches.
 ///
-/// **Attached maps.** `addEdgeMap(of:)` and `addVertexMap(of:)` attach a map from positions to
-/// values (LEMON's `ArcMap` and `NodeMap`, which observe their graph through its
-/// `AlterationNotifier`): the graph stores it, paged like itself, and every removal clears the
-/// removed element's value in every attached map in the same mutation, O(maps) with no
-/// allocation. Values are read and written through `graph[handle, ofEdgeAt: position]`.
+/// **Attached maps.** `addEdgeMap(default:)` and `addVertexMap(default:)` attach a map from
+/// positions to values (LEMON's `ArcMap` and `NodeMap`, which observe their graph through its
+/// `AlterationNotifier`; see `PropertyGraph`): every element has the map's default until it is
+/// given another value, and `addEdgeMap(of: T.self)` is the map of `T?` whose default is `nil`.
+/// The graph stores each map paged like itself, and frees a map's page when it frees its own.
+/// Values are read and written through `graph[handle, ofEdgeAt: position]`; a removed element
+/// has no value, so reading or writing it traps, and `graph[handle, checkedEdgeAt: position]`
+/// throws `EdgeNotFound` instead.
 ///
 /// **Missing vertices.** The lookups trap on a vertex that is not in the graph, like an `Array`
 /// subscript; `successors(checked:)`, `outDegree(checked:)` and the other `checked:` spellings
@@ -126,14 +129,18 @@ public struct StableDirectedGraph<Vertex: Hashable> {
     @usableFromInline
     internal var _firstEdge: Int
 
-    /// The attached edge maps (`addEdgeMap(of:)`), each cleared at an edge's position when the
-    /// edge is removed.
+    /// The attached edge maps (`addEdgeMap(default:)`), paged like the edges: a map's page is
+    /// freed with the edge page, and a removed edge's value released.
     @usableFromInline
-    internal var _edgeMaps: ContiguousArray<_AttachedMap>
+    internal var _edgeMaps: _AttachedMaps
 
-    /// The attached vertex maps (`addVertexMap(of:)`).
+    /// The attached vertex maps (`addVertexMap(default:)`), paged like the vertices.
     @usableFromInline
-    internal var _vertexMaps: ContiguousArray<_AttachedMap>
+    internal var _vertexMaps: _AttachedMaps
+
+    /// The generation, advanced by every structural mutation.
+    @usableFromInline
+    internal var _generation: _GenerationStamp
 
     /// The empty graph.
     @inlinable
@@ -153,8 +160,9 @@ public struct StableDirectedGraph<Vertex: Hashable> {
         _edgeCount = 0
         _firstVertex = 0
         _firstEdge = 0
-        _edgeMaps = []
-        _vertexMaps = []
+        _edgeMaps = _AttachedMaps()
+        _vertexMaps = _AttachedMaps()
+        _generation = _GenerationStamp()
     }
 }
 
@@ -599,6 +607,7 @@ extension StableDirectedGraph {
         _edgePages[k].live &+= 1
         _edgeEnd = position &+ 1
         _edgeCount &+= 1
+        _generation.advance()
         return position
     }
 
@@ -655,6 +664,7 @@ extension StableDirectedGraph {
         _slots[vertex] = slot
         _vertexEnd = slot &+ 1
         _vertexCount &+= 1
+        _generation.advance()
         return slot
     }
 
@@ -698,11 +708,12 @@ extension StableDirectedGraph {
         _outPages[k].clearRow(l, dead: -1)
         _inPages[k].clearRow(l, dead: 0)
         _vertexPages[k].vertices[l] = nil
-        if !_vertexMaps.isEmpty { Self._clear(slot, in: &_vertexMaps) }
+        if !_vertexMaps.isEmpty { _vertexMaps.release(at: slot) }
         _vertexPages[k].live &-= 1
         _vertexCount &-= 1
         if _vertexPages[k].live == 0, _vertexPages[k].vertices.count == _PositionPage.size { _freeVertexPage(k) }
         if slot == _firstVertex { _firstVertex = _nextLiveVertex(after: slot, _vertexPages, base: _vertexBase, end: _vertexEnd) }
+        _generation.advance()
         return removed
     }
 
@@ -710,6 +721,7 @@ extension StableDirectedGraph {
     /// front of the tables once they are at least half of them (amortized O(1) per page).
     @inlinable
     internal mutating func _freeVertexPage(_ k: Int) {
+        if !_vertexMaps.isEmpty { _vertexMaps.freePage(_vertexBase &+ k) }
         _vertexPages[k] = _VertexPage()
         _outPages[k] = _RowPage()
         _inPages[k] = _RowPage()
@@ -835,6 +847,7 @@ extension StableDirectedGraph {
     @inlinable
     internal mutating func _changeTarget(_ position: Int, _ record: _EdgeRecord, to target: Int) {
         guard target != record.target else { return }
+        _generation.advance()
         let ek = _ek(position), el = position & _PositionPage.mask, sourcePage = _vk(record.source)
         _kill(record.in, slot: record.target, outward: false)
         let into = _insertInOrder(end: record.source, position: position, slot: target, outward: false)
@@ -846,6 +859,7 @@ extension StableDirectedGraph {
     @inlinable
     internal mutating func _changeSource(_ position: Int, _ record: _EdgeRecord, to source: Int) {
         guard source != record.source else { return }
+        _generation.advance()
         let ek = _ek(position), el = position & _PositionPage.mask, targetPage = _vk(record.target)
         _kill(record.out, slot: record.source, outward: true)
         let out = _insertInOrder(end: record.target, position: position, slot: source, outward: true)
@@ -935,7 +949,10 @@ extension StableDirectedGraph {
             }
         }
         _edgeCount &-= removed
-        if removed > 0 { _dropFreedEdgePages() }
+        if removed > 0 {
+            _dropFreedEdgePages()
+            _generation.advance()
+        }
         if lowest == _firstEdge { _firstEdge = _nextLiveEdge(after: lowest, _edgePages, base: _edgeBase, end: _edgeEnd) }
         if let failure { throw failure }
         return removed
@@ -946,7 +963,7 @@ extension StableDirectedGraph {
     @inlinable
     internal static func _killAll<E: Error>(
         inRow row: Int, _ walked: inout _RowPage, far: UnsafeMutableBufferPointer<_RowPage>, _ records: UnsafeMutableBufferPointer<_EdgePage>,
-        _ maps: inout ContiguousArray<_AttachedMap>,
+        _ maps: inout _AttachedMaps,
         vertexBase: Int, edgeBase: Int, outward: Bool,
         where shouldBeRemoved: (_ end: Int, _ position: Int) throws(E) -> Bool
     ) -> (removed: Int, lowest: Int, failure: E?) {
@@ -973,8 +990,11 @@ extension StableDirectedGraph {
                     far[farPage].kill(record.out, inRow: farRow, records, edgeBase: edgeBase, outward: true)
                 }
                 // The page may be freed; the caller drops freed pages after the pass.
-                records[page].hole(slot)
-                if !maps.isEmpty { _clear(position, in: &maps) }
+                let freed = records[page].hole(slot)
+                if !maps.isEmpty {
+                    maps.release(at: position)
+                    if freed { maps.freePage(position &>> _PositionPage.shift) }
+                }
                 if lowest < 0 || position < lowest { lowest = position }
                 removed &+= 1
             } else {
@@ -1007,9 +1027,13 @@ extension StableDirectedGraph {
             return table[k].hole(l)
         }
         if freed { _dropFreedEdgePages() }
-        if !_edgeMaps.isEmpty { Self._clear(position, in: &_edgeMaps) }
+        if !_edgeMaps.isEmpty {
+            _edgeMaps.release(at: position)
+            if freed { _edgeMaps.freePage(position &>> _PositionPage.shift) }
+        }
         _edgeCount &-= 1
         if position == _firstEdge { _firstEdge = _nextLiveEdge(after: position, _edgePages, base: _edgeBase, end: _edgeEnd) }
+        _generation.advance()
     }
 
     /// Kills the entry at `offset` of slot `slot`'s out-row (`outward`) or in-row.
@@ -1041,8 +1065,12 @@ extension StableDirectedGraph {
     /// was the page's last live edge.
     @inlinable
     internal mutating func _hole(_ position: Int) {
-        if _edgePages[_ek(position)].hole(position & _PositionPage.mask) { _dropFreedEdgePages() }
-        if !_edgeMaps.isEmpty { Self._clear(position, in: &_edgeMaps) }
+        let freed = _edgePages[_ek(position)].hole(position & _PositionPage.mask)
+        if freed { _dropFreedEdgePages() }
+        if !_edgeMaps.isEmpty {
+            _edgeMaps.release(at: position)
+            if freed { _edgeMaps.freePage(position &>> _PositionPage.shift) }
+        }
         _edgeCount &-= 1
         if position == _firstEdge { _firstEdge = _nextLiveEdge(after: position, _edgePages, base: _edgeBase, end: _edgeEnd) }
     }
@@ -1052,8 +1080,9 @@ extension StableDirectedGraph {
     @inlinable
     public mutating func removeAll(keepingCapacity: Bool = false) {
         // The maps stay attached, emptied.
-        Self._clearAll(&_edgeMaps)
-        Self._clearAll(&_vertexMaps)
+        if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }
+        if !_vertexMaps.isEmpty { _vertexMaps.removeAll(keepingCapacity: keepingCapacity) }
+        _generation.advance()
         _vertexPages.removeAll(keepingCapacity: keepingCapacity)
         _outPages.removeAll(keepingCapacity: keepingCapacity)
         _inPages.removeAll(keepingCapacity: keepingCapacity)
@@ -1076,7 +1105,8 @@ extension StableDirectedGraph {
     @inlinable
     public mutating func removeAllEdges(keepingCapacity: Bool = false) {
         guard _edgeEnd > 0 else { return }
-        Self._clearAll(&_edgeMaps)
+        if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }
+        _generation.advance()
         _edgePages.removeAll(keepingCapacity: keepingCapacity)
         for k in _outPages.indices where !_outPages[k].isFreed {
             _outPages[k].removeAllEntries(keepingCapacity: keepingCapacity)

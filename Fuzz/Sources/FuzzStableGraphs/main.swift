@@ -153,17 +153,19 @@ enum FuzzStableGraphs {
     }
 
     static func checkMaps(
-        _ graph: StableDirectedGraph<Int>, _ edgeMaps: [(handle: EdgeMap<Int>, values: [Int: Int])], _ tags: VertexMap<Int>?,
+        _ graph: StableDirectedGraph<Int>, _ edgeMaps: [(handle: EdgeMap<Int?>, values: [Int: Int])], _ tags: VertexMap<Int?>?,
         _ tagValues: [Int: Int], _ model: Model, _ context: String
     ) {
         for (m, map) in edgeMaps.enumerated() {
             for p in 0 ..< model.edges.count {
-                check(graph[map.handle, ofEdgeAt: p] == map.values[p], "edge map \(m) at \(p): \(String(describing: graph[map.handle, ofEdgeAt: p])), expected \(String(describing: map.values[p])) \(context)")
+                // A removed edge has no value: the checked read throws, which `try?` makes nil.
+                let value = try? graph[map.handle, checkedEdgeAt: p]
+                check(value == map.values[p], "edge map \(m) at \(p): \(String(describing: value)), expected \(String(describing: map.values[p])) \(context)")
             }
         }
         if let tags {
             for p in 0 ..< model.vertices.count {
-                check(graph[tags, ofVertexAt: p] == tagValues[p], "vertex map at \(p) \(context)")
+                check((try? graph[tags, checkedVertexAt: p]) == tagValues[p], "vertex map at \(p) \(context)")
             }
         }
     }
@@ -264,10 +266,10 @@ enum FuzzStableGraphs {
         var model = Model()
         var steps = 0
         var log: [String] = []
-        var edgeMaps: [(handle: EdgeMap<Int>, values: [Int: Int])] = []
+        var edgeMaps: [(handle: EdgeMap<Int?>, values: [Int: Int])] = []
         let tags = graph.addVertexMap(of: Int.self)
         var tagValues: [Int: Int] = [:]
-        var snapshot: (graph: StableDirectedGraph<Int>, model: Model, maps: [(handle: EdgeMap<Int>, values: [Int: Int])])?
+        var snapshot: (graph: StableDirectedGraph<Int>, model: Model, maps: [(handle: EdgeMap<Int?>, values: [Int: Int])])?
         while !input.isEmpty, steps < 96 {
             steps += 1
             let a = input.int(below: 8), b = input.int(below: 8)

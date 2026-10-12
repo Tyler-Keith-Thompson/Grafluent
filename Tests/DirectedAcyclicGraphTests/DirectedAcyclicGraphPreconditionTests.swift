@@ -255,7 +255,7 @@ struct DirectedAcyclicGraphPreconditionTests {
         #expect(prepended.topologicalOrder[0] == 5 && prepended.topologicalOrder[1] == 0)
     }
 
-    @Test("Maps through the wrapper trap as the base's do: a value for a non-vertex or a vacated position, a detached map")
+    @Test("Maps through the wrapper trap as the base's do: a non-vertex or a vacated position, read or written, and a detached map")
     func mapPreconditions() async throws {
         await #expect(processExitsWith: .failure) {
             var graph = DirectedAcyclicGraph<StableDirectedGraph<Int>>(vertices: [0, 1])
@@ -274,12 +274,26 @@ struct DirectedAcyclicGraphPreconditionTests {
             graph.removeVertexMap(map)
             _ = graph[map, ofVertexAt: 0]
         }
-        // Without the calls: removing the value of a non-vertex is allowed, and reading it is nil.
-        var graph = DirectedAcyclicGraph<StableDirectedGraph<Int>>(vertices: [0, 1])
-        let map = graph.addVertexMap(of: Int.self)
-        graph[map, of: 9] = nil
+        await #expect(processExitsWith: .failure) {
+            var graph = DirectedAcyclicGraph<StableDirectedGraph<Int>>(vertices: [0, 1])
+            let map = graph.addVertexMap(of: Int.self)
+            _ = graph[map, of: 9]
+        }
+        await #expect(processExitsWith: .failure) {
+            var graph = DirectedAcyclicGraph<StableDirectedGraph<Int>>(edges: [DirectedEdge(from: 0, to: 1)])!
+            let map = graph.addEdgeMap(default: 0)
+            _ = graph.remove(edgeAt: 0)
+            _ = graph[map, ofEdgeAt: 0]
+        }
+        // Without the calls: the checked reads throw for a non-vertex and a vacated position.
+        var graph = DirectedAcyclicGraph<StableDirectedGraph<Int>>(edges: [DirectedEdge(from: 0, to: 1)])!
+        let map = graph.addVertexMap(of: Int.self), weights = graph.addEdgeMap(default: 0)
         graph[map, of: 1] = 4
-        #expect(graph[map, of: 9] == nil && graph[map, ofVertexAt: 1] == 4)
+        #expect(graph[map, ofVertexAt: 1] == 4 && graph[map, of: 0] == nil)
+        #expect(throws: VertexNotFound.self) { try graph[map, checked: 9] }
+        #expect(throws: VertexNotFound.self) { try graph[map, checkedVertexAt: 2] }
+        _ = graph.remove(edgeAt: 0)
+        #expect(throws: EdgeNotFound.self) { try graph[weights, checkedEdgeAt: 0] }
     }
 
     @Test("longestPath(weight:) traps on a NaN distance")

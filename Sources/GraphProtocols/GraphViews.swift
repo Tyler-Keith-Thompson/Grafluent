@@ -31,10 +31,11 @@ extension BidirectionalDirectedGraph {
 /// `v→u`, so `successors` and `predecessors` are both `neighbors`, and `edgeCount` is twice the
 /// base's.
 @frozen
-public struct DirectedView<Base: Graph>: BidirectionalDirectedGraph {
+public struct DirectedView<Base: Graph>: BidirectionalDirectedGraph, GraphAdaptor {
     public typealias Vertex = Base.Vertex
 
-    @usableFromInline let base: Base
+    /// The undirected graph this view reads.
+    public let base: Base
 
     @inlinable
     init(base: Base) { self.base = base }
@@ -264,6 +265,17 @@ public struct DirectedView<Base: Graph>: BidirectionalDirectedGraph {
     }
 }
 
+extension DirectedView where Base: PropertyGraph {
+    /// The base's values of `map`, by the base's edge positions: an arc's value is its edge's, at
+    /// `arc.position`, as in `{ w[$0.position] }` for a weight closure. O(1).
+    ///
+    /// - Precondition: `map` is attached to the base.
+    @inlinable
+    public func values<Value>(of map: EdgeMap<Value>) -> EdgeValues<Base, Value> {
+        base.values(of: map)
+    }
+}
+
 extension DirectedView: Sendable where Base: Sendable {}
 extension DirectedView.Edges: Sendable where Base.Edges: Sendable {}
 extension DirectedView.Edges.Index: Sendable where Base.Edges.Index: Sendable {}
@@ -276,10 +288,11 @@ extension DirectedView.Arcs.Iterator: Sendable where Base.Edges: Sendable, Base.
 /// `{u, v}` at the arc's position, so `neighbors` is `successors` then `predecessors`, and
 /// `degree` is the base's. Two opposite arcs are two parallel edges.
 @frozen
-public struct UndirectedView<Base: BidirectionalDirectedGraph>: Graph {
+public struct UndirectedView<Base: BidirectionalDirectedGraph>: Graph, GraphAdaptor {
     public typealias Vertex = Base.Vertex
 
-    @usableFromInline let base: Base
+    /// The directed graph this view reads.
+    public let base: Base
 
     @inlinable
     init(base: Base) { self.base = base }

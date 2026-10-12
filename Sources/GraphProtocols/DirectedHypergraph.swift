@@ -180,9 +180,19 @@ public protocol DirectedHypergraph<Vertex> {
     ///
     /// Not for use outside the library.
     func _memberIndex(atRank rank: Int, inHyperedgeAt position: Hyperedges.Index, targets: Bool) -> Int
+
+    /// The graph's current generation, which every structural mutation replaces: a structure
+    /// derived from the graph stores it and asks `GraphGeneration.isCurrent(for:)` before relying
+    /// on the graph again. Default: `GraphGeneration.untracked`, current for no graph. A wrapper
+    /// reports its base's.
+    var generation: GraphGeneration { get }
 }
 
 extension DirectedHypergraph {
+    /// `GraphGeneration.untracked`: a conformer that does not track its mutations.
+    @inlinable
+    public var generation: GraphGeneration { .untracked }
+
     @inlinable
     public func sourceSize(ofHyperedgeAt position: Hyperedges.Index) -> Int {
         sources(ofHyperedgeAt: position).count

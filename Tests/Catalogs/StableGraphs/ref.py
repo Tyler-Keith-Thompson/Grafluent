@@ -14,6 +14,7 @@ BidirectionalDirectedGraph laws (including the state-dependent index bounds), an
 against a rustworkx PyDiGraph (petgraph StableGraph) and a NetworkX MultiDiGraph driven by the
 same calls.
 """
+import copy
 import json
 import os
 import sys
@@ -966,26 +967,25 @@ def define_paging():
           ("changeSourceChecked", -1, 0), ("changeSourceChecked", 0, 9), ("changeTargetChecked", 1, 0), ("changeSourceChecked", 1, 0)])
 
     M = "Maps"
-    map_case(M, "attached EdgeMap: set, get, nil removes; removing the edge clears its value", [0, 1, 2], [(0, 1), (1, 2), (2, 0)],
+    map_case(M, "attached EdgeMap of an Optional: set, get, nil clears; a removed edge has no value", [0, 1, 2], [(0, 1), (1, 2), (2, 0)],
              [("addEdgeMap", "labels", "String"), ("eset", "labels", 0, "a"), ("eset", "labels", 1, "b"), ("eset", "labels", 2, "c"),
-              ("eget", "labels", 1), ("eset", "labels", 2, None), ("eget", "labels", 2), ("removeAt", 1), ("eget", "labels", 1),
+              ("eget", "labels", 1), ("eset", "labels", 2, None), ("eget", "labels", 2), ("removeAt", 1), ("egetChecked", "labels", 1),
               ("edge", 0, 2), ("eget", "labels", 3), ("evalues", "labels")])
-    map_case(M, "every edge removal path clears the attached maps", [0, 1, 2, 3],
+    map_case(M, "every edge removal path removes the values", [0, 1, 2, 3],
              [(0, 1), (0, 1), (1, 2), (2, 3), (3, 0), (0, 2), (1, 1), (2, 2)],
              [("addEdgeMap", "w", "Int")] + [("eset", "w", p, p * 10) for p in range(8)] +
              [("removeEdge", 0, 1), ("evalues", "w"), ("removeAllBetween", 2, 3), ("removeFromWhere", 0, [5]),
               ("removeWhere", [6]), ("remove", 3), ("evalues", "w"), ("removeAllEdges",), ("edge", 1, 2), ("eget", "w", 0),
               ("evalues", "w")])
-    map_case(M, "attached VertexMap: by position and by vertex; removal and churn clear", [0, 1], [],
+    map_case(M, "attached VertexMap: by position and by vertex; removal and churn remove the values", [0, 1], [],
              [("addVertexMap", "names", "String"), ("vsetOf", "names", 0, "zero"), ("vset", "names", 1, "one"), ("vgetOf", "names", 1),
-              ("vget", "names", 0), ("vgetOf", "names", 9), ("vertexChurn", 1, 2000), ("vsetOf", "names", 2001, "last"),
+              ("vget", "names", 0), ("vgetCheckedOf", "names", 9), ("vertexChurn", 1, 2000), ("vsetOf", "names", 2001, "last"),
               ("vvalues", "names"), ("remove", 0), ("vvalues", "names"), ("removeAll",), ("edge", 5, 6), ("vget", "names", 0),
               ("vvalues", "names")])
     map_case(M, "several maps, copy-on-write, changeTarget keeps values, removeEdgeMap", [0, 1, 2], [(0, 1), (1, 2)],
              [("addEdgeMap", "a", "Int"), ("addEdgeMap", "b", "String"), ("eset", "a", 0, 1), ("eset", "b", 0, "x"), ("eset", "a", 1, 2),
               ("snapshot",), ("changeTarget", 0, 2), ("eget", "a", 0), ("removeAt", 1), ("eset", "b", 0, "y"), ("evalues", "a"),
               ("evalues", "b"), ("snapshotValues", "a"), ("snapshotValues", "b"), ("removeMap", "a"), ("evalues", "b")])
-
     Q = "Queries"
     case(Q, "degree(checked:) and vertexIndex(checked:): the value, or VertexNotFound", [0, 1, 2], [(0, 1), (1, 1), (2, 1)],
          [("degreeChecked", 1), ("degreeChecked", 0), ("degreeChecked", 9), ("vertexIndexChecked", 2), ("vertexIndexChecked", 9),
@@ -997,66 +997,122 @@ def define_paging():
          [("churn", 2500, 0, 1), ("sourceChecked", 5), ("targetChecked", 2499), ("sourceChecked", 2500)])
     case(Q, "vertexIndex(checked:) with a vertex hole traps", [0, 1], [], [("remove", 0), ("vertexIndexChecked", 1)])
 
+    M = "Maps"
+    map_case(M, "a map with a default: every element has it until set, new ones too; checked reads throw for removed and out-of-range elements",
+             [0, 1, 2], [(0, 1), (1, 2)],
+             [("addEdgeMapDefault", "w", "Double", 1.5), ("eset", "w", 1, 4.0), ("edge", 2, 0), ("eget", "w", 2), ("evalues", "w"),
+              ("eread", "w"), ("removeAt", 0), ("egetChecked", "w", 1), ("egetChecked", "w", 0), ("egetChecked", "w", 3),
+              ("egetChecked", "w", -1), ("eread", "w"), ("evalues", "w"),
+              ("addVertexMapDefault", "t", "Int", 0), ("vsetOf", "t", 2, 7), ("vgetCheckedOf", "t", 2), ("vgetCheckedOf", "t", 9),
+              ("vgetChecked", "t", 5), ("remove", 2), ("vgetChecked", "t", 2), ("insert", 3), ("vgetOf", "t", 3), ("vvalues", "t"),
+              ("vread", "t")])
+    map_case(M, "edge map pages are freed with the graph's: churn keeps a page per live value", [0, 1], [(0, 1), (1, 0)],
+             [("addEdgeMapDefault", "w", "Int", -1), ("eset", "w", 0, 100), ("mapChurn", "w", 2, 2502, 0, 1), ("epages", "w"),
+              ("eget", "w", 2501), ("egetChecked", "w", 1500), ("evalues", "w"), ("removeAt", 2501), ("epages", "w"), ("edge", 1, 1),
+              ("epages", "w"), ("evalues", "w")])
+    map_case(M, "vertex map pages are freed with the graph's", [0], [],
+             [("addVertexMap", "t", "Int"), ("vsetOf", "t", 0, 0), ("tagChurn", "t", 1, 2101), ("vpages", "t"), ("vgetOf", "t", 2100),
+              ("vgetChecked", "t", 7), ("vvalues", "t"), ("removeAll",), ("vpages", "t"), ("insert", 9), ("vgetOf", "t", 9)])
+
 
 MAPS = {}
-MAP_OPS = {"addEdgeMap", "addVertexMap", "eset", "eget", "vset", "vget", "vsetOf", "vgetOf", "evalues", "vvalues",
+MAP_OPS = {"addEdgeMap", "addVertexMap", "addEdgeMapDefault", "addVertexMapDefault", "eset", "eget", "egetChecked", "vset", "vget",
+           "vgetChecked", "vsetOf", "vgetOf", "vgetCheckedOf", "evalues", "vvalues", "eread", "vread", "epages", "vpages",
            "snapshot", "snapshotValues", "removeMap"}
+# Map calls that also mutate the graph: expanded into graph calls and map writes by `map_expand`.
+MAP_LOOPS = {"mapChurn", "tagChurn"}
 
 
 class MapModel:
-    """Attached maps as the graph keeps them: a dict per map, every removed element's entry
-    cleared in the same call, both kinds emptied by removeAll and edge maps by removeAllEdges."""
+    """Attached maps as the graph keeps them: per map its kind, its default, the values set at live
+    elements (an element without an entry has the default), and the pages written since the last
+    reset that the graph has not freed. A removed element's entry goes with it, in the same call;
+    removeAll empties both kinds and removeAllEdges the edge maps. The graph frees a page once all
+    its positions were handed out and none is live, and every map frees that page with it."""
 
     def __init__(self):
-        self.kind, self.values = {}, {}
+        self.kind, self.default, self.values, self.pages = {}, {}, {}, {}
 
     def settle(self, g, op):
         live_e = {p for p, _, _ in g.edges()}
         live_v = {s for _, s in g.vertices()}
         for name, kind in self.kind.items():
             if op[0] == "removeAll" or (op[0] == "removeAllEdges" and kind == "Edge"):
-                self.values[name] = {}
-            live = live_e if kind == "Edge" else live_v
+                self.values[name], self.pages[name] = {}, set()
+            live, end = (live_e, g.edge_end()) if kind == "Edge" else (live_v, g.vertex_end())
             self.values[name] = {p: x for p, x in self.values[name].items() if p in live}
+            self.pages[name] = {k for k in self.pages[name] if (k + 1) * PAGE > end or any(p // PAGE == k for p in live)}
 
     def copy(self):
         c = MapModel()
-        c.kind = dict(self.kind)
+        c.kind, c.default = dict(self.kind), dict(self.default)
         c.values = {k: dict(v) for k, v in self.values.items()}
+        c.pages = {k: set(v) for k, v in self.pages.items()}
         return c
+
+    def live_values(self, g, name):
+        """What "values of" shows: the set values of an Optional map (default nil), and every live
+        element's value of a map with another default."""
+        if self.default[name] is None: return {p: x for p, x in self.values[name].items() if x is not None}
+        live = [p for p, _, _ in g.edges()] if self.kind[name] == "Edge" else [s for _, s in g.vertices()]
+        return {p: self.values[name].get(p, self.default[name]) for p in live}
+
+
+def _shown(x):
+    return "nil" if x is None else fmt(x)
 
 
 def map_step(g, maps, snap, op):
     """One map call: (shown result or None, new snapshot)."""
     k = op[0]
-    if k in ("addEdgeMap", "addVertexMap"):
-        maps.kind[op[1]] = "Edge" if k == "addEdgeMap" else "Vertex"
-        maps.values[op[1]] = {}
+    if k in ("addEdgeMap", "addVertexMap", "addEdgeMapDefault", "addVertexMapDefault"):
+        maps.kind[op[1]] = "Edge" if k.startswith("addEdge") else "Vertex"
+        maps.default[op[1]] = op[3] if k.endswith("Default") else None
+        maps.values[op[1]], maps.pages[op[1]] = {}, set()
         return None, snap
     if k == "removeMap":
-        del maps.kind[op[1]], maps.values[op[1]]
+        del maps.kind[op[1]], maps.default[op[1]], maps.values[op[1]], maps.pages[op[1]]
         return None, snap
-    if k in ("eset", "vset"):
-        live = {p for p, _, _ in g.edges()} if k == "eset" else {s for _, s in g.vertices()}
-        if op[3] is None: maps.values[op[1]].pop(op[2], None)
-        else:
-            need(op[2] in live, "no element to hold a value"); maps.values[op[1]][op[2]] = op[3]
+    live_e = {p for p, _, _ in g.edges()}
+    slots = dict(g.vertices())
+    live_v = set(slots.values())
+    if k in ("eset", "vset", "vsetOf"):
+        p = slots.get(op[2]) if k == "vsetOf" else op[2]
+        need(p in (live_e if k == "eset" else live_v), "no element to hold a value")
+        maps.values[op[1]][p] = op[3]
+        maps.pages[op[1]].add(p // PAGE)
         return None, snap
-    if k == "vsetOf":
-        d = dict(g.vertices()); need(op[2] in d, "not a vertex")
-        maps.values[op[1]][d[op[2]]] = op[3]
-        return None, snap
-    if k in ("eget", "vget"):
-        r = maps.values[op[1]].get(op[2])
-        return ("nil" if r is None else fmt(r)), snap
-    if k == "vgetOf":
-        d = dict(g.vertices())
-        r = maps.values[op[1]].get(d[op[2]]) if op[2] in d else None
-        return ("nil" if r is None else fmt(r)), snap
-    if k in ("evalues", "vvalues"): return show_map(maps.values[op[1]]), snap
-    if k == "snapshot": return None, (snapshot(g), maps.copy())
-    if k == "snapshotValues": return show_map(snap[1].values[op[1]]), snap
+    if k in ("eget", "vget", "vgetOf"):
+        p = slots.get(op[2]) if k == "vgetOf" else op[2]
+        need(p in (live_e if k == "eget" else live_v), "no element")
+        return _shown(maps.values[op[1]].get(p, maps.default[op[1]])), snap
+    if k in ("egetChecked", "vgetChecked", "vgetCheckedOf"):
+        p = slots.get(op[2]) if k == "vgetCheckedOf" else op[2]
+        if p not in (live_e if k == "egetChecked" else live_v):
+            return ("throws EdgeNotFound" if k == "egetChecked" else "throws VertexNotFound"), snap
+        return _shown(maps.values[op[1]].get(p, maps.default[op[1]])), snap
+    if k in ("evalues", "vvalues"): return show_map(maps.live_values(g, op[1])), snap
+    if k in ("eread", "vread"):
+        live = sorted(live_e) if k == "eread" else sorted(live_v)
+        return "[" + ", ".join(_shown(maps.values[op[1]].get(p, maps.default[op[1]])) for p in live) + "]", snap
+    if k in ("epages", "vpages"): return "pages " + lst(sorted(maps.pages[op[1]])), snap
+    if k == "snapshot": return None, (snapshot(g), maps.copy(), copy.deepcopy(g))
+    if k == "snapshotValues": return show_map(snap[1].live_values(snap[2], op[1])), snap
     raise ValueError(op)
+
+
+def map_expand(op):
+    """The graph calls and map writes of a map loop, in order."""
+    if op[0] == "mapChurn":
+        # for p in a..<b { [w, ofEdgeAt: insert(edge: u→v)] = p; remove(edgeAt: p - 1) }
+        _, name, a, b, u, v = op
+        for p in range(a, b):
+            yield ("edge", u, v); yield ("eset", name, p, p); yield ("removeAt", p - 1)
+    elif op[0] == "tagChurn":
+        # for i in a..<b { insert(i); [t, of: i] = i; remove(i - 1) }
+        _, name, a, b = op
+        for i in range(a, b):
+            yield ("insert", i); yield ("vsetOf", name, i, i); yield ("remove", i - 1)
 
 
 def map_run(V, E, ops):
@@ -1069,6 +1125,15 @@ def map_run(V, E, ops):
             r, snap = map_step(port, maps, snap, op)
             if r is not None: res.append(r)
             continue
+        if op[0] in MAP_LOOPS:
+            for o in map_expand(op):
+                if o[0] in MAP_OPS:
+                    map_step(port, maps, snap, o)
+                else:
+                    apply(port, o); apply(spec, o); maps.settle(port, o)
+            check_laws(port); same(port, spec)
+            res.append("()")
+            continue
         a = apply(port, op); b = apply(spec, op)
         assert a == b, (op, a, b)
         check_laws(port); same(port, spec)
@@ -1078,21 +1143,30 @@ def map_run(V, E, ops):
 
 
 def show_map(m):
-    return "[" + ", ".join(f"{p}: {fmt(x)}" for p, x in sorted(m.items())) + "]"
+    return "[" + ", ".join(f"{p}: {_shown(x)}" for p, x in sorted(m.items())) + "]"
 
 
 def show_map_op(op):
     k = op[0]
     if k in ("addEdgeMap", "addVertexMap"): return f"let {op[1]} = {k}(of: {op[2]}.self)"
+    if k in ("addEdgeMapDefault", "addVertexMapDefault"): return f"let {op[1]} = {k[:-7]}(default: {fmt(op[3])})"
     if k == "removeMap": return f"remove{'Edge'}Map({op[1]})"
     if k in ("eset", "vset"):
-        return f"[{op[1]}, of{'Edge' if k == 'eset' else 'Vertex'}At: {op[2]}] = {'nil' if op[3] is None else fmt(op[3])}"
+        return f"[{op[1]}, of{'Edge' if k == 'eset' else 'Vertex'}At: {op[2]}] = {_shown(op[3])}"
     if k == "vsetOf": return f"[{op[1]}, of: {fmt(op[2])}] = {fmt(op[3])}"
     if k in ("eget", "vget"): return f"[{op[1]}, of{'Edge' if k == 'eget' else 'Vertex'}At: {op[2]}]"
+    if k in ("egetChecked", "vgetChecked"): return f"[{op[1]}, checked{'Edge' if k == 'egetChecked' else 'Vertex'}At: {op[2]}]"
     if k == "vgetOf": return f"[{op[1]}, of: {fmt(op[2])}]"
+    if k == "vgetCheckedOf": return f"[{op[1]}, checked: {fmt(op[2])}]"
     if k in ("evalues", "vvalues"): return f"values of {op[1]}"
+    if k in ("eread", "vread"): return f"values(of: {op[1]}) at the live positions"
+    if k in ("epages", "vpages"): return f"pages of {op[1]}"
     if k == "snapshot": return "let copy = graph"
     if k == "snapshotValues": return f"values of {op[1]} in copy"
+    if k == "mapChurn":
+        return f"for p in {op[2]}..<{op[3]} {{ [{op[1]}, ofEdgeAt: insert(edge: {fmt(op[4])}→{fmt(op[5])})] = p; remove(edgeAt: p - 1) }}"
+    if k == "tagChurn":
+        return f"for i in {op[2]}..<{op[3]} {{ insert(i); [{op[1]}, of: i] = i; remove(i - 1) }}"
     return show_op(op)
 
 

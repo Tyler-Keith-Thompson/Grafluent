@@ -8,6 +8,7 @@
 
 import Connectivity
 import Foundation
+import GrafluentTestSupport
 import GraphProtocols
 import Multigraphs
 import PropertyBased
@@ -95,7 +96,7 @@ struct StableGraphChurnTests {
                     #expect(graph.weaklyConnectedComponents().count == compacted.weaklyConnectedComponents().count)
                     #expect(graph.stronglyConnectedComponents().count == compacted.stronglyConnectedComponents().count)
                     // The labels of removed edges went with them; the live ones stay.
-                    #expect((0 ..< graph.edges.endIndex).filter { graph[labels, ofEdgeAt: $0] != nil } == positions)
+                    #expect((0 ..< graph.edges.endIndex).filter { (try? graph[labels, checkedEdgeAt: $0]) != nil } == positions)
                     #expect(positions.allSatisfy { graph[labels, ofEdgeAt: $0] == $0 })
                     // A round trip keeps every position and the next fresh one.
                     let decoded = try? JSONDecoder().decode(StableDirectedGraph<Int>.self, from: JSONEncoder().encode(graph))
@@ -149,14 +150,21 @@ struct StableGraphChurnTests {
         graph[weights, of: 14] = 1.5
         let copy = graph
         for v in stride(from: 0, to: 40_000, by: 7) { _ = graph.remove(v) }
-        #expect((0 ..< 50_000).filter { graph[names, ofVertexAt: $0] != nil } == Array(stride(from: 40_005, to: 50_000, by: 7)))
-        #expect(graph[weights, of: 14] == nil && copy[weights, of: 14] == 1.5)
+        #expect((0 ..< 50_000).filter { (try? graph[names, checkedVertexAt: $0]) != nil } == Array(stride(from: 40_005, to: 50_000, by: 7)))
+        #expect((try? graph[weights, checked: 14]) == nil && copy[weights, of: 14] == 1.5)
         #expect(copy[names, of: 0] == "v0" && copy[names, of: 49_994] == "v49994")
         #expect((0 ..< 50_000).filter { copy[names, ofVertexAt: $0] != nil }.count == 7_143)
+        // Every vertex page keeps live vertices, so every map page stays, in both copies.
+        let pages = graph.values(of: names)._storage, copyPages = copy.values(of: names)._storage
+        #expect(pages.pages.indices.filter { !pages.pages[$0].isEmpty }.map { pages.firstPage + $0 } == Array(0 ... 48))
+        #expect(copyPages.pages.indices.filter { !copyPages.pages[$0].isEmpty }.count == 49)
         graph[names, of: 40_005] = "x"
         #expect(graph[names, of: 40_005] == "x" && copy[names, of: 40_005] == "v40005")
         graph[names, of: 40_005] = nil
-        #expect(graph[names, of: 40_005] == nil && graph[names, of: -1] == nil && graph[names, ofVertexAt: Int.max] == nil)
+        #expect(graph[names, of: 40_005] == nil)
+        #expect(throws: VertexNotFound.self) { try graph[names, checked: -1] }
+        #expect(throws: VertexNotFound.self) { try graph[names, checkedVertexAt: Int.max] }
+        #expect(throws: VertexNotFound.self) { try graph[names, checkedVertexAt: -1] }
         // A handle stays valid on copies; removing the map from one copy leaves the other's.
         var other = copy
         other.removeVertexMap(names)
@@ -164,6 +172,60 @@ struct StableGraphChurnTests {
         let another = graph.addVertexMap(of: String.self)
         #expect(names == names && names != another && Set([names, another, names]).count == 2)
         #expect(graph[another, of: 40_012] == nil)
+    }
+
+    @Test("A removed element's map value is released in the same call; the maps of a copy keep theirs", .lifetimeChecked, .tags(.lifetime))
+    func mapValuesReleased() {
+        var graph = StableDirectedGraph<Int>(vertices: 0 ..< 4, edges: (0 ..< 3).map { DirectedEdge(from: $0, to: $0 + 1) })
+        let payloads = graph.addEdgeMap(of: LifetimeTracked<Int>.self)
+        let owners = graph.addVertexMap(default: LifetimeTracked(-1))
+        for p in 0 ..< 3 { graph[payloads, ofEdgeAt: p] = LifetimeTracked(p) }
+        for v in 0 ..< 4 { graph[owners, of: v] = LifetimeTracked(v) }
+        // Four vertex values, three edge values, and the vertex map's default (one instance, in
+        // every slot of the page that was not set).
+        #expect(LifetimeTracker.current!.instances == 8)
+        graph.remove(edgeAt: 1)
+        #expect(LifetimeTracker.current!.instances == 7)
+        do {
+            let copy = graph
+            graph.remove(3)
+            // The copy still holds vertex 3's value and edge 2's.
+            #expect(LifetimeTracker.current!.instances == 7)
+            #expect(copy[owners, of: 3].payload == 3 && copy[payloads, ofEdgeAt: 2]?.payload == 2)
+        }
+        #expect(LifetimeTracker.current!.instances == 5)
+        // The one-pass bulk removal releases too.
+        #expect(graph.removeAllEdges(where: { _ in true }) == 1)
+        #expect(LifetimeTracker.current!.instances == 4)
+        graph.removeAll()
+        // Only the vertex map's default is left.
+        #expect(LifetimeTracker.current!.instances == 1 && graph.values(of: owners).defaultValue.payload == -1)
+    }
+
+    @Test("A map's edge pages are freed with the graph's when the edges die through a vertex removal or a bulk removal")
+    func mapPagesFreedByEveryRemovalPath() {
+        func allocated(_ graph: StableDirectedGraph<Int>, _ map: EdgeMap<Int>) -> [Int] {
+            let storage = graph.values(of: map)._storage
+            return storage.pages.indices.filter { !storage.pages[$0].isEmpty }.map { storage.firstPage + $0 }
+        }
+        var graph = StableDirectedGraph<Int>(vertices: 0 ..< 3)
+        let w = graph.addEdgeMap(default: 0)
+        // Page 0: 1024 edges at vertex 1; page 1 starts with a loop at 0 that stays.
+        for _ in 0 ..< 1_024 { graph[w, ofEdgeAt: graph.insert(edge: DirectedEdge(from: 1, to: 2))] = 1 }
+        graph[w, ofEdgeAt: graph.insert(edge: DirectedEdge(from: 0, to: 0))] = 7
+        #expect(allocated(graph, w) == [0, 1])
+        // Removing the vertex removes page 0's edges one by one, as holes.
+        graph.remove(1)
+        #expect(allocated(graph, w) == [1])
+        // Fill the rest of page 1, and one edge in page 2; then one pass removes page 1's new edges.
+        for _ in 1_025 ..< 2_048 { graph[w, ofEdgeAt: graph.insert(edge: DirectedEdge(from: 2, to: 0))] = 2 }
+        graph[w, ofEdgeAt: graph.insert(edge: DirectedEdge(from: 0, to: 2))] = 9
+        #expect(allocated(graph, w) == [1, 2])
+        #expect(graph.removeAllEdges(where: { $0 > 1_024 && $0 < 2_048 }) == 1_023)
+        // Page 1 keeps the loop at 1024, so it stays; then removing the loop frees it.
+        #expect(allocated(graph, w) == [1, 2] && graph[w, ofEdgeAt: 1_024] == 7)
+        #expect(graph.removeAllEdges(from: 0, where: { $0 == 1_024 }) == 1)
+        #expect(allocated(graph, w) == [2] && graph[w, ofEdgeAt: 2_048] == 9)
     }
 
     @Test("removeAllEdges(keepingCapacity:) keeps vertex holes and freed pages, both ways")

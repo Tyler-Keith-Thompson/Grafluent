@@ -11,8 +11,8 @@ move. FlowNavigation needs three things the swap-remove types cannot give:
 3. Lookups that answer "no" for a stale identity.
 
 This module adds one graph type, after petgraph's `StableGraph`, and maps attached to it, `EdgeMap` and
-`VertexMap`, after LEMON's `ArcMap` and `NodeMap`. Its cases are `cases.md` (SG-001 – SG-134, 134
-rows; SG-097 – SG-112 are the FlowNavigation additions and the review fixes, SG-108 – SG-112
+`VertexMap`, after LEMON's `ArcMap` and `NodeMap`. Its cases are `cases.md` (SG-001 – SG-141, 141
+rows; SG-139 – SG-141 are the maps' defaults and page freeing; SG-097 – SG-112 are the FlowNavigation additions and the review fixes, SG-108 – SG-112
 re-expected and SG-113 on added with paged storage, `changeTarget` / `changeSource` and the maps).
 `ref.py` holds two models:
 
@@ -164,39 +164,55 @@ count. The decisions:
 
 LEMON's graph maps, `NodeMap` and `ArcMap`, are the model: a LEMON map registers with its graph's
 `AlterationNotifier` and is told of every erase, so it never holds a value for an erased node or
-arc. Here that model takes value form. The graph owns its maps; the caller holds a handle.
+arc. Here that model takes value form. The graph owns its maps; the caller holds a handle. The
+protocol, the handles and the storage are GraphProtocols' (`PropertyGraph`, after the BGL concept
+of that name), shared by every representation; this module keeps the glue to its pages.
 
 ```swift
-extension StableDirectedGraph {
-    mutating func addEdgeMap<Value: Sendable>(of type: Value.Type) -> EdgeMap<Value>      // LEMON's ArcMap
-    mutating func addVertexMap<Value: Sendable>(of type: Value.Type) -> VertexMap<Value>  // LEMON's NodeMap
+extension StableDirectedGraph: PropertyGraph {
+    mutating func addEdgeMap<Value: Sendable>(default value: Value) -> EdgeMap<Value>      // LEMON's ArcMap(g, value)
+    mutating func addVertexMap<Value: Sendable>(default value: Value) -> VertexMap<Value>  // LEMON's NodeMap(g, value)
+    mutating func addEdgeMap<T: Sendable>(of type: T.Type) -> EdgeMap<T?>                // default nil (protocol extension)
+    mutating func addVertexMap<T: Sendable>(of type: T.Type) -> VertexMap<T?>
     mutating func removeEdgeMap<Value>(_ map: EdgeMap<Value>)
     mutating func removeVertexMap<Value>(_ map: VertexMap<Value>)
-    subscript<Value>(_ map: EdgeMap<Value>, ofEdgeAt position: Int) -> Value? { get set }
-    subscript<Value>(_ map: VertexMap<Value>, ofVertexAt position: Int) -> Value? { get set }
-    subscript<Value>(_ map: VertexMap<Value>, of vertex: Vertex) -> Value? { get set }
+    subscript<Value>(_ map: EdgeMap<Value>, ofEdgeAt position: Int) -> Value { get set }       // traps at a dead edge
+    subscript<Value>(_ map: VertexMap<Value>, ofVertexAt position: Int) -> Value { get set }
+    subscript<Value>(_ map: VertexMap<Value>, of vertex: Vertex) -> Value { get set }
+    subscript<Value>(_ map: EdgeMap<Value>, checkedEdgeAt position: Int) -> Value { get throws(EdgeNotFound) }
+    subscript<Value>(_ map: VertexMap<Value>, checkedVertexAt position: Int) -> Value { get throws(VertexNotFound) }
+    subscript<Value>(_ map: VertexMap<Value>, checked vertex: Vertex) -> Value { get throws(VertexNotFound) }
+    func values<Value>(of map: EdgeMap<Value>) -> EdgeValues<Self, Value>                    // a snapshot, read by position
+    func values<Value>(of map: VertexMap<Value>) -> VertexValues<Self, Value>
 }
 @frozen public struct EdgeMap<Value>: Hashable, Sendable    // a handle: an identity token, no values
 @frozen public struct VertexMap<Value>: Hashable, Sendable
 ```
 
+- **Values are total.** Every element has the map's default until it is given another value, as
+  in LEMON, the BGL and petgraph, so a read is one load with no `Optional` and no doubled stride.
+  `addEdgeMap(of: T.self)` is the map of `T?` with default `nil`, which keeps the first version's
+  spelling and meaning (`graph[m, ofEdgeAt: p] = nil` clears a value).
 - **Storage.** Each attached map's values sit inside the graph, type-erased in a class box: a
-  typed access is a downcast the handle's token has already made safe, and the graph clears a
-  position through closures made in `addEdgeMap(of:)`, specialized for `Value` there. Values sit
-  in pages of 1024 positions, allocated on the first value set in a page and freed when its last
-  value goes: O(live values + pages). A box shared with a copy is copied before a write, sharing
-  the pages, so values are copied a page at a time. Measured (benchmark graph, every other edge
-  removed by position with two maps attached, a third of the positions holding values; and 10⁶
-  churn steps, each setting one value): an existential struct with `as!` casts took 126 ms and
-  391 ms; a generic class's overridden methods, which run unspecialized through the vtable,
-  154 and 506 ms; the closures 39 and 158 ms, against 22 and 109 ms with no map.
-- **No stale values, no cleanup call.** Every removal clears the removed element's entry in every
-  attached map in the same mutation: `remove(edgeAt:)`, `remove(edge:)`, every
-  `removeAllEdges` overload, `remove(_:)` with its incident edges, and the resets (`removeAll`
-  empties every map, `removeAllEdges` every edge map; the maps stay attached). Clearing is
-  O(maps) per removed element and allocates nothing (a position without a value is not written,
-  so a page shared with a copy is not copied). Setting a value at a dead position, or for a vertex
-  not in the graph, traps; reading one answers `nil`, and setting `nil` is always allowed.
+  typed access is a downcast the handle's token has already made safe, and the graph maintains a
+  map through closures made where it was attached, specialized for `Value` there. Values sit in
+  pages of 1024 positions, allocated on the first value set in a page (filled with the default)
+  and freed when the graph frees its own page of those positions, so memory follows the live
+  elements as the graph's does. A box shared with a copy is copied before a write, sharing the
+  pages, so values are copied a page at a time. Measured with the first version (benchmark graph,
+  every other edge removed by position with two maps attached, a third of the positions holding
+  values; and 10⁶ churn steps, each setting one value): an existential struct with `as!` casts
+  took 126 ms and 391 ms; a generic class's overridden methods, which run unspecialized through
+  the vtable, 154 and 506 ms; the closures 39 and 158 ms, against 22 and 109 ms with no map.
+- **A removed element has no value.** Every removal removes the element's values in the same
+  mutation: `remove(edgeAt:)`, `remove(edge:)`, every `removeAllEdges` overload, `remove(_:)` with
+  its incident edges, and the resets (`removeAll` empties every map, `removeAllEdges` every edge
+  map; the maps stay attached). Reading or writing a dead element, or a vertex not in the graph,
+  traps; the `checked` subscripts throw `EdgeNotFound` / `VertexNotFound` instead. Positions are
+  never reused, so a dead position is never read through the graph: insertion writes nothing (a
+  new position reads the default), and a removal writes only to release a value that holds
+  references (`String`, a class); a trivial value (`Int`, `Double`) is left in place, O(1) and no
+  write. `values(of:)` does not check liveness: at a dead position it reads an unspecified value.
 - **Re-pointing keeps values:** `changeTarget` / `changeSource` keep the position, so they keep the
   edge's values.
 - **Copies** carry their maps, copy-on-write by page: mutating a copy, values included, never
@@ -204,7 +220,8 @@ extension StableDirectedGraph {
 - **Handles.** A handle holds the map's identity token (a class instance shared by every copy of
   the graph that added it) and a hint to where the map sits. It works on that graph and every
   copy, until `removeEdgeMap` / `removeVertexMap` on that copy. On an unrelated graph, on a copy
-  that later added its own maps, or after removal, the token is not found and the access traps.
+  that later added its own maps, or after removal, the token is not found and the access traps,
+  the checked subscripts included (a programming error, not a missing element).
   A token per map rather than one per graph lineage, so two copies that each add a map cannot
   confuse their handles. Handles are equal when they name the same map.
 - **`Value: Sendable`** is required to attach a map: the graph is `Sendable` when `Vertex` is, and
@@ -213,10 +230,12 @@ extension StableDirectedGraph {
   contents are equal, and a decoded graph has no maps. Map values have no general encoding (any
   `Value`), and a handle cannot be restored against a decoded graph; callers encode their values
   beside the graph if they need them.
+- **Generation.** `generation` (GraphProtocols' `GraphGeneration`) changes with every structural
+  mutation; map writes and `reserveCapacity` leave it.
 
-Cases: SG-131 – SG-134; misuse traps in extra_traps.swift. The spellings are the coordinator's
-usage guide's: `graph[labels, ofEdgeAt: p]`, `graph[names, of: vertex]`; the labels keep
-`Vertex == Int` unambiguous.
+Cases: SG-131 – SG-134, SG-139 – SG-141; misuse traps in extra_traps.swift. The spellings are the
+coordinator's usage guide's: `graph[labels, ofEdgeAt: p]`, `graph[names, of: vertex]`; the labels
+keep `Vertex == Int` unambiguous.
 
 ## Re-pointing an edge: `changeTarget(ofEdgeAt:to:)` and `changeSource(ofEdgeAt:to:)`
 

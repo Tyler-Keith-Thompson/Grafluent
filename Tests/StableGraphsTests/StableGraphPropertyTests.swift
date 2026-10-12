@@ -141,8 +141,8 @@ struct StableGraphPropertyTests {
                 // The maps hold values only at live positions: the removal cleared the rest.
                 edgeValues = edgeValues.filter { p, _ in edges.contains { $0.position == p } }
                 vertexValues = vertexValues.filter { p, _ in vertices.contains { $0.position == p } }
-                #expect((0 ..< edgeEnd).filter { graph[labels, ofEdgeAt: $0] != nil } == edgeValues.keys.sorted(), "\(context)")
-                #expect((0 ..< vertexEnd).filter { graph[tags, ofVertexAt: $0] != nil } == vertexValues.keys.sorted(), "\(context)")
+                #expect((0 ..< edgeEnd).filter { (try? graph[labels, checkedEdgeAt: $0]) != nil } == edgeValues.keys.sorted(), "\(context)")
+                #expect((0 ..< vertexEnd).filter { (try? graph[tags, checkedVertexAt: $0]) != nil } == vertexValues.keys.sorted(), "\(context)")
                 for (p, value) in edgeValues { #expect(graph[labels, ofEdgeAt: p] == value, "\(context)") }
                 // The whole state.
                 #expect(Array(graph.vertices) == vertices.map(\.vertex), "\(context)")

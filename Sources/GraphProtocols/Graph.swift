@@ -189,9 +189,19 @@ public protocol Graph<Vertex> {
             _ edges: UnsafeBufferPointer<Int>, _ edgeRows: UnsafeBufferPointer<Int>
         ) -> Result
     ) -> Result?
+
+    /// The graph's current generation, which every structural mutation replaces: a structure
+    /// derived from the graph stores it and asks `GraphGeneration.isCurrent(for:)` before relying
+    /// on the graph again. Default: `GraphGeneration.untracked`, current for no graph. A wrapper
+    /// reports its base's.
+    var generation: GraphGeneration { get }
 }
 
 extension Graph {
+    /// `GraphGeneration.untracked`: a conformer that does not track its mutations.
+    @inlinable
+    public var generation: GraphGeneration { .untracked }
+
     @inlinable
     public func oppositeVertex(to vertex: Vertex, acrossEdgeAt position: Edges.Index) -> Vertex {
         edges[position].oppositeVertex(to: vertex)

@@ -29,19 +29,27 @@ struct DirectedAcyclicGraphReviewTests {
         #expect(graph[label, of: "a"] == "start" && graph[label, of: "c"] == "end" && graph[label, ofVertexAt: 1] == nil)
         // The base holds the same maps.
         #expect(graph.base[weight, ofEdgeAt: 1] == 7 && graph.base[label, of: "c"] == "end")
-        // Reading a non-vertex is nil.
-        #expect(graph[label, of: "z"] == nil)
+        // A non-vertex has no value: the checked read throws.
+        #expect(throws: VertexNotFound.self) { try graph[label, checked: "z"] }
+        #expect(try graph[label, checked: "a"] == "start" && graph[label, checkedVertexAt: 2] == "end")
         // A reordering keeps every position, so the values stay with their edges.
         #expect(try graph.insert(edge: DirectedEdge(from: "c", to: "d")) == 2)
         #expect(try graph.insert(edge: DirectedEdge(from: "x", to: "a")) == 3)
         #expect(Array(graph.topologicalOrder) == ["x", "a", "b", "c", "d"])
         graph[weight, ofEdgeAt: 3] = 1
         #expect(graph[weight, ofEdgeAt: 0] == 5 && graph[weight, ofEdgeAt: 3] == 1)
-        // Removing through the wrapper clears the removed elements' values.
+        // Removing through the wrapper removes the removed elements' values.
         _ = graph.remove(edgeAt: 0)
-        #expect(graph[weight, ofEdgeAt: 0] == nil && graph[weight, ofEdgeAt: 1] == 7)
+        #expect((try? graph[weight, checkedEdgeAt: 0]) == nil && graph[weight, ofEdgeAt: 1] == 7)
         _ = graph.remove("c")
-        #expect(graph[label, ofVertexAt: 2] == nil && graph[weight, ofEdgeAt: 1] == nil && graph[weight, ofEdgeAt: 3] == 1)
+        #expect((try? graph[label, checkedVertexAt: 2]) == nil && (try? graph[weight, checkedEdgeAt: 1]) == nil && graph[weight, ofEdgeAt: 3] == 1)
+        #expect(throws: EdgeNotFound.self) { try graph[weight, checkedEdgeAt: 1] }
+        // A snapshot by position, as algorithms read it, and a map with a default.
+        let w = graph.values(of: weight)
+        #expect(w[3] == 1 && graph.values(of: label)[0] == "start")
+        let lengths = graph.addEdgeMap(default: 2.5)
+        #expect(graph[lengths, ofEdgeAt: 3] == 2.5 && graph.values(of: lengths)[3] == 2.5)
+        graph.removeEdgeMap(lengths)
         // A copy carries the maps, copy-on-write.
         var copy = graph
         copy[weight, ofEdgeAt: 3] = 100

@@ -117,6 +117,53 @@ let benchmarks: @Sendable () -> Void = {
             blackHole(g)
         }
     }
+    // Reading attached values the way an algorithm does, by the position of each live edge: the
+    // paged `values(of:)` snapshot against a side array of `edgePositionBound` values, on the
+    // churned graph (holes and freed pages) and on the dense instance.
+    var churnedWeighted = churned
+    let churnedWeights = churnedWeighted.addEdgeMap(default: 1.0)
+    var churnedSide = [Double](repeating: 1.0, count: churned.edgePositionBound)
+    for p in churned.edges.indices {
+        churnedWeighted[churnedWeights, ofEdgeAt: p] = Double(p & 7)
+        churnedSide[p] = Double(p & 7)
+    }
+    var weighted = stable
+    let weights = weighted.addEdgeMap(default: 1.0)
+    var side = [Double](repeating: 1.0, count: stable.edgePositionBound)
+    for p in stable.edges.indices {
+        weighted[weights, ofEdgeAt: p] = Double(p & 7)
+        side[p] = Double(p & 7)
+    }
+    Benchmark("StableGraphs: BASELINE side array of edgePositionBound weights, read at every out-edge") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var total = 0.0
+            for v in weighted.vertices { for p in weighted.outEdges(of: v) { total += side[p] } }
+            blackHole(total)
+        }
+    }
+    Benchmark("StableGraphs: values(of:) of an attached EdgeMap, read at every out-edge") { benchmark in
+        for _ in benchmark.scaledIterations {
+            let w = weighted.values(of: weights)
+            var total = 0.0
+            for v in weighted.vertices { for p in weighted.outEdges(of: v) { total += w[p] } }
+            blackHole(total)
+        }
+    }
+    Benchmark("StableGraphs: BASELINE side array of edgePositionBound weights, churned 10×, read at every edge") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var total = 0.0
+            for p in churnedWeighted.edges.indices { total += churnedSide[p] }
+            blackHole(total)
+        }
+    }
+    Benchmark("StableGraphs: values(of:) of an attached EdgeMap, churned 10×, read at every edge") { benchmark in
+        for _ in benchmark.scaledIterations {
+            let w = churnedWeighted.values(of: churnedWeights)
+            var total = 0.0
+            for p in churnedWeighted.edges.indices { total += w[p] }
+            blackHole(total)
+        }
+    }
     Benchmark("StableGraphs: StableDirectedGraph remove(edge:) for half the edges") { benchmark in
         for _ in benchmark.scaledIterations {
             // A fresh build, so no page is shared with `stable` and the measurement copies nothing.
@@ -310,7 +357,7 @@ let benchmarks: @Sendable () -> Void = {
             g.remove(edgeAt: oldest)
         }
         let bytes = bytesInUse() - before
-        precondition(g.edgeCount == 5_000 && g[labels, ofEdgeAt: steps + 4_999] == steps - 1 && g[labels, ofEdgeAt: 0] == nil)
+        precondition(g.edgeCount == 5_000 && g[labels, ofEdgeAt: steps + 4_999] == steps - 1 && (try? g[labels, checkedEdgeAt: 0]) == nil)
         return bytes
     }
     // Rows keep the largest capacity they reached, so the footprint settles once the degrees'
