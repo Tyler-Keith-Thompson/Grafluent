@@ -390,26 +390,6 @@ final class _AutomorphismSearch {
         kept.sort()
         return (kept.map { generators[$0] }, lengths)
     }
-
-    /// The orbit of every vertex under the whole group, as the smallest vertex of the orbit.
-    func orbitRepresentatives() -> [Int] {
-        var parent = Array(0 ..< n)
-        func find(_ v: Int) -> Int {
-            var x = v
-            while parent[x] != x {
-                parent[x] = parent[parent[x]]
-                x = parent[x]
-            }
-            return x
-        }
-        for gamma in generators {
-            for v in 0 ..< n {
-                let a = find(v), b = find(gamma[v])
-                if a < b { parent[b] = a } else if b < a { parent[a] = b }
-            }
-        }
-        return (0 ..< n).map(find)
-    }
 }
 
 /// Whether `images` maps every out-row of `g` onto the out-row of its image in `h`, colours
