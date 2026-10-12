@@ -126,11 +126,22 @@ extension DirectedGraph {
     /// vertices in `vertices` order.
     ///
     /// Each component's first vertex is its earliest in `vertices`, so on a graph whose vertex
-    /// positions are insertion order (`StableDirectedGraph`), one sort puts the components in
-    /// insertion order:
+    /// positions are insertion order (`StableDirectedGraph`), one sort by that vertex's position
+    /// puts the components in insertion order, O(C log C) for C components:
     ///
     /// ```swift
-    /// let inInsertionOrder = graph.stronglyConnectedComponents().sorted { graph.vertices.firstIndex(of: $0.first!)! < graph.vertices.firstIndex(of: $1.first!)! }
+    /// let inInsertionOrder = graph.stronglyConnectedComponents()
+    ///     .sorted { graph.vertexPosition(of: $0.first!) < graph.vertexPosition(of: $1.first!) }
+    /// ```
+    ///
+    /// On any graph, one pass over `vertices` lists them in `vertices` order, O(V):
+    ///
+    /// ```swift
+    /// let components = graph.stronglyConnectedComponents()
+    /// let inVertexOrder = graph.vertices.compactMap { vertex in
+    ///     let component = components[components.component(of: vertex)]
+    ///     return component.first == vertex ? component : nil
+    /// }
     /// ```
     @inlinable
     public func stronglyConnectedComponents() -> Components<Self> {
@@ -186,7 +197,7 @@ extension DirectedGraph {
         // Rows are ascending, without repeats or loops, and in range: no validation needed.
         let graph = CompressedSparseRow(_offsets: rowOffsets, _targets: targets)
         let components = Components(vertices: vertices, labels: labels, offsets: offsets, order: order)
-        return Condensation(components: components, graph: graph)
+        return Condensation(components: components, graph: graph, sourceGeneration: generation)
     }
 
     /// The attracting components: the strongly connected components that no edge leaves, in
@@ -234,11 +245,21 @@ public struct Condensation<G: DirectedGraph> {
     /// edge goes from a higher index to a lower one, so it is acyclic.
     public let graph: CompressedSparseRow
 
+    /// The generation of the graph the condensation was computed from.
+    public let sourceGeneration: GraphGeneration
+
     @inlinable
-    init(components: Components<G>, graph: CompressedSparseRow) {
+    init(components: Components<G>, graph: CompressedSparseRow, sourceGeneration: GraphGeneration) {
         self.components = components
         self.graph = graph
+        self.sourceGeneration = sourceGeneration
     }
+
+    /// Whether `graph` has not been structurally mutated since the condensation was computed from
+    /// it (or from a copy of it), so its components and edges still describe `graph`. False for a
+    /// graph that does not track generations. O(1).
+    @inlinable
+    public func isCurrent(for graph: G) -> Bool { sourceGeneration.isCurrent(for: graph.generation) }
 }
 
 extension Condensation: Sendable where G: Sendable, G.Vertex: Sendable {}

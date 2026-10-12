@@ -50,6 +50,19 @@ struct AdjacencyList<Vertex: Hashable>
     mutating func removeAll(keepingCapacity: Bool = false)
     mutating func removeAllEdges(keepingCapacity: Bool = false)
     mutating func reserveCapacity(vertexCount: Int, edgeCount: Int)
+
+    // Attached maps (PropertyGraph), also on UndirectedAdjacencyList; dense, moved with every
+    // swap-remove of an edge or a vertex.
+    mutating func addEdgeMap<Value>(default: Value) -> EdgeMap<Value>
+    mutating func addVertexMap<Value>(default: Value) -> VertexMap<Value>
+    mutating func addEdgeMap<T>(of: T.Type) -> EdgeMap<T?>       // default nil
+    mutating func removeEdgeMap(_:), removeVertexMap(_:)
+    subscript(EdgeMap<V>, ofEdgeAt: Int) -> V { get set }       // traps outside 0..<edgeCount
+    subscript(VertexMap<V>, ofVertexAt: Int) -> V { get set }   // traps outside 0..<vertexCount
+    subscript(VertexMap<V>, of: Vertex) -> V { get set }        // traps for a non-vertex
+    subscript(EdgeMap<V>, checkedEdgeAt:), (VertexMap<V>, checkedVertexAt:), (VertexMap<V>, checked:)  // throw
+    func values(of: EdgeMap<V>) -> EdgeValues<Self, V>          // snapshot, read like an array
+    var generation: GraphGeneration                             // new on every structural mutation
 ```
 
 Edge operations take an `edge:` label so they can never be confused with vertex operations, even
@@ -104,6 +117,10 @@ named fixtures and the vertex types used to stress `Hashable` (`Collider`, `Hash
 | `AdjacencyListCodableTests.swift` | JSON and property list round trips |
 | `AdjacencyListDescriptionTests.swift` | `description`, `debugDescription` and the mirror |
 | `AdjacencyListOverloadTests.swift` | Vertex and edge operations stay distinct when the vertex type could hold an edge |
+| `AdjacencyListMapTests.swift` | Attached maps on both lists: defaults, values moved by edge and vertex removal, clears, handles, copies, coding, `values(of:)`, views (AM-01 – AM-09) |
+| `AdjacencyListMapPreconditionTests.swift` | Exit tests: a map value of an element not in the graph, and stale or foreign handles (AM-10) |
+| `AdjacencyListMapPropertyTests.swift` | swift-property-based model of every map under random mutations, with shrinking (AM-12) |
+| `AdjacencyListGenerationTests.swift` | Which calls start a generation, copies, built and decoded graphs (AM-11) |
 | `AdjacencyListCheckedTests.swift` | The `checked:` lookups against their trapping spellings, throwing for a non-vertex and after a removal moved a slot; `source` / `target(checkedEdgeAt:)` in and out of range; `insert(checked:)` between existing vertices, and throwing with nothing changed for a missing endpoint |
 
 Case IDs in test names (C-04, V-06, Q-14, ...) refer to the catalog of cases (`Tests/Catalogs/AdjacencyList/cases.md`) harvested from

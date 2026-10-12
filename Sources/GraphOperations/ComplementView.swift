@@ -37,8 +37,11 @@ extension Graph {
 /// An edge's position is its cell of the adjacency matrix, `Cell(source: i, target: j)`, ordered
 /// row-major as `AdjacencyMatrix`'s positions are; an undirected edge has `source < target`. There
 /// are no edge indices.
+///
+/// As a `GraphAdaptor`, its generation is the base's, and it reads the base's attached vertex
+/// maps (`[map, of:]`, `values(of:)`). Its edges are not the base's, so no edge map reads through.
 @frozen
-public struct ComplementView<Base> {
+public struct ComplementView<Base>: GraphAdaptor {
     /// The graph the view complements.
     public let base: Base
 

@@ -47,6 +47,7 @@ fix-up in row swap-remove) were both caught by the checks.
 | `contains(edge:)` (at least one copy), O(1) degrees, `oppositeVertex(to:acrossEdgeAt:)`, `source(ofEdgeAt:)`, `target(ofEdgeAt:)` | protocol | Faster versions of protocol defaults, as the simple lists have |
 | Vertex indices (slots), edge indices (positions), `neighborIndices` / `incidentEdgeIndices` / `successorIndices` / `predecessorIndices` as stored rows, `_withIncidentIndexRows` | protocol | Every algorithm module runs on these at the simple lists' speed. Undirected algorithms take the stored-rows path of `_runOnUndirectedRows` |
 | `Equatable`, `Hashable` (vertex set and edge **multiset**), `Codable` (the simple lists' format), `Sendable`, `CustomStringConvertible`, `CustomDebugStringConvertible`, `CustomReflectable` | | The README's representation rule |
+| `PropertyGraph` (attached `EdgeMap` / `VertexMap`, dense, swap-moved), `generation` | protocol | Every mutable representation keeps its maps and stamps its generations (the attached-maps plan); the multigraphs are `GraphDelegator`s, so theirs are the base's |
 
 **Phase 2** (here, in this order)
 
@@ -343,8 +344,27 @@ arcs, a loop included (MG-174).
   loop at a missing vertex reports the missing vertex (MG-196 – MG-201).
   Opposite arcs are fine in `DirectedMultigraph` (MG-013).
 * `init?(_ graph:)` from a loop-free graph keeps positions (MG-169, MG-170). `Pseudograph(m)` and
-  `DirectedPseudograph(dm)` are O(1): the wrapped storage (MG-172, MG-177).
-* Everything else is the wrapped pseudograph's, forwarded.
+  `DirectedPseudograph(dm)` are O(1): the wrapped storage, attached maps included (MG-172, MG-177).
+* Everything else is the wrapped pseudograph's: each is a `GraphDelegator` (`base`, `typealias
+  Base`), whose defaults forward every read requirement, the attached maps and `generation`.
+
+### Attached maps and generations
+
+* `addEdgeMap(default:)` / `addVertexMap(default:)` attach a map whose every value is the
+  default; `addEdgeMap(of: T.self)` is the map of `T?` whose default is `nil`. Values are dense,
+  one per position or slot, read by `[w, ofEdgeAt: p]`, `[t, of: v]`, `[t, ofVertexAt: i]` and
+  `values(of:)`.
+* Every removal path swap-moves the values with the storage: the removed copy's (or vertex's)
+  values go, and the edge (or slot) that moves into the hole takes its own along. Removing a
+  vertex removes its edges' values first. A new edge or vertex reads the default.
+  `removeAllEdges()` empties the edge maps and `removeAll()` every map; both stay attached
+  (MG-212 – MG-226).
+* A position outside `0..<edgeCount` or a non-vertex traps on the plain subscripts and throws
+  `EdgeNotFound` / `VertexNotFound` on the `checked` ones. A handle traps on another graph or after
+  `remove…Map`.
+* `generation` advances on every structural mutation (an insertion, a removal, a reset of a
+  non-empty graph), not on a call that changes nothing, a map write or `reserveCapacity`. Bulk
+  builds and decoding stamp one.
 
 ### Construction and conversion
 

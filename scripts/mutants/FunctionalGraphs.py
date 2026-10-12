@@ -145,3 +145,13 @@ MUTANTS = [
     Mutant("dckbound", D, "guard UInt(bitPattern: vertex) < UInt(bitPattern: _records.count) else { throw VertexNotFound() }", "guard UInt(bitPattern: vertex) <= UInt(bitPattern: _records.count) else { throw VertexNotFound() }", mode="stmt", nth=0),
     Mutant("dckthrow", D, "guard UInt(bitPattern: vertex) < UInt(bitPattern: _records.count) else { throw VertexNotFound() }", "throw VertexNotFound()", mode="stmt", nth=6),
 ]
+
+# Attached maps and the generation (FunctionalGraph+PropertyGraph.swift; the stamp in
+# FunctionalGraph.swift). The trapping subscripts' range checks get no mutants: the dense
+# storage's own array read traps at the same positions, so removing one changes only the message.
+P = "FunctionalGraph+PropertyGraph.swift"
+MUTANTS += [
+    Mutant("mapstamp", F, "        _generation.advance()", "", mode="stmt"),
+    Mutant("mapcheckededge", P, "guard contains(position) else { throw EdgeNotFound() }", "", mode="stmt"),
+    Mutant("mapcheckedvertex", P, "guard contains(position) else { throw VertexNotFound() }", "", mode="stmt"),
+]

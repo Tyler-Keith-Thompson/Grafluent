@@ -64,6 +64,7 @@ class U:
         s.prev, s.next, s.uid, s.cls = [], [], [], {}          # cls: key -> [first, last, count]
         s.stamp = 0
         s.fresh = True  # only insertions so far (rows must equal the reference conformer's)
+        s.emaps, s.vmaps = {}, {}  # attached maps: name -> [default, {edge uid or vertex: value}]
 
     @staticmethod
     def key(a, b):
@@ -102,6 +103,20 @@ class U:
             s.prev.append(-1); s.next.append(-1); s.cls[k] = [p, p, 1]
         return p
 
+    # Attached maps, by identity: an edge's value is keyed by its insertion stamp (which moves
+    # with it through every swap-remove), a vertex's by the vertex, so the swap-moved storage of
+    # the implementation is checked against values that cannot move.
+    def _forget_edge(s, p):
+        for m in s.emaps.values(): m[1].pop(s.uid[p], None)
+
+    def edge_value(s, name, p):
+        d, vals = s.emaps[name]
+        return vals.get(s.uid[p], d)
+
+    def vertex_value(s, name, x):
+        d, vals = s.vmaps[name]
+        return vals.get(x, d)
+
     def _unlink(s, p):
         r = s.rec[p]
         k = s.key(r[0], r[1])
@@ -127,6 +142,7 @@ class U:
 
     def _detach(s, p):
         s.fresh = False
+        s._forget_edge(p)
         r = list(s.rec[p])
         s._unlink(p)
         if r[2] > r[3] or r[0] != r[1]:
@@ -174,6 +190,7 @@ class U:
             s.nb[slot], s.inc[slot] = s.nb[last], s.inc[last]
         s.V.pop(); s.nb.pop(); s.inc.pop()
         del s.slot[x]
+        for m in s.vmaps.values(): m[1].pop(x, None)
         return x
 
     def _class(s, a, b):
@@ -223,12 +240,17 @@ class U:
 
     def remove_all_edges(s):
         s.fresh = False
+        for m in s.emaps.values(): m[1].clear()
         s.nb = [[] for _ in s.V]; s.inc = [[] for _ in s.V]
         s.rec, s.prev, s.next, s.uid, s.cls = [], [], [], [], {}
 
     def remove_all(s):
+        em, vm = s.emaps, s.vmaps
         s.__init__(s.kind)
         s.fresh = False
+        # The maps stay attached, emptied.
+        for m in list(em.values()) + list(vm.values()): m[1].clear()
+        s.emaps, s.vmaps = em, vm
 
     def sep(s):
         return "–"
@@ -290,6 +312,7 @@ class D:
         s.prev, s.next, s.uid, s.cls = [], [], [], {}
         s.stamp = 0
         s.fresh = True
+        s.emaps, s.vmaps = {}, {}
 
     def _append_slot(s, x):
         s.slot[x] = len(s.V)
@@ -339,6 +362,7 @@ class D:
 
     def _detach(s, p):
         s.fresh = False
+        s._forget_edge(p)
         r = list(s.rec[p])
         s._unlink(p)
         swap_remove(s.out[r[0]], r[2])
@@ -394,6 +418,7 @@ class D:
         for a in (s.out, s.oute, s.inn, s.ine):
             a.pop()
         del s.slot[x]
+        for m in s.vmaps.values(): m[1].pop(x, None)
         return x
 
     def _class(s, a, b):
@@ -402,6 +427,9 @@ class D:
         return s.cls.get((s.slot[a], s.slot[b]))
 
     remove_edge = U.remove_edge
+    _forget_edge = U._forget_edge
+    edge_value = U.edge_value
+    vertex_value = U.vertex_value
     remove_edges_between = U.remove_edges_between
     edges_between = U.edges_between
     count_between = U.count_between
@@ -426,13 +454,18 @@ class D:
 
     def remove_all_edges(s):
         s.fresh = False
+        for m in s.emaps.values(): m[1].clear()
         for name in ("out", "oute", "inn", "ine"):
             setattr(s, name, [[] for _ in s.V])
         s.rec, s.prev, s.next, s.uid, s.cls = [], [], [], [], {}
 
     def remove_all(s):
+        em, vm = s.emaps, s.vmaps
         s.__init__(s.kind)
         s.fresh = False
+        # The maps stay attached, emptied.
+        for m in list(em.values()) + list(vm.values()): m[1].clear()
+        s.emaps, s.vmaps = em, vm
 
     def state(s):
         def rows(nb, es):
@@ -512,8 +545,24 @@ class Shadow:
         gone = before - set(s.G[a][b]) if s.G.has_edge(a, b) else before
         assert gone == {s.key[removed_uid]}, (gone, removed_uid)
 
+    def set_edge_value(s, name, p, value):
+        a, b = s.g.edge(p)
+        s.G.edges[a, b, s.key[s.g.uid[p]]][name] = value
+
+    def set_vertex_value(s, name, x, value):
+        s.G.nodes[x][name] = value
+
     def check(s):
         g, G = s.g, s.G
+        # Attached maps against NetworkX's edge and node attributes, which follow the edges and
+        # vertices themselves: an attribute never set reads the map's default.
+        for name, (d, _) in g.emaps.items():
+            for p in range(len(g.rec)):
+                a, b = g.edge(p)
+                assert G.edges[a, b, s.key[g.uid[p]]].get(name, d) == g.edge_value(name, p), (name, p)
+        for name, (d, _) in g.vmaps.items():
+            for x in g.V:
+                assert G.nodes[x].get(name, d) == g.vertex_value(name, x), (name, x)
         assert set(G.nodes) == set(g.V)
         assert G.number_of_edges() == len(g.rec)
         assert nx.number_of_selfloops(G) == sum(1 for a, b in g.edges() if a == b)
@@ -630,7 +679,46 @@ def apply(g, sh, op):
     if name == "endC":
         if not (0 <= op[1] < len(g.rec)): raise Thrown("EdgeNotFound")
         return show_edge(g, g.edge(op[1]))
+    # Attached maps (`PropertyGraph`): ("addEM"/"addVM", name, default) attach a map with a
+    # default, ("addEMof"/"addVMof", name, type) a map of an Optional whose default is nil.
+    if name in ("addEM", "addEMof"):
+        g.emaps[op[1]] = [op[2] if name == "addEM" else None, {}]; return "()"
+    if name in ("addVM", "addVMof"):
+        g.vmaps[op[1]] = [op[2] if name == "addVM" else None, {}]; return "()"
+    if name == "rmEM":
+        del g.emaps[op[1]]; return "()"
+    if name == "rmVM":
+        del g.vmaps[op[1]]; return "()"
+    if name in ("setE", "getE", "getEC"):
+        if not (0 <= op[2] < len(g.rec)):
+            if name == "getEC": raise Thrown("EdgeNotFound")
+            raise Trap("no edge at the position")
+        if name == "setE":
+            d, vals = g.emaps[op[1]]
+            vals[g.uid[op[2]]] = op[3]; sh.set_edge_value(op[1], op[2], op[3]); return "()"
+        return mv(g.edge_value(op[1], op[2]))
+    if name in ("setV", "getV", "getVC"):
+        if op[2] not in g.slot:
+            if name == "getVC": raise Thrown("VertexNotFound")
+            raise Trap("not a vertex")
+        if name == "setV":
+            g.vmaps[op[1]][1][op[2]] = op[3]; sh.set_vertex_value(op[1], op[2], op[3]); return "()"
+        return mv(g.vertex_value(op[1], op[2]))
+    if name in ("getVAt", "getVAtC"):
+        if not (0 <= op[2] < len(g.V)):
+            if name == "getVAtC": raise Thrown("VertexNotFound")
+            raise Trap("no vertex at the position")
+        return mv(g.vertex_value(op[1], g.V[op[2]]))
+    if name == "valsE":
+        return "[%s]" % ", ".join(mv(g.edge_value(op[1], p)) for p in range(len(g.rec)))
+    if name == "valsV":
+        return "[%s]" % ", ".join(mv(g.vertex_value(op[1], x)) for x in g.V)
     raise ValueError(op)
+
+
+def mv(x):
+    """A map value as the catalog prints it (and Swift spells it): nil for an absent Optional."""
+    return "nil" if x is None else fmt(x)
 
 
 def show_op(g, op):
@@ -655,6 +743,22 @@ def show_op(g, op):
         "rowC": lambda: "rows(checked: %s)" % fmt(op[1]),
         "idxC": lambda: "vertexIndex(checked: %s)" % fmt(op[1]),
         "endC": lambda: "ends(checkedEdgeAt: %d)" % op[1],
+        "addEM": lambda: "let %s = addEdgeMap(default: %s)" % (op[1], mv(op[2])),
+        "addEMof": lambda: "let %s = addEdgeMap(of: %s.self)" % (op[1], op[2]),
+        "addVM": lambda: "let %s = addVertexMap(default: %s)" % (op[1], mv(op[2])),
+        "addVMof": lambda: "let %s = addVertexMap(of: %s.self)" % (op[1], op[2]),
+        "rmEM": lambda: "removeEdgeMap(%s)" % op[1],
+        "rmVM": lambda: "removeVertexMap(%s)" % op[1],
+        "setE": lambda: "[%s, ofEdgeAt: %d] = %s" % (op[1], op[2], mv(op[3])),
+        "getE": lambda: "[%s, ofEdgeAt: %d]" % (op[1], op[2]),
+        "getEC": lambda: "[%s, checkedEdgeAt: %d]" % (op[1], op[2]),
+        "setV": lambda: "[%s, of: %s] = %s" % (op[1], fmt(op[2]), mv(op[3])),
+        "getV": lambda: "[%s, of: %s]" % (op[1], fmt(op[2])),
+        "getVC": lambda: "[%s, checked: %s]" % (op[1], fmt(op[2])),
+        "getVAt": lambda: "[%s, ofVertexAt: %d]" % (op[1], op[2]),
+        "getVAtC": lambda: "[%s, checkedVertexAt: %d]" % (op[1], op[2]),
+        "valsE": lambda: "values(of: %s)" % op[1],
+        "valsV": lambda: "values(of: %s)" % op[1],
     }[name]()
 
 
@@ -1065,6 +1169,49 @@ def define():
     case("Checked", "string vertices", P, ["a"], [], [("insC", "a", "b"), ("insV", "b"), ("insC", "a", "b"), ("rowC", "b")])
     case("Checked", "lookups after a vertex removal see the moved slot", P, [], [(0, 1), (1, 2), (2, 0)], [("rmV", 0), ("idxC", 2), ("rowC", 2), ("idxC", 0)])
 
+    # Attached maps (PropertyGraph): values follow their edge copy or vertex through every
+    # swap-remove; the multigraphs' maps are their base's.
+    case("Maps", "edge map with a default: set, read, the last edge's value moves into the hole, a new edge reads the default", P, [], [(0, 1), (1, 2), (2, 0)],
+         [("addEM", "w", 1.5), ("setE", "w", 0, 2.5), ("setE", "w", 2, 4.0), ("valsE", "w"), ("rmAt", 0), ("getE", "w", 0), ("valsE", "w"), ("ins", 3, 3), ("valsE", "w")])
+    case("Maps", "map of an Optional: nil until set, nil clears", P, [], [(0, 1), (0, 1)],
+         [("addEMof", "labels", "String"), ("getE", "labels", 0), ("setE", "labels", 1, "b"), ("setE", "labels", 0, "a"), ("getE", "labels", 1), ("setE", "labels", 1, None), ("valsE", "labels")])
+    case("Maps", "remove(edge:) removes the newest copy's value; the moved copy keeps its own", P, [], [(0, 1), (0, 1), (1, 2), (0, 1)],
+         [("addEMof", "labels", "String"), ("setE", "labels", 0, "a"), ("setE", "labels", 1, "b"), ("setE", "labels", 2, "c"), ("setE", "labels", 3, "d"),
+          ("rm", 0, 1), ("valsE", "labels"), ("rm", 1, 0), ("valsE", "labels"), ("between", 0, 1)])
+    case("Maps", "removeAllEdges(between:and:) removes every copy's value", P, [], [(0, 1), (2, 3), (1, 0), (0, 0), (0, 1)],
+         [("addEM", "w", 0), ("setE", "w", 0, 10), ("setE", "w", 1, 11), ("setE", "w", 2, 12), ("setE", "w", 3, 13), ("setE", "w", 4, 14),
+          ("rmAll", 0, 1), ("valsE", "w")])
+    case("Maps", "vertex removal removes its edges' and its own values; the last slot's vertex keeps its value", P, [], [(0, 1), (1, 2), (2, 2), (2, 3), (3, 0), (1, 3)],
+         [("addEMof", "w", "Int"), ("addVM", "name", "?"), ("setE", "w", 0, 0), ("setE", "w", 1, 1), ("setE", "w", 2, 2), ("setE", "w", 3, 3),
+          ("setE", "w", 4, 4), ("setE", "w", 5, 5), ("setV", "name", 0, "zero"), ("setV", "name", 3, "three"), ("setV", "name", 1, "one"),
+          ("rmV", 1), ("valsE", "w"), ("valsV", "name"), ("getV", "name", 3), ("getVAt", "name", 1), ("ins", 1, 0), ("getV", "name", 1), ("valsE", "w")])
+    case("Maps", "checked reads throw for a non-vertex and a position out of range; plain reads at live positions", P, [5], [(0, 1), (1, 1)],
+         [("addEM", "w", 2), ("addVM", "t", 0), ("setV", "t", 1, 7), ("getEC", "w", 1), ("getEC", "w", 2), ("getEC", "w", -1),
+          ("getVC", "t", 1), ("getVC", "t", 9), ("getVAtC", "t", 2), ("getVAtC", "t", 3), ("getVAtC", "t", -1), ("rmAt", 1), ("getEC", "w", 1)])
+    case("Maps", "removeAllEdges() empties the edge maps, which stay attached; vertex maps keep their values", P, [], [(0, 1), (1, 2)],
+         [("addEM", "w", 1), ("addVM", "t", 0), ("setE", "w", 1, 5), ("setV", "t", 2, 9), ("rmAllEdges",), ("valsE", "w"), ("ins", 2, 0), ("valsE", "w"), ("valsV", "t")])
+    case("Maps", "removeAll() empties every map; a re-inserted vertex reads the default", P, [], [(0, 1), (1, 2)],
+         [("addEM", "w", 1), ("addVM", "t", 0), ("setE", "w", 0, 5), ("setV", "t", 1, 9), ("rmAllV",), ("valsE", "w"), ("valsV", "t"), ("ins", 1, 0), ("valsE", "w"), ("valsV", "t")])
+    case("Maps", "two maps, one removed: the other keeps its values", P, [], [(0, 1), (1, 2), (2, 0)],
+         [("addEM", "a", 0), ("addEM", "b", "x"), ("setE", "a", 1, 1), ("setE", "b", 2, "z"), ("rmEM", "a"), ("rmAt", 0), ("valsE", "b"), ("getE", "b", 0)])
+    case("Maps", "string vertices: a vertex map by vertex, by slot, after the last slot moves", P, ["a", "b", "c"], [("a", "b"), ("c", "a")],
+         [("addVMof", "t", "Int"), ("setV", "t", "a", 1), ("setV", "t", "c", 3), ("rmV", "a"), ("getV", "t", "c"), ("getVAt", "t", 0), ("valsV", "t"), ("insV", "a"), ("getV", "t", "a")])
+    case("Maps", "directed: removal by position, by pair (newest copy), and removeAllEdges(from:to:)", DP, [], [(0, 1), (1, 0), (0, 1), (1, 1), (0, 1), (2, 0)],
+         [("addEMof", "w", "Int"), ("setE", "w", 0, 0), ("setE", "w", 1, 1), ("setE", "w", 2, 2), ("setE", "w", 3, 3), ("setE", "w", 4, 4), ("setE", "w", 5, 5),
+          ("rmAt", 1), ("valsE", "w"), ("rm", 0, 1), ("valsE", "w"), ("rmAll", 0, 1), ("valsE", "w")])
+    case("Maps", "directed vertex removal with loops, in- and out-edges; values follow the moved slot", DP, [], [(0, 1), (1, 2), (2, 1), (1, 1), (2, 0), (0, 2)],
+         [("addEMof", "w", "Int"), ("addVM", "t", -1), ("setE", "w", 0, 0), ("setE", "w", 1, 1), ("setE", "w", 2, 2), ("setE", "w", 3, 3), ("setE", "w", 4, 4),
+          ("setE", "w", 5, 5), ("setV", "t", 2, 2), ("setV", "t", 0, 0), ("rmV", 0), ("valsE", "w"), ("valsV", "t"), ("getVAt", "t", 0), ("getVC", "t", 0)])
+    case("Maps", "directed checked insertion appends the default; a failed one changes no map; checked reads out of range", DP, [0, 1], [(0, 1)],
+         [("addEM", "w", 0.5), ("addVM", "t", 0), ("setE", "w", 0, 2.0), ("insC", 1, 0), ("insC", 1, 7), ("valsE", "w"), ("getEC", "w", 2),
+          ("getEC", "w", -1), ("getVAtC", "t", 1), ("getVAtC", "t", 2), ("getVAtC", "t", -1)])
+    case("Maps", "multigraph: the base's maps through the wrapper; a rejected self-loop changes no map", M, [], [(0, 1), (1, 2), (0, 1)],
+         [("addEM", "w", 1.0), ("addVMof", "t", "String"), ("setE", "w", 0, 3.0), ("setE", "w", 2, 5.0), ("setV", "t", 2, "two"), ("ins", 1, 1), ("valsE", "w"),
+          ("rm", 1, 0), ("valsE", "w"), ("rmV", 0), ("valsE", "w"), ("valsV", "t"), ("getEC", "w", 1)])
+    case("Maps", "directed multigraph: the base's maps through the wrapper, checked reads", DM, [], [(0, 1), (1, 0), (0, 1)],
+         [("addEMof", "w", "Int"), ("addVM", "t", 0), ("setE", "w", 1, 10), ("setV", "t", 1, 4), ("insC", 1, 1), ("rmAt", 0), ("valsE", "w"),
+          ("getEC", "w", 2), ("getVC", "t", 1), ("getVC", "t", 3), ("getVAtC", "t", 1)])
+
 
 def render():
     out = [HEADER, "| ID | Group | Case | Input / call | Expected |", "|---|---|---|---|---|"]
@@ -1110,6 +1257,13 @@ Conventions:
   dead edge position `EdgeNotFound`.
 * Codable payloads are `{"vertices": […], "edges": [u0, v0, u1, v1, …]}` (indices into vertices),
   the simple lists' format; errors are `DecodingError` cases with their debug description.
+* Maps rows (`PropertyGraph`): `let w = addEdgeMap(default: d)` / `addEdgeMap(of: T.self)` (a map
+  of `T?` whose default is `nil`) attach a map; `[w, ofEdgeAt: p]`, `[t, of: v]` and
+  `[t, ofVertexAt: i]` read or set a value, and the `checked` spellings throw `EdgeNotFound` /
+  `VertexNotFound`; `values(of: w)` lists the values by position or slot, `()` is a call with no
+  result. The model keys each value by its edge's insertion stamp or its vertex, so the values it
+  shows after a swap-remove are the ones that followed their element, and checks them against
+  NetworkX's edge and node attributes. The multigraphs' maps are their base's.
 
 """
 
@@ -1121,14 +1275,20 @@ def stress(seed_count=300, steps=40):
         rnd = random.Random(seed)
         for kind in (P, M, DP, DM):
             g, sh = build(kind, [], [])
+            # One edge map and one vertex map, set at random: every state checks them against
+            # NetworkX's attributes.
+            apply(g, sh, ("addEM", "w", -1)); apply(g, sh, ("addVMof", "t", "Int"))
             for _ in range(steps):
                 r = rnd.random(); a, b = rnd.randrange(5), rnd.randrange(5)
                 if not g.loops and a == b: b = (a + 1) % 5
+                if rnd.random() < 0.3 and g.rec: apply(g, sh, ("setE", "w", rnd.randrange(len(g.rec)), rnd.randrange(100)))
+                if rnd.random() < 0.2 and a in g.slot: apply(g, sh, ("setV", "t", a, rnd.randrange(100)))
                 if r < 0.45: op = ("ins", a, b)
                 elif r < 0.6: op = ("rm", a, b)
                 elif r < 0.75 and g.rec: op = ("rmAt", rnd.randrange(len(g.rec)))
                 elif r < 0.85: op = ("rmV", a)
-                elif r < 0.9: op = ("rmAll", a, b)
+                elif r < 0.89: op = ("rmAll", a, b)
+                elif r < 0.9: op = ("rmAllEdges",) if rnd.random() < 0.7 else ("rmAllV",)
                 elif r < 0.93: op = ("insV", a)
                 else:  # a checked call; vertex 5 is never inserted, so it misses sometimes
                     c = rnd.randrange(5); x, y = rnd.randrange(6), rnd.randrange(6)

@@ -114,7 +114,7 @@ struct GraphOperationsPropertyTests {
     }
 
     @Test("transposedView flips every edge in place: rows are the base's in-rows, and reversing twice gives the base")
-    func reverseViewLaws() async {
+    func transposedViewLaws() async {
         let input = zip(Gen.int(in: 0 ... 6), Gen.int(in: 0 ... 6)).array(of: 0 ... 24)
         await propertyCheck(count: 300, input: input) { raw in
             let names = (0 ..< 7).map { "r\($0)" }

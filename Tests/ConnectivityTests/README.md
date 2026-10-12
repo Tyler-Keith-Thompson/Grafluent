@@ -22,6 +22,8 @@ struct Components<G: DirectedGraph>: RandomAccessCollection, Equatable   // Elem
 struct Condensation<G: DirectedGraph>
     let components: Components<G>
     let graph: CompressedSparseRow                    // vertex i is components[i]
+    let sourceGeneration: GraphGeneration             // the graph's generation when computed
+    func isCurrent(for: G) -> Bool                    // no structural mutation since
 struct DominatorTree<G: DirectedGraph>
     var root: Vertex
     func immediateDominator(of:) -> Vertex?           // nil for the root and unreachable vertices
@@ -156,6 +158,8 @@ Randomized tests write their oracles inside the test.
 | `StrongComponentsTests.swift` | §A – §E: strong components of every fixture (exact), in written order and on adjacency lists, graphs ported from NetworkX, petgraph, Boost, LEMON, gonum, JGraphT and rustworkx, the order guarantees, and the strong and weak connectivity tests and counts |
 | `WeakComponentsTests.swift` | §F: weak components, their order, direction ignored, CSR without predecessors, strong refines weak |
 | `CondensationTests.swift` | §G – §H: condensation rows and laws, attracting components and their law |
+| `CondensationStalenessTests.swift` | A condensation's `sourceGeneration` and `isCurrent(for:)` on a file-private digraph that tracks generations: current until the graph or a copy is structurally mutated, per copy, never for a graph with no generation |
+| `NontrivialStrongComponentsTests.swift` | `nontrivialStronglyConnectedComponents()`: no vertices, a lone vertex with and without a self-loop, a loop inside a larger component, a DAG, the documented order and slices; a PropertyBased law (shrinking) against reachability on every representation, a conformer without indices and a sparsely indexed one with holes |
 | `SelfLoopAndParallelEdgeTests.swift` | §I: parallel edges and self-loops on the ReferenceDirectedMultigraph |
 | `DominatorTests.swift` | §J – §M: immediate dominators (Boost's seven test sets, NetworkX, petgraph, fixtures), tree queries, dominance frontiers, post-dominators |
 | `CheckedQueryTests.swift` | The `checked:` result queries (README Principle 6) on indexed and unindexed graphs: each agrees with its trapping spelling, nil keeping its meaning, and throws `VertexNotFound` or `EdgeNotFound` for a non-member |

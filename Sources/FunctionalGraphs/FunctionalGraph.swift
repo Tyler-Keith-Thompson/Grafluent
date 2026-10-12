@@ -24,11 +24,32 @@ public struct FunctionalGraph: Sendable {
     @usableFromInline
     internal var _successors: [Int]
 
-    /// Unchecked: every element must be in `0..<_successors.count`.
+    /// The attached vertex maps (`PropertyGraph`), one value per vertex.
+    @usableFromInline
+    internal var _vertexMaps: _AttachedMaps
+
+    /// The attached edge maps, one value per edge, which is per source.
+    @usableFromInline
+    internal var _edgeMaps: _AttachedMaps
+
+    /// The generation: stamped once by every initializer, and never advanced.
+    @usableFromInline
+    internal var _generation: _GenerationStamp
+
+    /// Unchecked: every element must be in `0..<_successors.count`. Stamps a generation.
     @inlinable
     internal init(_unchecked successors: [Int]) {
         self._successors = successors
+        _vertexMaps = _AttachedMaps()
+        _edgeMaps = _AttachedMaps()
+        _generation = _GenerationStamp()
+        _generation.advance()
     }
+
+    /// The generation of this graph, which never changes: the graph is immutable. A structure
+    /// derived from this graph is current for it and its copies, and for no other graph.
+    @inlinable
+    public var generation: GraphGeneration { _generation.generation }
 
     /// The graph of f, where `successors[v]` is f(v). O(n).
     ///

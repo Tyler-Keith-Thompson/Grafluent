@@ -36,6 +36,13 @@ public struct IncidenceMatrix {
     @usableFromInline internal var _sizes: ContiguousArray<Int>
     /// The number of set cells.
     @usableFromInline internal var _cellCount: Int
+    /// The attached vertex maps (`addVertexMap(default:)`): dense, one value per row.
+    @usableFromInline internal var _vertexMaps: _AttachedMaps
+    /// The attached hyperedge maps (`addEdgeMap(default:)`): dense, one value per column.
+    @usableFromInline internal var _edgeMaps: _AttachedMaps
+    /// The generation, advanced by every structural mutation. An `OrientedIncidenceMatrix` keeps
+    /// its own maps and generation; its planes' stay empty and unadvanced.
+    @usableFromInline internal var _generation: _GenerationStamp
 
     /// The matrix with no vertices and no columns.
     @inlinable
@@ -52,6 +59,9 @@ public struct IncidenceMatrix {
         _degrees = ContiguousArray(repeating: 0, count: n)
         _sizes = ContiguousArray(repeating: 0, count: m)
         _cellCount = 0
+        _vertexMaps = _AttachedMaps()
+        _edgeMaps = _AttachedMaps()
+        _generation = _GenerationStamp()
     }
 
     @inlinable
@@ -61,6 +71,9 @@ public struct IncidenceMatrix {
         self._degrees = _degrees
         self._sizes = _sizes
         self._cellCount = _cellCount
+        _vertexMaps = _AttachedMaps()
+        _edgeMaps = _AttachedMaps()
+        _generation = _GenerationStamp()
     }
 }
 
@@ -186,6 +199,7 @@ extension IncidenceMatrix {
     }
 
     /// The union of the oriented matrix's planes: each column its sources and targets together.
+    /// A new hypergraph: it carries none of `oriented`'s attached maps.
     ///
     /// - Complexity: O(n·⌈m/64⌉ + m·⌈n/64⌉): the planes' words ORed, then the counts recounted.
     @inlinable
@@ -529,6 +543,15 @@ extension IncidenceMatrix {
     @inlinable
     @discardableResult
     public mutating func appendVertex() -> Int {
+        let vertex = _appendRow()
+        if !_vertexMaps.isEmpty { _vertexMaps.appendDefaults(count: 1) }
+        _generation.advance()
+        return vertex
+    }
+
+    /// Appends a zero row, leaving the maps and the generation alone (a plane's step).
+    @inlinable
+    internal mutating func _appendRow() -> Int {
         let vertex = _rows.rowCount
         _rows.appendRow()
         _columns.appendColumn()
@@ -545,6 +568,15 @@ extension IncidenceMatrix {
     @inlinable
     @discardableResult
     public mutating func insert(hyperedge members: some Sequence<Int>) -> Int {
+        let position = _appendColumn(members)
+        if !_edgeMaps.isEmpty { _edgeMaps.appendDefaults(count: 1) }
+        _generation.advance()
+        return position
+    }
+
+    /// Appends a column with `members`, leaving the maps and the generation alone (a plane's step).
+    @inlinable
+    internal mutating func _appendColumn(_ members: some Sequence<Int>) -> Int {
         let position = _columns.rowCount
         _rows.appendColumn()
         _columns.appendRow()
@@ -576,7 +608,9 @@ extension IncidenceMatrix {
     public mutating func insert(_ vertex: Int, intoHyperedgeAt position: Int) -> Bool {
         _checkVertex(vertex)
         _checkHyperedge(position)
-        return _setCell(vertex, position, to: true)
+        guard _setCell(vertex, position, to: true) else { return false }
+        _generation.advance()
+        return true
     }
 
     /// Clears cell (`vertex`, `position`). O(1).
@@ -588,12 +622,23 @@ extension IncidenceMatrix {
     public mutating func remove(_ vertex: Int, fromHyperedgeAt position: Int) -> Bool {
         _checkVertex(vertex)
         _checkHyperedge(position)
-        return _setCell(vertex, position, to: false)
+        guard _setCell(vertex, position, to: false) else { return false }
+        _generation.advance()
+        return true
     }
 
-    /// Removes every vertex and column.
+    /// Removes every vertex and column. Every attached map stays attached, empty.
     @inlinable
     public mutating func removeAll(keepingCapacity: Bool = false) {
+        _removeAllCells(keepingCapacity: keepingCapacity)
+        if !_vertexMaps.isEmpty { _vertexMaps.removeAll(keepingCapacity: keepingCapacity) }
+        if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }
+        _generation.advance()
+    }
+
+    /// Removes every vertex and column, leaving the maps and the generation alone (a plane's step).
+    @inlinable
+    internal mutating func _removeAllCells(keepingCapacity: Bool) {
         _rows.removeAll(keepingCapacity: keepingCapacity)
         _columns.removeAll(keepingCapacity: keepingCapacity)
         _degrees.removeAll(keepingCapacity: keepingCapacity)
@@ -601,17 +646,21 @@ extension IncidenceMatrix {
         _cellCount = 0
     }
 
-    /// Reserves storage for `vertexCount` vertices and `hyperedgeCount` columns.
+    /// Reserves storage for `vertexCount` vertices and `hyperedgeCount` columns, and room for
+    /// their values in every attached map.
     @inlinable
     public mutating func reserveCapacity(vertexCount: Int, hyperedgeCount: Int) {
         _rows.reserveCapacity(rows: vertexCount, columns: hyperedgeCount)
         _columns.reserveCapacity(rows: hyperedgeCount, columns: vertexCount)
         _degrees.reserveCapacity(vertexCount)
         _sizes.reserveCapacity(hyperedgeCount)
+        if !_vertexMaps.isEmpty { _vertexMaps.reserveCapacity(vertexCount) }
+        if !_edgeMaps.isEmpty { _edgeMaps.reserveCapacity(hyperedgeCount) }
     }
 
     /// The transpose, which is the dual: row `p` of the result is column `p` of this matrix, so
-    /// its vertices are this matrix's columns. O(1): the two stored orientations swap.
+    /// its vertices are this matrix's columns. O(1): the two stored orientations swap. A new
+    /// hypergraph: it carries none of this matrix's attached maps.
     @inlinable
     public func transposed() -> IncidenceMatrix {
         IncidenceMatrix(_rows: _columns, _columns: _rows, _degrees: _sizes, _sizes: _degrees, _cellCount: _cellCount)

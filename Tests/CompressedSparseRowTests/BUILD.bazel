@@ -23,6 +23,7 @@ swift_library(
         "//Sources/AdjacencyListModule",
         "//Sources/AdjacencyMatrixModule",
         "//Tests/GrafluentTestSupport",
+        "@swiftpkg_swift_property_based//:PropertyBased",
     ],
 )
 

@@ -491,6 +491,23 @@ vertices on the left, hyperedges on the right.
   `UndirectedIncidenceList<String>(vertexCount: 3, hyperedgeCount: 3, vertices: [...], hyperedges:
   [...])` (HG-086, HG-087), `IncidenceList<String>(…)` (DH-051).
 
+- **`PropertyGraph`** (GraphProtocols; LEMON's `NodeMap` / `ArcMap`, BGL property maps). Maps
+  attached to the hypergraph: `addVertexMap(default:)`, `addEdgeMap(default:)`, and `addEdgeMap(of:)`
+  / `addVertexMap(of:)` for a map of `T?` whose default is `nil`. A vertex map is read by vertex
+  index (`[map, ofVertexAt: i]`) or by vertex (`[map, of: v]`, one hash), an edge map by hyperedge
+  position (`[map, ofEdgeAt: p]`), and `values(of:)` is a snapshot read like an array. Both are
+  dense: every insertion appends the default (the vertices a hyperedge's insertion adds included),
+  and `removeAll` empties the maps and keeps them attached. Outside the elements the plain
+  subscripts trap, and `[map, checkedEdgeAt:]`, `[map, checkedVertexAt:]` and `[map, checked:]`
+  throw `EdgeNotFound` / `VertexNotFound`. `IncidenceList.reversed` keeps every position, so it
+  carries the maps. Equality, hashing, `Codable` and the descriptions ignore the maps. Not in the
+  catalog: XGI's and HyperNetX's attributes are dictionaries keyed by identity, so the hand-written
+  `HypergraphMapTests` and `HypergraphMapPropertyTests` check the maps instead.
+- **`generation`.** Every insertion of a vertex or a hyperedge, and `removeAll`, starts a new
+  generation; inserting a vertex already present, a checked insertion that throws, reserving
+  capacity and map writes do not. Built and decoded hypergraphs have one; `init()` and `reversed`
+  have none until their first mutation.
+
 ### Divergences from the references (each asserted in `ref.py`)
 
 | Where | Ours | Theirs |

@@ -7,8 +7,9 @@ import GraphProtocols
 ///
 /// Vertices are kept in dense slots, with a dictionary from vertex to slot (none while the vertices
 /// are the `Int`s `0..<n` in order, each its own slot). Edges are kept in an
-/// array, so an edge's position in `edges` is an `Int` in `0..<edgeCount`, and a weight can live
-/// in an array beside the graph. Each slot has a row of the slots of its out-neighbors, a parallel
+/// array, so an edge's position in `edges` is an `Int` in `0..<edgeCount`. A weight or other value
+/// per edge or vertex lives in a map attached to the graph (`addEdgeMap(default:)`,
+/// `PropertyGraph`), which every mutation keeps in step. Each slot has a row of the slots of its out-neighbors, a parallel
 /// row of those edges' positions, and a row of its in-neighbors; the rows of each kind share one
 /// array, so the graph makes a constant number of allocations however many vertices it has
 /// (amortized, like `Array`), and copying it copies a constant number of buffers. A hash table from
@@ -19,7 +20,9 @@ import GraphProtocols
 ///
 /// Removing an edge is O(1): the last edge moves into its position, and the last entry of each row
 /// into the hole. Removing a vertex costs O(degree) and moves the last slot into its place. So
-/// vertex order, edge order and edge positions are unspecified and may change after a removal.
+/// vertex order, edge order and edge positions are unspecified and may change after a removal;
+/// attached maps move their values with them. With maps attached, each insertion or removal also
+/// appends or moves one value per map.
 @frozen
 public struct AdjacencyList<Vertex: Hashable> {
     /// The vertex in each slot.
@@ -61,6 +64,18 @@ public struct AdjacencyList<Vertex: Hashable> {
     @usableFromInline
     internal var _deferredEdges: _DeferredSlotPairTable?
 
+    /// The attached vertex maps (`PropertyGraph`), one value per slot, moved with the slots.
+    @usableFromInline
+    internal var _vertexMaps: _AttachedMaps
+
+    /// The attached edge maps, one value per edge position, moved with the edges.
+    @usableFromInline
+    internal var _edgeMaps: _AttachedMaps
+
+    /// The generation, advanced by every structural mutation.
+    @usableFromInline
+    internal var _generation: _GenerationStamp
+
     /// The empty graph.
     @inlinable
     public init() {
@@ -73,6 +88,9 @@ public struct AdjacencyList<Vertex: Hashable> {
         _records = []
         _edges = _SlotPairTable()
         _deferredEdges = nil
+        _vertexMaps = _AttachedMaps()
+        _edgeMaps = _AttachedMaps()
+        _generation = _GenerationStamp()
     }
 
     /// The position of the edge from slot `source` to slot `target`, or nil.
@@ -408,6 +426,9 @@ extension AdjacencyList {
         // Checked before inserting, so inserting an existing edge never copies shared storage.
         if let existing = _position(ofPair: pair) { return existing }
         _takeEdgeTable()
+        // The maps and the generation first: their loads then overlap the rows' cache misses.
+        _generation.advance()
+        if !_edgeMaps.isEmpty { _edgeMaps.appendDefaults(count: 1) }
         let position = _records.count
         let out = _out.append(target, toRow: source)
         _outEdges.append(position, toRow: source)
@@ -434,6 +455,8 @@ extension AdjacencyList {
     internal mutating func _removeSlot(_ slot: Int) -> Vertex {
         let removed = _vertices[slot]
         _takeEdgeTable()
+        _generation.advance()
+        if !_vertexMaps.isEmpty { _vertexMaps.swapRemove(at: slot) }
 
         // Detach every edge incident to the vertex, last entry first, so nothing moves in its own
         // rows. A self-loop leaves both rows with the first loop.
@@ -489,15 +512,19 @@ extension AdjacencyList {
         guard let source = _slots[edge.source], let target = _slots[edge.target] else { return nil }
         // Checked before removing, so removing an absent edge never copies shared storage.
         guard let position = _position(ofPair: _SlotPair(source, target)) else { return nil }
+        _generation.advance()
         _detach(position)
         return DirectedEdge(from: _vertices[source], to: _vertices[target])
     }
 
     /// Removes the edge at `position` from the map, from both rows and from the edge array,
     /// moving each row's last entry and the last edge into the holes and recording where they went.
+    /// The caller advances the generation, once for a vertex and all its edges.
     @inlinable
     internal mutating func _detach(_ position: Int) {
         _takeEdgeTable()
+        // The maps first: their loads then overlap the rows' cache misses.
+        if !_edgeMaps.isEmpty { _edgeMaps.swapRemove(at: position) }
         let record = _records[position]
         _edges.removeValue(forKey: record.pair)
         _ = _out.swapRemove(at: record.out, fromRow: record.source)
@@ -519,9 +546,12 @@ extension AdjacencyList {
         _records.removeLast()
     }
 
-    /// Removes every vertex and edge.
+    /// Removes every vertex and edge. Attached maps stay attached, emptied.
     @inlinable
     public mutating func removeAll(keepingCapacity: Bool = false) {
+        if !_vertices.isEmpty { _generation.advance() }
+        if !_vertexMaps.isEmpty { _vertexMaps.removeAll(keepingCapacity: keepingCapacity) }
+        if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }
         _vertices.removeAll(keepingCapacity: keepingCapacity)
         _slots.removeAll(keepingCapacity: keepingCapacity)
         _out.removeAll(keepingCapacity: keepingCapacity)
@@ -533,10 +563,12 @@ extension AdjacencyList {
         _edges.removeAll(keepingCapacity: keepingCapacity)
     }
 
-    /// Removes every edge, keeping every vertex.
+    /// Removes every edge, keeping every vertex. Attached edge maps stay attached, emptied.
     @inlinable
     public mutating func removeAllEdges(keepingCapacity: Bool = false) {
         guard !_records.isEmpty else { return }
+        _generation.advance()
+        if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }
         _out.removeAllEntries(keepingCapacity: keepingCapacity)
         _outEdges.removeAllEntries(keepingCapacity: keepingCapacity)
         _in.removeAllEntries(keepingCapacity: keepingCapacity)
@@ -546,11 +578,14 @@ extension AdjacencyList {
         _edges.removeAll(keepingCapacity: keepingCapacity)
     }
 
-    /// Reserves space for at least `vertexCount` vertices and `edgeCount` edges.
+    /// Reserves space for at least `vertexCount` vertices and `edgeCount` edges, in the graph and
+    /// in every attached map.
     @inlinable
     public mutating func reserveCapacity(vertexCount: Int, edgeCount: Int) {
         precondition(vertexCount >= 0, "Negative vertex count")
         precondition(edgeCount >= 0, "Negative edge count")
+        if !_vertexMaps.isEmpty { _vertexMaps.reserveCapacity(vertexCount) }
+        if !_edgeMaps.isEmpty { _edgeMaps.reserveCapacity(edgeCount) }
         _vertices.reserveCapacity(vertexCount)
         _slots.reserveCapacity(vertexCount)
         _out.reserveCapacity(rows: vertexCount, entries: edgeCount)
@@ -565,6 +600,8 @@ extension AdjacencyList {
     @inlinable
     @discardableResult
     internal mutating func _appendSlot(for vertex: Vertex) -> Int {
+        _generation.advance()
+        if !_vertexMaps.isEmpty { _vertexMaps.appendDefaults(count: 1) }
         let slot = _vertices.count
         _vertices.append(vertex)
         _slots[vertex] = slot
@@ -654,8 +691,9 @@ extension AdjacencyList {
 // MARK: - Equatable and Hashable
 
 extension AdjacencyList: Equatable {
-    /// Two graphs are equal when they have equal vertex sets and equal edge sets. Insertion order
-    /// does not matter. This is not isomorphism: vertices are compared by value.
+    /// Two graphs are equal when they have equal vertex sets and equal edge sets. Insertion order,
+    /// attached maps and generations do not matter. This is not isomorphism: vertices are compared
+    /// by value.
     @inlinable
     public static func == (lhs: AdjacencyList, rhs: AdjacencyList) -> Bool {
         guard lhs.vertexCount == rhs.vertexCount, lhs.edgeCount == rhs.edgeCount else { return false }
@@ -788,6 +826,11 @@ extension AdjacencyList: CustomStringConvertible, CustomDebugStringConvertible, 
 // MARK: - DirectedGraph
 
 extension AdjacencyList: BidirectionalDirectedGraph {
+    /// The current generation (see `GraphGeneration`): every insertion and removal starts a new
+    /// one; reserving capacity and attaching or writing maps do not.
+    @inlinable
+    public var generation: GraphGeneration { _generation.generation }
+
     /// The positions in `edges` of the edges leaving `vertex`, in the order of
     /// `successors(of:)`: the stored row. O(1).
     ///
@@ -935,6 +978,7 @@ extension AdjacencyList: MutableDirectedGraph {
     @inlinable
     public mutating func _removeEdge(at position: Int) -> DirectedEdge<Vertex> {
         let record = _records[position]  // traps on a position out of range
+        _generation.advance()
         _detach(position)
         return DirectedEdge(from: _vertices[record.source], to: _vertices[record.target])
     }

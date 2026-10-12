@@ -197,4 +197,76 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("Hypergraphs: reversed") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(directed.reversed) }
     }
+
+    // MARK: Insertion, and attached maps against side arrays the caller keeps
+
+    // The n vertices, then the m hyperedges one at a time, with 0, 1 (an edge map) or 2 (an edge
+    // map and a vertex map) attached maps; the BASELINE appends to two arrays beside the
+    // hypergraph instead.
+    for maps in 0 ... 2 {
+        Benchmark("Hypergraphs: insert(_:) then insert(hyperedge:), \(maps) attached maps") { benchmark in
+            for _ in benchmark.scaledIterations {
+                var built = UndirectedIncidenceList<Int>()
+                if maps >= 1 { blackHole(built.addEdgeMap(default: 1.0)) }
+                if maps >= 2 { blackHole(built.addVertexMap(default: 0)) }
+                for v in 0 ..< n { built.insert(v) }
+                for row in rows { built.insert(hyperedge: row) }
+                blackHole(built)
+            }
+        }
+    }
+    Benchmark("Hypergraphs: BASELINE insert(_:) then insert(hyperedge:), with hand-maintained side arrays") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var built = UndirectedIncidenceList<Int>()
+            var weights: [Double] = [], colors: [Int] = []
+            for v in 0 ..< n where built.insert(v).inserted { colors.append(0) }
+            for row in rows {
+                let vertexCount = built.vertexCount
+                built.insert(hyperedge: row)
+                weights.append(1.0)
+                for _ in vertexCount ..< built.vertexCount { colors.append(0) }
+            }
+            blackHole((built, weights, colors))
+        }
+    }
+    Benchmark("Hypergraphs: insert(sources:targets:), 0 attached maps") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var built = IncidenceList<Int>()
+            for arc in arcs { built.insert(sources: arc.sources, targets: arc.targets) }
+            blackHole(built)
+        }
+    }
+    Benchmark("Hypergraphs: insert(sources:targets:), 1 attached map") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var built = IncidenceList<Int>()
+            blackHole(built.addEdgeMap(default: 1.0))
+            for arc in arcs { built.insert(sources: arc.sources, targets: arc.targets) }
+            blackHole(built)
+        }
+    }
+
+    // Reading every hyperedge's value: through `values(of:)` and through an array.
+    let (weighted, weights) = {
+        var weighted = hypergraph
+        let weights = weighted.addEdgeMap(default: 1.0)
+        for p in 0 ..< m { weighted[weights, ofEdgeAt: p] = Double(p % 7) }
+        return (weighted, weights)
+    }()
+    let weightArray = (0 ..< m).map { Double($0 % 7) }
+    precondition((0 ..< m).allSatisfy { weighted.values(of: weights)[$0] == weightArray[$0] })
+    Benchmark("Hypergraphs: BASELINE sum of an array of hyperedge weights") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var sum = 0.0
+            for p in 0 ..< weighted.hyperedgeCount { sum += weightArray[p] }
+            blackHole(sum)
+        }
+    }
+    Benchmark("Hypergraphs: sum of hyperedge weights through values(of:)") { benchmark in
+        for _ in benchmark.scaledIterations {
+            let w = weighted.values(of: weights)
+            var sum = 0.0
+            for p in 0 ..< weighted.hyperedgeCount { sum += w[p] }
+            blackHole(sum)
+        }
+    }
 }

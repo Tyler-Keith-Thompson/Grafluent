@@ -26,6 +26,7 @@ swift_library(
         "//Sources/EdgeListModule",
         "//Tests/GrafluentTestSupport",
         "@swiftpkg_swift_collections//:BitCollections",
+        "@swiftpkg_swift_property_based//:PropertyBased",
     ],
 )
 

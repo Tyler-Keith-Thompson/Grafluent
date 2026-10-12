@@ -11,10 +11,21 @@ import Walks
 @frozen
 public struct Arborescence<Vertex: Hashable> {
     @usableFromInline package var _layout: _TreeLayout<Vertex>
+    /// The attached vertex maps (`PropertyGraph`), one value per vertex index.
+    @usableFromInline package var _vertexMaps: _AttachedMaps
+    /// The attached edge maps, one value per edge position.
+    @usableFromInline package var _edgeMaps: _AttachedMaps
+    /// The generation: stamped once by every initializer, and never advanced.
+    @usableFromInline package var _generation: _GenerationStamp
 
+    /// Stamps a generation; every other initializer comes through here.
     @inlinable
     init(_layout: _TreeLayout<Vertex>) {
         self._layout = _layout
+        _vertexMaps = _AttachedMaps()
+        _edgeMaps = _AttachedMaps()
+        _generation = _GenerationStamp()
+        _generation.advance()
     }
 
     /// The arborescence a directed graph is, keeping its vertex order and edge positions; nil
@@ -26,7 +37,7 @@ public struct Arborescence<Vertex: Hashable> {
         guard n >= 1, graph.edgeCount == n - 1, let (vertices, ends, table) = graph._treeInput() else { return nil }
         let (slots, dense) = _TreeLayout.numbering(vertices, table: table)
         guard let layout = _TreeLayout<Vertex>.arborescence(vertices: vertices, slots: slots, dense: dense, ends: ends) else { return nil }
-        _layout = layout
+        self.init(_layout: layout)
     }
 
     /// The arborescence with these edges, whose vertices are their endpoints by first appearance.
@@ -42,7 +53,7 @@ public struct Arborescence<Vertex: Hashable> {
         let (listed, slots, dense, ends) = _TreeLayout.gather(vertices: vertices, edges: edges) { ($0.source, $0.target) }
         guard !listed.isEmpty else { return nil }
         guard let layout = _TreeLayout<Vertex>.arborescence(vertices: listed, slots: slots, dense: dense, ends: ends) else { return nil }
-        _layout = layout
+        self.init(_layout: layout)
     }
 
     /// The arborescence on `vertices` (distinct) in which the k-th vertex's parent is the
@@ -57,13 +68,14 @@ public struct Arborescence<Vertex: Hashable> {
         guard let layout = _TreeLayout.fromParents(vertices: vertices, slots: slots, dense: dense, parents: parents) else {
             preconditionFailure("The parents do not form a tree with one root")
         }
-        _layout = layout
+        self.init(_layout: layout)
     }
 
-    /// The rooted tree with every edge directed from parent to child. O(1).
+    /// The rooted tree with every edge directed from parent to child. O(1). A new graph: it has
+    /// its own generation and none of the rooted tree's maps.
     @inlinable
     public init(_ tree: RootedTree<Vertex>) {
-        _layout = tree._layout
+        self.init(_layout: tree._layout)
     }
 
     /// The arborescence in which each vertex's parent is `parent(v)` (see
@@ -71,7 +83,7 @@ public struct Arborescence<Vertex: Hashable> {
     @inlinable
     public init?<E: Error>(vertices: some Sequence<Vertex>, parent: (Vertex) throws(E) -> Vertex?) throws(E) {
         guard let layout = try _TreeLayout<Vertex>.fromParents(vertices: vertices, parent: parent) else { return nil }
-        _layout = layout
+        self.init(_layout: layout)
     }
 
     @inlinable public var root: Vertex { _layout.vertices[_layout.roots[0]] }
@@ -124,7 +136,7 @@ extension Arborescence where Vertex == Int {
     @inlinable
     public init?(parents: [Int?]) {
         guard let layout = _TreeLayout<Int>.fromParentNumbers(parents) else { return nil }
-        _layout = layout
+        self.init(_layout: layout)
     }
 }
 
@@ -587,7 +599,7 @@ extension Arborescence: Decodable where Vertex: Decodable {
         guard let layout = _TreeLayout<Vertex>.arborescence(vertices: vertices, slots: slots, dense: dense, ends: ends) else {
             throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "Not an arborescence"))
         }
-        _layout = layout
+        self.init(_layout: layout)
     }
 }
 

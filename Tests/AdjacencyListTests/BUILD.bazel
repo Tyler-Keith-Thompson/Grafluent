@@ -21,6 +21,7 @@ swift_library(
         "//Sources/GraphProtocols",
         "//Sources/AdjacencyListModule",
         "//Tests/GrafluentTestSupport",
+        "@swiftpkg_swift_property_based//:PropertyBased",
     ],
 )
 

@@ -25,8 +25,11 @@ extension TransposedView {
 /// `predecessors`, `outEdges(ofIndex:)` the base's `inEdges(ofIndex:)`, and the base's own fast
 /// members are the ones called. Positions and edge indices are the base's, so a weight keyed by the
 /// base's positions applies to the view unchanged.
+///
+/// As a `GraphAdaptor`, its generation is the base's, and it reads the base's attached maps:
+/// `values(of:)` and `[map, ofEdgeAt:]` by the base's positions, `[map, of:]` by vertex.
 @frozen
-public struct TransposedView<Base: BidirectionalDirectedGraph>: BidirectionalDirectedGraph {
+public struct TransposedView<Base: BidirectionalDirectedGraph>: BidirectionalDirectedGraph, GraphAdaptor {
     public typealias Vertex = Base.Vertex
 
     /// The graph the view reverses.

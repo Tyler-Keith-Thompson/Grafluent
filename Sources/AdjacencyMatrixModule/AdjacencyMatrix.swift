@@ -38,6 +38,19 @@ public struct AdjacencyMatrix {
     @usableFromInline
     internal var _edgeCount: Int
 
+    /// The attached vertex maps (`addVertexMap(default:)`): dense, one value per vertex.
+    @usableFromInline
+    internal var _vertexMaps: _AttachedMaps
+
+    /// The attached edge maps (`addEdgeMap(default:)`): dense, one value per cell at the cell's
+    /// Szudzik offset (`_edgeMapOffset(of:)`). Every cell that holds no edge holds the default.
+    @usableFromInline
+    internal var _edgeMaps: _AttachedMaps
+
+    /// The generation, advanced by every structural mutation.
+    @usableFromInline
+    internal var _generation: _GenerationStamp
+
     /// The matrix with no vertices.
     @inlinable
     public init() {
@@ -47,6 +60,9 @@ public struct AdjacencyMatrix {
         _outDegrees = []
         _inDegrees = []
         _edgeCount = 0
+        _vertexMaps = _AttachedMaps()
+        _edgeMaps = _AttachedMaps()
+        _generation = _GenerationStamp()
     }
 
     /// A matrix of `vertexCount` vertices and no edges.
@@ -62,6 +78,9 @@ public struct AdjacencyMatrix {
         _outDegrees = ContiguousArray(repeating: 0, count: vertexCount)
         _inDegrees = ContiguousArray(repeating: 0, count: vertexCount)
         _edgeCount = 0
+        _vertexMaps = _AttachedMaps()
+        _edgeMaps = _AttachedMaps()
+        _generation = _GenerationStamp()
     }
 
     /// A matrix of `vertexCount` vertices in which every cell is `value`: with `true`, the complete
@@ -197,6 +216,8 @@ extension AdjacencyMatrix {
     internal mutating func _combine(with other: AdjacencyMatrix, _ combine: (UInt, UInt) -> UInt) {
         precondition(other._vertexCount == _vertexCount, "Matrices have different vertex counts (\(_vertexCount) and \(other._vertexCount))")
         let used = Self._wordsNeeded(forColumns: _vertexCount)
+        // The cells before, to find the removed edges' values (the copy is made only with maps).
+        let before = _edgeMaps.isEmpty ? nil : _words
         for row in 0 ..< _vertexCount {
             for word in 0 ..< used {
                 let index = row * _wordsPerRow + word
@@ -205,6 +226,51 @@ extension AdjacencyMatrix {
         }
         _clearPadding()
         _recountDegrees()
+        if let before { _resetEdgeMaps(removedSince: before) }
+        _generation.advance()
+    }
+
+    /// Sets every edge map's value back to the default at each edge leaving `vertex`, before its
+    /// row is cleared.
+    @usableFromInline
+    internal mutating func _resetEdgeMaps(ofRow vertex: Int) {
+        for word in 0 ..< Self._wordsNeeded(forColumns: _vertexCount) {
+            _resetEdgeMaps(row: vertex, word: word, cleared: _words[vertex &* _wordsPerRow &+ word])
+        }
+    }
+
+    /// Sets every edge map's value back to the default at each edge entering `vertex`, before its
+    /// column is cleared.
+    @usableFromInline
+    internal mutating func _resetEdgeMaps(ofColumn vertex: Int) {
+        for row in 0 ..< _vertexCount where _bit(row, vertex) {
+            _edgeMaps.reset(at: Self._edgeMapOffset(row, vertex))
+        }
+    }
+
+    /// Sets every edge map's value back to the default at each cell set in `before` (the words at
+    /// the same stride) and clear now.
+    @usableFromInline
+    internal mutating func _resetEdgeMaps(removedSince before: ContiguousArray<UInt>) {
+        let used = Self._wordsNeeded(forColumns: _vertexCount)
+        for row in 0 ..< _vertexCount {
+            for word in 0 ..< used {
+                let index = row &* _wordsPerRow &+ word
+                _resetEdgeMaps(row: row, word: word, cleared: before[index] & ~_words[index])
+            }
+        }
+    }
+
+    /// Sets every edge map's value back to the default at the cells of `row` whose bits are set in
+    /// `cleared`, word `word` of the row: edges just removed. Keeps every non-edge cell at the
+    /// default, so an insertion writes nothing to the maps.
+    @usableFromInline
+    internal mutating func _resetEdgeMaps(row: Int, word: Int, cleared: UInt) {
+        var bits = cleared
+        while bits != 0 {
+            _edgeMaps.reset(at: Self._edgeMapOffset(row, word &* UInt.bitWidth &+ bits.trailingZeroBitCount))
+            bits &= bits &- 1
+        }
     }
 }
 
@@ -250,13 +316,13 @@ extension AdjacencyMatrix {
         set {
             _checkVertex(source)
             _checkVertex(target)
-            _setCell(source, target, to: newValue)
+            if _setCell(source, target, to: newValue) { _generation.advance() }
         }
         _modify {
             _checkVertex(source)
             _checkVertex(target)
             var value = _bit(source, target)
-            defer { _setCell(source, target, to: value) }
+            defer { if _setCell(source, target, to: value) { _generation.advance() } }
             yield &value
         }
     }
@@ -317,12 +383,17 @@ extension AdjacencyMatrix {
 // MARK: - Mutation
 
 extension AdjacencyMatrix {
+    /// Writes the cell, its degrees and the edge count, and on a removal sets the edge maps' value
+    /// back to the default. The caller advances the generation.
+    ///
+    /// - Returns: Whether the cell changed.
     @inlinable
-    internal mutating func _setCell(_ source: Int, _ target: Int, to value: Bool) {
+    @discardableResult
+    internal mutating func _setCell(_ source: Int, _ target: Int, to value: Bool) -> Bool {
         let index = _wordIndex(source, target)
         let mask = Self._mask(target)
         // Read before writing, so a write that changes nothing never copies shared storage.
-        guard (_words[index] & mask != 0) != value else { return }
+        guard (_words[index] & mask != 0) != value else { return false }
         if value {
             _words[index] |= mask
             _outDegrees[source] += 1
@@ -333,7 +404,9 @@ extension AdjacencyMatrix {
             _outDegrees[source] -= 1
             _inDegrees[target] -= 1
             _edgeCount -= 1
+            if !_edgeMaps.isEmpty { _edgeMaps.reset(at: Self._edgeMapOffset(source, target)) }
         }
+        return true
     }
 
     /// Inserts `edge`, if it is not already an edge.
@@ -347,6 +420,7 @@ extension AdjacencyMatrix {
         _checkVertex(edge.target)
         if _bit(edge.source, edge.target) { return (false, edge) }
         _setCell(edge.source, edge.target, to: true)
+        _generation.advance()
         return (true, edge)
     }
 
@@ -376,6 +450,7 @@ extension AdjacencyMatrix {
     public mutating func remove(edge: DirectedEdge<Int>) -> DirectedEdge<Int>? {
         guard contains(edge: edge) else { return nil }
         _setCell(edge.source, edge.target, to: false)
+        _generation.advance()
         return edge
     }
 
@@ -394,6 +469,7 @@ extension AdjacencyMatrix {
             _setCell(source, target, to: true)
             inserted += 1
         }
+        if inserted > 0 { _generation.advance() }
         return inserted
     }
 
@@ -406,6 +482,7 @@ extension AdjacencyMatrix {
         _checkVertex(vertex)
         let removed = _outDegrees[vertex]
         guard removed > 0 else { return 0 }
+        if !_edgeMaps.isEmpty { _resetEdgeMaps(ofRow: vertex) }
         let start = vertex * _wordsPerRow
         for word in 0 ..< Self._wordsNeeded(forColumns: _vertexCount) {
             var bits = _words[start + word]
@@ -417,6 +494,7 @@ extension AdjacencyMatrix {
         }
         _outDegrees[vertex] = 0
         _edgeCount -= removed
+        _generation.advance()
         return removed
     }
 
@@ -429,6 +507,7 @@ extension AdjacencyMatrix {
         _checkVertex(vertex)
         let removed = _inDegrees[vertex]
         guard removed > 0 else { return 0 }
+        if !_edgeMaps.isEmpty { _resetEdgeMaps(ofColumn: vertex) }
         let mask = Self._mask(vertex)
         let wordInRow = vertex / UInt.bitWidth
         for row in 0 ..< _vertexCount {
@@ -440,6 +519,7 @@ extension AdjacencyMatrix {
         }
         _inDegrees[vertex] = 0
         _edgeCount -= removed
+        _generation.advance()
         return removed
     }
 
@@ -471,43 +551,64 @@ extension AdjacencyMatrix {
         _outDegrees.append(0)
         _inDegrees.append(0)
         _vertexCount += 1
+        // The new cells are the Szudzik offsets vertex² ..< (vertex + 1)²: 2·vertex + 1 defaults.
+        if !_vertexMaps.isEmpty { _vertexMaps.appendDefaults(count: 1) }
+        if !_edgeMaps.isEmpty { _edgeMaps.appendDefaults(count: 2 &* vertex &+ 1) }
+        _generation.advance()
         return vertex
     }
 
-    /// Removes every edge, keeping every vertex.
+    /// Removes every edge, keeping every vertex. Every attached edge map stays attached, with
+    /// every cell at its default.
     ///
     /// - Parameter keepingCapacity: When false, any spare row capacity is released.
     @inlinable
     public mutating func removeAllEdges(keepingCapacity: Bool = false) {
+        let n = _vertexCount
         if keepingCapacity {
             guard _edgeCount > 0 else { return }
             for index in _words.indices { _words[index] = 0 }
-            for vertex in 0 ..< _vertexCount {
+            for vertex in 0 ..< n {
                 _outDegrees[vertex] = 0
                 _inDegrees[vertex] = 0
             }
-            _edgeCount = 0
         } else {
             // Fresh zeroed storage: never copies shared words just to overwrite them.
-            self = AdjacencyMatrix(vertexCount: _vertexCount)
+            _wordsPerRow = Self._wordsNeeded(forColumns: n)
+            _words = ContiguousArray(repeating: 0, count: n * _wordsPerRow)
+            _outDegrees = ContiguousArray(repeating: 0, count: n)
+            _inDegrees = ContiguousArray(repeating: 0, count: n)
         }
+        if _edgeCount > 0, !_edgeMaps.isEmpty {
+            _edgeMaps.removeAll(keepingCapacity: keepingCapacity)
+            _edgeMaps.appendDefaults(count: n &* n)
+        }
+        _edgeCount = 0
+        _generation.advance()
     }
 
-    /// Removes every vertex and edge.
+    /// Removes every vertex and edge. Every attached map stays attached, empty.
     @inlinable
     public mutating func removeAll(keepingCapacity: Bool = false) {
         if keepingCapacity {
             _words.removeAll(keepingCapacity: true)
             _outDegrees.removeAll(keepingCapacity: true)
             _inDegrees.removeAll(keepingCapacity: true)
-            _vertexCount = 0
-            _edgeCount = 0
         } else {
-            self = AdjacencyMatrix()
+            _wordsPerRow = 0
+            _words = []
+            _outDegrees = []
+            _inDegrees = []
         }
+        _vertexCount = 0
+        _edgeCount = 0
+        if !_vertexMaps.isEmpty { _vertexMaps.removeAll(keepingCapacity: keepingCapacity) }
+        if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }
+        _generation.advance()
     }
 
-    /// Reserves storage for at least `vertexCount` vertices.
+    /// Reserves storage for at least `vertexCount` vertices, and room for their values in every
+    /// attached map.
     @inlinable
     public mutating func reserveCapacity(vertexCount: Int) {
         Self._checkStorage(for: vertexCount)
@@ -518,6 +619,8 @@ extension AdjacencyMatrix {
         _words.reserveCapacity(vertexCount * _wordsPerRow)
         _outDegrees.reserveCapacity(vertexCount)
         _inDegrees.reserveCapacity(vertexCount)
+        if !_vertexMaps.isEmpty { _vertexMaps.reserveCapacity(vertexCount) }
+        if !_edgeMaps.isEmpty { _edgeMaps.reserveCapacity(vertexCount &* vertexCount) }
     }
 }
 
@@ -532,7 +635,7 @@ extension AdjacencyMatrix {
         _combine(with: other) { $0 | $1 }
     }
 
-    /// The edges in either matrix.
+    /// The edges in either matrix. The result carries this matrix's attached maps.
     @inlinable
     public func union(_ other: AdjacencyMatrix) -> AdjacencyMatrix {
         var result = self
@@ -548,7 +651,8 @@ extension AdjacencyMatrix {
         _combine(with: other) { $0 & $1 }
     }
 
-    /// The edges in both matrices.
+    /// The edges in both matrices. The result carries this matrix's attached maps, with the
+    /// removed edges' values gone.
     @inlinable
     public func intersection(_ other: AdjacencyMatrix) -> AdjacencyMatrix {
         var result = self
@@ -564,7 +668,8 @@ extension AdjacencyMatrix {
         _combine(with: other) { $0 & ~$1 }
     }
 
-    /// The edges in this matrix but not in `other`.
+    /// The edges in this matrix but not in `other`. The result carries this matrix's attached
+    /// maps, with the removed edges' values gone.
     @inlinable
     public func subtracting(_ other: AdjacencyMatrix) -> AdjacencyMatrix {
         var result = self
@@ -580,7 +685,8 @@ extension AdjacencyMatrix {
         _combine(with: other) { $0 ^ $1 }
     }
 
-    /// The edges in exactly one of the two matrices.
+    /// The edges in exactly one of the two matrices. The result carries this matrix's attached
+    /// maps, with the removed edges' values gone.
     @inlinable
     public func symmetricDifference(_ other: AdjacencyMatrix) -> AdjacencyMatrix {
         var result = self
@@ -588,13 +694,17 @@ extension AdjacencyMatrix {
         return result
     }
 
-    /// The complement graph: an edge exactly where this matrix has none.
+    /// The complement graph: an edge exactly where this matrix has none. A new graph: it carries
+    /// none of this matrix's attached maps.
     ///
     /// - Parameter includingSelfLoops: Whether the diagonal is complemented too. NetworkX's
     ///   `complement` leaves self-loops out, which is the default here.
     @inlinable
     public func complement(includingSelfLoops: Bool = false) -> AdjacencyMatrix {
         var result = self
+        result._vertexMaps = _AttachedMaps()
+        result._edgeMaps = _AttachedMaps()
+        result._generation = _GenerationStamp()
         let used = Self._wordsNeeded(forColumns: _vertexCount)
         for row in 0 ..< _vertexCount {
             for word in 0 ..< used {
@@ -612,6 +722,7 @@ extension AdjacencyMatrix {
     }
 
     /// The matrix with every edge reversed: cell (i, j) of the result is cell (j, i) of this one.
+    /// A new graph: it carries none of this matrix's attached maps.
     @inlinable
     public func transposed() -> AdjacencyMatrix {
         var result = AdjacencyMatrix(vertexCount: _vertexCount)

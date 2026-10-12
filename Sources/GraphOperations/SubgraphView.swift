@@ -25,8 +25,13 @@ import Synchronization
 /// The view holds a copy of the base (value semantics), so mutating the original never shows
 /// through. Phase 1 needs a base with vertex indices; a `StableDirectedGraph` with vertex holes
 /// traps at construction.
+///
+/// As a `GraphAdaptor`, its generation is the base's, and it reads the base's attached maps.
+/// `[map, of: vertex]` and `[map, ofEdgeAt: position]` trap for a vertex or an edge the view drops,
+/// and their `checked:` forms throw. `values(of:)` is the base's, by the base's positions; an
+/// algorithm on the view reads it only at the kept edges.
 @frozen
-public struct SubgraphView<Base> {
+public struct SubgraphView<Base>: GraphAdaptor {
     /// The graph the view filters.
     public let base: Base
 

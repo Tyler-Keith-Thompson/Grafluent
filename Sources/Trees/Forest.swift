@@ -16,10 +16,21 @@ public struct Forest<Vertex: Hashable> {
     @usableFromInline var _edgeStart: [Int]
     @usableFromInline var _treeEdges: [Int]
     @usableFromInline var _localIndex: [Int]
+    /// The attached vertex maps (`PropertyGraph`), one value per vertex index.
+    @usableFromInline package var _vertexMaps: _AttachedMaps
+    /// The attached edge maps, one value per edge position.
+    @usableFromInline package var _edgeMaps: _AttachedMaps
+    /// The generation: stamped once by every initializer, and never advanced.
+    @usableFromInline package var _generation: _GenerationStamp
 
+    /// Stamps a generation; every other initializer comes through here.
     @inlinable
     init(_layout layout: _TreeLayout<Vertex>) {
         _layout = layout
+        _vertexMaps = _AttachedMaps()
+        _edgeMaps = _AttachedMaps()
+        _generation = _GenerationStamp()
+        _generation.advance()
         let trees = layout.roots.count
         guard trees >= 2 else {
             _vertexStart = []
@@ -112,7 +123,8 @@ public struct Forest<Vertex: Hashable> {
         self.init(_layout: layout)
     }
 
-    /// The forest of one tree. O(1).
+    /// The forest of one tree. O(1). A new graph: it has its own generation and none of the
+    /// tree's maps.
     @inlinable
     public init(_ tree: Tree<Vertex>) {
         self.init(_layout: tree._layout)

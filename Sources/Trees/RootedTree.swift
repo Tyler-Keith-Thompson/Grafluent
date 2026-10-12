@@ -15,10 +15,21 @@ import Walks
 @frozen
 public struct RootedTree<Vertex: Hashable> {
     @usableFromInline package var _layout: _TreeLayout<Vertex>
+    /// The attached vertex maps (`PropertyGraph`), one value per vertex index.
+    @usableFromInline package var _vertexMaps: _AttachedMaps
+    /// The attached edge maps, one value per edge position.
+    @usableFromInline package var _edgeMaps: _AttachedMaps
+    /// The generation: stamped once by every initializer, and never advanced.
+    @usableFromInline package var _generation: _GenerationStamp
 
+    /// Stamps a generation; every other initializer comes through here.
     @inlinable
     package init(_layout: _TreeLayout<Vertex>) {
         self._layout = _layout
+        _vertexMaps = _AttachedMaps()
+        _edgeMaps = _AttachedMaps()
+        _generation = _GenerationStamp()
+        _generation.advance()
     }
 
     /// The tree rooted at `root`. O(n), and O(1) when it is already rooted there.
@@ -26,7 +37,7 @@ public struct RootedTree<Vertex: Hashable> {
     /// - Precondition: `root` is a vertex of the tree.
     @inlinable
     public init(_ tree: Tree<Vertex>, root: Vertex) {
-        _layout = tree._layout.rerooted(at: tree._layout.number(of: root))
+        self.init(_layout: tree._layout.rerooted(at: tree._layout.number(of: root)))
     }
 
     /// The tree a graph is, rooted at `root`; nil when the graph is not a tree.
@@ -40,13 +51,14 @@ public struct RootedTree<Vertex: Hashable> {
         let (slots, dense) = _TreeLayout.numbering(vertices, table: table)
         let r = _TreeLayout.lookup(root, vertices, slots, dense)!
         guard let layout = _TreeLayout(vertices: vertices, slots: slots, dense: dense, ends: ends, root: r) else { return nil }
-        _layout = layout
+        self.init(_layout: layout)
     }
 
-    /// The rooted tree an arborescence is, forgetting the edges' directions. O(1).
+    /// The rooted tree an arborescence is, forgetting the edges' directions. O(1). A new graph: it
+    /// has its own generation and none of the arborescence's maps.
     @inlinable
     public init(_ arborescence: Arborescence<Vertex>) {
-        _layout = arborescence._layout
+        self.init(_layout: arborescence._layout)
     }
 
     /// The rooted tree with these vertices (duplicates dropped) in which each vertex's parent is
@@ -58,7 +70,7 @@ public struct RootedTree<Vertex: Hashable> {
     @inlinable
     public init?<E: Error>(vertices: some Sequence<Vertex>, parent: (Vertex) throws(E) -> Vertex?) throws(E) {
         guard let layout = try _TreeLayout<Vertex>.fromParents(vertices: vertices, parent: parent) else { return nil }
-        _layout = layout
+        self.init(_layout: layout)
     }
 
     /// The root.
@@ -144,7 +156,7 @@ extension RootedTree where Vertex == Int {
     @inlinable
     public init?(parents: [Int?]) {
         guard let layout = _TreeLayout<Int>.fromParentNumbers(parents) else { return nil }
-        _layout = layout
+        self.init(_layout: layout)
     }
 }
 
@@ -524,7 +536,7 @@ extension RootedTree: Decodable where Vertex: Decodable {
         guard let layout = _TreeLayout(vertices: vertices, slots: slots, dense: dense, ends: ends, root: root) else {
             throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "Not a tree"))
         }
-        _layout = layout
+        self.init(_layout: layout)
     }
 }
 

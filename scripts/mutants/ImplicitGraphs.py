@@ -97,3 +97,8 @@ MUTANTS = [
     Mutant("ckoutdegree", D, "guard contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=2),
     Mutant("ckvertexindex", D, "guard contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=3),
 ]
+
+# The generation, stamped by the initializer.
+MUTANTS += [
+    Mutant("generationstamp", I, "        _generation.advance()", "", mode="stmt"),
+]

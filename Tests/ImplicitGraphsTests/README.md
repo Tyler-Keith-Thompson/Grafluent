@@ -27,6 +27,7 @@ the seeded generator and the tags in `GrafluentTestSupport`.
 struct ImplicitDirectedGraph<Row: Sequence<Int>>: DirectedGraph
     init(vertexCount:successors:)
     successors(checked:), outEdges(checked:), outDegree(checked:), vertexIndex(checked:)  // throw VertexNotFound
+    var generation: GraphGeneration           // stamped by the initializer; no attached maps (positions have no dense offset)
     // Vertices = Range<Int>; Successors = SuccessorIndices, the range-checked row;
     // OutEdges, the row's positions
     struct Edges: Collection                   // Element = DirectedEdge<Int>
@@ -126,6 +127,8 @@ into an array in one pass and reports an `underestimatedCount` of 0, so `Array.i
   - A hashed closure on 10⁵ vertices, against a `DirectedPseudograph`.
   - 200 unbounded weighted searches, where Dijkstra and A* must agree, and each path must cost what
     it says.
+- **Generation** (`ImplicitGraphGenerationTests.swift`): stamped once, shared by copies, and
+  another graph's even when built from the same closure.
 - **Review cases** (`ImplicitGraphReviewTests.swift`), each added for a planted bug in
   `just mutate ImplicitGraphs` that every other test let through: `targetIndex(ofEdgeAt:)`, the
   one-pass `edges.map`, `index(after:)` and the subscript trapping at `endIndex` under a closure

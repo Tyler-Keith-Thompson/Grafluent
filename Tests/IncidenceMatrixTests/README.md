@@ -36,6 +36,10 @@ struct OrientedIncidenceMatrix: DirectedHypergraph, …             // the same 
     removeAll, reserveCapacity, transposed(), reversed
     outHyperedges/inHyperedges/outDegree/inDegree/degree/vertexIndex(checked:),
     insert(checked:targets:), insert(checked:)                         // throw VertexNotFound
+// Both: PropertyGraph (dense column and row maps, appended with their column or row; removeAll
+// keeps them attached), addEdgeMap(default:) / addVertexMap(default:) and the (of:) forms,
+// subscripts by column, vertex position and vertex, the checked: subscripts (EdgeNotFound /
+// VertexNotFound), values(of:), and generation
 ```
 
 ## Conventions
@@ -71,8 +75,8 @@ one column at a time. `transposed()` and `reversed` are checked as involutions, 
 negation.
 
 The catalog-row files are every file except `IncidenceMatrixConformanceTests.swift`,
-`IncidenceMatrixEdgeCaseTests.swift`, `IncidenceMatrixPropertyTests.swift` and
-`Performance/IncidenceMatrixStressTests.swift`. `swiftgen.py`, which
+`IncidenceMatrixEdgeCaseTests.swift`, `IncidenceMatrixPropertyTests.swift`, the three map files
+and `Performance/IncidenceMatrixStressTests.swift`. `swiftgen.py`, which
 sits next to `ref.py`, generated them:
 
 ```
@@ -110,6 +114,13 @@ There is no hash-law file. The vertices are `Int`s, and every read is in index s
     column, row and degree and the handshake law checked after each step;
   - `transposed()` swapping rows and columns;
   - equality as cell for cell.
+- **Maps and generations** (`IncidenceMatrixMapTests.swift`,
+  `IncidenceMatrixMapPreconditionTests.swift`, `IncidenceMatrixMapPropertyTests.swift`): values
+  follow appends and survive cell edits on both matrices; `removeAll` keeps the maps; the checked
+  reads throw out of range; copies are copy-on-write; `transposed()`, `reversed` and the
+  conversions carry no map (the handle traps there); equality and coding ignore maps; every
+  structural mutation starts a generation and a cell edit that changes nothing does not; random
+  mutations against arrays by column and row (swift-property-based).
 - **Stress.**
   - A multigraph at n = 2 048 and m = 2 × 10⁴, api.md's benchmark shape.
   - 10⁵ cell edits against a set.

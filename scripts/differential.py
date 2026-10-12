@@ -256,6 +256,8 @@ def compare(case, mine, ref, sections):
         problems += compare_spanning(case, mine["spanning"], G)
     if "connectivity" in sections and not case["directed"]:
         problems += compare_connectivity(case, mine["connectivity"], G)
+    if "connectivity" in sections:
+        problems += compare_self_loops_and_cycles(case, mine, G)
     if "flows" in sections:
         problems += differential_flows.compare_flows(case, mine["flows"])
     if "tours" in sections:
@@ -534,6 +536,31 @@ def compare_connectivity(case, mine, G):
     tree_edges = sum(len([v for v in vs if v in set(points)]) for vs in mine["blockVertices"])
     if mine["blockCutTreeEdges"] != tree_edges:
         problems.append(f"block–cut tree edges {mine['blockCutTreeEdges']}, expected {tree_edges}")
+    return problems
+
+
+def compare_self_loops_and_cycles(case, mine, G):
+    """Self-loop queries against `nodes_with_selfloops`, `selfloop_edges` and `number_of_selfloops`
+    (both kinds, by vertex), and, directed, the nontrivial strong components against
+    `strongly_connected_components` filtered to a component with an edge, as sets and in the
+    order of the library's full partition."""
+    problems = []
+    loops = mine["selfLoops"]
+    vertices = list(nx.nodes_with_selfloops(G))
+    if loops["vertices"] != vertices or loops["hasSelfLoops"] != bool(vertices):
+        problems.append(f"verticesWithSelfLoops {loops['vertices']}, NetworkX {vertices}")
+    pairs = loops["edges"]
+    if pairs != [[u, v] for u, v in nx.selfloop_edges(G)] or len(pairs) != nx.number_of_selfloops(G):
+        problems.append(f"selfLoopEdges {pairs}, NetworkX {list(nx.selfloop_edges(G))}")
+    if case["directed"]:
+        ours = mine["directedConnectivity"]
+        theirs = {frozenset(c) for c in nx.strongly_connected_components(G) if len(c) > 1 or G.has_edge(next(iter(c)), next(iter(c)))}
+        if {frozenset(c) for c in ours["nontrivial"]} != theirs or len(ours["nontrivial"]) != len(theirs):
+            problems.append(f"nontrivialStronglyConnectedComponents {ours['nontrivial']}, NetworkX {sorted(sorted(c) for c in theirs)}")
+        if ours["nontrivial"] != [c for c in ours["strong"] if frozenset(c) in theirs]:
+            problems.append(f"nontrivialStronglyConnectedComponents order {ours['nontrivial']}, partition {ours['strong']}")
+        if any(c != sorted(c) for c in ours["nontrivial"]):
+            problems.append("nontrivial components not in vertices order")
     return problems
 
 

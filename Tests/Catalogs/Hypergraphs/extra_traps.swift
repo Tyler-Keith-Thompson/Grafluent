@@ -140,3 +140,114 @@
         #expect(Array(hypergraph.targets(ofHyperedgeAt: 0)) == ["b"] && Array(hypergraph.targetIndices(ofHyperedgeAt: 0)) == [1])
         #expect(Array(hypergraph.outHyperedges(ofIndex: 0)) == [0] && hypergraph.inDegree(ofIndex: 1) == 1 && hypergraph.vertex(atIndex: 1) == "b")
     }
+
+    @Test("Undirected: attached maps trap outside the elements, and for a handle of another hypergraph or a removed map")
+    func undirectedMaps() async {
+        await #expect(processExitsWith: .failure) {
+            var hypergraph = UndirectedIncidenceList<String>(hyperedges: [["a", "b"]])
+            let weights = hypergraph.addEdgeMap(default: 0)
+            _ = hypergraph[weights, ofEdgeAt: 1]
+        }
+        await #expect(processExitsWith: .failure) {
+            var hypergraph = UndirectedIncidenceList<String>(hyperedges: [["a", "b"]])
+            let weights = hypergraph.addEdgeMap(default: 0)
+            hypergraph[weights, ofEdgeAt: -1] = 1
+        }
+        await #expect(processExitsWith: .failure) {
+            var hypergraph = UndirectedIncidenceList<String>(hyperedges: [["a", "b"]])
+            let colors = hypergraph.addVertexMap(default: 0)
+            _ = hypergraph[colors, ofVertexAt: 2]
+        }
+        await #expect(processExitsWith: .failure) {
+            var hypergraph = UndirectedIncidenceList<String>(hyperedges: [["a", "b"]])
+            let colors = hypergraph.addVertexMap(default: 0)
+            hypergraph[colors, ofVertexAt: -1] = 1
+        }
+        await #expect(processExitsWith: .failure) {
+            var hypergraph = UndirectedIncidenceList<String>(hyperedges: [["a", "b"]])
+            let colors = hypergraph.addVertexMap(default: 0)
+            _ = hypergraph[colors, of: "q"]
+        }
+        await #expect(processExitsWith: .failure) {
+            var hypergraph = UndirectedIncidenceList<String>(hyperedges: [["a", "b"]])
+            let colors = hypergraph.addVertexMap(default: 0)
+            hypergraph[colors, of: "q"] = 1
+        }
+        await #expect(processExitsWith: .failure) {
+            var hypergraph = UndirectedIncidenceList<String>(hyperedges: [["a", "b"]])
+            var other = hypergraph
+            let weights = other.addEdgeMap(default: 0)
+            _ = hypergraph.addEdgeMap(default: 0)
+            _ = try? hypergraph[weights, checkedEdgeAt: 0]
+        }
+        await #expect(processExitsWith: .failure) {
+            var hypergraph = UndirectedIncidenceList<String>(hyperedges: [["a", "b"]])
+            let colors = hypergraph.addVertexMap(default: 0)
+            hypergraph.removeVertexMap(colors)
+            _ = hypergraph.values(of: colors)
+        }
+        // Without the calls: the elements answer, and a handle of the hypergraph itself works.
+        var hypergraph = UndirectedIncidenceList<String>(hyperedges: [["a", "b"]])
+        let weights = hypergraph.addEdgeMap(default: 0)
+        let colors = hypergraph.addVertexMap(default: 0)
+        hypergraph[weights, ofEdgeAt: 0] = 1
+        hypergraph[colors, ofVertexAt: 1] = 1
+        hypergraph[colors, of: "a"] = 2
+        #expect(hypergraph[weights, ofEdgeAt: 0] == 1 && hypergraph[colors, ofVertexAt: 1] == 1 && hypergraph[colors, of: "a"] == 2)
+        #expect(hypergraph.values(of: colors)[0] == 2)
+    }
+
+    @Test("Directed: attached maps trap outside the elements, and for a handle of another hypergraph or a removed map")
+    func directedMaps() async {
+        await #expect(processExitsWith: .failure) {
+            var hypergraph = IncidenceList<String>(hyperedges: [(sources: ["a"], targets: ["b"])])
+            let weights = hypergraph.addEdgeMap(default: 0)
+            _ = hypergraph[weights, ofEdgeAt: 1]
+        }
+        await #expect(processExitsWith: .failure) {
+            var hypergraph = IncidenceList<String>(hyperedges: [(sources: ["a"], targets: ["b"])])
+            let weights = hypergraph.addEdgeMap(default: 0)
+            hypergraph[weights, ofEdgeAt: -1] = 1
+        }
+        await #expect(processExitsWith: .failure) {
+            var hypergraph = IncidenceList<String>(hyperedges: [(sources: ["a"], targets: ["b"])])
+            let colors = hypergraph.addVertexMap(default: 0)
+            _ = hypergraph[colors, ofVertexAt: -1]
+        }
+        await #expect(processExitsWith: .failure) {
+            var hypergraph = IncidenceList<String>(hyperedges: [(sources: ["a"], targets: ["b"])])
+            let colors = hypergraph.addVertexMap(default: 0)
+            hypergraph[colors, ofVertexAt: 2] = 1
+        }
+        await #expect(processExitsWith: .failure) {
+            var hypergraph = IncidenceList<String>(hyperedges: [(sources: ["a"], targets: ["b"])])
+            let colors = hypergraph.addVertexMap(default: 0)
+            _ = hypergraph[colors, of: "q"]
+        }
+        await #expect(processExitsWith: .failure) {
+            var hypergraph = IncidenceList<String>(hyperedges: [(sources: ["a"], targets: ["b"])])
+            let colors = hypergraph.addVertexMap(default: 0)
+            hypergraph[colors, of: "q"] = 1
+        }
+        await #expect(processExitsWith: .failure) {
+            let hypergraph = IncidenceList<String>(hyperedges: [(sources: ["a"], targets: ["b"])])
+            var other = hypergraph
+            let colors = other.addVertexMap(default: 0)
+            _ = try? hypergraph[colors, checked: "a"]
+        }
+        await #expect(processExitsWith: .failure) {
+            var hypergraph = IncidenceList<String>(hyperedges: [(sources: ["a"], targets: ["b"])])
+            let weights = hypergraph.addEdgeMap(default: 0)
+            hypergraph.removeEdgeMap(weights)
+            _ = hypergraph.values(of: weights)
+        }
+        // Without the calls: the elements answer, and a handle of the hypergraph itself works.
+        var hypergraph = IncidenceList<String>(hyperedges: [(sources: ["a"], targets: ["b"])])
+        let weights = hypergraph.addEdgeMap(default: 0)
+        let colors = hypergraph.addVertexMap(default: 0)
+        hypergraph[weights, ofEdgeAt: 0] = 1
+        hypergraph[colors, ofVertexAt: 1] = 1
+        hypergraph[colors, of: "a"] = 2
+        #expect(hypergraph[weights, ofEdgeAt: 0] == 1 && hypergraph[colors, ofVertexAt: 1] == 1 && hypergraph[colors, of: "a"] == 2)
+        #expect(hypergraph.values(of: weights)[0] == 1)
+    }

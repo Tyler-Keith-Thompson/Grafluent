@@ -128,4 +128,103 @@ let benchmarks: @Sendable () -> Void = {
         let copy = graph
         for _ in benchmark.scaledIterations { blackHole(graph == copy) }
     }
+
+    // Attached maps (PropertyGraph), against `no maps` and a caller-kept `[Double]`.
+    let bigEdges = Inputs.randomEdges(vertexCount: n, edgeCount: 1_000_000).map { UndirectedEdge($0.source, $0.target) }
+    let big = UndirectedAdjacencyList(vertices: 0 ..< n, edges: bigEdges)
+    let removedEdges = Array(bigEdges.prefix(100_000))
+    Benchmark("UndirectedAdjacencyList maps: insert 1M edges, no maps") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var built = UndirectedAdjacencyList<Int>(vertices: 0 ..< n)
+            for edge in bigEdges { built.insert(edge: edge) }
+            blackHole(built.edgeCount)
+        }
+    }
+    Benchmark("UndirectedAdjacencyList maps: insert 1M edges, BASELINE hand-maintained side array") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var built = UndirectedAdjacencyList<Int>(vertices: 0 ..< n)
+            var weights: [Double] = []
+            for edge in bigEdges where built.insert(edge: edge).inserted { weights.append(1) }
+            blackHole(built.edgeCount)
+            blackHole(weights)
+        }
+    }
+    Benchmark("UndirectedAdjacencyList maps: insert 1M edges, 1 edge map") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var built = UndirectedAdjacencyList<Int>(vertices: 0 ..< n)
+            _ = built.addEdgeMap(default: 1.0)
+            for edge in bigEdges { built.insert(edge: edge) }
+            blackHole(built.edgeCount)
+        }
+    }
+    Benchmark("UndirectedAdjacencyList maps: remove 100k edges, no maps") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var copy = big
+            copy.insert(edge: UndirectedEdge(0, n))  // copies the shared storage, outside the measurement
+            benchmark.startMeasurement()
+            for edge in removedEdges { copy.remove(edge: edge) }
+            benchmark.stopMeasurement()
+            blackHole(copy.edgeCount)
+        }
+    }
+    var bigWithEdgeMap = big
+    _ = bigWithEdgeMap.addEdgeMap(default: 1.0)
+    let sourceWithEdgeMap = bigWithEdgeMap
+    Benchmark("UndirectedAdjacencyList maps: remove 100k edges, 1 edge map") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var copy = sourceWithEdgeMap
+            copy.insert(edge: UndirectedEdge(0, n))  // copies the shared storage and map, outside the measurement
+            benchmark.startMeasurement()
+            for edge in removedEdges { copy.remove(edge: edge) }
+            benchmark.stopMeasurement()
+            blackHole(copy.edgeCount)
+        }
+    }
+    Benchmark("UndirectedAdjacencyList maps: remove 10k vertices, no maps") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var copy = big
+            copy.insert(edge: UndirectedEdge(0, n))
+            benchmark.startMeasurement()
+            for v in 0 ..< 10_000 { copy.remove(v) }
+            benchmark.stopMeasurement()
+            blackHole(copy.edgeCount)
+        }
+    }
+    var bigWithMaps = big
+    _ = bigWithMaps.addVertexMap(default: 1.0)
+    _ = bigWithMaps.addEdgeMap(default: 1.0)
+    let sourceWithMaps = bigWithMaps
+    Benchmark("UndirectedAdjacencyList maps: remove 10k vertices, 1 vertex map and 1 edge map") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var copy = sourceWithMaps
+            copy.insert(edge: UndirectedEdge(0, n))
+            benchmark.startMeasurement()
+            for v in 0 ..< 10_000 { copy.remove(v) }
+            benchmark.stopMeasurement()
+            blackHole(copy.edgeCount)
+        }
+    }
+    let readWeights = (0 ..< big.edgeCount).map { Double($0 & 1023) }
+    Benchmark("UndirectedAdjacencyList maps: read a weight per incident edge, BASELINE [Double]") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var sum = 0.0
+            for i in 0 ..< n {
+                for e in big.incidentEdgeIndices(ofIndex: i) { sum += readWeights[e] }
+            }
+            blackHole(sum)
+        }
+    }
+    var weighted = big
+    let weightMap = weighted.addEdgeMap(default: 0.0)
+    for p in 0 ..< weighted.edgeCount { weighted[weightMap, ofEdgeAt: p] = readWeights[p] }
+    let weightValues = weighted.values(of: weightMap)
+    Benchmark("UndirectedAdjacencyList maps: read a weight per incident edge, values(of:)") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var sum = 0.0
+            for i in 0 ..< n {
+                for e in weighted.incidentEdgeIndices(ofIndex: i) { sum += weightValues[e] }
+            }
+            blackHole(sum)
+        }
+    }
 }

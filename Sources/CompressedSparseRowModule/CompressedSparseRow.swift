@@ -20,21 +20,49 @@ public struct CompressedSparseRow {
     @usableFromInline
     internal var _targets: [Int]
 
-    /// Unchecked: `_offsets` and `_targets` must already satisfy `init(offsets:targets:)`.
+    /// The attached vertex maps (`PropertyGraph`), one value per vertex.
+    @usableFromInline
+    internal var _vertexMaps: _AttachedMaps
+
+    /// The attached edge maps, one value per edge index.
+    @usableFromInline
+    internal var _edgeMaps: _AttachedMaps
+
+    /// The generation: stamped once by every initializer but `init()`, and never advanced.
+    @usableFromInline
+    internal var _generation: _GenerationStamp
+
+    /// The generation of the graph `init(_:)` read, or `.untracked`.
+    @usableFromInline
+    internal var _sourceGeneration: GraphGeneration
+
+    /// Unchecked: `_offsets` and `_targets` must already satisfy `init(offsets:targets:)`. Stamps
+    /// a generation.
     @inlinable
     package init(_offsets: [Int], _targets: [Int]) {
         self._offsets = _offsets
         self._targets = _targets
+        _vertexMaps = _AttachedMaps()
+        _edgeMaps = _AttachedMaps()
+        _generation = _GenerationStamp()
+        _sourceGeneration = .untracked
+        _generation.advance()
     }
 
     /// Shared by every graph with no vertices, so creating one does not allocate.
     @usableFromInline
     internal static let _emptyOffsets: [Int] = [0]
 
-    /// The graph with no vertices.
+    /// The graph with no vertices. Allocates nothing, so it has no generation (see
+    /// `GraphGeneration`).
     @inlinable
     public init() {
-        self.init(_offsets: Self._emptyOffsets, _targets: [])
+        _offsets = Self._emptyOffsets
+        _targets = []
+        _vertexMaps = _AttachedMaps()
+        _edgeMaps = _AttachedMaps()
+        _generation = _GenerationStamp()
+        _sourceGeneration = .untracked
     }
 
     /// A graph of `vertexCount` vertices and no edges.
@@ -104,7 +132,7 @@ public struct CompressedSparseRow {
         if n == 0 {
             precondition(m == 0, "A graph with no vertices has no edges")
             edgeIndices = []
-            return CompressedSparseRow()
+            return CompressedSparseRow(_offsets: _emptyOffsets, _targets: [])
         }
 
         // Pass 1: check endpoints, count each row and column, and notice whether the input is
@@ -434,6 +462,22 @@ extension CompressedSparseRow {
         return nil
     }
 
+    /// `edgeIndex(of:)` on the arrays alone, for the edge views, which hold only the arrays.
+    @inlinable
+    internal static func _edgeIndex(of edge: DirectedEdge<Int>, offsets: [Int], targets: [Int]) -> Int? {
+        let n = offsets.count - 1
+        guard edge.source >= 0, edge.source < n, edge.target >= 0, edge.target < n else { return nil }
+        var low = offsets[edge.source]
+        var high = offsets[edge.source + 1]
+        while low < high {
+            let middle = low + (high - low) / 2
+            let value = targets[middle]
+            if value == edge.target { return middle }
+            if value < edge.target { low = middle + 1 } else { high = middle }
+        }
+        return nil
+    }
+
     /// Whether `edge` is an edge. False when either endpoint is out of range. O(log d).
     @inlinable
     public func contains(edge: DirectedEdge<Int>) -> Bool {
@@ -452,11 +496,17 @@ extension CompressedSparseRow {
     /// The last vertex whose row starts at or before `edgeIndex`.
     @inlinable
     internal func _source(ofEdgeAt edgeIndex: Int) -> Int {
+        Self._source(ofEdgeAt: edgeIndex, offsets: _offsets)
+    }
+
+    /// The last vertex whose row in `offsets` starts at or before `edgeIndex`.
+    @inlinable
+    internal static func _source(ofEdgeAt edgeIndex: Int, offsets: [Int]) -> Int {
         var low = 0
-        var high = vertexCount
+        var high = offsets.count - 1
         while low < high {
             let middle = low + (high - low + 1) / 2
-            if _offsets[middle] <= edgeIndex { low = middle } else { high = middle - 1 }
+            if offsets[middle] <= edgeIndex { low = middle } else { high = middle - 1 }
         }
         return low
     }
@@ -492,7 +542,7 @@ extension CompressedSparseRow {
         let m = edgeCount
         guard n > 0 else {
             forwardEdgeIndices = []
-            return self
+            return CompressedSparseRow(_offsets: _offsets, _targets: _targets)
         }
         var offsets = [Int](repeating: 0, count: n + 1)
         if recording { forwardEdgeIndices = [Int](repeating: 0, count: m) }
@@ -540,21 +590,24 @@ extension CompressedSparseRow {
 extension CompressedSparseRow {
     /// Every edge in row-major order; the position of an edge is its index.
     @inlinable
-    public var edges: Edges { Edges(graph: self, bounds: 0 ..< edgeCount) }
+    public var edges: Edges { Edges(offsets: _offsets, targets: _targets, bounds: 0 ..< edgeCount) }
 
     /// The edges of a graph, or a contiguous run of them. Positions are edge indices. Iterating is
     /// O(1) per edge, including over a slice, which is itself an `Edges`; subscripting a single
-    /// position is O(log n), a search for its source, so prefer iteration to index loops.
+    /// position is O(log n), a search for its source, so prefer iteration to index loops. It
+    /// holds the graph's two arrays, not the graph, so its maps are not retained.
     @frozen
     public struct Edges: RandomAccessCollection {
-        @usableFromInline let graph: CompressedSparseRow
+        @usableFromInline let _offsets: [Int]
+        @usableFromInline let _targets: [Int]
 
         public let startIndex: Int
         public let endIndex: Int
 
         @inlinable
-        init(graph: CompressedSparseRow, bounds: Range<Int>) {
-            self.graph = graph
+        init(offsets: [Int], targets: [Int], bounds: Range<Int>) {
+            _offsets = offsets
+            _targets = targets
             self.startIndex = bounds.lowerBound
             self.endIndex = bounds.upperBound
         }
@@ -567,19 +620,19 @@ extension CompressedSparseRow {
         @inlinable
         public subscript(position: Int) -> DirectedEdge<Int> {
             precondition(position >= startIndex && position < endIndex, "Index \(position) is out of bounds \(startIndex)..<\(endIndex)")
-            return DirectedEdge(from: graph._source(ofEdgeAt: position), to: graph._targets[position])
+            return DirectedEdge(from: CompressedSparseRow._source(ofEdgeAt: position, offsets: _offsets), to: _targets[position])
         }
 
         @inlinable
         public subscript(bounds: Range<Int>) -> Edges {
             precondition(bounds.lowerBound >= startIndex && bounds.upperBound <= endIndex, "Range \(bounds) is out of bounds \(startIndex)..<\(endIndex)")
-            return Edges(graph: graph, bounds: bounds)
+            return Edges(offsets: _offsets, targets: _targets, bounds: bounds)
         }
 
         /// The position of `element` if it is in this run, found by binary search.
         @inlinable
         func _position(of element: DirectedEdge<Int>) -> Int? {
-            guard let k = graph.edgeIndex(of: element), k >= startIndex, k < endIndex else { return nil }
+            guard let k = CompressedSparseRow._edgeIndex(of: element, offsets: _offsets, targets: _targets), k >= startIndex, k < endIndex else { return nil }
             return k
         }
 
@@ -601,26 +654,28 @@ extension CompressedSparseRow {
 
         @inlinable
         public func makeIterator() -> Iterator {
-            Iterator(graph: graph, bounds: startIndex ..< endIndex)
+            Iterator(offsets: _offsets, targets: _targets, bounds: startIndex ..< endIndex)
         }
 
         /// Walks the rows in order from one search for the first source, so each step is O(1)
         /// amortized.
         @frozen
         public struct Iterator: IteratorProtocol {
-            @usableFromInline let graph: CompressedSparseRow
+            @usableFromInline let _offsets: [Int]
+            @usableFromInline let _targets: [Int]
             @usableFromInline var source: Int
             @usableFromInline var rowEnd: Int
             @usableFromInline var position: Int
             @usableFromInline let end: Int
 
             @inlinable
-            init(graph: CompressedSparseRow, bounds: Range<Int>) {
-                self.graph = graph
+            init(offsets: [Int], targets: [Int], bounds: Range<Int>) {
+                _offsets = offsets
+                _targets = targets
                 self.position = bounds.lowerBound
                 self.end = bounds.upperBound
-                self.source = bounds.isEmpty ? 0 : graph._source(ofEdgeAt: bounds.lowerBound)
-                self.rowEnd = bounds.isEmpty ? 0 : graph._offsets[source + 1]
+                self.source = bounds.isEmpty ? 0 : CompressedSparseRow._source(ofEdgeAt: bounds.lowerBound, offsets: offsets)
+                self.rowEnd = bounds.isEmpty ? 0 : offsets[source + 1]
             }
 
             @inlinable
@@ -628,10 +683,10 @@ extension CompressedSparseRow {
                 guard position < end else { return nil }
                 while rowEnd <= position {
                     source &+= 1
-                    rowEnd = graph._offsets[source &+ 1]
+                    rowEnd = _offsets[source &+ 1]
                 }
                 defer { position &+= 1 }
-                return DirectedEdge(from: source, to: graph._targets[position])
+                return DirectedEdge(from: source, to: _targets[position])
             }
         }
     }
@@ -854,7 +909,10 @@ extension CompressedSparseRow {
 
 extension CompressedSparseRow {
     /// The compressed sparse row form of any directed graph on the vertices
-    /// `0..<graph.vertexCount`, with parallel edges collapsed. The edges are read in place.
+    /// `0..<graph.vertexCount`, with parallel edges collapsed. The edges are read in place. It
+    /// records `graph`'s generation as `sourceGeneration`, so `isCurrent(for: graph)` says later
+    /// whether `graph` has changed since. The result has no attached maps, except that a
+    /// `CompressedSparseRow` is returned as it is, maps included.
     ///
     /// - Precondition: the vertices are exactly `0..<graph.vertexCount`. Other numberings are not
     ///   inferred or renumbered; use `init(vertexCount:edges:)`.
@@ -862,6 +920,7 @@ extension CompressedSparseRow {
     public init(_ graph: some DirectedGraph<Int>) {
         if let same = graph as? CompressedSparseRow {
             self = same
+            _sourceGeneration = same.generation
             return
         }
         let n = graph.vertexCount
@@ -869,5 +928,25 @@ extension CompressedSparseRow {
             precondition(v >= 0 && v < n, "Vertex \(v) is not in 0..<\(n); the vertices must be exactly 0..<vertexCount")
         }
         self.init(vertexCount: n, edges: graph.edges)
+        _sourceGeneration = graph.generation
     }
+
+    /// The generation of the graph `init(_:)` built this one from, when that graph tracks
+    /// generations; `.untracked` for a graph built any other way. Not part of equality.
+    @inlinable
+    public var sourceGeneration: GraphGeneration { _sourceGeneration }
+
+    /// Whether this graph was built by `init(_:)` from `graph` (or a copy of it) and `graph` has
+    /// not been structurally mutated since, so the two still have the same vertices and edges.
+    /// False when the source does not track generations. O(1).
+    @inlinable
+    public func isCurrent(for graph: some DirectedGraph) -> Bool {
+        _sourceGeneration.isCurrent(for: graph)
+    }
+
+    /// The generation of this graph, which never changes: the graph is immutable. A structure
+    /// derived from this graph is current for it and its copies, and for no other graph.
+    /// `init()`'s empty graph has no generation and is current for nothing.
+    @inlinable
+    public var generation: GraphGeneration { _generation.generation }
 }

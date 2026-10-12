@@ -60,6 +60,15 @@ struct AdjacencyMatrix: Hashable, Sendable, Codable, ExpressibleByArrayLiteral,
 
     static let maximumDecodedVertexCountKey: CodingUserInfoKey
     static let defaultMaximumDecodedVertexCount: Int  // 16,384
+
+    // PropertyGraph: attached maps; a removed edge's cell goes back to the default
+    mutating func addEdgeMap(default:) -> EdgeMap<V> / addEdgeMap(of:) -> EdgeMap<V?>
+    mutating func addVertexMap(default:) -> VertexMap<V> / addVertexMap(of:) -> VertexMap<V?>
+    mutating func removeEdgeMap(_:) / removeVertexMap(_:)
+    subscript(map, ofEdgeAt: Edges.Index) / (map, ofVertexAt: Int) / (map, of: Int)   // trap off an edge or vertex
+    subscript(map, checkedEdgeAt:) / (map, checkedVertexAt:) / (map, checked:)      // EdgeNotFound / VertexNotFound
+    func values(of:) -> EdgeValues<AdjacencyMatrix, V> / VertexValues<AdjacencyMatrix, V>
+    var generation: GraphGeneration
 ```
 
 ## Conventions
@@ -84,6 +93,9 @@ Where the reference libraries disagree, these are the choices and the reasons.
 | Rows and columns | `BitSet` values, not views into the matrix | O(1) membership, word-at-a-time iteration and set algebra, and mutating the matrix while holding one costs nothing | — |
 | Edge positions | A cell (`source`, `target`); still names the same cell after `appendVertex()` | Stable; weights for a matrix are keyed by cell, not by a dense edge index | LEMON's id is `n × source + target`, which shifts when n changes |
 | Complement | Excludes self-loops unless `includingSelfLoops: true` | Matches NetworkX | — |
+| Edge map layout | One value per cell at Szudzik's pairing, `s < t ? t·t + s : s·s + s + t` | The cells of `0..<n` are exactly `0..<n²`, so `appendVertex()` appends 2n + 1 values and moves none | LEMON's `n × source + target` shifts when n changes |
+| Removed edge's value | Every removal (one edge, a row, a column, a whole-matrix operation, `removeAllEdges`) sets the cell back to the default; reading or writing it traps, the checked read throws `EdgeNotFound` | A cell with no edge always holds the default, so an insertion writes nothing | — |
+| Derived matrices | `union` and the other set operations carry this matrix's maps; `complement()`, `transposed()` and decoding carry none | The set operations are mutations of a copy; the others are new graphs | — |
 
 ## Files
 
@@ -97,6 +109,10 @@ Where the reference libraries disagree, these are the choices and the reasons.
 | `AdjacencyMatrixPreconditionTests.swift` | Exit tests for every trapping precondition |
 | `AdjacencyMatrixCheckedTests.swift` | The `checked:` spellings (AM-R08): each equals its trapping spelling in range and throws `VertexNotFound` or `EdgeNotFound` outside it; `insert(checked:)` changes nothing when it throws |
 | `AdjacencyMatrixValueTests.swift` | Value semantics, views as values, Collection laws, `Sendable`, a model-based randomized test starting at 0 to 120 vertices |
+| `AdjacencyMatrixMapTests.swift` | Attached maps: defaults, values kept across `appendVertex()` past 64 vertices, every removal path resetting its cells (rows past one word too), vertex maps, `removeAll`, copies, derived matrices, equality and coding |
+| `AdjacencyMatrixMapPreconditionTests.swift` | Exit tests: a removed edge's value, a vertex out of range, a handle on another or a derived matrix or after removal |
+| `AdjacencyMatrixMapPropertyTests.swift` | Random mutations with two edge maps and a vertex map against dictionaries (swift-property-based); a cell with no edge must read the default |
+| `AdjacencyMatrixGenerationTests.swift` | Every structural mutation starts a generation, a call that changes nothing and map writes do not; copies and derived matrices |
 | `AdjacencyMatrixOperationTests.swift` | Transpose, set algebra, complement, row and column clearing, `insertEdges(from:to:)`, a transitive closure written with row unions, stable edge positions, slices, Collection laws on wide matrices, the decoding limit, large descriptions |
 
 Case IDs (AM-C04, AM-W02, …) refer to the catalog of cases (`Tests/Catalogs/AdjacencyMatrix/cases.md`) harvested from petgraph, Boost.Graph,

@@ -169,6 +169,49 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    // Reading attached values the way an algorithm does, by the index of each out-edge: the dense
+    // `values(of:)` snapshot against a side array of `edgeCount` values. They should match.
+    var weighted = graph
+    let weights = weighted.addEdgeMap(default: 1.0)
+    var side = [Double](repeating: 1.0, count: graph.edgeCount)
+    for k in 0 ..< graph.edgeCount {
+        weighted[weights, ofEdgeAt: k] = Double(k & 7)
+        side[k] = Double(k & 7)
+    }
+    Benchmark("CompressedSparseRow: BASELINE side array of edgeCount weights, read at every out-edge") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var total = 0.0
+            for v in weighted.vertices { for k in weighted.outEdges(of: v) { total += side[k] } }
+            blackHole(total)
+        }
+    }
+    Benchmark("CompressedSparseRow: values(of:) of an attached EdgeMap, read at every out-edge") { benchmark in
+        for _ in benchmark.scaledIterations {
+            let w = weighted.values(of: weights)
+            var total = 0.0
+            for v in weighted.vertices { for k in weighted.outEdges(of: v) { total += w[k] } }
+            blackHole(total)
+        }
+    }
+    let ranks = weighted.addVertexMap(default: 0.0)
+    let sideRanks = (0 ..< n).map { Double($0 & 15) }
+    for v in 0 ..< n { weighted[ranks, of: v] = Double(v & 15) }
+    Benchmark("CompressedSparseRow: BASELINE side array of vertexCount values, read at every target") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var total = 0.0
+            for v in weighted.vertices { for w in weighted.successors(of: v) { total += sideRanks[w] } }
+            blackHole(total)
+        }
+    }
+    Benchmark("CompressedSparseRow: values(of:) of an attached VertexMap, read at every target") { benchmark in
+        for _ in benchmark.scaledIterations {
+            let rank = weighted.values(of: ranks)
+            var total = 0.0
+            for v in weighted.vertices { for w in weighted.successors(of: v) { total += rank[w] } }
+            blackHole(total)
+        }
+    }
+
     Benchmark("CompressedSparseRow: every vertex's successors through withUnsafeBufferPointers") { benchmark in
         for _ in benchmark.scaledIterations {
             let sum = graph.withUnsafeBufferPointers { offsets, targets in

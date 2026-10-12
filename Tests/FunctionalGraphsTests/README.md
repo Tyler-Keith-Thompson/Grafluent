@@ -29,6 +29,8 @@ struct FunctionalGraph: DirectedGraph, Hashable, Codable, Sendable, CustomString
     successor(checked:), successor(checked:steps:), successors(checked:), outEdges(checked:),
         outDegree(checked:), vertexIndex(checked:)          // throw VertexNotFound
     source(checkedEdgeAt:), target(checkedEdgeAt:)            // throw EdgeNotFound
+    // PropertyGraph: dense vertex and edge maps of n values each, the edge leaving v at position v;
+    // the checked subscripts throw; generation stamped once, never advanced
     // DirectedGraph: Vertices = Range<Int>; Successors, OutEdges, SuccessorIndices = CollectionOfOne<Int>;
     // Edges: RandomAccessCollection with Index = Int, the position of the edge leaving p is p
 struct FunctionalGraph.CycleDecomposition: Sendable
@@ -130,6 +132,11 @@ checks the whole state. The precondition file also takes the hand-written exit t
   minimal conformer whose `vertexIndexBound` is nil, the hashed path no library conformer takes:
   vertex i is the i-th listed vertex, and the result is nil on out-degree 0 or 2. Added for planted
   bugs in `just mutate FunctionalGraphs` that every other test let through.
+- **Attached maps** (`FunctionalGraphMapTests.swift`): defaults, writes by position and vertex,
+  the `checked` subscripts, `values(of:)` snapshots, copy-on-write, removal, equality and coding
+  ignoring maps, the generation of every initializer, traps (exit tests) off `0..<n` and for
+  foreign or removed handles, and a model against dictionaries keyed by edge and vertex
+  (swift-property-based).
 - **Rebuilds** (`FunctionalGraphRebuildTests.swift`): 40 decompositions of a broom built in a row,
   with freed buffers full of large values in between, so a build step that reads memory it never
   wrote (a depth count not reset) shows as a wrong tail or step.

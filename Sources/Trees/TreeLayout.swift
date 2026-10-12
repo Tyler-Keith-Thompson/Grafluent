@@ -281,15 +281,14 @@ extension _TreeLayout {
         return (vertices, table, dense, ends)
     }
 
-    /// A one-vertex tree, without building rows.
+    /// A one-vertex tree, without building rows. Its node array is shared by all one-vertex
+    /// trees (the constant literals are static already), so building one allocates only its
+    /// vertex array.
     @inlinable
     static func single(_ vertex: Vertex) -> Self {
         let vertices: ContiguousArray<Vertex> = [vertex]
         var layout = Self(vertices: vertices, slots: [:], dense: isDense(vertices), ends: [], rowOffsets: [0, 0], rowNeighbors: [], rowEdges: [], twin: [])
-        var node = _TreeNode()
-        node.depth = 0
-        node.component = 0
-        layout.nodes = [node]
+        layout.nodes = _SingleVertexTree.nodes
         layout.preorder = [0]
         layout.roots = [0]
         return layout
@@ -554,4 +553,15 @@ extension DirectedGraph {
         }
         return (vertices, ends, numbers)
     }
+}
+
+/// The node array every one-vertex tree's layout shares: depth 0, in tree 0.
+@usableFromInline
+enum _SingleVertexTree {
+    @usableFromInline static let nodes: [_TreeNode] = {
+        var node = _TreeNode()
+        node.depth = 0
+        node.component = 0
+        return [node]
+    }()
 }

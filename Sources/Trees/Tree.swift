@@ -15,10 +15,21 @@ import Walks
 @frozen
 public struct Tree<Vertex: Hashable> {
     @usableFromInline package var _layout: _TreeLayout<Vertex>
+    /// The attached vertex maps (`PropertyGraph`), one value per vertex index.
+    @usableFromInline package var _vertexMaps: _AttachedMaps
+    /// The attached edge maps, one value per edge position.
+    @usableFromInline package var _edgeMaps: _AttachedMaps
+    /// The generation: stamped once by every initializer, and never advanced.
+    @usableFromInline package var _generation: _GenerationStamp
 
+    /// Stamps a generation; every other initializer comes through here.
     @inlinable
     init(_layout: _TreeLayout<Vertex>) {
         self._layout = _layout
+        _vertexMaps = _AttachedMaps()
+        _edgeMaps = _AttachedMaps()
+        _generation = _GenerationStamp()
+        _generation.advance()
     }
 
     /// The tree a graph is, keeping its vertex order and its edges at their positions; nil when
@@ -30,7 +41,7 @@ public struct Tree<Vertex: Hashable> {
         guard n >= 1, graph.edgeCount == n - 1, let (vertices, ends, table) = graph._treeInput() else { return nil }
         let (slots, dense) = _TreeLayout.numbering(vertices, table: table)
         guard let layout = _TreeLayout(vertices: vertices, slots: slots, dense: dense, ends: ends, root: 0) else { return nil }
-        _layout = layout
+        self.init(_layout: layout)
     }
 
     /// The tree with these edges, whose vertices are exactly their endpoints, by first
@@ -48,13 +59,14 @@ public struct Tree<Vertex: Hashable> {
         let (listed, slots, dense, ends) = _TreeLayout.gather(vertices: vertices, edges: edges) { ($0.u, $0.v) }
         guard !listed.isEmpty else { return nil }
         guard let layout = _TreeLayout(vertices: listed, slots: slots, dense: dense, ends: ends, root: 0) else { return nil }
-        _layout = layout
+        self.init(_layout: layout)
     }
 
-    /// The tree a rooted tree is, forgetting its root. O(1).
+    /// The tree a rooted tree is, forgetting its root. O(1). A new graph: it has its own
+    /// generation and none of the rooted tree's maps.
     @inlinable
     public init(_ tree: RootedTree<Vertex>) {
-        _layout = tree._layout
+        self.init(_layout: tree._layout)
     }
 
     /// The path from `source` to `target`, with the edges it takes. O(length).
@@ -368,7 +380,7 @@ extension Tree: Decodable where Vertex: Decodable {
         guard !vertices.isEmpty, let layout = _TreeLayout(vertices: vertices, slots: slots, dense: dense, ends: ends, root: 0) else {
             throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "Not a tree"))
         }
-        _layout = layout
+        self.init(_layout: layout)
     }
 }
 

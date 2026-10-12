@@ -99,3 +99,19 @@ MUTANTS = [
     Mutant("arbsourcelow", "Arborescence.swift", "        guard position >= 0 && position < _layout.edgeCount else { throw EdgeNotFound() }\n        return _layout.vertices[_layout.nodes[_layout.child(ofEdge: position)].parent]", "        guard position < _layout.edgeCount else { throw EdgeNotFound() }\n        return _layout.vertices[_layout.nodes[_layout.child(ofEdge: position)].parent]", mode="stmt"),
     Mutant("arbtargethigh", "Arborescence.swift", "        guard position >= 0 && position < _layout.edgeCount else { throw EdgeNotFound() }\n        return _layout.vertices[_layout.child(ofEdge: position)]", "        guard position >= 0 && position <= _layout.edgeCount else { throw EdgeNotFound() }\n        return _layout.vertices[_layout.child(ofEdge: position)]", mode="stmt"),
 ]
+
+# Attached maps and generations (PropertyGraph.swift, one block per type in the order Tree,
+# RootedTree, Arborescence, Forest; the stamps in each type's file). The trapping subscripts' range
+# preconditions get no mutants: the dense storage's own array read traps at the same positions, so
+# removing one changes only the message. Nor does an edge map sized by the vertex count: a tree or
+# forest has fewer edges than vertices, so the extra value is never read.
+M = "PropertyGraph.swift"
+for k, name in enumerate(["tree", "rooted", "arborescence", "forest"]):
+    MUTANTS += [
+        Mutant(f"map{name}checkededge", M, "guard position >= 0 && position < _layout.edgeCount else { throw EdgeNotFound() }", "", mode="stmt", nth=k),
+        Mutant(f"map{name}checkedvertex", M, "guard position >= 0 && position < _layout.count else { throw VertexNotFound() }", "", mode="stmt", nth=k),
+        # Occurrence 4k of `_layout.count` is the block's `addVertexMap` size.
+        Mutant(f"map{name}vertexcount", M, "_layout.count", "_layout.edgeCount", nth=4 * k),
+    ]
+for file, name in [("Tree.swift", "tree"), ("RootedTree.swift", "rooted"), ("Arborescence.swift", "arborescence"), ("Forest.swift", "forest")]:
+    MUTANTS.append(Mutant(f"{name}stamp", file, "        _generation.advance()", "", mode="stmt"))

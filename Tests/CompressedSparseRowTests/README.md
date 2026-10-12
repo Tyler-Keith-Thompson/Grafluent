@@ -46,6 +46,19 @@ struct CompressedSparseRow: Hashable, Sendable, Codable,
     func transposed(forwardEdgeIndices: inout [Int]) -> CompressedSparseRow
                                                 // forward[k] = index here of the transpose's edge k
 
+    // PropertyGraph: dense maps, allocated in full when attached; positions are vertices and edge indices
+    mutating func addEdgeMap<V>(default: V) -> EdgeMap<V>      // addEdgeMap(of: T.self) -> EdgeMap<T?>
+    mutating func addVertexMap<V>(default: V) -> VertexMap<V>
+    mutating func removeEdgeMap(_:) / removeVertexMap(_:)
+    subscript(map, ofEdgeAt: Int) / (map, ofVertexAt: Int) / (map, of: Int) -> V { get set }  // trap out of range
+    subscript(map, checkedEdgeAt:) / (map, checkedVertexAt:) / (map, checked:) -> V           // throw
+    func values(of: EdgeMap<V>) -> EdgeValues<Self, V>         // snapshot, one array load per read
+    func values(of: VertexMap<V>) -> VertexValues<Self, V>
+
+    var generation: GraphGeneration             // stamped by every initializer but init(); never advances
+    var sourceGeneration: GraphGeneration       // the source's, from init(_:); else .untracked
+    func isCurrent(for: some DirectedGraph) -> Bool
+
     enum ValidationError: Error, Hashable
         case emptyOffsets, firstOffsetNotZero, decreasingOffsets(vertex:)
         case lastOffsetMismatch(lastOffset:targetCount:), targetOutOfRange(edgeIndex:)
@@ -64,7 +77,8 @@ struct CompressedSparseRow: Hashable, Sendable, Codable,
 | Index width | `Int` | Simple and never truncates | petgraph narrows targets to `u32` and silently truncates (`u8` accepts 300 nodes) |
 | Out-of-range | Initializer, `successors`, `outDegree`, edge-index accessors trap; their `checked:` spellings throw `VertexNotFound` / `EdgeNotFound`; `contains` and `edgeIndex(of:)` return `false`/`nil` | Same as the other representations | petgraph answers `out_degree(n)` with 0 |
 | Raw arrays | `offsets` and `targets` readable; a validating `init(offsets:targets:)` with typed errors | Interop without trusting input | Boost's "sorted" constructor trusts its input and crashed on two unsorted edges |
-| Edge values | Not stored. The initializer and `transposed` report each edge's new index; repeated edges share one, and the caller picks first-wins, last-wins, sum or anything else | One mechanism serves every policy, and weights stay external as the README plans | scipy sums, GraphBLAS errors or keeps the last, neo4j keeps an arbitrary one |
+| Edge values | Given with the edges: not stored. The initializer and `transposed` report each edge's new index; repeated edges share one, and the caller picks first-wins, last-wins, sum or anything else. Attached afterwards: dense maps (`addEdgeMap(default:)`), by edge index, carried by copies and dropped by `transposed` and every other new graph | One mechanism serves every duplicate policy; maps keep the values with the graph | scipy sums, GraphBLAS errors or keeps the last, neo4j keeps an arbitrary one |
+| Generation | Stamped once by every initializer but `init()` (which allocates nothing); `init(_:)` also keeps the source's as `sourceGeneration` | The graph never changes, so its generation only tells it from other graphs; the source's tells whether the source has changed since | — |
 | Construction | Two counting sorts (by target, then by source), O(n + m) for any degree distribution; a single pass when the input is already canonical; exactly sized storage afterwards | Real graphs are skewed; a per-row comparison sort is O(d log d) on a hub | Boost and igraph also sort by counting; scipy, neo4j and GAP sort each row |
 | Encoded form | `{"offsets": [...], "targets": [...]}`, fully validated | The payload is as large as the graph, so it cannot amplify an allocation; no "trusted" flag | No studied library validates deserialized arrays by default |
 | `description` | `[0, 1, 2]; [0→1, 1→2]`, at most 16 of each | Same as every representation | — |
@@ -80,6 +94,7 @@ struct CompressedSparseRow: Hashable, Sendable, Codable,
 | `CompressedSparseRowRealWorldTests.swift` | GAP `4.el`, Graph500 scale 8 and Ligra's rMat graph (vendored in `GrafluentTestSupport`), and a shuffled hub of out-degree 20,000 |
 | `CompressedSparseRowConformanceTests.swift` | Equality and hashing laws, every 3-vertex graph, descriptions, exact and corrupt encodings with the coding path and `ValidationError` of each, exit tests for every precondition |
 | `CompressedSparseRowCheckedTests.swift` | The `checked:` spellings (CSR-P08, CSR-P09): equal to the trapping spellings in range, throwing `VertexNotFound` or `EdgeNotFound` outside it |
+| `CompressedSparseRowMapTests.swift` | Attached maps: defaults, writes by edge index and vertex, the `checked` subscripts, `values(of:)` snapshots, copy-on-write, removal, equality and coding ignoring maps, traps (exit tests) for out-of-range positions and foreign or removed handles, a model against dictionaries keyed by edge and vertex (swift-property-based); generations of every initializer, and `sourceGeneration`/`isCurrent(for:)` against a graph that stamps on each insertion |
 | `CompressedSparseRowModelTests.swift` | Random edge lists against a model at 0 to 200 vertices, Erdős–Rényi graphs, a complete digraph, a hub of out-degree 10,000, value semantics, `Sendable` |
 
 Case IDs (CSR-C06, CSR-E05, …) refer to the catalog of cases (`Tests/Catalogs/CompressedSparseRow/cases.md`) harvested from petgraph, Boost.Graph,

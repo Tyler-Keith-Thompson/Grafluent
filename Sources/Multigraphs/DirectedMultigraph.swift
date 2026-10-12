@@ -6,12 +6,15 @@ import GraphProtocols
 /// its identity. Opposite edges, `u→v` and `v→u`, are allowed.
 ///
 /// The invariant is the type: every initializer from unchecked input is failable, and inserting a
-/// self-loop throws `LooplessEdgeError.selfLoop`. Storage, costs and the order rules are `DirectedPseudograph`'s, which it
-/// wraps: `DirectedPseudograph(directedMultigraph)` is O(1).
+/// self-loop throws `LooplessEdgeError.selfLoop`. Storage, costs and the order rules are
+/// `DirectedPseudograph`'s, which it wraps as a `GraphDelegator`: every read is the base's, at the
+/// base's speed, and so are attached maps (`PropertyGraph`) and `generation`.
+/// `DirectedPseudograph(directedMultigraph)` is O(1) and keeps the maps.
 @frozen
 public struct DirectedMultigraph<Vertex: Hashable> {
-    @usableFromInline
-    internal var _base: DirectedPseudograph<Vertex>
+    /// The wrapped graph. Not for use outside the library: writing it directly can break the
+    /// invariant. `base` reads it.
+    public var _base: DirectedPseudograph<Vertex>
 
     /// The empty graph.
     @inlinable
@@ -83,23 +86,6 @@ extension DirectedMultigraph {
 // MARK: - Queries
 
 extension DirectedMultigraph {
-    /// The number of vertices.
-    @inlinable
-    public var vertexCount: Int { _base.vertexCount }
-
-    /// The number of edges, every copy included.
-    @inlinable
-    public var edgeCount: Int { _base.edgeCount }
-
-    /// Whether `vertex` is a vertex of the graph.
-    @inlinable
-    public func contains(_ vertex: Vertex) -> Bool { _base.contains(vertex) }
-
-    /// Whether at least one copy of `edge` is an edge of the graph. O(1). False when either
-    /// endpoint is not a vertex.
-    @inlinable
-    public func contains(edge: DirectedEdge<Vertex>) -> Bool { _base.contains(edge: edge) }
-
     /// The positions of every copy from `source` to `target`, oldest first. Empty when there is
     /// none, or when either is not a vertex.
     @inlinable
@@ -109,38 +95,6 @@ extension DirectedMultigraph {
     /// O(1) (NetworkX's `number_of_edges(u, v)`). 0 when either is not a vertex.
     @inlinable
     public func edgeCount(from source: Vertex, to target: Vertex) -> Int { _base.edgeCount(from: source, to: target) }
-
-    /// The target of every edge leaving `vertex`, in the order of `outEdges(of:)`: a vertex once
-    /// per copy.
-    ///
-    /// - Precondition: `vertex` is a vertex of the graph.
-    @inlinable
-    public func successors(of vertex: Vertex) -> Neighbors { _base.successors(of: vertex) }
-
-    /// The source of every edge entering `vertex`, in the order of `inEdges(of:)`: a vertex once
-    /// per copy.
-    ///
-    /// - Precondition: `vertex` is a vertex of the graph.
-    @inlinable
-    public func predecessors(of vertex: Vertex) -> Neighbors { _base.predecessors(of: vertex) }
-
-    /// The number of edges leaving `vertex`, copies included. O(1).
-    ///
-    /// - Precondition: `vertex` is a vertex of the graph.
-    @inlinable
-    public func outDegree(of vertex: Vertex) -> Int { _base.outDegree(of: vertex) }
-
-    /// The number of edges entering `vertex`, copies included. O(1).
-    ///
-    /// - Precondition: `vertex` is a vertex of the graph.
-    @inlinable
-    public func inDegree(of vertex: Vertex) -> Int { _base.inDegree(of: vertex) }
-
-    /// `outDegree(of:) + inDegree(of:)`. O(1).
-    ///
-    /// - Precondition: `vertex` is a vertex of the graph.
-    @inlinable
-    public func degree(of vertex: Vertex) -> Int { _base.degree(of: vertex) }
 
     /// `successors(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1)
     /// to make.
@@ -306,14 +260,6 @@ extension DirectedMultigraph {
 // MARK: - Views
 
 extension DirectedMultigraph {
-    /// The vertices, in slot order.
-    @inlinable
-    public var vertices: Vertices { _base.vertices }
-
-    /// The edges, by position.
-    @inlinable
-    public var edges: Edges { _base.edges }
-
     /// The vertices of a graph. A value: unaffected by later changes to the graph.
     public typealias Vertices = DirectedPseudograph<Vertex>.Vertices
 
@@ -389,39 +335,15 @@ extension DirectedMultigraph: CustomStringConvertible, CustomDebugStringConverti
 
 // MARK: - DirectedGraph
 
-extension DirectedMultigraph: BidirectionalDirectedGraph {
-    @inlinable public func outEdges(of vertex: Vertex) -> ArraySlice<Int> { _base.outEdges(of: vertex) }
-    @inlinable public func inEdges(of vertex: Vertex) -> ArraySlice<Int> { _base.inEdges(of: vertex) }
-    @inlinable public func source(ofEdgeAt position: Int) -> Vertex { _base.source(ofEdgeAt: position) }
-    @inlinable public func target(ofEdgeAt position: Int) -> Vertex { _base.target(ofEdgeAt: position) }
-    @inlinable public var vertexIndexBound: Int? { _base.vertexIndexBound }
-    @inlinable public func vertexIndex(of vertex: Vertex) -> Int { _base.vertexIndex(of: vertex) }
-    @inlinable public func vertex(atIndex index: Int) -> Vertex { _base.vertex(atIndex: index) }
-    @inlinable public func successorIndices(ofIndex index: Int) -> ArraySlice<Int> { _base.successorIndices(ofIndex: index) }
-    @inlinable public func predecessorIndices(ofIndex index: Int) -> ArraySlice<Int> { _base.predecessorIndices(ofIndex: index) }
-    @inlinable public func outEdges(ofIndex index: Int) -> ArraySlice<Int> { _base.outEdges(ofIndex: index) }
-    @inlinable public func inEdges(ofIndex index: Int) -> ArraySlice<Int> { _base.inEdges(ofIndex: index) }
-    @inlinable public func outDegree(ofIndex index: Int) -> Int { _base.outDegree(ofIndex: index) }
-    @inlinable public func inDegree(ofIndex index: Int) -> Int { _base.inDegree(ofIndex: index) }
-    @inlinable public func sourceIndex(ofEdgeAt position: Int) -> Int { _base.sourceIndex(ofEdgeAt: position) }
-    @inlinable public func targetIndex(ofEdgeAt position: Int) -> Int { _base.targetIndex(ofEdgeAt: position) }
-    @inlinable public var edgeIndexBound: Int? { _base.edgeIndexBound }
-    @inlinable public func edgeIndex(of position: Int) -> Int { position }
-
-    @inlinable
-    public func _withSuccessorIndexRows<Result>(
-        _ body: (_ offsets: UnsafeBufferPointer<Int>, _ targets: UnsafeBufferPointer<Int>) -> Result
-    ) -> Result? {
-        _base._withSuccessorIndexRows(body)
-    }
-
-    @inlinable
-    public func _withOutIndexRows<Result>(
-        _ body: (
-            _ targets: UnsafeBufferPointer<Int>, _ targetRows: UnsafeBufferPointer<Int>,
-            _ edges: UnsafeBufferPointer<Int>, _ edgeRows: UnsafeBufferPointer<Int>
-        ) -> Result
-    ) -> Result? {
-        _base._withOutIndexRows(body)
-    }
+extension DirectedMultigraph: GraphDelegator, BidirectionalDirectedGraph, PropertyGraph {
+    // Every read requirement, and the attached maps, are `GraphDelegator`'s defaults, which
+    // forward to `_base`.
+    public typealias Base = DirectedPseudograph<Vertex>
+    public typealias Successors = Base.Successors
+    public typealias OutEdges = Base.OutEdges
+    public typealias SuccessorIndices = Base.SuccessorIndices
+    public typealias Predecessors = Base.Predecessors
+    public typealias InEdges = Base.InEdges
+    public typealias PredecessorIndices = Base.PredecessorIndices
+    public typealias EdgePosition = Base.EdgePosition
 }

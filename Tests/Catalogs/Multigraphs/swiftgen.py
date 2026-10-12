@@ -39,7 +39,7 @@ for line in text.splitlines():
     if line.startswith("| MG-"):
         parts = [p.strip() for p in line.strip("|").split(" | ")]
         CELLS[int(parts[0][3:])] = parts
-assert len(CELLS) == 211
+assert len(CELLS) == 226
 CASE_ROWS = {n: (g, t, k, V, E, ops) for n, g, t, k, V, E, ops in STRUCT}
 
 
@@ -101,7 +101,83 @@ def ends(kind):
 
 
 def mutating(op):
-    return op[0] in ("insV", "ins", "insC", "rm", "rmAt", "rmAll", "rmV", "rmAllEdges", "rmAllV")
+    return op[0] in ("insV", "ins", "insC", "rm", "rmAt", "rmAll", "rmV", "rmAllEdges", "rmAllV") + MAP_MUTATIONS
+
+
+# ---------------------------------------------------------------------------------------------
+# Attached maps: each test's handles and their value types
+# ---------------------------------------------------------------------------------------------
+MAP_MUTATIONS = ("addEM", "addEMof", "addVM", "addVMof", "rmEM", "rmVM", "setE", "setV")
+MAP_OPS = MAP_MUTATIONS + ("getE", "getEC", "getV", "getVC", "getVAt", "getVAtC", "valsE", "valsV")
+MAP_TYPES = {}  # the current test's handle name -> Swift value type
+
+
+def vertex_args(op):
+    """The arguments of `op` that are vertices (for the vertex type): none of a map op's but the
+    vertex it names."""
+    if op[0] in ("setV", "getV", "getVC"):
+        return [op[2]]
+    if op[0] in MAP_OPS:
+        return []
+    return list(op[1:])
+
+
+def value_type(x):
+    return "String" if isinstance(x, str) else "Double" if isinstance(x, float) else "Int"
+
+
+def mlit(x):
+    return "nil" if x is None else lit(x)
+
+
+def mvals(xs, name):
+    return "[" + ", ".join(mlit(x) for x in xs) + "]" + ("" if xs else " as [%s]" % MAP_TYPES[name])
+
+
+def map_state_lines(g, var="graph", indent="        "):
+    """Every attached map's value at every edge position and every vertex, beyond the catalog cell."""
+    out = []
+    for name in g.emaps:
+        out.append("#expect((0 ..< %s.edgeCount).map { %s[%s, ofEdgeAt: $0] } == %s)" % (var, var, name, mvals([g.edge_value(name, p) for p in range(len(g.rec))], name)))
+    for name in g.vmaps:
+        xs = [g.vertex_value(name, x) for x in g.V]
+        out.append("#expect(%s.vertices.map { %s[%s, of: $0] } == %s)" % (var, var, name, mvals(xs, name)))
+        out.append("#expect((0 ..< %s.vertexCount).map { %s[%s, ofVertexAt: $0] } == %s)" % (var, var, name, mvals(xs, name)))
+    return [indent + l for l in out]
+
+
+def map_call_lines(g, op, result, indent="        "):
+    name = op[0]
+    if name in ("addEM", "addVM"):
+        MAP_TYPES[op[1]] = value_type(op[2])
+        return [indent + "let %s = graph.add%sMap(default: %s)" % (op[1], "Edge" if name == "addEM" else "Vertex", mlit(op[2]))]
+    if name in ("addEMof", "addVMof"):
+        MAP_TYPES[op[1]] = op[2] + "?"
+        return [indent + "let %s = graph.add%sMap(of: %s.self)" % (op[1], "Edge" if name == "addEMof" else "Vertex", op[2])]
+    if name in ("rmEM", "rmVM"):
+        return [indent + "graph.remove%sMap(%s)" % ("Edge" if name == "rmEM" else "Vertex", op[1])]
+    if name == "setE":
+        return [indent + "graph[%s, ofEdgeAt: %d] = %s" % (op[1], op[2], mlit(op[3]))]
+    if name == "setV":
+        return [indent + "graph[%s, of: %s] = %s" % (op[1], lit(op[2]), mlit(op[3]))]
+    value = (json.loads(result) if result != "nil" else None) if name.startswith("get") else None
+    if name == "getE":
+        return [indent + "#expect(graph[%s, ofEdgeAt: %d] == %s)" % (op[1], op[2], mlit(value))]
+    if name == "getEC":
+        return [indent + "#expect(try graph[%s, checkedEdgeAt: %d] == %s)" % (op[1], op[2], mlit(value))]
+    if name == "getV":
+        return [indent + "#expect(graph[%s, of: %s] == %s)" % (op[1], lit(op[2]), mlit(value))]
+    if name == "getVC":
+        return [indent + "#expect(try graph[%s, checked: %s] == %s)" % (op[1], lit(op[2]), mlit(value))]
+    if name == "getVAt":
+        return [indent + "#expect(graph[%s, ofVertexAt: %d] == %s)" % (op[1], op[2], mlit(value))]
+    if name == "getVAtC":
+        return [indent + "#expect(try graph[%s, checkedVertexAt: %d] == %s)" % (op[1], op[2], mlit(value))]
+    if name in ("valsE", "valsV"):
+        xs = [g.edge_value(op[1], p) for p in range(len(g.rec))] if name == "valsE" else [g.vertex_value(op[1], x) for x in g.V]
+        count = "edgeCount" if name == "valsE" else "vertexCount"
+        return [indent + "do { let values = graph.values(of: %s); #expect((0 ..< graph.%s).map { values[$0] } == %s) }" % (op[1], count, mvals(xs, op[1]))]
+    raise ValueError(op)
 
 
 def checked_calls(kind, op, t):
@@ -125,6 +201,12 @@ def checked_calls(kind, op, t):
         return ["graph.vertexIndex(checked: %s)" % v]
     if name == "endC":
         return ["graph.source(checkedEdgeAt: %d)" % op[1], "graph.target(checkedEdgeAt: %d)" % op[1]]
+    if name == "getEC":
+        return ["graph[%s, checkedEdgeAt: %d]" % (op[1], op[2])]
+    if name == "getVC":
+        return ["graph[%s, checked: %s]" % (op[1], lit(op[2]))]
+    if name == "getVAtC":
+        return ["graph[%s, checkedVertexAt: %d]" % (op[1], op[2])]
     raise ValueError(op)
 
 
@@ -180,10 +262,12 @@ def call_lines(g, op, t, indent="        "):
     except ref.Thrown as e:
         # A throw changes nothing; the state checks that follow show it.
         err = str(e)
-        assert name in ("ins", "insC", "degC", "rowC", "idxC", "endC"), op
+        assert name in ("ins", "insC", "degC", "rowC", "idxC", "endC", "getEC", "getVC", "getVAtC"), op
         assert err in ("VertexNotFound", "EdgeNotFound", "LooplessEdgeError.selfLoop", "LooplessEdgeError.missingEndpoint"), err
         swift_err = err + "()" if err in ("VertexNotFound", "EdgeNotFound") else err
         return [indent + "#expect(throws: %s) { try %s }" % (swift_err, c) for c in checked_calls(kind, op, t)]
+    if name in MAP_OPS:
+        return map_call_lines(g, op, result, indent)
     f, s = pair_label(kind)
     if name == "insV":
         ok = result == "inserted true"
@@ -286,8 +370,9 @@ def is_trap(n):
 
 def case_test(n):
     group, ttl, kind, V, E, ops = CASE_ROWS[n]
-    t = vty(V, E, [o[1:] for o in ops])
+    t = vty(V, E, [vertex_args(o) for o in ops])
     exp = cell(n)
+    MAP_TYPES.clear()
     lines = test_header(n)
     lines.append("    func mg%03d() throws {" % n)
     lines.append("        // %s" % CELLS[n][3])
@@ -317,6 +402,7 @@ def case_test(n):
     assert cs == g.state(), (n, cs, g.state())
     lines.append("        // Final state.")
     lines += state_lines(g, t=t)
+    lines += map_state_lines(g)
     lines.append("    }")
     if "try" not in "\n".join(lines):
         lines[len(test_header(n))] = "    func mg%03d() {" % n
@@ -881,6 +967,15 @@ FILES = [
      "// `LooplessEdgeError.missingEndpoint`, checked before `.selfLoop`) and changes nothing; the vertex\n"
      "// lookups throw `VertexNotFound` where the plain spellings trap, and `source(checkedEdgeAt:)` /\n"
      "// `target(checkedEdgeAt:)` throw `EdgeNotFound` for a position outside `0..<edgeCount`."),
+    ("MultigraphMapTests.swift", "Multigraphs attached maps", range(212, 227),
+     "Attached maps (catalog MG-212 – MG-226, `PropertyGraph`): a map's values follow their edge copy or\n"
+     "// vertex through every removal path (`remove(edgeAt:)`, `remove(edge:)`'s newest copy,\n"
+     "// `removeAllEdges(between:and:)` / `(from:to:)`, vertex removal and the slot that moves in), new\n"
+     "// elements read the default, `removeAllEdges()` / `removeAll()` empty the maps and keep them\n"
+     "// attached, the `checked` reads throw `EdgeNotFound` / `VertexNotFound`, and the multigraphs' maps\n"
+     "// are their base's. ref.py keys each value by its edge's insertion stamp or its vertex, and checks\n"
+     "// it against NetworkX's edge and node attributes. Beyond the catalog cell, each final state checks\n"
+     "// every attached map at every position and vertex."),
     ("MultigraphPreconditionTests.swift", "Multigraphs preconditions", None,
      "Preconditions (catalog MG-039, MG-040, MG-075 – MG-077, MG-080, MG-179 – MG-192):\n"
      "// each trapping call runs in a child process (exit test). The same setup then runs in this process\n"
@@ -944,4 +1039,4 @@ for fname, suite, ids, comment in FILES:
     print(fname, k)
     total += k
 print("total", total)
-assert total == 211
+assert total == 226

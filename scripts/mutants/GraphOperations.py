@@ -2,13 +2,16 @@
 #
 # Scope: the `checked:` lookups on the views, so far: the directed complement's checked endpoint
 # reads, and the GraphProtocols defaults (`contains(_:)`, then the trapping read) that the views
-# reach. The views' own rows, edges and indices have no mutants here yet.
+# reach; and a subgraph view's attached-map reads, each membership check dropped. The views' own
+# rows, edges and indices have no mutants here yet.
 #
 # Known equivalent mutants: none.
 
 TESTS = ["GraphOperationsTests", "GraphProtocolsTests"]
 
 C = "ComplementView+DirectedGraph.swift"
+SD = "SubgraphView+DirectedGraph.swift"
+SU = "SubgraphView+Graph.swift"
 L = "CheckedLookups.swift"
 
 MUTANTS = [
@@ -38,4 +41,14 @@ MUTANTS = [
     Mutant("definedegreeread", L, "return inDegree(of: vertex)", "return outDegree(of: vertex)", mode="stmt", module="GraphProtocols"),
     Mutant("defdegreeread", L, "return degree(of: vertex)", "return inDegree(of: vertex)", mode="stmt", nth=0, module="GraphProtocols"),
     Mutant("defudegreeread", L, "return degree(of: vertex)", "return degree(of: vertex) &+ 1", mode="stmt", nth=1, module="GraphProtocols"),
+    # A subgraph view's map reads: each check that the vertex or edge is the view's dropped (the
+    # read then answers with the base's value), directed and undirected.
+    Mutant("dmapvertex", SD, "if !_new.isEmpty { _ = _viewIndex(base.vertexIndex(of: vertex)) }", "", mode="stmt"),
+    Mutant("dmapcheckedvertex", SD, "guard contains(vertex) else { throw VertexNotFound() }", "", mode="stmt"),
+    Mutant("dmapedge", SD, "precondition(_keeps(position), \"\\(position) is not an edge of the subgraph\")", "", mode="stmt"),
+    Mutant("dmapcheckededge", SD, "guard _keeps(position) else { throw EdgeNotFound() }", "", mode="stmt"),
+    Mutant("umapvertex", SU, "if !_new.isEmpty { _ = _viewIndex(base.vertexIndex(of: vertex)) }", "", mode="stmt"),
+    Mutant("umapcheckedvertex", SU, "guard contains(vertex) else { throw VertexNotFound() }", "", mode="stmt"),
+    Mutant("umapedge", SU, "precondition(_keepsEdge(position), \"\\(position) is not an edge of the subgraph\")", "", mode="stmt"),
+    Mutant("umapcheckededge", SU, "guard _keepsEdge(position) else { throw EdgeNotFound() }", "", mode="stmt"),
 ]

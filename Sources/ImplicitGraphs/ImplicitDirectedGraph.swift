@@ -32,6 +32,11 @@ import GraphProtocols
 /// edges and self-loops; the target rides along, so `source(ofEdgeAt:)`, `target(ofEdgeAt:)` and a
 /// weight closure reading `$0.target` call nothing. There are no dense edge indices.
 ///
+/// **No attached maps.** It is not a `PropertyGraph`: an edge map needs a dense offset for each
+/// position, which `(source, rank)` has only after counting every earlier row. Vertex values fit
+/// an array of `vertexCount` indexed by vertex, which nothing ever invalidates, and edge values
+/// come from the position (`$0.source`, `$0.target`), as a grid's weights do.
+///
 /// Not `Equatable`, `Hashable`, `Codable` or `Sendable`: a closure has no identity and is not
 /// `@Sendable`.
 @frozen
@@ -41,6 +46,10 @@ public struct ImplicitDirectedGraph<Row: Sequence<Int>> {
 
     @usableFromInline
     internal let _successors: (Int) -> Row
+
+    /// The generation: stamped once by the initializer, and never advanced.
+    @usableFromInline
+    internal var _generation: _GenerationStamp
 
     /// The graph on `0..<vertexCount` whose out-neighbors of `v` are `successors(v)`. O(1): calls
     /// nothing.
@@ -52,7 +61,15 @@ public struct ImplicitDirectedGraph<Row: Sequence<Int>> {
         precondition(vertexCount >= 0, "negative vertex count \(vertexCount)")
         self._vertexCount = vertexCount
         self._successors = successors
+        _generation = _GenerationStamp()
+        _generation.advance()
     }
+
+    /// The generation of this graph, which never changes: the graph is immutable, and its closure
+    /// must answer the same each time. A structure derived from this graph is current for it and
+    /// its copies, and for no other graph, even one built from the same closure.
+    @inlinable
+    public var generation: GraphGeneration { _generation.generation }
 
     @inlinable
     @inline(__always)

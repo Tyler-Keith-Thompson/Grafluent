@@ -110,4 +110,76 @@ let benchmarks: @Sendable () -> Void = {
             blackHole(dense == denseCopy)
         }
     }
+
+    // MARK: Attached maps
+
+    // Edge maps hold a value per cell (at the cell's Szudzik offset), so a removal sets the cell
+    // back to the default and an insertion writes nothing. The rows compare 0, 1 and 2 attached
+    // edge maps with a caller's flat `[Double]` of n² weights kept in step by hand.
+    let mapN = 1024
+    let mapEdges = Inputs.randomEdges(vertexCount: mapN, edgeCount: 1_000_000)
+    let mapBase = AdjacencyMatrix(vertexCount: mapN, edges: mapEdges)
+    let removals = Array(mapBase.edges.prefix(100_000))
+    for maps in 0 ... 2 {
+        Benchmark("AdjacencyMatrix: insert 10⁶ random cells of 1024², \(maps) edge maps") { benchmark in
+            for _ in benchmark.scaledIterations {
+                var matrix = AdjacencyMatrix(vertexCount: mapN)
+                for _ in 0 ..< maps { _ = matrix.addEdgeMap(default: 1.0) }
+                for edge in mapEdges { matrix.insert(edge: edge) }
+                blackHole(matrix)
+            }
+        }
+        Benchmark("AdjacencyMatrix: remove 10⁵ edges of 1024², \(maps) edge maps") { benchmark in
+            var matrix = mapBase
+            let handles = (0 ..< maps).map { _ in matrix.addEdgeMap(default: 1.0) }
+            for _ in benchmark.scaledIterations {
+                var copy = matrix
+                // Copy the maps' storage now, as the side array is fresh: the row times the upkeep.
+                for handle in handles { copy[handle, ofEdgeAt: copy.edges.startIndex] = 2.0 }
+                benchmark.startMeasurement()
+                for edge in removals { copy.remove(edge: edge) }
+                benchmark.stopMeasurement()
+                blackHole(copy)
+            }
+        }
+    }
+    Benchmark("AdjacencyMatrix: BASELINE remove 10⁵ edges of 1024², hand-maintained side array") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var copy = mapBase
+            var weights = [Double](repeating: 1.0, count: mapN * mapN)
+            weights[0] = 2
+            benchmark.startMeasurement()
+            for edge in removals where copy.remove(edge: edge) != nil { weights[edge.source * mapN + edge.target] = 1.0 }
+            benchmark.stopMeasurement()
+            blackHole((copy, weights))
+        }
+    }
+
+    // `values(of:)` against a flat array at `source · n + target`, read at every out-edge of K₁₀₀₀.
+    var complete = AdjacencyMatrix(vertexCount: 1000, repeating: true)
+    let completeWeights = complete.addEdgeMap(default: 0.0)
+    var flatWeights = [Double](repeating: 0, count: 1000 * 1000)
+    for source in 0 ..< 1000 {
+        for position in complete.outEdges(of: source) {
+            let weight = Double((position.source &* 7919 &+ position.target &* 104_729) % 1000) + 1
+            complete[completeWeights, ofEdgeAt: position] = weight
+            flatWeights[position.source * 1000 + position.target] = weight
+        }
+    }
+    let completeValues = complete.values(of: completeWeights)
+    let completeFlat = flatWeights
+    Benchmark("AdjacencyMatrix: values(of:) read at every out-edge of K₁₀₀₀") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var sum = 0.0
+            for source in 0 ..< 1000 { for position in complete.outEdges(of: source) { sum += completeValues[position] } }
+            blackHole(sum)
+        }
+    }
+    Benchmark("AdjacencyMatrix: BASELINE flat [Double] at source · n + target, every out-edge of K₁₀₀₀") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var sum = 0.0
+            for source in 0 ..< 1000 { for position in complete.outEdges(of: source) { sum += completeFlat[position.source &* 1000 &+ position.target] } }
+            blackHole(sum)
+        }
+    }
 }

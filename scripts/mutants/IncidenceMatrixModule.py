@@ -23,7 +23,9 @@
 #   foreachcheck
 #   oforeachcheck
 #
-# Removed as dead code after planting: the members' range precondition in
+# Removed as dead code after planting: the range checks in both matrices' map subscripts (each
+# map holds exactly one value per column or row, so its own bounds check traps on the same
+# positions). Also removed: the members' range precondition in
 # `init(vertexCount:hyperedges:)` and the pre-checks of `insert(hyperedge:)` and
 # `insert(sources:targets:)` (the bit write traps on the same members), the shape precondition of
 # the planes' union (both planes always share a shape), and the decoder's `v >= 0` (a negative
@@ -34,6 +36,8 @@ TESTS = ["IncidenceMatrixTests"]
 R = "BitRows.swift"
 M = "IncidenceMatrix.swift"
 O = "OrientedIncidenceMatrix.swift"
+MP = "IncidenceMatrix+PropertyGraph.swift"
+OP = "OrientedIncidenceMatrix+PropertyGraph.swift"
 
 MUTANTS = [
     # The bit planes.
@@ -129,8 +133,8 @@ MUTANTS = [
     Mutant("appendvertexdegree", M, "        _degrees.append(0)", "", mode="stmt"),
     Mutant("insertrows", M, "        _rows.appendColumn()", "", mode="stmt"),
     Mutant("insertsize", M, "        _sizes.append(0)", "", mode="stmt"),
-    Mutant("insertcell", M, "return _setCell(vertex, position, to: true)", "_setCell(vertex, position, to: true); return true", mode="stmt"),
-    Mutant("removecell", M, "return _setCell(vertex, position, to: false)", "_setCell(vertex, position, to: false); return true", mode="stmt"),
+    Mutant("insertcell", M, "        guard _setCell(vertex, position, to: true) else { return false }", "        _setCell(vertex, position, to: true)", mode="stmt"),
+    Mutant("removecell", M, "        guard _setCell(vertex, position, to: false) else { return false }", "        _setCell(vertex, position, to: false)", mode="stmt"),
     Mutant("removeallcount", M, "        _cellCount = 0", "", mode="stmt", nth=1),
     Mutant("removealldegrees", M, "        _degrees.removeAll(keepingCapacity: keepingCapacity)", "", mode="stmt"),
     Mutant("removeallcolumns", M, "        _columns.removeAll(keepingCapacity: keepingCapacity)", "", mode="stmt"),
@@ -192,17 +196,20 @@ MUTANTS = [
     Mutant("omemberindex", O, "targets ? _targets._memberIndex(atRank: rank, inHyperedgeAt: position) : _sources._memberIndex(atRank: rank, inHyperedgeAt: position)", "_sources._memberIndex(atRank: rank, inHyperedgeAt: position)"),
     Mutant("oforeachunion", O, "sourceWords[sourceStart &+ k] | targetWords[targetStart &+ k]", "sourceWords[sourceStart &+ k]"),
     Mutant("oforeachstride", O, "position &* targets.wordsPerRow", "position &* sources.wordsPerRow"),
-    Mutant("oforeachcheck", O, "        _sources._checkHyperedge(position)", "", mode="stmt"),
+    Mutant("oforeachcheck", O, "        _sources._checkHyperedge(position)", "", mode="stmt", nth=0),
 
     # OrientedIncidenceMatrix: mutation.
-    Mutant("oappendvertex", O, "        _sources.appendVertex()", "", mode="stmt"),
-    Mutant("oinserttargets", O, "return _targets.insert(hyperedge: targets)", "return _targets.insert(hyperedge: sources)", mode="stmt"),
+    Mutant("oappendvertex", O, "        _ = _sources._appendRow()", "", mode="stmt"),
+    Mutant("oinserttargets", O, "_targets._appendColumn(targets)", "_targets._appendColumn(sources)"),
     Mutant("oinsertedge", O, "insert(sources: CollectionOfOne(edge.source), targets: CollectionOfOne(edge.target))", "insert(sources: CollectionOfOne(edge.target), targets: CollectionOfOne(edge.source))"),
-    Mutant("oinsertsource", O, "_sources.insert(vertex, intoHyperedgeAt: position)", "_targets.insert(vertex, intoHyperedgeAt: position)"),
-    Mutant("oinserttarget", O, "_targets.insert(vertex, intoHyperedgeAt: position)", "_sources.insert(vertex, intoHyperedgeAt: position)", nth=1),
-    Mutant("oremovesource", O, "_sources.remove(vertex, fromHyperedgeAt: position)", "_targets.remove(vertex, fromHyperedgeAt: position)"),
-    Mutant("oremovetarget", O, "_targets.remove(vertex, fromHyperedgeAt: position)", "_sources.remove(vertex, fromHyperedgeAt: position)", nth=1),
-    Mutant("oremoveall", O, "        _targets.removeAll(keepingCapacity: keepingCapacity)", "", mode="stmt"),
+    Mutant("oinsertsource", O, "_sources._setCell(vertex, position, to: true)", "_targets._setCell(vertex, position, to: true)"),
+    Mutant("oinserttarget", O, "_targets._setCell(vertex, position, to: true)", "_sources._setCell(vertex, position, to: true)", nth=1),
+    # A cell edit that changes nothing keeps the generation (before oremovesource, which then
+    # mutates the original guard, the second occurrence).
+    Mutant("ogenunchanged", O, "        guard _sources._setCell(vertex, position, to: false) else { return false }", "        _sources._setCell(vertex, position, to: false)", mode="stmt"),
+    Mutant("oremovesource", O, "_sources._setCell(vertex, position, to: false)", "_targets._setCell(vertex, position, to: false)", nth=1),
+    Mutant("oremovetarget", O, "_targets._setCell(vertex, position, to: false)", "_sources._setCell(vertex, position, to: false)", nth=1),
+    Mutant("oremoveall", O, "        _targets._removeAllCells(keepingCapacity: keepingCapacity)", "", mode="stmt"),
     Mutant("otransposed", O, "OrientedIncidenceMatrix(_sources: _sources.transposed(), _targets: _targets.transposed())", "OrientedIncidenceMatrix(_sources: _sources.transposed(), _targets: _targets)"),
     Mutant("oreversed", O, "OrientedIncidenceMatrix(_sources: _targets, _targets: _sources)", "OrientedIncidenceMatrix(_sources: _sources, _targets: _targets)"),
 
@@ -234,4 +241,37 @@ MUTANTS = [
     Mutant("ckoinserttargets", O, "for v in targets where !contains(v) { throw VertexNotFound() }", "", mode="stmt"),
     Mutant("ckoedgesource", O, "guard contains(edge.source), contains(edge.target) else { throw VertexNotFound() }", "guard contains(edge.target) else { throw VertexNotFound() }", mode="stmt"),
     Mutant("ckoedgetarget", O, "guard contains(edge.source), contains(edge.target) else { throw VertexNotFound() }", "guard contains(edge.source) else { throw VertexNotFound() }", mode="stmt"),
+
+    # Attached maps and generations (IncidenceMatrix+PropertyGraph.swift and
+    # OrientedIncidenceMatrix+PropertyGraph.swift; the upkeep in the matrices' mutations).
+    Mutant("mapcolumns", MP, "_edgeMaps.add(default: value, layout: .dense, count: hyperedgeCount)", "_edgeMaps.add(default: value, layout: .dense, count: 0)"),
+    Mutant("maprows", MP, "_vertexMaps.add(default: value, layout: .dense, count: vertexCount)", "_vertexMaps.add(default: value, layout: .dense, count: 0)"),
+    Mutant("checkedcolumnlow", MP, "            guard position >= 0, position < hyperedgeCount else { throw EdgeNotFound() }", "            guard position < hyperedgeCount else { throw EdgeNotFound() }", mode="stmt"),
+    Mutant("checkedcolumnhigh", MP, "            guard position >= 0, position < hyperedgeCount else { throw EdgeNotFound() }", "            guard position >= 0 else { throw EdgeNotFound() }", mode="stmt"),
+    Mutant("checkedrow", MP, "guard contains(position) else { throw VertexNotFound() }", "", mode="stmt"),
+    Mutant("omapcolumns", OP, "_edgeMaps.add(default: value, layout: .dense, count: hyperedgeCount)", "_edgeMaps.add(default: value, layout: .dense, count: 0)"),
+    Mutant("omaprows", OP, "_vertexMaps.add(default: value, layout: .dense, count: vertexCount)", "_vertexMaps.add(default: value, layout: .dense, count: 0)"),
+    Mutant("ocheckedcolumnlow", OP, "            guard position >= 0, position < hyperedgeCount else { throw EdgeNotFound() }", "            guard position < hyperedgeCount else { throw EdgeNotFound() }", mode="stmt"),
+    Mutant("ocheckedcolumnhigh", OP, "            guard position >= 0, position < hyperedgeCount else { throw EdgeNotFound() }", "            guard position >= 0 else { throw EdgeNotFound() }", mode="stmt"),
+    Mutant("ocheckedrow", OP, "guard contains(position) else { throw VertexNotFound() }", "", mode="stmt"),
+    Mutant("appendrowmaps", M, "        if !_vertexMaps.isEmpty { _vertexMaps.appendDefaults(count: 1) }", "", mode="stmt"),
+    Mutant("appendcolumnmaps", M, "        if !_edgeMaps.isEmpty { _edgeMaps.appendDefaults(count: 1) }", "", mode="stmt"),
+    Mutant("removeallrowmaps", M, "        if !_vertexMaps.isEmpty { _vertexMaps.removeAll(keepingCapacity: keepingCapacity) }", "", mode="stmt"),
+    Mutant("removeallcolumnmaps", M, "        if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }", "", mode="stmt"),
+    Mutant("oappendrowmaps", O, "        if !_vertexMaps.isEmpty { _vertexMaps.appendDefaults(count: 1) }", "", mode="stmt"),
+    Mutant("oappendcolumnmaps", O, "        if !_edgeMaps.isEmpty { _edgeMaps.appendDefaults(count: 1) }", "", mode="stmt"),
+    Mutant("oremoveallrowmaps", O, "        if !_vertexMaps.isEmpty { _vertexMaps.removeAll(keepingCapacity: keepingCapacity) }", "", mode="stmt"),
+    Mutant("oremoveallcolumnmaps", O, "        if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }", "", mode="stmt"),
+    Mutant("genappendvertex", M, "        _generation.advance()", "", mode="stmt", nth=0),
+    Mutant("geninsert", M, "        _generation.advance()", "", mode="stmt", nth=1),
+    Mutant("geninsertcell", M, "        _generation.advance()", "", mode="stmt", nth=2),
+    Mutant("genremovecell", M, "        _generation.advance()", "", mode="stmt", nth=3),
+    Mutant("genremoveall", M, "        _generation.advance()", "", mode="stmt", nth=4),
+    Mutant("ogenappendvertex", O, "        _generation.advance()", "", mode="stmt", nth=0),
+    Mutant("ogeninsert", O, "        _generation.advance()", "", mode="stmt", nth=1),
+    Mutant("ogeninsertsource", O, "        _generation.advance()", "", mode="stmt", nth=2),
+    Mutant("ogeninserttarget", O, "        _generation.advance()", "", mode="stmt", nth=3),
+    Mutant("ogenremovesource", O, "        _generation.advance()", "", mode="stmt", nth=4),
+    Mutant("ogenremovetarget", O, "        _generation.advance()", "", mode="stmt", nth=5),
+    Mutant("ogenremoveall", O, "        _generation.advance()", "", mode="stmt", nth=6),
 ]

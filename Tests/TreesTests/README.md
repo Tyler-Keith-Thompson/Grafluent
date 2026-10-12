@@ -59,6 +59,10 @@ struct Forest<Vertex: Hashable>: Graph
 // Tree, RootedTree, Forest: neighbors, incidentEdges, degree, vertexIndex (checked:), and Tree's
 // path(checkedFrom:to:), throw VertexNotFound
 // All four: Equatable, Hashable, Codable, Sendable (when Vertex is), descriptions
+// All four: PropertyGraph, with dense maps allocated in full when attached, by vertex index and
+// edge position: addVertexMap/addEdgeMap(default:) and (of:), remove…Map, [map, ofVertexAt:],
+// [map, of:], [map, ofEdgeAt:] (trap off the tree), the checked subscripts (throw), values(of:);
+// generation, stamped by every initializer (a conversion included) and never advanced
 ```
 
 ## Conventions
@@ -114,6 +118,7 @@ that model. The property tests write their oracles inside each test.
 | `Performance/TreeStressTests.swift` | 16 | §K inside a `Task` with a one-minute limit: the 10⁶ path (depth, postorder, height, path, ancestor, descendants, Prüfer), the 10⁶ star, kary(10⁶, 2), 10⁶ isolated vertices, a 10⁶ parent chain, conversions and equality at 10⁶ |
 | `TreePreconditionTests.swift` | 5 | Exit tests: a root that is not a vertex (TS-109), queries and paths on a non-vertex (TS-246, TS-315 and the other rooted queries, `component(of:)`) |
 | `TreeCheckedLookupTests.swift` | 99 | §L: every `checked:` spelling on each type, its value against the plain spelling's and its throw on a vertex outside the tree (negative, `vertexCount`, absent) or a position outside `0..<edgeCount`; dense `Int`, small (no table) and hashed lookups; sweeps of every vertex and position; Arborescence's own `descendants(checked:)` and `ancestors(checked:)` |
+| `TreeMapTests.swift` | 7 | Attached maps on all four types: defaults, writes by index and by `String` vertex, the `checked` subscripts, `values(of:)` snapshots, copy-on-write, removal, equality and coding ignoring maps, conversions carrying no maps and stamping their own generation, traps (exit tests) off the tree and for foreign or removed handles; a model against dictionaries keyed by vertex and edge (PropertyBased) |
 | `TreeReviewTests.swift` | 10 | Added after planting bugs and the review (TS-1001 – TS-1010): a forest with a parallel pair, edges keeping their orientation, hashes that see edges, `Int` vertices by first appearance, small trees without a vertex table, one-vertex trees of a forest, children with the parent edge anywhere in the row, parent arrays, rooted-tree decoding errors, equal hashes under shuffles |
 
 366 tests in all.
@@ -144,7 +149,8 @@ properties the catalog does not list.
 | TS-700 – TS-707 | J. Equality | `TreeEqualityTests.swift` |
 | TS-800 – TS-813 | K. Scale | `Performance/TreeStressTests.swift` |
 | TS-900 – TS-995 | L. `checked:` lookups | `TreeCheckedLookupTests.swift` |
-| TS-1001 – TS-1010 | Review: see the file table | `TreeReviewTests.swift` |
+| TS-1001 – TS-1010 | Review: see the file table | `TreeMapTests.swift` | 7 | Attached maps on all four types: defaults, writes by index and by `String` vertex, the `checked` subscripts, `values(of:)` snapshots, copy-on-write, removal, equality and coding ignoring maps, conversions carrying no maps and stamping their own generation, traps (exit tests) off the tree and for foreign or removed handles; a model against dictionaries keyed by vertex and edge (PropertyBased) |
+| `TreeReviewTests.swift` |
 
 ## Not tested
 

@@ -23,6 +23,9 @@ import OrderedCollections
 ///
 /// Hyperedges can be appended but not removed (removal, and with it a decision on positions, is
 /// left for later). Equality ignores the order of the vertices and of the hyperedges.
+///
+/// Maps from the vertices and the hyperedges to values can be attached (`PropertyGraph`): a
+/// vertex map is read by vertex index or by vertex, an edge map by hyperedge position.
 @frozen
 public struct UndirectedIncidenceList<Vertex: Hashable> {
     /// The vertices; element `i` is vertex index `i`.
@@ -33,18 +36,38 @@ public struct UndirectedIncidenceList<Vertex: Hashable> {
     @usableFromInline
     internal var _plane: _IncidencePlane
 
+    /// The attached vertex maps (`addVertexMap(default:)`), a value per vertex index.
+    @usableFromInline
+    internal var _vertexMaps: _AttachedMaps
+
+    /// The attached edge maps (`addEdgeMap(default:)`), a value per hyperedge position.
+    @usableFromInline
+    internal var _edgeMaps: _AttachedMaps
+
+    /// The generation, advanced by every structural mutation.
+    @usableFromInline
+    internal var _generation: _GenerationStamp
+
     /// The hypergraph with no vertices and no hyperedges.
     @inlinable
     public init() {
         _vertices = []
         _plane = _IncidencePlane()
+        _vertexMaps = _AttachedMaps()
+        _edgeMaps = _AttachedMaps()
+        _generation = _GenerationStamp()
     }
 
-    /// The hypergraph with `vertices`, already distinct, and the plane over their indices.
+    /// The hypergraph with `vertices`, already distinct, and the plane over their indices: no
+    /// maps, and a generation of its own.
     @inlinable
     internal init(_uncheckedVertices vertices: OrderedSet<Vertex>, plane: _IncidencePlane) {
         _vertices = vertices
         _plane = plane
+        _vertexMaps = _AttachedMaps()
+        _edgeMaps = _AttachedMaps()
+        _generation = _GenerationStamp()
+        _generation.advance()
     }
 }
 
@@ -131,7 +154,11 @@ extension UndirectedIncidenceList {
     @discardableResult
     public mutating func insert(_ vertex: Vertex) -> (inserted: Bool, memberAfterInsert: Vertex) {
         let (inserted, index) = _vertices.append(vertex)
-        if inserted { _plane.appendVertex() }
+        if inserted {
+            _plane.appendVertex()
+            if !_vertexMaps.isEmpty { _vertexMaps.appendDefaults(count: 1) }
+            _generation.advance()
+        }
         return (inserted, _vertices[index])
     }
 
@@ -145,15 +172,19 @@ extension UndirectedIncidenceList {
     @inlinable
     @discardableResult
     public mutating func insert(hyperedge members: some Sequence<Vertex>) -> Int {
+        let vertexCount = _vertices.count
         var row: [Int] = []
         for v in members {
             let (inserted, index) = _vertices.append(v)
             if inserted { _plane.appendVertex() }
             row.append(index)
         }
+        if !_vertexMaps.isEmpty, _vertices.count != vertexCount { _vertexMaps.appendDefaults(count: _vertices.count &- vertexCount) }
         _sortUnique(&row)
         let position = _plane.hyperedgeCount
         _plane.appendHyperedge(row)
+        if !_edgeMaps.isEmpty { _edgeMaps.appendDefaults(count: 1) }
+        _generation.advance()
         return position
     }
 
@@ -174,22 +205,30 @@ extension UndirectedIncidenceList {
         _sortUnique(&row)
         let position = _plane.hyperedgeCount
         _plane.appendHyperedge(row)
+        if !_edgeMaps.isEmpty { _edgeMaps.appendDefaults(count: 1) }
+        _generation.advance()
         return position
     }
 
-    /// Removes every vertex and hyperedge.
+    /// Removes every vertex and hyperedge. Attached maps stay attached, empty.
     @inlinable
     public mutating func removeAll(keepingCapacity: Bool = false) {
         _vertices.removeAll(keepingCapacity: keepingCapacity)
         _plane.removeAll(keepingCapacity: keepingCapacity)
+        if !_vertexMaps.isEmpty { _vertexMaps.removeAll(keepingCapacity: keepingCapacity) }
+        if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }
+        _generation.advance()
     }
 
     /// Reserves storage for `vertexCount` vertices, `hyperedgeCount` hyperedges and
-    /// `incidenceCount` memberships in all.
+    /// `incidenceCount` memberships in all, and room in every attached map for that many vertices
+    /// or hyperedges.
     @inlinable
     public mutating func reserveCapacity(vertexCount: Int, hyperedgeCount: Int, incidenceCount: Int) {
         _vertices.reserveCapacity(vertexCount)
         _plane.reserveCapacity(vertexCount: vertexCount, hyperedgeCount: hyperedgeCount, incidenceCount: incidenceCount)
+        if !_vertexMaps.isEmpty { _vertexMaps.reserveCapacity(vertexCount) }
+        if !_edgeMaps.isEmpty { _edgeMaps.reserveCapacity(hyperedgeCount) }
     }
 }
 
@@ -444,7 +483,165 @@ extension UndirectedIncidenceList {
     }
 }
 
-extension UndirectedIncidenceList: Hypergraph {}
+extension UndirectedIncidenceList: Hypergraph {
+    /// The current generation: every insertion of a vertex or a hyperedge, and `removeAll`,
+    /// starts a new one. Built and decoded hypergraphs have one; `init()` has none until the
+    /// first mutation.
+    @inlinable
+    public var generation: GraphGeneration { _generation.generation }
+}
+
+// MARK: - Attached maps
+
+// Both kinds are dense, a value per vertex index or hyperedge position, appended with the
+// element. Nothing is ever removed but by `removeAll`, which empties the maps. So a map holds
+// exactly `vertexCount` or `hyperedgeCount` values, and its array's bounds check is the
+// subscripts' precondition.
+
+extension UndirectedIncidenceList: PropertyGraph {
+    /// A hyperedge's position.
+    public typealias EdgePosition = Int
+
+    @inlinable public static var _vertexMapLayout: _MapLayout { .dense }
+    @inlinable public static var _edgeMapLayout: _MapLayout { .dense }
+
+    /// Attaches a map from the hyperedges to `Value`, every hyperedge's value `value` (LEMON's
+    /// `ArcMap`), and returns its handle. A new hyperedge's value is the default. Copies of the
+    /// hypergraph carry the map, copy-on-write. O(m).
+    @inlinable
+    public mutating func addEdgeMap<Value: Sendable>(default value: Value) -> EdgeMap<Value> {
+        let (token, hint) = _edgeMaps.add(default: value, layout: .dense, count: _plane.hyperedgeCount)
+        return EdgeMap(_token: token, hint: hint)
+    }
+
+    /// Attaches a map from the vertices to `Value`, every vertex's value `value` (LEMON's
+    /// `NodeMap`), and returns its handle. A new vertex's value is the default. O(n).
+    @inlinable
+    public mutating func addVertexMap<Value: Sendable>(default value: Value) -> VertexMap<Value> {
+        let (token, hint) = _vertexMaps.add(default: value, layout: .dense, count: _vertices.count)
+        return VertexMap(_token: token, hint: hint)
+    }
+
+    /// Detaches the edge map and frees its storage; the handle traps from then on.
+    ///
+    /// - Precondition: `map` is attached to this hypergraph.
+    @inlinable
+    public mutating func removeEdgeMap<Value>(_ map: EdgeMap<Value>) {
+        _edgeMaps.remove(map._token, hint: map._hint)
+    }
+
+    /// Detaches the vertex map and frees its storage; the handle traps from then on.
+    ///
+    /// - Precondition: `map` is attached to this hypergraph.
+    @inlinable
+    public mutating func removeVertexMap<Value>(_ map: VertexMap<Value>) {
+        _vertexMaps.remove(map._token, hint: map._hint)
+    }
+
+    /// The value of the hyperedge at `position` in `map`. O(1).
+    ///
+    /// - Precondition: `map` is attached to this hypergraph, and `position` is in
+    ///   `0..<hyperedgeCount`.
+    @inlinable
+    public subscript<Value>(_ map: EdgeMap<Value>, ofEdgeAt position: Int) -> Value {
+        get {
+            let k = _edgeMaps.index(of: map._token, hint: map._hint)
+            return _edgeMaps.value(Value.self, at: position, in: k, layout: .dense)
+        }
+        set {
+            let k = _edgeMaps.index(of: map._token, hint: map._hint)
+            _edgeMaps.setValue(newValue, at: position, in: k, layout: .dense)
+        }
+    }
+
+    /// The value of the vertex at `index` in `map`. O(1).
+    ///
+    /// - Precondition: `map` is attached to this hypergraph, and `index` is in `0..<vertexCount`.
+    @inlinable
+    public subscript<Value>(_ map: VertexMap<Value>, ofVertexAt index: Int) -> Value {
+        get {
+            let k = _vertexMaps.index(of: map._token, hint: map._hint)
+            return _vertexMaps.value(Value.self, at: index, in: k, layout: .dense)
+        }
+        set {
+            let k = _vertexMaps.index(of: map._token, hint: map._hint)
+            _vertexMaps.setValue(newValue, at: index, in: k, layout: .dense)
+        }
+    }
+
+    /// The value of `vertex` in `map`. O(1) expected, one hash.
+    ///
+    /// - Precondition: `map` is attached to this hypergraph, and `vertex` is a vertex.
+    @inlinable
+    public subscript<Value>(_ map: VertexMap<Value>, of vertex: Vertex) -> Value {
+        get {
+            let k = _vertexMaps.index(of: map._token, hint: map._hint)
+            return _vertexMaps.value(Value.self, at: _index(of: vertex), in: k, layout: .dense)
+        }
+        set {
+            let k = _vertexMaps.index(of: map._token, hint: map._hint)
+            _vertexMaps.setValue(newValue, at: _index(of: vertex), in: k, layout: .dense)
+        }
+    }
+
+    /// The value of the hyperedge at `position` in `map`, throwing instead of trapping when
+    /// `position` is not in `0..<hyperedgeCount`. O(1).
+    ///
+    /// - Precondition: `map` is attached to this hypergraph.
+    /// - Throws: `EdgeNotFound` when no hyperedge is at `position`.
+    @inlinable
+    public subscript<Value>(_ map: EdgeMap<Value>, checkedEdgeAt position: Int) -> Value {
+        get throws(EdgeNotFound) {
+            let k = _edgeMaps.index(of: map._token, hint: map._hint)
+            guard UInt(bitPattern: position) < UInt(bitPattern: _plane.hyperedgeCount) else { throw EdgeNotFound() }
+            return _edgeMaps.value(Value.self, at: position, in: k, layout: .dense)
+        }
+    }
+
+    /// The value of the vertex at `index` in `map`, throwing instead of trapping when `index` is
+    /// not in `0..<vertexCount`. O(1).
+    ///
+    /// - Precondition: `map` is attached to this hypergraph.
+    /// - Throws: `VertexNotFound` when no vertex is at `index`.
+    @inlinable
+    public subscript<Value>(_ map: VertexMap<Value>, checkedVertexAt index: Int) -> Value {
+        get throws(VertexNotFound) {
+            let k = _vertexMaps.index(of: map._token, hint: map._hint)
+            guard UInt(bitPattern: index) < UInt(bitPattern: _vertices.count) else { throw VertexNotFound() }
+            return _vertexMaps.value(Value.self, at: index, in: k, layout: .dense)
+        }
+    }
+
+    /// The value of `vertex` in `map`, throwing instead of trapping when `vertex` is not a vertex.
+    /// One hash.
+    ///
+    /// - Precondition: `map` is attached to this hypergraph.
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public subscript<Value>(_ map: VertexMap<Value>, checked vertex: Vertex) -> Value {
+        get throws(VertexNotFound) {
+            let k = _vertexMaps.index(of: map._token, hint: map._hint)
+            guard let index = _vertices.firstIndex(of: vertex) else { throw VertexNotFound() }
+            return _vertexMaps.value(Value.self, at: index, in: k, layout: .dense)
+        }
+    }
+
+    /// A snapshot of `map`'s values by hyperedge position: one array load a read. O(1).
+    ///
+    /// - Precondition: `map` is attached to this hypergraph.
+    @inlinable
+    public func values<Value>(of map: EdgeMap<Value>) -> EdgeValues<Self, Value> {
+        EdgeValues(_storage: _edgeMaps.storage(Value.self, in: _edgeMaps.index(of: map._token, hint: map._hint)))
+    }
+
+    /// A snapshot of `map`'s values by vertex index: one array load a read. O(1).
+    ///
+    /// - Precondition: `map` is attached to this hypergraph.
+    @inlinable
+    public func values<Value>(of map: VertexMap<Value>) -> VertexValues<Self, Value> {
+        VertexValues(_storage: _vertexMaps.storage(Value.self, in: _vertexMaps.index(of: map._token, hint: map._hint)))
+    }
+}
 
 // MARK: - Equatable, Hashable
 

@@ -27,18 +27,27 @@ public struct OrientedIncidenceMatrix {
     @usableFromInline internal var _sources: IncidenceMatrix
     /// The target plane.
     @usableFromInline internal var _targets: IncidenceMatrix
+    /// The attached vertex maps (`addVertexMap(default:)`): dense, one value per row. The planes'
+    /// own maps stay empty.
+    @usableFromInline internal var _vertexMaps: _AttachedMaps
+    /// The attached hyperedge maps (`addEdgeMap(default:)`): dense, one value per column.
+    @usableFromInline internal var _edgeMaps: _AttachedMaps
+    /// The generation, advanced by every structural mutation. The planes' stay unadvanced.
+    @usableFromInline internal var _generation: _GenerationStamp
 
     /// The matrix with no vertices and no columns.
     @inlinable
     public init() {
-        _sources = IncidenceMatrix()
-        _targets = IncidenceMatrix()
+        self.init(_sources: IncidenceMatrix(), _targets: IncidenceMatrix())
     }
 
     @inlinable
     internal init(_sources: IncidenceMatrix, _targets: IncidenceMatrix) {
         self._sources = _sources
         self._targets = _targets
+        _vertexMaps = _AttachedMaps()
+        _edgeMaps = _AttachedMaps()
+        _generation = _GenerationStamp()
     }
 }
 
@@ -50,8 +59,7 @@ extension OrientedIncidenceMatrix {
     /// - Precondition: `vertexCount >= 0`.
     @inlinable
     public init(vertexCount: Int) {
-        _sources = IncidenceMatrix(vertexCount: vertexCount)
-        _targets = IncidenceMatrix(vertexCount: vertexCount)
+        self.init(_sources: IncidenceMatrix(vertexCount: vertexCount), _targets: IncidenceMatrix(vertexCount: vertexCount))
     }
 
     /// A matrix of `vertexCount` vertices with one column per hyperedge, in order. Either side may
@@ -67,8 +75,7 @@ extension OrientedIncidenceMatrix {
             sources.append(Array(hyperedge.sources))
             targets.append(Array(hyperedge.targets))
         }
-        _sources = IncidenceMatrix(vertexCount: vertexCount, hyperedges: sources)
-        _targets = IncidenceMatrix(vertexCount: vertexCount, hyperedges: targets)
+        self.init(_sources: IncidenceMatrix(vertexCount: vertexCount, hyperedges: sources), _targets: IncidenceMatrix(vertexCount: vertexCount, hyperedges: targets))
     }
 
     /// A matrix of `vertexCount` vertices with one column per edge, in order: −1 at its source,
@@ -99,8 +106,7 @@ extension OrientedIncidenceMatrix {
             preconditionFailure("OrientedIncidenceMatrix(_:) needs a hypergraph with vertex indices")
         }
         let m = hypergraph.hyperedgeCount
-        _sources = IncidenceMatrix(_vertexCount: n, hyperedgeCount: m)
-        _targets = IncidenceMatrix(_vertexCount: n, hyperedgeCount: m)
+        self.init(_sources: IncidenceMatrix(_vertexCount: n, hyperedgeCount: m), _targets: IncidenceMatrix(_vertexCount: n, hyperedgeCount: m))
         var p = 0
         for position in hypergraph.hyperedges.indices {
             for v in hypergraph.sourceIndices(ofHyperedgeAt: position) { _sources._setCell(v, p, to: true) }
@@ -118,8 +124,7 @@ extension OrientedIncidenceMatrix {
         guard let n = graph.vertexIndexBound else {
             preconditionFailure("OrientedIncidenceMatrix(_:) needs a graph with vertex indices")
         }
-        _sources = IncidenceMatrix(_vertexCount: n, hyperedgeCount: graph.edgeCount)
-        _targets = IncidenceMatrix(_vertexCount: n, hyperedgeCount: graph.edgeCount)
+        self.init(_sources: IncidenceMatrix(_vertexCount: n, hyperedgeCount: graph.edgeCount), _targets: IncidenceMatrix(_vertexCount: n, hyperedgeCount: graph.edgeCount))
         var p = 0
         for position in graph.edges.indices {
             _sources._setCell(graph.sourceIndex(ofEdgeAt: position), p, to: true)
@@ -137,8 +142,7 @@ extension OrientedIncidenceMatrix {
         guard let n = graph.vertexIndexBound else {
             preconditionFailure("OrientedIncidenceMatrix(_:) needs a graph with vertex indices")
         }
-        _sources = IncidenceMatrix(_vertexCount: n, hyperedgeCount: graph.edgeCount)
-        _targets = IncidenceMatrix(_vertexCount: n, hyperedgeCount: graph.edgeCount)
+        self.init(_sources: IncidenceMatrix(_vertexCount: n, hyperedgeCount: graph.edgeCount), _targets: IncidenceMatrix(_vertexCount: n, hyperedgeCount: graph.edgeCount))
         var p = 0
         for position in graph.edges.indices {
             let (u, v) = graph.endpointIndices(ofEdgeAt: position)
@@ -437,8 +441,11 @@ extension OrientedIncidenceMatrix {
     @inlinable
     @discardableResult
     public mutating func appendVertex() -> Int {
-        _sources.appendVertex()
-        return _targets.appendVertex()
+        _ = _sources._appendRow()
+        let vertex = _targets._appendRow()
+        if !_vertexMaps.isEmpty { _vertexMaps.appendDefaults(count: 1) }
+        _generation.advance()
+        return vertex
     }
 
     /// Appends the column `sources` → `targets`. Either side may be empty, and a vertex may be on
@@ -450,8 +457,11 @@ extension OrientedIncidenceMatrix {
     @inlinable
     @discardableResult
     public mutating func insert(sources: some Sequence<Int>, targets: some Sequence<Int>) -> Int {
-        _sources.insert(hyperedge: sources)
-        return _targets.insert(hyperedge: targets)
+        _ = _sources._appendColumn(sources)
+        let position = _targets._appendColumn(targets)
+        if !_edgeMaps.isEmpty { _edgeMaps.appendDefaults(count: 1) }
+        _generation.advance()
+        return position
     }
 
     /// Appends the column of `edge`: −1 at its source and +1 at its target (0 for a self-loop).
@@ -498,7 +508,11 @@ extension OrientedIncidenceMatrix {
     @inlinable
     @discardableResult
     public mutating func insert(_ vertex: Int, intoSourcesOfHyperedgeAt position: Int) -> Bool {
-        _sources.insert(vertex, intoHyperedgeAt: position)
+        _sources._checkVertex(vertex)
+        _sources._checkHyperedge(position)
+        guard _sources._setCell(vertex, position, to: true) else { return false }
+        _generation.advance()
+        return true
     }
 
     /// Makes `vertex` a target of the column at `position`. O(1).
@@ -507,7 +521,11 @@ extension OrientedIncidenceMatrix {
     @inlinable
     @discardableResult
     public mutating func insert(_ vertex: Int, intoTargetsOfHyperedgeAt position: Int) -> Bool {
-        _targets.insert(vertex, intoHyperedgeAt: position)
+        _targets._checkVertex(vertex)
+        _targets._checkHyperedge(position)
+        guard _targets._setCell(vertex, position, to: true) else { return false }
+        _generation.advance()
+        return true
     }
 
     /// Removes `vertex` from the sources of the column at `position`. O(1).
@@ -516,7 +534,11 @@ extension OrientedIncidenceMatrix {
     @inlinable
     @discardableResult
     public mutating func remove(_ vertex: Int, fromSourcesOfHyperedgeAt position: Int) -> Bool {
-        _sources.remove(vertex, fromHyperedgeAt: position)
+        _sources._checkVertex(vertex)
+        _sources._checkHyperedge(position)
+        guard _sources._setCell(vertex, position, to: false) else { return false }
+        _generation.advance()
+        return true
     }
 
     /// Removes `vertex` from the targets of the column at `position`. O(1).
@@ -525,33 +547,44 @@ extension OrientedIncidenceMatrix {
     @inlinable
     @discardableResult
     public mutating func remove(_ vertex: Int, fromTargetsOfHyperedgeAt position: Int) -> Bool {
-        _targets.remove(vertex, fromHyperedgeAt: position)
+        _targets._checkVertex(vertex)
+        _targets._checkHyperedge(position)
+        guard _targets._setCell(vertex, position, to: false) else { return false }
+        _generation.advance()
+        return true
     }
 
-    /// Removes every vertex and column.
+    /// Removes every vertex and column. Every attached map stays attached, empty.
     @inlinable
     public mutating func removeAll(keepingCapacity: Bool = false) {
-        _sources.removeAll(keepingCapacity: keepingCapacity)
-        _targets.removeAll(keepingCapacity: keepingCapacity)
+        _sources._removeAllCells(keepingCapacity: keepingCapacity)
+        _targets._removeAllCells(keepingCapacity: keepingCapacity)
+        if !_vertexMaps.isEmpty { _vertexMaps.removeAll(keepingCapacity: keepingCapacity) }
+        if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }
+        _generation.advance()
     }
 
-    /// Reserves storage for `vertexCount` vertices and `hyperedgeCount` columns.
+    /// Reserves storage for `vertexCount` vertices and `hyperedgeCount` columns, and room for
+    /// their values in every attached map.
     @inlinable
     public mutating func reserveCapacity(vertexCount: Int, hyperedgeCount: Int) {
         _sources.reserveCapacity(vertexCount: vertexCount, hyperedgeCount: hyperedgeCount)
         _targets.reserveCapacity(vertexCount: vertexCount, hyperedgeCount: hyperedgeCount)
+        if !_vertexMaps.isEmpty { _vertexMaps.reserveCapacity(vertexCount) }
+        if !_edgeMaps.isEmpty { _edgeMaps.reserveCapacity(hyperedgeCount) }
     }
 
     /// The transpose of each plane, which is the dual (`IncidenceList.dual()`'s convention): column
     /// `v` of the result has sources `outHyperedges(of: v)` and targets `inHyperedges(of: v)`.
-    /// O(1).
+    /// O(1). A new hypergraph: it carries none of this matrix's attached maps.
     @inlinable
     public func transposed() -> OrientedIncidenceMatrix {
         OrientedIncidenceMatrix(_sources: _sources.transposed(), _targets: _targets.transposed())
     }
 
     /// Every column's sources and targets swapped, every entry negated (a vertex on both sides
-    /// stays 0): Gallo et al.'s symmetric image. An involution. O(1): the planes swap.
+    /// stays 0): Gallo et al.'s symmetric image. An involution. O(1): the planes swap. A new
+    /// hypergraph: it carries none of this matrix's attached maps.
     @inlinable
     public var reversed: OrientedIncidenceMatrix {
         OrientedIncidenceMatrix(_sources: _targets, _targets: _sources)
@@ -615,8 +648,7 @@ extension OrientedIncidenceMatrix: Codable {
         try IncidenceMatrix._checkDecodedShape(n, sources.count, planes: 2, maximum: maximum, key: .vertexCount, in: container)
         for column in sources { try IncidenceMatrix._checkDecodedColumn(column, vertexCount: n, key: .sources, in: container) }
         for column in targets { try IncidenceMatrix._checkDecodedColumn(column, vertexCount: n, key: .targets, in: container) }
-        _sources = IncidenceMatrix(vertexCount: n, hyperedges: sources)
-        _targets = IncidenceMatrix(vertexCount: n, hyperedges: targets)
+        self.init(_sources: IncidenceMatrix(vertexCount: n, hyperedges: sources), _targets: IncidenceMatrix(vertexCount: n, hyperedges: targets))
     }
 }
 

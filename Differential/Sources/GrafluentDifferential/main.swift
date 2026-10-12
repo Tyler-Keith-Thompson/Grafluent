@@ -54,6 +54,10 @@ struct Result: Encodable {
     /// Undirected only: spanning forests as offsets in the case's edge list, and their weights.
     var spanning: Spanning?
     var connectivity: UndirectedConnectivity?
+    /// Directed only: nontrivial strong components, with the full partition for their order.
+    var directedConnectivity: DirectedConnectivity?
+    /// Self-loop queries, both kinds (answered in the connectivity section).
+    var selfLoops: SelfLoopAnswers?
     var cycles: Cycles?
     var trees = TreeAnswers()
     var distances: DistanceAnswers?
@@ -173,6 +177,18 @@ func listed<S: Sequence<Cycle<Int, Int>>>(_ cycles: S, _ isValid: (Cycle<Int, In
         edges.append(cycle.edges)
     }
     return (vertices, edges)
+}
+
+struct DirectedConnectivity: Encodable {
+    let strong: [[Int]]
+    let nontrivial: [[Int]]
+}
+
+/// The self-loop edges as their endpoint pairs, in the library's order.
+struct SelfLoopAnswers: Encodable {
+    let hasSelfLoops: Bool
+    let vertices: [Int]
+    let edges: [[Int]]
 }
 
 struct UndirectedConnectivity: Encodable {
@@ -666,6 +682,14 @@ for c in cases {
             cycles.girth = graph.girth()
             results[results.count - 1].cycles = cycles
         }
+        if wants("connectivity") {
+            results[results.count - 1].directedConnectivity = DirectedConnectivity(
+                strong: graph.stronglyConnectedComponents().map(Array.init),
+                nontrivial: graph.nontrivialStronglyConnectedComponents().map(Array.init))
+            results[results.count - 1].selfLoops = SelfLoopAnswers(
+                hasSelfLoops: graph.hasSelfLoops, vertices: graph.verticesWithSelfLoops(),
+                edges: graph.selfLoopEdges().map { [graph.edges[$0].source, graph.edges[$0].target] })
+        }
         if wants("trees") {
             var trees = TreeAnswers()
             trees.isArborescence = graph.isArborescence
@@ -753,6 +777,9 @@ for c in cases {
                 biEdgeComponents: graph.biEdgeConnectedComponents().map(Array.init),
                 isBiEdgeConnected: graph.isBiEdgeConnected,
                 blockCutTreeEdges: graph.blockCutTree().edgeCount)
+            result.selfLoops = SelfLoopAnswers(
+                hasSelfLoops: graph.hasSelfLoops, vertices: graph.verticesWithSelfLoops(),
+                edges: graph.selfLoopEdges().map { [graph.edges[$0].u, graph.edges[$0].v] })
         }
         if wants("cycles") {
             var cycles = Cycles()

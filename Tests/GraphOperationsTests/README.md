@@ -76,7 +76,7 @@ partition, or the Stable base without its removal), and its state is checked, so
 from the call and not from the setup.
 
 The catalog-row files are every file except `GraphOperationsConformanceTests.swift`,
-`GraphOperationsPropertyTests.swift` and `ViewCheckedLookupTests.swift` (the views' `checked:` lookups). `swiftgen.py` generated them from `cases.md`; it sits next to
+`GraphOperationsPropertyTests.swift`, `ViewCheckedLookupTests.swift` (the views' `checked:` lookups) and `ViewMapTests.swift` (the views as graph adaptors). `swiftgen.py` generated them from `cases.md`; it sits next to
 `ref.py` and `cases.md` in [`Tests/Catalogs/GraphOperations/`](../Catalogs/GraphOperations/):
 
 ```
@@ -110,9 +110,16 @@ catalog cell, and writes the test. The precondition file also takes the hand-wri
   targets, and the condensation DAG over two bases.
 - **Properties** (swift-property-based, with shrinking), against written-out models: the three
   subgraph views directed and undirected (vertices, positions, every row by label and index, edge
-  indices by rank, membership of every pair); the reverse view's laws; the complement, directed and
+  indices by rank, membership of every pair); the transposed view's laws; the complement, directed and
   undirected, and the complement of the complement; the line graph's definition (also over a view
   without edge indices); the quotient, the disjoint union and the join; the condensation DAG.
+- **Views as adaptors** (`ViewMapTests.swift`). Each view's generation is its base's. The
+  transposed and subgraph views read the base's edge and vertex maps at the base's positions, and
+  the complement reads vertex maps. A subgraph view's `[map, of:]` and `[map, ofEdgeAt:]` trap
+  (exit tests) for a dropped vertex, a dropped edge or a dead position, and the `checked:` forms
+  throw, directed over `StableDirectedGraph` and undirected over a file-private dense graph with
+  maps. A property check compares a subgraph view's reads with a dictionary model under random
+  insertions and removals.
 - **Boundary law.** A counting vertex type on random pseudographs: every index-space row of every
   view hashes nothing, the reverse view's degrees and edge ends by index included (it forwards them
   to the base, whose own read the stored rows and records).

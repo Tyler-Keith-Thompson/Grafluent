@@ -75,6 +75,6 @@ extension Tree where Vertex == Int {
         ends.append(leaf)
         ends.append(n - 1)
         guard let layout = _TreeLayout(vertices: ContiguousArray(0 ..< n), slots: [:], dense: true, ends: ends, root: 0) else { return nil }
-        _layout = layout
+        self.init(_layout: layout)
     }
 }

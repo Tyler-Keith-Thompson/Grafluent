@@ -267,6 +267,19 @@ per-edge hashes (an `UndirectedEdge` hashes without orientation). `Codable` uses
 adds the root's offset); decoding re-checks the invariant and throws `DecodingError.dataCorrupted`
 (as Walks' types do), and also rejects a repeated vertex.
 
+### Attached maps and generations
+
+All four types are `PropertyGraph`s (GraphProtocols). A tree never changes, so each map is one
+dense array, allocated in full when attached: a vertex map by vertex index (the order of
+`vertices`), an edge map by edge position. A read through `values(of:)` is one array load. The
+plain subscripts trap off the tree; `[map, checkedVertexAt:]`, `[map, checked:]` and
+`[map, checkedEdgeAt:]` throw `VertexNotFound` or `EdgeNotFound`.
+
+Every initializer stamps a generation, which nothing advances. A conversion (`RootedTree(tree,
+root:)`, `Arborescence(rooted)`, `Tree(rooted)`, `Forest(tree)`, `forest.trees[k]`) keeps vertex
+indices and edge positions but is a new graph: it has its own generation and no maps, so a
+handle from the source traps on it. Equality, hashing and coding ignore maps and generations.
+
 ## Complexity
 
 | Operation | Cost |

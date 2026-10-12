@@ -147,6 +147,15 @@ extension ImplicitDirectedGraph: DirectedGraph {
 `_runInIndexSpace` zips `successorIndices(ofIndex:)` with `outEdges(ofIndex:)`, which is **two
 calls per settled vertex**. That is a known cost, listed below with its fix.
 
+### No attached maps; a generation
+
+`ImplicitDirectedGraph` is not a `PropertyGraph`. An edge map needs a dense offset for each
+position, and `(source, rank)` has one only after counting every earlier row, which calls the
+closure once per vertex. A vertex-only map has no protocol to conform to, and an array of
+`vertexCount` values indexed by vertex already serves, since nothing invalidates it. The
+initializer stamps a generation, which nothing advances: copies share it, and a graph built again
+from the same closure has its own.
+
 ## Performance targets
 
 | Measure | Target |

@@ -1,7 +1,12 @@
 # Planted bugs for AdjacencyListModule's hashing: `_SlotPairTable` (open addressing with linear
 # probing, growth at three-quarters full, backward-shift deletion) and `_VertexSlots` (the identity
-# mode for vertices 0..<n and its switch to a dictionary). The sorted bulk rows are planted from
-# NamedGraphs. Run with `just mutate AdjacencyListModule`; see scripts/mutate.py.
+# mode for vertices 0..<n and its switch to a dictionary), and the attached maps and generations of
+# both lists (`PropertyGraph`). The sorted bulk rows are planted from NamedGraphs. Run with
+# `just mutate AdjacencyListModule`; see scripts/mutate.py.
+#
+# Not planted, being equivalent: the bounds preconditions of the plain map subscripts (a dense map
+# holds exactly `edgeCount` / `vertexCount` values, so its own array bounds check traps at the same
+# positions) and the maps' `reserveCapacity` (capacity only).
 #
 # Known equivalent mutants (they survive by design):
 #   slotsappend      `v >= _identityCount` for `v == _identityCount` when a slot is set: the identity
@@ -18,6 +23,8 @@ ST = "SlotPairTable.swift"
 VS = "VertexSlots.swift"
 AL = "AdjacencyList.swift"
 UAL = "UndirectedAdjacencyList.swift"
+SC = "SortedConstruction.swift"
+FO = "FileOrderConstruction.swift"
 
 MUTANTS = [
     # Packing and hashing.
@@ -86,6 +93,57 @@ MUTANTS = [
     Mutant("ucheckedindex", UAL, "        return slot\n", "        return slot &+ 1\n", mode="stmt", nth=0),
     Mutant("ucheckedinsert", UAL, "_slots[edge.v]", "Optional(_slots[edge.v] ?? 0)", nth=2),
 
+    # Attached maps (PropertyGraph) and generations.
+    Mutant("mapsinsertedge", AL, "        if !_edgeMaps.isEmpty { _edgeMaps.appendDefaults(count: 1) }", "", mode="stmt"),
+    Mutant("mapsdetach", AL, "        if !_edgeMaps.isEmpty { _edgeMaps.swapRemove(at: position) }", "", mode="stmt"),
+    Mutant("mapsremoveslot", AL, "        if !_vertexMaps.isEmpty { _vertexMaps.swapRemove(at: slot) }", "", mode="stmt"),
+    Mutant("mapsappendslot", AL, "        if !_vertexMaps.isEmpty { _vertexMaps.appendDefaults(count: 1) }", "", mode="stmt"),
+    Mutant("mapsremoveallvertex", AL, "        if !_vertexMaps.isEmpty { _vertexMaps.removeAll(keepingCapacity: keepingCapacity) }", "", mode="stmt"),
+    Mutant("mapsremovealledge", AL, "        if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }", "", mode="stmt", nth=0),
+    Mutant("mapsremovealledges", AL, "        if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }", "", mode="stmt", nth=1),
+    Mutant("geninsertedge", AL, "        _generation.advance()", "", mode="stmt", nth=0),
+    Mutant("genremoveslot", AL, "        _generation.advance()", "", mode="stmt", nth=1),
+    Mutant("genremoveedge", AL, "        _generation.advance()", "", mode="stmt", nth=2),
+    Mutant("genremovealledges", AL, "        _generation.advance()", "", mode="stmt", nth=3),
+    Mutant("genappendslot", AL, "        _generation.advance()", "", mode="stmt", nth=4),
+    Mutant("genremoveedgeat", AL, "        _generation.advance()", "", mode="stmt", nth=5),
+    Mutant("genremoveall", AL, "        if !_vertices.isEmpty { _generation.advance() }", "", mode="stmt"),
+    Mutant("genremoveallempty", AL, "!_vertices.isEmpty", "true"),
+    Mutant("umapsinsertedge", UAL, "        if !_edgeMaps.isEmpty { _edgeMaps.appendDefaults(count: 1) }", "", mode="stmt"),
+    Mutant("umapsdetach", UAL, "        if !_edgeMaps.isEmpty { _edgeMaps.swapRemove(at: position) }", "", mode="stmt"),
+    Mutant("umapsremoveslot", UAL, "        if !_vertexMaps.isEmpty { _vertexMaps.swapRemove(at: slot) }", "", mode="stmt"),
+    Mutant("umapsappendslot", UAL, "        if !_vertexMaps.isEmpty { _vertexMaps.appendDefaults(count: 1) }", "", mode="stmt"),
+    Mutant("umapsremoveallvertex", UAL, "        if !_vertexMaps.isEmpty { _vertexMaps.removeAll(keepingCapacity: keepingCapacity) }", "", mode="stmt"),
+    Mutant("umapsremovealledge", UAL, "        if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }", "", mode="stmt", nth=0),
+    Mutant("umapsremovealledges", UAL, "        if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }", "", mode="stmt", nth=1),
+    Mutant("ugenremove", UAL, "        _generation.advance()", "", mode="stmt", nth=0),
+    Mutant("ugenremoveedge", UAL, "        _generation.advance()", "", mode="stmt", nth=1),
+    Mutant("ugenremovealledges", UAL, "        _generation.advance()", "", mode="stmt", nth=2),
+    Mutant("ugenappendslot", UAL, "        _generation.advance()", "", mode="stmt", nth=3),
+    Mutant("ugeninsertedge", UAL, "        _generation.advance()", "", mode="stmt", nth=4),
+    Mutant("ugenreverse", UAL, "        _generation.advance()", "", mode="stmt", nth=5),
+    Mutant("ugenremoveall", UAL, "        if !_vertices.isEmpty { _generation.advance() }", "", mode="stmt"),
+    Mutant("ugenremoveallempty", UAL, "!_vertices.isEmpty", "true"),
+    Mutant("gensorted", SC, "        _generation.advance()", "", mode="stmt", nth=0),
+    Mutant("ugensorted", SC, "        _generation.advance()", "", mode="stmt", nth=1),
+    Mutant("genslotted", SC, "        _generation.advance()", "", mode="stmt", nth=2),
+    Mutant("ugenslotted", SC, "        _generation.advance()", "", mode="stmt", nth=3),
+    Mutant("genbuilt", FO, "        graph._generation.advance()", "", mode="stmt", nth=0),
+    Mutant("ugenbuilt", FO, "        graph._generation.advance()", "", mode="stmt", nth=1),
+] + [
+    m
+    for tag, path in (("", "AdjacencyList+PropertyGraph.swift"), ("u", "UndirectedAdjacencyList+PropertyGraph.swift"))
+    for m in (
+        Mutant(f"{tag}mapaddedgecount", path, "_records.count", "0", nth=0),
+        Mutant(f"{tag}mapaddvertexcount", path, "_vertices.count", "0", nth=0),
+        Mutant(f"{tag}mapremoveedge", path, "        _edgeMaps.remove(map._token, hint: map._hint)", "", mode="stmt"),
+        Mutant(f"{tag}mapremovevertex", path, "        _vertexMaps.remove(map._token, hint: map._hint)", "", mode="stmt"),
+        Mutant(f"{tag}mapcheckededge", path, "UInt(bitPattern: position) < UInt(bitPattern: _records.count)", "position <= _records.count", nth=2),
+        Mutant(f"{tag}mapcheckedvertexat", path, "UInt(bitPattern: position) < UInt(bitPattern: _vertices.count)", "position <= _vertices.count", nth=2),
+        Mutant(f"{tag}mapcheckedvertex", path, "_slots[vertex]", "Optional(_slots[vertex] ?? 0)"),
+        Mutant(f"{tag}mapofvertex", path, "_slot(of: vertex)", "0", nth=0),
+    )
+] + [
     # reuse pass (C): the pooled out-rows lent to algorithms, and their copy into compressed rows.
     Mutant("outrowsedges", AL, "            _outEdges.withUnsafeRows { edges, edgeRows in body(targets, targetRows, edges, edgeRows) }", "            _out.withUnsafeRows { edges, edgeRows in body(targets, targetRows, edges, edgeRows) }", mode="stmt"),
     Mutant("pooledloops", "CompressedRows.swift", "k &+= w == v ? 0 : 1", "k &+= 1", module="GraphProtocols"),

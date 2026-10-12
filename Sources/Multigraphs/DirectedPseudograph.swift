@@ -46,6 +46,18 @@ public struct DirectedPseudograph<Vertex: Hashable> {
     @usableFromInline
     internal var _parallel: _ParallelClasses
 
+    /// The attached vertex maps (`PropertyGraph`), one value per slot, swap-removed with the slots.
+    @usableFromInline
+    internal var _vertexMaps: _AttachedMaps
+
+    /// The attached edge maps, one value per position, swap-removed with the edges.
+    @usableFromInline
+    internal var _edgeMaps: _AttachedMaps
+
+    /// The generation, advanced by every structural mutation.
+    @usableFromInline
+    internal var _generation: _GenerationStamp
+
     /// The empty graph.
     @inlinable
     public init() {
@@ -57,6 +69,9 @@ public struct DirectedPseudograph<Vertex: Hashable> {
         _inEdges = _RowPool()
         _records = []
         _parallel = _ParallelClasses()
+        _vertexMaps = _AttachedMaps()
+        _edgeMaps = _AttachedMaps()
+        _generation = _GenerationStamp()
     }
 }
 
@@ -371,6 +386,8 @@ extension DirectedPseudograph {
         _inEdges.append(position, toRow: target)
         _records.append(_ArcRecord(source: source, target: target, out: out, in: into))
         _parallel.append(position, key: _SlotPair(source, target))
+        if !_edgeMaps.isEmpty { _edgeMaps.appendDefaults(count: 1) }
+        _generation.advance()
         return position
     }
 
@@ -431,14 +448,16 @@ extension DirectedPseudograph {
         _in.swapRemoveRow(slot)
         _inEdges.swapRemoveRow(slot)
         _slots.removeValue(forKey: removed)
+        if !_vertexMaps.isEmpty { _vertexMaps.swapRemove(at: slot) }
+        _generation.advance()
         return removed
     }
 
     /// Removes the newest copy of `edge` (NetworkX's `remove_edge(u, v)`). The last edge moves into
     /// its position, unless it was the last. Never inserts or removes a vertex. O(1).
     ///
-    /// To keep a weight array `w` beside the graph, remove the copy at
-    /// `edges(from: source, to: target).last` with `remove(edgeAt:)` and do the same move in `w`.
+    /// Attached maps (`addEdgeMap(default:)`) follow: the removed copy's values go, and the moved
+    /// edge's values move with it.
     ///
     /// - Returns: The removed edge, whose endpoints are the graph's own vertex instances, or `nil`
     ///   if no copy of `edge` was an edge.
@@ -510,11 +529,15 @@ extension DirectedPseudograph {
         }
         _records.removeLast()
         _parallel.removeLast()
+        if !_edgeMaps.isEmpty { _edgeMaps.swapRemove(at: position) }
+        _generation.advance()
     }
 
     /// Removes every vertex and edge.
     @inlinable
     public mutating func removeAll(keepingCapacity: Bool = false) {
+        // Clearing an empty graph changes nothing: it keeps its generation.
+        if !_vertices.isEmpty { _generation.advance() }
         _vertices.removeAll(keepingCapacity: keepingCapacity)
         _slots.removeAll(keepingCapacity: keepingCapacity)
         _out.removeAll(keepingCapacity: keepingCapacity)
@@ -523,6 +546,8 @@ extension DirectedPseudograph {
         _inEdges.removeAll(keepingCapacity: keepingCapacity)
         _records.removeAll(keepingCapacity: keepingCapacity)
         _parallel.removeAll(keepingCapacity: keepingCapacity)
+        if !_vertexMaps.isEmpty { _vertexMaps.removeAll(keepingCapacity: keepingCapacity) }
+        if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }
     }
 
     /// Removes every edge, keeping every vertex.
@@ -535,6 +560,8 @@ extension DirectedPseudograph {
         _inEdges.removeAllEntries(keepingCapacity: keepingCapacity)
         _records.removeAll(keepingCapacity: keepingCapacity)
         _parallel.removeAll(keepingCapacity: keepingCapacity)
+        if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }
+        _generation.advance()
     }
 
     /// Reserves space for at least `vertexCount` vertices and `edgeCount` edges.
@@ -550,6 +577,8 @@ extension DirectedPseudograph {
         _inEdges.reserveCapacity(rows: vertexCount, entries: edgeCount)
         _records.reserveCapacity(edgeCount)
         _parallel.reserveCapacity(edgeCount)
+        if !_vertexMaps.isEmpty { _vertexMaps.reserveCapacity(vertexCount) }
+        if !_edgeMaps.isEmpty { _edgeMaps.reserveCapacity(edgeCount) }
     }
 
     @inlinable
@@ -562,6 +591,8 @@ extension DirectedPseudograph {
         _outEdges.appendRow()
         _in.appendRow()
         _inEdges.appendRow()
+        if !_vertexMaps.isEmpty { _vertexMaps.appendDefaults(count: 1) }
+        _generation.advance()
         return slot
     }
 
@@ -767,6 +798,11 @@ extension DirectedPseudograph: CustomStringConvertible, CustomDebugStringConvert
 // MARK: - DirectedGraph
 
 extension DirectedPseudograph: BidirectionalDirectedGraph {
+    /// The current generation (see `GraphGeneration`): every insertion and removal, and both
+    /// resets, start a new one. O(1).
+    @inlinable
+    public var generation: GraphGeneration { _generation.generation }
+
     /// The positions in `edges` of the edges leaving `vertex`, in the order of
     /// `successors(of:)`: the stored row. O(1).
     ///

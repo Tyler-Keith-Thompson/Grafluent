@@ -219,6 +219,14 @@ different variant fails the tests):
   `DecodingError.dataCorrupted` (FG-062).
 - **`CustomStringConvertible`**: `FunctionalGraph([1, 2, 0])` (FG-061).
 
+### Attached maps and the generation
+
+`FunctionalGraph` is a `PropertyGraph` (GraphProtocols): a vertex map and an edge map are each one
+dense array of n values, allocated in full when attached, the edge leaving `v` at position `v`. The
+plain subscripts trap off `0..<n`; the `checked` subscripts throw. Every initializer stamps a
+generation, which nothing advances, since the graph is immutable. Equality, hashing and coding
+ignore both.
+
 ## Performance targets
 
 Measured in the benchmark target. Per the test policy, call counts that are not observable

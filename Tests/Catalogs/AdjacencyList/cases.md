@@ -440,3 +440,24 @@ Use this for any trapping API (an arc to a missing vertex if we trap, or a stale
 3. **JGraphT: do not translate code.** Re-derive its fixtures and expected values (FX-10, FX-14, FX-15, the Q6 equality cases) as facts, and write the test code independently. Translated EPL/LGPL code would bring copyleft obligations into an otherwise permissively licensed package.
 4. Copying expected values from NetworkX, petgraph or BGL with a citation is safe under all three licenses. A one-line attribution per test file and a NOTICE section listing NetworkX (BSD-3), petgraph (MIT), Boost (BSL-1.0) and swift-collections (Apache-2.0) covers the realistic cases.
 5. Not legal advice. If Grafluent's own license is GPL-incompatible or unusual, recheck point 2 for Apache-2.0 (patent clause) and point 3.
+
+---
+
+## 13. Attached maps and generations (`PropertyGraph`)
+
+A value per vertex or edge kept by the graph: LEMON's `NodeMap`/`ArcMap` (registered with the graph's `AlterationNotifier`, told of every insertion and erasure), BGL's interior and exterior property maps, and petgraph's node and edge weights, which `Graph::remove_edge` and `remove_node` move with the swap-remove of the last index. Grafluent's dense lists move every attached map's values the same way, inside the mutation. A generation answers whether a derived structure still describes the graph (Rust `slotmap` generational indices, LLVM `DebugEpochBase`).
+
+| ID | What is asserted | Fixture → expected | Source |
+|---|---|---|---|
+| AM-01 | A map gives every existing element and every later-inserted one its default; inserting an existing edge appends no value | `addEdgeMap(default: 1.5)` on 2 edges → both 1.5; a new edge → 1.5; a written value stays | LEMON `NodeMap(g, value)`; BGL `vector_property_map` |
+| AM-02 | `addEdgeMap(of: T.self)` is a map of `T?` with default `nil`; writing `nil` clears | `[labels, ofEdgeAt: 0] = nil` → `nil` | Grafluent decision (StableGraphs' spelling kept) |
+| AM-03 | Removing an edge moves the last edge's values into its position; removing the last edge moves nothing | value `10·source + target` at every position after each removal | pg: `Graph::remove_edge` (swap-remove of the last edge index) |
+| AM-04 | Removing a vertex removes its incident edges' values and moves the last slot's vertex value into its slot | `remove(1)` on a 4-cycle with a loop → remaining edge values `[23, 33]`, every vertex keeps its name | pg: `Graph::remove_node`; LEMON `AlterationNotifier::erase` |
+| AM-05 | `removeAllEdges` empties the edge maps, `removeAll` every map; both stay attached and give later elements the default | after `removeAll`, a new edge reads the default | LEMON `ArcMap::clear` on `Digraph::clear` |
+| AM-06 | Handles: several maps coexist; `removeEdgeMap` leaves later handles working; a copy shares the maps and diverges on write; equality and hashing ignore maps | a copy's write is not seen by the original | Grafluent decision |
+| AM-07 | `Codable` and conversions carry no maps; the identity conversion is the same graph, maps included | a decoded graph equals the original and has no maps | Grafluent decision |
+| AM-08 | `values(of:)` is a snapshot read by position like an array; later writes and removals do not show through | snapshot reads `[0.5, 1.5, 2.5]` after a write and a removal | Grafluent decision (`Dictionary.Values`) |
+| AM-09 | A view (`directedView`) reads the base's vertex values | `directed[r, of: 1] == 5` | BGL graph adaptors share the base's property maps |
+| AM-10 | Reading or writing a value of an element not in the graph traps (out of range, removed); the `checked` subscripts throw `EdgeNotFound`/`VertexNotFound`; a handle traps after `removeEdgeMap` and on another graph | exit tests | Grafluent decision (README Principle 6) |
+| AM-11 | Every structural mutation starts a new generation; a call that changes nothing, `reserveCapacity`, and attaching or writing maps do not; a copy shares the generation until either is mutated; built and decoded graphs have one; an untouched empty graph has none | per-mutation table | slotmap; LLVM `DebugEpochBase` |
+| AM-12 | Model property: under random insertions, removals, clears, value writes and mutated copies, the value at every position is the model's value of the element there (a Dictionary keyed by the edge or vertex), through the subscripts and `values(of:)` | swift-property-based, shrinking | pg: quickcheck `graph_remove_edge` properties (P-01) |

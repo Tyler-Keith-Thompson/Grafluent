@@ -231,6 +231,7 @@ extension AdjacencyList {
         graph._inEdges = rows.inEdges
         graph._records = rows.records
         graph._deferredEdges = rows.records.isEmpty ? nil : _DeferredSlotPairTable(records: rows.records)
+        graph._generation.advance()
         return (graph, reportingPositions ? kept.positions : [])
     }
 }
@@ -257,6 +258,7 @@ extension UndirectedAdjacencyList {
         graph._records = rows.records
         let us = kept.firsts, vs = kept.seconds
         graph._positions._insertDistinct(count: us.count) { (us[$0] <= vs[$0] ? _SlotPair(us[$0], vs[$0]) : _SlotPair(vs[$0], us[$0]), $0) }
+        graph._generation.advance()
         return (graph, reportingPositions ? kept.positions : [])
     }
 }

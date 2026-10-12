@@ -23,7 +23,7 @@ the seeded generator and the tags in `GrafluentTestSupport`.
 
 ```swift
 protocol Hypergraph, protocol DirectedHypergraph                  // GraphProtocols
-struct UndirectedIncidenceList<Vertex>: Hypergraph, Equatable, Hashable, Codable, Sendable,
+struct UndirectedIncidenceList<Vertex>: Hypergraph, PropertyGraph, Equatable, Hashable, Codable, Sendable,
         CustomStringConvertible, CustomDebugStringConvertible
     init(), init(vertices:), init(hyperedges:), init(vertices:hyperedges:), init(_ hypergraph:)
     insert(_:), insert(hyperedge:), insert(checked:), removeAll(keepingCapacity:), reserveCapacity(…)
@@ -34,6 +34,8 @@ struct IncidenceList<Vertex>: DirectedHypergraph, …               // the same 
     insert(sources:targets:), insert(checked:targets:), sources / targets / sourceIndices / targetIndices,
     outHyperedges / inHyperedges(of: / ofIndex: / checked:), outDegree / inDegree / degree(of: / checked:),
     vertexIndex(of: / checked:), reversed
+both: generation; addVertexMap / addEdgeMap(default: / of:), removeVertexMap / removeEdgeMap,
+    [map, ofVertexAt: / of: / ofEdgeAt:], [map, checkedVertexAt: / checked: / checkedEdgeAt:], values(of:)
 extension Hypergraph: neighbors(of:), rank, isUniform(size:), degreeHistogram(), hyperedgeSizeHistogram(),
     dual(), incidenceGraphView, cliqueExpansion(), lineGraph(s:), connectedComponents(), isConnected,
     sConnectedComponents(s:)
@@ -82,8 +84,9 @@ isolated vertices, because an `OrderedSet` hashes only from 16 elements.
 
 The catalog-row files are every file except `HypergraphConformanceTests.swift`,
 `HypergraphEdgeCaseTests.swift`, `HypergraphHashTests.swift`, `HypergraphPropertyTests.swift`,
-`IncidenceGraphViewCheckedTests.swift` (the incidence graph views' `checked:` lookups) and
-`Performance/HypergraphStressTests.swift`.
+`IncidenceGraphViewCheckedTests.swift` (the incidence graph views' `checked:` lookups),
+`HypergraphMapTests.swift`, `HypergraphMapPropertyTests.swift`, `HypergraphGenerationTests.swift`
+and `Performance/HypergraphStressTests.swift`.
 `swiftgen.py`, which sits next to `ref.py`, generated them:
 
 ```
@@ -142,6 +145,20 @@ checked.
   - strong and weak components, both clique expansions, the s-line graph, s-components, neighbors,
     rank and uniformity against direct computations;
   - equality and hashing under any vertex and hyperedge order, and Codable.
+- **Attached maps** (`HypergraphMapTests.swift`), on both representations: defaults for every
+  element and every new one (the vertices a hyperedge's insertion adds included), values by index,
+  by vertex and by position, `values(of:)` snapshots, the checked reads throwing just outside the
+  elements, `removeAll` emptying the maps and keeping them attached, several maps and removed
+  ones, copy-on-write, reference values, `reversed` carrying the maps, and equality, hashing and
+  `Codable` ignoring them. The traps (out of range, a non-vertex, a handle of another hypergraph or
+  of a removed map) are in `extra_traps.swift`.
+- **Maps against a model** (`HypergraphMapPropertyTests.swift`, swift-property-based): random
+  insertions, checked insertions, writes, reversals and resets against dictionaries keyed by vertex
+  and by position, every value read every way after every step, and a copy taken midway that must
+  not change.
+- **Generations** (`HypergraphGenerationTests.swift`): every structural mutation starts one, a
+  call that changes nothing does not, copies share one until either is mutated, and built and
+  decoded hypergraphs have one.
 - **Stress.**
   - 2 × 10⁴ vertices and 4 × 10⁴ hyperedges, whose components equal the view's.
   - A directed chain of 10⁴ Horn clauses for B- and F-Visit.

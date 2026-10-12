@@ -398,4 +398,57 @@ extension SubgraphView: BidirectionalDirectedGraph where Base: BidirectionalDire
     }
 }
 
+// MARK: - Attached maps
+
+extension SubgraphView where Base: DirectedGraph & PropertyGraph {
+    /// The base's value of `vertex` in `map`: one hash, two when the view drops vertices.
+    ///
+    /// - Precondition: `map` is attached to the base and `vertex` is a vertex of the view.
+    @inlinable
+    public subscript<Value>(map: VertexMap<Value>, of vertex: Base.Vertex) -> Value {
+        if !_new.isEmpty { _ = _viewIndex(base.vertexIndex(of: vertex)) }
+        return base[map, of: vertex]
+    }
+
+    /// The base's value of `vertex` in `map`, throwing instead of trapping when `vertex` is not a
+    /// vertex of the view.
+    ///
+    /// - Precondition: `map` is attached to the base.
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the view.
+    @inlinable
+    public subscript<Value>(map: VertexMap<Value>, checked vertex: Base.Vertex) -> Value {
+        get throws(VertexNotFound) {
+            guard contains(vertex) else { throw VertexNotFound() }
+            return base[map, of: vertex]
+        }
+    }
+}
+
+extension SubgraphView where Base: DirectedGraph & PropertyGraph, Base.Edges.Index == Base.EdgePosition {
+    /// The base's value of the edge at `position` in `map`. O(1) over a base with edge indices or
+    /// without an edge set; O(log k) for k kept edges otherwise.
+    ///
+    /// - Precondition: `map` is attached to the base and `position` is an edge of the view.
+    @inlinable
+    public subscript<Value>(map: EdgeMap<Value>, ofEdgeAt position: Base.Edges.Index) -> Value {
+        let value = base[map, ofEdgeAt: position]
+        precondition(_keeps(position), "\(position) is not an edge of the subgraph")
+        return value
+    }
+
+    /// The base's value of the edge at `position` in `map`, throwing instead of trapping when
+    /// `position` is not an edge of the view.
+    ///
+    /// - Precondition: `map` is attached to the base.
+    /// - Throws: `EdgeNotFound` when no edge of the base is at `position`, or the view drops it.
+    @inlinable
+    public subscript<Value>(map: EdgeMap<Value>, checkedEdgeAt position: Base.Edges.Index) -> Value {
+        get throws(EdgeNotFound) {
+            let value = try base[map, checkedEdgeAt: position]
+            guard _keeps(position) else { throw EdgeNotFound() }
+            return value
+        }
+    }
+}
+
 extension SubgraphView.DirectedEdges: Sendable where Base: Sendable, Base.Edges.Index: Sendable {}

@@ -168,4 +168,55 @@ let benchmarks: @Sendable () -> Void = {
             blackHole(dense.dual())
         }
     }
+
+    // MARK: Attached maps
+
+    // One value per column, appended with the column: 0, 1 and 2 attached hyperedge maps against a
+    // caller's `[Double]` appended by hand; then `values(of:)` against that array, read at every
+    // vertex's incident columns.
+    for maps in 0 ... 2 {
+        Benchmark("IncidenceMatrix: insert(hyperedge:) × 2·10⁴, sizes 2–8, n = 10⁴, \(maps) hyperedge maps") { benchmark in
+            for _ in benchmark.scaledIterations {
+                var built = IncidenceMatrix(vertexCount: 10_000)
+                for _ in 0 ..< maps { _ = built.addEdgeMap(default: 1.0) }
+                for column in xgiColumns { built.insert(hyperedge: column) }
+                blackHole(built)
+            }
+        }
+    }
+    Benchmark("IncidenceMatrix: BASELINE insert(hyperedge:) × 2·10⁴, sizes 2–8, n = 10⁴, hand-maintained side array") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var built = IncidenceMatrix(vertexCount: 10_000)
+            var weights: [Double] = []
+            for column in xgiColumns {
+                built.insert(hyperedge: column)
+                weights.append(1.0)
+            }
+            blackHole((built, weights))
+        }
+    }
+    var weighted = matrix
+    let columnWeights = weighted.addEdgeMap(default: 0.0)
+    var columnArray = [Double](repeating: 0, count: m)
+    for p in 0 ..< m {
+        weighted[columnWeights, ofEdgeAt: p] = Double(p % 97)
+        columnArray[p] = Double(p % 97)
+    }
+    let weightedValues = weighted.values(of: columnWeights)
+    let weightedArray = columnArray
+    let weightedMatrix = weighted
+    Benchmark("IncidenceMatrix: values(of:) read at every vertex's incident columns, n = 2 048, m = 2·10⁴") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var sum = 0.0
+            for v in 0 ..< n { for p in weightedMatrix.incidentHyperedgeIndices(ofIndex: v) { sum += weightedValues[p] } }
+            blackHole(sum)
+        }
+    }
+    Benchmark("IncidenceMatrix: BASELINE [Double] read at every vertex's incident columns, n = 2 048, m = 2·10⁴") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var sum = 0.0
+            for v in 0 ..< n { for p in weightedMatrix.incidentHyperedgeIndices(ofIndex: v) { sum += weightedArray[p] } }
+            blackHole(sum)
+        }
+    }
 }

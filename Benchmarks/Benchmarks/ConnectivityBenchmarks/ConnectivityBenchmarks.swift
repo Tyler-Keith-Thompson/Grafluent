@@ -167,5 +167,56 @@ let benchmarks: @Sendable () -> Void = {
         for _ in benchmark.scaledIterations { blackHole(path.isStronglyConnected) }
     }
 
+    // Nontrivial components against the client's filter of the full partition, which reads the row
+    // of every single-vertex component a second time. Inputs: the random graph above (one giant
+    // component), a sparse one with many small components and 10³ self-loops, and the path (every
+    // component trivial).
+    let loopy = CompressedSparseRow(
+        vertexCount: n,
+        edges: Inputs.randomEdges(vertexCount: n, edgeCount: n) + (0 ..< 1000).map { DirectedEdge(from: $0 * 97 % n, to: $0 * 97 % n) }
+    )
+    let loopyList = AdjacencyList(vertices: 0 ..< n, edges: loopy.edges)
+    func filtered<G: DirectedGraph>(_ g: G) -> Int {
+        g.stronglyConnectedComponents().filter { $0.count > 1 || $0.contains { g.successors(of: $0).contains($0) } }.count
+    }
+    for (name, graph) in [("CompressedSparseRow G(10⁵, 4·10⁵)", sparse), ("CompressedSparseRow G(10⁵, 10⁵) + 10³ loops", loopy), ("a 10⁶ path", path)] {
+        Benchmark("Connectivity: BASELINE filtered stronglyConnectedComponents, \(name)") { benchmark in
+            for _ in benchmark.scaledIterations { blackHole(filtered(graph)) }
+        }
+        Benchmark("Connectivity: nontrivialStronglyConnectedComponents, \(name)") { benchmark in
+            for _ in benchmark.scaledIterations { blackHole(graph.nontrivialStronglyConnectedComponents().count) }
+        }
+    }
+    for (name, graph) in [("AdjacencyList<Int> G(10⁵, 4·10⁵)", list), ("AdjacencyList<Int> G(10⁵, 10⁵) + 10³ loops", loopyList)] {
+        Benchmark("Connectivity: BASELINE filtered stronglyConnectedComponents, \(name)") { benchmark in
+            for _ in benchmark.scaledIterations { blackHole(filtered(graph)) }
+        }
+        Benchmark("Connectivity: nontrivialStronglyConnectedComponents, \(name)") { benchmark in
+            for _ in benchmark.scaledIterations { blackHole(graph.nontrivialStronglyConnectedComponents().count) }
+        }
+    }
+    Benchmark("Connectivity: nontrivialStronglyConnectedComponents, AdjacencyList<String> G(10⁵, 4·10⁵)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(named.nontrivialStronglyConnectedComponents().count) }
+    }
+    Benchmark("Connectivity: BASELINE filtered stronglyConnectedComponents, AdjacencyList<String> G(10⁵, 4·10⁵)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(filtered(named)) }
+    }
+    // Self-loop queries against a filter of the vertices by their successors.
+    Benchmark("Connectivity: BASELINE vertices filtered by successors, AdjacencyList<Int> G(10⁵, 10⁵) + 10³ loops") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(loopyList.vertices.filter { loopyList.successors(of: $0).contains($0) }.count) }
+    }
+    Benchmark("Connectivity: verticesWithSelfLoops, AdjacencyList<Int> G(10⁵, 10⁵) + 10³ loops") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(loopyList.verticesWithSelfLoops().count) }
+    }
+    Benchmark("Connectivity: BASELINE vertices filtered by successors, CompressedSparseRow G(10⁵, 10⁵) + 10³ loops") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(loopy.vertices.filter { loopy.successors(of: $0).contains($0) }.count) }
+    }
+    Benchmark("Connectivity: verticesWithSelfLoops, CompressedSparseRow G(10⁵, 10⁵) + 10³ loops") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(loopy.verticesWithSelfLoops().count) }
+    }
+    Benchmark("Connectivity: selfLoopEdges, AdjacencyList<Int> G(10⁵, 10⁵) + 10³ loops") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(loopyList.selfLoopEdges().count) }
+    }
+
     undirectedConnectivityBenchmarks()
 }

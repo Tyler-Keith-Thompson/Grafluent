@@ -6,12 +6,15 @@ import GraphProtocols
 /// `edges`, which is its identity.
 ///
 /// The invariant is the type: every initializer from unchecked input is failable, and inserting a
-/// self-loop throws `LooplessEdgeError.selfLoop`. Storage, costs and the order rules are `Pseudograph`'s, which it wraps:
-/// `Pseudograph(multigraph)` is O(1).
+/// self-loop throws `LooplessEdgeError.selfLoop`. Storage, costs and the order rules are
+/// `Pseudograph`'s, which it wraps as a `GraphDelegator`: every read is the base's, at the base's
+/// speed, and so are attached maps (`PropertyGraph`) and `generation`. `Pseudograph(multigraph)`
+/// is O(1) and keeps the maps.
 @frozen
 public struct Multigraph<Vertex: Hashable> {
-    @usableFromInline
-    internal var _base: Pseudograph<Vertex>
+    /// The wrapped graph. Not for use outside the library: writing it directly can break the
+    /// invariant. `base` reads it.
+    public var _base: Pseudograph<Vertex>
 
     /// The empty graph.
     @inlinable
@@ -83,23 +86,6 @@ extension Multigraph {
 // MARK: - Queries
 
 extension Multigraph {
-    /// The number of vertices.
-    @inlinable
-    public var vertexCount: Int { _base.vertexCount }
-
-    /// The number of edges, every copy included.
-    @inlinable
-    public var edgeCount: Int { _base.edgeCount }
-
-    /// Whether `vertex` is a vertex of the graph.
-    @inlinable
-    public func contains(_ vertex: Vertex) -> Bool { _base.contains(vertex) }
-
-    /// Whether at least one copy of `edge`, in either orientation, is an edge of the graph. O(1).
-    /// False when either endpoint is not a vertex.
-    @inlinable
-    public func contains(edge: UndirectedEdge<Vertex>) -> Bool { _base.contains(edge: edge) }
-
     /// The positions of every copy joining `u` and `v`, in either orientation, oldest first. Empty
     /// when there is none, or when either is not a vertex.
     @inlinable
@@ -109,33 +95,6 @@ extension Multigraph {
     /// (NetworkX's `number_of_edges(u, v)`). 0 when either is not a vertex.
     @inlinable
     public func edgeCount(between u: Vertex, and v: Vertex) -> Int { _base.edgeCount(between: u, and: v) }
-
-    /// The far end of every edge end at `vertex`, in the order of `incidentEdges(of:)`: a
-    /// neighbor once per edge joining them.
-    ///
-    /// - Precondition: `vertex` is a vertex of the graph.
-    @inlinable
-    public func neighbors(of vertex: Vertex) -> Neighbors { _base.neighbors(of: vertex) }
-
-    /// The positions in `edges` of the edges at `vertex`. O(1).
-    ///
-    /// - Precondition: `vertex` is a vertex of the graph.
-    @inlinable
-    public func incidentEdges(of vertex: Vertex) -> ArraySlice<Int> { _base.incidentEdges(of: vertex) }
-
-    /// The endpoint of the edge at `position` that is not `vertex`. O(1).
-    ///
-    /// - Precondition: `vertex` is an endpoint of the edge at `position`.
-    @inlinable
-    public func oppositeVertex(to vertex: Vertex, acrossEdgeAt position: Int) -> Vertex {
-        _base.oppositeVertex(to: vertex, acrossEdgeAt: position)
-    }
-
-    /// The number of edges at `vertex`, each copy counted. O(1).
-    ///
-    /// - Precondition: `vertex` is a vertex of the graph.
-    @inlinable
-    public func degree(of vertex: Vertex) -> Int { _base.degree(of: vertex) }
 
     /// `neighbors(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1) to
     /// make.
@@ -261,14 +220,6 @@ extension Multigraph {
 // MARK: - Views
 
 extension Multigraph {
-    /// The vertices, in slot order.
-    @inlinable
-    public var vertices: Vertices { _base.vertices }
-
-    /// The edges, by position, each in the orientation it was inserted with.
-    @inlinable
-    public var edges: Edges { _base.edges }
-
     /// The vertices of a graph. A value: unaffected by later changes to the graph.
     public typealias Vertices = Pseudograph<Vertex>.Vertices
 
@@ -345,25 +296,12 @@ extension Multigraph: CustomStringConvertible, CustomDebugStringConvertible, Cus
 
 // MARK: - Graph
 
-extension Multigraph: Graph {
-    @inlinable public var vertexIndexBound: Int? { _base.vertexIndexBound }
-    @inlinable public func vertexIndex(of vertex: Vertex) -> Int { _base.vertexIndex(of: vertex) }
-    @inlinable public func vertex(atIndex index: Int) -> Vertex { _base.vertex(atIndex: index) }
-    @inlinable public func neighborIndices(ofIndex index: Int) -> ArraySlice<Int> { _base.neighborIndices(ofIndex: index) }
-    @inlinable public var edgeIndexBound: Int? { _base.edgeIndexBound }
-    @inlinable public func edgeIndex(of position: Int) -> Int { position }
-    @inlinable public func incidentEdges(ofIndex index: Int) -> ArraySlice<Int> { _base.incidentEdges(ofIndex: index) }
-    @inlinable public func incidentEdgeIndices(ofIndex index: Int) -> ArraySlice<Int> { _base.incidentEdgeIndices(ofIndex: index) }
-    @inlinable public func degree(ofIndex index: Int) -> Int { _base.degree(ofIndex: index) }
-    @inlinable public func endpointIndices(ofEdgeAt position: Int) -> (u: Int, v: Int) { _base.endpointIndices(ofEdgeAt: position) }
-
-    @inlinable
-    public func _withIncidentIndexRows<Result>(
-        _ body: (
-            _ neighbors: UnsafeBufferPointer<Int>, _ neighborRows: UnsafeBufferPointer<Int>,
-            _ edges: UnsafeBufferPointer<Int>, _ edgeRows: UnsafeBufferPointer<Int>
-        ) -> Result
-    ) -> Result? {
-        _base._withIncidentIndexRows(body)
-    }
+extension Multigraph: GraphDelegator, Graph, PropertyGraph {
+    // Every read requirement, and the attached maps, are `GraphDelegator`'s defaults, which
+    // forward to `_base`.
+    public typealias Base = Pseudograph<Vertex>
+    public typealias IncidentEdges = Base.IncidentEdges
+    public typealias NeighborIndices = Base.NeighborIndices
+    public typealias IncidentEdgeIndices = Base.IncidentEdgeIndices
+    public typealias EdgePosition = Base.EdgePosition
 }
