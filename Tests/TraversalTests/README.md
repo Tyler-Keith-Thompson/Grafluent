@@ -33,6 +33,17 @@ extension BidirectionalDirectedGraph
     func ancestors(of:) -> Set<Vertex>
     func bidirectionalShortestPath(from:to:) -> Path<Vertex, Edges.Index>?
 
+enum EdgeBreadthFirstSearchEvent<Vertex, Edge>: discover, treeEdge, nonTreeEdge, finish   // edges by position
+enum EdgeDepthFirstSearchEvent<Vertex, Edge>: discover, treeEdge, backEdge, forwardEdge, crossEdge, finish
+
+struct EdgeBreadthFirstSearch<Graph>, EdgeDepthFirstSearch<Graph>: Sequence                  // Iterator.prune(); forEach (push)
+struct UndirectedEdgeBreadthFirstSearch<Graph>, UndirectedEdgeDepthFirstSearch<Graph>: Sequence  // the same
+
+extension DirectedGraph, Graph
+    func edgeBreadthFirstSearch(from: Vertex | some Sequence<Vertex>, depthLimit: Int? = nil)
+    func edgeDepthFirstSearch(from: Vertex | some Sequence<Vertex>, depthLimit: Int? = nil)
+    func edgeDepthFirstSearch(depthLimit: Int? = nil)             // the whole graph
+
 func breadthFirstSearch(from:depthLimit:successors:) -> some Sequence<BreadthFirstSearchEvent<V>>
 func depthFirstSearch(from:depthLimit:successors:) -> some Sequence<DepthFirstSearchEvent<V>>
 func topologicalSort(from:successors:) -> [V]?
@@ -54,6 +65,7 @@ readable afterwards. `Connectivity`, `Flows` and `ShortestPaths` build on it.
 | Recursion | None: depth-first search and iterative deepening keep their own stacks, so a 100 000-vertex path does not overflow |
 | Iterative deepening | Only over a successor closure. On a stored graph, breadth-first or bidirectional search is never worse, and iterative deepening is exponential on graphs with many routes |
 | Events | Exactly these cases, no `finishEdge` |
+| Edge-position searches | `edgeBreadthFirstSearch` / `edgeDepthFirstSearch` report edges by position. Directed, the events are the endpoint search's, read through `source(ofEdgeAt:)` and `target(ofEdgeAt:)`. Undirected, each edge once, at the first row that reaches it: the tree edge is not reported again from below, a parallel edge to the parent is a back (non-tree) edge, a self-loop is reported once |
 | Free functions | `breadthFirstSearch(from:successors:)` and friends are hidden by the methods of the same name inside a `DirectedGraph` extension; call them as `Traversal.breadthFirstSearch` there |
 | Per-vertex state | Arrays indexed in index space (`successorIndices`) when the graph has vertex indices; dictionaries otherwise |
 | Cycles | Topological sorts return `nil`; `findCycle()` returns the witness, a Walks `Cycle` rotated to start at the back edge's target, its edges the search's tree edges and back edge (the first out-edge between consecutive vertices; WK-1202, WK-1203, WK-1214, WK-1215) |

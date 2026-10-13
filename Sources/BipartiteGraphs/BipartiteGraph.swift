@@ -391,6 +391,10 @@ extension BipartiteGraph: GraphDelegator, Graph {
     @inlinable public func degree(ofIndex index: Int) -> Int { _base.degree(ofIndex: index) }
     @inlinable public func endpointIndices(ofEdgeAt position: Int) -> (u: Int, v: Int) { _base.endpointIndices(ofEdgeAt: position) }
 
+    /// The base's: the rows are the base's.
+    @inlinable
+    public static var _lendsIncidentRowsInConstantTime: Bool { UndirectedAdjacencyList<Vertex>._lendsIncidentRowsInConstantTime }
+
     @inlinable
     public func _withIncidentIndexRows<Result>(
         _ body: (

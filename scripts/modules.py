@@ -90,7 +90,7 @@ TEST_TARGETS = [
     ("CompressedSparseRowTests", ["GraphProtocols", "CompressedSparseRowModule", "AdjacencyListModule", "AdjacencyMatrixModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("AdjacencyMatrixTests", ["GraphProtocols", "AdjacencyMatrixModule", "AdjacencyListModule", "GrafluentTestSupport", "swift-collections/BitCollections", "swift-property-based/PropertyBased"]),
     ("EdgeListTests", ["GraphProtocols", "EdgeListModule", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport"]),
-    ("TraversalTests", ["GraphProtocols", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", "Walks", "Trees"]),
+    ("TraversalTests", ["GraphProtocols", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "Multigraphs", "StableGraphs", "GraphOperations", "Hypergraphs", "GrafluentTestSupport", "swift-property-based/PropertyBased", "Walks", "Trees"]),
     ("PriorityQueueTests", ["PriorityQueueModule", "GrafluentTestSupport"]),
     ("DisjointSetTests", ["DisjointSetModule", "GrafluentTestSupport"]),
     ("ShortestPathsTests", ["GraphProtocols", "ShortestPaths", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "DirectedAcyclicGraphModule", "Multigraphs", "StableGraphs", "GrafluentTestSupport", "swift-property-based/PropertyBased", "Walks", "Trees", "Semirings"]),

@@ -155,4 +155,172 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("Traversal: findCycle on a random graph with 1M edges") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(sparse.findCycle()) }
     }
+
+    // TR-B06: the edge-position searches, against the endpoint searches above and against
+    // hand-written edge-position loops over the flat rows (the position is the slot on CSR; on
+    // AdjacencyList it is read from the pool beside the targets).
+    Benchmark("Traversal: BASELINE hand-written edge-position DFS on CompressedSparseRow") { benchmark in
+        for _ in benchmark.scaledIterations {
+            let sum = sparse.withUnsafeBufferPointers { offsets, targets in
+                var order = [Int](repeating: -1, count: n)
+                var finished = [Bool](repeating: false, count: n)
+                var stack: [(Int, Int)] = [(0, offsets[0])]
+                order[0] = 0
+                var discoveries = 1
+                var sum = 0
+                while let (v, k) = stack.last {
+                    if k == offsets[v + 1] {
+                        stack.removeLast()
+                        finished[v] = true
+                        continue
+                    }
+                    stack[stack.count - 1].1 = k + 1
+                    let w = targets[k]
+                    if order[w] < 0 {
+                        order[w] = discoveries
+                        discoveries += 1
+                        sum &+= k
+                        stack.append((w, offsets[w]))
+                    } else {
+                        sum &+= !finished[w] ? 1 : order[w] > order[v] ? 2 : 3
+                    }
+                }
+                return sum
+            }
+            blackHole(sum)
+        }
+    }
+    Benchmark("Traversal: BASELINE hand-written edge-position BFS on CompressedSparseRow") { benchmark in
+        for _ in benchmark.scaledIterations {
+            let sum = sparse.withUnsafeBufferPointers { offsets, targets in
+                var depth = [Int](repeating: -1, count: n)
+                depth[0] = 0
+                var queue = [0]
+                var head = 0
+                var sum = 0
+                while head < queue.count {
+                    let v = queue[head]
+                    head += 1
+                    for k in offsets[v] ..< offsets[v + 1] {
+                        let w = targets[k]
+                        if depth[w] < 0 {
+                            depth[w] = depth[v] + 1
+                            queue.append(w)
+                        }
+                        sum &+= k
+                    }
+                }
+                return sum
+            }
+            blackHole(sum)
+        }
+    }
+    Benchmark("Traversal: BASELINE hand-written edge-position BFS on AdjacencyList") { benchmark in
+        for _ in benchmark.scaledIterations {
+            let sum = list._withOutIndexRows { targets, targetRows, edges, edgeRows in
+                var depth = [Int](repeating: -1, count: n)
+                depth[0] = 0
+                var queue = [0]
+                var head = 0
+                var sum = 0
+                while head < queue.count {
+                    let v = queue[head]
+                    head += 1
+                    let (start, length, edgeStart) = (targetRows[3 * v], targetRows[3 * v + 1], edgeRows[3 * v])
+                    for i in 0 ..< length {
+                        let w = targets[start + i]
+                        if depth[w] < 0 {
+                            depth[w] = depth[v] + 1
+                            queue.append(w)
+                        }
+                        sum &+= edges[edgeStart + i]
+                    }
+                }
+                return sum
+            }
+            blackHole(sum)
+        }
+    }
+    func edgeBenchmarks<G: DirectedGraph & Sendable>(_ name: String, _ g: G) where G.Vertex == Int, G.Edges.Index == Int {
+        Benchmark("Traversal: edgeBreadthFirstSearch on \(name), pulled with for-in") { benchmark in
+            for _ in benchmark.scaledIterations {
+                var positions = 0
+                for case .treeEdge(let e) in g.edgeBreadthFirstSearch(from: 0) { positions &+= e }
+                blackHole(positions)
+            }
+        }
+        Benchmark("Traversal: edgeBreadthFirstSearch on \(name), pushed with forEach") { benchmark in
+            for _ in benchmark.scaledIterations {
+                var positions = 0
+                g.edgeBreadthFirstSearch(from: 0).forEach { if case .treeEdge(let e) = $0 { positions &+= e } }
+                blackHole(positions)
+            }
+        }
+        Benchmark("Traversal: edgeDepthFirstSearch on \(name), pulled with for-in") { benchmark in
+            for _ in benchmark.scaledIterations {
+                var positions = 0
+                for case .treeEdge(let e) in g.edgeDepthFirstSearch(from: 0) { positions &+= e }
+                blackHole(positions)
+            }
+        }
+        Benchmark("Traversal: edgeDepthFirstSearch on \(name), pushed with forEach") { benchmark in
+            for _ in benchmark.scaledIterations {
+                var positions = 0
+                g.edgeDepthFirstSearch(from: 0).forEach { if case .treeEdge(let e) = $0 { positions &+= e } }
+                blackHole(positions)
+            }
+        }
+    }
+    edgeBenchmarks("CompressedSparseRow", sparse)
+    edgeBenchmarks("AdjacencyList", list)
+    Benchmark("Traversal: depthFirstSearch on AdjacencyList, pulled with for-in") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var discovered = 0
+            for case .discover in list.depthFirstSearch(from: 0) { discovered += 1 }
+            blackHole(discovered)
+        }
+    }
+    Benchmark("Traversal: depthFirstSearch on AdjacencyList, pushed with forEach") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var discovered = 0
+            list.depthFirstSearch(from: 0).forEach { if case .discover = $0 { discovered += 1 } }
+            blackHole(discovered)
+        }
+    }
+    Benchmark("Traversal: breadthFirstSearch on AdjacencyList, pushed with forEach") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var discovered = 0
+            list.breadthFirstSearch(from: 0).forEach { if case .discover = $0 { discovered += 1 } }
+            blackHole(discovered)
+        }
+    }
+    let undirected = UndirectedAdjacencyList(vertices: 0 ..< n, edges: edges.map { UndirectedEdge($0.source, $0.target) })
+    Benchmark("Traversal: edgeDepthFirstSearch on UndirectedAdjacencyList, pulled with for-in") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var positions = 0
+            for case .treeEdge(let e) in undirected.edgeDepthFirstSearch(from: 0) { positions &+= e }
+            blackHole(positions)
+        }
+    }
+    Benchmark("Traversal: edgeDepthFirstSearch on UndirectedAdjacencyList, pushed with forEach") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var positions = 0
+            undirected.edgeDepthFirstSearch(from: 0).forEach { if case .treeEdge(let e) = $0 { positions &+= e } }
+            blackHole(positions)
+        }
+    }
+    Benchmark("Traversal: depthFirstSearch on the directedView of UndirectedAdjacencyList, pulled with for-in") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var discovered = 0
+            for case .discover in undirected.directedView.depthFirstSearch(from: 0) { discovered += 1 }
+            blackHole(discovered)
+        }
+    }
+    Benchmark("Traversal: depthFirstSearch on the directedView of UndirectedAdjacencyList, pushed with forEach") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var discovered = 0
+            undirected.directedView.depthFirstSearch(from: 0).forEach { if case .discover = $0 { discovered += 1 } }
+            blackHole(discovered)
+        }
+    }
 }

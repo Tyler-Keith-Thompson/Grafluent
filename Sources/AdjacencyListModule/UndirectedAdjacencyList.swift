@@ -758,6 +758,10 @@ extension UndirectedAdjacencyList: Graph {
         return (record.u, record.v)
     }
 
+    /// `true`: the rows are stored.
+    @inlinable
+    public static var _lendsIncidentRowsInConstantTime: Bool { true }
+
     /// The stored rows: `_neighbors` and `_incident`, whose entries are slots and edge positions,
     /// which are the vertex and edge indices.
     @inlinable

@@ -171,7 +171,8 @@ public protocol DirectedGraph<Vertex> {
     /// whose `Edges.Index` is `Int` and whose edge positions are `0 ..< edgeCount` in row order
     /// implements it. Slot `k` of `targets` is the edge at position `k`, with `edgeIndex` `k`, and
     /// algorithms pass slot `k` to a weight closure as position `k`. The buffers are valid only
-    /// during the call.
+    /// during the call. The rows are stored, never built for the call: a call is O(1) plus `body`,
+    /// so an algorithm may call it once per step.
     ///
     /// Not for use outside the library.
     func _withSuccessorIndexRows<Result>(
@@ -186,8 +187,10 @@ public protocol DirectedGraph<Vertex> {
     /// length, and one entry that callers ignore. `successorIndices(ofIndex: v)` is
     /// `targets[targetRows[3v] ..< targetRows[3v] + targetRows[3v + 1]]`, and
     /// `outEdges(ofIndex: v)` reads `edges` and `edgeRows` the same way. Only a graph whose
-    /// `Edges.Index` is `Int` implements it. The buffers are valid only during the call. A view
-    /// that changes adjacency, such as a subgraph or a filter, must not forward this method.
+    /// `Edges.Index` is `Int` implements it; the entries of `edges` are positions. The buffers are
+    /// valid only during the call. The rows are stored, never built for the call: a call is O(1)
+    /// plus `body`. A view that changes adjacency, such as a subgraph or a filter, must not
+    /// forward this method.
     ///
     /// Not for use outside the library. Algorithms read the rows through
     /// `_withCheckedOutIndexRows(_:)`, which checks the tables' bounds once.

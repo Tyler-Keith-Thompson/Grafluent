@@ -74,7 +74,7 @@ for f in /tmp/co/*; do cmp "$f" Tests/ColoringModuleTests/"$(basename "$f")"; do
 | SpectralGraphTheory | scipy, numpy 2.5.4 | `swiftgen.py` | `ref.py --stress` |
 | StableGraphs | rustworkx | `swiftgen.py` | `ref.py --stress` |
 | Tours | igraph, rustworkx | `swiftgen.py` | `ref.py --stress` |
-| Traversal | none (stdlib) | `gen.py` (`SearchTranscriptTests.swift`) | `check.py`; `dump.py`, `compact.py` reproduce `dump.txt`, `compact.txt` |
+| Traversal | none (stdlib) | `gen.py` (`SearchTranscriptTests.swift`, `EdgeSearchTranscriptTests.swift` from `edges.py`) | `check.py`; `edges.py` (section P); `dump.py`, `compact.py` reproduce `dump.txt`, `compact.txt` |
 | Trees | — | none | `ref.py`; `extras.py` |
 | TreeAlgorithms | — | none | `ref.py`; `extra.py`, `extra2.py`, `extra3.py` |
 | Walks | — | none | `ref.py` |

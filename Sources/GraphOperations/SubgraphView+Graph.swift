@@ -298,6 +298,10 @@ extension SubgraphView: Graph where Base: Graph {
         return test.rank(position)
     }
 
+    /// The base's: the view lends the base's rows or none.
+    @inlinable
+    public static var _lendsIncidentRowsInConstantTime: Bool { Base._lendsIncidentRowsInConstantTime }
+
     /// The base's flat rows when the view keeps every vertex and every edge (an induced subgraph
     /// on all the vertices): its rows, positions and edge indices are then the base's. `nil`
     /// otherwise, since the view changes incidence.

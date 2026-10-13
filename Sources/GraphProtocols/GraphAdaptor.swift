@@ -314,6 +314,9 @@ where Self: Graph, Base: Graph, Vertex == Base.Vertex, Vertices == Base.Vertices
     ) -> Result? {
         base._withIncidentIndexRows(body)
     }
+
+    /// The base's: the rows are the base's.
+    @inlinable public static var _lendsIncidentRowsInConstantTime: Bool { Base._lendsIncidentRowsInConstantTime }
 }
 
 extension GraphDelegator

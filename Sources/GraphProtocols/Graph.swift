@@ -180,6 +180,12 @@ public protocol Graph<Vertex> {
     /// tables' bounds once before reading them. A view that changes incidence, such as a subgraph
     /// or a filter, must not forward this method.
     ///
+    /// The entries of `edges` are edge indices, not positions. A caller may read them as
+    /// positions only when `Edges.Index` is `Int`, `edges` runs from `0` to `edgeCount`, and
+    /// `edgeIndexBound == edgeCount`: its positions are then `0..<edgeCount` in order, and by the
+    /// edge-index law the position at offset `k` has edge index `k`. The call may build the rows,
+    /// in O(*n* + *m*) or more; it is O(1) plus `body` when `_lendsIncidentRowsInConstantTime`.
+    ///
     /// Not for use outside the library.
     func _withIncidentIndexRows<Result>(
         _ body: (
@@ -187,6 +193,14 @@ public protocol Graph<Vertex> {
             _ edges: UnsafeBufferPointer<Int>, _ edgeRows: UnsafeBufferPointer<Int>
         ) -> Result
     ) -> Result?
+
+    /// Whether `_withIncidentIndexRows(_:)` lends stored rows, in O(1) plus `body`, so an
+    /// algorithm may call it once per step rather than once per run. Default: `false`. A
+    /// representation that stores the rows answers `true`, and a wrapper that forwards
+    /// `_withIncidentIndexRows(_:)` (or returns `nil`) answers its base's.
+    ///
+    /// Not for use outside the library.
+    static var _lendsIncidentRowsInConstantTime: Bool { get }
 
     /// The graph's current generation. Every structural mutation replaces it. A structure derived
     /// from the graph stores the generation and calls `GraphGeneration.isCurrent(for:)` before
@@ -274,6 +288,9 @@ extension Graph {
 }
 
 extension Graph {
+    @inlinable
+    public static var _lendsIncidentRowsInConstantTime: Bool { false }
+
     @inlinable
     public func _withIncidentIndexRows<Result>(
         _ body: (

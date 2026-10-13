@@ -133,3 +133,61 @@ for kindname,suite,kind in [('Breadth-first search transcripts','BreadthFirstSea
 OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'TraversalTests')
 open(os.path.join(OUT, 'SearchTranscriptTests.swift'),'w').write('\n'.join(lines))
 print(len(tests))
+
+# P. edge-position searches, from the reference model in edges.py.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import edges as edgeref
+def edge_search_test(row):
+    ident, title, undirected, vertices, edges, search, args = row
+    if undirected:
+        host = 'ReferencePseudograph'
+        written = '[' + ', '.join(f'UndirectedEdge({a}, {b})' for a, b in edges) + ']'
+    else:
+        host = 'ReferenceDirectedMultigraph'
+        written = edges_swift(edges)
+    listed = f'vertices: {vertices}, ' if vertices else ''
+    labels = []
+    if 'from' in args: labels.append(f"from: {args['from']}")
+    if 'depthLimit' in args: labels.append(f"depthLimit: {args['depthLimit']}")
+    call = f"edge{'DepthFirst' if search == 'dfs' else 'BreadthFirst'}Search({', '.join(labels)})"
+    expected = edgeref.described(edgeref.transcript(row))
+    body = f'        let graph = {host}({listed}edges: {written})\n'
+    if 'prune' in args:
+        body += f'''        var search = graph.{call}.makeIterator()
+        var events: [String] = []
+        while let event = search.next() {{
+            events.append(event.description)
+            if case .discover(let v) = event, {args['prune']}.contains(v) {{ search.prune() }}
+        }}
+        #expect(events.joined(separator: " ") == "{expected}")'''
+    else:
+        body += f'        #expect(graph.{call}.map(\\.description).joined(separator: " ") == "{expected}")'
+    return ident, title, body
+edge_lines = ['''// Exact event transcripts of the edge-position searches, on the ReferenceDirectedMultigraph and
+// ReferencePseudograph test conformers, whose rows follow the edges as written and whose edge
+// positions are the edges' offsets. Expected transcripts come from the reference model in the
+// catalog's edges.py, which reports each edge at the first row that reaches it. Case IDs (TR-nn)
+// refer to the catalog; see README.md.
+//
+// GENERATED from the catalog by a script, then checked in: each test is self-contained.
+
+import GraphProtocols
+import GrafluentTestSupport
+import Testing
+import Traversal
+''']
+for suitename, suite, want in [('Edge-position search transcripts, directed', 'DirectedEdgeSearchTranscriptTests', False),
+                               ('Edge-position search transcripts, undirected', 'UndirectedEdgeSearchTranscriptTests', True)]:
+    edge_lines.append(f'@Suite("{suitename}")\nstruct {suite} {{')
+    seen = {}
+    for row in edgeref.ROWS:
+        if row[2] != want: continue
+        ident, title, body = edge_search_test(row)
+        fn = re.sub(r'[^A-Za-z0-9]', '', ident.lower().replace('-', '')) + row[5]
+        seen[fn] = seen.get(fn, 0) + 1
+        if seen[fn] > 1: fn += f'v{seen[fn]}'
+        edge_lines.append(f'    @Test("{ident} {title}")\n    func {fn}() {{\n{body}\n    }}\n')
+    edge_lines[-1] = edge_lines[-1].rstrip('\n') + '\n'
+    edge_lines.append('}\n')
+open(os.path.join(OUT, 'EdgeSearchTranscriptTests.swift'), 'w').write('\n'.join(edge_lines))
+print(len(edgeref.ROWS))
