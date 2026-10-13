@@ -4,6 +4,8 @@ Grafluent is a generic graph library for Swift. It provides graph representation
 types, graph classes that enforce their invariants, and a broad set of graph algorithms, from
 shortest paths and connectivity to flows, matching, isomorphism and layout.
 
+[Documentation](https://tyler-keith-thompson.github.io/Grafluent/documentation/grafluent/)
+
 ## Why Grafluent
 
 - **Value semantics.** Every graph is a copy-on-write struct. `let` graphs are immutable, copies
@@ -123,7 +125,7 @@ let vertexCount = grid.vertexCount  // 12
 let diameter = grid.diameter()      // 5
 ```
 
-The full API reference is in the DocC documentation for each module.
+The full API reference is the [DocC documentation](https://tyler-keith-thompson.github.io/Grafluent/documentation/grafluent/), with a page for each module.
 
 ## Modules
 
