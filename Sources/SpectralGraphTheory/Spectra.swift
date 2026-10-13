@@ -3,7 +3,6 @@ import GraphProtocols
 extension Graph {
     /// Every eigenvalue of the adjacency matrix A (`adjacencyMatrix()`), ascending, with multiplicity.
     ///
-    ///
     /// Dense: Householder tridiagonalization and the root-free QL iteration, O(n³) time and n²
     /// `Double`s, for graphs of up to a few thousand vertices. `[]` for the empty graph.
     ///

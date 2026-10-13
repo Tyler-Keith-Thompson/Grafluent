@@ -189,8 +189,8 @@ public struct CompressedSparseRow {
             offsets.withUnsafeMutableBufferPointer { offsets in
                 columns.withUnsafeMutableBufferPointer { columns in
                     edgeIndices.withUnsafeMutableBufferPointer { edgeIndices in
-                        // Pass 2: bucket by target. `columns[t + 1]` is the cursor of bucket t,
-                        // so afterwards it is the bucket's end and `columns[t]` its start.
+                        // Pass 2: bucket by target. `columns[t]` is the cursor of bucket t (it starts
+                        // at the bucket's start), so afterwards it is the bucket's end.
                         var position = 0
                         for edge in edges {
                             let slot = columns[edge.target]
@@ -938,8 +938,9 @@ extension CompressedSparseRow {
     public var sourceGeneration: GraphGeneration { _sourceGeneration }
 
     /// Whether this graph was built by `init(_:)` from `graph` (or a copy of it) and `graph` has
-    /// not been structurally mutated since, so the two still have the same vertices and edges.
-    /// False when the source does not track generations. O(1).
+    /// not been structurally mutated since. A view of a graph shares that graph's generation, so
+    /// it reports the same answer as the graph. False when the source does not track
+    /// generations. O(1).
     @inlinable
     public func isCurrent(for graph: some DirectedGraph) -> Bool {
         _sourceGeneration.isCurrent(for: graph)

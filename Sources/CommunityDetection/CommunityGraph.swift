@@ -55,8 +55,7 @@ extension Graph {
         return contains(vertex) ? vertexIndex(of: vertex) : nil
     }
 
-    /// Each edge's ends by edge number (the end met first in the rows as `from`), and the rows when
-    /// `rows`. Read from the index-space rows, so no vertex is hashed.
+    /// Read from the index-space rows, so no vertex is hashed.
     /// Each edge's ends by edge number, the end met first in the rows as `from`.
     @inlinable
     func _communityGraph() -> _CommunityGraph {

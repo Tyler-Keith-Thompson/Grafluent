@@ -7,6 +7,8 @@ import GraphProtocols
 /// An eccentricity is `nil`, standing for infinity, when some vertex is not reachable from the
 /// vertex. The diameter is `nil` exactly when the graph is not connected (or not strongly
 /// connected), and the radius is `nil` when no vertex reaches every vertex.
+///
+/// The result holds a copy of the graph, as `ShortestPathTree` does.
 @frozen
 public struct Eccentricities<G: DirectedGraph, Distance: Comparable & AdditiveArithmetic> {
     @usableFromInline let _graph: G

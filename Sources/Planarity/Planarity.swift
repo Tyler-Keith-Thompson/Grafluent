@@ -19,6 +19,9 @@ extension Graph {
     /// Whether the graph can be drawn in the plane without crossing edges. A simple graph with more
     /// than 3n − 6 edges is not, which is answered after counting distinct pairs, before any
     /// search. O(n + m).
+    ///
+    /// - Precondition: The vertex count plus twice the number of distinct vertex pairs joined by an
+    ///   edge is below 268,435,455.
     @inlinable
     public var isPlanar: Bool {
         let simple = _runOnUndirectedRows(_UnderlyingSimpleGraphReader(limit: _planarEdgeLimit, readsEdges: false, keepsCopies: false))
@@ -29,6 +32,9 @@ extension Graph {
     /// A planar embedding of the graph, over every edge position (loops and parallel copies
     /// included), or nil when the graph is not planar: the witness of planarity. O(n + m), faces
     /// included.
+    ///
+    /// - Precondition: The vertex count plus twice the number of distinct vertex pairs joined by an
+    ///   edge is below 268,435,455.
     @inlinable
     public func planarEmbedding() -> PlanarEmbedding<Self>? {
         let numbering = _vertexNumbering()
@@ -43,6 +49,9 @@ extension Graph {
     /// A subdivision of K₅ or K₃,₃ made of the graph's edges, or nil when the graph is planar: the
     /// witness of non-planarity. A dense graph is searched on its first 3n − 5 distinct pairs only,
     /// which already hold one. O(n + m).
+    ///
+    /// - Precondition: The vertex count plus twice the number of distinct vertex pairs joined by an
+    ///   edge is below 268,435,455.
     @inlinable
     public func findKuratowskiSubgraph() -> KuratowskiSubgraph<Self>? {
         let numbering = _vertexNumbering()
@@ -57,6 +66,9 @@ extension Graph {
     /// Whether the graph has a planar embedding with every vertex on one face: whether the graph
     /// plus a new vertex joined to every vertex is planar. A simple graph with more than 2n − 3
     /// edges is not. O(n + m).
+    ///
+    /// - Precondition: The vertex count plus twice the number of distinct vertex pairs joined by an
+    ///   edge is below 268,435,455.
     @inlinable
     public var isOuterplanar: Bool {
         let n = vertexIndexBound ?? vertexCount
